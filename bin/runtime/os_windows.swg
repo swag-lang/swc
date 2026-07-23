@@ -262,9 +262,9 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
             switch kind
             {
             case Assert:
-                msg = "assertion failed"
+                msg = "assertion does not hold"
             case Safety:
-                msg = "safety check failed"
+                msg = "runtime safety contract does not hold"
             default:
                 msg = "runtime error"
             }
@@ -365,7 +365,7 @@ func __testUnhandledFilter(exceptionPointers: *void)->s32
         return 0 // EXCEPTION_CONTINUE_SEARCH
 
     let record = dref cast(*const *u32) exceptionPointers
-    @print("\nhardware exception ", cast(s64) dref record, " in #test\n")
+    @print("\n#test stops on hardware exception ", cast(s64) dref record, "\n")
     g_TestFailed = true
     __Win32RT.RtlRestoreContext(__testResumeContext(), null)
     return 0

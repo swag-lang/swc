@@ -394,7 +394,7 @@ namespace
         {
             context.useDefMap = nullptr;
             context.ssaState  = nullptr;
-            return MicroVerify::reportError(context, loopName, std::format("failed to reach a fixed point after {} iterations", maxIterations));
+            return MicroVerify::reportError(context, loopName, std::format("fixed point not reached after {} iterations", maxIterations));
         }
 
         context.useDefMap = nullptr;

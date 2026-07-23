@@ -19,7 +19,7 @@ namespace
 #if SWC_DEV_MODE
     void panicUnmaterializedCodeGenTarget(const TaskContext& ctx, const SymbolFunction& symbol)
     {
-        const Utf8 detail = std::format("Function: {}\nDeclNodeRef: {}\nSemaCompleted: {}\nCodeGenPreSolved: {}\nCodeGenCompleted: {}\nLazyGenericBody: {}\nLazyGenericBodyRunning: {}\nGenericRoot: {}\nGenericInstance: {}\nIgnored: {}\n",
+        const Utf8 detail = std::format("function: {}\ndeclaration node: {}\nsemantic analysis complete: {}\ncode generation pre-solved: {}\ncode generation complete: {}\nlazy generic body: {}\nlazy generic body running: {}\ngeneric root: {}\ngeneric instance: {}\nignored: {}\n",
                                         symbol.getFullScopedName(ctx),
                                         symbol.declNodeRef().isValid() ? symbol.declNodeRef().get() : 0,
                                         symbol.isSemaCompleted(),
@@ -30,7 +30,7 @@ namespace
                                         symbol.isGenericRoot(),
                                         symbol.isGenericInstance(),
                                         symbol.isIgnored());
-        swcPanic("CodeGen scheduled for an unmaterialized generic body!", __FILE__, __LINE__, "symbol.hasUnmaterializedGenericBody()", detail.view());
+        swcPanic("code generation scheduled for an unmaterialized generic body", __FILE__, __LINE__, "symbol.hasUnmaterializedGenericBody()", detail.view());
     }
 #endif
 

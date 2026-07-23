@@ -35,56 +35,56 @@ void CommandLineParser::registerCommands()
                               {"build", CommandKind::Build},
                               {"run", CommandKind::Run},
                           },
-                          "Select the command to execute.",
+                          "Select the command to execute",
                           {&StructConfigAssignHook::setBoolTrue, &cmdLine_->commandExplicit});
 
     add(HelpOptionGroup::Input, "all", "--config-file", "-cf",
         &cmdLine_->configFile,
-        "Read command options from a config file before applying explicit CLI flags. Relative paths inside the file are resolved from the config file directory.",
+        "Read options from a config file before applying explicit CLI flags; resolve its relative paths from the config file directory",
         false);
     add(HelpOptionGroup::Input, "all", "--directory", "-d",
         &cmdLine_->directories,
-        "Specify one or more directories to process recursively for input files. When --module-file is present, relative paths are resolved from the module file folder.");
+        "Process one or more directories recursively for input files; with --module-file, resolve relative paths from the module file directory");
     add(HelpOptionGroup::Input, "all", "--file", "-f",
         &cmdLine_->files,
-        "Specify one or more individual files to process directly. When --module-file is present, relative paths are resolved from the module file folder.");
+        "Process one or more individual files directly; with --module-file, resolve relative paths from the module file directory");
     add(HelpOptionGroup::Input, "all", "--file-filter", "-ff",
         &cmdLine_->fileFilter,
-        "Apply a substring filter to input paths.");
+        "Keep input paths that contain this substring");
     add(HelpOptionGroup::Input, "all", "--module", "-mf",
         &cmdLine_->modulePath,
-        "Specify a module path to compile.");
+        "Compile the module at this path");
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
         &cmdLine_->moduleFilePath,
-        "Specify the special module setup file to execute before compiling the rest of the module. When present, the module root is derived from the file parent folder and relative input files/directories are resolved from there.");
+        "Run this module setup file before compiling the rest of the module; derive the module root and relative input paths from its parent directory");
     add(HelpOptionGroup::Input, "sema test build run", "--workspace", "-w",
         &cmdLine_->workspacePath,
-        "Specify a workspace folder containing modules/<module>/module.swg and modules/<module>/src. Workspaces own their .output and .tmp folders and cannot be combined with --module, --module-file, --directory or --file.");
+        "Use a workspace containing modules/<module>/module.swg and modules/<module>/src; the workspace owns its .output and .tmp directories and excludes --module, --module-file, --directory, and --file");
     add(HelpOptionGroup::Input, "sema test build run", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
-        "When --workspace is present, compile only the named workspace module and its internal workspace dependencies.");
+        "With --workspace, compile only this module and its internal workspace dependencies");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
-        "Resolve a generated public API dependency from a module name through <compiler-root>/std/.output/<module>/<matching-config>.");
+        "Resolve a generated public API dependency by module name through <compiler-root>/std/.output/<module>/<matching-config>");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-dir", nullptr,
         &cmdLine_->importApiDirs,
-        "Add a read-only dependency root containing <module>/<backend>/<build-cfg>/<arch> folders of generated public API files (.swg/.swgs).");
+        "Add a read-only dependency root containing generated public API files (.swg/.swgs) under <module>/<backend>/<build-cfg>/<arch>");
     add(HelpOptionGroup::Input, "sema test build run", "--import-api-file", nullptr,
         &cmdLine_->importApiFiles,
-        "Add one generated public API file (.swg/.swgs) to the compilation input.");
+        "Add one generated public API file (.swg/.swgs) to the compilation input");
     add(HelpOptionGroup::Input, "sema build run", "--export-api-dir", nullptr,
         &cmdLine_->exportApiDir,
-        "Generate the module public API into this directory after a successful semantic pass.");
+        "Write the module public API to this directory after a successful semantic pass");
     addEnum(HelpOptionGroup::Target, "sema test build run", "--arch", "-a",
             &cmdLine_->targetArch,
             {
                 {"x86_64", Runtime::TargetArch::X86_64},
             },
-            "Set the target architecture used by #arch and compiler target queries.");
+            "Set the target architecture used by #arch and compiler target queries");
     addEnum(HelpOptionGroup::Target, "sema test build run", "--build-cfg", "-bc",
             &cmdLine_->buildCfg,
             std::move(buildCfgChoices),
-            "Set the registered build configuration string used by #cfg and @compiler.getBuildCfg().");
+            "Set the registered build configuration used by #cfg and @compiler.getBuildCfg()");
     addEnum(HelpOptionGroup::Target, "sema test build run", "--artifact-kind", "-ak",
             &cmdLine_->backendKind,
             {
@@ -93,49 +93,49 @@ void CommandLineParser::registerCommands()
                 {"static-library", Runtime::BuildCfgBackendKind::StaticLibrary},
                 {"export", Runtime::BuildCfgBackendKind::Export},
             },
-            "Select the backend kind exposed through @compiler.getBuildCfg(); export builds generate dependency/API output without a native artifact.",
+            "Select the backend kind exposed through @compiler.getBuildCfg(); export builds produce dependency and API output without a native artifact",
             true,
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
     add(HelpOptionGroup::Target, "sema test build run", "--cpu", "-cpu",
         &cmdLine_->targetCpu,
-        "Set the target CPU string used by #cpu and compiler target queries.");
+        "Set the target CPU string used by #cpu and compiler target queries");
     add(HelpOptionGroup::Target, "sema test build run", "--artifact-name", "-n",
         &cmdLine_->name,
-        "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs.");
+        "Set the artifact name exposed through @compiler.getBuildCfg() and used for native outputs");
     add(HelpOptionGroup::Target, "sema test build run", "--module-namespace", nullptr,
         &cmdLine_->moduleNamespace,
-        "Force the module namespace name exposed through @compiler.getBuildCfg() and used as the semantic module root.");
+        "Override the module namespace exposed through @compiler.getBuildCfg() and used as the semantic module root");
     add(HelpOptionGroup::Target, "sema test build run", "--out-dir", "-od",
         &cmdLine_->outDir,
-        "Set the artifact output directory exposed through @compiler.getBuildCfg().");
+        "Set the artifact output directory exposed through @compiler.getBuildCfg()");
     add(HelpOptionGroup::Target, "sema test build run", "--work-dir", "-wd",
         &cmdLine_->workDir,
-        "Set the work directory exposed through @compiler.getBuildCfg().");
+        "Set the work directory exposed through @compiler.getBuildCfg()");
     add(HelpOptionGroup::Target, "sema test build run", "--optimize", "-o",
         &cmdLine_->backendOptimize,
-        "Enable backend optimization for JIT folding and native code generation.");
+        "Enable backend optimization for JIT folding and native code generation");
 
     add(HelpOptionGroup::Compiler, "all", "--num-cores", "-j",
         &cmdLine_->numCores,
-        "Set the maximum number of CPU cores to use (0 = auto-detect).");
+        "Set the maximum CPU core count; use 0 to detect it automatically");
     add(HelpOptionGroup::Compiler, "all", "--stats", "-st",
         &cmdLine_->stats,
-        "Display runtime statistics after execution.");
+        "Show runtime statistics after execution");
     add(HelpOptionGroup::Compiler, "all", "--stats-mem", "-stm",
         &cmdLine_->statsMem,
-        "Display runtime memory statistics after execution.");
+        "Show runtime memory statistics after execution");
     add(HelpOptionGroup::Compiler, "sema test build run", "--tag", nullptr,
         &cmdLine_->tags,
-        "Register a compiler tag consumed by #hastag and #gettag. Syntax: Name, Name = value, or Name: type = value.");
+        "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value");
     add(HelpOptionGroup::Compiler, "test run", "--run-arg", nullptr,
         &cmdLine_->runArgs,
-        "Append one argument to every emitted executable launched by the test or run command. May be specified multiple times.");
+        "Append one argument to every emitted executable launched by test or run; repeat the option to append more");
     add(HelpOptionGroup::Compiler, "test build run", "--publish", nullptr,
         &cmdLine_->publish,
-        "Copy executable dependency DLLs and PDBs into the artifact output directory after a successful native link.");
+        "Copy executable dependency DLLs and PDBs to the artifact output directory after a successful native link");
     add(HelpOptionGroup::Compiler, "sema test build run", "--rebuild", nullptr,
         &cmdLine_->rebuild,
-        "When --workspace is present, force recompilation of every selected workspace module even if all generated outputs are already up to date.");
+        "With --workspace, recompile every selected module even when all generated outputs are up to date");
 
     addEnum<FileSystem::FilePathDisplayMode>(
         HelpOptionGroup::Diagnostics, "all", "--path-display", "-pd",
@@ -145,93 +145,93 @@ void CommandLineParser::registerCommands()
             {"basename", FileSystem::FilePathDisplayMode::BaseName},
             {"absolute", FileSystem::FilePathDisplayMode::Absolute},
         },
-        "Control file path display style for diagnostics, stack traces and file locations.");
+        "Choose how diagnostics, stack traces, and source locations display file paths");
     add(HelpOptionGroup::Diagnostics, "all", "--diagnostic-id", "-di",
         &cmdLine_->errorId,
-        "Show diagnostic identifiers.");
+        "Show diagnostic identifiers");
     add(HelpOptionGroup::Diagnostics, "all", "--diagnostic-one-line", "-dl",
         &cmdLine_->diagOneLine,
-        "Display diagnostics as a single line.");
+        "Render each diagnostic on one line");
 
     add(HelpOptionGroup::Logging, "all", "--log-ascii", "-la",
         &cmdLine_->logAscii,
-        "Restrict console output to ASCII characters (disable Unicode).");
+        "Restrict console output to ASCII and disable Unicode glyphs");
     add(HelpOptionGroup::Logging, "all", "--log-color", "-lc",
         &cmdLine_->logColor,
-        "Enable colored log output for better readability.");
+        "Colorize log output");
     add(HelpOptionGroup::Logging, "all", "--silent", "-s",
         &cmdLine_->silent,
-        "Suppress all log output.");
+        "Suppress all log output");
     add(HelpOptionGroup::Logging, "all", "--syntax-color", "-sc",
         &cmdLine_->syntaxColor,
-        "Syntax color output code.");
+        "Colorize source code in compiler output");
     add(HelpOptionGroup::Logging, "all", "--syntax-color-lum", "-scl",
         &cmdLine_->syntaxColorLum,
-        "Syntax color luminosity factor [0-100].");
+        "Set syntax-color luminosity from 0 to 100");
 
     add(HelpOptionGroup::Testing, "test", "--test-native", "-tn",
         &cmdLine_->testNative,
-        "Enable native backend testing for #test sources.");
+        "Run #test sources through the native backend");
     add(HelpOptionGroup::Testing, "test", "--test-jit", "-tj",
         &cmdLine_->testJit,
-        "Enable JIT execution for #test functions during testing.");
+        "Run #test functions through the JIT during testing");
     add(HelpOptionGroup::Testing, "test", "--lex-only", nullptr,
         &cmdLine_->lexOnly,
-        "Stop test inputs after lexing. Cannot be combined with --syntax-only or --sema-only.");
+        "Stop test inputs after lexing; excludes --syntax-only and --sema-only");
     add(HelpOptionGroup::Testing, "test", "--syntax-only", nullptr,
         &cmdLine_->syntaxOnly,
-        "Stop test inputs after parsing. Cannot be combined with --lex-only or --sema-only.");
+        "Stop test inputs after parsing; excludes --lex-only and --sema-only");
     add(HelpOptionGroup::Testing, "test", "--sema-only", nullptr,
         &cmdLine_->semaOnly,
-        "Stop test inputs after semantic analysis. Cannot be combined with --lex-only or --syntax-only.");
+        "Stop test inputs after semantic analysis; excludes --lex-only and --syntax-only");
     add(HelpOptionGroup::Testing, "test", "--output", nullptr,
         &cmdLine_->output,
-        "Enable native artifact generation during testing. Use --no-output to keep JIT-only test runs in-memory.");
+        "Generate native artifacts during testing; use --no-output to keep JIT-only test runs in memory");
     add(HelpOptionGroup::Testing, "test", "--verbose-verify", "-vv",
         &cmdLine_->verboseVerify,
-        "Show diagnostics normally matched and suppressed by source-driven tests.");
+        "Show diagnostics that source-driven tests normally match and suppress");
     add(HelpOptionGroup::Testing, "test", "--verbose-verify-filter", "-vvf",
         &cmdLine_->verboseVerifyFilter,
-        "Restrict --verbose-verify output to messages or diagnostic IDs matching a specific string.");
+        "Keep --verbose-verify messages and diagnostic IDs that match this string");
 
     add(HelpOptionGroup::Development, "all", "--dry-run", "-dr",
         &cmdLine_->dryRun,
-        "Preview the planned stages, outputs and external commands without executing compile-time code, native tools, tests or emitted artifacts.");
+        "Preview planned stages, outputs, and external commands without executing compile-time code, native tools, tests, or emitted artifacts");
     add(HelpOptionGroup::Development, "all", "--show-config", nullptr,
         &cmdLine_->showConfig,
-        "Print computed command, environment, toolchain and native artifact information and exit.");
+        "Show the resolved command, environment, toolchain, and native artifact configuration, then exit");
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",
         &CompilerInstance::dbgDevStop,
-        "Open a message box when an error is reported.");
+        "Open a message box when the compiler reports an error");
     add(HelpOptionGroup::Development, "all", "--dev-full", "-df",
         &cmdLine_->devFull,
-        "Force every compiled development test and validation.");
+        "Enable every compiled-in development test and validator");
 
 #if SWC_HAS_UNITTEST
     add(HelpOptionGroup::Development, "unittest", "--verbose-unittest", "-vu",
         &cmdLine_->verboseUnittest,
-        "Print each internal unit test status.");
+        "Show the status of each internal unit test");
 #endif
 
 #if SWC_HAS_VALIDATE_MICRO
     add(HelpOptionGroup::Development, "all", "--validate-micro", nullptr,
         &cmdLine_->validateMicro,
-        "Run Micro IR legality and pass-invariant validation.");
+        "Validate Micro IR legality and pass invariants");
 #endif
 
 #if SWC_HAS_VALIDATE_NATIVE
     add(HelpOptionGroup::Development, "all", "--validate-native", nullptr,
         &cmdLine_->validateNative,
-        "Run native backend validation, including constant relocation validation.");
+        "Validate the native backend, including constant relocations");
 #endif
 
 #if SWC_DEV_MODE
     add(HelpOptionGroup::Development, "all", "--randomize", "-rz",
         &cmdLine_->randomize,
-        "Randomize single-threaded job scheduling. Forces --num-cores=1.");
+        "Randomize single-threaded job scheduling; implies --num-cores=1");
     add(HelpOptionGroup::Development, "all", "--seed", "-rs",
         &cmdLine_->randSeed,
-        "Set the seed for --randomize. Forces --randomize and --num-cores=1.");
+        "Set the --randomize seed; implies --randomize and --num-cores=1");
 #endif
 }
 

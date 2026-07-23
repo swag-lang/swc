@@ -9,7 +9,7 @@ const char* Job::kindName(const JobKind kind)
     switch (kind)
     {
         case JobKind::Invalid:
-            return "Invalid";
+            return "Unavailable";
         case JobKind::Format:
             return "Format";
         case JobKind::Parser:

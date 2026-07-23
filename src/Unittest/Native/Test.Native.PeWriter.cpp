@@ -92,7 +92,7 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
     if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, fs::path{}))
     {
         const std::string_view reason = diag.elements().empty() ? std::string_view{"unknown error"} : diag.elements().front()->idName();
-        std::println(stderr, "PeWriter test: writeImage failed: {}", reason);
+        std::println(stderr, "[pe-writer] cannot write image: {}", reason);
         return Result::Error;
     }
 
@@ -118,12 +118,12 @@ SWC_FILESYSTEM_TEST_BEGIN(PeWriter_MinimalExecutableCallsExitProcess)
 
     if (runResult != Os::ProcessRunResult::Ok)
     {
-        std::println(stderr, "PeWriter test: process did not run (result={})", static_cast<int>(runResult));
+        std::println(stderr, "[pe-writer] generated process did not run (result {})", static_cast<int>(runResult));
         return Result::Error;
     }
     if (exitCode != 42)
     {
-        std::println(stderr, "PeWriter test: unexpected exit code {} (expected 42)", exitCode);
+        std::println(stderr, "[pe-writer] generated process exited with code {}, expected 42", exitCode);
         return Result::Error;
     }
 }
@@ -170,7 +170,7 @@ SWC_TEST_BEGIN(PeWriter_Win32ApplicationResourcesUseConfig)
     if (!writer.writeImage(peBytes, pdbBytes, diag, image, noDebugInfo, fs::path{}))
     {
         const std::string_view reason = diag.elements().empty() ? std::string_view{"unknown error"} : diag.elements().front()->idName();
-        std::println(stderr, "PeWriter resource test: writeImage failed: {}", reason);
+        std::println(stderr, "[pe-writer-resource] cannot write image: {}", reason);
         return Result::Error;
     }
 

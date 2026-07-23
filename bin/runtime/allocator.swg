@@ -634,7 +634,7 @@ impl Allocator
         if header.magic == MagicFree
         {
             let loc = header.loc.fileName ? header.loc : callerLoc
-            @panic("memory block double free", loc)
+            @panic("memory block is freed twice", loc)
         }
     }
 
@@ -1037,48 +1037,49 @@ impl Allocator
 
         var scan = .firstAlloc
 
-        @print("############################################\n")
-        @print("Swag.Allocator: Memory leaks detected !\n")
-        @print("--------------------------------------------\n")
-        @print(.countAlloc, " block(s) for a total of ")
+        @print("\nSwag allocator: memory remains allocated\n")
+        @print("---------------------------------------\n")
+        @print(.countAlloc)
+        if .countAlloc == 1
+        {
+            @print(" allocation, totaling ")
+        }
+        else
+        {
+            @print(" allocations, totaling ")
+        }
         printDisplaySize(.sizeAlloc)
         @print("\n")
-        @print("############################################\n")
+        @print("---------------------------------------\n")
 
         var cpt = 0
         while scan
         {
             .checkAllocated(scan)
 
-            @print("--------------------------------------------\n")
             @print("\x1b[91m")
-            @print("leak error: id [", scan.allocId, "] size [")
+            @print("allocation #", scan.allocId, ": size ")
             printDisplaySize(scan.userSize)
             if scan.hint do
-                @print("] hint [", scan.hint, "]")
-            else do
-                @print("]")
+                @print(", hint ", scan.hint)
             @print("\n")
             @print("\x1b[36m")
-            @print("--> ")
+            @print("source: ")
             @print(scan.loc.fileName, ":", scan.loc.lineStart + 1, "\n")
             if scan.stackCount do
                 __logStackTrace(@mkslice(&scan.stack[0], scan.stackCount), &scan.loc, false)
-            @print("--------------------------------------------\n")
+            @print("---------------------------------------\n")
 
             scan = scan.next
             cpt += 1
             if .showMaxLeaks and cpt >= .showMaxLeaks
             {
-                @print("--------------------------------------------\n")
                 @print("\x1b[91m")
-                @print("... too many leaks (", .countAlloc, ")...\n")
+                @print("remaining allocation details omitted; ", .countAlloc, " allocations remain in total\n")
                 @print("\x1b[97m")
                 break
             }
         }
-
-        @print("############################################\n")
     }
 
     mtd release()

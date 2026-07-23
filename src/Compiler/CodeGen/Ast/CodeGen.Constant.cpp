@@ -657,7 +657,7 @@ namespace
                 if (safeCstRef.isInvalid())
                     safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
-                    return raiseConstantMaterializationError(codeGen, "failed to materialize a struct constant payload");
+                    return raiseConstantMaterializationError(codeGen, "cannot materialize a struct constant payload");
                 const ConstantValue&             safeCst     = codeGen.cstMgr().get(safeCstRef);
                 const std::span<const std::byte> structBytes = safeCst.getStruct();
                 if (targetTypeRef.isValid())
@@ -705,7 +705,7 @@ namespace
                         const TypeInfo&   sourceArrayType = cst.type(codeGen.ctx());
                         const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::ensureStaticPayloadConstant(codeGen, cstRef, cst.typeRef());
                         if (safeArrayCstRef.isInvalid())
-                            return raiseConstantMaterializationError(codeGen, "failed to materialize an array constant payload");
+                            return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
                         const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
                         const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, targetTypeRef, safeArrayCst.getArray().data(), sliceCountFromArrayCast(codeGen, sourceArrayType, elementType));
                         SWC_ASSERT(runtimeSliceCstRef.isValid());
@@ -718,7 +718,7 @@ namespace
 
                 const ConstantRef safeCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, cst.typeRef());
                 if (safeCstRef.isInvalid())
-                    return raiseConstantMaterializationError(codeGen, "failed to materialize an array constant payload");
+                    return raiseConstantMaterializationError(codeGen, "cannot materialize an array constant payload");
                 const ConstantValue& safeCst = codeGen.cstMgr().get(safeCstRef);
 
                 const uint64_t storageSize = cst.type(codeGen.ctx()).sizeOf(codeGen.ctx());
@@ -736,7 +736,7 @@ namespace
                 const uint64_t    elementCount    = cst.getSliceCount();
                 const ConstantRef safeArrayCstRef = CodeGenConstantHelpers::materializeStaticArrayBufferConstant(codeGen, sliceType.payloadTypeRef(), sliceBytes, elementCount);
                 if (safeArrayCstRef.isInvalid())
-                    return raiseConstantMaterializationError(codeGen, "failed to materialize a slice constant payload");
+                    return raiseConstantMaterializationError(codeGen, "cannot materialize a slice constant payload");
                 const ConstantValue& safeArrayCst       = codeGen.cstMgr().get(safeArrayCstRef);
                 const void*          targetPtr          = sliceBytes.empty() ? sliceBytes.data() : safeArrayCst.getArray().data();
                 const ConstantRef    runtimeSliceCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, cst.typeRef(), targetPtr, elementCount);
@@ -757,7 +757,7 @@ namespace
 
                 const ConstantRef storageCstRef = materializeBorrowedStorageConstant(codeGen, cstRef, targetTypeRef);
                 if (storageCstRef.isInvalid())
-                    return raiseConstantMaterializationError(codeGen, "failed to materialize an aggregate constant payload");
+                    return raiseConstantMaterializationError(codeGen, "cannot materialize an aggregate constant payload");
                 const ConstantValue& storageCst = codeGen.cstMgr().get(storageCstRef);
 
                 if (storageCst.isArray())

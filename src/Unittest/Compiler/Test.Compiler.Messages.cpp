@@ -22,6 +22,35 @@ namespace
     {
         return 1ull << static_cast<uint32_t>(kind);
     }
+
+    bool isMessageWordCharacter(const char c)
+    {
+        return (c >= 'a' && c <= 'z') ||
+               (c >= 'A' && c <= 'Z') ||
+               (c >= '0' && c <= '9') ||
+               c == '_';
+    }
+
+    bool containsMessageWord(const std::string_view message, const std::string_view word)
+    {
+        size_t pos = message.find(word);
+        while (pos != std::string_view::npos)
+        {
+            const size_t end = pos + word.size();
+            if ((pos == 0 || !isMessageWordCharacter(message[pos - 1])) &&
+                (end == message.size() || !isMessageWordCharacter(message[end])))
+                return true;
+            pos = message.find(word, pos + 1);
+        }
+
+        return false;
+    }
+
+    Result reportDiagnosticStyleError(const DiagnosticId id, const std::string_view reason, const std::string_view message)
+    {
+        std::println(stderr, "[diagnostic-style] {}: {}; message is \"{}\"", Diagnostic::diagIdName(id), reason, message);
+        return Result::Error;
+    }
 }
 
 SWC_TEST_BEGIN(Compiler_MessagePassSkipsWithoutListeners)
@@ -86,6 +115,54 @@ SWC_TEST_BEGIN(Compiler_DiagnosticWarningSeverityColorIsMagenta)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DiagnosticCatalogFollowsSwagMessageStyle)
+{
+    constexpr std::string_view vagueWords[] = {
+        "invalid",
+        "unexpected",
+        "failed",
+        "failure",
+        "wrong",
+        "must",
+        "mismatch",
+    };
+
+    for (size_t value = 1; value < static_cast<size_t>(DiagnosticId::Count); ++value)
+    {
+        const auto id = static_cast<DiagnosticId>(value);
+        for (const std::string_view message : Diagnostic::diagIdMessages(id))
+        {
+            if (message.empty())
+                return reportDiagnosticStyleError(id, "message is empty", message);
+            if (message.size() > 260)
+                return reportDiagnosticStyleError(id, "message exceeds 260 characters", message);
+            if (message.find_first_of("\r\n\t") != std::string_view::npos)
+                return reportDiagnosticStyleError(id, "message contains layout whitespace", message);
+            if (message.ends_with('.') || message.ends_with('!') || message.ends_with(':') || message.ends_with(';'))
+                return reportDiagnosticStyleError(id, "message has terminal punctuation", message);
+
+            const size_t helpPos = message.find("[help]");
+            if (helpPos != std::string_view::npos)
+            {
+                if (helpPos < 2 || message.substr(helpPos - 2, 9) != "; [help] ")
+                    return reportDiagnosticStyleError(id, "help does not use the '; [help] ' delimiter", message);
+                if (message.find("[help]", helpPos + 1) != std::string_view::npos)
+                    return reportDiagnosticStyleError(id, "message contains more than one help section", message);
+            }
+
+            for (const std::string_view word : vagueWords)
+            {
+                if (containsMessageWord(message, word))
+                    return reportDiagnosticStyleError(id, std::format("message uses vague word '{}'", word), message);
+            }
+
+            if (message.find("type mismatch") != std::string_view::npos || message.find("not viable") != std::string_view::npos)
+                return reportDiagnosticStyleError(id, "message uses a vague summary instead of the broken contract", message);
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
 {
     CommandLine cmdLine;
@@ -100,7 +177,7 @@ SWC_TEST_BEGIN(Compiler_AssertDiagnosticPreservesLiteralSuffixQuotes)
     DiagnosticBuilder builder(localCtx, diag);
     const Utf8        text = builder.build();
 
-    if (text.find("assertion failed: text[0] == 'w''u8 + 'd''u8") == Utf8::npos)
+    if (text.find("assertion does not hold: text[0] == 'w''u8 + 'd''u8") == Utf8::npos)
         return Result::Error;
 }
 SWC_TEST_END()

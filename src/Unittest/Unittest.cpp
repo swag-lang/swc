@@ -198,7 +198,7 @@ namespace Unittest
             {
                 logUnittestStatus(testCtx, test.name, false, durationNs);
                 if (CompilerInstance::dbgDevStop)
-                    Os::panicBox("[DevMode] UNITTEST failed!");
+                    Os::panicBox("DevMode: internal unit test did not pass");
                 hasFailure = true;
                 stage.markFailure();
             }

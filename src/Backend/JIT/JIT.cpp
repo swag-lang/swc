@@ -1596,7 +1596,7 @@ namespace
             outErrorKind = JITCallErrorKind::HardwareException;
 
         const Utf8 extraInfo = formatJitCrashContext(ctx, platformExceptionPointers);
-        HardwareException::log(ctx, "fatal error: hardware exception during jit call!", platformExceptionPointers, extraInfo);
+        HardwareException::log(ctx, "fatal error: hardware exception during JIT call", platformExceptionPointers, extraInfo);
         Stats::addError();
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }

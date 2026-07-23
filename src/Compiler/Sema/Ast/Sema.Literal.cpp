@@ -526,7 +526,7 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
         if (c < '0' || c > '9')
         {
             // Lexer should prevent this
-            SWC_ASSERT(false && "Invalid digit in decimal literal");
+            SWC_ASSERT(false && "decimal literal contains a non-decimal digit");
             continue;
         }
 

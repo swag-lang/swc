@@ -104,8 +104,8 @@ public:
         if (iteration <= maxIterations_)
             return;
 
-        const Utf8 detail = std::format("Loop: {}\nExceeded iteration budget: {}\nCurrent iteration: {}\n", label_, maxIterations_, iteration);
-        swcPanic("DevMode loop guard triggered!", file_, line_, label_, detail.view());
+        const Utf8 detail = std::format("loop: {}\niteration budget: {}\ncurrent iteration: {}\n", label_, maxIterations_, iteration);
+        swcPanic("DevMode loop guard triggered", file_, line_, label_, detail.view());
     }
 
     void reset() const noexcept

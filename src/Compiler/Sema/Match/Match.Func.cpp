@@ -842,7 +842,7 @@ namespace
                     {
                         case DiagnosticId::sema_err_function_where_not_bool:
                         {
-                            const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
+                            const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<type unavailable>"};
                             return std::format("its 'where' constraint has type '{}' instead of 'bool'{}", typeName, bindingText);
                         }
 
@@ -859,7 +859,7 @@ namespace
 
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_fwd_not_copyable)
                 {
-                    const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
+                    const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<type unavailable>"};
                     if (const SymbolVariable* param = failedParameter(fn, fail))
                         return std::format("its '#fwd' parameter '{}' cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", param->name(ctx), typeName);
                     return std::format("its '#fwd' parameter cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", typeName);
@@ -867,7 +867,7 @@ namespace
 
                 if (fail.castFailure.diagId == DiagnosticId::sema_err_move_arg_not_copyable)
                 {
-                    const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<invalid>"};
+                    const Utf8 typeName = fail.castFailure.srcTypeRef.isValid() ? ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx) : Utf8{"<type unavailable>"};
                     if (const SymbolVariable* param = failedParameter(fn, fail))
                         return std::format("its '#move' parameter '{}' cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", param->name(ctx), typeName);
                     return std::format("its '#move' parameter cannot take a copy of non-copyable type '{}' unless the value is passed with '#move'", typeName);
@@ -922,7 +922,7 @@ namespace
         }
 
         if (failure.diagId == DiagnosticId::sema_err_generic_parameter_not_deduced)
-            return std::format("generic parameter '{}' cannot be deduced from this call and must be specified explicitly", paramName);
+            return std::format("generic parameter '{}' cannot be deduced from this call and needs to be specified explicitly", paramName);
 
         return makeCandidateFailureText(fn, fail, ctx);
     }

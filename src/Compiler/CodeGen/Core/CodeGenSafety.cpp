@@ -461,7 +461,7 @@ Result CodeGenSafety::emitSwitchCheck(CodeGen& codeGen, const AstNode& node, Sym
 {
     SymbolFunction* resolvedPanicFunction = panicFunction ? panicFunction : runtimeSafetyPanicFunction(codeGen);
     SWC_ASSERT(resolvedPanicFunction != nullptr);
-    return emitRuntimePanicCall(codeGen, *resolvedPanicFunction, node, "unexpected case value in complete switch");
+    return emitRuntimePanicCall(codeGen, *resolvedPanicFunction, node, "complete switch received a value not covered by its cases");
 }
 
 Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)

@@ -337,7 +337,7 @@ namespace
             if (!tryReadU16(entry.planes, bytes, entryOffset + 4) || !tryReadU16(entry.bitCount, bytes, entryOffset + 6) || !tryReadU32(entry.bytesInRes, bytes, entryOffset + 8) || !tryReadU32(entry.imageOffset, bytes, entryOffset + 12))
                 return failInvalidIcon(outDiag, config, "ICO directory entry is truncated");
             if (entry.reserved != 0)
-                return failInvalidIcon(outDiag, config, "ICO directory entry is invalid");
+                return failInvalidIcon(outDiag, config, "ICO directory entry has a nonzero reserved byte");
             if (!hasRange(bytes, entry.imageOffset, entry.bytesInRes))
                 return failInvalidIcon(outDiag, config, "ICO image data is out of bounds");
 

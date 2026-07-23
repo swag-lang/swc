@@ -172,13 +172,13 @@ StatsSnapshot StatsSnapshot::capture()
     return result;
 }
 
-// "N tests [• M failed]" parts of a test-command stage line. The executed count is
+// "N tests [• M did not pass]" parts of a test-command stage line. The executed count is
 // always shown, even when zero: in test mode, "no test ran" is a result in itself.
 void ScopedTimedLog::appendTestStats(const TaskContext& ctx, std::vector<Utf8>& parts, const size_t executed, const size_t failed)
 {
     parts.push_back(formatStatCount(ctx, executed, "test"));
     if (failed)
-        parts.push_back(colorize(ctx, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(failed) + " failed"));
+        parts.push_back(colorize(ctx, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(failed) + " did not pass"));
 }
 
 Utf8 ScopedTimedLog::formatStatCount(const TaskContext& ctx, const size_t value, const std::string_view singular, const char* pluralForm)

@@ -90,7 +90,7 @@ namespace Backend::Unittest
 
         if (encoder.size() == 0)
         {
-            Logger::print(ctx, std::format("runEncodeCase empty output: case={}\n", name));
+            Logger::print(ctx, std::format("[encode-case] '{}' produced no bytes\n", name));
             return Result::Error;
         }
 
@@ -98,13 +98,13 @@ namespace Backend::Unittest
         std::vector<ExpectedByte> expected;
         if (parseExpected(expectedHex, expected) != Result::Continue)
         {
-            Logger::print(ctx, std::format("runEncodeCase invalid expected pattern: case={}\n", name));
+            Logger::print(ctx, std::format("[encode-case] '{}' has a malformed expected-byte pattern\n", name));
             return Result::Error;
         }
 
         if (size != expected.size())
         {
-            Logger::print(ctx, std::format("runEncodeCase size mismatch: case={} expected={} got={}\n", name, expected.size(), size));
+            Logger::print(ctx, std::format("[encode-case] '{}' produced {} bytes, expected {}\n", name, size, expected.size()));
             return Result::Error;
         }
 
@@ -115,7 +115,7 @@ namespace Backend::Unittest
                 const auto got = encoder.byteAt(i);
                 if (got != expected[i].value)
                 {
-                    Logger::print(ctx, std::format("runEncodeCase mismatch: case={} byte={} expected={:02X} got={:02X}\n", name, i, expected[i].value, got));
+                    Logger::print(ctx, std::format("[encode-case] '{}' byte {} is {:02X}, expected {:02X}\n", name, i, got, expected[i].value));
                     return Result::Error;
                 }
             }

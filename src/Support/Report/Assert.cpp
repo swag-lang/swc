@@ -21,7 +21,7 @@ namespace
         if (!numFrames)
             return;
 
-        msg += "Call stack:\n";
+        msg += "stack trace:\n";
         for (uint32_t i = 0; i < numFrames; ++i)
         {
             const uintptr_t address = frames[i];
@@ -66,7 +66,7 @@ namespace
         const SourceFile* sourceFile    = codeRange.srcView->file();
         const Utf8        fileLoc       = sourceFile ? sourceFile->formatFileLocation(&ctx, codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
 
-        msg += "Source context:\n";
+        msg += "source context:\n";
         msg += std::format("  --> {}\n", fileLoc);
         msg += std::format(" {} | {}\n", lineNoStr, codeLine);
         msg += std::format(" {} | ", Utf8(static_cast<uint32_t>(lineNoStr.length()), ' '));
@@ -89,18 +89,18 @@ namespace
             !state.waiterSymbol)
             return;
 
-        msg += std::format("Phase: {}\n", TaskState::kindName(state.kind));
+        msg += std::format("phase: {}\n", TaskState::kindName(state.kind));
 
         if (state.codeGenFunction)
-            msg += std::format("Codegen function: {}\n", state.codeGenFunction->getFullScopedName(ctx));
+            msg += std::format("code generation function: {}\n", state.codeGenFunction->getFullScopedName(ctx));
         if (state.runJitFunction)
             msg += std::format("JIT function: {}\n", state.runJitFunction->getFullScopedName(ctx));
         if (state.waiterSymbol)
-            msg += std::format("Current symbol: {}\n", state.waiterSymbol->getFullScopedName(ctx));
+            msg += std::format("current symbol: {}\n", state.waiterSymbol->getFullScopedName(ctx));
         if (state.symbol)
-            msg += std::format("Blocking symbol: {}\n", state.symbol->getFullScopedName(ctx));
+            msg += std::format("blocking symbol: {}\n", state.symbol->getFullScopedName(ctx));
         if (state.codeRef.isValid())
-            msg += std::format("Token: {}\n", Diagnostic::tokenErrorString(ctx, state.codeRef));
+            msg += std::format("token: {}\n", Diagnostic::tokenErrorString(ctx, state.codeRef));
 
         if (hasCodeRange)
             appendSourceContext(msg, ctx, codeRange);
@@ -110,12 +110,12 @@ namespace
 void swcPanic(const char* title, const char* file, int line, const char* expr, const std::string_view detail)
 {
     const Utf8 fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
-    Utf8       msg     = std::format("{}\nFile: {}\n", title ? title : "Internal Error!", fileLoc);
+    Utf8       msg     = std::format("{}\nfile: {}\n", title ? title : "internal compiler error", fileLoc);
     if (expr)
-        msg += std::format("Expression: {}\n", expr);
+        msg += std::format("expression: {}\n", expr);
     if (!detail.empty())
     {
-        msg += "Details:\n";
+        msg += "details:\n";
         msg += detail;
         if (detail.back() != '\n')
             msg += "\n";
@@ -130,17 +130,17 @@ void swcPanic(const char* title, const char* file, int line, const char* expr, c
 
 void swcAssert(const char* expr, const char* file, int line)
 {
-    swcPanic("Assertion Failed!", file, line, expr);
+    swcPanic("compiler assertion does not hold", file, line, expr);
 }
 
 void swcAssertDetail(const char* expr, const char* file, int line, const std::string_view detail)
 {
-    swcPanic("Assertion Failed!", file, line, expr, detail);
+    swcPanic("compiler assertion does not hold", file, line, expr, detail);
 }
 
 void swcInternalError(const char* file, int line, const char* expr)
 {
-    swcPanic("Internal Error!", file, line, expr);
+    swcPanic("internal compiler error", file, line, expr);
 }
 
 SWC_END_NAMESPACE();

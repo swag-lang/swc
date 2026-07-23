@@ -1062,7 +1062,7 @@ namespace
                               symStruct.isUnion(),
                               symStruct.fields().size(),
                               symStruct.declNodeRef().get());
-        swcAssertDetail("compiler #sizeof/#alignof operand must be a concrete struct instance", __FILE__, __LINE__, detail.view());
+        swcAssertDetail("compiler #sizeof/#alignof operand needs a concrete struct instance", __FILE__, __LINE__, detail.view());
 #endif
 
         SWC_ASSERT(!symStruct.isGenericRoot() || symStruct.isGenericInstance());
@@ -1091,7 +1091,7 @@ namespace
                                   symStruct.isUnion(),
                                   symStruct.fields().size(),
                                   symStruct.declNodeRef().get());
-            swcAssertDetail("compiler #sizeof/#alignof concrete struct value must be non-zero", __FILE__, __LINE__, detail.view());
+            swcAssertDetail("compiler #sizeof/#alignof concrete struct value needs to be nonzero", __FILE__, __LINE__, detail.view());
         }
 #endif
 
@@ -1123,7 +1123,7 @@ namespace
                                   ownerStruct->isUnion(),
                                   ownerStruct->fields().size(),
                                   ownerStruct->declNodeRef().get());
-            swcAssertDetail("compiler #offsetof owner struct must have a concrete layout", __FILE__, __LINE__, detail.view());
+            swcAssertDetail("compiler #offsetof owner struct needs a concrete layout", __FILE__, __LINE__, detail.view());
         }
 #endif
 

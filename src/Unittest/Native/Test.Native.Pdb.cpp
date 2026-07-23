@@ -157,17 +157,17 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     PEWriter   writer;
     if (!writer.writeImage(peBytes, pdbBytes, diag, image, dbg, pdbPath))
     {
-        std::println(stderr, "Pdb test: writeImage failed");
+        std::println(stderr, "[pdb-test] image writer did not produce a PDB");
         return Result::Error;
     }
     if (pdbBytes.empty())
     {
-        std::println(stderr, "Pdb test: no PDB bytes produced");
+        std::println(stderr, "[pdb-test] image writer produced no PDB bytes");
         return Result::Error;
     }
     if (!pdbContainsSymbolRecord(pdbBytes, K_S_PROCREF, "myFunc"))
     {
-        std::println(stderr, "Pdb test: function procedure reference is missing from globals");
+        std::println(stderr, "[pdb-test] function procedure reference is missing from globals");
         return Result::Error;
     }
 
@@ -189,7 +189,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     if (!SymInitialize(symHandle, nullptr, FALSE))
     {
         cleanup();
-        std::println(stderr, "Pdb test: SymInitialize failed ({})", GetLastError());
+        std::println(stderr, "[pdb-test] SymInitialize returned error {}", GetLastError());
         return Result::Error;
     }
 
@@ -200,13 +200,13 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
     const DWORD64 modBase = SymLoadModuleEx(symHandle, nullptr, exePathU.c_str(), nullptr, imageBase, 0, nullptr, 0);
 
     const auto fail = [&](std::string_view msg) {
-        std::println(stderr, "Pdb test: {} (err={})", msg, GetLastError());
+        std::println(stderr, "[pdb-test] {} (error {})", msg, GetLastError());
         result = Result::Error;
     };
 
     if (modBase == 0)
     {
-        fail("SymLoadModuleEx failed");
+        fail("SymLoadModuleEx returned an error");
     }
     else
     {
@@ -217,7 +217,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
 
         // Name -> address.
         if (result == Result::Continue && !SymFromName(symHandle, "myFunc", symbol))
-            fail("SymFromName(myFunc) failed");
+            fail("SymFromName(myFunc) returned an error");
 
         const DWORD64 funcAddr = symbol->Address;
 
@@ -228,9 +228,9 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
             symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
             symbol->MaxNameLen   = MAX_SYM_NAME;
             if (!SymFromAddr(symHandle, funcAddr, &disp, symbol))
-                fail("SymFromAddr failed");
+                fail("SymFromAddr returned an error");
             else if (std::string_view{symbol->Name, symbol->NameLen} != "myFunc")
-                fail("SymFromAddr returned the wrong name");
+                fail("SymFromAddr returned a name that does not match myFunc");
         }
 
         // Address -> source line, including a repeated source file block after an interleaved macro file.
@@ -245,21 +245,21 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
             // file name comes back empty if the checksum/names wiring is broken, which hides source in
             // profilers like Superluminal).
             else if (line.FileName == nullptr || std::string_view{line.FileName} != Utf8(srcPath).view())
-                fail("SymGetLineFromAddr64 returned the wrong/empty source file name");
+                fail("SymGetLineFromAddr64 did not return the expected source file name");
 
             line              = {};
             line.SizeOfStruct = sizeof(line);
             if (result == Result::Continue && (!SymGetLineFromAddr64(symHandle, funcAddr + 4, &lineDisp, &line) || line.LineNumber != 20))
                 fail("SymGetLineFromAddr64 at +4 did not return macro line 20");
             else if (result == Result::Continue && (line.FileName == nullptr || std::string_view{line.FileName} != Utf8(macroPath).view()))
-                fail("SymGetLineFromAddr64 at +4 returned the wrong/empty macro source file name");
+                fail("SymGetLineFromAddr64 at +4 did not return the expected macro source file name");
 
             line              = {};
             line.SizeOfStruct = sizeof(line);
             if (result == Result::Continue && (!SymGetLineFromAddr64(symHandle, funcAddr + 8, &lineDisp, &line) || line.LineNumber != 11))
                 fail("SymGetLineFromAddr64 at +8 did not return line 11");
             else if (result == Result::Continue && (line.FileName == nullptr || std::string_view{line.FileName} != Utf8(srcPath).view()))
-                fail("SymGetLineFromAddr64 at +8 returned the wrong/empty source file name");
+                fail("SymGetLineFromAddr64 at +8 did not return the expected source file name");
         }
 
         // Global data symbol -> resolves by name (exercises the globals stream / GSI hash) with its type.
@@ -268,7 +268,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Pdb_DbgHelpResolvesNamesAndLines)
             symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
             symbol->MaxNameLen   = MAX_SYM_NAME;
             if (!SymFromName(symHandle, "myGlobal", symbol))
-                fail("SymFromName(myGlobal) failed");
+                fail("SymFromName(myGlobal) returned an error");
             else if (symbol->TypeIndex == 0)
                 fail("myGlobal has no type index");
         }

@@ -26,15 +26,15 @@ struct CommandInfo
 };
 
 inline constexpr CommandInfo COMMANDS[] = {
-    {CommandKind::Format, "format", "Parse source files and write formatted source back to disk."},
-    {CommandKind::Syntax, "syntax", "Check the syntax of the source code without generating any IR or backend code."},
-    {CommandKind::Sema, "sema", "Perform semantic analysis on the source code, including type checking."},
+    {CommandKind::Format, "format", "Parse source files and write their canonical formatting back to disk"},
+    {CommandKind::Syntax, "syntax", "Check source syntax without generating IR or backend code"},
+    {CommandKind::Sema, "sema", "Analyze source semantics, including type checking"},
 #if SWC_HAS_UNITTEST
-    {CommandKind::Unittest, "unittest", "Run internal C++ unit tests only."},
+    {CommandKind::Unittest, "unittest", "Run only the internal C++ unit tests"},
 #endif
-    {CommandKind::Test, "test", "Run source-driven tests, expected diagnostics, and #test functions."},
-    {CommandKind::Build, "build", "Build native artifacts from the input sources without running emitted executables."},
-    {CommandKind::Run, "run", "Build native artifacts from the input sources and run emitted executables when available."},
+    {CommandKind::Test, "test", "Run source-driven tests, expected diagnostics, and #test functions"},
+    {CommandKind::Build, "build", "Build native artifacts from input sources without running emitted executables"},
+    {CommandKind::Run, "run", "Build native artifacts from input sources and run emitted executables when available"},
 };
 
 inline constexpr std::string_view SWAG_TEST_RUN_ARG = "swag.test";
@@ -189,7 +189,7 @@ constexpr std::string_view commandName(const CommandKind command)
         case CommandKind::Run:
             return "run";
         case CommandKind::Invalid:
-            return "invalid";
+            return "unavailable";
     }
 
     SWC_UNREACHABLE();

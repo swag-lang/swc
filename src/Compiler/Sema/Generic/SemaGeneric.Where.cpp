@@ -179,7 +179,7 @@ namespace SemaGeneric
         {
             auto diag = reportGenericConstraintDiag(sema, genericConstraintDiagId(context, outcome.kind), context, whereRef);
             if (outcome.kind == GenericConstraintOutcomeKind::NotBool)
-                diag.addArgument(Diagnostic::ARG_TYPE, outcome.typeRef.isValid() ? sema.typeMgr().get(outcome.typeRef).toName(sema.ctx()) : Utf8{"<invalid>"});
+                diag.addArgument(Diagnostic::ARG_TYPE, outcome.typeRef.isValid() ? sema.typeMgr().get(outcome.typeRef).toName(sema.ctx()) : Utf8{"<type unavailable>"});
             diag.report(sema.ctx());
             return Result::Error;
         }

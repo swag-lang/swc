@@ -491,7 +491,7 @@ namespace
     {
         HardwareException::log(job.ctx(), "hardware exception during job execution", args);
         Stats::addError();
-        Os::panicBox("hardware exception raised!");
+        Os::panicBox("hardware exception during job execution");
         return SWC_EXCEPTION_EXECUTE_HANDLER;
     }
 }

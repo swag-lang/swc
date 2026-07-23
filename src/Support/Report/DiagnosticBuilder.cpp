@@ -38,7 +38,7 @@ namespace
             else if constexpr (std::same_as<T, TypeRef>)
             {
                 if (v.isInvalid())
-                    return Utf8{"<invalid type>"};
+                    return Utf8{"<type unavailable>"};
                 return ctx->compiler().typeMgr().get(v).toName(*ctx);
             }
             else if constexpr (std::same_as<T, ConstantRef>)

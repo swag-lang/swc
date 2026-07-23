@@ -1,4 +1,4 @@
-SWC_DIAG_DEF(cmd_note_did_you_mean, Note, "did you mean '{value}'?")
+SWC_DIAG_DEF(cmd_note_did_you_mean, Note, "use '{value}' instead")
 
 SWC_DIAG_DEF(cmd_note_relocation_target_symbol_missing, Note, "relocation target symbol is missing")
 SWC_DIAG_DEF(cmd_note_relocation_target_symbol_not_function, Note, "the relocation target symbol '{target}' is not a function")

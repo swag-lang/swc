@@ -22,7 +22,7 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
 
     let cxt = @getcontext()
     if cxt.errorIndex >= MaxErrors do
-        @panic("too many nested error levels!", #curlocation)
+        @panic("error propagation nesting exceeds its supported depth", #curlocation)
 
     __dropErr(cxt.errors[cxt.errorIndex].value)
 
@@ -196,39 +196,33 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
 {
     let cxt = @getcontext()
 
-    // Print the message first
-    @print("\n")
-    @print("########################", "\n")
-    @print("! RUNTIME PANIC ATTACK !", "\n")
-    @print("########################", "\n")
-    @print("\n")
-
-    @print("panic: ", message, "\n")
-    @print("--> ")
+    @print("\nruntime panic\n")
+    @print("-------------\n")
+    @print("message: ", message, "\n")
+    @print("source:  ")
     @print(loc.fileName, ":", loc.lineStart + 1, ":", loc.colStart + 1, "\n")
     @print("\n")
 
     // Print the error stack trace if available
     if cxt.traceIndex
     {
-        @print("[error callstack]", "\n")
+        @print("error trace\n")
         for var i = cast(s32) cxt.traceIndex - 1; i >= 0; i -= 1
         {
-            @print("error")
-            @print(" --> ")
+            @print("  originates at ")
             @print(cxt.traces[i].fileName)
             @print(":")
             @print(cast(s64) cxt.traces[i].lineStart + 1)
             @print(":")
             @print(cast(s64) cxt.traces[i].colStart + 1)
-            @print(":\n")
+            @print("\n")
         }
 
         @print("\n")
     }
 
     // Print the calling stack trace
-    @print("[runtime callstack]", "\n")
+    @print("runtime trace\n")
     var arr: [64] *void = undefined
     let nb   = __captureStack(1, arr)
     __logStackTrace(@mkslice(&arr[0], nb))
@@ -291,10 +285,10 @@ func @panic(message: #null string, loc: SourceCodeLocation)
     len += 2
 
     // Message to the user
-    const title = "Swag Panic !"
-    const info  = """- Press Cancel to exit
-- Press Retry to debug
-- Press Continue to ignore
+    const title = "Swag runtime panic"
+    const info  = """Cancel: exit the program
+Retry: break into the debugger
+Continue: ignore the panic
 """
 
     @memcpy(&str[len], @dataof(info), @countof(info))

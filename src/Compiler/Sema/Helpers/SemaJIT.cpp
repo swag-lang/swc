@@ -29,7 +29,7 @@ namespace
         if (!ctx.hasError())
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, symFn.codeRef());
-            diag.addArgument(Diagnostic::ARG_BECAUSE, std::format("failed to evaluate '{}' at compile time", symFn.name(ctx)));
+            diag.addArgument(Diagnostic::ARG_BECAUSE, std::format("cannot evaluate '{}' at compile time", symFn.name(ctx)));
             diag.report(ctx);
         }
 

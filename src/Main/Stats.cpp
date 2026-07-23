@@ -217,7 +217,7 @@ namespace
         addField(entries, ctx.cmdLine().dryRun ? "Would rewrite" : "Rewritten", Utf8Helper::countWithLabel(rewrittenFiles, "file"));
         addField(entries, "Unchanged", Utf8Helper::countWithLabel(unchangedFiles, "file"));
         addField(entries, "SkipFmt", Utf8Helper::countWithLabel(skippedFmtFiles, "file"));
-        addField(entries, "Skipped invalid", Utf8Helper::countWithLabel(skippedInvalidFile, "file"));
+        addField(entries, "Parse errors", Utf8Helper::countWithLabel(skippedInvalidFile, "file"));
         addField(entries, "Tokens", Utf8Helper::toNiceBigNumber(stats.numTokens.load()));
         addField(entries, "AST nodes", Utf8Helper::toNiceBigNumber(stats.numAstNodes.load()));
         Logger::printFieldGroup(ctx, "Format", entries, nextInfoGroupStyle(hasPrintedGroup, 32));

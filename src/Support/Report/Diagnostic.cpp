@@ -386,7 +386,7 @@ void Diagnostic::report(TaskContext& ctx) const
         Logger::print(ctx, msg);
 
         if (CompilerInstance::dbgDevStop && ctx.cmdLine().devStopDiagnostics && !orgDismissed)
-            Os::panicBox("[DevMode] ERROR raised!");
+            Os::panicBox("DevMode: compiler diagnostic reported");
     }
 }
 

@@ -874,8 +874,8 @@ namespace Os
         if (!CompilerInstance::dbgDevStop || CompilerInstance::headlessTestRun)
             exit(ExitCode::PanicBox);
 
-        const Utf8 boxMsg = std::format("{}\n\nPress 'Cancel' to exit\nPress 'Retry' to break\n", expr);
-        const int  result = MessageBoxA(nullptr, boxMsg.c_str(), "Swc meditation!", MB_CANCELTRYCONTINUE | MB_ICONERROR);
+        const Utf8 boxMsg = std::format("{}\n\nCancel: exit the compiler\nRetry: break into the debugger\n", expr);
+        const int  result = MessageBoxA(nullptr, boxMsg.c_str(), "Swag compiler error", MB_CANCELTRYCONTINUE | MB_ICONERROR);
         switch (result)
         {
             case IDCANCEL:

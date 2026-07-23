@@ -279,7 +279,7 @@ namespace
     {
         if (!isValidOpcode(inst.op))
         {
-            return reportError(context, phase, std::format("instruction #{} (ref={}) uses invalid opcode {}", instructionIndex, instructionRef.get(), static_cast<uint32_t>(inst.op)));
+            return reportError(context, phase, std::format("instruction #{} (ref={}) uses unknown opcode {}", instructionIndex, instructionRef.get(), static_cast<uint32_t>(inst.op)));
         }
 
         const uint8_t minOperands = minimumOperandCount(inst.op);
@@ -297,41 +297,41 @@ namespace
 
             case MicroInstrOpcode::JumpCond:
                 if (!isValidCondition(ops[0].cpuCond))
-                    return reportError(context, phase, std::format("jump instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
+                    return reportError(context, phase, std::format("jump instruction #{} uses unsupported condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
                 if (!isValidOpBits(ops[1].opBits))
-                    return reportError(context, phase, std::format("jump instruction #{} uses invalid op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
+                    return reportError(context, phase, std::format("jump instruction #{} uses unsupported op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
                 if (ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
                     return reportError(context, phase, std::format("jump instruction #{} targets out-of-range label {}", instructionIndex, ops[2].valueU64));
                 break;
 
             case MicroInstrOpcode::JumpCondImm:
                 if (!isValidCondition(ops[0].cpuCond))
-                    return reportError(context, phase, std::format("jump-immediate instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
+                    return reportError(context, phase, std::format("jump-immediate instruction #{} uses unsupported condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
                 if (!isValidOpBits(ops[1].opBits))
-                    return reportError(context, phase, std::format("jump-immediate instruction #{} uses invalid op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
+                    return reportError(context, phase, std::format("jump-immediate instruction #{} uses unsupported op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
                 break;
 
             case MicroInstrOpcode::CallLocal:
             case MicroInstrOpcode::CallExtern:
             case MicroInstrOpcode::CallIndirect:
                 if (!isValidCallConv(ops[MicroInstr::info(inst.op).callConvIndex].callConv))
-                    return reportError(context, phase, std::format("call instruction #{} uses invalid calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
+                    return reportError(context, phase, std::format("call instruction #{} uses unsupported calling convention {}", instructionIndex, static_cast<uint32_t>(ops[MicroInstr::info(inst.op).callConvIndex].callConv)));
                 break;
 
             case MicroInstrOpcode::SetCondReg:
                 if (!isValidCondition(ops[1].cpuCond))
-                    return reportError(context, phase, std::format("setcc instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[1].cpuCond)));
+                    return reportError(context, phase, std::format("setcc instruction #{} uses unsupported condition {}", instructionIndex, static_cast<uint32_t>(ops[1].cpuCond)));
                 break;
 
             case MicroInstrOpcode::LoadCondRegReg:
                 if (!isValidCondition(ops[2].cpuCond))
-                    return reportError(context, phase, std::format("conditional move instruction #{} uses invalid condition {}", instructionIndex, static_cast<uint32_t>(ops[2].cpuCond)));
+                    return reportError(context, phase, std::format("conditional move instruction #{} uses unsupported condition {}", instructionIndex, static_cast<uint32_t>(ops[2].cpuCond)));
                 break;
 
             case MicroInstrOpcode::LoadRegPtrImm:
             case MicroInstrOpcode::LoadRegPtrReloc:
                 if (ops[1].opBits != MicroOpBits::B64)
-                    return reportError(context, phase, std::format("pointer load instruction #{} must use B64 op bits", instructionIndex));
+                    return reportError(context, phase, std::format("pointer load instruction #{} needs B64 op bits", instructionIndex));
                 break;
 
             default:
@@ -356,7 +356,7 @@ namespace
 
             if (!isValidNonMemoryOperandRegister(ops[operandIndex].reg))
             {
-                return reportError(context, phase, std::format("instruction #{} uses invalid register {} at operand {}", instructionIndex, ops[operandIndex].reg.packed, operandIndex));
+                return reportError(context, phase, std::format("instruction #{} references unknown register {} at operand {}", instructionIndex, ops[operandIndex].reg.packed, operandIndex));
             }
         }
 
@@ -370,7 +370,7 @@ namespace
 
         if (!isValidMemoryBaseRegister(inst.op, ops[info.memBaseOperandIndex].reg))
         {
-            return reportError(context, phase, std::format("instruction #{} uses invalid memory base register {} at operand {}", instructionIndex, ops[info.memBaseOperandIndex].reg.packed, info.memBaseOperandIndex));
+            return reportError(context, phase, std::format("instruction #{} references unknown memory base register {} at operand {}", instructionIndex, ops[info.memBaseOperandIndex].reg.packed, info.memBaseOperandIndex));
         }
 
         switch (inst.op)
@@ -381,7 +381,7 @@ namespace
             case MicroInstrOpcode::LoadAddrAmcRegMem:
                 if (!isValidAmcIndexRegister(ops[2].reg))
                 {
-                    return reportError(context, phase, std::format("instruction #{} uses invalid AMC index register {} at operand 2", instructionIndex, ops[2].reg.packed));
+                    return reportError(context, phase, std::format("instruction #{} references unknown AMC index register {} at operand 2", instructionIndex, ops[2].reg.packed));
                 }
                 break;
 
@@ -483,7 +483,7 @@ namespace
             {
                 if (!isValidAnyRegister(reg) || reg.isVirtual() || reg.isInstructionPointer() || reg.isNoBase())
                 {
-                    return reportError(context, phase, std::format("forbidden-register map for {} contains invalid concrete register {}", virtualReg.packed, reg.packed));
+                    return reportError(context, phase, std::format("forbidden-register map for {} contains unknown concrete register {}", virtualReg.packed, reg.packed));
                 }
 
                 regs.push_back(reg.packed);
@@ -707,7 +707,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
         {
             if (inst.opsRef.isInvalid())
             {
-                return reportError(context, phase, std::format("instruction #{} (ref={}) has {} operands but an invalid operand ref", instructionIdx, instructionRef.get(), inst.numOperands));
+                return reportError(context, phase, std::format("instruction #{} (ref={}) has {} operands but its operand ref does not resolve", instructionIdx, instructionRef.get(), inst.numOperands));
             }
 
             const uint64_t operandEnd = static_cast<uint64_t>(inst.opsRef.get()) + inst.numOperands;
@@ -770,7 +770,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
 
     if (iteratedInstructionCount != context.instructions->count())
     {
-        return reportError(context, phase, std::format("instruction count mismatch: iterated {} entries, storage reports {}", iteratedInstructionCount, context.instructions->count()));
+        return reportError(context, phase, std::format("instruction iteration visits {} entries, but storage reports {}", iteratedInstructionCount, context.instructions->count()));
     }
 
     for (const uint32_t label : jumpTargets)
@@ -790,7 +790,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
             const MicroRelocation& relocation = relocations[relocationIdx];
             if (relocation.instructionRef.isInvalid())
             {
-                return reportError(context, phase, std::format("relocation #{} has an invalid instruction ref", relocationIdx));
+                return reportError(context, phase, std::format("relocation #{} has an instruction ref that does not resolve", relocationIdx));
             }
 
             const MicroInstr* inst = context.instructions->ptr(relocation.instructionRef);

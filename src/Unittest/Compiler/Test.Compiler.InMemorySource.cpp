@@ -72,7 +72,7 @@ func validate()
         Command::sema(compiler);
         if (Stats::getNumErrors() != errorsBefore)
         {
-            std::println(stderr, "Compiler_GenericUnionDeductionRandomizedSeed: seed {} error count changed", seed);
+            std::println(stderr, "[generic-union-deduction] seed {} changed the error count", seed);
             return Result::Error;
         }
 

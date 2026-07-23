@@ -1,6 +1,6 @@
 SWC_DIAG_DEF(parser_note_reserved_identifier, Note, "{a-tok-fam} cannot be used as an identifier")
 SWC_DIAG_DEF(parser_note_other_def, Note, "previous occurrence is here")
-SWC_DIAG_DEF(parser_note_opening, Note, "this opening delimiter must be closed with '{expect-tok}'")
+SWC_DIAG_DEF(parser_note_opening, Note, "this opening delimiter needs a closing '{expect-tok}'")
 SWC_DIAG_DEF(parser_note_gen_param_type, Note, "declared with 'var', this parameter is a type parameter")
 SWC_DIAG_DEF(parser_note_insert_missing_closing, Note, "insert '{expect-tok}' before this {tok-fam}")
 SWC_DIAG_DEF(parser_note_controlled_statement, Note, "the controlled statement starts here")
@@ -12,5 +12,5 @@ SWC_DIAG_DEF(parser_note_next_switch_section_starts_here, Note, "next switch sec
 SWC_DIAG_DEF(parser_note_switch_section_ends_here, Note, "this switch section ends here")
 SWC_DIAG_DEF(parser_note_switch_body_ends_here, Note, "switch body ends here")
 
-SWC_DIAG_DEF(parser_help_empty_array_dim, Help, "expected one of '[*]' (pointer), '[..]' (slice), '[?]' (inferred array), or a numeric dimension")
+SWC_DIAG_DEF(parser_help_empty_array_dim, Help, "use '[*]' for a pointer, '[..]' for a slice, '[?]' for an inferred array, or provide a numeric dimension")
 SWC_DIAG_DEF(parser_help_gen_param_type, Help, "use 'const' instead of 'var' to declare a generic value")

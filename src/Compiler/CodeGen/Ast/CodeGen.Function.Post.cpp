@@ -388,7 +388,7 @@ namespace
         CodeGenNodePayload sourceLocPayload;
         const TypeRef      sourceLocTypeRef = runtimeFailedAssume->parameters().front()->typeRef();
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, sourceLocPayload, sourceLocTypeRef, sourceLocCstRef))
-            return raiseInternalCodeGenError(codeGen, "failed to materialize the failed-assume source location payload", nodeRef);
+            return raiseInternalCodeGenError(codeGen, "cannot materialize the failed-assume source location payload", nodeRef);
 
         const std::array args = {sourceLocPayload.reg};
         return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedAssume, args);
@@ -417,7 +417,7 @@ namespace
 
         const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(exprRef);
         if (!resolvedExprRef.isValid())
-            return raiseInternalCodeGenError(codeGen, "failed to resolve nullable assume operand", ownerRef);
+            return raiseInternalCodeGenError(codeGen, "cannot resolve nullable assume operand", ownerRef);
 
         TypeRef exprTypeRef = codeGen.viewType(resolvedExprRef).typeRef();
         if (!exprTypeRef.isValid())
@@ -478,7 +478,7 @@ namespace
         const uint64_t  sizeOf   = typeInfo.sizeOf(codeGen.ctx());
         SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());
         if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
-            return raiseInternalCodeGenError(codeGen, "invalid zero constant storage size");
+            return raiseInternalCodeGenError(codeGen, "zero constant storage size is outside the supported range");
 
         SmallVector<std::byte> rawBytes;
         rawBytes.resize(sizeOf);
@@ -492,13 +492,13 @@ namespace
         else
             zeroValue = ConstantValue::make(ctx, rawBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         if (zeroValue.kind() == ConstantKind::Invalid)
-            return raiseInternalCodeGenError(codeGen, "failed to materialize the synthesized zero constant");
+            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized zero constant");
 
         if (isEnumOrAliasEnum(codeGen, typeRef))
         {
             const ConstantRef storageCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
             if (storageCstRef.isInvalid())
-                return raiseInternalCodeGenError(codeGen, "failed to cache the synthesized enum zero constant");
+                return raiseInternalCodeGenError(codeGen, "cannot cache the synthesized enum zero constant");
 
             zeroValue = ConstantValue::makeEnumValue(ctx, storageCstRef, typeRef);
         }
@@ -509,7 +509,7 @@ namespace
 
         outCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
         if (!outCstRef.isValid())
-            return raiseInternalCodeGenError(codeGen, "failed to cache the synthesized zero constant");
+            return raiseInternalCodeGenError(codeGen, "cannot cache the synthesized zero constant");
         return Result::Continue;
     }
 
@@ -523,7 +523,7 @@ namespace
 
         CodeGenNodePayload zeroPayload;
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, typeRef, zeroCstRef))
-            return raiseInternalCodeGenError(codeGen, "failed to materialize the synthesized zero throwable result payload");
+            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized zero throwable result payload");
 
         assignThrowableExprResult(codeGen, resultPayload, zeroPayload, typeRef);
         return Result::Continue;
@@ -1233,7 +1233,7 @@ namespace
 
         CodeGenNodePayload zeroPayload;
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, symbolFunc.returnTypeRef(), zeroCstRef))
-            return raiseInternalCodeGenError(codeGen, "failed to materialize the synthesized throwable failure return payload");
+            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized throwable error return payload");
 
         return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
     }
@@ -1483,7 +1483,7 @@ Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
     CodeGenNodePayload typeInfoPayload;
     const TypeRef      typeInfoTypeRef = runtimeSetErrRaw->parameters()[1]->typeRef();
     if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, typeInfoPayload, typeInfoTypeRef, typeInfoCstRef))
-        return raiseInternalCodeGenError(codeGen, "failed to materialize the thrown-value type info payload", codeGen.curNodeRef());
+        return raiseInternalCodeGenError(codeGen, "cannot materialize the thrown-value type info payload", codeGen.curNodeRef());
 
     const std::array args = {storageReg, typeInfoPayload.reg};
     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeSetErrRaw, args));

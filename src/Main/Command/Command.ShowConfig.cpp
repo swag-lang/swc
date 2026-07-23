@@ -39,9 +39,9 @@ namespace
         addInfoEntry(entries, "Name", Utf8(buildCfg.name));
         addInfoEntry(entries, "Module namespace", Utf8(buildCfg.moduleNamespace));
         addInfoEntry(entries, "Work directory", Utf8(buildCfg.workDir));
-        addBoolEntry(entries, "Backend optimize", buildCfg.backend.optimize);
+        addBoolEntry(entries, "Backend optimization", buildCfg.backend.optimize);
         addInfoEntry(entries, "Inline mode", inlineModeName(buildCfg.backend.inlineMode));
-        addInfoEntry(entries, "CPU vectorize", cpuVectorizeName(buildCfg.backend.cpuVectorize));
+        addInfoEntry(entries, "CPU vectorization", cpuVectorizeName(buildCfg.backend.cpuVectorize));
         Logger::printFieldGroup(ctx, "Command Line", entries, nextInfoGroupStyle(hasPrintedGroup));
 
         entries.clear();
@@ -49,7 +49,7 @@ namespace
         addBoolEntry(entries, "ASCII logs", cmdLine.logAscii);
         addBoolEntry(entries, "Syntax colors", cmdLine.syntaxColor);
         addBoolEntry(entries, "One-line diagnostics", cmdLine.diagOneLine);
-        addBoolEntry(entries, "Error ids", cmdLine.errorId);
+        addBoolEntry(entries, "Diagnostic IDs", cmdLine.errorId);
         addBoolEntry(entries, "Silent", cmdLine.silent);
         addBoolEntry(entries, "Stats", cmdLine.stats);
         addBoolEntry(entries, "Publish", cmdLine.publish);
@@ -117,7 +117,7 @@ namespace
         addInfoEntry(entries, "Host OS", Os::hostOsName());
         addInfoEntry(entries, "Host CPU", Os::hostCpuName());
         addInfoEntry(entries, "Executable", Os::getExeFullName());
-        addInfoEntry(entries, "Temp path", tempPath);
+        addInfoEntry(entries, "Temporary path", tempPath);
         if (!ec)
             addInfoEntry(entries, "Current directory", currentDir);
         Logger::printFieldGroup(ctx, "Process", entries, nextInfoGroupStyle(hasPrintedGroup));

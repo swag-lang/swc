@@ -31,7 +31,7 @@ namespace
             return;
 
         const TaskState& state = ctx->state();
-        HardwareException::appendSectionHeader(outMsg, "task");
+        HardwareException::appendSectionHeader(outMsg, "task state");
         HardwareException::appendField(outMsg, "state", TaskState::kindName(state.kind));
 
         if (state.nodeRef.isValid())
@@ -59,7 +59,7 @@ namespace
 
     void appendCrashGroup(Utf8& outMsg, const TaskContext* ctx, const void* platformExceptionPointers)
     {
-        HardwareException::appendSectionHeader(outMsg, "infos");
+        HardwareException::appendSectionHeader(outMsg, "host");
         HardwareException::appendField(outMsg, "host", std::format("os = {}, cpu = {}, exception backend = {}", Os::hostOsName(), Os::hostCpuName(), Os::hostExceptionBackendName()));
         HardwareException::appendField(outMsg, "process id", std::format("{}", Os::currentProcessId()));
         HardwareException::appendField(outMsg, "thread id", std::format("{}", Os::currentThreadId()));
@@ -84,7 +84,7 @@ namespace
     {
         HardwareException::appendSectionHeader(outMsg, "cpu context");
         Os::appendHostCpuContext(outMsg, platformExceptionPointers);
-        HardwareException::appendSectionHeader(outMsg, "trace");
+        HardwareException::appendSectionHeader(outMsg, "stack trace");
         Os::appendHostHandlerStack(outMsg, platformExceptionPointers, ctx);
     }
 

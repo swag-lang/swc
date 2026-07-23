@@ -336,8 +336,8 @@ namespace
                 return;
 
             const AstNode& elseNode = ast_->node(elseRef);
-            if (elseNode.is(AstNodeId::IfStmt) || elseNode.is(AstNodeId::IfVarDecl))
-                return; // `elif`: the nested if carries the keyword
+            if (elseNode.is(AstNodeId::IfStmt) || elseNode.is(AstNodeId::IfVarDecl) || elseNode.is(AstNodeId::CompilerIf))
+                return; // `elif` / `#elif` chain: the nested if carries the keyword
 
             const NodeSpan elseSpan = spanOf(elseRef);
             if (!elseSpan.valid())
@@ -706,6 +706,15 @@ namespace
                     if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
                         addRole(span.minPiece, FormatRoleE::ElseKeyword);
 
+                    markControlBody(stmt.nodeIfBlockRef, span.minPiece);
+                    classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
+                    break;
+                }
+
+                case AstNodeId::CompilerIf:
+                {
+                    const auto& stmt = node.cast<AstCompilerIf>();
+                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
                     markControlBody(stmt.nodeIfBlockRef, span.minPiece);
                     classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
                     break;

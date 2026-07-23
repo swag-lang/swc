@@ -5,17 +5,14 @@
 const ENABLED  = 1
 const DISABLED = 0
 
-#if true
-{}
+#if true {}
     #else
 {
     #error("toto")
 }
 
-#if true
-{}
-    #else
-{}
+#if true {}
+    #else {}
 
 #assert(true)
 #assert(ENABLED)

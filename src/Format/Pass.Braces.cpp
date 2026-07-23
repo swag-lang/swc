@@ -138,6 +138,7 @@ namespace
                     continue;
 
                 applyBraceStyle(block);
+                splitBraceAdjacentContent(block);
             }
 
             applyBreakBeforeElse();
@@ -296,6 +297,27 @@ namespace
                 case FormatBraceStyle::Preserve:
                     break;
             }
+        }
+
+        // In a multi-line block, the content must not share a line with the
+        // braces: `{ stmt` and `stmt }` each get their own line.
+        void splitBraceAdjacentContent(const FormatBlock& block) const
+        {
+            if (options_->braceStyle == FormatBraceStyle::Preserve)
+                return;
+
+            const Utf8 base(model_->lineIndentOf(block.headPiece));
+
+            const uint32_t firstContent = model_->nextPiece(block.openPiece);
+            if (firstContent != INVALID_PIECE && firstContent != block.closePiece &&
+                !model_->gapHasNewline(firstContent) && !model_->piece(firstContent).isComment &&
+                FormatPassUtil::canEditGap(*model_, firstContent))
+            {
+                model_->setGapBreak(firstContent, 1, FormatPassUtil::indentPlusOne(*model_, base.view()).view());
+            }
+
+            if (!model_->gapHasNewline(block.closePiece) && FormatPassUtil::canEditGap(*model_, block.closePiece))
+                model_->setGapBreak(block.closePiece, 1, base.view());
         }
 
         void applyBreakBeforeElse() const

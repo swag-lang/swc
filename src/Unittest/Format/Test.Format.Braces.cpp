@@ -345,6 +345,68 @@ SWC_TEST_BEGIN(FormatBraces_ShortCaseJoins)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    #if SOME { if x do\n"
+        "        return\n"
+        "    }\n"
+        "    if x { a()\n"
+        "        b() }\n"
+        "}\n"
+        "func a() {}\n"
+        "func b() {}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    #if SOME\n"
+        "    {\n"
+        "        if x do\n"
+        "        return\n"
+        "    }\n"
+        "    if x\n"
+        "    {\n"
+        "        a()\n"
+        "        b()\n"
+        "    }\n"
+        "}\n"
+        "func a() {}\n"
+        "func b() {}\n";
+
+    FormatOptions options;
+    options.braceStyle = FormatBraceStyle::Allman;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_AllmanOnCompilerIfBlocks)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    #if SOME {\n"
+        "        return\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    #if SOME\n"
+        "    {\n"
+        "        return\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.braceStyle = FormatBraceStyle::Allman;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBraces_ShortStructsKeepTupleTypes)
 {
     static constexpr std::string_view SOURCE =

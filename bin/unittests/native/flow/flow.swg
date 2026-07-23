@@ -84,7 +84,8 @@ namespace compiler230
         var b = 0
         while (a > 0)
         {
-            a = a - 1; b = b + 1; }
+            a = a - 1; b = b + 1;
+        }
 
         @assert(a == 0)
         @assert(b == 10)
@@ -185,7 +186,8 @@ namespace compiler256
         var i = 5
         while i > 0
         {
-            i -= 1; }
+            i -= 1;
+        }
 
         @assert(i == 0)
     }

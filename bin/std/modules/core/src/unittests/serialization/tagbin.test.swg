@@ -30,11 +30,11 @@ struct TagBinFinalMigrationPoint
 
 struct TagBinPayload
 {
-    id:         u32
-    active:     bool
-    name:       String
-    counts:     Array's32
-    pair:       TagBinPair
+    id:     u32
+    active: bool
+    name:   String
+    counts: Array's32
+    pair:   TagBinPair
     fixed:      [3] u8
     finalPoint: TagBinFinalPoint
 
@@ -94,8 +94,8 @@ struct TagBinCurrentNested
 
 struct TagBinConversionSource
 {
-    small:          s16
-    floating:       f32
+    small:    s16
+    floating: f32
     staticToStatic: [3] u8
     staticToArray:  [3] s16
     arrayToStatic:  Array's8
@@ -107,15 +107,15 @@ struct TagBinConversionSource
 
 struct TagBinConversionTarget
 {
-    small:          s64
-    floating:       f64
+    small:    s64
+    floating: f64
     staticToStatic: [5] u16
     staticToArray:  Array's32
     arrayToStatic:  [4] s32
     singleToStatic: [3] s32
-    singleToArray:  Array'u32
-    arrayToSingle:  s64
-    nested:         TagBinCurrentNested
+    singleToArray: Array'u32
+    arrayToSingle: s64
+    nested:        TagBinCurrentNested
 }
 
 struct TagBinTypeInfoPayload
@@ -151,9 +151,9 @@ struct TagBinInterfacePayload
 
 public struct TagBinHookPayload
 {
-    direct:       s32
-    remapped:     s32
-    bytes:        Array'u8
+    direct:   s32
+    remapped: s32
+    bytes:    Array'u8
 
     #[Serialization.NoSerialize]
     postReadSeen: bool
@@ -224,7 +224,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
     {
         let value = cast(#null *TagBinHookPayload) data
         value.postReadSeen = true
-        value.direct += 1
+        value.direct       += 1
     }
 }
 
@@ -233,9 +233,9 @@ func makeTagBinPayload()->TagBinPayload
     var result: retval
 
     let seed: [4] s32 = [-8, 0, 7, 42]
-    result.id         = 17
-    result.active     = true
-    result.name       = "tagbin"
+    result.id     = 17
+    result.active = true
+    result.name   = "tagbin"
     result.counts.add(seed)
     result.pair       = TagBinPair{x: -3, y: 11}
     result.fixed      = [9, 8, 7]

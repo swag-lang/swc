@@ -16,7 +16,7 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawTextCardSurface(painter, left, Color.fromArgb(255, 247, 249, 251))
     drawTextCardSurface(painter, right, Color.fromArgb(255, 244, 247, 252))
 
-    var story: RichString = "<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <p1>justified</p> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable."
+    var story:    RichString = "<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <p1>justified</p> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable."
     var storyFmt: RichStringFormat
     storyFmt.flags         = .WordWrap | .Clip
     storyFmt.horzAlignment = .Justify
@@ -30,7 +30,7 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     storyFmt.palette[1]    = Argb.Crimson
     painter.drawRichString(insetRect(left, 16, 14, 16, 14), &story, storyFmt)
 
-    var labels: RichString = "<u>Centered panel</u>\n<p1>palette run</p>\n<url><b>styled URL</b></url>\ntab\tstop"
+    var labels:   RichString = "<u>Centered panel</u>\n<p1>palette run</p>\n<url><b>styled URL</b></url>\ntab\tstop"
     var labelFmt: RichStringFormat
     labelFmt.flags         = .WordWrap | .Clip
     labelFmt.horzAlignment = .Center
@@ -103,14 +103,14 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawString(smallX, smallTop, small, notnull g_HelpFont, Argb.DarkSlateGray)
 
     var paragraph: RichString = "<b>Large</b> and regular spans\nadvance by per-line height.\nThis third line is intentionally clipped."
-    var fmt: RichStringFormat
-    fmt.flags        = .WordWrap | .Clip
-    fmt.font.regular = g_HelpFont
-    fmt.font.bold    = g_LabelFont
-    fmt.palette[0]   = Argb.DimGray
-    fmt.lineGap      = 3
+    var fmt:       RichStringFormat
+    fmt.flags         = .WordWrap | .Clip
+    fmt.font.regular  = g_HelpFont
+    fmt.font.bold     = g_LabelFont
+    fmt.palette[0]    = Argb.DimGray
+    fmt.lineGap       = 3
     fmt.minLineHeight = 18
-    fmt.maxLines     = 2
+    fmt.maxLines      = 2
     fmt.letterSpacing = 0.3
     painter.drawRichString({sample.x + 24, sample.bottom() - 64, sample.width - 48, 52}, &paragraph, fmt)
 }

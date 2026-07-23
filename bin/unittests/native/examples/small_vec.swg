@@ -32,8 +32,8 @@ impl SmallVec
 
     mtd init()
     {
-        .ptr = cast([*] s32) &.inline[0]
-        .count = 0
+        .ptr      = cast([*] s32) &.inline[0]
+        .count    = 0
         .capacity = InlineCap
     }
 
@@ -53,7 +53,7 @@ impl SmallVec
         if !.isInline() do
             @free(.ptr)
 
-        .ptr = newBuf
+        .ptr      = newBuf
         .capacity = newCap
     }
 
@@ -61,7 +61,7 @@ impl SmallVec
     {
         .growTo(.count + 1)
         .ptr[.count] = value
-        .count += 1
+        .count       += 1
     }
 
     mtd const at(i: u64)->s32
@@ -79,8 +79,8 @@ impl SmallVec
         // Only free when data lives on the heap.
         if !.isInline() do
             @free(.ptr)
-        .ptr = null
-        .count = 0
+        .ptr      = null
+        .count    = 0
         .capacity = 0
     }
 

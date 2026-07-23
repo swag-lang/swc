@@ -66,7 +66,7 @@ impl PropertiesCtrl
                 .icon      = ed.getTheme().getIcon24(ThemeIcons24.Search, 18)
                 .dockStyle = .Top
                 .setNote("Search")
-                .margin.w = 8
+                .margin.w   = 8
                 .sigChanged += func|ed|(fil) { ed.prop.setStringFilter(fil.text); }
                 .editBoxFlags.add(.ClearButton)
             }

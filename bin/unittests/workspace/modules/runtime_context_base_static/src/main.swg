@@ -37,11 +37,11 @@ public func ctxBaseContextMarker()->u64
 public func ctxBaseInitCount()->u64
 {
     @assert(@getcontext().allocator != null)
-    return @getcontext().user3 & 0xff
+    return @getcontext().user3 & 0xFF
 }
 
 public func ctxBasePreMainCount()->u64
 {
     @assert(@getcontext().allocator != null)
-    return (@getcontext().user3 >> 8) & 0xff
+    return (@getcontext().user3 >> 8) & 0xFF
 }

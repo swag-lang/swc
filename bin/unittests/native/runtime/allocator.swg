@@ -50,7 +50,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
         var req: AllocatorRequest
         req.address = payload.address
-        req.size = 64
+        req.size    = 64
         payload.allocator.free(&req)
 
         @atomadd(payload.done, 1)
@@ -91,7 +91,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         ptr[i] = cast(u8) (i + 3)
 
     req.oldSize = 80
-    req.size = 4096
+    req.size    = 4096
     @getcontext().allocator.realloc(&req)
     @assert(req.address != null)
     @assert(alloc.countAlloc == beforeCount + 1)
@@ -146,7 +146,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     for i in 6 until 12
     {
         reqs[i].oldSize = reqs[i].size
-        reqs[i].size += 1024
+        reqs[i].size    += 1024
         @getcontext().allocator.realloc(&reqs[i])
         @assert(reqs[i].address != null)
 
@@ -167,7 +167,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeAllocatorScratch(&scratch, &alloc)
 
@@ -189,7 +189,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let backing = makeAllocator(&alloc, detectLeaks: true, captureStack: true, trackAllocations: true, fillMemory: true)
     scratch.setCapacity(AllocatorScratchBufSize, backing)
@@ -261,7 +261,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address == null)
 
     req.address = null
-    req.size = 0
+    req.size    = 0
     itf.realloc(&req)
     @assert(req.address == null)
 
@@ -329,7 +329,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         ptr[i] = cast(u8) (i + 1)
 
     req.oldSize = 33
-    req.size = 48
+    req.size    = 48
     itf.realloc(&req)
     @assert(req.address == original)
 
@@ -360,7 +360,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         ptr[i] = cast(u8) (255 - i)
 
     req.oldSize = 96
-    req.size = 24
+    req.size    = 24
     itf.realloc(&req)
     @assert(req.address == original)
 
@@ -369,7 +369,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         @assert(shrunk[i] == cast(u8) (255 - i))
 
     req.oldSize = 24
-    req.size = 0
+    req.size    = 0
     itf.realloc(&req)
     @assert(req.address == null)
 
@@ -390,7 +390,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         ptr[i] = cast(u8) (i * 3 + 7)
 
     req.oldSize = 24
-    req.size = 2048
+    req.size    = 2048
     itf.realloc(&req)
     @assert(req.address != null)
 
@@ -429,7 +429,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     let itf = makeAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.size = 257
+    req.size      = 257
     req.alignment = 128
     itf.alloc(&req)
     @assert(req.address != null)
@@ -794,11 +794,11 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         let first = req.address
         @assert(first != null)
 
-        var done: s32 = 0
+        var done:    s32 = 0
         var payload: AllocatorRemoteFreePayload = undefined
         payload.allocator = itf
-        payload.address = notnull first
-        payload.done = &done
+        payload.address   = notnull first
+        payload.done      = &done
 
         var threadId: AllocatorThreadTest.DWORD
         let handle = AllocatorThreadTest.CreateThread(null, 0, &allocatorRemoteFreeThread, &payload, 0, &threadId)
@@ -828,11 +828,11 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         let first = req.address
         @assert(first != null)
 
-        var done: s32 = 0
+        var done:    s32 = 0
         var payload: AllocatorRemoteFreePayload = undefined
         payload.allocator = itf
-        payload.address = notnull first
-        payload.done = &done
+        payload.address   = notnull first
+        payload.done      = &done
 
         var threadId: AllocatorThreadTest.DWORD
         let handle = AllocatorThreadTest.CreateThread(null, 0, &allocatorRemoteFreeThread, &payload, 0, &threadId)

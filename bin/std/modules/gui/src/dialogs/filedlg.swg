@@ -11,24 +11,24 @@ enum FileDlgMode
 
 struct FileDlgState
 {
-    position:                Math.Rectangle
-    curFolder:               String
-    folderHistory:           Array'String
-    columnWidthName:         s32 = 200
-    columnWidthModified:     s32 = 150
+    position:            Math.Rectangle
+    curFolder:           String
+    folderHistory:       Array'String
+    columnWidthName:     s32 = 200
+    columnWidthModified: s32 = 150
 }
 
 struct FileDlgOptions
 {
-    title:          string = ""
-    btnOkName:      string = ""
-    openFolder:     string = ""
-    editName:       string = ""
+    title:      string = ""
+    btnOkName:  string = ""
+    openFolder: string = ""
+    editName:   string = ""
     drivePane       = true
-    mode:           FileDlgMode = SelectOneFile
-    filters:        Array'{ name: string, extensions: string }
-    shortcuts:      Array'{ type: Core.Env.SpecialDirectory, name: string }
-    state:          #null *FileDlgState
+    mode:      FileDlgMode = SelectOneFile
+    filters:   Array'{ name: string, extensions: string }
+    shortcuts: Array'{ type: Core.Env.SpecialDirectory, name: string }
+    state:     #null *FileDlgState
 }
 
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.

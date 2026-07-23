@@ -12,20 +12,20 @@ enum ParseMode
 struct BasicOptions
 {
     #[CommandLine.ArgParams(nameAlias: "n")]
-    delta: s32
-    count: s32
+    delta:   s32
+    count:   s32
     enabled: bool
-    mode: ParseMode
+    mode:    ParseMode
 }
 
 struct AdvancedOptions
 {
     #[CommandLine.ArgParams(nameAlias: "n")]
-    name: String
-    enabled: bool
+    name:      String
+    enabled:   bool
     threshold: f32
-    values: Array's32
-    labels: Array'String
+    values:    Array's32
+    labels:    Array'String
 }
 
 struct NameOptions
@@ -36,7 +36,7 @@ struct NameOptions
 
 struct NumericOptions
 {
-    enabled: bool
+    enabled:   bool
     threshold: f32
 }
 

@@ -96,7 +96,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
 // Book discount activates only for books.
 #test
 {
-    var bd: BookDiscount
+    var bd:        BookDiscount
     var bookLine:  OrderLine = {kind: ProductKind.Book, quantity: 1, unitCent: 1000}
     var otherLine: OrderLine = {kind: ProductKind.Food, quantity: 1, unitCent: 1000}
 

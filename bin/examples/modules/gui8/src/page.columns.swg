@@ -9,14 +9,14 @@ func createColumnsPage(parent: *Wnd)
     files.setFrameForm(.Round)
     files.frameFlags.add(.FocusBorder)
     files.selectionMode = .Multi
-    files.iconSize = 16
+    files.iconSize      = 16
     addListFlags(files)
     files.addColumn("Name", 190, app.theme.getIcon24(.OpenFile, 16))
     files.addColumn("Kind", 110)
     files.addColumn("Owner", 120)
     files.addColumn("Changed", 110, app.theme.getIcon24(.Sort, 16))
-    files.header.getItem(0).minWidth = 130
-    files.header.getItem(0).sizeable = false
+    files.header.getItem(0).minWidth   = 130
+    files.header.getItem(0).sizeable   = false
     files.header.getItem(3).iconMargin = true
     for i in 18
     {
@@ -33,7 +33,7 @@ func createColumnsPage(parent: *Wnd)
     let queue = ListCtrl.createMultiColumns(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
     queue.setFrameForm(.Round)
     queue.selectionMode = .Single
-    queue.iconSize = 16
+    queue.iconSize      = 16
     queue.listFlags.add(.AlternateLines)
     queue.addColumn("Task", 180, app.theme.getIcon24(.Edit, 16))
     queue.addColumn("State", 110)
@@ -55,7 +55,7 @@ func createColumnsPage(parent: *Wnd)
     let wide = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     wide.setFrameForm(.Square)
     wide.selectionMode = .Multi
-    wide.iconSize = 16
+    wide.iconSize      = 16
     wide.addColumn("Package", 180)
     wide.addColumn("Version", 120)
     wide.addColumn("Platform", 140)

@@ -8,9 +8,9 @@ In the case of a struct, the JSON file must represent the structure layout (orde
 */
 public struct JSon
 {
-    stream:        ByteStream
-    line, col:     u64 = 1
-    propName:      String
+    stream:    ByteStream
+    line, col: u64 = 1
+    propName:  String
 }
 
 public impl JSon
@@ -46,11 +46,11 @@ public impl JSon
             if c == '\n'
             {
                 .line += 1
-                .col = 1
+                .col  = 1
             }
             else do
                 .col += 1
-            c = .stream.peekU8()
+            c        = .stream.peekU8()
         }
     }
 
@@ -128,7 +128,7 @@ public impl JSon
         while c and c != '"'
         {
             .propName += c
-            c = .stream.readU8()
+            c         = .stream.readU8()
         }
 
         if .propName != val.name do
@@ -254,9 +254,9 @@ public impl JSon
             c = .stream.peekU8()
             while c and c != '"'
             {
-                c = .stream.readU8()
+                c      = .stream.readU8()
                 result += c
-                c = .stream.peekU8()
+                c      = .stream.peekU8()
             }
 
             c = .stream.readU8()

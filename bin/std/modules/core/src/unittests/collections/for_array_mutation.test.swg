@@ -14,7 +14,7 @@ struct MutationSpan
 
 func compactMutationFor(text: string)->u64
 {
-    var map: Array'{ what, num: s64 }
+    var map:    Array'{ what, num: s64 }
     var nextId: s64
     for ch in text
     {
@@ -42,12 +42,12 @@ func compactMutationFor(text: string)->u64
         if map[i].num == map[last].num
         {
             map[last].what = MutationFreeSpanId
-            last -= 1
+            last           -= 1
         }
         elif map[i].num > map[last].num
         {
             let rest = map[i].num - map[last].num
-            map[i].num = map[last].num
+            map[i].num     = map[last].num
             map[last].what = MutationFreeSpanId
             map.insertAt(i + 1, {what: MutationFreeSpanId, num: rest})
         }
@@ -62,7 +62,7 @@ func compactMutationFor(text: string)->u64
             break
         for span.num
         {
-            total += blockIndex * span.what
+            total      += blockIndex * span.what
             blockIndex += 1
         }
     }
@@ -72,7 +72,7 @@ func compactMutationFor(text: string)->u64
 
 func compactMutationWhile(text: string)->u64
 {
-    var map: Array'{ what, num: s64 }
+    var map:    Array'{ what, num: s64 }
     var nextId: s64
     for ch in text
     {
@@ -106,12 +106,12 @@ func compactMutationWhile(text: string)->u64
         if map[i].num == map[last].num
         {
             map[last].what = MutationFreeSpanId
-            last -= 1
+            last           -= 1
         }
         elif map[i].num > map[last].num
         {
             let rest = map[i].num - map[last].num
-            map[i].num = map[last].num
+            map[i].num     = map[last].num
             map[last].what = MutationFreeSpanId
             map.insertAt(i + 1, {what: MutationFreeSpanId, num: rest})
         }
@@ -128,7 +128,7 @@ func compactMutationWhile(text: string)->u64
             break
         for span.num
         {
-            total += blockIndex * span.what
+            total      += blockIndex * span.what
             blockIndex += 1
         }
     }

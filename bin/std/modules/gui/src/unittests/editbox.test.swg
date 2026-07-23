@@ -5,8 +5,16 @@ using Swag, Core
 var EditHeadlessEnterCount:  u32
 var EditHeadlessEscapeCount: u32
 
-func editHeadlessEnter(eb: *EditBox)  { discard eb; EditHeadlessEnterCount += 1 }
-func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1 }
+func editHeadlessEnter(eb: *EditBox)
+{
+    discard eb;
+    EditHeadlessEnterCount += 1
+}
+func editHeadlessEscape(eb: *EditBox)
+{
+    discard eb;
+    EditHeadlessEscapeCount += 1
+}
 
 // setText/getText round-trips the content.
 #test
@@ -180,7 +188,7 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
         host.click({x, yc})
         @assert(edit.selEnd >= prev)
         prev = edit.selEnd
-        x += 8
+        x    += 8
     }
 
     // Far right clamps to the end of the text.
@@ -369,7 +377,7 @@ func editHeadlessEscape(eb: *EditBox) { discard eb; EditHeadlessEscapeCount += 1
     EditHeadlessEscapeCount = 0
 
     let edit = EditBox.create(&host.root, "x", {20, 20, 200, 26}, null, EditBoxFlags.Zero)
-    edit.sigEnterPressed += &editHeadlessEnter
+    edit.sigEnterPressed  += &editHeadlessEnter
     edit.sigEscapePressed += &editHeadlessEscape
 
     host.focus(edit)

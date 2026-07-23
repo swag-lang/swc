@@ -7,7 +7,7 @@
 // Exercises: nested functions, #if/#else, const from func, @min/@max,
 // 0 until N range, #[Swag.Discardable], tuple-like struct returns.
 
-const MaxDim = 64'u32
+const MaxDim     = 64'u32
 const NumHeights = 10'u32
 
 const SampleInput =
@@ -82,19 +82,19 @@ func parseGrid(text: string)->Grid
             {
                 if result.height == 0 do
                     result.width = col
-                result.height += 1
-                col = 0
+                result.height    += 1
+                col              = 0
             }
             continue
         }
 
         result.cells[result.height * MaxDim + col] = ch - '0'
-        col += 1
+        col                                        += 1
     }
 
     if col > 0
     {
-        result.width = @max(result.width, col)
+        result.width  = @max(result.width, col)
         result.height += 1
     }
 
@@ -134,7 +134,7 @@ func dfs(g: const &Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
         let idx = row * MaxDim + col
         if !vis[idx]
         {
-            vis[idx] = true
+            vis[idx]      = true
             dref scoreOut += 1
         }
         return 1
@@ -163,7 +163,7 @@ func dfs(g: const &Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
 func findTrails(grid: const &Grid)->TrailResult
 {
     var visited: [MaxDim * MaxDim] bool
-    var totalScore: u32
+    var totalScore:  u32
     var totalRating: u32
 
     for row in grid.height
@@ -210,7 +210,7 @@ func analyzeTrails(text: string)->HikingReport
     var grid = parseGrid(text)
 
     var result: HikingReport
-    result.width = grid.width
+    result.width  = grid.width
     result.height = grid.height
 
     for row in grid.height
@@ -223,7 +223,7 @@ func analyzeTrails(text: string)->HikingReport
     }
 
     let trails = findTrails(&grid)
-    result.totalScore = trails.score
+    result.totalScore  = trails.score
     result.totalRating = trails.rating
 
     return result

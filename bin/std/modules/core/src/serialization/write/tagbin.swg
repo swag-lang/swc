@@ -28,28 +28,28 @@ enum TagBinValueFlags: u8
 // Internal state for a binary serialization section
 struct TagBinSection
 {
-    startSeek:     ConcatBufferSeek                      // Seek position in the output buffer where the section starts
-    mapSeek:       HashTable'(u32, ConcatBufferSeek)     // Maps CRC keys to their position in the output buffer
-    kind:          SectionKind                           // Type of section (e.g., Raw or Unordered)
+    startSeek: ConcatBufferSeek                      // Seek position in the output buffer where the section starts
+    mapSeek:   HashTable'(u32, ConcatBufferSeek)     // Maps CRC keys to their position in the output buffer
+    kind:      SectionKind                           // Type of section (e.g., Raw or Unordered)
 }
 
 // Binary writer for serialized data with support for structured and raw output
 #[Swag.Opaque]
 struct TagBin
 {
-    compressionFlags:        Core.Compress.Deflate.CompressionFlags = .Zero
-    compressionLevel:        Core.Compress.Deflate.CompressionLevel = .BestSpeed
-    compressionStrategy:     Core.Compress.Deflate.CompressionStrategy = .Default
+    compressionFlags:    Core.Compress.Deflate.CompressionFlags = .Zero
+    compressionLevel:    Core.Compress.Deflate.CompressionLevel = .BestSpeed
+    compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default
 
     internal
     {
-        compressor:       Core.Compress.Deflate
-        output:           #null *ConcatBuffer        // Output buffer where data is written
-        freeSections:     ArrayPtr'TagBinSection     // Pool of reusable section structures
-        sections:         ArrayPtr'TagBinSection     // Stack of currently active sections
-        outStack:         Array'(#null *ConcatBuffer)
-        elemStack:        Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }
-        freeTmpBuf:       ArrayPtr'ConcatBuffer
+        compressor:   Core.Compress.Deflate
+        output:       #null *ConcatBuffer        // Output buffer where data is written
+        freeSections: ArrayPtr'TagBinSection     // Pool of reusable section structures
+        sections:     ArrayPtr'TagBinSection     // Stack of currently active sections
+        outStack:     Array'(#null *ConcatBuffer)
+        elemStack:    Array'{ compressed: bool, tmpBuf: #null *ConcatBuffer }
+        freeTmpBuf:   ArrayPtr'ConcatBuffer
     }
 }
 

@@ -8,8 +8,8 @@ const MaxTokens = 1024
 const SampleInputA = "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))"
 const SampleInputB = "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()_mul(8,5))"
 
-const EdgeInput = "mul(1,1)don't()mul(2,2)do()mul(3,3)"
-const EmptyInput = "nothing here at all"
+const EdgeInput     = "mul(1,1)don't()mul(2,2)do()mul(3,3)"
+const EmptyInput    = "nothing here at all"
 const CoverageInput = "mul(2,3)xxdon't()mul(4,5)??do()mul(6,7)!mul[8,9]don't()mul(1,1)do()mul(3,4)"
 
 enum TokenKind: u8
@@ -63,14 +63,14 @@ func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool
 func parseNumber(bytes: const [..] u8, pos: u64, outVal: *s32, outEnd: *u64)->bool
 {
     var digits: u32
-    var value: s32
+    var value:  s32
     var i = pos
 
     while i < @countof(bytes) and isDigit(bytes[i]) and digits < 3
     {
-        value = value * 10 + cast(s32) (bytes[i] - '0')
+        value  = value * 10 + cast(s32) (bytes[i] - '0')
         digits += 1
-        i += 1
+        i      += 1
     }
 
     if digits == 0 or digits > 3 do
@@ -88,7 +88,7 @@ func parseNumber(bytes: const [..] u8, pos: u64, outVal: *s32, outEnd: *u64)->bo
 func tokenizeClean(bytes: const [..] u8)->TokenStream
 {
     var result: TokenStream
-    var i: u64
+    var i:      u64
 
     while i < @countof(bytes)
     {
@@ -96,8 +96,8 @@ func tokenizeClean(bytes: const [..] u8)->TokenStream
         {
             @assert(result.count < MaxTokens)
             result.tokens[result.count].kind = TokenKind.Dont
-            result.count += 1
-            i += 7
+            result.count                     += 1
+            i                                += 7
             continue
         }
 
@@ -105,15 +105,15 @@ func tokenizeClean(bytes: const [..] u8)->TokenStream
         {
             @assert(result.count < MaxTokens)
             result.tokens[result.count].kind = TokenKind.Do
-            result.count += 1
-            i += 4
+            result.count                     += 1
+            i                                += 4
             continue
         }
 
         if matchLiteral(bytes, i, "mul(")
         {
-            var lhs: s32
-            var rhs: s32
+            var lhs:      s32
+            var rhs:      s32
             var afterLhs: u64
             var afterRhs: u64
 
@@ -127,10 +127,10 @@ func tokenizeClean(bytes: const [..] u8)->TokenStream
                         {
                             @assert(result.count < MaxTokens)
                             result.tokens[result.count].kind = TokenKind.Mul
-                            result.tokens[result.count].lhs = lhs
-                            result.tokens[result.count].rhs = rhs
-                            result.count += 1
-                            i = afterRhs + 1
+                            result.tokens[result.count].lhs  = lhs
+                            result.tokens[result.count].rhs  = rhs
+                            result.count                     += 1
+                            i                                = afterRhs + 1
                             continue
                         }
                     }
@@ -176,10 +176,10 @@ func evaluateClean(stream: TokenStream)->MulResult
 #[Swag.Mixin]
 func declareScannerState()
 {
-    var scanPos: u64
+    var scanPos:    u64
     var scanTokens: TokenStream
     var scanEnabled = true
-    var scanSumAll: s64
+    var scanSumAll:     s64
     var scanSumEnabled: s64
 }
 
@@ -188,9 +188,9 @@ func emitToken(kind: TokenKind, lhs: s32, rhs: s32)
 {
     @assert(scanTokens.count < MaxTokens)
     scanTokens.tokens[scanTokens.count].kind = kind
-    scanTokens.tokens[scanTokens.count].lhs = lhs
-    scanTokens.tokens[scanTokens.count].rhs = rhs
-    scanTokens.count += 1
+    scanTokens.tokens[scanTokens.count].lhs  = lhs
+    scanTokens.tokens[scanTokens.count].rhs  = rhs
+    scanTokens.count                         += 1
 }
 
 #[Swag.Mixin]
@@ -234,8 +234,8 @@ func tokenizeWithLanguageFeatures(bytes: const [..] u8)->TokenStream
 
         if matchLiteral(bytes, scanPos, "mul(")
         {
-            var lhs: s32
-            var rhs: s32
+            var lhs:      s32
+            var rhs:      s32
             var afterLhs: u64
             var afterRhs: u64
 
@@ -281,7 +281,7 @@ func evaluateWithLanguageFeatures(stream: TokenStream)->MulResult
     }
 
     var result: MulResult
-    result.sumAll = scanSumAll
+    result.sumAll     = scanSumAll
     result.sumEnabled = scanSumEnabled
     return result
 }

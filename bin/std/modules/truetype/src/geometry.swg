@@ -1,6 +1,9 @@
 using Swag, Core
 
-public struct BBox { xMin, yMin: s32, xMax, yMax: s32 }
+public struct BBox
+{
+    xMin, yMin: s32, xMax, yMax: s32
+}
 
 public struct Vector
 {
@@ -8,4 +11,7 @@ public struct Vector
     y: s32
 }
 
-public struct Matrix { xx, xy: s32, yx, yy: s32 }
+public struct Matrix
+{
+    xx, xy: s32, yx, yy: s32
+}

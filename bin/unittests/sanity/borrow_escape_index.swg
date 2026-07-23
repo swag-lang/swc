@@ -22,7 +22,7 @@ impl BorrowIndexVec
     mtd add(value: *s32)
     {
         me.buffer[me.count] = value
-        me.count += 1
+        me.count            += 1
     }
 }
 
@@ -45,6 +45,6 @@ func borrowIndexPointerElementCopy(h: *BorrowIndexHolder, src: *s32)
 func borrowIndexBuiltinArrayElement(h: *BorrowIndexHolder, src: *s32)
 {
     var arr: [4] *s32 = undefined
-    arr[0] = src
+    arr[0]   = src
     h.picked = arr[0]
 }

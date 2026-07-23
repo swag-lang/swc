@@ -44,7 +44,7 @@ func comboOperand(state: VmState, operand: u8)->u64
 func executeProgram(initial: VmState, program: const [..] u8)->VmReport
 {
     var state = initial
-    var ip: u32
+    var ip:     u32
     var result: VmReport
 
     while ip + 1 < @countof(program)
@@ -70,7 +70,7 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
         case 3:
             if state.regA != 0'u64
             {
-                ip = cast(u32) operand
+                ip     = cast(u32) operand
                 jumped = true
             }
             break
@@ -81,7 +81,7 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
 
         case 5:
             result.outputChecksum = result.outputChecksum * 10'u64 + comboOperand(state, operand) % 8'u64
-            result.outputCount += 1
+            result.outputCount    += 1
             break
 
         case 6:

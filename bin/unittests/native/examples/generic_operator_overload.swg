@@ -167,7 +167,7 @@ impl Complex
 //   (a+bi)*(0+1i) = -b + ai
 #test
 {
-    var z: Complex's32 = {re: 5, im: 3}
+    var z:      Complex's32 = {re: 5, im: 3}
     var i_unit: Complex's32 = {re: 0, im: 1}
     let rot = z * i_unit
 

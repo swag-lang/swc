@@ -27,7 +27,7 @@ func mixinAddDefer()
     appendDeferTrace(1)
 }
 
-var MacroState: s32 = 0
+var MacroState:     s32 = 0
 var ScopeLockValue: s32 = 0
 
 #[Swag.Mixin]

@@ -4,12 +4,12 @@
 {
     let itf = @compiler
     let cfg = itf.getBuildCfg()
-    cfg.moduleVersion   = 0
-    cfg.moduleRevision  = 0
-    cfg.moduleBuildNum  = 0
-    cfg.embeddedImports = true
-    cfg.backendKind     = .Executable
+    cfg.moduleVersion     = 0
+    cfg.moduleRevision    = 0
+    cfg.moduleBuildNum    = 0
+    cfg.embeddedImports   = true
+    cfg.backendKind       = .Executable
     cfg.ignoreInWorkspace = false
-    cfg.backendSubKind  = .Default
-    cfg.warnAsDisabled  = "Wrn0006"
+    cfg.backendSubKind    = .Default
+    cfg.warnAsDisabled    = "Wrn0006"
 }

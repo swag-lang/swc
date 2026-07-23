@@ -24,71 +24,71 @@ enum ListFlags
 struct ListItem
 {
     using item:     Item
-    sortKey:        String
-    colorBk:        Color
-    colorFg:        Color
-    column:         u32
+    sortKey: String
+    colorBk: Color
+    colorFg: Color
+    column:  u32
     horzAlign       = StringHorzAlignment.Left
 }
 
 struct ListLine
 {
-    colorBk:             Color
-    colorFg:             Color
-    userData0:           #null *void
-    userData1:           #null *void
-    userData2:           #null *void
-    userData3:           #null *void
-    leftTextMargin:      f32
-    forceExpandMark:     bool
-    canCheck:            bool
-    separator:           bool
-    iconMargin:          bool
+    colorBk:         Color
+    colorFg:         Color
+    userData0:       #null *void
+    userData1:       #null *void
+    userData2:       #null *void
+    userData3:       #null *void
+    leftTextMargin:  f32
+    forceExpandMark: bool
+    canCheck:        bool
+    separator:       bool
+    iconMargin:      bool
 
-    lines:               ArrayPtr'ListLine
-    items:               ArrayPtr'ListItem
-    parent:              #null *ListLine
-    index:               u32
-    level:               u32
-    expanded:            bool
+    lines:    ArrayPtr'ListLine
+    items:    ArrayPtr'ListItem
+    parent:   #null *ListLine
+    index:    u32
+    level:    u32
+    expanded: bool
 }
 
 struct ListCtrl
 {
     using frameWnd:         FrameWnd
 
-    horizontalExtent:       f32
-    lineHeight:             f32
-    indentWidth:            f32 = 22
-    iconSize:               f32
+    horizontalExtent: f32
+    lineHeight:       f32
+    indentWidth:      f32 = 22
+    iconSize:         f32
     iconMarginFirstCol      = true
     listFlags               = ListFlags.Zero
     selectionMode           = ListSelectionMode.Single
     leftTextMargin:         f32
 
-    sigSelChanged:          SigArray'func||(*ListCtrl)
-    sigCheckChanged:        SigArray'func||(*ListCtrl)
-    sigRightClick:          SigArray'func||(*ListCtrl, Math.Point)
-    sigLeftDoubleClick:     SigArray'func||(*ListCtrl, Math.Point)
-    sigExpand:              SigArray'func||(*ListCtrl, *ListLine)
-    sigCollapse:            SigArray'func||(*ListCtrl, *ListLine)
-    sigKeyPressed:          SigArray'func||(*ListCtrl, *KeyEvent)
-    sigVirtualFill:         #null func(*ListCtrl, #null *ListLine, u32)
-    sigSort:                #null func(#null *ListLine, #null *ListLine, u32, bool)->s32
+    sigSelChanged:      SigArray'func||(*ListCtrl)
+    sigCheckChanged:    SigArray'func||(*ListCtrl)
+    sigRightClick:      SigArray'func||(*ListCtrl, Math.Point)
+    sigLeftDoubleClick: SigArray'func||(*ListCtrl, Math.Point)
+    sigExpand:          SigArray'func||(*ListCtrl, *ListLine)
+    sigCollapse:        SigArray'func||(*ListCtrl, *ListLine)
+    sigKeyPressed:      SigArray'func||(*ListCtrl, *KeyEvent)
+    sigVirtualFill:     #null func(*ListCtrl, #null *ListLine, u32)
+    sigSort:            #null func(#null *ListLine, #null *ListLine, u32, bool)->s32
 
-    toFreeLines:            ArrayPtr'ListLine
-    lines:                  Array'(#null *ListLine)
-    idxLineToIdxList:       HashTable'(u32, u32)
-    selModel:               SelModel
-    checkModel:             SelModel
-    nextLineIndex:          u32
+    toFreeLines:      ArrayPtr'ListLine
+    lines:            Array'(#null *ListLine)
+    idxLineToIdxList: HashTable'(u32, u32)
+    selModel:         SelModel
+    checkModel:       SelModel
+    nextLineIndex:    u32
     focusIndex              = Swag.U32.Max
     hotIndex                = Swag.U32.Max
     scrollWnd:              #late *ScrollWnd
     listView:               #late *ListView
     header:                 #late *Header
-    virtualCount:           u32
-    isVirtual:              bool
+    virtualCount: u32
+    isVirtual:    bool
 }
 
 struct ListView
@@ -257,7 +257,7 @@ impl IWnd for ListView
                 startSelIdx, endSelIdx = 0
             else do
                 startSelIdx, endSelIdx = .list.focusIndex - 1
-            selChanged = true
+            selChanged                 = true
 
         case Down:
             if .list.focusIndex == lineCount - 1 do
@@ -266,7 +266,7 @@ impl IWnd for ListView
                 .list.focusIndex = 0
             else do
                 startSelIdx, endSelIdx = .list.focusIndex + 1
-            selChanged = true
+            selChanged                 = true
 
         case Left where focusLine:
             .list.collapse(notnull focusLine)
@@ -277,9 +277,9 @@ impl IWnd for ListView
             let first = .list.getFirstVisibleLineIndex()
             let last  = .list.getLastVisibleLineIndex()
             startSelIdx, endSelIdx = .list.focusIndex + (last - first)
-            startSelIdx = Math.min(startSelIdx, lineCount - 1)
-            endSelIdx   = Math.min(endSelIdx, lineCount - 1)
-            selChanged  = true
+            startSelIdx            = Math.min(startSelIdx, lineCount - 1)
+            endSelIdx              = Math.min(endSelIdx, lineCount - 1)
+            selChanged             = true
 
         case PageUp:
             let first  = .list.getFirstVisibleLineIndex()
@@ -289,7 +289,7 @@ impl IWnd for ListView
                 startSelIdx, endSelIdx = 0
             else do
                 startSelIdx, endSelIdx = .list.focusIndex - offset
-            selChanged = true
+            selChanged                 = true
         }
 
         if selChanged
@@ -383,7 +383,7 @@ impl IWnd for ListView
                     var eatCheck = false
                     if localPos.x < widthLeft do
                         eatCheck = true
-                    widthLeft += Math.min(metrics.btnCheck_Size, .list.getLineHeight())
+                    widthLeft    += Math.min(metrics.btnCheck_Size, .list.getLineHeight())
 
                     if eatCheck
                     {
@@ -519,7 +519,7 @@ impl IWnd for ListView
         // Do not display with bigs coordinates to avoid precision issues
         // So we: the scroll by hand, and draw will small coordinates
         var y = cast(f64) firstIdx * .list.getLineHeight()
-        y -= .scrollPos.y
+        y      -= .scrollPos.y
         rect.y = cast(f32) y
 
         if .list.isVirtual
@@ -781,8 +781,8 @@ impl ListCtrl
             .scrollWnd.focusStrategy = .None
             .scrollWnd.setAllPaddings(.getThemeMetrics().list_Padding)
 
-            .listView      = .scrollWnd.createView'ListView()
-            .listView.list = list
+            .listView          = .scrollWnd.createView'ListView()
+            .listView.list     = list
             .listView.wndFlags |= .NoScroll
         }
 
@@ -796,7 +796,7 @@ impl ListCtrl
 
         let fwnd = list.createView'Wnd()
         fwnd.dockStyle = .Center
-        fwnd.wndFlags ^= .ClipChildren
+        fwnd.wndFlags  ^= .ClipChildren
 
         // Adapt header to the frame container
         list.hookOnEvent = func(wnd, evt)
@@ -857,8 +857,8 @@ impl ListCtrl
             }
 
             // ListCtrl view
-            .listView      = .scrollWnd.createView'ListView()
-            .listView.list = list
+            .listView          = .scrollWnd.createView'ListView()
+            .listView.list     = list
             .listView.wndFlags |= .NoScroll
         }
 
@@ -997,16 +997,16 @@ impl ListCtrl
         if parentLine
         {
             let line = parentLine.lines.newPtr()
-            line.parent = parentLine
-            line.level  = parentLine.level + 1
-            line.index  = .nextLineIndex
+            line.parent    = parentLine
+            line.level     = parentLine.level + 1
+            line.index     = .nextLineIndex
             .nextLineIndex += 1
             parentLine.lines.add(line)
             return line
         }
 
         let line = .toFreeLines.newPtr()
-        line.index = .nextLineIndex
+        line.index     = .nextLineIndex
         .nextLineIndex += 1
         .idxLineToIdxList.add(line.index, cast(u32) .lines.count)
         .lines.add(line)
@@ -1028,10 +1028,10 @@ impl ListCtrl
     {
         .lines.clear()
         .virtualCount = 0
-        .isVirtual = false
+        .isVirtual    = false
         .idxLineToIdxList.clear()
         .nextLineIndex = 0
-        .focusIndex = Swag.U32.Max
+        .focusIndex    = Swag.U32.Max
         .selModel.unselectAll()
         .checkModel.unselectAll()
     }

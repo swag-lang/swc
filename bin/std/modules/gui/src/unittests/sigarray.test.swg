@@ -19,7 +19,7 @@ func sigArrayTestAddDelta(value: *s32, delta: s32)
 
 func sigArrayTestAppendA(value: *s32)
 {
-    dref value += 1
+    dref value        += 1
     SigArrayTestTrace += "A"
 }
 
@@ -76,12 +76,12 @@ func sigArrayTestAppendA(value: *s32)
     signal += &sigArrayTestAppendA
     signal += func(value: *s32)
     {
-        dref value *= 3
+        dref value        *= 3
         SigArrayTestTrace += "B"
     }
     signal += func(value: *s32)
     {
-        dref value -= 2
+        dref value        -= 2
         SigArrayTestTrace += "C"
     }
 

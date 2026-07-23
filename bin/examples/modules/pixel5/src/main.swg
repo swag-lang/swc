@@ -3,46 +3,46 @@ using Core, Pixel, Win32
 const W = 1260
 const H = 860
 
-const GalleryCols  = 4
-const GalleryRows  = 2
-const CardsPerPage = GalleryCols * GalleryRows
-const MaxPages     = 4
+const GalleryCols       = 4
+const GalleryRows       = 2
+const CardsPerPage      = GalleryCols * GalleryRows
+const MaxPages          = 4
 const TestFramesPerPage = 30
-const CardHeaderHeight = 68.0
+const CardHeaderHeight  = 68.0
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
 struct SceneLayout
 {
-    scale:      f32
-    rect:       Math.Rectangle
+    scale: f32
+    rect:  Math.Rectangle
 }
 
 struct CardOptions
 {
-    angle:           Math.Angle = 0.0'deg
-    scale:           f32 = 1.0
-    interpolation:   InterpolationMode = .Linear
-    sourceRect:      Math.Rectangle
-    offsetX:         f32 = 0
-    offsetY:         f32 = 0
+    angle:         Math.Angle = 0.0'deg
+    scale:         f32 = 1.0
+    interpolation: InterpolationMode = .Linear
+    sourceRect:    Math.Rectangle
+    offsetX:       f32 = 0
+    offsetY:       f32 = 0
 }
 
 struct TextureCard
 {
     title:           #late string
     subtitle:        #late string
-    texture:         Texture
-    options:         CardOptions
+    texture: Texture
+    options: CardOptions
 }
 
-var g_Window:       Env.Window
-var g_Renderer:     Pixel.RenderOgl
-var g_Painter:      Pixel.Painter
-var g_RC:           Pixel.RenderingContext
-var g_Keyboard:     Input.Keyboard
+var g_Window:   Env.Window
+var g_Renderer: Pixel.RenderOgl
+var g_Painter:  Pixel.Painter
+var g_RC:       Pixel.RenderingContext
+var g_Keyboard: Input.Keyboard
 
-var g_FontPath:  String
+var g_FontPath:     String
 var g_FontBytes:    Array'u8
 var g_TypeFace:     #null *Pixel.TypeFace
 var g_TitleFont:    #null *Pixel.Font
@@ -50,8 +50,8 @@ var g_SubTitleFont: #null *Pixel.Font
 var g_LabelFont:    #null *Pixel.Font
 var g_HelpFont:     #null *Pixel.Font
 
-var g_Page:         s32
-var g_TestFrame:    s32
+var g_Page:      s32
+var g_TestFrame: s32
 
 var g_SourceTexture: Texture
 
@@ -127,9 +127,9 @@ func loadShowcase() throw
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle
 {
     var result = rect
-    result.x += left
-    result.y += top
-    result.width -= left + right
+    result.x      += left
+    result.y      += top
+    result.width  -= left + right
     result.height -= top + bottom
     return result
 }
@@ -142,7 +142,7 @@ func nextPage()
 func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
 {
     var richText: RichString = text
-    var format: RichStringFormat
+    var format:   RichStringFormat
     format.font.regular = font
     format.palette[0]   = color
     format.lineGap      = 0
@@ -218,10 +218,10 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
     var textureRect = fitTextureRect(rect, sourceWidth, sourceHeight, card.options.angle)
     let centerX = textureRect.horzCenter()
     let centerY = textureRect.vertCenter()
-    textureRect.width *= card.options.scale
+    textureRect.width  *= card.options.scale
     textureRect.height *= card.options.scale
-    textureRect.x = centerX - textureRect.width * 0.5 + card.options.offsetX
-    textureRect.y = centerY - textureRect.height * 0.5 + card.options.offsetY
+    textureRect.x      = centerX - textureRect.width * 0.5 + card.options.offsetX
+    textureRect.y      = centerY - textureRect.height * 0.5 + card.options.offsetY
 
     painter.pushClippingRect(rect)
     painter.setInterpolationMode(card.options.interpolation)

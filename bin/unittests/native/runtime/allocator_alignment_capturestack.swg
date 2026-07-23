@@ -15,7 +15,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     let itf = makeAlignmentCaptureAllocator(&alloc)
 
     var req: AllocatorRequest
-    req.size = 257
+    req.size      = 257
     req.alignment = 128
     itf.alloc(&req)
     @assert(req.address != null)
@@ -32,7 +32,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     let alignedItf = makeAlignmentCaptureAllocator(&alignedAlloc)
 
     var aligned: AllocatorRequest
-    aligned.size = 257
+    aligned.size      = 257
     aligned.alignment = 128
     alignedItf.alloc(&aligned)
     @assert(aligned.address != null)
@@ -68,7 +68,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     var reqs: [6] AllocatorRequest
     for i in 6
     {
-        reqs[i].size = 64 + cast(u64) i * 41
+        reqs[i].size      = 64 + cast(u64) i * 41
         reqs[i].alignment = 128
         itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)

@@ -107,9 +107,9 @@ impl IWnd for CheckButton
             format.horzAlignment = .Right
         else do
             format.horzAlignment = .Left
-        format.vertAlignment = .Center
-        format.flags         = .Clip
-        format.font          = .getFont()
+        format.vertAlignment     = .Center
+        format.flags             = .Clip
+        format.font              = .getFont()
         var labelPos = clientRect
         if !.checkButtonFlags.has(.RightAlign) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding

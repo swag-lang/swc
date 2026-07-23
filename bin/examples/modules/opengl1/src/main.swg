@@ -1,8 +1,8 @@
 using Core, Ogl
 
-var g_Window:    Env.Window
-var g_Context:   Ogl.Platform.Win32.Context
-var g_Frame:     Time.FrameTiming
+var g_Window:  Env.Window
+var g_Context: Ogl.Platform.Win32.Context
+var g_Frame:   Time.FrameTiming
 
 func display()
 {

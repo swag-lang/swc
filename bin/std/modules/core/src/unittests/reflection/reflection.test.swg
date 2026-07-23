@@ -47,7 +47,7 @@ struct LifecycleProbe
 
 struct CopyProbe
 {
-    value: s32
+    value:  s32
     copied: bool
 }
 
@@ -85,7 +85,7 @@ enum ProbeFlags: u32
 
 alias ReflectionProbeAlias = ReflectionProbe
 alias ReflectionProbeAlias2 = ReflectionProbeAlias
-var ReflectionRuntimeMethodCalls: s32
+var ReflectionRuntimeMethodCalls:  s32
 var ReflectionRuntimePointerCalls: s32
 
 #[FuncMeta("repeat", 2)]
@@ -185,9 +185,9 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let fieldEnabled = Reflection.getField(#typeof(probe), "enabled")
     let fieldLabel = Reflection.getField(#typeof(probe), "label")
 
-    var readX: s32
+    var readX:       s32
     var readEnabled: bool
-    var readLabel: #null string
+    var readLabel:   #null string
 
     Reflection.getFieldValue(&readX, fieldX, &probe)
     Reflection.getFieldValue(&readEnabled, fieldEnabled, &probe)
@@ -243,7 +243,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 #test
 {
     let type = #typeof(ReflectionProbe)
-    ReflectionRuntimeMethodCalls = 0
+    ReflectionRuntimeMethodCalls  = 0
     ReflectionRuntimePointerCalls = 0
 
     @assert(runtimeMethodReflectionWorks(type, 1))

@@ -54,7 +54,7 @@ func guardedAssume(n: #null *GuardedNode)->bool
 
 func semaTest001()
 {
-    var node: Node
+    var node:        Node
     var guardedNode: GuardedNode
     @assert(!pick())
     @assert(select(&node))

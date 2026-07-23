@@ -18,9 +18,9 @@ struct StackLayoutCtrl
 {
     using wnd:        Wnd
 
-    layoutKind:       StackLayoutKind = Top
-    spacing:          f32 = 5
-    fitToContent:     bool
+    layoutKind:   StackLayoutKind = Top
+    spacing:      f32 = 5
+    fitToContent: bool
 }
 
 impl IWnd for StackLayoutCtrl
@@ -135,12 +135,12 @@ private impl StackLayoutCtrl
     {
         if .isHorizontal()
         {
-            rect.x = pos
+            rect.x     = pos
             rect.width = size
         }
         else
         {
-            rect.y = pos
+            rect.y      = pos
             rect.height = size
         }
     }
@@ -149,12 +149,12 @@ private impl StackLayoutCtrl
     {
         if .isHorizontal()
         {
-            rect.y = pos
+            rect.y      = pos
             rect.height = size
         }
         else
         {
-            rect.x = pos
+            rect.x     = pos
             rect.width = size
         }
     }
@@ -199,9 +199,9 @@ private impl StackLayoutCtrl
         {
             let margin = c.getLayoutMargin()
             let marginMain = .mainMargin(margin)
-            totalMargins += marginMain
+            totalMargins   += marginMain
             totalPreferred += .preferredMain(hints[idx]) + marginMain
-            totalMinimum += .minimumMain(hints[idx]) + marginMain
+            totalMinimum   += .minimumMain(hints[idx]) + marginMain
             if .canShrinkMain(c) do
                 shrinkPool += Math.max(.preferredMain(hints[idx]) - .minimumMain(hints[idx]), 0)
             let pol = .mainPolicy(c)
@@ -210,7 +210,7 @@ private impl StackLayoutCtrl
                 var itemWeight = 1'f32
                 if !.isFitMain() do
                     itemWeight = .mainWeight(c)
-                totalWeight += itemWeight
+                totalWeight    += itemWeight
             }
         }
 
@@ -218,8 +218,8 @@ private impl StackLayoutCtrl
         var shortage = 0'f32
         if .isFitMain()
         {
-            totalWeight = count
-            extra = Math.max(availableMain - totalMinimum, 0)
+            totalWeight    = count
+            extra          = Math.max(availableMain - totalMinimum, 0)
             totalPreferred = totalMinimum
         }
         elif .fitToContent do
@@ -279,19 +279,19 @@ private impl StackLayoutCtrl
                 crossSize = crossAvailable
             else do
                 crossSize = .preferredCross(hint)
-            crossSize = Math.clamp(crossSize, .minimumCross(hint), .maximumCross(hint))
+            crossSize     = Math.clamp(crossSize, .minimumCross(hint), .maximumCross(hint))
 
             var mainPos: f32
             if .isReverse()
             {
-                cursor -= .endMargin(margin) + mainSize
+                cursor  -= .endMargin(margin) + mainSize
                 mainPos = cursor
-                cursor -= .startMargin(margin) + .spacing
+                cursor  -= .startMargin(margin) + .spacing
             }
             else
             {
                 mainPos = cursor + .startMargin(margin)
-                cursor += .startMargin(margin) + mainSize + .endMargin(margin) + .spacing
+                cursor  += .startMargin(margin) + mainSize + .endMargin(margin) + .spacing
             }
 
             let crossBase = .isHorizontal() ? client.y : client.x
@@ -334,7 +334,7 @@ private impl StackLayoutCtrl
         {
             if .isHorizontal()
             {
-                .position.width = contentEnd
+                .position.width  = contentEnd
                 .preferredSize.x = contentEnd
             }
             else

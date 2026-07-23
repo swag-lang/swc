@@ -2,9 +2,9 @@
 #global namespace Utf16
 
 const RuneError = 0xFFFD'rune
-const Surr1     = 0xd800
-const Surr2     = 0xdc00
-const Surr3     = 0xe000
+const Surr1     = 0xD800
+const Surr2     = 0xDC00
+const Surr3     = 0xE000
 const SurrSelf  = 0x10000
 
 // Get the unicode character pointed by 'buffer', and the number of u16 to encode it
@@ -53,8 +53,8 @@ func encodeRune(dest: [..] u16, src: rune)->u32
 
     case SurrSelf <= src and src <= 0x10FFFF:
         let r = src - SurrSelf
-        dest[0] = cast(u16) (Surr1 + ((r >> 10) & 0x3ff))
-        dest[1] = cast(u16) (Surr2 + (r & 0x3ff))
+        dest[0] = cast(u16) (Surr1 + ((r >> 10) & 0x3FF))
+        dest[1] = cast(u16) (Surr2 + (r & 0x3FF))
         return 2
 
     default:
@@ -80,9 +80,9 @@ func fromUtf8(dest: [..] u16, src: const [..] u8)->u64
         Debug.assert(destLength >= 2, "destination buffer is too small")
         let eatDest = encodeRune(@mkslice(destPtr, destLength), c)
         destPtr, count += eatDest
-        destLength -= eatDest
+        destLength     -= eatDest
 
-        srcPtr += eat
+        srcPtr    += eat
         srcLength -= eat
     }
 

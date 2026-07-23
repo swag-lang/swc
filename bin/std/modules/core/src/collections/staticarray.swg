@@ -223,7 +223,7 @@ impl StaticArray
             return
         Debug.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #fwd value
-        .count += 1
+        .count          += 1
     }
 
     // Adds an element to the end of the array.
@@ -232,7 +232,7 @@ impl StaticArray
     {
         Debug.assert(.count != N, "the array is full")
         .buffer[.count] = #nodrop #fwd value
-        .count += 1
+        .count          += 1
     }
 
     // Makes room for 'num' elements at the end of the array and returns a pointer to the new space.
@@ -393,7 +393,7 @@ impl StaticArray
             for sliceCount
             {
                 dref destPtr = #nodrop values[@index]
-                destPtr += 1
+                destPtr      += 1
             }
         }
             #else
@@ -502,7 +502,7 @@ impl StaticArray
             for .count - index
             {
                 .buffer[idx] = #relocate .buffer[idx + numValues]
-                idx += 1
+                idx          += 1
             }
         }
             #else

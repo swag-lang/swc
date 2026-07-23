@@ -68,7 +68,7 @@ func makeNested(base: s32)->func||()->s32
 
 #test
 {
-    let fromLambda: func||(s32)->s32 = func(value: s32)->s32 { return value * 3 }
+    let fromLambda:   func||(s32)->s32 = func(value: s32)->s32 { return value * 3 }
     let fromFunction: func||(s32)->s32 = &addOne
     @assert(fromLambda(4) == 12)
     @assert(fromFunction(4) == 5)
@@ -94,7 +94,7 @@ func makeNested(base: s32)->func||()->s32
 
 #test
 {
-    let pair: Pair = {base: 7, step: 4}
+    let pair:  Pair = {base: 7, step: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.base + pair.step * value }
     @assert(apply(3) == 19)
 }
@@ -102,7 +102,7 @@ func makeNested(base: s32)->func||()->s32
 #test
 {
     let boundary: Boundary64 = {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8}
-    let sum: func||()->u64 = func|boundary|()->u64 { return boundary.a + boundary.h }
+    let sum:      func||()->u64 = func|boundary|()->u64 { return boundary.a + boundary.h }
     @assert(sum() == 9'u64)
 }
 

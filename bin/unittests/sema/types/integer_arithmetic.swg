@@ -182,5 +182,5 @@ func semaTest001()
 #assert(10'u32 % 3'u32 == 1)
 #assert(10'u64 % 3'u64 == 1)
 
-const DivOverflowS8 = -128's8 / -1
+const DivOverflowS8  = -128's8 / -1
 const DivOverflowS16 = -32768's16 / -1

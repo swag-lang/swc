@@ -69,8 +69,8 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
     if v < 0
     {
         buffer[len] = '-'
-        len += 1
-        v = -v
+        len         += 1
+        v           = -v
     }
 
     if v == 0
@@ -86,14 +86,14 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
         if v == 0 do
             break
         tmp[tmpLen] = cast(u8) (v % 10) + '0'
-        tmpLen += 1
-        v /= 10
+        tmpLen      += 1
+        v           /= 10
     }
 
     for #reverse i in tmpLen
     {
         buffer[len] = tmp[i]
-        len += 1
+        len         += 1
     }
 
     return len
@@ -267,8 +267,8 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     len = appendAst(buffer, len, "\n{\n    ")
     if !returnsVoid do
         len = appendAst(buffer, len, "return ")
-    len = appendAst(buffer, len, handlerName)
-    len = appendAst(buffer, len, "(")
+    len     = appendAst(buffer, len, handlerName)
+    len     = appendAst(buffer, len, "(")
 
     for parameter, index in typeFunc.parameters
     {
@@ -312,9 +312,9 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 #test
 {
     var command: ScheduleDeploymentCommand = undefined
-    command.replicas = 6
-    command.region = "eu-west"
-    command.dryRun = false
+    command.replicas  = 6
+    command.region    = "eu-west"
+    command.dryRun    = false
     command.authToken = "tok_0123456789abcd"
 
     let redacted = redactScheduleDeploymentCommand(command)
@@ -336,9 +336,9 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 #test
 {
     var command: ScheduleDeploymentCommand = undefined
-    command.replicas = 30
-    command.region = "eu"
-    command.dryRun = false
+    command.replicas  = 30
+    command.region    = "eu"
+    command.dryRun    = false
     command.authToken = "short"
 
     let redacted = redactScheduleDeploymentCommand(command)
@@ -350,8 +350,8 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
 #test
 {
     var command: SubmitWireTransferCommand = undefined
-    command.cents = 250_000
-    command.toAccount = "acct-7781"
+    command.cents        = 250_000
+    command.toAccount    = "acct-7781"
     command.approvalCode = "APR-8832"
 
     let receipt = invokeSubmitWireTransferCommand(command)

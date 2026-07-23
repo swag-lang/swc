@@ -184,14 +184,14 @@ func storeRound(guide: *StrategyGuide, opponentToken: u8, codeToken: u8)
 
     let index = guide.count
     guide.rounds[index] = GuideRound{opponentToken: opponentToken, codeToken: codeToken}
-    guide.count += 1
+    guide.count         += 1
 }
 
 func parseGuide(bytes: const [..] u8)->StrategyGuide
 {
-    var result: StrategyGuide
+    var result:        StrategyGuide
     var opponentToken: u8
-    var codeToken: u8
+    var codeToken:     u8
     var haveOpponent = false
     var haveCode = false
 
@@ -208,7 +208,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
                 @assert(haveOpponent and haveCode)
                 storeRound(&result, opponentToken, codeToken)
                 haveOpponent = false
-                haveCode = false
+                haveCode     = false
             }
 
             continue
@@ -218,7 +218,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
         {
             @assert(isOpponentToken(ch))
             opponentToken = ch
-            haveOpponent = true
+            haveOpponent  = true
             continue
         }
 
@@ -226,7 +226,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
         {
             @assert(isCodeToken(ch))
             codeToken = ch
-            haveCode = true
+            haveCode  = true
             continue
         }
 
@@ -286,15 +286,15 @@ impl IRoundScorer for PartTwoScorer
 func declareFeatureState()
 {
     var featureRoundCount: u32
-    var featurePartOne: u32
-    var featurePartTwo: u32
+    var featurePartOne:    u32
+    var featurePartTwo:    u32
 }
 
 #[Swag.Macro]
 func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeToken: u8))
 {
     var lineOpponentToken: u8
-    var lineCodeToken: u8
+    var lineCodeToken:     u8
     var haveOpponent = false
     var haveCode = false
 
@@ -311,7 +311,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
                 @assert(haveOpponent and haveCode)
                 #inject(stmt, opponentToken = lineOpponentToken, codeToken = lineCodeToken)
                 haveOpponent = false
-                haveCode = false
+                haveCode     = false
             }
 
             continue
@@ -321,7 +321,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
         {
             @assert(isOpponentToken(ch))
             lineOpponentToken = ch
-            haveOpponent = true
+            haveOpponent      = true
             continue
         }
 
@@ -329,7 +329,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
         {
             @assert(isCodeToken(ch))
             lineCodeToken = ch
-            haveCode = true
+            haveCode      = true
             continue
         }
 
@@ -357,8 +357,8 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
     forEachGuideLine(bytes)
     {
         featureRoundCount += 1
-        featurePartOne += iPartOne.score(opponentToken, codeToken)
-        featurePartTwo += iPartTwo.score(opponentToken, codeToken)
+        featurePartOne    += iPartOne.score(opponentToken, codeToken)
+        featurePartTwo    += iPartTwo.score(opponentToken, codeToken)
     }
 
     var result: ScoreSummary
@@ -367,7 +367,7 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
     return result
 }
 
-const SampleResult: ScoreSummary = #run solveWithLanguageFeatures(SampleInput)
+const SampleResult: ScoreSummary   = #run solveWithLanguageFeatures(SampleInput)
 const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInput)
 
 #assert(#sizeof(Shape) == 1)

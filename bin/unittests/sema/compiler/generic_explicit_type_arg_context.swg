@@ -29,6 +29,6 @@ impl List
 func semaTestGenericExplicitTypeArgContext()
 {
     var values: List's32
-    var node: #null *ListEntry's32 = null
+    var node:   #null *ListEntry's32 = null
     discard values.insertAfter(node, 1)
 }

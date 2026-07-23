@@ -4,8 +4,8 @@
 #[Swag.Opaque]
 struct(T = MWC) Rng
 {
-    rng:          T
-    seedDone:     bool
+    rng:      T
+    seedDone: bool
 }
 
 impl Rng

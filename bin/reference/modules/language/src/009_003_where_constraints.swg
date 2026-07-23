@@ -79,7 +79,7 @@ the compiler tries to instantiate the type.
         data: [Rows * Cols] T
     }
 
-    let point: FloatPoint'f64 = {x: 1.5, y: 2.5}
+    let point:  FloatPoint'f64 = {x: 1.5, y: 2.5}
     let matrix: SquareMatrix'(f32, 2) = {data: [1.0'f32, 2.0, 3.0, 4.0]}
 
     #assert(#typeof(point.x) == f64)

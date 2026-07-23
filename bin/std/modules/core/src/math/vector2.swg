@@ -237,8 +237,8 @@ impl Vector2
         var norm = sqrt((.x * .x) + (.y * .y))
         Debug.assert(!Math.isZeroEpsilon(norm))
         norm = 1 / norm
-        .x *= norm
-        .y *= norm
+        .x   *= norm
+        .y   *= norm
     }
 
     // Returns this vector normalized to unit length without modifying the original.
@@ -281,8 +281,8 @@ impl Vector2
         }
 
         norm = 1 / norm
-        .x *= norm
-        .y *= norm
+        .x   *= norm
+        .y   *= norm
     }
 
     // Returns this vector normalized safely without modifying the original.

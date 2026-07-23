@@ -4,8 +4,8 @@
 
 struct MWC
 {
-    w:     u32 = 521288629
-    z:     u32 = 362436069
+    w: u32 = 521288629
+    z: u32 = 362436069
 }
 
 impl MWC
@@ -25,8 +25,8 @@ impl MWC
     #[Swag.CanOverflow(true)]
     mtd nextU32()->u32
     {
-        .z = 36969 * (.z & 0xffff) + (.z >> 16)
-        .w = 18000 * (.w & 0xffff) + (.w >> 16)
+        .z = 36969 * (.z & 0xFFFF) + (.z >> 16)
+        .w = 18000 * (.w & 0xFFFF) + (.w >> 16)
         return (.z << 16) + .w
     }
 }

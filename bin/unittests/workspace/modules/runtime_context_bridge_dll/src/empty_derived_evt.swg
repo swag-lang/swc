@@ -8,8 +8,8 @@ interface IDepEvt {}
 
 struct DepEvtBase
 {
-    type:   #null typeinfo
-    tag:    s32
+    type: #null typeinfo
+    tag:  s32
 }
 
 impl IDepEvt for DepEvtBase {}

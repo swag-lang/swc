@@ -66,7 +66,7 @@ struct(T) Box
 
 struct(A, B) Pair
 {
-    first: A
+    first:  A
     second: B
 }
 
@@ -121,7 +121,7 @@ impl FixedVec
     mtd push(value: T)
     {
         .data[.len] = value
-        .len += 1
+        .len        += 1
     }
 
     mtd pop()->T
@@ -154,13 +154,13 @@ impl CopyGate
         where T == string
     {
         .values[.count] = value
-        .count += 1
+        .count          += 1
     }
 
     mtd add(value: #move T)
     {
         .values[.count] = #move value
-        .count += 1
+        .count          += 1
     }
 }
 

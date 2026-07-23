@@ -21,14 +21,14 @@ const DeducePowerOfTwo = #run
 
 struct AnyPair
 {
-    item: any
+    item:  any
     other: any
 }
 
 const PersistentAnyPair: AnyPair = #run
 {
     var pair: AnyPair = undefined
-    pair.item = "abc"
+    pair.item  = "abc"
     pair.other = "def"
     return pair
 }

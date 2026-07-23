@@ -191,10 +191,10 @@ struct Bird
 // Defines one Pipe
 struct Pipe
 {
-    rectUp:         Math.Rectangle     // Position of the up part of the Pipe
-    rectDown:       Math.Rectangle     // Position of the down part of the Pipe
-    distToNext:     f32                // Distance to the next Pipe
-    scored:         bool               // 'true' if the Bird has passed that Pipe
+    rectUp:     Math.Rectangle     // Position of the up part of the Pipe
+    rectDown:   Math.Rectangle     // Position of the down part of the Pipe
+    distToNext: f32                // Distance to the next Pipe
+    scored:     bool               // 'true' if the Bird has passed that Pipe
 }
 
 /**
@@ -276,7 +276,7 @@ func paint(painter: *Painter)
         // Add a little position wave
         if !g_Start
         {
-            pt.y += 5 * Math.sin(g_Time)
+            pt.y   += 5 * Math.sin(g_Time)
             g_Time += 5 * g_Dt
         }
 
@@ -372,7 +372,7 @@ func move()
     if g_GameOver do
         return
 
-    g_Bird.pos += g_Bird.speed * g_Dt
+    g_Bird.pos   += g_Bird.speed * g_Dt
     g_Bird.pos.y = Math.max(g_Bird.pos.y, 0)
     if g_Start do
         g_Bird.speed += {0, Gravity}
@@ -388,7 +388,7 @@ func move()
     {
         for &pipe in g_Pipes
         {
-            pipe.rectUp.x -= SpeedHorz * g_Dt
+            pipe.rectUp.x   -= SpeedHorz * g_Dt
             pipe.rectDown.x -= SpeedHorz * g_Dt
 
             // Collision with the pipes
@@ -404,7 +404,7 @@ func move()
             {
                 assume Audio.Voice.play(&g_SoundScore)
                 pipe.scored = true
-                g_Score += 1
+                g_Score     += 1
             }
         }
     }

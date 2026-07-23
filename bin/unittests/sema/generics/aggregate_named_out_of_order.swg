@@ -2,7 +2,7 @@
 
 struct(T) Pair
 {
-    first: T
+    first:  T
     second: T
 }
 

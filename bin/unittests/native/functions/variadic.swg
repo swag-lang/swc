@@ -1,13 +1,13 @@
 #global private
 
-var gVariadicAnyTotal: u64
+var gVariadicAnyTotal:   u64
 var gVariadicTypedTotal: u64
-var gVariadicTotoCalls: u64
-var gVariadicTotoTotal: u64
-var gVariadicTotoHead: s32
-var gVariadicTutuCalls: u64
-var gVariadicTutuTotal: u64
-var gVariadicTutuHead: s32
+var gVariadicTotoCalls:  u64
+var gVariadicTotoTotal:  u64
+var gVariadicTotoHead:   s32
+var gVariadicTutuCalls:  u64
+var gVariadicTutuTotal:  u64
+var gVariadicTutuHead:   s32
 func titi(a: ...) { gVariadicAnyTotal += @countof(a) }
 func tata(a: s32...) { gVariadicTypedTotal += @countof(a) }
 
@@ -27,7 +27,7 @@ func toto(a: s32, b: ...)
 {
     gVariadicTotoCalls += 1
     gVariadicTotoTotal += @countof(b)
-    gVariadicTotoHead = a
+    gVariadicTotoHead  = a
 }
 #test
 {
@@ -45,7 +45,7 @@ func tutu(a: s32, b: s32...)
 {
     gVariadicTutuCalls += 1
     gVariadicTutuTotal += @countof(b)
-    gVariadicTutuHead = a
+    gVariadicTutuHead  = a
 }
 #test
 {

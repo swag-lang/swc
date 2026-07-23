@@ -36,7 +36,7 @@ func exact(neg: bool, mantissa: u64, exponent: s64)->{ f: f64, ok: bool }
         // into the integer part.
         if exp > 22
         {
-            f *= Pow10[exp - 22]
+            f   *= Pow10[exp - 22]
             exp = 22
         }
 
@@ -821,7 +821,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     if retMantissa >> 53 > 0
     {
         retMantissa >>= 1
-        retExp2 += 1
+        retExp2     += 1
     }
 
     // retExp2 is a u64. Zero or underflow means that we're in subnormal
@@ -834,8 +834,8 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     var retBits = (retExp2 << 52) | (retMantissa & 0x000FFFFFFFFFFFFF)
     if neg do
         retBits |= 0x8000000000000000
-    result.f  = cast #bit (f64) retBits
-    result.ok = true
+    result.f    = cast #bit (f64) retBits
+    result.ok   = true
     return result
 }
 

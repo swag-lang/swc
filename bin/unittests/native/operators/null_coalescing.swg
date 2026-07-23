@@ -5,23 +5,23 @@ const B = A orelse false
 #assert(B)
 
 const C: #null string = null
-const D = C orelse "d"
+const D               = C orelse "d"
 #assert(D == "d")
 
 const E: string = "e"
-const F = E orelse "f"
+const F         = E orelse "f"
 #assert(F == "e")
 
 const G: s32 = 0
-const H = G orelse 42
+const H      = G orelse 42
 #assert(H == 42)
 
 const I: s32 = 7
-const J = I orelse 42
+const J      = I orelse 42
 #assert(J == 7)
 
 const S0: #null const [..] u8 = null
-const S1 = S0 orelse "abc"
+const S1                      = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)
 #assert(S1[0] == 'a')
 #assert(S1[1] == 'b')

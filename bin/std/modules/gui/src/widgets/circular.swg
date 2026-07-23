@@ -28,58 +28,58 @@ struct Circular
     using wnd: Wnd
 
     // Main values (0.0 to 1.0 range)
-    value1:     f32     // Primary value (or left value in range mode)
-    value2:     f32     // Secondary value (right value in range mode)
+    value1: f32     // Primary value (or left value in range mode)
+    value2: f32     // Secondary value (right value in range mode)
 
     // Value range (like in linear slider)
-    min:       f32           // Minimum value
-    max:       f32 = 1.0     // Maximum value
-    steps:     f32           // Step size (0 = no stepping)
+    min:   f32           // Minimum value
+    max:   f32 = 1.0     // Maximum value
+    steps: f32           // Step size (0 = no stepping)
 
     // Configuration flags and visual settings
-    circularFlags:     CircularFlags                    // Control behavior flags (Range, Integer, etc.)
-    stepForm:          CircularStepForm = .Tick         // Visual form of step indicators (None, Dot, Tick)
-    markerForm:        CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
+    circularFlags: CircularFlags                    // Control behavior flags (Range, Integer, etc.)
+    stepForm:      CircularStepForm = .Tick         // Visual form of step indicators (None, Dot, Tick)
+    markerForm:    CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
 
     // Angular configuration (in radians)
-    startAngle:     f32 = 0                       // Starting angle of the circular range (0 = top)
-    endAngle:       f32 = Math.ConstF32.TwoPi     // Ending angle of the circular range (2π = full circle)
+    startAngle: f32 = 0                       // Starting angle of the circular range (0 = top)
+    endAngle:   f32 = Math.ConstF32.TwoPi     // Ending angle of the circular range (2π = full circle)
 
     // Step visualization settings
-    tickCount:                 u32 = 20     // Number of step indicators to draw
-    tickInnerRadiusFactor:     f32 = 2      // Distance from main circle to inner edge of ticks
-    tickOuterRadiusFactor:     f32 = 6      // Distance from main circle to outer edge of ticks
-    circleGap:                 f32 = 0      // Gap between inner and outer circles (0 = single circle)
+    tickCount:             u32 = 20     // Number of step indicators to draw
+    tickInnerRadiusFactor: f32 = 2      // Distance from main circle to inner edge of ticks
+    tickOuterRadiusFactor: f32 = 6      // Distance from main circle to outer edge of ticks
+    circleGap:             f32 = 0      // Gap between inner and outer circles (0 = single circle)
 
     // Colors
     rangeColor: Color     // Color for the range arc (when in range mode)
 
     // Event signals
-    sigStartChange:     SigArray'func||(*Circular)     // Fired when user starts changing value
-    sigChanged:         SigArray'func||(*Circular)     // Fired when value changes
-    sigEndChange:       SigArray'func||(*Circular)     // Fired when user finishes changing value
+    sigStartChange: SigArray'func||(*Circular)     // Fired when user starts changing value
+    sigChanged:     SigArray'func||(*Circular)     // Fired when value changes
+    sigEndChange:   SigArray'func||(*Circular)     // Fired when user finishes changing value
 
     internal
     {
         // Internal state tracking
-        isMoving:       bool     // True when user is dragging a marker
-        isPressed1:     bool     // True when primary marker is being pressed
-        isPressed2:     bool     // True when secondary marker is being pressed
-        isHot1:         bool     // True when mouse is hovering over primary marker
-        isHot2:         bool     // True when mouse is hovering over secondary marker
-        hasValue1:      bool     // True if primary value has been set
-        hasValue2:      bool     // True if secondary value has been set
+        isMoving:   bool     // True when user is dragging a marker
+        isPressed1: bool     // True when primary marker is being pressed
+        isPressed2: bool     // True when secondary marker is being pressed
+        isHot1:     bool     // True when mouse is hovering over primary marker
+        isHot2:     bool     // True when mouse is hovering over secondary marker
+        hasValue1:  bool     // True if primary value has been set
+        hasValue2:  bool     // True if secondary value has been set
 
         // Calculated geometry (updated in updateGeometry())
-        radius:           f32     // Radius of the main circular track
-        centerX:          f32     // X coordinate of circle center
-        centerY:          f32     // Y coordinate of circle center
-        correcMoving:     f32     // Movement correction factor
+        radius:       f32     // Radius of the main circular track
+        centerX:      f32     // X coordinate of circle center
+        centerY:      f32     // Y coordinate of circle center
+        correcMoving: f32     // Movement correction factor
 
         // Animation blending for smooth color transitions
-        aniMark1:     BlendColor     // Color animation for primary marker
-        aniMark2:     BlendColor     // Color animation for secondary marker
-        aniStep:      BlendColor     // Color animation for step indicators
+        aniMark1: BlendColor     // Color animation for primary marker
+        aniMark2: BlendColor     // Color animation for secondary marker
+        aniStep:  BlendColor     // Color animation for step indicators
     }
 }
 
@@ -250,7 +250,7 @@ private impl Circular
         .centerX = clientRect.x + clientRect.width * 0.5
         .centerY = clientRect.y + clientRect.height * 0.5
         .radius  = Math.min(clientRect.width, clientRect.height) * 0.5
-        .radius -= 2
+        .radius  -= 2
         if .tickOuterRadiusFactor > 0 do
             .radius -= .tickOuterRadiusFactor
     }

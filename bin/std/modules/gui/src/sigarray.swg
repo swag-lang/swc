@@ -3,8 +3,8 @@ using Core
 
 struct(T) SigArray
 {
-    arr:          Array'T
-    disabled:     s32
+    arr:      Array'T
+    disabled: s32
 }
 
 impl SigArray

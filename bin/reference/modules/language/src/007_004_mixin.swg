@@ -70,7 +70,9 @@ The mixin can execute this block multiple times using '#inject'.
     }
 
     var a = 0
-    doItTwice(#code { a += 1; })
+    doItTwice(#code {
+        a += 1;
+    })
     @assert(a == 2)
 }
 
@@ -90,7 +92,9 @@ separate block after the call.
     }
     var a = 0
     // Inline code argument
-    doItTwice(4, #code { a += value; })
+    doItTwice(4, #code {
+        a += value;
+    })
     // Separate trailing block
     doItTwice(2)
     {
@@ -118,7 +122,9 @@ plain declarations there.
     {
         a += cell
     }
-    inc10() #code(amount) { b += amount }
+    inc10() #code(amount) {
+        b += amount
+    }
     @assert(a == b and b == 10)
 }
 

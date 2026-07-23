@@ -106,19 +106,19 @@ impl IExportedMethodScore for ExportedMethodProbe
     }
 }
 
-const HIDDEN_INFO        = cast(const *Swag.TypeInfoStruct) #typeof(HiddenMethodProbe)
-const SIMPLE_INFO        = cast(const *Swag.TypeInfoStruct) #typeof(SimpleMethodProbe)
-const GENERIC_INFO       = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe)
-const ARRAY_INFO         = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe's32)
-const EXPORTED_INFO      = cast(const *Swag.TypeInfoStruct) #typeof(ExportedMethodProbe)
-const SIMPLE_METHOD_INFO = SIMPLE_INFO.methods[0]
-const ARRAY_METHOD_INFO  = ARRAY_INFO.methods[0]
+const HIDDEN_INFO          = cast(const *Swag.TypeInfoStruct) #typeof(HiddenMethodProbe)
+const SIMPLE_INFO          = cast(const *Swag.TypeInfoStruct) #typeof(SimpleMethodProbe)
+const GENERIC_INFO         = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe)
+const ARRAY_INFO           = cast(const *Swag.TypeInfoStruct) #typeof(GenericMethodProbe's32)
+const EXPORTED_INFO        = cast(const *Swag.TypeInfoStruct) #typeof(ExportedMethodProbe)
+const SIMPLE_METHOD_INFO   = SIMPLE_INFO.methods[0]
+const ARRAY_METHOD_INFO    = ARRAY_INFO.methods[0]
 const EXPORTED_SCALE_INFO  = EXPORTED_INFO.methods[0]
 const EXPORTED_ADD_INFO    = EXPORTED_INFO.methods[1]
 const EXPORTED_SCALED_INFO = EXPORTED_INFO.methods[2]
 const EXPORTED_SCORE_INFO  = EXPORTED_INFO.methods[3]
-const SIMPLE_METHOD_TYPE = cast(#null const *Swag.TypeInfoFunc) SIMPLE_METHOD_INFO.pointedType
-const ARRAY_METHOD_TYPE  = cast(#null const *Swag.TypeInfoFunc) ARRAY_METHOD_INFO.pointedType
+const SIMPLE_METHOD_TYPE   = cast(#null const *Swag.TypeInfoFunc) SIMPLE_METHOD_INFO.pointedType
+const ARRAY_METHOD_TYPE    = cast(#null const *Swag.TypeInfoFunc) ARRAY_METHOD_INFO.pointedType
 const EXPORTED_SCALE_TYPE  = cast(#null const *Swag.TypeInfoFunc) EXPORTED_SCALE_INFO.pointedType
 const EXPORTED_ADD_TYPE    = cast(#null const *Swag.TypeInfoFunc) EXPORTED_ADD_INFO.pointedType
 const EXPORTED_SCALED_TYPE = cast(#null const *Swag.TypeInfoFunc) EXPORTED_SCALED_INFO.pointedType

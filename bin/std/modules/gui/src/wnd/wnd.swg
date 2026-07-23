@@ -58,42 +58,42 @@ enum LayoutAlign
 
 struct SizeHint
 {
-    min:                  Math.Point
-    preferred:            Math.Point
-    max:                  Math.Point = {Swag.F32.Max, Swag.F32.Max}
+    min:       Math.Point
+    preferred: Math.Point
+    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}
 }
 
 struct LayoutSpec
 {
-    policyX:              SizePolicy = SizePolicy.Content
-    policyY:              SizePolicy = SizePolicy.Content
-    weightX:              f32 = 1
-    weightY:              f32 = 1
-    alignX:               LayoutAlign = LayoutAlign.Stretch
-    alignY:               LayoutAlign = LayoutAlign.Stretch
-    margin:               Math.Vector4
+    policyX: SizePolicy = SizePolicy.Content
+    policyY: SizePolicy = SizePolicy.Content
+    weightX: f32 = 1
+    weightY: f32 = 1
+    alignX:  LayoutAlign = LayoutAlign.Stretch
+    alignY:  LayoutAlign = LayoutAlign.Stretch
+    margin:  Math.Vector4
 }
 
 struct LayoutDebugInfo
 {
-    measuredMin:          Math.Point
-    measuredPreferred:    Math.Point
-    measuredMax:          Math.Point
-    arrangedRect:         Math.Rectangle
-    clippedX:             bool
-    clippedY:             bool
-    clampedByMinX:        bool
-    clampedByMinY:        bool
-    clampedByMaxX:        bool
-    clampedByMaxY:        bool
+    measuredMin:       Math.Point
+    measuredPreferred: Math.Point
+    measuredMax:       Math.Point
+    arrangedRect:      Math.Rectangle
+    clippedX:          bool
+    clippedY:          bool
+    clampedByMinX:     bool
+    clampedByMinY:     bool
+    clampedByMaxX:     bool
+    clampedByMaxY:     bool
 }
 
 struct KeyShortcut
 {
-    mdf:        Input.KeyModifiers = Zero
-    key:        Input.Key = None
-    id:         WndId = undefined
-    target:     #null *Wnd
+    mdf:    Input.KeyModifiers = Zero
+    key:    Input.Key = None
+    id:     WndId = undefined
+    target: #null *Wnd
 }
 
 interface IWnd
@@ -140,50 +140,50 @@ struct Wnd
 {
     itf:                   #late IWnd
     type:                  #late typeinfo
-    surface:               #null *Surface
-    style:                 ThemeStyle
+    surface: #null *Surface
+    style:   ThemeStyle
     wndFlags               = WndFlags.ClipChildren
     userData:              #null *void
 
-    position:              Math.Rectangle
-    preferredSize:         Math.Point
-    minSize:               Math.Point
-    maxSize:               Math.Point
-    scrollPos:             Math.Point
+    position:      Math.Rectangle
+    preferredSize: Math.Point
+    minSize:       Math.Point
+    maxSize:       Math.Point
+    scrollPos:     Math.Point
 
     invalidatePadding:     Math.Vector4
 
-    parent:                #null *Wnd
-    owner:                 #null *Wnd
-    childs:                Array'(*Wnd)
+    parent: #null *Wnd
+    owner:  #null *Wnd
+    childs: Array'(*Wnd)
 
-    name:                  RichString
-    id:                    #null WndId
-    cursor:                Cursor
-    toolTip:               String
+    name:    RichString
+    id:      #null WndId
+    cursor:  Cursor
+    toolTip: String
 
-    keyShortcuts:          Array'KeyShortcut
-    actions:               Array'IActionUI
+    keyShortcuts: Array'KeyShortcut
+    actions:      Array'IActionUI
 
-    margin:                Math.Vector4
-    padding:               Math.Vector4
-    dockStyle:             DockStyle = None
-    anchorStyle:           AnchorStyle = None
-    layoutSpec:            LayoutSpec
-    cachedSizeHint:        SizeHint
-    layoutDebug:           LayoutDebugInfo
+    margin:         Math.Vector4
+    padding:        Math.Vector4
+    dockStyle:      DockStyle = None
+    anchorStyle:    AnchorStyle = None
+    layoutSpec:     LayoutSpec
+    cachedSizeHint: SizeHint
+    layoutDebug:    LayoutDebugInfo
 
     focusStrategy:         FocusStategy = MousePressed
 
-    backgroundStyle:       BackgroundStyle = Transparent
-    isAllocated:           bool
-    isPendingDestroy:      bool
-    createEventDone:       bool
-    layoutDirty:           bool = true
-    managedByLayout:       bool
+    backgroundStyle:  BackgroundStyle = Transparent
+    isAllocated:      bool
+    isPendingDestroy: bool
+    createEventDone:  bool
+    layoutDirty:      bool = true
+    managedByLayout:  bool
 
-    hookOnEvent:           #null HookEvent     // Will be called before processing the event of the window
-    hookOnChildEvent:      #null HookEvent     // Will be called before processing whatever event of a child window
+    hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
+    hookOnChildEvent: #null HookEvent     // Will be called before processing whatever event of a child window
 }
 
 impl IWnd for Wnd
@@ -246,20 +246,51 @@ impl IWnd for Wnd
     mtd impl onPrePaintEvent(evt: *PaintEvent) {}
     mtd impl onPaintEvent(evt: *PaintEvent) {}
     mtd impl onPostPaintEvent(evt: *PaintEvent) {}
-    mtd impl onThemeEvent(evt: *ThemeEvent) { .invalidate(); .sendResizeEvent(); }
+    mtd impl onThemeEvent(evt: *ThemeEvent)
+    {
+        .invalidate();
+        .sendResizeEvent();
+    }
     mtd impl onTimerEvent(evt: *TimerEvent) {}
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
     mtd impl onFrameEvent(evt: *FrameEvent) {}
 
-    mtd impl onSysCommandEvent(evt: *SysCommandEvent) { evt.accepted = false; }
-    mtd impl onSysUserEvent(evt: *SysUserEvent) { evt.accepted = false; }
-    mtd impl onKeyEvent(evt: *KeyEvent) { evt.accepted = false; }
-    mtd impl onMouseEvent(evt: *MouseEvent) { evt.accepted = false; }
-    mtd impl onFocusEvent(evt: *FocusEvent) { evt.accepted = false; }
-    mtd impl onCommandEvent(evt: *CommandEvent) { evt.accepted = false; }
-    mtd impl onComputeStateEvent(evt: *CommandStateEvent) { evt.accepted = false; }
-    mtd impl onApplyStateEvent(evt: *CommandStateEvent) { evt.accepted = false; }
-    mtd impl onNotifyEvent(evt: *NotifyEvent) { evt.accepted = false; }
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onSysUserEvent(evt: *SysUserEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onFocusEvent(evt: *FocusEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onCommandEvent(evt: *CommandEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onComputeStateEvent(evt: *CommandStateEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onApplyStateEvent(evt: *CommandStateEvent)
+    {
+        evt.accepted = false;
+    }
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        evt.accepted = false;
+    }
 }
 
 impl Wnd
@@ -300,11 +331,11 @@ impl Wnd
         res.itf         = cast(IWnd) dref res
         res.type        = T
         res.name.set(name)
-        res.id          = id
-        res.position    = position
+        res.id            = id
+        res.position      = position
         res.preferredSize = {position.width, position.height}
-        res.isAllocated = true
-        res.hookOnEvent = hook
+        res.isAllocated   = true
+        res.hookOnEvent   = hook
 
         if parent
         {
@@ -648,7 +679,7 @@ impl Wnd
 
         var result: retval
 
-        result.min = .minSize
+        result.min   = .minSize
         result.max.x = .maxSize.x > 0 ? .maxSize.x : Swag.F32.Max
         result.max.y = .maxSize.y > 0 ? .maxSize.y : Swag.F32.Max
 
@@ -670,8 +701,8 @@ impl Wnd
         if .layoutSpec.policyY == SizePolicy.Fixed do
             result.min.y = Math.max(result.min.y, result.preferred.y)
 
-        result.max.x = Math.max(result.max.x, result.min.x)
-        result.max.y = Math.max(result.max.y, result.min.y)
+        result.max.x       = Math.max(result.max.x, result.min.x)
+        result.max.y       = Math.max(result.max.y, result.min.y)
         result.preferred.x = Math.clamp(result.preferred.x, result.min.x, result.max.x)
         result.preferred.y = Math.clamp(result.preferred.y, result.min.y, result.max.y)
 
@@ -680,11 +711,11 @@ impl Wnd
         if .layoutSpec.policyY == SizePolicy.Fixed do
             result.max.y = result.preferred.y
 
-        .cachedSizeHint = result
-        .layoutDirty = false
-        .layoutDebug.measuredMin = result.min
+        .cachedSizeHint                = result
+        .layoutDirty                   = false
+        .layoutDebug.measuredMin       = result.min
         .layoutDebug.measuredPreferred = result.preferred
-        .layoutDebug.measuredMax = result.max
+        .layoutDebug.measuredMax       = result.max
         return result
     }
 
@@ -697,9 +728,9 @@ impl Wnd
         .managedByLayout = true
         .setPosition(pos, false)
 
-        .layoutDebug.arrangedRect = pos
-        .layoutDebug.clippedX = pos.width < .cachedSizeHint.min.x
-        .layoutDebug.clippedY = pos.height < .cachedSizeHint.min.y
+        .layoutDebug.arrangedRect  = pos
+        .layoutDebug.clippedX      = pos.width < .cachedSizeHint.min.x
+        .layoutDebug.clippedY      = pos.height < .cachedSizeHint.min.y
         .layoutDebug.clampedByMinX = before.width < pos.width
         .layoutDebug.clampedByMinY = before.height < pos.height
         .layoutDebug.clampedByMaxX = before.width > pos.width
@@ -814,7 +845,7 @@ impl Wnd
             result.y += p.position.y
             result.x -= p.scrollPos.x
             result.y -= p.scrollPos.y
-            p = p.parent
+            p        = p.parent
         }
 
         return result
@@ -829,7 +860,7 @@ impl Wnd
         {
             result.x += p.position.x
             result.y += p.position.y
-            p = p.parent
+            p        = p.parent
         }
 
         return result
@@ -1045,7 +1076,7 @@ impl Wnd
                 c.setPosition(pos, false)
                 let diff = c.margin.x + pos.width + c.margin.z
                 clientRect.width -= diff
-                clientRect.x += diff
+                clientRect.x     += diff
 
             case Right:
                 var pos = c.position
@@ -1067,7 +1098,7 @@ impl Wnd
                     pos.x = clientRect.horzCenter() - c.maxSize.x * 0.5
                 c.setPosition(pos, false)
                 let diff = c.margin.y + pos.height + c.margin.w
-                clientRect.y += diff
+                clientRect.y      += diff
                 clientRect.height -= diff
 
             case Bottom:

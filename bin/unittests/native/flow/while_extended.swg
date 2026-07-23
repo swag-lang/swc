@@ -65,8 +65,8 @@
     var count = 0
     while i < 5 and j > 5
     {
-        i += 1
-        j -= 1
+        i     += 1
+        j     -= 1
         count += 1
     }
     @assert(count == 5)
@@ -117,7 +117,7 @@ func whileEarlyReturn(limit: s32)->s32
         var j = 0
         while j < 5
         {
-            j += 1
+            j     += 1
             total += 1
             if j == 2 do
                 break     // only breaks inner
@@ -134,7 +134,7 @@ func whileEarlyReturn(limit: s32)->s32
     var steps = 0
     while x < 100
     {
-        x *= 2
+        x     *= 2
         steps += 1
     }
     @assert(x == 128)
@@ -169,7 +169,7 @@ func sideEffectCheck(val: s32)->bool
     while i < 1
     {
         count += 1
-        i += 1
+        i     += 1
     }
     @assert(count == 1)
 }

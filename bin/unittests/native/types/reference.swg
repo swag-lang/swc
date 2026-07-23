@@ -59,7 +59,7 @@ func writeScalarRef(target: &s32, value: s32)
 
 #test
 {
-    var value: s32 = 10
+    var value:    s32 = 10
     var valueRef: &s32 = &value
 
     valueRef = 42
@@ -97,9 +97,9 @@ func writeVecRef(target: &Vec2, value: Vec2)
 
 #test
 {
-    var value: Vec2 = {x: 1, y: 2}
+    var value:    Vec2 = {x: 1, y: 2}
     var valueRef: &Vec2 = &value
-    let other: Vec2 = {x: 30, y: 40}
+    let other:    Vec2 = {x: 30, y: 40}
 
     valueRef = other
     @assert(valueRef.x == 30)
@@ -122,7 +122,7 @@ func writeVecRef(target: &Vec2, value: Vec2)
             return &a
         return &b
     }
-    var left: Vec2 = {x: 100, y: 200}
+    var left:  Vec2 = {x: 100, y: 200}
     var right: Vec2 = {x: 300, y: 400}
     var p0 = choose(true, &left, &right)
     var p1 = choose(false, &left, &right)
@@ -160,7 +160,7 @@ func writeVecRef(target: &Vec2, value: Vec2)
     var index = 0's64
 
     let valueRef: &s32 = &values.ref1(index)
-    total += valueRef
+    total    += valueRef
     valueRef += 5
 
     @assert(total == 13)
@@ -203,7 +203,7 @@ func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
 
 #test
 {
-    let holder: ConstAddrHolder = {value: {x: 123}}
+    let holder:   ConstAddrHolder = {value: {x: 123}}
     var valueRef: const &ConstAddrValue = &holder.value
 
     @assert(valueRef.x == 123)
@@ -266,7 +266,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 
 #test
 {
-    var value: f32 = 1.5
+    var value:    f32 = 1.5
     let valueRef: const &f32 = &value
     let copied = cast(f32) valueRef
     let sum = valueRef + 2.5'f32

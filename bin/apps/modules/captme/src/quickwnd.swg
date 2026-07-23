@@ -77,8 +77,8 @@ struct QuickButton
 
 struct QuickStylePaintForm
 {
-    itf:       #null IForm
-    title:     String
+    itf:   #null IForm
+    title: String
 }
 
 func quickStyleReleasePaintForm(paint: *QuickStylePaintForm)
@@ -160,18 +160,18 @@ struct QuickWnd
     layout:              #late *WrapLayoutCtrl
     main:                #late *MainWnd
 
-    qsArrow:             QuickStyle
-    qsShape:             QuickStyle
-    qsImage:             QuickStyle
-    qsStep:              QuickStyle
-    qsLine:              QuickStyle
-    qsPolygon:           QuickStyle
-    qsText:              QuickStyle
-    qsFavorites:         QuickStyle
-    qsDraw:              QuickStyle
-    qsHighlight:         QuickStyle
-    qsPixSel:            QuickStyle
-    qsCallout:           QuickStyle
+    qsArrow:     QuickStyle
+    qsShape:     QuickStyle
+    qsImage:     QuickStyle
+    qsStep:      QuickStyle
+    qsLine:      QuickStyle
+    qsPolygon:   QuickStyle
+    qsText:      QuickStyle
+    qsFavorites: QuickStyle
+    qsDraw:      QuickStyle
+    qsHighlight: QuickStyle
+    qsPixSel:    QuickStyle
+    qsCallout:   QuickStyle
 
     currentStyle:        #null *QuickStyle
 }
@@ -288,7 +288,7 @@ impl QuickWnd
         with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {
             .backgroundStyle = .Window
-            .scrollWndFlags |= .ForceVertical | .SmallBar | .TransparentBar
+            .scrollWndFlags  |= .ForceVertical | .SmallBar | .TransparentBar
 
             .layout         = WrapLayoutCtrl.create(quick)
             .layout.padding = 6
@@ -313,7 +313,7 @@ impl QuickWnd
             if startSize != 0 do
                 form.beginCap = startCap
             if endSize != 0 do
-                form.endCap = .ArrowAnchor
+                form.endCap  = .ArrowAnchor
             form.borderColor = color
             addStyleForm(&.qsArrow, form)
         }
@@ -808,7 +808,7 @@ impl QuickWnd
             let btn = Wnd.create'QuickButton(.layout, null, {0, 0, 64, 64})
             btn.iconBtnFlags.add(.Checkable)
             btn.setForm(.RoundSquare)
-            btn.formItf = it
+            btn.formItf  = it
             btn.quickWnd = me
 
             btn.sigPaintIcon = func(btn, bc, pos, flags)

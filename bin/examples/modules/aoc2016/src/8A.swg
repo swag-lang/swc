@@ -66,7 +66,7 @@ func day8A()
             {
                 for i in H do
                     screen[x, (i + 1) % H] = nscreen[x, i]
-                nscreen = screen
+                nscreen                    = screen
             }
 
         case assume re.match(#"rotate row y=(\d+) by (\d+)"#, l):
@@ -75,7 +75,7 @@ func day8A()
             {
                 for i in W do
                     screen[(i + 1) % W, y] = nscreen[i, y]
-                nscreen = screen
+                nscreen                    = screen
             }
         }
     }

@@ -2,18 +2,18 @@ using Swag, Core, Core.Errors
 
 struct NoSoundVoice
 {
-    volume:             f32 = 1
-    frequencyRatio:     f32 = 1
-    isPlaying:          bool
-    busCount:           u32
+    volume:         f32 = 1
+    frequencyRatio: f32 = 1
+    isPlaying:      bool
+    busCount:       u32
     buses:              [16] #null *Bus
 }
 
 struct NoSoundBus
 {
-    volume:         f32 = 1
-    numChannels:    u32
-    parent:         #null *Bus
+    volume:      f32 = 1
+    numChannels: u32
+    parent:      #null *Bus
 }
 
 struct NoSoundDriverNative
@@ -48,7 +48,7 @@ impl Voice
 {
     func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
     {
-        voice.handle = cast(VoiceHandle) Memory.new'NoSoundVoice()
+        voice.handle            = cast(VoiceHandle) Memory.new'NoSoundVoice()
         voice.requestedEncoding = voice.file.encoding
         if !voice.handle do
             throw BadParameterError{"cannot create no-sound voice"}
@@ -155,7 +155,7 @@ impl Bus
             throw BadParameterError{"parent bus invalid"}
 
         let handle = Memory.new'NoSoundBus()
-        bus.handle = cast(BusHandle) handle
+        bus.handle         = cast(BusHandle) handle
         handle.numChannels = numChannels
         handle.parent      = parent
     }

@@ -16,7 +16,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     size.sizeable = false
     discard header.addItem("Owner", Math.max(rect.width - 36 - 190 - 120 - 92, 140.0), app.theme.getIcon24(.Sort, 16))
     header.sortColumn = 1
-    header.sortMark = round ? 1 : -1
+    header.sortMark   = round ? 1 : -1
 
     let rowY = 148.0
     for i in 4
@@ -42,16 +42,16 @@ func createHeadersPage(parent: *Wnd)
     let list = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     list.setFrameForm(.Round)
     list.selectionMode = .Single
-    list.iconSize = 16
+    list.iconSize      = 16
     list.addColumn("Component", 220, app.theme.getIcon24(.Options, 16))
     list.addColumn("Kind", 130)
     list.addColumn("Column policy", 180)
     list.addColumn("Interaction", 180, app.theme.getIcon24(.Link, 16))
-    list.header.getItem(0).minWidth = 160
-    list.header.getItem(1).maxWidth = 160
+    list.header.getItem(0).minWidth   = 160
+    list.header.getItem(1).maxWidth   = 160
     list.header.getItem(2).iconMargin = true
-    list.header.sortColumn = 0
-    list.header.sortMark = 1
+    list.header.sortColumn            = 0
+    list.header.sortMark              = 1
     addListFlags(list)
     for i in 10
     {

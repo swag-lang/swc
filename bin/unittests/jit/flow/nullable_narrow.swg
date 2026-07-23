@@ -79,7 +79,7 @@ func narrowWhile(head: #null *NarrowNode)->s32
     while cur
     {
         total += takesPtr(cur)
-        cur = cur.next
+        cur   = cur.next
     }
     return total
 }

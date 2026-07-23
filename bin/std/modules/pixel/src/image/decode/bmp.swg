@@ -11,57 +11,57 @@ public const BI_RLE8 = 1
 public const BI_RLE4 = 2
 public const BI_BITFIELDS = 3
 
-const BMP_SIGNATURE = 0x4d42'u16
+const BMP_SIGNATURE = 0x4D42'u16
 
 #[Swag.Pack(1)]
 public struct Header
 {
-    biSize:              u32
-    biWidth:             s32
-    biHeight:            s32
-    biPlanes:            u16
-    biBitCount:          u16
-    biCompression:       u32
-    biSizeImage:         u32
-    biXPelsPerMeter:     u32
-    biYPelsPerMeter:     u32
-    biClrUsed:           u32
-    biClrImportant:      u32
+    biSize:          u32
+    biWidth:         s32
+    biHeight:        s32
+    biPlanes:        u16
+    biBitCount:      u16
+    biCompression:   u32
+    biSizeImage:     u32
+    biXPelsPerMeter: u32
+    biYPelsPerMeter: u32
+    biClrUsed:       u32
+    biClrImportant:  u32
 }
 
 #[Swag.Pack(1)]
 struct CoreHeader
 {
-    bcSize:         u32
-    bcWidth:        u16
-    bcHeight:       u16
-    bcPlanes:       u16
-    bcBitCount:     u16
+    bcSize:     u32
+    bcWidth:    u16
+    bcHeight:   u16
+    bcPlanes:   u16
+    bcBitCount: u16
 }
 
 #[Swag.Pack(1)]
 struct FileHeader
 {
-    bfType:          u16
-    bfSize:          u32
-    bfReserved1:     u16
-    bfReserved2:     u16
-    bfOffBits:       u32
+    bfType:      u16
+    bfSize:      u32
+    bfReserved1: u16
+    bfReserved2: u16
+    bfOffBits:   u32
 }
 
 struct Mask
 {
-    value:     u32
-    shift:     u8
-    bits:      u8
+    value: u32
+    shift: u8
+    bits:  u8
 }
 
 struct Masks
 {
-    r:     Mask
-    g:     Mask
-    b:     Mask
-    a:     Mask
+    r: Mask
+    g: Mask
+    b: Mask
+    a: Mask
 }
 
 public struct Decoder {}
@@ -93,13 +93,13 @@ func readMask(mask: u32)->Mask
     while cur and (cur & 1) == 0
     {
         result.shift += 1
-        cur >>= 1
+        cur          >>= 1
     }
 
     while cur and (cur & 1)
     {
         result.bits += 1
-        cur >>= 1
+        cur         >>= 1
     }
 
     return result
@@ -231,7 +231,7 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
         {
             writeMaskedPixel(dst, dref cast(const *u16) srcPix, masks, false)
             srcPix += 2
-            dst += 3
+            dst    += 3
         }
     }
 }
@@ -298,7 +298,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             p += absoluteCount
             if padding do
                 p += 1
-            x += absoluteCount
+            x     += absoluteCount
         }
     }
 }
@@ -371,7 +371,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             p += byteCount
             if padding do
                 p += 1
-            x += pixelCount
+            x     += pixelCount
         }
     }
 }
@@ -394,15 +394,15 @@ public impl IImageDecoder for Decoder
 
         // FileHeader
         var hasFileHeader: bool
-        var bfOffBits: u32
+        var bfOffBits:     u32
         if countof >= #sizeof(FileHeader)
         {
             let fh = cast(const *FileHeader) dataof
             if fh.bfType == BMP_SIGNATURE
             {
                 hasFileHeader = true
-                dataof += #sizeof(FileHeader)
-                bfOffBits = fh.bfOffBits
+                dataof        += #sizeof(FileHeader)
+                bfOffBits     = fh.bfOffBits
                 if fh.bfSize and fh.bfSize > countof do
                     throw InvalidFormatError{"invalid source buffer"}
                 if fh.bfSize and fh.bfSize < bfOffBits do
@@ -425,7 +425,7 @@ public impl IImageDecoder for Decoder
         {
             checkBuffer(dataof, last, #sizeof(CoreHeader))
             let ch = cast(const *CoreHeader) dataof
-            dataof += #sizeof(CoreHeader)
+            dataof           += #sizeof(CoreHeader)
             paletteEntrySize = 3
 
             bh.biSize        = ch.bcSize
@@ -471,7 +471,7 @@ public impl IImageDecoder for Decoder
                 masks.r = readMask(dref cast(const *u32) dataof)
                 masks.g = readMask(dref cast(const *u32) (dataof + 4))
                 masks.b = readMask(dref cast(const *u32) (dataof + 8))
-                dataof += 12
+                dataof  += 12
             }
             else do
                 throw InvalidFormatError{"invalid source buffer"}

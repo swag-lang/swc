@@ -21,10 +21,10 @@ enum CmdNeed
 
 struct CmdDesc
 {
-    id:               WndId
-    name:             string
-    need:             CmdNeed = .Nothing
-    hideDisabled:     bool     // hidden follows disabled (contextual commands)
+    id:           WndId
+    name:         string
+    need:         CmdNeed = .Nothing
+    hideDisabled: bool     // hidden follows disabled (contextual commands)
 }
 
 // The update() body for the purely-mechanical commands of an action: set the name
@@ -66,7 +66,7 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         if d.hideDisabled
         {
             evt.setFlags |= .Hidden
-            evt.hidden = disabled
+            evt.hidden   = disabled
         }
 
         return true

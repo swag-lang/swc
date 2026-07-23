@@ -55,8 +55,8 @@ impl IActionUI for ActionSelection
 
         case Snap:
             evt.setFlags |= .Name | .Checked
-            evt.name    = "Snap To Forms"
-            evt.checked = main.snap
+            evt.name     = "Snap To Forms"
+            evt.checked  = main.snap
 
         case Freeze:
             evt.setFlags |= .Name | .Checked | .Disabled

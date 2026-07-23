@@ -92,8 +92,8 @@ func day4A()
             while startSleep < curMin
             {
                 count[startSleep].findOrAdd(curGuard).value += 1
-                total.findOrAdd(curGuard).value += 1
-                startSleep += 1
+                total.findOrAdd(curGuard).value             += 1
+                startSleep                                  += 1
             }
         }
     }

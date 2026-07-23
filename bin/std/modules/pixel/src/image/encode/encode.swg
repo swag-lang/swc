@@ -2,8 +2,8 @@ using Swag, Core, Core.Errors
 
 struct ImageEncoder
 {
-    type:     const *TypeInfoStruct
-    itf:      IImageEncoder
+    type: const *TypeInfoStruct
+    itf:  IImageEncoder
 }
 
 // Interface to decode a buffer

@@ -13,8 +13,8 @@ public interface ICodec
 
 struct CodecDesc
 {
-    type:     const *Swag.TypeInfoStruct
-    itf:      ICodec
+    type: const *Swag.TypeInfoStruct
+    itf:  ICodec
 }
 
 // Register a codec
@@ -47,8 +47,8 @@ func getCodec(dstEncoding, srcEncoding: SoundFileEncoding)->#null *CodecDesc
 // Base struct for all codec instances
 public struct Codec
 {
-    srcEncoding:     SoundFileEncoding                    // The original encoding
-    dstEncoding:     SoundFileEncoding                    // The requested encoding
+    srcEncoding: SoundFileEncoding                        // The original encoding
+    dstEncoding: SoundFileEncoding                        // The requested encoding
     type:            #late const *Swag.TypeInfoStruct     // The real type of the codec
 }
 

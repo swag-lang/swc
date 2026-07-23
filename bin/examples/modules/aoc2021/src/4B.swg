@@ -101,7 +101,7 @@ func day4B()
     for v in bestCard do
         if v > bestScore do
             total += numbers[v]
-    total *= numbers[bestScore]
+    total         *= numbers[bestScore]
 
     // Console.print("total: ", total)
     @assert(total == 3178)

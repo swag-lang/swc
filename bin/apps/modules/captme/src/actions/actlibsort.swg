@@ -21,19 +21,19 @@ impl IActionUI for ActionLibSort
         switch cxt.id
         {
         case Recent:
-            evt.setFlags |= .Name | .Checked | .RenderingHint
+            evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Write Time"
             evt.checked       = libWnd.sortMethod == .Recent
 
         case FileSize:
-            evt.setFlags |= .Name | .Checked | .RenderingHint
+            evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "File Size"
             evt.checked       = libWnd.sortMethod == .FileSize
 
         case Similar:
-            evt.setFlags |= .Name | .Checked | .RenderingHint
+            evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Similarity"
             evt.checked       = libWnd.sortMethod == .Similar

@@ -39,7 +39,7 @@ impl AstGeneratedBuilder
         if !.buffer
         {
             .capacity = 128
-            .buffer = cast(#null [*] u8) @alloc(.capacity)
+            .buffer   = cast(#null [*] u8) @alloc(.capacity)
         }
 
         @assert(.length + cast(u64) @countof(value) <= .capacity)

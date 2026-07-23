@@ -17,7 +17,7 @@
     for var i = 0; i < 1; i += 1
     {
         var x = i
-        last = x
+        last  = x
         count += 1
     }
     @assert(count == 1)

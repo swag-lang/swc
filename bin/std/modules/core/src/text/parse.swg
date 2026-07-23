@@ -227,8 +227,8 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } throw
     if c == g_CultureInfo.numberFormat.negativeSign
     {
         buffer, cpt += 1
-        signed = true
-        maxValue += 1
+        signed      = true
+        maxValue    += 1
         if !Latin1.isDigit(dref buffer) and cpt == countof do
             throw ParseIncompleteError{}
     }
@@ -378,7 +378,7 @@ func parseString(result: *String, str: string)->u32 throw
     if str[0] == '"''u8
     {
         isQuoted = true
-        cpt += 1
+        cpt      += 1
     }
 
     while cpt < countof

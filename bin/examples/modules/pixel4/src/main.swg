@@ -1,33 +1,33 @@
 using Core, Pixel, Win32
 
-const W = 980
-const H = 720
-const MaxPages = 11
+const W                 = 980
+const H                 = 720
+const MaxPages          = 11
 const TestFramesPerPage = 30
 const PanelHeaderHeight = 76.0
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
-var g_Window:        Env.Window
-var g_Renderer:      Pixel.RenderOgl
-var g_Painter:       Pixel.Painter
-var g_RC:            Pixel.RenderingContext
-var g_Keyboard:      Input.Keyboard
+var g_Window:   Env.Window
+var g_Renderer: Pixel.RenderOgl
+var g_Painter:  Pixel.Painter
+var g_RC:       Pixel.RenderingContext
+var g_Keyboard: Input.Keyboard
 
-var g_FontPath:  String
-var g_FontBytes:     Array'u8
-var g_TypeFace:      #null *Pixel.TypeFace
-var g_TitleFont:     #null *Pixel.Font
-var g_OutlineFont:   #null *Pixel.Font
-var g_SubTitleFont:  #null *Pixel.Font
-var g_LabelFont:     #null *Pixel.Font
-var g_HelpFont:      #null *Pixel.Font
-var g_FillTexture:   Texture
-var g_TileTexture:   Texture
-var g_OutlineText:   LinePathList
+var g_FontPath:     String
+var g_FontBytes:    Array'u8
+var g_TypeFace:     #null *Pixel.TypeFace
+var g_TitleFont:    #null *Pixel.Font
+var g_OutlineFont:  #null *Pixel.Font
+var g_SubTitleFont: #null *Pixel.Font
+var g_LabelFont:    #null *Pixel.Font
+var g_HelpFont:     #null *Pixel.Font
+var g_FillTexture:  Texture
+var g_TileTexture:  Texture
+var g_OutlineText:  LinePathList
 
-var g_Page:          s32
-var g_TestFrame:     s32
+var g_Page:      s32
+var g_TestFrame: s32
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {
@@ -137,9 +137,9 @@ func loadTextShowcase()
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle
 {
     var result = rect
-    result.x += left
-    result.y += top
-    result.width -= left + right
+    result.x      += left
+    result.y      += top
+    result.width  -= left + right
     result.height -= top + bottom
     return result
 }
@@ -178,7 +178,7 @@ func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: s
 func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
 {
     var richText: RichString = text
-    var format: RichStringFormat
+    var format:   RichStringFormat
     format.font.regular = font
     format.palette[0]   = color
     format.lineGap      = 0

@@ -5,5 +5,5 @@
     let cfg = @compiler.getBuildCfg()
     cfg.embeddedImports = true
     cfg.moduleNamespace = "RuntimeCtxDll"
-    cfg.backendKind = .SharedLibrary
+    cfg.backendKind     = .SharedLibrary
 }

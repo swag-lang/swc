@@ -106,11 +106,11 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     value[2] -= 1'u8
     @assert(assertString(value, "aZcdef"))
 
-    var sumBytes: u32
+    var sumBytes:   u32
     var sumIndexes: u64
     for byte, index in value
     {
-        sumBytes += cast(u32) byte
+        sumBytes   += cast(u32) byte
         sumIndexes += index
     }
 
@@ -240,7 +240,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(value.contains('\u00E9''rune))
     @assert(value.contains(cast(string) "Caf"))
 
-    let needle: [3] u8 = ['a''u8, 'f''u8, 0xc3]
+    let needle: [3] u8 = ['a''u8, 'f''u8, 0xC3]
     @assert(value.contains(cast(const [..] u8) needle))
 
     @assert(value.startsWith("Core"))
@@ -293,10 +293,10 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 
 #test
 {
-    var small: String = "small"
+    var small:     String = "small"
     var smallCopy: String
     smallCopy = small
-    small[0] = 'S''u8
+    small[0]  = 'S''u8
     @assert(assertString(small, "Small"))
     @assert(assertString(smallCopy, "small"))
 
@@ -310,7 +310,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 
     var bigCopy: String
     bigCopy = big
-    big[0] = 'Z''u8
+    big[0]  = 'Z''u8
     @assert(big[0] == 'Z''u8)
     @assert(expectedBig[0] == 'a''u8)
     @assert(assertString(bigCopy, expectedBig.toString()))

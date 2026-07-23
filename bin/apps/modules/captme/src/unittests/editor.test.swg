@@ -128,15 +128,15 @@ using Swag, Core
     @assert((cast(*FormDraw) @dataof(f.capture.forms[4])).points.count >= 2)
 
     f.main.mdlFormShape.subKind = .Highlight
-    f.main.mdlHighlight = &f.main.mdlFormShape
-    f.main.editMode = .Highlight
+    f.main.mdlHighlight         = &f.main.mdlFormShape
+    f.main.editMode             = .Highlight
     f.gui.drag({120, 130}, {170, 170})
     @assert(@kindof(f.capture.forms[5]) == FormShape)
     @assert((cast(*BaseForm) @dataof(f.capture.forms[5])).subKind == .Highlight)
 
     f.main.mdlFormShape.subKind = .None
-    f.main.mdlPixSel = &f.main.mdlFormShape
-    f.main.editMode = .PixSel
+    f.main.mdlPixSel            = &f.main.mdlFormShape
+    f.main.editMode             = .PixSel
     f.gui.drag({200, 130}, {250, 170})
     @assert(@kindof(f.capture.forms[6]) == FormShape)
     @assert((cast(*BaseForm) @dataof(f.capture.forms[6])).subKind == .PixSel)
@@ -398,9 +398,9 @@ using Swag, Core
     f.setup()
 
     let image = testAddImage(f.capture, 40, 50, 80, 60)
-    image.kind = .Image
-    image.place = .Free
-    image.image = Image.create(20, 20, .BGRA8)
+    image.kind    = .Image
+    image.place   = .Free
+    image.image   = Image.create(20, 20, .BGRA8)
     image.freePos = {5, 6, 20, 16}
     f.capture.selection.add(0)
 

@@ -43,7 +43,7 @@ func storeBytes(s: *DynString, src: const [*] u8, len: u64)
     reserve(s, len)
     for i in len do
         s.data[i] = src[i]
-    s.count = len
+    s.count       = len
 }
 
 func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
@@ -51,7 +51,7 @@ func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
     reserve(s, s.count + len)
     for i in len do
         s.data[s.count + i] = src[i]
-    s.count += len
+    s.count                 += len
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ impl DynString
             @free(.data)
             .data = null
         }
-        .count = 0
+        .count    = 0
         .capacity = 0
     }
 
@@ -79,13 +79,13 @@ impl DynString
     {
         if .count == 0
         {
-            .data = null
+            .data     = null
             .capacity = 0
             return
         }
 
         let oldData = .data
-        .data = null
+        .data     = null
         .capacity = 0
         reserve(&me, .count)
         for i in .count do
@@ -100,8 +100,8 @@ impl DynString
     // Build from a string literal: `s = "hello"` when s is a DynString.
     mtd opSet(text: string)
     {
-        .data = null
-        .count = 0
+        .data     = null
+        .count    = 0
         .capacity = 0
 
         let len = cast(u64) @countof(text)
@@ -274,7 +274,7 @@ impl DynString
     // Append another DynString by const reference.
     var tail: DynString
     tail = "-baz"
-    s += tail
+    s    += tail
     @assert(s.count == 11)
     @assert(s[7] == '-''u8)
     @assert(s[10] == 'z''u8)

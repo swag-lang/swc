@@ -32,7 +32,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
 
     host.theme.metrics.surfaceWnd_CornerRadius = 18
-    host.surface.flags = SurfaceFlags.OverlappedWindow
+    host.surface.flags                         = SurfaceFlags.OverlappedWindow
 
     @assert(host.surface.getCornerRadius() == 18)
 
@@ -100,7 +100,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     @assert(host.app.getSurfaceAt(40, 50) == surface)
 
     var frameCount: u32
-    var didClick: bool
+    var didClick:   bool
     let result = host.app.doModalLoop(surface, func|host = &host, button, frames = &frameCount, didClick = &didClick|(app)
     {
         dref frames += 1
@@ -177,10 +177,10 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     evt.surfacePos = {50, 20}
     host.surfaceWnd.sendEvent(&evt)
 
-    host.surface.position          = {10, 20, 240, 120}
-    host.surfaceWnd.movingSurface  = false
-    host.surfaceWnd.sizingBorder   = .Zero
-    host.app.mouseEnterWnd         = &host.surfaceWnd
+    host.surface.position         = {10, 20, 240, 120}
+    host.surfaceWnd.movingSurface = false
+    host.surfaceWnd.sizingBorder  = .Zero
+    host.app.mouseEnterWnd        = &host.surfaceWnd
 
     evt.kind       = .MousePressed
     evt.surfacePos = {30, 1}

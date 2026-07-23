@@ -95,7 +95,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
         let body   = insetRect(rightCell, 26, 16, 26, 82)
         let points = makeArrowPolygon(body)
         var pen    = Pen.createSolid(Argb.White, 16)
-        pen.brush  = Brush.createTiled(g_TileTexture)
+        pen.brush     = Brush.createTiled(g_TileTexture)
         pen.joinStyle = .Round
         drawClosedOutline(painter, points[to], pen)
         drawBrushCellLabel(painter, rightCell, "Tiled texture pen", "Polygon outline repeating the pattern")

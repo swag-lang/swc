@@ -3,14 +3,14 @@
 // Real-life example: audit a small office LAN for trusted triplets touching a
 // team-lead workstation and identify the largest fully connected admin group.
 
-const MaxComputers = 20
+const MaxComputers     = 20
 const MaxPasswordBytes = MaxComputers * 3 - 1
 
 struct LanAudit
 {
-    leadTripletCount: u32
+    leadTripletCount:  u32
     largestCliqueSize: u32
-    passwordLength:   u32
+    passwordLength:    u32
     password:         [MaxPasswordBytes] u8
 }
 
@@ -71,7 +71,7 @@ func countBits(value: u32)->u32
     {
         if (bits & 1'u32) != 0'u32 do
             result += 1
-        bits >>= 1
+        bits       >>= 1
     }
 
     return result
@@ -113,7 +113,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
         if (mask & (1'u32 << index)) != 0'u32
         {
             selected[selectedCount] = labels[index]
-            selectedCount += 1
+            selectedCount           += 1
         }
     }
 
@@ -129,7 +129,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
             if labelLess(selected[right], selected[left])
             {
                 let temp = selected[left]
-                selected[left] = selected[right]
+                selected[left]  = selected[right]
                 selected[right] = temp
             }
         }
@@ -144,13 +144,13 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
         if index != 0
         {
             outPassword[length] = ',''u8
-            length += 1
+            length              += 1
         }
 
         outPassword[length] = labelFirstByte(label)
-        length += 1
+        length              += 1
         outPassword[length] = labelSecondByte(label)
-        length += 1
+        length              += 1
     }
 
     dref outLength = length
@@ -210,18 +210,18 @@ func auditLan(connections: const [..] string)->LanAudit
         if leftIndex == Swag.U32.Max
         {
             @assert(computerCount < MaxComputers)
-            leftIndex = computerCount
+            leftIndex             = computerCount
             labels[computerCount] = leftLabel
-            computerCount += 1
+            computerCount         += 1
         }
 
         var rightIndex = findComputerIndex(labelSlice, computerCount, rightLabel)
         if rightIndex == Swag.U32.Max
         {
             @assert(computerCount < MaxComputers)
-            rightIndex = computerCount
+            rightIndex            = computerCount
             labels[computerCount] = rightLabel
-            computerCount += 1
+            computerCount         += 1
         }
 
         adjacency[edgeIndex(leftIndex, rightIndex)] = true
@@ -277,7 +277,7 @@ func auditLan(connections: const [..] string)->LanAudit
         if cliqueSize > result.largestCliqueSize or passwordLess(candidatePasswordSlice, candidateLength, resultPasswordSlice, result.passwordLength)
         {
             result.largestCliqueSize = cliqueSize
-            result.passwordLength = candidateLength
+            result.passwordLength    = candidateLength
 
             for candidateLength
             {

@@ -17,15 +17,15 @@ const TAG_OS2  = imageTag('O''u32, 'S''u32, '/''u32, '2''u32)
 
 struct TableRecord
 {
-    tag:        u32
-    offset:     u32
-    length:     u32
+    tag:    u32
+    offset: u32
+    length: u32
 }
 
 struct GlyphMetric
 {
-    advanceWidth:        u16
-    leftSideBearing:     s16
+    advanceWidth:    u16
+    leftSideBearing: s16
 }
 
 // Internal backing store for a public Face. The public Face is the first field so
@@ -34,26 +34,26 @@ struct FaceImpl
 {
     face:                Face
 
-    fontData:            Array'u8
-    tables:              Array'TableRecord
-    glyphMetrics:        Array'GlyphMetric
-    glyphLocations:      Array'u32
+    fontData:       Array'u8
+    tables:         Array'TableRecord
+    glyphMetrics:   Array'GlyphMetric
+    glyphLocations: Array'u32
     chosenCMap:          #late const [..] u8
-    cmapFormat:          u16
-    unitsPerEm:          u16
-    numLongMetrics:      u16
-    lineGap:             s16
-    macStyle:            u16
-    indexToLocFormat:    s16
+    cmapFormat:       u16
+    unitsPerEm:       u16
+    numLongMetrics:   u16
+    lineGap:          s16
+    macStyle:         u16
+    indexToLocFormat: s16
 
     // Blue-zone metrics for vertical hinting, in font design units (0 = unknown).
-    xHeight:             s16
-    capHeight:           s16
+    xHeight:   s16
+    capHeight: s16
 
-    outlinePoints:       Array'Vector
-    outlineTags:         Array'u8
-    outlineContours:     Array's16
-    bitmapPixels:        Array'u8
+    outlinePoints:   Array'Vector
+    outlineTags:     Array'u8
+    outlineContours: Array's16
+    bitmapPixels:    Array'u8
 
     // Horizontal kerning pairs from the legacy 'kern' table (format 0).
     // Key = (leftGlyph << 16) | rightGlyph, value = kerning in font design units.

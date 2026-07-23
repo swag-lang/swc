@@ -59,7 +59,7 @@ func drawGradientStrokeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     let star = makeStarPolygon(body.x + body.width * 0.73, body.vertCenter() + 2, 72, 32, 7)
     var starPen = Pen.createSolid(Argb.White, 16)
-    starPen.brush = Brush.createRadialGradient(body.x + body.width * 0.73, body.vertCenter() + 2, 82, Argb.White, Argb.SeaGreen)
+    starPen.brush     = Brush.createRadialGradient(body.x + body.width * 0.73, body.vertCenter() + 2, 82, Argb.White, Argb.SeaGreen)
     starPen.joinStyle = .Round
     drawClosedOutline(painter, star[to], starPen)
 }

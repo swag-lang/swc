@@ -3,48 +3,48 @@ using Core
 
 struct LayerBeginInfo
 {
-    width:          s32
-    height:         s32
-    renderScale:    s32 = 1
-    paintAlpha:     bool = true
-    clearColor:     Color = Color.fromArgb(Argb.Zero)
-    antialiased:    bool = true
-    blendingMode:   BlendingMode = .Alpha
+    width:        s32
+    height:       s32
+    renderScale:  s32 = 1
+    paintAlpha:   bool = true
+    clearColor:   Color = Color.fromArgb(Argb.Zero)
+    antialiased:  bool = true
+    blendingMode: BlendingMode = .Alpha
 }
 
 struct LayerShadowInfo
 {
-    enabled:        bool
-    margin:         s32 = 8
-    radius:         f32 = 8
-    offsetX:        f32
-    offsetY:        f32
-    color:          Color = Color.fromArgb(150, Argb.Black)
+    enabled: bool
+    margin:  s32 = 8
+    radius:  f32 = 8
+    offsetX: f32
+    offsetY: f32
+    color:   Color = Color.fromArgb(150, Argb.Black)
 }
 
 struct LayerDrawInfo
 {
-    dstRect:            Math.Rectangle
-    color:              Color = Color.fromArgb(Argb.White)
-    interpolationMode:  InterpolationMode = .Linear
-    writeAlpha:         bool = true
-    alphaBlendingMode:  BlendingMode = .Max
-    releaseAfterDraw:   bool = true
-    shadow:             LayerShadowInfo
+    dstRect:           Math.Rectangle
+    color:             Color = Color.fromArgb(Argb.White)
+    interpolationMode: InterpolationMode = .Linear
+    writeAlpha:        bool = true
+    alphaBlendingMode: BlendingMode = .Max
+    releaseAfterDraw:  bool = true
+    shadow:            LayerShadowInfo
 }
 
 struct Layer
 {
-    renderer:       #null *RenderOgl
-    painter:        #null *Painter
-    paintTarget:    #null *RenderTarget
-    contentTarget:  #null *RenderTarget
-    shadowTarget:   #null *RenderTarget
-    width:          s32
-    height:         s32
-    renderScale:    s32 = 1
-    active:         bool
-    resolved:       bool
+    renderer:      #null *RenderOgl
+    painter:       #null *Painter
+    paintTarget:   #null *RenderTarget
+    contentTarget: #null *RenderTarget
+    shadowTarget:  #null *RenderTarget
+    width:         s32
+    height:        s32
+    renderScale:   s32 = 1
+    active:        bool
+    resolved:      bool
 }
 
 impl Layer
@@ -203,8 +203,8 @@ impl Layer
             let margin = Math.max(info.shadow.margin, 0)
             dstRect.offset(info.shadow.offsetX - cast(f32) margin, info.shadow.offsetY - cast(f32) margin)
             dstRect.width, dstRect.height += cast(f32) (2 * margin)
-            srcRect = Math.Rectangle{0, 0, .width + 2 * margin, .height + 2 * margin}
-            texture = .shadowTarget.colorBuffer
+            srcRect                       = Math.Rectangle{0, 0, .width + 2 * margin, .height + 2 * margin}
+            texture                       = .shadowTarget.colorBuffer
         }
         else do
             .resolve()
@@ -258,10 +258,10 @@ impl Layer
                 .painter.releaseRenderTarget(.shadowTarget)
         }
 
-        .paintTarget    = null
-        .contentTarget  = null
-        .shadowTarget   = null
-        .active         = false
-        .resolved       = false
+        .paintTarget   = null
+        .contentTarget = null
+        .shadowTarget  = null
+        .active        = false
+        .resolved      = false
     }
 }

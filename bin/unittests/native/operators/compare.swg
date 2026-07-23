@@ -137,12 +137,12 @@ func touch(flag: bool, delta: s32)->bool
     var other   = CompareIdentityBase{value: 20}
     var derived = CompareIdentityDerived{base: {value: 30}, extra: 40}
 
-    let basePtr: *CompareIdentityBase       = &base
-    let otherPtr: *CompareIdentityBase      = &other
+    let basePtr:        *CompareIdentityBase       = &base
+    let otherPtr:       *CompareIdentityBase      = &other
     let derivedBasePtr: *CompareIdentityBase = &derived.base
 
-    var baseRef: &CompareIdentityBase       = &base
-    let otherRef: const &CompareIdentityBase = &other
+    var baseRef:    &CompareIdentityBase       = &base
+    let otherRef:   const &CompareIdentityBase = &other
     var derivedRef: &CompareIdentityDerived = &derived
 
     @assert(basePtr == baseRef)
@@ -194,7 +194,7 @@ func matchReferenceValue(value: const &s32)->bool
 // Const-reference parameters keep value-style comparisons
 #test
 {
-    var value: s32 = 4
+    var value:    s32 = 4
     let valueRef: const &s32 = &value
     @assert(matchReferenceValue(valueRef))
 }
@@ -202,7 +202,7 @@ func matchReferenceValue(value: const &s32)->bool
 // Float references use the same comparison pipeline
 #test
 {
-    var value: f32 = 1.5
+    var value:    f32 = 1.5
     let valueRef: const &f32 = &value
 
     @assert(valueRef == 1.5)
@@ -229,7 +229,7 @@ func matchReferenceValue(value: const &s32)->bool
 #test
 {
     var value: s32 = 42
-    var raw: any = @mkany(&value, s32)
+    var raw:   any = @mkany(&value, s32)
     let boxed = dref cast(*CompareStrictAny) &raw
 
     @assert(boxed == s32)

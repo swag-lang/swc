@@ -3,11 +3,11 @@ using Ogl, Core
 
 struct Texture
 {
-    handle:            TextureHandle = InvalidTextureHandle
-    pf:                PixelFormat = undefined
-    width:             s32 = 0
-    height:            s32 = 0
-    valid:             bool = false
+    handle: TextureHandle = InvalidTextureHandle
+    pf:     PixelFormat = undefined
+    width:  s32 = 0
+    height: s32 = 0
+    valid:  bool = false
 }
 
 enum InterpolationMode

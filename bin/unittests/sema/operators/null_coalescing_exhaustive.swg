@@ -25,8 +25,8 @@ const StrictHandleResolved = cast(OrelseStrictHandle) null orelse StrictHandleFa
 #assert(StrictHandleResolved == StrictHandleFallback)
 
 const NullableTypeInfo: #null typeinfo = null
-const TypeInfoFallback: typeinfo = s32
-const TypeInfoResolved = NullableTypeInfo orelse TypeInfoFallback
+const TypeInfoFallback: typeinfo       = s32
+const TypeInfoResolved                 = NullableTypeInfo orelse TypeInfoFallback
 #assert(#typeof(TypeInfoResolved) == typeinfo)
 #assert(TypeInfoResolved == s32)
 

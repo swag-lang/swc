@@ -3,11 +3,11 @@ using Swag, Core, Core.Errors, Win32, XAudio2
 
 struct XAudio2DriverNative
 {
-    xAudio2:            #null *IXAudio2
-    masteringVoice:     #null *IXAudio2MasteringVoice
-    hasInitCOM:         bool
-    channelMask:        DWORD
-    x3DInstance:        X3DAUDIO_HANDLE
+    xAudio2:        #null *IXAudio2
+    masteringVoice: #null *IXAudio2MasteringVoice
+    hasInitCOM:     bool
+    channelMask:    DWORD
+    x3DInstance:    X3DAUDIO_HANDLE
 }
 
 impl XAudio2DriverNative

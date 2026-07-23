@@ -37,7 +37,7 @@ func wait(threads: *Thread...)
 
         assume WaitForMultipleObjects(toTreat, &handles[0], TRUE, INFINITE)
         startIndex += cast(u64) toTreat
-        total -= toTreat
+        total      -= toTreat
     }
 
     // Close all

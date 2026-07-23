@@ -26,10 +26,10 @@ alias SemaConstPointerAlias   = const *SemaNonNullItem
 
 const SEMA_NONULL_POINTER_DEFAULT_TEXT = "fallback"
 
-const SEMA_NONULL_NULL_VALUE_POINTER: #null *void = null
-const SEMA_NONULL_PRESENT_VALUE_POINTER = cast(*void) 1'u64
+const SEMA_NONULL_NULL_VALUE_POINTER: #null *void    = null
+const SEMA_NONULL_PRESENT_VALUE_POINTER              = cast(*void) 1'u64
 const SEMA_NONULL_NULL_BLOCK_POINTER: #null [*] void = null
-const SEMA_NONULL_PRESENT_BLOCK_POINTER = cast([*] void) 1'u64
+const SEMA_NONULL_PRESENT_BLOCK_POINTER              = cast([*] void) 1'u64
 
 #assert(SEMA_NONULL_NULL_VALUE_POINTER < SEMA_NONULL_PRESENT_VALUE_POINTER)
 #assert(SEMA_NONULL_NULL_VALUE_POINTER <= SEMA_NONULL_PRESENT_VALUE_POINTER)
@@ -60,7 +60,7 @@ struct SemaNonNullDefaultContainer
 }
 
 const SEMA_NONULL_DEFAULT_CONTAINER: SemaNonNullDefaultContainer = {}
-const SEMA_NONULL_PARTIAL_ARRAY: [2] SemaNonNullStringDefault = [{value: "explicit"}]
+const SEMA_NONULL_PARTIAL_ARRAY: [2] SemaNonNullStringDefault    = [{value: "explicit"}]
 
 #assert(SEMA_NONULL_DEFAULT_CONTAINER.direct.value == "fallback")
 #assert(SEMA_NONULL_DEFAULT_CONTAINER.array[0].value == "fallback")
@@ -145,18 +145,18 @@ func semaNonNullConstruction()
     var blockStorage: [2] SemaNonNullItem = [{value: 31}, {value: 32}]
     var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
 
-    let direct: *SemaNonNullItem = &first
+    let direct:   *SemaNonNullItem = &first
     let readOnly: const *SemaNonNullItem = &first
     let block: [*] SemaNonNullItem = cast([*] SemaNonNullItem) &blockStorage[0]
     let slice: [..] SemaNonNullItem = blockStorage
-    let text: string = "nonull"
-    let ctext: cstring = cast(cstring) &cstringStorage[0]
-    let boxed: any = 123
-    let reflectedType: typeinfo = SemaNonNullItem
-    let legacyOpCast: string = SemaNonNullLegacyOpCastBox{}
+    let text:                  string = "nonull"
+    let ctext:                 cstring = cast(cstring) &cstringStorage[0]
+    let boxed:                 any = 123
+    let reflectedType:         typeinfo = SemaNonNullItem
+    let legacyOpCast:          string = SemaNonNullLegacyOpCastBox{}
     let widenedRequiredOpCast: #null string = SemaNonNullRequiredOpCastBox{}
-    let aliasReadOnly: const SemaNonNullPointerAlias = &first
-    let aliasRequired: SemaConstPointerAlias = &first
+    let aliasReadOnly:         const SemaNonNullPointerAlias = &first
+    let aliasRequired:         SemaConstPointerAlias = &first
     #assert(#typeof(direct) == *SemaNonNullItem)
     #assert(#typeof(readOnly) == const *SemaNonNullItem)
     #assert(#typeof(block) == [*] SemaNonNullItem)
@@ -177,13 +177,13 @@ func semaNonNullConstruction()
 
     // A bare (non-null) pointer can widen to '#null'.
     let legacySource: *SemaNonNullItem = &first
-    let migrated: *SemaNonNullItem = migrateSemaLegacyPointer(legacySource)
-    var widened: #null *SemaNonNullItem = migrated
+    let migrated:     *SemaNonNullItem = migrateSemaLegacyPointer(legacySource)
+    var widened:      #null *SemaNonNullItem = migrated
     widened = null     // the qualifier is real: null flows into it below
     widened = migrated
     let completeSet = cast(SemaNonNullCompleteSet) &first
     let genericRequired: SemaNonNullGenericBox'(*SemaNonNullItem) = {value: &first}
-    var genericDefault: SemaNonNullGenericBox'SemaNonNullStringDefault
+    var genericDefault:  SemaNonNullGenericBox'SemaNonNullStringDefault
     #assert(#typeof(migrated) == *SemaNonNullItem)
     #assert(#typeof(widened) == #null *SemaNonNullItem)
     #assert(#typeof(completeSet.required) == *SemaNonNullItem)
@@ -215,18 +215,18 @@ func semaNonNullConstruction()
         reflectedType: reflectedType,
         }
 
-    let nullableValuePointer: #null *SemaNonNullItem = null
-    let nullableBlockPointer: #null [*] SemaNonNullItem = null
-    let nullableSlice: #null [..] SemaNonNullItem = null
-    let nullableString: #null string = null
-    let nullableCString: #null cstring = null
-    let nullableTypeInfo: #null typeinfo = null
+    let nullableValuePointer:      #null *SemaNonNullItem = null
+    let nullableBlockPointer:      #null [*] SemaNonNullItem = null
+    let nullableSlice:             #null [..] SemaNonNullItem = null
+    let nullableString:            #null string = null
+    let nullableCString:           #null cstring = null
+    let nullableTypeInfo:          #null typeinfo = null
     let boxedNullableValuePointer: any = nullableValuePointer
     let boxedNullableBlockPointer: any = nullableBlockPointer
-    let boxedNullableSlice: any = nullableSlice
-    let boxedNullableString: any = nullableString
-    let boxedNullableCString: any = nullableCString
-    let boxedNullableTypeInfo: any = nullableTypeInfo
+    let boxedNullableSlice:        any = nullableSlice
+    let boxedNullableString:       any = nullableString
+    let boxedNullableCString:      any = nullableCString
+    let boxedNullableTypeInfo:     any = nullableTypeInfo
 
     #assert(boxedNullableValuePointer != null)
     #assert(boxedNullableBlockPointer != null)
@@ -246,8 +246,8 @@ func semaNonNullConstruction()
 
     // Explicitly nullable pointers retain their default.
     var nullableDefault: #null *SemaNonNullItem
-    var legacyDefault: #null *SemaNonNullItem
-    var legacyHolder: struct {ptr: #null *SemaNonNullItem}
+    var legacyDefault:   #null *SemaNonNullItem
+    var legacyHolder:    struct {ptr: #null *SemaNonNullItem}
 
     #assert(#typeof(holder.required) == *SemaNonNullItem)
     #assert(#typeof(moveTarget.required) == *SemaNonNullItem)

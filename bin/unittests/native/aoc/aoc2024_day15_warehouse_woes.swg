@@ -106,8 +106,8 @@ func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 
 struct Parsed
 {
-    wh:    Warehouse
-    moves: #null [*] u8
+    wh:     Warehouse
+    moves:  #null [*] u8
     nMoves: u32
 }
 
@@ -146,9 +146,9 @@ func parseInput(text: string)->Parsed
             {
                 if result.wh.h == 0 do
                     result.wh.w = col
-                result.wh.h += 1
-                row += 1
-                col = 0
+                result.wh.h     += 1
+                row             += 1
+                col             = 0
             }
             elif result.wh.h > 0
             {
@@ -163,7 +163,7 @@ func parseInput(text: string)->Parsed
         elif ch == 'O' do tile = Tile.Box
         elif ch == '@'
         {
-            tile = Tile.Robot
+            tile             = Tile.Robot
             result.wh.robotR = row
             result.wh.robotC = col
         }
@@ -192,7 +192,7 @@ func parseInput(text: string)->Parsed
             moveCount += 1
     }
 
-    result.moves = cast(#null [*] u8) @alloc(cast(u64) moveCount)
+    result.moves  = cast(#null [*] u8) @alloc(cast(u64) moveCount)
     result.nMoves = moveCount
 
     // @mkslice: create a slice view over the allocated move buffer
@@ -211,7 +211,7 @@ func parseInput(text: string)->Parsed
         if ch == '^' or ch == 'v' or ch == '<' or ch == '>'
         {
             result.moves[mi] = ch
-            mi += 1
+            mi               += 1
         }
     }
 

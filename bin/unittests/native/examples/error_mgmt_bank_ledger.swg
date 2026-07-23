@@ -20,31 +20,31 @@ enum BankErrorKind
 struct BankError
 {
     using base:  Swag.BaseError
-    kind:        BankErrorKind = BankErrorKind.None
-    account:     s32           = -1
-    amount:      s64           = 0
+    kind:    BankErrorKind = BankErrorKind.None
+    account: s32           = -1
+    amount:  s64           = 0
 }
 
 struct Account
 {
-    id:       s32
-    balance:  s64
-    frozen:   bool
+    id:      s32
+    balance: s64
+    frozen:  bool
 }
 
 struct Transfer
 {
-    from:    s32
-    dest:    s32
-    amount:  s64
+    from:   s32
+    dest:   s32
+    amount: s64
 }
 
 struct Ledger
 {
     accounts:    [MaxAccounts] Account
-    committed:   s32
-    rolledBack:  s32
-    totalOps:    s32
+    committed:  s32
+    rolledBack: s32
+    totalOps:   s32
 }
 
 impl Ledger

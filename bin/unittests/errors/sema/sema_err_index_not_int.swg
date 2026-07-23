@@ -10,7 +10,7 @@ struct VariadicPayload
 {
     arr: [3] s32
     flag: bool
-    tag: u8
+    tag:  u8
 }
 
 enum VariadicKind: u16
@@ -316,7 +316,7 @@ enum VariadicKind: u16
 
     const pair0: VariadicPair = {a: 2, b: 3}
     const pair1: VariadicPair = {a: 5, b: 7}
-    const V0 = #run variadicAny(pair0, pair1)
+    const V0                  = #run variadicAny(pair0, pair1)
     #assert(V0 == 17)
 }
 
@@ -331,7 +331,7 @@ enum VariadicKind: u16
 
     const arr0: [4] s32 = [1, 2, 3, 4]
     const arr1: [4] s32 = [10, 20, 30, 40]
-    const V0 = #run variadicAny(arr0, arr1)
+    const V0            = #run variadicAny(arr0, arr1)
     #assert(V0 == 55)
 }
 
@@ -384,7 +384,7 @@ enum VariadicKind: u16
 
     const pair0: VariadicPair = {a: 2, b: 3}
     const pair1: VariadicPair = {a: 5, b: 7}
-    const V0 = #run variadicAny(pair0, pair1)
+    const V0                  = #run variadicAny(pair0, pair1)
     #assert(V0 == 17)
 }
 
@@ -401,7 +401,7 @@ enum VariadicKind: u16
 
     const arr0: [4] s32 = [1, 2, 3, 4]
     const arr1: [4] s32 = [10, 20, 30, 40]
-    const V0 = #run variadicAny(arr0, arr1)
+    const V0            = #run variadicAny(arr0, arr1)
     #assert(V0 == 55)
 }
 
@@ -433,9 +433,9 @@ enum VariadicKind: u16
     }
 
     const payload: VariadicPayload = {arr: [9, 8, 7], flag: true, tag: 5'u8}
-    const values: [2] u64 = [10'u64, 20'u64]
-    const ptr: *void = cast(*void) 0x11'u64
-    const V0 = #run variadicAny(payload, values, "Az", ptr)
+    const values: [2] u64          = [10'u64, 20'u64]
+    const ptr: *void               = cast(*void) 0x11'u64
+    const V0                       = #run variadicAny(payload, values, "Az", ptr)
     #assert(#typeof(V0) == u64)
     #assert(V0 == 110'u64)
 }
@@ -513,13 +513,13 @@ enum VariadicKind: u16
         return text == "untyped-variadic-stress"
     }
 
-    const pair: VariadicPair = {a: 2, b: 3}
+    const pair: VariadicPair       = {a: 2, b: 3}
     const payload: VariadicPayload = {arr: [5, 8, 13], flag: true, tag: 21'u8}
-    const V0 = #run variadicAnyStressAKinds(pair, payload, VariadicKind.B, "untyped-variadic-stress")
-    const V1 = #run variadicAnyStressAPair(pair, payload, VariadicKind.B, "untyped-variadic-stress")
-    const V2 = #run variadicAnyStressAPayload(pair, payload, VariadicKind.B, "untyped-variadic-stress")
-    const V3 = #run variadicAnyStressAKind(pair, payload, VariadicKind.B, "untyped-variadic-stress")
-    const V4 = #run variadicAnyStressAString(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V0                       = #run variadicAnyStressAKinds(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V1                       = #run variadicAnyStressAPair(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V2                       = #run variadicAnyStressAPayload(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V3                       = #run variadicAnyStressAKind(pair, payload, VariadicKind.B, "untyped-variadic-stress")
+    const V4                       = #run variadicAnyStressAString(pair, payload, VariadicKind.B, "untyped-variadic-stress")
     #assert(V0)
     #assert(V1)
     #assert(V2)
@@ -654,10 +654,10 @@ enum VariadicKind: u16
         return true
     }
 
-    const head: VariadicPair = {a: 11, b: 22}
-    const tail: VariadicPair = {a: 33, b: 44}
+    const head: VariadicPair       = {a: 11, b: 22}
+    const tail: VariadicPair       = {a: 33, b: 44}
     const payload: VariadicPayload = {arr: [1, 2, 3], flag: false, tag: 9'u8}
-    const V0 = #run variadicAnyStressWithHead(head, tail, payload, VariadicKind.A, "head-check", false, 1.25'f32, cast(*void) 0x99'u64)
+    const V0                       = #run variadicAnyStressWithHead(head, tail, payload, VariadicKind.A, "head-check", false, 1.25'f32, cast(*void) 0x99'u64)
     #assert(V0)
 }
 
@@ -739,9 +739,9 @@ enum VariadicKind: u16
         return cast(u64) (v0.a + v0.b + v1.arr[0] + v1.arr[1] + v1.arr[2] + v1.tag + v2[0] + v2[1] + v2[2])
     }
 
-    const pair: VariadicPair = {a: 2, b: 3}
+    const pair: VariadicPair       = {a: 2, b: 3}
     const payload: VariadicPayload = {arr: [4, 5, 6], flag: true, tag: 7'u8}
-    const arr: [3] s32 = [8, 9, 10]
-    const V0 = #run variadicAnyStressAggregates(pair, payload, arr)
+    const arr: [3] s32             = [8, 9, 10]
+    const V0                       = #run variadicAnyStressAggregates(pair, payload, arr)
     #assert(V0 == 54'u64)
 }

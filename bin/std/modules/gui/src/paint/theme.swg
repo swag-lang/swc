@@ -35,12 +35,12 @@ private const DefaultSpin = #include(DefaultSpinName)
 // per process (same policy as the TypeFace/Font caches).
 private struct DefaultThemeImages
 {
-    lock:        Sync.Mutex
-    decoded:     bool
-    widgets:     Image
-    icons24:     Image
-    icons64:     Image
-    spin:        Image
+    lock:    Sync.Mutex
+    decoded: bool
+    widgets: Image
+    icons24: Image
+    icons64: Image
+    spin:    Image
 }
 
 private var g_DefaultThemeImages: DefaultThemeImages
@@ -75,17 +75,17 @@ struct ThemeResources
     defaultFsTypeFaceB:      #late *TypeFace
     defaultFsTypeFaceI:      #late *TypeFace
     defaultFsTypeFaceBI:     #late *TypeFace
-    fontDefault:             FontFamily
-    fontDefaultFs:           FontFamily
+    fontDefault:   FontFamily
+    fontDefaultFs: FontFamily
 }
 
 struct Theme
 {
-    intialized:     bool
-    res:            ThemeResources
-    rects:          ThemeImageRects
-    metrics:        ThemeMetrics
-    colors:         ThemeColors
+    intialized: bool
+    res:        ThemeResources
+    rects:      ThemeImageRects
+    metrics:    ThemeMetrics
+    colors:     ThemeColors
 }
 
 impl Theme

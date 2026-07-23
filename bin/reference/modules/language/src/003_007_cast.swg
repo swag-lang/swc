@@ -54,10 +54,10 @@ must have the same size.
 {
     let x: f32 = 1.0
     let y: u32 = cast #bit (u32) x
-    @assert(y == 0x3f800000)     // 1.0 in IEEE 754 format
+    @assert(y == 0x3F800000)     // 1.0 in IEEE 754 format
 
-    #assert(cast #bit (u32) 1.0 == 0x3f800000)
-    #assert(cast #bit (f32) 0x3f800000 == 1.0)
+    #assert(cast #bit (u32) 1.0 == 0x3F800000)
+    #assert(cast #bit (f32) 0x3F800000 == 1.0)
 }
 
 /**

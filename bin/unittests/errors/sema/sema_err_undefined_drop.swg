@@ -20,5 +20,5 @@ func maybeReassignUndefined(condition: bool)
     var value: DroppableValue = undefined
     if condition do
         value = makeDroppable(1)
-    value = makeDroppable(2)     // swc-expected-error {{sema_err_undefined_drop}}
+    value     = makeDroppable(2)     // swc-expected-error {{sema_err_undefined_drop}}
 }

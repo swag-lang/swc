@@ -129,7 +129,7 @@
     for v in @countof(arr)
     {
         count += 1
-        sum += cast(s32) v
+        sum   += cast(s32) v
     }
     @assert(count == 1)
 }
@@ -187,7 +187,7 @@ func forEarlyReturn()->s32
     var val = -1
     for i in 5 to 5
     {
-        val = cast(s32) i
+        val   = cast(s32) i
         count += 1
     }
     @assert(count == 1)
@@ -201,7 +201,7 @@ func forEarlyReturn()->s32
     var val = -1
     for i in 5 until 6
     {
-        val = cast(s32) i
+        val   = cast(s32) i
         count += 1
     }
     @assert(count == 1)

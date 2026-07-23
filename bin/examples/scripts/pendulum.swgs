@@ -20,14 +20,14 @@ var a1   = 0.0
 var a2   = 0.0
 var a1_v = 0.0
 var a2_v = 0.0
-var g: f32 = 0.98
+var g:      f32 = 0.98
 var cx, cy: f32
 var friction  = 1.0
 var linePath: Array'Vector2
 
 func restartPendulum()
 {
-    a1, a2 = ConstF32.Pi / 2
+    a1, a2     = ConstF32.Pi / 2
     a1_v, a2_v = 0
     linePath.clear()
 }
@@ -58,8 +58,8 @@ func stepPendulum(dt: f32)->bool
 
     a1_v += a1_a * dt
     a2_v += a2_a * dt
-    a1 += a1_v * dt
-    a2 += a2_v * dt
+    a1   += a1_v * dt
+    a2   += a2_v * dt
 
     a1_v *= friction
     a2_v *= friction
@@ -111,7 +111,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         }
         {
             let btn = PushButton.create(panel, "restart")
-            btn.maxSize = 100
+            btn.maxSize    = 100
             btn.sigPressed += func(btn)
             {
                 restartPendulum()

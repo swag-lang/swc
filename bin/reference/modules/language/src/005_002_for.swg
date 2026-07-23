@@ -48,7 +48,7 @@ You can assign a custom name to the loop index for clarity, while `@index` remai
 
     for i in 5
     {
-        cpt += i
+        cpt  += i
         cpt1 += @index
     }
 
@@ -171,7 +171,7 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
     for i in -1 to 1
     {
         count += 1
-        sum += i
+        sum   += i
     }
 
     @assert(sum == 0)

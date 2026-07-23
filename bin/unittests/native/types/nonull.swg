@@ -39,7 +39,7 @@ struct NativeNonNullDefaultContainer
 }
 
 const NATIVE_NONULL_DEFAULT_CONTAINER: NativeNonNullDefaultContainer = {}
-const NATIVE_NONULL_PARTIAL_ARRAY: [2] NativeNonNullStringDefault = [{value: "explicit"}]
+const NATIVE_NONULL_PARTIAL_ARRAY: [2] NativeNonNullStringDefault    = [{value: "explicit"}]
 
 #assert(NATIVE_NONULL_DEFAULT_CONTAINER.direct.value == "fallback")
 #assert(NATIVE_NONULL_DEFAULT_CONTAINER.array[0].value == "fallback")
@@ -118,27 +118,27 @@ func nativeNonNullConstruction()->bool
     let direct: *NativeNonNullItem = &first
     let block: [*] NativeNonNullItem = cast([*] NativeNonNullItem) &blockStorage[0]
     let slice: [..] NativeNonNullItem = blockStorage
-    let text: string = "nonull"
-    let ctext: cstring = cast(cstring) &cstringStorage[0]
-    let boxed: any = 123
-    let reflectedType: typeinfo = NativeNonNullItem
-    var nullableValuePointer: #null *NativeNonNullItem = null
-    var nullableBlockPointer: #null [*] NativeNonNullItem = null
-    var nullableSlice: #null [..] NativeNonNullItem = null
-    var nullableString: #null string = null
-    var nullableCString: #null cstring = null
-    var nullableTypeInfo: #null typeinfo = null
+    let text:                      string = "nonull"
+    let ctext:                     cstring = cast(cstring) &cstringStorage[0]
+    let boxed:                     any = 123
+    let reflectedType:             typeinfo = NativeNonNullItem
+    var nullableValuePointer:      #null *NativeNonNullItem = null
+    var nullableBlockPointer:      #null [*] NativeNonNullItem = null
+    var nullableSlice:             #null [..] NativeNonNullItem = null
+    var nullableString:            #null string = null
+    var nullableCString:           #null cstring = null
+    var nullableTypeInfo:          #null typeinfo = null
     let boxedNullableValuePointer: any = nullableValuePointer
     let boxedNullableBlockPointer: any = nullableBlockPointer
-    let boxedNullableSlice: any = nullableSlice
-    let boxedNullableString: any = nullableString
-    let boxedNullableCString: any = nullableCString
-    let boxedNullableTypeInfo: any = nullableTypeInfo
-    let aliasReadOnly: const NativeNonNullPointerAlias = &first
-    let aliasRequired: NativeConstPointerAlias = &first
-    let legacySource: *NativeNonNullItem = &first
-    let migrated: *NativeNonNullItem = migrateNativeLegacyPointer(legacySource)
-    var widened: #null *NativeNonNullItem = migrated
+    let boxedNullableSlice:        any = nullableSlice
+    let boxedNullableString:       any = nullableString
+    let boxedNullableCString:      any = nullableCString
+    let boxedNullableTypeInfo:     any = nullableTypeInfo
+    let aliasReadOnly:             const NativeNonNullPointerAlias = &first
+    let aliasRequired:             NativeConstPointerAlias = &first
+    let legacySource:              *NativeNonNullItem = &first
+    let migrated:                  *NativeNonNullItem = migrateNativeLegacyPointer(legacySource)
+    var widened:                   #null *NativeNonNullItem = migrated
     widened = null     // the qualifier is real: null flows into it
     widened = migrated
 
@@ -199,7 +199,7 @@ func nativeNonNullConstruction()->bool
         {required: &second, count: 8},
         ]
     let genericRequired: NativeNonNullGenericBox'(*NativeNonNullItem) = {value: &first}
-    var genericDefault: NativeNonNullGenericBox'NativeNonNullStringDefault
+    var genericDefault:  NativeNonNullGenericBox'NativeNonNullStringDefault
     let pointerArray: [2] *NativeNonNullItem = [&first, &second]
     let aliasedHolder: NativeNonNullHolderAlias = {required: &first}
     let pointerDefault = NativeNonNullPointerDefault{}
@@ -303,8 +303,8 @@ func nativeNonNullConstruction()->bool
 
     // Explicitly nullable pointers keep their null default during migration.
     var nullablePointer: #null *NativeNonNullItem
-    var legacyPointer: #null *NativeNonNullItem
-    var legacyHolder: struct {ptr: #null *NativeNonNullItem}
+    var legacyPointer:   #null *NativeNonNullItem
+    var legacyHolder:    struct {ptr: #null *NativeNonNullItem}
     if nullablePointer != null or legacyPointer != null or legacyHolder.ptr != null do
         return false
 

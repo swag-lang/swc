@@ -66,13 +66,13 @@ internal impl Properties
 
         with let item = .items.addNewPtr()
         {
-            .line      = notnull line
-            .type      = value.pointedType
-            .typeValue = value
-            .data      = data
-            .parent    = parentItem
-            .level     = parentItem ? parentItem.level + 1 : 0
-            .section   = parentItem ? parentItem.section : 0
+            .line            = notnull line
+            .type            = value.pointedType
+            .typeValue       = value
+            .data            = data
+            .parent          = parentItem
+            .level           = parentItem ? parentItem.level + 1 : 0
+            .section         = parentItem ? parentItem.section : 0
             .valueCellHeight = height orelse .gridLineHeight
             // The focus/hot rectangle extends into the inter-row gap: half the line
             // margin, so two adjacent rows never overlap (Panel rows use the same
@@ -120,7 +120,7 @@ internal impl Properties
                     }
                     else
                     {
-                        .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
+                        .labelFlags        |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
                         .vertAlignmentText = .Top
                         .horzAlignmentText = .Left
                         .margin.y          = .listNameMarginBefore
@@ -146,8 +146,8 @@ internal impl Properties
         let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
         if dispDesc != null
         {
-            item.filter += " "
-            item.filter += attributeString(dispDesc)
+            item.filter      += " "
+            item.filter      += attributeString(dispDesc)
             item.description = attributeString(dispDesc)
 
             if flags.has(.Description)
@@ -156,7 +156,7 @@ internal impl Properties
                 {
                     with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
                     {
-                        .labelFlags |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
+                        .labelFlags        |= .WordWrap | .AutoHeight | .DontAdaptSingleLineHeight
                         .vertAlignmentText = .Top
                         .horzAlignmentText = .Left
                         .margin.w          = .listDescMarginAfter

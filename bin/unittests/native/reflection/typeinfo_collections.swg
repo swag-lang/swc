@@ -17,7 +17,7 @@ const ENUM_INFO = cast(const *Swag.TypeInfoEnum) #typeof(ReflectMode)
 #assert(ENUM_INFO.values[1].name == "Second")
 #assert(ENUM_INFO.values[2].name == "Third")
 
-const FIRST_VALUE = cast(#null const *ReflectMode) ENUM_INFO.values[0].value
+const FIRST_VALUE  = cast(#null const *ReflectMode) ENUM_INFO.values[0].value
 const SECOND_VALUE = cast(#null const *ReflectMode) ENUM_INFO.values[1].value
 #assert(cast(s16) dref FIRST_VALUE == -2's16)
 #assert(cast(s16) dref SECOND_VALUE == 7's16)

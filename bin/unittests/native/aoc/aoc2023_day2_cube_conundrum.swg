@@ -17,7 +17,7 @@ func s()->[2] u32
         var i: u32
         while i < @countof(l) and l[i] != ':''u8 do
             i += 1
-        i += 1
+        i     += 1
 
         var x: u32 = 0
         var y: u32 = 0
@@ -54,7 +54,7 @@ func s()->[2] u32
 
         if x <= 12 and y <= 13 and z <= 14 do
             r[0] += cast(u32) g + 1
-        r[1] += x * y * z
+        r[1]     += x * y * z
     }
 
     return r

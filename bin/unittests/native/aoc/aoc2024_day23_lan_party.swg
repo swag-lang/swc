@@ -78,17 +78,17 @@ impl Graph
         me.adj[b * MaxNodes + a] = true
         if !me.nodeUsed[a]
         {
-            me.nodeUsed[a] = true
+            me.nodeUsed[a]        = true
             me.names[me.count][0] = cast(u8) (a / 26) + 'a'
             me.names[me.count][1] = cast(u8) (a % 26) + 'a'
-            me.count += 1
+            me.count              += 1
         }
         if !me.nodeUsed[b]
         {
-            me.nodeUsed[b] = true
+            me.nodeUsed[b]        = true
             me.names[me.count][0] = cast(u8) (b / 26) + 'a'
             me.names[me.count][1] = cast(u8) (b % 26) + 'a'
-            me.count += 1
+            me.count              += 1
         }
     }
 
@@ -150,7 +150,7 @@ func countTrianglesWithT(g: *Graph)->u64
         if g.nodeUsed[i]
         {
             nodes[nn] = i
-            nn += 1
+            nn        += 1
         }
     }
 
@@ -226,7 +226,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
 
         // Add v to current clique
         state.current[state.curSize] = v
-        state.curSize += 1
+        state.curSize                += 1
 
         // New candidates = candidates ∩ neighbors(v)
         let newCand = cast([*] u32) notnull @alloc(cast(u64) candCount * #sizeof(u32))
@@ -236,7 +236,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
             if g.edge(v, candidates[i])
             {
                 newCand[newCandCount] = candidates[i]
-                newCandCount += 1
+                newCandCount          += 1
             }
         }
 
@@ -248,7 +248,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
             if g.edge(v, excluded[i])
             {
                 newExcl[newExclCount] = excluded[i]
-                newExclCount += 1
+                newExclCount          += 1
             }
         }
 
@@ -277,7 +277,7 @@ func findLargestClique(g: *Graph)->CliqueState
         if g.nodeUsed[i]
         {
             nodes[nn] = i
-            nn += 1
+            nn        += 1
         }
     }
 
@@ -310,19 +310,19 @@ func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32)->u32
         if i > 0 and pos < bufLen
         {
             buf[pos] = ','
-            pos += 1
+            pos      += 1
         }
 
         let idx = state.best[i]
         if pos < bufLen
         {
             buf[pos] = cast(u8) (idx / 26) + 'a'
-            pos += 1
+            pos      += 1
         }
         if pos < bufLen
         {
             buf[pos] = cast(u8) (idx % 26) + 'a'
-            pos += 1
+            pos      += 1
         }
     }
 
@@ -335,7 +335,7 @@ func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32)->u32
 
 struct SolveResult
 {
-    part1: u64
+    part1:    u64
     part2Len: u32
     part2Buf: [128] u8
 }
@@ -476,7 +476,7 @@ func solve(text: string)->SolveResult
     var sr: SolveResult
     with &sr
     {
-        .part1 = 42
+        .part1    = 42
         .part2Len = 0
     }
     @assert(sr.part1 == 42'u64)
@@ -517,7 +517,7 @@ impl NameBuf
 {
     var nb: NameBuf
     nb.data[0] = 'a'; nb.data[1] = 'b'
-    nb.len = 2
+    nb.len     = 2
     let sl = nb.asSlice()
     @assert(@countof(sl) == 2)
     @assert(sl[0] == 'a')

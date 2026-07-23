@@ -2,24 +2,24 @@
 
 struct(T) RecursiveAssocPayload
 {
-    first:   #null *T
-    second:  #null *T
-    count:   u64
+    first:  #null *T
+    second: #null *T
+    count:  u64
 }
 
 struct(K, V) RecursiveAssocEntry
 {
-    hash:   u32
-    key:    K
-    value:  V
+    hash:  u32
+    key:   K
+    value: V
 }
 
 struct(K, V) RecursiveAssocTable
 {
-    table:     #null [*] RecursiveAssocEntry
-    count:     u64
-    capacity:  u64
-    deleted:   u64
+    table:    #null [*] RecursiveAssocEntry
+    count:    u64
+    capacity: u64
+    deleted:  u64
 }
 
 func recursiveHash(key: u32)->u32
@@ -62,7 +62,7 @@ impl RecursiveAssocTable
             if oldTable[i].hash < 2 do
                 continue
 
-            .table[i].key = #nodrop oldTable[i].key
+            .table[i].key   = #nodrop oldTable[i].key
             .table[i].value = oldTable[i].value
         }
     }
@@ -71,10 +71,10 @@ impl RecursiveAssocTable
     {
         if .table do
             @free(.table)
-        .table = null
-        .count = 0
+        .table    = null
+        .count    = 0
         .capacity = 0
-        .deleted = 0
+        .deleted  = 0
     }
 
     mtd grow()
@@ -94,9 +94,9 @@ impl RecursiveAssocTable
         let oldTable = .table
         let oldCapacity = .capacity
 
-        .table = cast(#null [*] RecursiveAssocEntry'(K, V)) @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
-        .count = 0
-        .deleted = 0
+        .table    = cast(#null [*] RecursiveAssocEntry'(K, V)) @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        .count    = 0
+        .deleted  = 0
         .capacity = reqCapacity
 
         for i in reqCapacity do
@@ -133,10 +133,10 @@ impl RecursiveAssocTable
             index = (index + 1) % .capacity
         }
 
-        .table[index].hash = hashVal
-        .table[index].key = key
+        .table[index].hash  = hashVal
+        .table[index].key   = key
         .table[index].value = value
-        .count += 1
+        .count              += 1
         return .table + index
     }
 
@@ -172,9 +172,9 @@ impl RecursiveAssocTable
 
 struct RecursiveAssocNode
 {
-    edges:      RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
-    group:      u32
-    terminal:   bool
+    edges:    RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
+    group:    u32
+    terminal: bool
 }
 
 #assert(#sizeof(RecursiveAssocPayload'RecursiveAssocNode) == 24)
@@ -189,7 +189,7 @@ struct RecursiveAssocNode
 #test
 {
     var assocTable: RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
-    var payload: RecursiveAssocPayload'RecursiveAssocNode
+    var payload:    RecursiveAssocPayload'RecursiveAssocNode
     let assocEntry = assocTable.makeEntry(10, payload)
 
     @assert(assocTable.entrySize() == 32)
@@ -204,10 +204,10 @@ struct RecursiveAssocNode
 
 #test
 {
-    var assocMap: RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
+    var assocMap:     RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
     var nodeA, nodeB: RecursiveAssocNode
-    let valueA: RecursiveAssocPayload'RecursiveAssocNode = {first: &nodeA, second: null, count: 1}
-    let valueB: RecursiveAssocPayload'RecursiveAssocNode = {first: null, second: &nodeB, count: 1}
+    let valueA:       RecursiveAssocPayload'RecursiveAssocNode = {first: &nodeA, second: null, count: 1}
+    let valueB:       RecursiveAssocPayload'RecursiveAssocNode = {first: null, second: &nodeB, count: 1}
 
     assocMap.add(10, valueA)
     assocMap.add(20, valueB)
@@ -231,10 +231,10 @@ struct RecursiveAssocNode
 
 #test
 {
-    var assocMap: RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
+    var assocMap:     RecursiveAssocTable'(u32, RecursiveAssocPayload'RecursiveAssocNode)
     var nodeA, nodeB: RecursiveAssocNode
-    let valueA: RecursiveAssocPayload'RecursiveAssocNode = {first: &nodeA, second: null, count: 1}
-    let valueB: RecursiveAssocPayload'RecursiveAssocNode = {first: null, second: &nodeB, count: 1}
+    let valueA:       RecursiveAssocPayload'RecursiveAssocNode = {first: &nodeA, second: null, count: 1}
+    let valueB:       RecursiveAssocPayload'RecursiveAssocNode = {first: null, second: &nodeB, count: 1}
     assocMap.add(10, valueA)
     assocMap.add(20, valueB)
 

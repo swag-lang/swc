@@ -4,8 +4,8 @@
 // Options for customizing file and directory enumeration
 struct EnumerationOptions
 {
-    matchExtension:            #null string                   // Optional extension to match (e.g. ".txt")
-    matchFileName:             #null string                   // Optional file name pattern to match
+    matchExtension: #null string                              // Optional extension to match (e.g. ".txt")
+    matchFileName:  #null string                              // Optional file name pattern to match
     skipAttributes             = File.FileAttributes.Zero     // Attributes to skip during enumeration
     recurse                    = false                        // Whether to recurse into subdirectories
     wantFiles                  = true                         // Whether to include files in the results

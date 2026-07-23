@@ -653,7 +653,7 @@ namespace compiler4844
     // #run builds a typed array at compile time
     #test
     {
-        const N           = 4
+        const N                   = 4
         const PowerOfTwo: [N] s32 = #run
         {
             var arr: [N] s32
@@ -737,7 +737,7 @@ namespace compiler4849
 
     struct Carrier
     {
-        item: any
+        item:  any
         other: any
     }
 
@@ -747,7 +747,7 @@ namespace compiler4849
         let value = #run
         {
             var payload: Carrier = undefined
-            payload.item = "abc"
+            payload.item  = "abc"
             payload.other = "def"
             return payload
         }

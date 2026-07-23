@@ -31,31 +31,31 @@ struct MainWnd
     quickStyleBar:                                #late *SplitterCtrl
     editZoomBar:                                  #late *StackLayoutCtrl
     captureBtn, libraryBtn, zoomBtn:              #late *IconButton
-    sizeBtn:                                      #null *IconButton
-    embInfoFreeze:                                #null *EmbInfoCtrl
-    icons24, icons48, appIcon:                    ImageList
-    monitors:                                     Array'Env.Monitor
+    sizeBtn:                   #null *IconButton
+    embInfoFreeze:             #null *EmbInfoCtrl
+    icons24, icons48, appIcon: ImageList
+    monitors:                  Array'Env.Monitor
 
     // State
-    editMode:                                      EditMode = .Shape
-    bottomSize:                                    BottomSize = Medium
-    pixSelFillCol:                                 Color = Argb.White
-    inPlaceEdit, snap, freezeSel, libraryMode:     bool
+    editMode:                                  EditMode = .Shape
+    bottomSize:                                BottomSize = Medium
+    pixSelFillCol:                             Color = Argb.White
+    inPlaceEdit, snap, freezeSel, libraryMode: bool
     firstShow                                      = true
-    fileDlgState, fileDlgStateInPlace:             FileDlgState
-    captureOptions:                                CaptureOptions
-    editorOptions:                                 EditorOptions
+    fileDlgState, fileDlgStateInPlace: FileDlgState
+    captureOptions:                    CaptureOptions
+    editorOptions:                     EditorOptions
 
     // Form models
-    mdlFormShape:                             FormShape
-    mdlFormImage:                             FormImage
-    mdlFormStep:                              FormStep
-    mdlFormArrow:                             FormArrow
-    mdlFormLine:                              FormLine
-    mdlFormPolygon:                           FormPolygon
-    mdlFormText:                              FormText
-    mdlFormDraw:                              FormDraw
-    mdlFormCallout:                           FormCallout
+    mdlFormShape:   FormShape
+    mdlFormImage:   FormImage
+    mdlFormStep:    FormStep
+    mdlFormArrow:   FormArrow
+    mdlFormLine:    FormLine
+    mdlFormPolygon: FormPolygon
+    mdlFormText:    FormText
+    mdlFormDraw:    FormDraw
+    mdlFormCallout: FormCallout
     // Set right after construction (create/test fixtures).
     mdlHighlight, mdlPixSel, mdlFavorite:     #late IForm
 
@@ -105,7 +105,7 @@ impl IWnd for MainWnd
 
         let pt         = Input.getMousePos()
         let shadowSize = .getThemeMetrics().surfaceWnd_ShadowSize
-        menu.position.width += 2 * shadowSize
+        menu.position.width  += 2 * shadowSize
         menu.position.height += 2 * shadowSize
         sf.setPosition({pt.x, pt.y, menu.position.width, menu.position.height})
         sf.constaintPositionToScreen()
@@ -372,7 +372,7 @@ impl MainWnd
             if !capture do
                 return
 
-            .embInfoFreeze = EmbInfoCtrl.create(notnull .editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
+            .embInfoFreeze            = EmbInfoCtrl.create(notnull .editWnd.view, "Selection is freezed", .Message, flags: .Bottom)
             .embInfoFreeze.sigOnClose += func|main = me|(ctrl)
             {
                 main.freezeSel     = false
@@ -686,7 +686,7 @@ impl MainWnd
                 .style.addStyleSheetColors("btnIcon_CheckedPressedIcon  $btnIcon_CheckedMark")
                 .style.addStyleSheetColors("btnIcon_CheckedPressedText  $btnIcon_CheckedMark")
                 .iconBtnFlags.add(.Checkable)
-                .checkedForm = .Bottom
+                .checkedForm           = .Bottom
                 .iconSizeX, .iconSizeY = 48
             }
         }
@@ -725,15 +725,15 @@ impl MainWnd
             {
                 c.iconBtnFlags.remove(.HideName)
                 c.position.width, c.position.height = 64
-                c.iconSizeX, c.iconSizeY = 48
-                .libraryBtn.position.x = 64
+                c.iconSizeX, c.iconSizeY            = 48
+                .libraryBtn.position.x              = 64
             }
             else
             {
                 c.iconBtnFlags.add(.HideName)
                 c.position.width, c.position.height = 40
-                c.iconSizeX, c.iconSizeY = 32
-                .libraryBtn.position.x = 48
+                c.iconSizeX, c.iconSizeY            = 32
+                .libraryBtn.position.x              = 48
             }
         }
 
@@ -791,7 +791,7 @@ impl MainWnd
         // Main edit area
         with res.editWnd = EditWnd.create(res, res)
         {
-            .dockStyle = .Center
+            .dockStyle            = .Center
             .sigScrollSizeChanged += func|res|(scroll, old, new) { res.updateZoomDisplay(); }
         }
 
@@ -851,8 +851,8 @@ impl MainWnd
         with res.zoomBtn = IconButton.create(res.editZoomBar, ic, {0, 0, 120, 32})
         {
             .iconBtnFlags.add(.Center)
-            .textPos  = .Right
-            .arrowPos = .RightUp
+            .textPos    = .Right
+            .arrowPos   = .RightUp
             .sigPressed += func|res|(btn)
             {
                 var pos  = btn.getSurfaceRect()

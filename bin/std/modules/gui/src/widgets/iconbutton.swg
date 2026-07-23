@@ -61,17 +61,17 @@ struct IconButton
     checkedForm          = IconButtonCheckedForm.Full
     arrowPos             = IconButtonArrowPos.None
     textPos              = IconButtonTextPos.Bottom
-    iconColor:           Color
-    textColor:           Color
+    iconColor: Color
+    textColor: Color
 
-    sigHidePopup:        SigArray'func||(*IconButton)
-    sigShowPopup:        SigArray'func||(*IconButton)
-    sigCheckChanged:     SigArray'func||(*IconButton)
-    sigPaintIcon:        #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)
+    sigHidePopup:    SigArray'func||(*IconButton)
+    sigShowPopup:    SigArray'func||(*IconButton)
+    sigCheckChanged: SigArray'func||(*IconButton)
+    sigPaintIcon:    #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)
 
-    aniBk:               BlendColor
-    isChecked:           bool
-    popup:               #null *Wnd
+    aniBk:     BlendColor
+    isChecked: bool
+    popup:     #null *Wnd
 }
 
 impl IWnd for IconButton
@@ -629,11 +629,11 @@ impl IconButton
 
         if x + w > topView.position.width - sdw.z do
             x = topView.position.width - w - sdw.z
-        x = Math.max(x, sdw.x)
+        x     = Math.max(x, sdw.x)
 
         if y + h > topView.position.height - sdw.w do
             y = topView.position.height - h - sdw.w
-        y = Math.max(y, sdw.y)
+        y     = Math.max(y, sdw.y)
 
         with let frame = Wnd.create'FrameWnd(topView, {x, y, w, h})
         {

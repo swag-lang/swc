@@ -34,7 +34,7 @@ func day2B()
     {
         let val1 = l[0] - 'A'
         var val2 = l[2] - 'X'
-        val2 = Swap[val1, val2]
+        val2  = Swap[val1, val2]
         total += Score[val1, val2]
     }
 

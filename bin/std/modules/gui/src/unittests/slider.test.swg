@@ -6,9 +6,21 @@ var SliderHeadlessStartCount:   u32
 var SliderHeadlessChangedCount: u32
 var SliderHeadlessEndCount:     u32
 
-func sliderHeadlessStart(s: *Slider)   { discard s; SliderHeadlessStartCount += 1 }
-func sliderHeadlessChanged(s: *Slider) { discard s; SliderHeadlessChangedCount += 1 }
-func sliderHeadlessEnd(s: *Slider)     { discard s; SliderHeadlessEndCount += 1 }
+func sliderHeadlessStart(s: *Slider)
+{
+    discard s;
+    SliderHeadlessStartCount += 1
+}
+func sliderHeadlessChanged(s: *Slider)
+{
+    discard s;
+    SliderHeadlessChangedCount += 1
+}
+func sliderHeadlessEnd(s: *Slider)
+{
+    discard s;
+    SliderHeadlessEndCount += 1
+}
 
 func sliderHeadlessReset()
 {
@@ -27,8 +39,8 @@ func sliderHeadlessReset()
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setMinMax(0, 100)
     slider.sigStartChange += &sliderHeadlessStart
-    slider.sigChanged += &sliderHeadlessChanged
-    slider.sigEndChange += &sliderHeadlessEnd
+    slider.sigChanged     += &sliderHeadlessChanged
+    slider.sigEndChange   += &sliderHeadlessEnd
 
     slider.setValue(50)
     @assert(Math.abs(slider.getValue() - 50) < 0.01)
@@ -75,7 +87,7 @@ func sliderHeadlessReset()
     let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setMinMax(0, 100)
     slider.sigStartChange += &sliderHeadlessStart
-    slider.sigEndChange += &sliderHeadlessEnd
+    slider.sigEndChange   += &sliderHeadlessEnd
 
     host.mouseDown({210, 35})
     @assert(slider.isMoving)

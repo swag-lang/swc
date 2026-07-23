@@ -50,7 +50,7 @@ func day3A()
         for l in lines do
             count += cast(s32) (l[c] == '1')
 
-        gamma |= cast(s32) (count > lines.count / 2)
+        gamma   |= cast(s32) (count > lines.count / 2)
         epsilon |= cast(s32) (count < lines.count / 2)
     }
 

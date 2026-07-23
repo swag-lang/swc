@@ -63,7 +63,7 @@ func day2A()
                     bad = true
                 if ls and Math.sign(diff) != ls do
                     bad = true
-                ls = Math.sign(diff)
+                ls      = Math.sign(diff)
             }
 
             prev = a

@@ -18,7 +18,7 @@ SAXAMASAAA
 MAMMMXMMMM
 MXMXAXMASX"""
 
-const TinyInput = "XMAS\nSAMX\n"
+const TinyInput     = "XMAS\nSAMX\n"
 const CoverageInput =
     """XMASX
 .M.S.
@@ -109,13 +109,13 @@ func parseGrid(bytes: const [..] u8)->Grid
                     result.colCount = col
                 @assert(col == result.colCount)
                 result.rowCount += 1
-                col = 0
+                col             = 0
             }
             continue
         }
 
         result.cells[result.rowCount * MaxGridCols + col] = ch
-        col += 1
+        col                                               += 1
     }
 
     if col > 0
@@ -211,7 +211,7 @@ func countCrossClean(grid: Grid)->u32
 func solveClean(grid: Grid)->SearchResult
 {
     var result: retval
-    result.xmasCount = countXmasClean(grid)
+    result.xmasCount  = countXmasClean(grid)
     result.crossCount = countCrossClean(grid)
     return result
 }
@@ -239,7 +239,7 @@ func countCrossWithLanguageFeatures(grid: Grid)->u32
 func solveWithLanguageFeatures(grid: Grid)->SearchResult
 {
     var result: retval
-    result.xmasCount = countXmasWithLanguageFeatures(grid)
+    result.xmasCount  = countXmasWithLanguageFeatures(grid)
     result.crossCount = countCrossWithLanguageFeatures(grid)
     return result
 }

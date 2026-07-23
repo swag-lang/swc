@@ -7,9 +7,9 @@ struct RuntimeSetSource
 
 struct RuntimeSetTarget
 {
-    value: s32
-    tag: s32
-    calls: s32
+    value:    s32
+    tag:      s32
+    calls:    s32
     sentinel: s32 = 1234
 }
 
@@ -19,7 +19,7 @@ impl RuntimeSetTarget
     mtd opSet(value: s32)
     {
         .value = value
-        .tag = 10
+        .tag   = 10
         .calls += 1
     }
 
@@ -27,7 +27,7 @@ impl RuntimeSetTarget
     mtd opSet(value: f32)
     {
         .value = cast(s32) value * 2
-        .tag = 20
+        .tag   = 20
         .calls += 1
     }
 
@@ -35,7 +35,7 @@ impl RuntimeSetTarget
     mtd opSet(other: RuntimeSetSource)
     {
         .value = other.value + 5
-        .tag = 30
+        .tag   = 30
         .calls += 1
     }
 }
@@ -47,8 +47,8 @@ struct RuntimeSetHolder
 
 struct RuntimeParamSetTarget
 {
-    value: s32
-    tag: s32
+    value:    s32
+    tag:      s32
     sentinel: s32 = 777
 }
 
@@ -60,8 +60,8 @@ enum RuntimeEnumSetSource: u32
 
 struct RuntimeEnumSetTarget
 {
-    raw: u32
-    tag: s32
+    raw:      u32
+    tag:      s32
     sentinel: s32 = 4321
 }
 
@@ -71,21 +71,21 @@ impl RuntimeParamSetTarget
     mtd opSet(value: s32)
     {
         .value = value
-        .tag = 10
+        .tag   = 10
     }
 
     #[Swag.Implicit, Swag.NoInline]
     mtd opSet(value: u16)
     {
         .value = cast(s32) value
-        .tag = 20
+        .tag   = 20
     }
 
     #[Swag.Complete, Swag.NoInline]
     mtd opSet(value: u64)
     {
-        .value = cast(s32) value
-        .tag = 30
+        .value    = cast(s32) value
+        .tag      = 30
         .sentinel = cast(s32) value
     }
 }
@@ -150,8 +150,8 @@ impl RuntimeConstSetVector2
 struct RuntimeLiteralSetTarget
 {
     timeInSeconds: f32
-    calls: s32
-    sentinel: s32 = 1234
+    calls:         s32
+    sentinel:      s32 = 1234
 }
 
 impl RuntimeLiteralSetTarget
@@ -177,9 +177,9 @@ impl RuntimeLiteralSetTarget
 struct RuntimeLiteralOverloadTarget
 {
     timeInSeconds: f32
-    tag: s32
-    calls: s32
-    sentinel: s32 = 5678
+    tag:           s32
+    calls:         s32
+    sentinel:      s32 = 5678
 }
 
 impl RuntimeLiteralOverloadTarget
@@ -187,7 +187,7 @@ impl RuntimeLiteralOverloadTarget
     #[Swag.Implicit, Swag.NoInline]
     mtd(suffix: string) opSetLiteral(value: s32)
     {
-        .tag = 10
+        .tag   = 10
         .calls += 1
 
         #if suffix == "s" do
@@ -205,7 +205,7 @@ impl RuntimeLiteralOverloadTarget
     #[Swag.Implicit, Swag.NoInline]
     mtd(suffix: string) opSetLiteral(value: f32)
     {
-        .tag = 20
+        .tag   = 20
         .calls += 1
 
         #if suffix == "s" do
@@ -222,8 +222,8 @@ impl RuntimeLiteralOverloadTarget
 }
 
 const RuntimeConstSetOne: RuntimeConstSetVector2 = 1.0
-const RuntimePaletteCardOne = RuntimePaletteCard{"gray", RuntimePaletteSource.Gray}
-const RuntimePaletteCards = [
+const RuntimePaletteCardOne                      = RuntimePaletteCard{"gray", RuntimePaletteSource.Gray}
+const RuntimePaletteCards                        = [
     RuntimePaletteCard{"gray", RuntimePaletteSource.Gray},
     RuntimePaletteCard{"blue", RuntimePaletteSource.Blue},
     ]

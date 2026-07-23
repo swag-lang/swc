@@ -18,8 +18,8 @@ impl IActionUI for ActionAbout
         {
         case About:
             evt.setFlags |= .Name | .Icon
-            evt.name = "About..."
-            evt.icon = main.getTheme().getIcon24(.About)
+            evt.name     = "About..."
+            evt.icon     = main.getTheme().getIcon24(.About)
         }
 
         return true
@@ -37,17 +37,17 @@ impl IActionUI for ActionAbout
         params.messageTitle = Format.toString("CaptMe %.%.%", #swcversion, #swcrevision, #swcbuildnum).toString()
 
         var msg: String
-        msg += Format.toString("Build on %{j}", Date)
-        msg += "\n\n"
-        msg += "<b>CaptMe</b> is open source and coded in <url>Swag</url>. You can find the code <url>here</url>."
-        msg += "\n\n"
-        msg += Format.toString("Copyright \u00A9 % Christophe Beaudet", Date.year)
+        msg            += Format.toString("Build on %{j}", Date)
+        msg            += "\n\n"
+        msg            += "<b>CaptMe</b> is open source and coded in <url>Swag</url>. You can find the code <url>here</url>."
+        msg            += "\n\n"
+        msg            += Format.toString("Copyright \u00A9 % Christophe Beaudet", Date.year)
         params.message = msg.toString()
 
-        params.iconTitle = Icon.from(&main.icons48, 11)
-        params.bigIcon   = Icon.from(&main.appIcon, 0)
+        params.iconTitle                           = Icon.from(&main.icons48, 11)
+        params.bigIcon                             = Icon.from(&main.appIcon, 0)
         params.bigIcon.sizeX, params.bigIcon.sizeY = 96
-        params.bigIcon.color = Argb.White
+        params.bigIcon.color                       = Argb.White
 
         let dlg = AboutDlg.create(notnull view.surface, params, height: 330)
         dlg.labelMessage.sigUrlClicked += func(lbl, txt)

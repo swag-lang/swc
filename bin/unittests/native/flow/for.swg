@@ -78,8 +78,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last = cast(s32) i
-        sum += cast(s32) i
+        last      = cast(s32) i
+        sum       += cast(s32) i
     }
     @assert(first == 2)
     @assert(last == 0)
@@ -160,7 +160,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         #assert(#typeof(i) == ForStrictU8)
         count += 1
-        sum += cast(s32) i
+        sum   += cast(s32) i
     }
     @assert(count == 256)
     @assert(sum == 32640)
@@ -174,7 +174,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         let value = forStrictU8RefValue(i)
         count += 1
-        sum += cast(s32) value
+        sum   += cast(s32) value
     }
     @assert(count == 256)
     @assert(sum == 32640)
@@ -188,7 +188,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         let value = forStrictU8RefValue(i)
         count += 1
-        sum += cast(s32) value
+        sum   += cast(s32) value
     }
     @assert(count == 256)
     @assert(sum == 32640)
@@ -197,7 +197,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var first: u64 = 0
+    var first:  u64 = 0
     var second: u64 = 0
     for i in 0xFFFF_FFFF_FFFF_FFFF'u64 to 0xFFFF_FFFF_FFFF_FFFF'u64
     {
@@ -254,8 +254,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last = cast(s32) i
-        sum += cast(s32) i
+        last      = cast(s32) i
+        sum       += cast(s32) i
     }
     @assert(first == 5)
     @assert(last == 1)
@@ -272,8 +272,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last = cast(s32) i
-        sum += cast(s32) i
+        last      = cast(s32) i
+        sum       += cast(s32) i
     }
     @assert(first == 4)
     @assert(last == 1)
@@ -288,7 +288,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         var x = i
         count += 1
-        sum += cast(s32) i
+        sum   += cast(s32) i
     }
     @assert(count == 6)
     @assert(sum == 39)
@@ -335,7 +335,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         var x = i
         count += 1
-        sum += cast(s32) i
+        sum   += cast(s32) i
     }
     @assert(count == 6)
     @assert(sum == 30)
@@ -349,7 +349,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         var x = i
         count += 1
-        sum += cast(s32) i
+        sum   += cast(s32) i
     }
     @assert(count == 4)
     @assert(sum == 30)
@@ -365,8 +365,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         var x = i
         if first == -1 do
             first = cast(s32) i
-        last = cast(s32) i
-        count += 1
+        last      = cast(s32) i
+        count     += 1
     }
     @assert(first == 4)
     @assert(last == 0)
@@ -397,7 +397,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
         for j in 1
         {
             var x = j
-            last = cast(s32) x
+            last  = cast(s32) x
             count += 1
         }
     }
@@ -589,7 +589,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     {
         #assert(#typeof(idx) == u32)
         count += 1
-        sum += cast(s32) idx
+        sum   += cast(s32) idx
     }
 
     @assert(count == 3)

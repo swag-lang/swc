@@ -20,9 +20,9 @@ func arity(a: s32, b: s32) { gArityResult = a + b }
 // Method overload with different param types (using explicit suffixes)
 struct OverS {}
 
-var gOverMethodS32: s32 = 0
+var gOverMethodS32:  s32 = 0
 var gOverMethodBool: bool = false
-var gOverMethodStr: string = ""
+var gOverMethodStr:  string = ""
 
 impl OverS
 {
@@ -34,9 +34,9 @@ impl OverS
 #test
 {
     var s: OverS
-    gOverMethodS32 = 0
+    gOverMethodS32  = 0
     gOverMethodBool = false
-    gOverMethodStr = ""
+    gOverMethodStr  = ""
     s.process(42's32)
     s.process(true)
     s.process("hello")
@@ -46,7 +46,7 @@ impl OverS
 }
 
 // Overload with u8 vs u32 (explicit type suffixes needed)
-var gOverU8: u8 = 0
+var gOverU8:  u8 = 0
 var gOverU32: u32 = 0
 
 func sizedOp(a: u8) { gOverU8 = a }
@@ -54,7 +54,7 @@ func sizedOp(a: u32) { gOverU32 = a }
 
 #test
 {
-    gOverU8 = 0
+    gOverU8  = 0
     gOverU32 = 0
     sizedOp(5'u8)
     sizedOp(1000'u32)
@@ -120,7 +120,7 @@ impl MOverS
 
 // Overload: bool vs s32 (bool is distinct from integer)
 var gBoolHit: bool = false
-var gIntHit: s32 = 0
+var gIntHit:  s32 = 0
 
 func boolOrInt(a: bool) { gBoolHit = a }
 func boolOrInt(a: s32)  { gIntHit = a }
@@ -128,7 +128,7 @@ func boolOrInt(a: s32)  { gIntHit = a }
 #test
 {
     gBoolHit = false
-    gIntHit = 0
+    gIntHit  = 0
     boolOrInt(true)
     boolOrInt(42's32)
     @assert(gBoolHit == true)

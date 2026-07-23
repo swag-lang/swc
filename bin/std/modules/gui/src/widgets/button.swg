@@ -2,15 +2,15 @@ public struct Button
 {
     using wnd:           Wnd
 
-    icon:                Icon
-    iconSizeX:           f32
-    iconSizeY:           f32
-    sigPressed:          SigArray'func||(*Button)
-    sigRightPressed:     SigArray'func||(*Button)
-    isPressed:           bool
-    isPressing:          bool
-    isHot:               bool
-    isIn:                bool
+    icon:            Icon
+    iconSizeX:       f32
+    iconSizeY:       f32
+    sigPressed:      SigArray'func||(*Button)
+    sigRightPressed: SigArray'func||(*Button)
+    isPressed:       bool
+    isPressing:      bool
+    isHot:           bool
+    isIn:            bool
 }
 
 impl IWnd for Button
@@ -54,7 +54,7 @@ impl Button
     {
         if !.isHot and !.isIn and !.isPressed and !.isPressing do
             return
-        .isHot, .isIn = false
+        .isHot, .isIn           = false
         .isPressed, .isPressing = false
         .invalidate()
     }

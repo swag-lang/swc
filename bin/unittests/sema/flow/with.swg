@@ -67,7 +67,7 @@ impl SemaWithOwner
         with shadow
         {
             me.value = 10
-            .value = 20
+            .value   = 20
         }
 
         return me.value * 100 + shadow.value
@@ -169,7 +169,7 @@ func semaTest003()
 
 func semaTest004()
 {
-    var point: SemaWithPoint
+    var point:  SemaWithPoint
     var holder: SemaWithHolder
 
     with holder.ptr = &point

@@ -3,21 +3,21 @@ using Core
 
 struct RichChunk
 {
-    slice:            string = ""
-    fontStyle:        FontFamilyStyle = Regular
-    hasFontStyle:     bool
-    isSpace:          bool
-    isEol:            bool
-    isUrl:            bool
-    isHotUrl:         bool
-    visible:          bool
-    colorIdx:         s32
+    slice:        string = ""
+    fontStyle:    FontFamilyStyle = Regular
+    hasFontStyle: bool
+    isSpace:      bool
+    isEol:        bool
+    isUrl:        bool
+    isHotUrl:     bool
+    visible:      bool
+    colorIdx:     s32
 
-    boundRect:        Math.Rectangle
-    pos:              Math.Point
-    font:             *Font = undefined
-    shaped:           ShapedRun
-    under:            UnderlineStyle = None
+    boundRect: Math.Rectangle
+    pos:       Math.Point
+    font:      *Font = undefined
+    shaped:    ShapedRun
+    under:     UnderlineStyle = None
 }
 
 // Represents a string with embedded formats.
@@ -34,12 +34,12 @@ struct RichChunk
 // See [[RichString.set]] for a list of available markers.
 struct RichString
 {
-    raw:            String              // The string as passed by the user
-    chunks:         Array'RichChunk     // The corresponding list of chunks
-    layoutRect:     Math.Rectangle
-    boundRect:      Math.Rectangle
-    hasUrl:         bool
-    dirty:          bool     // If dirty, 'Compute'
+    raw:        String              // The string as passed by the user
+    chunks:     Array'RichChunk     // The corresponding list of chunks
+    layoutRect: Math.Rectangle
+    boundRect:  Math.Rectangle
+    hasUrl:     bool
+    dirty:      bool     // If dirty, 'Compute'
 }
 
 impl RichString
@@ -147,24 +147,24 @@ impl RichString
             switch
             {
             case Utf8.startsWith(sl, "<u>"), Utf8.startsWith(sl, "<b>"), Utf8.startsWith(sl, "<i>"):
-                scan += 3
-                count -= 3
+                scan    += 3
+                count   -= 3
                 handled = true
             case Utf8.startsWith(sl, "</u>"), Utf8.startsWith(sl, "</b>"), Utf8.startsWith(sl, "</i>"), Utf8.startsWith(sl, "</p>"):
-                scan += 4
-                count -= 4
+                scan    += 4
+                count   -= 4
                 handled = true
             case Utf8.startsWith(sl, "<p1>"), Utf8.startsWith(sl, "<p2>"), Utf8.startsWith(sl, "<p3>"):
-                scan += 4
-                count -= 4
+                scan    += 4
+                count   -= 4
                 handled = true
             case Utf8.startsWith(sl, "<url>"):
-                scan += 5
-                count -= 5
+                scan    += 5
+                count   -= 5
                 handled = true
             case Utf8.startsWith(sl, "</url>"):
-                scan += 6
-                count -= 6
+                scan    += 6
+                count   -= 6
                 handled = true
             }
 
@@ -172,8 +172,8 @@ impl RichString
                 continue
 
             result += dref scan
-            scan += 1
-            count -= 1
+            scan   += 1
+            count  -= 1
         }
 
         return result
@@ -249,84 +249,84 @@ impl RichString
                 .addChunk(byteIdx)
                 under.add(UnderlineStyle.Underline)
                 byteIdx, scan, startChunk += 3
-                count -= 3
-                handled = true
+                count                     -= 3
+                handled                   = true
             case Utf8.startsWith(sl, "</u>"):
                 .addChunk(byteIdx)
                 if under.count > 1 do
                     under.removeBack()
                 byteIdx, scan, startChunk += 4
-                count -= 4
-                handled = true
+                count                     -= 4
+                handled                   = true
 
             case Utf8.startsWith(sl, "<b>"):
                 .addChunk(byteIdx)
                 isBold.add(true)
                 byteIdx, scan, startChunk += 3
-                count -= 3
-                handled = true
+                count                     -= 3
+                handled                   = true
             case Utf8.startsWith(sl, "</b>"):
                 .addChunk(byteIdx)
                 if isBold.count > 1 do
                     isBold.removeBack()
                 byteIdx, scan, startChunk += 4
-                count -= 4
-                handled = true
+                count                     -= 4
+                handled                   = true
 
             case Utf8.startsWith(sl, "<i>"):
                 .addChunk(byteIdx)
                 isItalic.add(true)
                 byteIdx, scan, startChunk += 3
-                count -= 3
-                handled = true
+                count                     -= 3
+                handled                   = true
             case Utf8.startsWith(sl, "</i>"):
                 .addChunk(byteIdx)
                 if isItalic.count > 1 do
                     isItalic.removeBack()
                 byteIdx, scan, startChunk += 4
-                count -= 4
-                handled = true
+                count                     -= 4
+                handled                   = true
 
             case Utf8.startsWith(sl, "<p1>"):
                 .addChunk(byteIdx)
                 colorFg.add(1)
                 byteIdx, scan, startChunk += 4
-                count -= 4
-                handled = true
+                count                     -= 4
+                handled                   = true
             case Utf8.startsWith(sl, "<p2>"):
                 .addChunk(byteIdx)
                 colorFg.add(2)
                 byteIdx, scan, startChunk += 4
-                count -= 4
-                handled = true
+                count                     -= 4
+                handled                   = true
             case Utf8.startsWith(sl, "<p3>"):
                 .addChunk(byteIdx)
                 colorFg.add(3)
                 byteIdx, scan, startChunk += 4
-                count -= 4
-                handled = true
+                count                     -= 4
+                handled                   = true
 
             case Utf8.startsWith(sl, "</p>"):
                 .addChunk(byteIdx)
                 if colorFg.count > 1 do
                     colorFg.removeBack()
                 byteIdx, scan, startChunk += 4
-                count -= 4
-                handled = true
+                count                     -= 4
+                handled                   = true
 
             case Utf8.startsWith(sl, "<url>"):
                 .addChunk(byteIdx)
                 isUrl.add(true)
                 byteIdx, scan, startChunk += 5
-                count -= 5
-                handled = true
+                count                     -= 5
+                handled                   = true
             case Utf8.startsWith(sl, "</url>"):
                 .addChunk(byteIdx)
                 if isUrl.count > 1 do
                     isUrl.removeBack()
                 byteIdx, scan, startChunk += 6
-                count -= 6
-                handled = true
+                count                     -= 6
+                handled                   = true
             }
 
             if handled do
@@ -340,7 +340,7 @@ impl RichString
             {
                 .addChunk(byteIdx)
                 byteIdx, scan += eat
-                count -= eat
+                count         -= eat
                 if c == '\r' and count
                 {
                     sl = @mkslice(scan, count)
@@ -348,7 +348,7 @@ impl RichString
                     if next == '\n'
                     {
                         byteIdx, scan += nextEat
-                        count -= nextEat
+                        count         -= nextEat
                     }
                 }
 
@@ -362,8 +362,8 @@ impl RichString
                 while eat and Unicode.isSpace(c)
                 {
                     byteIdx, scan += eat
-                    count -= eat
-                    sl = @mkslice(scan, count)
+                    count         -= eat
+                    sl            = @mkslice(scan, count)
                         (c, eat) = Utf8.decodeRune(sl)
                 }
 
@@ -372,7 +372,7 @@ impl RichString
             }
 
             byteIdx, scan += eat
-            count -= eat
+            count         -= eat
         }
 
         // Remaining chunk

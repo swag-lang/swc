@@ -42,7 +42,7 @@ func day7A()
                 }
 
                 ok = true
-                i += 3
+                i  += 3
             }
         }
 

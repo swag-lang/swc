@@ -22,7 +22,7 @@ impl RefRangeStorage
     mtd add(value: RefRange)
     {
         .values[.count] = value
-        .count += 1
+        .count          += 1
     }
 }
 

@@ -42,10 +42,10 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
         {
             if cpt == arrayType.totalCount do
                 throw InvalidFormatError{"too many static array values"}
-            one = (parseValue(addrVal, arrayType.finalType, one) orelse "")
-            one = Tokenize.eatSpaces(one)
+            one     = (parseValue(addrVal, arrayType.finalType, one) orelse "")
+            one     = Tokenize.eatSpaces(one)
             addrVal += arrayType.finalType.sizeof
-            cpt += 1
+            cpt     += 1
         }
 
         return one

@@ -140,7 +140,7 @@ func correlatedGuard(cond: bool)
 {
     var w: NullDerefItem
     var p: #null *NullDerefItem = null
-    p = &w
+    p   = &w
     p.x = 7
     @assert(w.x == 7)
 }

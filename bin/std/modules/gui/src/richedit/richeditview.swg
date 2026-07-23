@@ -5,12 +5,12 @@ public struct RichEditView
 {
     using wnd:            Wnd
 
-    ed:                   #null *RichEditCtrl
-    visibleCaret:         bool
-    selMode:              bool
-    timerCaret:           #null *Timer
-    firstLineSelMode:     u64
-    lastClientRect:       Math.Rectangle
+    ed:               #null *RichEditCtrl
+    visibleCaret:     bool
+    selMode:          bool
+    timerCaret:       #null *Timer
+    firstLineSelMode: u64
+    lastClientRect:   Math.Rectangle
 }
 
 impl IWnd for RichEditView
@@ -64,7 +64,7 @@ impl IWnd for RichEditView
                 .ed.setCursorPos(cp)
                 if !(evt.modifiers & .Shift) do
                     .ed.selBeg = cp
-                .selMode = true
+                .selMode       = true
                 .ed.setRectangularSelection(evt.modifiers & .Alt ? true : false)
                 .ed.ensureCaretIsVisible()
                 .captureMouse()
@@ -182,7 +182,7 @@ impl IWnd for RichEditView
 
         if .ed.recomputeScroll do
             .ed.countVisibleLines = 0
-        .ed.dirtyFirstLineView = false
+        .ed.dirtyFirstLineView    = false
 
         let clientRect  = .getClientRect()
         let firstHidden = true
@@ -205,7 +205,7 @@ impl IWnd for RichEditView
 
             if .ed.recomputeScroll do
                 .ed.countVisibleLines += 1
-            .ed.lastVisibleLineView = i
+            .ed.lastVisibleLineView   = i
 
             let l = .ed.lines[i]
 
@@ -246,8 +246,8 @@ impl IWnd for RichEditView
             }
 
             maxx = Math.max(maxx, x)
-            y += size.y
-            i += 1
+            y    += size.y
+            i    += 1
             if !.ed.recomputeScroll and y >= .scrollPos.y + clientRect.bottom() do
                 break
         }
@@ -396,8 +396,8 @@ impl RichEditView
         {
             defer
             {
-                i += 1
-                pChar += 1
+                i      += 1
+                pChar  += 1
                 pStyle += 1
             }
             newStyle = .ed.styles[dref pStyle]

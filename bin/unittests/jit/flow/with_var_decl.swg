@@ -109,14 +109,14 @@ func jitWithMakeDockOwnerPtr()->*JitWithDockOwner
 func jitWithAutoUsingMemberReturnBindingConflict()->*JitWithDockOwner
 {
     JitWithDockGlobalWidget.dockStyle = .None
-    JitWithDockGlobalWidget.value = 0
-    JitWithDockGlobalOwner.widgetPtr = null
+    JitWithDockGlobalWidget.value     = 0
+    JitWithDockGlobalOwner.widgetPtr  = null
     let owner = jitWithMakeDockOwnerPtr()
 
     with owner.widgetPtr = jitWithMakeDockWidgetPtr()
     {
         .dockStyle = .Center
-        .value = 23
+        .value     = 23
     }
 
     return owner

@@ -128,7 +128,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     testPrepareRecentLibrary(f.main)
 
     let sourcePath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(sourcePath) }
+    defer
+    {
+        discard catch File.delete(sourcePath)
+    }
 
     var source = Testing.indexedImage(21, 13)
     catch source.save(sourcePath)
@@ -168,15 +171,21 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.setup(registerHeadlessCommands: true)
     testRegisterIoActions(f.main)
 
-    f.capture.width = 32
-    f.capture.height = 20
+    f.capture.width   = 32
+    f.capture.height  = 20
     f.capture.backImg = Testing.indexedImage(32, 20)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let pngPath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(pngPath) }
+    defer
+    {
+        discard catch File.delete(pngPath)
+    }
 
     f.main.doSaveAsImage(pngPath)
     f.gui.pump()
@@ -201,15 +210,21 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.setup(registerHeadlessCommands: true)
     testRegisterIoActions(f.main)
 
-    f.capture.width = 34
-    f.capture.height = 22
+    f.capture.width   = 34
+    f.capture.height  = 22
     f.capture.backImg = Testing.indexedImage(34, 22)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let pngPath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(pngPath) }
+    defer
+    {
+        discard catch File.delete(pngPath)
+    }
 
     f.gui.acceptModalFileDialog(pngPath)
 
@@ -237,15 +252,21 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.setup(registerHeadlessCommands: true)
     testRegisterIoActions(f.main)
 
-    f.capture.width = 40
-    f.capture.height = 30
+    f.capture.width   = 40
+    f.capture.height  = 30
     f.capture.backImg = Testing.indexedImage(40, 30)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let pngPath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(pngPath) }
+    defer
+    {
+        discard catch File.delete(pngPath)
+    }
 
     var oldImage = Image.create(3, 2, .BGRA8)
     oldImage.fill(ColorRed)
@@ -278,15 +299,21 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.setup(registerHeadlessCommands: true)
     testRegisterIoActions(f.main)
 
-    f.capture.width = 28
-    f.capture.height = 18
+    f.capture.width   = 28
+    f.capture.height  = 18
     f.capture.backImg = Testing.indexedImage(28, 18)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(linkedPath) }
+    defer
+    {
+        discard catch File.delete(linkedPath)
+    }
 
     f.main.doSaveAsImage(linkedPath, linked: true)
     f.gui.pump()
@@ -297,7 +324,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
 
     @assert(loaded.linkedImage == linkedPath)
     @assert(loaded.linkedUpToDate)
@@ -312,15 +342,21 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.setup(registerHeadlessCommands: true)
     testRegisterIoActions(f.main)
 
-    f.capture.width = 36
-    f.capture.height = 24
+    f.capture.width   = 36
+    f.capture.height  = 24
     f.capture.backImg = Testing.indexedImage(36, 24)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(linkedPath) }
+    defer
+    {
+        discard catch File.delete(linkedPath)
+    }
 
     f.gui.acceptModalFileDialog(linkedPath)
 
@@ -335,7 +371,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
 
     @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
@@ -351,18 +390,24 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.setup(registerHeadlessCommands: true)
     testRegisterIoActions(f.main)
 
-    f.capture.width = 26
-    f.capture.height = 16
+    f.capture.width   = 26
+    f.capture.height  = 16
     f.capture.backImg = Testing.indexedImage(26, 16)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(linkedPath) }
+    defer
+    {
+        discard catch File.delete(linkedPath)
+    }
 
-    f.capture.linkedImage = linkedPath
-    f.capture.linkedUpToDate = false
+    f.capture.linkedImage                       = linkedPath
+    f.capture.linkedUpToDate                    = false
     f.main.editorOptions.confirmLinkedOverwrite = false
 
     f.main.sendCommandEvent(ActionFile.UpdateLinkedImage)
@@ -380,7 +425,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
 
     @assert(loaded.linkedImage == linkedPath)
     @assert(loaded.linkedUpToDate)
@@ -395,18 +443,24 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.setup(registerHeadlessCommands: true)
     testRegisterIoActions(f.main)
 
-    f.capture.width = 38
-    f.capture.height = 26
+    f.capture.width   = 38
+    f.capture.height  = 26
     f.capture.backImg = Testing.indexedImage(38, 26)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
-    defer { discard catch File.delete(linkedPath) }
+    defer
+    {
+        discard catch File.delete(linkedPath)
+    }
 
-    f.capture.linkedImage = linkedPath
-    f.capture.linkedUpToDate = false
+    f.capture.linkedImage                       = linkedPath
+    f.capture.linkedUpToDate                    = false
     f.main.editorOptions.confirmLinkedOverwrite = true
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
@@ -428,7 +482,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
 
     @assert(testSamePath(loaded.linkedImage, linkedPath))
     @assert(loaded.linkedUpToDate)
@@ -444,17 +501,20 @@ func testPrepareRecentLibrary(main: *MainWnd)
     testRegisterIoActions(f.main)
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
 
-    f.capture.width = 24
-    f.capture.height = 18
+    f.capture.width   = 24
+    f.capture.height  = 18
     f.capture.backImg = Testing.indexedImage(24, 18)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     let linkedPath = Testing.tempFilePath("captme-", ".png")
-    f.capture.linkedImage = linkedPath
+    f.capture.linkedImage    = linkedPath
     f.capture.linkedUpToDate = true
-    f.capture.changed = true
+    f.capture.changed        = true
     catch f.capture.save()
     @assert(@err == null)
 
@@ -470,7 +530,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     let loaded = catch Capture.load(capturePath)
     @assert(@err == null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
 
     @assert(loaded.linkedImage.isEmpty())
     @assert(!loaded.linkedUpToDate)
@@ -488,7 +551,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     discard testAddShape(f.capture, 4, 5, 12, 13)
     let originalPath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(originalPath) }
+    defer
+    {
+        discard catch File.delete(originalPath)
+    }
 
     @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture))
     f.gui.pump()
@@ -508,7 +574,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     let duplicated = catch Capture.load(duplicatedPath)
     @assert(@err == null)
-    defer { Memory.delete(duplicated) }
+    defer
+    {
+        Memory.delete(duplicated)
+    }
 
     @assert(duplicated.forms.count == 1)
     @assert(duplicated.linkedImage == null)
@@ -554,7 +623,10 @@ func testPrepareRecentLibrary(main: *MainWnd)
     testRegisterIoActions(f.main)
 
     let capturePath = testPrepareSavedCapture(f.capture)
-    defer { discard catch File.delete(capturePath) }
+    defer
+    {
+        discard catch File.delete(capturePath)
+    }
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
 

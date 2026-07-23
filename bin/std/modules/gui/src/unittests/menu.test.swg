@@ -43,7 +43,7 @@ const Menu_Quit = "Menu.Quit"
     popup.addItem("Quit", Menu_Quit)
 
     var frameCount: u32
-    var didClick: bool
+    var didClick:   bool
     host.app.sigFrame += func|host = &host, popup, frames = &frameCount, didClick = &didClick|(app)
     {
         dref frames += 1
@@ -77,7 +77,7 @@ const Menu_Quit = "Menu.Quit"
     sub.addItem("Open", Menu_Open)
     popup.addPopup("More", sub)
 
-    var didOpen: bool
+    var didOpen:  bool
     var didClick: bool
     host.app.sigFrame += func|host = &host, opened = &didOpen, clicked = &didClick|(app)
     {

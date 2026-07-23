@@ -192,7 +192,7 @@ func verifyExportAndStaticModules()
     var namespaced: DepTools.DepNamespaced
     namespaced.value = 12
     @assert(namespaced.value == 12)
-    @assert(DepTools.hash32WithGeneratedFullName(namespaced) == 0x10c'u32)
+    @assert(DepTools.hash32WithGeneratedFullName(namespaced) == 0x10C'u32)
     @assert(DepTools.DepGeneratedCommandOwner.GeneratedAccept == "DepTools.DepGeneratedCommandOwner.GeneratedAccept")
 
     var staticInferredDepOwner: StaticInferredDepOwner

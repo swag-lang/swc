@@ -47,7 +47,7 @@ impl Owner
                 flag |= 1
             if keepAlpha do
                 flag |= 2
-            item.a = cast(u8) flag
+            item.a   = cast(u8) flag
 
             // Keep the captures live across a loop with calls.
             var acc: [9] u32 = undefined
@@ -62,7 +62,7 @@ impl Owner
             }
             var s = 0'u32
             for i in 9 do
-                s ^= acc[i]
+                s  ^= acc[i]
             g_sink ^= s
 
             // Late: nested closure re-capturing the same variables.
@@ -73,8 +73,8 @@ impl Owner
                     result |= 0x10
                 elif keepAlpha do
                     result |= 0x20
-                color.v = result + prop.tag
-                item.v  = result
+                color.v    = result + prop.tag
+                item.v     = result
             }
         }
     }

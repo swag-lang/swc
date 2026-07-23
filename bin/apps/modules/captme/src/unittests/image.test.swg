@@ -10,8 +10,8 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 4
-    f.capture.height = 3
+    f.capture.width   = 4
+    f.capture.height  = 3
     f.capture.backImg = Testing.indexedImage(4, 3)
 
     let before00 = f.capture.backImg.getPixelColor(0, 0)
@@ -38,8 +38,8 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 30
-    f.capture.height = 20
+    f.capture.width   = 30
+    f.capture.height  = 20
     f.capture.backImg = Testing.indexedImage(30, 20)
 
     f.main.sendCommandEvent(ActionImage.RotateImageRight)
@@ -99,18 +99,18 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 30
-    f.capture.height = 20
+    f.capture.width   = 30
+    f.capture.height  = 20
     f.capture.backImg = Testing.indexedImage(30, 20)
 
     g_ResizeMode = 1
     var modalFrames: u32
-    var didClick: bool
+    var didClick:    bool
     f.gui.app.sigFrame += func|host = &f.gui, frames = &modalFrames, didClick = &didClick|(app)
     {
         dref frames += 1
-        g_Width = 42
-        g_Height = 27
+        g_Width     = 42
+        g_Height    = 27
         if !dref didClick
         {
             @assert(host.clickModalButton(Dialog.BtnOk))
@@ -144,15 +144,15 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 30
-    f.capture.height = 20
+    f.capture.width   = 30
+    f.capture.height  = 20
     f.capture.backImg = Testing.indexedImage(30, 20)
 
     g_ResizeMode = 1
     var didClick: bool
     f.gui.app.sigFrame += func|host = &f.gui, didClick = &didClick|(app)
     {
-        g_Width = 42
+        g_Width  = 42
         g_Height = 27
         if !dref didClick
         {
@@ -187,8 +187,8 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 100
-    f.capture.height = 80
+    f.capture.width   = 100
+    f.capture.height  = 80
     f.capture.backImg = Image.create(100, 80, .BGRA8)
     f.capture.backImg.fill(Argb.Zero)
 

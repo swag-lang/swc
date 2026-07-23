@@ -13,7 +13,7 @@ impl ILogWriter for MemoryLogWriter
     {
         if me.count < @countof(me.lines) do
             me.lines[me.count] = text
-        me.count += 1
+        me.count               += 1
     }
 }
 

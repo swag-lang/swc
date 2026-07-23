@@ -10,11 +10,11 @@ struct PopupListCtrlItem
 struct PopupListCtrl
 {
     using frameWnd:       FrameWnd
-    heightItem:           f32 = 30
-    heightSeparator:      f32 = 15
-    minWidthPopup:        f32 = 100
-    maxHeightPopup:       f32 = 300
-    simFitX, simFitY:     bool
+    heightItem:       f32 = 30
+    heightSeparator:  f32 = 15
+    minWidthPopup:    f32 = 100
+    maxHeightPopup:   f32 = 300
+    simFitX, simFitY: bool
 
     sigSelected:          #null func||(*PopupListCtrl, u32)
 
@@ -28,8 +28,8 @@ struct PopupListView
 {
     using wnd:     Wnd
     list:          #late *PopupListCtrl
-    hotIdx:        u32 = Swag.U32.Max
-    closing:       bool
+    hotIdx:  u32 = Swag.U32.Max
+    closing: bool
 }
 
 impl IWnd for PopupListView
@@ -307,9 +307,9 @@ impl PopupListCtrl
         {
             .setFrameFlags(.SmallShadow)
             .setFrameForm(.Square)
-            .scrollWnd               = .createView'ScrollWnd()
-            .scrollWnd.dockStyle     = .Center
-            .scrollWnd.focusStrategy = .None
+            .scrollWnd                = .createView'ScrollWnd()
+            .scrollWnd.dockStyle      = .Center
+            .scrollWnd.focusStrategy  = .None
             .scrollWnd.scrollWndFlags |= .SmallBar
             let popupView = .scrollWnd.createView'PopupListView()
             popupView.list = popup
@@ -321,10 +321,26 @@ impl PopupListCtrl
     // Keyboard control forwarded by a host that keeps the focus (e.g. the property
     // grid drives the popup while keeping its own navigation focus, so the keys
     // never leave the page).
-    mtd keyMove(dir: s32)         { let view = cast(#null *PopupListView) .scrollWnd.view; view.moveHot(dir) }
-    mtd keyHome()                 { let view = cast(#null *PopupListView) .scrollWnd.view; view.moveHotEdge(forward: true) }
-    mtd keyEnd()                  { let view = cast(#null *PopupListView) .scrollWnd.view; view.moveHotEdge(forward: false) }
-    mtd keyCancel()               { let view = cast(#null *PopupListView) .scrollWnd.view; view.close(Swag.U32.Max) }
+    mtd keyMove(dir: s32)
+    {
+        let view = cast(#null *PopupListView) .scrollWnd.view;
+        view.moveHot(dir)
+    }
+    mtd keyHome()
+    {
+        let view = cast(#null *PopupListView) .scrollWnd.view;
+        view.moveHotEdge(forward: true)
+    }
+    mtd keyEnd()
+    {
+        let view = cast(#null *PopupListView) .scrollWnd.view;
+        view.moveHotEdge(forward: false)
+    }
+    mtd keyCancel()
+    {
+        let view = cast(#null *PopupListView) .scrollWnd.view;
+        view.close(Swag.U32.Max)
+    }
     mtd keyCommit()
     {
         let view = cast(#null *PopupListView) .scrollWnd.view

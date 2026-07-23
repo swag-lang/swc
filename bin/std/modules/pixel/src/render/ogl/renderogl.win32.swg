@@ -5,13 +5,13 @@ public struct NativeRenderOgl {}
 
 public struct RenderingContext
 {
-    hDC:        HDC
-    hRC:        HGLRC
-    hWnd:       HWND
-    width:      s32
-    height:     s32
-    ownsDC:     bool
-    ownsRC:     bool
+    hDC:    HDC
+    hRC:    HGLRC
+    hWnd:   HWND
+    width:  s32
+    height: s32
+    ownsDC: bool
+    ownsRC: bool
 }
 
 public impl NativeRenderOgl

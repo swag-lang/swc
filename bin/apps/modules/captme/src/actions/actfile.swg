@@ -33,7 +33,7 @@ impl IActionUI for ActionFile
         {
         case NewImage:
             evt.setFlags |= .Name
-            evt.name = "New Image"
+            evt.name     = "New Image"
 
         case NewFromClipboard:
             evt.setFlags |= .Name | .Disabled
@@ -54,8 +54,8 @@ impl IActionUI for ActionFile
 
         case OpenImage:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Open Image..."
-            evt.icon = main.getTheme().getIcon24(.OpenFile)
+            evt.name     = "Open Image..."
+            evt.icon     = main.getTheme().getIcon24(.OpenFile)
 
         case UpdateLinkedImage:
             evt.setFlags |= .Name | .Disabled | .Icon
@@ -70,12 +70,12 @@ impl IActionUI for ActionFile
 
         case DeleteCapture:
             evt.setFlags |= .Name | .Disabled | .Icon
-            evt.name = "Delete"
+            evt.name     = "Delete"
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do
                 evt.disabled = !capture
-            evt.icon = main.getTheme().getIcon24(.Remove)
+            evt.icon         = main.getTheme().getIcon24(.Remove)
 
         case DupCapture:
             evt.setFlags |= .Name | .Disabled | .Icon
@@ -108,7 +108,7 @@ impl IActionUI for ActionFile
 
         case FileDetails:
             evt.setFlags |= .Name | .Disabled
-            evt.name = "File Details"
+            evt.name     = "File Details"
             if main.libraryMode do
                 evt.disabled = !main.libWnd.hasSelected()
             else do

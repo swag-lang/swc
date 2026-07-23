@@ -210,7 +210,10 @@ cannot prove still fail deterministically.
 */
 #test
 {
-    struct Item { x: s32 }
+    struct Item
+    {
+        x: s32
+    }
 
     var a = Item{x: 1}
     var b = #move a

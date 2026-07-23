@@ -2,18 +2,18 @@
 struct FormLine
 {
     using base:         BaseForm
-    beginCap:           LineCapStyle = .Round
-    endCap:             LineCapStyle = .Round
-    dashCap:            DashCapStyle = .None
+    beginCap: LineCapStyle = .Round
+    endCap:   LineCapStyle = .Round
+    dashCap:  DashCapStyle = .None
     #[Name("Start Size"), SliderMinMax(MinCapSize, MaxCapSize)]
     startSize:          f32 = 4
     #[Name("End Size"), SliderMinMax(MinCapSize, MaxCapSize)]
-    endSize:            f32 = 4
-    xa, ya, xb, yb:     f32
-    xc, yc:             f32 = 10
-    cacheCoords:        Math.Rectangle
-    cacheCoords2:       Math.Point
-    cacheBv:            Math.Rectangle
+    endSize:        f32 = 4
+    xa, ya, xb, yb: f32
+    xc, yc:         f32 = 10
+    cacheCoords:    Math.Rectangle
+    cacheCoords2:   Math.Point
+    cacheBv:        Math.Rectangle
 
     #[Serialization.NoSerialize]
     {
@@ -179,7 +179,7 @@ impl IForm for FormLine
                 var v = Math.Vector2{.xb, .yb} - Math.Vector2{.xa, .ya}
                 v *= 0.5
                 var vn = v.cross(1).toNormalizedSafe()
-                vn *= v.length() * 0.25
+                vn  *= v.length() * 0.25
                 .xc = v.x + vn.x
                 .yc = v.y + vn.y
                 .gizmo.anchors.resize(3)

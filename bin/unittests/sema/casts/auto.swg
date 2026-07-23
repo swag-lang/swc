@@ -1,6 +1,6 @@
 #global private
 
-const A: s32 = 1
+const A: s32  = 1
 const B: bool = cast() A
 #assert(B == true)
 
@@ -19,7 +19,7 @@ func semaTest001()
 func semaTest002()
 {
     const B: bool = true
-    const S: s32 = cast() B
+    const S: s32  = cast() B
     #assert(S == 1)
 }
 
@@ -81,8 +81,8 @@ func semaTest011()
 
 func semaTest012()
 {
-    var p: #null *u32 = cast() null
-    var s: #null string = cast() null
+    var p:  #null *u32 = cast() null
+    var s:  #null string = cast() null
     var sl: #null [..] s32 = cast() null
 }
 

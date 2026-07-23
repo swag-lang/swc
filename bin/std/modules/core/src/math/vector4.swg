@@ -250,10 +250,10 @@ impl Vector4
         var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z) + (.w * .w))
         Debug.assert(!Math.isZeroEpsilon(norm))
         norm = 1 / norm
-        .x *= norm
-        .y *= norm
-        .z *= norm
-        .w *= norm
+        .x   *= norm
+        .y   *= norm
+        .z   *= norm
+        .w   *= norm
     }
 
     // Returns this vector normalized to unit length without modifying the original.
@@ -300,10 +300,10 @@ impl Vector4
         }
 
         norm = 1 / norm
-        .x *= norm
-        .y *= norm
-        .z *= norm
-        .w *= norm
+        .x   *= norm
+        .y   *= norm
+        .z   *= norm
+        .w   *= norm
     }
 
     // Returns this vector normalized safely without modifying the original.

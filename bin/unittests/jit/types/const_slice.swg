@@ -27,7 +27,7 @@ func aggregateLiteralRuneSlice(marker: rune)->bool
 #test
 {
     const a: [3] s32 = [4, 5, 6]
-    const v = #run pick(a, 2)
+    const v          = #run pick(a, 2)
     #assert(v == 6)
 }
 
@@ -45,7 +45,7 @@ func aggregateLiteralRuneSlice(marker: rune)->bool
 
 #test
 {
-    const a: [3] s32 = [1, 2, 3]
+    const a: [3] s32        = [1, 2, 3]
     const s: const [..] s32 = a
     #assert(@countof(s) == 3)
     #assert(s[1] == 2)

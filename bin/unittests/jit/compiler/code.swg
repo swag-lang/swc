@@ -220,13 +220,13 @@ func runCombinedReplacements()->s32
     return count
 }
 
-const ImplicitExprOk = #run runImplicitExpr()
-const ExplicitStmtOk = #run runExplicitStmt()
-const TrailingStmtOk = #run runTrailingStmt()
-const NamedArgsOk    = #run runNamed()
-const DefaultArgOk   = #run runDefault()
-const ForwardedOk    = #run runForwarded()
-const ForcedOk       = #run runForced()
+const ImplicitExprOk         = #run runImplicitExpr()
+const ExplicitStmtOk         = #run runExplicitStmt()
+const TrailingStmtOk         = #run runTrailingStmt()
+const NamedArgsOk            = #run runNamed()
+const DefaultArgOk           = #run runDefault()
+const ForwardedOk            = #run runForwarded()
+const ForcedOk               = #run runForced()
 const BreakAsContinueOk      = #run runBreakReplacementAsContinue() == 4
 const BreakAsScopeBreakOk    = #run runBreakReplacementAsScopeBreak() == 1
 const ContinueAsScopeBreakOk = #run runContinueReplacementAsScopeBreak() == 1

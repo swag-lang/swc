@@ -93,7 +93,7 @@ func day9BA()
             for v.num
             {
                 total += idx * v.what
-                idx += 1
+                idx   += 1
             }
         }
     }
@@ -130,7 +130,7 @@ func day9BB()
         {
             if !moved.contains(idx)
             {
-                total += fileSum(blockIdx, line[idx] - '0', idx / 2)
+                total    += fileSum(blockIdx, line[idx] - '0', idx / 2)
                 blockIdx += line[idx] - '0'
             }
             else
@@ -162,19 +162,19 @@ func day9BB()
 
             if maxIdx == -1
             {
-                idx += 1
+                idx      += 1
                 blockIdx += numSpaces
                 continue
             }
 
             numSpaces = line[maxIdx] - '0'
-            total += fileSum(blockIdx, numSpaces, maxIdx / 2)
+            total     += fileSum(blockIdx, numSpaces, maxIdx / 2)
             filesBySize[vecIdx].removeBack()
 
             moved[maxIdx] = line[maxIdx]
-            blockIdx += numSpaces
-            line[maxIdx] = '0'
-            line[idx] -= numSpaces
+            blockIdx      += numSpaces
+            line[maxIdx]  = '0'
+            line[idx]     -= numSpaces
 
             if line[idx] == '0' do
                 idx += 1

@@ -44,7 +44,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
     var safeSpread = spread
     if !safeSpread do
         safeSpread = 1
-    safeSpread = Math.min(safeSpread, 64)
+    safeSpread     = Math.min(safeSpread, 64)
 
     let padding = cast(s32) safeSpread
     let bounds  = computeOutlineBounds(&safeSlot.outline)
@@ -76,16 +76,16 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
             let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
             let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
             dref dst = cast(u8) Math.round(value)
-            dst += 1
+            dst      += 1
         }
     }
 
-    safeSlot.bitmap.rows         = rows
-    safeSlot.bitmap.width        = width
-    safeSlot.bitmap.pitch        = cast(s32) width
-    safeSlot.bitmap.buffer       = bitmapBuffer
-    safeSlot.bitmap.pixelMode   = .Gray
-    safeSlot.bitmap.grayCount    = 256
-    safeSlot.bitmapLeft         = left
-    safeSlot.bitmapTop          = top
+    safeSlot.bitmap.rows      = rows
+    safeSlot.bitmap.width     = width
+    safeSlot.bitmap.pitch     = cast(s32) width
+    safeSlot.bitmap.buffer    = bitmapBuffer
+    safeSlot.bitmap.pixelMode = .Gray
+    safeSlot.bitmap.grayCount = 256
+    safeSlot.bitmapLeft       = left
+    safeSlot.bitmapTop        = top
 }

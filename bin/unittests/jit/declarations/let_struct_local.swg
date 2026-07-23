@@ -9,12 +9,12 @@ struct LocalVarPoint
 struct LocalVarState
 {
     enabled: bool = true
-    weight: s32 = 5
+    weight:  s32 = 5
 }
 
 struct LocalVarNode
 {
-    pos: LocalVarPoint
+    pos:   LocalVarPoint
     state: LocalVarState
 }
 
@@ -33,16 +33,16 @@ struct LocalVarRequired
 
 struct LocalVarBig
 {
-    a0: u64
-    a1: u64
-    a2: u64
-    a3: u64
-    a4: u64
-    a5: u64
-    a6: u64
-    a7: u64
-    a8: u64
-    a9: u64
+    a0:  u64
+    a1:  u64
+    a2:  u64
+    a3:  u64
+    a4:  u64
+    a5:  u64
+    a6:  u64
+    a7:  u64
+    a8:  u64
+    a9:  u64
     a10: u64
     a11: u64
 }
@@ -61,7 +61,7 @@ struct LocalVarBigDefaults
 
 struct LocalVarDirectDefaultNode
 {
-    p: LocalVarPoint = {x: 9, y: 4}
+    p:     LocalVarPoint = {x: 9, y: 4}
     state: LocalVarState = {enabled: true, weight: 30}
 }
 

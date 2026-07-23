@@ -10,11 +10,11 @@ func createCheckButtonPage(parent: *Wnd)
         var check = CheckButton.create(left, "Checked", {24, 128, 180})
         check.checked = .Checked
 
-        check = CheckButton.create(left, "Undefined", {24, 166, 180})
+        check                  = CheckButton.create(left, "Undefined", {24, 166, 180})
         check.checkButtonFlags |= .ThreeState
-        check.checked = .Undefined
+        check.checked          = .Undefined
 
-        check = CheckButton.create(left, "Disabled checked", {240, 90, 200})
+        check         = CheckButton.create(left, "Disabled checked", {240, 90, 200})
         check.checked = .Checked
         check.disable()
 
@@ -27,13 +27,13 @@ func createCheckButtonPage(parent: *Wnd)
         var check = CheckButton.create(right, "Box on the right", {24, 90, 250})
         check.checkButtonFlags |= .RightAlign
 
-        check = CheckButton.create(right, "Checked on the right", {24, 128, 250})
+        check                  = CheckButton.create(right, "Checked on the right", {24, 128, 250})
         check.checkButtonFlags |= .RightAlign
-        check.checked = .Checked
+        check.checked          = .Checked
 
-        check = CheckButton.create(right, "Three-state right", {24, 166, 250})
+        check                  = CheckButton.create(right, "Three-state right", {24, 166, 250})
         check.checkButtonFlags |= .RightAlign | .ThreeState
-        check.checked = .Undefined
+        check.checked          = .Undefined
     }
 
     let bottom = createPanel(parent, "Interaction", "Click any option to update the feedback label and exercise signals.", layout.bottom)
@@ -47,7 +47,7 @@ func createCheckButtonPage(parent: *Wnd)
         }
 
         let guides = CheckButton.create(bottom, "Smart guides", {260, 94, 210})
-        guides.checked = .Checked
+        guides.checked    = .Checked
         guides.sigChanged += func|status|(btn)
         {
             status.setText(btn.isChecked() ? "Smart guides enabled" : "Smart guides disabled")
@@ -55,8 +55,8 @@ func createCheckButtonPage(parent: *Wnd)
 
         let mixed = CheckButton.create(bottom, "Mixed selection", {496, 94, 210})
         mixed.checkButtonFlags |= .ThreeState
-        mixed.checked = .Undefined
-        mixed.sigChanged += func|status|(btn)
+        mixed.checked          = .Undefined
+        mixed.sigChanged       += func|status|(btn)
         {
             status.setText(btn.isUndefined() ? "Selection is mixed" : "Selection is explicit")
         }

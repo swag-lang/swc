@@ -12,11 +12,11 @@ private
     const VertexShaderAA = #include("shaders/aa.vert")
     const PixelShaderAA  = #include("shaders/aa.frag")
 
-    const PixelShaderBlur = #include("shaders/blur.frag")
+    const PixelShaderBlur    = #include("shaders/blur.frag")
     const PixelShaderResolve = #include("shaders/resolve.frag")
 
-    const VertexShaderFont = #include("shaders/font.vert")
-    const PixelShaderFont  = #include("shaders/font.frag")
+    const VertexShaderFont    = #include("shaders/font.vert")
+    const PixelShaderFont     = #include("shaders/font.frag")
     const PixelShaderFontMsdf = #include("shaders/font_msdf.frag")
 }
 
@@ -51,28 +51,28 @@ struct HeadlessTexture
 struct RenderOgl
 {
     using native:        NativeRenderOgl
-    vertexbuffer:        GLuint
-    shaderSimple:        ShaderSimple
-    shaderAA:            ShaderAA
-    shaderBlur:          ShaderBlur
-    shaderResolve:       ShaderResolve
-    shaderFont:          ShaderFont
-    shaderFontMsdf:      ShaderFont
-    worldTransform:      Transform2
-    orthoMatrix:         Matrix4x4
-    modelMatrix:         Matrix4x4
-    whiteTexture:        GLuint
+    vertexbuffer:   GLuint
+    shaderSimple:   ShaderSimple
+    shaderAA:       ShaderAA
+    shaderBlur:     ShaderBlur
+    shaderResolve:  ShaderResolve
+    shaderFont:     ShaderFont
+    shaderFontMsdf: ShaderFont
+    worldTransform: Transform2
+    orthoMatrix:    Matrix4x4
+    modelMatrix:    Matrix4x4
+    whiteTexture:   GLuint
     hatchTextures:       [@countof(HatchStyle)] GLuint
-    blendingMode:        BlendingMode = .Alpha
-    curRC:               RenderingContext
-    stackReleasedRT:     Array'#null *RenderTarget
-    stackRT:             Array'#null *RenderTarget
-    curRT:               #null *RenderTarget
-    curShader:           #null *ShaderBase
+    blendingMode:    BlendingMode = .Alpha
+    curRC:           RenderingContext
+    stackReleasedRT: Array'#null *RenderTarget
+    stackRT:         Array'#null *RenderTarget
+    curRT:           #null *RenderTarget
+    curShader:       #null *ShaderBase
     overlapMode          = false
-    headless:            bool
-    headlessNextHandle:  u64 = 1
-    headlessTextures:    Array'HeadlessTexture
+    headless:           bool
+    headlessNextHandle: u64 = 1
+    headlessTextures:   Array'HeadlessTexture
 }
 
 private impl RenderOgl
@@ -329,7 +329,7 @@ impl RenderOgl
         .stackRT.clear()
         .curRT = null
         .headlessTextures.clear()
-        .headless = true
+        .headless           = true
         .headlessNextHandle = 1
     }
 
@@ -568,9 +568,9 @@ impl RenderOgl
         {
             var result: retval
             result.handle             = cast(RenderTargetHandle) .headlessNextHandle
-            .headlessNextHandle += 1
+            .headlessNextHandle       += 1
             result.colorBuffer.handle = cast(TextureHandle) .headlessNextHandle
-            .headlessNextHandle += 1
+            .headlessNextHandle       += 1
             result.colorBuffer.width  = w
             result.colorBuffer.height = h
             result.colorBuffer.valid  = true
@@ -663,12 +663,12 @@ impl RenderOgl
         if .headless
         {
             var result: retval
-            result.handle = cast(TextureHandle) .headlessNextHandle
+            result.handle       = cast(TextureHandle) .headlessNextHandle
             .headlessNextHandle += 1
-            result.width  = image.width
-            result.height = image.height
-            result.pf     = image.pf
-            result.valid  = true
+            result.width        = image.width
+            result.height       = image.height
+            result.pf           = image.pf
+            result.valid        = true
             .addHeadlessTexture(result, image.pixels.toSlice())
             return result
         }
@@ -1310,8 +1310,8 @@ impl RenderOgl
 
         base.handle = cast(ShaderHandle) progID
 
-        base.mvp         = cast() glGetUniformLocation(progID, @dataof("mvp"))
-        base.mdl         = cast() glGetUniformLocation(progID, @dataof("mdl"))
+        base.mvp               = cast() glGetUniformLocation(progID, @dataof("mvp"))
+        base.mdl               = cast() glGetUniformLocation(progID, @dataof("mdl"))
         base.boundRect         = cast() glGetUniformLocation(progID, @dataof("boundRect"))
         base.textureRect       = cast() glGetUniformLocation(progID, @dataof("textureRect"))
         base.uvMode            = cast() glGetUniformLocation(progID, @dataof("uvMode"))
@@ -1319,14 +1319,14 @@ impl RenderOgl
         base.copyMode          = cast() glGetUniformLocation(progID, @dataof("copyMode"))
         base.textureW          = cast() glGetUniformLocation(progID, @dataof("textureW"))
         base.textureH          = cast() glGetUniformLocation(progID, @dataof("textureH"))
-        base.paintType       = cast() glGetUniformLocation(progID, @dataof("paintType"))
-        base.gradientSpread  = cast() glGetUniformLocation(progID, @dataof("gradientSpread"))
-        base.gradientStart   = cast() glGetUniformLocation(progID, @dataof("gradientStart"))
-        base.gradientEnd     = cast() glGetUniformLocation(progID, @dataof("gradientEnd"))
-        base.gradientRadius  = cast() glGetUniformLocation(progID, @dataof("gradientRadius"))
-        base.gradientAngles  = cast() glGetUniformLocation(progID, @dataof("gradientAngles"))
-        base.gradientCount   = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
-        base.gradientOffsets = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
-        base.gradientColors  = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))
+        base.paintType         = cast() glGetUniformLocation(progID, @dataof("paintType"))
+        base.gradientSpread    = cast() glGetUniformLocation(progID, @dataof("gradientSpread"))
+        base.gradientStart     = cast() glGetUniformLocation(progID, @dataof("gradientStart"))
+        base.gradientEnd       = cast() glGetUniformLocation(progID, @dataof("gradientEnd"))
+        base.gradientRadius    = cast() glGetUniformLocation(progID, @dataof("gradientRadius"))
+        base.gradientAngles    = cast() glGetUniformLocation(progID, @dataof("gradientAngles"))
+        base.gradientCount     = cast() glGetUniformLocation(progID, @dataof("gradientCount"))
+        base.gradientOffsets   = cast() glGetUniformLocation(progID, @dataof("gradientOffsets[0]"))
+        base.gradientColors    = cast() glGetUniformLocation(progID, @dataof("gradientColors[0]"))
     }
 }

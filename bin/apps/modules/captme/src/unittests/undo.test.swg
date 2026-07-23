@@ -303,18 +303,18 @@ using Swag, Core
 // is geometry (rects, endpoints, point lists, rotation) and form order.
 struct UndoFuzzForm
 {
-    kind:       typeinfo = undefined
-    rect:       Math.Rectangle
-    rotate:     f32
-    points:     Array'Math.Vector2
+    kind:   typeinfo = undefined
+    rect:   Math.Rectangle
+    rotate: f32
+    points: Array'Math.Vector2
 }
 
 struct UndoFuzzState
 {
-    width:      s32
-    height:     s32
-    imagePos:   Math.Point
-    forms:      Array'UndoFuzzForm
+    width:    s32
+    height:   s32
+    imagePos: Math.Point
+    forms:    Array'UndoFuzzForm
 }
 
 func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm

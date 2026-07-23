@@ -17,7 +17,7 @@ using Swag, Core
     @assert(g.toLocal({110, 45}) == Math.Point{110, 45})
 
     g.rotateEnabled = true
-    g.rotateValue = 90
+    g.rotateValue   = 90
     let local = g.toLocal({110, 45})
     @assert(Math.abs(local.x - 60) < 0.001)
     @assert(Math.abs(local.y + 5) < 0.001)

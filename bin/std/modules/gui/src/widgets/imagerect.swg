@@ -4,8 +4,8 @@ using Core, Pixel
 struct ImageRect
 {
     using wnd:        Wnd
-    movie:            Movie
-    textureFrame:     Texture
+    movie:        Movie
+    textureFrame: Texture
 }
 
 impl IWnd for ImageRect

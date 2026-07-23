@@ -32,11 +32,11 @@ using Core
 
 internal struct Bot
 {
-    id:          s32
-    count:       s32
+    id:    s32
+    count: s32
     val:         [2] s32 = Swag.S32.Max
-    out:         s32
-    pending:     Array'String
+    out:     s32
+    pending: Array'String
 }
 
 internal var result = 0
@@ -63,7 +63,7 @@ internal impl Bot
     {
         let v = .val[0]
         .val[0] = .val[1]
-        .count -= 1
+        .count  -= 1
         return v
     }
 
@@ -111,7 +111,7 @@ internal func execute(lines: Array'String)
                 break
             }
 
-            let low: &Bot  = &getBot(assume StrConv.toS32(r1[3]))
+            let low:  &Bot  = &getBot(assume StrConv.toS32(r1[3]))
             let high: &Bot = &getBot(assume StrConv.toS32(r1[5]))
 
             if r1[2] == "bot" do

@@ -72,13 +72,13 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     if access & FileAccess.Read
     {
         result.canRead = true
-        wAccess |= GENERIC_READ
+        wAccess        |= GENERIC_READ
     }
 
     if access & FileAccess.Write
     {
         result.canWrite = true
-        wAccess |= GENERIC_WRITE
+        wAccess         |= GENERIC_WRITE
     }
 
     // Share mode

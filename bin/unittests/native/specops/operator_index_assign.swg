@@ -170,7 +170,7 @@ struct RuntimeIndexAssignHolder
         writeOnly: RuntimeWriteOnlyIndexAssignBox{first: 4, second: 9},
         }
 
-    holder.value[1] += 6
+    holder.value[1]     += 6
     holder.writeOnly[0] += 7
 
     @assert(holder.value.values[0] == 1)

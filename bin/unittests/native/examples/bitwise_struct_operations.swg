@@ -56,9 +56,9 @@ func buildDigest(payload: string, expectedCrc32: u32, expectedCrc64: u64)->Artif
     let bytes = cast(const [..] u8) payload
 
     var result: ArtifactDigest
-    result.byteCount = cast(u32) @countof(bytes)
-    result.crc32 = computeCrc32(bytes)
-    result.crc64 = computeCrc64(bytes)
+    result.byteCount    = cast(u32) @countof(bytes)
+    result.crc32        = computeCrc32(bytes)
+    result.crc64        = computeCrc64(bytes)
     result.matchesCrc32 = result.crc32 == expectedCrc32
     result.matchesCrc64 = result.crc64 == expectedCrc64
     return result

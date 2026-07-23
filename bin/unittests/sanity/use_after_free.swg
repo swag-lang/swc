@@ -65,7 +65,7 @@ func myFree(ptr: *void, size: u64)
 func rejectFreeBorrowed()
 {
     var value: s32
-    var req: AllocatorRequest
+    var req:   AllocatorRequest
     req.address = &value
     req.size    = #sizeof(s32)
     @getcontext().allocator.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
@@ -77,7 +77,7 @@ func rejectFreeBorrowed()
 {
     var p = cast(*s32) myAlloc(4)
     myFree(p, 4)
-    p = cast(*s32) myAlloc(4)
+    p      = cast(*s32) myAlloc(4)
     dref p = 3
     @assert(dref p == 3)
     myFree(p, 4)

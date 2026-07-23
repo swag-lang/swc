@@ -7,30 +7,30 @@ struct(T, Count: s32) Sample
 
 struct(A, B) Pair
 {
-    first: A
+    first:  A
     second: B
 }
 
 struct(A, B, C) Triple
 {
-    first: A
+    first:  A
     second: B
-    third: C
+    third:  C
 }
 
 struct(A, B, Left: s32, Right: s32) IndexedPair
 {
-    first: A
+    first:  A
     second: B
-    total: s32
+    total:  s32
 }
 
 struct(A, B, C, Left: s32, Right: s32) IndexedTriple
 {
-    first: A
+    first:  A
     second: B
-    third: C
-    total: s32
+    third:  C
+    total:  s32
 }
 
 struct(T) LocalWrap

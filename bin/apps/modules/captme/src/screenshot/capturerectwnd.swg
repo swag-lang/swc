@@ -17,12 +17,12 @@ struct CaptureRectWnd
     using wnd:         Wnd
 
     main:              #late *MainWnd
-    startGrab:         bool
-    cancelGrab:        bool
-    tryStartGrab:      bool
-    autoGrab:          bool
-    lerpGrab:          Math.Rectangle
-    clickStartPos:     Math.Point     // Track where the click started
+    startGrab:     bool
+    cancelGrab:    bool
+    tryStartGrab:  bool
+    autoGrab:      bool
+    lerpGrab:      Math.Rectangle
+    clickStartPos: Math.Point     // Track where the click started
 }
 
 impl IWnd for CaptureRectWnd

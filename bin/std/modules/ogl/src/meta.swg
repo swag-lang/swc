@@ -5,8 +5,8 @@ attr Extension()
 
 struct OneFunc
 {
-    type:     #null const *TypeInfoFunc
-    name:     string
+    type: #null const *TypeInfoFunc
+    name: string
 }
 
 #[Compiler]

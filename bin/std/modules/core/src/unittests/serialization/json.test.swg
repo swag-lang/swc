@@ -10,11 +10,11 @@ struct JsonPair
 
 struct JsonPayload
 {
-    id:         u32
-    active:     bool
-    name:       String
-    counts:     Array's32
-    pair:       JsonPair
+    id:     u32
+    active: bool
+    name:   String
+    counts: Array's32
+    pair:   JsonPair
     fixed:      [3] u8
 
     #[Serialization.NoSerialize]
@@ -26,13 +26,13 @@ func makeJsonPayload()->JsonPayload
     var result: retval
 
     let seed: [3] s32 = [-1, 0, 4]
-    result.id         = 7
-    result.active     = true
-    result.name       = "core"
+    result.id     = 7
+    result.active = true
+    result.name   = "core"
     result.counts.add(seed)
-    result.pair       = JsonPair{x: 3, y: -2}
-    result.fixed      = [1, 2, 3]
-    result.transient  = 99
+    result.pair      = JsonPair{x: 3, y: -2}
+    result.fixed     = [1, 2, 3]
+    result.transient = 99
     return result
 }
 
@@ -93,7 +93,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     let payload = makeJsonPayload()
 
     var encoder: Serialization.Encoder'Serialization.Write.JSon
-    encoder.serializer.options.saveBlanks = true
+    encoder.serializer.options.saveBlanks  = true
     encoder.serializer.options.indentLevel = 2
 
     var buffer: ConcatBuffer

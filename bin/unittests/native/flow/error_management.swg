@@ -14,23 +14,23 @@ struct OtherErrValue
 
 struct CatchInfo
 {
-    value: s32
+    value:  s32
     hasErr: bool
-    code: s32
+    code:   s32
 }
 
 struct AggregateResult
 {
-    first: s32 = 0
+    first:  s32 = 0
     second: s32 = 0
     payload: [3] s32
 }
 
 struct AggregateInfo
 {
-    value: AggregateResult
-    hasErr: bool
-    code: s32
+    value:     AggregateResult
+    hasErr:    bool
+    code:      s32
     messageOk: bool
 }
 
@@ -47,43 +47,43 @@ struct NullInfo
 {
     isNull: bool
     hasErr: bool
-    code: s32
+    code:   s32
 }
 
 struct TraceInfo
 {
-    value: s32
+    value:  s32
     hasErr: bool
-    code: s32
-    trace: s64
+    code:   s32
+    trace:  s64
 }
 
 struct AggregateTraceInfo
 {
-    value: AggregateResult
+    value:  AggregateResult
     hasErr: bool
-    code: s32
-    trace: s64
+    code:   s32
+    trace:  s64
 }
 
 struct ErrCastInfo
 {
-    exactType: bool
-    baseType: bool
-    wrongType: bool
-    exactCastOk: bool
-    baseCastOk: bool
+    exactType:     bool
+    baseType:      bool
+    wrongType:     bool
+    exactCastOk:   bool
+    baseCastOk:    bool
     wrongCastNull: bool
-    code: s32
-    messageOk: bool
+    code:          s32
+    messageOk:     bool
 }
 
 struct ErrNullCastInfo
 {
-    exactType: bool
-    baseType: bool
+    exactType:     bool
+    baseType:      bool
     exactCastNull: bool
-    baseCastNull: bool
+    baseCastNull:  bool
 }
 
 var ErrorTrace: s64 = 0
@@ -323,7 +323,7 @@ func catchAggregateSuccess()->AggregateResult
 func inlineCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value = catch inlineAlwaysThrowValue(41)
+    result.value  = catch inlineAlwaysThrowValue(41)
     result.hasErr = @err != null
     if @err != null
     {
@@ -337,7 +337,7 @@ func inlineCatchFailureInfo()->CatchInfo
 func catchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value = catch propagateBareFailure()
+    result.value  = catch propagateBareFailure()
     result.hasErr = @err != null
     if @err != null
     {
@@ -351,12 +351,12 @@ func catchFailureInfo()->CatchInfo
 func catchAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
-    result.value = catch aggregateFailure(71)
+    result.value  = catch aggregateFailure(71)
     result.hasErr = @err != null
     if @err != null
     {
         let err = cast(ErrValue) @err
-        result.code = err.code
+        result.code      = err.code
         result.messageOk = err.message == "aggregate failure"
     }
 
@@ -366,7 +366,7 @@ func catchAggregateFailureInfo()->AggregateInfo
 func catchTryFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value = catch propagateTryFailure()
+    result.value  = catch propagateTryFailure()
     result.hasErr = @err != null
     if @err != null
     {
@@ -391,7 +391,7 @@ func tryCatchAggregateSuccess()->AggregateResult
 func inlineTryCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value = trycatch inlineAlwaysThrowValue(42)
+    result.value  = trycatch inlineAlwaysThrowValue(42)
     result.hasErr = @err != null
     if @err != null
     {
@@ -405,7 +405,7 @@ func inlineTryCatchFailureInfo()->CatchInfo
 func tryCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value = trycatch propagateBareFailure()
+    result.value  = trycatch propagateBareFailure()
     result.hasErr = @err != null
     if @err != null
     {
@@ -419,12 +419,12 @@ func tryCatchFailureInfo()->CatchInfo
 func tryCatchAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
-    result.value = trycatch aggregateFailure(72)
+    result.value  = trycatch aggregateFailure(72)
     result.hasErr = @err != null
     if @err != null
     {
         let err = cast(ErrValue) @err
-        result.code = err.code
+        result.code      = err.code
         result.messageOk = err.message == "aggregate failure"
     }
 
@@ -448,9 +448,9 @@ func assumeFailureInfo()->CatchInfo
     defer cxt.panic = null
 
     var result: CatchInfo
-    result.value = assume alwaysThrowValue(29)
+    result.value  = assume alwaysThrowValue(29)
     result.hasErr = cxt.user0 == 1
-    result.code = cast(s32) cxt.user1
+    result.code   = cast(s32) cxt.user1
     return result
 }
 
@@ -464,9 +464,9 @@ func assumeFailureNoSafety()->CatchInfo
     defer cxt.panic = null
 
     var result: CatchInfo
-    result.value = assume alwaysThrowValue(30)
+    result.value  = assume alwaysThrowValue(30)
     result.hasErr = cxt.user0 == 1
-    result.code = cast(s32) cxt.user1
+    result.code   = cast(s32) cxt.user1
     return result
 }
 
@@ -486,7 +486,7 @@ func repeatedCatchFailureSum()->s32
 func catchNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value: #null *s32 = catch nullablePointerFailure(73)
+    let value:  #null *s32 = catch nullablePointerFailure(73)
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -496,7 +496,7 @@ func catchNullablePointerFailureInfo()->NullInfo
 func catchNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value: #null string = catch nullableStringFailure(74)
+    let value:  #null string = catch nullableStringFailure(74)
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -506,7 +506,7 @@ func catchNullableStringFailureInfo()->NullInfo
 func catchNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value: #null [..] s32 = catch nullableSliceFailure(75)
+    let value:  #null [..] s32 = catch nullableSliceFailure(75)
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -516,7 +516,7 @@ func catchNullableSliceFailureInfo()->NullInfo
 func tryCatchNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value: #null *s32 = trycatch nullablePointerFailure(76)
+    let value:  #null *s32 = trycatch nullablePointerFailure(76)
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -526,7 +526,7 @@ func tryCatchNullablePointerFailureInfo()->NullInfo
 func tryCatchNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value: #null string = trycatch nullableStringFailure(77)
+    let value:  #null string = trycatch nullableStringFailure(77)
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -536,7 +536,7 @@ func tryCatchNullableStringFailureInfo()->NullInfo
 func tryCatchNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value: #null [..] s32 = trycatch nullableSliceFailure(78)
+    let value:  #null [..] s32 = trycatch nullableSliceFailure(78)
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -630,8 +630,8 @@ func errIsAsNullInfo()->ErrNullCastInfo
     var result: ErrNullCastInfo
     catch mayThrowVoid()
 
-    result.exactType    = @err is ErrValue
-    result.baseType     = @err is Swag.BaseError
+    result.exactType     = @err is ErrValue
+    result.baseType      = @err is Swag.BaseError
     result.exactCastNull = @err as ErrValue == null
     result.baseCastNull  = @err as Swag.BaseError == null
     return result
@@ -642,7 +642,7 @@ func assumeMaybePtr(p: *s32)->#null *s32 => p
 func assumeNullablePointerSuccess()->s32
 {
     var storage: s32 = 91
-    let maybe: #null *s32 = assumeMaybePtr(&storage)
+    let maybe:   #null *s32 = assumeMaybePtr(&storage)
     let ptr = notnull maybe
     #assert(#typeof(ptr) == *s32)
     return dref ptr

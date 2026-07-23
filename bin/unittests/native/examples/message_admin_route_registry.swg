@@ -53,8 +53,8 @@ public func setInvoiceDelivery(tenantId: s64, billingEmail: string, sendCopyToOp
 public func rebuildSearchCache(indexName: string, full: bool)
 {
     RebuildCacheCalls += 1
-    RebuildLastFull = full
-    RebuildLastIndex = indexName
+    RebuildLastFull   = full
+    RebuildLastIndex  = indexName
 }
 
 struct AdminRouteRegistration
@@ -105,8 +105,8 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
     if v < 0
     {
         buffer[len] = '-'
-        len += 1
-        v = -v
+        len         += 1
+        v           = -v
     }
 
     if v == 0
@@ -122,14 +122,14 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
         if v == 0 do
             break
         tmp[tmpLen] = cast(u8) (v % 10) + '0'
-        tmpLen += 1
-        v /= 10
+        tmpLen      += 1
+        v           /= 10
     }
 
     for #reverse i in tmpLen
     {
         buffer[len] = tmp[i]
-        len += 1
+        len         += 1
     }
 
     return len
@@ -215,8 +215,8 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         {
             if index != 0 do
                 len = appendAst(&buffer[0], len, ", ")
-            len = appendAst(&buffer[0], len, "request.")
-            len = appendAst(&buffer[0], len, notnull parameter.name)
+            len     = appendAst(&buffer[0], len, "request.")
+            len     = appendAst(&buffer[0], len, notnull parameter.name)
         }
         len = appendAst(&buffer[0], len, ")\n}\n\n")
     }
@@ -502,8 +502,8 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 #test
 {
     RebuildCacheCalls = 0
-    RebuildLastFull = false
-    RebuildLastIndex = ""
+    RebuildLastFull   = false
+    RebuildLastIndex  = ""
 
     let rebuildReq: AdminRouteRequest_rebuildSearchCache =
         {

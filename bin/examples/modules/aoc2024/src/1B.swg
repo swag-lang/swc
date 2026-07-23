@@ -56,7 +56,7 @@ func day1B()
         while ist < arr0.count and arr1[ist] == arr0[i]
         {
             total += arr0[i]
-            ist += 1
+            ist   += 1
         }
     }
 

@@ -57,13 +57,13 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
         let startY = startIndex / width
         let crop = cropAt(layout, startX, startY)
 
-        var head: u32
-        var tail: u32
+        var head:        u32
+        var tail:        u32
         var regionCount: u32
 
         visited[startIndex] = true
-        queue[tail] = startIndex
-        tail += 1
+        queue[tail]         = startIndex
+        tail                += 1
 
         while head < tail
         {
@@ -71,8 +71,8 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
             head += 1
 
             regionCells[regionCount] = current
-            regionCount += 1
-            inRegion[current] = true
+            regionCount              += 1
+            inRegion[current]        = true
 
             let x = current % width
             let y = current / width
@@ -83,8 +83,8 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
                 if !visited[next] and cropAt(layout, x + 1, y) == crop
                 {
                     visited[next] = true
-                    queue[tail] = next
-                    tail += 1
+                    queue[tail]   = next
+                    tail          += 1
                 }
             }
 
@@ -94,8 +94,8 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
                 if !visited[next] and cropAt(layout, x - 1, y) == crop
                 {
                     visited[next] = true
-                    queue[tail] = next
-                    tail += 1
+                    queue[tail]   = next
+                    tail          += 1
                 }
             }
 
@@ -105,8 +105,8 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
                 if !visited[next] and cropAt(layout, x, y + 1) == crop
                 {
                     visited[next] = true
-                    queue[tail] = next
-                    tail += 1
+                    queue[tail]   = next
+                    tail          += 1
                 }
             }
 
@@ -116,8 +116,8 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
                 if !visited[next] and cropAt(layout, x, y - 1) == crop
                 {
                     visited[next] = true
-                    queue[tail] = next
-                    tail += 1
+                    queue[tail]   = next
+                    tail          += 1
                 }
             }
         }
@@ -165,7 +165,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
                 sideCount += 1
         }
 
-        result.totalPerimeterPrice += cast(u64) regionCount * cast(u64) perimeter
+        result.totalPerimeterPrice  += cast(u64) regionCount * cast(u64) perimeter
         result.totalDiscountedPrice += cast(u64) regionCount * cast(u64) sideCount
 
         for regionCount

@@ -96,7 +96,7 @@ func day6A()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "6.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var arr: Array'u8
+    var arr:    Array'u8
     var sx, sy: s32
     let w = lines[0].length
     let h = lines.count
@@ -154,7 +154,7 @@ func day6A()
 
         if arr.ref2(sx, sy, w) != 'O'
         {
-            total += 1
+            total               += 1
             arr.ref2(sx, sy, w) = 'O'
         }
     }

@@ -5,8 +5,8 @@ using Swag, Core
 
 struct TextPaintTransform
 {
-    tr:       Math.Transform2
-    found:    bool
+    tr:    Math.Transform2
+    found: bool
 }
 
 func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextPaintTransform
@@ -129,8 +129,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Testing.assertRect(image.freePos, 10, 12, 19, 30)
 
     let step = testAddStep(f.capture, 0, 0, 10, 10)
-    step.ws = 30
-    step.hs = 40
+    step.ws                 = 30
+    step.hs                 = 40
     f.capture.nextStepIndex = 7
     var evt = testMouse(.MouseMove)
     @assert(!step.IForm.edit(&evt, {100, 90}, {120, 110}, 1))
@@ -286,7 +286,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     f.setup()
 
     let shape = testAddShape(f.capture, 1, 2, 30, 40, .Highlight)
-    shape.kind = .RoundRectangle
+    shape.kind      = .RoundRectangle
     shape.roundSize = 25
     var shapeCopy: FormShape
     shape.IForm.copy(&shapeCopy, shape)
@@ -296,8 +296,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(!shape.IForm.isSame(&shapeCopy))
 
     let text = testAddText(f.capture, 0, 0, 50, 60)
-    text.fontSize = 34
-    text.boldSize = 2
+    text.fontSize  = 34
+    text.boldSize  = 2
     text.joinStyle = .Bevel
     var textCopy: FormText
     text.IForm.copy(&textCopy, text)
@@ -306,10 +306,10 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(!text.IForm.isSame(&textCopy))
 
     let step = testAddStep(f.capture, 0, 0, 20, 30)
-    step.kind = .RoundRectangle
+    step.kind      = .RoundRectangle
     step.typeIndex = .LetterDown
-    step.ws = 36
-    step.hs = 44
+    step.ws        = 36
+    step.hs        = 44
     var stepCopy: FormStep
     step.IForm.copy(&stepCopy, step)
     @assert(stepCopy.ws == 36)
@@ -319,8 +319,8 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(!step.IForm.isSame(&stepCopy))
 
     let line = testAddLine(f.capture, 0, 0, 10, 10, .PixSel)
-    line.dashCap = .Round
-    line.bezier = true
+    line.dashCap     = .Round
+    line.bezier      = true
     line.paintShadow = false
     var lineCopy: FormLine
     line.IForm.copy(&lineCopy, line)
@@ -337,7 +337,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 
     let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
     polygon.paintShadow = false
-    polygon.bezier = true
+    polygon.bezier      = true
     var polygonCopy: FormPolygon
     polygon.IForm.copy(&polygonCopy, polygon)
     @assert(polygonCopy.subKind == .Highlight)
@@ -357,15 +357,15 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     @assert(!draw.IForm.isSame(&drawCopy))
 
     let image = testAddImage(f.capture, 0, 0, 40, 50)
-    image.kind = .Image
-    image.strength = 77
+    image.kind      = .Image
+    image.strength  = 77
     image.backColor = ColorRed
     var imageCopy: FormImage
     image.IForm.copy(&imageCopy, image)
     @assert(image.IForm.isSame(&imageCopy))
     imageCopy.backColor = ColorBlue
     @assert(!image.IForm.isSame(&imageCopy))
-    image.kind = .Blur
+    image.kind     = .Blur
     imageCopy.kind = .Blur
     @assert(image.IForm.isSame(&imageCopy))
 

@@ -5,8 +5,8 @@ struct FormPolygon
 
     #[Serialization.NoSerialize]
     {
-        gizmo:        GizmoPoints
-        linePath:     LinePath
+        gizmo:    GizmoPoints
+        linePath: LinePath
     }
 }
 

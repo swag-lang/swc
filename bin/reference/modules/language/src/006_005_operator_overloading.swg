@@ -51,17 +51,32 @@ impl Struct
     // -------------------------------------------------------------------------
 
     // Access a value by slicing with the [low..up] notation. Returns a string or a slice.
-    func opSlice(me, low, up: u64)->string { return "true"; }
+    func opSlice(me, low, up: u64)->string
+    {
+        return "true";
+    }
 
     // Access a value by one or more indices. All index parameters must have the same type.
-    func opIndex(me, index: OneType)->WhateverType { return true; }
-    func opIndex(me, row: OneType, column: OneType)->WhateverType { return true; }
+    func opIndex(me, index: OneType)->WhateverType
+    {
+        return true;
+    }
+    func opIndex(me, row: OneType, column: OneType)->WhateverType
+    {
+        return true;
+    }
 
     // Called when @countof is used (typically in a 'for' block) to return the count of elements
-    func opCount(me)->u64 { return 0; }
+    func opCount(me)->u64
+    {
+        return 0;
+    }
 
     // Called when @dataof is used; returns a pointer to the underlying data of type WhateverType
-    func opData(me)->#null *WhateverType { return null; }
+    func opData(me)->#null *WhateverType
+    {
+        return null;
+    }
 
     // -------------------------------------------------------------------------
     // Conversions (cast)
@@ -69,20 +84,38 @@ impl Struct
 
     // Custom casting between the struct and another type; can be overloaded with different return types
     // Example: var x = cast(OneType) v
-    func opCast(me)->OneType { return true; }
-    func opCast(me)->AnotherType { return 0; }
+    func opCast(me)->OneType
+    {
+        return true;
+    }
+    func opCast(me)->AnotherType
+    {
+        return 0;
+    }
 
     // -------------------------------------------------------------------------
     // Equality & ordering
     // -------------------------------------------------------------------------
 
     // Compare the struct value with another; used in '==' and '!=' operations
-    func opEquals(me, other: OneType)->bool { return false; }
-    func opEquals(me, other: AnotherType)->bool { return false; }
+    func opEquals(me, other: OneType)->bool
+    {
+        return false;
+    }
+    func opEquals(me, other: AnotherType)->bool
+    {
+        return false;
+    }
 
     // Three-way comparison; returns -1, 0, or 1 (used for '<', '>', '<=', '>=', '<=>')
-    func opCompare(me, other: OneType)->s32 { return 0; }
-    func opCompare(me, other: AnotherType)->s32 { return 0; }
+    func opCompare(me, other: OneType)->s32
+    {
+        return 0;
+    }
+    func opCompare(me, other: AnotherType)->s32
+    {
+        return 0;
+    }
 
     // -------------------------------------------------------------------------
     // Assignment
@@ -108,22 +141,40 @@ impl Struct
 
     // Binary operation with 'op' representing the operator as a string
     // Examples: '+', '-', '*', '/', '%', '|', '&', '^', '<<', '>>'
-    func(op: string) opBinary(me, other: OneType)->Struct { return {1, 2}; }
-    func(op: string) opBinary(me, other: AnotherType)->Struct { return {1, 2}; }
+    func(op: string) opBinary(me, other: OneType)->Struct
+    {
+        return {1, 2};
+    }
+    func(op: string) opBinary(me, other: AnotherType)->Struct
+    {
+        return {1, 2};
+    }
 
     // Binary operation when this struct is the right operand
     // Examples: OneType + myStruct, AnotherType * myStruct
-    func(op: string) opBinaryRight(me, other: OneType)->Struct { return {1, 2}; }
-    func(op: string) opBinaryRight(me, other: AnotherType)->Struct { return {1, 2}; }
+    func(op: string) opBinaryRight(me, other: OneType)->Struct
+    {
+        return {1, 2};
+    }
+    func(op: string) opBinaryRight(me, other: AnotherType)->Struct
+    {
+        return {1, 2};
+    }
 
     // A commutative opBinary can also be used when the struct is the right operand.
     // Restrict the operators when a generic opBinary also handles non-commutative ones.
     #[Swag.Commutative("+", "*")]
-    func(op: string) opBinary(me, other: u32)->Struct { return {1, 2}; }
+    func(op: string) opBinary(me, other: u32)->Struct
+    {
+        return {1, 2};
+    }
 
     // Unary operation with 'op' representing the operator as a string
     // Examples: '!', '-', '~'
-    func(op: string) opUnary(me)->Struct { return {1, 2}; }
+    func(op: string) opUnary(me)->Struct
+    {
+        return {1, 2};
+    }
 
     // Assignment with operator 'op' (compound assignments)
     // Examples: '+=', '-=', '*=', '/=', '%=', '|=', '&=', '^=', '<<=', '>>='

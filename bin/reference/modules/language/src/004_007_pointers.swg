@@ -56,7 +56,7 @@ droppable value.
 
     var value = 42'u8
     var values = [1, 2, 3]
-    let ptr: *u8 = &value
+    let ptr:  *u8 = &value
     let text: string = "value"
     let slice: [..] s32 = values
     let holder = NonNullPointerHolder{ptr: &value}

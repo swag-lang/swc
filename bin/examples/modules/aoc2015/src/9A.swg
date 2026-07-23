@@ -56,7 +56,7 @@ func day9A()
         var calc = 0'u64
         for i in cast(s64) combi.count - 1 do
             calc += dist.find(combi[i] << 32 | combi[i + 1]).value
-        total = Math.min(total, calc)
+        total    = Math.min(total, calc)
         if !Slice.nextPermutation(combi.toSlice()) do
             break
     }

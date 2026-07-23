@@ -32,28 +32,28 @@ impl IActionUI for ActionCapture
         {
         case DoIt:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Capture"
-            evt.icon = Icon.from(&main.icons48, 6)
+            evt.name     = "Capture"
+            evt.icon     = Icon.from(&main.icons48, 6)
         case Area:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Capture Area"
-            evt.icon = Icon.from(&main.icons24, 7)
+            evt.name     = "Capture Area"
+            evt.icon     = Icon.from(&main.icons24, 7)
         case LastArea:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Capture Last Area"
-            evt.icon = Icon.from(&main.icons24, 15)
+            evt.name     = "Capture Last Area"
+            evt.icon     = Icon.from(&main.icons24, 15)
         case FullScreen:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Capture Full Screen"
-            evt.icon = Icon.from(&main.icons24, 6)
+            evt.name     = "Capture Full Screen"
+            evt.icon     = Icon.from(&main.icons24, 6)
         case ActiveWnd:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Capture Active Window"
-            evt.icon = Icon.from(&main.icons24, 14)
+            evt.name     = "Capture Active Window"
+            evt.icon     = Icon.from(&main.icons24, 14)
         case Screen0:
             evt.setFlags |= .Name | .Icon
-            evt.name = Format.toString("Capture Monitor 0 (%x%)", main.monitors[0].rect.width, main.monitors[0].rect.height)
-            evt.icon = Icon.from(&main.icons24, 5)
+            evt.name     = Format.toString("Capture Monitor 0 (%x%)", main.monitors[0].rect.width, main.monitors[0].rect.height)
+            evt.icon     = Icon.from(&main.icons24, 5)
         case Screen1:
             // Screen<N> maps to monitors[N]; guard the read like the execute path
             // (idx >= monitors.count) so a machine with fewer monitors is safe.
@@ -155,9 +155,9 @@ impl MainWnd
         {
             with capture = Memory.new'Capture()
             {
-                .width, .widthOrg = img.width
+                .width, .widthOrg   = img.width
                 .height, .heightOrg = img.height
-                .backImg = img
+                .backImg            = img
             }
         }
 

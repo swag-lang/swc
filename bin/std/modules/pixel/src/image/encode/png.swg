@@ -17,10 +17,10 @@ private
 
     struct RowInfo
     {
-        scanlineIdx:     u32
-        rowNum:          u32
-        pass:            s32
-        filter:          u8
+        scanlineIdx: u32
+        rowNum:      u32
+        pass:        s32
+        filter:      u8
     }
 
     #[Swag.EnumFlags]
@@ -34,12 +34,12 @@ private
 
     struct EncodeFlags
     {
-        filterChoice:     FilterChoice
-        interlace:        bool
-        sameLayout:       bool
-        toBigEndian:      bool
-        progressive:      bool
-        finalize:         bool
+        filterChoice: FilterChoice
+        interlace:    bool
+        sameLayout:   bool
+        toBigEndian:  bool
+        progressive:  bool
+        finalize:     bool
     }
 
     enum Filter
@@ -71,48 +71,48 @@ private
 
     struct SubImage
     {
-        width:             u32
-        height:            u32
-        outWidth:          u32
-        scanlineWidth:     u32
+        width:         u32
+        height:        u32
+        outWidth:      u32
+        scanlineWidth: u32
     }
 
     struct Ihdr
     {
-        width:                 u32
-        height:                u32
-        bitDepth:              u8
-        colorType:             ColorType = undefined
-        compressionMethod:     u8
-        filterMethod:          u8
-        interlaceMethod:       u8
+        width:             u32
+        height:            u32
+        bitDepth:          u8
+        colorType:         ColorType = undefined
+        compressionMethod: u8
+        filterMethod:      u8
+        interlaceMethod:   u8
     }
 
     struct ChunkBitfield
     {
-        ihdr:        bool
-        plte:        bool
-        chrm:        bool
-        iccp:        bool
-        gama:        bool
-        sbit:        bool
-        srgb:        bool
-        text:        bool
-        bkgd:        bool
-        hist:        bool
-        trns:        bool
-        phys:        bool
-        splt:        bool
-        time:        bool
-        offs:        bool
-        exif:        bool
-        unknown:     bool
+        ihdr:    bool
+        plte:    bool
+        chrm:    bool
+        iccp:    bool
+        gama:    bool
+        sbit:    bool
+        srgb:    bool
+        text:    bool
+        bkgd:    bool
+        hist:    bool
+        trns:    bool
+        phys:    bool
+        splt:    bool
+        time:    bool
+        offs:    bool
+        exif:    bool
+        unknown: bool
     }
 
     struct Chunk
     {
-        offset:     u64
-        length:     u32
+        offset: u64
+        length: u32
         type:       [4] u8
         crc:        u32
     }
@@ -121,30 +121,30 @@ private
 #[Swag.Opaque]
 public struct Encoder
 {
-    stream:                  #null *ConcatBuffer
-    stored:                  ChunkBitfield
-    ihdr:                    Ihdr
-    currentChunk:            Chunk
+    stream:       #null *ConcatBuffer
+    stored:       ChunkBitfield
+    ihdr:         Ihdr
+    currentChunk: Chunk
     tmpBuf:                  [256] u8
-    writePtr:                #null [*] u8
-    crc:                     Hash.Crc32
+    writePtr: #null [*] u8
+    crc:      Hash.Crc32
     subimage:                [7] SubImage
-    widestPass:              s32
-    lastPass:                s32
-    bytesPerPixel:           u32
-    scanlineBuf:             #null [*] u8
-    prevScanlineBuf:         #null [*] u8
-    row_buf:                 #null [*] u8
-    filteredScanlineBuf:     #null [*] u8
-    filteredScanline:        #null [*] u8
-    scanline:                #null [*] u8
-    prevScanline:            #null [*] u8
-    encodeFlags:             EncodeFlags
-    rowInfo:                 RowInfo
-    pixelSize:               u32
-    bufferToCompress:        Array'u8
-    swapRB:                  bool
-    userOptions:             EncodeOptions
+    widestPass:          s32
+    lastPass:            s32
+    bytesPerPixel:       u32
+    scanlineBuf:         #null [*] u8
+    prevScanlineBuf:     #null [*] u8
+    row_buf:             #null [*] u8
+    filteredScanlineBuf: #null [*] u8
+    filteredScanline:    #null [*] u8
+    scanline:            #null [*] u8
+    prevScanline:        #null [*] u8
+    encodeFlags:         EncodeFlags
+    rowInfo:             RowInfo
+    pixelSize:           u32
+    bufferToCompress:    Array'u8
+    swapRB:              bool
+    userOptions:         EncodeOptions
 }
 
 impl Encoder
@@ -298,7 +298,7 @@ impl Encoder
             .subimage[i].scanlineWidth = .calculateScanlineWidth(.subimage[i].width)
             if .subimage[.widestPass].scanlineWidth < .subimage[i].scanlineWidth do
                 .widestPass = i
-            .lastPass = i
+            .lastPass       = i
         }
     }
 
@@ -353,7 +353,7 @@ impl Encoder
                 if shiftAmount > 7
                 {
                     shiftAmount = initialShift
-                    .scanline += 1
+                    .scanline   += 1
                 }
             }
 
@@ -426,7 +426,7 @@ impl Encoder
         if size > Swag.S32.Max / 128 do
             return Swag.S32.Max
 
-        var sum: s32
+        var sum:     s32
         var a, b, c: s32
 
         for i in size
@@ -547,9 +547,9 @@ impl Encoder
         let filter      = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
             filtered_sl = cast([*] u8) (notnull .scanline)
-        filtered_sl -= 1
-        filtered_sl[0] = cast(u8) filter
-        filtered_sl += 1
+        filtered_sl     -= 1
+        filtered_sl[0]  = cast(u8) filter
+        filtered_sl     += 1
 
         if filter != .None do
             .filterScanline(filtered_sl, scanlineWidth - 1, filter)
@@ -578,14 +578,14 @@ impl Encoder
                 return true
 
             ri.scanlineIdx = 0
-            ri.pass += 1
+            ri.pass        += 1
 
             while (!sub[ri.pass].width or !sub[ri.pass].height) and (ri.pass < .lastPass) do
                 ri.pass += 1
         }
         else
         {
-            ri.rowNum += 1
+            ri.rowNum      += 1
             ri.scanlineIdx += 1
         }
 

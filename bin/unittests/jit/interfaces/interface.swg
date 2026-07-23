@@ -3,7 +3,7 @@
 interface I1 { mtd toto(); }
 struct T {}
 
-var gInterfaceTitiCalls: s32
+var gInterfaceTitiCalls:     s32
 var gInterfaceImplTotoCalls: s32
 
 impl T

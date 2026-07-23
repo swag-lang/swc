@@ -28,8 +28,8 @@ internal func day4BuildInput(buffer: &[16] u8, value: u64)->const [..] u8
     for
     {
         digits[digitCount] = cast(u8) (remaining % 10) + '0'
-        digitCount += 1
-        remaining /= 10
+        digitCount         += 1
+        remaining          /= 10
         if !remaining do
             break
     }
@@ -37,9 +37,9 @@ internal func day4BuildInput(buffer: &[16] u8, value: u64)->const [..] u8
     var writeIndex = @countof(DAY4_SECRET)
     while digitCount
     {
-        digitCount -= 1
+        digitCount         -= 1
         buffer[writeIndex] = digits[digitCount]
-        writeIndex += 1
+        writeIndex         += 1
     }
 
     return @mkslice(&buffer[0], writeIndex)

@@ -21,7 +21,7 @@
 #assert(0b1111 == 15)
 #assert(0b1111'u8 == 15'u8)
 #assert(15's16 == 0b1111)
-#assert(0xfFFf == 65535)
+#assert(0xFFFF == 65535)
 #assert(0xFFFF == 65535)
 #assert(0x0000_FFFF == 65535)
 #assert(0xFF == 255)

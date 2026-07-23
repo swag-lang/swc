@@ -12,9 +12,9 @@ struct SubscriptionPlan
 
 struct TeamOrder
 {
-    requestedSeats:        s32
-    analyticsAddOnCents:   s32
-    needsPrioritySupport:  bool
+    requestedSeats:       s32
+    analyticsAddOnCents:  s32
+    needsPrioritySupport: bool
 }
 
 struct QuoteSummary
@@ -63,10 +63,10 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
         result.billableSeats = 0
 
     result.seatSubtotalCents = result.billableSeats * plan.baseSeatPriceCents
-    result.addOnCents = order.analyticsAddOnCents
-    result.discountCents = discountRule(result.seatSubtotalCents)
-    result.supportCents = supportFeeRule(order.needsPrioritySupport)
-    result.totalCents = result.seatSubtotalCents + result.addOnCents + result.supportCents - result.discountCents
+    result.addOnCents        = order.analyticsAddOnCents
+    result.discountCents     = discountRule(result.seatSubtotalCents)
+    result.supportCents      = supportFeeRule(order.needsPrioritySupport)
+    result.totalCents        = result.seatSubtotalCents + result.addOnCents + result.supportCents - result.discountCents
     return result
 }
 

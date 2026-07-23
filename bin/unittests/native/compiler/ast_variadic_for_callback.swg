@@ -46,7 +46,7 @@ impl RegressionArray
     mtd add(value: T)
     {
         .values[.count] = value
-        .count += 1
+        .count          += 1
     }
 
     #[Macro]

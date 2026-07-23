@@ -2,28 +2,28 @@ using Core, TrueType
 
 public struct GlyphAtlas
 {
-    texture:     Texture
-    width:       u32
-    height:      u32
-    bpp:         u32
-    datas:       Array'u8
-    dirty:       bool
-    curX:        s32
-    curY:        s32
-    nextY:       s32
+    texture: Texture
+    width:   u32
+    height:  u32
+    bpp:     u32
+    datas:   Array'u8
+    dirty:   bool
+    curX:    s32
+    curY:    s32
+    nextY:   s32
 }
 
 public struct GlyphDesc
 {
-    uv:             Math.Rectangle
-    atlasIndex:     s32 = -1
-    glyphIndex:     u32     // Index in the typeface, used for kerning lookups
-    advanceX:       f32
-    advanceY:       f32
-    shiftX:         f32
-    shiftY:         f32
-    width:          f32
-    height:         f32
+    uv:         Math.Rectangle
+    atlasIndex: s32 = -1
+    glyphIndex: u32     // Index in the typeface, used for kerning lookups
+    advanceX:   f32
+    advanceY:   f32
+    shiftX:     f32
+    shiftY:     f32
+    width:      f32
+    height:     f32
 }
 
 // Rendering technique requested when creating a Font.
@@ -70,46 +70,46 @@ const AutoMsdfMinPx: f32 = 20.0
 // MSDF atlas regardless of how many sizes are used.
 public struct GlyphCache
 {
-    typeFace:          *TypeFace = undefined
-    renderMode:        FontRenderMode
-    refSize:           u32
-    spread:            u32
-    forceBold:         bool
-    forceItalic:       bool
-    hasKerning:        bool
+    typeFace:    *TypeFace = undefined
+    renderMode:  FontRenderMode
+    refSize:     u32
+    spread:      u32
+    forceBold:   bool
+    forceItalic: bool
+    hasKerning:  bool
 
     // Metrics at the reference size, in pixels.
-    ascent:            f32
-    descent:           f32
-    height:            f32
-    underlinePos:      f32
-    underlineSize:     f32
+    ascent:        f32
+    descent:       f32
+    height:        f32
+    underlinePos:  f32
+    underlineSize: f32
 
-    atlases:           Array'GlyphAtlas
-    glyphRef:          HashTable'(u32, *GlyphDesc)
+    atlases:  Array'GlyphAtlas
+    glyphRef: HashTable'(u32, *GlyphDesc)
 
     // Kerning between two glyph indices, in reference-size pixels (lazily filled).
     // Key = (leftGlyphIndex << 32) | rightGlyphIndex.
-    kernRef:           HashTable'(u64, f32)
-    dirty:             bool
+    kernRef: HashTable'(u64, f32)
+    dirty:   bool
 }
 
 // A Font is a lightweight view over a shared GlyphCache at a given draw size.
 // Glyph quads and metrics are scaled by size/refSize when drawn or measured.
 public struct Font
 {
-    cache:             *GlyphCache = undefined
-    mode:              FontRenderMode     // Creation intent (may be .Auto); the cache is always concrete
-    size:              u32
-    forceBold:         bool
-    forceItalic:       bool
+    cache:       *GlyphCache = undefined
+    mode:        FontRenderMode     // Creation intent (may be .Auto); the cache is always concrete
+    size:        u32
+    forceBold:   bool
+    forceItalic: bool
 
     // Metrics scaled to 'size', in pixels.
-    ascent:            f32
-    descent:           f32
-    height:            f32
-    underlinePos:      f32
-    underlineSize:     f32
+    ascent:        f32
+    descent:       f32
+    height:        f32
+    underlinePos:  f32
+    underlineSize: f32
 
     fullname:          String
 
@@ -445,7 +445,7 @@ public impl GlyphCache
 
         let x = atlas.curX
         let y = atlas.curY
-        atlas.curX += rowBytes
+        atlas.curX  += rowBytes
         atlas.nextY = Math.max(atlas.nextY, atlas.curY + bmpRef.rows)
 
         // Copy the rendered glyph to the atlas datas
@@ -455,7 +455,7 @@ public impl GlyphCache
         for j in bmpRef.rows
         {
             Memory.copy(buffer, src, cast(u64) rowBytes)
-            src += bmpRef.pitch
+            src    += bmpRef.pitch
             buffer -= atlas.width
         }
 

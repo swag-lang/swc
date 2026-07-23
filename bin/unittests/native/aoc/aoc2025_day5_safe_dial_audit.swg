@@ -51,7 +51,7 @@ func auditRotations(lines: const [..] string, startPosition: s32)->SafeAudit
     for line in lines
     {
         let rotation = parseRotation(line)
-        result.totalClicks += rotation.clicks
+        result.totalClicks     += rotation.clicks
         result.longestRotation = maxS32(result.longestRotation, rotation.clicks)
 
         let signedClicks = rotation.turnLeft ? -rotation.clicks : rotation.clicks

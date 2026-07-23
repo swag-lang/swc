@@ -22,7 +22,10 @@ for composition-like behavior, improving code readability and reducing nesting.
 */
 #test
 {
-    struct Point2 { x, y: s32 }
+    struct Point2
+    {
+        x, y: s32
+    }
 
     struct Point3
     {

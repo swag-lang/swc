@@ -9,7 +9,7 @@ var g_Texture: Texture
 var g_Image:   Image
 
 const W, H = 1024
-const UX = 300
+const UX   = 300
 
 #[Swag.Using(Gui.Properties)]
 struct NoiseParams

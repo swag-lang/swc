@@ -3,10 +3,10 @@ using Core.Errors
 // A stream for reading from or writing to a byte buffer
 public struct ByteStream
 {
-    readBuffer:      #null const [..] u8     // Buffer used for reading
-    writeBuffer:     #null *Array'u8         // Buffer used for writing
-    seek:            u64                     // Current read/write position
-    eof:             bool                    // End-of-file flag for reads
+    readBuffer:  #null const [..] u8     // Buffer used for reading
+    writeBuffer: #null *Array'u8         // Buffer used for writing
+    seek:        u64                     // Current read/write position
+    eof:         bool                    // End-of-file flag for reads
 }
 
 public impl ByteStream
@@ -66,8 +66,8 @@ public impl ByteStream
             writeBuffer.reserve(seek + #sizeof(T))
         let buffer = notnull writeBuffer.buffer
         var ptr = cast(*T) (buffer + seek)
-        dref ptr = val
-        seek += #sizeof(T)
+        dref ptr          = val
+        seek              += #sizeof(T)
         writeBuffer.count = Math.max(writeBuffer.count, seek)
     }
 
@@ -85,7 +85,7 @@ public impl ByteStream
         let buffer = notnull .writeBuffer.buffer
         let ptr = buffer + .seek
         Memory.copy(ptr, @dataof(slice), count)
-        .seek += count
+        .seek              += count
         .writeBuffer.count = Math.max(.writeBuffer.count, .seek)
     }
 

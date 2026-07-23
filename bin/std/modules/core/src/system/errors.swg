@@ -19,8 +19,8 @@ struct BadParameterError
 struct SyntaxError
 {
     using base:     Swag.BaseError
-    line, col:      u64
-    seek:           u64
+    line, col: u64
+    seek:      u64
 }
 
 struct OverflowError
@@ -53,8 +53,8 @@ struct InvalidFileNameError
 
 struct InvalidVersion
 {
-    wantedVersion:     u32
-    foundVersion:      u32
+    wantedVersion: u32
+    foundVersion:  u32
 }
 
 // Make a string persistent for errors.

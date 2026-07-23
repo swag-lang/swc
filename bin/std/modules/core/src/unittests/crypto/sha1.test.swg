@@ -36,8 +36,8 @@ func fillSha1Pattern(buffer: [..] u8)
     var i = 0'u64
     while i < @countof(buffer)
     {
-        buffer[i] = cast(u8) ((i * 37 + 11) & 0xff)
-        i += 1
+        buffer[i] = cast(u8) ((i * 37 + 11) & 0xFF)
+        i         += 1
     }
 }
 

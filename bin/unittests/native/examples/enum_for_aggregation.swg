@@ -11,23 +11,23 @@ enum ReorderPriority: u8
 
 struct InventoryItem
 {
-    sku:             string
-    inStock:         u32
-    targetStock:     u32
-    unitCostCents:   u32
-    leadTimeDays:    u32
-    essential:       bool
+    sku:           string
+    inStock:       u32
+    targetStock:   u32
+    unitCostCents: u32
+    leadTimeDays:  u32
+    essential:     bool
 }
 
 struct RestockPlan
 {
-    itemCount:              u32
-    reorderItemCount:       u32
-    totalUnitsToOrder:      u32
-    estimatedCostCents:     u32
-    delayedEssentialCount:  u32
-    priority:               ReorderPriority
-    topSku:                 string
+    itemCount:             u32
+    reorderItemCount:      u32
+    totalUnitsToOrder:     u32
+    estimatedCostCents:    u32
+    delayedEssentialCount: u32
+    priority:              ReorderPriority
+    topSku:                string
 }
 
 func missingUnits(item: InventoryItem)->u32
@@ -89,7 +89,7 @@ func pickTopSku(items: const [..] InventoryItem)->string
         if currentMissing > bestMissing
         {
             bestMissing = currentMissing
-            bestSku = item.sku
+            bestSku     = item.sku
         }
     }
 
@@ -113,13 +113,13 @@ func computePriority(items: const [..] InventoryItem)->ReorderPriority
 func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
 {
     var result: RestockPlan = undefined
-    result.itemCount = cast(u32) @countof(items)
-    result.reorderItemCount = countItemsToReorder(items)
-    result.totalUnitsToOrder = computeUnitsToOrder(items)
-    result.estimatedCostCents = computeEstimatedCost(items)
+    result.itemCount             = cast(u32) @countof(items)
+    result.reorderItemCount      = countItemsToReorder(items)
+    result.totalUnitsToOrder     = computeUnitsToOrder(items)
+    result.estimatedCostCents    = computeEstimatedCost(items)
     result.delayedEssentialCount = countDelayedEssentialItems(items)
-    result.priority = computePriority(items)
-    result.topSku = pickTopSku(items)
+    result.priority              = computePriority(items)
+    result.topSku                = pickTopSku(items)
     return result
 }
 

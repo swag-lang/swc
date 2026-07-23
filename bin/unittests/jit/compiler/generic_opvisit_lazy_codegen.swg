@@ -9,7 +9,7 @@ namespace GenericForeachLazyCodegen
             return
 
         var req: AllocatorRequest
-        req.size = size
+        req.size    = size
         req.address = buffer
 
         let talloc = allocator orelse @getcontext().allocator
@@ -20,7 +20,7 @@ namespace GenericForeachLazyCodegen
     {
         var req: AllocatorRequest
         req.address = buffer
-        req.size = newSize
+        req.size    = newSize
         req.oldSize = oldSize
 
         let talloc = allocator orelse @getcontext().allocator
@@ -43,7 +43,7 @@ namespace GenericForeachLazyCodegen
             if newCapacity <= .capacity do
                 return
 
-            .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
             .capacity = newCapacity
         }
 
@@ -62,13 +62,13 @@ namespace GenericForeachLazyCodegen
         mtd add(value: T)
         {
             .buffer[.count] = value
-            .count += 1
+            .count          += 1
         }
 
         mtd free()
         {
             helperFree(.buffer, .capacity * #sizeof(T), .allocator)
-            .buffer = null
+            .buffer           = null
             .count, .capacity = 0
         }
     }

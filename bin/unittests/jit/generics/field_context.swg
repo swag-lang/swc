@@ -89,9 +89,9 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
     }
 
     var data: Local = undefined
-    data.item.first = value
+    data.item.first  = value
     data.item.second = "ok"
-    data.item.third = tail
+    data.item.third  = tail
     return data.item.third
 }
 
@@ -103,16 +103,16 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
     #assert(#typeof(wrapped.item.value) == u16)
 
     var renamed: RenamedDoubleBufferImplicit'(u16, 3)
-    renamed.first.values[0] = 1
+    renamed.first.values[0]  = 1
     renamed.second.values[2] = 9
     @assert(renamed.first.values[0] == 1'u16)
     @assert(renamed.second.values[2] == 9'u16)
     #assert(#typeof(renamed.first.values) == #type [3] u16)
 
     var partial: PartialMiddleDefaultHolder'(u32, f64) = undefined
-    partial.item.first = 11
+    partial.item.first  = 11
     partial.item.second = "value"
-    partial.item.third = 2.5
+    partial.item.third  = 2.5
     @assert(partial.item.first == 11'u32)
     @assert(partial.item.second == "value")
     @assert(partial.item.third == 2.5)

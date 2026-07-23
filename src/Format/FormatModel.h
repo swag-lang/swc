@@ -68,10 +68,11 @@ enum class FormatBlockKind : uint8_t
 
 struct FormatBlock
 {
-    uint32_t        openPiece  = 0; // piece index of `{`
-    uint32_t        closePiece = 0; // piece index of `}`
-    uint32_t        headPiece  = 0; // first piece of the owning statement / declaration
+    uint32_t        openPiece  = 0;     // piece index of `{`
+    uint32_t        closePiece = 0;     // piece index of `}`
+    uint32_t        headPiece  = 0;     // first piece of the owning statement / declaration
     FormatBlockKind kind       = FormatBlockKind::Plain;
+    bool            exprLevel  = false; // embedded in an expression or type (closure body, anonymous struct / tuple type)
 };
 
 // One token or comment of the source stream.

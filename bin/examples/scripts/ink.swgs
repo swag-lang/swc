@@ -33,12 +33,12 @@ var lastPos:      Vector2
 
 struct Drop
 {
-    center:           Vector2
-    r:                f32 = 50
-    circleDetail:     u32 = 50
-    vertices:         Array'Vector2
-    col:              Color = Argb.Red
-    lp:               LinePath
+    center:       Vector2
+    r:            f32 = 50
+    circleDetail: u32 = 50
+    vertices:     Array'Vector2
+    col:          Color = Argb.Red
+    lp:           LinePath
 }
 
 impl Drop
@@ -129,7 +129,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             {
                 currentColor = Palette[counter % @countof(Palette)]
                 newDrop      = false
-                counter += 1
+                counter      += 1
             }
 
             if lastPos.distanceTo({mousePos.x, mousePos.y}) > 1

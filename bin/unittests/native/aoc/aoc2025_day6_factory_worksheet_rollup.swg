@@ -5,17 +5,17 @@
 
 struct WorksheetRollup
 {
-    problemCount:            u32
-    additiveProblemCount:    u32
-    multiplicativeCount:     u32
-    grandTotal:              u64
-    largestProblemValue:     u64
+    problemCount:         u32
+    additiveProblemCount: u32
+    multiplicativeCount:  u32
+    grandTotal:           u64
+    largestProblemValue:  u64
 }
 
 struct ProblemValue
 {
-    value:       u64
-    isAdditive:  bool
+    value:      u64
+    isAdditive: bool
 }
 
 func maxU64(lhs, rhs: u64)->u64
@@ -50,7 +50,7 @@ func parseAlignedNumber(line: string, firstColumn, lastColumn: u32, value: *u64)
         if c >= '0' and c <= '9'
         {
             foundDigit = true
-            result = result * 10'u64 + cast(u64) (c - '0')
+            result     = result * 10'u64 + cast(u64) (c - '0')
         }
     }
 
@@ -77,7 +77,7 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
 
     @assert(op == '+' or op == '*')
 
-    var value: u64
+    var value:       u64
     var numberCount: u32
 
     for row in 0 to @countof(sheet) - 1
@@ -104,7 +104,7 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
     @assert(numberCount > 0)
 
     var result: ProblemValue
-    result.value = value
+    result.value      = value
     result.isAdditive = op == '+'
     return result
 }
@@ -143,8 +143,8 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
 
         let problemValue = evaluateProblem(sheet, firstColumn, column - 1)
 
-        result.problemCount += 1
-        result.grandTotal += problemValue.value
+        result.problemCount        += 1
+        result.grandTotal          += problemValue.value
         result.largestProblemValue = maxU64(result.largestProblemValue, problemValue.value)
 
         if problemValue.isAdditive do

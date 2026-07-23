@@ -2,8 +2,8 @@ using Swag, Core, Core.Errors
 
 struct ImageDecoder
 {
-    type:     const *TypeInfoStruct
-    itf:      IImageDecoder
+    type: const *TypeInfoStruct
+    itf:  IImageDecoder
 }
 
 public struct DecodeOptions

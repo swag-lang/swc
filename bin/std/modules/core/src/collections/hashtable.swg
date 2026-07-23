@@ -4,9 +4,9 @@ using Swag
 // Represents a single key-value pair entry within a HashTable.
 struct(K, V) HashTableEntry
 {
-    hash:      u32     // The cached hash of the key.
-    key:       K       // The key.
-    value:     V       // The value associated with the key.
+    hash:  u32     // The cached hash of the key.
+    key:   K       // The key.
+    value: V       // The value associated with the key.
 }
 
 // A hash me.table implemented with open-addressing that maps keys to values.
@@ -19,11 +19,11 @@ struct(K, V) HashTable
     const HASH_FIRST       = 2'u32     // The first possible valid hash value.
     const HASH_MASK        = 2'u32     // A mask to ensure that valid hashes are >= HASH_FIRST.
 
-    allocator:             #null IAllocator             // The me.allocator used for memory operations.
-    table:                 #null [*] HashTableEntry     // Pointer to the contiguous memory block for the hash me.table.
-    count:                 u64                          // The number of valid key-value pairs currently in the me.table.
-    capacity:              u64                          // The total number of slots in the hash me.table.
-    deleted:               u64                          // The number of slots marked as me.deleted.
+    allocator: #null IAllocator             // The me.allocator used for memory operations.
+    table:     #null [*] HashTableEntry     // Pointer to the contiguous memory block for the hash me.table.
+    count:     u64                          // The number of valid key-value pairs currently in the me.table.
+    capacity:  u64                          // The total number of slots in the hash me.table.
+    deleted:   u64                          // The number of slots marked as me.deleted.
 }
 
 impl HashTable
@@ -208,7 +208,7 @@ impl HashTable
         }
 
         Memory.free(table, .capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
-        .table = null
+        .table                      = null
         .count, .capacity, .deleted = 0
     }
 
@@ -237,7 +237,7 @@ impl HashTable
 
         if .allocator == null do
             .allocator = @getcontext().allocator
-        .table = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
+        .table         = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
         // Be sure hash entry is 0
@@ -318,13 +318,13 @@ impl HashTable
         else
         {
             if table[index].hash == HashTable.HASH_DELETED do
-                .deleted -= 1
+                .deleted       -= 1
             table[index].key   = key
             table[index].value = #fwd value
         }
 
         table[index].hash = hashVal
-        .count += 1
+        .count            += 1
         return table + index
     }
 
@@ -362,7 +362,7 @@ impl HashTable
         }
 
         table[index].hash = hashVal
-        .count += 1
+        .count            += 1
         return table + index
     }
 
@@ -383,8 +383,8 @@ impl HashTable
             if table[index].hash == hashVal and table[index].key == key
             {
                 table[index].hash = HashTable.HASH_DELETED
-                .count -= 1
-                .deleted += 1
+                .count            -= 1
+                .deleted          += 1
                 return
             }
 
@@ -542,7 +542,7 @@ impl HashTable
                 if hashval == HashTable.HASH_DELETED do
                     .deleted -= 1
                 elif hashval >= HashTable.HASH_FIRST do
-                    .count -= 1
+                    .count    -= 1
                 table[i].hash = HashTable.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value

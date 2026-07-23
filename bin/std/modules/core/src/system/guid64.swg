@@ -122,16 +122,16 @@ impl GUID64
         result[12] = Tbl[idx & 0xF]; idx >>= 4
         result[11] = Tbl[idx & 0xF]; idx >>= 4
         result[10] = Tbl[idx & 0xF]; idx >>= 4
-        result[9] = Tbl[idx & 0xF]; idx >>= 4
-        result[8] = Tbl[idx & 0xF]; idx >>= 4
-        result[7] = Tbl[idx & 0xF]; idx >>= 4
-        result[6] = Tbl[idx & 0xF]; idx >>= 4
-        result[5] = Tbl[idx & 0xF]; idx >>= 4
-        result[4] = Tbl[idx & 0xF]; idx >>= 4
-        result[3] = Tbl[idx & 0xF]; idx >>= 4
-        result[2] = Tbl[idx & 0xF]; idx >>= 4
-        result[1] = Tbl[idx & 0xF]; idx >>= 4
-        result[0] = Tbl[idx & 0xF]
+        result[9]  = Tbl[idx & 0xF]; idx >>= 4
+        result[8]  = Tbl[idx & 0xF]; idx >>= 4
+        result[7]  = Tbl[idx & 0xF]; idx >>= 4
+        result[6]  = Tbl[idx & 0xF]; idx >>= 4
+        result[5]  = Tbl[idx & 0xF]; idx >>= 4
+        result[4]  = Tbl[idx & 0xF]; idx >>= 4
+        result[3]  = Tbl[idx & 0xF]; idx >>= 4
+        result[2]  = Tbl[idx & 0xF]; idx >>= 4
+        result[1]  = Tbl[idx & 0xF]; idx >>= 4
+        result[0]  = Tbl[idx & 0xF]
     }
 
     // Convert guid to a string

@@ -26,12 +26,12 @@ func day6B()
         Memory.clear(&state[0], #sizeof(state))
 
         state[6], state[8] = oldState[0]
-        total = oldState[0] * 2
+        total              = oldState[0] * 2
 
         for f, i in oldState[1 to]
         {
             state[i] += oldState[i + 1]
-            total += oldState[i + 1]
+            total    += oldState[i + 1]
         }
     }
 

@@ -13,7 +13,7 @@ func createPalettesPage(parent: *Wnd)
     let right = createPanel(parent, "Designed palettes", "Named sets and accent groups are regular palette entries with the same selection signal.", layout.right)
     {
         let warm = PalettePicker.create(right, {24, 118, 360, 68})
-        warm.boxSize = 30
+        warm.boxSize   = 30
         warm.boxMargin = 6
         warm.addColor(Argb.Crimson)
         warm.addColor(Argb.Tomato)
@@ -27,7 +27,7 @@ func createPalettesPage(parent: *Wnd)
         createCaption(right, "Warm set", 24, 90, 240)
 
         let cool = PalettePicker.create(right, {24, 226, 360, 68})
-        cool.boxSize = 30
+        cool.boxSize   = 30
         cool.boxMargin = 6
         cool.addColor(Argb.CornflowerBlue)
         cool.addColor(Argb.DeepSkyBlue)

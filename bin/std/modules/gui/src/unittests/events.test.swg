@@ -8,12 +8,12 @@ using Swag, Core
     @assert(evt.type == #typeof(CommandStateEvent))
     @assert(!evt.accepted)
 
-    evt.kind = CommandStateEvent.Kind.ApplyCommandState
-    evt.id = Dialog.BtnOk
-    evt.setFlags = CommandStateEvent.SetFlags.Disabled | CommandStateEvent.SetFlags.Name
+    evt.kind          = CommandStateEvent.Kind.ApplyCommandState
+    evt.id            = Dialog.BtnOk
+    evt.setFlags      = CommandStateEvent.SetFlags.Disabled | CommandStateEvent.SetFlags.Name
     evt.renderingHint = CommandStateEvent.RenderingHint.ExclusiveGroup
-    evt.disabled = true
-    evt.name = "Ok"
+    evt.disabled      = true
+    evt.name          = "Ok"
 
     @assert(evt.kind == CommandStateEvent.Kind.ApplyCommandState)
     @assert(evt.id == "Dialog.BtnOk")
@@ -30,10 +30,10 @@ using Swag, Core
 #test
 {
     var mouseEvt: MouseEvent
-    mouseEvt.kind = .MouseMove
+    mouseEvt.kind       = .MouseMove
     mouseEvt.surfacePos = {10, 20}
-    mouseEvt.move = {-3, 4}
-    mouseEvt.modifiers = Input.KeyModifiers.Control | Input.KeyModifiers.Shift
+    mouseEvt.move       = {-3, 4}
+    mouseEvt.modifiers  = Input.KeyModifiers.Control | Input.KeyModifiers.Shift
 
     @assert(mouseEvt.kind == MouseEvent.Kind.MouseMove)
     @assert(mouseEvt.surfacePos == Math.Point{10, 20})
@@ -70,7 +70,7 @@ using Swag, Core
 
     var focus: FocusEvent
     @assert(focus.canChangeFocus)
-    focus.kind = .CanKillFocus
+    focus.kind           = .CanKillFocus
     focus.canChangeFocus = false
     @assert(focus.kind == FocusEvent.Kind.CanKillFocus)
     @assert(!focus.canChangeFocus)
@@ -87,8 +87,8 @@ using Swag, Core
 #test
 {
     var key: KeyEvent
-    key.kind = .Rune
-    key.char = 'x'
+    key.kind      = .Rune
+    key.char      = 'x'
     key.modifiers = Input.KeyModifiers.Alt
     @assert(key.kind == KeyEvent.Kind.Rune)
     @assert(key.char == 'x')
@@ -96,8 +96,8 @@ using Swag, Core
 
     var sysUser: SysUserEvent
     sysUser.userMsg = 42
-    sysUser.param0 = 11
-    sysUser.param1 = 22
+    sysUser.param0  = 11
+    sysUser.param1  = 22
     @assert(sysUser.userMsg == 42)
     @assert(sysUser.param0 == 11)
     @assert(sysUser.param1 == 22)

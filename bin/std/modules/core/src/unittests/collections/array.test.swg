@@ -4,7 +4,7 @@ using Swag
 
 var ArrayDropCount: s32 = 0
 var ArrayDropTrace: s64 = 0
-var ArrayDropMask: u32 = 0
+var ArrayDropMask:  u32 = 0
 
 struct ArrayDropTracked
 {
@@ -28,7 +28,7 @@ impl ArrayDropTracked
         {
             ArrayDropCount += 1
             ArrayDropTrace = ArrayDropTrace * 100 + cast(s64) .value
-            ArrayDropMask |= bit
+            ArrayDropMask  |= bit
         }
 
         .value = 0
@@ -39,7 +39,7 @@ func resetArrayDropTrace()
 {
     ArrayDropCount = 0
     ArrayDropTrace = 0
-    ArrayDropMask = 0
+    ArrayDropMask  = 0
 }
 
 func assertIntArray(values: const &Array's32, expected: const [..] s32)->bool
@@ -286,7 +286,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     @assert(assertIntArray(values, expectedAssigned))
 
     var movedFront: s32 = 4
-    var movedBack: s32 = 8
+    var movedBack:  s32 = 8
     values.insertAt(0, #move movedFront)
     values.add(#move movedBack)
 
@@ -314,7 +314,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     let frontPtr = copy.frontPtr()
     let backPtr = copy.backPtr()
     dref frontPtr = 9
-    dref backPtr = 7
+    dref backPtr  = 7
 
     let expectedOriginal: [3] s32 = [1, 2, 3]
     let expectedCopy: [3] s32 = [9, 2, 7]
@@ -497,7 +497,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     let frontPtr = values.frontPtr()
     let backPtr = values.backPtr()
     dref frontPtr = 1
-    dref backPtr = 9
+    dref backPtr  = 9
 
     @assert(values.front() == 1)
     @assert(values.back() == 9)

@@ -14,9 +14,9 @@
 // sign if neg is true.
 struct FloatExt
 {
-    mant:     u64
-    exp:      s64
-    neg:      bool
+    mant: u64
+    exp:  s64
+    neg:  bool
 }
 
 // Powers of ten taken from double-conversion library.
@@ -26,102 +26,102 @@ const stepPowerOfTen  = 8
 
 var SmallPowersOfTen: [?] FloatExt = [
     {1'u64 << 63, -63, false},           // 1
-    {0xa'u64 << 60, -60, false},         // 1e1
+    {0xA'u64 << 60, -60, false},         // 1e1
     {0x64'u64 << 57, -57, false},        // 1e2
-    {0x3e8'u64 << 54, -54, false},       // 1e3
+    {0x3E8'u64 << 54, -54, false},       // 1e3
     {0x2710'u64 << 50, -50, false},      // 1e4
-    {0x186a0'u64 << 47, -47, false},     // 1e5
-    {0xf4240'u64 << 44, -44, false},     // 1e6
+    {0x186A0'u64 << 47, -47, false},     // 1e5
+    {0xF4240'u64 << 44, -44, false},     // 1e6
     {0x989680'u64 << 40, -40, false}]
 
 var powersOfTen: [?] FloatExt = [
-    {0xfa8fd5a0081c0288, -1220, false},     // 10^-348
-    {0xbaaee17fa23ebf76, -1193, false},     // 10^-340
-    {0x8b16fb203055ac76, -1166, false},     // 10^-332
-    {0xcf42894a5dce35ea, -1140, false},     // 10^-324
-    {0x9a6bb0aa55653b2d, -1113, false},     // 10^-316
-    {0xe61acf033d1a45df, -1087, false},     // 10^-308
-    {0xab70fe17c79ac6ca, -1060, false},     // 10^-300
-    {0xff77b1fcbebcdc4f, -1034, false},     // 10^-292
-    {0xbe5691ef416bd60c, -1007, false},     // 10^-284
-    {0x8dd01fad907ffc3c, -980, false},      // 10^-276
-    {0xd3515c2831559a83, -954, false},      // 10^-268
-    {0x9d71ac8fada6c9b5, -927, false},      // 10^-260
-    {0xea9c227723ee8bcb, -901, false},      // 10^-252
-    {0xaecc49914078536d, -874, false},      // 10^-244
-    {0x823c12795db6ce57, -847, false},      // 10^-236
-    {0xc21094364dfb5637, -821, false},      // 10^-228
-    {0x9096ea6f3848984f, -794, false},      // 10^-220
-    {0xd77485cb25823ac7, -768, false},      // 10^-212
-    {0xa086cfcd97bf97f4, -741, false},      // 10^-204
-    {0xef340a98172aace5, -715, false},      // 10^-196
-    {0xb23867fb2a35b28e, -688, false},      // 10^-188
-    {0x84c8d4dfd2c63f3b, -661, false},      // 10^-180
-    {0xc5dd44271ad3cdba, -635, false},      // 10^-172
-    {0x936b9fcebb25c996, -608, false},      // 10^-164
-    {0xdbac6c247d62a584, -582, false},      // 10^-156
-    {0xa3ab66580d5fdaf6, -555, false},      // 10^-148
-    {0xf3e2f893dec3f126, -529, false},      // 10^-140
-    {0xb5b5ada8aaff80b8, -502, false},      // 10^-132
-    {0x87625f056c7c4a8b, -475, false},      // 10^-124
-    {0xc9bcff6034c13053, -449, false},      // 10^-116
-    {0x964e858c91ba2655, -422, false},      // 10^-108
-    {0xdff9772470297ebd, -396, false},      // 10^-100
-    {0xa6dfbd9fb8e5b88f, -369, false},      // 10^-92
-    {0xf8a95fcf88747d94, -343, false},      // 10^-84
-    {0xb94470938fa89bcf, -316, false},      // 10^-76
-    {0x8a08f0f8bf0f156b, -289, false},      // 10^-68
-    {0xcdb02555653131b6, -263, false},      // 10^-60
-    {0x993fe2c6d07b7fac, -236, false},      // 10^-52
-    {0xe45c10c42a2b3b06, -210, false},      // 10^-44
-    {0xaa242499697392d3, -183, false},      // 10^-36
-    {0xfd87b5f28300ca0e, -157, false},      // 10^-28
-    {0xbce5086492111aeb, -130, false},      // 10^-20
-    {0x8cbccc096f5088cc, -103, false},      // 10^-12
-    {0xd1b71758e219652c, -77, false},       // 10^-4
-    {0x9c40000000000000, -50, false},       // 10^4
-    {0xe8d4a51000000000, -24, false},       // 10^12
-    {0xad78ebc5ac620000, 3, false},         // 10^20
-    {0x813f3978f8940984, 30, false},        // 10^28
-    {0xc097ce7bc90715b3, 56, false},        // 10^36
-    {0x8f7e32ce7bea5c70, 83, false},        // 10^44
-    {0xd5d238a4abe98068, 109, false},       // 10^52
-    {0x9f4f2726179a2245, 136, false},       // 10^60
-    {0xed63a231d4c4fb27, 162, false},       // 10^68
-    {0xb0de65388cc8ada8, 189, false},       // 10^76
-    {0x83c7088e1aab65db, 216, false},       // 10^84
-    {0xc45d1df942711d9a, 242, false},       // 10^92
-    {0x924d692ca61be758, 269, false},       // 10^100
-    {0xda01ee641a708dea, 295, false},       // 10^108
-    {0xa26da3999aef774a, 322, false},       // 10^116
-    {0xf209787bb47d6b85, 348, false},       // 10^124
-    {0xb454e4a179dd1877, 375, false},       // 10^132
-    {0x865b86925b9bc5c2, 402, false},       // 10^140
-    {0xc83553c5c8965d3d, 428, false},       // 10^148
-    {0x952ab45cfa97a0b3, 455, false},       // 10^156
-    {0xde469fbd99a05fe3, 481, false},       // 10^164
-    {0xa59bc234db398c25, 508, false},       // 10^172
-    {0xf6c69a72a3989f5c, 534, false},       // 10^180
-    {0xb7dcbf5354e9bece, 561, false},       // 10^188
-    {0x88fcf317f22241e2, 588, false},       // 10^196
-    {0xcc20ce9bd35c78a5, 614, false},       // 10^204
-    {0x98165af37b2153df, 641, false},       // 10^212
-    {0xe2a0b5dc971f303a, 667, false},       // 10^220
-    {0xa8d9d1535ce3b396, 694, false},       // 10^228
-    {0xfb9b7cd9a4a7443c, 720, false},       // 10^236
-    {0xbb764c4ca7a44410, 747, false},       // 10^244
-    {0x8bab8eefb6409c1a, 774, false},       // 10^252
-    {0xd01fef10a657842c, 800, false},       // 10^260
-    {0x9b10a4e5e9913129, 827, false},       // 10^268
-    {0xe7109bfba19c0c9d, 853, false},       // 10^276
-    {0xac2820d9623bf429, 880, false},       // 10^284
-    {0x80444b5e7aa7cf85, 907, false},       // 10^292
-    {0xbf21e44003acdd2d, 933, false},       // 10^300
-    {0x8e679c2f5e44ff8f, 960, false},       // 10^308
-    {0xd433179d9c8cb841, 986, false},       // 10^316
-    {0x9e19db92b4e31ba9, 1013, false},      // 10^324
-    {0xeb96bf6ebadf77d9, 1039, false},      // 10^332
-    {0xaf87023b9bf0ee6b, 1066, false}]
+    {0xFA8FD5A0081C0288, -1220, false},     // 10^-348
+    {0xBAAEE17FA23EBF76, -1193, false},     // 10^-340
+    {0x8B16FB203055AC76, -1166, false},     // 10^-332
+    {0xCF42894A5DCE35EA, -1140, false},     // 10^-324
+    {0x9A6BB0AA55653B2D, -1113, false},     // 10^-316
+    {0xE61ACF033D1A45DF, -1087, false},     // 10^-308
+    {0xAB70FE17C79AC6CA, -1060, false},     // 10^-300
+    {0xFF77B1FCBEBCDC4F, -1034, false},     // 10^-292
+    {0xBE5691EF416BD60C, -1007, false},     // 10^-284
+    {0x8DD01FAD907FFC3C, -980, false},      // 10^-276
+    {0xD3515C2831559A83, -954, false},      // 10^-268
+    {0x9D71AC8FADA6C9B5, -927, false},      // 10^-260
+    {0xEA9C227723EE8BCB, -901, false},      // 10^-252
+    {0xAECC49914078536D, -874, false},      // 10^-244
+    {0x823C12795DB6CE57, -847, false},      // 10^-236
+    {0xC21094364DFB5637, -821, false},      // 10^-228
+    {0x9096EA6F3848984F, -794, false},      // 10^-220
+    {0xD77485CB25823AC7, -768, false},      // 10^-212
+    {0xA086CFCD97BF97F4, -741, false},      // 10^-204
+    {0xEF340A98172AACE5, -715, false},      // 10^-196
+    {0xB23867FB2A35B28E, -688, false},      // 10^-188
+    {0x84C8D4DFD2C63F3B, -661, false},      // 10^-180
+    {0xC5DD44271AD3CDBA, -635, false},      // 10^-172
+    {0x936B9FCEBB25C996, -608, false},      // 10^-164
+    {0xDBAC6C247D62A584, -582, false},      // 10^-156
+    {0xA3AB66580D5FDAF6, -555, false},      // 10^-148
+    {0xF3E2F893DEC3F126, -529, false},      // 10^-140
+    {0xB5B5ADA8AAFF80B8, -502, false},      // 10^-132
+    {0x87625F056C7C4A8B, -475, false},      // 10^-124
+    {0xC9BCFF6034C13053, -449, false},      // 10^-116
+    {0x964E858C91BA2655, -422, false},      // 10^-108
+    {0xDFF9772470297EBD, -396, false},      // 10^-100
+    {0xA6DFBD9FB8E5B88F, -369, false},      // 10^-92
+    {0xF8A95FCF88747D94, -343, false},      // 10^-84
+    {0xB94470938FA89BCF, -316, false},      // 10^-76
+    {0x8A08F0F8BF0F156B, -289, false},      // 10^-68
+    {0xCDB02555653131B6, -263, false},      // 10^-60
+    {0x993FE2C6D07B7FAC, -236, false},      // 10^-52
+    {0xE45C10C42A2B3B06, -210, false},      // 10^-44
+    {0xAA242499697392D3, -183, false},      // 10^-36
+    {0xFD87B5F28300CA0E, -157, false},      // 10^-28
+    {0xBCE5086492111AEB, -130, false},      // 10^-20
+    {0x8CBCCC096F5088CC, -103, false},      // 10^-12
+    {0xD1B71758E219652C, -77, false},       // 10^-4
+    {0x9C40000000000000, -50, false},       // 10^4
+    {0xE8D4A51000000000, -24, false},       // 10^12
+    {0xAD78EBC5AC620000, 3, false},         // 10^20
+    {0x813F3978F8940984, 30, false},        // 10^28
+    {0xC097CE7BC90715B3, 56, false},        // 10^36
+    {0x8F7E32CE7BEA5C70, 83, false},        // 10^44
+    {0xD5D238A4ABE98068, 109, false},       // 10^52
+    {0x9F4F2726179A2245, 136, false},       // 10^60
+    {0xED63A231D4C4FB27, 162, false},       // 10^68
+    {0xB0DE65388CC8ADA8, 189, false},       // 10^76
+    {0x83C7088E1AAB65DB, 216, false},       // 10^84
+    {0xC45D1DF942711D9A, 242, false},       // 10^92
+    {0x924D692CA61BE758, 269, false},       // 10^100
+    {0xDA01EE641A708DEA, 295, false},       // 10^108
+    {0xA26DA3999AEF774A, 322, false},       // 10^116
+    {0xF209787BB47D6B85, 348, false},       // 10^124
+    {0xB454E4A179DD1877, 375, false},       // 10^132
+    {0x865B86925B9BC5C2, 402, false},       // 10^140
+    {0xC83553C5C8965D3D, 428, false},       // 10^148
+    {0x952AB45CFA97A0B3, 455, false},       // 10^156
+    {0xDE469FBD99A05FE3, 481, false},       // 10^164
+    {0xA59BC234DB398C25, 508, false},       // 10^172
+    {0xF6C69A72A3989F5C, 534, false},       // 10^180
+    {0xB7DCBF5354E9BECE, 561, false},       // 10^188
+    {0x88FCF317F22241E2, 588, false},       // 10^196
+    {0xCC20CE9BD35C78A5, 614, false},       // 10^204
+    {0x98165AF37B2153DF, 641, false},       // 10^212
+    {0xE2A0B5DC971F303A, 667, false},       // 10^220
+    {0xA8D9D1535CE3B396, 694, false},       // 10^228
+    {0xFB9B7CD9A4A7443C, 720, false},       // 10^236
+    {0xBB764C4CA7A44410, 747, false},       // 10^244
+    {0x8BAB8EEFB6409C1A, 774, false},       // 10^252
+    {0xD01FEF10A657842C, 800, false},       // 10^260
+    {0x9B10A4E5E9913129, 827, false},       // 10^268
+    {0xE7109BFBA19C0C9D, 853, false},       // 10^276
+    {0xAC2820D9623BF429, 880, false},       // 10^284
+    {0x80444B5E7AA7CF85, 907, false},       // 10^292
+    {0xBF21E44003ACDD2D, 933, false},       // 10^300
+    {0x8E679C2F5E44FF8F, 960, false},       // 10^308
+    {0xD433179D9C8CB841, 986, false},       // 10^316
+    {0x9E19DB92B4E31BA9, 1013, false},      // 10^324
+    {0xEB96BF6EBADF77D9, 1039, false},      // 10^332
+    {0xAF87023B9BF0EE6B, 1066, false}]
 
 impl FloatExt
 {
@@ -139,7 +139,7 @@ impl FloatExt
         if .exp <= 0 and .mant == (.mant >> cast(u32) -.exp) << cast(u32) -.exp
         {
             // An exact integer
-            .mant >>= cast(u32) -.exp
+            .mant        >>= cast(u32) -.exp
             .exp         = 0
             result.lower = me
             result.upper = me
@@ -164,7 +164,7 @@ impl FloatExt
             return
         let shift = @bitcountlz(.mant)
         .mant <<= cast(u32) shift
-        .exp -= cast(s64) shift
+        .exp  -= cast(s64) shift
     }
 
     // Multiply sets f to the product f*g: the result is correctly rounded,
@@ -294,9 +294,9 @@ impl FloatExt
         if integerDigits > needed
         {
             // the integral part is already large, trim the last digits.
-            pow10 = uint64pow10[integerDigits - needed]
+            pow10   = uint64pow10[integerDigits - needed]
             integer /= cast(u32) pow10
-            rest -= integer * cast(u32) pow10
+            rest    -= integer * cast(u32) pow10
         }
         else do
             rest = 0
@@ -309,8 +309,8 @@ impl FloatExt
         while v > 0
         {
             let v1 = v / 10
-            v -= 10 * v1
-            pos -= 1
+            v        -= 10 * v1
+            pos      -= 1
             buf[pos] = cast(u8) (v + '0')
             v        = v1
         }
@@ -319,8 +319,8 @@ impl FloatExt
             d.d[i - pos] = buf[i]
 
         var nd = cast(s64) (@countof(buf) - pos)
-        d.nd = nd
-        d.dp = integerDigits + exp10
+        d.nd   = nd
+        d.dp   = integerDigits + exp10
         needed -= nd
 
         if needed > 0
@@ -330,7 +330,7 @@ impl FloatExt
             while needed > 0
             {
                 fraction *= 10
-                e *= 10     // the uncertainty scales as we multiply by ten.
+                e        *= 10     // the uncertainty scales as we multiply by ten.
                 if 2 * e > (1 << shift)
                 {
                     // the error is so large it could modify which digit to write, abort.
@@ -338,10 +338,10 @@ impl FloatExt
                 }
 
                 let digit = fraction >> shift
-                d.d[nd] = cast(u8) (digit + '0')
+                d.d[nd]  = cast(u8) (digit + '0')
                 fraction -= digit << shift
-                nd += 1
-                needed -= 1
+                nd       += 1
+                needed   -= 1
             }
             d.nd = nd
         }
@@ -408,7 +408,7 @@ impl FloatExt
             {
                 d.d[0] = '1'
                 d.nd   = 1
-                d.dp += 1
+                d.dp   += 1
             }
             else do
                 d.d[i] += 1
@@ -441,10 +441,10 @@ impl FloatExt
             while v > 0
             {
                 let v1 = v / 10
-                v -= 10 * v1
+                v      -= 10 * v1
                 buf[n] = cast(u8) (v + '0')
-                n -= 1
-                v = v1
+                n      -= 1
+                v      = v1
             }
 
             let nd = cast(s64) (@countof(buf) - n - 1)
@@ -458,7 +458,7 @@ impl FloatExt
 
             if d.nd == 0 do
                 d.dp = 0
-            d.neg = .neg
+            d.neg    = .neg
             return true
         }
 
@@ -468,13 +468,13 @@ impl FloatExt
         if .exp > upper.exp
         {
             .mant <<= cast(u32) (.exp - upper.exp)
-            .exp = upper.exp
+            .exp  = upper.exp
         }
 
         if lower.exp > upper.exp
         {
             lower.mant <<= cast(u32) (lower.exp - upper.exp)
-            lower.exp = upper.exp
+            lower.exp  = upper.exp
         }
 
         let exp10 = frexp10Many(lower, me, upper)
@@ -513,7 +513,7 @@ impl FloatExt
         {
             pow = uint64pow10[integerDigits - i - 1]
             let digit = integer / cast(u32) pow
-            d.d[i] = cast(u8) (digit + '0')
+            d.d[i]  = cast(u8) (digit + '0')
             integer -= digit * cast(u32) pow
 
             // evaluate whether we should stop.
@@ -539,12 +539,12 @@ impl FloatExt
         var multiplier = 1'u64
         for
         {
-            fraction *= 10
+            fraction   *= 10
             multiplier *= 10
-            digit     = cast(s64) (fraction >> shift)
-            d.d[d.nd] = cast(u8) (digit + '0')
-            d.nd += 1
-            fraction -= cast(u64) digit << shift
+            digit      = cast(s64) (fraction >> shift)
+            d.d[d.nd]  = cast(u8) (digit + '0')
+            d.nd       += 1
+            fraction   -= cast(u64) digit << shift
             if fraction < allowance * multiplier
             {
                 // We are in the admissible range. Note that if allowance is about to
@@ -572,7 +572,7 @@ impl FloatExt
         while currentDiff + (ulpDecimal / 2) + ulpBinary < targetDiff
         {
             d.d[d.nd - 1] -= 1
-            currentDiff += ulpDecimal
+            currentDiff   += ulpDecimal
         }
 
         // we have two choices, and don't know what to:.

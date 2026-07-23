@@ -10,7 +10,7 @@ using Swag, Core
     f.setup()
 
     let shape = testAddShape(f.capture, 10, 10, 40, 30, .Highlight)
-    shape.kind = .Rectangle
+    shape.kind  = .Rectangle
     shape.alpha = 35
     f.main.updateModel(cast(IForm) shape)
     @assert(f.main.editMode == .Shape)
@@ -24,7 +24,7 @@ using Swag, Core
 
     var emptyPoints: Array'Math.Vector2
     let draw = testAddDraw(f.capture, emptyPoints.toSlice())
-    draw.subKind = .PixSel
+    draw.subKind     = .PixSel
     draw.paintShadow = false
     f.main.updateModel(cast(IForm) draw)
     @assert(@dataof(f.main.mdlPixSel) == &f.main.mdlFormDraw)
@@ -96,7 +96,7 @@ using Swag, Core
     testDeleteForm(image)
 
     f.main.mdlFormCallout.roundSize = 22
-    f.main.mdlFormCallout.text = "model text"
+    f.main.mdlFormCallout.text      = "model text"
     let callout = f.main.newFormFromModel(.Callout, clear: true)
     @assert(@kindof(callout) == FormCallout)
     @assert((cast(*FormCallout) @dataof(callout)).roundSize == 22)

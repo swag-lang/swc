@@ -3,9 +3,9 @@
 // Provides a set of methods and properties that you can use to accurately measure elapsed time
 public struct Stopwatch
 {
-    isStarted:          bool     // True if the stopwatch is currently running
-    startTimeStamp:     u64      // Timestamp when the stopwatch was last started
-    elapsedTicks:       u64      // Accumulated elapsed time in ticks
+    isStarted:      bool     // True if the stopwatch is currently running
+    startTimeStamp: u64      // Timestamp when the stopwatch was last started
+    elapsedTicks:   u64      // Accumulated elapsed time in ticks
 }
 
 public impl Stopwatch
@@ -28,7 +28,7 @@ public impl Stopwatch
             let endTimeStamp       = nowPrecise()
             let elapsedTicksPeriod = endTimeStamp - .startTimeStamp
             .elapsedTicks += elapsedTicksPeriod
-            .isStarted = false
+            .isStarted    = false
         }
     }
 

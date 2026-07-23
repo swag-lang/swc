@@ -32,8 +32,8 @@ using Core
 
 private struct Card
 {
-    win:     s32
-    num:     s32
+    win: s32
+    num: s32
 }
 
 private var cards: Array'Card

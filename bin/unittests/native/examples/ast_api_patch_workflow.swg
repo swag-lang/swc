@@ -51,8 +51,8 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
         len = appendAst(buffer, len, ": ")
         if field.pointedType == string do
             len = appendAst(buffer, len, "#null ")
-        len = appendAst(buffer, len, notnull field.pointedType.name)
-        len = appendAst(buffer, len, "\n")
+        len     = appendAst(buffer, len, notnull field.pointedType.name)
+        len     = appendAst(buffer, len, "\n")
     }
 
     return len
@@ -198,12 +198,12 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         }
 
     var patch: ApiPatch'TenantSettings
-    patch.has_storageGb = true
-    patch.storageGb = 750
-    patch.has_ssoEnabled = true
-    patch.ssoEnabled = true
+    patch.has_storageGb    = true
+    patch.storageGb        = 750
+    patch.has_ssoEnabled   = true
+    patch.ssoEnabled       = true
     patch.has_billingEmail = true
-    patch.billingEmail = "ops@acme.test"
+    patch.billingEmail     = "ops@acme.test"
 
     let updated = applyPatch'(TenantSettings)(patch, base)
 
@@ -272,10 +272,10 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
         }
 
     var patch: ApiPatch'NotificationPolicy
-    patch.has_weeklyReport = true
-    patch.weeklyReport = true
+    patch.has_weeklyReport      = true
+    patch.weeklyReport          = true
     patch.has_escalationMinutes = true
-    patch.escalationMinutes = 15
+    patch.escalationMinutes     = 15
 
     let updated = applyPatch'(NotificationPolicy)(patch, base)
 

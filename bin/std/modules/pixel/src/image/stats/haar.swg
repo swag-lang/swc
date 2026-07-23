@@ -101,9 +101,9 @@ func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [
 // Structure to store Haar coefficients
 public struct HaarFeatures
 {
-    coefficients:     Array'f32     // Multi-scale Haar coefficients
-    size:             s32           // Representation size (power of 2)
-    levels:           s32           // Number of decomposition levels
+    coefficients: Array'f32     // Multi-scale Haar coefficients
+    size:         s32           // Representation size (power of 2)
+    levels:       s32           // Number of decomposition levels
 }
 
 // Extract Haar coefficients from the image
@@ -170,8 +170,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
                 let c1  = cast(f64) haar1.coefficients[idx]
                 let c2  = cast(f64) haar2.coefficients[idx]
                 levelSimilarity += c1 * c2
-                levelNorm1 += c1 * c1
-                levelNorm2 += c2 * c2
+                levelNorm1      += c1 * c1
+                levelNorm2      += c2 * c2
             }
 
             // HL (vertical details): bottom-left
@@ -182,8 +182,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
                 let c1  = cast(f64) haar1.coefficients[idx]
                 let c2  = cast(f64) haar2.coefficients[idx]
                 levelSimilarity += c1 * c2
-                levelNorm1 += c1 * c1
-                levelNorm2 += c2 * c2
+                levelNorm1      += c1 * c1
+                levelNorm2      += c2 * c2
             }
 
             // HH (diagonal details): bottom-right
@@ -194,8 +194,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
                 let c1  = cast(f64) haar1.coefficients[idx]
                 let c2  = cast(f64) haar2.coefficients[idx]
                 levelSimilarity += c1 * c2
-                levelNorm1 += c1 * c1
-                levelNorm2 += c2 * c2
+                levelNorm1      += c1 * c1
+                levelNorm2      += c2 * c2
             }
         }
 
@@ -206,7 +206,7 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
             levelSimilarity = (levelNorm1 == 0.0 and levelNorm2 == 0.0) ? 1.0 : 0.0
 
         totalSimilarity += levelSimilarity * weight
-        totalWeight += weight
+        totalWeight     += weight
     }
 
     if totalWeight > 0.0 do
@@ -275,8 +275,8 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
         let c1 = cast(f64) haar1.coefficients[i]
         let c2 = cast(f64) haar2.coefficients[i]
         correlation += c1 * c2
-        norm1 += c1 * c1
-        norm2 += c2 * c2
+        norm1       += c1 * c1
+        norm2       += c2 * c2
     }
 
     let denominator = Math.sqrt(norm1 * norm2)

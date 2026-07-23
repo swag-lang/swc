@@ -3,13 +3,13 @@ using Swag, Core
 const CURVE_TAG_ON = 0x01'u8
 const MAX_RECURSE  = 16'u32
 
-const CMP_ARG_1_AND_2_ARE_WORDS    = 0x0001'u16
-const CMP_ARGS_ARE_XY_VALUES       = 0x0002'u16
-const CMP_WE_HAVE_A_SCALE          = 0x0008'u16
-const CMP_MORE_COMPONENTS          = 0x0020'u16
-const CMP_WE_HAVE_AN_XY_SCALE      = 0x0040'u16
-const CMP_WE_HAVE_A_2X2            = 0x0080'u16
-const CMP_WE_HAVE_INSTRUCTIONS     = 0x0100'u16
+const CMP_ARG_1_AND_2_ARE_WORDS = 0x0001'u16
+const CMP_ARGS_ARE_XY_VALUES    = 0x0002'u16
+const CMP_WE_HAVE_A_SCALE       = 0x0008'u16
+const CMP_MORE_COMPONENTS       = 0x0020'u16
+const CMP_WE_HAVE_AN_XY_SCALE   = 0x0040'u16
+const CMP_WE_HAVE_A_2X2         = 0x0080'u16
+const CMP_WE_HAVE_INSTRUCTIONS  = 0x0100'u16
 
 func addScaledPoint(faceData: *FaceImpl, x, y: f64, onCurve: bool)
 {
@@ -26,7 +26,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
     for contourCount
     {
         contourEnds[@index] = readU16(glyphData, offset)
-        offset += 2
+        offset              += 2
     }
 
     let pointCount = contourCount ? contourEnds.back() + 1 : 0
@@ -39,9 +39,9 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
     while i < pointCount
     {
         let flag = readU8(glyphData, offset)
-        offset += 1
+        offset   += 1
         flags[i] = flag
-        i += 1
+        i        += 1
         if (flag & 0x08) != 0
         {
             let repeat = readU8(glyphData, offset)
@@ -49,7 +49,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
             for repeat
             {
                 flags[i] = flag
-                i += 1
+                i        += 1
             }
         }
     }
@@ -64,11 +64,11 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
         {
             let dx = cast(s32) readU8(glyphData, offset)
             offset += 1
-            x += (flag & 0x10) != 0 ? dx : -dx
+            x      += (flag & 0x10) != 0 ? dx : -dx
         }
         elif (flag & 0x10) == 0
         {
-            x += readS16(glyphData, offset)
+            x      += readS16(glyphData, offset)
             offset += 2
         }
 
@@ -85,11 +85,11 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
         {
             let dy = cast(s32) readU8(glyphData, offset)
             offset += 1
-            y += (flag & 0x20) != 0 ? dy : -dy
+            y      += (flag & 0x20) != 0 ? dy : -dy
         }
         elif (flag & 0x20) == 0
         {
-            y += readS16(glyphData, offset)
+            y      += readS16(glyphData, offset)
             offset += 2
         }
 
@@ -125,14 +125,14 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, x
         var arg2 = 0's32
         if (flags & CMP_ARG_1_AND_2_ARE_WORDS) != 0
         {
-            arg1 = readS16(glyphData, offset + 0)
-            arg2 = readS16(glyphData, offset + 2)
+            arg1   = readS16(glyphData, offset + 0)
+            arg2   = readS16(glyphData, offset + 2)
             offset += 4
         }
         else
         {
-            arg1 = cast #bit (s8) readU8(glyphData, offset + 0)
-            arg2 = cast #bit (s8) readU8(glyphData, offset + 1)
+            arg1   = cast #bit (s8) readU8(glyphData, offset + 0)
+            arg2   = cast #bit (s8) readU8(glyphData, offset + 1)
             offset += 2
         }
 
@@ -142,22 +142,22 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, x
         var yy: f64 = 1.0
         if (flags & CMP_WE_HAVE_A_SCALE) != 0
         {
-            xx = readF2Dot14(glyphData, offset)
-            yy = xx
+            xx     = readF2Dot14(glyphData, offset)
+            yy     = xx
             offset += 2
         }
         elif (flags & CMP_WE_HAVE_AN_XY_SCALE) != 0
         {
-            xx = readF2Dot14(glyphData, offset + 0)
-            yy = readF2Dot14(glyphData, offset + 2)
+            xx     = readF2Dot14(glyphData, offset + 0)
+            yy     = readF2Dot14(glyphData, offset + 2)
             offset += 4
         }
         elif (flags & CMP_WE_HAVE_A_2X2) != 0
         {
-            xx = readF2Dot14(glyphData, offset + 0)
-            yx = readF2Dot14(glyphData, offset + 2)
-            xy = readF2Dot14(glyphData, offset + 4)
-            yy = readF2Dot14(glyphData, offset + 6)
+            xx     = readF2Dot14(glyphData, offset + 0)
+            yx     = readF2Dot14(glyphData, offset + 2)
+            xy     = readF2Dot14(glyphData, offset + 4)
+            yy     = readF2Dot14(glyphData, offset + 6)
             offset += 8
         }
 
@@ -242,8 +242,8 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) throw
     faceData.outlineTags.clear()
     faceData.outlineContours.clear()
 
-    slot.index = glyphIndex
-    slot.format      = .Outline
+    slot.index  = glyphIndex
+    slot.format = .Outline
 
     let xPpem = Math.max(1'u32, face.size.metrics.xPpem)
     let yPpem = Math.max(1'u32, face.size.metrics.yPpem)
@@ -251,14 +251,14 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) throw
 
     slot.outline.pointCount   = cast(s16) faceData.outlinePoints.count
     slot.outline.contourCount = cast(s16) faceData.outlineContours.count
-    slot.outline.points     = faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null
-    slot.outline.tags       = faceData.outlineTags.count ? faceData.outlineTags.buffer : null
-    slot.outline.contours   = faceData.outlineContours.count ? faceData.outlineContours.buffer : null
-    slot.outline.flags      = 0
+    slot.outline.points       = faceData.outlinePoints.count ? faceData.outlinePoints.buffer : null
+    slot.outline.tags         = faceData.outlineTags.count ? faceData.outlineTags.buffer : null
+    slot.outline.contours     = faceData.outlineContours.count ? faceData.outlineContours.buffer : null
+    slot.outline.flags        = 0
 
     let metric              = faceData.glyphMetrics[glyphIndex]
-    slot.advance.x          = scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm)
-    slot.advance.y          = 0
+    slot.advance.x                 = scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm)
+    slot.advance.y                 = 0
     slot.metrics.horizontalAdvance = slot.advance.x
     updateSlotMetrics(slot)
 }

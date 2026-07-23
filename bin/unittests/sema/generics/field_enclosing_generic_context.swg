@@ -17,19 +17,19 @@ struct(T) WrapperImplicit
 
 struct(T, N: s32) DoubleBufferImplicit
 {
-    first: Buffer
+    first:  Buffer
     second: Buffer
 }
 
 struct(U, M: s32) RenamedDoubleBufferImplicit
 {
-    first: Buffer
+    first:  Buffer
     second: Buffer
 }
 
 struct(M: s32, U) ReorderedRenamedDoubleBufferImplicit
 {
-    first: Buffer
+    first:  Buffer
     second: Buffer
 }
 
@@ -50,9 +50,9 @@ struct(U) PrefixDefaultHolderImplicit
 
 struct(T, U = string, V) MiddleDefaultBox
 {
-    first: T
+    first:  T
     second: U
-    third: V
+    third:  V
 }
 
 struct(A, B) MiddleDefaultHolderImplicit
@@ -67,7 +67,7 @@ struct(A, B) NestedMiddleDefaultHolderImplicit
 
 struct(T, U = T) TwinImplicitBox
 {
-    first: T
+    first:  T
     second: U
 }
 
@@ -198,30 +198,30 @@ impl MethodBufferContext
 
 func semaTest001()
 {
-    var wrapped: WrapperImplicit'u16 = undefined
-    var doubled: DoubleBufferImplicit'(u8, 4) = undefined
-    var renamed: RenamedDoubleBufferImplicit'(u16, 3) = undefined
-    var reordered: ReorderedRenamedDoubleBufferImplicit'(5, u32) = undefined
-    var renamedWrapper: RenamedWrapperImplicit'(bool, 7) = undefined
-    var prefixDefaultHolder: PrefixDefaultHolderImplicit'u8 = undefined
-    var middleDefaultHolder: MiddleDefaultHolderImplicit'(u16, f32) = undefined
-    var nestedMiddleDefaultHolder: NestedMiddleDefaultHolderImplicit'(u16, f32) = undefined
-    var twinImplicitHolder: TwinImplicitHolder's64 = undefined
+    var wrapped:                    WrapperImplicit'u16 = undefined
+    var doubled:                    DoubleBufferImplicit'(u8, 4) = undefined
+    var renamed:                    RenamedDoubleBufferImplicit'(u16, 3) = undefined
+    var reordered:                  ReorderedRenamedDoubleBufferImplicit'(5, u32) = undefined
+    var renamedWrapper:             RenamedWrapperImplicit'(bool, 7) = undefined
+    var prefixDefaultHolder:        PrefixDefaultHolderImplicit'u8 = undefined
+    var middleDefaultHolder:        MiddleDefaultHolderImplicit'(u16, f32) = undefined
+    var nestedMiddleDefaultHolder:  NestedMiddleDefaultHolderImplicit'(u16, f32) = undefined
+    var twinImplicitHolder:         TwinImplicitHolder's64 = undefined
     var trailingValueDefaultHolder: TrailingValueDefaultHolder'(u16, 6) = undefined
-    var splitValueDefaultHolder: SplitValueDefaultHolder'u32 = undefined
-    let methodBufferContext: MethodBufferContext'(u16, 9)
+    var splitValueDefaultHolder:    SplitValueDefaultHolder'u32 = undefined
+    let methodBufferContext:        MethodBufferContext'(u16, 9)
     let distinctMethodBuffer = methodBufferContext.makeWithDistinctName'f32()
-    var partialMiddleDefaultHolder: PartialMiddleDefaultHolder'(u32, f64) = undefined
+    var partialMiddleDefaultHolder:        PartialMiddleDefaultHolder'(u32, f64) = undefined
     var partialTrailingValueDefaultHolder: PartialTrailingValueDefaultHolder'(u16, 8) = undefined
-    var partialBufferHolder: PartialBufferHolder'(bool, 5) = undefined
-    var explicitPrefixValueHolder: ExplicitPrefixValueHolder'u8 = undefined
-    var explicitSplitValueHolder: ExplicitSplitValueHolder'u16 = undefined
-    var partialTailOnlyHolder: PartialTailOnlyHolder'(bool, f32) = undefined
-    var composedTypeDefaultHolder: ComposedTypeDefaultHolder's16 = undefined
-    var sizeofDefaultHolder: SizeofDefaultHolder'u64 = undefined
-    var anonymousStructFieldHolder: AnonymousStructFieldHolder'bool = undefined
-    var anonymousStructBufferHolder: AnonymousStructBufferHolder'(u8, 4) = undefined
-    var anonymousUnionFieldHolder: AnonymousUnionFieldHolder's32 = undefined
+    var partialBufferHolder:               PartialBufferHolder'(bool, 5) = undefined
+    var explicitPrefixValueHolder:         ExplicitPrefixValueHolder'u8 = undefined
+    var explicitSplitValueHolder:          ExplicitSplitValueHolder'u16 = undefined
+    var partialTailOnlyHolder:             PartialTailOnlyHolder'(bool, f32) = undefined
+    var composedTypeDefaultHolder:         ComposedTypeDefaultHolder's16 = undefined
+    var sizeofDefaultHolder:               SizeofDefaultHolder'u64 = undefined
+    var anonymousStructFieldHolder:        AnonymousStructFieldHolder'bool = undefined
+    var anonymousStructBufferHolder:       AnonymousStructBufferHolder'(u8, 4) = undefined
+    var anonymousUnionFieldHolder:         AnonymousUnionFieldHolder's32 = undefined
 
     #assert(#typeof(wrapped.item.value) == u16)
     #assert(#typeof(doubled.first.values) == #type [4] u8)

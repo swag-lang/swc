@@ -30,11 +30,11 @@ internal enum Day6Action
 
 internal struct Day6Instruction
 {
-    action:       Day6Action
-    x0:           u16
-    y0:           u16
-    x1:           u16
-    y1:           u16
+    action: Day6Action
+    x0:     u16
+    y0:     u16
+    x1:     u16
+    y1:     u16
 }
 
 internal var day6InstructionsLoaded = false
@@ -178,7 +178,7 @@ func day6A1()
                 for writeCount
                 {
                     scan[0] = true
-                    scan += 1
+                    scan    += 1
                 }
             }
 
@@ -189,7 +189,7 @@ func day6A1()
                 for writeCount
                 {
                     scan[0] = false
-                    scan += 1
+                    scan    += 1
                 }
             }
 
@@ -200,7 +200,7 @@ func day6A1()
                 for writeCount
                 {
                     scan[0] = !scan[0]
-                    scan += 1
+                    scan    += 1
                 }
             }
         }

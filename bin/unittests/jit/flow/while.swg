@@ -4,12 +4,12 @@
 {
     func whileSum(n: s32)->s32
     {
-        var i: s32 = 0
+        var i:   s32 = 0
         var acc: s32 = 0
         while i < n
         {
             acc += i
-            i += 1
+            i   += 1
         }
 
         return acc
@@ -23,7 +23,7 @@
 {
     func whileContinue(n: s32)->s32
     {
-        var i: s32 = 0
+        var i:   s32 = 0
         var acc: s32 = 0
 
         while i < n

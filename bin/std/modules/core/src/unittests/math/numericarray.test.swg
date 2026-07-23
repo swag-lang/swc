@@ -31,7 +31,7 @@ func expectNumericArray4(values: const &Math.NumericArray'(s32, 4'u32), expected
 
 #test
 {
-    var left: Math.NumericArray'(s32, 4'u32)
+    var left:  Math.NumericArray'(s32, 4'u32)
     var right: Math.NumericArray'(s32, 4'u32)
     left.set(10, 20, 30, 40)
     right.set(1, 2, 5, 8)

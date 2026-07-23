@@ -31,7 +31,7 @@ struct(T) OuterBox
 // Generic struct holding two different instantiations
 struct(A, B) HeteroHolder
 {
-    left: Box'A
+    left:  Box'A
     right: Box'B
 }
 
@@ -118,7 +118,7 @@ impl Matrix
 // Generic pointer to generic struct
 #test
 {
-    var box: Box's32 = {value: 77}
+    var box:  Box's32 = {value: 77}
     let refb: RefBox's32 = {ptr: &box}
     @assert(dref refb.ptr == box)
     @assert((dref refb.ptr).value == 77)

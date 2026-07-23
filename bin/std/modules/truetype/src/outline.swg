@@ -10,20 +10,20 @@ public enum OutlineCommandKind
 
 public struct OutlineCommand
 {
-    kind:     OutlineCommandKind
-    p0:       Vector
-    p1:       Vector
-    p2:       Vector
+    kind: OutlineCommandKind
+    p0:   Vector
+    p1:   Vector
+    p2:   Vector
 }
 
 public struct Outline
 {
-    contourCount:     s16
-    pointCount:       s16
-    points:           #null [*] Vector
-    tags:             #null [*] u8
-    contours:         #null [*] s16
-    flags:            s32
+    contourCount: s16
+    pointCount:   s16
+    points:       #null [*] Vector
+    tags:         #null [*] u8
+    contours:     #null [*] s16
+    flags:        s32
 }
 
 public impl Outline
@@ -125,7 +125,7 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
         let lastOn     = isOnCurve(tags[contourEnd])
 
         var startPoint: Vector
-        var current: Vector
+        var current:    Vector
         var idx = contourStart
 
         if firstOn
@@ -149,7 +149,7 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
             {
                 commands.add(OutlineCommand{kind: .LineTo, p0: point})
                 current = point
-                idx += 1
+                idx     += 1
                 continue
             }
 
@@ -159,14 +159,14 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
             {
                 commands.add(OutlineCommand{kind: .ConicTo, p0: point, p1: nextPt})
                 current = nextPt
-                idx += 2
+                idx     += 2
             }
             else
             {
                 let mid = midpoint(point, nextPt)
                 commands.add(OutlineCommand{kind: .ConicTo, p0: point, p1: mid})
                 current = mid
-                idx += 1
+                idx     += 1
             }
         }
 

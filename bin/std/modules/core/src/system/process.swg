@@ -5,8 +5,8 @@ alias ProcessHandle = #null const *void
 
 struct StartInfo
 {
-    fileName:      string
-    arguments:     #null string
+    fileName:  string
+    arguments: #null string
 }
 
 #[Swag.NoCopy]

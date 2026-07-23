@@ -3,8 +3,8 @@ using Core, Pixel
 
 struct RichEditCursor
 {
-    lineIndex:         u64
-    charPosInLine:     u64
+    lineIndex:     u64
+    charPosInLine: u64
 }
 
 impl RichEditCtrl
@@ -216,7 +216,7 @@ impl RichEditCtrl
                             cp.charPosInLine = j
                             if pt.x >= rect.horzCenter() do
                                 cp.charPosInLine += 1
-                            found = true
+                            found                = true
                             break
                         }
 
@@ -237,7 +237,7 @@ impl RichEditCtrl
                 }
 
                 pi = i
-                i += 1
+                i  += 1
             }
         }
 
@@ -325,7 +325,7 @@ impl RichEditCtrl
         {
             while posNew.x < posPrev.x and cp.charPosInLine < line.length()
             {
-                posNew.x += .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         += .getRuneSize(line, cp.charPosInLine, posNew.x).x
                 cp.charPosInLine += 1
             }
         }
@@ -335,7 +335,7 @@ impl RichEditCtrl
             while posNew.x > posPrev.x and cp.charPosInLine
             {
                 cp.charPosInLine -= 1
-                posNew.x -= .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         -= .getRuneSize(line, cp.charPosInLine, posNew.x).x
             }
         }
 
@@ -367,7 +367,7 @@ impl RichEditCtrl
         {
             while posNew.x < posPrev.x and cp.charPosInLine < line.length()
             {
-                posNew.x += .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         += .getRuneSize(line, cp.charPosInLine, posNew.x).x
                 cp.charPosInLine += 1
             }
         }
@@ -377,7 +377,7 @@ impl RichEditCtrl
             while posNew.x > posPrev.x and cp.charPosInLine
             {
                 cp.charPosInLine -= 1
-                posNew.x -= .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         -= .getRuneSize(line, cp.charPosInLine, posNew.x).x
             }
         }
 
@@ -397,7 +397,7 @@ impl RichEditCtrl
         else
         {
             firstBlank = false
-            i -= 1
+            i          -= 1
             while i >= 0
             {
                 if !Unicode.isSpace(line.chars[i])

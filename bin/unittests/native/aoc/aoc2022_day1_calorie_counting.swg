@@ -10,7 +10,7 @@
 // structs, enums, generics, lambdas, interfaces, UFCS,
 // slices, element iteration, compile-time assertions, and more.
 
-const MaxElves = 8
+const MaxElves           = 8
 const MaxFoodItemsPerElf = 8
 
 // ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ struct FoodItem
 
 struct Elf
 {
-    id:       u32
+    id:        u32
     itemCount: u32
     items:    [MaxFoodItemsPerElf] FoodItem
 }
@@ -164,7 +164,7 @@ func addFoodItem(elf: *Elf, name: string, calories: u32)
     @assert(elf.itemCount < MaxFoodItemsPerElf)
     let itemIndex = elf.itemCount
     elf.items[itemIndex] = FoodItem{name: name, calories: calories}
-    elf.itemCount += 1
+    elf.itemCount        += 1
 }
 
 func makeElf(id: u32, cals: const [..] u32)->Elf

@@ -21,19 +21,31 @@ interface IPropertyNotify
     // 'item' is null when the change is not tied to a live row anymore: an undo/redo restore
     // recorded against a previous grid content (the values are already back in the instances).
     mtd itemHasChanged(list: *Properties, item: #null *PropertiesItem) {}
-    mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool { return true; }
-    mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool { return true; }
+    mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool
+    {
+        return true;
+    }
+    mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool
+    {
+        return true;
+    }
 
     // Return false to hide one value of an enum field (a value that makes no sense for the
     // host, e.g. a 'None' entry): the combo omits it, an enum-flags block skips its row.
     // Like isItemVisible, checked on the host notify and along the item's parent chain, but
     // when the row is BUILT: rebuild the grid content to re-evaluate it.
-    mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool { return true; }
+    mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
+    {
+        return true;
+    }
 
     // Return true to make 'item' read-only at runtime: shown but not editable, and "Paste" is
     // disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor.
     // The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.
-    mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool { return false; }
+    mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool
+    {
+        return false;
+    }
 
     // Called when the user right-clicks a row: add custom menu items (each with a unique
     // command id) before the built-in ones (Copy/Paste/...). Use a separator to set them apart.
@@ -41,24 +53,36 @@ interface IPropertyNotify
 
     // Called with the command id chosen in the popup menu when it is not one of the built-in
     // actions. Return true once handled. This is how custom fillPopupMenu items are executed.
-    mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool { return false; }
+    mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool
+    {
+        return false;
+    }
 
     // Return a validation state + message for 'item'. Called on build and after every
     // change; the row shows an accent bar + badge in the state color and the message as a
     // tooltip. The most severe result along the item's parent chain wins.
-    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult { return {}; }
+    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult
+    {
+        return {};
+    }
 
     // Customize the "is this field still at its default value?" test, used to decide whether the
     // row shows the revert marker. Return .Auto (the default) to let the grid compare the current
     // value against the value the field is initialized to in the struct declaration; return
     // .AtDefault / .Modified to force the answer when the test is more involved than a plain
     // comparison. The first non-Auto result along the item's parent chain wins.
-    mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState { return .Auto; }
+    mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState
+    {
+        return .Auto;
+    }
 
     // Reset 'item' to its default value yourself; return true once handled. Return false (the
     // default) to let the grid restore the value declared in the struct. Called by the "Reset to
     // default" action and the revert marker. Checked along the item's parent chain.
-    mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool { return false; }
+    mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool
+    {
+        return false;
+    }
 }
 
 enum PropertiesKind
@@ -88,54 +112,54 @@ struct Properties
     usingFieldsLast:    bool
 
     // For grid kind
-    gridLineHeight:       f32 = 35
-    gridLineMargin:       s32 = 12
-    gridColumnSize:       s32 = 150
-    gridColumnSizeReq:    s32 = 150     // Requested column size, re-clamped to the current width on resize
-    gridMarginColumn:     s32 = 16
-    gridIndentSize:       s32 = 14     // Per-nesting-level indent of the name label + disclosure triangle
+    gridLineHeight:    f32 = 35
+    gridLineMargin:    s32 = 12
+    gridColumnSize:    s32 = 150
+    gridColumnSizeReq: s32 = 150     // Requested column size, re-clamped to the current width on resize
+    gridMarginColumn:  s32 = 16
+    gridIndentSize:    s32 = 14     // Per-nesting-level indent of the name label + disclosure triangle
 
     // For list kind
-    listNameMarginBefore:     s32 = 20
-    listNameMarginAfter:      s32 = 0
-    listDescMarginAfter:      s32 = 5
+    listNameMarginBefore: s32 = 20
+    listNameMarginAfter:  s32 = 0
+    listDescMarginAfter:  s32 = 5
 
     // Inline validation message bar (info/warning/error)
-    valBarGlyphWidth:         f32 = 32     // left room reserved for the severity icon
-    valBarIconSize:           f32 = 18     // size of the severity icon
-    valBarPaddingX:           f32 = 12     // horizontal text inset from the colored background
-    valBarPaddingY:           f32 = 7      // vertical breathing room added around the text
-    valBarGap:                f32 = 7      // gap between the row editor and the bar
-    valBarRadius:             f32 = 6      // corner radius of the colored background
+    valBarGlyphWidth: f32 = 32     // left room reserved for the severity icon
+    valBarIconSize:   f32 = 18     // size of the severity icon
+    valBarPaddingX:   f32 = 12     // horizontal text inset from the colored background
+    valBarPaddingY:   f32 = 7      // vertical breathing room added around the text
+    valBarGap:        f32 = 7      // gap between the row editor and the bar
+    valBarRadius:     f32 = 6      // corner radius of the colored background
 
     sigChanged:               SigArray'func||(*Properties, #null *PropertiesItem)
 
-    leftMargin:               s32 = 15
-    rightMargin:              s32 = 15
-    fontSection:              FontFamily
-    fontCategory:             FontFamily
-    fontName:                 FontFamily
+    leftMargin:   s32 = 15
+    rightMargin:  s32 = 15
+    fontSection:  FontFamily
+    fontCategory: FontFamily
+    fontName:     FontFamily
     scrollWnd:                #late *ScrollWnd
     edView:                   #late *PropertiesView
-    items:                    ArrayPtr'PropertiesItem
-    sections:                 Array'{ item: #null *PropertiesItem, lvl: s32 }
+    items:    ArrayPtr'PropertiesItem
+    sections: Array'{ item: #null *PropertiesItem, lvl: s32 }
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
-    gridLevelHasMark:         Array'bool
-    hotItem:                  #null *PropertiesItem
-    selItem:                  #null *PropertiesItem
-    currentSectionIndex:      u32 = Swag.U32.Max
-    stringFilter:             String
-    cursorSet:                bool
-    resizingColumn:           bool
-    aniBar:                   BlendColor
-    editPopup:                #null *Wnd
+    gridLevelHasMark:    Array'bool
+    hotItem:             #null *PropertiesItem
+    selItem:             #null *PropertiesItem
+    currentSectionIndex: u32 = Swag.U32.Max
+    stringFilter:        String
+    cursorSet:           bool
+    resizingColumn:      bool
+    aniBar:              BlendColor
+    editPopup:           #null *Wnd
 
     // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
     // instance per added struct, freed on destroy; every row's defaultData points into it.
     // showReverts is the master switch for the revert markers.
-    defaultRoots:             Array'PropDefaultRoot
-    showReverts:              bool = true
+    defaultRoots: Array'PropDefaultRoot
+    showReverts:  bool = true
 
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
@@ -148,13 +172,13 @@ struct Properties
     // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
     // of one slider drag into a single command. generation stamps the grid content: it bumps on
     // clearStructs so commands recorded against dropped rows skip their row refresh.
-    undoMgr:                  UndoManager
-    externUndoMgr:            #null *UndoManager
-    undoEnabled:              bool = true
-    applyingUndo:             bool
-    generation:               u64
-    dragItem:                 #null *PropertiesItem
-    dragCmd:                  #null *PropUndoCommand
+    undoMgr:       UndoManager
+    externUndoMgr: #null *UndoManager
+    undoEnabled:   bool = true
+    applyingUndo:  bool
+    generation:    u64
+    dragItem:      #null *PropertiesItem
+    dragCmd:       #null *PropUndoCommand
 
     // Host-level notify interface (setNotify): consulted for every row, in addition to the
     // per-struct IPropertyNotify implementations bound at build time. This is how a host that
@@ -321,17 +345,17 @@ impl Properties
         {
             .kind = kind
 
-            .scrollWnd               = .createView'ScrollWnd()
-            .scrollWnd.dockStyle     = .Center
-            .scrollWnd.focusStrategy = .None
-            .scrollWnd.padding       = 0
+            .scrollWnd                = .createView'ScrollWnd()
+            .scrollWnd.dockStyle      = .Center
+            .scrollWnd.focusStrategy  = .None
+            .scrollWnd.padding        = 0
             .scrollWnd.scrollWndFlags |= .TransparentBar
 
             .edView            = .scrollWnd.createView'PropertiesView()
             .edView.ed         = ed
             .edView.layoutKind = .Top
             .edView.spacing    = 0
-            .edView.wndFlags |= .NoScroll
+            .edView.wndFlags   |= .NoScroll
 
             let theme = parent.getTheme()
 
@@ -404,9 +428,9 @@ impl Properties
         if !.externUndoMgr do
             .undoMgr.clear()
 
-        .generation += 1
-        .dragItem = null
-        .dragCmd  = null
+        .generation                   += 1
+        .dragItem                     = null
+        .dragCmd                      = null
         .hotItem, .selItem, .menuItem = null
 
         .freeDefaultRoots()
@@ -467,9 +491,9 @@ impl Properties
             let v: Swag.TypeValue
             item = .addItem(v, null, null, 0, .Zero)
             item.flags.add(.Section | .NoSeparator | .Expanded | .NoFocus)
-            item.valueCellHeight = 0
-            item.line.position.height = 0
-            item.line.preferredSize.y = 0
+            item.valueCellHeight                   = 0
+            item.line.position.height              = 0
+            item.line.preferredSize.y              = 0
             item.line.margin.y, item.line.margin.w = 0
         }
 

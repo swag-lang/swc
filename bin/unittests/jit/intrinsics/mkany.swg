@@ -132,10 +132,10 @@ enum MkanyKind: u16
         var s1: s64 = 20
         var s2: s64 = 30
         var s3: s64 = 40
-        var a: any = @mkany(&s0, s64)
-        var b: any = @mkany(&s1, s64)
-        var c: any = @mkany(&s2, s64)
-        var d: any = @mkany(&s3, s64)
+        var a:  any = @mkany(&s0, s64)
+        var b:  any = @mkany(&s1, s64)
+        var c:  any = @mkany(&s2, s64)
+        var d:  any = @mkany(&s3, s64)
 
         b = a
         c = b
@@ -189,8 +189,8 @@ enum MkanyKind: u16
 {
     func mkanyBoolRuneMix()->s32
     {
-        var b: bool = true
-        var r: rune = 'A'
+        var b:  bool = true
+        var r:  rune = 'A'
         let ab: any = @mkany(&b, bool)
         let ar: any = @mkany(&r, rune)
         let pb = cast(*bool) @dataof(ab)

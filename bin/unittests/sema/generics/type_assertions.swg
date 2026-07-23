@@ -38,7 +38,7 @@ struct(T = s32) DefaultBox { value: T }
 // Box types
 func semaTest001()
 {
-    let b: Box's32
+    let b:  Box's32
     var bs: Box'string = undefined
     let bb: Box'bool
     let bf: Box'f64
@@ -81,7 +81,7 @@ func semaTest003()
 // Nested generic type assertions
 func semaTest004()
 {
-    let w: Wrapper's32
+    let w:  Wrapper's32
     var ws: Wrapper'string = undefined
     let wf: Wrapper'f64
 
@@ -93,7 +93,7 @@ func semaTest004()
 // Default params
 func semaTest005()
 {
-    let db: DefaultBuffer'u16
+    let db:  DefaultBuffer'u16
     let db3: DefaultBuffer'(s32, 3)
     let dxf: DefaultBox'f64
 
@@ -116,7 +116,7 @@ func semaTest006()
 // Box of Box
 func semaTest007()
 {
-    let bb: Box'(Box's32)
+    let bb:  Box'(Box's32)
     let bbb: Box'(Box'(Box'bool))
 
     #assert(#typeof(bb.value.value) == s32)

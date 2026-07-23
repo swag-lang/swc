@@ -3,10 +3,10 @@
 // Real-life example: forecast wholesale price signals by evolving a set of
 // obscured vendor seeds and identifying the most profitable repeated pattern.
 
-const SecretMask = 0x00FF_FFFF'u32
-const ForecastRounds = 2000
+const SecretMask          = 0x00FF_FFFF'u32
+const ForecastRounds      = 2000
 const PriceChangeVariants = 19
-const SequenceCount = PriceChangeVariants * PriceChangeVariants * PriceChangeVariants * PriceChangeVariants
+const SequenceCount       = PriceChangeVariants * PriceChangeVariants * PriceChangeVariants * PriceChangeVariants
 
 var SequenceTotals: [SequenceCount] u32
 var SequenceSeenStamp: [SequenceCount] u32
@@ -52,7 +52,7 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 
     for SequenceCount
     {
-        SequenceTotals[@index] = 0
+        SequenceTotals[@index]    = 0
         SequenceSeenStamp[@index] = 0
     }
 
@@ -82,7 +82,7 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
                 if SequenceSeenStamp[index] != buyerStamp
                 {
                     SequenceSeenStamp[index] = buyerStamp
-                    SequenceTotals[index] += cast(u32) currentPrice
+                    SequenceTotals[index]    += cast(u32) currentPrice
                     if SequenceTotals[index] > result.bestBananaTotal do
                         result.bestBananaTotal = SequenceTotals[index]
                 }

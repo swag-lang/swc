@@ -50,7 +50,7 @@ impl FastNoise
         for i in .octaves - 1
         {
             ampFractal += amp
-            amp *= .gain
+            amp        *= .gain
         }
 
         .fractalBounding = 1.0 / ampFractal
@@ -74,8 +74,8 @@ impl FastNoise
         for i in .octaves
         {
             xi, yi *= .lacunarity
-            amp *= .gain
-            sum += perlin(xi, yi, .seed) * amp
+            amp    *= .gain
+            sum    += perlin(xi, yi, .seed) * amp
         }
 
         return sum * .fractalBounding
@@ -92,8 +92,8 @@ impl FastNoise
         for i in .octaves
         {
             xi, yi *= .lacunarity
-            amp *= .gain
-            sum += (Math.abs(perlin(xi, yi, .seed)) * 2 - 1) * amp
+            amp    *= .gain
+            sum    += (Math.abs(perlin(xi, yi, .seed)) * 2 - 1) * amp
         }
 
         return sum * .fractalBounding
@@ -110,8 +110,8 @@ impl FastNoise
         for i in .octaves
         {
             xi, yi *= .lacunarity
-            amp *= .gain
-            sum += (1 - Math.abs(perlin(xi, yi, .seed))) * amp
+            amp    *= .gain
+            sum    += (1 - Math.abs(perlin(xi, yi, .seed))) * amp
         }
 
         return sum * .fractalBounding
@@ -128,8 +128,8 @@ impl FastNoise
         for i in .octaves
         {
             xi, yi *= .lacunarity
-            amp *= .gain
-            sum += Noise.value(xi, yi, .seed) * amp
+            amp    *= .gain
+            sum    += Noise.value(xi, yi, .seed) * amp
         }
 
         return sum * .fractalBounding
@@ -146,8 +146,8 @@ impl FastNoise
         for i in .octaves
         {
             xi, yi *= .lacunarity
-            amp *= .gain
-            sum += (Math.abs(Noise.value(xi, yi, .seed)) * 2 - 1) * amp
+            amp    *= .gain
+            sum    += (Math.abs(Noise.value(xi, yi, .seed)) * 2 - 1) * amp
         }
 
         return sum * .fractalBounding
@@ -164,8 +164,8 @@ impl FastNoise
         for i in .octaves
         {
             xi, yi *= .lacunarity
-            amp *= .gain
-            sum += (1 - Math.abs(Noise.value(xi, yi, .seed))) * amp
+            amp    *= .gain
+            sum    += (1 - Math.abs(Noise.value(xi, yi, .seed))) * amp
         }
 
         return sum * .fractalBounding

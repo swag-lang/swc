@@ -85,7 +85,7 @@ internal
             @init(me, 1)
             for v in codeLengths do
                 sizes[v] += 1
-            sizes[0] = 0
+            sizes[0]     = 0
 
             for i in 1 to 16
             {
@@ -100,12 +100,12 @@ internal
                 nextCode[i]     = cast(u16) cde
                 .firstCode[i]   = cast(u16) cde
                 .firstSymbol[i] = k
-                cde += sizes[i]
+                cde             += sizes[i]
                 if sizes[i] != 0 and (cast(u32) cde - 1) >= (1'u32 << i) do
                     throw InvalidFormatError{"huffman bad code lengths"}
                 .maxCode[i] = cast(s64) cde << (16 - i)
-                cde <<= 1
-                k += sizes[i]
+                cde         <<= 1
+                k           += sizes[i]
             }
 
             .maxCode[16] = 0x10000
@@ -124,7 +124,7 @@ internal
                     while j < (1 << FastBits)
                     {
                         .fast[j] = fastv
-                        j += (1'u16 << v)
+                        j        += (1'u16 << v)
                     }
                 }
 
@@ -137,9 +137,9 @@ internal
 #[Swag.Opaque]
 public struct Inflate
 {
-    stream:         BitStream
-    windowSize:     u32
-    adler:          Hash.Adler32
+    stream:     BitStream
+    windowSize: u32
+    adler:      Hash.Adler32
 }
 
 impl Inflate
@@ -207,7 +207,7 @@ impl Inflate
                     cap = dest.capacity
                 }
                 buf[count] = cast(u8) value
-                count += 1
+                count      += 1
                 continue
             }
 
@@ -340,7 +340,7 @@ impl Inflate
                     if c < 16
                     {
                         lenCodes[n] = cast(u8) c
-                        n += 1
+                        n           += 1
                     }
                     else
                     {
@@ -367,7 +367,7 @@ impl Inflate
                         while n < nc
                         {
                             lenCodes[n] = fill
-                            n += 1
+                            n           += 1
                         }
                     }
                 }

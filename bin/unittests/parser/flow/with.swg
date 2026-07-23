@@ -36,7 +36,7 @@ impl ParserWithPoint
 
 func parser_with_examples()
 {
-    var point: ParserWithPoint
+    var point:  ParserWithPoint
     var holder: ParserWithHolder
 
     with point

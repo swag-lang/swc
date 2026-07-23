@@ -12,11 +12,11 @@ enum SplitterFlags
 struct SplitterItem
 {
     view:                #late *Wnd
-    size:                f32
-    minSize:             f32 = 5
-    maxSize:             f32 = 0
-    label:               #null *Label
-    tryPreserveSize:     bool
+    size:            f32
+    minSize:         f32 = 5
+    maxSize:         f32 = 0
+    label:           #null *Label
+    tryPreserveSize: bool
     visible              = true
     aniBar:              BlendColor
 }
@@ -27,11 +27,11 @@ struct SplitterCtrl
     splitterFlags        = SplitterFlags.Zero
     titleSize:           f32 = 30
 
-    items:               ArrayPtr'SplitterItem
-    correctMoving:       f32
+    items:         ArrayPtr'SplitterItem
+    correctMoving: f32
     hotIdx               = Swag.U32.Max
-    moving:              bool
-    numVisiblePanes:     s32
+    moving:          bool
+    numVisiblePanes: s32
 }
 
 impl IWnd for SplitterCtrl
@@ -126,7 +126,7 @@ impl IWnd for SplitterCtrl
                     labelRect.height = .titleSize
                     item.label.setPosition(labelRect)
 
-                    paneRect.y += .titleSize
+                    paneRect.y      += .titleSize
                     paneRect.height -= .titleSize
                 }
 
@@ -144,7 +144,7 @@ impl IWnd for SplitterCtrl
                     labelRect.width = .titleSize
                     item.label.setPosition(labelRect)
 
-                    paneRect.x += .titleSize
+                    paneRect.x     += .titleSize
                     paneRect.width -= .titleSize
                 }
 
@@ -213,8 +213,8 @@ private impl SplitterCtrl
                 if !item.visible do
                     continue
 
-                totalSize += item.size
-                countPreserve += item.tryPreserveSize ? 1 : 0
+                totalSize        += item.size
+                countPreserve    += item.tryPreserveSize ? 1 : 0
                 countNotPreserve += item.tryPreserveSize ? 0 : 1
             }
 
@@ -246,7 +246,7 @@ private impl SplitterCtrl
                         realDiff = item.minSize - item.size
 
                     item.size += realDiff
-                    dispatch -= realDiff
+                    dispatch  -= realDiff
                 }
             }
 
@@ -270,7 +270,7 @@ private impl SplitterCtrl
                         realDiff = item.minSize - item.size
 
                     item.size += realDiff
-                    dispatch -= realDiff
+                    dispatch  -= realDiff
                 }
             }
         }
@@ -330,7 +330,7 @@ private impl SplitterCtrl
             {
                 result.y += .items[i].size
                 if i != idx do
-                    result.y += barSize
+                    result.y  += barSize
                 result.height = barSize
             }
             else
@@ -408,7 +408,7 @@ impl SplitterCtrl
         let pos = position
         let res = Wnd.create'SplitterCtrl(parent, null, pos, id)
         res.focusStrategy = .None
-        res.wndFlags |= .PostChildsPaint
+        res.wndFlags      |= .PostChildsPaint
         if vertical do
             res.splitterFlags.add(.Vertical)
         return res
@@ -473,7 +473,7 @@ impl SplitterCtrl
             return
 
         .numVisiblePanes += show ? 1 : -1
-        pane.visible = show
+        pane.visible     = show
         if #isset(pane.view) do
             pane.view.show(show)
 

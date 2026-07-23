@@ -57,8 +57,8 @@ namespace compiler1633
     //
     struct A
     {
-        x:     u32
-        y:     u32
+        x: u32
+        y: u32
     }
 
     #test
@@ -76,8 +76,8 @@ namespace compiler1637
     //
     struct A
     {
-        x:     u32
-        y:     u32
+        x: u32
+        y: u32
     }
 
     #test
@@ -96,8 +96,8 @@ namespace compiler1638
 
     struct A
     {
-        x:     u32
-        y:     u32
+        x: u32
+        y: u32
     }
 
     #test
@@ -282,9 +282,9 @@ namespace compiler1666
     //
     struct TT
     {
-        value:      s64 = 456
-        value1:     s64 = 456
-        value2:     s64 = 456
+        value:  s64 = 456
+        value1: s64 = 456
+        value2: s64 = 456
     }
 
     //#[Swag.PrintBc]
@@ -408,9 +408,9 @@ namespace compiler1678
     //
     struct TT
     {
-        value:      s64 = 456
-        value1:     s64 = 456
-        value2:     s64 = 456
+        value:  s64 = 456
+        value1: s64 = 456
+        value2: s64 = 456
     }
 
     func D(x: TT)->s64
@@ -439,11 +439,11 @@ namespace compiler1679
     //
     struct TT
     {
-        value:      s64 = 456
-        value1:     s64 = 456
-        value2:     s64 = 456
-        value3:     s64 = 456
-        value4:     s64 = 456
+        value:  s64 = 456
+        value1: s64 = 456
+        value2: s64 = 456
+        value3: s64 = 456
+        value4: s64 = 456
     }
 
     //#[Swag.PrintBc]
@@ -481,11 +481,11 @@ namespace compiler1680
     //
     struct TT
     {
-        value:      s64 = 456
-        value1:     s64 = 456
-        value2:     s64 = 456
-        value3:     s64 = 456
-        value4:     s64 = 456
+        value:  s64 = 456
+        value1: s64 = 456
+        value2: s64 = 456
+        value3: s64 = 456
+        value4: s64 = 456
     }
 
     //#[Swag.PrintBc]
@@ -521,11 +521,11 @@ namespace compiler1681
     //
     struct TT
     {
-        value:      s64 = 456
-        value1:     s64 = 456
-        value2:     s64 = 456
-        value3:     s64 = 456
-        value4:     s64 = 456
+        value:  s64 = 456
+        value1: s64 = 456
+        value2: s64 = 456
+        value3: s64 = 456
+        value4: s64 = 456
     }
 
     alias myStruct = TT
@@ -551,11 +551,11 @@ namespace compiler1682
     //
     struct TT
     {
-        value:      s64 = 456
-        value1:     s64 = 456
-        value2:     s64 = 456
-        value3:     s64 = 456
-        value4:     s64 = 456
+        value:  s64 = 456
+        value1: s64 = 456
+        value2: s64 = 456
+        value3: s64 = 456
+        value4: s64 = 456
     }
 
     alias myStruct = TT
@@ -645,8 +645,8 @@ namespace compiler218
 {
     //
     const g: s64 = 5
-    const h  = 5555
-    const i  = 1.5
+    const h      = 5555
+    const i      = 1.5
 
     #test
     {

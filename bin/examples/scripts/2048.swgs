@@ -11,14 +11,14 @@ const Margin    = 8.0
 
 struct Cell
 {
-    z:            f32 = 0.1
-    zd:           f32 = 1.0
-    x, y:         f32
-    xd, yd:       f32
-    nxd, nyd:     f32
-    val:          s32
-    moving:       bool
-    remove:       bool
+    z:        f32 = 0.1
+    zd:       f32 = 1.0
+    x, y:     f32
+    xd, yd:   f32
+    nxd, nyd: f32
+    val:      s32
+    moving:   bool
+    remove:   bool
 }
 
 var g_Cells:    Array'Cell
@@ -37,8 +37,8 @@ func paintGrid(wnd: *Wnd, painter: *Painter)
     var rectGrid: Math.Rectangle
 
     let size = CellSize * CellCount
-    rectGrid.x = rect.horzCenter() - size * 0.5
-    rectGrid.y = rect.bottom() - size - 3 * Margin
+    rectGrid.x                      = rect.horzCenter() - size * 0.5
+    rectGrid.y                      = rect.bottom() - size - 3 * Margin
     rectGrid.width, rectGrid.height = size
 
     painter.setAntialiased(true)
@@ -111,7 +111,7 @@ func randValue()
         var cell: Cell
         cell.x, cell.xd, cell.nxd = x
         cell.y, cell.yd, cell.nyd = y
-        cell.val = Random.shared().nextBool() ? 2 : 4
+        cell.val                  = Random.shared().nextBool() ? 2 : 4
         g_Cells.add(cell)
         break
     }
@@ -128,7 +128,7 @@ func animate(wnd: *Wnd)
         // End of scale
         if Math.isEqualEpsilon(c.z, c.zd, 0.01) do
             c.zd = 1
-        c.z = Math.lerp(c.z, c.zd, 20 * dt)
+        c.z      = Math.lerp(c.z, c.zd, 20 * dt)
         if Math.isEqualEpsilon(c.z, 1, 0.01) do
             c.z = 1
 
@@ -145,9 +145,9 @@ func animate(wnd: *Wnd)
                 {
                     c.moving    = true
                     dest.remove = true
-                    c.val *= 2
-                    c.zd = 1.2
-                    g_Score += c.val
+                    c.val       *= 2
+                    c.zd        = 1.2
+                    g_Score     += c.val
                 }
 
                 c.x = c.xd

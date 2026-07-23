@@ -5,12 +5,12 @@
 
 struct PrizeMachine
 {
-    buttonAX:  s64
-    buttonAY:  s64
-    buttonBX:  s64
-    buttonBY:  s64
-    prizeX:    s64
-    prizeY:    s64
+    buttonAX: s64
+    buttonAY: s64
+    buttonBX: s64
+    buttonBY: s64
+    prizeX:   s64
+    prizeY:   s64
 }
 
 struct PrizeReport
@@ -52,7 +52,7 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
         let tokenCost = solveMachine(machine, prizeOffset)
         if tokenCost > 0
         {
-            result.solvableCount += 1
+            result.solvableCount  += 1
             result.totalTokenCost += tokenCost
         }
     }

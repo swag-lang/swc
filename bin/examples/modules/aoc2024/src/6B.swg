@@ -97,7 +97,7 @@ func day6B()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "6.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var arr0: Array'u8
+    var arr0:   Array'u8
     var sx, sy: s32
     w = cast() lines[0].length
     h = cast() lines.count

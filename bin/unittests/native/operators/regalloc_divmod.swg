@@ -61,9 +61,9 @@ func divChain(a: u32, b: u32)->u32
 // ---------------------------------------------------------------------------
 func divResultAsShiftCount(a: u32, b: u32, c: u32)->u32
 {
-    var cnt: u32 = a / b      // DIV: a=12, b=4 → cnt=3 (in RAX); RDX clobbered
-    var r: u32 = c << cnt     // SHL: cnt must be in CL → legalize: RAX→CL
-    return r                  // 5 << 3 = 40
+    var cnt: u32 = a / b        // DIV: a=12, b=4 → cnt=3 (in RAX); RDX clobbered
+    var r:   u32 = c << cnt     // SHL: cnt must be in CL → legalize: RAX→CL
+    return r                    // 5 << 3 = 40
 }
 
 // ---------------------------------------------------------------------------
@@ -73,8 +73,8 @@ func divResultAsShiftCount(a: u32, b: u32, c: u32)->u32
 // ---------------------------------------------------------------------------
 func divInterleavedShift(a: u32, b: u32, c: u32)->u32
 {
-    var q: u32  = a / b                // DIV: a=24, b=6 → q=4 (RAX); RDX clobbered
-    var s: u32  = c >> q               // SHR: q→CL;  128 >> 4 = 8
+    var q:  u32  = a / b               // DIV: a=24, b=6 → q=4 (RAX); RDX clobbered
+    var s:  u32  = c >> q              // SHR: q→CL;  128 >> 4 = 8
     var q2: u32 = c / b                // DIV: RAX reused; 128/6=21; RDX clobbered
     var s2: u32 = a << (q - 1'u32)     // SHL: (q-1)→CL=3; 24 << 3 = 192
     return s + q + q2 + s2             // 8 + 4 + 21 + 192 = 225
@@ -103,9 +103,9 @@ func signedUnsignedDivMix(a: s32, b: u32, big: s64)->s64
 // ---------------------------------------------------------------------------
 func mulDivChain(a: u32, b: u32, c: u32)->u32
 {
-    var p: u32  = a * b       // MUL: a=7, b=8 → p=56 (RDX:RAX; high bits zero)
-    var q: u32  = p / c       // DIV: p=56, c=5 → q=11 (RAX); RDX clobbered
-    var r: u32  = p % c       // DIV: p=56, c=5 → r=1  (RDX)
+    var p:  u32  = a * b      // MUL: a=7, b=8 → p=56 (RDX:RAX; high bits zero)
+    var q:  u32  = p / c      // DIV: p=56, c=5 → q=11 (RAX); RDX clobbered
+    var r:  u32  = p % c      // DIV: p=56, c=5 → r=1  (RDX)
     var p2: u32 = q * c       // MUL: 11 * 5 = 55; q,r live → spill pressure
     return p + q + r + p2     // 56 + 11 + 1 + 55 = 123
 }
@@ -118,10 +118,10 @@ func mulDivChain(a: u32, b: u32, c: u32)->u32
 // ---------------------------------------------------------------------------
 func divInsideShiftExpr(a: u32, b: u32, c: u32, d: u32)->u32
 {
-    var dividend: u32 = a / b             // DIV: a=80, b=10 → dividend=8 (RAX)
-    var shiftCnt: u32 = c % d             // MOD: c=11, d=4  → shiftCnt=3 (RDX→result)
-    var r: u32 = dividend << shiftCnt     // SHL: shiftCnt → CL;  8 << 3 = 64
-    return r + dividend + shiftCnt        // 64 + 8 + 3 = 75
+    var dividend: u32 = a / b                    // DIV: a=80, b=10 → dividend=8 (RAX)
+    var shiftCnt: u32 = c % d                    // MOD: c=11, d=4  → shiftCnt=3 (RDX→result)
+    var r:        u32 = dividend << shiftCnt     // SHL: shiftCnt → CL;  8 << 3 = 64
+    return r + dividend + shiftCnt               // 64 + 8 + 3 = 75
 }
 
 // ---------------------------------------------------------------------------
@@ -133,13 +133,13 @@ func divInsideShiftExpr(a: u32, b: u32, c: u32, d: u32)->u32
 func divModInLoop(a: u32, b: u32, iters: u32)->u32
 {
     var acc: u32 = a     // 100
-    var i: u32 = 0'u32
+    var i:   u32 = 0'u32
     while i < iters
     {
         var q: u32 = acc / b     // DIV: RAX constraint; b forbidden from RDX
         var r: u32 = acc % b     // MOD: RDX constraint
         acc = q + r + b          // recombine; loop carries acc across back-edge
-        i += 1'u32
+        i   += 1'u32
     }
     return acc
 // a=100, b=7, iters=3:
@@ -156,16 +156,16 @@ func divModInLoop(a: u32, b: u32, iters: u32)->u32
 // ---------------------------------------------------------------------------
 func mulDivShiftInLoop(val: u32, factor: u32, divisor: u32, cnt: u32, iters: u32)->u32
 {
-    var acc: u32 = val      // 3
+    var acc:  u32 = val     // 3
     var side: u32 = val     // 3  (kept live across back-edge alongside acc)
-    var i: u32 = 0'u32
+    var i:    u32 = 0'u32
     while i < iters
     {
         var prod: u32 = acc * factor       // MUL: clobbers RDX; factor != RDX
         var quot: u32 = prod / divisor     // DIV: prod→RAX, divisor away from RDX
         side += quot >> cnt                // SHR: cnt→CL; side carried across back-edge
-        acc = quot
-        i += 1'u32
+        acc  = quot
+        i    += 1'u32
     }
     return acc + side
 // val=3, factor=4, divisor=3, cnt=1, iters=3:

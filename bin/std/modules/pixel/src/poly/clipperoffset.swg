@@ -11,26 +11,29 @@ using Core
 const DefaultArcTolerance = 0.25'f64     // Default tolerance for arc approximation in polygon offsetting
 
 // Used internally for high precision geometric calculations during offsetting operations.
-struct DoublePoint { x, y: f64 }
+struct DoublePoint
+{
+    x, y: f64
+}
 
 // Polygon offset processor for creating parallel curves and outlines.
 // Handles the creation of offset polygons with different join types and miter limits.
 struct Offset
 {
-    miterLimit:       f64 = 2                       // Maximum ratio of miter length to offset distance before square join is used
-    arcTolerance:     f64 = DefaultArcTolerance     // Maximum allowed distance between true arc and approximating line segments
-    destPolys:        ClipperPaths                  // Output collection of offset polygons
-    srcPoly:          ClipperPath                   // Current source polygon being processed
-    destPoly:         ClipperPath                   // Current destination polygon being built
-    normals:          Array'DoublePoint             // Unit normal vectors for each edge of the source polygon
-    deltaVal:         f64                           // Current offset distance (positive for outward, negative for inward)
-    sinaVal:          f64                           // Sine of angle between adjacent edge normals
-    sinVal:           f64                           // Sine value for arc step calculations
-    cosVal:           f64                           // Cosine value for arc step calculations
-    miterLim:         f64                           // Computed miter limit threshold for join type switching
-    stepsPerRad:      f64                           // Number of steps per radian for arc approximation
-    lowest:           IntPoint = {-1, 0}            // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
-    polyNodes:        PolyNode                      // Tree structure holding all input polygons with their join types
+    miterLimit:   f64 = 2                       // Maximum ratio of miter length to offset distance before square join is used
+    arcTolerance: f64 = DefaultArcTolerance     // Maximum allowed distance between true arc and approximating line segments
+    destPolys:    ClipperPaths                  // Output collection of offset polygons
+    srcPoly:      ClipperPath                   // Current source polygon being processed
+    destPoly:     ClipperPath                   // Current destination polygon being built
+    normals:      Array'DoublePoint             // Unit normal vectors for each edge of the source polygon
+    deltaVal:     f64                           // Current offset distance (positive for outward, negative for inward)
+    sinaVal:      f64                           // Sine of angle between adjacent edge normals
+    sinVal:       f64                           // Sine value for arc step calculations
+    cosVal:       f64                           // Cosine value for arc step calculations
+    miterLim:     f64                           // Computed miter limit threshold for join type switching
+    stepsPerRad:  f64                           // Number of steps per radian for arc approximation
+    lowest:       IntPoint = {-1, 0}            // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
+    polyNodes:    PolyNode                      // Tree structure holding all input polygons with their join types
 }
 
 impl Offset
@@ -148,7 +151,7 @@ impl Offset
         for i in size
         {
             let pI = poly[i]
-            a += (cast(f64) pJ.x + pI.x) * (cast(f64) pJ.y - pI.y)
+            a  += (cast(f64) pJ.x + pI.x) * (cast(f64) pJ.y - pI.y)
             j  = i
             pJ = pI
         }
@@ -186,8 +189,8 @@ impl Offset
         var dx = cast(f64) (pt2.x - pt1.x)
         var dy = cast(f64) (pt2.y - pt1.y)
         let f  = 1.0 / Math.sqrt(dx * dx + dy * dy)
-        dx *= f
-        dy *= f
+        dx       *= f
+        dy       *= f
         result.x = dy
         result.y = -dx
         return result
@@ -232,7 +235,7 @@ impl Offset
         const TwoPi = ConstF64.TwoPi
         var steps   = Pi / acos(1 - arcT / abs(delta))
         if steps > abs(delta) * Pi do
-            steps = abs(delta) * Pi
+            steps    = abs(delta) * Pi
         .sinVal      = sin(TwoPi / steps)
         .cosVal      = cos(TwoPi / steps)
         .stepsPerRad = steps / TwoPi

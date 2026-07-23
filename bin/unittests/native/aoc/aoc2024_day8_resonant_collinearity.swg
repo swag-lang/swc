@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 8: find antinode positions created by same-frequency
 // antenna pairs, using heap-allocated storage and reference types for mutation.
 
-const MaxFrequencies = 128'u32
+const MaxFrequencies     = 128'u32
 const MaxAntennasPerFreq = 32'u32
 
 const SampleInput =
@@ -58,8 +58,8 @@ struct AntennaGroup
 
 struct AntennaMap
 {
-    width:     u32
-    height:    u32
+    width:  u32
+    height: u32
     groups:    [MaxFrequencies] AntennaGroup
     freqUsed:  [MaxFrequencies] bool
 }
@@ -73,12 +73,12 @@ struct AntinodeGrid
 
 struct ResonanceReport
 {
-    width:              u32
-    height:             u32
-    antennaCount:       u32
-    frequencyCount:     u32
-    simpleAntinodes:    u32
-    harmonicAntinodes:  u32
+    width:             u32
+    height:            u32
+    antennaCount:      u32
+    frequencyCount:    u32
+    simpleAntinodes:   u32
+    harmonicAntinodes: u32
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ func isAntenna(ch: u8)->bool
 func initAntinodeGrid(width, height: u32)->AntinodeGrid
 {
     var result: AntinodeGrid
-    result.width = width
+    result.width  = width
     result.height = height
     let size = cast(u64) width * cast(u64) height
     result.cells = cast(#null [*] u8) @alloc(size)
@@ -191,8 +191,8 @@ func parseAntennaMap(result: &AntennaMap, text: string)
             let group = &result.groups[freq]
             @assert(group.count < MaxAntennasPerFreq)
             group.positions[group.count] = {x: cast(s32) x, y: cast(s32) y}
-            group.count += 1
-            result.freqUsed[freq] = true
+            group.count                  += 1
+            result.freqUsed[freq]        = true
         }
 
         x += 1
@@ -303,9 +303,9 @@ func analyzeResonance(text: string)->ResonanceReport
     defer freeAntinodeGrid(grid)
 
     var result: ResonanceReport
-    result.width = map.width
-    result.height = map.height
-    result.antennaCount = countAntennas(&map)
+    result.width          = map.width
+    result.height         = map.height
+    result.antennaCount   = countAntennas(&map)
     result.frequencyCount = countFrequencies(&map)
 
     computeSimpleAntinodes(&grid, &map)

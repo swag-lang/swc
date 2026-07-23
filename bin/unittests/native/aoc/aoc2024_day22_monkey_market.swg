@@ -78,7 +78,7 @@ func parseBuyers(text: string)->BuyerList
         let ch = bytes[@index]
         if ch >= '0' and ch <= '9'
         {
-            acc = acc * 10 + cast(u64) (ch - '0')
+            acc   = acc * 10 + cast(u64) (ch - '0')
             inNum = true
         }
         elif inNum
@@ -86,9 +86,9 @@ func parseBuyers(text: string)->BuyerList
             if result.count < MaxBuyers
             {
                 result.secrets[result.count] = acc
-                result.count += 1
+                result.count                 += 1
             }
-            acc = 0
+            acc   = 0
             inNum = false
         }
     }
@@ -96,7 +96,7 @@ func parseBuyers(text: string)->BuyerList
     if inNum and result.count < MaxBuyers
     {
         result.secrets[result.count] = acc
-        result.count += 1
+        result.count                 += 1
     }
 
     return result
@@ -191,7 +191,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
                 let idx = encodeSeq(ch[3], ch[2], ch[1], ch[0])
                 if !seen[idx]
                 {
-                    seen[idx] = true
+                    seen[idx]   = true
                     totals[idx] += cast(u64) price
                 }
             }
@@ -349,7 +349,7 @@ impl SliceBuf
     var buf: SliceBuf
     buf.data[0] = 'H'
     buf.data[1] = 'i'
-    buf.len = 2
+    buf.len     = 2
     let sl = buf.asSlice()
     @assert(@countof(sl) == 2)
     @assert(sl[0] == 'H')

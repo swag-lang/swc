@@ -10,5 +10,5 @@
     let cfg = @compiler.getBuildCfg()
     cfg.embeddedImports = true
     cfg.moduleNamespace = "ConsumerExe"
-    cfg.backendKind = .Executable
+    cfg.backendKind     = .Executable
 }

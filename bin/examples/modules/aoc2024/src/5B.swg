@@ -97,8 +97,8 @@ func day5B()
 
                         repaired[writeIndex] = candidatePage
                         used[candidateIndex] = true
-                        writeIndex += 1
-                        found = true
+                        writeIndex           += 1
+                        found                = true
                         break
                     }
 

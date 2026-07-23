@@ -12,8 +12,8 @@ public alias BusHandle = #null *void
 
 struct DriverNative
 {
-    kind:       DriverKind
-    noSound:    NoSoundDriverNative
+    kind:    DriverKind
+    noSound: NoSoundDriverNative
 
     #if #os == Swag.TargetOs.Windows
     {

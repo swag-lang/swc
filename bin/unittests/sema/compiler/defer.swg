@@ -1,6 +1,6 @@
 #global private
 
-var G: s32 = 0
+var G:          s32 = 0
 var DeferTrace: s64 = 0
 
 func resetDeferTrace()

@@ -1,7 +1,7 @@
 public struct ActionContext
 {
-    wnd:     #null *Wnd
-    id:      WndId
+    wnd: #null *Wnd
+    id:  WndId
 }
 
 public interface IActionUI

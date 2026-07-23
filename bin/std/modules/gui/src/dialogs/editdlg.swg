@@ -4,8 +4,8 @@ public struct EditDlg
 {
     using dialog:     Dialog
     label:            #late *Label
-    edit:             #null *EditBox
-    richEdit:         #null *RichEditCtrl
+    edit:     #null *EditBox
+    richEdit: #null *RichEditCtrl
 }
 
 public impl EditDlg
@@ -46,10 +46,10 @@ public impl EditDlg
         dlg.richEdit = RichEditCtrl.create(srf.getView(), {0, 0, 0, heightEdit})
         with dlg.richEdit
         {
-            .anchorStyle = .Height
-            .dockStyle   = .Bottom
-            .margin      = metrics.dialog_Padding
-            .richEdFlags |= .AutoLoseFocus
+            .anchorStyle  = .Height
+            .dockStyle    = .Bottom
+            .margin       = metrics.dialog_Padding
+            .richEdFlags  |= .AutoLoseFocus
             .bkColorModel = "$dlg_BtnBarBk"
             .setForm(.Edit)
             .setFrameForm(.Round)
@@ -98,7 +98,7 @@ public impl EditDlg
             else do
                 .richEdit.margin.y = 0
             var pos = .surface.position
-            pos.height += height
+            pos.height         += height
             .surface.minSize.y += height
 
             // A single-line dialog has only '.edit' (no '.richEdit'). Temporarily

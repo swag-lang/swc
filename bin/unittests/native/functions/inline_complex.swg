@@ -10,7 +10,7 @@ struct Pair
 
 struct Box
 {
-    left: Pair
+    left:  Pair
     right: Pair
 }
 

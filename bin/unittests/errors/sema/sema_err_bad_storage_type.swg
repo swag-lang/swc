@@ -6,8 +6,8 @@ alias VoidAlias = void
 alias StrictVoidAlias = void
 
 // Variables, fields, and parameters require a storable type; void and aliases to void are rejected.
-var globalDirect: void                     // swc-expected-error {{sema_err_bad_storage_type}}
-var globalAlias: VoidAlias                 // swc-expected-error {{sema_err_bad_storage_type}}
+var globalDirect:      void                // swc-expected-error {{sema_err_bad_storage_type}}
+var globalAlias:       VoidAlias           // swc-expected-error {{sema_err_bad_storage_type}}
 var globalStrictAlias: StrictVoidAlias     // swc-expected-error {{sema_err_bad_storage_type}}
 
 struct BadFieldDirect

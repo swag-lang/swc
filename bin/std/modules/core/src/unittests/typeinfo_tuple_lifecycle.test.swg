@@ -63,8 +63,8 @@ func testCoreTupleRuntimeLifecycle()->bool
        sourceFirst.value != "tuple-default" or sourceSecond.value != "tuple-default" do
         return false
 
-    sourceFirst.id  = 1
-    sourceSecond.id = 2
+    sourceFirst.id                  = 1
+    sourceSecond.id                 = 2
     CoreTupleLifecyclePostCopyOrder = 0
     Reflection.copy(target, source, tupleType)
     if CoreTupleLifecyclePostCopyOrder != 12 or targetFirst.id != 1 or targetSecond.id != 2 do
@@ -165,8 +165,8 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
        first.value != "tuple-default" or second.value != "tuple-default" do
         return false
 
-    first.id  = 1
-    second.id = 2
+    first.id                        = 1
+    second.id                       = 2
     CoreTupleLifecyclePostCopyOrder = 0
     Memory.postCopyType(value, aliasType)
     if CoreTupleLifecyclePostCopyOrder != 12 do

@@ -19,37 +19,37 @@ public struct PopupMenuItem
     using item:     Item
     rightName:      RichString
     popup:          #late *MenuCtrl
-    pos:            f32
-    size:           f32
-    rg:             CommandStateEvent.RenderingHint
-    separator:      bool
-    disabled:       bool
-    checked:        bool
-    hidden:         bool
+    pos:       f32
+    size:      f32
+    rg:        CommandStateEvent.RenderingHint
+    separator: bool
+    disabled:  bool
+    checked:   bool
+    hidden:    bool
 }
 
 public struct MenuCtrl
 {
     using frameWnd:       FrameWnd
-    onValidateResult:     #null func(*MenuCtrl, WndId)
-    onComputeItem:        #null func(*MenuCtrl, *PopupMenuItem)
-    menuCtrlFlags:        MenuCtrlFlags = Zero
+    onValidateResult: #null func(*MenuCtrl, WndId)
+    onComputeItem:    #null func(*MenuCtrl, *PopupMenuItem)
+    menuCtrlFlags:    MenuCtrlFlags = Zero
 
-    paddingSel:           f32 = 4
-    items:                ArrayPtr'PopupMenuItem
-    hotIdx:               u32 = Swag.U32.Max
-    selectedIdx:          u32 = Swag.U32.Max
-    bar:                  bool
-    endModal:             bool
-    endModalResult:       WndId
-    ownerMenu:            #null *MenuCtrl
-    subVisible:           #null *MenuCtrl
-    timer:                #null *Timer
-    dirtyLayout:          bool
-    paintByFrame:         bool
-    popupBarItemIdx:      u32 = Swag.U32.Max
+    paddingSel:              f32 = 4
+    items:                   ArrayPtr'PopupMenuItem
+    hotIdx:                  u32 = Swag.U32.Max
+    selectedIdx:             u32 = Swag.U32.Max
+    bar:                     bool
+    endModal:                bool
+    endModalResult:          WndId
+    ownerMenu:               #null *MenuCtrl
+    subVisible:              #null *MenuCtrl
+    timer:                   #null *Timer
+    dirtyLayout:             bool
+    paintByFrame:            bool
+    popupBarItemIdx:         u32 = Swag.U32.Max
     popupBarItemSurfaceRect: Math.Rectangle
-    ignoreNextRelease:    bool
+    ignoreNextRelease:       bool
 }
 
 public impl IWnd for MenuCtrl
@@ -103,7 +103,7 @@ public impl IWnd for MenuCtrl
             }
 
             var backPos = labelPos
-            backPos.x -= metrics.menuBar_SpaceBetween * 0.5
+            backPos.x     -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
             if selected and #isset(i.popup) and .subVisible == i.popup
             {
@@ -199,7 +199,7 @@ public impl IWnd for MenuCtrl
             }
 
             var backPos = labelPos
-            backPos.y -= metrics.menuPopup_SpaceLines * 0.5
+            backPos.y      -= metrics.menuPopup_SpaceLines * 0.5
             backPos.height += metrics.menuPopup_SpaceLines
             backPos.inflate(.paddingSel, 0)
             theme.drawSubRect(painter, backPos, &rects.menuPopup_HotBk, colorSel)
@@ -224,7 +224,7 @@ public impl IWnd for MenuCtrl
             if i.checked or i.rg == .ExclusiveGroup
             {
                 var checkPos = iconPos
-                checkPos.y = textCenterY - i.size * 0.5
+                checkPos.y                      = textCenterY - i.size * 0.5
                 checkPos.width, checkPos.height = i.size
 
                 if i.rg == .ExclusiveGroup
@@ -427,7 +427,7 @@ impl MenuCtrl
     {
         let metrics = .getThemeMetrics()
         var result  = .getBarLabelRect(item)
-        result.x -= metrics.menuBar_SpaceBetween * 0.5
+        result.x     -= metrics.menuBar_SpaceBetween * 0.5
         result.width += metrics.menuBar_SpaceBetween
         return result
     }
@@ -439,7 +439,7 @@ impl MenuCtrl
         let anchorHeight = .getPopupBarAnchorHeight()
         if anchorHeight
         {
-            result.y += anchorHeight
+            result.y      += anchorHeight
             result.height -= anchorHeight
         }
 
@@ -469,7 +469,7 @@ impl MenuCtrl
 
         let i = .ownerMenu.items[.popupBarItemIdx]
         var labelPos = anchorRect
-        labelPos.x += metrics.menuBar_SpaceBetween * 0.5
+        labelPos.x     += metrics.menuBar_SpaceBetween * 0.5
         labelPos.width -= metrics.menuBar_SpaceBetween
 
         var format: RichStringFormat
@@ -593,9 +593,9 @@ impl MenuCtrl
         var anchorRect = .localToSurface(.getBarItemRect(notnull hotItem))
 
         var pos = anchorRect
-        pos.x -= metrics.menuPopup_ShadowSize
-        pos.y -= metrics.menuPopup_ShadowSize
-        .subVisible = hotItem.popup
+        pos.x                         -= metrics.menuPopup_ShadowSize
+        pos.y                         -= metrics.menuPopup_ShadowSize
+        .subVisible                   = hotItem.popup
         .subVisible.ignoreNextRelease = false
         .subVisible.setPopupBarAnchor(.hotIdx, anchorRect)
 
@@ -622,10 +622,10 @@ impl MenuCtrl
         var pos         = .getSurfaceRect()
         let sdw         = .getThemeMetrics().menuPopup_ShadowSize
         let surfaceRect = pos
-        pos.x = pos.right() - sdw
-        pos.y += hotItem.pos
-        pos.y -= .padding.y
-        .subVisible = hotItem.popup
+        pos.x                         = pos.right() - sdw
+        pos.y                         += hotItem.pos
+        pos.y                         -= .padding.y
+        .subVisible                   = hotItem.popup
         .subVisible.ignoreNextRelease = false
         .subVisible.clearPopupBarAnchor()
 
@@ -755,12 +755,12 @@ impl MenuCtrl
                 .onComputeItem(notnull i)
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
-            i.pos = .position.height
+            i.pos                = .position.height
 
             lastIsSeparator = i.separator
             if i.separator
             {
-                i.size = metrics.menuPopup_SeparatorHeight
+                i.size           = metrics.menuPopup_SeparatorHeight
                 .position.height += i.size
                 continue
             }
@@ -776,7 +776,7 @@ impl MenuCtrl
                 w += i.rightName.boundRect.width + rsf.font.regular.height * 3
             }
 
-            .position.width = Math.max(.position.width, w)
+            .position.width  = Math.max(.position.width, w)
             .position.height += i.size
         }
 
@@ -797,7 +797,7 @@ impl MenuCtrl
             .position.height += metrics.menuPopup_ShadowSize
 
         // Add padding
-        .position.width += .padding.x + .padding.z
+        .position.width  += .padding.x + .padding.z
         .position.height += .padding.w
     }
 }
@@ -919,10 +919,10 @@ public impl MenuCtrl
         {
         case AnchorTopCenter:
             .paintByFrame = true
-            .padding.y += 4
+            .padding.y    += 4
         case AnchorBottomCenter:
             .paintByFrame = true
-            .padding.w += 4
+            .padding.w    += 4
         default:
             .paintByFrame = false
         }
@@ -945,7 +945,7 @@ public impl MenuCtrl
             .anchorPos = .position.width * 0.5
             .setFrameFlags(.Borders | .SmallShadow)
             .setFrameForm(.Round)
-            .padding.y += 14
+            .padding.y  += 14
             .paddingSel = 0
 
         case AnchorBottomCenter:
@@ -964,8 +964,8 @@ public impl MenuCtrl
         .show()
         .captureMouse()
 
-        .endModal       = false
-        .endModalResult = null
+        .endModal             = false
+        .endModalResult       = null
         .getApp().inModalLoop += 1
         while !.endModal do
             .surface.app.runFrame()

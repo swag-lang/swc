@@ -33,7 +33,7 @@ func day4A()
             {
                 if l[idx] != '-' do
                     count[l[idx] - 'a'] += 1
-                idx += 1
+                idx                     += 1
             }
 
             let res = StrConv.parseS64(l[idx to])

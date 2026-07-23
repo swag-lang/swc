@@ -4,11 +4,11 @@ internal
 {
     struct ToolTipVal
     {
-        owner:          *Wnd = undefined
-        surfacePos:     Math.Point
-        str:            String
-        delay:          f32
-        startDelay:     f32
+        owner:      *Wnd = undefined
+        surfacePos: Math.Point
+        str:        String
+        delay:      f32
+        startDelay: f32
     }
 
     var g_Pending:      #null *ToolTipVal
@@ -76,7 +76,7 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: 
     if !g_Current and delay.timeInSeconds > 0
     {
         if !g_Pending do
-            g_Pending = Memory.new'ToolTipVal()
+            g_Pending        = Memory.new'ToolTipVal()
         g_Pending.owner      = owner
         g_Pending.surfacePos = surfacePos
         g_Pending.str        = str

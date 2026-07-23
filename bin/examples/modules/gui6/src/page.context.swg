@@ -71,7 +71,7 @@ func createContextMenuPage(parent: *Wnd)
 
     let right = createPanel(parent, "Launch points", "The same menu can be shown at raw mouse coordinates or anchored near controls.", layout.right)
     let openBtn = PushButton.create(right, "Open at button", {24, 100, 220})
-    openBtn.icon = app.theme.getIcon24(.More, 18)
+    openBtn.icon       = app.theme.getIcon24(.More, 18)
     openBtn.sigPressed += func(btn)
     {
         let pos = btn.getSurfaceRect()
@@ -79,7 +79,7 @@ func createContextMenuPage(parent: *Wnd)
     }
 
     let inspectBtn = PushButton.create(right, "Open centered", {24, 154, 220})
-    inspectBtn.icon = app.theme.getIcon24(.Search, 18)
+    inspectBtn.icon       = app.theme.getIcon24(.Search, 18)
     inspectBtn.sigPressed += func(btn)
     {
         let pos = btn.getSurfaceRect()

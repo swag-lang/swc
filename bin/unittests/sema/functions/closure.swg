@@ -18,9 +18,9 @@ func addOne(value: s32)->s32 => value + 1
 
 func semaTest001()
 {
-    let fromLambda: ClosureUnary = func(value: s32)->s32 { return value + 10 }
+    let fromLambda:   ClosureUnary = func(value: s32)->s32 { return value + 10 }
     let fromFunction: ClosureUnary = &addOne
-    var nullable: #null ClosureNullary = null
+    var nullable:     #null ClosureNullary = null
 
     #assert(#typeof(fromLambda) == ClosureUnary)
     #assert(#typeof(fromFunction) == ClosureUnary)
@@ -30,7 +30,7 @@ func semaTest001()
 func semaTest002()
 {
     let boundary: Boundary64 = {a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8}
-    let exact: ClosureBoundary = func|boundary|()->u64 { return boundary.a + boundary.h }
+    let exact:    ClosureBoundary = func|boundary|()->u64 { return boundary.a + boundary.h }
     #assert(#typeof(exact) == ClosureBoundary)
 }
 

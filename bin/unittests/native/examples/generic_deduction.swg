@@ -29,7 +29,7 @@ struct(T) Wrapper
 
 struct(A, B) Duo
 {
-    first: A
+    first:  A
     second: B
 }
 
@@ -136,7 +136,7 @@ impl Container
 // Test: cross-struct param deduction (Vec2 in Rect's impl)
 #test
 {
-    let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
+    let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
     let moved = r.translate(&offset)
 

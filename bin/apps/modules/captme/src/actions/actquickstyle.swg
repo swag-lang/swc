@@ -17,7 +17,7 @@ impl IActionUI for ActionQuickStyle
         {
         case Reset:
             evt.setFlags |= .Name
-            evt.name = "Restore Default Styles"
+            evt.name     = "Restore Default Styles"
         }
 
         return true

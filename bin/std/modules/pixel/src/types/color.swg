@@ -27,15 +27,24 @@ impl Color
 
     // Assignment operator for u32 ARGB value.
     #[Complete, Inline, ConstExpr]
-    func opSet(me, argb: u32) { .argb = argb }
+    func opSet(me, argb: u32)
+    {
+        .argb = argb
+    }
 
     // Assignment operator for 'Argb' enum value.
     #[Complete, Inline, Implicit, ConstExpr]
-    func opSet(me, argb: Argb) { .argb = cast(u32) argb }
+    func opSet(me, argb: Argb)
+    {
+        .argb = cast(u32) argb
+    }
 
     // Assignment operator for color name string.
     #[Complete, Inline, ConstExpr]
-    func opSet(me, name: string) { .argb = cast(u32) Argb.fromName(name) }
+    func opSet(me, name: string)
+    {
+        .argb = cast(u32) Argb.fromName(name)
+    }
 
     // Equality comparison with u32 ARGB value.
     #[Inline]
@@ -528,7 +537,7 @@ impl Color
         {
             me       = .adjustBrightness(direction)
             contrast = .getContrastRatio(target)
-            steps += 1
+            steps    += 1
         }
     }
 

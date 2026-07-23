@@ -28,7 +28,7 @@ func ForeignReturnTriple()->Triple64;
 
 func semaTest001()
 {
-    var pair: Pair32 = {a: 1, b: 2}
+    var pair:   Pair32 = {a: 1, b: 2}
     var triple: Triple64 = {a: 1, b: 2, c: 3}
     if false
     {

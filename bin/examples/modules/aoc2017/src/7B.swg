@@ -20,8 +20,8 @@ using Core
 
 internal struct Pile
 {
-    val:        s32
-    childs:     Array'(string)
+    val:    s32
+    childs: Array'(string)
 }
 
 internal struct ChildTotal
@@ -34,8 +34,8 @@ func day7B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
     let lines    = assume File.readAllLines(dataPath)
-    var set:     HashTable'(string, Pile)
-    var result:  s64
+    var set:    HashTable'(string, Pile)
+    var result: s64
 
     var r0 = assume Parser.RegExp.create(#"(\l+) \((\d+)\)"#)
     for l in lines

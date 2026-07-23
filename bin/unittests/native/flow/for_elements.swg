@@ -135,7 +135,7 @@ alias StrictForeachF32 = f32
     for #reverse v, i in text
     {
         order[pos] = v
-        pos += 1
+        pos        += 1
         @assert(i == 2 - (pos - 1))
     }
     @assert(order[0] == 'C''u8)

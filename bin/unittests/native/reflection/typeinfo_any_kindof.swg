@@ -15,9 +15,9 @@ func nativeAnyKindOfFunc(flag: bool)->string
 #test
 {
     let structInfo: typeinfo = #typeof(NativeAnyKindOfStruct)
-    let funcInfo: typeinfo = #typeof(nativeAnyKindOfFunc)
-    let structBox: any = structInfo
-    let funcBox: any = funcInfo
+    let funcInfo:   typeinfo = #typeof(nativeAnyKindOfFunc)
+    let structBox:  any = structInfo
+    let funcBox:    any = funcInfo
 
     @assert(@kindof(structBox) == const *TypeInfoStruct)
     @assert(@kindof(funcBox) == const *TypeInfoFunc)

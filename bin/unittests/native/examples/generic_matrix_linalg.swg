@@ -191,7 +191,7 @@ impl AffineMap
     func translation(dx: T, dy: T)->AffineMap
     {
         let one: T = 1
-        let z: T = 0
+        let z:   T = 0
         return {mat: {a: one, b: z, c: z, d: one}, offset: {x: dx, y: dy}}
     }
 
@@ -356,7 +356,7 @@ impl AffineMap
 #test
 {
     let id: Mat2's32 = {a: 1, b: 0, c: 0, d: 1}
-    let m: Mat2's32 = {a: 7, b: -3, c: 2, d: 11}
+    let m:  Mat2's32 = {a: 7, b: -3, c: 2, d: 11}
 
     let left = id * m
     @assert(left.a == m.a and left.b == m.b and left.c == m.c and left.d == m.d)
@@ -396,7 +396,7 @@ impl AffineMap
 #test
 {
     let id: Mat2's32 = {a: 1, b: 0, c: 0, d: 1}
-    var v: Vec2's32 = {x: 7, y: 13}
+    var v:  Vec2's32 = {x: 7, y: 13}
     let result = id.transform(&v)
 
     #assert(#typeof(result) == Vec2's32)
@@ -426,7 +426,7 @@ impl AffineMap
 #test
 {
     let scale: Mat2's32 = {a: 3, b: 0, c: 0, d: 2}
-    var v: Vec2's32 = {x: 4, y: 5}
+    var v:     Vec2's32 = {x: 4, y: 5}
     let result = scale.transform(&v)
     @assert(result.x == 12 and result.y == 10)
 }
@@ -435,7 +435,7 @@ impl AffineMap
 #test
 {
     let shear: Mat2's32 = {a: 1, b: 2, c: 0, d: 1}
-    var v: Vec2's32 = {x: 3, y: 4}
+    var v:     Vec2's32 = {x: 3, y: 4}
     let result = shear.transform(&v)
 
     // x' = 1*3 + 2*4 = 11, y' = 0*3 + 1*4 = 4

@@ -36,7 +36,7 @@ func day3B()
                 var ok = 0
                 for j in 3 do
                     ok += cast(s32) (v[j] + v[(j + 1) % 3] > v[(j + 2) % 3])
-                total += cast(s32) (ok == 3)
+                total  += cast(s32) (ok == 3)
             }
         }
 

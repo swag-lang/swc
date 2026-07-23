@@ -33,7 +33,7 @@ impl Properties
             .edView.childs.insertAt(insertItemIdx + i, .edView.childs[.edView.childs.count - numAddedChilds + i])
         }
 
-        .items.count -= numAddedChilds
+        .items.count         -= numAddedChilds
         .edView.childs.count -= numAddedChilds
 
         // Remove all old items and childs

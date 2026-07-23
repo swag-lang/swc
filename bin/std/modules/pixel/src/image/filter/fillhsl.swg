@@ -72,7 +72,7 @@ impl Image
                 }
                 if .pf.hasAlpha() do
                     pix[3] = 255
-                pix += .bpp8
+                pix        += .bpp8
             }
 
             .visitPixels(stride: .width)
@@ -124,7 +124,7 @@ impl Image
                 }
                 if .pf.hasAlpha() do
                     pix[3] = 255
-                pix += .bpp8
+                pix        += .bpp8
             }
 
             .visitPixels(stride: .width)
@@ -176,7 +176,7 @@ impl Image
                 }
                 if .pf.hasAlpha() do
                     pix[3] = 255
-                pix += .bpp8
+                pix        += .bpp8
             }
 
             .visitPixels(stride: .width)

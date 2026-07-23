@@ -25,9 +25,9 @@ func day5A()
     var it, step = 0
     while it < jumps.count
     {
-        step += 1
+        step      += 1
         jumps[it] += 1
-        it += jumps[it] - 1
+        it        += jumps[it] - 1
     }
 
     @assert(step == 359348)

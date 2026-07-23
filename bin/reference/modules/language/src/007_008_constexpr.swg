@@ -63,7 +63,10 @@ const MaxValue = max(10, 20)
 ConstExpr functions can construct and initialize user-defined structs during compilation.
 */
 #[Swag.ConstExpr]
-struct Point { x, y: s32 }
+struct Point
+{
+    x, y: s32
+}
 
 #[Swag.ConstExpr]
 func createPoint(a, b: s32) => Point{a, b}
@@ -75,7 +78,10 @@ const Origin = createPoint(1, 2)
 # Example: Using `#run` with User-Defined Types
 '#run' can be used to execute ordinary functions with structs at compile time.
 */
-struct Rectangle { width, height: s32 }
+struct Rectangle
+{
+    width, height: s32
+}
 
 func area(rect: Rectangle) => rect.width * rect.height
 

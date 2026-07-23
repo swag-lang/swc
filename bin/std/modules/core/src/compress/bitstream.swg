@@ -4,11 +4,11 @@
 // A structure for reading a bit stream, useful for decompressors or parsers
 struct BitStream
 {
-    stream:         #null const [..] u8     // Input byte stream
-    curByte:        u64                     // Index of current byte being processed
-    codeBuffer:     u64                     // Bit buffer holding bits to be consumed
-    numBits:        u8                      // Number of bits currently in the buffer
-    eof:            bool                    // Flag to signal end-of-stream
+    stream:     #null const [..] u8     // Input byte stream
+    curByte:    u64                     // Index of current byte being processed
+    codeBuffer: u64                     // Bit buffer holding bits to be consumed
+    numBits:    u8                      // Number of bits currently in the buffer
+    eof:        bool                    // Flag to signal end-of-stream
 }
 
 impl BitStream
@@ -43,8 +43,8 @@ impl BitStream
             let chunk = dref cast(#null const *u64) .curPtr()
             .codeBuffer |= chunk << #wrap .numBits
             let nbytes  = (64 - cast(u64) .numBits) >> 3
-            .curByte   += nbytes
-            .numBits   += cast(u8) (nbytes << 3)
+            .curByte += nbytes
+            .numBits += cast(u8) (nbytes << 3)
 
             // Zero any partial high byte brought in above 'numBits' so the invariant
             // "bits at or above numBits are zero" holds (skip when the buffer is full).
@@ -76,9 +76,9 @@ impl BitStream
 
             // Read next byte and shift it into the buffer
             let c = .stream[.curByte]
-            .curByte += 1
+            .curByte    += 1
             .codeBuffer |= cast(u64) c << .numBits
-            .numBits += 8
+            .numBits    += 8
         }
     }
 
@@ -120,7 +120,7 @@ impl BitStream
     mtd consumeBits(width: u8)
     {
         .codeBuffer >>= width
-        .numBits -= #wrap width
+        .numBits    -= #wrap width
     }
 
     // Discards bits to align to the next byte boundary
@@ -134,7 +134,7 @@ impl BitStream
     mtd revert()
     {
         Debug.assert(!(.numBits & 7))     // Must be aligned
-        .curByte -= .numBits / 8
+        .curByte    -= .numBits / 8
         .numBits    = 0
         .codeBuffer = 0
     }

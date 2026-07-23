@@ -70,7 +70,7 @@ func semaTest001()
     box[0] <<= 1'u32
 
     var holder = IndexAssignHolder{}
-    holder.value[1] += 5
+    holder.value[1]     += 5
     holder.writeOnly[0] += 7
 
     #assert(#typeof(box) == IndexAssignBox)

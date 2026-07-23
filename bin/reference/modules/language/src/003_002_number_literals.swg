@@ -91,7 +91,7 @@ easy to read for developers coming from C or C++ backgrounds.
     let d = 15e+2
     @assert(d == 15e2)
 
-    let e = -1E-1
+    let e = -1e-1
     @assert(e == -0.1)
 }
 

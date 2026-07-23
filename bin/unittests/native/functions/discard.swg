@@ -1,6 +1,6 @@
 #global private
 
-var gMustUseCalls: s32
+var gMustUseCalls:    s32
 var gCanDiscardCalls: s32
 func mustUse()->s32
 {

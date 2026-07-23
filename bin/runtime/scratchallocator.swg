@@ -4,9 +4,9 @@ impl ScratchAllocator
 {
     struct LeakHeader
     {
-        prev:     #null *LeakHeader
-        next:     #null *LeakHeader
-        size:     u64
+        prev: #null *LeakHeader
+        next: #null *LeakHeader
+        size: u64
     }
 
     // Adapt the value depending on the requested alignment
@@ -95,7 +95,7 @@ impl IAllocator for ScratchAllocator
         if ptr == request.address
         {
             request.address = null
-            .used -= request.size
+            .used           -= request.size
             return
         }
 
@@ -116,7 +116,7 @@ impl IAllocator for ScratchAllocator
             leak.prev.next = leak.next
         if leak.next do
             leak.next.prev = leak.prev
-        .totalLeak -= leak.size - #sizeof(LeakHeader)
+        .totalLeak         -= leak.size - #sizeof(LeakHeader)
         .freeMem(leak, leak.size)
         request.address = null
     }
@@ -146,14 +146,14 @@ impl IAllocator for ScratchAllocator
         let ptr       = cast(#null [*] LeakHeader) .alloc(totalSize, request.alignment)
         let leak      = cast(#null [*] LeakHeader) .firstLeak
         if leak do
-            leak.prev = ptr
+            leak.prev   = ptr
         ptr.prev        = null
         ptr.next        = .firstLeak
         .firstLeak      = ptr
         ptr.size        = totalSize
         request.address = ptr + 1     // user block is after the header
-        .totalLeak += request.size
-        .maxLeak = @max(.maxLeak, .totalLeak)
+        .totalLeak      += request.size
+        .maxLeak        = @max(.maxLeak, .totalLeak)
     }
 
     mtd impl alloc(request: *AllocatorRequest)

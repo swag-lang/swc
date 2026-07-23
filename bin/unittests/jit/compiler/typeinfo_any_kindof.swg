@@ -13,7 +13,7 @@ func anyKindOfFunc()->s32 => 1
     func boxedTypeInfoKindof()->bool
     {
         let structBox: any = #typeof(AnyKindOfStruct)
-        let funcBox: any = #typeof(anyKindOfFunc)
+        let funcBox:   any = #typeof(anyKindOfFunc)
         return @kindof(structBox) == const *TypeInfoStruct and
                @kindof(funcBox) == const *TypeInfoFunc and
                (cast(const *TypeInfoStruct) structBox).fields[0].name == "x" and

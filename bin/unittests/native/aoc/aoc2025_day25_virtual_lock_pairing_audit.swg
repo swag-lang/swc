@@ -3,7 +3,7 @@
 // Real-life example: screen a batch of virtual five-pin lock schematics against
 // key schematics and count how many combinations can fit without overlap.
 
-const SchematicWidth = 5
+const SchematicWidth  = 5
 const SchematicHeight = 7
 const MaxColumnHeight = SchematicHeight - 2
 
@@ -14,9 +14,9 @@ struct PinProfile
 
 struct PairingAudit
 {
-    lockCount:            u32
-    keyCount:             u32
-    compatiblePairCount:  u32
+    lockCount:           u32
+    keyCount:            u32
+    compatiblePairCount: u32
 }
 
 func lineWidth(line: string)->u32
@@ -102,7 +102,7 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
 {
     var result: PairingAudit
     result.lockCount = cast(u32) @countof(lockProfiles)
-    result.keyCount = cast(u32) @countof(keyProfiles)
+    result.keyCount  = cast(u32) @countof(keyProfiles)
 
     for lockProfile in lockProfiles
     {

@@ -49,19 +49,22 @@ struct Alien
     dead:     bool
 }
 
-struct Player { x, y: f32 }
+struct Player
+{
+    x, y: f32
+}
 
 struct Laser
 {
-    x, y:       f32
-    dead:       bool
-    player:     bool
+    x, y:   f32
+    dead:   bool
+    player: bool
 }
 
 struct Obstacle
 {
-    x, y:     f32
-    dead:     bool
+    x, y: f32
+    dead: bool
 }
 
 var g_Aliens:    Array'Alien
@@ -80,7 +83,7 @@ func updatePlayer()
         g_Player.x -= PLAYER_SPEED * g_Dt
     elif kb.isKeyPressed(.Right) do
         g_Player.x += PLAYER_SPEED * g_Dt
-    g_Player.x = Math.clamp(g_Player.x, 40, g_Rect.width - 40.0 - g_PlayerImg.width)
+    g_Player.x     = Math.clamp(g_Player.x, 40, g_Rect.width - 40.0 - g_PlayerImg.width)
 
     // Laser
     if kb.isKeyJustPressed(.Space)
@@ -108,7 +111,7 @@ func updateLasers()
             laser.y += LASER_SPEED_ALIEN * g_Dt
             if laser.y - LASER_LENGTH > g_Rect.height
             {
-                laser.dead = true
+                laser.dead       = true
                 g_NumAlienLasers -= 1
             }
         }
@@ -126,7 +129,7 @@ func udpateAliens()
            (g_MoveAlienDirection < 0 and alien.x < 40)
         {
             g_MoveAlienDirection *= -1
-            moveY = SPEED_ALIEN_Y
+            moveY                = SPEED_ALIEN_Y
         }
     }
 
@@ -174,7 +177,7 @@ func checkCollisions()
                 {
                     laser.dead = true
                     alien.dead = true
-                    g_Score += 1
+                    g_Score    += 1
                     catch Audio.Voice.play(&g_SoundExplosion)
                 }
             }
@@ -187,7 +190,7 @@ func checkCollisions()
             if r.contains(Math.Point{laser.x, laser.y})
             {
                 g_NumAlienLasers -= 1
-                laser.dead = true
+                laser.dead       = true
                 catch Audio.Voice.play(&g_SoundExplosion)
             }
         }
@@ -346,6 +349,9 @@ func loadBindTextures()
     assume Audio.createEngine()
     defer Audio.destroyEngine()
 
-    func muteForTest(app: *Application) { if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0) }
+    func muteForTest(app: *Application)
+    {
+        if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0)
+    }
     Application.runSurface(100, 100, W - 46, H - 31, title: "Space-invaders", hook: &onEvent, init: &muteForTest)
 }

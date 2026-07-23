@@ -13,7 +13,7 @@ func crc32Reference(buffer: const [..] u8, seed: u32 = 0)->u32
         for bit in 8
         {
             if crc & 1 do
-                crc = (crc >> 1) ^ 0xedb88320'u32
+                crc = (crc >> 1) ^ 0xEDB88320'u32
             else do
                 crc >>= 1
         }
@@ -43,8 +43,8 @@ func fillCrc32Pattern(buffer: [..] u8)
     var i = 0'u64
     while i < @countof(buffer)
     {
-        buffer[i] = cast(u8) ((i * 73 + 19) & 0xff)
-        i += 1
+        buffer[i] = cast(u8) ((i * 73 + 19) & 0xFF)
+        i         += 1
     }
 }
 

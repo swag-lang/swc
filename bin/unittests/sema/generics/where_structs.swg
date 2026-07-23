@@ -36,7 +36,7 @@ struct(T = Real64) DefaultFloatBox
 struct(T, U = T) TwinValue
     where T == U
 {
-    first: T
+    first:  T
     second: U
 }
 
@@ -51,7 +51,7 @@ struct(T) FloatSegment
     where T == f32 or T == f64
 {
     start: FloatPoint'T
-    stop: FloatPoint'T
+    stop:  FloatPoint'T
 }
 
 struct(T, Rows: s32, Cols: s32 = Rows) SquareMatrix
@@ -111,7 +111,7 @@ func semaTest001()
     let fixed: FixedNumbers'(s64, 3) = {values: [10, 20, 30]}
     #assert(#typeof(fixed.values[0]) == s64)
 
-    let defaultBox: DefaultFloatBox'f64 = {value: 4.0}
+    let defaultBox:         DefaultFloatBox'f64 = {value: 4.0}
     let inferredDefaultBox: DefaultFloatBox = {value: 4.0}
     #assert(#typeof(defaultBox.value) == Real64)
     #assert(inferredDefaultBox.value == 4.0)
@@ -120,7 +120,7 @@ func semaTest001()
     #assert(#typeof(twin.second) == s32)
 
     let compact: SmallVector'(u16, 2) = {values: [10'u16, 20]}
-    let small: SmallVector'u8 = {values: [1'u8, 2, 3, 4]}
+    let small:   SmallVector'u8 = {values: [1'u8, 2, 3, 4]}
     #assert(#typeof(compact.values) == #type [2] u16)
     #assert(#typeof(small.values) == #type [4] u8)
 

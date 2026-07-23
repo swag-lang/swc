@@ -12,10 +12,10 @@ enum CharacterSet
 
 struct String
 {
-    buffer:        #null [*] u8
-    length:        u64
-    capacity:      u64
-    allocator:     #null IAllocator
+    buffer:    #null [*] u8
+    length:    u64
+    capacity:  u64
+    allocator: #null IAllocator
     padding:       [StringSmallSize] u8
 }
 
@@ -333,7 +333,7 @@ impl String
             Memory.copy(.buffer + idx, @dataof(by), byLength)
             .length -= 1
             .length += byLength
-            idx += byLength
+            idx     += byLength
             if idx == .length do
                 break
             idx = Utf8.indexOf(.toString(), what, idx)
@@ -376,7 +376,7 @@ impl String
             Memory.copy(.buffer + idx, @dataof(by), byLength)
             .length -= whatLength
             .length += byLength
-            idx += byLength
+            idx     += byLength
             if idx == .length do
                 break
             idx = Utf8.indexOf(.toString(), what, idx, comparisonType)
@@ -400,7 +400,7 @@ impl String
             return
         Debug.safetyBoundCheck(byteIndex + byteCount <= .length, "index out of range")
         Memory.copyOver(.buffer + byteIndex, .buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
-        .length -= byteCount
+        .length          -= byteCount
         .buffer[.length] = 0
     }
 
@@ -410,7 +410,7 @@ impl String
         if !byteCount do
             return
         Debug.safetyBoundCheck(byteCount <= .length, "index out of range")
-        .length -= byteCount
+        .length          -= byteCount
         .buffer[.length] = 0
     }
 
@@ -429,7 +429,7 @@ impl String
         .grow(.length + 2)
         Memory.copyOver(.buffer + byteIndex + 1, .buffer + byteIndex, .length - byteIndex + 1)
         .buffer[byteIndex] = value
-        .length += 1
+        .length            += 1
     }
 
     // Insert a substring at the given position
@@ -476,7 +476,7 @@ impl String
         let buffer = notnull .buffer
         var ptr = cast(*u16) (buffer + .length)
         dref ptr = value
-        .length += 1
+        .length  += 1
     }
 
     // Append a rune to the String
@@ -488,8 +488,8 @@ impl String
         .grow(.length + eat + 1)
         for i in eat do
             .buffer[.length + i] = tmp[i]
-        .length += eat
-        .buffer[.length] = 0
+        .length                  += eat
+        .buffer[.length]         = 0
     }
 
     // Append a string to the String
@@ -534,7 +534,7 @@ impl String
         {
             if separator and @index do
                 result += separator
-            result += values[@index]
+            result     += values[@index]
         }
 
         return result
@@ -610,7 +610,7 @@ impl String
             if !Unicode.isSpace(c) do
                 break
             .length -= eat
-            ptr += eat
+            ptr     += eat
         }
 
         Memory.copy(.buffer, ptr, .length)

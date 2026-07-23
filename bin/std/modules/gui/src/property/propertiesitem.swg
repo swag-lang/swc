@@ -51,8 +51,8 @@ struct PropertiesItem
     // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the
     // current value differs from that default (recomputed on build and after every change);
     // revertButton is the lazily-created revert affordance shown while the row is modified.
-    defaultData:        #null *u8
-    isModified:         bool
+    defaultData: #null *u8
+    isModified:  bool
     revertButton:       #late *IconButton
     arrayAddButton:     #late *IconButton
 
@@ -62,12 +62,12 @@ struct PropertiesItem
     // rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).
     undoValue:          PropFieldValue
 
-    type:               #null typeinfo
-    typeValue:          Swag.TypeValue
-    parent:             #null *PropertiesItem
-    flags:              ItemFlags
-    userData0:          #null *void
-    userData1:          #null *void
+    type:      #null typeinfo
+    typeValue: Swag.TypeValue
+    parent:    #null *PropertiesItem
+    flags:     ItemFlags
+    userData0: #null *void
+    userData1: #null *void
 
     label:              #late *Label
     description:        String
@@ -75,8 +75,8 @@ struct PropertiesItem
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
-    validation:         PropValidation
-    validationMsg:      String
+    validation:    PropValidation
+    validationMsg: String
     validationLabel:    #late *Label
 
     editBox:            #late *EditBox
@@ -84,17 +84,17 @@ struct PropertiesItem
     comboBox:           #late *ComboBox
     sliderBox:          #late *SliderCtrl
 
-    sigResize:          SigArray'func||(*PropertiesItem)
-    sigRefresh:         SigArray'func||(*PropertiesItem)
+    sigResize:  SigArray'func||(*PropertiesItem)
+    sigRefresh: SigArray'func||(*PropertiesItem)
 
     ntfyItf:            #null IPropertyNotify
 
-    aniFocusBk:         BlendColor
-    aniFocusBorder:     BlendColor
-    level:              u32
-    numChilds:          u32
-    section:            u32
-    extendFocus:        f32 = 10
+    aniFocusBk:     BlendColor
+    aniFocusBorder: BlendColor
+    level:          u32
+    numChilds:      u32
+    section:        u32
+    extendFocus:    f32 = 10
 
     // Grid only: height of the value cell (label + editor) on its own. The row grows below
     // it to host the validation message bar, so we keep the base height to restore/recompute.

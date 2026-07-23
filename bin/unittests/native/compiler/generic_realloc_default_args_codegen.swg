@@ -11,9 +11,9 @@ namespace GenericReallocDefaultArgsCodegen
     func resetTracker()
     {
         var zero: SourceCodeLocation
-        gLastCaller = zero
-        gLastHintWasNull = false
-        gLastAlignment = 1
+        gLastCaller       = zero
+        gLastHintWasNull  = false
+        gLastAlignment    = 1
         gReallocCallCount = 0
     }
 
@@ -53,9 +53,9 @@ namespace GenericReallocDefaultArgsCodegen
 
             var req: AllocatorRequest
             req.callerLoc = loc
-            req.hint = hint
-            req.size = size
-            req.address = buffer
+            req.hint      = hint
+            req.size      = size
+            req.address   = buffer
 
             let talloc = allocator orelse @getcontext().allocator
             talloc.free(&req)
@@ -63,17 +63,17 @@ namespace GenericReallocDefaultArgsCodegen
 
         func realloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator: #null IAllocator = null, alignment: u16 = 0, hint: #null string = null, loc = #callerlocation)->#null [*] void
         {
-            gLastCaller = loc
-            gLastHintWasNull = hint == null
-            gLastAlignment = alignment
+            gLastCaller       = loc
+            gLastHintWasNull  = hint == null
+            gLastAlignment    = alignment
             gReallocCallCount += 1
 
             var req: AllocatorRequest
             req.callerLoc = loc
-            req.hint = hint
-            req.address = buffer
-            req.size = newSize
-            req.oldSize = oldSize
+            req.hint      = hint
+            req.address   = buffer
+            req.size      = newSize
+            req.oldSize   = oldSize
             req.alignment = alignment
 
             let talloc = allocator orelse @getcontext().allocator
@@ -106,12 +106,12 @@ namespace GenericReallocDefaultArgsCodegen
             if newCapacity == 0
             {
                 LocalMemory.free(.buffer, .capacity * #sizeof(T), .allocator)
-                .buffer = null
+                .buffer   = null
                 .capacity = 0
                 return
             }
 
-            .buffer = cast(#null [*] T) LocalMemory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast(#null [*] T) LocalMemory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
             .capacity = newCapacity
         }
 
@@ -130,7 +130,7 @@ namespace GenericReallocDefaultArgsCodegen
             if .allocator == null do
                 .allocator = @getcontext().allocator
 
-            .buffer = cast(#null [*] T) LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator)
+            .buffer   = cast(#null [*] T) LocalMemory.realloc(buffer: .buffer, newSize: newCapacity * #sizeof(T), oldSize: .capacity * #sizeof(T), allocator: .allocator)
             .capacity = newCapacity
         }
 
@@ -139,7 +139,7 @@ namespace GenericReallocDefaultArgsCodegen
             if .count == .capacity do
                 .reserve(.capacity ? .capacity * 2 : 2)
             .buffer[.count] = value
-            .count += 1
+            .count          += 1
         }
 
         mtd appendNamed(value: T)
@@ -147,7 +147,7 @@ namespace GenericReallocDefaultArgsCodegen
             if .count == .capacity do
                 .reserveNamed(.capacity ? .capacity * 2 : 3)
             .buffer[.count] = value
-            .count += 1
+            .count          += 1
         }
 
         #[Inline]
@@ -168,7 +168,7 @@ namespace GenericReallocDefaultArgsCodegen
         mtd free()
         {
             LocalMemory.free(.buffer, .capacity * #sizeof(T), .allocator)
-            .buffer = null
+            .buffer           = null
             .count, .capacity = 0
         }
     }

@@ -22,7 +22,7 @@ func day4B()
         for i in 6
         {
             str[i] = cast(u8) ((x / div) % 10)
-            div /= 10
+            div    /= 10
         }
 
         var ok = false

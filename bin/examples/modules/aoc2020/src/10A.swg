@@ -98,7 +98,7 @@ func day10A()
             cpt1 += 1
         elif v - prev == 3 do
             cpt3 += 1
-        prev = v
+        prev     = v
     }
 
     let total = cpt1 * (cpt3 + 1)

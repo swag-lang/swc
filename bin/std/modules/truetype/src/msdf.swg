@@ -25,18 +25,18 @@ const MSDF_WHITE   = 7'u8
 
 struct MsdfSeg
 {
-    x0, y0:    f64
-    x1, y1:    f64
-    color:     u8
+    x0, y0: f64
+    x1, y1: f64
+    color:  u8
 }
 
 struct MsdfElement
 {
-    firstSeg:    u32     // first segment index in the flat segment list
-    segCount:    u32
-    sdx0, sdy0:  f64     // normalized direction at the element start
-    edx1, edy1:  f64     // normalized direction at the element end
-    color:       u8
+    firstSeg:   u32     // first segment index in the flat segment list
+    segCount:   u32
+    sdx0, sdy0: f64     // normalized direction at the element start
+    edx1, edy1: f64     // normalized direction at the element end
+    color:      u8
 }
 
 func msdfNormDir(dx, dy: f64)->{ x: f64, y: f64 }
@@ -98,13 +98,13 @@ func msdfSwitchColor(color: *u8, seed: *u64, banned: u8 = MSDF_BLACK)
     {
         let start: [3] u8 = [MSDF_CYAN, MSDF_MAGENTA, MSDF_YELLOW]
         dref color = start[dref seed % 3]
-        dref seed /= 3
+        dref seed  /= 3
         return
     }
 
     let shifted = cast(u32) (dref color) << (1 + (dref seed & 1))
     dref color = cast(u8) ((shifted | (shifted >> 3)) & MSDF_WHITE)
-    dref seed >>= 1
+    dref seed  >>= 1
 }
 
 func msdfIsCorner(ax, ay, bx, by, crossThreshold: f64)->bool
@@ -421,13 +421,13 @@ func msdfMedian(a, b, c: f64)->f64
 
 struct MsdfRowCtx
 {
-    segs:        const *Array'MsdfSeg
-    edges:       const *Array'Edge
+    segs:  const *Array'MsdfSeg
+    edges: const *Array'Edge
     channels:    [*] f32
     rowVotes:    [*] s64
-    width:       s32
-    left:        s32
-    top:         s32
+    width: s32
+    left:  s32
+    top:   s32
 }
 
 // Fill one output row of the MSDF field and accumulate that row's sign vote.
@@ -491,7 +491,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     var safeSpread = spread
     if !safeSpread do
         safeSpread = 1
-    safeSpread = Math.min(safeSpread, 64)
+    safeSpread     = Math.min(safeSpread, 64)
 
     let padding = cast(s32) safeSpread
     let bounds  = computeOutlineBounds(&safeSlot.outline)
@@ -574,12 +574,12 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
         dst[src + 3] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(av)))
     }
 
-    safeSlot.bitmap.rows       = rows
-    safeSlot.bitmap.width      = width
-    safeSlot.bitmap.pitch      = cast(s32) width * 4
-    safeSlot.bitmap.buffer     = dst
-    safeSlot.bitmap.pixelMode  = .Bgra
-    safeSlot.bitmap.grayCount  = 256
-    safeSlot.bitmapLeft        = left
-    safeSlot.bitmapTop         = top
+    safeSlot.bitmap.rows      = rows
+    safeSlot.bitmap.width     = width
+    safeSlot.bitmap.pitch     = cast(s32) width * 4
+    safeSlot.bitmap.buffer    = dst
+    safeSlot.bitmap.pixelMode = .Bgra
+    safeSlot.bitmap.grayCount = 256
+    safeSlot.bitmapLeft       = left
+    safeSlot.bitmapTop        = top
 }

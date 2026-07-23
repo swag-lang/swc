@@ -12,19 +12,19 @@ struct Point3
 
 struct Edge
 {
-    a:      u32
-    b:      u32
-    dist2:  u64
+    a:     u32
+    b:     u32
+    dist2: u64
 }
 
 struct CablePlan
 {
-    pointCount:       u32
-    attemptedLinks:   u32
-    largestCluster:   u32
-    secondCluster:    u32
-    thirdCluster:     u32
-    topThreeProduct:  u64
+    pointCount:      u32
+    attemptedLinks:  u32
+    largestCluster:  u32
+    secondCluster:   u32
+    thirdCluster:    u32
+    topThreeProduct: u64
 }
 
 func absDiff(lhs, rhs: u32)->u32
@@ -38,7 +38,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while dref index < @countof(bytes) and bytes[dref index] >= '0' and bytes[dref index] <= '9'
     {
-        result = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
+        result     = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
         dref index += 1
     }
 
@@ -49,13 +49,13 @@ func parsePoint(text: string)->Point3
 {
     let bytes = cast(const [..] u8) text
 
-    var index: u32
+    var index:  u32
     var result: Point3
 
     result.x = parseNumber(bytes, &index)
-    index += 1
+    index    += 1
     result.y = parseNumber(bytes, &index)
-    index += 1
+    index    += 1
     result.z = parseNumber(bytes, &index)
     return result
 }
@@ -84,14 +84,14 @@ func registerCluster(size: u32, largest: *u32, second: *u32, third: *u32)
 {
     if size > dref largest
     {
-        dref third = dref second
-        dref second = dref largest
+        dref third   = dref second
+        dref second  = dref largest
         dref largest = size
         return
     }
     if size > dref second
     {
-        dref third = dref second
+        dref third  = dref second
         dref second = size
         return
     }
@@ -112,7 +112,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     for line, index in pointLines
     {
-        points[index] = parsePoint(line)
+        points[index]  = parsePoint(line)
         parents[index] = cast(u32) index
     }
 
@@ -123,10 +123,10 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
         for rhs in cast(u32) lhs + 1 to @countof(pointLines) - 1
         {
-            edges[edgeCount].a = cast(u32) lhs
-            edges[edgeCount].b = cast(u32) rhs
+            edges[edgeCount].a     = cast(u32) lhs
+            edges[edgeCount].b     = cast(u32) rhs
             edges[edgeCount].dist2 = squaredDistance(points[lhs], points[rhs])
-            edgeCount += 1
+            edgeCount              += 1
         }
     }
 
@@ -174,7 +174,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
     }
 
     var result: CablePlan
-    result.pointCount = cast(u32) @countof(pointLines)
+    result.pointCount     = cast(u32) @countof(pointLines)
     result.attemptedLinks = requestedLinks
 
     for clusterIndex in @countof(pointLines)

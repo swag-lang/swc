@@ -44,25 +44,25 @@ public enum RenderMode
 
 public struct Face
 {
-    faceCount:            s32
-    faceIndex:            s32
-    flags:                s32
-    style:                StyleFlag
-    glyphCount:           u32
-    familyName:           String
-    styleName:            String
-    bbox:                 BBox
-    unitsPerEm:           u16
-    ascender:             s16
-    descender:            s16
-    height:               s16
-    maxAdvanceWidth:      s16
-    maxAdvanceHeight:     s16
-    underlinePosition:    s16
-    underlineThickness:   s16
-    glyph:                GlyphSlot
-    size:                 Size
-    charMap:              CharMap
+    faceCount:          s32
+    faceIndex:          s32
+    flags:              s32
+    style:              StyleFlag
+    glyphCount:         u32
+    familyName:         String
+    styleName:          String
+    bbox:               BBox
+    unitsPerEm:         u16
+    ascender:           s16
+    descender:          s16
+    height:             s16
+    maxAdvanceWidth:    s16
+    maxAdvanceHeight:   s16
+    underlinePosition:  s16
+    underlineThickness: s16
+    glyph:              GlyphSlot
+    size:               Size
+    charMap:            CharMap
 }
 
 public impl Face

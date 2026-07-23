@@ -3,13 +3,13 @@ using Win32, Core, Pixel, Gdi32
 
 public struct ApplicationNative
 {
-    fileSmallIconsImage:         Image
-    fileSmallIconsImageList:     ImageList
-    mapFileSmallIcons:           HashTable'(String, s32)
+    fileSmallIconsImage:     Image
+    fileSmallIconsImageList: ImageList
+    mapFileSmallIcons:       HashTable'(String, s32)
 
-    fileBigIconsImage:           Image
-    fileBigIconsImageList:       ImageList
-    mapFileBigIcons:             HashTable'(String, s32)
+    fileBigIconsImage:     Image
+    fileBigIconsImageList: ImageList
+    mapFileBigIcons:       HashTable'(String, s32)
 
     hotKeysDisabled:             bool
 }

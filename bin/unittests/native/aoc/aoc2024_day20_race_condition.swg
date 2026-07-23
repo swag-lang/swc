@@ -27,20 +27,20 @@ const SampleInput =
 // Grid
 // ---------------------------------------------------------------------------
 
-const MaxDim   = 150'u32
-const MaxCells = MaxDim * MaxDim
+const MaxDim    = 150'u32
+const MaxCells  = MaxDim * MaxDim
 const Unvisited = 0xFFFFFFFF'u32
 
 struct Grid
 {
-    cells:  #null [*] u8
-    dist:   #null [*] u32     // distance from S along the single path
-    w:      u32
-    h:      u32
-    sr:     u32
-    sc:     u32
-    er:     u32
-    ec:     u32
+    cells:   #null [*] u8
+    dist:    #null [*] u32     // distance from S along the single path
+    w:       u32
+    h:       u32
+    sr:      u32
+    sc:      u32
+    er:      u32
+    ec:      u32
     pathLen: u32     // total path length (S to E)
 }
 
@@ -186,8 +186,8 @@ func tracePath(g: *Grid)
             if g.distAt(ur, uc) != Unvisited do continue
             d += 1
             g.setDist(ur, uc, d)
-            cr = ur
-            cc = uc
+            cr    = ur
+            cc    = uc
             moved = true
             break
         }
@@ -363,7 +363,7 @@ func solve(text: string, minSaving: u32)->SolveResult
     g.cells[0 * MaxDim + 0] = '#'; g.cells[0 * MaxDim + 1] = '#'; g.cells[0 * MaxDim + 2] = '#'
     g.cells[1 * MaxDim + 0] = '#'; g.cells[1 * MaxDim + 1] = 'S'; g.cells[1 * MaxDim + 2] = '#'
     g.cells[2 * MaxDim + 0] = '#'; g.cells[2 * MaxDim + 1] = '#'; g.cells[2 * MaxDim + 2] = '#'
-    g.sr = 1; g.sc = 1; g.er = 1; g.ec = 1
+    g.sr                    = 1; g.sc = 1; g.er = 1; g.ec = 1
     tracePath(&g)
     @assert(g.pathLen == 0'u32)
 }

@@ -4,7 +4,7 @@
 // mechanics, then cross-check it with a compile-time/interface-heavy variant.
 
 const MaxLocationPairs = 1024
-const MaxLocationId = 100000
+const MaxLocationId    = 100000
 
 const SampleInput =
     """3   4
@@ -14,7 +14,7 @@ const SampleInput =
 3   9
 3   3"""
 
-const DenseInput = "10   10\r\n20   30\r\n20   20\r\n30   10\r\n"
+const DenseInput    = "10   10\r\n20   30\r\n20   20\r\n30   10\r\n"
 const CoverageInput =
     """10   30
 20   10
@@ -73,7 +73,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
     var result: u32
     while dref index < @countof(bytes) and isDigit(bytes[dref index])
     {
-        result = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
+        result     = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
         dref index += 1
     }
 
@@ -83,7 +83,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 func parseLocationLists(bytes: const [..] u8)->LocationLists
 {
     var result: LocationLists
-    var index: u32
+    var index:  u32
 
     while true
     {
@@ -116,7 +116,7 @@ func buildFrequencies(leftFreq, rightFreq: [..] u32, lists: LocationLists)
     for lists.count
     {
         let index = cast(u32) @index
-        leftFreq[lists.left[index]] += 1
+        leftFreq[lists.left[index]]   += 1
         rightFreq[lists.right[index]] += 1
     }
 }
@@ -138,9 +138,9 @@ func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u3
 {
     let limit = cast(u32) @countof(leftFreq)
 
-    var leftValue: u32
+    var leftValue:  u32
     var rightValue: u32
-    var result: u64
+    var result:     u64
 
     for pairCount
     {
@@ -156,8 +156,8 @@ func computeDistanceFromFrequencies(leftFreq, rightFreq: [..] u32, pairCount: u3
 
         @assert(leftValue < limit)
         @assert(rightValue < limit)
-        result += cast(u64) distanceBetween(leftValue, rightValue)
-        leftFreq[leftValue] -= 1
+        result                += cast(u64) distanceBetween(leftValue, rightValue)
+        leftFreq[leftValue]   -= 1
         rightFreq[rightValue] -= 1
     }
 
@@ -172,9 +172,9 @@ func solveClean(lists: LocationLists)->HistorianReport
 
     buildFrequencies(leftFreq, rightFreq, lists)
 
-    result.pairCount = lists.count
+    result.pairCount       = lists.count
     result.similarityScore = computeSimilarityFromFrequencies(leftFreq, rightFreq)
-    result.totalDistance = computeDistanceFromFrequencies(leftFreq, rightFreq, lists.count)
+    result.totalDistance   = computeDistanceFromFrequencies(leftFreq, rightFreq, lists.count)
     return result
 }
 
@@ -202,11 +202,11 @@ func sortValues(values: [..] u32)
         while insertIndex > 0 and values[insertIndex - 1] > value
         {
             values[insertIndex] = values[insertIndex - 1]
-            insertIndex -= 1
+            insertIndex         -= 1
         }
 
         values[insertIndex] = value
-        index += 1
+        index               += 1
     }
 }
 
@@ -322,18 +322,18 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->HistorianReport
 {
     let lists = parseLocationLists(bytes)
 
-    var distanceMetric: DistanceMetric
+    var distanceMetric:   DistanceMetric
     var similarityMetric: SimilarityMetric
-    var result: HistorianReport
+    var result:           HistorianReport
 
-    result.pairCount = lists.count
-    result.totalDistance = runMetric(cast(IHistorianMetric) distanceMetric, bytes)
+    result.pairCount       = lists.count
+    result.totalDistance   = runMetric(cast(IHistorianMetric) distanceMetric, bytes)
     result.similarityScore = runMetric(cast(IHistorianMetric) similarityMetric, bytes)
     return result
 }
 
-const SampleLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
-const DenseLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) DenseInput)
+const SampleLanguageReport: HistorianReport   = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
+const DenseLanguageReport: HistorianReport    = #run solveWithLanguageFeatures(cast(const [..] u8) DenseInput)
 const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
 
 #test

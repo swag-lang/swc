@@ -30,9 +30,9 @@ func visitInvoiceLines(lines: const [..] InvoiceLine, stmt: #code(line, lineTota
 
 func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)->InvoiceTotals
 {
-    var lineCount: s32
-    var taxableLineCount: s32
-    var subtotalCents: s32
+    var lineCount:            s32
+    var taxableLineCount:     s32
+    var subtotalCents:        s32
     var taxableSubtotalCents: s32
 
     visitInvoiceLines(lines)
@@ -40,11 +40,11 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
         @assert(line.quantity > 0)
         @assert(line.unitPriceCents > 0)
         @assert(lineTotalCents == line.quantity * line.unitPriceCents)
-        lineCount += 1
+        lineCount     += 1
         subtotalCents += lineTotalCents
         if line.taxable
         {
-            taxableLineCount += 1
+            taxableLineCount     += 1
             taxableSubtotalCents += lineTotalCents
         }
     }
@@ -56,13 +56,13 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     let taxCents = taxableSubtotalCents / 10
 
     var result: InvoiceTotals
-    result.lineCount = lineCount
-    result.taxableLineCount = taxableLineCount
-    result.subtotalCents = subtotalCents
+    result.lineCount            = lineCount
+    result.taxableLineCount     = taxableLineCount
+    result.subtotalCents        = subtotalCents
     result.taxableSubtotalCents = taxableSubtotalCents
-    result.shippingCents = shippingCents
-    result.taxCents = taxCents
-    result.totalCents = subtotalCents + shippingCents + taxCents
+    result.shippingCents        = shippingCents
+    result.taxCents             = taxCents
+    result.totalCents           = subtotalCents + shippingCents + taxCents
     return result
 }
 

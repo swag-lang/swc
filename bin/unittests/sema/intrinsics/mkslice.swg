@@ -11,7 +11,7 @@ func semaTest001()
     let str2 = @mkslice(&buf[0], 10's16)
     #assert(#typeof(str2) == [..] u8)
 
-    var xv: s32
+    var xv:  s32
     var ptr: const *s32 = &xv
     let str3 = @mkslice(ptr, 20)
     #assert(#typeof(str3) == const [..] s32)

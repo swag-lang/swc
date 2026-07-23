@@ -33,10 +33,10 @@ enum GroupState: u8
 
 struct RucksackReport
 {
-    rucksackCount:       u32
-    groupCount:          u32
+    rucksackCount:        u32
+    groupCount:           u32
     misplacedPrioritySum: u64
-    badgePrioritySum:    u64
+    badgePrioritySum:     u64
 }
 
 interface ILineScorer
@@ -124,7 +124,7 @@ func badgeMask(first, second, third: const [..] u8)->u64
 
 func solveClean(bytes: const [..] u8)->RucksackReport
 {
-    var result: RucksackReport
+    var result:    RucksackReport
     var lineStart: u64
     var groupMasks: [3] u64
     var groupCount: u32
@@ -140,16 +140,16 @@ func solveClean(bytes: const [..] u8)->RucksackReport
             if lineEnd > lineStart
             {
                 let line = bytes[lineStart until lineEnd]
-                result.rucksackCount += 1
+                result.rucksackCount        += 1
                 result.misplacedPrioritySum += cast(u64) priorityFromMask(duplicateMask(line))
 
                 groupMasks[groupCount] = buildMask(line)
-                groupCount += 1
+                groupCount             += 1
                 if groupCount == 3
                 {
-                    result.groupCount += 1
+                    result.groupCount       += 1
                     result.badgePrioritySum += cast(u64) priorityFromMask(groupMasks[0] & groupMasks[1] & groupMasks[2])
-                    groupCount = 0
+                    groupCount              = 0
                 }
             }
 
@@ -270,30 +270,30 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->RucksackReport
     forEachLine(bytes)
     {
         featureRucksackCount += 1
-        featurePartOne += cast(u64) iDuplicate.score(line)
+        featurePartOne       += cast(u64) iDuplicate.score(line)
 
         let slot = groupMaskIndex(featureState)
         featureMasks[slot] = buildMask(line)
         if featureState == GroupState.NeedThird
         {
             featureGroupCount += 1
-            featurePartTwo += cast(u64) iBadge.score(featureMasks[0], featureMasks[1], featureMasks[2])
+            featurePartTwo    += cast(u64) iBadge.score(featureMasks[0], featureMasks[1], featureMasks[2])
         }
 
         featureState = nextGroupState(featureState)
     }
 
     var result: RucksackReport
-    result.rucksackCount = featureRucksackCount
-    result.groupCount = featureGroupCount
+    result.rucksackCount        = featureRucksackCount
+    result.groupCount           = featureGroupCount
     result.misplacedPrioritySum = featurePartOne
-    result.badgePrioritySum = featurePartTwo
+    result.badgePrioritySum     = featurePartTwo
     return result
 }
 
-const SampleFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
+const SampleFeatureReport: RucksackReport   = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
 const CoverageFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
-const EdgeFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) EdgeInput)
+const EdgeFeatureReport: RucksackReport     = #run solveWithLanguageFeatures(cast(const [..] u8) EdgeInput)
 
 #assert(#sizeof(GroupState) == 1)
 #assert(#sizeof(RucksackReport) != 0)

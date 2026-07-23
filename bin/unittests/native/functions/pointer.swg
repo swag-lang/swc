@@ -47,7 +47,7 @@ func applyTransform(cb: Transform, data: FuncData, extra: s32)->s32
 
 #test
 {
-    let direct: Transform = &addTransform
+    let direct:    Transform = &addTransform
     let alternate: Transform = &scaleTransform
 
     var holder: TransformHolder = {cb: &addTransform}

@@ -1,16 +1,16 @@
 ﻿using Core, Gui, Pixel
 using Properties
 
-const W = 1600
-const H = 1000
-const RootMargin = 24.0
-const PageTop = 104.0
+const W                = 1600
+const H                = 1000
+const RootMargin       = 24.0
+const PageTop          = 104.0
 const PageBottomMargin = 50.0
-const SplitGap = 24.0
-const InspectorWidth = 660.0
+const SplitGap         = 24.0
+const InspectorWidth   = 660.0
 const ThemeButtonWidth = 152.0
-const HeaderGap = 18.0
-const NumCards = 3
+const HeaderGap        = 18.0
+const NumCards         = 3
 
 // ---------------------------------------------------------------------------
 // Data. A single struct edited several instances at a time (multi-selection),
@@ -133,30 +133,30 @@ impl IPropertyNotify for SceneCard
 // State
 // ---------------------------------------------------------------------------
 
-var app: Application
-var g_Surface: #null *Surface
-var g_View: #null *Wnd
-var g_Title: #null *Label
-var g_SubTitle: #null *Label
+var app:           Application
+var g_Surface:     #null *Surface
+var g_View:        #null *Wnd
+var g_Title:       #null *Label
+var g_SubTitle:    #null *Label
 var g_ThemeButton: #null *PushButton
-var g_PageView: #null *Wnd
-var g_Footer: #null *Label
-var g_DarkTheme: bool
-var g_StatusText: String
+var g_PageView:    #null *Wnd
+var g_Footer:      #null *Label
+var g_DarkTheme:   bool
+var g_StatusText:  String
 
 var g_Cards: [NumCards] SceneCard
-var g_CardCount: s32 = 2
+var g_CardCount:   s32 = 2
 var g_DisplayMode: PropertiesKind = .Grid
-var g_Filter: String
+var g_Filter:      String
 
-var g_ObjHost: #null *Wnd
-var g_Props: #null *Properties
-var g_Preview: #null *Wnd
+var g_ObjHost:      #null *Wnd
+var g_Props:        #null *Properties
+var g_Preview:      #null *Wnd
 var g_DisplayCombo: #null *ComboBox
-var g_CountCombo: #null *ComboBox
+var g_CountCombo:   #null *ComboBox
 
 var g_TestFrame: s32
-var g_TestStep: s32
+var g_TestStep:  s32
 
 // ---------------------------------------------------------------------------
 // Small helpers
@@ -244,9 +244,12 @@ func displayModeIndex(kind: PropertiesKind)->u32
 {
     switch kind
     {
-    case Grid:      return 0
-    case Condensed: return 1
-    case List:      return 2
+    case Grid:
+        return 0
+    case Condensed:
+        return 1
+    case List:
+        return 2
     }
     return 0
 }
@@ -255,9 +258,12 @@ func displayModeFromIndex(idx: u32)->PropertiesKind
 {
     switch idx
     {
-    case 0: return .Grid
-    case 1: return .Condensed
-    case 2: return .List
+    case 0:
+        return .Grid
+    case 1:
+        return .Condensed
+    case 2:
+        return .List
     }
     return .Grid
 }
@@ -273,8 +279,8 @@ func rebuildInspector()
     if g_Props do
         g_Props.destroy()
 
-    g_Props           = Properties.create(notnull g_ObjHost, {}, g_DisplayMode)
-    g_Props.dockStyle = .Center
+    g_Props               = Properties.create(notnull g_ObjHost, {}, g_DisplayMode)
+    g_Props.dockStyle     = .Center
     g_Props.sizeEditValue = 320
     if g_Props.isGridLike() do
         g_Props.setColumnSize(190)
@@ -323,8 +329,8 @@ func createInspectorPage(parent: *Wnd)
     g_ObjHost.margin.z  = SplitGap
 
     let controls        = Wnd.create'Wnd(notnull g_ObjHost, {0, 0, 0, 44})
-    controls.dockStyle  = .Top
-    controls.margin.w   = 8
+    controls.dockStyle = .Top
+    controls.margin.w  = 8
 
     discard createText(controls, "Display:", {0, 0, 60, 44})
     with g_DisplayCombo = ComboBox.create(controls, {62, 8, 170, 28})
@@ -364,8 +370,8 @@ func createInspectorPage(parent: *Wnd)
     rebuildInspector()
 
     let frame = createPanel(parent, "Live preview", "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.", {})
-    frame.dockStyle = .Center
-    g_Preview = frame.view
+    frame.dockStyle       = .Center
+    g_Preview             = frame.view
     g_Preview.hookOnEvent = &onPreviewEvent
 }
 
@@ -377,9 +383,12 @@ func cardRadius(card: *SceneCard, h: f32)->f32
 {
     switch card.shape
     {
-    case Card:   return card.radius
-    case Banner: return Math.min(card.radius, 12)
-    case Pill:   return h * 0.5
+    case Card:
+        return card.radius
+    case Banner:
+        return Math.min(card.radius, 12)
+    case Pill:
+        return h * 0.5
     }
     return card.radius
 }
@@ -465,7 +474,7 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
 // Custom editor for the Rating type (registered globally at #init).
 // ---------------------------------------------------------------------------
 
-const RatingMax = 5
+const RatingMax     = 5
 const RatingPipSize = 28'f32
 
 struct RatingEditor {}
@@ -602,7 +611,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    g_View = g_Surface.getView()
+    g_View                 = g_Surface.getView()
     g_View.backgroundStyle = .View
 
     g_Title = Label.create(notnull g_View, "", {})
@@ -612,12 +621,12 @@ func createRootView()
     g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form = .Flat
-    g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
+    g_ThemeButton.form       = .Flat
+    g_ThemeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(notnull g_View, {})
+    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
     g_Footer = Label.create(notnull g_View, "", {})

@@ -30,8 +30,8 @@ struct DefaultSmallRet
 
 struct DefaultNestedRet
 {
-    small: DefaultSmallRet
-    scale: s32 = 7
+    small:   DefaultSmallRet
+    scale:   s32 = 7
     enabled: bool = true
 }
 
@@ -108,7 +108,7 @@ func makeDefaultNestedRet()->DefaultNestedRet
 {
     var result: retval
     result.small.y = 31
-    result.scale = 70
+    result.scale   = 70
     return result
 }
 

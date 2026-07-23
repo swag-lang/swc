@@ -45,8 +45,8 @@ func day3A0()
     {
         for l
         {
-            x += dx
-            y += dy
+            x   += dx
+            y   += dy
             cpt += 1
             if cpt == D
             {
@@ -59,14 +59,14 @@ func day3A0()
 
     for
     {
-        l += 1
+        l  += 1
         dx = 1
         dy = 0
         mix()
         dx = 0
         dy = -1
         mix()
-        l += 1
+        l  += 1
         dx = -1
         dy = 0
         mix()
@@ -91,13 +91,13 @@ func day3A1()
         const O = [{1, 1, 0}, {0, 0, -1}, {1, -1, 0}, {0, 0, 1}]
         for v in O
         {
-            l += v.item0
+            l  += v.item0
             dx = v.item1
             dy = v.item2
             for l
             {
-                x += dx
-                y += dy
+                x   += dx
+                y   += dy
                 cpt += 1
                 if cpt == D
                 {

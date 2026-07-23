@@ -17,8 +17,8 @@ func mixinInjectValue(value: s32, stmt: #code)
 
 func computeWithMixin(value: s32)->s32
 {
-    var total: s32 = 0
-    let delta: s32 = 1
+    var total:  s32 = 0
+    let delta:  s32 = 1
     let factor: s32 = 2
 
     mixinFromCallerScope()

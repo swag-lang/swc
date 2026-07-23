@@ -51,7 +51,7 @@ func createSliderPage(parent: *Wnd)
         slider.setValue(128)
 
         createCaption(bottom, "No highlighted bar", 540, 92, 200)
-        slider = Slider.create(bottom, {540, 126, 300})
+        slider             = Slider.create(bottom, {540, 126, 300})
         slider.sliderFlags &= ~.HilightBar
         slider.setValue(0.35)
     }

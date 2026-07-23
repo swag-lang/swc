@@ -2,9 +2,9 @@ var g_Library: Library
 
 struct Library
 {
-    files:            Array'File.FileInfo
-    onDeleteFile:     SigArray'func||(String)
-    loaded:           bool
+    files:        Array'File.FileInfo
+    onDeleteFile: SigArray'func||(String)
+    loaded:       bool
 }
 
 impl Library
@@ -54,8 +54,8 @@ impl Library
             // then combine (Path.combine wants a plain string, so convert the String).
             var candidate = Format.toString("%_", n)
             candidate += base
-            dst = Path.combine(folder, candidate.toString())
-            n += 1
+            dst       = Path.combine(folder, candidate.toString())
+            n         += 1
         }
         return dst
     }
@@ -105,7 +105,7 @@ impl Library
 
     mtd fill()
     {
-        .files = catch Directory.enumerateFiles(getFolder(), ".captme")
+        .files  = catch Directory.enumerateFiles(getFolder(), ".captme")
         .loaded = true
     }
 

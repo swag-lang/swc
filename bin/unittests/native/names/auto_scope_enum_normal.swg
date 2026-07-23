@@ -25,7 +25,7 @@ func isGreen(value: A)->bool
 // Auto-scope enum in vars, arrays, structs, calls
 #test
 {
-    let value: A = .G
+    let value:  A = .G
     let holder: Holder = {value: A.B}
     let values: [3] A = [.R, .G, .B]
     let matrix: [2, 2] A = [[.R, .G], [.B, .R]]

@@ -90,19 +90,19 @@ func parseGrid(text: string)->Grid
             {
                 if g.height == 0 do
                     g.width = col
-                g.height += 1
-                col = 0
+                g.height    += 1
+                col         = 0
             }
             continue
         }
 
         g.cells[g.height * MaxDim + col] = ch
-        col += 1
+        col                              += 1
     }
 
     if col > 0
     {
-        g.width = @max(g.width, col)
+        g.width  = @max(g.width, col)
         g.height += 1
     }
 
@@ -211,8 +211,8 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
     var head: u32
     var tail: u32
 
-    queue[tail] = packPos(startR, startC)
-    tail += 1
+    queue[tail]                       = packPos(startR, startC)
+    tail                              += 1
     visited[startR * MaxDim + startC] = true
 
     for MaxQueue
@@ -243,8 +243,8 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
             if visited[idx] or g.at(ur, uc) != plant do
                 continue
             visited[idx] = true
-            queue[tail] = packPos(ur, uc)
-            tail += 1
+            queue[tail]  = packPos(ur, uc)
+            tail         += 1
         }
     }
 

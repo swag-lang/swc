@@ -177,7 +177,7 @@ impl Transform2D
 
 struct(A, B) Pair
 {
-    first: A
+    first:  A
     second: B
 }
 
@@ -258,7 +258,7 @@ struct(A, B) Pair
 // Test: Rect + Vec2 (translate)
 #test
 {
-    let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
+    let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
     let moved = r + offset
 
@@ -274,7 +274,7 @@ struct(A, B) Pair
 // Test: Rect - Vec2 (translate back)
 #test
 {
-    let r: Rect's32 = {min: {x: 5, y: 5}, max: {x: 15, y: 15}}
+    let r:      Rect's32 = {min: {x: 5, y: 5}, max: {x: 15, y: 15}}
     var offset: Vec2's32 = {x: 5, y: 5}
     let moved = r - offset
 
@@ -328,7 +328,7 @@ struct(A, B) Pair
 // Test: translate then scale (chaining)
 #test
 {
-    let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 4, y: 2}}
+    let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 4, y: 2}}
     var offset: Vec2's32 = {x: 1, y: 1}
     let result = (r + offset) * 3's32
 
@@ -348,7 +348,7 @@ struct(A, B) Pair
 #test
 {
     let identity: Transform2D's32 = {pos: {x: 0, y: 0}, scale: {x: 1, y: 1}}
-    var p: Vec2's32 = {x: 7, y: 13}
+    var p:        Vec2's32 = {x: 7, y: 13}
     let result = identity.apply(&p)
 
     @assert(result.x == 7)
@@ -451,9 +451,9 @@ struct(A, B) Pair
 // Test: Pair of two Rects with independent ops
 #test
 {
-    let left: Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
+    let left:  Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
     let right: Rect's32 = {min: {x: 20, y: 20}, max: {x: 30, y: 30}}
-    let p: Pair'(Rect's32, Rect's32) = {first: left, second: right}
+    let p:     Pair'(Rect's32, Rect's32) = {first: left, second: right}
 
     @assert(p.first.area() == 100)
     @assert(p.second.area() == 100)
@@ -464,8 +464,8 @@ struct(A, B) Pair
 // Test: Pair of Transform2D and Rect -- apply first to second
 #test
 {
-    let t: Transform2D's32 = {pos: {x: 100, y: 100}, scale: {x: 2, y: 2}}
-    let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 5, y: 5}}
+    let t:     Transform2D's32 = {pos: {x: 100, y: 100}, scale: {x: 2, y: 2}}
+    let r:     Rect's32 = {min: {x: 0, y: 0}, max: {x: 5, y: 5}}
     let scene: Pair'(Transform2D's32, Rect's32) = {first: t, second: r}
     let world = scene.first.applyRect(&scene.second)
 
@@ -498,7 +498,7 @@ struct(A, B) Pair
 // Test: reflect Rect, translate, check center
 #test
 {
-    let r: Rect's32 = {min: {x: 2, y: 4}, max: {x: 6, y: 8}}
+    let r:      Rect's32 = {min: {x: 2, y: 4}, max: {x: 6, y: 8}}
     var offset: Vec2's32 = {x: 10, y: 10}
     let result = (-r) + offset
 

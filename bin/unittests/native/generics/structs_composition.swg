@@ -17,13 +17,13 @@ struct(T, N: s32) Buffer
 
 struct(T, N: s32) DoubleBuffer
 {
-    first: Buffer'(T, N)
+    first:  Buffer'(T, N)
     second: Buffer'(T, N)
 }
 
 struct(A, B) Pair
 {
-    first: A
+    first:  A
     second: B
 }
 
@@ -47,7 +47,7 @@ struct(T, N: s32) BoxArray
 func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 {
     var result: Pair'(T, T) = undefined
-    result.first = p.second
+    result.first  = p.second
     result.second = p.first
     return result
 }
@@ -67,8 +67,8 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 
 #test
 {
-    let first: Buffer'(u8, 3) = {values: [1'u8, 2, 3]}
-    let second: Buffer'(u8, 3) = {values: [4'u8, 5, 6]}
+    let first:   Buffer'(u8, 3) = {values: [1'u8, 2, 3]}
+    let second:  Buffer'(u8, 3) = {values: [4'u8, 5, 6]}
     let doubled: DoubleBuffer'(u8, 3) = {first: first, second: second}
 
     @assert(doubled.first.values[0] == 1'u8)

@@ -39,7 +39,7 @@ struct JitNonNullDefaultContainer
 }
 
 const JIT_NONULL_DEFAULT_CONTAINER: JitNonNullDefaultContainer = {}
-const JIT_NONULL_PARTIAL_ARRAY: [2] JitNonNullStringDefault = [{value: "explicit"}]
+const JIT_NONULL_PARTIAL_ARRAY: [2] JitNonNullStringDefault    = [{value: "explicit"}]
 
 #assert(JIT_NONULL_DEFAULT_CONTAINER.direct.value == "fallback")
 #assert(JIT_NONULL_DEFAULT_CONTAINER.array[0].value == "fallback")
@@ -118,27 +118,27 @@ func jitNonNullConstruction()->bool
     let direct: *JitNonNullItem = &first
     let block: [*] JitNonNullItem = cast([*] JitNonNullItem) &blockStorage[0]
     let slice: [..] JitNonNullItem = blockStorage
-    let text: string = "nonull"
-    let ctext: cstring = cast(cstring) &cstringStorage[0]
-    let boxed: any = 123
-    let reflectedType: typeinfo = JitNonNullItem
-    var nullableValuePointer: #null *JitNonNullItem = null
-    var nullableBlockPointer: #null [*] JitNonNullItem = null
-    var nullableSlice: #null [..] JitNonNullItem = null
-    var nullableString: #null string = null
-    var nullableCString: #null cstring = null
-    var nullableTypeInfo: #null typeinfo = null
+    let text:                      string = "nonull"
+    let ctext:                     cstring = cast(cstring) &cstringStorage[0]
+    let boxed:                     any = 123
+    let reflectedType:             typeinfo = JitNonNullItem
+    var nullableValuePointer:      #null *JitNonNullItem = null
+    var nullableBlockPointer:      #null [*] JitNonNullItem = null
+    var nullableSlice:             #null [..] JitNonNullItem = null
+    var nullableString:            #null string = null
+    var nullableCString:           #null cstring = null
+    var nullableTypeInfo:          #null typeinfo = null
     let boxedNullableValuePointer: any = nullableValuePointer
     let boxedNullableBlockPointer: any = nullableBlockPointer
-    let boxedNullableSlice: any = nullableSlice
-    let boxedNullableString: any = nullableString
-    let boxedNullableCString: any = nullableCString
-    let boxedNullableTypeInfo: any = nullableTypeInfo
-    let aliasReadOnly: const JitNonNullPointerAlias = &first
-    let aliasRequired: JitConstPointerAlias = &first
-    let legacySource: *JitNonNullItem = &first
-    let migrated: *JitNonNullItem = migrateJitLegacyPointer(legacySource)
-    var widened: #null *JitNonNullItem = migrated
+    let boxedNullableSlice:        any = nullableSlice
+    let boxedNullableString:       any = nullableString
+    let boxedNullableCString:      any = nullableCString
+    let boxedNullableTypeInfo:     any = nullableTypeInfo
+    let aliasReadOnly:             const JitNonNullPointerAlias = &first
+    let aliasRequired:             JitConstPointerAlias = &first
+    let legacySource:              *JitNonNullItem = &first
+    let migrated:                  *JitNonNullItem = migrateJitLegacyPointer(legacySource)
+    var widened:                   #null *JitNonNullItem = migrated
     widened = null     // the qualifier is real: null flows into it
     widened = migrated
 
@@ -199,7 +199,7 @@ func jitNonNullConstruction()->bool
         {required: &second, count: 8},
         ]
     let genericRequired: JitNonNullGenericBox'(*JitNonNullItem) = {value: &first}
-    var genericDefault: JitNonNullGenericBox'JitNonNullStringDefault
+    var genericDefault:  JitNonNullGenericBox'JitNonNullStringDefault
     let pointerArray: [2] *JitNonNullItem = [&first, &second]
     let aliasedHolder: JitNonNullHolderAlias = {required: &first}
     let pointerDefault = JitNonNullPointerDefault{}
@@ -301,7 +301,7 @@ func jitNonNullConstruction()->bool
 
     // Only explicitly nullable pointers keep a null default; bare pointers have no implicit default.
     var nullablePointer: #null *JitNonNullItem
-    var legacyHolder: struct {ptr: #null *JitNonNullItem}
+    var legacyHolder:    struct {ptr: #null *JitNonNullItem}
     if nullablePointer != null or legacyHolder.ptr != null do
         return false
 

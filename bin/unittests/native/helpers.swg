@@ -1,7 +1,7 @@
 // 
 
-var Counter: s32
-var Seed: s32 = 7
+var Counter:   s32
+var Seed:      s32 = 7
 var DropCheck: s32
 
 func fail(code: u32)

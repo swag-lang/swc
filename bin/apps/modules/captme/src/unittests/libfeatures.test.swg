@@ -27,11 +27,11 @@ using Swag, Core
     }
 
     let cap = Memory.new'Capture()
-    cap.width, cap.widthOrg = 8
+    cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg = Testing.indexedImage(8, 6)
-    cap.file    = src
-    cap.changed = true
+    cap.backImg               = Testing.indexedImage(8, 6)
+    cap.file                  = src
+    cap.changed               = true
     catch cap.save()
     @assert(@err == null)
     Memory.delete(cap)
@@ -67,11 +67,14 @@ using Swag, Core
     f.setup()
 
     let cap = Memory.new'Capture()
-    cap.width, cap.widthOrg = 8
+    cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg = Testing.indexedImage(8, 6)
+    cap.backImg               = Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
-    defer { discard catch File.delete(path) }
+    defer
+    {
+        discard catch File.delete(path)
+    }
     cap.file    = path
     cap.changed = true
     catch cap.save()
@@ -82,7 +85,10 @@ using Swag, Core
 
     let loaded = catch Capture.load(path)
     @assert(@err == null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
     @assert(loaded.title == "Renamed")
     @assert(loaded.width == 8)
     @assert(loaded.backImg.isValid())
@@ -98,11 +104,14 @@ using Swag, Core
     f.setup()
 
     let cap = Memory.new'Capture()
-    cap.width, cap.widthOrg = 20
+    cap.width, cap.widthOrg   = 20
     cap.height, cap.heightOrg = 14
-    cap.backImg = Testing.indexedImage(20, 14)
+    cap.backImg               = Testing.indexedImage(20, 14)
     let path = testTempCapturePath()
-    defer { discard catch File.delete(path) }
+    defer
+    {
+        discard catch File.delete(path)
+    }
     cap.file    = path
     cap.changed = true
     catch cap.save()
@@ -199,11 +208,14 @@ using Swag, Core
     let view = lib.view
 
     let cap = Memory.new'Capture()
-    cap.width, cap.widthOrg = 8
+    cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg = Testing.indexedImage(8, 6)
+    cap.backImg               = Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
-    defer { discard catch File.delete(path) }
+    defer
+    {
+        discard catch File.delete(path)
+    }
     cap.file    = path
     cap.changed = true
     catch cap.save()

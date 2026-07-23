@@ -67,7 +67,7 @@ const PrimeZ = 1720413743
 func hash(seed: s32, xPrimed, yPrimed: s32)->s32
 {
     var hash = seed ^ xPrimed ^ yPrimed
-    hash *= 0x27d4eb2d
+    hash *= 0x27D4EB2D
     return hash
 }
 
@@ -75,7 +75,7 @@ func hash(seed: s32, xPrimed, yPrimed: s32)->s32
 func hash(seed: s32, xPrimed, yPrimed, zPrimed: s32)->s32
 {
     var hash = seed ^ xPrimed ^ yPrimed ^ zPrimed
-    hash *= 0x27d4eb2d
+    hash *= 0x27D4EB2D
     return hash
 }
 

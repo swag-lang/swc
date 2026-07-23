@@ -85,7 +85,7 @@ func day9A()
         if map[i].num == map[last].num
         {
             map[last].what = -1
-            last -= 1
+            last           -= 1
         }
         elif map[i].num > map[last].num
         {
@@ -108,7 +108,7 @@ func day9A()
         for v.num
         {
             total += idx * v.what
-            idx += 1
+            idx   += 1
         }
     }
 

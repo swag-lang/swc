@@ -16,21 +16,21 @@ impl HeadlessFixture
         .gui.setup(width, height)
         .gui.bindApplication(&g_App)
 
-        .main             = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
-        g_Main            = .main
-        .main.mdlFavorite = &.main.mdlFormShape
+        .main              = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
+        g_Main             = .main
+        .main.mdlFavorite  = &.main.mdlFormShape
         .main.mdlHighlight = &.main.mdlFormShape
-        .main.mdlPixSel  = &.main.mdlFormShape
-        .main.editWnd    = EditWnd.create(.main, .main)
+        .main.mdlPixSel    = &.main.mdlFormShape
+        .main.editWnd      = EditWnd.create(.main, .main)
         .main.editWnd.setPosition({x: 0, y: 0, width: width, height: height})
         .main.editWnd.editView.setPosition({x: 0, y: 0, width: width, height: height})
 
         let editWnd = .main.editWnd
         .editView        = notnull editWnd.editView
         let localCapture = Memory.new'Capture()
-        localCapture.width, localCapture.widthOrg = 400
+        localCapture.width, localCapture.widthOrg   = 400
         localCapture.height, localCapture.heightOrg = 300
-        localCapture.backImg = Image.create(400, 300, .BGRA8)
+        localCapture.backImg                        = Image.create(400, 300, .BGRA8)
         .editView.setCapture(localCapture)
         .capture         = localCapture
 
@@ -45,14 +45,14 @@ impl HeadlessFixture
 
     mtd setupLibraryWnd()->*LibraryWnd
     {
-        .main.libWnd = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
+        .main.libWnd      = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
         .main.libWnd.main = .main
         .main.libWnd.registerActions()
 
         let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
         let view = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
-        view.libWnd = .main.libWnd
-        view.mainWnd = .main
+        view.libWnd    = .main.libWnd
+        view.mainWnd   = .main
         view.scrollWnd = scroll
         scroll.setView(view)
         .main.libWnd.view = view
@@ -264,17 +264,17 @@ func testDate(day: u16)->Time.DateTime
 func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, linked: string = "", linkedUpToDate = true, title: string = "")->*LibraryItem
 {
     let it = view.allItems.addNewPtr()
-    it.fi.fullname = name
-    it.fi.size = size
+    it.fi.fullname      = name
+    it.fi.size          = size
     it.fi.lastWriteTime = testDate(day)
-    it.visible = true
-    it.rect = {cast(f32) view.items.count * 60, 0, 50, 50}
+    it.visible          = true
+    it.rect             = {cast(f32) view.items.count * 60, 0, 50, 50}
 
     let capture = Memory.new'Capture()
-    capture.linkedImage = linked
+    capture.linkedImage    = linked
     capture.linkedUpToDate = linkedUpToDate
-    capture.title = title
-    it.capture = capture
+    capture.title          = title
+    it.capture             = capture
 
     view.items.add(it)
     return it

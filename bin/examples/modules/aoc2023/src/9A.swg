@@ -94,7 +94,7 @@ func day9A()
             }
 
             values.count -= 1
-            total += values.back()
+            total        += values.back()
         }
     }
 

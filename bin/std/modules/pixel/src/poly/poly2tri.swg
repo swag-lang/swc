@@ -18,33 +18,33 @@ enum Orientation
 #[Swag.Opaque]
 public struct Tessellate
 {
-    basin:          Basin
-    edgeEvent:      EdgeEvent
+    basin:     Basin
+    edgeEvent: EdgeEvent
 
-    triangles:      Array'(*Triangle)
-    edges:          Array'(*Edge)
-    points:         Array'(*Point)
-    triIndices:     Array'u64
+    triangles:  Array'(*Triangle)
+    edges:      Array'(*Edge)
+    points:     Array'(*Point)
+    triIndices: Array'u64
 
-    nodes:          Array'(*Node)
-    freeNodes:      Array'(*Node)
+    nodes:     Array'(*Node)
+    freeNodes: Array'(*Node)
 
-    front:          AdvancingFront
-    head:           #null *Point
-    tail:           #null *Point
-    afHead:         #null *Node
-    afMiddle:       #null *Node
-    afTail:         #null *Node
-    polyStart:      u64
+    front:     AdvancingFront
+    head:      #null *Point
+    tail:      #null *Point
+    afHead:    #null *Node
+    afMiddle:  #null *Node
+    afTail:    #null *Node
+    polyStart: u64
 }
 
 public struct Result
 {
-    triangles:      Array'(*Triangle)
-    edges:          Array'(*Edge)
-    points:         Array'(*Point)
-    triIndices:     Array'u64
-    tess:           #null *Tessellate
+    triangles:  Array'(*Triangle)
+    edges:      Array'(*Edge)
+    points:     Array'(*Point)
+    triIndices: Array'u64
+    tess:       #null *Tessellate
 }
 
 public struct Point
@@ -56,8 +56,8 @@ public struct Point
 
 public struct Edge
 {
-    p:     *Point = undefined
-    q:     *Point = undefined
+    p: *Point = undefined
+    q: *Point = undefined
 }
 
 public struct Triangle
@@ -66,39 +66,39 @@ public struct Triangle
     delaunayEdge:        [3] bool
     points:              [3] *Point = undefined
     neighbors:           [3] #null *Triangle
-    idx:                 u64
-    interior:            bool
+    idx:      u64
+    interior: bool
 }
 
 struct EdgeEvent
 {
-    constrainedEdge:     #null *Edge
-    right:               bool
+    constrainedEdge: #null *Edge
+    right:           bool
 }
 
 struct Basin
 {
-    leftNode:        #null *Node
-    bottomNode:      #null *Node
-    rightNode:       #null *Node
-    width:           f64
-    leftHighest:     bool
+    leftNode:    #null *Node
+    bottomNode:  #null *Node
+    rightNode:   #null *Node
+    width:       f64
+    leftHighest: bool
 }
 
 struct Node
 {
-    point:        *Point = undefined
-    triangle:     *Triangle = undefined
-    next:         #null *Node
-    prev:         #null *Node
-    value:        f64
+    point:    *Point = undefined
+    triangle: *Triangle = undefined
+    next:     #null *Node
+    prev:     #null *Node
+    value:    f64
 }
 
 struct AdvancingFront
 {
-    head:           #null *Node
-    tail:           #null *Node
-    searchNode:     *Node = undefined
+    head:       #null *Node
+    tail:       #null *Node
+    searchNode: *Node = undefined
 }
 
 func nnPoint(p: #null *Point)->*Point
@@ -625,12 +625,30 @@ impl Tessellate
 
     #[Swag.Inline]
     {
-        func newPoint()->*Point { return Memory.new'Point(); }
-        func deletePoint(ptr: *Point) { Memory.delete(ptr); }
-        func newEdge()->*Edge { return Memory.new'Edge(); }
-        func deleteEdge(ptr: *Edge) { Memory.delete(ptr); }
-        func newTriangle()->*Triangle { return Memory.new'Triangle(); }
-        func deleteTriangle(ptr: *Triangle) { Memory.delete(ptr); }
+        func newPoint()->*Point
+        {
+            return Memory.new'Point();
+        }
+        func deletePoint(ptr: *Point)
+        {
+            Memory.delete(ptr);
+        }
+        func newEdge()->*Edge
+        {
+            return Memory.new'Edge();
+        }
+        func deleteEdge(ptr: *Edge)
+        {
+            Memory.delete(ptr);
+        }
+        func newTriangle()->*Triangle
+        {
+            return Memory.new'Triangle();
+        }
+        func deleteTriangle(ptr: *Triangle)
+        {
+            Memory.delete(ptr);
+        }
 
         mtd newNode()->*Node
         {

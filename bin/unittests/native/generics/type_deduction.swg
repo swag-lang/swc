@@ -12,7 +12,7 @@ struct(T, N: s32) Buffer
 
 struct(A, B) Pair
 {
-    first: A
+    first:  A
     second: B
 }
 

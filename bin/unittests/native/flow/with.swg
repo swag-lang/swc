@@ -67,7 +67,7 @@ impl NativeWithOwner
         with shadow
         {
             me.value = 4
-            .value = 9
+            .value   = 9
         }
 
         return me.value * 100 + shadow.value
@@ -124,7 +124,7 @@ func nativeWithValueAndPointer()->s32
 func nativeWithAssignmentsAndScopes()->s32
 {
     var point = nativeWithMakePoint(2, 4)
-    var ptr: #null *NativeWithPoint
+    var ptr:    #null *NativeWithPoint
     var holder: NativeWithHolder
     var total = 0
 
@@ -238,15 +238,15 @@ func nativeWithNestedMemberTarget()->s32
     {
         with .ptr
         {
-            .x += 1
+            .x    += 1
             total += .x + .y
         }
 
         with .ptr
         {
-            .y += 2
+            .y    += 2
             total += .x + .y
-            .x += 3
+            .x    += 3
         }
     }
 

@@ -279,35 +279,35 @@ public alias WindowResizeCallback = func||(*Window, s32, s32)
 
 public struct WindowCallbacks
 {
-    onPaint:      #null WindowPaintCallback
-    onResize:     #null WindowResizeCallback
+    onPaint:  #null WindowPaintCallback
+    onResize: #null WindowResizeCallback
 }
 
 public struct WindowOptions
 {
-    className:      string
-    title:          string
-    width:          s32
-    height:         s32
-    x:              s32 = CW_USEDEFAULT
-    y:              s32 = CW_USEDEFAULT
-    style:          u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
-    exStyle:        u32
-    classStyle:     u32 = CS_OWNDC
-    showCommand:    s32 = SW_SHOW
+    className:   string
+    title:       string
+    width:       s32
+    height:      s32
+    x:           s32 = CW_USEDEFAULT
+    y:           s32 = CW_USEDEFAULT
+    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
+    exStyle:     u32
+    classStyle:  u32 = CS_OWNDC
+    showCommand: s32 = SW_SHOW
 }
 
 public struct Window
 {
-    nativeHandle:      HWND
-    callbacks:         WindowCallbacks
-    showCommand:       s32 = SW_SHOW
+    nativeHandle: HWND
+    callbacks:    WindowCallbacks
+    showCommand:  s32 = SW_SHOW
 }
 
 public struct WindowLoop
 {
-    maxTestFrames:     u32 = 50
-    testFrames:        u32
+    maxTestFrames: u32 = 50
+    testFrames:    u32
 }
 
 private func getWindowFromHandle(hWnd: HWND)->#null *Window

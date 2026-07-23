@@ -102,36 +102,36 @@ internal
 
     struct SymFreq
     {
-        key:          u16
-        symIndex:     u16
+        key:      u16
+        symIndex: u16
     }
 
     struct Compressor
     {
         compressFlags:        u32
         maxProbes:            [2] u32
-        greedyParsing:        bool
-        lookaheadPos:         u32
-        lookaheadSize:        u32
-        dictSize:             u32
-        lzCodeBufAddr:        #null [*] u8
-        lzFlags:              #null *u8
-        outputBufAddr:        #null [*] u8
-        outputBufEndAddr:     #null [*] u8
-        numFlagsLeft:         u32
-        totalLzBytes:         u32
-        lzCodeBufDictPos:     u32
-        bitsIn:               u32
-        bitBuffer:            u32
-        savedMatchDist:       u32
-        savedMatchLen:        u32
-        savedLit:             u32
-        outputFlushOfs:       u32
-        blockIndex:           u32
-        inBuf:                #null const [*] u8
-        inSrc:                #null const [*] u8
-        srcBufLeft:           u64
-        outBufOfs:            u64
+        greedyParsing:    bool
+        lookaheadPos:     u32
+        lookaheadSize:    u32
+        dictSize:         u32
+        lzCodeBufAddr:    #null [*] u8
+        lzFlags:          #null *u8
+        outputBufAddr:    #null [*] u8
+        outputBufEndAddr: #null [*] u8
+        numFlagsLeft:     u32
+        totalLzBytes:     u32
+        lzCodeBufDictPos: u32
+        bitsIn:           u32
+        bitBuffer:        u32
+        savedMatchDist:   u32
+        savedMatchLen:    u32
+        savedLit:         u32
+        outputFlushOfs:   u32
+        blockIndex:       u32
+        inBuf:            #null const [*] u8
+        inSrc:            #null const [*] u8
+        srcBufLeft:       u64
+        outBufOfs:        u64
         dict:                 [LzDictSize + MaxMatchLen - 1] u8
         huffCount:            [MaxHuffTables, MaxHuffSymbols] u16
         huffCodes:            [MaxHuffTables, MaxHuffSymbols] u16
@@ -148,9 +148,9 @@ internal
 #[Swag.Opaque]
 public struct Deflate
 {
-    state:         #null *Compressor                               // Internal compressor state
-    adler:         Hash.Adler32                                    // Adler-32 checksum calculator
-    initFlags:     CompressionFlags = CompressionFlags.Default     // Initialization flags (e.g. compute checksum)
+    state:     #null *Compressor                               // Internal compressor state
+    adler:     Hash.Adler32                                    // Adler-32 checksum calculator
+    initFlags: CompressionFlags = CompressionFlags.Default     // Initialization flags (e.g. compute checksum)
 }
 
 impl Deflate
@@ -194,16 +194,16 @@ impl Deflate
     {
         let d = .state
 
-        d.totalLzBytes += 1
+        d.totalLzBytes       += 1
         dref d.lzCodeBufAddr = lit
-        d.lzCodeBufAddr += 1
-        dref d.lzFlags = cast(u8) (dref d.lzFlags >> 1)
+        d.lzCodeBufAddr      += 1
+        dref d.lzFlags       = cast(u8) (dref d.lzFlags >> 1)
 
         d.numFlagsLeft -= 1
         if d.numFlagsLeft == 0
         {
-            d.numFlagsLeft = 8
-            d.lzFlags      = d.lzCodeBufAddr
+            d.numFlagsLeft  = 8
+            d.lzFlags       = d.lzCodeBufAddr
             d.lzCodeBufAddr += 1
         }
 
@@ -219,23 +219,23 @@ impl Deflate
 
         d.lzCodeBufAddr[0] = cast(u8) (matchLen - MinMatchLen)
 
-        matchDist -= 1
+        matchDist          -= 1
         d.lzCodeBufAddr[1] = cast(u8) (matchDist & 0xFF)
         d.lzCodeBufAddr[2] = cast(u8) (matchDist >> 8)
-        d.lzCodeBufAddr += 3
+        d.lzCodeBufAddr    += 3
 
         dref d.lzFlags = cast(u8) ((dref d.lzFlags >> 1) | 0x80)
         d.numFlagsLeft -= 1
         if d.numFlagsLeft == 0
         {
-            d.numFlagsLeft = 8
-            d.lzFlags      = d.lzCodeBufAddr
+            d.numFlagsLeft  = 8
+            d.lzFlags       = d.lzCodeBufAddr
             d.lzCodeBufAddr += 1
         }
 
         let s0 = SmallDistSym[matchDist & 511]
         let s1 = LargeDistSym[(matchDist >> 8) & 127]
-        d.huffCount[1, (matchDist < 512) ? s0 : s1] += 1
+        d.huffCount[1, (matchDist < 512) ? s0 : s1]    += 1
         d.huffCount[0, LenSym[matchLen - MinMatchLen]] += 1
     }
 
@@ -325,17 +325,17 @@ impl Deflate
         let len  = l
 
         d.bitBuffer |= (bits << d.bitsIn)
-        d.bitsIn += len
+        d.bitsIn    += len
         while d.bitsIn >= 8
         {
             if d.outputBufAddr < d.outputBufEndAddr
             {
                 dref d.outputBufAddr = cast(u8) d.bitBuffer
-                d.outputBufAddr += 1
+                d.outputBufAddr      += 1
             }
 
             d.bitBuffer >>= 8
-            d.bitsIn -= 8
+            d.bitsIn    -= 8
         }
     }
 
@@ -345,7 +345,7 @@ impl Deflate
         for i in numSyms
         {
             let freq = sym0[i].key
-            hist[freq & 0xFF] += 1
+            hist[freq & 0xFF]                += 1
             hist[256 + ((freq >> 8) & 0xFF)] += 1
         }
 
@@ -365,7 +365,7 @@ impl Deflate
             for i in 256
             {
                 offsets[i] = curOfs
-                curOfs += pHist[i]
+                curOfs     += pHist[i]
             }
 
             for i in numSyms
@@ -373,7 +373,7 @@ impl Deflate
                 let offsetIndex = (curSym[i].key >> passShift) & 0xFF'u16
                 var ptr         = &offsets[offsetIndex]
                 newSym[dref ptr] = curSym[i]
-                dref ptr += 1
+                dref ptr         += 1
             }
 
             swap(&curSym, &newSym)
@@ -403,24 +403,24 @@ impl Deflate
             {
                 symFreq[next].key = symFreq[root].key
                 symFreq[root].key = cast(u16) next
-                root += 1
+                root              += 1
             }
             else
             {
                 symFreq[next].key = symFreq[leaf].key
-                leaf += 1
+                leaf              += 1
             }
 
             if leaf >= n or (root < next and symFreq[root].key < symFreq[leaf].key)
             {
                 symFreq[next].key = cast(u16) (symFreq[next].key + symFreq[root].key)
                 symFreq[root].key = cast(u16) next
-                root += 1
+                root              += 1
             }
             else
             {
                 symFreq[next].key = cast(u16) (symFreq[next].key + symFreq[leaf].key)
-                leaf += 1
+                leaf              += 1
             }
         }
 
@@ -444,8 +444,8 @@ impl Deflate
             while avbl > used
             {
                 symFreq[next].key = cast(u16) dpth
-                next -= 1
-                avbl -= 1
+                next              -= 1
+                avbl              -= 1
             }
 
             avbl = 2 * used
@@ -473,7 +473,7 @@ impl Deflate
             {
                 if numCodes[i]
                 {
-                    numCodes[i] -= 1
+                    numCodes[i]     -= 1
                     numCodes[i + 1] += 2
                     break
                 }
@@ -507,7 +507,7 @@ impl Deflate
             {
                 syms0[numUsedSyms].key      = cast(u16) d.huffCount[tableNum, i]
                 syms0[numUsedSyms].symIndex = cast(u16) i
-                numUsedSyms += 1
+                numUsedSyms                 += 1
             }
 
             let syms = radixSortSyms(numUsedSyms, syms0, syms1)
@@ -527,7 +527,7 @@ impl Deflate
             {
                 for var l = numCodes[i]; l > 0; l -= 1
                 {
-                    j -= 1
+                    j                                           -= 1
                     d.huffCodeSizes[tableNum, syms[j].symIndex] = cast(u8) i
                 }
             }
@@ -552,7 +552,7 @@ impl Deflate
             for var l = codeSize; l > 0; l -= 1
             {
                 rev_code = (rev_code << 1) | (cde & 1)
-                cde >>= 1
+                cde      >>= 1
             }
 
             d.huffCodes[tableNum, i] = cast(u16) rev_code
@@ -567,25 +567,25 @@ impl Deflate
         while i <= 143
         {
             d.huffCodeSizes[0, i] = 8
-            i += 1
+            i                     += 1
         }
 
         while i <= 255
         {
             d.huffCodeSizes[0, i] = 9
-            i += 1
+            i                     += 1
         }
 
         while i <= 279
         {
             d.huffCodeSizes[0, i] = 7
-            i += 1
+            i                     += 1
         }
 
         while i <= 287
         {
             d.huffCodeSizes[0, i] = 8
-            i += 1
+            i                     += 1
         }
 
         Memory.set(d.huffCodeSizes[1], 5, 32)
@@ -608,17 +608,17 @@ impl Deflate
                 while rleRepeatCount
                 {
                     packedCodeSizes[numPackedCodeSizes] = prevCodeSize
-                    numPackedCodeSizes += 1
-                    rleRepeatCount -= 1
+                    numPackedCodeSizes                  += 1
+                    rleRepeatCount                      -= 1
                 }
             }
             else
             {
                 d.huffCount[2, 16]                  = cast(u16) (d.huffCount[2, 16] + 1)
                 packedCodeSizes[numPackedCodeSizes] = 16
-                numPackedCodeSizes += 1
+                numPackedCodeSizes                  += 1
                 packedCodeSizes[numPackedCodeSizes] = cast(u8) (rleRepeatCount - 3)
-                numPackedCodeSizes += 1
+                numPackedCodeSizes                  += 1
             }
 
             rleRepeatCount = 0
@@ -636,25 +636,25 @@ impl Deflate
                 while rleZCount
                 {
                     packedCodeSizes[numPackedCodeSizes] = 0
-                    numPackedCodeSizes += 1
-                    rleZCount -= 1
+                    numPackedCodeSizes                  += 1
+                    rleZCount                           -= 1
                 }
             }
             elif rleZCount <= 10
             {
                 d.huffCount[2, 17]                  = cast(u16) (d.huffCount[2, 17] + 1)
                 packedCodeSizes[numPackedCodeSizes] = 17
-                numPackedCodeSizes += 1
+                numPackedCodeSizes                  += 1
                 packedCodeSizes[numPackedCodeSizes] = cast(u8) (rleZCount - 3)
-                numPackedCodeSizes += 1
+                numPackedCodeSizes                  += 1
             }
             else
             {
                 d.huffCount[2, 18]                  = cast(u16) (d.huffCount[2, 18] + 1)
                 packedCodeSizes[numPackedCodeSizes] = 18
-                numPackedCodeSizes += 1
+                numPackedCodeSizes                  += 1
                 packedCodeSizes[numPackedCodeSizes] = cast(u8) (rleZCount - 11)
-                numPackedCodeSizes += 1
+                numPackedCodeSizes                  += 1
             }
 
             rleZCount = 0
@@ -718,7 +718,7 @@ impl Deflate
                     .rlePrevCodeSize()
                     d.huffCount[2, codeSize]            = cast(u16) (d.huffCount[2, codeSize] + 1)
                     packedCodeSizes[numPackedCodeSizes] = codeSize
-                    numPackedCodeSizes += 1
+                    numPackedCodeSizes                  += 1
                 }
                 else
                 {
@@ -786,7 +786,7 @@ impl Deflate
         {
             if flags == 1
             {
-                flags = cast(u32) (dref lzCodes) | 0x100
+                flags   = cast(u32) (dref lzCodes) | 0x100
                 lzCodes += 1
             }
 
@@ -854,7 +854,7 @@ impl Deflate
         d.outputFlushOfs = 0
 
         let numFlagsLeft = cast(u8) d.numFlagsLeft
-        dref d.lzFlags = cast(u8) (dref d.lzFlags >> numFlagsLeft)
+        dref d.lzFlags  = cast(u8) (dref d.lzFlags >> numFlagsLeft)
         d.lzCodeBufAddr -= (d.numFlagsLeft == 8) ? 1 : 0
 
         .putBits(finish ? 1 : 0, 1)
@@ -903,12 +903,12 @@ impl Deflate
         Memory.clear(&d.huffCount[0, 0], cast(u64) #sizeof(d.huffCount[0, 0]) * MaxHuffSymbols0)
         Memory.clear(&d.huffCount[1, 0], cast(u64) #sizeof(d.huffCount[1, 0]) * MaxHuffSymbols1)
 
-        d.lzCodeBufAddr = cast([*] u8) &d.lzCodeBuf[0] + 1
-        d.lzFlags       = &d.lzCodeBuf[0]
-        d.numFlagsLeft  = 8
+        d.lzCodeBufAddr    = cast([*] u8) &d.lzCodeBuf[0] + 1
+        d.lzFlags          = &d.lzCodeBuf[0]
+        d.numFlagsLeft     = 8
         d.lzCodeBufDictPos += d.totalLzBytes
-        d.totalLzBytes = 0
-        d.blockIndex += 1
+        d.totalLzBytes     = 0
+        d.blockIndex       += 1
 
         let n = cast(u64) (d.outputBufAddr - outputBufStart)
         if n != 0
@@ -921,7 +921,7 @@ impl Deflate
             }
             else
             {
-                d.outBufOfs += n
+                d.outBufOfs    += n
                 d.result.count += n
             }
         }
@@ -945,14 +945,14 @@ impl Deflate
                 let numBytesToProcess = cast(u32) Math.min(cast(u32) srcBufLeft, cast(u32) (MaxMatchLen - d.lookaheadSize))
 
                 let pSrc_end = pSrc ? pSrc + numBytesToProcess : null
-                srcBufLeft -= numBytesToProcess
+                srcBufLeft      -= numBytesToProcess
                 d.lookaheadSize += numBytesToProcess
 
                 Debug.assert(pSrc != null)
                 while pSrc != pSrc_end
                 {
                     let c = dref pSrc
-                    pSrc += 1
+                    pSrc           += 1
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
@@ -960,7 +960,7 @@ impl Deflate
                     d.next[insPos & LzDictSizeMask] = d.hash[hash]
                     d.hash[hash]                    = cast(u16) insPos
                     dstPos                          = (dstPos + 1) & LzDictSizeMask
-                    insPos += 1
+                    insPos                          += 1
                 }
             }
             else
@@ -970,17 +970,17 @@ impl Deflate
                     let c = dref pSrc
                     pSrc += 1
                     let dstPos = (d.lookaheadPos + d.lookaheadSize) & LzDictSizeMask
-                    srcBufLeft -= 1
+                    srcBufLeft     -= 1
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
                         d.dict[LzDictSize + dstPos] = c
-                    d.lookaheadSize += 1
+                    d.lookaheadSize                 += 1
                     if (d.lookaheadSize + d.dictSize) >= MinMatchLen
                     {
                         let insPos: u32 = d.lookaheadPos + (d.lookaheadSize - 1) - 2
                         var hash:   u32 = (cast(u32) d.dict[insPos & LzDictSizeMask] << (LzHashShift * 2))
-                        hash = (hash ^ (cast(u32) d.dict[(insPos + 1) & LzDictSizeMask] << LzHashShift) ^ c)
-                        hash &= (LzHashSize - 1)
+                        hash                            = (hash ^ (cast(u32) d.dict[(insPos + 1) & LzDictSizeMask] << LzHashShift) ^ c)
+                        hash                            &= (LzHashSize - 1)
                         d.next[insPos & LzDictSizeMask] = d.hash[hash]
                         d.hash[hash]                    = cast(u16) insPos
                     }
@@ -1068,7 +1068,7 @@ impl Deflate
             d.lookaheadPos += lenToMove
             Debug.assert(d.lookaheadSize >= lenToMove)
             d.lookaheadSize -= lenToMove
-            d.dictSize = Math.min(d.dictSize + lenToMove, cast(u32) LzDictSize)
+            d.dictSize      = Math.min(d.dictSize + lenToMove, cast(u32) LzDictSize)
 
             if (d.lzCodeBufAddr > cast([*] u8) &d.lzCodeBuf[LzCodeBufSize - 8]) or
                ((d.totalLzBytes > 31 * 1024) and ((((cast(u32) (d.lzCodeBufAddr - cast([*] u8) &d.lzCodeBuf[0]) * 115) >> 7) >= d.totalLzBytes) or (d.compressFlags & ForceAllRawBlocks)))

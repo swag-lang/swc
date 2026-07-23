@@ -9,7 +9,7 @@ namespace GenericCloneCodegenSupport
             return
 
         var req: AllocatorRequest
-        req.size = size
+        req.size    = size
         req.address = buffer
 
         let talloc = allocator orelse @getcontext().allocator
@@ -20,7 +20,7 @@ namespace GenericCloneCodegenSupport
     {
         var req: AllocatorRequest
         req.address = buffer
-        req.size = newSize
+        req.size    = newSize
         req.oldSize = oldSize
 
         let talloc = allocator orelse @getcontext().allocator
@@ -31,9 +31,9 @@ namespace GenericCloneCodegenSupport
     struct(T) BufferBox
     {
         allocator: #null IAllocator
-        buffer:   #null [*] T
-        count:    u64
-        capacity: u64
+        buffer:    #null [*] T
+        count:     u64
+        capacity:  u64
     }
 
     impl BufferBox
@@ -43,7 +43,7 @@ namespace GenericCloneCodegenSupport
             if newCapacity <= .capacity do
                 return
 
-            .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+            .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
             .capacity = newCapacity
         }
 
@@ -55,13 +55,13 @@ namespace GenericCloneCodegenSupport
         mtd add(value: T)
         {
             .buffer[.count] = value
-            .count += 1
+            .count          += 1
         }
 
         mtd free()
         {
             helperFree(.buffer, .capacity * #sizeof(T), .allocator)
-            .buffer = null
+            .buffer           = null
             .count, .capacity = 0
         }
     }

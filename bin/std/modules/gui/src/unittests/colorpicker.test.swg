@@ -1,7 +1,7 @@
 #global #if #command == Swag.CompilerCommand.Test
 #global private
-using Swag, Core
 using Pixel
+using Swag, Core
 
 var ColorPickerHeadlessChangedCount: u32
 

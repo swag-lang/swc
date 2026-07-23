@@ -12,26 +12,26 @@ using Globalization, Errors
 struct Decimal
 {
     d:            [800] u8     // digits, big-endian representation
-    nd:           s64          // number of digits used
-    dp:           s64          // decimal point
-    neg:          bool         // negative flag
-    bigtrunc:     bool
-    mantissa:     u64
-    trunc:        bool
-    exp:          s64
+    nd:       s64              // number of digits used
+    dp:       s64              // decimal point
+    neg:      bool             // negative flag
+    bigtrunc: bool
+    mantissa: u64
+    trunc:    bool
+    exp:      s64
 }
 
 struct DecimalSlice
 {
     d:          [..] u8
-    nd, dp:     s64
-    neg:        bool
+    nd, dp: s64
+    neg:    bool
 }
 
 struct LeftCheat
 {
-    delta:      s64        // number of new digits
-    cutoff:     string     // minus one digit if original < a.
+    delta:  s64        // number of new digits
+    cutoff: string     // minus one digit if original < a.
 }
 
 var LeftCheats: [?] LeftCheat = [
@@ -151,7 +151,7 @@ impl Decimal
             if c < '9'     // can stop after this digit
             {
                 .d[i] += 1
-                .nd = i + 1
+                .nd   = i + 1
                 return
             }
         }
@@ -160,7 +160,7 @@ impl Decimal
         // Change to single 1 with adjusted decimal point.
         .d[0] = '1'
         .nd   = 1
-        .dp += 1
+        .dp   += 1
     }
 
     mtd assign(mant: u64)
@@ -173,20 +173,20 @@ impl Decimal
         while v > 0
         {
             let v1 = v / 10
-            v -= 10 * v1
+            v      -= 10 * v1
             buf[n] = cast(u8) (v + '0')
-            n += 1
-            v = v1
+            n      += 1
+            v      = v1
         }
 
         // Reverse again to produce forward decimal in a.d.
         .nd = 0
-        n -= 1
+        n   -= 1
         while n >= 0
         {
             .d[.nd] = buf[n]
-            .nd += 1
-            n -= 1
+            .nd     += 1
+            n       -= 1
         }
 
         .dp = .nd
@@ -242,11 +242,11 @@ impl Decimal
         {
             let c   = cast(u64) .d[r]
             let dig = n >> k
-            n &= mask
+            n     &= mask
             .d[w] = cast(u8) (dig + '0')
-            w += 1
-            n = (n * 10) + c - '0'
-            r += 1
+            w     += 1
+            n     = (n * 10) + c - '0'
+            r     += 1
         }
 
         // Put down extra digits.
@@ -257,7 +257,7 @@ impl Decimal
             if w < @countof(.d)
             {
                 .d[w] = cast(u8) (dig + '0')
-                w += 1
+                w     += 1
             }
             elif dig > 0
             {
@@ -306,8 +306,8 @@ impl Decimal
                 .d[w] = cast(u8) (rem + '0')
             elif rem != 0 do
                 .trunc = true
-            n = quo
-            r -= 1
+            n          = quo
+            r          -= 1
         }
 
         // Put down extra digits.
@@ -320,13 +320,13 @@ impl Decimal
                 .d[w] = cast(u8) (rem + '0')
             elif rem != 0 do
                 .trunc = true
-            n = quo
+            n          = quo
         }
 
         .nd += delta
         if .nd >= @countof(.d) do
             .nd = cast(s32) @countof(.d)
-        .dp += delta
+        .dp     += delta
         .trim()
     }
 
@@ -372,7 +372,7 @@ impl Decimal
         if c == negSign
         {
             buffer, cpt += 1
-            .neg = true
+            .neg        = true
             if !Latin1.isDigit(dref buffer) and cpt == countof do
                 throw ParseIncompleteError{}
         }
@@ -412,13 +412,13 @@ impl Decimal
                     if .nd < @countof(.d)
                     {
                         .d[.nd] = c
-                        .nd += 1
+                        .nd     += 1
 
                         if ndMant < maxMantDigits
                         {
                             .mantissa *= 10
                             .mantissa += cast(u64) (c - '0')
-                            ndMant += 1
+                            ndMant    += 1
                         }
                         elif c != '0' do
                             .trunc = true
@@ -451,15 +451,15 @@ impl Decimal
             if c == negSign
             {
                 buffer, cpt += 1
-                esign = -1
-                c     = dref buffer
+                esign       = -1
+                c           = dref buffer
                 if !Latin1.isDigit(c) and cpt >= countof do
                     throw ParseIncompleteError{}
             }
             elif c == plusSign
             {
                 buffer, cpt += 1
-                c = dref buffer
+                c           = dref buffer
                 if !Latin1.isDigit(c) and cpt >= countof do
                     throw ParseIncompleteError{}
             }
@@ -474,7 +474,7 @@ impl Decimal
                 if c < '0' or c > '9' do
                     break
                 if e < 10000 do
-                    e = e * 10 + (c - '0')
+                    e       = e * 10 + (c - '0')
                 buffer, cpt += 1
             }
 
@@ -596,7 +596,7 @@ impl Decimal
         var bits    = mant & ((1'u64 << Swag.F64.MantBits) - 1)
         bits |= cast(u64) ((.exp - Swag.F64.Bias) & ((1's64 << Swag.F64.MantBits) - 1)) << Swag.F64.MantBits
         if .neg do
-            bits |= (1'u64 << 63)
+            bits        |= (1'u64 << 63)
         result.b        = bits
         result.overflow = overflow
         return result

@@ -65,8 +65,8 @@ A struct can implement the 'ISerialize' interface in order to have a specific se
 */
 struct(T) Encoder
 {
-    serializer:         T
-    errorIfUnknown:     bool     // If true, an error will be raised if a type cannot be saved. The field will be ignored if set to false
+    serializer:     T
+    errorIfUnknown: bool     // If true, an error will be raised if a type cannot be saved. The field will be ignored if set to false
 }
 
 impl Encoder

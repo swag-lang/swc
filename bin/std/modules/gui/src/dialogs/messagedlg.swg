@@ -10,8 +10,8 @@ public struct MessageDlg
 
 public struct MessageDlgOptions
 {
-    icon:                 Icon
-    iconColor:            Color
+    icon:      Icon
+    iconColor: Color
     horzAlignmentText     = StringHorzAlignment.Center
     vertAlignmentText     = StringVertAlignment.Center
     sigCreate:            #null func||(*MessageDlg)
@@ -65,8 +65,8 @@ public impl MessageDlg
         // Evaluate size of text
         var fake: Painter{fake: true}
         var rsf:  RichStringFormat
-        rsf.font = .getFont()
-        rsf.flags |= .WordWrap
+        rsf.font          = .getFont()
+        rsf.flags         |= .WordWrap
         rsf.horzAlignment = .label.horzAlignmentText
         fake.drawRichString({0, 0, 512, 0}, &.label.name, rsf)
         .label.name.invalidate()
@@ -75,19 +75,19 @@ public impl MessageDlg
         var w = 0'f32
         for btn in .buttons do
             w += btn.position.width
-        w += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
-        w += 2 * metrics.dialog_Padding
-        w += metrics.btnPush_Width
+        w     += cast(f32) ((.buttons.count - 1) * metrics.dialog_BtnPadding)
+        w     += 2 * metrics.dialog_Padding
+        w     += metrics.btnPush_Width
 
         var wl = .label.name.boundRect.width + 2 * metrics.dialog_Padding
         wl += 2 * metrics.wnd_BorderSize
-        w = Math.max(w, wl)
+        w  = Math.max(w, wl)
 
         if .extension
         {
             var wl1 = .extension.position.width + 2 * metrics.dialog_Padding
             wl1 += 2 * metrics.wnd_BorderSize
-            w = Math.max(w, wl1)
+            w   = Math.max(w, wl1)
         }
 
         // Height
@@ -96,8 +96,8 @@ public impl MessageDlg
             h += .labelIcon.position.height
         else do
             h += metrics.dialog_Padding
-        h += .wndBottom.position.height
-        h += 2 * metrics.wnd_BorderSize
+        h     += .wndBottom.position.height
+        h     += 2 * metrics.wnd_BorderSize
         if .surface.flags & .SmallCaption do
             h += metrics.wnd_SmallCaptionCY
         elif .surface.flags & .BigCaption do
@@ -110,7 +110,7 @@ public impl MessageDlg
         pos.width  = w
         pos.height = h
         let sdw = .surface.app.theme.metrics.surfaceWnd_ShadowSize
-        pos.width += sdw * 2
+        pos.width  += sdw * 2
         pos.height += sdw * 2
         .surface.setPosition(pos)
     }
@@ -138,7 +138,7 @@ public impl MessageDlg
             return
 
         if !#isset(.labelIcon) do
-            .labelIcon = Label.create(.surface.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
+            .labelIcon   = Label.create(.surface.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 
         with me.labelIcon

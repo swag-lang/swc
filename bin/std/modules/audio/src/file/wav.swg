@@ -3,8 +3,8 @@ using Core, Core.Errors, Win32
 
 struct ChunkHeader
 {
-    chunkID:       ChunkID = undefined
-    chunkSize:     u32
+    chunkID:   ChunkID = undefined
+    chunkSize: u32
 }
 
 #if Core.BIG_ENDIAN
@@ -67,18 +67,18 @@ const WAVE_FORMAT_ADPCM      = 0x0002     /* Microsoft Corporation */
 const WAVE_FORMAT_IEEE_FLOAT = 0x0003     /* Microsoft Corporation */
 const WAVE_FORMAT_EXTENSIBLE = 0xFFFE     /* Microsoft */
 
-const GUID_PCM        = GUID{0x00000001, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71]}
-const GUID_ADPCM      = GUID{0x00000002, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71]}
-const GUID_IEEE_FLOAT = GUID{0x00000003, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71]}
+const GUID_PCM        = GUID{0x00000001, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const GUID_ADPCM      = GUID{0x00000002, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const GUID_IEEE_FLOAT = GUID{0x00000003, 0x0000, 0x0010, [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 
 #[Swag.Pack(1)]
 struct WAVEFORMAT
 {
-    wFormatTag:          u16     // Format type
-    nChannels:           u16     // Number of nChannels (i.e. mono, stereo, etc.)
-    nSamplesPerSec:      u32     // Sample rate
-    nAvgBytesPerSec:     u32     // For buffer estimation
-    nBlockAlign:         u16     // Block size of data
+    wFormatTag:      u16     // Format type
+    nChannels:       u16     // Number of nChannels (i.e. mono, stereo, etc.)
+    nSamplesPerSec:  u32     // Sample rate
+    nAvgBytesPerSec: u32     // For buffer estimation
+    nBlockAlign:     u16     // Block size of data
 }
 
 #[Swag.Pack(1)]
@@ -102,13 +102,13 @@ struct WAVEFORMATEXTENSIBLE
 
     samples: union
     {
-        wValidBitsPerSample:     u16     // Valid bits in each sample container
-        wSamplesPerBlock:        u16     // Samples per block of audio data valid
-        wReserved:               u16     // If wBitsPerSample=0 (but rarely used). Zero if neither case above applies.
+        wValidBitsPerSample: u16     // Valid bits in each sample container
+        wSamplesPerBlock:    u16     // Samples per block of audio data valid
+        wReserved:           u16     // If wBitsPerSample=0 (but rarely used). Zero if neither case above applies.
     }
 
-    dwChannelMask:     u32      // Positions of the audio nChannels
-    subFormat:         GUID     // Format identifier GUID
+    dwChannelMask: u32      // Positions of the audio nChannels
+    subFormat:     GUID     // Format identifier GUID
 }
 
 func setEncodingFormat(file: *SoundFile, formatTag: u16) throw
@@ -165,7 +165,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
     if chunkSize >= #sizeof(PCMWAVEFORMAT)
     {
         var pcmwf: PCMWAVEFORMAT
-        pcmwf.wf = wf
+        pcmwf.wf      = wf
         file.validity |= .BitsPerSample
 
         if !stream.readValue(&pcmwf.wBitsPerSample) do
@@ -186,7 +186,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
             if chunkSize >= #sizeof(WAVEFORMATEXTENSIBLE)
             {
                 var wfex: WAVEFORMATEXTENSIBLE
-                wfex.fmtex = wfx
+                wfex.fmtex    = wfx
                 file.validity |= .ChannelMask
                 file.validity |= .ValidBitsPerSample
 
@@ -198,7 +198,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
                     throw InvalidFormatError{"invalid wav"}
 
                 file.validBitsPerSample = wfex.samples.wValidBitsPerSample
-                file.channelMask         = wfex.dwChannelMask
+                file.channelMask        = wfex.dwChannelMask
 
                 if wf.wFormatTag == WAVE_FORMAT_EXTENSIBLE
                 {
@@ -230,7 +230,7 @@ func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) t
     file.dataSeek = stream.getPosition()
     file.dataSize = chunkSize
 
-    file.validity |= .SampleCount
+    file.validity    |= .SampleCount
     file.sampleCount = file.dataSize / (file.channelCount * (file.bitsPerSample / 8))
     if file.validity & .Frequency
     {

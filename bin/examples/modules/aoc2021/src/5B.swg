@@ -30,8 +30,8 @@ func day5B()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var r:    Parser.RegExp
-    var m:    Array's32
+    var r: Parser.RegExp
+    var m: Array's32
     var total = 0'u64
 
     const W = 1000'u64
@@ -54,7 +54,7 @@ func day5B()
             let y: u64 = y0 + i * Math.sign(y1 - y0)
             let c: &s32 = &m.ref2(x, y, W)
             total += (c == 1 ? 1 : 0)
-            c += 1
+            c     += 1
         }
     }
 

@@ -3,7 +3,7 @@
 #test
 {
     var ax: s32 = 42
-    var x: *s32 = &ax
+    var x:  *s32 = &ax
 
     var y0 = cast(const *s32) x
     #assert(#typeof(y0) == const *s32)
@@ -17,7 +17,7 @@
 #test
 {
     var ax: s32 = 7
-    var x: *s32 = &ax
+    var x:  *s32 = &ax
     var b = cast([*] s32) x
 
     var v: *s32 = b
@@ -33,7 +33,7 @@
 #test
 {
     var ax: s32 = 9
-    var x: *s32 = &ax
+    var x:  *s32 = &ax
     var b = cast([*] s32) x
 
     var v: *s32 = b
@@ -52,7 +52,7 @@
 #test
 {
     var ax: s32 = 1
-    var x: *s32 = &ax
+    var x:  *s32 = &ax
     var y = cast(*u8) x
     #assert(#typeof(y) == *u8)
     @assert(y == cast(*u8) x)
@@ -61,7 +61,7 @@
 #test
 {
     var ax: s32 = 2
-    var x: const *s32 = &ax
+    var x:  const *s32 = &ax
     var y = cast #unconst (*u8) x
     #assert(#typeof(y) == *u8)
     @assert(y == cast #unconst (*u8) x)
@@ -79,7 +79,7 @@
 #test
 {
     var ax: s32 = 4
-    var x: *s32 = &ax
+    var x:  *s32 = &ax
     var y = cast([*] u8) x
     #assert(#typeof(y) == [*] u8)
 
@@ -95,7 +95,7 @@
 #test
 {
     var ax: s32 = 5
-    var x: const *s32 = &ax
+    var x:  const *s32 = &ax
     var y = cast(const *u8) x
     #assert(#typeof(y) == const *u8)
     @assert(y == cast(const *u8) x)
@@ -104,7 +104,7 @@
 #test
 {
     var ax: s32 = 6
-    var x: const *s32 = &ax
+    var x:  const *s32 = &ax
     var y = cast(const *void) x
     #assert(#typeof(y) == const *void)
     @assert(y == cast(const *void) x)

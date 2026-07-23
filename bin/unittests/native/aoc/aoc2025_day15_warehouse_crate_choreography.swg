@@ -76,8 +76,8 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
             if src == '@''u8
             {
-                robotX = cast(s32) x
-                robotY = cast(s32) rowIndex
+                robotX       = cast(s32) x
+                robotY       = cast(s32) rowIndex
                 cells[index] = '.''u8
             }
             else
@@ -119,8 +119,8 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
         while cells[scanIndex] == 'O''u8
         {
-            scanX += dx
-            scanY += dy
+            scanX     += dx
+            scanY     += dy
             scanIndex = cellIndex(cast(u32) scanX, cast(u32) scanY, width)
         }
 
@@ -134,14 +134,14 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
             let prevIndex = cellIndex(cast(u32) prevX, cast(u32) prevY, width)
 
             cells[scanIndex] = cells[prevIndex]
-            scanX = prevX
-            scanY = prevY
-            scanIndex = prevIndex
+            scanX            = prevX
+            scanY            = prevY
+            scanIndex        = prevIndex
         }
 
-        cells[nextIndex] = '.''u8
-        robotX = nextX
-        robotY = nextY
+        cells[nextIndex]        = '.''u8
+        robotX                  = nextX
+        robotY                  = nextY
         result.successfulPushes += 1
     }
 

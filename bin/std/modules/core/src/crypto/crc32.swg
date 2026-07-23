@@ -7,7 +7,7 @@ public struct Crc32
 
 impl Crc32
 {
-    const MaxSlices    = 16
+    const MaxSlices                         = 16
     const LookupTable: [MaxSlices, 256] u32 = [
         [
             0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA, 0x076DC419, 0x706AF48F, 0xE963A535, 0x9E6495A3, 0x0EDB8832,
@@ -558,9 +558,9 @@ public impl Crc32
         var currentChar = cast(#null const [*] u8) current
         while length
         {
-            cur = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]
+            cur         = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]
             currentChar += 1
-            length -= 1
+            length      -= 1
         }
 
         .crc = ~cur

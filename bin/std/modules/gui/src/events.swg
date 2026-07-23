@@ -5,9 +5,9 @@ interface IEvent {}
 
 struct Event
 {
-    type:         #null typeinfo
-    target:       #null *Wnd
-    accepted:     bool
+    type:     #null typeinfo
+    target:   #null *Wnd
+    accepted: bool
 }
 
 impl Event
@@ -25,8 +25,8 @@ impl IEvent for Event {}
 struct CommandEvent
 {
     using base:     Event
-    id:             WndId = undefined
-    source:         #null *Wnd
+    id:     WndId = undefined
+    source: #null *Wnd
 }
 
 impl IEvent for CommandEvent {}
@@ -62,20 +62,20 @@ struct CommandStateEvent
     }
 
         using base:        Event
-    kind:              Kind
-    id:                WndId = undefined
-    source:            #null *Wnd
+    kind:   Kind
+    id:     WndId = undefined
+    source: #null *Wnd
 
-    icon:              Icon
-    name:              String
-    longName:          String
-    shortcut:          String
-    toolTip:           String
-    setFlags:          SetFlags
-    renderingHint:     RenderingHint
-    disabled:          bool
-    checked:           bool
-    hidden:            bool
+    icon:          Icon
+    name:          String
+    longName:      String
+    shortcut:      String
+    toolTip:       String
+    setFlags:      SetFlags
+    renderingHint: RenderingHint
+    disabled:      bool
+    checked:       bool
+    hidden:        bool
 }
 
 impl IEvent for CommandStateEvent {}
@@ -141,8 +141,8 @@ struct PaintEvent
     }
 
         using base:     Event
-    kind:           Kind = .Paint
-    bc:             *PaintContext = undefined
+    kind: Kind = .Paint
+    bc:   *PaintContext = undefined
 }
 
 impl IEvent for PaintEvent {}
@@ -173,10 +173,10 @@ struct KeyEvent
     }
 
         using base:     Event
-    kind:           Kind
-    modifiers:      Input.KeyModifiers = Zero
-    key:            Input.Key = undefined
-    char:           rune
+    kind:      Kind
+    modifiers: Input.KeyModifiers = Zero
+    key:       Input.Key = undefined
+    char:      rune
 }
 
 impl IEvent for KeyEvent {}
@@ -197,11 +197,11 @@ struct MouseEvent
     }
 
         using base:     Event
-    kind:           Kind
-    button:         Input.MouseButton = undefined
-    surfacePos:     Math.Point
-    move:           Math.Point
-    modifiers:      Input.KeyModifiers = Zero
+    kind:       Kind
+    button:     Input.MouseButton = undefined
+    surfacePos: Math.Point
+    move:       Math.Point
+    modifiers:  Input.KeyModifiers = Zero
 }
 
 impl IEvent for MouseEvent {}
@@ -225,8 +225,8 @@ struct FocusEvent
     }
 
         using base:        Event
-    kind:              Kind
-    other:             #null *Wnd
+    kind:  Kind
+    other: #null *Wnd
     canChangeFocus     = true
 }
 
@@ -235,9 +235,9 @@ impl IEvent for FocusEvent {}
 struct SysUserEvent
 {
     using base:     Event
-    userMsg:        u64
-    param0:         u64
-    param1:         u64
+    userMsg: u64
+    param0:  u64
+    param1:  u64
 }
 
 impl IEvent for SysUserEvent {}
@@ -262,8 +262,8 @@ impl IEvent for SysCommandEvent {}
 struct ThemeEvent
 {
     using base:     Event
-    style:          *ThemeStyle = undefined
-    parent:         #null *ThemeStyle
+    style:  *ThemeStyle = undefined
+    parent: #null *ThemeStyle
 }
 
 impl IEvent for ThemeEvent {}
@@ -286,8 +286,8 @@ struct NotifyEvent
         ThemeChanged
     }
 
-    ntfyKind:     Kind = undefined
-    from:         #null *Wnd
+    ntfyKind: Kind = undefined
+    from:     #null *Wnd
 }
 
 impl IEvent for NotifyEvent {}

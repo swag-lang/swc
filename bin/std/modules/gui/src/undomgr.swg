@@ -30,15 +30,15 @@ interface IUndoCommand
 // One entry of the undo timeline: the owned command plus the group it belongs to.
 struct UndoStep
 {
-    serial:     u64
-    cmd:        IUndoCommand
+    serial: u64
+    cmd:    IUndoCommand
 }
 
 struct UndoManager
 {
-    steps:      Array'UndoStep
-    next:       u64     // index just past the last applied step (the redo tail starts here)
-    serialGen:  u64
+    steps:     Array'UndoStep
+    next:      u64     // index just past the last applied step (the redo tail starts here)
+    serialGen: u64
 }
 
 impl UndoManager

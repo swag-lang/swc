@@ -66,7 +66,7 @@ func day4A()
         {
             if pass & 0b1111111 == 0b1111111 do
                 total += 1
-            pass = 0
+            pass      = 0
         }
     }
 

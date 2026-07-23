@@ -8,28 +8,28 @@ public enum DrawPathListMode
 
 struct Context
 {
-    posBuffer:               Array'Math.Vector2
-    penSize:                 f32
-    penSize2:                f32
-    beginLine:               bool
-    firstLine:               bool
-    lastLineInvalid:         bool
-    normalPrev:              Math.Vector2
-    normalFirst:             Math.Vector2
-    normal:                  Math.Vector2
-    prim1, prim2:            u64
-    prev:                    Math.Vector2
-    path:                    const *LinePath = undefined
-    pen:                     const *Pen = undefined
-    offsetPath:              f32
+    posBuffer:       Array'Math.Vector2
+    penSize:         f32
+    penSize2:        f32
+    beginLine:       bool
+    firstLine:       bool
+    lastLineInvalid: bool
+    normalPrev:      Math.Vector2
+    normalFirst:     Math.Vector2
+    normal:          Math.Vector2
+    prim1, prim2:    u64
+    prev:            Math.Vector2
+    path:            const *LinePath = undefined
+    pen:             const *Pen = undefined
+    offsetPath:      f32
 
-    remainingPatternLen:     f32
-    patternTotalLen:         f32
-    patternIndex:            s32
-    error:                   f32
-    divError:                f32
-    pattern:                 const [*] f32 = undefined
-    patternCount:            s32
+    remainingPatternLen: f32
+    patternTotalLen:     f32
+    patternIndex:        s32
+    error:               f32
+    divError:            f32
+    pattern:             const [*] f32 = undefined
+    patternCount:        s32
 }
 
 impl Painter
@@ -493,8 +493,8 @@ impl Painter
         if cxt.firstLine do
             cxt.normalFirst = cxt.normal
 
-        cxt.normalPrev = cxt.normal
-        cxt.prev       = newPos
+        cxt.normalPrev               = cxt.normal
+        cxt.prev                     = newPos
         cxt.beginLine, cxt.firstLine = false
     }
 
@@ -530,7 +530,7 @@ impl Painter
         cxt.patternTotalLen = 0
         for i in cxt.patternCount do
             cxt.patternTotalLen += Math.max(cxt.pattern[i], 0.01)
-        cxt.patternTotalLen *= cxt.pen.size
+        cxt.patternTotalLen     *= cxt.pen.size
 
         let repeatCount = cast(s32) (cxt.path.polygon.totalLen / cxt.patternTotalLen)
         cxt.error = cxt.path.polygon.totalLen - (repeatCount * cxt.patternTotalLen)
@@ -573,7 +573,7 @@ impl Painter
             var addBlank = 0'f32
             if cxt.divError > 0 and blankPatternIdx
             {
-                addBlank = Math.min(cxt.error, cxt.divError)
+                addBlank        = Math.min(cxt.error, cxt.divError)
                 lengthInPattern += addBlank
             }
 
@@ -598,7 +598,7 @@ impl Painter
                 }
 
                 // Start a new fresh pattern index
-                remainingSegLen -= lengthInPattern
+                remainingSegLen         -= lengthInPattern
                 cxt.patternIndex        = (cxt.patternIndex + 1) % cxt.patternCount
                 blankPatternIdx         = blankPatternIdx ? false : true
                 cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
@@ -625,10 +625,10 @@ impl Painter
     // Optimized version that returns both distance and point information
     struct AnchorSkipInfo
     {
-        distance:          f32
-        adjustedPoint:     Math.Vector2
-        pointIndex:        u64
-        hasAdjustment:     bool
+        distance:      f32
+        adjustedPoint: Math.Vector2
+        pointIndex:    u64
+        hasAdjustment: bool
     }
 
     // Enhanced function that calculates skip distance AND finds the corresponding point
@@ -698,7 +698,7 @@ impl Painter
                     }
 
                     accumulatedDistance += segmentLen
-                    lastPoint = currentPoint
+                    lastPoint           = currentPoint
                 }
             }
         }
@@ -727,7 +727,7 @@ impl Painter
                     }
 
                     accumulatedDistance += segmentLen
-                    lastPoint = currentPoint
+                    lastPoint           = currentPoint
                 }
             }
         }

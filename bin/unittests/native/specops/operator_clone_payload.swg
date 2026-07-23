@@ -1,7 +1,7 @@
 #global private
 
 var gClonePayloadOpCastCalls: s32 = 0
-var gClonePayloadOpSetCalls: s32 = 0
+var gClonePayloadOpSetCalls:  s32 = 0
 
 struct ClonePayloadCastBox
 {
@@ -20,8 +20,8 @@ impl ClonePayloadCastBox
 
 struct ClonePayloadSetTarget
 {
-    value: s32
-    calls: s32
+    value:    s32
+    calls:    s32
     sentinel: s32 = 77
 }
 
@@ -31,8 +31,8 @@ impl ClonePayloadSetTarget
     mtd opSet(value: s32)
     {
         gClonePayloadOpSetCalls += 1
-        .value = value + 2
-        .calls += 1
+        .value                  = value + 2
+        .calls                  += 1
     }
 }
 

@@ -4,40 +4,40 @@
 // poisoning) is disabled for the whole file.
 #global #[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 
-var DropCount: u32 = 0
-var DropTrace: s64 = 0
+var DropCount:        u32 = 0
+var DropTrace:        s64 = 0
 var DropCompactTrace: s64 = 0
-var PostCopyCount: u32 = 0
-var PostMoveCount: u32 = 0
+var PostCopyCount:    u32 = 0
+var PostMoveCount:    u32 = 0
 
 func resetLifecycleHooks()
 {
-    DropCount = 0
-    DropTrace = 0
+    DropCount        = 0
+    DropTrace        = 0
     DropCompactTrace = 0
-    PostCopyCount = 0
-    PostMoveCount = 0
+    PostCopyCount    = 0
+    PostMoveCount    = 0
 }
 
 struct IntrinsicInfo
 {
-    first: s32
-    second: s32
-    third: s32
-    drops: u32
+    first:     s32
+    second:    s32
+    third:     s32
+    drops:     u32
     dropTrace: s64
-    postCopy: u32
-    postMove: u32
+    postCopy:  u32
+    postMove:  u32
 }
 
 struct InitInfo
 {
-    scalarDefault: s32
-    scalarExplicitScaled: s32
-    arrayDefaultTrace: s32
-    arrayExplicitTrace: s32
-    structDefaultTrace: s32
-    structExplicitTrace: s32
+    scalarDefault:         s32
+    scalarExplicitScaled:  s32
+    arrayDefaultTrace:     s32
+    arrayExplicitTrace:    s32
+    structDefaultTrace:    s32
+    structExplicitTrace:   s32
     structArrayCountTrace: s32
     structArrayWholeTrace: s32
 }
@@ -65,13 +65,13 @@ impl Tracked
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 20
+        .value        += 20
     }
 }
 
@@ -101,13 +101,13 @@ impl EmbeddedTrackedWithOps
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .inner.value += 100
+        .inner.value  += 100
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .inner.value += 200
+        .inner.value  += 200
     }
 }
 
@@ -127,7 +127,7 @@ impl DropOnlyTracked
 
 struct AutoDropPair
 {
-    first: DropOnlyTracked
+    first:  DropOnlyTracked
     second: DropOnlyTracked
 }
 
@@ -153,14 +153,14 @@ impl CompactDropTracked
 {
     mtd opDrop()
     {
-        DropCount += 1
+        DropCount        += 1
         DropCompactTrace = DropCompactTrace * 10 + cast(s64) .value
     }
 }
 
 struct AutoCompactPair
 {
-    first: CompactDropTracked
+    first:  CompactDropTracked
     second: CompactDropTracked
 }
 
@@ -192,13 +192,13 @@ impl ReceiverLifecycleTracked
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 20
+        .value        += 20
     }
 
     mtd reset()
@@ -331,11 +331,11 @@ func intrinsicAutoDropNestedInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     var first: s32 = 0
-    var last: s32 = 0
+    var last:  s32 = 0
     {
         var value = AutoDropNested{DropOnlyTracked{1}, [AutoDropPair{DropOnlyTracked{2}, DropOnlyTracked{3}}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}], DropOnlyTracked{6}}
         first = value.head.value
-        last = value.tail.value
+        last  = value.tail.value
     }
 
     return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -346,11 +346,11 @@ func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     var first: s32 = 0
-    var last: s32 = 0
+    var last:  s32 = 0
     {
         var values: [2] AutoDropPair = [AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}, AutoDropPair{DropOnlyTracked{9}, DropOnlyTracked{10}}]
         first = values[0].first.value
-        last = values[1].second.value
+        last  = values[1].second.value
     }
 
     return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -362,13 +362,13 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropTrace
@@ -381,7 +381,7 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
         {
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
             result.second = nested.tail.value
-            result.third = nested.pairs[1].second.value
+            result.third  = nested.pairs[1].second.value
             return result
         }
     }
@@ -406,24 +406,24 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     catch intrinsicAutoDropErrorImpl()
     if @err != null
     {
         let err = cast(IntrinsicLifecycleErr) @err
-        result.first = err.code
+        result.first  = err.code
         result.second = 1
     }
 
-    result.drops = DropCount
+    result.drops     = DropCount
     result.dropTrace = DropTrace
     return result
 }
@@ -434,13 +434,13 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     {
@@ -454,7 +454,7 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
         }
     }
 
-    result.drops = DropCount
+    result.drops     = DropCount
     result.dropTrace = DropTrace
     return result
 }
@@ -463,9 +463,9 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = DropOnlyTracked{9}
         for i in 2
@@ -477,7 +477,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
 
             var branch = AutoDropBranch{DropOnlyTracked{5}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}}
             second = branch.head.value
-            third = outer.value
+            third  = outer.value
         }
     }
 
@@ -488,9 +488,9 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
         #scope(Exit)
@@ -518,13 +518,13 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropTrace
@@ -539,9 +539,9 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
 
         case 2:
             var active = AutoDropBranch{DropOnlyTracked{6}, AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}}
-            result.first = outer.second.value
+            result.first  = outer.second.value
             result.second = active.head.value
-            result.third = active.pair.first.value
+            result.third  = active.pair.first.value
             return result
 
         default:
@@ -563,18 +563,18 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = AutoCompactPair{CompactDropTracked{8}, CompactDropTracked{9}}
         catch intrinsicAutoDropCatchResumeImpl(55)
         if @err != null
         {
             let err = cast(IntrinsicLifecycleErr) @err
-            first = err.code
+            first  = err.code
             second = outer.second.value
-            third = 1
+            third  = 1
         }
     }
 
@@ -593,9 +593,9 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = CompactDropTracked{9}
         for i in 2
@@ -623,13 +623,13 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropCompactTrace
@@ -650,7 +650,7 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
             {
                 var active = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
                 result.second = active.head.value
-                result.third = outer.second.value
+                result.third  = outer.second.value
                 return result
             }
 
@@ -668,13 +668,13 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropCompactTrace
@@ -686,9 +686,9 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
         {
             var branch = AutoCompactBranch{CompactDropTracked{2}, AutoCompactPair{CompactDropTracked{3}, CompactDropTracked{4}}}
             var inner = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
-            result.first = flag + outer.value
+            result.first  = flag + outer.value
             result.second = branch.pair.first.value
-            result.third = inner.second.value
+            result.third  = inner.second.value
             return result
         }
     }
@@ -701,9 +701,9 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = CompactDropTracked{9}
         if var flag = 1 where false
@@ -713,9 +713,9 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
         else
         {
             var active = AutoCompactBranch{CompactDropTracked{1}, AutoCompactPair{CompactDropTracked{2}, CompactDropTracked{3}}}
-            first = flag + 5
+            first  = flag + 5
             second = active.head.value
-            third = outer.value
+            third  = outer.value
         }
     }
 
@@ -728,13 +728,13 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropCompactTrace
@@ -743,9 +743,9 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
     with var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
     {
         var active = AutoCompactBranch{CompactDropTracked{4}, AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}}
-        result.first = pair.first.value
+        result.first  = pair.first.value
         result.second = active.head.value
-        result.third = pair.second.value
+        result.third  = pair.second.value
         return result
     }
 
@@ -757,9 +757,9 @@ func intrinsicAutoDropShadowInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var value = CompactDropTracked{9}
         first = value.value

@@ -3,10 +3,10 @@ using Core, Gui, Pixel
 func createDockLabel(parent: *Wnd, title, text: string, dock: DockStyle, size: Math.Point, margin: Math.Vector4 = {})->*Label
 {
     let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), {0, 0, size.x, size.y}, null, .WordWrap)
-    label.backgroundStyle = .Window
-    label.dockStyle = dock
-    label.margin = margin
-    label.paddingText = {12, 8, 12, 8}
+    label.backgroundStyle   = .Window
+    label.dockStyle         = dock
+    label.margin            = margin
+    label.paddingText       = {12, 8, 12, 8}
     label.horzAlignmentText = .Left
     label.vertAlignmentText = .Top
     return label
@@ -22,10 +22,10 @@ func createConstraintsPage(parent: *Wnd)
 
     let topStack = StackLayoutCtrl.create(host, .Left, {0, 0, 0, 56})
     topStack.backgroundStyle = .DialogBar
-    topStack.dockStyle = .Top
-    topStack.margin = {0, 0, 0, 10}
-    topStack.padding = {12, 12, 12, 12}
-    topStack.spacing = 8
+    topStack.dockStyle       = .Top
+    topStack.margin          = {0, 0, 0, 10}
+    topStack.padding         = {12, 12, 12, 12}
+    topStack.spacing         = 8
     discard createChip(topStack, "New", .Plus)
     discard createChip(topStack, "Open", .OpenFile)
     discard createChip(topStack, "Save", .Save)
@@ -43,8 +43,8 @@ func createConstraintsPage(parent: *Wnd)
 
     let center = Wnd.create'Wnd(host, {0, 0, 260, 160})
     center.backgroundStyle = .View
-    center.dockStyle = .Center
-    center.margin = 0
+    center.dockStyle       = .Center
+    center.margin          = 0
 
     host.sendResizeEvent()
 
@@ -54,7 +54,7 @@ func createConstraintsPage(parent: *Wnd)
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)
     let action = PushButton.create(center, "Anchored action", {actionX, actionY, 170, 34})
-    action.icon = app.theme.getIcon24(.Link, 18)
+    action.icon        = app.theme.getIcon24(.Link, 18)
     action.anchorStyle = .X | .Y
 
     let stretch = Label.create(center, "Anchored width + height", {14, 100, Math.max(center.position.width - 220, 160.0), Math.max(center.position.height - 168, 40.0)}, null, .WordWrap | .LightText)

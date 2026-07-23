@@ -13,7 +13,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 {
     discard combo
     ComboHeadlessChangedCount += 1
-    ComboHeadlessLastIdx = idx
+    ComboHeadlessLastIdx      = idx
 }
 
 // Selecting an item emits sigChanged + a command carrying the item id.
@@ -23,7 +23,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     host.setup(240, 80)
     host.recordCommands()
     ComboHeadlessChangedCount = 0
-    ComboHeadlessLastIdx = 0
+    ComboHeadlessLastIdx      = 0
 
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
     combo.sigChanged += &comboHeadlessChanged

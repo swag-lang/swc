@@ -51,7 +51,7 @@ func aliasStoreLoad(n: s32)->s32
     for i in 0 until n
     {
         buf[0] = buf[0] + 1
-        acc += buf[0]
+        acc    += buf[0]
     }
     return acc
 }

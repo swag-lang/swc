@@ -8,7 +8,7 @@
     #[Swag.Safety(.Null, true)]
     func nullAnyExtractPanic()->bool
     {
-        var ns: #null string = null
+        var ns:    #null string = null
         let boxed: any = ns
         let back = cast(string) boxed     // swc-expected-error {{safety_err_runtime}}
         return back == null
@@ -22,7 +22,7 @@
     #[Swag.Safety(.Null, true)]
     func nullAnyExtractPointerPanic()->bool
     {
-        var np: #null *s32 = null
+        var np:    #null *s32 = null
         let boxed: any = np
         let back = cast(*s32) boxed     // swc-expected-error {{safety_err_runtime}}
         return back == null
@@ -37,7 +37,7 @@
     #[Swag.Safety(.Null, false)]
     func nullAnyExtractDisabled()->bool
     {
-        var ns: #null string = null
+        var ns:    #null string = null
         let boxed: any = ns
         let back = cast(string) boxed
         return back == null
@@ -53,7 +53,7 @@
     #[Swag.Safety(.Null, true)]
     func nullAnyExtractOk()->bool
     {
-        var ns: #null string = null
+        var ns:    #null string = null
         var boxed: any = ns
         if cast(#null string) boxed != null do
             return false

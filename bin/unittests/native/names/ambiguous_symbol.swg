@@ -1,9 +1,9 @@
 #global private
 
-var gAmb0Calls: s32
-var gAmb1Last: s32
-var gNAmb0Calls: s32
-var gNAmb1Last: s32
+var gAmb0Calls:       s32
+var gAmb1Last:        s32
+var gNAmb0Calls:      s32
+var gNAmb1Last:       s32
 var gDeclAndDefCalls: s32
 func Amb() { gAmb0Calls += 1 }
 func Amb(a: s32) { gAmb1Last = a }

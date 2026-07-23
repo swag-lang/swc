@@ -10,8 +10,8 @@ struct OtherStruct { y: f32 }
 
 struct Holder
 {
-    t:    typeinfo
-    tag:  s32
+    t:   typeinfo
+    tag: s32
 }
 
 const CReg: [?] Holder = [

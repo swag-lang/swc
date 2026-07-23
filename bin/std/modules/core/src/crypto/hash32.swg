@@ -26,12 +26,12 @@ public func(T) hash32(value: T)->u32
     {
         let hashed = cast #bit (u64) value
         let folded = cast(u32) hashed ^ cast(u32) (hashed >> 32)
-        return folded * 0x9e3779b1'u32
+        return folded * 0x9E3779B1'u32
     }
         #elif Reflection.isInteger(T) and #sizeof(T) == 4 do
-        return cast #bit (u32) value * 0x9e3779b1'u32
+        return cast #bit (u32) value * 0x9E3779B1'u32
         #elif Reflection.isInteger(T) do
-        return cast(u32) value * 0x9e3779b1'u32
+        return cast(u32) value * 0x9E3779B1'u32
         #elif #sizeof(T) == 8 do
         return cast(u32) murmur3(cast #bit (u64) value)
         #elif #sizeof(T) == 4 do

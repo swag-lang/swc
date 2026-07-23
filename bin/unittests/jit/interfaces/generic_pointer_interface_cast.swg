@@ -33,8 +33,8 @@ func(T) getGenericPointerCastValue()->s32
 {
     let ptr = cast(#null *T) @alloc(#sizeof(T))
     ptr.base.value = 7
-    ptr.value = 42
-    ptr.itf = cast(IGenericPointerCast) dref ptr
+    ptr.value      = 42
+    ptr.itf        = cast(IGenericPointerCast) dref ptr
     return ptr.itf.get() + ptr.itf.fallback()
 }
 

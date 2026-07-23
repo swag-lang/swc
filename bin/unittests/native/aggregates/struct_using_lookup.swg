@@ -94,7 +94,7 @@ struct OuterAnonymousUnion
 #test
 {
     var innerVal: Inner
-    var out: OuterValue
+    var out:      OuterValue
     out.x = 7
     @assert(out.v.x == 7)
 

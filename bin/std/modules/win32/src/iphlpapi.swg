@@ -22,32 +22,32 @@ alias time_t         = u64
 
 struct IP_ADDR_STRING
 {
-    next:          #null *IP_ADDR_STRING
-    ipAddress:     IP_ADDRESS_STRING
-    ipMask:        IP_MASK_STRING
-    context:       DWORD
+    next:      #null *IP_ADDR_STRING
+    ipAddress: IP_ADDRESS_STRING
+    ipMask:    IP_MASK_STRING
+    context:   DWORD
 }
 
 struct IP_ADAPTER_INFO
 {
-    next:                    #null *IP_ADAPTER_INFO
-    comboIndex:              DWORD
+    next:       #null *IP_ADAPTER_INFO
+    comboIndex: DWORD
     adapterName:             [MAX_ADAPTER_NAME_LENGTH + 4] u8
     description:             [MAX_ADAPTER_DESCRIPTION_LENGTH + 4] u8
     addressLength:           UINT
     address:                 [MAX_ADAPTER_ADDRESS_LENGTH] BYTE
-    index:                   DWORD
-    type:                    UINT
-    dhcpEnabled:             UINT
-    currentIpAddress:        #null *IP_ADDR_STRING
-    ipAddressList:           IP_ADDR_STRING
-    gatewayList:             IP_ADDR_STRING
-    dhcpServer:              IP_ADDR_STRING
-    haveWins:                BOOL
-    primaryWinsServer:       IP_ADDR_STRING
-    secondaryWinsServer:     IP_ADDR_STRING
-    leaseObtained:           time_t
-    leaseExpires:            time_t
+    index:               DWORD
+    type:                UINT
+    dhcpEnabled:         UINT
+    currentIpAddress:    #null *IP_ADDR_STRING
+    ipAddressList:       IP_ADDR_STRING
+    gatewayList:         IP_ADDR_STRING
+    dhcpServer:          IP_ADDR_STRING
+    haveWins:            BOOL
+    primaryWinsServer:   IP_ADDR_STRING
+    secondaryWinsServer: IP_ADDR_STRING
+    leaseObtained:       time_t
+    leaseExpires:        time_t
 }
 
 #[Foreign("iphlpapi")]

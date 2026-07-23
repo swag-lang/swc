@@ -61,7 +61,7 @@ func day3A()
                         break
                     num *= 10
                     num += c - '0'
-                    x += 1
+                    x   += 1
                 }
 
                 nums.add({num, sx, x - 1, cast(s32) y})

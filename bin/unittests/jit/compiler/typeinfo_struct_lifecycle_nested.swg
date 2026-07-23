@@ -98,7 +98,7 @@ struct DeepInitLifecycle
 func pushEvent(value: s32)
 {
     Events[EventCount] = value
-    EventCount += 1
+    EventCount         += 1
 }
 
 func resetEvents()
@@ -281,18 +281,18 @@ func deepInitRestoresNestedArrays()->bool
         return false
 
     var value: DeepInitLifecycle
-    value.outer.head.value = 41
-    value.outer.middle.left.value = 42
+    value.outer.head.value         = 41
+    value.outer.middle.left.value  = 42
     value.outer.middle.right.value = 43
-    value.outer.middle.marker = 44
-    value.outer.stamp = 45
-    value.mids[0].left.value = 51
-    value.mids[0].right.value = 52
-    value.mids[0].marker = 53
-    value.mids[1].left.value = 61
-    value.mids[1].right.value = 62
-    value.mids[1].marker = 63
-    value.stamp = 64
+    value.outer.middle.marker      = 44
+    value.outer.stamp              = 45
+    value.mids[0].left.value       = 51
+    value.mids[0].right.value      = 52
+    value.mids[0].marker           = 53
+    value.mids[1].left.value       = 61
+    value.mids[1].right.value      = 62
+    value.mids[1].marker           = 63
+    value.stamp                    = 64
 
     resetEvents()
     runInit(type, &value)

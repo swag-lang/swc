@@ -9,8 +9,8 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 30
-    f.capture.height = 30
+    f.capture.width   = 30
+    f.capture.height  = 30
     f.capture.backImg = Image.create(30, 30, .BGRA8)
     f.capture.backImg.fill(Argb.Zero)
 
@@ -45,8 +45,8 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 24
-    f.capture.height = 24
+    f.capture.width   = 24
+    f.capture.height  = 24
     f.capture.backImg = Image.create(24, 24, .BGRA8)
     f.capture.backImg.visitPixels()
     {
@@ -82,8 +82,8 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    f.capture.width = 24
-    f.capture.height = 24
+    f.capture.width   = 24
+    f.capture.height  = 24
     f.capture.backImg = Testing.indexedImage(24, 24)
 
     let before = f.capture.backImg.getPixelColor(12, 12)

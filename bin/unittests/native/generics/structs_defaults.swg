@@ -39,11 +39,11 @@ struct(T) PtrHolder
 
 #test
 {
-    var x: s32 = 42
+    var x:      s32 = 42
     let holder: PtrHolder's32 = {ptr: &x}
     @assert(dref holder.ptr == 42)
 
-    var y: f64 = 1.5
+    var y:       f64 = 1.5
     let holderF: PtrHolder'f64 = {ptr: &y}
     @assert(dref holderF.ptr == 1.5)
 }

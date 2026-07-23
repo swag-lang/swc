@@ -13,12 +13,12 @@ public enum SizingBorder
 public struct SurfaceWnd
 {
     using base:        FrameWnd
-    icon:              Icon
-    minimizeBtn:       #null *IconButton
-    maximizeBtn:       #null *IconButton
-    closeBtn:          #null *IconButton
-    movingSurface:     bool
-    sizingBorder:      SizingBorder = Zero
+    icon:          Icon
+    minimizeBtn:   #null *IconButton
+    maximizeBtn:   #null *IconButton
+    closeBtn:      #null *IconButton
+    movingSurface: bool
+    sizingBorder:  SizingBorder = Zero
 }
 
 impl IWnd for SurfaceWnd
@@ -87,21 +87,21 @@ impl IWnd for SurfaceWnd
 
             if .sizingBorder & .Left
             {
-                pos.x += evt.move.x
-                pos.width -= evt.move.x
+                pos.x      += evt.move.x
+                pos.width  -= evt.move.x
                 hasChanged = true
             }
 
             if .sizingBorder & .Top
             {
-                pos.y += evt.move.y
+                pos.y      += evt.move.y
                 pos.height -= evt.move.y
                 hasChanged = true
             }
 
             if .sizingBorder & .Right
             {
-                pos.width += evt.move.x
+                pos.width  += evt.move.x
                 hasChanged = true
             }
 
@@ -367,7 +367,7 @@ impl SurfaceWnd
                 {
                     .form          = .RoundSquare
                     .focusStrategy = .None
-                    .sigPressed += &onMinimize
+                    .sigPressed    += &onMinimize
                 }
             }
         }
@@ -385,7 +385,7 @@ impl SurfaceWnd
                 {
                     .form          = .RoundSquare
                     .focusStrategy = .None
-                    .sigPressed += &onMaximize
+                    .sigPressed    += &onMaximize
                 }
             }
         }
@@ -403,7 +403,7 @@ impl SurfaceWnd
                 {
                     .form          = .RoundSquare
                     .focusStrategy = .None
-                    .sigPressed += &onClose
+                    .sigPressed    += &onClose
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseBk))
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_PressedBk) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseHotBk))
                     .style.addStyleSheetColors(#nameof(ThemeColors.btnIcon_HotIcon) ++ " $" ++ #nameof(ThemeColors.wnd_BtnCloseHotIcon))

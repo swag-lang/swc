@@ -28,7 +28,7 @@ func semaTest003()
 
 func semaTest004()
 {
-    var value: s32 = 42
+    var value:    s32 = 42
     let valueRef: const &s32 = &value
     let eq0 = valueRef == 42
     let eq1 = 42 == valueRef
@@ -51,7 +51,7 @@ func semaTest004()
 
 func semaTest005()
 {
-    var value: s32 = 2
+    var value:    s32 = 2
     var refValue: &s32 = &value
     let ok = refValue == 2
     #assert(#typeof(ok) == bool)
@@ -59,7 +59,7 @@ func semaTest005()
 
 func semaTest006()
 {
-    var value: f32 = 1.5
+    var value:    f32 = 1.5
     let valueRef: const &f32 = &value
     let ok0 = valueRef == 1.5
     let ok1 = valueRef < 2.0

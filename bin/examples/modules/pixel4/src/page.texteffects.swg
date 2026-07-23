@@ -37,10 +37,10 @@ func drawGlowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawEffectSurface(painter, sample, Color.fromArgb(255, 16, 18, 30))
 
     var fx: TextEffect
-    fx.glowColor   = Color.fromArgb(255, 64, 224, 255)
-    fx.glowOffset  = 0.05
-    fx.glowOuter   = 0.55
-    fx.glowPower   = 1.4
+    fx.glowColor    = Color.fromArgb(255, 64, 224, 255)
+    fx.glowOffset   = 0.05
+    fx.glowOuter    = 0.55
+    fx.glowPower    = 1.4
     fx.outlineWidth = 0.06
     fx.outlineColor = Color.fromArgb(255, 12, 90, 130)
     drawEffectSample(painter, sample, "Glow", notnull g_OutlineFont, Color.fromArgb(255, 235, 252, 255), fx)
@@ -70,11 +70,11 @@ func drawShadowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawEffectSurface(painter, sample, Color.fromArgb(255, 248, 249, 251))
 
     var fx: TextEffect
-    fx.shadowColor   = Color.fromArgb(150, Argb.Black)
-    fx.shadowOffset  = {5, 6}
+    fx.shadowColor    = Color.fromArgb(150, Argb.Black)
+    fx.shadowOffset   = {5, 6}
     fx.shadowSoftness = 0.45
-    fx.outlineWidth  = 0.16
-    fx.outlineColor  = Argb.Crimson
+    fx.outlineWidth   = 0.16
+    fx.outlineColor   = Argb.Crimson
     drawEffectSample(painter, sample, "Shadow", notnull g_OutlineFont, Argb.White, fx)
 
     drawWrappedText(painter, {body.x + 18, body.bottom() - 24, body.width - 36, 22}, "shadowOffset (5,6) + softness 0.45, outline + face in one pass", notnull g_HelpFont, Argb.DimGray)

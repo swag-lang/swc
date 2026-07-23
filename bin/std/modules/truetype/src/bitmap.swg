@@ -15,10 +15,10 @@ public enum PixelMode
 
 public struct Bitmap
 {
-    rows:             u32
-    width:            u32
-    pitch:            s32
-    buffer:           #null [*] u8
-    grayCount:        u16
-    pixelMode:        PixelMode
+    rows:      u32
+    width:     u32
+    pitch:     s32
+    buffer:    #null [*] u8
+    grayCount: u16
+    pixelMode: PixelMode
 }

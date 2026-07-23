@@ -6,20 +6,20 @@ using Swag
 // Options for customizing JSON formatting.
 struct JSonOptions
 {
-    indentLevel:     u32 = 4     // Number of spaces per indentation level.
-    saveBlanks:      bool        // Whether to include indentation and line breaks.
+    indentLevel: u32 = 4     // Number of spaces per indentation level.
+    saveBlanks:  bool        // Whether to include indentation and line breaks.
 }
 
 // A JSON writer.
 struct JSon
 {
-    options:           JSonOptions                                 // Formatting options.
-    output:            *ConcatBuffer = undefined                   // Output buffer for generated JSON.
-    indent:            u32                                         // Current indentation level.
-    containerDepth:    u32                                         // Current logical nesting depth for arrays/objects.
-    fmtInt:            StrConv.ConvertFormatInt                    // Format used for converting integers.
-    fmtFloat:          StrConv.ConvertFormatFloat{fmt: 'g''u8}     // Format used for converting floating-point numbers.
-    lastSeekValue:     ConcatBufferSeek                            // Seek position used for rollback of trailing commas.
+    options:        JSonOptions                                 // Formatting options.
+    output:         *ConcatBuffer = undefined                   // Output buffer for generated JSON.
+    indent:         u32                                         // Current indentation level.
+    containerDepth: u32                                         // Current logical nesting depth for arrays/objects.
+    fmtInt:         StrConv.ConvertFormatInt                    // Format used for converting integers.
+    fmtFloat:       StrConv.ConvertFormatFloat{fmt: 'g''u8}     // Format used for converting floating-point numbers.
+    lastSeekValue:  ConcatBufferSeek                            // Seek position used for rollback of trailing commas.
 }
 
 impl JSon
@@ -58,7 +58,7 @@ impl JSon
     mtd beginSequence(_typeElem: #null typeinfo, _data: #null const *void, _countElem: u64)->bool
     {
         .output.addBytes("[")
-        .lastSeekValue = .output.getSeek()
+        .lastSeekValue  = .output.getSeek()
         .containerDepth += 1
         if .options.saveBlanks
         {
@@ -90,7 +90,7 @@ impl JSon
     mtd beginSection(_kind: SectionKind)
     {
         .output.addBytes("{")
-        .lastSeekValue = .output.getSeek()
+        .lastSeekValue  = .output.getSeek()
         .containerDepth += 1
         if .options.saveBlanks
         {

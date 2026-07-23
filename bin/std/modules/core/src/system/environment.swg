@@ -48,11 +48,11 @@ enum SpecialDirectory
 #[Swag.Operators(opEquals, opCompare)]
 struct Monitor
 {
-    rect:         Math.Rectangle
-    work:         Math.Rectangle
-    scale:        f32                // Scale factor of this monitor
-    rectReal:     Math.Rectangle     // The real monitor rect, without scaling
-    workReal:     Math.Rectangle     // The real monitor work rect, without scaling
+    rect:     Math.Rectangle
+    work:     Math.Rectangle
+    scale:    f32                // Scale factor of this monitor
+    rectReal: Math.Rectangle     // The real monitor rect, without scaling
+    workReal: Math.Rectangle     // The real monitor work rect, without scaling
 }
 
 // Returns the monitor that contains 'pt'

@@ -1,7 +1,7 @@
 #global private
 
 var gOverloadA0Calls: s32
-var gOverloadA1Last: s32
+var gOverloadA1Last:  s32
 func A() { gOverloadA0Calls += 1 }
 func A(a: s32) { gOverloadA1Last = a }
 
@@ -17,7 +17,7 @@ func A(a: s32) { gOverloadA1Last = a }
 
 struct S {}
 var gOverloadFoo0Calls: s32
-var gOverloadFoo1Last: s32
+var gOverloadFoo1Last:  s32
 impl S
 {
     mtd foo() { gOverloadFoo0Calls += 1 }

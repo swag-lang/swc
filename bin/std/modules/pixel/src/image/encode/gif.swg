@@ -13,27 +13,27 @@ private
     struct PaletteData
     {
         colors:               [256] PaletteColor
-        count:                u32
-        tableBits:            u8
-        lzwMinCodeSize:       u8
-        transparentIndex:     s32 = -1
-        indexes:              Array'u8
+        count:            u32
+        tableBits:        u8
+        lzwMinCodeSize:   u8
+        transparentIndex: s32 = -1
+        indexes:          Array'u8
     }
 
     struct BitWriter
     {
-        bytes:        Array'u8
-        curBits:      u32
-        bitCount:     u32
+        bytes:    Array'u8
+        curBits:  u32
+        bitCount: u32
     }
 
     struct LzwEncoder
     {
-        bits:             BitWriter
-        minCodeSize:      u8
-        codeSize:         u8
-        clearCode:        u16
-        endCode:          u16
+        bits:        BitWriter
+        minCodeSize: u8
+        codeSize:    u8
+        clearCode:   u16
+        endCode:     u16
     }
 }
 
@@ -41,13 +41,13 @@ impl BitWriter
 {
     mtd write(code: u16, codeSize: u8)
     {
-        .curBits |= cast(u32) code << .bitCount
+        .curBits  |= cast(u32) code << .bitCount
         .bitCount += codeSize
 
         while .bitCount >= 8
         {
             .bytes.add(cast(u8) (.curBits & 0xFF))
-            .curBits >>= 8
+            .curBits  >>= 8
             .bitCount -= 8
         }
     }
@@ -57,7 +57,7 @@ impl BitWriter
         if .bitCount
         {
             .bytes.add(cast(u8) (.curBits & 0xFF))
-            .curBits = 0
+            .curBits  = 0
             .bitCount = 0
         }
     }
@@ -201,8 +201,8 @@ impl Encoder
     func fillTransparentQuantizedPalette(data: *PaletteData)
     {
         data.transparentIndex = 0
-        data.count = 126
-        data.colors[0] = {}
+        data.count            = 126
+        data.colors[0]        = {}
 
         for r in 5
         {
@@ -246,7 +246,7 @@ impl Encoder
         if hasTransparent
         {
             data.transparentIndex = 0
-            data.count = 1
+            data.count            = 1
         }
 
         var dstIndex = 0'u64
@@ -275,7 +275,7 @@ impl Encoder
                         if data.count == MaxPaletteColors do
                             return false
 
-                        paletteIndex = cast(u8) data.count
+                        paletteIndex              = cast(u8) data.count
                         data.colors[paletteIndex] = {col.r, col.g, col.b}
                         colorMap.add(key, paletteIndex)
                         data.count += 1
@@ -283,8 +283,8 @@ impl Encoder
                 }
 
                 data.indexes[dstIndex] = paletteIndex
-                dstIndex += 1
-                pix += image.bpp8
+                dstIndex               += 1
+                pix                    += image.bpp8
             }
         }
 
@@ -317,7 +317,7 @@ impl Encoder
                     data.indexes[dstIndex] = quantizedOpaqueIndex(col)
 
                 dstIndex += 1
-                pix += image.bpp8
+                pix      += image.bpp8
             }
         }
 

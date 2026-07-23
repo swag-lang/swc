@@ -21,8 +21,8 @@
 {
     func shiftCountFromArith(a: u32, b: u32, c: u32, d: u32, e: u32)->u32
     {
-        var cnt: u32 = b - a      // cnt = 4-1 = 3  (computed, not literal)
-        var r: u32 = c << cnt     // 5 << 3 = 40;  a,b,d,e live → RCX/CL conflict
+        var cnt: u32 = b - a        // cnt = 4-1 = 3  (computed, not literal)
+        var r:   u32 = c << cnt     // 5 << 3 = 40;  a,b,d,e live → RCX/CL conflict
         r += d + e
         return r
     }
@@ -62,9 +62,9 @@
 {
     func shiftMixWidths(cnt: u32)->u64
     {
-        var a: u32 = 0x80'u32                       // 128
-        var b: u32 = 0x200'u32                      // 512
-        var c: u64 = 0x800'u64                      // 2048
+        var a:  u32 = 0x80'u32                      // 128
+        var b:  u32 = 0x200'u32                     // 512
+        var c:  u64 = 0x800'u64                     // 2048
         var ra: u32 = a >> cnt                      // 128  >> 2 = 32;   cnt → CL
         var rb: u32 = b >> cnt                      // 512  >> 2 = 128;  cnt → CL
         var rc: u64 = c >> cnt                      // 2048 >> 2 = 512;  cnt → CL (64-bit)
@@ -89,7 +89,7 @@
     {
         var cnt: u32 = b - a                   // cnt = 3-1 = 2 (in some reg, maybe RCX)
         var mid: u32 = addHelper(a + b, c)     // call may clobber RCX → cnt must survive
-        var r: u32 = mid << cnt                // cnt reloaded into CL;  14 << 2 = 56
+        var r:   u32 = mid << cnt              // cnt reloaded into CL;  14 << 2 = 56
         return r + a                           // 56 + 1 = 57
     }
 
@@ -108,9 +108,9 @@
     func nestedShiftCount(x: u32, cnt_base: u32)->u32
     {
         var cnt1: u32 = cnt_base       // cnt1 = 2
-        var r1: u32 = x << cnt1        // cnt1 → CL;  3 << 2 = 12
+        var r1:   u32 = x << cnt1      // cnt1 → CL;  3 << 2 = 12
         var cnt2: u32 = r1 >> cnt1     // cnt1 → CL;  12 >> 2 = 3  (cnt2 derived from shift)
-        var r2: u32 = x << cnt2        // cnt2 → CL;  3 << 3 = 24
+        var r2:   u32 = x << cnt2      // cnt2 → CL;  3 << 3 = 24
         return r1 + r2                 // 12 + 24 = 36
     }
 
@@ -128,9 +128,9 @@
 {
     func shiftInsideDivExpr(a: u32, b: u32, c: u32)->u32
     {
-        var cnt: u32 = a / b      // DIV: a=12, b=4 → cnt=3 (lands in RAX)
-        var r: u32 = c << cnt     // SHL: cnt from RAX → must move to CL
-        return r                  // 5 << 3 = 40
+        var cnt: u32 = a / b        // DIV: a=12, b=4 → cnt=3 (lands in RAX)
+        var r:   u32 = c << cnt     // SHL: cnt from RAX → must move to CL
+        return r                    // 5 << 3 = 40
     }
 
     const V = #run shiftInsideDivExpr(12'u32, 4'u32, 5'u32)
@@ -149,7 +149,7 @@
                        e: u32, f: u32, g: u32, h: u32)->u32
     {
         var cnt: u32 = h - g                     // cnt = 4-3 = 1; all 8 params live
-        var r: u32 = a << cnt                    // 1 << 1 = 2; b,c,d,e,f,g,h still live → spill pressure
+        var r:   u32 = a << cnt                  // 1 << 1 = 2; b,c,d,e,f,g,h still live → spill pressure
         return r + b + c + d + e + f + g + h     // 2+2+3+4+5+6+3+4 = 29
     }
 
@@ -167,9 +167,9 @@
 {
     func shiftSignedWidths(v: s32, cnt: s32)->s32
     {
-        var a: s32 = v             // -256
-        var b: s32 = v * 4         // -1024
-        var c: s32 = v * 16        // -4096
+        var a:  s32 = v            // -256
+        var b:  s32 = v * 4        // -1024
+        var c:  s32 = v * 16       // -4096
         var ra: s32 = a >> cnt     // cnt → CL; -256  >> 2 = -64   (sign preserved)
         var rb: s32 = b >> cnt     // cnt → CL; -1024 >> 2 = -256
         var rc: s32 = c >> cnt     // cnt → CL; -4096 >> 2 = -1024

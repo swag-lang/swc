@@ -21,9 +21,9 @@ enum GridTrackKind
 struct GridTrack
 {
     kind       = GridTrackKind.Fixed
-    value:     f32 = 100
-    min:       f32
-    max:       f32
+    value: f32 = 100
+    min:   f32
+    max:   f32
 }
 
 struct GridLayoutCtrl
@@ -31,16 +31,16 @@ struct GridLayoutCtrl
     using wnd:          Wnd
 
     gridLayoutFlags     = GridLayoutCtrlFlags.Zero
-    numColumns:         s32
-    numRows:            s32
-    spacingHorz:        f32 = 5
-    spacingVert:        f32 = 5
+    numColumns:  s32
+    numRows:     s32
+    spacingHorz: f32 = 5
+    spacingVert: f32 = 5
 
-    layout:             Array'(#null *Wnd)
-    colSizes:           Array'f32
-    rowSizes:           Array'f32
-    colTracks:          Array'GridTrack
-    rowTracks:          Array'GridTrack
+    layout:    Array'(#null *Wnd)
+    colSizes:  Array'f32
+    rowSizes:  Array'f32
+    colTracks: Array'GridTrack
+    rowTracks: Array'GridTrack
 }
 
 impl IWnd for GridLayoutCtrl
@@ -125,8 +125,8 @@ private impl GridLayoutCtrl
             if .layout[idx] != child do
                 break
             result += 1
-            c += 1
-            idx += 1
+            c      += 1
+            idx    += 1
         }
 
         return result
@@ -142,8 +142,8 @@ private impl GridLayoutCtrl
             if .layout[idx] != child do
                 break
             result += 1
-            r += 1
-            idx += .numColumns
+            r      += 1
+            idx    += .numColumns
         }
 
         return result
@@ -220,7 +220,7 @@ private impl GridLayoutCtrl
                 var trackWeight = 1'f32
                 if tracks[i].value > 0 do
                     trackWeight = tracks[i].value
-                weight += trackWeight
+                weight          += trackWeight
             }
         }
 
@@ -277,7 +277,7 @@ private impl GridLayoutCtrl
         {
             if i do
                 result += spacing
-            result += sizes[idx + i]
+            result     += sizes[idx + i]
         }
 
         return result
@@ -347,9 +347,9 @@ impl GridLayoutCtrl
 
         if .gridLayoutFlags.has(.AdaptSizeToContent)
         {
-            .position.width = maxW
+            .position.width  = maxW
             .position.height = maxH
-            .preferredSize = {maxW, maxH}
+            .preferredSize   = {maxW, maxH}
         }
     }
 

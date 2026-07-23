@@ -250,7 +250,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
         pix[0] = cast(u8) (x * 15)
         pix[1] = cast(u8) (y * 15)
         pix[2] = cast(u8) ((x * 13 + y * 7) & 0xFF)
-        pix += 3
+        pix    += 3
     }
 
     var cb: ConcatBuffer
@@ -270,7 +270,10 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     let path = makeTempGifPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(1, 1, .RGB8)
     src.pixels.buffer[0] = 12'u8

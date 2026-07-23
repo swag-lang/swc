@@ -95,8 +95,8 @@ const MaxSchematics = 512'u32
 
 struct ParseResult
 {
-    locks:    #null [*] Heights
-    keys:     #null [*] Heights
+    locks:     #null [*] Heights
+    keys:      #null [*] Heights
     lockCount: u32
     keyCount:  u32
 }
@@ -140,7 +140,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             if pos < @countof(bytes)
             {
                 grid[row][col] = bytes[pos]
-                pos += 1
+                pos            += 1
             }
         }
         // Skip line ending
@@ -170,7 +170,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             h.col[col] = count
         }
         result.locks[result.lockCount] = h
-        result.lockCount += 1
+        result.lockCount               += 1
     }
     else
     {
@@ -186,7 +186,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             h.col[col] = count
         }
         result.keys[result.keyCount] = h
-        result.keyCount += 1
+        result.keyCount              += 1
     }
 
     return pos
@@ -471,7 +471,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
 #test
 {
     var lock: Heights
-    var key: Heights
+    var key:  Heights
     @assert(lock.fits(key))
 }
 

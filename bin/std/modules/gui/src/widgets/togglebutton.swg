@@ -5,12 +5,12 @@ struct ToggleButton
 {
     using button:     Button
 
-    isToggled:        bool
-    sigChanged:       #null func(*ToggleButton)
+    isToggled:  bool
+    sigChanged: #null func(*ToggleButton)
 
-    aniBk:            BlendColor
-    aniBorder:        BlendColor
-    aniMark:          BlendColor
+    aniBk:     BlendColor
+    aniBorder: BlendColor
+    aniMark:   BlendColor
 }
 
 impl IWnd for ToggleButton

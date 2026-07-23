@@ -113,7 +113,7 @@ func day10B()
     let lines    = assume File.readAllLines(dataPath)
 
     var width, height: u64
-    var maze: Array'Dir
+    var maze:          Array'Dir
 
     width  = lines[0].length + 2
     height = lines.count + 2
@@ -173,16 +173,16 @@ func day10B()
         {
         case one & .East and !(mp(visitX + 1, visitY) & .Edge):
             visitX += 1
-            moved = true
+            moved  = true
         case one & .West and !(mp(visitX - 1, visitY) & .Edge):
             visitX -= 1
-            moved = true
+            moved  = true
         case one & .North and !(mp(visitX, visitY - 1) & .Edge):
             visitY -= 1
-            moved = true
+            moved  = true
         case one & .South and !(mp(visitX, visitY + 1) & .Edge):
             visitY += 1
-            moved = true
+            moved  = true
         }
 
         if moved do

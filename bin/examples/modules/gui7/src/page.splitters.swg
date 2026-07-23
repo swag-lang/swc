@@ -21,8 +21,8 @@ func createSplitterPage(parent: *Wnd)
 
     let nav = createSplitterPane(rootSplit, "Navigator", "Preserved side pane. min 170, max 280.")
     let navItem = rootSplit.addPane(nav, 230)
-    navItem.minSize = 170
-    navItem.maxSize = 280
+    navItem.minSize         = 170
+    navItem.maxSize         = 280
     navItem.tryPreserveSize = true
 
     let work = Wnd.create'Wnd(rootSplit, {})
@@ -31,8 +31,8 @@ func createSplitterPage(parent: *Wnd)
 
     let inspector = createSplitterPane(rootSplit, "Inspector", "Right pane tries to preserve its width.")
     let inspectorItem = rootSplit.addPane(inspector, 250)
-    inspectorItem.minSize = 190
-    inspectorItem.maxSize = 340
+    inspectorItem.minSize         = 190
+    inspectorItem.maxSize         = 340
     inspectorItem.tryPreserveSize = true
 
     let vertical = SplitterCtrl.create(work, {}, vertical: true)
@@ -44,7 +44,7 @@ func createSplitterPage(parent: *Wnd)
 
     let console = createSplitterPane(vertical, "Output", "Bottom pane has a compact min size.")
     let consoleItem = vertical.addPane(console, 150)
-    consoleItem.minSize = 92
+    consoleItem.minSize         = 92
     consoleItem.tryPreserveSize = true
 
     rootSplit.sendResizeEvent()

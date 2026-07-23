@@ -2,7 +2,7 @@
 
 struct UndefinedPair
 {
-    left: s32
+    left:  s32
     right: s32
 }
 

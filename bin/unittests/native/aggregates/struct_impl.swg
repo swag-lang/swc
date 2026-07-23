@@ -128,7 +128,7 @@ impl Circle
 struct ListNode
 {
     value: s32
-    next: #null *ListNode
+    next:  #null *ListNode
 }
 
 impl ListNode
@@ -139,7 +139,7 @@ impl ListNode
         var cur = .next
         while cur != null
         {
-            n += 1
+            n   += 1
             cur = cur.next
         }
         return n

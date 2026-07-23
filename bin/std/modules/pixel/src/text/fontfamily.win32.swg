@@ -3,8 +3,8 @@ using Core, Win32, Gdi32
 
 public struct FontFamilyStyleEnumerate
 {
-    name:     String
-    face:     LOGFONTW
+    name: String
+    face: LOGFONTW
 }
 
 public struct FontFamilyEnumerate

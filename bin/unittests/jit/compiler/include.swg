@@ -25,7 +25,7 @@ func getSecond()->u8
 
 #test
 {
-    const first = #run mutateFirst()
+    const first  = #run mutateFirst()
     const second = #run getSecond()
     #assert(first == 'H''u8)
     #assert(second == 'g''u8)

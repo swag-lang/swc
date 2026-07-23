@@ -56,7 +56,7 @@ struct(T) AnonymousUnionFieldHolder
 #test
 {
     var reordered: ReorderedRenamedDoubleBufferImplicit'(5, u32)
-    reordered.first.values[0] = 11
+    reordered.first.values[0]  = 11
     reordered.second.values[4] = 29
 
     #assert(#typeof(reordered.first.values) == #type [5] u32)
@@ -67,11 +67,11 @@ struct(T) AnonymousUnionFieldHolder
 #test
 {
     var composed: ComposedTypeDefaultHolder's16
-    var sized: SizeofDefaultHolder'u64
+    var sized:    SizeofDefaultHolder'u64
 
     composed.item.value.value = 7
-    sized.item.values[0] = 1
-    sized.item.values[7] = 9
+    sized.item.values[0]      = 1
+    sized.item.values[7]      = 9
 
     #assert(#typeof(composed.item.value) == Box's16)
     #assert(#typeof(sized.item.values) == #type [8] u8)
@@ -83,11 +83,11 @@ struct(T) AnonymousUnionFieldHolder
 #test
 {
     var anonymousStruct: AnonymousStructBufferHolder'(u8, 4)
-    var anonymousUnion: AnonymousUnionFieldHolder's32
+    var anonymousUnion:  AnonymousUnionFieldHolder's32
 
     anonymousStruct.inner.item.values[0] = 3
     anonymousStruct.inner.item.values[3] = 5
-    anonymousUnion.inner.item.value = 42
+    anonymousUnion.inner.item.value      = 42
 
     #assert(#typeof(anonymousStruct.inner.item.values) == #type [4] u8)
     #assert(#typeof(anonymousUnion.inner.item.value) == s32)

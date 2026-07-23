@@ -32,7 +32,7 @@ func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
 
 func semaTest003()
 {
-    let holder: ConstAddrHolder = {value: {x: 123}}
+    let holder:   ConstAddrHolder = {value: {x: 123}}
     var valueRef: const &ConstAddrValue = &holder.value
     let result = readConstAddr(&holder.value)
 
@@ -107,7 +107,7 @@ func semaTest005()
 
 func semaTest006()
 {
-    var value: f32 = 1.5
+    var value:    f32 = 1.5
     let valueRef: const &f32 = &value
     let copied = cast(f32) valueRef
     let sum = valueRef + 2.5'f32
@@ -178,7 +178,7 @@ func semaTest013()
     var index = 0's64
 
     let valueRef: &s32 = &values.ref1(index)
-    total += valueRef
+    total    += valueRef
     valueRef += 5
 
     #assert(#typeof(valueRef) == #type &s32)

@@ -33,7 +33,7 @@ const N = 8
         if isEven(src[i])
         {
             dst[count] = src[i]
-            count += 1
+            count      += 1
         }
     }
 
@@ -49,7 +49,7 @@ const N = 8
 {
     var src: [N] s32 = [1, 2, 3, 4, 5, 6, 7, 8]
 
-    let add: func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
+    let add:   func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
     var total: s32 = 0
     for i in @countof(src) do
         total = add(total, src[i])
@@ -61,7 +61,7 @@ const N = 8
 #test
 {
     var src: [4] s32 = [2, 3, 4, 5]
-    let mul: func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
+    let mul:     func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
     var product: s32 = 1
     for i in @countof(src) do
         product = mul(product, src[i])
@@ -105,7 +105,7 @@ const N = 8
         if aboveFive(src[i])
         {
             dst[dstCount] = src[i]
-            dstCount += 1
+            dstCount      += 1
         }
     }
 
@@ -126,8 +126,8 @@ const N = 8
     var filteredCount: u32 = 0
 
     let square: func||(s32)->s32 = func(x: s32)->s32 { return x * x }
-    let gtTen: func||(s32)->bool = func(x: s32)->bool { return x > 10 }
-    let add: func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
+    let gtTen:  func||(s32)->bool = func(x: s32)->bool { return x > 10 }
+    let add:    func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
 
     for i in @countof(src) do
         mapped[i] = square(src[i])
@@ -137,7 +137,7 @@ const N = 8
         if gtTen(mapped[i])
         {
             filtered[filteredCount] = mapped[i]
-            filteredCount += 1
+            filteredCount           += 1
         }
     }
 
@@ -170,7 +170,7 @@ struct Pair { a, b: s32 }
 
 #test
 {
-    let pair: Pair = {a: 7, b: 4}
+    let pair:  Pair = {a: 7, b: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.a + pair.b * value }
     @assert(apply(3) == 19)
     @assert(apply(0) == 7)

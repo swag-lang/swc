@@ -10,9 +10,9 @@
 
 using Core, Ogl
 
-var g_Window:    Env.Window
-var g_Context:   Ogl.Platform.Win32.Context
-var g_Frame:     Time.FrameTiming
+var g_Window:  Env.Window
+var g_Context: Ogl.Platform.Win32.Context
+var g_Frame:   Time.FrameTiming
 
 var g_VertexBuffer: GLuint
 var g_IndexBuffer:  GLuint
@@ -113,8 +113,8 @@ impl Mat4
     func identity()->Mat4
     {
         var r: Mat4
-        r.m[0] = 1
-        r.m[5] = 1
+        r.m[0]  = 1
+        r.m[5]  = 1
         r.m[10] = 1
         r.m[15] = 1
         return r
@@ -130,7 +130,7 @@ impl Mat4
             {
                 var sum = 0'f32
                 for k in 4 do
-                    sum += a.m[k * 4 + row] * b.m[col * 4 + k]
+                    sum            += a.m[k * 4 + row] * b.m[col * 4 + k]
                 r.m[col * 4 + row] = sum
             }
         }

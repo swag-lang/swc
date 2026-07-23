@@ -7,8 +7,16 @@ const IconButtonHeadless_Command = "IconButtonHeadless.Command"
 var IconButtonHeadlessPressedCount: u32
 var IconButtonHeadlessCheckCount:   u32
 
-func iconButtonHeadlessPressed(btn: *Button)    { discard btn; IconButtonHeadlessPressedCount += 1 }
-func iconButtonHeadlessChecked(btn: *IconButton) { discard btn; IconButtonHeadlessCheckCount += 1 }
+func iconButtonHeadlessPressed(btn: *Button)
+{
+    discard btn;
+    IconButtonHeadlessPressedCount += 1
+}
+func iconButtonHeadlessChecked(btn: *IconButton)
+{
+    discard btn;
+    IconButtonHeadlessCheckCount += 1
+}
 
 func iconButtonHeadlessReset()
 {
@@ -87,8 +95,8 @@ func iconButtonHeadlessReset()
     host.setup(120, 120)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
-    btn.isHot = true
-    btn.isPressed = true
+    btn.isHot          = true
+    btn.isPressed      = true
     btn.aniBk.themeCrc = 42'u32
 
     btn.hide()
@@ -107,12 +115,12 @@ func iconButtonHeadlessReset()
     host.setup(120, 120)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
-    btn.isHot = true
-    btn.isIn = true
-    btn.isPressed = true
-    btn.isPressing = true
-    btn.aniBk.themeCrc = 42'u32
-    host.app.mouseEnterWnd = btn
+    btn.isHot                = true
+    btn.isIn                 = true
+    btn.isPressed            = true
+    btn.isPressing           = true
+    btn.aniBk.themeCrc       = 42'u32
+    host.app.mouseEnterWnd   = btn
     host.app.mouseCaptureWnd = btn
 
     btn.disable()

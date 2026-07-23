@@ -83,10 +83,10 @@ struct(T, Count: s32) FloatHistory
 
 #test
 {
-    let point: FloatPoint'f64 = {x: 1.0, y: 2.0}
-    let fixed: FixedNumbers'(s64, 3) = {values: [10, 20, 30]}
+    let point:      FloatPoint'f64 = {x: 1.0, y: 2.0}
+    let fixed:      FixedNumbers'(s64, 3) = {values: [10, 20, 30]}
     let defaultBox: DefaultFloatBox = {value: 4.0}
-    let twin: TwinValue's32 = {first: 1, second: 2}
+    let twin:       TwinValue's32 = {first: 1, second: 2}
 
     #assert(#typeof(point.x) == f64)
     #assert(#typeof(fixed.values[0]) == s64)
@@ -103,9 +103,9 @@ struct(T, Count: s32) FloatHistory
 #test
 {
     let compact: SmallVector'(u16, 2) = {values: [10'u16, 20]}
-    let small: SmallVector'u8 = {values: [1'u8, 2, 3, 4]}
+    let small:   SmallVector'u8 = {values: [1'u8, 2, 3, 4]}
     let segment: FloatSegment'f32 = {start: {x: 0.0, y: 1.0}, stop: {x: 2.0, y: 3.0}}
-    var matrix: DenseMatrix'(f32, 2, 3)
+    var matrix:  DenseMatrix'(f32, 2, 3)
 
     matrix.data[0] = 1.0
     matrix.data[5] = 6.0
@@ -124,8 +124,8 @@ struct(T, Count: s32) FloatHistory
 
 #test
 {
-    let square: SquareMatrix'(f32, 2) = {data: [1.0'f32, 2.0, 3.0, 4.0]}
-    let safe: BoundedRange'(f32, 0, 100) = {min: 10.0, max: 90.0}
+    let square:  SquareMatrix'(f32, 2) = {data: [1.0'f32, 2.0, 3.0, 4.0]}
+    let safe:    BoundedRange'(f32, 0, 100) = {min: 10.0, max: 90.0}
     let history: FloatHistory'(f64, 3) = {values: [1.0'f64, 2.0, 3.0]}
 
     #assert(#typeof(square.data) == #type [4] f32)

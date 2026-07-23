@@ -3,8 +3,8 @@
 // Advent of Code 2024 Day 5: validate page ordering rules and repair invalid
 // updates through mutable/const references only, on fixed storage.
 
-const MaxRules = 21'u32
-const MaxUpdates = 6'u32
+const MaxRules       = 21'u32
+const MaxUpdates     = 6'u32
 const MaxUpdatePages = 5'u32
 
 struct RulePair
@@ -174,7 +174,7 @@ func isOrderedUpdate(scenario: const &PrintQueueScenario, update: const &Update)
         let rule = &scenario.rules[cast(u32) @index]
 
         var beforeIndex: u32
-        var afterIndex: u32
+        var afterIndex:  u32
         let hasBefore = findPageIndex(&beforeIndex, update, rule.before)
         let hasAfter = findPageIndex(&afterIndex, update, rule.after)
 
@@ -224,8 +224,8 @@ func repairUpdate(result: &Update, scenario: const &PrintQueueScenario, source: 
 
             writePage(&result.pages[writeIndex], source[candidateIndex])
             used[candidateIndex] = true
-            writeIndex += 1'u32
-            found = true
+            writeIndex           += 1'u32
+            found                = true
             break
         }
 

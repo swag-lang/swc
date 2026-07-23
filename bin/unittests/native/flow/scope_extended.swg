@@ -83,7 +83,7 @@
         var i = 0
         while i < 100
         {
-            i += 1
+            i     += 1
             count += 1
             if i == 5 do
                 break to Outer
@@ -100,7 +100,7 @@
     var sum = 0
     #scope(Loop)
     {
-        i += 1
+        i   += 1
         sum += i
         if i < 5 do
             continue

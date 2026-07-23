@@ -87,7 +87,7 @@ func semaTest005()
 func semaTest006()
 {
     const s: string = "abc"
-    const p = @dataof(s)
+    const p         = @dataof(s)
     #assert(p != null)
     #assert(dref p == 'a''u8)
 }
@@ -95,7 +95,7 @@ func semaTest006()
 func semaTest007()
 {
     const s: const [..] u8 = cast(const [..] u8) "abc"
-    const p = @dataof(s)
+    const p                = @dataof(s)
     #assert(p != null)
     #assert(dref p == 'a''u8)
 }
@@ -103,7 +103,7 @@ func semaTest007()
 func semaTest008()
 {
     const arr: [2] s32 = [7, 9]
-    const p = @dataof(arr)
+    const p            = @dataof(arr)
     #assert(p != null)
     #assert(dref p == 7)
 }

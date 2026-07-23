@@ -3,7 +3,7 @@
 // Real-life example: route a cart through a hallway network where moving
 // forward is cheap but every turn is expensive.
 
-const MaxHallwayCells = 256
+const MaxHallwayCells  = 256
 const MaxHallwayStates = MaxHallwayCells * 4
 
 struct RouteReport
@@ -63,7 +63,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     var cells: [MaxHallwayCells] u8
     var startCell: u32
-    var endCell: u32
+    var endCell:   u32
 
     for _, rowIndex in layout
     {
@@ -90,12 +90,12 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     for MaxHallwayStates
     {
-        dist[@index] = Swag.U64.Max
+        dist[@index]  = Swag.U64.Max
         steps[@index] = Swag.U32.Max
     }
 
     let startState = stateIndex(startCell, 0)
-    dist[startState] = 0'u64
+    dist[startState]  = 0'u64
     steps[startState] = 0'u32
 
     let stateCount = totalCells * 4'u32
@@ -115,8 +115,8 @@ func analyzeRoute(layout: const [..] string)->RouteReport
             let candidateDistance = dist[candidate]
             if candidateDistance < bestDistance or candidateDistance == bestDistance and steps[candidate] < bestStepCount
             {
-                bestState = candidate
-                bestDistance = candidateDistance
+                bestState     = candidate
+                bestDistance  = candidateDistance
                 bestStepCount = steps[candidate]
             }
         }
@@ -142,7 +142,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
             if candidateDistance < dist[forwardState] or candidateDistance == dist[forwardState] and candidateSteps < steps[forwardState]
             {
-                dist[forwardState] = candidateDistance
+                dist[forwardState]  = candidateDistance
                 steps[forwardState] = candidateSteps
             }
         }
@@ -153,14 +153,14 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         let rightState = stateIndex(cell, rightDirection)
         if bestDistance + 1000'u64 < dist[rightState] or bestDistance + 1000'u64 == dist[rightState] and bestStepCount < steps[rightState]
         {
-            dist[rightState] = bestDistance + 1000'u64
+            dist[rightState]  = bestDistance + 1000'u64
             steps[rightState] = bestStepCount
         }
 
         let leftState = stateIndex(cell, leftDirection)
         if bestDistance + 1000'u64 < dist[leftState] or bestDistance + 1000'u64 == dist[leftState] and bestStepCount < steps[leftState]
         {
-            dist[leftState] = bestDistance + 1000'u64
+            dist[leftState]  = bestDistance + 1000'u64
             steps[leftState] = bestStepCount
         }
     }

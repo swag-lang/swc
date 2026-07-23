@@ -5,10 +5,10 @@
 
 struct BatteryAudit
 {
-    bankCount:     u32
-    totalOutput:   s32
-    highestBank:   s32
-    lowestBank:    s32
+    bankCount:   u32
+    totalOutput: s32
+    highestBank: s32
+    lowestBank:  s32
 }
 
 func maxS32(lhs, rhs: s32)->s32
@@ -51,7 +51,7 @@ func bestBankOutput(bank: string)->s32
 func auditBanks(banks: const [..] string)->BatteryAudit
 {
     var result: BatteryAudit
-    result.bankCount = cast(u32) @countof(banks)
+    result.bankCount  = cast(u32) @countof(banks)
     result.lowestBank = Swag.S32.Max
 
     for bank in banks
@@ -59,7 +59,7 @@ func auditBanks(banks: const [..] string)->BatteryAudit
         let output = bestBankOutput(bank)
         result.totalOutput += output
         result.highestBank = maxS32(result.highestBank, output)
-        result.lowestBank = minS32(result.lowestBank, output)
+        result.lowestBank  = minS32(result.lowestBank, output)
     }
 
     return result

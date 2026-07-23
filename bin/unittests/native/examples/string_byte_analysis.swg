@@ -4,12 +4,12 @@
 
 struct CsvPreview
 {
-    rowCount:            u32
-    columnCount:         u32
-    numericCellCount:    u32
-    longestLineLength:   u32
-    hasQuotedField:      bool
-    byteCount:           u32
+    rowCount:          u32
+    columnCount:       u32
+    numericCellCount:  u32
+    longestLineLength: u32
+    hasQuotedField:    bool
+    byteCount:         u32
 }
 
 func countRows(csv: string)->u32
@@ -51,7 +51,7 @@ func countNumericCells(csv: string)->u32
 {
     let bytes = cast(const [..] u8) csv
 
-    var result: u32
+    var result:   u32
     var rowIndex: u32
     var cellStart = true
 
@@ -66,7 +66,7 @@ func countNumericCells(csv: string)->u32
 
         if ch == '\n''u8
         {
-            rowIndex += 1
+            rowIndex  += 1
             cellStart = true
         }
     }
@@ -78,7 +78,7 @@ func longestLineLength(csv: string)->u32
 {
     let bytes = cast(const [..] u8) csv
 
-    var best: u32
+    var best:    u32
     var current: u32
 
     for ch in bytes
@@ -87,7 +87,7 @@ func longestLineLength(csv: string)->u32
         {
             if current > best do
                 best = current
-            current = 0
+            current  = 0
         }
         else
         {
@@ -118,12 +118,12 @@ func buildCsvPreview(csv: string)->CsvPreview
     let bytes = cast(const [..] u8) csv
 
     var result: CsvPreview
-    result.rowCount = countRows(csv)
-    result.columnCount = countColumns(csv)
-    result.numericCellCount = countNumericCells(csv)
+    result.rowCount          = countRows(csv)
+    result.columnCount       = countColumns(csv)
+    result.numericCellCount  = countNumericCells(csv)
     result.longestLineLength = longestLineLength(csv)
-    result.hasQuotedField = hasQuotedField(csv)
-    result.byteCount = cast(u32) @countof(bytes)
+    result.hasQuotedField    = hasQuotedField(csv)
+    result.byteCount         = cast(u32) @countof(bytes)
     return result
 }
 

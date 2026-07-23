@@ -371,7 +371,7 @@ impl IRichEditLexer for RichEditLexerSwag
     {
         using RichEditLexerSwag.Style
         ed.styles[Comment].colFg      = 0xFF6A9955
-        ed.styles[Keyword].colFg      = 0xFF569cd6
+        ed.styles[Keyword].colFg      = 0xFF569CD6
         ed.styles[Control].colFg      = 0xFFD8A0DF
         ed.styles[Intrinsic].colFg    = 0xFFDCDCAA
         ed.styles[Buildin].colFg      = 0xFFF67F56
@@ -448,7 +448,7 @@ impl IRichEditLexer for RichEditLexerSwag
             if seek >= line.chars.count do
                 return
             line.styles[seek] = .mapStyles[currentState]
-            seek += 1
+            seek              += 1
         }
 
         for
@@ -634,7 +634,7 @@ impl IRichEditLexer for RichEditLexerSwag
                     {
                         word += c
                         seek += 1
-                        c = getCur()
+                        c    = getCur()
                     }
 
                     let seekEnd = seek
@@ -705,7 +705,7 @@ impl IRichEditLexer for RichEditLexerSwag
                 if c == '/' and cn == '*'
                 {
                     currentCptCmt += 1
-                    currentState = State.Comment
+                    currentState  = State.Comment
                     .seekNext()
                     .seekNext()
                     continue

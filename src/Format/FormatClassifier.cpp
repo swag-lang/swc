@@ -234,7 +234,7 @@ namespace
             return i;
         }
 
-        void registerBlock(const uint32_t openPiece, const FormatBlockKind kind, const uint32_t headPiece) const
+        void registerBlock(const uint32_t openPiece, const FormatBlockKind kind, const uint32_t headPiece, const bool exprLevel = false) const
         {
             if (openPiece == INVALID_PIECE)
                 return;
@@ -255,6 +255,7 @@ namespace
             block.closePiece = open.match;
             block.headPiece  = headPiece == INVALID_PIECE ? openPiece : headPiece;
             block.kind       = kind;
+            block.exprLevel  = exprLevel;
             model_->blocks().push_back(block);
 
             addRole(openPiece, FormatRoleE::BlockOpen);
@@ -577,7 +578,7 @@ namespace
                 {
                     const auto&    fn       = node.cast<AstFunctionExpr>();
                     const NodeSpan bodySpan = spanOf(fn.nodeBodyRef);
-                    registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece);
+                    registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece, true);
 
                     const NodeSpan returnSpan = spanOf(fn.nodeReturnTypeRef);
                     if (returnSpan.valid())
@@ -589,7 +590,7 @@ namespace
                 {
                     const auto&    fn       = node.cast<AstClosureExpr>();
                     const NodeSpan bodySpan = spanOf(fn.nodeBodyRef);
-                    registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece);
+                    registerBlock(bodyOpenBrace(bodySpan), FormatBlockKind::Function, span.minPiece, true);
                     break;
                 }
 
@@ -633,7 +634,7 @@ namespace
                     uint32_t       open     = bodyOpenBrace(bodySpan);
                     if (open == INVALID_PIECE && span.valid())
                         open = findHeaderOpenBrace(span.minPiece);
-                    registerBlock(open, FormatBlockKind::Struct, span.minPiece);
+                    registerBlock(open, FormatBlockKind::Struct, span.minPiece, true);
                     break;
                 }
 
@@ -890,11 +891,14 @@ namespace
 
                 case AstNodeId::StructInitializerList:
                 {
+                    // The `{` may sit after the closing `)` / `}` of the type
+                    // expression (`Type'(args){...}`, `struct { ... }{...}`),
+                    // which the span excludes.
                     const auto&    init     = node.cast<AstStructInitializerList>();
                     const NodeSpan whatSpan = spanOf(init.nodeWhatRef);
                     if (whatSpan.valid())
                     {
-                        const uint32_t open = nextCodeIf(whatSpan.maxPiece, TokenId::SymLeftCurly);
+                        const uint32_t open = nextCodeAfterOperandIf(whatSpan.maxPiece, TokenId::SymLeftCurly);
                         if (open != INVALID_PIECE && model_->piece(open).match != INVALID_PIECE)
                         {
                             addRole(open, FormatRoleE::LiteralOpen);

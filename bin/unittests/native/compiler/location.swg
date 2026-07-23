@@ -6,7 +6,7 @@ func markerFunction()->s32
     return 42
 }
 
-const MarkerLocation = #location(MarkerValue)
+const MarkerLocation   = #location(MarkerValue)
 const FunctionLocation = #location(markerFunction)
 
 #assert(MarkerLocation.fileName != null)

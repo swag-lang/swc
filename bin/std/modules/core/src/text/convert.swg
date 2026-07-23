@@ -4,16 +4,16 @@ using Swag, Globalization
 
 struct ConvertFormat
 {
-    formatInt:       ConvertFormatInt
-    formatFloat:     ConvertFormatFloat
+    formatInt:   ConvertFormatInt
+    formatFloat: ConvertFormatFloat
 }
 
 // Format structure to convert a float to a string
 struct ConvertFormatFloat
 {
-    precision:     s8 = -1     // -1 is for 'most possible precision'
-    fmt:           u8 = 'f''u8
-    forceSign:     bool
+    precision: s8 = -1     // -1 is for 'most possible precision'
+    fmt:       u8 = 'f''u8
+    forceSign: bool
 }
 
 impl ConvertFormatFloat
@@ -45,7 +45,7 @@ impl ConvertFormatFloat
         if buffer[cpt] == '+''u8
         {
             .forceSign = true
-            cpt += 1
+            cpt        += 1
         }
 
         // Format
@@ -55,7 +55,7 @@ impl ConvertFormatFloat
             {
             case 'e''u8, 'E''u8, 'f''u8, 'g''u8, 'G''u8:
                 .fmt = buffer[cpt]
-                cpt += 1
+                cpt  += 1
             }
         }
 
@@ -76,10 +76,10 @@ impl ConvertFormatFloat
 // be stored in 'unsignedValue'.
 struct ConvertFormatInt
 {
-    base:          u32 = 10
-    padding:       u8
-    width:         u8
-    forceSign:     bool
+    base:      u32 = 10
+    padding:   u8
+    width:     u8
+    forceSign: bool
 }
 
 impl ConvertFormatInt
@@ -111,7 +111,7 @@ impl ConvertFormatInt
         if buffer[cpt] == '+''u8
         {
             .forceSign = true
-            cpt += 1
+            cpt        += 1
         }
 
         // Base
@@ -119,22 +119,22 @@ impl ConvertFormatInt
         {
         case 'B''u8:
             .base = 2
-            cpt += 1
+            cpt   += 1
 
         case 'D''u8:
             .base = 10
-            cpt += 1
+            cpt   += 1
 
         case 'X''u8:
             .base = 16
-            cpt += 1
+            cpt   += 1
         }
 
         // Next comes the padding characters
         if cpt >= countof do
             return
         .padding = buffer[cpt]
-        cpt += 1
+        cpt      += 1
 
         // Next comes the padding width
         if cpt >= countof do
@@ -412,7 +412,7 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
     if overflowS64
     {
         let c = Tbl[8 % fmt.base]
-        tmp[cpt] = c
+        tmp[cpt]  = c
         cpt, bits -= 1
         switch fmt.base
         {
@@ -429,8 +429,8 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
     {
         let c = Tbl[value64 % fmt.base]
         tmp[cpt] = c
-        cpt -= 1
-        value64 /= cast(u64) fmt.base
+        cpt      -= 1
+        value64  /= cast(u64) fmt.base
         if !value64 do
             break
     }
@@ -447,7 +447,7 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
                 break
             tmp[cpt] = fmt.padding
             curWidth += 1
-            cpt -= 1
+            cpt      -= 1
         }
     }
 
@@ -455,12 +455,12 @@ func convertInt(buf: *ConcatBuffer, value: #null const any, fmt: ConvertFormatIn
     if signedValue < 0
     {
         tmp[cpt] = cast(u8) g_CultureInfo.numberFormat.negativeSign
-        cpt -= 1
+        cpt      -= 1
     }
     elif fmt.forceSign
     {
         tmp[cpt] = cast(u8) g_CultureInfo.numberFormat.positiveSign
-        cpt -= 1
+        cpt      -= 1
     }
 
     buf.addBytes(cast([..] u8) @mkslice(&tmp[cpt + 1], cast(u64) 63 - cpt))

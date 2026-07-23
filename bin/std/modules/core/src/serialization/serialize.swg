@@ -33,9 +33,9 @@ interface ISerialize
 
 struct Serializer
 {
-    encode:      #null IEncoder
-    decode:      #null IDecoder
-    isWrite:     bool
+    encode:  #null IEncoder
+    decode:  #null IDecoder
+    isWrite: bool
 }
 
 impl Serializer

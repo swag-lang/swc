@@ -149,7 +149,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -196,7 +199,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -242,7 +248,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -287,7 +296,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -332,7 +344,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -377,7 +392,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -420,7 +438,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -460,7 +481,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -502,7 +526,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -540,7 +567,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -582,7 +612,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -629,7 +662,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -692,7 +728,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -722,7 +761,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     // FileHeader (14 bytes) + only 4 bytes of DIB header (biSize = 40, non-CoreHeader path).
     // The decoder will see size=40 != 12 and then check dataof+sizeof(Header) > last, then throw.
@@ -746,7 +788,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     var fh: BmpFH
@@ -789,7 +834,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(4, 4, .BGR8)
     src.clear()
@@ -815,7 +863,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(5, 5, .BGR8)
     src.clear()
@@ -840,7 +891,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(4, 4, .BGR8)
     src.clear()
@@ -868,7 +922,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
@@ -894,16 +951,19 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
-    src.pixels.buffer[0]  = 10'u8      // pixel(0,0) B
-    src.pixels.buffer[1]  = 20'u8      //             G
-    src.pixels.buffer[2]  = 30'u8      //             R
-    src.pixels.buffer[3]  = 200'u8     //             A
-    src.pixels.buffer[4]  = 50'u8      // pixel(1,0) B
-    src.pixels.buffer[7]  = 128'u8     // pixel(1,0) A
+    src.pixels.buffer[0] = 10'u8      // pixel(0,0) B
+    src.pixels.buffer[1] = 20'u8      //             G
+    src.pixels.buffer[2] = 30'u8      //             R
+    src.pixels.buffer[3] = 200'u8     //             A
+    src.pixels.buffer[4] = 50'u8      // pixel(1,0) B
+    src.pixels.buffer[7] = 128'u8     // pixel(1,0) A
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -927,7 +987,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(4, 4, .RGB8)
     src.clear()
@@ -958,7 +1021,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(2, 2, .RGBA8)
     src.clear()
@@ -991,7 +1057,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempBmpPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(5, 5, .BGR8)
     src.clear()

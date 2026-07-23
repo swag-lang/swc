@@ -63,7 +63,7 @@ func(T, U) choose(value: T, other: U)->bool
 {
     let ok = GenericFreeAlias'(bool)(true, 2.5'f32)
     let local = functionLocalAliasBox'u16(12)
-    let boxed: GenericBoxAlias'bool = {value: true}
+    let boxed:   GenericBoxAlias'bool = {value: true}
     let wrapped: WrapperAliasBox'f32 = {item: {value: 3.5}}
 
     #assert(#typeof(ok) == bool)

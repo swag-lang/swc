@@ -1,10 +1,10 @@
 #global private
 
-var LeakLastDropAddr: #null [*] void
-var LeakLastDropSelf: #null [*] u8
-var LeakLastDropTag:  s32
-var LeakFirstDropAddr: #null [*] void
-var LeakFirstDropTag:  s32
+var LeakLastDropAddr:   #null [*] void
+var LeakLastDropSelf:   #null [*] u8
+var LeakLastDropTag:    s32
+var LeakFirstDropAddr:  #null [*] void
+var LeakFirstDropTag:   s32
 var LeakSecondDropAddr: #null [*] void
 var LeakSecondDropTag:  s32
 
@@ -28,18 +28,18 @@ func makeLeakWideKey(left: u64, right: u16)->LeakWideKey
 
 func leakResetDropProbe()
 {
-    LeakLastDropAddr = null
-    LeakLastDropSelf = null
-    LeakLastDropTag = 0
-    LeakFirstDropAddr = null
-    LeakFirstDropTag = 0
-    LeakSecondDropAddr = null
-    LeakSecondDropTag = 0
+    LeakLastDropAddr     = null
+    LeakLastDropSelf     = null
+    LeakLastDropTag      = 0
+    LeakFirstDropAddr    = null
+    LeakFirstDropTag     = 0
+    LeakSecondDropAddr   = null
+    LeakSecondDropTag    = 0
     LeakExpectedDropAddr = null
     LeakExpectedDropSelf = null
-    LeakExpectedDropTag = 0
-    LeakExpectDrop = false
-    LeakDropCount = 0
+    LeakExpectedDropTag  = 0
+    LeakExpectDrop       = false
+    LeakDropCount        = 0
 }
 
 // The probe intentionally publishes caller-local addresses into the global drop
@@ -47,21 +47,21 @@ func leakResetDropProbe()
 #[Swag.Sanity(.Lifecycle, false)]
 func leakArmExpectedDrop(addr: [*] void, self: [*] u8, tag: s32)
 {
-    LeakLastDropAddr = null
-    LeakLastDropSelf = null
-    LeakLastDropTag = 0
+    LeakLastDropAddr     = null
+    LeakLastDropSelf     = null
+    LeakLastDropTag      = 0
     LeakExpectedDropAddr = addr
     LeakExpectedDropSelf = self
-    LeakExpectedDropTag = tag
-    LeakExpectDrop = true
+    LeakExpectedDropTag  = tag
+    LeakExpectDrop       = true
 }
 
 func leakDisarmExpectedDrop()
 {
-    LeakExpectDrop = false
+    LeakExpectDrop       = false
     LeakExpectedDropAddr = null
     LeakExpectedDropSelf = null
-    LeakExpectedDropTag = 0
+    LeakExpectedDropTag  = 0
 }
 
 struct LeakTrackedValue
@@ -76,10 +76,10 @@ impl LeakTrackedValue
     #[Implicit]
     mtd opSet(tag: s32)
     {
-        .tag = tag
+        .tag        = tag
         .storage[0] = cast(u8) tag
         .storage[1] = cast(u8) (tag + 1)
-        .self = cast([*] u8) &.storage[0]
+        .self       = cast([*] u8) &.storage[0]
     }
 
     mtd opPostCopy()
@@ -100,16 +100,16 @@ impl LeakTrackedValue
         if LeakDropCount == 1
         {
             LeakFirstDropAddr = dropAddr
-            LeakFirstDropTag = .tag
+            LeakFirstDropTag  = .tag
         }
         if LeakDropCount == 2
         {
             LeakSecondDropAddr = dropAddr
-            LeakSecondDropTag = .tag
+            LeakSecondDropTag  = .tag
         }
         LeakLastDropAddr = dropAddr
         LeakLastDropSelf = .self
-        LeakLastDropTag = .tag
+        LeakLastDropTag  = .tag
 
         if LeakExpectDrop
         {
@@ -150,11 +150,11 @@ impl LeakTable
     #[Swag.NoInline]
     mtd put(index: s32, key: K, value: V)
     {
-        .entries[index].head = cast(u32) index + 1
-        .entries[index].key = #nodrop key
+        .entries[index].head  = cast(u32) index + 1
+        .entries[index].key   = #nodrop key
         .entries[index].value = #nodrop value
-        .entries[index].tail = cast(u16) index + 10
-        .live[index] = true
+        .entries[index].tail  = cast(u16) index + 10
+        .live[index]          = true
     }
 
     #[Swag.NoInline]

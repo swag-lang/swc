@@ -1,7 +1,7 @@
 struct ActionImage {}
 
-var g_KeepRatio:  bool = true
-var g_ResizeMode: u64 = 5
+var g_KeepRatio:       bool = true
+var g_ResizeMode:      u64 = 5
 var g_Width, g_Height: s32
 
 impl ActionImage
@@ -201,8 +201,8 @@ impl MainWnd
         func createBtn(dlg: *Wnd, pos: Math.Rectangle, id: u64)
         {
             let btn = CheckButton.create(dlg, " ", pos)
-            btn.checked  = g_ResizeMode == id ? .Undefined : .UnChecked
-            btn.userData = cast(*void) id
+            btn.checked    = g_ResizeMode == id ? .Undefined : .UnChecked
+            btn.userData   = cast(*void) id
             btn.sigChanged += func(btn)
             {
                 for c in btn.parent.childs
@@ -268,7 +268,7 @@ impl MainWnd
         }
 
         let btnRatio = CheckButton.create(dlg, "Keep Ratio", {70, 85})
-        btnRatio.checked = g_KeepRatio ? .Checked : .UnChecked
+        btnRatio.checked    = g_KeepRatio ? .Checked : .UnChecked
         btnRatio.sigChanged += func||(btn)
         {
             g_KeepRatio = btn.isChecked()
@@ -486,9 +486,9 @@ impl MainWnd
         {
             with let undo = capture.newUndo(.MoveCapture)
             {
-                .newPosX -= cast(s32) minX
+                .newPosX  -= cast(s32) minX
                 .newSizeX -= cast(s32) minX
-                .newPosY -= cast(s32) minY
+                .newPosY  -= cast(s32) minY
                 .newSizeY -= cast(s32) minY
                 .newSizeX -= cast(s32) (capture.width - maxX)
                 .newSizeY -= cast(s32) (capture.height - maxY)
@@ -517,7 +517,7 @@ impl MainWnd
             let dh = Math.max(0, (capture.backImagePos.y + capture.backImg.height) - capture.height)
             cropRect.moveLeft(dx)
             cropRect.moveTop(dy)
-            cropRect.width -= dw
+            cropRect.width  -= dw
             cropRect.height -= dh
 
             // Cropping is a real backImg mutation: snapshot the first original before it.

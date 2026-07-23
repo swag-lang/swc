@@ -23,9 +23,9 @@ struct ColorPickerCtrl
 {
     using frameWnd:     FrameWnd
 
-    sigChanged:         SigArray'func||(*ColorPickerCtrl)
-    oldColor:           Color
-    color:              Color
+    sigChanged: SigArray'func||(*ColorPickerCtrl)
+    oldColor:   Color
+    color:      Color
     pickerFlags         = ColorPickerFlags.All
 
     oldColorDone:       bool
@@ -157,14 +157,14 @@ impl ColorPickerCtrl
 
             var l = Label.create(v, "A", {.editA.position.x, .editA.position.bottom() + 0, .editA.position.width})
             l.labelFlags |= .LightText
-            l = Label.create(v, "R", {.editR.position.x, .editR.position.bottom() + 0, .editR.position.width})
+            l            = Label.create(v, "R", {.editR.position.x, .editR.position.bottom() + 0, .editR.position.width})
             l.labelFlags |= .LightText
-            l = Label.create(v, "G", {.editG.position.x, .editG.position.bottom() + 0, .editG.position.width})
+            l            = Label.create(v, "G", {.editG.position.x, .editG.position.bottom() + 0, .editG.position.width})
             l.labelFlags |= .LightText
-            l = Label.create(v, "B", {.editB.position.x, .editB.position.bottom() + 0, .editB.position.width})
+            l            = Label.create(v, "B", {.editB.position.x, .editB.position.bottom() + 0, .editB.position.width})
             l.labelFlags |= .LightText
 
-            l = Label.create(v, flags.has(.Alpha) ? "ARGB" : "RGB", {.editH.position.x, .editH.position.bottom() + 0, .editH.position.width})
+            l            = Label.create(v, flags.has(.Alpha) ? "ARGB" : "RGB", {.editH.position.x, .editH.position.bottom() + 0, .editH.position.width})
             l.labelFlags |= .LightText
 
             .radioH = RadioButton.create(v, "H", {280, 10, 40})
@@ -278,7 +278,7 @@ impl ColorPickerCtrl
             }
 
             .editR.setInputU64(0, 255)
-            .editR.maxLength = 3
+            .editR.maxLength    = 3
             .editR.sigLoseFocus += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text)
@@ -287,7 +287,7 @@ impl ColorPickerCtrl
             }
 
             .editG.setInputU64(0, 255)
-            .editG.maxLength = 3
+            .editG.maxLength    = 3
             .editG.sigLoseFocus += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text)
@@ -296,7 +296,7 @@ impl ColorPickerCtrl
             }
 
             .editB.setInputU64(0, 255)
-            .editB.maxLength = 3
+            .editB.maxLength    = 3
             .editB.sigLoseFocus += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text)
@@ -305,7 +305,7 @@ impl ColorPickerCtrl
             }
 
             .editA.setInputU64(0, 255)
-            .editA.maxLength = 3
+            .editA.maxLength    = 3
             .editA.sigLoseFocus += func|v|(ed)
             {
                 var res = catch StrConv.parseU32(ed.text)
@@ -315,13 +315,13 @@ impl ColorPickerCtrl
             }
 
             .editH.setInputX64(0, 0xFFFFFFFF)
-            .editH.maxLength = 8
+            .editH.maxLength    = 8
             .editH.sigLoseFocus += func|v|(ed)
             {
                 var res = catch StrConv.parseX64(ed.text)
                 if !v.pickerFlags.has(.Alpha) do
                     res.value |= 0xFF000000
-                v.color.argb = cast(u32) res.value
+                v.color.argb  = cast(u32) res.value
                 v.pickAlpha.setColor(v.color)
                 v.updateAll()
             }
@@ -393,7 +393,7 @@ impl ColorPickerCtrl
                 }
             }
 
-            .boxSize = 32
+            .boxSize    = 32
             .sigChanged += func|picker|(pal)
             {
                 if !pal.selectedColor.a or !picker.color.a do

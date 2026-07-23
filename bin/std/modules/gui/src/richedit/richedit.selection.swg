@@ -12,7 +12,7 @@ private impl RichEditCtrl
         var rb = 0'u64
         while x < .selRectangle.x and rb < len
         {
-            x += .getRuneSize(line, rb, x).x
+            x  += .getRuneSize(line, rb, x).x
             rb += 1
         }
 
@@ -23,7 +23,7 @@ private impl RichEditCtrl
         var re = rb
         while x < .selRectangle.right() and re < len
         {
-            x += .getRuneSize(line, re, x).x
+            x  += .getRuneSize(line, re, x).x
             re += 1
         }
 

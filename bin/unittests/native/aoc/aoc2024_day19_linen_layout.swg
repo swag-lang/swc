@@ -22,10 +22,10 @@ bbrgwb"""
 // Pattern storage
 // ---------------------------------------------------------------------------
 
-const MaxPatterns = 512'u32
-const MaxPatLen   = 16'u32
+const MaxPatterns  = 512'u32
+const MaxPatLen    = 16'u32
 const MaxDesignLen = 128'u32
-const MaxDesigns  = 512'u32
+const MaxDesigns   = 512'u32
 
 struct Pattern
 {
@@ -119,7 +119,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
             if pat.len < MaxPatLen
             {
                 pat.bytes[pat.len] = ch
-                pat.len += 1
+                pat.len            += 1
             }
             pos += 1
         }
@@ -127,7 +127,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
         if pat.len > 0 and result.patterns.count < MaxPatterns
         {
             result.patterns.items[result.patterns.count] = pat
-            result.patterns.count += 1
+            result.patterns.count                        += 1
         }
     }
 
@@ -163,7 +163,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
             if des.len < MaxDesignLen
             {
                 des.bytes[des.len] = ch
-                des.len += 1
+                des.len            += 1
             }
             pos += 1
         }
@@ -171,7 +171,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
         if des.len > 0 and result.designs.count < MaxDesigns
         {
             result.designs.items[result.designs.count] = des
-            result.designs.count += 1
+            result.designs.count                       += 1
         }
     }
 
@@ -211,7 +211,7 @@ func countWays(design: const [..] u8, designLen: u32, pats: *PatternList)->u64
 
 struct SolveResult
 {
-    possible: u32
+    possible:  u32
     totalWays: u64
 }
 
@@ -227,7 +227,7 @@ func solve(text: string)->SolveResult
         let ways = countWays(sl, des.len, &input.patterns)
         if ways > 0
         {
-            result.possible += 1
+            result.possible  += 1
             result.totalWays += ways
         }
     }
@@ -266,7 +266,7 @@ func solve(text: string)->SolveResult
     var pat: Pattern
     pat.bytes[0] = 'a'
     pat.bytes[1] = 'b'
-    pat.len = 2
+    pat.len      = 2
     @assert(pat.byteAt(0) == 'a')
     @assert(pat.byteAt(1) == 'b')
 }
@@ -277,7 +277,7 @@ func solve(text: string)->SolveResult
     var pat: Pattern
     pat.bytes[0] = 'b'
     pat.bytes[1] = 'r'
-    pat.len = 2
+    pat.len      = 2
 
     var buf: [5] u8
     buf[0] = 'b'; buf[1] = 'r'; buf[2] = 'w'; buf[3] = 'r'; buf[4] = 'r'
@@ -293,8 +293,8 @@ func solve(text: string)->SolveResult
 {
     var pats: PatternList
     pats.items[0].bytes[0] = 'a'
-    pats.items[0].len = 1
-    pats.count = 1
+    pats.items[0].len      = 1
+    pats.count             = 1
 
     let pat = &pats.items[0]
 
@@ -313,7 +313,7 @@ func solve(text: string)->SolveResult
     var des: Design
     des.bytes[0] = 'x'
     des.bytes[1] = 'y'
-    des.len = 2
+    des.len      = 2
     let sl = des.asSlice()
     @assert(@countof(sl) == 2)
     @assert(sl[0] == 'x')
@@ -325,8 +325,8 @@ func solve(text: string)->SolveResult
 {
     var pats: PatternList
     pats.items[0].bytes[0] = 'a'
-    pats.items[0].len = 1
-    pats.count = 1
+    pats.items[0].len      = 1
+    pats.count             = 1
 
     var buf: [3] u8
     buf[0] = 'a'; buf[1] = 'a'; buf[2] = 'a'
@@ -339,11 +339,11 @@ func solve(text: string)->SolveResult
 {
     var pats: PatternList
     pats.items[0].bytes[0] = 'a'
-    pats.items[0].len = 1
+    pats.items[0].len      = 1
     pats.items[1].bytes[0] = 'a'
     pats.items[1].bytes[1] = 'a'
-    pats.items[1].len = 2
-    pats.count = 2
+    pats.items[1].len      = 2
+    pats.count             = 2
 
     var buf: [3] u8
     buf[0] = 'a'; buf[1] = 'a'; buf[2] = 'a'
@@ -357,8 +357,8 @@ func solve(text: string)->SolveResult
 {
     var pats: PatternList
     pats.items[0].bytes[0] = 'a'
-    pats.items[0].len = 1
-    pats.count = 1
+    pats.items[0].len      = 1
+    pats.count             = 1
 
     var buf: [2] u8
     buf[0] = 'a'; buf[1] = 'b'
@@ -403,7 +403,7 @@ func solve(text: string)->SolveResult
     pat.bytes[0] = 'a'
     pat.bytes[1] = 'b'
     pat.bytes[2] = 'c'
-    pat.len = 3
+    pat.len      = 3
 
     var buf: [2] u8
     buf[0] = 'a'; buf[1] = 'b'

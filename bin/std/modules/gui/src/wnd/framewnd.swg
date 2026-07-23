@@ -34,8 +34,8 @@ struct FrameWnd
     frameForm        = FrameWndForm.Transparent
     frameFlags       = FrameWndFlags.Borders
     anchor           = FrameWndAnchor.None
-    anchorPos:       f32
-    usedColorBk:     Color
+    anchorPos:   f32
+    usedColorBk: Color
 }
 
 impl IWnd for FrameWnd
@@ -166,9 +166,9 @@ impl IWnd for FrameWnd
             switch .anchor
             {
             case Top:
-                posA         = Math.clamp(posA, marginA, clientRect.width - marginA)
-                clientRect.x = clientRect.x + posA - metrics.frameWnd_AnchorWidth * 0.5
-                clientRect.y -= metrics.frameWnd_AnchorHeight
+                posA              = Math.clamp(posA, marginA, clientRect.width - marginA)
+                clientRect.x      = clientRect.x + posA - metrics.frameWnd_AnchorWidth * 0.5
+                clientRect.y      -= metrics.frameWnd_AnchorHeight
                 clientRect.width  = metrics.frameWnd_AnchorWidth
                 clientRect.height = metrics.frameWnd_AnchorHeight + metrics.frameWnd_AnchorOverlap
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorTopBk, .usedColorBk)
@@ -184,8 +184,8 @@ impl IWnd for FrameWnd
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorBottom, colorBorder, false)
 
             case Left:
-                posA = Math.clamp(posA, marginA, clientRect.height - marginA)
-                clientRect.x -= metrics.frameWnd_AnchorHeight
+                posA              = Math.clamp(posA, marginA, clientRect.height - marginA)
+                clientRect.x      -= metrics.frameWnd_AnchorHeight
                 clientRect.y      = clientRect.y + posA - metrics.frameWnd_AnchorHeight * 0.5
                 clientRect.width  = metrics.frameWnd_AnchorHeight + metrics.frameWnd_AnchorOverlap
                 clientRect.height = metrics.frameWnd_AnchorWidth

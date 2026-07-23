@@ -30,8 +30,8 @@ impl GenericIsolationStore
     mtd write(index: s32, value: T, lead: u8, trail: u8)
     {
         .entries[index].leading[Pad - 1] = lead
-        .entries[index].value = value
-        .entries[index].trailing[Pad] = trail
+        .entries[index].value            = value
+        .entries[index].trailing[Pad]    = trail
     }
 
     #[Swag.NoInline]
@@ -91,9 +91,9 @@ func(T, const Pad: s32) readValue(store: const &GenericIsolationStore'(T, Pad), 
     var wides:       GenericIsolationStore'GenericIsolationWide
 
     intsDefault.salt = 100
-    intsWide.salt = 200
-    texts.salt = 300
-    wides.salt = 400
+    intsWide.salt    = 200
+    texts.salt       = 300
+    wides.salt       = 400
 
     texts.write(0, "alpha", 10, 11)
     intsDefault.write(0, 42, 20, 21)

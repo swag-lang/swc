@@ -103,8 +103,8 @@ func testResetClipboardToImage()
     testRegisterIoActions(f.main)
     testResetClipboardToImage()
 
-    f.capture.width = 40
-    f.capture.height = 24
+    f.capture.width   = 40
+    f.capture.height  = 24
     f.capture.backImg = Testing.indexedImage(40, 24)
     f.main.sendCommandEvent(ActionCopyPaste.CopyAsImage)
 
@@ -129,7 +129,7 @@ func testResetClipboardToImage()
     @assert(f.capture.forms.count == 0)
 
     let target = testAddImage(f.capture, 3, 4, 12, 10)
-    target.kind = .Image
+    target.kind  = .Image
     target.image = Testing.indexedImage(2, 2)
     f.capture.selection.add(0)
 

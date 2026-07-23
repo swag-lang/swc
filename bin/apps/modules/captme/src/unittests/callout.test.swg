@@ -231,10 +231,10 @@ using Swag, Core
     f.setup()
 
     let cf = testAddCallout(f.capture, 12, 14, 50, 25)
-    cf.text = "hello"
+    cf.text      = "hello"
     cf.roundSize = 18
-    cf.tailX = 4
-    cf.tailY = 90
+    cf.tailX     = 4
+    cf.tailY     = 90
 
     var clip: CaptureClipboardForms
     clip.add(cast(IForm) cf)

@@ -12,17 +12,17 @@ enum CaptureMode
     ActiveWindow
 }
 
-var g_StartGrabX:         f32
-var g_StartGrabY:         f32
-var g_EndGrabX:           f32
-var g_EndGrabY:           f32
-var g_DesktopX:           s32
-var g_DesktopY:           s32
-var g_ScreenWidth:        s32
-var g_ScreenHeight:       s32
-var g_Exit:               bool
-var g_GrabDone:           bool
-var g_DesktopTexture:     Texture
+var g_StartGrabX:     f32
+var g_StartGrabY:     f32
+var g_EndGrabX:       f32
+var g_EndGrabY:       f32
+var g_DesktopX:       s32
+var g_DesktopY:       s32
+var g_ScreenWidth:    s32
+var g_ScreenHeight:   s32
+var g_Exit:           bool
+var g_GrabDone:       bool
+var g_DesktopTexture: Texture
 
 func getGrabRect()->Math.Rectangle
 {
@@ -136,8 +136,8 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
     {
     case .FullScreen:
         g_StartGrabX, g_StartGrabY = 0
-        g_EndGrabX = g_ScreenWidth
-        g_EndGrabY = g_ScreenHeight
+        g_EndGrabX                 = g_ScreenWidth
+        g_EndGrabY                 = g_ScreenHeight
 
     case .ActiveWindow:
         let r = screenToDesktopRect(getBackgroundWndRect())
@@ -208,9 +208,9 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
 
         with capture = Memory.new'Capture()
         {
-            .width, .widthOrg = img.width
+            .width, .widthOrg   = img.width
             .height, .heightOrg = img.height
-            .backImg = img
+            .backImg            = img
         }
 
         if main.captureOptions.sendToClipboard do

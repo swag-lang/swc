@@ -108,13 +108,13 @@ impl RichEditCtrl
 
             if .cursorPos.lineIndex == i
             {
-                .cursorPos.lineIndex = lineIndex
+                .cursorPos.lineIndex     = lineIndex
                 .cursorPos.charPosInLine += .lines[lineIndex].chars.count
             }
 
             if .selBeg.lineIndex == i
             {
-                .selBeg.lineIndex = lineIndex
+                .selBeg.lineIndex     = lineIndex
                 .selBeg.charPosInLine += .lines[lineIndex].chars.count
             }
 
@@ -169,13 +169,13 @@ impl RichEditCtrl
 
                     if .cursorPos.lineIndex == curLine and .cursorPos.charPosInLine >= cutAti
                     {
-                        .cursorPos.lineIndex += 1
+                        .cursorPos.lineIndex     += 1
                         .cursorPos.charPosInLine -= cutAti
                     }
 
                     if .selBeg.lineIndex == curLine and .selBeg.charPosInLine >= cutAti
                     {
-                        .selBeg.lineIndex += 1
+                        .selBeg.lineIndex     += 1
                         .selBeg.charPosInLine -= cutAti
                     }
 
@@ -191,7 +191,7 @@ impl RichEditCtrl
                     l.chars.resize(i)
                     l.styles.resize(i)
 
-                    curLine += 1
+                    curLine   += 1
                     i, cutAti = 0
                     str.clear()
                     continue
@@ -215,7 +215,7 @@ impl RichEditCtrl
             if cp.charPosInLine < linep.length() do
                 line.insertRunes(0, notnull linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
             linep.setLength(cp.charPosInLine)
-            cp.lineIndex += 1
+            cp.lineIndex     += 1
             cp.charPosInLine = 0
         }
         elif c == '\t' and (.richEdFlags & .TabToSpaces)
@@ -678,7 +678,7 @@ public impl RichEditCtrl
                 savepos1.charPosInLine += 1
 
             beg.lineIndex += 1
-            first = false
+            first         = false
         }
 
         .selBeg = savepos0
@@ -749,12 +749,12 @@ public impl RichEditCtrl
                     x = (.tabSize * size.x) - x
                     if x == 0 do
                         x = .tabSize * size.x
-                    x = charPt.x - x
+                    x     = charPt.x - x
 
                     while charPt.x > x and beg.charPosInLine and Unicode.isSpace(line.chars[beg.charPosInLine - 1])
                     {
                         beg.charPosInLine -= 1
-                        charPt = .getCursorDisplayPos(beg)
+                        charPt            = .getCursorDisplayPos(beg)
                     }
                 }
             }
@@ -765,7 +765,7 @@ public impl RichEditCtrl
                 .pushUndo()
                 if !first do
                     .serialUndo -= 1
-                .selBeg = beg
+                .selBeg         = beg
                 .setCursorPos(beg1)
                 .deleteSelectionPrivate(beg, beg1, false)
                 .popUndo()
@@ -781,7 +781,7 @@ public impl RichEditCtrl
             // Next line
             if beg.lineIndex == end.lineIndex do
                 break
-            beg.lineIndex += 1
+            beg.lineIndex     += 1
             beg.charPosInLine = 0
             if beg.lineIndex == end.lineIndex and end.charPosInLine == 0 do
                 break

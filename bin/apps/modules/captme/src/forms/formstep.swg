@@ -12,17 +12,17 @@ enum FormStepType
 struct FormStep
 {
     using base:     BaseForm
-    kind:           FormShapeKind = Ellipse
-    index:          u32 = 1
+    kind:  FormShapeKind = Ellipse
+    index: u32 = 1
     #[Name("Step")]
     typeIndex       = FormStepType.Number
 
     #[Serialization.NoSerialize]
     {
-        ws, hs:            s32 = 48
-        gizmo:             GizmoRect
-        isDirty:           bool = true
-        cachefSize:        f32
+        ws, hs:     s32 = 48
+        gizmo:      GizmoRect
+        isDirty:    bool = true
+        cachefSize: f32
         cacheTypeIndex     = FormStepType.Number
         pathl:             LinePathList
     }
@@ -64,9 +64,9 @@ impl IForm for FormStep
         ya += ybu
         .setBaseForm(xa, ya, .ws, .hs)
 
-        .index = .capture.nextStepIndex
+        .index                 = .capture.nextStepIndex
         .capture.nextStepIndex += 1
-        .isDirty = true
+        .isDirty               = true
 
         return false
     }

@@ -12,19 +12,19 @@ enum RichEditUndoType
 
 struct RichEditUndo
 {
-    type:                   RichEditUndoType = Selection
-    concatChars:            bool
-    selBeg:                 RichEditCursor
-    cursorPos:              RichEditCursor
-    runes:                  Array'rune
-    styles:                 Array'u8
-    serial:                 u64
-    hasSelRect:             bool
+    type:        RichEditUndoType = Selection
+    concatChars: bool
+    selBeg:      RichEditCursor
+    cursorPos:   RichEditCursor
+    runes:       Array'rune
+    styles:      Array'u8
+    serial:      u64
+    hasSelRect:  bool
 
-    begSelectionBefore:     RichEditCursor
-    endSelectionBefore:     RichEditCursor
-    begSelectionAfter:      RichEditCursor
-    endSelectionAfter:      RichEditCursor
+    begSelectionBefore: RichEditCursor
+    endSelectionBefore: RichEditCursor
+    begSelectionAfter:  RichEditCursor
+    endSelectionAfter:  RichEditCursor
 }
 
 private impl RichEditCtrl
@@ -73,7 +73,7 @@ impl RichEditCtrl
         // Nested undo,: not increment serial
         if .undoCounter == 0
         {
-            .serialUndo += 1
+            .serialUndo    += 1
             .selBegUndo    = .selBeg
             .cursorPosUndo = .cursorPos
         }

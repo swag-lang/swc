@@ -96,7 +96,7 @@ func(T) pickGenericFlags(flags: T, value: T)->T
     return flags | value
 }
 
-const RunStrictTestFlag: StrictTestFlags = #run makeStrictTestFlag()
+const RunStrictTestFlag: StrictTestFlags      = #run makeStrictTestFlag()
 const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
 #test
@@ -167,9 +167,9 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
 #test
 {
-    var values: RefTestFlagBuffer
+    var values:   RefTestFlagBuffer
     let firstRef: &RefTestFlags = &values.refAt(0)
-    firstRef = RefTestFlags.A | RefTestFlags.B
+    firstRef         = RefTestFlags.A | RefTestFlags.B
     values.values[0] = RefTestFlags.A | RefTestFlags.B
     values.values[1] = RefTestFlags.B | RefTestFlags.C
 

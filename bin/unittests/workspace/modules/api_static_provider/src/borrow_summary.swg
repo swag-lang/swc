@@ -2,7 +2,7 @@
 
 // Borrow summaries must cross the module boundary through the generated API
 // ('Swag.BorrowSummary'): consumed by 'consumer_exe'.
-var depBorrowGlobalInt: s32 = 7
+var depBorrowGlobalInt:   s32 = 7
 var depBorrowGlobalStash: #null *s32
 
 // Return summary: the result borrows the parameter.

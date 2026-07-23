@@ -17,20 +17,20 @@ struct Capture
 {
     const MinSize            = 16
     const MaxSize            = 4096
-    width, height:           s32
-    backImg:                 Image
-    widthOrg, heightOrg:     s32
-    backImgOriginal:         Image
+    width, height:       s32
+    backImg:             Image
+    widthOrg, heightOrg: s32
+    backImgOriginal:     Image
 
-    backImagePos:            Math.Point
-    preview:                 Image
-    file:                    String
-    forms:                   Array'IForm
-    nextStepIndex:           u32 = 1
-    nextGroupId:             u64 = 1
+    backImagePos:  Math.Point
+    preview:       Image
+    file:          String
+    forms:         Array'IForm
+    nextStepIndex: u32 = 1
+    nextGroupId:   u64 = 1
 
-    linkedImage:             String
-    linkedUpToDate:          bool = true
+    linkedImage:    String
+    linkedUpToDate: bool = true
 
     // User-defined name shown in the library (empty = fall back to the file name).
     title:                   String
@@ -38,33 +38,33 @@ struct Capture
     // Dyn
     #[NoSerialize]
     {
-        changed:               bool
-        mouseMode:             MouseMode = None
-        editView:              #null *EditView
-        gizmo:                 GizmoRect
-        undoMgr:               UndoManager
-        hotForm:               u64 = Swag.U64.Max
-        selection:             Array'u64
-        paintRect:             Math.Rectangle
+        changed:   bool
+        mouseMode: MouseMode = None
+        editView:  #null *EditView
+        gizmo:     GizmoRect
+        undoMgr:   UndoManager
+        hotForm:   u64 = Swag.U64.Max
+        selection: Array'u64
+        paintRect: Math.Rectangle
 
-        backTexture:           Texture
-        snapX:                 f32 = -1
-        snapY:                 f32 = -1
+        backTexture: Texture
+        snapX:       f32 = -1
+        snapY:       f32 = -1
 
-        serialBackTexture:     u32
-        movingStart:           Math.Point
-        movingEnd:             Math.Point
-        lastSelectPos:         Math.Point
-        lastSelectHit:         u64
-        firstMouseMove:        bool
-        dirtyBackImg:          bool
-        drawSelRect:           bool
-        prevSnapActive:        bool
-        interactiveMove:       bool
+        serialBackTexture: u32
+        movingStart:       Math.Point
+        movingEnd:         Math.Point
+        lastSelectPos:     Math.Point
+        lastSelectHit:     u64
+        firstMouseMove:    bool
+        dirtyBackImg:      bool
+        drawSelRect:       bool
+        prevSnapActive:    bool
+        interactiveMove:   bool
 
-        inPlaceEdit:           bool
-        inPlacePosX:           f32
-        inPlacePosY:           f32
+        inPlaceEdit: bool
+        inPlacePosX: f32
+        inPlacePosY: f32
 
         haar:                  ImageStatistics.HaarFeatures
     }
@@ -108,16 +108,16 @@ enum CaptureClipboardFormKind
 
 struct CaptureClipboardForm
 {
-    kind:      CaptureClipboardFormKind
-    arrow:     FormArrow
-    draw:      FormDraw
-    image:     FormImage
-    line:      FormLine
-    polygon:   FormPolygon
-    shape:     FormShape
-    step:      FormStep
-    text:      FormText
-    callout:   FormCallout
+    kind:    CaptureClipboardFormKind
+    arrow:   FormArrow
+    draw:    FormDraw
+    image:   FormImage
+    line:    FormLine
+    polygon: FormPolygon
+    shape:   FormShape
+    step:    FormStep
+    text:    FormText
+    callout: FormCallout
 }
 
 struct CaptureClipboardForms
@@ -132,22 +132,22 @@ impl CaptureClipboardForm
         switch itf
         {
         case FormArrow as form:
-            .kind = .Arrow
+            .kind  = .Arrow
             .arrow = dref form
         case FormDraw as form:
             .kind = .Draw
             .draw = dref form
         case FormImage as form:
-            .kind = .Image
+            .kind  = .Image
             .image = dref form
         case FormLine as form:
             .kind = .Line
             .line = dref form
         case FormPolygon as form:
-            .kind = .Polygon
+            .kind    = .Polygon
             .polygon = dref form
         case FormShape as form:
-            .kind = .Shape
+            .kind  = .Shape
             .shape = dref form
         case FormStep as form:
             .kind = .Step
@@ -156,7 +156,7 @@ impl CaptureClipboardForm
             .kind = .Text
             .text = dref form
         case FormCallout as form:
-            .kind = .Callout
+            .kind    = .Callout
             .callout = dref form
         default:
             .kind = .None
@@ -172,39 +172,39 @@ impl CaptureClipboardForm
         case Arrow:
             let form = Memory.new'FormArrow()
             dref form = .arrow
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Draw:
             let form = Memory.new'FormDraw()
             dref form = .draw
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Image:
             let form = Memory.new'FormImage()
             dref form = .image
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Line:
             let form = Memory.new'FormLine()
             dref form = .line
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Polygon:
             let form = Memory.new'FormPolygon()
             dref form = .polygon
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Shape:
             let form = Memory.new'FormShape()
             dref form = .shape
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Step:
             let form = Memory.new'FormStep()
             dref form = .step
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Text:
             let form = Memory.new'FormText()
             dref form = .text
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case Callout:
             let form = Memory.new'FormCallout()
             dref form = .callout
-            result = cast(IForm) form
+            result    = cast(IForm) form
         case None:
             return result
         }
@@ -471,7 +471,7 @@ impl Capture
 
     mtd paste()
     {
-        var res: Array'IForm
+        var res:     Array'IForm
         var payload: CaptureClipboardForms
         if Clipboard.getTypedValue(&payload, #typeof(payload))
         {
@@ -517,9 +517,9 @@ impl Capture
 
         // Move around mouse
         var pt = .editView.getApp().mouse.getPosition()
-        pt = .editView.screenToSurface(pt)
-        pt = .editView.surfaceToLocal(pt)
-        pt += .editView.scrollPos
+        pt   = .editView.screenToSurface(pt)
+        pt   = .editView.surfaceToLocal(pt)
+        pt   += .editView.scrollPos
         pt.x -= .paintRect.x
         pt.y -= .paintRect.y
         let zoom = .paintRect.width / .width
@@ -557,10 +557,10 @@ impl Capture
         boundRect.height = Math.max(boundRect.height, 1)
         boundRect.inflate(FormPaintOverdraw)
 
-        var clipOffset: Math.Vector2
-        var savePaintPos: Math.Rectangle
+        var clipOffset:    Math.Vector2
+        var savePaintPos:  Math.Rectangle
         var saveNoClipPos: Math.Rectangle
-        var wt2, ht2: s32
+        var wt2, ht2:      s32
         with let base = cast(*BaseForm) @dataof(f)
         {
             savePaintPos = .paintPos
@@ -588,7 +588,7 @@ impl Capture
                     .paintPos.setBottom(clip.bottom())
             }
 
-            .paintPos.width += .paintPos.x - Math.round(.paintPos.x)
+            .paintPos.width  += .paintPos.x - Math.round(.paintPos.x)
             .paintPos.height += .paintPos.y - Math.round(.paintPos.y)
             .paintPos.round()
 
@@ -671,7 +671,7 @@ impl Capture
         // Background image
         if !.backTexture.isValid() and .backImg.width > 0
         {
-            .backTexture = renderer.addImage(.backImg)
+            .backTexture       = renderer.addImage(.backImg)
             .serialBackTexture += 1
         }
 
@@ -681,8 +681,8 @@ impl Capture
             if .dirtyBackImg
             {
                 renderer.removeTexture(&.backTexture)
-                .backTexture  = renderer.addImage(.backImg)
-                .dirtyBackImg = false
+                .backTexture       = renderer.addImage(.backImg)
+                .dirtyBackImg      = false
                 .serialBackTexture += 1
             }
 
@@ -718,7 +718,10 @@ impl Capture
             return
 
         let snapNow = .snapX != -1 or .snapY != -1
-        defer { me.prevSnapActive = snapNow }
+        defer
+        {
+            me.prevSnapActive = snapNow
+        }
         if snapNow or .prevSnapActive
         {
             view.invalidate()
@@ -861,7 +864,7 @@ impl Capture
             }
 
             r.offset(.paintRect.x, .paintRect.y)
-            painter.fillRect(r, Color.fromArgb(0x1f, Argb.Cyan))
+            painter.fillRect(r, Color.fromArgb(0x1F, Argb.Cyan))
             painter.drawRect(r, Argb.Cyan, 2)
         }
 
@@ -1148,7 +1151,7 @@ impl Capture
         }
 
         var localPos = view.surfaceToLocal(evt.surfacePos)
-        localPos += view.scrollPos
+        localPos   += view.scrollPos
         localPos.x -= .paintRect.x
         localPos.y -= .paintRect.y
 
@@ -1264,8 +1267,8 @@ impl Capture
                         .lastSelectHit += 1
                         if .lastSelectHit >= res.count do
                             .lastSelectHit = 0
-                        .hotForm = res[.lastSelectHit]
-                        here     = .selection.contains(.hotForm)
+                        .hotForm           = res[.lastSelectHit]
+                        here               = .selection.contains(.hotForm)
                     }
                     elif !evt.modifiers.has(.Control) and !here and .selection.count
                     {

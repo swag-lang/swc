@@ -2,8 +2,8 @@
 
 struct RuntimeAssignBox
 {
-    a: s32
-    b: s32
+    a:     s32
+    b:     s32
     calls: s32
 }
 
@@ -12,8 +12,8 @@ impl RuntimeAssignBox
     #[Swag.NoInline]
     mtd setPair(a, b: s32)
     {
-        .a = a
-        .b = b
+        .a     = a
+        .b     = b
         .calls += 1
     }
 

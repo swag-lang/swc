@@ -13,12 +13,12 @@ struct IconBar
     using wnd:           Wnd
 
     iconBarFlags         = IconBarFlags.Zero
-    iconSize:            f32
-    iconPadding:         f32 = 4
+    iconSize:    f32
+    iconPadding: f32 = 4
 
-    sigUpdateState:      SigArray'func||(*CommandStateEvent)
-    sigCheckChanged:     SigArray'func||(*IconButton)
-    sigPressed:          SigArray'func||(*IconButton)
+    sigUpdateState:  SigArray'func||(*CommandStateEvent)
+    sigCheckChanged: SigArray'func||(*IconButton)
+    sigPressed:      SigArray'func||(*IconButton)
 }
 
 impl IWnd for IconBar

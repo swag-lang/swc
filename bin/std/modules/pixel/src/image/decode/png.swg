@@ -55,8 +55,8 @@ private
 
     struct ChunkHeader
     {
-        length:     u32
-        type:       ChunkType
+        length: u32
+        type:   ChunkType
     }
 
     enum InterlaceMethod: u8
@@ -76,41 +76,41 @@ private
 
     struct Header
     {
-        width:                 u32
-        height:                u32
-        bitDepth:              u8
-        colorType:             DecodeColorType
-        compressionMethod:     u8
-        filterMethod:          u8
-        interlaceMethod:       InterlaceMethod = undefined
+        width:             u32
+        height:            u32
+        bitDepth:          u8
+        colorType:         DecodeColorType
+        compressionMethod: u8
+        filterMethod:      u8
+        interlaceMethod:   InterlaceMethod = undefined
     }
 
     struct DecodeChunk
     {
-        header:     ChunkHeader
-        datas:      #null const [..] u8
-        crc:        u32
+        header: ChunkHeader
+        datas:  #null const [..] u8
+        crc:    u32
     }
 }
 
 #[Opaque]
 public struct Decoder
 {
-    decOptions:        DecodeOptions
-    stream:            Compress.BitStream
-    header:            Header
-    inChannels:        s32
-    outChannels:       s32
-    dcmpBuf:           Array'u8
-    dstPixels:         #null [*] u8
-    dstPixelsSize:     u64
-    chunkTRNS:         DecodeChunk
+    decOptions:    DecodeOptions
+    stream:        Compress.BitStream
+    header:        Header
+    inChannels:    s32
+    outChannels:   s32
+    dcmpBuf:       Array'u8
+    dstPixels:     #null [*] u8
+    dstPixelsSize: u64
+    chunkTRNS:     DecodeChunk
     palette:           [256] u32
-    paletteCount:      s32
-    seenTRSN:          bool
-    seenBKGD:          bool
-    seenPLTE:          bool
-    orderDefilter:     bool
+    paletteCount:  s32
+    seenTRSN:      bool
+    seenBKGD:      bool
+    seenPLTE:      bool
+    orderDefilter: bool
 }
 
 impl Decoder
@@ -143,7 +143,7 @@ impl Decoder
 
         if .stream.curPtr() + ch.length > .stream.startPtr() + .stream.size() do
             throw InvalidFormatError{"invalid chunk"}
-        result.datas = @mkslice(.stream.curPtr(), ch.length)
+        result.datas    = @mkslice(.stream.curPtr(), ch.length)
         .stream.curByte += ch.length
 
         var crc: Hash.Crc32
@@ -191,7 +191,7 @@ impl Decoder
 
             if me.header.colorType & .Alpha
             {
-                me.inChannels += 1
+                me.inChannels  += 1
                 me.outChannels += 1
             }
 
@@ -246,9 +246,9 @@ impl Decoder
                     dest[5] = cast #bit (u8) (((c >> 2) & 1) * mul)
                     dest[6] = cast #bit (u8) (((c >> 1) & 1) * mul)
                     dest[7] = cast #bit (u8) ((c & 1) * mul)
-                    dest += 8
-                    src += 1
-                    k -= 8
+                    dest    += 8
+                    src     += 1
+                    k       -= 8
                 }
                 if k > 0
                 {
@@ -287,9 +287,9 @@ impl Decoder
                     dest[1] = cast #bit (u8) (((c >> 4) & 3) * mul)
                     dest[2] = cast #bit (u8) (((c >> 2) & 3) * mul)
                     dest[3] = cast #bit (u8) ((c & 3) * mul)
-                    dest += 4
-                    src += 1
-                    k -= 4
+                    dest    += 4
+                    src     += 1
+                    k       -= 4
                 }
                 if k > 0
                 {
@@ -318,9 +318,9 @@ impl Decoder
                     let c = src[0]
                     dest[0] = cast #bit (u8) ((c >> 4) * mul)
                     dest[1] = cast #bit (u8) ((c & 15) * mul)
-                    dest += 2
-                    src += 1
-                    k -= 2
+                    dest    += 2
+                    src     += 1
+                    k       -= 2
                 }
                 if k > 0
                 {
@@ -377,7 +377,7 @@ impl Decoder
                 while i < filterOffset
                 {
                     destOff[i] = src[i]
-                    i += 1
+                    i          += 1
                 }
                 var k = 0'u64
                 while k < nk
@@ -386,7 +386,7 @@ impl Decoder
                     if idx >= rowStrideIn do
                         break
                     destOff[idx] = cast #bit (u8) (src[idx] + #wrap destOff[k])
-                    k += 1
+                    k            += 1
                 }
 
             case Up:
@@ -394,7 +394,7 @@ impl Decoder
                 while k < rowStrideIn
                 {
                     destOff[k] = cast #bit (u8) (src[k] + #wrap up[k])
-                    k += 1
+                    k          += 1
                 }
 
             case Average:
@@ -403,7 +403,7 @@ impl Decoder
                 {
                     let avg = up[i] >> 1
                     destOff[i] = cast #bit (u8) (src[i] + #wrap avg)
-                    i += 1
+                    i          += 1
                 }
                 var k = 0'u64
                 while k < nk
@@ -413,7 +413,7 @@ impl Decoder
                         break
                     let avg = cast(u8) ((cast(u16) up[idx] + cast(u16) destOff[k]) >> 1)
                     destOff[idx] = cast #bit (u8) (src[idx] + #wrap avg)
-                    k += 1
+                    k            += 1
                 }
 
             case Paeth:
@@ -422,7 +422,7 @@ impl Decoder
                 {
                     let paeth = cast(u32) filterPaeth(0, up[i], 0)
                     destOff[i] = cast #bit (u8) (src[i] + paeth)
-                    i += 1
+                    i          += 1
                 }
                 var k = 0'u64
                 while k < nk
@@ -432,17 +432,17 @@ impl Decoder
                         break
                     let paeth = cast(u32) filterPaeth(destOff[k], up[idx], up[k])
                     destOff[idx] = cast #bit (u8) (src[idx] + #wrap paeth)
-                    k += 1
+                    k            += 1
                 }
             }
 
             src += rowStrideIn
-            up = destOff
+            up  = destOff
             if .orderDefilter do
                 dest += rowStrideOut
             else do
                 dest -= rowStrideOut
-            row += 1
+            row      += 1
         }
     }
 
@@ -490,7 +490,7 @@ impl Decoder
                     out_off += out_x * .inChannels
                     for z in .inChannels do
                         .dstPixels[out_off + z] = t[z]
-                    t += .inChannels
+                    t                           += .inChannels
                 }
             }
 
@@ -520,7 +520,7 @@ impl Decoder
 
         var signature: u64 = undefined
         .stream.peekBytes(#sizeof(signature), cast([*] u8) &signature)
-        if signature != 0x0a1a0a0d474e5089 do
+        if signature != 0x0A1A0A0D474E5089 do
             throw InvalidFormatError{"not a png"}
 
         var result:   retval
@@ -555,9 +555,9 @@ impl Decoder
                 .readHeader(ch)
 
             case TRNS:
-                .seenTRSN = true
+                .seenTRSN    = true
                 .outChannels += 1     // transparency mask, add an alpha channel
-                .chunkTRNS = .readChunk(ch)
+                .chunkTRNS   = .readChunk(ch)
 
             case BKGD:
                 .seenBKGD = true
@@ -688,8 +688,8 @@ impl Decoder
                 dst[0] = cast() ((color >> 16) & 0xFF)
                 dst[1] = cast() ((color >> 8) & 0xFF)
                 dst[2] = cast() (color & 0xFF)
-                src += 1
-                dst += result.bpp8
+                src    += 1
+                dst    += result.bpp8
             }
         }
 
@@ -706,8 +706,8 @@ impl Decoder
                 dst[1] = cast() ((color >> 8) & 0xFF)
                 dst[2] = cast() (color & 0xFF)
                 dst[3] = pal < @countof(.safeTRNSData()) ? .safeTRNSData()[pal] : 255
-                src += 1
-                dst += result.bpp8
+                src    += 1
+                dst    += result.bpp8
             }
         }
 
@@ -721,8 +721,8 @@ impl Decoder
                 dst[0] = src[0]
                 dst[1] = src[0]
                 dst[2] = src[0]
-                src += 1
-                dst += result.bpp8
+                src    += 1
+                dst    += result.bpp8
             }
         }
 
@@ -740,8 +740,8 @@ impl Decoder
                 dst[1] = src[0]
                 dst[2] = src[0]
                 dst[3] = src[0] == key ? 0 : 255
-                src += 1
-                dst += result.bpp8
+                src    += 1
+                dst    += result.bpp8
             }
         }
 
@@ -756,8 +756,8 @@ impl Decoder
                 dst[1] = src[0]
                 dst[2] = src[0]
                 dst[3] = src[1]
-                src += 2
-                dst += result.bpp8
+                src    += 2
+                dst    += result.bpp8
             }
         }
 
@@ -779,8 +779,8 @@ impl Decoder
                     dst[3] = 0
                 else do
                     dst[3] = 255
-                src += 3
-                dst += result.bpp8
+                src        += 3
+                dst        += result.bpp8
             }
         }
     }

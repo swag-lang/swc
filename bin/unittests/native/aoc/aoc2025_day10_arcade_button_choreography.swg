@@ -14,7 +14,7 @@ func pressCount(mask: u32)->u32
     while value != 0
     {
         result += value & 1'u32
-        value >>= 1
+        value  >>= 1
     }
 
     return result
@@ -28,7 +28,7 @@ func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
     var combo: u32
     while combo < combinationCount
     {
-        var state: u32
+        var state:  u32
         var button: u32
 
         while button < @countof(buttonMasks)

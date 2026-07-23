@@ -14,49 +14,49 @@ public struct ScrollWnd
 {
     using frameWnd:           FrameWnd
 
-    scrollIncrementV:         f32 = 50
-    scrollIncrementH:         f32 = 50
+    scrollIncrementV: f32 = 50
+    scrollIncrementH: f32 = 50
 
     scrollSize:               Math.Point
     scrollWndFlags            = ScrollWndFlags.Zero
 
-    sigScrollPosChanged:      SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
-    sigScrollSizeChanged:     SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
+    sigScrollPosChanged:  SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
+    sigScrollSizeChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
 
     oldMouseCapture:          #null *Wnd
 
-    scrollSmoothPos:          Math.Point
-    scrollRequestPos:         Math.Point
-    smoothScroll:             bool
+    scrollSmoothPos:  Math.Point
+    scrollRequestPos: Math.Point
+    smoothScroll:     bool
 
-    showBarV:                 bool
-    needV:                    bool
-    posBoxV:                  f32
-    sizeBoxV:                 f32
-    isHotV:                   bool
-    isHotBarV:                bool
-    isPressedV:               bool
+    showBarV:   bool
+    needV:      bool
+    posBoxV:    f32
+    sizeBoxV:   f32
+    isHotV:     bool
+    isHotBarV:  bool
+    isPressedV: bool
 
-    showBarH:                 bool
-    needH:                    bool
-    posBoxH:                  f32
-    sizeBoxH:                 f32
-    isHotH:                   bool
-    isHotBarH:                bool
-    isPressedH:               bool
+    showBarH:   bool
+    needH:      bool
+    posBoxH:    f32
+    sizeBoxH:   f32
+    isHotH:     bool
+    isHotBarH:  bool
+    isPressedH: bool
 
-    isMoving:                 bool
-    isGrabbing:               bool
-    correcMoving:             f32
-    offsetClientV:            f32
-    offsetClientH:            f32
-    paddingZ:                 f32
-    paddingW:                 f32
+    isMoving:      bool
+    isGrabbing:    bool
+    correcMoving:  f32
+    offsetClientV: f32
+    offsetClientH: f32
+    paddingZ:      f32
+    paddingW:      f32
 
-    aniBkBarV:                BlendColor
-    aniBkBarH:                BlendColor
-    aniBoxV:                  BlendColor
-    aniBoxH:                  BlendColor
+    aniBkBarV: BlendColor
+    aniBkBarH: BlendColor
+    aniBoxV:   BlendColor
+    aniBoxH:   BlendColor
 
     grabbingPos:              Math.Point
 }
@@ -69,7 +69,7 @@ public impl IWnd for ScrollWnd
         if !#isset(.view) do
             return
         var rect = .getClientRectPadding()
-        rect.width -= .paddingZ
+        rect.width  -= .paddingZ
         rect.height -= .paddingW
         rect.applyPadding(.view.margin)
         .view.setPosition(rect)
@@ -392,7 +392,7 @@ impl ScrollWnd
         var sy      = Math.max(.scrollSize.y, clientRect.height)
 
         .showBarV, .showBarH = false
-        .needH, .needV = false
+        .needH, .needV       = false
 
         if sy > clientRect.height do
             .needV = true
@@ -422,8 +422,8 @@ impl ScrollWnd
 
         let viewWidth  = Math.max(clientRect.width - .paddingZ, 1)
         let viewHeight = Math.max(clientRect.height - .paddingW, 1)
-        sx             = Math.max(.scrollSize.x, viewWidth)
-        sy             = Math.max(.scrollSize.y, viewHeight)
+        sx = Math.max(.scrollSize.x, viewWidth)
+        sy = Math.max(.scrollSize.y, viewHeight)
 
         if .showBarV
         {
@@ -433,8 +433,8 @@ impl ScrollWnd
             if .sizeBoxV < metrics.scrollBar_BoxMinSize
             {
                 .offsetClientV = metrics.scrollBar_BoxMinSize - .sizeBoxV
-                vh1 -= .offsetClientV
-                .sizeBoxV = metrics.scrollBar_BoxMinSize
+                vh1            -= .offsetClientV
+                .sizeBoxV      = metrics.scrollBar_BoxMinSize
             }
 
             .posBoxV = .view.scrollPos.y / sy
@@ -452,8 +452,8 @@ impl ScrollWnd
             if .sizeBoxH < metrics.scrollBar_BoxMinSize
             {
                 .offsetClientH = metrics.scrollBar_BoxMinSize - .sizeBoxH
-                vh1 -= .offsetClientH
-                .sizeBoxH = metrics.scrollBar_BoxMinSize
+                vh1            -= .offsetClientH
+                .sizeBoxH      = metrics.scrollBar_BoxMinSize
             }
 
             .posBoxH = .view.scrollPos.x / sx

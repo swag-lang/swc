@@ -4,7 +4,7 @@ using Swag
 
 func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
 {
-    var forwardKeys: Array's32
+    var forwardKeys:   Array's32
     var forwardValues: Array's32
     for key, value in table
     {
@@ -12,7 +12,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
         forwardValues.add(value)
     }
 
-    var reverseKeys: Array's32
+    var reverseKeys:   Array's32
     var reverseValues: Array's32
     for #reverse key, value in table
     {
@@ -86,7 +86,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
     {
         #assert(#typeof(key) == s32)
         #assert(#typeof(value) == s32)
-        sumKeys += key
+        sumKeys   += key
         sumValues += value
     }
 
@@ -175,7 +175,7 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
     original.add("beta", "two")
 
     var copy = original
-    copy["alpha"] = "uno"
+    copy["alpha"]                 = "uno"
     copy.findOrAdd("gamma").value = "three"
 
     @assert(assertTableStringValue(original, "alpha", "one"))

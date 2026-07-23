@@ -1,39 +1,39 @@
 struct GizmoRect
 {
-    paintSimpleBorder:     bool = true
-    paintBigBorder:        bool = true
-    roundShape:            bool = false
-    anchorSize:            f32 = 12
-    trackChange:           bool = false
+    paintSimpleBorder: bool = true
+    paintBigBorder:    bool = true
+    roundShape:        bool = false
+    anchorSize:        f32 = 12
+    trackChange:       bool = false
 
-    rect:                  Math.Rectangle
-    startRect:             Math.Rectangle
+    rect:      Math.Rectangle
+    startRect: Math.Rectangle
     anchors:               [8] Math.Rectangle
-    hotAnchor:             u32 = Swag.U32.Max
-    moving:                bool
-    firstMoving:           bool
-    movingRect:            Math.Rectangle
-    movingStart:           Math.Point
-    sigChanged:            #null func||(*GizmoRect, bool, u32)
-    sigHasChanged:         #null func||()
+    hotAnchor:     u32 = Swag.U32.Max
+    moving:        bool
+    firstMoving:   bool
+    movingRect:    Math.Rectangle
+    movingStart:   Math.Point
+    sigChanged:    #null func||(*GizmoRect, bool, u32)
+    sigHasChanged: #null func||()
 
     // Rotation: the whole gizmo (box + anchors + handle) rotates with the form
-    rotateEnabled:         bool = false
-    rotateValue:           f32  = 0
-    rotateAnchor:          Math.Rectangle
-    rotateHot:             bool
-    rotating:              bool
-    firstRotating:         bool
-    rotateStartValue:      f32
-    rotateStartAngle:      f32
-    sigRotate:             #null func||(*GizmoRect, bool, bool, f32)
+    rotateEnabled:    bool = false
+    rotateValue:      f32  = 0
+    rotateAnchor:     Math.Rectangle
+    rotateHot:        bool
+    rotating:         bool
+    firstRotating:    bool
+    rotateStartValue: f32
+    rotateStartAngle: f32
+    sigRotate:        #null func||(*GizmoRect, bool, bool, f32)
 
     // Captured at the start of a resize so the math stays in the rotated frame
-    gizmoRad:              f32
-    gizmoCenter:           Math.Point
+    gizmoRad:    f32
+    gizmoCenter: Math.Point
 
-    minSizeX:              f32 = 2
-    minSizeY:              f32 = 2
+    minSizeX: f32 = 2
+    minSizeY: f32 = 2
 }
 
 // Distance of the rotation handle above the bounding box edge
@@ -64,8 +64,8 @@ impl GizmoRect
             if .hotAnchor == Swag.U32.Max do
                 break
             .moving, .firstMoving = true
-            .gizmoRad    = .gizmoAngleRad()
-            .gizmoCenter = {.rect.horzCenter(), .rect.vertCenter()}
+            .gizmoRad             = .gizmoAngleRad()
+            .gizmoCenter          = {.rect.horzCenter(), .rect.vertCenter()}
             if .gizmoRad != 0
             {
                 // Work in a frame centered on the box and aligned to its axes
@@ -110,7 +110,7 @@ impl GizmoRect
                 if evt.button == .Left
                 {
                     .moving, .firstMoving = false
-                    .hotAnchor = Swag.U32.Max
+                    .hotAnchor            = Swag.U32.Max
                     view.releaseMouse()
                     if !.trackChange and .sigChanged do
                         .sigChanged(me, false, 0)

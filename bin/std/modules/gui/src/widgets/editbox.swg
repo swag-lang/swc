@@ -44,20 +44,20 @@ struct EditBox
 {
     using wnd:            Wnd     // Base window interface
 
-    icon:                 Icon                             // Optional icon shown on the left
-    text:                 String                           // Current UTF‑8 text content
-    unit:                 String                           // Suffix unit (e.g. "kg")
+    icon: Icon                                             // Optional icon shown on the left
+    text: String                                           // Current UTF‑8 text content
+    unit: String                                           // Suffix unit (e.g. "kg")
     form                  = EditBoxForm.Square             // Visual form of the EditBox
     editBoxFlags          = EditBoxFlags.AutoLoseFocus     // Active behaviour flags
     inputMode             = EditBoxInputMode.String        // Current input mode
-    maxLength:            s32                              // Maximum number of runes (0 = unlimited)
-    rightMargin:          f32                              // Extra right margin inside the client rectangle
+    maxLength:   s32                                       // Maximum number of runes (0 = unlimited)
+    rightMargin: f32                                       // Extra right margin inside the client rectangle
 
-    sigChanged:           SigArray'func||(*EditBox)                      // Emitted when the text changes
-    sigLoseFocus:         SigArray'func||(*EditBox)                      // Emitted when the EditBox loses focus
-    sigEnterPressed:      SigArray'func||(*EditBox)                      // Emitted when Enter is pressed
-    sigEscapePressed:     SigArray'func||(*EditBox)                      // Emitted when Escape is pressed
-    sigCheckContent:      #null func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
+    sigChanged:       SigArray'func||(*EditBox)                      // Emitted when the text changes
+    sigLoseFocus:     SigArray'func||(*EditBox)                      // Emitted when the EditBox loses focus
+    sigEnterPressed:  SigArray'func||(*EditBox)                      // Emitted when Enter is pressed
+    sigEscapePressed: SigArray'func||(*EditBox)                      // Emitted when Escape is pressed
+    sigCheckContent:  #null func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
 
     internal
     {
@@ -66,13 +66,13 @@ struct EditBox
             // Numeric bounds used when inputMode is S64/U64/X64/F64.
             using minMax: union
         {
-            minMaxS64:     { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
-            minMaxU64:     { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
-            minMaxF64:     { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
+            minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
+            minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds
+            minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
         }
 
-        aniBk:              BlendColor{speed: 4}     // Background colour animation
-        aniBorder:          BlendColor{speed: 4}     // Border colour animation
+        aniBk:     BlendColor{speed: 4}     // Background colour animation
+        aniBorder: BlendColor{speed: 4}     // Border colour animation
 
         isInvalid:          bool                  // True if current content is invalid
         isHot:              bool                  // True while the mouse is hovering
@@ -189,7 +189,7 @@ impl IWnd for EditBox
         if .icon.isValid()
         {
             .icon.paint(bc.painter, clientRect.x, clientRect.vertCenter() - .icon.sizeY * 0.5, colors.edit_Text)
-            clientRect.x += .icon.sizeX + metrics.iconText_Margin
+            clientRect.x     += .icon.sizeX + metrics.iconText_Margin
             clientRect.width -= .icon.sizeX + metrics.iconText_Margin
         }
 
@@ -226,8 +226,8 @@ impl IWnd for EditBox
             if .editBoxFlags.has(.RightAlign) do
                 pos.x = pos.right() - sizeX + .posSelBeg
             else do
-                pos.x += .posSelBeg
-            pos.x -= .getTextMarginRight()
+                pos.x  += .posSelBeg
+            pos.x      -= .getTextMarginRight()
             pos.y      = clientRect.vertCenter() - fontR.height * 0.5
             pos.height = fontR.height
             pos.width  = .posSelEnd - .posSelBeg
@@ -368,7 +368,7 @@ private impl EditBox
             if .clearBtn
             {
                 .clearBtn.destroy()
-                .clearBtn = null
+                .clearBtn           = null
                 .clearBtnTextMargin = 0
                 .applyLayout()
             }
@@ -381,7 +381,7 @@ private impl EditBox
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Round)
             .clearBtn.sigPressed += func|edit = me|(btn) { edit.setText(null); }
-            .clearBtnTextMargin = .clearBtn.position.width + .getThemeMetrics().iconText_Margin
+            .clearBtnTextMargin  = .clearBtn.position.width + .getThemeMetrics().iconText_Margin
             .applyLayout()
         }
     }
@@ -772,7 +772,7 @@ private impl EditBox
             result.x = clientRect.right() - .posSelEnd - 2
         }
 
-        result.x -= .getTextMarginRight()
+        result.x      -= .getTextMarginRight()
         result.height = font.height
         result.y      = clientRect.vertCenter() - result.height * 0.5
 
@@ -1096,7 +1096,7 @@ impl EditBox
             return
         .text.clear()
         .selBeg, .selEnd = 0
-        .countRunes = 0
+        .countRunes      = 0
         .insertString(str)
         .syncClearButton()
         .notifyChanged()

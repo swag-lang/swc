@@ -16,29 +16,29 @@ struct Slider
 {
     using wnd:          Wnd
 
-    value1:             f32
-    value2:             f32
-    min:                f32
-    max:                f32 = 1.0
-    steps:              f32
+    value1: f32
+    value2: f32
+    min:    f32
+    max:    f32 = 1.0
+    steps:  f32
     sliderFlags         = SliderFlags.HilightBar
-    sigStartChange:     SigArray'func||(*Slider)
-    sigChanged:         SigArray'func||(*Slider)
-    sigEndChange:       SigArray'func||(*Slider)
+    sigStartChange: SigArray'func||(*Slider)
+    sigChanged:     SigArray'func||(*Slider)
+    sigEndChange:   SigArray'func||(*Slider)
 
-    isMoving:           bool
-    isPressed1:         bool
-    isPressed2:         bool
-    isHot1:             bool
-    isHot2:             bool
-    hasValue1:          bool
-    hasValue2:          bool
-    correcMoving:       f32
+    isMoving:     bool
+    isPressed1:   bool
+    isPressed2:   bool
+    isHot1:       bool
+    isHot2:       bool
+    hasValue1:    bool
+    hasValue2:    bool
+    correcMoving: f32
 
-    aniMark1:           BlendColor
-    aniMark2:           BlendColor
-    aniStep1:           BlendColor
-    aniStep2:           BlendColor
+    aniMark1: BlendColor
+    aniMark2: BlendColor
+    aniStep1: BlendColor
+    aniStep2: BlendColor
 }
 
 impl IWnd for Slider
@@ -69,8 +69,8 @@ impl IWnd for Slider
                 else do
                     colorBkLeft = colors.slider_DisabledHilightBk
             }
-            colorMark1    = colors.slider_DisabledMark
-            colorMark2    = colors.slider_DisabledMark
+            colorMark1 = colors.slider_DisabledMark
+            colorMark2 = colors.slider_DisabledMark
         }
         else
         {
@@ -124,13 +124,13 @@ impl IWnd for Slider
         var right      = trackRect
         if isVertical
         {
-            right.y += (trackRect.height * valueRight)
+            right.y      += (trackRect.height * valueRight)
             right.height -= (trackRect.height * valueRight)
             theme.drawSubRect(bc.painter, right, &rects.slider_BkRightVert, colorBkRight)
         }
         else
         {
-            right.x += (trackRect.width * valueRight)
+            right.x     += (trackRect.width * valueRight)
             right.width -= (trackRect.width * valueRight)
             theme.drawSubRect(bc.painter, right, &rects.slider_BkRight, colorBkRight)
         }
@@ -468,12 +468,12 @@ private impl Slider
 
         if .sliderFlags.has(.Vertical)
         {
-            result.y += (boxSize * 0.5)
+            result.y      += (boxSize * 0.5)
             result.height -= boxSize
         }
         else
         {
-            result.x += (boxSize * 0.5)
+            result.x     += (boxSize * 0.5)
             result.width -= boxSize
         }
 
@@ -487,12 +487,12 @@ private impl Slider
 
         if .sliderFlags.has(.Vertical)
         {
-            result.x = result.horzCenter() - (trackSize * 0.5)
+            result.x     = result.horzCenter() - (trackSize * 0.5)
             result.width = trackSize
         }
         else
         {
-            result.y = result.vertCenter() - (trackSize * 0.5)
+            result.y      = result.vertCenter() - (trackSize * 0.5)
             result.height = trackSize
         }
 

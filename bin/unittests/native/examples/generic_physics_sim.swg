@@ -155,9 +155,9 @@ impl AABB
 
 struct(T) Particle
 {
-    pos: Vec2
-    vel: Vec2
-    acc: Vec2
+    pos:  Vec2
+    vel:  Vec2
+    acc:  Vec2
     mass: T
 }
 
@@ -206,8 +206,8 @@ impl Particle
 
 struct(T) Spring
 {
-    a:        Particle
-    b:        Particle
+    a:         Particle
+    b:         Particle
     stiffness: T
     restLen:   T
 }
@@ -317,7 +317,7 @@ impl Spring
 
 #test
 {
-    var v: Vec2's32  = {x: 15, y: -5}
+    var v:  Vec2's32  = {x: 15, y: -5}
     var lo: Vec2's32 = {x: 0, y: 0}
     var hi: Vec2's32 = {x: 10, y: 10}
     let c = Vec2's32.clamp(&v, &lo, &hi)
@@ -346,8 +346,8 @@ impl Spring
 
 #test
 {
-    let box: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
-    var inside: Vec2's32  = {x: 5, y: 5}
+    let box:     AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
+    var inside:  Vec2's32  = {x: 5, y: 5}
     var outside: Vec2's32 = {x: 11, y: 5}
 
     @assert(box.contains(&inside))
@@ -383,7 +383,7 @@ impl Spring
 
 #test
 {
-    let box: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
+    let box:    AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
     let moved = box + offset
     #assert(#typeof(moved) == AABB's32)
@@ -425,7 +425,7 @@ impl Spring
 
 #test
 {
-    let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
+    let p:     Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
     var force: Vec2's32 = {x: 10, y: 5}
     let p1 = p.applyForce(&force)
 

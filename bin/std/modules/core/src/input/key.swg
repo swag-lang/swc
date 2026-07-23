@@ -220,14 +220,14 @@ public func getKeyName(mdf: KeyModifiers, key: Key)->String
     {
         if result.length do
             result += "+"
-        result += "Ctrl"
+        result     += "Ctrl"
     }
 
     if mdf & .Shift
     {
         if result.length do
             result += "+"
-        result += "Shift"
+        result     += "Shift"
     }
 
     if result.length do

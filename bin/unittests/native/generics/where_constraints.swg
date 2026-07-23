@@ -49,7 +49,7 @@ struct(T, Count: s32) MovingWindow
     where T == f32 or T == f64
 {
     values: [Count] T
-    next: s32
+    next:   s32
     filled: s32
 }
 
@@ -58,7 +58,7 @@ impl MovingWindow
     func push(me, value: T)
     {
         .values[.next] = value
-        .next = (.next + 1) % Count
+        .next          = (.next + 1) % Count
         if .filled < Count do
             .filled += 1
     }
@@ -90,9 +90,9 @@ struct(T, Count: s32) SensorChannel
     where Count > 0
     where T == f32 or T == f64
 {
-    scale: T
+    scale:  T
     offset: T
-    safe: Range'T
+    safe:   Range'T
     window: MovingWindow'(T, Count)
 }
 

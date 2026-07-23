@@ -1,14 +1,14 @@
 using Core, Gui, Pixel
 
-const W = 1240
-const H = 820
-const MaxPages = 4
+const W                 = 1240
+const H                 = 820
+const MaxPages          = 4
 const TestFramesPerPage = 35
-const RootMargin = 24.0
-const PageTop = 112.0
-const PageBottomMargin = 58.0
-const ThemeButtonWidth = 152.0
-const HeaderGap = 18.0
+const RootMargin        = 24.0
+const PageTop           = 112.0
+const PageBottomMargin  = 58.0
+const ThemeButtonWidth  = 152.0
+const HeaderGap         = 18.0
 
 struct PageLayout
 {
@@ -18,17 +18,17 @@ struct PageLayout
     bottom: Math.Rectangle
 }
 
-var app: Application
-var g_Surface: #null *Surface
-var g_View: #null *Wnd
-var g_Title: #null *Label
-var g_SubTitle: #null *Label
+var app:           Application
+var g_Surface:     #null *Surface
+var g_View:        #null *Wnd
+var g_Title:       #null *Label
+var g_SubTitle:    #null *Label
 var g_ThemeButton: #null *PushButton
-var g_PageView: #null *Wnd
-var g_Footer: #null *Label
-var g_Page: s32
-var g_TestFrame: s32
-var g_DarkTheme: bool
+var g_PageView:    #null *Wnd
+var g_Footer:      #null *Label
+var g_Page:        s32
+var g_TestFrame:   s32
+var g_DarkTheme:   bool
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
@@ -103,9 +103,9 @@ func getPageLayout(parent: *Wnd)->PageLayout
     let halfW = (rect.width - gap) * 0.5
 
     var result: retval
-    result.full = {0, 0, rect.width, rect.height}
-    result.left = {0, 0, halfW, topH}
-    result.right = {halfW + gap, 0, rect.width - halfW - gap, topH}
+    result.full   = {0, 0, rect.width, rect.height}
+    result.left   = {0, 0, halfW, topH}
+    result.right  = {halfW + gap, 0, rect.width - halfW - gap, topH}
     result.bottom = {0, topH + gap, rect.width, rect.height - topH - gap}
     return result
 }
@@ -306,7 +306,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    g_View = g_Surface.getView()
+    g_View                 = g_Surface.getView()
     g_View.backgroundStyle = .View
 
     g_Title = Label.create(notnull g_View, "", {})
@@ -316,12 +316,12 @@ func createRootView()
     g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form = .Flat
-    g_ThemeButton.icon = app.theme.getIcon24(.Picker, 18)
+    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
+    g_ThemeButton.form       = .Flat
+    g_ThemeButton.icon       = app.theme.getIcon24(.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(notnull g_View, {})
+    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
     g_Footer = Label.create(notnull g_View, "", {})

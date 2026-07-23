@@ -43,7 +43,7 @@ func assertFormatString(value: const &String, expected: string)->bool
 #test
 {
     var direct: ConcatBuffer
-    let fmt: StrConv.ConvertFormat
+    let fmt:    StrConv.ConvertFormat
     let text = "variable"
 
     StrConv.convertAny(&direct, "literal", fmt, null)

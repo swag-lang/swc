@@ -248,7 +248,10 @@ func day9A()
     let lines    = assume File.readAllLines(dataPath)
 
     var set: HashSet'{ x, y: s32 }
-    struct W { x, y: s32 }
+    struct W
+    {
+        x, y: s32
+    }
     var H, T: W
 
     for l in lines

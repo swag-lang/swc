@@ -57,8 +57,8 @@ func day10A()
         Slice.reverse(tmp.toSlice())
         for v, i in tmp do
             arr[(cur + i) % 256] = v
-        cur = (cur + n + skip) % 256
-        skip += 1
+        cur                      = (cur + n + skip) % 256
+        skip                     += 1
     }
 
     @assert(arr[0] * arr[1] == 19591)

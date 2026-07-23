@@ -323,7 +323,7 @@ func runInlineClosureCaptureRef()->s32
     var factor = 3
     let cb: func||(s32)->s32 = func|factor, &total|(value: s32)->s32
     {
-        total += value * factor
+        total  += value * factor
         factor += 1
         return total * 10 + factor
     }
@@ -472,7 +472,7 @@ func runInlineClosureCaptureRef()->s32
 
     var text = "abc"
     let byValue: func||()->string = func|text|()->string { return text }
-    let byRef: func||()->string = func|&text|()->string { return text }
+    let byRef:   func||()->string = func|&text|()->string { return text }
 
     text = "zzz"
     @assert(byValue() == "abc")

@@ -57,7 +57,7 @@ const GL_EVAL_BIT            = 0x00010000
 const GL_LIST_BIT            = 0x00020000
 const GL_TEXTURE_BIT         = 0x00040000
 const GL_SCISSOR_BIT         = 0x00080000
-const GL_ALL_ATTRIB_BITS     = 0x000fffff
+const GL_ALL_ATTRIB_BITS     = 0x000FFFFF
 
 /* BeginMode */
 const GL_POINTS         = 0x0000
@@ -539,7 +539,7 @@ const GL_REPEAT = 0x2901
 /* ClientAttribMask */
 const GL_CLIENT_PIXEL_STORE_BIT  = 0x00000001
 const GL_CLIENT_VERTEX_ARRAY_BIT = 0x00000002
-const GL_CLIENT_ALL_ATTRIB_BITS  = 0xffffffff
+const GL_CLIENT_ALL_ATTRIB_BITS  = 0xFFFFFFFF
 
 /* polygon_offset */
 const GL_POLYGON_OFFSET_FACTOR = 0x8038

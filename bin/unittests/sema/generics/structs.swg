@@ -17,7 +17,7 @@ struct(T) Wrapper
 
 struct(T, N: s32) DoubleBuffer
 {
-    first: Buffer'(T, N)
+    first:  Buffer'(T, N)
     second: Buffer'(T, N)
 }
 
@@ -28,8 +28,8 @@ struct(T, N: s32 = 2) DefaultBuffer
 
 func semaTest001()
 {
-    let box: Box'bool
-    let buffer: Buffer'(s32, 3)
+    let box:     Box'bool
+    let buffer:  Buffer'(s32, 3)
     var wrapped: Wrapper'string = undefined
     let doubled: DoubleBuffer'(u8, 4)
     let partial: DefaultBuffer'u16
@@ -50,7 +50,7 @@ func semaTest002()
             value: T
         }
 
-        let intBox: LocalBox's32
+        let intBox:  LocalBox's32
         let boolBox: LocalBox'bool
 
         #assert(#typeof(intBox.value) == s32)

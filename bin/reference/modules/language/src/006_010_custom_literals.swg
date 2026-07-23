@@ -51,10 +51,10 @@ func toto(x: Duration) {}
 
 #test
 {
-    let delaySeconds: Duration      = 5's
+    let delaySeconds:      Duration      = 5's
     let delayMilliseconds: Duration = 500'ms
-    let delayMinutes: Duration      = 2'min
-    let delayHours: Duration        = 1'h
+    let delayMinutes:      Duration      = 2'min
+    let delayHours:        Duration        = 1'h
 
     @assert(delaySeconds.timeInSeconds == 5.0)
     @assert(delayMilliseconds.timeInSeconds == 0.5)

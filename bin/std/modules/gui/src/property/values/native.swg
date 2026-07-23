@@ -297,7 +297,7 @@ impl Properties
             with let ed = EditBox.create(item.line, value.name)
             {
                 if unit != null do
-                    .unit = cast(string) (unit)
+                    .unit  = cast(string) (unit)
                 .maxSize.x = editWidth
                 if me.isGridLike() do
                     .dockStyle = .CenterKeepSizeVert

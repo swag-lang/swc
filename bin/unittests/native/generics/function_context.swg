@@ -54,9 +54,9 @@ func(A, B) functionLocalRenamedPartialBox(first: A, third: B)->B
     }
 
     var data: Local = undefined
-    data.item.first = first
+    data.item.first  = first
     data.item.second = "ok"
-    data.item.third = third
+    data.item.third  = third
     return data.item.third
 }
 
@@ -137,7 +137,7 @@ impl MethodConstShadowHolder
 
 #test
 {
-    let typeShadowHolder: MethodTypeShadowHolder'u16
+    let typeShadowHolder:  MethodTypeShadowHolder'u16
     let constShadowHolder: MethodConstShadowHolder'(u16, 9)
 
     let value = typeShadowHolder.localUsesMethodType'bool(true)

@@ -250,13 +250,13 @@ func firstNonAsciiRune(text: string)->rune
 {
     let text = "A\u00E9\U0001F642"
 
-    var runeSum: u32
+    var runeSum:      u32
     var charIndexSum: u64
     var byteIndexSum: u64
 
     Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
-        runeSum += cast(u32) c
+        runeSum      += cast(u32) c
         charIndexSum += charIndex
         byteIndexSum += byteIndex
     }

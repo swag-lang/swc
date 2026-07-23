@@ -4,20 +4,20 @@ const RecentPadding = 8.0
 
 struct RecentItem
 {
-    file:               String
-    linked:             String
-    linkedUpToDate:     bool
-    preview:            Texture
-    rect:               Math.Rectangle
-    zoom:               f32
+    file:           String
+    linked:         String
+    linkedUpToDate: bool
+    preview:        Texture
+    rect:           Math.Rectangle
+    zoom:           f32
 }
 
 struct RecentInfos
 {
-    hot:                bool
-    selected:           bool
-    linkedUpToDate:     bool
-    linked:             String
+    hot:            bool
+    selected:       bool
+    linkedUpToDate: bool
+    linked:         String
 }
 
 struct RecentView
@@ -26,9 +26,9 @@ struct RecentView
 
     main:          #late *MainWnd
     recentWnd:     #late *RecentWnd
-    items:         ArrayPtr'RecentItem
-    selected:      u64 = Swag.U64.Max
-    hotItem:       u64 = Swag.U64.Max
+    items:    ArrayPtr'RecentItem
+    selected: u64 = Swag.U64.Max
+    hotItem:  u64 = Swag.U64.Max
 }
 
 impl RecentView
@@ -212,12 +212,12 @@ struct RecentWnd
     using scrollWnd:     ScrollWnd
     main:                #late *MainWnd
     recentView:          #late *RecentView
-    timer:               #null *Gui.Timer
-    loadTimer:           #null *Gui.Timer
-    pendingRecentFiles:  Array'String
-    pendingRecentIndex:  u64
-    loadDone:            bool
-    prepareLoadRecent:   bool
+    timer:              #null *Gui.Timer
+    loadTimer:          #null *Gui.Timer
+    pendingRecentFiles: Array'String
+    pendingRecentIndex: u64
+    loadDone:           bool
+    prepareLoadRecent:  bool
 }
 
 impl IWnd for RecentWnd
@@ -281,7 +281,7 @@ impl RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
-            .scrollWndFlags |= .SmallBar | .ForceHorizontal
+            .scrollWndFlags  |= .SmallBar | .ForceHorizontal
             .backgroundStyle = .Window
             .main            = main
             .style.addStyleSheetColors("scrollBar_Bk $view_Bk")
@@ -361,7 +361,7 @@ impl RecentWnd
         if .loadTimer or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
         .prepareLoadRecent = false
-        .loadTimer = .getApp().addTimer(1'ms, me)
+        .loadTimer         = .getApp().addTimer(1'ms, me)
     }
 
     mtd loadNextRecent()

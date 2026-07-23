@@ -7,7 +7,7 @@ func appendDigits(lhs, rhs: u64)->u64
     for
     {
         magnitude *= 10
-        value /= 10
+        value     /= 10
         if value == 0 do
             break
     }

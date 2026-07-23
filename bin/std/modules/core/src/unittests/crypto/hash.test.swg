@@ -25,7 +25,7 @@ namespace HashTestTypes
     {
         mtd const impl compute()->u64
         {
-            return 0x0123_4567_89ab_cdef'u64 + .value
+            return 0x0123_4567_89AB_CDEF'u64 + .value
         }
     }
 
@@ -38,7 +38,7 @@ namespace HashTestTypes
     {
         mtd const impl compute()->u32
         {
-            return 0x0bad_f00d'u32 + .value
+            return 0x0BAD_F00D'u32 + .value
         }
     }
 
@@ -46,22 +46,22 @@ namespace HashTestTypes
     {
         mtd const impl compute()->u64
         {
-            return 0x0123_4567_dead_beef'u64 + .value
+            return 0x0123_4567_DEAD_BEEF'u64 + .value
         }
     }
 }
 
-const TEXT = "abc"
+const TEXT        = "abc"
 const ONLY_HASH32 = HashTestTypes.OnlyHash32{value: 3}
 const ONLY_HASH64 = HashTestTypes.OnlyHash64{value: 5}
 const BOTH_HASH   = HashTestTypes.BothHash{value: 7}
 
-const EXPECTED_ONLY_HASH32_32 = 0x1234_567b'u32
-const EXPECTED_ONLY_HASH32_64 = 0x1234_567b'u64
-const EXPECTED_ONLY_HASH64_32 = 0x89ab_cdf4'u32
-const EXPECTED_ONLY_HASH64_64 = 0x0123_4567_89ab_cdf4'u64
-const EXPECTED_BOTH_HASH32    = 0x0bad_f014'u32
-const EXPECTED_BOTH_HASH64    = 0x0123_4567_dead_bef6'u64
+const EXPECTED_ONLY_HASH32_32 = 0x1234_567B'u32
+const EXPECTED_ONLY_HASH32_64 = 0x1234_567B'u64
+const EXPECTED_ONLY_HASH64_32 = 0x89AB_CDF4'u32
+const EXPECTED_ONLY_HASH64_64 = 0x0123_4567_89AB_CDF4'u64
+const EXPECTED_BOTH_HASH32    = 0x0BAD_F014'u32
+const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 
 #assert(#typeof(HashTestTypes.OnlyHash32).fullname == #fullnameof(HashTestTypes.OnlyHash32))
 #assert(#typeof(HashTestTypes.OnlyHash64).fullname == #fullnameof(HashTestTypes.OnlyHash64))

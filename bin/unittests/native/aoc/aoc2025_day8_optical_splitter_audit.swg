@@ -5,9 +5,9 @@
 
 struct SplitterAudit
 {
-    rowCount:      u32
-    columnCount:   u32
-    splitCount:    u32
+    rowCount:           u32
+    columnCount:        u32
+    splitCount:         u32
     survivingBeamCount: u32
 }
 
@@ -56,8 +56,8 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
     var next: [96] bool
     var result: SplitterAudit
 
-    result.rowCount = cast(u32) @countof(plan)
-    result.columnCount = width
+    result.rowCount                = cast(u32) @countof(plan)
+    result.columnCount             = width
     current[findStartColumn(plan)] = true
 
     for row in 1 to @countof(plan) - 1

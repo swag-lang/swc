@@ -28,10 +28,10 @@ const HTBOTTOMRIGHT     = 17
 #[Swag.NoCopy]
 struct NativeSurface
 {
-    hWnd:             HWND
-    lastDeadChar:     WPARAM
-    topMost:          bool
-    trayIcon:         HICON
+    hWnd:         HWND
+    lastDeadChar: WPARAM
+    topMost:      bool
+    trayIcon:     HICON
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -282,7 +282,7 @@ private impl Surface
         if flags & .TopMost
         {
             result.topMost = true
-            winFlagsEx |= WS_EX_TOPMOST
+            winFlagsEx     |= WS_EX_TOPMOST
         }
 
         // Create window

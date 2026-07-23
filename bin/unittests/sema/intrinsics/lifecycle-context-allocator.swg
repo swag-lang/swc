@@ -16,7 +16,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
         return
 
     var req: AllocatorRequest
-    req.size = size
+    req.size    = size
     req.address = buffer
 
     let talloc = allocator orelse @getcontext().allocator
@@ -27,7 +27,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
 {
     var req: AllocatorRequest
     req.address = buffer
-    req.size = newSize
+    req.size    = newSize
     req.oldSize = oldSize
 
     let talloc = allocator orelse @getcontext().allocator
@@ -42,9 +42,9 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
 
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.size = size
-    req.address = buffer
-    req.hint = hint
+    req.size      = size
+    req.address   = buffer
+    req.hint      = hint
 
     let talloc = allocator orelse @getcontext().allocator
     talloc.free(&req)
@@ -54,10 +54,10 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
 {
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.hint = hint
-    req.address = buffer
-    req.size = newSize
-    req.oldSize = oldSize
+    req.hint      = hint
+    req.address   = buffer
+    req.size      = newSize
+    req.oldSize   = oldSize
     req.alignment = alignment
 
     let talloc = allocator orelse @getcontext().allocator
@@ -83,19 +83,19 @@ func encodeTrackedTrace(buffer: #null [*] DropTracked, count: u64)->u64
 
 struct ByteInitInfo
 {
-    firstTrace: u64
+    firstTrace:  u64
     secondTrace: u64
-    count: u64
-    capacity: u64
+    count:       u64
+    capacity:    u64
 }
 
 struct DropRunInfo
 {
     liveTrace: u64
-    drops: u32
+    drops:     u32
     dropTrace: u64
-    count: u64
-    capacity: u64
+    count:     u64
+    capacity:  u64
 }
 
 struct DropTracked
@@ -115,9 +115,9 @@ impl DropTracked
 struct DirectByteBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] u8
-    count: u64
-    capacity: u64
+    buffer:    #null [*] u8
+    count:     u64
+    capacity:  u64
 }
 
 impl DirectByteBuffer
@@ -133,10 +133,10 @@ impl DirectByteBuffer
 
         var req: AllocatorRequest
         req.address = .buffer
-        req.size = newCapacity
+        req.size    = newCapacity
         req.oldSize = .capacity
         .allocator.realloc(&req)
-        .buffer = cast(#null [*] u8) req.address
+        .buffer   = cast(#null [*] u8) req.address
         .capacity = newCapacity
     }
 
@@ -165,10 +165,10 @@ impl DirectByteBuffer
         @drop(.buffer, .count)
 
         var req: AllocatorRequest
-        req.size = .capacity
+        req.size    = .capacity
         req.address = .buffer
         .allocator.free(&req)
-        .buffer = null
+        .buffer           = null
         .count, .capacity = 0
     }
 }
@@ -176,9 +176,9 @@ impl DirectByteBuffer
 struct HelperByteBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] u8
-    count: u64
-    capacity: u64
+    buffer:    #null [*] u8
+    count:     u64
+    capacity:  u64
 }
 
 impl HelperByteBuffer
@@ -192,7 +192,7 @@ impl HelperByteBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast(#null [*] u8) helperRealloc(.buffer, newCapacity, .capacity, .allocator)
+        .buffer   = cast(#null [*] u8) helperRealloc(.buffer, newCapacity, .capacity, .allocator)
         .capacity = newCapacity
     }
 
@@ -220,7 +220,7 @@ impl HelperByteBuffer
 
         @drop(.buffer, .count)
         helperFree(.buffer, .capacity, .allocator)
-        .buffer = null
+        .buffer           = null
         .count, .capacity = 0
     }
 }
@@ -228,9 +228,9 @@ impl HelperByteBuffer
 struct MemoryTrackedBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] DropTracked
-    count: u64
-    capacity: u64
+    buffer:    #null [*] DropTracked
+    count:     u64
+    capacity:  u64
 }
 
 impl MemoryTrackedBuffer
@@ -244,7 +244,7 @@ impl MemoryTrackedBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast(#null [*] DropTracked) memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator)
+        .buffer   = cast(#null [*] DropTracked) memoryLikeRealloc(.buffer, newCapacity * #sizeof(DropTracked), .capacity * #sizeof(DropTracked), .allocator)
         .capacity = newCapacity
     }
 
@@ -272,7 +272,7 @@ impl MemoryTrackedBuffer
 
         @drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(DropTracked), .allocator)
-        .buffer = null
+        .buffer           = null
         .count, .capacity = 0
     }
 }

@@ -41,8 +41,8 @@
     #[Swag.NoInline]
     func maxRuntimeF32(a: f32, b: f32)->f32 => @max(a, b)
 
-    const S8Min = #run minRuntimeS8(-7's8, 3's8)
-    const S8Max = #run maxRuntimeS8(-7's8, 3's8)
+    const S8Min  = #run minRuntimeS8(-7's8, 3's8)
+    const S8Max  = #run maxRuntimeS8(-7's8, 3's8)
     const S16Min = #run minRuntimeS16(-300's16, 77's16)
     const S16Max = #run maxRuntimeS16(-300's16, 77's16)
     const S32Min = #run minRuntimeS32(-7, 3)
@@ -50,8 +50,8 @@
     const S64Min = #run minRuntimeS64(-5000000000's64, 3's64)
     const S64Max = #run maxRuntimeS64(-5000000000's64, 3's64)
 
-    const U8Min = #run minRuntimeU8(4'u8, 9'u8)
-    const U8Max = #run maxRuntimeU8(4'u8, 9'u8)
+    const U8Min  = #run minRuntimeU8(4'u8, 9'u8)
+    const U8Max  = #run maxRuntimeU8(4'u8, 9'u8)
     const U16Min = #run minRuntimeU16(65000'u16, 12'u16)
     const U16Max = #run maxRuntimeU16(65000'u16, 12'u16)
     const U32Min = #run minRuntimeU32(4000000000'u32, 7'u32)

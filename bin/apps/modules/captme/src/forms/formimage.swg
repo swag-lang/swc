@@ -24,22 +24,22 @@ struct FormImage
     #[Name("Strength"), SliderMinMax(0, 100)]
     strength:       s32 = 50
     #[Name("Place")]
-    place:          FormImagePlacement = .Center
-    freePos:        Math.Rectangle
+    place:   FormImagePlacement = .Center
+    freePos: Math.Rectangle
 
     #[Serialization.NoSerialize]
     {
-        editInside:           bool
-        dirty:                bool
-        isReadyToCapture:     bool
+        editInside:       bool
+        dirty:            bool
+        isReadyToCapture: bool
 
-        serial:               u32
-        stc:                  s32
-        xc, yc:               s32
-        wc, hc:               s32
-        texture:              Texture
-        gizmo:                GizmoRect
-        textureKind:          FormImageKind = .Image
+        serial:      u32
+        stc:         s32
+        xc, yc:      s32
+        wc, hc:      s32
+        texture:     Texture
+        gizmo:       GizmoRect
+        textureKind: FormImageKind = .Image
     }
 }
 
@@ -139,9 +139,9 @@ impl IForm for FormImage
     {
         if .mustEditInside()
         {
-            .freePos.x += newPosX
-            .freePos.y += newPosY
-            .freePos.width += newSizeX
+            .freePos.x      += newPosX
+            .freePos.y      += newPosY
+            .freePos.width  += newSizeX
             .freePos.height += newSizeY
         }
         else do

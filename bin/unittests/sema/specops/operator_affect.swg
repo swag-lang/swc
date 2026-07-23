@@ -7,8 +7,8 @@ struct SetSource
 
 struct SetTarget
 {
-    value: s32
-    tag: s32
+    value:    s32
+    tag:      s32
     sentinel: s32 = 1234
 }
 
@@ -17,19 +17,19 @@ impl SetTarget
     mtd opSet(value: s32)
     {
         .value = value
-        .tag = 10
+        .tag   = 10
     }
 
     mtd opSet(value: f32)
     {
         .value = cast(s32) value
-        .tag = 20
+        .tag   = 20
     }
 
     mtd opSet(other: SetSource)
     {
         .value = other.value + 1
-        .tag = 30
+        .tag   = 30
     }
 }
 
@@ -40,8 +40,8 @@ struct SetHolder
 
 struct ParamSetTarget
 {
-    value: s32
-    tag: s32
+    value:    s32
+    tag:      s32
     sentinel: s32 = 777
 }
 
@@ -50,21 +50,21 @@ impl ParamSetTarget
     mtd opSet(value: s32)
     {
         .value = value
-        .tag = 10
+        .tag   = 10
     }
 
     #[Swag.Implicit]
     mtd opSet(value: u16)
     {
         .value = cast(s32) value
-        .tag = 20
+        .tag   = 20
     }
 
     #[Swag.Complete]
     mtd opSet(value: u64)
     {
-        .value = cast(s32) value
-        .tag = 30
+        .value    = cast(s32) value
+        .tag      = 30
         .sentinel = cast(s32) value
     }
 }
@@ -135,7 +135,7 @@ impl LiteralSetTarget
 struct LiteralOverloadTarget
 {
     timeInSeconds: f32
-    tag: s32
+    tag:           s32
 }
 
 impl LiteralOverloadTarget
@@ -176,8 +176,8 @@ impl LiteralOverloadTarget
 }
 
 const ConstSetOne: ConstSetVector2 = 1.0
-const ConstPaletteCardOne = ConstPaletteCard{"gray", ConstPaletteSource.Gray}
-const ConstPaletteCards = [
+const ConstPaletteCardOne          = ConstPaletteCard{"gray", ConstPaletteSource.Gray}
+const ConstPaletteCards            = [
     ConstPaletteCard{"gray", ConstPaletteSource.Gray},
     ConstPaletteCard{"blue", ConstPaletteSource.Blue},
     ]
@@ -201,7 +201,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    let fromInt: SetTarget = 42's32
+    let fromInt:   SetTarget = 42's32
     var fromFloat: SetTarget = 3.5'f32
 
     #assert(#typeof(fromInt) == SetTarget)
@@ -261,7 +261,7 @@ func semaTest007()
 
 func semaTest008()
 {
-    let fromInt: LiteralOverloadTarget = 5's
+    let fromInt:   LiteralOverloadTarget = 5's
     let fromFloat: LiteralOverloadTarget = 1.5's
 
     let castInt = cast(LiteralOverloadTarget) 250'ms

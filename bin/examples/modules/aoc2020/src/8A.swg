@@ -59,7 +59,7 @@ func day8A()
             ip += 1
         case "acc":
             total += assume StrConv.parseS32(lines[ip][4 to]).value
-            ip += 1
+            ip    += 1
         case "jmp":
             ip += assume StrConv.parseS32(lines[ip][4 to]).value
         }

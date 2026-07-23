@@ -12,7 +12,10 @@ which is particularly useful for optimizing memory when only one field is used a
 #test
 {
     // Define a union with three overlapping f32 fields: x, y, and z
-    union MyUnion { x, y, z: f32 }
+    union MyUnion
+    {
+        x, y, z: f32
+    }
     // Initialize the union, setting the value of the 'x' field
     let v = MyUnion{x: 666}
     // All fields share the same memory location — updating one affects all

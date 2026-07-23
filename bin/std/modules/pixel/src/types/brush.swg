@@ -22,26 +22,26 @@ const MaxGradientStops = 8
 
 struct GradientStop
 {
-    offset:     f32
-    color:      Color
+    offset: f32
+    color:  Color
 }
 
 struct Brush
 {
-    color:       Color = Color.fromArgb(Argb.White)
-    type:        BrushType = SolidColor
-    hatch:       HatchStyle = Dot
-    texture:     Texture
-    uvMode:      UVMode = Fill
-    uvRect:      Math.Rectangle
+    color:   Color = Color.fromArgb(Argb.White)
+    type:    BrushType = SolidColor
+    hatch:   HatchStyle = Dot
+    texture: Texture
+    uvMode:  UVMode = Fill
+    uvRect:  Math.Rectangle
 
-    gradientStart:      Math.Vector2
-    gradientEnd:        Math.Vector2
-    gradientRadius0:    f32
-    gradientRadius1:    f32
-    gradientAngle0:     f32
-    gradientAngle1:     f32
-    gradientSpread:     GradientSpread = Clamp
+    gradientStart:   Math.Vector2
+    gradientEnd:     Math.Vector2
+    gradientRadius0: f32
+    gradientRadius1: f32
+    gradientAngle0:  f32
+    gradientAngle1:  f32
+    gradientSpread:  GradientSpread = Clamp
     gradientStops:      [MaxGradientStops] GradientStop
     gradientStopCount:  u8
 }
@@ -111,11 +111,11 @@ impl Brush
         while i > insertAt
         {
             .gradientStops[i] = .gradientStops[i - 1]
-            i -= 1
+            i                 -= 1
         }
 
         .gradientStops[insertAt] = {clamped, color}
-        .gradientStopCount += 1
+        .gradientStopCount       += 1
     }
 
     // Set the paint color multiplier used by textures, hatches and gradients.

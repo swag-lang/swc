@@ -116,7 +116,7 @@ impl CountedBag
     for #reverse v in arr
     {
         order[slot] = v
-        slot += 1
+        slot        += 1
     }
     @assert(order[0] == 3 and order[1] == 2 and order[2] == 1)
 }

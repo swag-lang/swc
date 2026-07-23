@@ -5,8 +5,20 @@ using Swag, Core
 var ScrollHeadlessPosCount:  u32
 var ScrollHeadlessSizeCount: u32
 
-func scrollHeadlessPos(s: *ScrollWnd, o, n: Math.Point)  { discard s; discard o; discard n; ScrollHeadlessPosCount += 1 }
-func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point) { discard s; discard o; discard n; ScrollHeadlessSizeCount += 1 }
+func scrollHeadlessPos(s: *ScrollWnd, o, n: Math.Point)
+{
+    discard s;
+    discard o;
+    discard n;
+    ScrollHeadlessPosCount += 1
+}
+func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
+{
+    discard s;
+    discard o;
+    discard n;
+    ScrollHeadlessSizeCount += 1
+}
 
 // Scroll position is clamped to [0 .. scrollSize - visibleSize].
 #test
@@ -18,7 +30,7 @@ func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point) { discard s; discard o;
 
     let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
     scroll.createView'Wnd()
-    scroll.sigScrollPosChanged += &scrollHeadlessPos
+    scroll.sigScrollPosChanged  += &scrollHeadlessPos
     scroll.sigScrollSizeChanged += &scrollHeadlessSize
 
     scroll.setScrollSize(1000, 1000)

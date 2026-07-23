@@ -35,7 +35,7 @@ func strictHandleFallback()->bool
 
 func typeInfoFallback()->bool
 {
-    let primary: #null typeinfo = null
+    let primary:  #null typeinfo = null
     let fallback: typeinfo = s32
     let resolved = primary orelse fallback
     return resolved == s32
@@ -83,8 +83,8 @@ func interfaceFallback()->bool
 {
     func explicitAnyChecks()->bool
     {
-        let missing: #null any = null
-        let boolTrue: any = true
+        let missing:   #null any = null
+        let boolTrue:  any = true
         let boolFalse: any = false
         return missing == null and
                boolTrue != null and

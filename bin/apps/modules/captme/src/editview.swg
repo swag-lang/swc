@@ -3,11 +3,11 @@ struct EditView
     using wnd:       Wnd
     main:            #late *MainWnd
     scroll:          #late *ScrollWnd
-    capture:         #null *Capture
-    zoom:            f32 = 1
-    viewMargin:      f32 = 32
-    firstPaint:      bool = true
-    inPlaceEdit:     bool
+    capture:     #null *Capture
+    zoom:        f32 = 1
+    viewMargin:  f32 = 32
+    firstPaint:  bool = true
+    inPlaceEdit: bool
 }
 
 impl IWnd for EditView

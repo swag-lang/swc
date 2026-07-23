@@ -25,7 +25,7 @@ func runtimeHandleNull()->bool
 
 func runtimeHandleOrelseNonNull()->bool
 {
-    var first: s32 = 1
+    var first:  s32 = 1
     var second: s32 = 2
     let primary = cast(Handle) &first
     let fallback = cast(Handle) &second

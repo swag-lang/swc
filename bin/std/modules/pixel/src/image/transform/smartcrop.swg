@@ -4,35 +4,35 @@ public impl Image
 {
     internal struct SaliencyWeights
     {
-        contrast:       f32
-        saturation:     f32
-        edge:           f32
+        contrast:   f32
+        saturation: f32
+        edge:       f32
     }
 
     internal struct ScoreCtx
     {
-        iiS:         *Array'f32     // Integral image of saliency values (blurred/combined)
-        iiT:         *Array'f32     // Integral image of rule-of-thirds weights
-        iiE:         *Array'f32     // Integral image of edge distance values (high away from edges)
-        w, h:        s32
-        imgArea:     f32
-        thirdsW:     f32
-        centerW:     f32
-        shrinkW:     f32
-        edgePen:     f32
-        cx, cy:      f32
-        d2Max:       f32     // (w/2)^2 + (h/2)^2
+        iiS:     *Array'f32     // Integral image of saliency values (blurred/combined)
+        iiT:     *Array'f32     // Integral image of rule-of-thirds weights
+        iiE:     *Array'f32     // Integral image of edge distance values (high away from edges)
+        w, h:    s32
+        imgArea: f32
+        thirdsW: f32
+        centerW: f32
+        shrinkW: f32
+        edgePen: f32
+        cx, cy:  f32
+        d2Max:   f32     // (w/2)^2 + (h/2)^2
     }
 
     // Pack of precomputed features + integrals to avoid recomputation
     internal struct FeaturePack
     {
-        sblur:     Array'f32     // blurred saliency (and may contain thirds blended in fast paths)
-        T:         Array'f32     // thirds map (may be zero if disabled)
-        E:         Array'f32     // edge distance map (high away from edges; 1 at far, 0 at edges)
-        iiS:       Array'f32
-        iiT:       Array'f32
-        iiE:       Array'f32
+        sblur: Array'f32     // blurred saliency (and may contain thirds blended in fast paths)
+        T:     Array'f32     // thirds map (may be zero if disabled)
+        E:     Array'f32     // edge distance map (high away from edges; 1 at far, 0 at edges)
+        iiS:   Array'f32
+        iiT:   Array'f32
+        iiE:   Array'f32
     }
 
     internal const SALIENCY_RADIUS = 4
@@ -60,7 +60,7 @@ public impl Image
             let baseOut = y * pitch
             for x in 1 to w
             {
-                rowSum += src[baseIn + (x - 1)]
+                rowSum          += src[baseIn + (x - 1)]
                 ii[baseOut + x] = ii[baseOut - pitch + x] + rowSum
             }
         }
@@ -108,8 +108,8 @@ public impl Image
         tx.resize(w)
         ty.resize(h)
 
-        let t1:  f32 = 1.0 / 3.0
-        let t2:  f32 = 2.0 / 3.0
+        let t1: f32 = 1.0 / 3.0
+        let t2: f32 = 2.0 / 3.0
         let sig2 = sigma * sigma
 
         for x in 0 to (w - 1)
@@ -229,7 +229,7 @@ public impl Image
                 if w >= M do
                     break
                 tmp[w] = buf[i]
-                w += 1
+                w      += 1
             }
 
             M = w
@@ -267,7 +267,7 @@ public impl Image
             for x in 1 to w
             {
                 let Ld = cast(f32) lum[(y - 1) * w + (x - 1)]
-                rowSum += Ld
+                rowSum   += Ld
                 rowSumSq += Ld * Ld
                 let idxI = (y * (w + 1) + x)
                 ii[idxI]   = ii[idxI - (w + 1)] + rowSum

@@ -239,7 +239,7 @@ func semaTest018()
 func semaTest019()
 {
     let value: f32 = 0.5
-    let high: s32 = 10
+    let high:  s32 = 10
     let result = keepDeducedType(value, 0, high)
     #assert(#typeof(result) == f32)
 }

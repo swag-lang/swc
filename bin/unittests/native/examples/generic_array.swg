@@ -15,7 +15,7 @@ func(T) create()->DynArray'T
 {
     var result: DynArray'T
     result.capacity = DefaultCapacity
-    result.data = cast(#null [*] T) @alloc(DefaultCapacity * #sizeof(T))
+    result.data     = cast(#null [*] T) @alloc(DefaultCapacity * #sizeof(T))
     return result
 }
 
@@ -23,8 +23,8 @@ func(T) destroy(arr: *DynArray'T)
 {
     if arr.data do
         @free(arr.data)
-    arr.data = null
-    arr.count = 0
+    arr.data     = null
+    arr.count    = 0
     arr.capacity = 0
 }
 
@@ -33,12 +33,12 @@ func(T) push(arr: *DynArray'T, value: T)
     if arr.count == arr.capacity
     {
         let newCapacity = arr.capacity * 2
-        arr.data = cast(#null [*] T) @realloc(arr.data, newCapacity * #sizeof(T))
+        arr.data     = cast(#null [*] T) @realloc(arr.data, newCapacity * #sizeof(T))
         arr.capacity = newCapacity
     }
 
     arr.data[arr.count] = value
-    arr.count += 1
+    arr.count           += 1
 }
 
 func(T) pop(arr: *DynArray'T)->T
@@ -89,7 +89,7 @@ func(T) removeAt(arr: *DynArray'T, index: u64)
     while i + 1 < arr.count
     {
         arr.data[i] = arr.data[i + 1]
-        i += 1
+        i           += 1
     }
 
     arr.count -= 1
@@ -101,7 +101,7 @@ func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
     if arr.count == arr.capacity
     {
         let newCapacity = arr.capacity * 2
-        arr.data = cast(#null [*] T) @realloc(arr.data, newCapacity * #sizeof(T))
+        arr.data     = cast(#null [*] T) @realloc(arr.data, newCapacity * #sizeof(T))
         arr.capacity = newCapacity
     }
 
@@ -109,11 +109,11 @@ func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
     while i > index
     {
         arr.data[i] = arr.data[i - 1]
-        i -= 1
+        i           -= 1
     }
 
     arr.data[index] = value
-    arr.count += 1
+    arr.count       += 1
 }
 
 func(T) reverse(arr: *DynArray'T)
@@ -127,8 +127,8 @@ func(T) reverse(arr: *DynArray'T)
         let tmp = arr.data[lo]
         arr.data[lo] = arr.data[hi]
         arr.data[hi] = tmp
-        lo += 1
-        hi -= 1
+        lo           += 1
+        hi           -= 1
     }
 }
 

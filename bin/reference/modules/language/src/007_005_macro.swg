@@ -53,7 +53,9 @@ locals.
     var a = 0
 
     // Use '#code' to pass a block as code (not evaluated at call site)
-    myMacro(#code { a += 1; })
+    myMacro(#code {
+        a += 1;
+    })
 
     // If the last parameter is a '#code' statement block, the following statement
     // becomes the last argument
@@ -152,15 +154,21 @@ argument.
     var total = 0
 
     // Trailing form: the binder renames 'value' to 'x' and 'double' to 'y'.
-    call(20) #code(x, y) { total = x + y }
+    call(20) #code(x, y) {
+        total = x + y
+    }
     @assert(total == 60)
 
     // Inline form: the code literal is a normal argument.
-    call(10, #code(a, b) { total = a + b })
+    call(10, #code(a, b) {
+        total = a + b
+    })
     @assert(total == 30)
 
     // Partial binder: only the first parameter is renamed, like 'for'.
-    call(5) #code(first) { total = first + double }
+    call(5) #code(first) {
+        total = first + double
+    }
     @assert(total == 15)
 }
 
@@ -181,7 +189,7 @@ also types (and checks) the binding, which is required for references.
     withCounter(10)
     {
         counter += 5
-        got = counter
+        got     = counter
     }
 
     @assert(got == 15)

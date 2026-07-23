@@ -96,7 +96,7 @@ func semaTest004()
 func semaTest005()
 {
     var target: PathTarget
-    var owner: PathOwner
+    var owner:  PathOwner
     owner.target = &target
     owner.bias   = 3
 

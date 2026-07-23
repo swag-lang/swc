@@ -38,12 +38,12 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
     var values: BitArray
     values = seed
 
-    var visitCount: u64 = 0
+    var visitCount:  u64 = 0
     var lastOrdinal: u64 = 0
     var lastValue = false
     for value, ordinal in values
     {
-        visitCount += 1
+        visitCount  += 1
         lastOrdinal = ordinal
         lastValue   = value
     }

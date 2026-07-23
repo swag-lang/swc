@@ -4,15 +4,15 @@ using Swag, Core
 
 struct PropHeadlessData
 {
-    count:      s32 = 42
-    label:      #null string = "hello"
-    enabled:    bool = true
+    count:   s32 = 42
+    label:   #null string = "hello"
+    enabled: bool = true
 }
 
 struct PropHeadlessCustomData
 {
-    origin:     Math.Point = {10, 20}
-    count:      s32 = 3
+    origin: Math.Point = {10, 20}
+    count:  s32 = 3
 }
 
 enum PropHeadlessChoice
@@ -109,8 +109,8 @@ impl IPropertyNotify for PropHeadlessRoData
 
     var data: PropHeadlessGroupedData
     let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionFilter | .SectionPane | .FindBar)
-    ctrl.dockStyle = .Left
-    ctrl.margin.z = 24
+    ctrl.dockStyle          = .Left
+    ctrl.margin.z           = 24
     ctrl.prop.sizeEditValue = 300
     ctrl.prop.setColumnSize(150)
     ctrl.addStruct(data, "Settings")
@@ -307,8 +307,8 @@ struct PropHeadlessArrayData
 struct PropHeadlessColorData
 {
     f0, f1, f2, f3, f4, f5, f6, f7: s32
-    tint: Pixel.Color
-    f8, f9, f10, f11, f12, f13: s32
+    tint:                           Pixel.Color
+    f8, f9, f10, f11, f12, f13:     s32
 }
 
 // While an editor popup (e.g. the color picker) is open the grid is modal: mouse wheel
@@ -634,14 +634,14 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 
     let filter = EditBox.create(page, "")
     filter.dockStyle = .Top
-    filter.margin = {16, 16, 16, 4}
+    filter.margin    = {16, 16, 16, 4}
 
     var dataA: PropHeadlessGroupedData
     var dataB: PropHeadlessGroupedData
     var dataC: PropHeadlessGroupedData
     let prop = Properties.create(page, {}, .List)
     prop.dockStyle = .Center
-    prop.margin = {16, 8, 16, 16}
+    prop.margin    = {16, 8, 16, 16}
     prop.addStruct(dataA, "Appearance")
     prop.addStruct(dataB, "Content")
     prop.addStruct(dataC, "Layout")
@@ -1177,7 +1177,7 @@ impl Gui.IPropertyNotify for ValData
     var st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
     @assert(st.setFlags.has(.Disabled) and st.disabled)
     prop.menuItem = elems[1]
-    st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
+    st            = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
     @assert(st.setFlags.has(.Disabled) and !st.disabled)
 
     // execute(): Move Up on element 1 reorders the underlying array, dispatched through the real
@@ -1234,7 +1234,7 @@ impl IPropertyEditor for PropAngleEditor
             }
         }
 
-        item.editBox = ed
+        item.editBox    = ed
         item.sigRefresh += func|angle|(item)
         {
             item.editBox.setText(Format.toString("% deg", angle.deg))
@@ -1294,7 +1294,7 @@ struct PropDefaultData
     enabled: bool = true
 }
 
-var g_PropDefResetCalls: s32
+var g_PropDefResetCalls:    s32
 var g_PropDefForceModified: bool
 
 struct PropDefaultCustom
@@ -1418,7 +1418,7 @@ impl IPropertyNotify for PropDefaultCustom
     var host: Testing.HeadlessHost
     host.setup(260, 320)
 
-    g_PropDefResetCalls   = 0
+    g_PropDefResetCalls    = 0
     g_PropDefForceModified = true
 
     var data: PropDefaultCustom
@@ -1474,12 +1474,12 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(countItem.editBox.position.width == editWidthClean)
 
     // Reset hides the arrow again; the editor width is still unchanged.
-    btn.isHot = true
-    btn.isIn = true
-    btn.isPressed = true
-    btn.isPressing = true
-    btn.aniBk.themeCrc = 42'u32
-    host.app.mouseEnterWnd = btn
+    btn.isHot                = true
+    btn.isIn                 = true
+    btn.isPressed            = true
+    btn.isPressing           = true
+    btn.aniBk.themeCrc       = 42'u32
+    host.app.mouseEnterWnd   = btn
     host.app.mouseCaptureWnd = btn
     prop.resetItemDefault(notnull countItem)
     @assert(!countItem.isModified and btn.isDisabled())

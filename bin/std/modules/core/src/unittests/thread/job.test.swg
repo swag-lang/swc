@@ -48,7 +48,7 @@ func waitJobThread(th: Threading.Thread)
 
     var job: Job
     job.lambda = &reusedJobEntry
-    job.data = &jobData
+    job.data   = &jobData
 
     Jobs.scheduleJob(&job)
     Jobs.waitJob(&job)

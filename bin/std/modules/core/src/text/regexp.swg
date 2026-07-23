@@ -32,52 +32,52 @@ const RuneUnicodeLetter      = cast(rune) 0x8001_0006
 const RuneUnicodeLetterLower = cast(rune) 0x8001_0007
 const RuneUnicodeLetterUpper = cast(rune) 0x8001_0008
 const RuneUnicodeNumber      = cast(rune) 0x8001_0009
-const RuneUnicodeSymbol      = cast(rune) 0x8001_000a
-const RuneUnicodeSymbolMath  = cast(rune) 0x8001_000b
+const RuneUnicodeSymbol      = cast(rune) 0x8001_000A
+const RuneUnicodeSymbolMath  = cast(rune) 0x8001_000B
 
 const RuneInvert = cast(rune) 0x0400_0000
 
 struct NfaTable
 {
-    level:     u32
-    nodes:     Array'(*NfaNode)
+    level: u32
+    nodes: Array'(*NfaNode)
 }
 
 struct NfaNode
 {
-    transitions:     HashTable'(rune, Array'(*NfaNode))
-    group:           u32
-    terminal:        bool
+    transitions: HashTable'(rune, Array'(*NfaNode))
+    group:       u32
+    terminal:    bool
 }
 
 struct DfaNode
 {
-    table:           Array'(*NfaNode)
-    transitions:     HashTable'(rune, #null *DfaNode)
-    rawGroup:        u32
-    group:           u32
-    terminal:        bool
+    table:       Array'(*NfaNode)
+    transitions: HashTable'(rune, #null *DfaNode)
+    rawGroup:    u32
+    group:       u32
+    terminal:    bool
 }
 
 struct RegExpGroup
 {
-    rank:      u32
-    value:     string
+    rank:  u32
+    value: string
 }
 
 struct ActiveGroup
 {
-    rawGroup:     u32
-    rank:         u32
-    startIdx:     s32
+    rawGroup: u32
+    rank:     u32
+    startIdx: s32
 }
 
 struct DfaState
 {
-    node:           #null *DfaNode
-    parseIdx:       s32
-    activeGroups:   Array'ActiveGroup
-    groups:         Array'RegExpGroup
+    node:         #null *DfaNode
+    parseIdx:     s32
+    activeGroups: Array'ActiveGroup
+    groups:       Array'RegExpGroup
 }
 
 // Simple regular expression matcher.
@@ -122,28 +122,28 @@ struct DfaState
 #[Swag.Opaque]
 public struct RegExp
 {
-    nfaNodes:           ArrayPtr'(NfaNode)
-    dfaNodes:           ArrayPtr'(DfaNode)
-    nfaTables:          ArrayPtr'(NfaTable)
-    nfaStack:           Array'(*NfaTable)
-    charSet:            HashSet'rune
-    groups:             Array'RegExpGroup
-    groupTransform:     Array'u32
-    groupParent:        Array'u32
-    captureRanks:       Array'u32
-    captureRankStack:   Array'u32
-    openParen:          Array'u32
-    orOpStack:          Array'rune
-    orOpLevel:          Array'u32
-    preprocessed:       Array'rune
-    group:              u32
-    captureRankMax:     u32
-    captureRankIdx:     u64
-    hasStarted:         bool
-    wasWord:            bool
-    ignoreCase:         bool
-    bufStart:           #null const [*] u8
-    bufLength:          u64
+    nfaNodes:         ArrayPtr'(NfaNode)
+    dfaNodes:         ArrayPtr'(DfaNode)
+    nfaTables:        ArrayPtr'(NfaTable)
+    nfaStack:         Array'(*NfaTable)
+    charSet:          HashSet'rune
+    groups:           Array'RegExpGroup
+    groupTransform:   Array'u32
+    groupParent:      Array'u32
+    captureRanks:     Array'u32
+    captureRankStack: Array'u32
+    openParen:        Array'u32
+    orOpStack:        Array'rune
+    orOpLevel:        Array'u32
+    preprocessed:     Array'rune
+    group:            u32
+    captureRankMax:   u32
+    captureRankIdx:   u64
+    hasStarted:       bool
+    wasWord:          bool
+    ignoreCase:       bool
+    bufStart:         #null const [*] u8
+    bufLength:        u64
 }
 
 impl RegExp
@@ -169,7 +169,7 @@ impl RegExp
     mtd clearMatch()
     {
         .hasStarted, .wasWord = false
-        .group = 0
+        .group                = 0
         .groups.clear()
     }
 
@@ -303,13 +303,13 @@ impl RegExp
                     break
                     let (c, eat) = Utf8.decodeRune(@mkslice(newStart, end - newStart))
                 previousWasWord = Unicode.isWord(c)
-                newStart += eat
+                newStart        += eat
             }
             else do
                 previousWasWord = Unicode.isWord(Utf8.lastRune(safeVal))
 
             atBufferStart = false
-            res = @mkstring(newStart, end - newStart)
+            res           = @mkstring(newStart, end - newStart)
         }
 
         return result
@@ -364,7 +364,7 @@ impl RegExp
                 let (c, eat) = Utf8.decodeRune(@mkslice(beg, last - beg))
             wasWord = Unicode.isWord(c)
             atStart = false
-            beg += eat
+            beg     += eat
         }
 
         return null
@@ -428,7 +428,7 @@ impl RegExp
         .bufLength = @countof(str)
 
         var stack1, stack2: Array'DfaState
-        var grepTerm: DfaState
+        var grepTerm:       DfaState
 
         var st: DfaState
         st.node = .dfaNodes[0]
@@ -588,7 +588,7 @@ impl RegExp
                 let ptr = bufStart + st.parseIdx
                 if !@countof(strGroup) or Utf8.startsWith(@mkslice(ptr, .bufLength - st.parseIdx), strGroup, .ignoreCase ? .UnicodeNoCase : .Unicode)
                 {
-                    st.node = grpNode
+                    st.node     = grpNode
                     st.parseIdx += cast(s32) @countof(strGroup)
                     out.add(st)
                 }
@@ -643,7 +643,7 @@ impl RegExp
     mtd canReachTransition(table: *Array'(*NfaNode), fromNode: *NfaNode, c: rune)->bool
     {
         var stack: Array'(*NfaNode)
-        var done: Array'(*NfaNode)
+        var done:  Array'(*NfaNode)
         stack.add(fromNode)
         while stack.count
         {
@@ -671,7 +671,7 @@ impl RegExp
 
     mtd transitionTargetRawGroup(state: *DfaState, c: rune)->u32
     {
-        var result: retval
+        var result:    retval
         var bestDepth: u32
         let currentRaw  = state.activeGroups.count ? state.activeGroups.back().rawGroup : 0
         let currentRank = state.activeGroups.count ? state.activeGroups.back().rank : 0
@@ -748,7 +748,7 @@ impl RegExp
                 if directRaw and nextRaw and directRaw != nextRaw and st.activeGroups.count and st.activeGroups.back().rank != .groupTransform[directRaw] do
                     nextRaw = directRaw
                 .syncActiveGroups(&st, nextRaw)
-                st.node = #uniq3
+                st.node     = #uniq3
                 st.parseIdx += length
                 out.add(st)
                 ok = true
@@ -1014,7 +1014,7 @@ impl RegExp
                         .groupParent[i] = 0
                 }
                 .groupTransform[.group] = logicalRank
-                .groupParent[.group] = 0
+                .groupParent[.group]    = 0
                 for n in table1.nodes
                 {
                     if n.group != 0
@@ -1178,7 +1178,7 @@ impl RegExp
             case '\\':
                 if isReservedChar(pz[1])
                 {
-                    c = pz[1]
+                    c       = pz[1]
                     cpt, pz += 1
                 }
 
@@ -1295,7 +1295,7 @@ impl RegExp
         .dfaNodes.add(state)
 
         var moveRes, epsilonRes: Array'(*NfaNode)
-        var stack: Array'(*DfaNode)
+        var stack:               Array'(*DfaNode)
         stack.add(state)
         while stack.count
         {
@@ -1346,7 +1346,7 @@ impl RegExp
         if dref pz == '^'
         {
             invert = RuneInvert
-            pz += 1
+            pz     += 1
         }
 
         var firstExp = true
@@ -1501,8 +1501,8 @@ impl RegExp
         var n       = 0
         while pzStart != pzEnd and Unicode.isLatin1(pzStart[0]) and Latin1.isDigit(cast(u8) pzStart[0])
         {
-            n *= 10
-            n += cast(u8) pzStart[0] - '0'
+            n       *= 10
+            n       += cast(u8) pzStart[0] - '0'
             pzStart += 1
         }
 
@@ -1528,7 +1528,7 @@ impl RegExp
         // m value
         if pz[0] == ','
         {
-            m = -1
+            m  = -1
             pz += 1
             if pz[0] != '}' do
                 pz = toI32(pz, pzEnd, &m)
@@ -1585,7 +1585,7 @@ impl RegExp
             {
                 if n == 0 do
                     m -= 1
-                m -= n
+                m     -= n
                 while m
                 {
                     .preprocessed.add(expr.toSlice())
@@ -1644,7 +1644,7 @@ impl RegExp
 
             if expr[idx] == ')' do
                 count += 1
-            idx += 1
+            idx       += 1
         }
 
         var result: retval
@@ -1846,7 +1846,7 @@ impl RegExp
             while i >= 0 and uni32[i] == '\\'
             {
                 count += 1
-                i -= 1
+                i     -= 1
             }
 
             return (count & 1) != 0

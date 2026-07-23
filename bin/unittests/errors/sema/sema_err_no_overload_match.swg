@@ -71,7 +71,7 @@ func takesNonNullRef(r: &NullableRefNode) {}
     // Dereferencing a `#null` pointer is allowed, but binding it to a non-null
     // reference parameter (not a UFCS receiver) stays a cast error.
     var storage: NullableRefNode
-    var p: #null *NullableRefNode = &storage
+    var p:       #null *NullableRefNode = &storage
     takesNonNullRef(p)     // swc-expected-error {{sema_err_cannot_cast}}
 }
 

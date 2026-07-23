@@ -18,7 +18,10 @@ struct TagBinArrayThing
 
 impl ITagBinArrayThing for TagBinArrayThing
 {
-    mtd impl value()->s32 { return .v; }
+    mtd impl value()->s32
+    {
+        return .v;
+    }
 }
 
 struct TagBinArrayHolder

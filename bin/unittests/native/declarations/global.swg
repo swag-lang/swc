@@ -9,7 +9,7 @@ struct Pair
 }
 
 var GZero: s32
-var GInt: s32 = 21
+var GInt:  s32 = 21
 var GBool: bool = true
 var GPair: Pair = {x: 7, y: 9}
 var GArray: [3] s32 = [1, 2, 3]
@@ -27,15 +27,15 @@ var GText: string = "abc"
     @assert(GArray[2] == 3)
     @assert(GText == "abc")
 
-    GZero = 42
-    GInt += 9
-    GBool = false
-    GPair.x = -5
-    GPair.y = 33
+    GZero     = 42
+    GInt      += 9
+    GBool     = false
+    GPair.x   = -5
+    GPair.y   = 33
     GArray[0] = 10
     GArray[1] = 20
     GArray[2] = 30
-    GText = "xyz"
+    GText     = "xyz"
 
     @assert(GZero == 42)
     @assert(GInt == 30)

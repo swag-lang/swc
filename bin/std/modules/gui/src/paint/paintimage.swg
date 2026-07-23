@@ -3,12 +3,12 @@ using Pixel
 #[Swag.Opaque]
 public struct PaintImage
 {
-    app:         Application
-    painter:     Painter
+    app:     Application
+    painter: Painter
     surface:     #late *Surface
-    image:       Image
-    w, h:        s32
-    paint:       #null func||(app: *Application, painter: *Painter)
+    image: Image
+    w, h:  s32
+    paint: #null func||(app: *Application, painter: *Painter)
 }
 
 impl PaintImage

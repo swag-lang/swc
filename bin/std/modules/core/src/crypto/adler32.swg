@@ -22,8 +22,8 @@ public impl Adler32
     // Update the hash value with 'buffer' content
     mtd update(buffer: const [..] u8)
     {
-        var s1 = .adler & 0xffff
-        var s2 = (.adler >> 16) & 0xffff
+        var s1 = .adler & 0xFFFF
+        var s2 = (.adler >> 16) & 0xFFFF
 
         let countof = @countof(buffer)
         if !countof do
@@ -35,7 +35,7 @@ public impl Adler32
             s1 += input[0]
             if s1 >= Base do
                 s1 -= Base
-            s2 += s1
+            s2     += s1
             if s2 >= Base do
                 s2 -= Base
         }
@@ -49,7 +49,7 @@ public impl Adler32
 
             if s1 >= Base do
                 s1 -= Base
-            s2 %= Base
+            s2     %= Base
         }
         else
         {
@@ -90,7 +90,7 @@ public impl Adler32
                 {
                     s1 += input[i]
                     s2 += s1
-                    i += 1
+                    i  += 1
                 }
 
                 s1 %= Base

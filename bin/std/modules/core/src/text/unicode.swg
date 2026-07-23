@@ -156,10 +156,10 @@ public func fromUtf8(dest: [..] rune, src: const [..] u8)->u32
     {
         Debug.assert(count != @countof(dest), "destination buffer is too small")
 
-        dref destPtr = c
+        dref destPtr   = c
         destPtr, count += 1
 
-        srcPtr += eat
+        srcPtr    += eat
         srcLength -= eat
             (c, eat) = Utf8.decodeRune(@mkslice(srcPtr, srcLength))
     }
@@ -183,7 +183,7 @@ public func makeUpper(buffer: [..] rune)
     for @countof(buffer)
     {
         dref p = toUpper(dref p)
-        p += 1
+        p      += 1
     }
 }
 
@@ -194,7 +194,7 @@ public func makeLower(buffer: [..] rune)
     for @countof(buffer)
     {
         dref p = toLower(dref p)
-        p += 1
+        p      += 1
     }
 }
 
@@ -248,8 +248,8 @@ const UpperLower = Swag.S32.Max
 
 struct Range
 {
-    lo, hi:     rune
-    stride:     u32
+    lo, hi: rune
+    stride: u32
 }
 
 struct CaseRange

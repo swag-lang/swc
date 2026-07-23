@@ -6,9 +6,15 @@ Unlike C++, the virtual table is not embedded in the struct; it is a separate ob
 This lets you implement an interface for a struct without changing the struct.
 */
 
-struct Point2 { x, y: f32 }
+struct Point2
+{
+    x, y: f32
+}
 
-struct Point3 { x, y, z: f32 }
+struct Point3
+{
+    x, y, z: f32
+}
 
 /**
 # Interface Declaration

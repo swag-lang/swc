@@ -427,7 +427,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
         case 'g''u8, 'G''u8:
             if prec == 0 do
                 prec = 1
-            digits = prec
+            digits   = prec
         }
 
         // try fast algorithm when the number of digits is reasonable.

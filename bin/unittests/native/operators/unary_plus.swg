@@ -74,7 +74,7 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
 {
     let runtimeInt = unaryPlusStrictS32(cast(UnaryPlusStrictS32) -42)
     let runtimeFloat = unaryPlusStrictF32(cast(UnaryPlusStrictF32) 42.5'f32)
-    const constantInt = +cast(UnaryPlusStrictS32) -42
+    const constantInt   = +cast(UnaryPlusStrictS32) -42
     const constantFloat = +cast(UnaryPlusStrictF32) 42.5'f32
 
     #assert(#typeof(runtimeInt) == UnaryPlusStrictS32)

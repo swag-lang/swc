@@ -57,7 +57,7 @@ func day1A()
         let cur = assume StrConv.toS32(l)
         if cur > last do
             total += 1
-        last = cur
+        last      = cur
     }
 
     // Console.print("total: ", total)

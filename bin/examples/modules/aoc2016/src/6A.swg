@@ -50,7 +50,7 @@ func day6A0()
         for c, i in l
         {
             var v = freq[i, c - 'a']
-            v += 1
+            v                += 1
             freq[i, c - 'a'] = v
 
             if v > best[i].freq

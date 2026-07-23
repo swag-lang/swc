@@ -2,7 +2,7 @@ using Core, Gui
 
 const TestFrames = 50
 
-var app: Application
+var app:      Application
 var g_Button: #null *PushButton
 
 func centerButton(view: *Wnd)

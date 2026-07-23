@@ -4,7 +4,7 @@ using Swag, Core
 
 const PushButtonHeadless_Command = "PushButtonHeadless.Command"
 
-var PushButtonHeadlessPressedCount: u32
+var PushButtonHeadlessPressedCount:      u32
 var PushButtonHeadlessRightPressedCount: u32
 
 func pushButtonHeadlessPressed(btn: *Button)
@@ -27,7 +27,7 @@ func pushButtonHeadlessHideOnPressed(btn: *Button)
 
 func pushButtonHeadlessResetCounters()
 {
-    PushButtonHeadlessPressedCount = 0
+    PushButtonHeadlessPressedCount      = 0
     PushButtonHeadlessRightPressedCount = 0
 }
 
@@ -91,10 +91,10 @@ func pushButtonHeadlessResetCounters()
     pushButtonHeadlessResetCounters()
 
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
-    button.sigPressed += &pushButtonHeadlessHideOnPressed
-    button.aniBk.themeCrc = 42'u32
+    button.sigPressed         += &pushButtonHeadlessHideOnPressed
+    button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
-    button.aniText.themeCrc = 44'u32
+    button.aniText.themeCrc   = 44'u32
 
     host.click({40, 30})
 
@@ -122,10 +122,10 @@ func pushButtonHeadlessResetCounters()
 
     let panel = Wnd.create'Wnd(&host.root, {0, 0, 160, 80})
     let button = PushButton.create(panel, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
-    button.aniBk.themeCrc = 42'u32
+    button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
-    button.aniText.themeCrc = 44'u32
-    button.sigPressed += func|panel|(btn)
+    button.aniText.themeCrc   = 44'u32
+    button.sigPressed         += func|panel|(btn)
     {
         panel.hide()
         PushButtonHeadlessPressedCount += 1
@@ -245,9 +245,9 @@ func pushButtonHeadlessResetCounters()
     @assert(button.isHot)
     @assert(button.isIn)
     @assert(host.app.mouseEnterWnd == button)
-    button.aniBk.themeCrc = 42'u32
+    button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
-    button.aniText.themeCrc = 44'u32
+    button.aniText.themeCrc   = 44'u32
     button.disable()
     host.click({40, 30})
 
@@ -274,9 +274,9 @@ func pushButtonHeadlessResetCounters()
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
-    button.aniBk.themeCrc = 42'u32
+    button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
-    button.aniText.themeCrc = 44'u32
+    button.aniText.themeCrc   = 44'u32
     button.hide()
     host.click({40, 30})
 
@@ -300,7 +300,7 @@ func pushButtonHeadlessResetCounters()
     pushButtonHeadlessResetCounters()
 
     let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
-    button.sigPressed += &pushButtonHeadlessPressed
+    button.sigPressed      += &pushButtonHeadlessPressed
     button.sigRightPressed += &pushButtonHeadlessRightPressed
 
     host.click({40, 30}, Input.MouseButton.Right)

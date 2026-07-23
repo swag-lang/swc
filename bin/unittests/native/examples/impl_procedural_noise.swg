@@ -129,16 +129,16 @@ func fractalNoise(x, y: f32, seed: s32)->f32
 {
     var amplitude = 1.0'f32
     var frequency = 0.35'f32
-    var sum: f32
+    var sum:        f32
     var normalizer: f32
 
     for 4
     {
         let octaveSeed = seed + cast(s32) @index * 131
-        sum += valueNoise(x * frequency, y * frequency, octaveSeed) * amplitude
+        sum        += valueNoise(x * frequency, y * frequency, octaveSeed) * amplitude
         normalizer += amplitude
-        amplitude *= 0.55'f32
-        frequency *= 2.0'f32
+        amplitude  *= 0.55'f32
+        frequency  *= 2.0'f32
     }
 
     return sum / normalizer
@@ -173,16 +173,16 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
 
             if terrainHeight < -0.30'f32
             {
-                result.pondPlots += 1
+                result.pondPlots          += 1
                 result.waterReserveLiters += 900
-                result.fertilityScore += 1
+                result.fertilityScore     += 1
                 continue
             }
 
             if moistureLevel > 0.35'f32 and sunlight > 0.95'f32
             {
                 result.wildflowerPlots += 1
-                result.fertilityScore += 6
+                result.fertilityScore  += 6
                 if rng.nextBool() do
                     result.compostBins += 1
                 continue
@@ -190,7 +190,7 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
 
             if terrainHeight > 0.45'f32 and moistureLevel < -0.10'f32
             {
-                result.stonePathPlots += 1
+                result.stonePathPlots     += 1
                 result.waterReserveLiters += 120
                 if sunlight > 1.10 do
                     result.compostBins += 1
@@ -198,12 +198,12 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
             }
 
             result.vegetablePlots += 1
-            result.raisedBeds += rng.nextS32(2, 5)
+            result.raisedBeds     += rng.nextS32(2, 5)
             result.fertilityScore += moistureLevel > 0.10'f32 ? 5 : 3
 
             if moistureLevel < 0.15'f32 or sunlight > 1.05'f32
             {
-                result.irrigatedPlots += 1
+                result.irrigatedPlots     += 1
                 result.waterReserveLiters += 180
             }
             else

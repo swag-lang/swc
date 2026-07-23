@@ -15,9 +15,9 @@ struct PushButton
 
     form              = PushButtonForm.Normal
 
-    aniBk:            BlendColor
-    aniBorder:        BlendColor
-    aniText:          BlendColor
+    aniBk:     BlendColor
+    aniBorder: BlendColor
+    aniText:   BlendColor
 }
 
 impl IWnd for PushButton

@@ -12,8 +12,8 @@ struct OtherStruct { y: f32 }
 
 struct Holder
 {
-    t:    typeinfo
-    tag:  s32
+    t:   typeinfo
+    tag: s32
 }
 
 // Scalar initializations (already worked, kept as a guard)

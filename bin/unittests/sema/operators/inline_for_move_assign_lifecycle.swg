@@ -1,23 +1,23 @@
 #global private
 
-var InlineForeachMoveDropCount: u32 = 0
-var InlineForeachMoveDropTrace: s64 = 0
+var InlineForeachMoveDropCount:     u32 = 0
+var InlineForeachMoveDropTrace:     s64 = 0
 var InlineForeachMovePostMoveCount: u32 = 0
 
 func resetInlineForeachMoveLifecycleHooks()
 {
-    InlineForeachMoveDropCount = 0
-    InlineForeachMoveDropTrace = 0
+    InlineForeachMoveDropCount     = 0
+    InlineForeachMoveDropTrace     = 0
     InlineForeachMovePostMoveCount = 0
 }
 
 struct InlineForeachMoveInfo
 {
-    dst: s32
-    src: s32
-    drops: u32
+    dst:       s32
+    src:       s32
+    drops:     u32
     dropTrace: s64
-    postMove: u32
+    postMove:  u32
 }
 
 struct InlineForeachMoveTracked
@@ -36,7 +36,7 @@ impl InlineForeachMoveTracked
     mtd opPostMove()
     {
         InlineForeachMovePostMoveCount += 1
-        .value += 20
+        .value                         += 20
     }
 }
 

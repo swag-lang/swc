@@ -35,8 +35,8 @@ const TinyInput =
 // Grid
 // ---------------------------------------------------------------------------
 
-const MaxDim  = 64'u32
-const MaxCells = MaxDim * MaxDim
+const MaxDim    = 64'u32
+const MaxCells  = MaxDim * MaxDim
 const Wall:  u8 = '#'
 const Start: u8 = 'S'
 const End:   u8 = 'E'
@@ -166,8 +166,8 @@ func solve(text: string)->u64
     // Start facing East (dir=0)
     let startDir: u32 = 0
     best[stateIdx(m.sr, m.sc, startDir)] = 0
-    queue[0] = QEntry{r: m.sr, c: m.sc, dir: startDir, cost: 0}
-    tail = 1
+    queue[0]                             = QEntry{r: m.sr, c: m.sc, dir: startDir, cost: 0}
+    tail                                 = 1
 
     // C-style for loop: process queue
     for var qi: u32 = 0; qi < tail; qi += 1
@@ -188,9 +188,9 @@ func solve(text: string)->u64
                 let si = stateIdx(cast(u32) nr, cast(u32) nc, cur.dir)
                 if newCost < best[si]
                 {
-                    best[si] = newCost
+                    best[si]    = newCost
                     queue[tail] = QEntry{r: cast(u32) nr, c: cast(u32) nc, dir: cur.dir, cost: newCost}
-                    tail += 1
+                    tail        += 1
                 }
             }
         }
@@ -203,17 +203,17 @@ func solve(text: string)->u64
         let siL = stateIdx(cur.r, cur.c, leftDir)
         if turnCost < best[siL]
         {
-            best[siL] = turnCost
+            best[siL]   = turnCost
             queue[tail] = QEntry{r: cur.r, c: cur.c, dir: leftDir, cost: turnCost}
-            tail += 1
+            tail        += 1
         }
 
         let siR = stateIdx(cur.r, cur.c, rightDir)
         if turnCost < best[siR]
         {
-            best[siR] = turnCost
+            best[siR]   = turnCost
             queue[tail] = QEntry{r: cur.r, c: cur.c, dir: rightDir, cost: turnCost}
-            tail += 1
+            tail        += 1
         }
     }
 

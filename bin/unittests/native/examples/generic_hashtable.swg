@@ -65,10 +65,10 @@ func(K, V) insertAssumeSpace(table: *HashTable'(K, V), key: K, value: V)
     {
         if table.states[idx] == SlotEmpty
         {
-            table.states[idx]      = SlotUsed
-            table.entries[idx].key = key
+            table.states[idx]        = SlotUsed
+            table.entries[idx].key   = key
             table.entries[idx].value = value
-            table.count += 1
+            table.count              += 1
             return
         }
 

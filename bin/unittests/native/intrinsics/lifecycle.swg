@@ -5,19 +5,19 @@
 #global #[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 using Swag
 
-var DropCount: u32 = 0
-var DropTrace: s64 = 0
+var DropCount:        u32 = 0
+var DropTrace:        s64 = 0
 var DropCompactTrace: s64 = 0
-var PostCopyCount: u32 = 0
-var PostMoveCount: u32 = 0
+var PostCopyCount:    u32 = 0
+var PostMoveCount:    u32 = 0
 
 func resetLifecycleHooks()
 {
-    DropCount = 0
-    DropTrace = 0
+    DropCount        = 0
+    DropTrace        = 0
     DropCompactTrace = 0
-    PostCopyCount = 0
-    PostMoveCount = 0
+    PostCopyCount    = 0
+    PostMoveCount    = 0
 }
 
 func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator = null)
@@ -26,7 +26,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
         return
 
     var req: AllocatorRequest
-    req.size = size
+    req.size    = size
     req.address = buffer
 
     let talloc = allocator orelse @getcontext().allocator
@@ -37,7 +37,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
 {
     var req: AllocatorRequest
     req.address = buffer
-    req.size = newSize
+    req.size    = newSize
     req.oldSize = oldSize
 
     let talloc = allocator orelse @getcontext().allocator
@@ -52,9 +52,9 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
 
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.size = size
-    req.address = buffer
-    req.hint = hint
+    req.size      = size
+    req.address   = buffer
+    req.hint      = hint
 
     let talloc = allocator orelse @getcontext().allocator
     talloc.free(&req)
@@ -64,10 +64,10 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
 {
     var req: AllocatorRequest
     req.callerLoc = loc
-    req.hint = hint
-    req.address = buffer
-    req.size = newSize
-    req.oldSize = oldSize
+    req.hint      = hint
+    req.address   = buffer
+    req.size      = newSize
+    req.oldSize   = oldSize
     req.alignment = alignment
 
     let talloc = allocator orelse @getcontext().allocator
@@ -77,23 +77,23 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
 
 struct IntrinsicInfo
 {
-    first: s32
-    second: s32
-    third: s32
-    drops: u32
+    first:     s32
+    second:    s32
+    third:     s32
+    drops:     u32
     dropTrace: s64
-    postCopy: u32
-    postMove: u32
+    postCopy:  u32
+    postMove:  u32
 }
 
 struct InitInfo
 {
-    scalarDefault: s32
-    scalarExplicitScaled: s32
-    arrayDefaultTrace: s32
-    arrayExplicitTrace: s32
-    structDefaultTrace: s32
-    structExplicitTrace: s32
+    scalarDefault:         s32
+    scalarExplicitScaled:  s32
+    arrayDefaultTrace:     s32
+    arrayExplicitTrace:    s32
+    structDefaultTrace:    s32
+    structExplicitTrace:   s32
     structArrayCountTrace: s32
     structArrayWholeTrace: s32
 }
@@ -143,13 +143,13 @@ impl Tracked
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 20
+        .value        += 20
     }
 }
 
@@ -192,7 +192,7 @@ impl DropOnlyTracked
 
 struct AutoDropPair
 {
-    first: DropOnlyTracked
+    first:  DropOnlyTracked
     second: DropOnlyTracked
 }
 
@@ -218,14 +218,14 @@ impl CompactDropTracked
 {
     mtd opDrop()
     {
-        DropCount += 1
+        DropCount        += 1
         DropCompactTrace = DropCompactTrace * 10 + cast(s64) .value
     }
 }
 
 struct AutoCompactPair
 {
-    first: CompactDropTracked
+    first:  CompactDropTracked
     second: CompactDropTracked
 }
 
@@ -287,9 +287,9 @@ impl RemoveBuffer
 struct OwnedDropBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] DropOnlyTracked
-    count: u64
-    capacity: u64
+    buffer:    #null [*] DropOnlyTracked
+    count:     u64
+    capacity:  u64
 }
 
 impl OwnedDropBuffer
@@ -302,7 +302,7 @@ impl OwnedDropBuffer
         @drop(.buffer, .count)
 
         var req: AllocatorRequest
-        req.size = .capacity * #sizeof(DropOnlyTracked)
+        req.size    = .capacity * #sizeof(DropOnlyTracked)
         req.address = .buffer
         .allocator.free(&req)
         .buffer = null
@@ -312,9 +312,9 @@ impl OwnedDropBuffer
 struct ReallocDropBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] DropOnlyTracked
-    count: u64
-    capacity: u64
+    buffer:    #null [*] DropOnlyTracked
+    count:     u64
+    capacity:  u64
 }
 
 impl ReallocDropBuffer
@@ -330,11 +330,11 @@ impl ReallocDropBuffer
             return
 
         var req: AllocatorRequest
-        req.size = newCapacity * #sizeof(DropOnlyTracked)
+        req.size    = newCapacity * #sizeof(DropOnlyTracked)
         req.oldSize = .capacity * #sizeof(DropOnlyTracked)
         req.address = .buffer
         .allocator.realloc(&req)
-        .buffer = cast(#null [*] DropOnlyTracked) req.address
+        .buffer   = cast(#null [*] DropOnlyTracked) req.address
         .capacity = newCapacity
     }
 
@@ -354,7 +354,7 @@ impl ReallocDropBuffer
         @drop(.buffer, .count)
 
         var req: AllocatorRequest
-        req.size = .capacity * #sizeof(DropOnlyTracked)
+        req.size    = .capacity * #sizeof(DropOnlyTracked)
         req.address = .buffer
         .allocator.free(&req)
         .buffer = null
@@ -364,9 +364,9 @@ impl ReallocDropBuffer
 struct(T) GenericOwnedBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] T
-    count: u64
-    capacity: u64
+    buffer:    #null [*] T
+    count:     u64
+    capacity:  u64
 }
 
 impl GenericOwnedBuffer
@@ -382,11 +382,11 @@ impl GenericOwnedBuffer
             return
 
         var req: AllocatorRequest
-        req.size = newCapacity * #sizeof(T)
+        req.size    = newCapacity * #sizeof(T)
         req.oldSize = .capacity * #sizeof(T)
         req.address = .buffer
         .allocator.realloc(&req)
-        .buffer = cast(#null [*] T) req.address
+        .buffer   = cast(#null [*] T) req.address
         .capacity = newCapacity
     }
 
@@ -406,7 +406,7 @@ impl GenericOwnedBuffer
         @drop(.buffer, .count)
 
         var req: AllocatorRequest
-        req.size = .capacity * #sizeof(T)
+        req.size    = .capacity * #sizeof(T)
         req.address = .buffer
         .allocator.free(&req)
         .buffer = null
@@ -416,9 +416,9 @@ impl GenericOwnedBuffer
 struct(T) LazyAllocatorGenericBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] T
-    count: u64
-    capacity: u64
+    buffer:    #null [*] T
+    count:     u64
+    capacity:  u64
 }
 
 impl LazyAllocatorGenericBuffer
@@ -436,11 +436,11 @@ impl LazyAllocatorGenericBuffer
             .allocator = @getcontext().allocator
 
         var req: AllocatorRequest
-        req.size = newCapacity * #sizeof(T)
+        req.size    = newCapacity * #sizeof(T)
         req.oldSize = .capacity * #sizeof(T)
         req.address = .buffer
         .allocator.realloc(&req)
-        .buffer = cast(#null [*] T) req.address
+        .buffer   = cast(#null [*] T) req.address
         .capacity = newCapacity
     }
 
@@ -460,7 +460,7 @@ impl LazyAllocatorGenericBuffer
         @drop(.buffer, .count)
 
         var req: AllocatorRequest
-        req.size = .capacity * #sizeof(T)
+        req.size    = .capacity * #sizeof(T)
         req.address = .buffer
         .allocator.free(&req)
         .buffer = null
@@ -470,9 +470,9 @@ impl LazyAllocatorGenericBuffer
 struct(T) HelperAllocatorGenericBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] T
-    count: u64
-    capacity: u64
+    buffer:    #null [*] T
+    count:     u64
+    capacity:  u64
 }
 
 impl HelperAllocatorGenericBuffer
@@ -489,7 +489,7 @@ impl HelperAllocatorGenericBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -515,9 +515,9 @@ impl HelperAllocatorGenericBuffer
 struct(T) MemoryAllocatorGenericBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] T
-    count: u64
-    capacity: u64
+    buffer:    #null [*] T
+    count:     u64
+    capacity:  u64
 }
 
 impl MemoryAllocatorGenericBuffer
@@ -534,7 +534,7 @@ impl MemoryAllocatorGenericBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast(#null [*] T) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast(#null [*] T) memoryLikeRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -576,7 +576,7 @@ impl MemoryAllocatorGenericBuffer
 
         @drop(.buffer, .count)
         memoryLikeFree(.buffer, .capacity * #sizeof(T), .allocator)
-        .buffer = null
+        .buffer           = null
         .count, .capacity = 0
     }
 }
@@ -584,9 +584,9 @@ impl MemoryAllocatorGenericBuffer
 struct(T) PostCopyAllocatorGenericBuffer
 {
     allocator: #null IAllocator
-    buffer: #null [*] T
-    count: u64
-    capacity: u64
+    buffer:    #null [*] T
+    count:     u64
+    capacity:  u64
 }
 
 impl PostCopyAllocatorGenericBuffer
@@ -605,7 +605,7 @@ impl PostCopyAllocatorGenericBuffer
         if .allocator == null do
             .allocator = @getcontext().allocator
 
-        .buffer = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
+        .buffer   = cast(#null [*] T) helperRealloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator)
         .capacity = newCapacity
     }
 
@@ -639,13 +639,13 @@ impl EmbeddedTrackedWithOps
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .inner.value += 100
+        .inner.value  += 100
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .inner.value += 200
+        .inner.value  += 200
     }
 }
 
@@ -665,13 +665,13 @@ impl ReceiverLifecycleTracked
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 20
+        .value        += 20
     }
 
     mtd reset()
@@ -814,11 +814,11 @@ func intrinsicAutoDropNestedInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     var first: s32 = 0
-    var last: s32 = 0
+    var last:  s32 = 0
     {
         var value = AutoDropNested{DropOnlyTracked{1}, [AutoDropPair{DropOnlyTracked{2}, DropOnlyTracked{3}}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}], DropOnlyTracked{6}}
         first = value.head.value
-        last = value.tail.value
+        last  = value.tail.value
     }
 
     return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -829,11 +829,11 @@ func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     var first: s32 = 0
-    var last: s32 = 0
+    var last:  s32 = 0
     {
         var values: [2] AutoDropPair = [AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}, AutoDropPair{DropOnlyTracked{9}, DropOnlyTracked{10}}]
         first = values[0].first.value
-        last = values[1].second.value
+        last  = values[1].second.value
     }
 
     return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -845,13 +845,13 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropTrace
@@ -864,7 +864,7 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
         {
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
             result.second = nested.tail.value
-            result.third = nested.pairs[1].second.value
+            result.third  = nested.pairs[1].second.value
             return result
         }
     }
@@ -889,24 +889,24 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     catch intrinsicAutoDropErrorImpl()
     if @err != null
     {
         let err = cast(IntrinsicLifecycleErr) @err
-        result.first = err.code
+        result.first  = err.code
         result.second = 1
     }
 
-    result.drops = DropCount
+    result.drops     = DropCount
     result.dropTrace = DropTrace
     return result
 }
@@ -917,13 +917,13 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     {
@@ -937,7 +937,7 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
         }
     }
 
-    result.drops = DropCount
+    result.drops     = DropCount
     result.dropTrace = DropTrace
     return result
 }
@@ -946,9 +946,9 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = DropOnlyTracked{9}
         for i in 2
@@ -960,7 +960,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
 
             var branch = AutoDropBranch{DropOnlyTracked{5}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}}
             second = branch.head.value
-            third = outer.value
+            third  = outer.value
         }
     }
 
@@ -971,9 +971,9 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
         #scope(Exit)
@@ -1001,13 +1001,13 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropTrace
@@ -1022,9 +1022,9 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
 
         case 2:
             var active = AutoDropBranch{DropOnlyTracked{6}, AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}}
-            result.first = outer.second.value
+            result.first  = outer.second.value
             result.second = active.head.value
-            result.third = active.pair.first.value
+            result.third  = active.pair.first.value
             return result
 
         default:
@@ -1046,18 +1046,18 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = AutoCompactPair{CompactDropTracked{8}, CompactDropTracked{9}}
         catch intrinsicAutoDropCatchResumeImpl(55)
         if @err != null
         {
             let err = cast(IntrinsicLifecycleErr) @err
-            first = err.code
+            first  = err.code
             second = outer.second.value
-            third = 1
+            third  = 1
         }
     }
 
@@ -1076,9 +1076,9 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = CompactDropTracked{9}
         for i in 2
@@ -1106,13 +1106,13 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropCompactTrace
@@ -1133,7 +1133,7 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
             {
                 var active = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
                 result.second = active.head.value
-                result.third = outer.second.value
+                result.third  = outer.second.value
                 return result
             }
 
@@ -1151,13 +1151,13 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropCompactTrace
@@ -1169,9 +1169,9 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
         {
             var branch = AutoCompactBranch{CompactDropTracked{2}, AutoCompactPair{CompactDropTracked{3}, CompactDropTracked{4}}}
             var inner = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
-            result.first = flag + outer.value
+            result.first  = flag + outer.value
             result.second = branch.pair.first.value
-            result.third = inner.second.value
+            result.third  = inner.second.value
             return result
         }
     }
@@ -1184,9 +1184,9 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var outer = CompactDropTracked{9}
         if var flag = 1 where false
@@ -1196,9 +1196,9 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
         else
         {
             var active = AutoCompactBranch{CompactDropTracked{1}, AutoCompactPair{CompactDropTracked{2}, CompactDropTracked{3}}}
-            first = flag + 5
+            first  = flag + 5
             second = active.head.value
-            third = outer.value
+            third  = outer.value
         }
     }
 
@@ -1211,13 +1211,13 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
 
     with var result: retval
     {
-        .first = 0
-        .second = 0
-        .third = 0
-        .drops = 0
+        .first     = 0
+        .second    = 0
+        .third     = 0
+        .drops     = 0
         .dropTrace = 0
-        .postCopy = 0
-        .postMove = 0
+        .postCopy  = 0
+        .postMove  = 0
     }
 
     defer result.dropTrace = DropCompactTrace
@@ -1226,9 +1226,9 @@ func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
     with var pair = AutoCompactPair{CompactDropTracked{7}, CompactDropTracked{8}}
     {
         var active = AutoCompactBranch{CompactDropTracked{4}, AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}}
-        result.first = pair.first.value
+        result.first  = pair.first.value
         result.second = active.head.value
-        result.third = pair.second.value
+        result.third  = pair.second.value
         return result
     }
 
@@ -1240,9 +1240,9 @@ func intrinsicAutoDropShadowInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32 = 0
+    var first:  s32 = 0
     var second: s32 = 0
-    var third: s32 = 0
+    var third:  s32 = 0
     {
         var value = CompactDropTracked{9}
         first = value.value
@@ -1373,9 +1373,9 @@ func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    var first: s32
+    var first:  s32
     var second: s32
-    var third: s32
+    var third:  s32
 
     {
         var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
@@ -1384,9 +1384,9 @@ func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
             ptr[i].value = cast(s32) (i + 1)
 
         values.remove(1, 3)
-        first = values.buffer[0].value
+        first  = values.buffer[0].value
         second = values.buffer[1].value
-        third = cast(s32) values.count
+        third  = cast(s32) values.count
         values.clear()
         values.free()
     }
@@ -1544,7 +1544,7 @@ func intrinsicInitStrictFloatInfo()->bool
 
 func intrinsicInitStrictPointerInfo()->bool
 {
-    var first: s32 = 42
+    var first:  s32 = 42
     var second: s32 = 7
 
     var value: IntrinsicStrictS32Ptr = undefined
@@ -1577,7 +1577,7 @@ func makeIntrinsicRunStrictFloatArray()->[2] IntrinsicStrictFloatAlias
     return [cast(IntrinsicStrictFloatAlias) 1.25, cast(IntrinsicStrictFloatAlias) 2.5]
 }
 
-const IntrinsicRunStrictInts: [2] IntrinsicStrictIntAlias = #run makeIntrinsicRunStrictIntArray()
+const IntrinsicRunStrictInts: [2] IntrinsicStrictIntAlias     = #run makeIntrinsicRunStrictIntArray()
 const IntrinsicRunStrictFloats: [2] IntrinsicStrictFloatAlias = #run makeIntrinsicRunStrictFloatArray()
 
 func intrinsicReceiverLifecycleInfo()->IntrinsicInfo

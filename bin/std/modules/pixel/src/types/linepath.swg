@@ -11,29 +11,29 @@ public enum ElementType
 
 public struct Element
 {
-    type:         ElementType = undefined
-    position:     Vector2
-    p1, p2:       Vector2
+    type:     ElementType = undefined
+    position: Vector2
+    p1, p2:   Vector2
 }
 
 public struct LinePath
 {
-    elements:       Array'Element
-    startPoint:     Vector2
-    endPoint:       Vector2
-    isClosed:       bool
-    isDirty:        bool
-    serial:         s32
+    elements:   Array'Element
+    startPoint: Vector2
+    endPoint:   Vector2
+    isClosed:   bool
+    isDirty:    bool
+    serial:     s32
 
     // Flatten infos
-    flattenQuality:     PaintQuality
-    isPolyOnly:         bool
-    isFlatten:          bool
-    bvMin:              Vector2
-    bvMax:              Vector2
-    endPosBuffer:       Vector2
-    polygon:            Polygon
-    triangles:          Poly2Tri.Result
+    flattenQuality: PaintQuality
+    isPolyOnly:     bool
+    isFlatten:      bool
+    bvMin:          Vector2
+    bvMax:          Vector2
+    endPosBuffer:   Vector2
+    polygon:        Polygon
+    triangles:      Poly2Tri.Result
 }
 
 public impl LinePath

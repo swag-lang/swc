@@ -3,11 +3,11 @@ using Core, Pixel
 
 struct Item
 {
-    name:          RichString
-    icon:          Icon
-    id:            #null WndId
-    userData0:     #null *void
-    userData1:     #null *void
+    name:      RichString
+    icon:      Icon
+    id:        #null WndId
+    userData0: #null *void
+    userData1: #null *void
 }
 
 #[Swag.EnumFlags]

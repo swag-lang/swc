@@ -23,12 +23,12 @@ impl IActionUI for ActionLibTrash
         {
         case Toggle:
             evt.setFlags |= .Name | .Checked
-            evt.name    = "Recycle Bin"
-            evt.checked = libWnd.trashMode
+            evt.name     = "Recycle Bin"
+            evt.checked  = libWnd.trashMode
 
         case Empty:
             evt.setFlags |= .Name
-            evt.name = "Empty Recycle Bin"
+            evt.name     = "Empty Recycle Bin"
 
         case Restore:
             evt.setFlags |= .Name | .Disabled

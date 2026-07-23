@@ -34,7 +34,7 @@ public impl Mt64
         while .mti < NN
         {
             .mt[.mti] = (6364136223846793005'u64 * (.mt[.mti - 1] ^ (.mt[.mti - 1] >> 62)) + .mti)
-            .mti += 1
+            .mti      += 1
         }
     }
 
@@ -51,7 +51,7 @@ public impl Mt64
         while k
         {
             .mt[i] = (.mt[i] ^ ((.mt[i - 1] ^ (.mt[i - 1] >> 62)) * 3935559000370003845)) + seed[j] + j
-            i, j += 1
+            i, j   += 1
             if i >= NN
             {
                 .mt[0] = .mt[NN - 1]
@@ -59,14 +59,14 @@ public impl Mt64
             }
             if j >= keyLength do
                 j = 0
-            k -= 1
+            k     -= 1
         }
 
         k = NN - 1
         while k != 0
         {
             .mt[i] = (.mt[i] ^ ((.mt[i - 1] ^ (.mt[i - 1] >> 62)) * 2862933555777941757)) - i
-            i += 1
+            i      += 1
             if i >= NN
             {
                 .mt[0] = .mt[NN - 1]

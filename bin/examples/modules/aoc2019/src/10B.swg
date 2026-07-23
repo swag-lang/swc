@@ -68,11 +68,11 @@ func day10B()
 
     struct Pos
     {
-        pos:       Math.Vector2
-        angle:     f32
-        dist2:     s64
-        dirX:      s64
-        dirY:      s64
+        pos:   Math.Vector2
+        angle: f32
+        dist2: s64
+        dirX:  s64
+        dirY:  s64
     }
 
     struct DirectionGroup
@@ -130,8 +130,8 @@ func day10B()
         let dx  = cast(s64) it.pos.x - cast(s64) posStart.x
         let dy  = cast(s64) it.pos.y - cast(s64) posStart.y
         let gcd = Math.gcd(dx, dy)
-        it.dirX = dx / gcd
-        it.dirY = dy / gcd
+        it.dirX  = dx / gcd
+        it.dirY  = dy / gcd
         it.dist2 = (dx * dx) + (dy * dy)
         it.angle = Math.atan2(cast(f32) it.dirX, cast(f32) -it.dirY)
         if it.angle < 0 do
@@ -156,8 +156,8 @@ func day10B()
             var group: DirectionGroup
             group.asteroids.add(it)
             groups.add(group)
-            lastDirX = it.dirX
-            lastDirY = it.dirY
+            lastDirX  = it.dirX
+            lastDirY  = it.dirY
             haveGroup = true
         }
         else

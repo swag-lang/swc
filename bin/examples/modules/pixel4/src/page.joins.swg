@@ -2,9 +2,9 @@ using Core, Pixel
 
 struct JoinCard
 {
-    label:        string
-    joinStyle:    JoinStyle
-    color:        Color
+    label:     string
+    joinStyle: JoinStyle
+    color:     Color
 }
 
 const JoinCards = [

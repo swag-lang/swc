@@ -11,20 +11,20 @@ enum CustomerTier: u8
 
 struct OrderLine
 {
-    sku:             string
-    unitPriceCents:  u32
-    quantity:        u32
-    fragile:         bool
+    sku:            string
+    unitPriceCents: u32
+    quantity:       u32
+    fragile:        bool
 }
 
 struct OrderSummary
 {
-    unitCount:         u32
-    subtotalCents:     u32
-    packagingCents:    u32
-    discountCents:     u32
-    totalCents:        u32
-    needsSignature:    bool
+    unitCount:      u32
+    subtotalCents:  u32
+    packagingCents: u32
+    discountCents:  u32
+    totalCents:     u32
+    needsSignature: bool
 }
 
 func countUnits(lines: const [..] OrderLine)->u32
@@ -92,7 +92,7 @@ func findTopSku(lines: const [..] OrderLine)->string
         if line.unitPriceCents > bestPrice
         {
             bestPrice = line.unitPriceCents
-            bestSku = line.sku
+            bestSku   = line.sku
         }
     }
 
@@ -102,11 +102,11 @@ func findTopSku(lines: const [..] OrderLine)->string
 func buildOrderSummary(lines: const [..] OrderLine, tier: CustomerTier)->OrderSummary
 {
     var result: OrderSummary
-    result.unitCount = countUnits(lines)
-    result.subtotalCents = computeSubtotal(lines)
+    result.unitCount      = countUnits(lines)
+    result.subtotalCents  = computeSubtotal(lines)
     result.packagingCents = computePackaging(lines)
-    result.discountCents = computeDiscount(result.subtotalCents, tier)
-    result.totalCents = result.subtotalCents + result.packagingCents - result.discountCents
+    result.discountCents  = computeDiscount(result.subtotalCents, tier)
+    result.totalCents     = result.subtotalCents + result.packagingCents - result.discountCents
     result.needsSignature = hasFragileLine(lines) or result.totalCents >= 20000'u32
     return result
 }

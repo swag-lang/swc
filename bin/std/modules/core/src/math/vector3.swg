@@ -243,9 +243,9 @@ impl Vector3
         var norm = sqrt((.x * .x) + (.y * .y) + (.z * .z))
         Debug.assert(!Math.isZeroEpsilon(norm))
         norm = 1 / norm
-        .x *= norm
-        .y *= norm
-        .z *= norm
+        .x   *= norm
+        .y   *= norm
+        .z   *= norm
     }
 
     // Returns this vector normalized to unit length without modifying the original.
@@ -290,9 +290,9 @@ impl Vector3
         }
 
         norm = 1 / norm
-        .x *= norm
-        .y *= norm
-        .z *= norm
+        .x   *= norm
+        .y   *= norm
+        .z   *= norm
     }
 
     // Returns this vector normalized safely without modifying the original.

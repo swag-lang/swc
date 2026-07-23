@@ -30,18 +30,18 @@ enum ColorPickerMode
 struct ColorPicker
 {
     using wnd:         Wnd
-    hue, sat, lum:     f32
-    a, r, g, b:        f32
+    hue, sat, lum: f32
+    a, r, g, b:    f32
     mode               = ColorPickerMode.SaturationLightness
     sigChanged:        SigArray'func||(*ColorPicker)
 
     internal
     {
-        dirty:          bool = true
-        isMoving:       bool
-        img:            Image
-        texture:        Texture
-        xCur, yCur:     s32
+        dirty:      bool = true
+        isMoving:   bool
+        img:        Image
+        texture:    Texture
+        xCur, yCur: s32
     }
 }
 

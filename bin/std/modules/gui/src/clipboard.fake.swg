@@ -10,19 +10,19 @@ using Core, Pixel
 
 struct FakeTypedData
 {
-    fmt:     ValueFormat
-    crc:     u32
-    data:    Array'u8
+    fmt:  ValueFormat
+    crc:  u32
+    data: Array'u8
 }
 
 struct FakeStore
 {
-    enabled:     bool
-    hasStr:      bool
-    str:         String
-    hasImg:      bool
-    img:         Image
-    typed:       Array'FakeTypedData
+    enabled: bool
+    hasStr:  bool
+    str:     String
+    hasImg:  bool
+    img:     Image
+    typed:   Array'FakeTypedData
 }
 
 var g_Fake: FakeStore
@@ -40,7 +40,7 @@ func fakeClear()
     g_Fake.hasStr = false
     g_Fake.str.clear()
     g_Fake.hasImg = false
-    g_Fake.img = Image{}
+    g_Fake.img    = Image{}
     g_Fake.typed.clear()
 }
 

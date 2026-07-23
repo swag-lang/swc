@@ -194,7 +194,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 #test
 {
     var value: ConstAssignPair = {value: 1}
-    let ptr: const *ConstAssignPair = &value
+    let ptr:   const *ConstAssignPair = &value
     ptr.value = 9     // swc-expected-error {{sema_err_assign_to_const}}
 }
 

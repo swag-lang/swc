@@ -81,7 +81,7 @@ func day8A()
                 curNode = nodes[curNode].left
             else do
                 curNode = nodes[curNode].right
-            total += 1
+            total       += 1
             if curNode == endNode do
                 break
         }

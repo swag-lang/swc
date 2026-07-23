@@ -8,8 +8,8 @@ public struct Sha1
 {
     data:        [64] u8     // Internal data buffer for processing 512-bit blocks
     state:       [5] u32     // Five 32-bit hash state values (A, B, C, D, E)
-    datalen:     u32         // Current number of bytes in the data buffer
-    bitlen:      u64         // Total number of bits processed so far
+    datalen: u32             // Current number of bytes in the data buffer
+    bitlen:  u64             // Total number of bits processed so far
 }
 
 impl Sha1
@@ -33,14 +33,14 @@ impl Sha1
         while i < 16
         {
             w[i] = (cast(u32) buf[j] << 24) | (cast(u32) buf[j + 1] << 16) | (cast(u32) buf[j + 2] << 8) | buf[j + 3]
-            i += 1
-            j += 4
+            i    += 1
+            j    += 4
         }
 
         while i < 80
         {
             w[i] = rotLeft(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1)
-            i += 1
+            i    += 1
         }
 
         var a = .state[0]
@@ -56,22 +56,22 @@ impl Sha1
             if i < 20
             {
                 f = f1(b, c, d)
-                k = 0x5a827999
+                k = 0x5A827999
             }
             elif i < 40
             {
                 f = f2(b, c, d)
-                k = 0x6ed9eba1
+                k = 0x6ED9EBA1
             }
             elif i < 60
             {
                 f = f3(b, c, d)
-                k = 0x8f1bbcdc
+                k = 0x8F1BBCDC
             }
             else
             {
                 f = f4(b, c, d)
-                k = 0xca62c1d6
+                k = 0xCA62C1D6
             }
 
             let temp = rotLeft(a, 5) + f + e + k + w[i]
@@ -103,21 +103,21 @@ public impl Sha1
         if .datalen < 56
         {
             .data[i] = 0x80
-            i += 1
+            i        += 1
             while i < 56
             {
                 .data[i] = 0x00
-                i += 1
+                i        += 1
             }
         }
         else
         {
             .data[i] = 0x80
-            i += 1
+            i        += 1
             while i < 64
             {
                 .data[i] = 0x00
-                i += 1
+                i        += 1
             }
 
             .transform(.data)
@@ -126,11 +126,11 @@ public impl Sha1
             while i < 56
             {
                 .data[i] = 0x00
-                i += 1
+                i        += 1
             }
         }
 
-        .bitlen += .datalen * 8
+        .bitlen   += .datalen * 8
         .data[63] = cast(u8) .bitlen
         .data[62] = cast(u8) (.bitlen >> 8)
         .data[61] = cast(u8) (.bitlen >> 16)
@@ -150,10 +150,10 @@ public impl Sha1
     {
         @init(me, 1)
         .state[0] = 0x67452301
-        .state[1] = 0xefcdab89
-        .state[2] = 0x98badcfe
+        .state[1] = 0xEFCDAB89
+        .state[2] = 0x98BADCFE
         .state[3] = 0x10325476
-        .state[4] = 0xc3d2e1f0
+        .state[4] = 0xC3D2E1F0
     }
 
     // Update the hash value with 'buffer' content.
@@ -167,11 +167,11 @@ public impl Sha1
         for i in len
         {
             .data[.datalen] = buf[i]
-            .datalen += 1
+            .datalen        += 1
             if .datalen == 64
             {
                 .transform(.data)
-                .bitlen += 512
+                .bitlen  += 512
                 .datalen = 0
             }
         }

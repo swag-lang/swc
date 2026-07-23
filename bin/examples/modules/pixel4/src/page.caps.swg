@@ -2,10 +2,10 @@ using Core, Pixel
 
 struct CapRow
 {
-    label:        string
-    begCap:       LineCapStyle
-    endCap:       LineCapStyle
-    color:        Color
+    label:  string
+    begCap: LineCapStyle
+    endCap: LineCapStyle
+    color:  Color
 }
 
 const CapRows = [

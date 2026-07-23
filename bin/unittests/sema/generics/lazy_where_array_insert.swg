@@ -63,7 +63,7 @@ impl ReceiverList
 
 func semaTest001()
 {
-    var list: ReceiverList'Receiver
+    var list:     ReceiverList'Receiver
     var receiver: Receiver
     list.insert(receiver)
 }

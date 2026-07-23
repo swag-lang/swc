@@ -70,7 +70,7 @@ func parseNum(bytes: const [..] u8, pos: *u32)->s64
     var neg = false
     if dref pos < @countof(bytes) and bytes[dref pos] == '-'
     {
-        neg = true
+        neg      = true
         dref pos += 1
     }
 
@@ -79,7 +79,7 @@ func parseNum(bytes: const [..] u8, pos: *u32)->s64
     {
         if dref pos >= @countof(bytes) or bytes[dref pos] < '0' or bytes[dref pos] > '9' do
             break
-        val = val * 10 + cast(s64) (bytes[dref pos] - '0')
+        val      = val * 10 + cast(s64) (bytes[dref pos] - '0')
         dref pos += 1
     }
     return neg ? -val : val
@@ -102,7 +102,7 @@ func skipToNum(bytes: const [..] u8, pos: *u32)
 func parseMachines(text: string, out: [*] Machine)->u32
 {
     let bytes = cast(const [..] u8) text
-    var pos: u32
+    var pos:   u32
     var count: u32
     var state = ParseState.WantA
 
@@ -125,16 +125,16 @@ func parseMachines(text: string, out: [*] Machine)->u32
         {
         case ParseState.WantA:
             out[count].a = {x: v1, y: v2}
-            state = ParseState.WantB
+            state        = ParseState.WantB
             break
         case ParseState.WantB:
             out[count].b = {x: v1, y: v2}
-            state = ParseState.WantPrize
+            state        = ParseState.WantPrize
             break
         case ParseState.WantPrize:
             out[count].prize = {x: v1, y: v2}
-            count += 1
-            state = ParseState.WantA
+            count            += 1
+            state            = ParseState.WantA
             break
         case ParseState.Done:
             break
@@ -196,8 +196,8 @@ func solve(text: string)->Result
     for #reverse i in n
     {
         var m = machines[i]
-        m.prize.x += Part2Offset
-        m.prize.y += Part2Offset
+        m.prize.x    += Part2Offset
+        m.prize.y    += Part2Offset
         result.part2 += solveMachine(m)
     }
 

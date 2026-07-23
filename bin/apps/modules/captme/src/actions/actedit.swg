@@ -39,9 +39,9 @@ impl IActionUI for ActionEdit
             evt.name     = "Edit"
 
         case ClearImageInside:
-            evt.setFlags |= .Disabled | .Name | .Hidden
+            evt.setFlags             |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
-            evt.name = "Clear Inside Image"
+            evt.name                 = "Clear Inside Image"
 
             if capture and hasSel
             {
@@ -63,9 +63,9 @@ impl IActionUI for ActionEdit
             }
 
         case ResetRotation:
-            evt.setFlags |= .Disabled | .Name | .Hidden
+            evt.setFlags             |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
-            evt.name = "Reset Rotation"
+            evt.name                 = "Reset Rotation"
 
             if capture and hasSel
             {

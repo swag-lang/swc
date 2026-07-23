@@ -56,8 +56,8 @@ using Core
 
 private struct Card
 {
-    val:        string = ""
-    bid:        u64
+    val: string = ""
+    bid: u64
     count:      [13] s32
     countV:     [6] s32
     value:      s32

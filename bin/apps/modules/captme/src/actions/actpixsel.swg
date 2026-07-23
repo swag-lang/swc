@@ -118,8 +118,8 @@ impl MainWnd
 
         struct Info
         {
-            boundRect:     Math.Rectangle
-            boundCols:     Array'{ y1: s32, y2: s32, col1: Color, col2: Color }
+            boundRect: Math.Rectangle
+            boundCols: Array'{ y1: s32, y2: s32, col1: Color, col2: Color }
         }
 
         var infos: Array'Info
@@ -151,7 +151,7 @@ impl MainWnd
                     if br.contains(pt) and f.isInside(pt)
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bpp8
-                        pix32 += y1 * undo.newImg.width * undo.newImg.bpp8
+                        pix32     += y1 * undo.newImg.width * undo.newImg.bpp8
                         col1.argb = dref cast(*u32) notnull pix32
                         break
                     }
@@ -167,7 +167,7 @@ impl MainWnd
                     if br.contains(pt) and f.isInside(pt)
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bpp8
-                        pix32 += y2 * undo.newImg.width * undo.newImg.bpp8
+                        pix32     += y2 * undo.newImg.width * undo.newImg.bpp8
                         col2.argb = dref cast(*u32) notnull pix32
                         break
                     }
@@ -211,7 +211,7 @@ impl MainWnd
                             if xx < pmask.width and yy < pmask.height
                             {
                                 var pix1 = pmask.pixels.buffer + xx * pmask.bpp8
-                                pix1 += yy * pmask.width * pmask.bpp8
+                                pix1                         += yy * pmask.width * pmask.bpp8
                                 dref cast(*u32) notnull pix1 = 0xFFFFFFFF
                             }
                         }

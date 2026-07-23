@@ -35,7 +35,7 @@
             }
 
             acc += i
-            i += 1
+            i   += 1
         }
 
         return acc

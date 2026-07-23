@@ -174,7 +174,7 @@ alias StrictKindAlias = Kind
 
 #test
 {
-    var x: s32 = 42
+    var x:   s32 = 42
     var raw: any = @mkany(&x, s32)
     let boxed = dref cast(*StrictKindOfAny) &raw
     var b = @kindof(boxed)
@@ -185,7 +185,7 @@ alias StrictKindAlias = Kind
 #test
 {
     var text: string = "alias-kind"
-    var raw: any = @mkany(&text, string)
+    var raw:  any = @mkany(&text, string)
     let boxed = dref cast(*StrictKindOfAny) &raw
     @assert(@kindof(boxed) == string)
 }

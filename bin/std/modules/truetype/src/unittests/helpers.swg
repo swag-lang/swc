@@ -3,9 +3,9 @@ using Swag, Core
 
 struct OutlineCounter
 {
-    moves:      u32
-    lines:      u32
-    conics:     u32
+    moves:  u32
+    lines:  u32
+    conics: u32
 }
 
 // Returns the OWNED path: a 'string' view would dangle as soon as the intermediate
@@ -27,8 +27,8 @@ func loadFontBytes(fileName: string = "segoeui.ttf")->Array'u8
 
 struct FaceScope
 {
-    bytes:       Array'u8
-    face:        #null *Face
+    bytes: Array'u8
+    face:  #null *Face
 }
 
 impl FaceScope

@@ -2,10 +2,10 @@
 
 struct FontFamily
 {
-    regular:        #null *Font
-    bold:           #null *Font
-    italic:         #null *Font
-    boldItalic:     #null *Font
+    regular:    #null *Font
+    bold:       #null *Font
+    italic:     #null *Font
+    boldItalic: #null *Font
 }
 
 enum FontFamilyStyle

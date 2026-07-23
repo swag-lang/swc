@@ -20,25 +20,25 @@ const XINPUT_GAMEPAD_Y              = 0x8000'u16
 
 struct XINPUT_GAMEPAD
 {
-    wButtons:          WORD
-    bLeftTrigger:      BYTE
-    bRightTrigger:     BYTE
-    sThumbLX:          SHORT
-    sThumbLY:          SHORT
-    sThumbRX:          SHORT
-    sThumbRY:          SHORT
+    wButtons:      WORD
+    bLeftTrigger:  BYTE
+    bRightTrigger: BYTE
+    sThumbLX:      SHORT
+    sThumbLY:      SHORT
+    sThumbRX:      SHORT
+    sThumbRY:      SHORT
 }
 
 struct XINPUT_STATE
 {
-    dwPacketNumber:     DWORD
-    Gamepad:            XINPUT_GAMEPAD
+    dwPacketNumber: DWORD
+    Gamepad:        XINPUT_GAMEPAD
 }
 
 struct XINPUT_VIBRATION
 {
-    wLeftMotorSpeed:      WORD
-    wRightMotorSpeed:     WORD
+    wLeftMotorSpeed:  WORD
+    wRightMotorSpeed: WORD
 }
 
 #[Foreign(module: "xinput1_4", link: "xinput")]

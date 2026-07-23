@@ -8,9 +8,9 @@ In the case of a struct, the XML file must represent the structure layout (order
 */
 public struct Xml
 {
-    stream:        ByteStream
-    line, col:     u64 = 1
-    stackTags:     Array'(string)
+    stream:    ByteStream
+    line, col: u64 = 1
+    stackTags: Array'(string)
 }
 
 public impl Xml
@@ -80,7 +80,7 @@ public impl Xml
             if c == '\n'
             {
                 .line += 1
-                .col = 1
+                .col  = 1
             }
             else
             {
@@ -137,9 +137,15 @@ public impl Xml
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
     {
-        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool throw { return false; }
+        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool throw
+        {
+            return false;
+        }
         mtd endStruct() throw {}
-        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool throw { return false; }
+        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool throw
+        {
+            return false;
+        }
         mtd endSequence() throw {}
         mtd beginValue() throw {}
         mtd endValue() throw {}
@@ -224,9 +230,9 @@ public impl Xml
             var c       = .stream.peekU8()
             while c and c != '<'
             {
-                c = .stream.readU8()
+                c      = .stream.readU8()
                 result += c
-                c = .stream.peekU8()
+                c      = .stream.peekU8()
             }
 
             return result

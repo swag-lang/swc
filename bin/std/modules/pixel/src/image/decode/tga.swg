@@ -15,27 +15,27 @@ const DESC_ORIGIN_TOP   = 0x20'u8
 #[Swag.Pack(1)]
 struct Header
 {
-    idLength:          u8
-    colorMapType:      u8
-    imageTypeCode:     u8
-    colorMapFirst:     u16
-    colorMapLength:    u16
-    colorMapBpp:       u8
-    originX:           u16
-    originY:           u16
-    width:             u16
-    height:            u16
-    bpp:               u8
-    descriptorByte:    u8
+    idLength:       u8
+    colorMapType:   u8
+    imageTypeCode:  u8
+    colorMapFirst:  u16
+    colorMapLength: u16
+    colorMapBpp:    u8
+    originX:        u16
+    originY:        u16
+    width:          u16
+    height:         u16
+    bpp:            u8
+    descriptorByte: u8
 }
 
 struct Palette
 {
-    data:          #null const [*] u8
-    first:         u16
-    count:         u16
-    bpp:           u8
-    bpp8:          u8
+    data:  #null const [*] u8
+    first: u16
+    count: u16
+    bpp:   u8
+    bpp8:  u8
 }
 
 public struct Decoder {}
@@ -274,7 +274,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
             {
                 writeSourcePixel(result, header, palette, index, p)
                 index += 1
-                p += pixelBytes
+                p     += pixelBytes
             }
         }
     }

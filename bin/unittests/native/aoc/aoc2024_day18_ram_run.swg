@@ -43,8 +43,8 @@ const MaxQ = 256'u32
 struct Grid
 {
     cells: [Dim] [Dim] u8     // 0 = open, 1 = corrupted
-    w:     u32
-    h:     u32
+    w: u32
+    h: u32
 }
 
 impl Grid
@@ -190,7 +190,7 @@ func bfs(g: *Grid)->s32
     var tail: u32
     queue[0] = 0
     queue[1] = 0
-    tail = 2
+    tail     = 2
 
     for MaxQ
     {
@@ -213,10 +213,10 @@ func bfs(g: *Grid)->s32
             let uc = cast(u32) nc
             if !g.passable(ur, uc) or dist[ur][uc] >= 0 do
                 continue
-            dist[ur][uc] = dist[cr][cc] + 1
-            queue[tail] = ur
+            dist[ur][uc]    = dist[cr][cc] + 1
+            queue[tail]     = ur
             queue[tail + 1] = uc
-            tail += 2
+            tail            += 2
         }
     }
 
@@ -300,7 +300,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
     if col == 0
     {
         buf[pos] = '0'
-        pos += 1
+        pos      += 1
     }
     else
     {
@@ -311,24 +311,24 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
         {
             if v == 0 do break
             tmp[tmpLen] = cast(u8) (v % 10) + '0'
-            tmpLen += 1
-            v /= 10
+            tmpLen      += 1
+            v           /= 10
         }
         for #reverse i in tmpLen
         {
             buf[pos] = tmp[i]
-            pos += 1
+            pos      += 1
         }
     }
 
     buf[pos] = ','
-    pos += 1
+    pos      += 1
 
     // Write row digits
     if row == 0
     {
         buf[pos] = '0'
-        pos += 1
+        pos      += 1
     }
     else
     {
@@ -339,13 +339,13 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
         {
             if v == 0 do break
             tmp[tmpLen] = cast(u8) (v % 10) + '0'
-            tmpLen += 1
-            v /= 10
+            tmpLen      += 1
+            v           /= 10
         }
         for #reverse i in tmpLen
         {
             buf[pos] = tmp[i]
-            pos += 1
+            pos      += 1
         }
     }
 
@@ -463,7 +463,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
     // Block (0,1) then (1,0) → path (0,0)→(0,1)→(1,1) blocked at byte 0
     bl.items[0] = BytePos{col: 1, row: 0}
     bl.items[1] = BytePos{col: 0, row: 1}
-    bl.count = 2
+    bl.count    = 2
     let idx = findBlockingByte(&g, &bl)
     // After 1 byte: (0,1) blocked. Path (0,0)→(1,0)→(1,1) still open
     // After 2 bytes: (1,0) also blocked. No path. So blocking = index 1

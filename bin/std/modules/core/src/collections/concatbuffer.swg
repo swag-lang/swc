@@ -3,19 +3,19 @@
 // Represents a single memory block (a bucket) within a ConcatBuffer.
 struct ConcatBufferBucket
 {
-    datas:           #null [*] u8                  // Pointer to the raw memory of the bucket.
-    next:            #null *ConcatBufferBucket     // Pointer to the next bucket in the chain.
-    count:           u64                           // Number of bytes used in this bucket.
-    size:            u64                           // Total allocated size of this bucket in bytes.
-    countBefore:     u64                           // Total number of bytes in all preceding buckets.
+    datas:       #null [*] u8                  // Pointer to the raw memory of the bucket.
+    next:        #null *ConcatBufferBucket     // Pointer to the next bucket in the chain.
+    count:       u64                           // Number of bytes used in this bucket.
+    size:        u64                           // Total allocated size of this bucket in bytes.
+    countBefore: u64                           // Total number of bytes in all preceding buckets.
 }
 
 // Represents a position (seek) within a ConcatBuffer.
 // It holds both the bucket and the specific pointer within that bucket.
 struct ConcatBufferSeek
 {
-    bucket:     #null *ConcatBufferBucket     // The bucket where the position is located.
-    sp:         #null [*] u8                  // The exact memory address of the position.
+    bucket: #null *ConcatBufferBucket     // The bucket where the position is located.
+    sp:     #null [*] u8                  // The exact memory address of the position.
 }
 
 // Represents a growable buffer that is divided into buckets (chunks of memory).
@@ -25,13 +25,13 @@ struct ConcatBuffer
 {
     allocator:           #null Swag.IAllocator     // The allocator to use for all memory operations.
 
-    firstBucket:         #null *ConcatBufferBucket     // The first bucket in the chain.
-    curBucket:           #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.
-    lastBucket:          #null *ConcatBufferBucket     // The last bucket in the chain.
-    currentSP:           #null [*] u8                  // The current read/write pointer in the `curBucket`.
-    granularity:         u64 = 1024                    // The default size for newly allocated buckets.
-    isAtEnd:             bool = true                   // 'true' if the seek pointer is at the very end of the buffer.
-    viewFirstBucket:     ConcatBufferBucket            // A pre-allocated bucket used for views, to avoid a separate allocation.
+    firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.
+    curBucket:       #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.
+    lastBucket:      #null *ConcatBufferBucket     // The last bucket in the chain.
+    currentSP:       #null [*] u8                  // The current read/write pointer in the `curBucket`.
+    granularity:     u64 = 1024                    // The default size for newly allocated buckets.
+    isAtEnd:         bool = true                   // 'true' if the seek pointer is at the very end of the buffer.
+    viewFirstBucket: ConcatBufferBucket            // A pre-allocated bucket used for views, to avoid a separate allocation.
 }
 
 impl ConcatBuffer
@@ -118,7 +118,7 @@ impl ConcatBuffer
                 nextBucket.count       = 0
 
                 .curBucket, .lastBucket = nextBucket
-                .currentSP = nextBucket.datas
+                .currentSP              = nextBucket.datas
                 return
             }
         }
@@ -131,7 +131,7 @@ impl ConcatBuffer
         if .lastBucket
         {
             let lastBucket = .lastBucket
-            newBucket.next   = lastBucket.next
+            newBucket.next  = lastBucket.next
             lastBucket.next = newBucket
         }
         else do
@@ -196,10 +196,10 @@ impl ConcatBuffer
             return
 
         let firstBucket = .firstBucket
-        .curBucket, .lastBucket = firstBucket
-        .currentSP = firstBucket.datas
+        .curBucket, .lastBucket                    = firstBucket
+        .currentSP                                 = firstBucket.datas
         firstBucket.countBefore, firstBucket.count = 0
-        .isAtEnd = true
+        .isAtEnd                                   = true
     }
 
     // Appends a native type (like u8, s32, f64) to the buffer.
@@ -222,7 +222,7 @@ impl ConcatBuffer
             }
 
             dref cast(*T) currentSP = val
-            .currentSP += #sizeof(T)
+            .currentSP              += #sizeof(T)
         }
         else
         {
@@ -230,8 +230,8 @@ impl ConcatBuffer
             let curBucket = notnull .curBucket
             let currentSP = notnull .currentSP
             dref cast(*T) currentSP = val
-            .currentSP += #sizeof(T)
-            curBucket.count += #sizeof(T)
+            .currentSP              += #sizeof(T)
+            curBucket.count         += #sizeof(T)
         }
     }
 
@@ -267,7 +267,7 @@ impl ConcatBuffer
                 while num > remain
                 {
                     Memory.copy(.currentSP, slicePtr, remain)
-                    num -= remain
+                    num                  -= remain
                     slicePtr, .currentSP += remain
                     if !num do
                         return
@@ -303,9 +303,9 @@ impl ConcatBuffer
                 while num > remain
                 {
                     Memory.copy(.currentSP, slicePtr, remain)
-                    num -= remain
+                    num                  -= remain
                     slicePtr, .currentSP += remain
-                    .lastBucket.count += remain
+                    .lastBucket.count    += remain
                     if !num do
                         return
                     .grow(.granularity)     // Will alloc a new bucket as the current one is full
@@ -321,7 +321,7 @@ impl ConcatBuffer
         // We should have enough size in the last bucket to store the
         // rest of the slice
         Memory.copy(.currentSP, slicePtr, num)
-        .currentSP += num
+        .currentSP        += num
         .lastBucket.count += num
     }
 
@@ -364,12 +364,12 @@ impl ConcatBuffer
                 return
             }
 
-            total -= (.curBucket.count - seek)
+            total    -= (.curBucket.count - seek)
             .isAtEnd = true
         }
 
         .grow(total)
-        .currentSP += total
+        .currentSP       += total
         .curBucket.count += total
     }
 
@@ -402,16 +402,16 @@ impl ConcatBuffer
         if !seek.bucket
         {
             .curBucket, .lastBucket = .firstBucket
-            .currentSP        = .curBucket.datas
-            .lastBucket.count = 0
-            .isAtEnd          = true
+            .currentSP              = .curBucket.datas
+            .lastBucket.count       = 0
+            .isAtEnd                = true
         }
         else
         {
             .curBucket, .lastBucket = seek.bucket
-            .currentSP        = seek.sp
-            .lastBucket.count = cast(u64) (seek.sp - seek.bucket.datas)
-            .isAtEnd          = true
+            .currentSP              = seek.sp
+            .lastBucket.count       = cast(u64) (seek.sp - seek.bucket.datas)
+            .isAtEnd                = true
         }
     }
 
@@ -434,10 +434,10 @@ impl ConcatBuffer
     {
         Debug.assert(.firstBucket == null)
         @init(&.viewFirstBucket, 1)
-        .viewFirstBucket.datas = @dataof(data)
-        .viewFirstBucket.size  = @countof(data)
+        .viewFirstBucket.datas                = @dataof(data)
+        .viewFirstBucket.size                 = @countof(data)
         .firstBucket, .lastBucket, .curBucket = &.viewFirstBucket
-        .currentSP = .firstBucket.datas
+        .currentSP                            = .firstBucket.datas
     }
 
     // Converts the buffer to a 'String' by copying all its content.
@@ -529,12 +529,12 @@ impl ConcatBuffer
         .release()
 
         // Make one single bucket
-        .firstBucket       = Memory.new'ConcatBufferBucket(.allocator)
-        .firstBucket.datas = newDatas
-        .firstBucket.size  = total
-        .firstBucket.count = total
+        .firstBucket            = Memory.new'ConcatBufferBucket(.allocator)
+        .firstBucket.datas      = newDatas
+        .firstBucket.size       = total
+        .firstBucket.count      = total
         .curBucket, .lastBucket = .firstBucket
-        .currentSP = .firstBucket.datas + .firstBucket.count
-        .isAtEnd   = true
+        .currentSP              = .firstBucket.datas + .firstBucket.count
+        .isAtEnd                = true
     }
 }

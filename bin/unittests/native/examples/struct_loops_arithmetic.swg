@@ -16,16 +16,16 @@ struct BakeOrder
 
 struct OvenSchedule
 {
-    batchCount:        s32
-    steamBatchCount:   s32
-    traysProduced:     s32
-    setupCount:        s32
-    setupMinutes:      s32
-    bakeMinutes:       s32
-    ovenBusyMinutes:   s32
-    lastBakeMinute:    s32
-    finalReadyMinute:  s32
-    opensOnTime:       bool
+    batchCount:       s32
+    steamBatchCount:  s32
+    traysProduced:    s32
+    setupCount:       s32
+    setupMinutes:     s32
+    bakeMinutes:      s32
+    ovenBusyMinutes:  s32
+    lastBakeMinute:   s32
+    finalReadyMinute: s32
+    opensOnTime:      bool
 }
 
 func maxS32(lhs, rhs: s32)->s32
@@ -63,10 +63,10 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
 
         if currentTemp != order.ovenTempC
         {
-            currentTemp = order.ovenTempC
-            result.setupCount += 1
+            currentTemp         = order.ovenTempC
+            result.setupCount   += 1
             result.setupMinutes += 12
-            currentMinute += 12
+            currentMinute       += 12
         }
 
         let totalBatches = ceilDiv(traysNeeded, trayCapacity)
@@ -77,9 +77,9 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
             let traysThisBatch = minS32(traysRemaining, trayCapacity)
             traysRemaining -= traysThisBatch
 
-            result.batchCount += 1
+            result.batchCount    += 1
             result.traysProduced += traysThisBatch
-            result.bakeMinutes += order.minutesPerBatch
+            result.bakeMinutes   += order.minutesPerBatch
             if order.needsSteam do
                 result.steamBatchCount += 1
 
@@ -89,9 +89,9 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
         result.finalReadyMinute = maxS32(result.finalReadyMinute, currentMinute + order.coolingMinutes)
     }
 
-    result.lastBakeMinute = currentMinute
+    result.lastBakeMinute  = currentMinute
     result.ovenBusyMinutes = currentMinute - shiftStartMinute
-    result.opensOnTime = result.finalReadyMinute <= openingMinute
+    result.opensOnTime     = result.finalReadyMinute <= openingMinute
     return result
 }
 

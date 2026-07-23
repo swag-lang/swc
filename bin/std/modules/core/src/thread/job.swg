@@ -11,28 +11,28 @@ public enum JobState
 
 public struct Job
 {
-    lambda:     #null func(#null *void)
-    data:       #null *void
+    lambda: #null func(#null *void)
+    data:   #null *void
 
     // Internal state
-    state:            JobState = .Zero
-    pendingIndex:     u32 = Swag.U32.Max
+    state:        JobState = .Zero
+    pendingIndex: u32 = Swag.U32.Max
 }
 
 public struct(T) SliceJob
 {
     using base:     Job
-    buffer:         #null const [..] T
-    offset:         u32
-    contextData:    #null *void
+    buffer:      #null const [..] T
+    offset:      u32
+    contextData: #null *void
 }
 
 public struct ForJob
 {
     using base:     Job
-    startIndex:     u32
-    endIndex:       u32
-    contextData:    #null *void
+    startIndex:  u32
+    endIndex:    u32
+    contextData: #null *void
 }
 
 var g_Allocator:        #null Swag.IAllocator
@@ -115,7 +115,7 @@ func removeJobNoLock(job: *Job)
     g_pendingJobs.removeAt(cast(u64) job.pendingIndex)
     if job.pendingIndex < g_pendingJobs.count do
         g_pendingJobs[job.pendingIndex].pendingIndex = job.pendingIndex
-    job.pendingIndex = Swag.U32.Max
+    job.pendingIndex                                 = Swag.U32.Max
     job.clearState(JobState.InPending)
 }
 
@@ -250,7 +250,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
     // Compute size of each chunk (and size of the last one)
     var splitSize     = wh / numWorkers
     var lastSplitSize = splitSize + (wh - (splitSize * numWorkers))
-    splitSize *= offset
+    splitSize     *= offset
     lastSplitSize *= offset
 
     // Launch jobs
@@ -262,12 +262,12 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
     {
         let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
-        j.base.lambda   = &jobEntry
-        j.base.data     = j
-        j.offset        = offset
-        j.contextData   = contextData
-        j.buffer        = @mkslice(ptr, sizeSlice)
-        ptr += sizeSlice
+        j.base.lambda = &jobEntry
+        j.base.data   = j
+        j.offset      = offset
+        j.contextData = contextData
+        j.buffer      = @mkslice(ptr, sizeSlice)
+        ptr           += sizeSlice
 
         scheduleJob(j)
     }
@@ -325,12 +325,12 @@ public func parallelFor(count: u32, contextData: #null *void = null, stmt: #code
     {
         let sizeSlice = @index == sliceJobs.count - 1 ? lastSplitSize : splitSize
 
-        j.base.lambda   = &jobEntry
-        j.base.data     = j
-        j.startIndex    = startIndex
-        j.endIndex      = startIndex + sizeSlice - 1
-        j.contextData   = contextData
-        startIndex += sizeSlice
+        j.base.lambda = &jobEntry
+        j.base.data   = j
+        j.startIndex  = startIndex
+        j.endIndex    = startIndex + sizeSlice - 1
+        j.contextData = contextData
+        startIndex    += sizeSlice
 
         scheduleJob(j)
     }

@@ -1,6 +1,6 @@
 #global private
 
-const A: s32 = 1
+const A: s32  = 1
 const B: bool = cast() A
 #assert(B == true)
 
@@ -30,7 +30,7 @@ func takes_f64(v: f64) { gAutoF64 = v }
 #test
 {
     const B: bool = true
-    const S: s32 = cast() B
+    const S: s32  = cast() B
     #assert(S == 1)
     @assert(S == 1)
 }

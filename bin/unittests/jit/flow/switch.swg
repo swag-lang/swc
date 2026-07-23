@@ -165,10 +165,10 @@ const SwitchPointerValues = [11, 22, 33]
     const T1: typeinfo = f64
     const T2: typeinfo = bool
     const T3: typeinfo = string
-    const V0 = #run switchTypeInfo(T0)
-    const V1 = #run switchTypeInfo(T1)
-    const V2 = #run switchTypeInfo(T2)
-    const V3 = #run switchTypeInfo(T3)
+    const V0           = #run switchTypeInfo(T0)
+    const V1           = #run switchTypeInfo(T1)
+    const V2           = #run switchTypeInfo(T2)
+    const V3           = #run switchTypeInfo(T3)
     #assert(V0 == 1)
     #assert(V1 == 2)
     #assert(V2 == 3)

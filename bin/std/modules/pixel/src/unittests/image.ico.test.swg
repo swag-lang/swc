@@ -6,38 +6,38 @@ using Swag, Core
 #[Swag.Pack(1)]
 struct IcoDir
 {
-    reserved:     u16
-    type:         u16
-    count:        u16
+    reserved: u16
+    type:     u16
+    count:    u16
 }
 
 #[Swag.Pack(1)]
 struct IcoEntry
 {
-    width:        u8
-    height:       u8
-    colorCount:   u8
-    reserved:     u8
-    planes:       u16
-    bitCount:     u16
-    bytesInRes:   u32
-    imageOffset:  u32
+    width:       u8
+    height:      u8
+    colorCount:  u8
+    reserved:    u8
+    planes:      u16
+    bitCount:    u16
+    bytesInRes:  u32
+    imageOffset: u32
 }
 
 #[Swag.Pack(1)]
 struct IcoDib
 {
-    size:           u32
-    width:          s32
-    height:         s32
-    planes:         u16
-    bitCount:       u16
-    compression:    u32
-    sizeImage:      u32
-    xPelsPerMeter:  s32
-    yPelsPerMeter:  s32
-    clrUsed:        u32
-    clrImportant:   u32
+    size:          u32
+    width:         s32
+    height:        s32
+    planes:        u16
+    bitCount:      u16
+    compression:   u32
+    sizeImage:     u32
+    xPelsPerMeter: s32
+    yPelsPerMeter: s32
+    clrUsed:       u32
+    clrImportant:  u32
 }
 
 // Build a single-image ICO from a DIB body (palette + XOR + AND, no BITMAPINFOHEADER).
@@ -299,7 +299,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     let pngBytes = nnBytes(png.toSlice())
     let pngLen   = cast(u32) @countof(pngBytes)
 
-    var cb: ConcatBuffer
+    var cb:  ConcatBuffer
     var dir: IcoDir
     dir.type  = 1
     dir.count = 1
@@ -342,7 +342,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 // Error: directory type is neither icon (1) nor cursor (2).
 #test
 {
-    var cb: ConcatBuffer
+    var cb:  ConcatBuffer
     var dir: IcoDir
     dir.type  = 7
     dir.count = 1
@@ -355,7 +355,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 // Error: empty directory.
 #test
 {
-    var cb: ConcatBuffer
+    var cb:  ConcatBuffer
     var dir: IcoDir
     dir.type  = 1
     dir.count = 0
@@ -450,7 +450,10 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 #test
 {
     let path = makeTempIcoPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(4, 4, .BGRA8)
     src.clear()

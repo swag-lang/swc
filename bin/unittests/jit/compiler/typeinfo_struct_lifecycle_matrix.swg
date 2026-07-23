@@ -40,7 +40,7 @@ impl CopyOnly
     mtd opPostCopy()
     {
         CopyHits += 1
-        .value += 10
+        .value   += 10
     }
 }
 
@@ -54,7 +54,7 @@ impl MoveOnly
     mtd opPostMove()
     {
         MoveHits += 1
-        .value += 100
+        .value   += 100
     }
 }
 

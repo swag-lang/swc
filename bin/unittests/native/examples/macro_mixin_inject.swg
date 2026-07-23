@@ -26,20 +26,20 @@ struct InvoiceTotals
 #[Swag.Mixin]
 func declareInvoiceState()
 {
-    var lineCount: s32
-    var taxableLineCount: s32
-    var subtotalCents: s32
+    var lineCount:            s32
+    var taxableLineCount:     s32
+    var subtotalCents:        s32
     var taxableSubtotalCents: s32
 }
 
 #[Swag.Mixin]
 func accumulateInvoiceLine(lineTotalCents: s32, isTaxable: bool)
 {
-    lineCount += 1
+    lineCount     += 1
     subtotalCents += lineTotalCents
     if isTaxable
     {
-        taxableLineCount += 1
+        taxableLineCount     += 1
         taxableSubtotalCents += lineTotalCents
     }
 }
@@ -47,7 +47,7 @@ func accumulateInvoiceLine(lineTotalCents: s32, isTaxable: bool)
 #[Swag.Mixin]
 func declareShippingFees(baseFeeCents: s32)
 {
-    const standardShippingCents: s32 = baseFeeCents
+    const standardShippingCents: s32  = baseFeeCents
     const expeditedShippingCents: s32 = baseFeeCents + 900
 }
 
@@ -95,14 +95,14 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
     let taxCents = taxableSubtotalCents / 10
 
     var result: InvoiceTotals
-    result.lineCount = lineCount
-    result.taxableLineCount = taxableLineCount
-    result.subtotalCents = subtotalCents
+    result.lineCount            = lineCount
+    result.taxableLineCount     = taxableLineCount
+    result.subtotalCents        = subtotalCents
     result.taxableSubtotalCents = taxableSubtotalCents
-    result.discountCents = discountCents
-    result.shippingCents = shippingCents
-    result.taxCents = taxCents
-    result.totalCents = subtotalCents - discountCents + shippingCents + taxCents
+    result.discountCents        = discountCents
+    result.shippingCents        = shippingCents
+    result.taxCents             = taxCents
+    result.totalCents           = subtotalCents - discountCents + shippingCents + taxCents
     return result
 }
 

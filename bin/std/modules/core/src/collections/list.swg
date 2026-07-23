@@ -4,18 +4,18 @@ using Swag
 // Represents a single node in a doubly-linked 'List'.
 struct(T) ListEntry
 {
-    prev:      #null *ListEntry     // Pointer to the previous node in the list.
-    next:      #null *ListEntry     // Pointer to the next node in the list.
-    value:     T                    // The value stored in the node.
+    prev:  #null *ListEntry     // Pointer to the previous node in the list.
+    next:  #null *ListEntry     // Pointer to the next node in the list.
+    value: T                    // The value stored in the node.
 }
 
 // A generic, doubly-linked list.
 // Provides efficient insertion and deletion of elements.
 struct(T) List
 {
-    head:      #null *ListEntry     // Pointer to the first node in the list.
-    tail:      #null *ListEntry     // Pointer to the last node in the list.
-    count:     u64                  // The total number of elements in the list.
+    head:  #null *ListEntry     // Pointer to the first node in the list.
+    tail:  #null *ListEntry     // Pointer to the last node in the list.
+    count: u64                  // The total number of elements in the list.
 }
 
 impl List
@@ -27,7 +27,7 @@ impl List
 
         let oldHead = .head
         .head, .tail = null
-        .count = 0
+        .count       = 0
 
         var n = oldHead
         while n
@@ -75,7 +75,7 @@ impl List
             #if back do
                 n = node.prev
                 #else do
-                n = node.next
+                n   = node.next
             ordinal += 1
         }
     }
@@ -92,7 +92,7 @@ impl List
         }
 
         .head, .tail = null
-        .count = 0
+        .count       = 0
     }
 
     // Adds a new element to the front of the list.
@@ -103,11 +103,11 @@ impl List
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
-        .count += 1
+        .count  += 1
 
         if .head
         {
-            n.next = .head
+            n.next            = .head
             .head.prev, .head = n
         }
         else
@@ -126,11 +126,11 @@ impl List
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
-        .count += 1
+        .count  += 1
 
         if .tail
         {
-            n.prev = .tail
+            n.prev            = .tail
             .tail.next, .tail = n
         }
         else
@@ -149,7 +149,7 @@ impl List
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
-        .count += 1
+        .count  += 1
 
         n.next = node
         n.prev = node.prev
@@ -157,7 +157,7 @@ impl List
             .head = n
         else do
             n.prev.next = n
-        node.prev = n
+        node.prev       = n
         return n
     }
 
@@ -169,7 +169,7 @@ impl List
     {
         let n = Memory.new'ListEntry()
         n.value = #fwd value
-        .count += 1
+        .count  += 1
 
         n.prev = node
         n.next = node.next
@@ -177,7 +177,7 @@ impl List
             .tail = n
         else do
             n.next.prev = n
-        node.next = n
+        node.next       = n
         return n
     }
 }

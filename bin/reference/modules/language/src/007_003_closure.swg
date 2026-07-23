@@ -126,7 +126,7 @@ and are plain data (POD).
         var res = 0
         for v in x do
             res += v
-        res += toAdd
+        res     += toAdd
         return res
     }
     let result = fct(4)

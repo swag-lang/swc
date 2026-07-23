@@ -37,7 +37,7 @@ impl RefCountedBySpecOp
 
 #assert(@countof(CountedBySpecOp{}) == 9)
 
-const ZERO_SIZED_VALUES: [3] ZeroSized = [{}, {}, {}]
+const ZERO_SIZED_VALUES: [3] ZeroSized       = [{}, {}, {}]
 const ZERO_SIZED_SLICE: const [..] ZeroSized = cast(const [..] ZeroSized) ZERO_SIZED_VALUES
 #assert(@countof(ZERO_SIZED_SLICE) == 3)
 
@@ -151,7 +151,7 @@ func semaTest005()
     #assert(#typeof(loopStringRef(textRef)) == u64)
 
     var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
-    var cstr: cstring = cast(cstring) &cstrData[0]
+    var cstr:    cstring = cast(cstring) &cstrData[0]
     var cstrRef: &cstring = &cstr
     #assert(#typeof(@countof(cstrRef)) == u64)
     #assert(#typeof(countCStringRef(cstrRef)) == u64)
@@ -168,7 +168,7 @@ func semaTest005()
     #assert(#typeof(countSliceRef(sliceRef)) == u64)
     #assert(#typeof(loopSliceRef(sliceRef)) == u64)
 
-    var number: u32 = 4
+    var number:    u32 = 4
     var numberRef: &u32 = &number
     #assert(#typeof(@countof(numberRef)) == u32)
     #assert(#typeof(countUnsignedRef(numberRef)) == u32)

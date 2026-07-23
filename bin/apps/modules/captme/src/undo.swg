@@ -93,44 +93,44 @@ func formFontDirty(f: IForm)
 
 struct Undo
 {
-    kind:            UndoKind
-    capture:         #null *Capture
-    baseForm:        #null IForm
+    kind:     UndoKind
+    capture:  #null *Capture
+    baseForm: #null IForm
 
     selection:       Array'u64
 
-    toFreeForms:     Array'IForm
-    oldForms:        Array'IForm
-    oldS32:          Array's32
-    oldU32:          Array'u32
-    oldForm:         Array'*BaseForm
-    oldText:         Array'String
-    oldImage:        Array'Image
-    oldImg:          Image
-    oldImagePos:     Math.Point
+    toFreeForms: Array'IForm
+    oldForms:    Array'IForm
+    oldS32:      Array's32
+    oldU32:      Array'u32
+    oldForm:     Array'*BaseForm
+    oldText:     Array'String
+    oldImage:    Array'Image
+    oldImg:      Image
+    oldImagePos: Math.Point
 
-    newSizeX:        s32
-    newSizeY:        s32
-    newPosX:         s32
-    newPosY:         s32
-    newImg:          Image
-    newImagePos:     Math.Point
+    newSizeX:    s32
+    newSizeY:    s32
+    newPosX:     s32
+    newPosY:     s32
+    newImg:      Image
+    newImagePos: Math.Point
 
-    minP:            s32
-    maxP:            s32
-    pointIdx:        u32
-    valU32:          u32
-    valRef:          #null const *Swag.TypeValue
-    mdlType:         #null typeinfo
-    mdlValue:        #null *BaseForm
-    text:            String
-    fontStyle:       FontFamilyStyle
+    minP:      s32
+    maxP:      s32
+    pointIdx:  u32
+    valU32:    u32
+    valRef:    #null const *Swag.TypeValue
+    mdlType:   #null typeinfo
+    mdlValue:  #null *BaseForm
+    text:      String
+    fontStyle: FontFamilyStyle
 
     // Group/Ungroup: 'groupId' is the fresh id a Group prepends to each member;
     // 'oldGroups' is the per-selection front id an Ungroup pops (0 = was ungrouped),
     // saved so undo can prepend it back.
-    groupId:         u64
-    oldGroups:       Array'u64
+    groupId:   u64
+    oldGroups: Array'u64
 }
 
 // Undo is a command of the generic gui UndoManager (owned by Capture): redo re-applies the
@@ -365,9 +365,9 @@ impl Undo
             with me.capture
             {
                 me.toFreeForms = .forms
-                .backImg = .backImgOriginal
-                .width   = .widthOrg
-                .height  = .heightOrg
+                .backImg       = .backImgOriginal
+                .width         = .widthOrg
+                .height        = .heightOrg
                 .selection.clear()
                 .forms.clear()
                 .dirtyBackImg = true
@@ -525,7 +525,7 @@ impl Undo
             .capture.backImagePos.y += .newPosY
             for f in .capture.forms do
                 f.moveForm(.newPosX, .newPosY)
-            .capture.width += .newSizeX
+            .capture.width  += .newSizeX
             .capture.height += .newSizeY
             .capture.width  = Math.clamp(.capture.width, Capture.MinSize, Capture.MaxSize)
             .capture.height = Math.clamp(.capture.height, Capture.MinSize, Capture.MaxSize)
@@ -730,7 +730,7 @@ impl Undo
             .capture.backImagePos.y -= .newPosY
             for f in .capture.forms do
                 f.moveForm(-.newPosX, -.newPosY)
-            .capture.width -= .newSizeX
+            .capture.width  -= .newSizeX
             .capture.height -= .newSizeY
 
         case OffsetSelection:

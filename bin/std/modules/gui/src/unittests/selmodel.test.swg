@@ -78,7 +78,7 @@ using Swag, Core
     for idx in model
     {
         visitedCount += 1
-        visitedSum += idx
+        visitedSum   += idx
     }
 
     @assert(visitedCount == 5)
@@ -130,7 +130,7 @@ using Swag, Core
     for idx in model
     {
         visitedCount += 1
-        visitedSum += idx
+        visitedSum   += idx
     }
 
     @assert(visitedCount == 5)

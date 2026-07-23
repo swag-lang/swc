@@ -118,12 +118,12 @@ func wireIsY(c0: u8)->bool { return c0 == 'y' }
 
 struct Gate
 {
-    inA:    u32     // encoded wire name
-    inB:    u32
-    out:    u32
-    op:     GateOp
-    nameA0: u8     // first char of wire A name (for x/y/z checks)
-    nameB0: u8
+    inA:      u32     // encoded wire name
+    inB:      u32
+    out:      u32
+    op:       GateOp
+    nameA0:   u8     // first char of wire A name (for x/y/z checks)
+    nameB0:   u8
     nameOut0: u8
     nameOut1: u8
     nameOut2: u8
@@ -254,7 +254,7 @@ func parseGates(c: *Circuit, text: string)
         var op: GateOp
         if pos + 2 < @countof(bytes) and bytes[pos] == 'A' and bytes[pos + 1] == 'N' and bytes[pos + 2] == 'D'
         {
-            op = GateOp.OpAnd
+            op  = GateOp.OpAnd
             pos += 4
         }
         elif pos + 1 < @countof(bytes) and bytes[pos] == 'O' and bytes[pos + 1] == 'R'
@@ -265,7 +265,7 @@ func parseGates(c: *Circuit, text: string)
         }
         elif pos + 2 < @countof(bytes) and bytes[pos] == 'X' and bytes[pos + 1] == 'O' and bytes[pos + 2] == 'R'
         {
-            op = GateOp.OpXor
+            op  = GateOp.OpXor
             pos += 4
         }
         else
@@ -294,16 +294,16 @@ func parseGates(c: *Circuit, text: string)
         pos += 3
 
         let gi = c.gateCount
-        c.gates[gi].inA = encodeWire(a0, a1, a2)
-        c.gates[gi].inB = encodeWire(b0, b1, b2)
-        c.gates[gi].out = encodeWire(o0, o1, o2)
-        c.gates[gi].op = op
-        c.gates[gi].nameA0 = a0
-        c.gates[gi].nameB0 = b0
+        c.gates[gi].inA      = encodeWire(a0, a1, a2)
+        c.gates[gi].inB      = encodeWire(b0, b1, b2)
+        c.gates[gi].out      = encodeWire(o0, o1, o2)
+        c.gates[gi].op       = op
+        c.gates[gi].nameA0   = a0
+        c.gates[gi].nameB0   = b0
         c.gates[gi].nameOut0 = o0
         c.gates[gi].nameOut1 = o1
         c.gates[gi].nameOut2 = o2
-        c.gateCount += 1
+        c.gateCount          += 1
 
         // Track max z-bit
         if o0 == 'z'
@@ -421,7 +421,7 @@ func addSwapped(result: *SwappedResult, c0: u8, c1: u8, c2: u8)
         result.names[result.count][0] = c0
         result.names[result.count][1] = c1
         result.names[result.count][2] = c2
-        result.count += 1
+        result.count                  += 1
     }
 }
 
@@ -537,14 +537,14 @@ func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
         if i > 0 and pos < bufLen
         {
             buf[pos] = ','
-            pos += 1
+            pos      += 1
         }
         for k in 3'u32
         {
             if pos < bufLen
             {
                 buf[pos] = result.names[i][k]
-                pos += 1
+                pos      += 1
             }
         }
     }
@@ -729,7 +729,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
     var sr: SolveResult
     with &sr
     {
-        .part1 = 99
+        .part1    = 99
         .part2Len = 3
     }
     @assert(sr.part1 == 99'u64)
@@ -811,7 +811,7 @@ func solve(wiresText: string, gatesText: string)->SolveResult
 // Inline returning struct via retval (exercises retval pattern)
 struct WireInfo
 {
-    encoded: u32
+    encoded:  u32
     isOutput: bool
 }
 
@@ -819,7 +819,7 @@ struct WireInfo
 func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
 {
     var r: retval
-    r.encoded = encodeWire(c0, c1, c2)
+    r.encoded  = encodeWire(c0, c1, c2)
     r.isOutput = wireIsZ(c0)
     return r
 }
@@ -852,8 +852,8 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     c.gates[0].inA = encodeWire('a', 'b', 'c')
     c.gates[0].inB = encodeWire('d', 'e', 'f')
     c.gates[0].out = encodeWire('g', 'h', 'i')
-    c.gates[0].op = GateOp.OpXor
-    c.gateCount = 1
+    c.gates[0].op  = GateOp.OpXor
+    c.gateCount    = 1
 
     @assert(hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpXor))
     @assert(!hasDownstream(&c, encodeWire('a', 'b', 'c'), GateOp.OpAnd))
@@ -940,22 +940,22 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     c.setWire(wa, 1)
     c.setWire(wb, 1)
 
-    c.gates[0].inA = wa
-    c.gates[0].inB = wb
-    c.gates[0].out = wm
-    c.gates[0].op = GateOp.OpAnd
+    c.gates[0].inA      = wa
+    c.gates[0].inB      = wb
+    c.gates[0].out      = wm
+    c.gates[0].op       = GateOp.OpAnd
     c.gates[0].nameOut0 = 'm'
 
-    c.gates[1].inA = wm
-    c.gates[1].inB = wa
-    c.gates[1].out = wo
-    c.gates[1].op = GateOp.OpXor
+    c.gates[1].inA      = wm
+    c.gates[1].inB      = wa
+    c.gates[1].out      = wo
+    c.gates[1].op       = GateOp.OpXor
     c.gates[1].nameOut0 = 'z'
     c.gates[1].nameOut1 = '0'
     c.gates[1].nameOut2 = '0'
 
     c.gateCount = 2
-    c.maxZBit = 0
+    c.maxZBit   = 0
 
     simulate(&c)
     let val = readZValue(&c)

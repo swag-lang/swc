@@ -11,13 +11,13 @@ var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
 var g_FontPath:  String
-var g_FontBytes:  Array'u8
-var g_Face:       #null *Face
-var g_TypeFace:   #null *Pixel.TypeFace
-var g_TitleFont:  #null *Pixel.Font
-var g_BodyFont:   #null *Pixel.Font
-var g_InfoFont:   #null *Pixel.Font
-var g_FontInfo:   String
+var g_FontBytes: Array'u8
+var g_Face:      #null *Face
+var g_TypeFace:  #null *Pixel.TypeFace
+var g_TitleFont: #null *Pixel.Font
+var g_BodyFont:  #null *Pixel.Font
+var g_InfoFont:  #null *Pixel.Font
+var g_FontInfo:  String
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {
@@ -31,7 +31,7 @@ func loadFonts() throw
     let path   = g_FontPath.toString()
 
     g_FontBytes = File.readAllBytes(path)
-    g_Face = try Face.load(g_FontBytes.toSlice())
+    g_Face      = try Face.load(g_FontBytes.toSlice())
 
     g_FontInfo = Format.toString("% % | % glyphs | % bytes", g_Face.familyName, g_Face.styleName, g_Face.glyphCount, g_FontBytes.count)
 
@@ -56,7 +56,7 @@ func drawScene(painter: *Pixel.Painter)
     painter.setParams(.Antialiased)
 
     var panelColor: Color = Argb.MidnightBlue
-    var glowColor: Color = Argb.DeepSkyBlue
+    var glowColor:  Color = Argb.DeepSkyBlue
     glowColor.a = 70
 
     painter.fillRoundRect(56, 58, 688, 320, 24, 24, panelColor)

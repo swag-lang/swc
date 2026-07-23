@@ -9,16 +9,16 @@ private
 {
     struct Entry
     {
-        length:     u16
-        prefix:     u16
-        suffix:     u8
+        length: u16
+        prefix: u16
+        suffix: u8
     }
 
     struct Table
     {
-        bulk:         s32
-        nentries:     s32
-        entries:      Array'Entry
+        bulk:     s32
+        nentries: s32
+        entries:  Array'Entry
     }
 
     struct Palette
@@ -29,11 +29,11 @@ private
 
     struct Gce
     {
-        delay:            u16
-        tindex:           u8
-        disposal:         u8
-        input:            s32
-        transparency:     s32
+        delay:        u16
+        tindex:       u8
+        disposal:     u8
+        input:        s32
+        transparency: s32
     }
 }
 
@@ -56,32 +56,32 @@ impl Entry
 #[Swag.Opaque]
 public struct Decoder
 {
-    fd:              s32
-    width:           u16
-    height:          u16
-    depth:           u16
-    loopCount:       u16
-    numFrames:       s32
-    gce:             Gce
-    palette:         #null *Palette
-    lct:             Palette
-    gct:             Palette
-    fx:              u16
-    fy:              u16
-    fw:              u16
-    fh:              u16
-    bgIndex:         u8
-    canvas:          #null [*] u8
-    frame:           Array'u8
-    table:           Table
-    animStart:       u64
-    animRemain:      u64
-    reachEnd:        bool
-    initDone:        bool
+    fd:         s32
+    width:      u16
+    height:     u16
+    depth:      u16
+    loopCount:  u16
+    numFrames:  s32
+    gce:        Gce
+    palette:    #null *Palette
+    lct:        Palette
+    gct:        Palette
+    fx:         u16
+    fy:         u16
+    fw:         u16
+    fh:         u16
+    bgIndex:    u8
+    canvas:     #null [*] u8
+    frame:      Array'u8
+    table:      Table
+    animStart:  u64
+    animRemain: u64
+    reachEnd:   bool
+    initDone:   bool
 
-    streamStart:     #null const [*] u8
-    stream:          #null const [*] u8
-    streamLen:       u64
+    streamStart: #null const [*] u8
+    stream:      #null const [*] u8
+    streamLen:   u64
 }
 
 impl Decoder
@@ -95,7 +95,7 @@ impl Decoder
     {
         if len > .streamLen do
             throw InvalidFormatError{"read error"}
-        .stream += len
+        .stream    += len
         .streamLen -= len
     }
 
@@ -104,7 +104,7 @@ impl Decoder
         if len > .streamLen do
             throw InvalidFormatError{"read error"}
         Memory.copy(dest, .safeStream(), len)
-        .stream += len
+        .stream    += len
         .streamLen -= len
     }
 
@@ -114,7 +114,7 @@ impl Decoder
         if .streamLen < 1 do
             throw InvalidFormatError{"read error"}
         let res = .safeStream()[0]
-        .stream += 1
+        .stream    += 1
         .streamLen -= 1
         return res
     }
@@ -125,7 +125,7 @@ impl Decoder
             throw InvalidFormatError{"read error"}
         let stream = .safeStream()
         let res = cast(u16) (stream[0] + (cast(u16) stream[1] << 8))
-        .stream += 2
+        .stream    += 2
         .streamLen -= 2
         return res
     }
@@ -238,16 +238,16 @@ impl Decoder
                         return 0x1000
                 }
 
-                dref byte = .readU8()
+                dref byte   = .readU8()
                 dref subLen -= 1
             }
 
             frag_size = Math.min(cast(s32) (keySize - bits_read), cast(s32) (8 - rpad))
-            key |= (cast(u32) (dref byte) >> rpad) << bits_read
+            key       |= (cast(u32) (dref byte) >> rpad) << bits_read
         }
 
         // Clear extra bits to the left
-        key &= (1'u32 << keySize) - 1
+        key        &= (1'u32 << keySize) - 1
         dref shift = cast(u8) ((dref shift + keySize) % 8)
         return cast(u16) key
     }
@@ -261,7 +261,7 @@ impl Decoder
         }
 
         .table.entries[.table.nentries] = {length, prefix, suffix}
-        .table.nentries += 1
+        .table.nentries                 += 1
         if (.table.nentries & (.table.nentries - 1)) == 0 do
             return 1
         return 0
@@ -341,15 +341,15 @@ impl Decoder
                 break
             if ret == 1 do
                 keySize += 1
-            entry  = .table.entries.buffer[key]
-            strLen = entry.length
+            entry       = .table.entries.buffer[key]
+            strLen      = entry.length
             for i in strLen
             {
                 let p = frmOff + entry.length - 1
                 let x = p % .fw
                 var y = p / .fw
                 if interlace do
-                    y = interlacedLineIndex(cast(s32) .fh, y)
+                    y                                = interlacedLineIndex(cast(s32) .fh, y)
                 .frame[(.fy + y) * .width + .fx + x] = entry.suffix
                 if entry.prefix == 0xFFF do
                     break
@@ -463,9 +463,9 @@ public impl Decoder
     // Initialize the decoder
     mtd init(buffer: const [..] u8, decodePixels: bool) throw
     {
-        .initDone = true
+        .initDone             = true
         .streamStart, .stream = @dataof(buffer)
-        .streamLen = @countof(buffer)
+        .streamLen            = @countof(buffer)
 
         // Header
         var sigver: [3] u8

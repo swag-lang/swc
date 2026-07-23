@@ -31,30 +31,30 @@ Supported attributes are :
 */
 struct TagBin
 {
-    version:               u32                                  // Version of the tagbin in the stream
-    ignoreElements:        Array'String                         // A list of element names that should be skipped
-    stream:                ByteStream                           // Input byte stream for reading serialized data
-    options:               TagBinOptions                        // Configuration options for deserialization behavior
-    freeSections:          ArrayPtr'TagBinSection               // Pool of reusable section objects for memory efficiency
-    sections:              ArrayPtr'TagBinSection               // Stack of active sections during deserialization
-    convertNextNative:     #null const *Swag.TypeInfoNative     // Type information for pending native type conversion
-    convertValToArray:     bool                                 // Flag indicating next value should be converted to array
-    convertArrayToVal:     bool                                 // Flag indicating next array should be converted to single value
+    version:           u32                                  // Version of the tagbin in the stream
+    ignoreElements:    Array'String                         // A list of element names that should be skipped
+    stream:            ByteStream                           // Input byte stream for reading serialized data
+    options:           TagBinOptions                        // Configuration options for deserialization behavior
+    freeSections:      ArrayPtr'TagBinSection               // Pool of reusable section objects for memory efficiency
+    sections:          ArrayPtr'TagBinSection               // Stack of active sections during deserialization
+    convertNextNative: #null const *Swag.TypeInfoNative     // Type information for pending native type conversion
+    convertValToArray: bool                                 // Flag indicating next value should be converted to array
+    convertArrayToVal: bool                                 // Flag indicating next array should be converted to single value
 
-    outStack:              Array'{ buf: #null const [..] u8, seek: u64 }
-    elemStack:             Array'{ compressed: bool, tmpBuf: #null *Buffer }
-    tmpPool:               ArrayPtr'Buffer
+    outStack:  Array'{ buf: #null const [..] u8, seek: u64 }
+    elemStack: Array'{ compressed: bool, tmpBuf: #null *Buffer }
+    tmpPool:   ArrayPtr'Buffer
 }
 
 // Section information for tracking deserialization state within structured data.
 struct TagBinSection
 {
     // Map from field name CRC to stream position
-    mapSeek:          HashTable'(u32, u64)
-    afterFatSeek:     u64             // Stream position after the section's fat table
-    version:          u32             // Version number of this section
-    kind:             SectionKind     // Type of section (ordered, unordered, or raw)
-    skipFat:          bool            // Whether to skip reading the fat table for this section
+    mapSeek:      HashTable'(u32, u64)
+    afterFatSeek: u64             // Stream position after the section's fat table
+    version:      u32             // Version number of this section
+    kind:         SectionKind     // Type of section (ordered, unordered, or raw)
+    skipFat:      bool            // Whether to skip reading the fat table for this section
 }
 
 // Configuration options for controlling deserialization behavior.

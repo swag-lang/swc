@@ -32,7 +32,7 @@ impl FixedStack
     mtd push(value: T)
     {
         .data[.top] = value
-        .top += 1
+        .top        += 1
     }
 
     mtd peek()->T => .data[.top - 1]

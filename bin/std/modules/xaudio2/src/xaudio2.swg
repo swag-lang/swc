@@ -43,7 +43,7 @@ const Processor29           = 0x10000000
 const Processor30           = 0x20000000
 const Processor31           = 0x40000000
 const Processor32           = 0x80000000
-const XAUDIO2_ANY_PROCESSOR = 0xffffffff
+const XAUDIO2_ANY_PROCESSOR = 0xFFFFFFFF
 
 const X3DAUDIO_SPEED_OF_SOUND = 343.5
 
@@ -102,30 +102,30 @@ struct XAUDIO2_EFFECT_CHAIN {}
 
 struct XAUDIO2_PERFORMANCE_DATA
 {
-    AudioCyclesSinceLastQuery:      UINT64
-    TotalCyclesSinceLastQuery:      UINT64
-    MinimumCyclesPerQuantum:        UINT32
-    MaximumCyclesPerQuantum:        UINT32
-    MemoryUsageInBytes:             UINT32
-    CurrentLatencyInSamples:        UINT32
-    GlitchesSinceEngineStarted:     UINT32
-    ActiveSourceVoiceCount:         UINT32
-    TotalSourceVoiceCount:          UINT32
-    ActiveSubmixVoiceCount:         UINT32
-    ActiveResamplerCount:           UINT32
-    ActiveMatrixMixCount:           UINT32
-    ActiveXmaSourceVoices:          UINT32
-    ActiveXmaStreams:               UINT32
+    AudioCyclesSinceLastQuery:  UINT64
+    TotalCyclesSinceLastQuery:  UINT64
+    MinimumCyclesPerQuantum:    UINT32
+    MaximumCyclesPerQuantum:    UINT32
+    MemoryUsageInBytes:         UINT32
+    CurrentLatencyInSamples:    UINT32
+    GlitchesSinceEngineStarted: UINT32
+    ActiveSourceVoiceCount:     UINT32
+    TotalSourceVoiceCount:      UINT32
+    ActiveSubmixVoiceCount:     UINT32
+    ActiveResamplerCount:       UINT32
+    ActiveMatrixMixCount:       UINT32
+    ActiveXmaSourceVoices:      UINT32
+    ActiveXmaStreams:           UINT32
 }
 
 struct XAUDIO2_DEBUG_CONFIGURATION
 {
-    traceMask:           UINT32
-    breakMask:           UINT32
-    logThreadID:         BOOL
-    logFileline:         BOOL
-    logFunctionName:     BOOL
-    logTiming:           BOOL
+    traceMask:       UINT32
+    breakMask:       UINT32
+    logThreadID:     BOOL
+    logFileline:     BOOL
+    logFunctionName: BOOL
+    logTiming:       BOOL
 }
 
 enum AUDIO_STREAM_CATEGORY
@@ -146,51 +146,51 @@ enum AUDIO_STREAM_CATEGORY
 
 struct XAUDIO2_VOICE_DETAILS
 {
-    creationFlags:       UINT32
-    activeFlags:         UINT32
-    inputChannels:       UINT32
-    inputSampleRate:     UINT32
+    creationFlags:   UINT32
+    activeFlags:     UINT32
+    inputChannels:   UINT32
+    inputSampleRate: UINT32
 }
 
 #[Swag.Pack(1)]
 struct XAUDIO2_SEND_DESCRIPTOR
 {
-    flags:            UINT32
-    pOutputVoice:     *IXAudio2Voice
+    flags:        UINT32
+    pOutputVoice: *IXAudio2Voice
 }
 
 #[Swag.Pack(1)]
 struct XAUDIO2_VOICE_SENDS
 {
-    sendCount:     UINT32
-    pSends:        *XAUDIO2_SEND_DESCRIPTOR
+    sendCount: UINT32
+    pSends:    *XAUDIO2_SEND_DESCRIPTOR
 }
 
 #[Swag.Pack(1)]
 struct XAUDIO2_BUFFER
 {
-    flags:          UINT32          // Either 0 or XAUDIO2_END_OF_STREAM.
-    audioBytes:     UINT32          // Size of the audio data buffer in bytes.
-    pAudioData:     const *BYTE     // Pointer to the audio data buffer.
-    playBegin:      UINT32          // First sample in this buffer to be played.
-    playLength:     UINT32          // Length of the region to be played in samples, or 0 to play the whole buffer.
-    loopBegin:      UINT32          // First sample of the region to be looped.
-    loopLength:     UINT32          // Length of the desired for region in samples, or 0 to for the entire buffer.
-    loopCount:      UINT32          // Number of times to repeat the for region, or XAUDIO2_LOOP_INFINITE to for forever.
-    pContext:       #null *void     // Context value to be passed back in callbacks.
+    flags:      UINT32          // Either 0 or XAUDIO2_END_OF_STREAM.
+    audioBytes: UINT32          // Size of the audio data buffer in bytes.
+    pAudioData: const *BYTE     // Pointer to the audio data buffer.
+    playBegin:  UINT32          // First sample in this buffer to be played.
+    playLength: UINT32          // Length of the region to be played in samples, or 0 to play the whole buffer.
+    loopBegin:  UINT32          // First sample of the region to be looped.
+    loopLength: UINT32          // Length of the desired for region in samples, or 0 to for the entire buffer.
+    loopCount:  UINT32          // Number of times to repeat the for region, or XAUDIO2_LOOP_INFINITE to for forever.
+    pContext:   #null *void     // Context value to be passed back in callbacks.
 }
 
 struct XAUDIO2_BUFFER_WMA
 {
-    pDecodedPacketCumulativeBytes:     const *UINT32
-    PacketCount:                       UINT32
+    pDecodedPacketCumulativeBytes: const *UINT32
+    PacketCount:                   UINT32
 }
 
 struct XAUDIO2_VOICE_STATE
 {
-    pCurrentBufferContext:     #null *void
-    buffersQueued:             UINT32
-    samplesPlayed:             UINT64
+    pCurrentBufferContext: #null *void
+    buffersQueued:         UINT32
+    samplesPlayed:         UINT64
 }
 
 // Used in XAUDIO2_FILTER_PARAMETERS below
@@ -206,9 +206,9 @@ enum XAUDIO2_FILTER_TYPE
 
 struct XAUDIO2_FILTER_PARAMETERS
 {
-    type:          XAUDIO2_FILTER_TYPE
-    frequency:     f32
-    oneOverQ:      f32
+    type:      XAUDIO2_FILTER_TYPE
+    frequency: f32
+    oneOverQ:  f32
 }
 
 struct IXAudio2
@@ -242,60 +242,60 @@ struct IXAudio2SubmixVoice
 
 struct IXAudio2EngineCallbackItf
 {
-    onProcessingPassStart:     func(this: *IXAudio2EngineCallback)
-    onProcessingPassEnd:       func(this: *IXAudio2EngineCallback)
-    onCriticalError:           func(this: *IXAudio2EngineCallback, error: HRESULT)
+    onProcessingPassStart: func(this: *IXAudio2EngineCallback)
+    onProcessingPassEnd:   func(this: *IXAudio2EngineCallback)
+    onCriticalError:       func(this: *IXAudio2EngineCallback, error: HRESULT)
 }
 
 struct IXAudio2VoiceCallbackItf
 {
-    onVoiceProcessingPassStart:     func(this: *IXAudio2VoiceCallback, bytesRequired: UINT32)
-    onVoiceProcessingPassEnd:       func(this: *IXAudio2VoiceCallback)
-    onStreamEnd:                    func(this: *IXAudio2VoiceCallback)
-    onBufferStart:                  func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void)
-    onBufferEnd:                    func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void)
-    onLoopEnd:                      func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void)
-    onVoiceError:                   func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void, error: HRESULT)
+    onVoiceProcessingPassStart: func(this: *IXAudio2VoiceCallback, bytesRequired: UINT32)
+    onVoiceProcessingPassEnd:   func(this: *IXAudio2VoiceCallback)
+    onStreamEnd:                func(this: *IXAudio2VoiceCallback)
+    onBufferStart:              func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void)
+    onBufferEnd:                func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void)
+    onLoopEnd:                  func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void)
+    onVoiceError:               func(this: *IXAudio2VoiceCallback, pBufferContext: #null *void, error: HRESULT)
 }
 
 struct IXAudio2Itf
 {
-    queryInterface:             #null *void
-    addRef:                     func(this: *IXAudio2)->ULONG
-    release:                    func(this: *IXAudio2)->ULONG
-    registerForCallbacks:       func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
-    unregisterForCallbacks:     func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
-    createSourceVoice:          func(this: *IXAudio2, ppSourceVoice: *#null *IXAudio2SourceVoice, pSourceFormat: const *WAVEFORMATEX, flags: UINT32, maxFrequencyRatio: f32, pCallback: *IXAudio2VoiceCallback, pSendList: #null const *XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)->HRESULT
-    createSubmixVoice:          func(this: *IXAudio2, ppSubmixVoice: *#null *IXAudio2SubmixVoice, inputChannels: UINT32, inputSampleRate: UINT32, flags: UINT32, processingStage: UINT32, pSendList: #null const *XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)->HRESULT
-    createMasteringVoice:       func(this: *IXAudio2, voice: *#null *IXAudio2MasteringVoice, inputChannels: UINT32 = XAUDIO2_DEFAULT_CHANNELS, inputSampleRate: UINT32 = XAUDIO2_DEFAULT_SAMPLERATE, flags: UINT32 = 0, szDeviceId: #null LPCWSTR = null, effectChain: #null *XAUDIO2_EFFECT_CHAIN = null, streamCategory = AUDIO_STREAM_CATEGORY.AudioCategory_GameEffects)->HRESULT
-    startEngine:                func(this: *IXAudio2)->HRESULT
-    stopEngine:                 func(this: *IXAudio2)
-    commitChanges:              func(this: *IXAudio2, operationSet: UINT32)->HRESULT
-    getPerformanceData:         func(this: *IXAudio2, pPerfData: *XAUDIO2_PERFORMANCE_DATA)
-    setDebugConfiguration:      func(this: *IXAudio2, pDebugConfiguration: const *XAUDIO2_DEBUG_CONFIGURATION, pReserved: #null *void)
+    queryInterface:         #null *void
+    addRef:                 func(this: *IXAudio2)->ULONG
+    release:                func(this: *IXAudio2)->ULONG
+    registerForCallbacks:   func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
+    unregisterForCallbacks: func(this: *IXAudio2, pCallback: *IXAudio2EngineCallback)
+    createSourceVoice:      func(this: *IXAudio2, ppSourceVoice: *#null *IXAudio2SourceVoice, pSourceFormat: const *WAVEFORMATEX, flags: UINT32, maxFrequencyRatio: f32, pCallback: *IXAudio2VoiceCallback, pSendList: #null const *XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)->HRESULT
+    createSubmixVoice:      func(this: *IXAudio2, ppSubmixVoice: *#null *IXAudio2SubmixVoice, inputChannels: UINT32, inputSampleRate: UINT32, flags: UINT32, processingStage: UINT32, pSendList: #null const *XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)->HRESULT
+    createMasteringVoice:   func(this: *IXAudio2, voice: *#null *IXAudio2MasteringVoice, inputChannels: UINT32 = XAUDIO2_DEFAULT_CHANNELS, inputSampleRate: UINT32 = XAUDIO2_DEFAULT_SAMPLERATE, flags: UINT32 = 0, szDeviceId: #null LPCWSTR = null, effectChain: #null *XAUDIO2_EFFECT_CHAIN = null, streamCategory = AUDIO_STREAM_CATEGORY.AudioCategory_GameEffects)->HRESULT
+    startEngine:            func(this: *IXAudio2)->HRESULT
+    stopEngine:             func(this: *IXAudio2)
+    commitChanges:          func(this: *IXAudio2, operationSet: UINT32)->HRESULT
+    getPerformanceData:     func(this: *IXAudio2, pPerfData: *XAUDIO2_PERFORMANCE_DATA)
+    setDebugConfiguration:  func(this: *IXAudio2, pDebugConfiguration: const *XAUDIO2_DEBUG_CONFIGURATION, pReserved: #null *void)
 }
 
 struct IXAudio2VoiceItf
 {
-    getVoiceDetails:               func(this: *IXAudio2Voice, pVoiceDetails: *XAUDIO2_VOICE_DETAILS)
-    setOutputVoices:               func(this: *IXAudio2Voice, pSendList: #null const *XAUDIO2_VOICE_SENDS)->HRESULT
-    setEffectChain:                func(this: *IXAudio2Voice, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)
-    enableEffect:                  func(this: *IXAudio2Voice, effectIndex: UINT32, operationSet: UINT32)->HRESULT
-    disableEffect:                 func(this: *IXAudio2Voice, effectIndex: UINT32, operationSet: UINT32)->HRESULT
-    getEffectState:                func(this: *IXAudio2Voice, effectIndex: UINT32, pEnabled: *BOOL)
-    setEffectParameters:           func(this: *IXAudio2Voice, effectIndex: UINT32, pParameters: const *void, parametersByteSize: UINT32, operationSet: UINT32)->HRESULT
-    getEffectParameters:           func(this: *IXAudio2Voice, effectIndex: UINT32, pParameters: *void, parametersByteSize: UINT32)->HRESULT
-    setFilterParameters:           func(this: *IXAudio2Voice, pParameters: const *XAUDIO2_FILTER_PARAMETERS, operationSet: UINT32)->HRESULT
-    getFilterParameters:           func(this: *IXAudio2Voice, pParameters: *XAUDIO2_FILTER_PARAMETERS)
-    setOutputFilterParameters:     func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, pParameters: const *XAUDIO2_FILTER_PARAMETERS, operationSet: UINT32)->HRESULT
-    getOutputFilterParameters:     func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, pParameters: *XAUDIO2_FILTER_PARAMETERS)
-    setVolume:                     func(this: *IXAudio2Voice, volume: f32, operationSet: UINT32)->HRESULT
-    getVolume:                     func(this: *IXAudio2Voice, pVolume: *f32)
-    setChannelVolumes:             func(this: *IXAudio2Voice, channels: UINT32, pVolumes: const *f32, operationSet: UINT32)->HRESULT
-    getChannelVolumes:             func(this: *IXAudio2Voice, channels: UINT32, pVolumes: *f32)
-    setOutputMatrix:               func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, sourceChannels: UINT32, destinationChannels: UINT32, pLevelMatrix: const *f32, operationSet: UINT32)->HRESULT
-    getOutputMatrix:               func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, sourceChannels: UINT32, destinationChannels: UINT32, pLevelMatrix: *f32)
-    destroyVoice:                  func(this: *IXAudio2Voice)
+    getVoiceDetails:           func(this: *IXAudio2Voice, pVoiceDetails: *XAUDIO2_VOICE_DETAILS)
+    setOutputVoices:           func(this: *IXAudio2Voice, pSendList: #null const *XAUDIO2_VOICE_SENDS)->HRESULT
+    setEffectChain:            func(this: *IXAudio2Voice, pEffectChain: #null const *XAUDIO2_EFFECT_CHAIN)
+    enableEffect:              func(this: *IXAudio2Voice, effectIndex: UINT32, operationSet: UINT32)->HRESULT
+    disableEffect:             func(this: *IXAudio2Voice, effectIndex: UINT32, operationSet: UINT32)->HRESULT
+    getEffectState:            func(this: *IXAudio2Voice, effectIndex: UINT32, pEnabled: *BOOL)
+    setEffectParameters:       func(this: *IXAudio2Voice, effectIndex: UINT32, pParameters: const *void, parametersByteSize: UINT32, operationSet: UINT32)->HRESULT
+    getEffectParameters:       func(this: *IXAudio2Voice, effectIndex: UINT32, pParameters: *void, parametersByteSize: UINT32)->HRESULT
+    setFilterParameters:       func(this: *IXAudio2Voice, pParameters: const *XAUDIO2_FILTER_PARAMETERS, operationSet: UINT32)->HRESULT
+    getFilterParameters:       func(this: *IXAudio2Voice, pParameters: *XAUDIO2_FILTER_PARAMETERS)
+    setOutputFilterParameters: func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, pParameters: const *XAUDIO2_FILTER_PARAMETERS, operationSet: UINT32)->HRESULT
+    getOutputFilterParameters: func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, pParameters: *XAUDIO2_FILTER_PARAMETERS)
+    setVolume:                 func(this: *IXAudio2Voice, volume: f32, operationSet: UINT32)->HRESULT
+    getVolume:                 func(this: *IXAudio2Voice, pVolume: *f32)
+    setChannelVolumes:         func(this: *IXAudio2Voice, channels: UINT32, pVolumes: const *f32, operationSet: UINT32)->HRESULT
+    getChannelVolumes:         func(this: *IXAudio2Voice, channels: UINT32, pVolumes: *f32)
+    setOutputMatrix:           func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, sourceChannels: UINT32, destinationChannels: UINT32, pLevelMatrix: const *f32, operationSet: UINT32)->HRESULT
+    getOutputMatrix:           func(this: *IXAudio2Voice, pDestinationVoice: *IXAudio2Voice, sourceChannels: UINT32, destinationChannels: UINT32, pLevelMatrix: *f32)
+    destroyVoice:              func(this: *IXAudio2Voice)
 }
 
 struct IXAudio2MasteringVoiceItf
@@ -312,16 +312,16 @@ struct IXAudio2SubmixVoiceItf
 struct IXAudio2SourceVoiceItf
 {
     using voice:             IXAudio2VoiceItf
-    start:                   func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
-    stop:                    func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
-    submitSourceBuffer:      func(this: *IXAudio2SourceVoice, pBuffer: const *XAUDIO2_BUFFER, pBufferWMA: #null const *XAUDIO2_BUFFER_WMA)->HRESULT
-    glushSourceBuffers:      func(this: *IXAudio2SourceVoice)->HRESULT
-    discontinuity:           func(this: *IXAudio2SourceVoice)->HRESULT
-    exitLoop:                func(this: *IXAudio2SourceVoice, OperationSet: UINT32)->HRESULT
-    getState:                func(this: *IXAudio2SourceVoice, pVoiceState: *XAUDIO2_VOICE_STATE, flags: UINT32)
-    setFrequencyRatio:       func(this: *IXAudio2SourceVoice, ratio: f32, operationSet: UINT32)->HRESULT
-    getFrequencyRatio:       func(this: *IXAudio2SourceVoice, pRatio: *f32)
-    setSourceSampleRate:     func(this: *IXAudio2SourceVoice, newSourceSampleRate: UINT32)->HRESULT
+    start:               func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
+    stop:                func(this: *IXAudio2SourceVoice, flags: UINT32, operationSet: UINT32)->HRESULT
+    submitSourceBuffer:  func(this: *IXAudio2SourceVoice, pBuffer: const *XAUDIO2_BUFFER, pBufferWMA: #null const *XAUDIO2_BUFFER_WMA)->HRESULT
+    glushSourceBuffers:  func(this: *IXAudio2SourceVoice)->HRESULT
+    discontinuity:       func(this: *IXAudio2SourceVoice)->HRESULT
+    exitLoop:            func(this: *IXAudio2SourceVoice, OperationSet: UINT32)->HRESULT
+    getState:            func(this: *IXAudio2SourceVoice, pVoiceState: *XAUDIO2_VOICE_STATE, flags: UINT32)
+    setFrequencyRatio:   func(this: *IXAudio2SourceVoice, ratio: f32, operationSet: UINT32)->HRESULT
+    getFrequencyRatio:   func(this: *IXAudio2SourceVoice, pRatio: *f32)
+    setSourceSampleRate: func(this: *IXAudio2SourceVoice, newSourceSampleRate: UINT32)->HRESULT
 }
 
 const FORMAT_EXTENSIBLE = 0xFFFE'u16
@@ -329,13 +329,13 @@ const FORMAT_EXTENSIBLE = 0xFFFE'u16
 #[Swag.Pack(1)]
 struct WAVEFORMATEX
 {
-    wFormatTag:          WORD
-    nChannels:           WORD
-    nSamplesPerSec:      DWORD
-    nAvgBytesPerSec:     DWORD
-    nBlockAlign:         WORD
-    wBitsPerSample:      WORD
-    cbSize:              WORD
+    wFormatTag:      WORD
+    nChannels:       WORD
+    nSamplesPerSec:  DWORD
+    nAvgBytesPerSec: DWORD
+    nBlockAlign:     WORD
+    wBitsPerSample:  WORD
+    cbSize:          WORD
 }
 
 struct WAVEFORMATEXTENSIBLE
@@ -344,13 +344,13 @@ struct WAVEFORMATEXTENSIBLE
 
     samples: union
     {
-        wValidBitsPerSample:     WORD
-        wSamplesPerBlock:        WORD
-        wReserved:               WORD
+        wValidBitsPerSample: WORD
+        wSamplesPerBlock:    WORD
+        wReserved:           WORD
     }
 
-    dwChannelMask:     DWORD
-    subFormat:         GUID
+    dwChannelMask: DWORD
+    subFormat:     GUID
 }
 
 #[Swag.Foreign(module: "xaudio2_9", link: "xaudio2")]

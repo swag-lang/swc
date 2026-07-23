@@ -64,7 +64,7 @@ func day3B()
                         break
                     num *= 10
                     num += c - '0'
-                    x += 1
+                    x   += 1
                 }
 
                 nums.add({num, sx, x - 1, cast(s32) y})
@@ -111,7 +111,7 @@ func day3B()
             if (s.x >= n.x - 1 and s.x <= n.lx + 1)
             {
                 gear *= n.num
-                cpt += 1
+                cpt  += 1
             }
         }
 

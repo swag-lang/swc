@@ -24,12 +24,12 @@ interface ILogWriter
 // A thread-safe logger that supports multiple output writers and customizable formatting.
 struct Log
 {
-    lock:        Sync.Mutex                // Lock for thread-safe access.
-    buf:         StrConv.StringBuilder     // Internal buffer for building log messages.
-    dt:          Time.DateTime             // Cached date/time at the moment of log call.
-    writers:     Array'ILogWriter          // Registered writer interfaces.
-    prefix:      #null string              // Optional prefix added to each log line.
-    flags:       LogFlags = Default        // Bitwise flags controlling output format.
+    lock:    Sync.Mutex                // Lock for thread-safe access.
+    buf:     StrConv.StringBuilder     // Internal buffer for building log messages.
+    dt:      Time.DateTime             // Cached date/time at the moment of log call.
+    writers: Array'ILogWriter          // Registered writer interfaces.
+    prefix:  #null string              // Optional prefix added to each log line.
+    flags:   LogFlags = Default        // Bitwise flags controlling output format.
 }
 
 impl Log

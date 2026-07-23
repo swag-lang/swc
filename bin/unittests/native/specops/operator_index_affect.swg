@@ -69,7 +69,7 @@ impl RuntimeRefIndexBox
     #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: s32)
     {
-        .writes += 1
+        .writes        += 1
         .values[index] = value
     }
 }
@@ -93,7 +93,7 @@ impl RuntimeMultiIndexSetBox
     #[Swag.NoInline]
     mtd opIndexSet(row: s32, col: s32, value: s32)
     {
-        .writes += 1
+        .writes                += 1
         .values[row * 2 + col] = value
     }
 }
@@ -123,7 +123,7 @@ struct RuntimeIndexHolder
 #test
 {
     var holder = RuntimeIndexHolder{}
-    holder.value[1] = 19
+    holder.value[1]     = 19
     holder.writeOnly[0] = 5
 
     @assert(holder.value.first == 0)

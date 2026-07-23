@@ -21,7 +21,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     root.forceExpandMark = false
     let child = root.lines.newPtr()
     child.parent = &root
-    child.level = 1
+    child.level  = 1
     root.lines.add(child)
 
     @assert(root.canExpand())
@@ -30,7 +30,7 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 
     let grandChild = child.lines.newPtr()
     grandChild.parent = child
-    grandChild.level = 2
+    grandChild.level  = 2
     child.lines.add(grandChild)
 
     @assert(root.isParentOf(grandChild))
@@ -143,8 +143,8 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 #test
 {
     var list: ListCtrl
-    list.isVirtual = true
-    list.virtualCount = 6
+    list.isVirtual     = true
+    list.virtualCount  = 6
     list.selectionMode = .Multi
 
     list.selectLines(4, 2)

@@ -4,7 +4,7 @@
 // more maintenance obstacles appear, then report the first obstacle that blocks
 // the exit completely.
 
-const MaxGridSize = 32
+const MaxGridSize  = 32
 const MaxGridCells = MaxGridSize * MaxGridSize
 
 struct ByteDrop
@@ -15,9 +15,9 @@ struct ByteDrop
 
 struct RouteReport
 {
-    shortestSteps:         u32
-    firstBlockingX:        u32
-    firstBlockingY:        u32
+    shortestSteps:          u32
+    firstBlockingX:         u32
+    firstBlockingY:         u32
     firstBlockingDropCount: u32
 }
 
@@ -55,8 +55,8 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
     var tail: u32
 
     visited[startCell] = true
-    queue[tail] = startCell
-    tail += 1
+    queue[tail]        = startCell
+    tail               += 1
 
     while head < tail
     {
@@ -78,10 +78,10 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
             let nextCell = cellIndex(x - 1, y, gridSize)
             if !blocked[nextCell] and !visited[nextCell]
             {
-                visited[nextCell] = true
+                visited[nextCell]  = true
                 distance[nextCell] = nextDistance
-                queue[tail] = nextCell
-                tail += 1
+                queue[tail]        = nextCell
+                tail               += 1
             }
         }
 
@@ -90,10 +90,10 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
             let nextCell = cellIndex(x + 1, y, gridSize)
             if !blocked[nextCell] and !visited[nextCell]
             {
-                visited[nextCell] = true
+                visited[nextCell]  = true
                 distance[nextCell] = nextDistance
-                queue[tail] = nextCell
-                tail += 1
+                queue[tail]        = nextCell
+                tail               += 1
             }
         }
 
@@ -102,10 +102,10 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
             let nextCell = cellIndex(x, y - 1, gridSize)
             if !blocked[nextCell] and !visited[nextCell]
             {
-                visited[nextCell] = true
+                visited[nextCell]  = true
                 distance[nextCell] = nextDistance
-                queue[tail] = nextCell
-                tail += 1
+                queue[tail]        = nextCell
+                tail               += 1
             }
         }
 
@@ -114,10 +114,10 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
             let nextCell = cellIndex(x, y + 1, gridSize)
             if !blocked[nextCell] and !visited[nextCell]
             {
-                visited[nextCell] = true
+                visited[nextCell]  = true
                 distance[nextCell] = nextDistance
-                queue[tail] = nextCell
-                tail += 1
+                queue[tail]        = nextCell
+                tail               += 1
             }
         }
     }
@@ -128,7 +128,7 @@ func hasEscapeRoute(outSteps: *u32, drops: const [..] ByteDrop, gridSize, dropCo
 func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount: u32)->RouteReport
 {
     var result: RouteReport
-    var steps: u32
+    var steps:  u32
 
     @assert(hasEscapeRoute(&steps, drops, gridSize, initialDropCount))
     result.shortestSteps = steps
@@ -140,8 +140,8 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
         if !hasEscapeRoute(&steps, drops, gridSize, dropCount)
         {
             let blocking = drops[dropCount - 1]
-            result.firstBlockingX = blocking.x
-            result.firstBlockingY = blocking.y
+            result.firstBlockingX         = blocking.x
+            result.firstBlockingY         = blocking.y
             result.firstBlockingDropCount = dropCount
             break
         }

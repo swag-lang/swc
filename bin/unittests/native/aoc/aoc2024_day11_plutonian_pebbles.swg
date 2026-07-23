@@ -78,10 +78,10 @@ func mapInit()->StoneMap
     result.keys   = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
     result.counts = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
     result.alive  = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
-    result.used = 0
+    result.used   = 0
     for i in MapCap
     {
-        result.alive[i] = false
+        result.alive[i]  = false
         result.counts[i] = 0
     }
     return result
@@ -102,7 +102,7 @@ func mapIsEmpty(m: *StoneMap)->bool
 func mapProbe(m: *StoneMap, key: u64)->u32
 {
     var h = key ^ (key >> 16)
-    h *= 0x45d9f3b
+    h *= 0x45D9F3B
     h ^= h >> 16
     var idx = cast(u32) (h % cast(u64) MapCap)
     for MapCap
@@ -133,16 +133,16 @@ func mapAdd(m: *StoneMap, key: u64, count: u64)
         return
     }
     m.keys[idx]   = key
-    m.counts[idx]  = count
-    m.alive[idx]   = true
-    m.used += 1
+    m.counts[idx] = count
+    m.alive[idx]  = true
+    m.used        += 1
 }
 
 func mapClear(m: *StoneMap)
 {
     for MapCap
     {
-        m.alive[@index] = false
+        m.alive[@index]  = false
         m.counts[@index] = 0
     }
     m.used = 0
@@ -236,13 +236,13 @@ func parseInput(text: string)->StoneMap
         let ch = bytes[@index]
         if ch >= '0' and ch <= '9'
         {
-            acc = acc * 10 + cast(u64) (ch - '0')
+            acc   = acc * 10 + cast(u64) (ch - '0')
             inNum = true
         }
         elif inNum
         {
             mapAdd(&result, acc, 1)
-            acc = 0
+            acc   = 0
             inNum = false
         }
     }

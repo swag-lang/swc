@@ -8,45 +8,45 @@ struct Application
     using native:           ApplicationNative
     sigFrame:               SigArray'func||(*Application)
 
-    options:                ApplicationOptions
-    appIcon:                Pixel.Image
-    renderer:               Pixel.RenderOgl
+    options:  ApplicationOptions
+    appIcon:  Pixel.Image
+    renderer: Pixel.RenderOgl
     theme:                  #late *Theme
-    style:                  ThemeStyle
-    keyb:                   Input.Keyboard
-    mouse:                  Input.Mouse
-    mainSurface:            #null *Surface
-    postedEvents:           Array'(IEvent)
-    surfaces:               Array'(*Surface)
-    postDestroy:            Array'(*Wnd)
-    hookOnEvent:            Array'(*Wnd)
-    frameCursor:            Cursor
-    endModalExit:           #null WndId
-    inModalLoop:            u32
-    quitCode:               s32
-    timing:                 Time.FrameTiming
+    style:        ThemeStyle
+    keyb:         Input.Keyboard
+    mouse:        Input.Mouse
+    mainSurface:  #null *Surface
+    postedEvents: Array'(IEvent)
+    surfaces:     Array'(*Surface)
+    postDestroy:  Array'(*Wnd)
+    hookOnEvent:  Array'(*Wnd)
+    frameCursor:  Cursor
+    endModalExit: #null WndId
+    inModalLoop:  u32
+    quitCode:     s32
+    timing:       Time.FrameTiming
 
-    mustQuit:               bool
-    endModal:               bool
-    isActivated:            bool
+    mustQuit:    bool
+    endModal:    bool
+    isActivated: bool
     fadeDisabledSurface     = true
 
     mutexPostedEvents:      Sync.Mutex
 
-    duringTimerEvents:      bool
-    timers:                 Array'(*Timer)
-    timersToAdd:            Array'(*Timer)
-    timersToDelete:         Array'(*Timer)
-    frameEvents:            Array'(*Wnd)
-    modalSurfaces:          Array'(*Surface)
-    toDelete:               Array'{ ptr: #null *void, type: const *Swag.TypeInfo }
-    mouseEnterWnd:          #null *Wnd
-    mouseCaptureWnd:        #null *Wnd
-    keybFocusWnd:           #null *Wnd
-    maxRunFrame:            u32
-    configPath:             String
-    hotKeys:                Array'KeyShortcut
-    dirtyTheme:             u32
+    duringTimerEvents: bool
+    timers:            Array'(*Timer)
+    timersToAdd:       Array'(*Timer)
+    timersToDelete:    Array'(*Timer)
+    frameEvents:       Array'(*Wnd)
+    modalSurfaces:     Array'(*Surface)
+    toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo }
+    mouseEnterWnd:     #null *Wnd
+    mouseCaptureWnd:   #null *Wnd
+    keybFocusWnd:      #null *Wnd
+    maxRunFrame:       u32
+    configPath:        String
+    hotKeys:           Array'KeyShortcut
+    dirtyTheme:        u32
 }
 
 private impl Application
@@ -123,7 +123,7 @@ private impl Application
             targetWnd = .mouseCaptureWnd
         else do
             targetWnd = .getWndAtMouse()
-        targetWnd = skipDisabled(targetWnd)
+        targetWnd     = skipDisabled(targetWnd)
 
         // If no target window, but one target surface, then we will send
         // to the surfaceWnd (we probably are in the shadow area)

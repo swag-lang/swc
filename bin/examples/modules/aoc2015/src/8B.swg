@@ -29,22 +29,22 @@ func day8B()
             if i != l.length - 1 and l[i] == '\\' and l[i + 1] == '"'
             {
                 total1 += 4
-                i += 2
+                i      += 2
             }
             elif i < l.length - 1 and l[i] == '\\' and l[i + 1] == '\\'
             {
                 total1 += 4
-                i += 2
+                i      += 2
             }
             elif l.length > 3 and i < l.length - 3 and l[i] == '\\' and l[i + 1] == 'x' and Latin1.isHexDigit(l[i + 2]) and Latin1.isHexDigit(l[i + 3])
             {
                 total1 += 5
-                i += 4
+                i      += 4
             }
             else
             {
                 total1 += 1
-                i += 1
+                i      += 1
             }
         }
 

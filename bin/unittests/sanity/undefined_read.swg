@@ -64,7 +64,7 @@ func undFill(v: *UndItem)
     var last: #null *UndItem = undefined
     if last do     // swc-expected-error {{sema_err_undefined_use}}
         g_undSink += 1
-    last = &item
+    last          = &item
     discard last
 }
 

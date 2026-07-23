@@ -6,10 +6,10 @@ using Swag
 // for storing a large number of boolean flags.
 public struct BitArray
 {
-    buffer:        #null [*] u32        // Internal buffer storing the bits packed into 32-bit integers.
-    allocator:     #null IAllocator     // The allocator used for memory operations.
-    count:         u64                  // The number of bits in the array.
-    capacity:      u64                  // The total allocated capacity in bytes.
+    buffer:    #null [*] u32        // Internal buffer storing the bits packed into 32-bit integers.
+    allocator: #null IAllocator     // The allocator used for memory operations.
+    count:     u64                  // The number of bits in the array.
+    capacity:  u64                  // The total allocated capacity in bytes.
 }
 
 impl BitArray
@@ -50,7 +50,7 @@ impl BitArray
     {
         if .allocator == null do
             .allocator = @getcontext().allocator
-        .buffer = cast() Memory.realloc(.buffer, newCapacity, .capacity, .allocator)
+        .buffer        = cast() Memory.realloc(.buffer, newCapacity, .capacity, .allocator)
     }
 
     mtd clearUnusedBits()
@@ -177,7 +177,7 @@ public impl BitArray
         if !maxBits
         {
             .free()
-            .buffer = null
+            .buffer           = null
             .count, .capacity = 0
             return
         }

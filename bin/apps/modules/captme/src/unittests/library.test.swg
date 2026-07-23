@@ -66,7 +66,7 @@ using Swag, Core, File
     @assert(evt.disabled)
 
     f.main.libWnd.view.focusItem = 0
-    evt = Testing.commandState(ActionLibSel.Right)
+    evt                          = Testing.commandState(ActionLibSel.Right)
     @assert(Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(!evt.disabled)
 
@@ -115,7 +115,7 @@ using Swag, Core, File
     @assert(!view.items.contains(dirty))
 
     lib.showUnSavedLinkedImage = true
-    lib.showLinkedImage = false
+    lib.showLinkedImage        = false
     view.filter()
     @assert(view.items.count == 1)
     @assert(view.items[0] == old)
@@ -217,9 +217,9 @@ using Swag, Core, File
     for idx in 3
     {
         let capture = Memory.new'Capture()
-        capture.width, capture.widthOrg = 8
+        capture.width, capture.widthOrg   = 8
         capture.height, capture.heightOrg = 6
-        capture.backImg = Testing.indexedImage(8, 6)
+        capture.backImg                   = Testing.indexedImage(8, 6)
         let path = testTempCapturePath()
         capture.file    = path
         capture.changed = true
@@ -321,18 +321,18 @@ using Swag, Core, File
     g_Library.files.clear()
 
     var fi: File.FileInfo
-    fi.fullname               = "libfill_a.captme"
-    fi.lastWriteTime.year     = 2024
-    fi.lastWriteTime.month    = 5
-    fi.lastWriteTime.day      = 11
+    fi.fullname            = "libfill_a.captme"
+    fi.lastWriteTime.year  = 2024
+    fi.lastWriteTime.month = 5
+    fi.lastWriteTime.day   = 11
     g_Library.files.add(fi)
-    fi.fullname               = "libfill_b.captme"
-    fi.lastWriteTime.day      = 10
+    fi.fullname          = "libfill_b.captme"
+    fi.lastWriteTime.day = 10
     g_Library.files.add(fi)
-    fi.fullname               = "libfill_c.captme"
-    fi.lastWriteTime.year     = 2023
-    fi.lastWriteTime.month    = 1
-    fi.lastWriteTime.day      = 2
+    fi.fullname            = "libfill_c.captme"
+    fi.lastWriteTime.year  = 2023
+    fi.lastWriteTime.month = 1
+    fi.lastWriteTime.day   = 2
     g_Library.files.add(fi)
 
     @assert(libWnd.listCtrl.getLineCount() == 0)

@@ -33,7 +33,7 @@ func nextPermutation5(values: &[5] s32)->bool
     while left < right
     {
         swapValues(&values[left], &values[right])
-        left += 1
+        left  += 1
         right -= 1
     }
 
@@ -60,27 +60,27 @@ internal func(N: s32) runIntcodeProgram(prg: [N] s32, input: const [2] s32)->s32
         {
         case 1:
             op[op[ip + 3]] = param0 + param1
-            ip += 4
+            ip             += 4
         case 2:
             op[op[ip + 3]] = param0 * param1
-            ip += 4
+            ip             += 4
         case 3:
             op[op[ip + 1]] = input[inputIndex]
-            ip += 2
-            inputIndex += 1
+            ip             += 2
+            inputIndex     += 1
         case 4:
             output = param0
-            ip += 2
+            ip     += 2
         case 5:
             ip = param0 ? param1 : ip + 3
         case 6:
             ip = !param0 ? param1 : ip + 3
         case 7:
             op[op[ip + 3]] = param0 < param1 ? 1 : 0
-            ip += 4
+            ip             += 4
         case 8:
             op[op[ip + 3]] = param0 == param1 ? 1 : 0
-            ip += 4
+            ip             += 4
         }
     }
 
@@ -96,7 +96,7 @@ func(N: s32) maxThrusterSignal(prg: [N] s32)->s32
         var input, phaseIndex = 0
         for amp in 5
         {
-            input = runIntcodeProgram(prg, [phase[phaseIndex], input])
+            input      = runIntcodeProgram(prg, [phase[phaseIndex], input])
             phaseIndex += 1
         }
 

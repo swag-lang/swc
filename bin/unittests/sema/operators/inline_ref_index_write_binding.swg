@@ -8,7 +8,7 @@ struct InlineRefIndexWriteValues
 struct InlineRefIndexWriteInfo
 {
     stored: s32
-    index: s32
+    index:  s32
 }
 
 impl InlineRefIndexWriteValues
@@ -28,7 +28,7 @@ impl InlineRefIndexWriteValues
 func inlineRefIndexWriteAt(values: &InlineRefIndexWriteValues, index: &s32, value: s32)
 {
     values[index] = value
-    index += 1
+    index         += 1
 }
 
 func inlineRefIndexWriteResult()->InlineRefIndexWriteInfo

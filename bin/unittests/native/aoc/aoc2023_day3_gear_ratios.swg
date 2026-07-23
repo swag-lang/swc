@@ -8,9 +8,9 @@
 // macros, mixins, #run compile-time, retval, defer, element iteration,
 // bitwise operators, #[Swag.Complete], function overloading.
 
-const MaxDim = 142'u32
+const MaxDim     = 142'u32
 const MaxNumbers = 1024'u32
-const MaxGears = 256'u32
+const MaxGears   = 256'u32
 
 const SampleInput =
     """467..114..
@@ -98,7 +98,7 @@ impl Grid
 func parseGrid(bytes: const [..] u8)->Grid
 {
     var result: retval
-    var col: u32
+    var col:    u32
 
     for @countof(bytes)
     {
@@ -111,13 +111,13 @@ func parseGrid(bytes: const [..] u8)->Grid
                     result.width = col
                 @assert(col == result.width)
                 result.height += 1
-                col = 0
+                col           = 0
             }
             continue
         }
 
         result.cells[result.height * MaxDim + col] = ch
-        col += 1
+        col                                        += 1
     }
 
     if col > 0
@@ -153,7 +153,7 @@ impl NumberList
     {
         @assert(.count < MaxNumbers)
         .entries[.count] = entry
-        .count += 1
+        .count           += 1
     }
 }
 
@@ -163,11 +163,11 @@ impl NumberList
 
 struct GearCandidate
 {
-    row:        u32
-    col:        u32
-    adjCount:   u32
-    firstVal:   u32
-    secondVal:  u32
+    row:       u32
+    col:       u32
+    adjCount:  u32
+    firstVal:  u32
+    secondVal: u32
 }
 
 struct GearList
@@ -182,7 +182,7 @@ impl GearList
     {
         @assert(.count < MaxGears)
         .entries[.count] = entry
-        .count += 1
+        .count           += 1
     }
 }
 
@@ -309,14 +309,14 @@ func extractNumbers(grid: Grid)->NumberList
                 while col < grid.width and isDigit(grid.at(row, col))
                 {
                     value = value * 10 + cast(u32) (grid.at(row, col) - '0''u8)
-                    col += 1
+                    col   += 1
                 }
 
                 var entry: NumberEntry
                 entry.value = value
-                entry.row = row
-                entry.col0 = col0
-                entry.col1 = col - 1
+                entry.row   = row
+                entry.col0  = col0
+                entry.col1  = col - 1
                 result.push(entry)
             }
             else
@@ -341,7 +341,7 @@ func solveClean(grid: Grid)->EngineResult
         if checkAdjacentSymbol(grid, entry)
         {
             result.partNumberSum += cast(u64) entry.value
-            result.partCount += 1
+            result.partCount     += 1
         }
     }
 
@@ -354,7 +354,7 @@ func solveClean(grid: Grid)->EngineResult
                 continue
 
             var adjCount: u32
-            var prod: u64 = 1
+            var prod:     u64 = 1
 
             for i in numbers.count
             {
@@ -362,14 +362,14 @@ func solveClean(grid: Grid)->EngineResult
                 if isAdjacentToCell(entry, row, col)
                 {
                     adjCount += 1
-                    prod *= cast(u64) entry.value
+                    prod     *= cast(u64) entry.value
                 }
             }
 
             if adjCount == 2
             {
                 result.gearRatioSum += prod
-                result.gearCount += 1
+                result.gearCount    += 1
             }
         }
     }
@@ -407,7 +407,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
         if iChecker.hasAdjacentSymbol(grid, entry)
         {
             result.partNumberSum += cast(u64) entry.value
-            result.partCount += 1
+            result.partCount     += 1
         }
     }
 
@@ -426,9 +426,9 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
                 {
                     if gears.entries[g].row == nr and gears.entries[g].col == nc
                     {
-                        gears.entries[g].adjCount += 1
+                        gears.entries[g].adjCount  += 1
                         gears.entries[g].secondVal = entry.value
-                        found = true
+                        found                      = true
                         break
                     }
                 }
@@ -436,8 +436,8 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
                 if !found
                 {
                     var gc: GearCandidate
-                    gc.row = nr
-                    gc.col = nc
+                    gc.row      = nr
+                    gc.col      = nc
                     gc.adjCount = 1
                     gc.firstVal = entry.value
                     gears.push(gc)
@@ -454,7 +454,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
         if gear.adjCount == 2
         {
             result.gearRatioSum += cast(u64) gear.firstVal * cast(u64) gear.secondVal
-            result.gearCount += 1
+            result.gearCount    += 1
         }
     }
 
@@ -573,9 +573,9 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     // Adjacency check
     var entry: NumberEntry
     entry.value = 35
-    entry.row = 2
-    entry.col0 = 2
-    entry.col1 = 3
+    entry.row   = 2
+    entry.col0  = 2
+    entry.col1  = 3
     @assert(isAdjacentToCell(entry, 1, 3))
     @assert(isAdjacentToCell(entry, 2, 1))
     @assert(!isAdjacentToCell(entry, 0, 0))

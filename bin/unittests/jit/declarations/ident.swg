@@ -370,7 +370,7 @@ alias BigArray = [5] s32
     }
 
     const P: SmallPair = {a: 1'u32, b: 2'u32, c: 39'u64}
-    const V = #run passConstRef(P)
+    const V            = #run passConstRef(P)
     #assert(#typeof(V) == u64)
     #assert(V == 42'u64)
 }

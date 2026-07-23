@@ -53,7 +53,7 @@ func VirtualFree(address: #null *void, bytes: u64, freeType: u32)->bool;
 #test
 {
     const MEM_RELEASE = 0x8000'u32
-    const F = #run VirtualFree(null, 0'u64, MEM_RELEASE)
+    const F           = #run VirtualFree(null, 0'u64, MEM_RELEASE)
     #assert(!F)
 }
 
@@ -116,15 +116,15 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 #test
 {
     const CP_UTF8 = 65001'u32
-    const S1 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("A"), 1, null, 0)
-    const S5 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDE"), 5, null, 0)
+    const S1      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("A"), 1, null, 0)
+    const S5      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDE"), 5, null, 0)
     #assert(S1 == 1)
     #assert(S5 == 5)
 }
 
 #test
 {
-    const Z = #run LStrLenA(@dataof(""))
+    const Z   = #run LStrLenA(@dataof(""))
     const L10 = #run LStrLenA(@dataof("0123456789"))
     #assert(Z == 0)
     #assert(L10 == 10)
@@ -140,7 +140,7 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 
 #test
 {
-    const H = #run GetProcessHeap()
+    const H  = #run GetProcessHeap()
     const P1 = #run HeapAlloc(H, 0'u32, 1'u64)
     const P2 = #run HeapAlloc(H, 0'u32, 128'u64)
     const F1 = #run HeapFree(H, 0'u32, P1)
@@ -155,8 +155,8 @@ func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s3
 #test
 {
     const CP_UTF8 = 65001'u32
-    const S2 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("AB"), 2, null, 0)
-    const S8 = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDEFGH"), 8, null, 0)
+    const S2      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("AB"), 2, null, 0)
+    const S8      = #run MultiByteToWideChar(CP_UTF8, 0'u32, @dataof("ABCDEFGH"), 8, null, 0)
     #assert(S2 == 2)
     #assert(S8 == 8)
 }

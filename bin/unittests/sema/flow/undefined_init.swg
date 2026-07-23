@@ -185,7 +185,7 @@ func undErrMaybeReassign(c: bool)
     var v: UndDrop = undefined
     if c do
         v = mkUndDrop(1)
-    v = mkUndDrop(2)     // swc-expected-error {{sema_err_undefined_drop}}
+    v     = mkUndDrop(2)     // swc-expected-error {{sema_err_undefined_drop}}
 }
 
 // First assignment inside a loop: later iterations hold a real value, the

@@ -158,7 +158,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
         }
 
         Memory.free(oldBuffer, oldCapacity * sizeValue, arr.allocator)
-        arr.buffer = newBuffer
+        arr.buffer   = newBuffer
         arr.capacity = newCapacity
     }
 

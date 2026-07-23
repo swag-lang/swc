@@ -16,7 +16,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Basic alloc and free
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -36,7 +36,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Alloc fits in buffer, used advances
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -58,7 +58,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Free last allocation reclaims space
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -85,7 +85,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Free non-last allocation does not reclaim
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -110,7 +110,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Alloc size 0 returns null
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -125,7 +125,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Free null is no-op
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -140,7 +140,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Write and read data
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -161,7 +161,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Multiple allocations fill buffer sequentially
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -185,7 +185,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Overflow to leak: allocation larger than remaining capacity
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -204,7 +204,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     // Write to it to verify usability
     let ptr = cast([*] u8) notnull req2.address
-    ptr[0] = 0xAA
+    ptr[0]   = 0xAA
     ptr[255] = 0xBB
     @assert(ptr[0] == 0xAA)
     @assert(ptr[255] == 0xBB)
@@ -215,7 +215,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Leak is freed when explicitly freed
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -241,7 +241,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // FreeAll clears used and leaks
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -270,7 +270,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // maxUsed tracks peak usage
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -294,7 +294,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // maxLeak tracks peak leak
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -324,7 +324,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Realloc within buffer copies data
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -337,7 +337,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         ptr[i] = cast(u8) (i + 1)
 
     req.oldSize = 32
-    req.size = 128
+    req.size    = 128
     itf.realloc(&req)
     @assert(req.address != null)
 
@@ -351,7 +351,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Sequential alloc-free cycles
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -376,7 +376,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Small allocation (1 byte)
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -395,7 +395,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // FreeAll then reuse
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -422,7 +422,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Multiple leaks tracked and freed
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -457,12 +457,12 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // 32-bit typed writes
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
     var req: AllocatorRequest
-    req.size = 40
+    req.size      = 40
     req.alignment = 8
     itf.alloc(&req)
 
@@ -479,7 +479,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Release frees the buffer
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -495,7 +495,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Realloc with size 0 frees
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
@@ -504,7 +504,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     req.oldSize = 64
-    req.size = 0
+    req.size    = 0
     itf.realloc(&req)
     @assert(req.address == null)
 
@@ -514,18 +514,18 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Realloc from null acts like alloc
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
     var req: AllocatorRequest
     req.address = null
-    req.size = 200
+    req.size    = 200
     itf.realloc(&req)
     @assert(req.address != null)
 
     let ptr = cast([*] u8) notnull req.address
-    ptr[0] = 1
+    ptr[0]   = 1
     ptr[199] = 2
     @assert(ptr[0] == 1)
     @assert(ptr[199] == 2)
@@ -536,7 +536,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 // Capacity and block are set correctly
 #test
 {
-    var alloc: Allocator
+    var alloc:   Allocator
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 

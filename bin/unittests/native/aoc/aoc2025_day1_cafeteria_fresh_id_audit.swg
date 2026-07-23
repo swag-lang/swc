@@ -11,11 +11,11 @@ struct IdRange
 
 struct FreshIdAudit
 {
-    rangeCount:        u32
-    availableCount:    u32
-    freshCount:        u32
-    spoiledCount:      u32
-    overlappingFresh:  u32
+    rangeCount:       u32
+    availableCount:   u32
+    freshCount:       u32
+    spoiledCount:     u32
+    overlappingFresh: u32
 }
 
 func parseNumber(bytes: const [..] u8, index: *u32)->u32
@@ -24,7 +24,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while dref index < @countof(bytes) and bytes[dref index] >= '0' and bytes[dref index] <= '9'
     {
-        result = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
+        result     = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
         dref index += 1
     }
 
@@ -36,10 +36,10 @@ func parseRange(text: string)->IdRange
     let bytes = cast(const [..] u8) text
 
     var result: IdRange
-    var index: u32
+    var index:  u32
 
     result.min = parseNumber(bytes, &index)
-    index += 1
+    index      += 1
     result.max = parseNumber(bytes, &index)
     return result
 }
@@ -66,7 +66,7 @@ func auditFreshIds(rangeLines: const [..] string, availableIds: const [..] u32)-
     {
         @assert(result.rangeCount < 16)
         ranges[result.rangeCount] = parseRange(line)
-        result.rangeCount += 1
+        result.rangeCount         += 1
     }
 
     for value in availableIds

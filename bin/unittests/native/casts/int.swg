@@ -8,7 +8,7 @@ func takes_s32(v: s32) {}
 #test
 {
     const A: u64 = 255
-    const B: u8 = A
+    const B: u8  = A
     #assert(B == 255'u8)
     @assert(B == 255'u8)
 }
@@ -33,7 +33,7 @@ func takes_s32(v: s32) {}
 #test
 {
     const A: s32 = 42
-    const B: u8 = A
+    const B: u8  = A
     #assert(B == 42'u8)
     @assert(B == 42'u8)
 }

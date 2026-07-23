@@ -4,12 +4,12 @@ const OVERSAMPLE = 4'u32
 
 struct Edge
 {
-    x0:       f64
-    y0:       f64
-    x1:       f64
-    y1:       f64
-    minY:     f64
-    maxY:     f64
+    x0:   f64
+    y0:   f64
+    x1:   f64
+    y1:   f64
+    minY: f64
+    maxY: f64
 }
 
 func quadraticFlatEnough(p0x, p0y, p1x, p1y, p2x, p2y: f64, tolerance: f64)->bool
@@ -148,7 +148,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
         if xf < 0.0 do
             xf = 0.0
         elif xf > 1.0 do
-            xf = 1.0
+            xf    = 1.0
         cover[cx] += s * dyTotal
         area[cx]  += s * dyTotal * xf
         return
@@ -272,18 +272,18 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
 
             var c = Math.abs(val)
             if c > 1.0 do
-                c = 1.0
+                c    = 1.0
             dref dst = cast(u8) (c * 255.0 + 0.5)
-            dst += 1
+            dst      += 1
         }
     }
 
-    safeSlot.bitmap.rows         = rows
-    safeSlot.bitmap.width        = width
-    safeSlot.bitmap.pitch        = cast(s32) width
-    safeSlot.bitmap.buffer       = bitmapBuffer
-    safeSlot.bitmap.pixelMode   = .Gray
-    safeSlot.bitmap.grayCount    = 256
-    safeSlot.bitmapLeft         = left
-    safeSlot.bitmapTop          = top
+    safeSlot.bitmap.rows      = rows
+    safeSlot.bitmap.width     = width
+    safeSlot.bitmap.pitch     = cast(s32) width
+    safeSlot.bitmap.buffer    = bitmapBuffer
+    safeSlot.bitmap.pixelMode = .Gray
+    safeSlot.bitmap.grayCount = 256
+    safeSlot.bitmapLeft       = left
+    safeSlot.bitmapTop        = top
 }

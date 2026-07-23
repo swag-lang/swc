@@ -4,10 +4,10 @@ using Core, Pixel
 struct SliderCtrl
 {
     using frameWnd:     FrameWnd
-    labelSize:          f32 = 60
-    editSize:           f32 = 60
-    gap:                f32 = 8
-    autoEditSize:       bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
+    labelSize:    f32 = 60
+    editSize:     f32 = 60
+    gap:          f32 = 8
+    autoEditSize: bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
 
     sigChanged:         SigArray'func||(*SliderCtrl)
 
@@ -68,7 +68,7 @@ impl SliderCtrl
             .label.vertAlignmentText = .Center
             .label.horzAlignmentText = .Right
 
-            .slider = Slider.create(ctrl, {})
+            .slider            = Slider.create(ctrl, {})
             .slider.sigChanged += func|ctrl|(wnd)
             {
                 var val: String
@@ -89,7 +89,7 @@ impl SliderCtrl
             .edit = EditBox.create(ctrl, "", {})
             .edit.setForm(.Square)
             .edit.editBoxFlags |= .RightAlign
-            .edit.rightMargin = metrics.editBox_UnitMargin
+            .edit.rightMargin  = metrics.editBox_UnitMargin
             .edit.sigLoseFocus += func|ctrl|(edit)
             {
                 switch edit.inputMode

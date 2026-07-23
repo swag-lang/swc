@@ -105,7 +105,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     const s: string = "abc"
-    const p = @dataof(s)
+    const p         = @dataof(s)
     #assert(p != null)
     #assert(dref p == 'a''u8)
     @assert(p != null)
@@ -116,7 +116,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     const s: const [..] u8 = cast(const [..] u8) "abc"
-    const p = @dataof(s)
+    const p                = @dataof(s)
     #assert(p != null)
     #assert(dref p == 'a''u8)
     @assert(p != null)
@@ -127,7 +127,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     const arr: [2] s32 = [7, 9]
-    const p = @dataof(arr)
+    const p            = @dataof(arr)
     #assert(p != null)
     #assert(dref p == 7)
     @assert(p != null)
@@ -168,7 +168,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     const value: StrictDataOfArray = cast(StrictDataOfArray) [7, 8, 9]
-    const p = @dataof(value)
+    const p                        = @dataof(value)
     #assert(#typeof(p) == const [*] s32)
     #assert(dref p == 7)
     @assert(p[1] == 8)

@@ -89,9 +89,9 @@ func variadicFirstAnyDataS32(values: ...)->s32
                anyIsPair(values[4])
     }
 
-    const box: VariadicAnyBox = {value: 314}
+    const box: VariadicAnyBox   = {value: 314}
     const pair: VariadicAnyPair = {left: 0x1122334455667788'u64, right: 0x99AABBCCDDEEFF00'u64}
-    const ok = #run variadicIndexedAnyToAny(42's32, true, "variadic-any", box, pair)
+    const ok                    = #run variadicIndexedAnyToAny(42's32, true, "variadic-any", box, pair)
     #assert(ok)
 }
 
@@ -111,7 +111,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     }
 
     const box: VariadicAnyBox = {value: 314}
-    const ok = #run variadicIndexedAnyRelay(42's32, "relay", box)
+    const ok                  = #run variadicIndexedAnyRelay(42's32, "relay", box)
     #assert(ok)
 }
 
@@ -151,7 +151,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     }
 
     const box: VariadicAnyBox = {value: 314}
-    const ok = #run variadicDynamicIndexedAnyToAny(42's32, "variadic-any", box)
+    const ok                  = #run variadicDynamicIndexedAnyToAny(42's32, "variadic-any", box)
     #assert(ok)
 }
 
@@ -173,7 +173,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     }
 
     const box: VariadicAnyBox = {value: 314}
-    const ok = #run variadicForeachAnyToAny(42's32, "variadic-any", box)
+    const ok                  = #run variadicForeachAnyToAny(42's32, "variadic-any", box)
     #assert(ok)
 }
 
@@ -231,7 +231,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func boxedAnyStructThroughVariadic()->bool
     {
-        var box: VariadicAnyBox = {value: 314}
+        var box:   VariadicAnyBox = {value: 314}
         var boxed: any = box
         return anyIsBox(boxed) and variadicFirstAnyIsBox(boxed)
     }
@@ -305,7 +305,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
     func strictAnyDataThroughVariadic()->s32
     {
         var value: s32 = 1234
-        var raw: any = @mkany(&value, s32)
+        var raw:   any = @mkany(&value, s32)
         let boxed = dref cast(*VariadicStrictAny) &raw
         return variadicFirstAnyDataS32(boxed)
     }

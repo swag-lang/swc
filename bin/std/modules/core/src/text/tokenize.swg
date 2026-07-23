@@ -60,8 +60,8 @@ func splitLines(src: string)->Array'(string)
         result.add(onestr)
         if cpt < countof - 1 and dref end == '\r' and end[1] == '\n' do
             end, cpt += 1
-        end, cpt += 1
-        dataof = end
+        end, cpt     += 1
+        dataof       = end
     }
 
     return result
@@ -98,7 +98,7 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
             return result
 
         startbyteIdx = endbyteIdx + 1
-        splitCount += 1
+        splitCount   += 1
     }
 
     addSplitPart(&result, src[startbyteIdx until countof], removeEmpty)
@@ -140,7 +140,7 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
             return result
 
         startbyteIdx = endbyteIdx + separatorCountof
-        splitCount += 1
+        splitCount   += 1
     }
 
     addSplitPart(&result, src[startbyteIdx until countof], removeEmpty)
@@ -166,7 +166,7 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
     if !countof do
         return result
 
-    var c:      rune
+    var c:                 rune
     var startbyteIdx, eat: u64
     var splitCount:        u32
 
@@ -186,7 +186,7 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
             return result
 
         startbyteIdx = endbyteIdx + eat
-        splitCount += 1
+        splitCount   += 1
     }
 
     addSplitPart(&result, src[startbyteIdx until countof], removeEmpty)
@@ -235,7 +235,7 @@ func getTo(src: string, delimiter: u8, startByteIndex = 0'u64, includeDelimiter 
             return @mkstring(dataof, cast(u64) (scan - dataof))
         }
 
-        scan += 1
+        scan   += 1
         length -= 1
     }
 

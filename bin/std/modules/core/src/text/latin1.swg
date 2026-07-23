@@ -71,8 +71,8 @@ func compare(src, dst: const [..] u8, ignoreCase = false)->s32
             if c1 == c2 do
                 continue
 
-            c1 += isUpperUtf8(c1) ? 0x20 : 0
-            c2 += isUpperUtf8(c2) ? 0x20 : 0
+            c1     += isUpperUtf8(c1) ? 0x20 : 0
+            c2     += isUpperUtf8(c2) ? 0x20 : 0
             result = cast(s32) c1 - cast(s32) c2
             if result != 0 do
                 return Math.sign(result)
@@ -122,7 +122,7 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
             if ca > cb do
                 return 1
 
-            ai, bi += 1
+            ai, bi     += 1
             csrc, cdst -= 1
         }
 
@@ -163,7 +163,7 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
             elif !ca and !cb do
                 return bias
 
-            ai, bi += 1
+            ai, bi     += 1
             csrc, cdst -= 1
         }
 
@@ -184,16 +184,16 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         // Skip over leading spaces or zeros
         while isSpace(ca)
         {
-            ai += 1
+            ai   += 1
             csrc -= 1
-            ca = src[ai]
+            ca   = src[ai]
         }
 
         while isSpace(cb)
         {
-            bi += 1
+            bi   += 1
             cdst -= 1
-            cb = dst[bi]
+            cb   = dst[bi]
         }
 
         // Process run of digits
@@ -224,7 +224,7 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
         if ca > cb do
             return 1
 
-        ai, bi += 1
+        ai, bi     += 1
         csrc, cdst -= 1
     }
 

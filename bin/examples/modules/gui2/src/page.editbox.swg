@@ -21,11 +21,11 @@ func createEditBoxPage(parent: *Wnd)
         edit.setForm(.Transparent)
         edit.setNote("Transparent")
 
-        edit = EditBox.create(forms, "right aligned text", {24, 190, 180})
+        edit              = EditBox.create(forms, "right aligned text", {24, 190, 180})
         edit.editBoxFlags |= .RightAlign
         edit.setNote("Right aligned")
 
-        edit = EditBox.create(forms, "0123456789", {240, 190, 200})
+        edit              = EditBox.create(forms, "0123456789", {240, 190, 200})
         edit.editBoxFlags |= .RightAlign
         edit.setNote("Right aligned")
     }
@@ -34,7 +34,7 @@ func createEditBoxPage(parent: *Wnd)
     {
         var edit = EditBox.create(modes, "128", {24, 90, 130})
         edit.setInputS64(-256, 256)
-        edit.unit = "px"
+        edit.unit         = "px"
         edit.editBoxFlags |= .RightAlign
         edit.setNote("S64")
 
@@ -47,7 +47,7 @@ func createEditBoxPage(parent: *Wnd)
         edit.setInputF64()
         edit.setNote("Float")
 
-        edit = EditBox.create(modes, "Read only", {24, 140, 180})
+        edit              = EditBox.create(modes, "Read only", {24, 140, 180})
         edit.editBoxFlags |= .ReadOnly
 
         edit = EditBox.create(modes, "Disabled", {240, 140, 180})
@@ -63,7 +63,7 @@ func createEditBoxPage(parent: *Wnd)
 
         edit = EditBox.create(extras, "75", {280, 96, 120})
         edit.setInputU64(0, 100)
-        edit.unit = "%"
+        edit.unit         = "%"
         edit.editBoxFlags |= .RightAlign
 
         edit = EditBox.create(extras, "", {438, 96, 220})

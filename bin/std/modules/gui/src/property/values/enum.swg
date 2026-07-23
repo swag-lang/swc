@@ -54,7 +54,7 @@ impl Properties
         {
             let typeEnum = cast(#null const *Swag.TypeInfoEnum) item.typeValue.pointedType
 
-            var val1, val2: u64
+            var val1, val2:   u64
             var val1s, val2s: #null string
             switch typeEnum.rawType.sizeof
             {
@@ -196,11 +196,11 @@ impl Properties
 
             with let itemB = me.items.addNewPtr()
             {
-                .type        = typeEnum
-                .typeValue   = v
-                .data        = data
-                .extendFocus = 5
-                .filter      = item.filter
+                .type          = typeEnum
+                .typeValue     = v
+                .data          = data
+                .extendFocus   = 5
+                .filter        = item.filter
                 .line          = line
                 .parent        = item
                 .level         = item.level + 1
@@ -215,8 +215,8 @@ impl Properties
             {
                 if me.isGridLike() do
                     .margin.x = me.leftMargin
-                .dockStyle = .Left
-                .userData  = cast #unconst (#null *void) v.value
+                .dockStyle    = .Left
+                .userData     = cast #unconst (#null *void) v.value
             }
 
             me.adaptCondensedControl(ed)
@@ -231,8 +231,8 @@ impl Properties
                 labelWidth = me.listContentWidth() - me.gridLineHeight
             with let label1 = Label.create(line, "", {item.line.position.height, 0, Math.max(labelWidth, 1.0)})
             {
-                .dockStyle = .Center
-                .labelFlags |= .WordWrap | .AutoHeight
+                .dockStyle         = .Center
+                .labelFlags        |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
                 .setText(dispDescStr)
             }

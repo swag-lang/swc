@@ -47,9 +47,9 @@ impl TweakFile
 
         struct Ref
         {
-            folder:     *Folder              // Folder where the reference is defined
-            src:        const *TypeValue     // Source field that is being referenced
-            dst:        const *TypeValue     // Destination field to copy to
+            folder: *Folder              // Folder where the reference is defined
+            src:    const *TypeValue     // Source field that is being referenced
+            dst:    const *TypeValue     // Destination field to copy to
         }
 
         var refs:          Array'Ref         // Pending references to resolve

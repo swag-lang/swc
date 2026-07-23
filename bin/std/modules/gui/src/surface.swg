@@ -3,34 +3,34 @@ using Core, Pixel, Serialization
 
 struct SurfaceState
 {
-    position:                 Math.Rectangle
-    positionNotMaximized:     Math.Rectangle
-    isMaximized:              bool
+    position:             Math.Rectangle
+    positionNotMaximized: Math.Rectangle
+    isMaximized:          bool
 }
 
 struct Surface
 {
     using native:      NativeSurface
-    app:               *Application = undefined
-    wnd:               *SurfaceWnd = undefined
-    painter:           Painter
-    rt:                RenderTarget
-    userData:          #null *void
-    surfaceID:         String
+    app:       *Application = undefined
+    wnd:       *SurfaceWnd = undefined
+    painter:   Painter
+    rt:        RenderTarget
+    userData:  #null *void
+    surfaceID: String
 
-    rc:                RenderingContext
-    minSize:           Math.Point
-    maxSize:           Math.Point
+    rc:      RenderingContext
+    minSize: Math.Point
+    maxSize: Math.Point
 
-    flags:             SurfaceFlags = Zero
-    dirtyRect:         Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}
-    colorDisabled:     Color
+    flags:         SurfaceFlags = Zero
+    dirtyRect:     Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}
+    colorDisabled: Color
 
-    isDirty:           bool
-    isHidden:          bool = true
-    isInitialized:     bool
-    isDisabled:        bool
-    isMinimized:       bool
+    isDirty:       bool
+    isHidden:      bool = true
+    isInitialized: bool
+    isDisabled:    bool
+    isMinimized:   bool
         using state:       SurfaceState
 }
 

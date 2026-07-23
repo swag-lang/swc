@@ -71,12 +71,12 @@ func parseNames(faceData: *FaceImpl) throw
         if nameID == NAME_ID_FAMILY and score > bestFamilyScore
         {
             faceData.face.familyName = decodeNameRecord(nameTable, stringOffset, base)
-            bestFamilyScore   = score
+            bestFamilyScore          = score
         }
         elif nameID == NAME_ID_STYLE and score > bestStyleScore
         {
             faceData.face.styleName = decodeNameRecord(nameTable, stringOffset, base)
-            bestStyleScore   = score
+            bestStyleScore          = score
         }
     }
 
@@ -145,9 +145,9 @@ func parseCMap(faceData: *FaceImpl) throw
 
         if score > bestScore
         {
-            bestSlice  = subTable
-            bestScore  = score
-            bestFmt    = format
+            bestSlice = subTable
+            bestScore = score
+            bestFmt   = format
         }
     }
 
@@ -256,10 +256,10 @@ func parseKern(faceData: *FaceImpl) throw
 
 func initFaceRecords(faceData: *FaceImpl)
 {
-    faceData.face.faceCount       = 1
-    faceData.face.faceIndex       = 0
-    faceData.face.glyph.face      = &faceData.face
-    faceData.face.glyph.format    = .None
+    faceData.face.faceCount              = 1
+    faceData.face.faceIndex              = 0
+    faceData.face.glyph.face             = &faceData.face
+    faceData.face.glyph.format           = .None
     faceData.face.glyph.bitmap.pixelMode = .Gray
     faceData.face.glyph.bitmap.grayCount = 256
 
@@ -294,25 +294,25 @@ func parseFace(faceData: *FaceImpl) throw
     if @countof(head) < 54 do
         fail(0xB9)
 
-    faceData.unitsPerEm               = readU16(head, 18)
-    faceData.face.unitsPerEm          = faceData.unitsPerEm
-    faceData.face.bbox.xMin           = readS16(head, 36)
-    faceData.face.bbox.yMin           = readS16(head, 38)
-    faceData.face.bbox.xMax           = readS16(head, 40)
-    faceData.face.bbox.yMax           = readS16(head, 42)
-    faceData.macStyle                 = readU16(head, 44)
-    faceData.indexToLocFormat         = readS16(head, 50)
+    faceData.unitsPerEm       = readU16(head, 18)
+    faceData.face.unitsPerEm  = faceData.unitsPerEm
+    faceData.face.bbox.xMin   = readS16(head, 36)
+    faceData.face.bbox.yMin   = readS16(head, 38)
+    faceData.face.bbox.xMax   = readS16(head, 40)
+    faceData.face.bbox.yMax   = readS16(head, 42)
+    faceData.macStyle         = readU16(head, 44)
+    faceData.indexToLocFormat = readS16(head, 50)
 
     let hhea = getTableSlice(faceData, TAG_HHEA, 0x8F)
     if @countof(hhea) < 36 do
         fail(0x8F)
 
-    faceData.face.ascender            = readS16(hhea, 4)
-    faceData.face.descender           = readS16(hhea, 6)
-    faceData.lineGap                  = readS16(hhea, 8)
-    faceData.face.height              = cast(s16) (faceData.face.ascender - faceData.face.descender + faceData.lineGap)
-    faceData.face.maxAdvanceWidth     = readS16(hhea, 10)
-    faceData.numLongMetrics           = readU16(hhea, 34)
+    faceData.face.ascender        = readS16(hhea, 4)
+    faceData.face.descender       = readS16(hhea, 6)
+    faceData.lineGap              = readS16(hhea, 8)
+    faceData.face.height          = cast(s16) (faceData.face.ascender - faceData.face.descender + faceData.lineGap)
+    faceData.face.maxAdvanceWidth = readS16(hhea, 10)
+    faceData.numLongMetrics       = readU16(hhea, 34)
 
     let maxp = getTableSlice(faceData, TAG_MAXP, 0x8E)
     if @countof(maxp) < 6 do

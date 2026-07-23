@@ -3,8 +3,8 @@
 // Real-life example: evaluate a small crossed-signal control board and flag
 // outputs that clearly violate the expected ripple-carry wiring rules.
 
-const MaxWires = 96
-const MaxGates = 64
+const MaxWires    = 96
+const MaxGates    = 64
 const MaxSuspects = 32
 
 enum GateOp: u8
@@ -115,7 +115,7 @@ func registerSuspect(suspects: [..] string, suspectCount: *u32, name: string)
 
     @assert(dref suspectCount < MaxSuspects)
     suspects[dref suspectCount] = name
-    dref suspectCount += 1
+    dref suspectCount           += 1
 }
 
 func hasConsumerOp(gates: const [..] LogicGate, wireName: string, op: GateOp)->bool
@@ -160,7 +160,7 @@ func sortSuspects(suspects: [..] string, suspectCount: u32)
             if stringLess(suspects[right], suspects[left])
             {
                 let temp = suspects[left]
-                suspects[left] = suspects[right]
+                suspects[left]  = suspects[right]
                 suspects[right] = temp
             }
         }
@@ -185,7 +185,7 @@ func suspectsMatch(audit: BoardAudit, expected: const [..] string)->bool
 func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)->BoardAudit
 {
     var result: BoardAudit = undefined
-    result.outputValue = 0
+    result.outputValue  = 0
     result.suspectCount = 0
     var wireNames: [MaxWires] string = undefined
     var wireKnown: [MaxWires] bool
@@ -197,10 +197,10 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     for wire in initialWires
     {
         @assert(wireCount < MaxWires)
-        wireNames[wireCount] = wire.name
-        wireKnown[wireCount] = true
+        wireNames[wireCount]  = wire.name
+        wireKnown[wireCount]  = true
         wireValues[wireCount] = wire.value
-        wireCount += 1
+        wireCount             += 1
     }
 
     @assert(@countof(gates) <= MaxGates)
@@ -227,16 +227,16 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
             if outputIndex == Swag.U32.Max
             {
                 @assert(wireCount < MaxWires)
-                outputIndex = wireCount
+                outputIndex          = wireCount
                 wireNames[wireCount] = gate.output
-                wireCount += 1
+                wireCount            += 1
             }
 
             wireValues[outputIndex] = evaluateGate(wireValues[leftIndex], wireValues[rightIndex], gate.op)
-            wireKnown[outputIndex] = true
+            wireKnown[outputIndex]  = true
             gateResolved[gateIndex] = true
-            resolvedCount += 1
-            progress = true
+            resolvedCount           += 1
+            progress                = true
         }
 
         @assert(progress)

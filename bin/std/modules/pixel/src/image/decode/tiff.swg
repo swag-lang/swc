@@ -11,9 +11,9 @@ const TAG_STRIP_OFFSETS     = 273
 const TAG_SAMPLES_PER_PIXEL = 277
 const TAG_ROWS_PER_STRIP    = 278
 const TAG_STRIP_BYTE_COUNTS = 279
-const TAG_PLANAR_CONFIG      = 284
-const TAG_COLOR_MAP          = 320
-const TAG_EXTRA_SAMPLES      = 338
+const TAG_PLANAR_CONFIG     = 284
+const TAG_COLOR_MAP         = 320
+const TAG_EXTRA_SAMPLES     = 338
 
 // Field types
 const TYPE_BYTE  = 1
@@ -158,7 +158,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) throw
                 throw InvalidFormatError{"invalid source buffer"}
             checkBuffer(p, last, count)
             Memory.copy(dst + out, p, count)
-            p += count
+            p   += count
             out += count
         }
         elif header != -128
@@ -171,7 +171,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) throw
             p += 1
             for count do
                 dst[out + @index] = value
-            out += count
+            out                   += count
         }
     }
 }
@@ -378,7 +378,7 @@ public impl IImageDecoder for Decoder
                     {
                         var v = srcRow[x]
                         if photometric == PHOTO_WHITE_IS_ZERO do
-                            v = 255 - v
+                            v  = 255 - v
                         dst[0] = v
                         dst[1] = v
                         dst[2] = v
@@ -391,7 +391,7 @@ public impl IImageDecoder for Decoder
                     dst[0] = pix[0]
                     dst[1] = pix[1]
                     dst[2] = pix[2]
-                    dst += 3
+                    dst    += 3
                 }
                 else
                 {
@@ -400,7 +400,7 @@ public impl IImageDecoder for Decoder
                     dst[1] = pix[1]
                     dst[2] = pix[2]
                     dst[3] = pix[3]
-                    dst += 4
+                    dst    += 4
                 }
             }
         }

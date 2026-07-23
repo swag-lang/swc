@@ -29,23 +29,23 @@ struct FormText
 
     #[Serialization.NoSerialize]
     {
-        gizmo:            GizmoRect
-        isDirty:          bool
-        isDirtyFont:      bool
-        typeFace:         #null *TypeFace
+        gizmo:       GizmoRect
+        isDirty:     bool
+        isDirtyFont: bool
+        typeFace:    #null *TypeFace
 
-        cacheFace:        #null *TypeFace
-        cachebSize:       f32
-        cachesSize:       f32
-        cachefSize:       f32
-        cacheStyle:       JoinStyle
-        cacheFontN:       String
-        cacheFontS:       FontFamilyStyle
-        cacheBColorA:     u8
+        cacheFace:    #null *TypeFace
+        cachebSize:   f32
+        cachesSize:   f32
+        cachefSize:   f32
+        cacheStyle:   JoinStyle
+        cacheFontN:   String
+        cacheFontS:   FontFamilyStyle
+        cacheBColorA: u8
 
-        totalY:           f32
-        paths:            Array'LinePathList
-        borderPaths:      Array'LinePathList
+        totalY:      f32
+        paths:       Array'LinePathList
+        borderPaths: Array'LinePathList
     }
 }
 

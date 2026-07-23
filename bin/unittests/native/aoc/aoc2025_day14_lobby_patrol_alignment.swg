@@ -42,9 +42,9 @@ func computeSafetyFactor(robots: const [..] PatrolRobot, width, height, step: s3
     let middleX = width / 2
     let middleY = height / 2
 
-    var topLeft: u64
-    var topRight: u64
-    var bottomLeft: u64
+    var topLeft:     u64
+    var topRight:    u64
+    var bottomLeft:  u64
     var bottomRight: u64
 
     for robot in robots
@@ -85,7 +85,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
 {
     var result: PatrolReport
     result.safetyFactor = computeSafetyFactor(robots, width, height, safetyStep)
-    result.compactArea = Swag.U32.Max
+    result.compactArea  = Swag.U32.Max
 
     for cast(u32) (searchLimit + 1)
     {
@@ -114,7 +114,7 @@ func analyzePatrol(robots: const [..] PatrolRobot, width, height, safetyStep, se
         let area = cast(u32) (maxX - minX + 1) * cast(u32) (maxY - minY + 1)
         if area < result.compactArea
         {
-            result.compactArea = area
+            result.compactArea     = area
             result.mostCompactStep = cast(u32) step
         }
     }

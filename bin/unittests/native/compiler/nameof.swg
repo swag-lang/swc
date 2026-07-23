@@ -24,8 +24,8 @@ struct NamedStruct
 // #nameof and #fullnameof at runtime
 #test
 {
-    const globalName = #nameof(GlobalValue)
-    const enumName = #nameof(Color.Green)
+    const globalName   = #nameof(GlobalValue)
+    const enumName     = #nameof(Color.Green)
     const fullEnumName = #fullnameof(Color.Green)
 
     @assert(globalName == "GlobalValue")

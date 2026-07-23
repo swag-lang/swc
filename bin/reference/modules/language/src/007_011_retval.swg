@@ -26,7 +26,10 @@ This is especially beneficial when returning large structs, arrays, or tuples.
 */
 #test
 {
-    struct RGB { x, y, z: f64 }
+    struct RGB
+    {
+        x, y, z: f64
+    }
     func getWhite()->RGB
     {
         // 'retval = undefined' prevents unnecessary clearing of the return structure.

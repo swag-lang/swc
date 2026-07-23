@@ -3,12 +3,12 @@ using Core, Gui, Pixel
 func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons24)->*Label
 {
     let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
-    label.backgroundStyle = .Window
-    label.icon = app.theme.getIcon24(icon, 16)
+    label.backgroundStyle   = .Window
+    label.icon              = app.theme.getIcon24(icon, 16)
     label.horzAlignmentIcon = .Left
     label.horzAlignmentText = .Left
-    label.paddingIcon = {10, 0, 0, 0}
-    label.paddingText = {34, 0, 10, 0}
+    label.paddingIcon       = {10, 0, 0, 0}
+    label.paddingText       = {34, 0, 10, 0}
     return label
 }
 
@@ -30,7 +30,7 @@ func createGridWrapPage(parent: *Wnd)
     grid.gridLayoutFlags.add(.AdaptRowHeight)
     grid.spacingHorz = 10
     grid.spacingVert = 10
-    grid.padding = 4
+    grid.padding     = 4
 
     let timeline = createGridCell(grid, "Timeline span 2", .Sort)
     grid.setColRowChild(timeline, 0, 0, 2, 1)
@@ -46,10 +46,10 @@ func createGridWrapPage(parent: *Wnd)
 
     let right = createPanel(parent, "WrapLayoutCtrl", "Tiles wrap to the next row as the pane narrows.", layout.right)
     let wrap = WrapLayoutCtrl.create(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
-    wrap.wrapWidth = 128
+    wrap.wrapWidth  = 128
     wrap.wrapHeight = 38
-    wrap.spacing = 10
-    wrap.padding = 4
+    wrap.spacing    = 10
+    wrap.padding    = 4
     createWrapTile(wrap, "Search", .Search)
     createWrapTile(wrap, "Edit", .Edit)
     createWrapTile(wrap, "Picker", .Picker)

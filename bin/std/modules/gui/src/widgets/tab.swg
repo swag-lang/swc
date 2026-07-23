@@ -43,12 +43,12 @@ enum TabBarLayout
 struct TabItem
 {
     using item:     Item
-    pos:            f32
-    width:          f32
-    view:           #null *Wnd
-    aniImg:         BlendColor
-    aniBorder:      BlendColor
-    aniText:        BlendColor
+    pos:       f32
+    width:     f32
+    view:      #null *Wnd
+    aniImg:    BlendColor
+    aniBorder: BlendColor
+    aniText:   BlendColor
 }
 
 struct Tab
@@ -59,20 +59,20 @@ struct Tab
     itemForm                  = TabItemForm.Flat
     viewForm                  = TabViewForm.Flat
     barLayout                 = TabBarLayout.Divide
-    itemFixedLayoutWidth:     f32 = 100
-    itemAutoLayoutMargin:     f32 = 25
-    itemMinWidth:             f32 = 25
+    itemFixedLayoutWidth: f32 = 100
+    itemAutoLayoutMargin: f32 = 25
+    itemMinWidth:         f32 = 25
 
     sigSelChanged:            SigArray'func||(*Tab)
 
-    buttonPopup:              #null *IconButton
-    views:                    ArrayPtr'TabItem
-    popup:                    #null *PopupListCtrl
-    selectedIdx:              u32
-    firstVisibleIdx:          u32
-    hotIdx:                   u32 = Swag.U32.Max
-    barHeight:                f32
-    mostRightPos:             f32
+    buttonPopup:     #null *IconButton
+    views:           ArrayPtr'TabItem
+    popup:           #null *PopupListCtrl
+    selectedIdx:     u32
+    firstVisibleIdx: u32
+    hotIdx:          u32 = Swag.U32.Max
+    barHeight:       f32
+    mostRightPos:    f32
 }
 
 impl IWnd for Tab
@@ -380,7 +380,7 @@ private impl Tab
             w = Math.max(w, .itemMinWidth)
             for v in .views
             {
-                v.width = w
+                v.width       = w
                 .mostRightPos += w
             }
 
@@ -388,7 +388,7 @@ private impl Tab
             let w = Math.max(.itemFixedLayoutWidth, .itemMinWidth)
             for v in .views
             {
-                v.width = w
+                v.width       = w
                 .mostRightPos += w
             }
 
@@ -420,8 +420,8 @@ private impl Tab
             let left = Math.round(x)
             x += v.width
             let right = Math.round(x)
-            v.pos   = left
-            v.width = Math.max(right - left, .itemMinWidth)
+            v.pos         = left
+            v.width       = Math.max(right - left, .itemMinWidth)
             .mostRightPos = right
         }
 
@@ -436,8 +436,8 @@ private impl Tab
             // Create a button if there are too many items for the given size
             if !.buttonPopup
             {
-                .buttonPopup      = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.SortArrowDown), {})
-                .buttonPopup.form = .Round
+                .buttonPopup            = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.SortArrowDown), {})
+                .buttonPopup.form       = .Round
                 .buttonPopup.sigPressed += func|tab = me|(btn)
                 {
                     var rect = btn.getSurfaceRect()
@@ -562,7 +562,7 @@ impl Tab
 
         if .views[.selectedIdx].view do
             .views[.selectedIdx].view.wndFlags |= .Hidden
-        .selectedIdx = idx
+        .selectedIdx                           = idx
         if .views[.selectedIdx].view do
             .views[.selectedIdx].view.wndFlags &= ~.Hidden
 

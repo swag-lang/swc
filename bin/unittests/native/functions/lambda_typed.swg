@@ -8,8 +8,8 @@ struct LambdaPair
 
 struct LambdaPayload
 {
-    base:  s32
-    step:  s32
+    base: s32
+    step: s32
     marks: [3] u16
 }
 
@@ -288,7 +288,7 @@ func squareValue(value: s32)->s32 => value * value
 #test
 {
     let increment: LambdaDefaultUnary = func(value) => value + 1
-    let invert: LambdaDefaultBool = func(flag) => !flag
+    let invert:    LambdaDefaultBool = func(flag) => !flag
 
     @assert(increment() == 12)
     @assert(increment(8) == 9)
@@ -312,7 +312,7 @@ func squareValue(value: s32)->s32 => value * value
 #test
 {
     let seedDefaulted: LambdaDefaultUnary = func(value) => value + 1
-    var holder: LambdaRuntimeHolder = {
+    var holder:        LambdaRuntimeHolder = {
         unary: func(value) => value + 4,
         predicate: func(left, right) => left == right,
         defaulted: func(value) => value + 5,
@@ -324,7 +324,7 @@ func squareValue(value: s32)->s32 => value * value
         defaulted: seedDefaulted,
         }
 
-    holder.unary = func(value) => value * 5
+    holder.unary     = func(value) => value * 5
     holder.predicate = func(left, right) => left >= right
     holder.defaulted = func(value) => value - 1
 

@@ -1,14 +1,14 @@
 using Core, Gdiplus, Pixel, Win32
 
-const W = 1260
-const H = 940
-const TestFrames = 30
-const Margin = 24.0
-const SampleCount = 4
-const OutlineFontSize = 48'u32
-const OutlineBorder = 5.5
+const W                   = 1260
+const H                   = 940
+const TestFrames          = 30
+const Margin              = 24.0
+const SampleCount         = 4
+const OutlineFontSize     = 48'u32
+const OutlineBorder       = 5.5
 const OutlineShadowMargin = 14
-const OutlineSuperSample = 3
+const OutlineSuperSample  = 3
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
@@ -20,8 +20,8 @@ enum OutlineMode
 
 struct TextCase
 {
-    label:      string
-    scale:      f32
+    label: string
+    scale: f32
 }
 
 var g_Window:    Env.Window
@@ -106,7 +106,7 @@ func unpremultiplyImage(image: *Image)
         ptr[0] = unpremultiplyChannel(ptr[0], alpha)
         ptr[1] = unpremultiplyChannel(ptr[1], alpha)
         ptr[2] = unpremultiplyChannel(ptr[2], alpha)
-        ptr += 4
+        ptr    += 4
     }
 }
 
@@ -143,7 +143,7 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     gdipCheck(GdipCreateStringFormat(0, 0, &format))
 
     var measurePath: #null *GpPath
-    var bounds: GpRectF
+    var bounds:      GpRectF
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &measurePath))
     addGdiPathText(notnull measurePath, notnull text16.buffer, count16, notnull family, notnull format, emSize, 0, 0)
     gdipCheck(GdipGetPathWorldBounds(notnull measurePath, &bounds, null, null))
@@ -156,7 +156,7 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     var image = Image.create(localW, localH, .BGRA8)
     image.clear()
 
-    var bitmap: #null *GpBitmap
+    var bitmap:   #null *GpBitmap
     var graphics: #null *GpGraphics
     gdipCheck(GdipCreateBitmapFromScan0(localW, localH, localW * 4, GdipPixelFormat32bppPARGB, image.pixels.buffer, &bitmap))
     gdipCheck(GdipGetImageGraphicsContext(cast(*GpImage) (notnull bitmap), &graphics))
@@ -169,7 +169,7 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
     gdipCheck(GdipCreatePath(GdipFillModeAlternate, &path))
     addGdiPathText(notnull path, notnull text16.buffer, count16, notnull family, notnull format, emSize, margin + border - bounds.x, margin + border - bounds.y)
 
-    var pen: #null *GpPen
+    var pen:   #null *GpPen
     var brush: #null *GpSolidFill
     gdipCheck(GdipCreatePen1(cast(u32) Argb.Crimson, border * 2, GdipUnitPixel, &pen))
     gdipCheck(GdipSetPenLineJoin(notnull pen, GdipLineJoinRound))
@@ -202,9 +202,9 @@ func loadGdiReferences()
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle
 {
     var result = rect
-    result.x += left
-    result.y += top
-    result.width -= left + right
+    result.x      += left
+    result.y      += top
+    result.width  -= left + right
     result.height -= top + bottom
     return result
 }

@@ -1,9 +1,9 @@
 #global private
 
 struct A {}
-var gUfcsTotoSum: s32
+var gUfcsTotoSum:  s32
 var gUfcsTitiLast: s32
-var gUfcsTataSum: s32
+var gUfcsTataSum:  s32
 
 impl A
 {
@@ -21,7 +21,7 @@ impl A
 #test
 {
     var value: A
-    var a: *A = &value
+    var a:     *A = &value
     gUfcsTotoSum = 0
     a.toto(1)
     A.toto(a, 2)
@@ -31,7 +31,7 @@ impl A
 #test
 {
     var a: A
-    gUfcsTotoSum = 0
+    gUfcsTotoSum  = 0
     gUfcsTitiLast = 0
     a.toto(1)
     a.titi(10)

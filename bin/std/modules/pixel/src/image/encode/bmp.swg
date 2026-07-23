@@ -25,7 +25,7 @@ public impl IImageEncoder for Encoder
             throw UnsupportedFormatError{"image is too big"}
 
         var fileHeader: FileHeader
-        fileHeader.bfType    = 0x4d42
+        fileHeader.bfType    = 0x4D42
         fileHeader.bfSize    = cast(u32) fileSize
         fileHeader.bfOffBits = #sizeof(FileHeader) + #sizeof(Header)
         result.addStruct(fileHeader)

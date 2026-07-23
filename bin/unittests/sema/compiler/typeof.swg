@@ -114,5 +114,5 @@ const A: s32 = 10
 #assert(#typeof(0x1_0000 + 1'u16) == u32)
 #assert(#typeof(0b1_0000_0000 + 1'u8) == u32)
 
-const OverflowU8 = -1 + 1'u8
+const OverflowU8  = -1 + 1'u8
 const OverflowU16 = -1 + 1'u16

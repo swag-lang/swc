@@ -5,40 +5,40 @@ using Core, Core.Errors
 #[Swag.Pack(1)]
 struct IconDir
 {
-    reserved:     u16
-    type:         u16
-    count:        u16
+    reserved: u16
+    type:     u16
+    count:    u16
 }
 
 // ICONDIRENTRY (16 bytes)
 #[Swag.Pack(1)]
 struct IconDirEntry
 {
-    width:        u8
-    height:       u8
-    colorCount:   u8
-    reserved:     u8
-    planes:       u16
-    bitCount:     u16
-    bytesInRes:   u32
-    imageOffset:  u32
+    width:       u8
+    height:      u8
+    colorCount:  u8
+    reserved:    u8
+    planes:      u16
+    bitCount:    u16
+    bytesInRes:  u32
+    imageOffset: u32
 }
 
 // BITMAPINFOHEADER (40 bytes) embedded in an icon entry
 #[Swag.Pack(1)]
 struct DibHeader
 {
-    size:           u32
-    width:          s32
-    height:         s32
-    planes:         u16
-    bitCount:       u16
-    compression:    u32
-    sizeImage:      u32
-    xPelsPerMeter:  s32
-    yPelsPerMeter:  s32
-    clrUsed:        u32
-    clrImportant:   u32
+    size:          u32
+    width:         s32
+    height:        s32
+    planes:        u16
+    bitCount:      u16
+    compression:   u32
+    sizeImage:     u32
+    xPelsPerMeter: s32
+    yPelsPerMeter: s32
+    clrUsed:       u32
+    clrImportant:  u32
 }
 
 public struct Decoder {}
@@ -162,7 +162,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) throw
             dst[1] = g
             dst[2] = r
             dst[3] = a
-            dst += 4
+            dst    += 4
         }
     }
 }
@@ -193,9 +193,9 @@ public impl IImageDecoder for Decoder
         checkBuffer(base, last, cast(u64) #sizeof(IconDir) + cast(u64) dir.count * #sizeof(IconDirEntry))
 
         // Select the best image: largest area, tie-break on bit depth
-        var bestEntry:  IconDirEntry
-        var bestScore:  u64
-        var found:      bool
+        var bestEntry: IconDirEntry
+        var bestScore: u64
+        var found:     bool
         for i in dir.count
         {
             let entry = dref cast(const *IconDirEntry) (base + #sizeof(IconDir) + cast(u64) i * #sizeof(IconDirEntry))

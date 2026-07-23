@@ -30,10 +30,10 @@ using Swag, Core, Pixel
 
 #test
 {
-    var style: ThemeStyle
+    var style:   ThemeStyle
     var regular: Font
-    var bold: Font
-    var italic: Font
+    var bold:    Font
+    var italic:  Font
 
     style.setFont(&regular, .Regular)
     @assert(style.dirty)

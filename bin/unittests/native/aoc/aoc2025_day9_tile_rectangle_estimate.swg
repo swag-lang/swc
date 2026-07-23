@@ -11,12 +11,12 @@ struct Point2
 
 struct RectangleEstimate
 {
-    pointCount:  u32
-    bestArea:    u64
-    bestLeft:    u32
-    bestRight:   u32
-    bestTop:     u32
-    bestBottom:  u32
+    pointCount: u32
+    bestArea:   u64
+    bestLeft:   u32
+    bestRight:  u32
+    bestTop:    u32
+    bestBottom: u32
 }
 
 func absDiff(lhs, rhs: u32)->u32
@@ -30,7 +30,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
 
     while dref index < @countof(bytes) and bytes[dref index] >= '0' and bytes[dref index] <= '9'
     {
-        result = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
+        result     = result * 10'u32 + cast(u32) (bytes[dref index] - '0')
         dref index += 1
     }
 
@@ -41,11 +41,11 @@ func parsePoint(text: string)->Point2
 {
     let bytes = cast(const [..] u8) text
 
-    var index: u32
+    var index:  u32
     var result: Point2
 
     result.x = parseNumber(bytes, &index)
-    index += 1
+    index    += 1
     result.y = parseNumber(bytes, &index)
     return result
 }
@@ -80,10 +80,10 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 
             if area > result.bestArea
             {
-                result.bestArea = area
-                result.bestLeft = a.x < b.x ? a.x : b.x
-                result.bestRight = a.x > b.x ? a.x : b.x
-                result.bestTop = a.y < b.y ? a.y : b.y
+                result.bestArea   = area
+                result.bestLeft   = a.x < b.x ? a.x : b.x
+                result.bestRight  = a.x > b.x ? a.x : b.x
+                result.bestTop    = a.y < b.y ? a.y : b.y
                 result.bestBottom = a.y > b.y ? a.y : b.y
             }
         }

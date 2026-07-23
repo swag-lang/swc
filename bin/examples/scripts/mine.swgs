@@ -10,10 +10,10 @@ const CellSize = 30'f32
 
 struct Cell
 {
-    mine:      bool
-    show:      bool
-    mark:      bool
-    score:     s32
+    mine:  bool
+    show:  bool
+    mark:  bool
+    score: s32
 }
 
 var g_Grid:       [GridSize, GridSize] Cell
@@ -37,7 +37,7 @@ func fillGrid()
         if rng.nextU32(0, 100) < g_Density
         {
             g_NumMines += 1
-            g.mine = true
+            g.mine     = true
         }
     }
 
@@ -72,7 +72,7 @@ func floodFill(x, y: s32)
         if !g_Grid[pt.x, pt.y].show
         {
             g_Grid[pt.x, pt.y].show = true
-            g_Discovered += 1
+            g_Discovered            += 1
         }
 
         if g_Grid[pt.x, pt.y].score do
@@ -98,7 +98,7 @@ func floodFill(x, y: s32)
 
 func setup()
 {
-    g_Lost, g_Win = false
+    g_Lost, g_Win                        = false
     g_NumMines, g_NumMarks, g_Discovered = 0
     fillGrid()
 }
@@ -148,7 +148,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         elif mouseEvt.button == .Right
         {
             g_Grid[x, y].mark = !g_Grid[x, y].mark
-            g_NumMarks += g_Grid[x, y].mark ? 1 : -1
+            g_NumMarks        += g_Grid[x, y].mark ? 1 : -1
         }
 
         g_Win = g_NumMarks == g_NumMines and g_Discovered == (GridSize * GridSize) - g_NumMines

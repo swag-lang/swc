@@ -40,26 +40,26 @@ enum ContentEnum: u8
 namespace Res
 {
     var piecesTexture: [2, 6] Texture
-    var font:          #null *Font
-    var smallfont:     #null *Font
+    var font:      #null *Font
+    var smallfont: #null *Font
 }
 
 struct Cell
 {
-    piece:       PiecesEnum
-    content:     ContentEnum
+    piece:   PiecesEnum
+    content: ContentEnum
 }
 
 struct CellInfo
 {
-    odd:      bool
-    rect:     Math.Rectangle
+    odd:  bool
+    rect: Math.Rectangle
 }
 
 struct MoveInfo
 {
-    fromP:     s8
-    toP:       s8
+    fromP: s8
+    toP:   s8
 }
 
 struct GameInfo

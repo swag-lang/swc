@@ -190,13 +190,16 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 #test
 {
     let path = makeTempPngPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(2, 1, .RGB8)
     fillSolidPngImage(&src, 1'u8, 2'u8, 3'u8, 255'u8)
 
     var md: ImageMetaData
-    md.tag = "Captme.File"
+    md.tag   = "Captme.File"
     md.value = "capture.captme"
     src.metaDatas.add(md)
 
@@ -289,7 +292,10 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 #test
 {
     let path = makeTempPngPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(3, 2, .RGB8)
     fillSolidPngImage(&src, 24'u8, 48'u8, 96'u8, 255'u8)

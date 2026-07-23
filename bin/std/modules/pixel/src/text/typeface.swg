@@ -2,12 +2,12 @@ using Core, TrueType
 
 public struct TypeFace
 {
-    fullname:         string = ""
-    buffer:           Array'u8
-    face:             *Face = undefined
-    forceBoldDiv:     u32 = 11
-    forceItalic:      bool
-    forceBold:        bool
+    fullname:     string = ""
+    buffer:       Array'u8
+    face:         *Face = undefined
+    forceBoldDiv: u32 = 11
+    forceItalic:  bool
+    forceBold:    bool
 }
 
 var g_HashTypeFace: HashTable'(String, *TypeFace)

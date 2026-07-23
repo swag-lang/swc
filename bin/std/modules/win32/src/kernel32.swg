@@ -143,8 +143,8 @@ const THREAD_PRIORITY_ABOVE_NORMAL = 1
 const THREAD_PRIORITY_HIGHEST      = 2
 const THREAD_PRIORITY_ERROR_RETURN = 0x7FFFFFFF
 
-func LOWORD(l: u64) => cast(u32) (l & 0xffff)
-func HIWORD(l: u64) => cast(u32) ((l >> 16) & 0xffff)
+func LOWORD(l: u64) => cast(u32) (l & 0xFFFF)
+func HIWORD(l: u64) => cast(u32) ((l >> 16) & 0xFFFF)
 
 alias SRWLOCK = #null *void
 const SRWLOCK_INIT = cast(SRWLOCK) null
@@ -166,114 +166,114 @@ const GMEM_INVALID_HANDLE = 0x8000
 
 struct COORD
 {
-    x:     WORD
-    y:     WORD
+    x: WORD
+    y: WORD
 }
 
 struct POINT
 {
-    x:     LONG
-    y:     LONG
+    x: LONG
+    y: LONG
 }
 
 struct SMALL_RECT
 {
-    left:       WORD
-    top:        WORD
-    right:      WORD
-    bottom:     WORD
+    left:   WORD
+    top:    WORD
+    right:  WORD
+    bottom: WORD
 }
 
 struct CONSOLE_SCREEN_BUFFER_INFO
 {
-    dwSize:                  COORD
-    dwCursorPosition:        COORD
-    wAttributes:             WORD
-    srWindow:                SMALL_RECT
-    dwMaximumWindowSize:     COORD
+    dwSize:              COORD
+    dwCursorPosition:    COORD
+    wAttributes:         WORD
+    srWindow:            SMALL_RECT
+    dwMaximumWindowSize: COORD
 }
 
 struct SYSTEM_INFO
 {
-    dwOemId:                         DWORD     // Must be updated to an union
-    dwPageSize:                      DWORD
-    lpMinimumApplicationAddress:     LPVOID
-    lpMaximumApplicationAddress:     LPVOID
-    dwActiveProcessorMask:           DWORD_PTR
-    dwNumberOfProcessors:            DWORD
-    dwProcessorType:                 DWORD
-    dwAllocationGranularity:         DWORD
-    wProcessorLevel:                 WORD
-    wProcessorRevision:              WORD
+    dwOemId:                     DWORD     // Must be updated to an union
+    dwPageSize:                  DWORD
+    lpMinimumApplicationAddress: LPVOID
+    lpMaximumApplicationAddress: LPVOID
+    dwActiveProcessorMask:       DWORD_PTR
+    dwNumberOfProcessors:        DWORD
+    dwProcessorType:             DWORD
+    dwAllocationGranularity:     DWORD
+    wProcessorLevel:             WORD
+    wProcessorRevision:          WORD
 }
 
 struct SYSTEMTIME
 {
-    wYear:             WORD
-    wMonth:            WORD
-    wDayOfWeek:        WORD
-    wDay:              WORD
-    wHour:             WORD
-    wMinute:           WORD
-    wSecond:           WORD
-    wMilliseconds:     WORD
+    wYear:         WORD
+    wMonth:        WORD
+    wDayOfWeek:    WORD
+    wDay:          WORD
+    wHour:         WORD
+    wMinute:       WORD
+    wSecond:       WORD
+    wMilliseconds: WORD
 }
 
 struct SECURITY_ATTRIBUTES
 {
-    nLength:                  DWORD
-    lpSecurityDescriptor:     LPVOID
-    bInheritHandle:           BOOL
+    nLength:              DWORD
+    lpSecurityDescriptor: LPVOID
+    bInheritHandle:       BOOL
 }
 
 struct FILETIME
 {
-    dwLowDateTime:      DWORD
-    dwHighDateTime:     DWORD
+    dwLowDateTime:  DWORD
+    dwHighDateTime: DWORD
 }
 
 struct WIN32_FILE_ATTRIBUTE_DATA
 {
-    dwFileAttributes:     DWORD
-    ftCreationTime:       FILETIME
-    ftLastAccessTime:     FILETIME
-    ftLastWriteTime:      FILETIME
-    nFileSizeHigh:        DWORD
-    nFileSizeLow:         DWORD
+    dwFileAttributes: DWORD
+    ftCreationTime:   FILETIME
+    ftLastAccessTime: FILETIME
+    ftLastWriteTime:  FILETIME
+    nFileSizeHigh:    DWORD
+    nFileSizeLow:     DWORD
 }
 
 struct WIN32_FIND_DATAA
 {
-    dwFileAttributes:       DWORD
-    ftCreationTime:         FILETIME
-    ftLastAccessTime:       FILETIME
-    ftLastWriteTime:        FILETIME
-    nFileSizeHigh:          DWORD
-    nFileSizeLow:           DWORD
-    dwReserved0:            DWORD
-    dwReserved1:            DWORD
+    dwFileAttributes: DWORD
+    ftCreationTime:   FILETIME
+    ftLastAccessTime: FILETIME
+    ftLastWriteTime:  FILETIME
+    nFileSizeHigh:    DWORD
+    nFileSizeLow:     DWORD
+    dwReserved0:      DWORD
+    dwReserved1:      DWORD
     cFileName:              [MAX_PATH] CHAR
     cAlternateFileName:     [14] CHAR
-    dwFileType:             DWORD
-    dwCreatorType:          DWORD
-    wFinderFlags:           WORD
+    dwFileType:    DWORD
+    dwCreatorType: DWORD
+    wFinderFlags:  WORD
 }
 
 struct WIN32_FIND_DATAW
 {
-    dwFileAttributes:       DWORD
-    ftCreationTime:         FILETIME
-    ftLastAccessTime:       FILETIME
-    ftLastWriteTime:        FILETIME
-    nFileSizeHigh:          DWORD
-    nFileSizeLow:           DWORD
-    dwReserved0:            DWORD
-    dwReserved1:            DWORD
+    dwFileAttributes: DWORD
+    ftCreationTime:   FILETIME
+    ftLastAccessTime: FILETIME
+    ftLastWriteTime:  FILETIME
+    nFileSizeHigh:    DWORD
+    nFileSizeLow:     DWORD
+    dwReserved0:      DWORD
+    dwReserved1:      DWORD
     cFileName:              [MAX_PATH] WCHAR
     cAlternateFileName:     [14] WCHAR
-    dwFileType:             DWORD
-    dwCreatorType:          DWORD
-    wFinderFlags:           WORD
+    dwFileType:    DWORD
+    dwCreatorType: DWORD
+    wFinderFlags:  WORD
 }
 
 enum GET_FILEEX_INFO_LEVELS
@@ -284,54 +284,54 @@ enum GET_FILEEX_INFO_LEVELS
 
 struct STARTUPINFOA
 {
-    cb:                  DWORD
-    lpReserved:          LPSTR
-    lpDesktop:           LPSTR
-    lpTitle:             LPSTR
-    dwX:                 DWORD
-    dwY:                 DWORD
-    dwXSize:             DWORD
-    dwYSize:             DWORD
-    dwXCountChars:       DWORD
-    dwYCountChars:       DWORD
-    dwFillAttribute:     DWORD
-    dwFlags:             DWORD
-    wShowWindow:         WORD
-    cbReserved2:         WORD
-    lpReserved2:         LPBYTE
-    hStdInput:           HANDLE
-    hStdOutput:          HANDLE
-    hStdError:           HANDLE
+    cb:              DWORD
+    lpReserved:      LPSTR
+    lpDesktop:       LPSTR
+    lpTitle:         LPSTR
+    dwX:             DWORD
+    dwY:             DWORD
+    dwXSize:         DWORD
+    dwYSize:         DWORD
+    dwXCountChars:   DWORD
+    dwYCountChars:   DWORD
+    dwFillAttribute: DWORD
+    dwFlags:         DWORD
+    wShowWindow:     WORD
+    cbReserved2:     WORD
+    lpReserved2:     LPBYTE
+    hStdInput:       HANDLE
+    hStdOutput:      HANDLE
+    hStdError:       HANDLE
 }
 
 struct STARTUPINFOW
 {
-    cb:                  DWORD
-    lpReserved:          LPWSTR
-    lpDesktop:           LPWSTR
-    lpTitle:             LPWSTR
-    dwX:                 DWORD
-    dwY:                 DWORD
-    dwXSize:             DWORD
-    dwYSize:             DWORD
-    dwXCountChars:       DWORD
-    dwYCountChars:       DWORD
-    dwFillAttribute:     DWORD
-    dwFlags:             DWORD
-    wShowWindow:         WORD
-    cbReserved2:         WORD
-    lpReserved2:         LPBYTE
-    hStdInput:           HANDLE
-    hStdOutput:          HANDLE
-    hStdError:           HANDLE
+    cb:              DWORD
+    lpReserved:      LPWSTR
+    lpDesktop:       LPWSTR
+    lpTitle:         LPWSTR
+    dwX:             DWORD
+    dwY:             DWORD
+    dwXSize:         DWORD
+    dwYSize:         DWORD
+    dwXCountChars:   DWORD
+    dwYCountChars:   DWORD
+    dwFillAttribute: DWORD
+    dwFlags:         DWORD
+    wShowWindow:     WORD
+    cbReserved2:     WORD
+    lpReserved2:     LPBYTE
+    hStdInput:       HANDLE
+    hStdOutput:      HANDLE
+    hStdError:       HANDLE
 }
 
 struct PROCESS_INFORMATION
 {
-    hProcess:        HANDLE
-    hThread:         HANDLE
-    dwProcessId:     DWORD
-    dwThreadId:      DWORD
+    hProcess:    HANDLE
+    hThread:     HANDLE
+    dwProcessId: DWORD
+    dwThreadId:  DWORD
 }
 
 enum FINDEX_INFO_LEVELS

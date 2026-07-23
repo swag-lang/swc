@@ -19,8 +19,8 @@ impl IActionUI for ActionOptions
         {
         case Options:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Options..."
-            evt.icon = main.getTheme().getIcon24(.Options)
+            evt.name     = "Options..."
+            evt.icon     = main.getTheme().getIcon24(.Options)
         }
 
         return true

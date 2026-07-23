@@ -22,10 +22,10 @@ struct EmbInfoCtrl
     using frameWnd:     FrameWnd
     label:              #late *Label
     iconBtn:            #late *IconButton
-    ctrlFlags:          EmbInfoCtrlFlags = .Zero
-    sigOnClose:         SigArray'func||(*EmbInfoCtrl)
-    timer:              #null *Timer
-    kind:               EmbInfoCtrlKind
+    ctrlFlags:  EmbInfoCtrlFlags = .Zero
+    sigOnClose: SigArray'func||(*EmbInfoCtrl)
+    timer:      #null *Timer
+    kind:       EmbInfoCtrlKind
 }
 
 impl IWnd for EmbInfoCtrl
@@ -110,8 +110,8 @@ impl EmbInfoCtrl
 
         with ctrl.iconBtn = IconButton.create(ctrl.label, theme.getIcon24(.WndClose, 18), {0, 0, 32, 32})
         {
-            .margin    = 5
-            .dockStyle = .Right
+            .margin     = 5
+            .dockStyle  = .Right
             .sigPressed += func|ctrl|(btn)
             {
                 ctrl.sigOnClose.call(ctrl)

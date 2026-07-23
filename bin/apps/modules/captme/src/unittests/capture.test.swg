@@ -73,11 +73,11 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testRegisterIoActions(f.main)
 
     f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor = false
-    f.main.captureOptions.sendToClipboard = true
-    f.main.captureOptions.sendToEditor = false
-    f.main.captureOptions.inPlaceEdit = false
-    f.main.captureOptions.delay = 0
+    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.sendToClipboard  = true
+    f.main.captureOptions.sendToEditor     = false
+    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.delay            = 0
 
     f.main.sendCommandEvent(ActionCapture.FullScreen)
 
@@ -95,16 +95,16 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testRegisterIoActions(f.main)
 
     f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor = false
-    f.main.captureOptions.sendToClipboard = true
-    f.main.captureOptions.sendToEditor = false
-    f.main.captureOptions.inPlaceEdit = false
-    f.main.captureOptions.delay = 0
+    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.sendToClipboard  = true
+    f.main.captureOptions.sendToEditor     = false
+    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.delay            = 0
 
     g_StartGrabX = 0
     g_StartGrabY = 0
-    g_EndGrabX = 16
-    g_EndGrabY = 12
+    g_EndGrabX   = 16
+    g_EndGrabY   = 12
 
     @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
 
@@ -127,11 +127,11 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testRegisterIoActions(f.main)
 
     f.main.captureOptions.hideEditorBefore = false
-    f.main.captureOptions.captureCursor = false
-    f.main.captureOptions.sendToClipboard = true
-    f.main.captureOptions.sendToEditor = false
-    f.main.captureOptions.inPlaceEdit = false
-    f.main.captureOptions.delay = 0
+    f.main.captureOptions.captureCursor    = false
+    f.main.captureOptions.sendToClipboard  = true
+    f.main.captureOptions.sendToEditor     = false
+    f.main.captureOptions.inPlaceEdit      = false
+    f.main.captureOptions.delay            = 0
     f.main.monitors.clear()
     testAddMonitor(f.main, 0)
 

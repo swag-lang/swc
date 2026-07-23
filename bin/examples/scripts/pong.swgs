@@ -14,8 +14,8 @@ const PaddleHeight = 50'f32
 
 struct Ball
 {
-    pos:       Vector2
-    speed:     Vector2
+    pos:   Vector2
+    speed: Vector2
 }
 
 struct Paddle

@@ -102,10 +102,10 @@ alias MkanyStrictTypeInfo = typeinfo
     var s1: s64 = 20
     var s2: s64 = 30
     var s3: s64 = 40
-    var a: any = @mkany(&s0, s64)
-    var b: any = @mkany(&s1, s64)
-    var c: any = @mkany(&s2, s64)
-    var d: any = @mkany(&s3, s64)
+    var a:  any = @mkany(&s0, s64)
+    var b:  any = @mkany(&s1, s64)
+    var c:  any = @mkany(&s2, s64)
+    var d:  any = @mkany(&s3, s64)
 
     b = a
     c = b
@@ -125,8 +125,8 @@ alias MkanyStrictTypeInfo = typeinfo
 
 #test
 {
-    var b: bool = true
-    var r: rune = 'A'
+    var b:  bool = true
+    var r:  rune = 'A'
     let ab: any = @mkany(&b, bool)
     let ar: any = @mkany(&r, rune)
     let pb = cast(*bool) @dataof(ab)
@@ -148,7 +148,7 @@ alias MkanyStrictTypeInfo = typeinfo
 
 #test
 {
-    var text: string = "alpha"
+    var text:  string = "alpha"
     let boxed: any = @mkany(&text, string)
     let ptr = cast(*string) @dataof(boxed)
 
@@ -191,7 +191,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
     let ptr = cast(*[..] s32) @dataof(boxed)
 
     values[1] = 77
-    values = buffer[1 to 3]
+    values    = buffer[1 to 3]
 
     @assert(@kindof(boxed) == [..] s32)
     @assert(@countof(dref ptr) == 3)
@@ -267,7 +267,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 #test
 {
     var value = 123's32
-    let ptr: const *s32 = &value
+    let ptr:   const *s32 = &value
     let boxed: const any = @mkany(ptr, s32)
     let data = cast(const *s32) boxed
 
@@ -302,7 +302,7 @@ func mkanyCastStringToBytesFromAny(value: any)->u64
 #test
 {
     var storage: [6] u8 = ['b''u8, 'o''u8, 'x''u8, 'e''u8, 'd''u8, 0]
-    let text: const cstring = cast(const cstring) &storage[0]
+    let text:  const cstring = cast(const cstring) &storage[0]
     let boxed: const any = text
     let view = cast(const cstring) boxed
 

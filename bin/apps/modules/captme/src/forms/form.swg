@@ -1,9 +1,9 @@
 struct FormPaintContext
 {
-    z:             f32
-    renderScale:   f32 = 1
-    quickMode:     bool
-    hitTest:       bool
+    z:           f32
+    renderScale: f32 = 1
+    quickMode:   bool
+    hitTest:     bool
 }
 
 #[Swag.EnumFlags]
@@ -38,8 +38,14 @@ interface IForm
     mtd setup(capt: #null *Capture);
     mtd isSame(ptr: *BaseForm)->bool;
     mtd copy(dst, src: *BaseForm);
-    mtd mustClipToBound()->bool { return false; }
-    mtd canRotate()->bool { return false; }
+    mtd mustClipToBound()->bool
+    {
+        return false;
+    }
+    mtd canRotate()->bool
+    {
+        return false;
+    }
 }
 
 // The property panel is generated from the fields carrying a Properties.Name attribute
@@ -52,8 +58,8 @@ struct BaseForm
 {
     // x/y/w/h carry no grid attribute: the panel appends its own compact x/y and w/h
     // rows right after the generated content (PropWnd.propXY).
-    x, y:                s32 = 0
-    w, h:                s32 = 32
+    x, y: s32 = 0
+    w, h: s32 = 32
 
     // The text forms edit this as "Outline" with a thinner range (PropWnd.bindGrid)
     #[Name("Tickness"), SliderMinMax(MinBorderSize, MaxBorderSize)]
@@ -71,15 +77,15 @@ struct BaseForm
     #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
     paintShadow:         bool = true
 
-    shadowOffsetX:       f32 = 2
-    shadowOffsetY:       f32 = 2
-    borderColor:         Color = Argb.White
-    backColor:           Color = Argb.Red
-    dashStyle:           DashStyle = None
+    shadowOffsetX: f32 = 2
+    shadowOffsetY: f32 = 2
+    borderColor:   Color = Argb.White
+    backColor:     Color = Argb.Red
+    dashStyle:     DashStyle = None
     // Unused, kept because it is serialized: removing it would fail the decoding of
     // existing capture files and of the quick styles saved in the application config.
-    quickModeOpaque:     bool
-    subKind:             FormSubKind = None
+    quickModeOpaque: bool
+    subKind:         FormSubKind = None
 
     // Group membership as a path of group ids, outermost first (empty = ungrouped).
     // Grouping prepends a fresh id shared by every member; ungrouping pops the front,
@@ -89,9 +95,9 @@ struct BaseForm
 
     #[Serialization.NoSerialize]
     {
-        capture:      #null *Capture
-        paintPos:     Math.Rectangle
-        freeze:       bool
+        capture:  #null *Capture
+        paintPos: Math.Rectangle
+        freeze:   bool
     }
 }
 

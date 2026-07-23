@@ -26,7 +26,7 @@ func day4B()
         {
             if l[idx] != '-' do
                 str += l[idx] - 'a'
-            idx += 1
+            idx     += 1
         }
 
         let res = assume StrConv.parseS64(l[idx to])

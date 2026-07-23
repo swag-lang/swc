@@ -108,7 +108,7 @@ impl GenBitwisePair
 // Test: bitwise OR with zero (identity)
 #test
 {
-    var a: GenBitwisePair'u64 = {x: 0xDEAD_BEEF, y: 0xCAFE_BABE}
+    var a:    GenBitwisePair'u64 = {x: 0xDEAD_BEEF, y: 0xCAFE_BABE}
     var zero: GenBitwisePair'u64 = {x: 0, y: 0}
     let result = a | zero
 

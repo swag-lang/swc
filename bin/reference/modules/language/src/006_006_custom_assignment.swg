@@ -108,7 +108,10 @@ To allow compile-time initialization through 'opSet', mark it with
 '#[Swag.ConstExpr]'.
 */
 
-struct Vector2 { x, y: f32 }
+struct Vector2
+{
+    x, y: f32
+}
 
 impl Vector2
 {

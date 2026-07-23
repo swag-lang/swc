@@ -31,8 +31,8 @@ func day3A()
     var x, y = 0
     while y != lines.count - 1
     {
-        x = cast(s32) ((x + 3) % lines[0].length)
-        y += 1
+        x     = cast(s32) ((x + 3) % lines[0].length)
+        y     += 1
         total += lines[y][x] == '#' ? 1 : 0
     }
 

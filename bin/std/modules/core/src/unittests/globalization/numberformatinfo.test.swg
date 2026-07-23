@@ -9,8 +9,8 @@ using Swag
     @assert(info.positiveSign == '+')
     @assert(info.decimalSeparator == '.')
 
-    info.negativeSign = '~'
-    info.positiveSign = '^'
+    info.negativeSign     = '~'
+    info.positiveSign     = '^'
     info.decimalSeparator = ','
 
     @assert(info.negativeSign == '~')

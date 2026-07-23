@@ -51,7 +51,10 @@ What is the size of the largest area that isn't infinite?
 
 using Core
 
-internal struct Claim { d, who: s32 }
+internal struct Claim
+{
+    d, who: s32
+}
 
 func day6A()
 {
@@ -92,13 +95,13 @@ func day6A()
 
                 if r.who
                 {
-                    count[r.who - 1] -= 1
+                    count[r.who - 1]   -= 1
                     borders[r.who - 1] -= border
                 }
 
                 r = {d, cast(s32) who + 1}
 
-                count[who] += 1
+                count[who]   += 1
                 borders[who] += border
             }
         }

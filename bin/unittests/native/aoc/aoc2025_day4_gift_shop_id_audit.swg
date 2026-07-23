@@ -33,7 +33,7 @@ func countDigits(value: u64)->u32
     var result: u32
     while current != 0'u64
     {
-        result += 1
+        result  += 1
         current /= 10'u64
     }
 
@@ -57,7 +57,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u64
     var result: u64
     while dref index < @countof(bytes) and bytes[dref index] >= '0' and bytes[dref index] <= '9'
     {
-        result = result * 10'u64 + cast(u64) (bytes[dref index] - '0')
+        result     = result * 10'u64 + cast(u64) (bytes[dref index] - '0')
         dref index += 1
     }
 
@@ -69,7 +69,7 @@ func auditProductRanges(sheet: string)->GiftShopAudit
     let bytes = cast(const [..] u8) sheet
 
     var result: GiftShopAudit
-    var index: u32
+    var index:  u32
 
     while index < @countof(bytes)
     {
@@ -85,8 +85,8 @@ func auditProductRanges(sheet: string)->GiftShopAudit
         {
             if isRepeatedDoubleId(productId)
             {
-                result.invalidCount += 1
-                result.invalidSum += productId
+                result.invalidCount   += 1
+                result.invalidSum     += productId
                 result.highestInvalid = maxU64(result.highestInvalid, productId)
             }
 

@@ -216,8 +216,8 @@ internal impl Properties
 
         if .isGridHeader(item)
         {
-            item.label.margin.z      = 0
-            item.label.paddingText.x = cast(f32) .leftMargin + .itemIndent(item)
+            item.label.margin.z       = 0
+            item.label.paddingText.x  = cast(f32) .leftMargin + .itemIndent(item)
             item.label.position.width = .getGridHeaderLabelWidth(item)
         }
         else

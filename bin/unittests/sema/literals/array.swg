@@ -55,7 +55,7 @@ func semaTest002()
     #assert(M[1][0] == 3)
 }
 
-const AB: [2] u32 = [1, 2]
+const AB: [2] u32  = [1, 2]
 const AB1: [?] u32 = [1, 2]
 #assert(#typeof(AB1) == #type [2] u32)
 

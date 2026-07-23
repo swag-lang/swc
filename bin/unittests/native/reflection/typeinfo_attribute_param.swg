@@ -3,7 +3,7 @@ using Swag
 
 struct StoredDefaultPair
 {
-    left: s16
+    left:  s16
     right: s16
 }
 

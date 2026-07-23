@@ -4,8 +4,8 @@ const W = 1080
 const H = 560
 
 // Same text rendered with the three techniques, at many sizes (small sizes first).
-const Sizes   = [8, 9, 10, 11, 12, 13, 14, 16, 18, 22, 28, 36]
-const Sample  = "Hamburg agQ 012"
+const Sizes  = [8, 9, 10, 11, 12, 13, 14, 16, 18, 22, 28, 36]
+const Sample = "Hamburg agQ 012"
 
 const ColPx     = 22.0
 const ColBitmap = 120.0
@@ -14,8 +14,8 @@ const ColAuto   = 760.0
 
 struct SceneLayout
 {
-    scale:      f32
-    rect:       Math.Rectangle
+    scale: f32
+    rect:  Math.Rectangle
 }
 
 var g_Window:   Env.Window
@@ -23,10 +23,10 @@ var g_Renderer: Pixel.RenderOgl
 var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
-var g_FontPath:  String
-var g_FontBytes:   Array'u8
-var g_TypeFace:    #null *Pixel.TypeFace
-var g_HeaderFont:  #null *Pixel.Font
+var g_FontPath:   String
+var g_FontBytes:  Array'u8
+var g_TypeFace:   #null *Pixel.TypeFace
+var g_HeaderFont: #null *Pixel.Font
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {
@@ -63,8 +63,8 @@ func computeSceneLayout(width, height: s32)->SceneLayout
 
     with var result: retval = undefined
     {
-        .scale = Math.min(scaleX, scaleY)
-        .rect  = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}
+        .scale  = Math.min(scaleX, scaleY)
+        .rect   = {0, 0, cast(f32) W * .scale, cast(f32) H * .scale}
         .rect.x = Math.round((cast(f32) surfaceWidth - .rect.width) * 0.5)
         .rect.y = Math.round((cast(f32) surfaceHeight - .rect.height) * 0.5)
     }

@@ -7,8 +7,8 @@ interface IEvt {}
 
 struct EvtBase
 {
-    type:   #null typeinfo
-    tag:    s32
+    type: #null typeinfo
+    tag:  s32
 }
 
 impl IEvt for EvtBase {}

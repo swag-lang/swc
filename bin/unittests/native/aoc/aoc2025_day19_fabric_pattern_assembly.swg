@@ -66,7 +66,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
         let arrangements = countAssemblies(patterns, design)
         if arrangements != 0
         {
-            result.matchableCount += 1
+            result.matchableCount    += 1
             result.totalArrangements += arrangements
         }
     }
@@ -77,7 +77,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
 #test
 {
     const samplePatterns: [8] string = ["r", "wr", "b", "g", "bwu", "rb", "gb", "br"]
-    const sampleDesigns: [8] string =
+    const sampleDesigns: [8] string  =
         [
         "brwrr",
         "bggr",
@@ -95,7 +95,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
     @assert(sampleReport.totalArrangements == 16)
 
     const compactPatterns: [4] string = ["a", "ab", "ba", "b"]
-    const compactDesigns: [4] string = ["aba", "abba", "bbb", "c"]
+    const compactDesigns: [4] string  = ["aba", "abba", "bbb", "c"]
 
     let compactReport = analyzeBadgeRequests(compactPatterns, compactDesigns)
 

@@ -8,13 +8,13 @@ struct Polygon
     points: Array'Vector2
 
     // Fill with a call to compute()
-    isClockwise:     bool
-    isConvex:        bool
-    isSimple:        bool
-    area:            f32
-    totalLen:        f32
-    bvMin:           Math.Vector2
-    bvMax:           Math.Vector2
+    isClockwise: bool
+    isConvex:    bool
+    isSimple:    bool
+    area:        f32
+    totalLen:    f32
+    bvMin:       Math.Vector2
+    bvMax:       Math.Vector2
 }
 
 impl Polygon
@@ -119,7 +119,7 @@ impl Polygon
                     let np = .points[i] + v
                     .points.insertAt(i + 1, np)
                     divide -= 1
-                    i += 1
+                    i      += 1
                 }
             }
         }
@@ -457,10 +457,10 @@ impl Polygon
             .bvMax = Vector2.max(.bvMax, .points[p])
 
             // Area
-            .area += .points[p].x * .points[q].y - .points[q].x * .points[p].y
+            .area     += .points[p].x * .points[q].y - .points[q].x * .points[p].y
             .totalLen += v1.length()
-            p = q
-            q += 1
+            p         = q
+            q         += 1
         }
 
         if isClosed do

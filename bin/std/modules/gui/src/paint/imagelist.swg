@@ -3,10 +3,10 @@ using Pixel
 
 struct ImageList
 {
-    texture:         Texture
-    totalFrames:     s32
-    frameSizeX:      s32
-    frameSizeY:      s32
+    texture:     Texture
+    totalFrames: s32
+    frameSizeX:  s32
+    frameSizeY:  s32
 }
 
 impl ImageList

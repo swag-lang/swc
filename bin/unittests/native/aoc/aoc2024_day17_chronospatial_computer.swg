@@ -7,15 +7,15 @@
 // Exercises: #[Swag.Inline] on mtd (the fix), impl with array indexing,
 // nested inline mtd calls, bitwise XOR/shift on registers.
 
-const SampleProg  = "0,1,5,4,3,0"
-const SampleRegA  = 729'u64
+const SampleProg = "0,1,5,4,3,0"
+const SampleRegA = 729'u64
 
-const SmallProg   = "2,6"
-const SmallRegA   = 0'u64
-const SmallRegC   = 9'u64
+const SmallProg = "2,6"
+const SmallRegA = 0'u64
+const SmallRegC = 9'u64
 
-const XorProg     = "1,7"
-const XorRegB     = 29'u64
+const XorProg = "1,7"
+const XorRegB = 29'u64
 
 // ---------------------------------------------------------------------------
 // CPU
@@ -56,7 +56,7 @@ impl Cpu
     mtd emit(val: u8)
     {
         me.out[me.outLen] = val
-        me.outLen += 1
+        me.outLen         += 1
     }
 
     mtd reset(a: u64, b: u64, c: u64)
@@ -64,8 +64,8 @@ impl Cpu
         me.regs[0] = a
         me.regs[1] = b
         me.regs[2] = c
-        me.ip     = 0
-        me.outLen = 0
+        me.ip      = 0
+        me.outLen  = 0
     }
 }
 
@@ -135,7 +135,7 @@ func parseProgram(text: string, cpu: *Cpu)
         if ch >= '0' and ch <= '9'
         {
             cpu.mem[cpu.memLen] = ch - '0'
-            cpu.memLen += 1
+            cpu.memLen          += 1
         }
         pos += 1
     }

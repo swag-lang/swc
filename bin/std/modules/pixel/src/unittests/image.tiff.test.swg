@@ -529,7 +529,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 #test
 {
     let path = makeTempTiffPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(3, 2, .RGB8)
     src.clear()

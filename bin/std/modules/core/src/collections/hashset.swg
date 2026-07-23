@@ -4,8 +4,8 @@ using Swag
 // Represents a single entry within a HashSet.
 struct(K) HashSetEntry
 {
-    hash:     u32     // The cached hash of the key.
-    key:      K       // The key itself.
+    hash: u32     // The cached hash of the key.
+    key:  K       // The key itself.
 }
 
 // A hash set implemented with an open-addressing hash me.table.
@@ -18,11 +18,11 @@ struct(K) HashSet
     const HASH_FIRST       = 2'u32     // The first possible valid hash value.
     const HASH_MASK        = 2'u32     // A mask to ensure that valid hashes are >= HASH_FIRST.
 
-    allocator:             #null IAllocator           // The me.allocator used for memory operations.
-    table:                 #null [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
-    count:                 u64                        // The number of valid elements currently in the set.
-    capacity:              u64                        // The total number of slots in the hash me.table.
-    deleted:               u64                        // The number of slots marked as deleted.
+    allocator: #null IAllocator           // The me.allocator used for memory operations.
+    table:     #null [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
+    count:     u64                        // The number of valid elements currently in the set.
+    capacity:  u64                        // The total number of slots in the hash me.table.
+    deleted:   u64                        // The number of slots marked as deleted.
 }
 
 impl HashSet
@@ -165,7 +165,7 @@ impl HashSet
         }
 
         Memory.free(table, .capacity * #sizeof(HashSetEntry'(K)), .allocator)
-        .table = null
+        .table                      = null
         .count, .capacity, .deleted = 0
     }
 
@@ -194,7 +194,7 @@ impl HashSet
 
         if .allocator == null do
             .allocator = @getcontext().allocator
-        .table = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
+        .table         = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()
 
         // Be sure hash entry is 0
@@ -267,12 +267,12 @@ impl HashSet
         else
         {
             if table[index].hash == HashSet.HASH_DELETED do
-                .deleted -= 1
+                .deleted     -= 1
             table[index].key = #fwd key
         }
 
         table[index].hash = hashVal
-        .count += 1
+        .count            += 1
         return table + index
     }
 
@@ -303,7 +303,7 @@ impl HashSet
         }
 
         table[index].hash = hashVal
-        .count += 1
+        .count            += 1
         return table + index
     }
 
@@ -333,12 +333,12 @@ impl HashSet
                 }
                 else
                 {
-                    .deleted -= 1
+                    .deleted               -= 1
                     table[targetIndex].key = #fwd key
                 }
 
                 table[targetIndex].hash = hashVal
-                .count += 1
+                .count                  += 1
                 return true
             }
 
@@ -349,8 +349,8 @@ impl HashSet
             elif entryHash == hashVal and table[index].key == key
             {
                 table[index].hash = HashSet.HASH_DELETED
-                .count -= 1
-                .deleted += 1
+                .count            -= 1
+                .deleted          += 1
                 return false
             }
 
@@ -375,8 +375,8 @@ impl HashSet
             if table[index].hash == hashVal and table[index].key == key
             {
                 table[index].hash = HashSet.HASH_DELETED
-                .count -= 1
-                .deleted += 1
+                .count            -= 1
+                .deleted          += 1
                 return
             }
 
@@ -423,7 +423,7 @@ impl HashSet
                 if hashval == HashSet.HASH_DELETED do
                     .deleted -= 1
                 elif hashval >= HashSet.HASH_FIRST do
-                    .count -= 1
+                    .count    -= 1
                 table[i].hash = HashSet.HASH_FREE
 
                 // We are done if there's no more valid value, and no more me.deleted value

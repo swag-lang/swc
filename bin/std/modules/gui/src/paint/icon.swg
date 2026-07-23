@@ -3,11 +3,11 @@ using Pixel
 
 struct Icon
 {
-    imageList:     #null *ImageList
-    index:         s32
-    sizeX:         f32 = 24
-    sizeY:         f32 = 24
-    color:         Color
+    imageList: #null *ImageList
+    index:     s32
+    sizeX:     f32 = 24
+    sizeY:     f32 = 24
+    color:     Color
 }
 
 impl Icon

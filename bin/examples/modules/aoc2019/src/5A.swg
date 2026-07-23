@@ -71,18 +71,18 @@ func day5A()
             let param0 = mode0 ? op[ip + 1] : op[op[ip + 1]]
             let param1 = mode1 ? op[ip + 2] : op[op[ip + 2]]
             op[op[ip + 3]] = param0 + param1
-            ip += 4
+            ip             += 4
         case 2:
             let param0 = mode0 ? op[ip + 1] : op[op[ip + 1]]
             let param1 = mode1 ? op[ip + 2] : op[op[ip + 2]]
             op[op[ip + 3]] = param0 * param1
-            ip += 4
+            ip             += 4
         case 3:
             op[op[ip + 1]] = 1
-            ip += 2
+            ip             += 2
         case 4:
             output = op[op[ip + 1]]
-            ip += 2
+            ip     += 2
         }
     }
 

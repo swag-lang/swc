@@ -62,13 +62,13 @@ func day8B()
             switch lines[ip][0 to 2]
             {
             case "nop":
-                ip += cpt == fix ? v : 1
+                ip  += cpt == fix ? v : 1
                 cpt += 1
             case "acc":
                 total += v
-                ip += 1
+                ip    += 1
             case "jmp":
-                ip += cpt == fix ? 1 : v
+                ip  += cpt == fix ? 1 : v
                 cpt += 1
             }
 

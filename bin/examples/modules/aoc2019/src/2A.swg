@@ -67,7 +67,7 @@ func day2A()
             op[op[ip + 3]] = op[op[ip + 1]] + op[op[ip + 2]]
         else do
             op[op[ip + 3]] = op[op[ip + 1]] * op[op[ip + 2]]
-        ip += 4
+        ip                 += 4
     }
 
     // Console.print("total: ", op[0])

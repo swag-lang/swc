@@ -10,7 +10,7 @@ struct ForeachVariadicPayload
 {
     arr: [3] s32
     flag: bool
-    tag: u8
+    tag:  u8
 }
 
 #test
@@ -39,7 +39,7 @@ struct ForeachVariadicPayload
     {
         var arr: [3] s32 = [7, 8, 9]
         var rawSl = cast([..] s32) arr
-        var sl: ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
+        var sl:  ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
         var acc: s32 = 0
 
         for v, i in sl
@@ -143,7 +143,7 @@ struct ForeachVariadicPayload
     func foreachStringValueIndex()->u32
     {
         var text: string = "ABC"
-        var acc: u32 = 0
+        var acc:  u32 = 0
 
         for v, i in text
         {
@@ -265,7 +265,7 @@ struct ForeachVariadicPayload
 
     const p0: ForeachVariadicPayload = {arr: [7, 8, 9], flag: true, tag: 2'u8}
     const p1: ForeachVariadicPayload = {arr: [1, 2, 3], flag: false, tag: 4'u8}
-    const V = #run foreachTypedVariadicPayload(p0, p1)
+    const V                          = #run foreachTypedVariadicPayload(p0, p1)
     #assert(V == 28'u64)
 }
 

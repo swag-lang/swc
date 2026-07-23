@@ -12,7 +12,7 @@ using Swag, Core
 
     var opts: Image.SmartCropSearchOpts = {}
     opts.minCoverage = 1.0
-    opts.maxSize = 2
+    opts.maxSize     = 2
 
     var targetRect: Math.Rectangle = {}
     targetRect.width  = 4

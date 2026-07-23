@@ -3,8 +3,8 @@
 #[Swag.Inline]
 func inlineDivInterleavedShift(a: u32, b: u32, c: u32)->u32
 {
-    var q: u32  = a / b
-    var s: u32  = c >> q
+    var q:  u32  = a / b
+    var s:  u32  = c >> q
     var q2: u32 = c / b
     var s2: u32 = a << (q - 1'u32)
     return s + q + q2 + s2

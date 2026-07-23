@@ -1,7 +1,7 @@
 #global private
 using Swag
 
-var DropCount: s32
+var DropCount:     s32
 var PostCopyCount: s32
 var PostMoveCount: s32
 
@@ -23,13 +23,13 @@ impl LifecycleProbe
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 100
+        .value        += 100
     }
 }
 
@@ -69,7 +69,7 @@ impl GenericDirectLifecycleProbe
 func pushEvent(value: s32)
 {
     Events[EventCount] = value
-    EventCount += 1
+    EventCount         += 1
 }
 
 struct OrderedLifecycleProbe
@@ -125,7 +125,7 @@ impl OrderedLifecycleContainer
 
 func resetCounts()
 {
-    DropCount = 0
+    DropCount     = 0
     PostCopyCount = 0
     PostMoveCount = 0
 }

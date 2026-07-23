@@ -123,7 +123,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
             {
                 buf.addNative('%''u8)
                 nextIdx += 1
-                idx += 1
+                idx     += 1
                 continue
             }
 
@@ -137,13 +137,13 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
                 while ptr[nextIdx] and ptr[nextIdx] != '}''u8
                 {
                     countFormat += 1
-                    nextIdx += 1
+                    nextIdx     += 1
                 }
 
                 if ptr[nextIdx] do
                     nextIdx += 1
-                idx       = nextIdx
-                strFormat = @mkslice(ptrFormat, cast(u64) countFormat)
+                idx         = nextIdx
+                strFormat   = @mkslice(ptrFormat, cast(u64) countFormat)
             }
 
             // Deal with the parameter

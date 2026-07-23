@@ -24,8 +24,8 @@ impl RuntimeSliceEdgeBox
     mtd opSlice(low, up: u64) -> [..] s32
     {
         .sliceCalls += 1
-        .lastLow = low
-        .lastUp = up
+        .lastLow    = low
+        .lastUp     = up
         return @mkslice(&.values[low], (up + 1) - low)
     }
 }

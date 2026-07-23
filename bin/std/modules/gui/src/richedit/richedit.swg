@@ -22,57 +22,57 @@ enum RichEditForm
 
 struct RichEditMapping
 {
-    key:           Input.Key = undefined
-    modifiers:     Input.KeyModifiers = undefined
-    command:       RichEditCommand = undefined
+    key:       Input.Key = undefined
+    modifiers: Input.KeyModifiers = undefined
+    command:   RichEditCommand = undefined
 }
 
 struct RichEditCtrl
 {
     using frameWnd:              FrameWnd
     richEdFlags                  = RichEditFlags.Zero
-    lineSpacing:                 f32
-    overwriteMode:               bool
-    tabSize:                     s32 = 4
-    marginLeft:                  f32
-    marginRight:                 f32
-    lexer:                       #null IRichEditLexer
+    lineSpacing:   f32
+    overwriteMode: bool
+    tabSize:       s32 = 4
+    marginLeft:    f32
+    marginRight:   f32
+    lexer:         #null IRichEditLexer
     form                         = RichEditForm.RichEditCtrl
-    sigIsReadOnly:               SigArray'func||(*bool)
-    sigChanged:                  SigArray'func||(*RichEditCtrl)
-    sigModified:                 SigArray'func||(*RichEditCtrl)
-    bkColorModel:                String
+    sigIsReadOnly: SigArray'func||(*bool)
+    sigChanged:    SigArray'func||(*RichEditCtrl)
+    sigModified:   SigArray'func||(*RichEditCtrl)
+    bkColorModel:  String
 
     styles:                      [256] RichEditRuneStyle
     stylesSelect:                [2] RichEditRuneStyle
-    cursorPos:                   RichEditCursor
-    selBeg:                      RichEditCursor
-    lines:                       ArrayPtr'RichEditLine
-    freeLines:                   ArrayPtr'RichEditLine
+    cursorPos: RichEditCursor
+    selBeg:    RichEditCursor
+    lines:     ArrayPtr'RichEditLine
+    freeLines: ArrayPtr'RichEditLine
     scrollWnd:                   #late *ScrollWnd
     edView:                      #late *RichEditView
     selRectangle:                Math.Rectangle
 
-    hasSelRect:                  bool
-    modified:                    bool
-    recomputeScroll:             bool
-    dirtyFirstLineView:          bool
-    forceCaretVisible:           bool
-    forceCaretVisibleCenter:     bool
+    hasSelRect:              bool
+    modified:                bool
+    recomputeScroll:         bool
+    dirtyFirstLineView:      bool
+    forceCaretVisible:       bool
+    forceCaretVisibleCenter: bool
 
-    undoMgr:                     ArrayPtr'RichEditUndo
-    toUndo:                      ArrayPtr'RichEditUndo
-    mapping:                     Array'RichEditMapping
-    currentUndo:                 u64
-    undoCounter:                 u64
-    modifiedUndoMarker:          u64
-    serialUndo:                  u64
-    countVisibleLines:           u64
-    firstVisibleLineView:        u64
-    lastVisibleLineView:         u64
-    clipFormat:                  Clipboard.ValueFormat
-    cursorPosUndo:               RichEditCursor
-    selBegUndo:                  RichEditCursor
+    undoMgr:              ArrayPtr'RichEditUndo
+    toUndo:               ArrayPtr'RichEditUndo
+    mapping:              Array'RichEditMapping
+    currentUndo:          u64
+    undoCounter:          u64
+    modifiedUndoMarker:   u64
+    serialUndo:           u64
+    countVisibleLines:    u64
+    firstVisibleLineView: u64
+    lastVisibleLineView:  u64
+    clipFormat:           Clipboard.ValueFormat
+    cursorPosUndo:        RichEditCursor
+    selBegUndo:           RichEditCursor
 }
 
 private impl IWnd for RichEditCtrl
@@ -123,19 +123,19 @@ private impl RichEditCtrl
 
             if .lines[i].isVisible()
             {
-                .countVisibleLines += 1
+                .countVisibleLines           += 1
                 .lines[i].drawingRect.y      = y
                 .lines[i].drawingRect.height = size.y
-                y += size.y
-                firstHidden = true
+                y                            += size.y
+                firstHidden                  = true
             }
             elif firstHidden
             {
-                .countVisibleLines += 1
+                .countVisibleLines           += 1
                 .lines[i].drawingRect.y      = y
                 .lines[i].drawingRect.height = size.y
-                y += size.y
-                firstHidden = false
+                y                            += size.y
+                firstHidden                  = false
             }
         }
     }
@@ -171,7 +171,7 @@ private impl RichEditCtrl
         if .lines.count
         {
             let insLine = index == .lines.count ? .lines.back() : .lines[index]
-            p.drawingRect = insLine.drawingRect
+            p.drawingRect   = insLine.drawingRect
             p.drawingRect.y += p.drawingRect.height
         }
 
@@ -270,8 +270,8 @@ impl RichEditCtrl
                     ed.dirtyFirstLineView = true
             }
 
-            .edView    = .scrollWnd.createView'RichEditView()
-            .edView.ed = ed
+            .edView          = .scrollWnd.createView'RichEditView()
+            .edView.ed       = ed
             .edView.wndFlags |= .NoScroll
 
             .setDefaultMapping()

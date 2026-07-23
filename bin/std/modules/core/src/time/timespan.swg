@@ -59,12 +59,12 @@ impl TimeSpan
         let i = cast(s32) (m - 1) + months
         if i >= 0
         {
-            m = cast(u16) (i % 12 + 1)
+            m    = cast(u16) (i % 12 + 1)
             year += i / 12
         }
         else
         {
-            m = cast(u16) (12 + (i + 1) % 12)
+            m    = cast(u16) (12 + (i + 1) % 12)
             year += (i - 11) / 12
         }
 
@@ -72,7 +72,7 @@ impl TimeSpan
         y = cast(u16) year
         let days = daysInMonth(y, m)
         if d > days do
-            d = days
+            d  = days
         .ticks = dateToTicks(y, m, d) + (.ticks % TicksPerDay)
     }
 

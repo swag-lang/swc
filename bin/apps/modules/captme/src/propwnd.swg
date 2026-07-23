@@ -109,7 +109,7 @@ impl PropWnd
             undo.valU32 = val
             if !common do
                 undo.mdlType = type
-            undo.valRef = notnull Reflection.getField(type, name)
+            undo.valRef      = notnull Reflection.getField(type, name)
             capture.pushUndo(undo)
         }
 
@@ -165,7 +165,7 @@ impl PropWnd
         let frame  = btn.createAnchorPopup(180, 66)
         let layout = frame.createView'WrapLayoutCtrl()
         layout.wrapWidth, layout.wrapHeight = 48
-        layout.padding = 4
+        layout.padding                      = 4
 
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: String)->FormShapeKind
         {
@@ -364,8 +364,8 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             let curSel = prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x = rect.horzCenter() - 16
-            rect.y = rect.vertCenter() - 16
+            rect.x                  = rect.horzCenter() - 16
+            rect.y                  = rect.vertCenter() - 16
             rect.width, rect.height = 32
             if !curSel.borderColor.isOpaque() do
                 bc.painter.drawRoundRect(rect, 5, 5, Pen.createHatch(.CheckBoardLarge, Argb.DarkGray, 5))
@@ -414,8 +414,8 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             var curSel = prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x = rect.horzCenter() - 21
-            rect.y = rect.vertCenter() - 21
+            rect.x                  = rect.horzCenter() - 21
+            rect.y                  = rect.vertCenter() - 21
             rect.width, rect.height = 42
             var backCol = curSel.subKind == .PixSel ? g_Main.pixSelFillCol : curSel.backColor
             if !backCol.isOpaque() do
@@ -596,9 +596,9 @@ impl PropWnd
 
         with let btn = PushButton.create(stack, "Reset", {0, 0, 60})
         {
-            .margin.x  = 5
-            .dockStyle = .Right
-            .toolTip   = "Reset the global step count to 1"
+            .margin.x      = 5
+            .dockStyle     = .Right
+            .toolTip       = "Reset the global step count to 1"
             btn.sigPressed += func|prop = me|(btn)
             {
                 // The button outlives the panel build; the capture may be gone by the
@@ -646,8 +646,8 @@ impl PropWnd
             bc.painter.setParams(.Antialiased)
             let curSel = cast(*FormCallout) prop.getSelectedBaseForm()
             var rect   = pos
-            rect.x = rect.horzCenter() - 21
-            rect.y = rect.vertCenter() - 21
+            rect.x                  = rect.horzCenter() - 21
+            rect.y                  = rect.vertCenter() - 21
             rect.width, rect.height = 42
             if !curSel.textColor.isOpaque() do
                 bc.painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
@@ -856,9 +856,9 @@ impl PropWnd
             .topLayout.padding      = 8
             .topLayout.padding.y    = 16
 
-            .grid                 = Properties.create(prop, kind: .Panel)
-            .grid.dockStyle       = .Center
-            .grid.showReverts     = false
+            .grid             = Properties.create(prop, kind: .Panel)
+            .grid.dockStyle   = .Center
+            .grid.showReverts = false
             // Most specific first: a form edits its own fields (text, caps, round...)
             // before the BaseForm style shared by every form
             .grid.usingFieldsLast = true

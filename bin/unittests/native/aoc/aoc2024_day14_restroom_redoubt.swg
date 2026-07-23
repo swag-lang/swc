@@ -30,10 +30,10 @@ const SampleHeight = 7's32
 const Steps        = 100'u32
 
 // Quadrant indices computed at compile time
-const QuadTL = 0'u32
-const QuadTR = 1'u32
-const QuadBL = 2'u32
-const QuadBR = 3'u32
+const QuadTL   = 0'u32
+const QuadTR   = 1'u32
+const QuadBL   = 2'u32
+const QuadBR   = 3'u32
 const NumQuads = QuadBR + 1
 #assert(NumQuads == 4)
 
@@ -62,7 +62,7 @@ func parseS32(bytes: const [..] u8, pos: *u32)->s32
     var neg = false
     if dref pos < @countof(bytes) and bytes[dref pos] == '-'
     {
-        neg = true
+        neg      = true
         dref pos += 1
     }
 
@@ -74,7 +74,7 @@ func parseS32(bytes: const [..] u8, pos: *u32)->s32
         let ch = bytes[dref pos]
         if ch < '0' or ch > '9' do
             break
-        val = val * 10 + cast(s32) (ch - '0')
+        val      = val * 10 + cast(s32) (ch - '0')
         dref pos += 1
     }
 
@@ -174,7 +174,7 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
             continue
 
         // Determine quadrant with cast() auto-inference
-        let right: bool = cast() (bot.px > midX)
+        let right:  bool = cast() (bot.px > midX)
         let bottom: bool = cast() (bot.py > midY)
 
         if !right and !bottom do quads[QuadTL] += 1
@@ -202,7 +202,7 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
 #[Swag.Mixin]
 func computeVarianceX(fleet: *Fleet, step: s32)
 {
-    var sumX: s64
+    var sumX:  s64
     var sumX2: s64
     for i in fleet.count
     {
@@ -220,7 +220,7 @@ func computeVarianceX(fleet: *Fleet, step: s32)
 func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 {
     var bestStep: u32
-    var bestVar: u64 = 0xFFFFFFFFFFFFFFFF
+    var bestVar:  u64 = 0xFFFFFFFFFFFFFFFF
 
     for s in maxSteps
     {
@@ -350,8 +350,8 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 #test
 {
     var fleet: Fleet
-    fleet.w = 5
-    fleet.h = 5
+    fleet.w     = 5
+    fleet.h     = 5
     fleet.count = 1
     with fleet.bots[0]
     {
@@ -376,8 +376,8 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 #test
 {
     var fleet: Fleet
-    fleet.w = 5
-    fleet.h = 5
+    fleet.w     = 5
+    fleet.h     = 5
     fleet.count = 1
     with fleet.bots[0]
     {

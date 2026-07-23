@@ -5,7 +5,7 @@ alias TimerHandle = #null const *void
 
 struct Timer
 {
-    userLambda:     #null func(Timer)
-    handle:         TimerHandle
-    context:        Swag.Context
+    userLambda: #null func(Timer)
+    handle:     TimerHandle
+    context:    Swag.Context
 }

@@ -345,6 +345,94 @@ SWC_TEST_BEGIN(FormatBraces_ShortCaseJoins)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_ShortStructsKeepTupleTypes)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()->{ x: f32, y: f32 }\n"
+        "{\n"
+        "    var result: retval\n"
+        "    return result\n"
+        "}\n"
+        "var g: { a: s32, b: s32 }\n";
+
+    FormatOptions options;
+    options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Never;
+    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_ShortStructsStillSplitDeclarations)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Point { x: f32, y: f32 }\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Point {\n"
+        "    x: f32, y: f32\n"
+        "}\n";
+
+    FormatOptions options;
+    options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Never;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_ShortFunctionsKeepClosureArguments)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    bar(func(x: s32) { baz(x) })\n"
+        "    bar(func|v = 1|(x: s32) { baz(v) })\n"
+        "}\n"
+        "func bar(cb: func(s32)) {}\n"
+        "func baz(x: s32) {}\n";
+
+    FormatOptions options;
+    options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Never;
+    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_ShortBlocksKeepInitializerLiterals)
+{
+    static constexpr std::string_view SOURCE =
+        "struct(T) Box\n"
+        "{\n"
+        "    values: [2] T\n"
+        "}\n"
+        "func foo()\n"
+        "{\n"
+        "    var a = Box'(s32){values: [21, 34]}\n"
+        "    var b = struct { field: u16 }{field: 12'u16}\n"
+        "}\n";
+
+    FormatOptions options;
+    options.allowShortBlocksOnSingleLine  = FormatShortBlockStyle::Never;
+    options.allowShortStructsOnSingleLine = FormatShortBlockStyle::Never;
+    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_ShortFunctionsInlineKeepsClosureBodies)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    bar(func(x: s32)\n"
+        "    {\n"
+        "        baz(x)\n"
+        "    })\n"
+        "}\n"
+        "func bar(cb: func(s32)) {}\n"
+        "func baz(x: s32) {}\n";
+
+    FormatOptions options;
+    options.allowShortFunctionsOnSingleLine = FormatShortBlockStyle::Inline;
+    return checkBracesRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

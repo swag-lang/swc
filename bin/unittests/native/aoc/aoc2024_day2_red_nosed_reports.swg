@@ -3,7 +3,7 @@
 // Advent of Code 2024 Day 2: keep one solver direct and data-oriented,
 // then cross-check it with a caller-scope macro/mixin flavored variant.
 
-const MaxReports = 1024
+const MaxReports      = 1024
 const MaxReportLevels = 16
 
 const SampleInput =
@@ -14,7 +14,7 @@ const SampleInput =
 8 6 4 4 1
 1 3 6 7 9"""
 
-const EdgeInput = "1 2 3 4\r\n1 3 2 4 5\r\n8 6 4 4 1\r\n9 7 6 2 1\r\n"
+const EdgeInput     = "1 2 3 4\r\n1 3 2 4 5\r\n8 6 4 4 1\r\n9 7 6 2 1\r\n"
 const CoverageInput =
     """1 2 3 4
 9 7 5 3
@@ -46,9 +46,9 @@ struct ReportBatch
 
 struct SafetyAudit
 {
-    reportCount:          u32
-    safeWithoutDampener:  u32
-    safeWithDampener:     u32
+    reportCount:         u32
+    safeWithoutDampener: u32
+    safeWithDampener:    u32
 }
 
 func isDigit(ch: u8)->bool
@@ -68,9 +68,9 @@ func deltaTrend(delta: s32)->Trend
 
 func parseReports(bytes: const [..] u8)->ReportBatch
 {
-    var result: ReportBatch
+    var result:  ReportBatch
     var current: Report
-    var value: s32
+    var value:   s32
     var readingNumber = false
 
     for @countof(bytes)
@@ -78,7 +78,7 @@ func parseReports(bytes: const [..] u8)->ReportBatch
         let ch = bytes[@index]
         if isDigit(ch)
         {
-            value = value * 10 + cast(s32) (ch - '0')
+            value         = value * 10 + cast(s32) (ch - '0')
             readingNumber = true
             continue
         }
@@ -89,17 +89,17 @@ func parseReports(bytes: const [..] u8)->ReportBatch
             {
                 @assert(current.count < MaxReportLevels)
                 current.levels[current.count] = value
-                current.count += 1
-                value = 0
-                readingNumber = false
+                current.count                 += 1
+                value                         = 0
+                readingNumber                 = false
             }
 
             if ch == '\n''u8 and current.count != 0
             {
                 @assert(result.count < MaxReports)
                 result.reports[result.count] = current
-                result.count += 1
-                current.count = 0
+                result.count                 += 1
+                current.count                = 0
             }
 
             continue
@@ -112,14 +112,14 @@ func parseReports(bytes: const [..] u8)->ReportBatch
     {
         @assert(current.count < MaxReportLevels)
         current.levels[current.count] = value
-        current.count += 1
+        current.count                 += 1
     }
 
     if current.count != 0
     {
         @assert(result.count < MaxReports)
         result.reports[result.count] = current
-        result.count += 1
+        result.count                 += 1
     }
 
     return result
@@ -140,7 +140,7 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
         let level = report.levels[rawIndex]
         if !havePrevious
         {
-            previous = level
+            previous     = level
             havePrevious = true
             continue
         }
@@ -153,7 +153,7 @@ func isSafeReport(report: Report, skippedIndex: s32)->bool
         if trend != Trend.Unknown and currentTrend != trend do
             return false
 
-        trend = currentTrend
+        trend    = currentTrend
         previous = level
     }
 
@@ -240,7 +240,7 @@ func noteFeatureLevel(level: s32)
             }
         }
 
-        featurePrevious = level
+        featurePrevious    = level
         featureHasPrevious = true
     }
 }

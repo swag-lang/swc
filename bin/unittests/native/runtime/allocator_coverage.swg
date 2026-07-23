@@ -156,7 +156,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 {
     var alloc: Allocator
     let itf = makeAllocator(&alloc, trackAllocations: true)
-    alloc.maxFreeSize   = 2048
+    alloc.maxFreeSize    = 2048
     alloc.maxCachedBytes = 1024
 
     const Count = 64
@@ -222,7 +222,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     var req: AllocatorRequest
     req.address = null
-    req.size = 64
+    req.size    = 64
     itf.realloc(&req)
     @assert(req.address != null)
 
@@ -230,8 +230,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     for i in 64 do
         p[i] = cast(u8) (i + 1)
 
-    req.oldSize = 64
-    req.size = 64
+    req.oldSize   = 64
+    req.size      = 64
     req.alignment = 128
     itf.realloc(&req)
     @assert(req.address != null)
@@ -382,8 +382,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     struct StressShared
     {
-        itf:       #null IAllocator
-        alloc:     #null *Allocator
+        itf:   #null IAllocator
+        alloc: #null *Allocator
         slots:     [StressCount] #null *void
         index:     s32
         freerDone: s32

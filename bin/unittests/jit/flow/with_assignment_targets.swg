@@ -68,7 +68,7 @@ impl JitWithAssignOwner
         with shadow
         {
             me.value = 4
-            .value = 9
+            .value   = 9
         }
 
         return me.value * 100 + shadow.value
@@ -123,7 +123,7 @@ func jitWithAssignedValueTarget()->s32
 func jitWithAssignmentsAndScopes()->s32
 {
     var point = jitWithAssignMakePoint(2, 4)
-    var ptr: *JitWithAssignPoint = undefined
+    var ptr:    *JitWithAssignPoint = undefined
     var holder: JitWithAssignHolder = undefined
     var total = 0
 
@@ -169,15 +169,15 @@ func jitWithNestedMemberTarget()->s32
     {
         with .ptr
         {
-            .x += 1
+            .x    += 1
             total += .x + .y
         }
 
         with .ptr
         {
-            .y += 2
+            .y    += 2
             total += .x + .y
-            .x += 3
+            .x    += 3
         }
     }
 

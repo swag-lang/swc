@@ -206,7 +206,7 @@ internal impl Properties
                 lbl.position.x     = me.leftMargin
                 lbl.position.width = Math.max(cw - me.leftMargin - me.rightMargin, 1.0)
                 lbl.autoHeight()
-                consume = topGap + lbl.position.height + botGap
+                consume        = topGap + lbl.position.height + botGap
                 lbl.position.y = item.valueCellHeight + topGap
             }
 
@@ -244,7 +244,7 @@ private impl Properties
             return false
 
         item.validation    = state
-        item.validationMsg  = message
+        item.validationMsg = message
 
         if state == .None
         {
@@ -272,7 +272,7 @@ private impl Properties
 
         with let lbl = Label.create(item.line, "", {0, 0, .position.width, 0})
         {
-            .labelFlags |= .WordWrap | .AutoHeight
+            .labelFlags        |= .WordWrap | .AutoHeight
             .horzAlignmentText = .Left
             .vertAlignmentText = .Center
             .focusStrategy     = .None

@@ -51,8 +51,8 @@ let myStruct = catch decoder.readAll'MyStruct(res.toSlice())
 */
 struct(T) Decoder
 {
-    serializer:     T
-    flags:          DecoderFlags = Zero
+    serializer: T
+    flags:      DecoderFlags = Zero
 }
 
 impl Decoder
@@ -132,7 +132,7 @@ impl Decoder
             defer #noerr .serializer.endSection()
 
             var objType, itfType: #null typeinfo
-            var typeVal: TypeValue
+            var typeVal:          TypeValue
             typeVal.pointedType = #typeof(#null typeinfo)
 
             #if T == Read.TagBin

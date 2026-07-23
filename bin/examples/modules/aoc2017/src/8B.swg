@@ -48,7 +48,7 @@ func day8B()
         {
             let it = regs.find(re[1])
             it.value += v0
-            total = Math.max(it.value, total)
+            total    = Math.max(it.value, total)
         }
     }
 

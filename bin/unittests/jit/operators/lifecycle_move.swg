@@ -5,27 +5,27 @@
 // lifecycle-safety behavior itself.
 #global #[Swag.Safety(.Lifecycle, false), Swag.Sanity(.Lifecycle, false)]
 
-var DropCount: u32 = 0
-var DropTrace: s64 = 0
+var DropCount:     u32 = 0
+var DropTrace:     s64 = 0
 var PostCopyCount: u32 = 0
 var PostMoveCount: u32 = 0
 
 func resetLifecycleHooks()
 {
-    DropCount = 0
-    DropTrace = 0
+    DropCount     = 0
+    DropTrace     = 0
     PostCopyCount = 0
     PostMoveCount = 0
 }
 
 struct LifecycleInfo
 {
-    dst: s32
-    src: s32
-    drops: u32
+    dst:       s32
+    src:       s32
+    drops:     u32
     dropTrace: s64
-    postCopy: u32
-    postMove: u32
+    postCopy:  u32
+    postMove:  u32
 }
 
 struct Tracked
@@ -44,21 +44,21 @@ impl Tracked
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 20
+        .value        += 20
     }
 }
 
 struct ReturnedTracked
 {
     value: s32 = 5
-    a: s64
-    b: s64
+    a:     s64
+    b:     s64
 }
 
 impl ReturnedTracked
@@ -72,13 +72,13 @@ impl ReturnedTracked
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 20
+        .value        += 20
     }
 }
 
@@ -89,10 +89,10 @@ struct EmbeddedTracked
 
 struct LargeTracked
 {
-    a: u64
-    b: u64
-    c: u64
-    d: u64
+    a:    u64
+    b:    u64
+    c:    u64
+    d:    u64
     item: Tracked
 }
 
@@ -112,13 +112,13 @@ impl EmbeddedTrackedWithOps
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .inner.value += 100
+        .inner.value  += 100
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .inner.value += 200
+        .inner.value  += 200
     }
 }
 
@@ -621,19 +621,19 @@ impl Settable
     mtd opSet(v: s32)
     {
         SetCount += 1
-        .value = v
+        .value   = v
     }
 
     mtd opPostCopy()
     {
         PostCopyCount += 1
-        .value += 10
+        .value        += 10
     }
 
     mtd opPostMove()
     {
         PostMoveCount += 1
-        .value += 20
+        .value        += 20
     }
 
     mtd opDrop()

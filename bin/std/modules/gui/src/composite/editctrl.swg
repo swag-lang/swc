@@ -4,8 +4,8 @@ using Core, Pixel
 struct EditCtrl
 {
     using frameWnd:     FrameWnd
-    labelSize:          f32 = 60
-    editSize:           f32 = 60     // 0 to fit to parent size
+    labelSize: f32 = 60
+    editSize:  f32 = 60     // 0 to fit to parent size
 
     label:              #late *Label
     edit:               #late *EditBox

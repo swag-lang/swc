@@ -4,13 +4,13 @@ using Swag
 
 func expectedHasZeroByte16(value: u16)->bool
 {
-    return (value & 0x00ff) == 0 or (value & 0xff00) == 0
+    return (value & 0x00FF) == 0 or (value & 0xFF00) == 0
 }
 
 func expectedHasByte16(value: u16, byte: u8)->bool
 {
     let expected = cast(u16) byte
-    return (value & 0x00ff) == expected or ((value >> 8) & 0x00ff) == expected
+    return (value & 0x00FF) == expected or ((value >> 8) & 0x00FF) == expected
 }
 
 func expectedSign8(value: s8)->s8
@@ -43,21 +43,21 @@ func expectedAbs8(value: s8)->s8
     @assert(Math.isPowerOf2(0x8000'u16))
     @assert(!Math.isPowerOf2(0'u16))
     @assert(!Math.isPowerOf2(1023'u16))
-    @assert(!Math.isPowerOf2(0xffff'u16))
+    @assert(!Math.isPowerOf2(0xFFFF'u16))
 
     @assert(Math.isPowerOf2(1'u32))
     @assert(Math.isPowerOf2(1024'u32))
     @assert(Math.isPowerOf2(0x80000000'u32))
     @assert(!Math.isPowerOf2(0'u32))
     @assert(!Math.isPowerOf2(1023'u32))
-    @assert(!Math.isPowerOf2(0xffffffff'u32))
+    @assert(!Math.isPowerOf2(0xFFFFFFFF'u32))
 
     @assert(Math.isPowerOf2(1'u64))
     @assert(Math.isPowerOf2(1024'u64))
     @assert(Math.isPowerOf2(0x80000000_00000000'u64))
     @assert(!Math.isPowerOf2(0'u64))
     @assert(!Math.isPowerOf2(1023'u64))
-    @assert(!Math.isPowerOf2(0xffffffff_ffffffff'u64))
+    @assert(!Math.isPowerOf2(0xFFFFFFFF_FFFFFFFF'u64))
 }
 
 #test
@@ -76,7 +76,7 @@ func expectedAbs8(value: s8)->s8
         @assert(Math.hasByte(cast(u16) byte, byte))
         @assert(Math.hasByte(cast(u16) byte << 8, byte))
 
-        if byte != 0xff
+        if byte != 0xFF
         {
             let other = byte + 1
             @assert(!Math.hasByte(Math.makeRepeat16(byte), other))
@@ -87,9 +87,9 @@ func expectedAbs8(value: s8)->s8
     {
         let input = cast(u16) value
         @assert(Math.hasByte(input, 0x00'u8) == expectedHasByte16(input, 0x00'u8))
-        @assert(Math.hasByte(input, 0x7f'u8) == expectedHasByte16(input, 0x7f'u8))
+        @assert(Math.hasByte(input, 0x7F'u8) == expectedHasByte16(input, 0x7F'u8))
         @assert(Math.hasByte(input, 0x80'u8) == expectedHasByte16(input, 0x80'u8))
-        @assert(Math.hasByte(input, 0xff'u8) == expectedHasByte16(input, 0xff'u8))
+        @assert(Math.hasByte(input, 0xFF'u8) == expectedHasByte16(input, 0xFF'u8))
     }
 }
 
@@ -115,12 +115,12 @@ func expectedAbs8(value: s8)->s8
     @assert(Math.roundDownToPowerOf2(1'u32) == 1'u32)
     @assert(Math.roundDownToPowerOf2(3'u32) == 2'u32)
     @assert(Math.roundDownToPowerOf2(1025'u32) == 1024'u32)
-    @assert(Math.roundDownToPowerOf2(0xffffffff'u32) == 0x80000000'u32)
+    @assert(Math.roundDownToPowerOf2(0xFFFFFFFF'u32) == 0x80000000'u32)
     @assert(Math.roundDownToPowerOf2(0'u64) == 0'u64)
     @assert(Math.roundDownToPowerOf2(1'u64) == 1'u64)
     @assert(Math.roundDownToPowerOf2(3'u64) == 2'u64)
     @assert(Math.roundDownToPowerOf2(1025'u64) == 1024'u64)
-    @assert(Math.roundDownToPowerOf2(0xffffffff_ffffffff'u64) == 0x80000000_00000000'u64)
+    @assert(Math.roundDownToPowerOf2(0xFFFFFFFF_FFFFFFFF'u64) == 0x80000000_00000000'u64)
 }
 
 #test
@@ -129,30 +129,30 @@ func expectedAbs8(value: s8)->s8
     @assert(Math.hasZeroByte(0x0012'u16))
     @assert(Math.hasZeroByte(0x1200'u16))
     @assert(!Math.hasZeroByte(0x1212'u16))
-    @assert(!Math.hasZeroByte(0xffff'u16))
+    @assert(!Math.hasZeroByte(0xFFFF'u16))
     @assert(Math.hasZeroByte(0x00000000'u32))
     @assert(Math.hasZeroByte(0x00345678'u32))
     @assert(Math.hasZeroByte(0x12340078'u32))
     @assert(!Math.hasZeroByte(0x12345678'u32))
-    @assert(!Math.hasZeroByte(0xffffffff'u32))
+    @assert(!Math.hasZeroByte(0xFFFFFFFF'u32))
     @assert(Math.hasZeroByte(0x00000000_00000000'u64))
-    @assert(Math.hasZeroByte(0x00345678_89abcdef'u64))
-    @assert(Math.hasZeroByte(0x12345600_89abcdef'u64))
-    @assert(!Math.hasZeroByte(0x12345678_89abcdef'u64))
-    @assert(!Math.hasZeroByte(0xffffffff_ffffffff'u64))
+    @assert(Math.hasZeroByte(0x00345678_89ABCDEF'u64))
+    @assert(Math.hasZeroByte(0x12345600_89ABCDEF'u64))
+    @assert(!Math.hasZeroByte(0x12345678_89ABCDEF'u64))
+    @assert(!Math.hasZeroByte(0xFFFFFFFF_FFFFFFFF'u64))
 
     @assert(Math.makeRepeat16(0x00'u8) == 0x0000'u16)
     @assert(Math.makeRepeat16(0x20'u8) == 0x2020'u16)
-    @assert(Math.makeRepeat16(0xff'u8) == 0xffff'u16)
+    @assert(Math.makeRepeat16(0xFF'u8) == 0xFFFF'u16)
     @assert(Math.makeRepeat32(0x00'u8) == 0x00000000'u32)
     @assert(Math.makeRepeat32(0x20'u8) == 0x20202020'u32)
-    @assert(Math.makeRepeat32(0xff'u8) == 0xffffffff'u32)
+    @assert(Math.makeRepeat32(0xFF'u8) == 0xFFFFFFFF'u32)
     @assert(Math.makeRepeat64(0x00'u8) == 0x00000000_00000000'u64)
     @assert(Math.makeRepeat64(0x20'u8) == 0x20202020_20202020'u64)
-    @assert(Math.makeRepeat64(0xff'u8) == 0xffffffff_ffffffff'u64)
-    @assert(Math.make64(0x12345678'u32, 0x9abcdef0'u32) == 0x123456789abcdef0'u64)
-    @assert(Math.make64(0'u32, 0xffffffff'u32) == 0x00000000ffffffff'u64)
-    @assert(Math.make64(0xffffffff'u32, 0'u32) == 0xffffffff00000000'u64)
+    @assert(Math.makeRepeat64(0xFF'u8) == 0xFFFFFFFF_FFFFFFFF'u64)
+    @assert(Math.make64(0x12345678'u32, 0x9ABCDEF0'u32) == 0x123456789ABCDEF0'u64)
+    @assert(Math.make64(0'u32, 0xFFFFFFFF'u32) == 0x00000000FFFFFFFF'u64)
+    @assert(Math.make64(0xFFFFFFFF'u32, 0'u32) == 0xFFFFFFFF00000000'u64)
 
     @assert(Math.hasByte(0x1234'u16, 0x12'u8))
     @assert(Math.hasByte(0x1234'u16, 0x34'u8))
@@ -162,11 +162,11 @@ func expectedAbs8(value: s8)->s8
     @assert(Math.hasByte(0x12345678'u32, 0x12'u8))
     @assert(Math.hasByte(0x12345678'u32, 0x56'u8))
     @assert(Math.hasByte(0x12345678'u32, 0x78'u8))
-    @assert(!Math.hasByte(0x12345678'u32, 0x9a'u8))
-    @assert(Math.hasByte(0x12345678_89abcdef'u64, 0x12'u8))
-    @assert(Math.hasByte(0x12345678_89abcdef'u64, 0xab'u8))
-    @assert(Math.hasByte(0x12345678_89abcdef'u64, 0xef'u8))
-    @assert(!Math.hasByte(0x12345678_89abcdef'u64, 0x00'u8))
+    @assert(!Math.hasByte(0x12345678'u32, 0x9A'u8))
+    @assert(Math.hasByte(0x12345678_89ABCDEF'u64, 0x12'u8))
+    @assert(Math.hasByte(0x12345678_89ABCDEF'u64, 0xAB'u8))
+    @assert(Math.hasByte(0x12345678_89ABCDEF'u64, 0xEF'u8))
+    @assert(!Math.hasByte(0x12345678_89ABCDEF'u64, 0x00'u8))
 }
 
 #test

@@ -246,8 +246,8 @@ using Swag, Core
 
     var moveBase = f.capture.newUndo(.MoveBaseForm)
     moveBase.baseForm = cast(IForm) shape
-    moveBase.newPosX = 5
-    moveBase.newPosY = 6
+    moveBase.newPosX  = 5
+    moveBase.newPosY  = 6
     moveBase.newSizeX = 7
     moveBase.newSizeY = 8
     f.capture.pushUndo(moveBase)
@@ -258,8 +258,8 @@ using Swag, Core
     var movePoint = f.capture.newUndo(.MovePoint)
     movePoint.baseForm = cast(IForm) line
     movePoint.pointIdx = 1
-    movePoint.newPosX = -10
-    movePoint.newPosY = 20
+    movePoint.newPosX  = -10
+    movePoint.newPosY  = 20
     f.capture.pushUndo(movePoint)
     @assert(line.xb == 140)
     @assert(line.yb == 190)
@@ -268,8 +268,8 @@ using Swag, Core
     @assert(line.yb == 170)
 
     var moveCapture = f.capture.newUndo(.MoveCapture)
-    moveCapture.newPosX = 11
-    moveCapture.newPosY = -9
+    moveCapture.newPosX  = 11
+    moveCapture.newPosY  = -9
     moveCapture.newSizeX = 5
     moveCapture.newSizeY = -6
     f.capture.pushUndo(moveCapture)
@@ -298,14 +298,14 @@ using Swag, Core
     f.setup()
 
     let text = testAddText(f.capture, 0, 0, 120, 60)
-    text.text = "before"
-    text.fontName = "font-a"
+    text.text      = "before"
+    text.fontName  = "font-a"
     text.fontStyle = .Regular
-    text.rotate = 45
+    text.rotate    = 45
 
     let shape = testAddShape(f.capture, 150, 0, 50, 50)
     shape.borderSize = 3
-    shape.rotate = 30
+    shape.rotate     = 30
 
     f.capture.selection.add(0)
     var setText = f.capture.newUndo(.SetText)
@@ -318,7 +318,7 @@ using Swag, Core
     @assert(text.text == "after")
 
     var setFont = f.capture.newUndo(.SetFont)
-    setFont.text = "font-b"
+    setFont.text      = "font-b"
     setFont.fontStyle = .Bold
     f.capture.pushUndo(setFont)
     @assert(text.fontName == "font-b")
@@ -347,11 +347,11 @@ using Swag, Core
     f.capture.selection.clear()
     f.capture.selection.add(1)
     let model = Memory.new'FormShape()
-    model.subKind = .None
+    model.subKind    = .None
     model.borderSize = 12
-    model.backColor = ColorBlue
+    model.backColor  = ColorBlue
     var style = f.capture.newUndo(.SetFormFromModel)
-    style.mdlType = FormShape
+    style.mdlType  = FormShape
     style.mdlValue = model
     f.capture.pushUndo(style)
     @assert(shape.borderSize == 12)
@@ -428,8 +428,8 @@ using Swag, Core
     @assert(f.capture.snapY == 300)
 
     f.main.snap = false
-    nx = -42
-    ny = -42
+    nx          = -42
+    ny          = -42
     f.capture.snap(&nx, &ny, false, false, editForm: cast(IForm) moving)
     @assert(nx == -42)
     @assert(ny == -42)

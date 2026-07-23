@@ -69,8 +69,8 @@ impl GenericDirectAndField
 
 struct(T) NestedGenericLifecycle
 {
-    pair: PairBox'T
-    tail: T
+    pair:  PairBox'T
+    tail:  T
     stamp: s32 = 36
 }
 
@@ -90,7 +90,7 @@ struct(T, N: s32) GenericInitCascade
 func pushEvent(value: s32)
 {
     Events[EventCount] = value
-    EventCount += 1
+    EventCount         += 1
 }
 
 func resetEvents()
@@ -314,23 +314,23 @@ func genericCascadeInitRestoresArraysAndNestedFields()->bool
         return false
 
     var value: GenericInitCascade'(GenericInitProbe, 3)
-    value.direct.child.value = 31
-    value.direct.child.ready = false
-    value.direct.stamp = 32
-    value.nested.pair.left.value = 41
-    value.nested.pair.left.ready = false
+    value.direct.child.value      = 31
+    value.direct.child.ready      = false
+    value.direct.stamp            = 32
+    value.nested.pair.left.value  = 41
+    value.nested.pair.left.ready  = false
     value.nested.pair.right.value = 42
     value.nested.pair.right.ready = false
-    value.nested.tail.value = 43
-    value.nested.tail.ready = false
-    value.nested.stamp = 44
-    value.values[0].value = 51
-    value.values[0].ready = false
-    value.values[1].value = 52
-    value.values[1].ready = false
-    value.values[2].value = 53
-    value.values[2].ready = false
-    value.stamp = 54
+    value.nested.tail.value       = 43
+    value.nested.tail.ready       = false
+    value.nested.stamp            = 44
+    value.values[0].value         = 51
+    value.values[0].ready         = false
+    value.values[1].value         = 52
+    value.values[1].ready         = false
+    value.values[2].value         = 53
+    value.values[2].ready         = false
+    value.stamp                   = 54
 
     resetEvents()
     runInit(type, &value)

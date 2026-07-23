@@ -13,7 +13,7 @@ struct(T) Box
 
 struct(A, B) Pair
 {
-    first: A
+    first:  A
     second: B
 }
 

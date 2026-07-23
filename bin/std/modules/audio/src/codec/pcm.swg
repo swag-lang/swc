@@ -63,7 +63,7 @@ impl ICodec for CodecPcmToPcm16
                     var sample = cast(u32) src[0] | (cast(u32) src[1] << 8) | (cast(u32) src[2] << 16)
                     if sample & 0x00800000 do
                         sample |= 0xFF000000
-                    dst[0] = cast(s16) (cast #wrap (s32) sample >> 8)
+                    dst[0]     = cast(s16) (cast #wrap (s32) sample >> 8)
                 }
                     #elif EN == .Pcm32
                 {
@@ -80,10 +80,10 @@ impl ICodec for CodecPcmToPcm16
                     #else do
                     #assert(false)
 
-                dst += 1
-                src += TS
+                dst   += 1
+                src   += TS
                 write += #sizeof(s16)
-                read += TS
+                read  += TS
             }
 
             return {write, read}

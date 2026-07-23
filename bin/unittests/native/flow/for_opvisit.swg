@@ -340,7 +340,7 @@ impl GenericScopedVisits
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == #typeof(@index))
-        sumValues += value
+        sumValues  += value
         sumIndexes += index
     }
 
@@ -385,7 +385,7 @@ impl GenericScopedVisits
 
     for #reverse value, index in values
     {
-        code = code * 10 + value
+        code  = code * 10 + value
         order += index
     }
 
@@ -417,7 +417,7 @@ impl GenericScopedVisits
     for value in values
     {
         count += 1
-        sum += cast(s32) @index
+        sum   += cast(s32) @index
         discard value
     }
 
@@ -434,7 +434,7 @@ impl GenericScopedVisits
     for value in values
     {
         #assert(#typeof(value) == s32)
-        code = code * 10 + value
+        code  = code * 10 + value
         order += @index
     }
 
@@ -465,7 +465,7 @@ impl GenericScopedVisits
     for &value, ordinal in values
     {
         #assert(#typeof(value) == #type &s32)
-        value += cast(s32) (ordinal + 1)
+        value      += cast(s32) (ordinal + 1)
         mutatedSum += value
     }
 
@@ -486,7 +486,7 @@ impl GenericScopedVisits
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
         signature = signature * 100 + left * 10 + right
-        order += @index
+        order     += @index
     }
 
     @assert(signature == 244668)
@@ -522,7 +522,7 @@ impl GenericScopedVisits
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))
-        sum += value
+        sum     += value
         indexes += ordinal
     }
 

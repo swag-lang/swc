@@ -146,6 +146,12 @@ namespace
     private:
         FormatShortBlockStyle shortStyleFor(const FormatBlock& block) const
         {
+            // Blocks embedded in an expression or a type (closure bodies,
+            // anonymous struct / tuple types) keep their layout: splitting or
+            // joining them would reformat the middle of an expression.
+            if (block.exprLevel)
+                return FormatShortBlockStyle::Preserve;
+
             switch (block.kind)
             {
                 case FormatBlockKind::Function:

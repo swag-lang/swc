@@ -207,7 +207,7 @@ func logicalNullableMaybe(p: *LogicalNullableGuardItem)->#null *LogicalNullableG
 #test
 {
     var item = LogicalNullableGuardItem{value: 17}
-    let ptr: #null *LogicalNullableGuardItem = logicalNullableMaybe(&item)
+    let ptr:   #null *LogicalNullableGuardItem = logicalNullableMaybe(&item)
     let empty: #null *LogicalNullableGuardItem = null
 
     @assert(logicalNullableGuardOr(empty))

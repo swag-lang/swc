@@ -77,8 +77,8 @@ private
 
     struct AcceptRange
     {
-        lo:     u8
-        hi:     u8
+        lo: u8
+        hi: u8
     }
 
     const AcceptRanges: [?] AcceptRange = [
@@ -293,7 +293,7 @@ func fromUnicode(dest: [..] u8, src: const [..] rune)->u64
         Debug.assert(remain >= 4, "destination buffer is too small")
         let sl  = @mkslice(dataof + total, remain)
         let cpt = encodeRune(sl, ch)
-        total += cpt
+        total  += cpt
         remain -= cpt
     }
 
@@ -328,9 +328,9 @@ func fromUtf16(dest: [..] u8, src: const [..] u16)->u64
         Debug.assert(destLength >= 4, "destination buffer is too small")
         let eatDest = encodeRune(@mkslice(destPtr, destLength), c)
         destPtr, count += eatDest
-        destLength -= eatDest
+        destLength     -= eatDest
 
-        srcPtr += eat
+        srcPtr    += eat
         srcLength -= eat
     }
 
@@ -432,8 +432,8 @@ func byteIndex(buffer: const [..] u8, charIndex: u64)->{ index: u64, success: bo
         Debug.assert(val <= countof, "invalid utf8 character")
         resultByte += val
         resultChar += 1
-        dataof += val
-        countof -= val
+        dataof     += val
+        countof    -= val
     }
 
     result.index   = resultByte
@@ -452,8 +452,8 @@ func countRunes(buffer: const [..] u8)->u64
     {
         let val = countBytesAt(@mkslice(dataof, countof))
         Debug.assert(val <= countof)
-        cpt += 1
-        dataof += val
+        cpt     += 1
+        dataof  += val
         countof -= val
     }
 
@@ -492,7 +492,7 @@ func indexOf(src: const [..] u8, what: string, startByteIndex = 0'u64, compariso
         if res == 0 do
             return idx
         scan, idx += 1
-        remain -= 1
+        remain    -= 1
     }
 
     return Swag.U64.Max
@@ -523,7 +523,7 @@ func indexOfAny(src: const [..] u8, what: const [..] u8, startByteIndex = 0'u64)
         if Slice.contains(what, dref scan) do
             return idx
         scan, idx += 1
-        remain -= 1
+        remain    -= 1
     }
 
     return Swag.U64.Max
@@ -556,7 +556,7 @@ func indexOfAny(src: const [..] u8, what: const [..] rune, startByteIndex = 0'u6
         if Slice.contains(what, res.c) do
             return idx
         scan, idx += res.eat
-        remain -= res.eat
+        remain    -= res.eat
     }
 
     return Swag.U64.Max
@@ -749,8 +749,8 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
         var data        = @dataof(src)
         var otherData   = @dataof(dst)
 
-        var result: s32
-        var c1, c2: rune
+        var result:     s32
+        var c1, c2:     rune
         var eat1, eat2: u32
         for
         {
@@ -768,10 +768,10 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
                     return Math.sign(result)
             }
 
-            length -= eat1
+            length      -= eat1
             otherLength -= eat2
-            data += eat1
-            otherData += eat2
+            data        += eat1
+            otherData   += eat2
         }
 
         if !eat1 and eat2 do
@@ -811,9 +811,9 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
             #inject(stmt, c = curRune, charIdx = curCharIdx, byteIdx = curByteIdx, continue = break to Inside)
         }
 
-        curCharIdx += 1
+        curCharIdx       += 1
         curByteIdx, scan += eat
-        count -= eat
+        count            -= eat
     }
 }
 
@@ -831,7 +831,7 @@ func isValid(buffer: const [..] u8)->bool
         let first64 = dref cast(const *u64) p
         if first64 & 0x80808080_80808080 do
             break
-        p += 8
+        p       += 8
         countof -= 8
     }
 
@@ -840,7 +840,7 @@ func isValid(buffer: const [..] u8)->bool
         let p0 = cast(rune) dref p
         if (p0 & 0x80) == 0
         {
-            p += 1
+            p       += 1
             countof -= 1
             continue
         }
@@ -863,7 +863,7 @@ func isValid(buffer: const [..] u8)->bool
             return false
         if sz <= 2
         {
-            p += 2
+            p       += 2
             countof -= 2
             continue
         }
@@ -873,7 +873,7 @@ func isValid(buffer: const [..] u8)->bool
             return false
         if sz <= 3
         {
-            p += 3
+            p       += 3
             countof -= 3
             continue
         }
@@ -881,7 +881,7 @@ func isValid(buffer: const [..] u8)->bool
         let b3 = p[3]
         if !(LoCB <= b3 and b3 <= HiCB) do
             return false
-        p += 4
+        p       += 4
         countof -= 4
     }
 
@@ -901,7 +901,7 @@ func beautifyName(name: const [..] u8)->String
             if !wasUpper
             {
                 wasUpper = true
-                result += " "
+                result   += " "
             }
         }
         else
@@ -912,7 +912,7 @@ func beautifyName(name: const [..] u8)->String
         if first
         {
             result += Unicode.toUpper(c)
-            first = false
+            first  = false
         }
         else do
             result += c

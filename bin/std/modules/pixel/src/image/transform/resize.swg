@@ -52,15 +52,15 @@ namespace ResizeTools
 {
     struct Contribution
     {
-        weights:         Array'f64
-        left, right:     s64
+        weights:     Array'f64
+        left, right: s64
     }
 
     struct LineContrib
     {
-        row:            Array'Contribution
-        windowSize:     s64
-        lineLength:     s64
+        row:        Array'Contribution
+        windowSize: s64
+        lineLength: s64
     }
 
     func allocContributions(lineLength, windowSize: s64)->LineContrib
@@ -226,7 +226,7 @@ namespace ResizeTools
 
                 nonZeroFound                   = true
                 res.row[u].weights[src - left] = resf
-                totalWeight += resf
+                totalWeight                    += resf
             }
 
             // Normalize weight of neighboring points
@@ -261,7 +261,7 @@ namespace ResizeTools
                 let right = crow.right
 
                 #if BPP == 32 do
-                    var da: f64
+                    var da:     f64
                 var dr, dg, db: f64
                 var pw  = crow.weights.buffer
                 var ptr = srcRow + left * bpp8
@@ -273,8 +273,8 @@ namespace ResizeTools
                     dr += f * ptr[2]
                     #if BPP == 32 do
                         da += f * ptr[3]
-                    pw += 1
-                    ptr += bpp8
+                    pw     += 1
+                    ptr    += bpp8
                 }
 
                 dstRow[0] = cast(u8) Math.round(db)
@@ -282,7 +282,7 @@ namespace ResizeTools
                 dstRow[2] = cast(u8) Math.round(dr)
                 #if BPP == 32 do
                     dstRow[3] = cast(u8) Math.round(da)
-                dstRow += bpp8
+                dstRow        += bpp8
             }
         }
 
@@ -317,7 +317,7 @@ namespace ResizeTools
                 let right = crow.right
 
                 #if BPP == 32 do
-                    var da: f64
+                    var da:     f64
                 var dr, dg, db: f64
                 var pw  = crow.weights.buffer
                 var ptr = srcCol + left * w8Src
@@ -329,8 +329,8 @@ namespace ResizeTools
                     dr += f * ptr[2]
                     #if BPP == 32 do
                         da += f * ptr[3]
-                    pw += 1
-                    ptr += cast(u64) w8Src
+                    pw     += 1
+                    ptr    += cast(u64) w8Src
                 }
 
                 dstCol[0] = cast(u8) Math.round(db)
@@ -338,7 +338,7 @@ namespace ResizeTools
                 dstCol[2] = cast(u8) Math.round(dr)
                 #if BPP == 32 do
                     dstCol[3] = cast(u8) Math.round(da)
-                dstCol += cast(u64) w8Dst
+                dstCol        += cast(u64) w8Dst
             }
         }
 

@@ -20,13 +20,13 @@ using Core, Pixel
 // addStruct), as long as the edited instances themselves are still alive.
 struct PropFieldValue
 {
-    valid:      bool
-    isString:   bool
-    n:          u64                   // number of instances captured
-    sz:         u64                   // per-instance byte size (raw-bytes case only)
-    addrs:      Array'(#null *u8)     // field address in each captured instance
-    bytes:      Array'u8              // n * sz contiguous raw bytes (raw-bytes case)
-    strings:    Array'String          // n strings (String case)
+    valid:    bool
+    isString: bool
+    n:        u64                   // number of instances captured
+    sz:       u64                   // per-instance byte size (raw-bytes case only)
+    addrs:    Array'(#null *u8)     // field address in each captured instance
+    bytes:    Array'u8              // n * sz contiguous raw bytes (raw-bytes case)
+    strings:  Array'String          // n strings (String case)
 }
 
 impl PropFieldValue
@@ -148,9 +148,9 @@ impl PropFieldValue
 struct PropUndoCommand
 {
     prop:           #late *Properties
-    generation:     u64
-    oldVal:         PropFieldValue
-    newVal:         PropFieldValue
+    generation: u64
+    oldVal:     PropFieldValue
+    newVal:     PropFieldValue
 }
 
 impl IUndoCommand for PropUndoCommand

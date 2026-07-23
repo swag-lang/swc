@@ -4,8 +4,8 @@ using Core, Pixel
 struct ComboCtrl
 {
     using frameWnd:     FrameWnd
-    labelSize:          f32 = 60
-    comboSize:          f32 = 60     // 0 to fit to parent size
+    labelSize: f32 = 60
+    comboSize: f32 = 60     // 0 to fit to parent size
 
     label:              #late *Label
     combo:              #late *ComboBox

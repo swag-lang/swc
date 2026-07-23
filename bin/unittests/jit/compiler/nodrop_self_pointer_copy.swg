@@ -1,8 +1,8 @@
 #global private
 
-var LastInlineBufferTextDropAddr: #null [*] void
-var LastInlineBufferTextDropBuffer: #null [*] u8
-var ExpectedInlineBufferTextDropAddr: #null [*] void
+var LastInlineBufferTextDropAddr:       #null [*] void
+var LastInlineBufferTextDropBuffer:     #null [*] u8
+var ExpectedInlineBufferTextDropAddr:   #null [*] void
 var ExpectedInlineBufferTextDropBuffer: #null [*] u8
 
 struct SelfPointerValue
@@ -17,7 +17,7 @@ impl SelfPointerValue
     {
         .storage[0] = value
         .storage[1] = 0
-        .buffer = cast([*] u8) &.storage[0]
+        .buffer     = cast([*] u8) &.storage[0]
     }
 
     mtd const first()->u8
@@ -116,7 +116,7 @@ impl InlineBufferText
         if newCapacity <= 16
         {
             .capacity = 16
-            .buffer = cast([*] u8) &.padding[0]
+            .buffer   = cast([*] u8) &.padding[0]
             return
         }
 
@@ -165,9 +165,9 @@ impl HashLikeTable
 {
     mtd add(key: K, value: V)
     {
-        .entries[0].key = #nodrop key
+        .entries[0].key   = #nodrop key
         .entries[0].value = #nodrop value
-        .entries[0].hash = 2
+        .entries[0].hash  = 2
     }
 
     mtd valueAddr(index: u64)->[*] void
@@ -180,7 +180,7 @@ impl HashLikeTable
         for i in .capacity where .entries[i].hash >= 1 do
             @drop(&.entries[i].value)
         @free(notnull .entries)
-        .entries = null
+        .entries  = null
         .capacity = 0
     }
 }
@@ -200,7 +200,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 #test
 {
     var slot: CopySlot'SelfPointerValue
-    var src: SelfPointerValue
+    var src:  SelfPointerValue
     src.init(7)
 
     slot.assign(src)
@@ -255,7 +255,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
         var table: HashLikeTable'(string, InlineBufferText)
-        table.entries = entries
+        table.entries  = entries
         table.capacity = 1
 
         table.add("alpha", makeInlineBufferText("one"))
@@ -267,7 +267,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         @assert(table.entries[0].key == "alpha")
         @assert(table.entries[0].value.asString() == "one")
         @assert(table.entries[0].value.buffer == expectedDropBuffer)
-        LastInlineBufferTextDropAddr = null
+        LastInlineBufferTextDropAddr   = null
         LastInlineBufferTextDropBuffer = null
         @free(entries)
     }
@@ -281,15 +281,15 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
     var table: HashLikeTable'(s32, InlineBufferText)
-    table.entries = entries
+    table.entries  = entries
     table.capacity = 1
 
     table.add(7, "one")
     let expectedDropAddr = table.valueAddr(0)
     let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
-    LastInlineBufferTextDropAddr = null
-    LastInlineBufferTextDropBuffer = null
-    ExpectedInlineBufferTextDropAddr = expectedDropAddr
+    LastInlineBufferTextDropAddr       = null
+    LastInlineBufferTextDropBuffer     = null
+    ExpectedInlineBufferTextDropAddr   = expectedDropAddr
     ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
     table.free()
     @assert(LastInlineBufferTextDropAddr == expectedDropAddr)
@@ -304,16 +304,16 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
         var table: HashLikeTable'(s32, InlineBufferText)
-        table.entries = entries
+        table.entries  = entries
         table.capacity = 1
 
         table.add(7, "one")
         let expectedDropAddr = cast([*] void) &table.entries[0].value
         let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
 
-        LastInlineBufferTextDropAddr = null
-        LastInlineBufferTextDropBuffer = null
-        ExpectedInlineBufferTextDropAddr = expectedDropAddr
+        LastInlineBufferTextDropAddr       = null
+        LastInlineBufferTextDropBuffer     = null
+        ExpectedInlineBufferTextDropAddr   = expectedDropAddr
         ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
         table.freeViaPointer()
         @assert(LastInlineBufferTextDropAddr == expectedDropAddr)
@@ -326,16 +326,16 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         @memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
         var table: HashLikeTable'(s32, InlineBufferText)
-        table.entries = entries
+        table.entries  = entries
         table.capacity = 1
 
         table.add(7, "one")
         let expectedDropAddr = cast([*] void) &table.entries[0].value
         let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
 
-        LastInlineBufferTextDropAddr = null
-        LastInlineBufferTextDropBuffer = null
-        ExpectedInlineBufferTextDropAddr = expectedDropAddr
+        LastInlineBufferTextDropAddr       = null
+        LastInlineBufferTextDropBuffer     = null
+        ExpectedInlineBufferTextDropAddr   = expectedDropAddr
         ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
         table.freeViaHelper()
         @assert(LastInlineBufferTextDropAddr == expectedDropAddr)
@@ -353,15 +353,15 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         @memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
         var table: HashLikeTable'(string, InlineBufferText)
-        table.entries = entries
+        table.entries  = entries
         table.capacity = 1
 
         table.add("alpha", "one")
         let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
 
-        LastInlineBufferTextDropAddr = null
-        LastInlineBufferTextDropBuffer = null
-        ExpectedInlineBufferTextDropAddr = table.valueAddr(0)
+        LastInlineBufferTextDropAddr       = null
+        LastInlineBufferTextDropBuffer     = null
+        ExpectedInlineBufferTextDropAddr   = table.valueAddr(0)
         ExpectedInlineBufferTextDropBuffer = expectedDropBuffer
         table.free()
         @assert(LastInlineBufferTextDropAddr == ExpectedInlineBufferTextDropAddr)

@@ -41,11 +41,11 @@ func createRadioButtonPage(parent: *Wnd)
         var radio = RadioButton.create(right, "Marker right", {24, 90, 250})
         radio.radioButtonFlags |= .RightAlign
 
-        radio = RadioButton.create(right, "Selected right", {24, 128, 250})
+        radio                  = RadioButton.create(right, "Selected right", {24, 128, 250})
         radio.radioButtonFlags |= .RightAlign
         radio.setChecked(true)
 
-        radio = RadioButton.create(right, "Disabled selected", {24, 166, 250})
+        radio                  = RadioButton.create(right, "Disabled selected", {24, 166, 250})
         radio.radioButtonFlags |= .RightAlign
         radio.setChecked(true)
         radio.disable()

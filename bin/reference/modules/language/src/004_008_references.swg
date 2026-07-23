@@ -79,7 +79,10 @@ They allow you to pass entire structures or tuples directly, including literal e
 */
 
 // Our first simple struct
-struct MyStruct { x: s32, y: s32 }
+struct MyStruct
+{
+    x: s32, y: s32
+}
 
 #test
 {

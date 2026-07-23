@@ -23,7 +23,7 @@ impl StaticArrayDropTracked
 
         @assert(.value > 0)
         StaticArrayDropCount += 1
-        .value = -1
+        .value               = -1
     }
 }
 

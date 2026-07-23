@@ -8,8 +8,8 @@
 const MaxBlocks = 131072'u32
 const FreeId    = 0xFFFF'u16
 
-const SampleInput = "2333133121414131402"
-const SmallInput  = "12345"
+const SampleInput  = "2333133121414131402"
+const SmallInput   = "12345"
 const TrivialInput = "9"
 
 namespace DiskLayout
@@ -27,7 +27,7 @@ namespace DiskLayout
 
     struct DiskMapData
     {
-        blocks:    #null [*] u16
+        blocks:     #null [*] u16
         blockCount: u32
         fileCount:  u16
     }
@@ -38,7 +38,7 @@ namespace DiskLayout
         result.blocks = cast(#null [*] u16) @alloc(cast(u64) capacity * cast(u64) #sizeof(u16))
         @assert(result.blocks != null)
         result.blockCount = 0
-        result.fileCount = 0
+        result.fileCount  = 0
         return result
     }
 
@@ -52,7 +52,7 @@ namespace DiskLayout
     {
         var result = initDiskMap(capacity)
         result.blockCount = src.blockCount
-        result.fileCount = src.fileCount
+        result.fileCount  = src.fileCount
         for src.blockCount
         {
             result.blocks[cast(u32) @index] = src.blocks[cast(u32) @index]
@@ -83,7 +83,7 @@ namespace DiskLayout
             {
                 @assert(result.blockCount < MaxBlocks)
                 result.blocks[result.blockCount] = blockId
-                result.blockCount += 1
+                result.blockCount                += 1
             }
 
             if isFile
@@ -130,10 +130,10 @@ namespace Compaction
             if left >= right do
                 break to Outer
 
-            dm.blocks[left] = dm.blocks[right]
+            dm.blocks[left]  = dm.blocks[right]
             dm.blocks[right] = FreeId
-            left += 1
-            right -= 1
+            left             += 1
+            right            -= 1
         }
     }
 
@@ -146,13 +146,13 @@ namespace Compaction
         for
         {
             var fileStart: u32
-            var fileLen: u32
+            var fileLen:   u32
             findFileSpan(dm, fileId, &fileStart, &fileLen)
 
             if fileLen > 0
             {
                 var gapStart: u32
-                var gapLen: u32
+                var gapLen:   u32
                 if findGap(dm, fileLen, fileStart, &gapStart, &gapLen)
                 {
                     moveFileToGap(dm, fileStart, fileLen, gapStart)
@@ -168,13 +168,13 @@ namespace Compaction
     func findFileSpan(dm: const &DiskMap, fileId: u16, outStart: *u32, outLen: *u32)
     {
         dref outStart = 0
-        dref outLen = 0
+        dref outLen   = 0
         for var i = cast(s64) dm.blockCount - 1; i >= 0; i -= 1
         {
             if dm.blocks[cast(u32) i] == fileId
             {
                 dref outStart = cast(u32) i
-                dref outLen += 1
+                dref outLen   += 1
             }
             elif dref outLen > 0 do
                 break
@@ -197,13 +197,13 @@ namespace Compaction
             while pos < beforePos and dm.blocks[pos] == FreeId
             {
                 gapLen += 1
-                pos += 1
+                pos    += 1
             }
 
             if gapLen >= minLen
             {
                 dref outStart = gapStart
-                dref outLen = gapLen
+                dref outLen   = gapLen
                 return true
             }
         }
@@ -216,7 +216,7 @@ namespace Compaction
         for fileLen
         {
             let offset = cast(u32) @index
-            dm.blocks[gapStart + offset] = dm.blocks[fileStart + offset]
+            dm.blocks[gapStart + offset]  = dm.blocks[fileStart + offset]
             dm.blocks[fileStart + offset] = FreeId
         }
     }
@@ -263,7 +263,7 @@ func analyzeDisk(text: string)->DiskReport
 
     var result: DiskReport
     result.blockCount = original.blockCount
-    result.fileCount = original.fileCount
+    result.fileCount  = original.fileCount
 
     var blockCopy = copyDiskMap(&original)
     defer freeDiskMap(blockCopy)
@@ -295,7 +295,7 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
         if cast(u32) blk != prevId
         {
             spanCount += 1
-            prevId = cast(u32) blk
+            prevId    = cast(u32) blk
         }
         if !foundFree and blk == FreeId
         {

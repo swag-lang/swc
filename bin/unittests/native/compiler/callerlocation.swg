@@ -85,7 +85,7 @@ func locFirstCaller()->SourceCodeLocation
 {
     var custom: SourceCodeLocation
     custom.lineStart = 999
-    custom.funcName = "custom"
+    custom.funcName  = "custom"
     let loc = captureLoc(custom)
     @assert(loc.lineStart == 999)
     @assert(loc.funcName == "custom")
@@ -348,7 +348,7 @@ alias GlobalLocFn = func(loc = #callerlocation)->SourceCodeLocation
 
 func globalFunctionTypeTarget(loc: SourceCodeLocation)->SourceCodeLocation => loc
 
-var GlobalAliasFunctionTypeValue: GlobalLocFn = &globalFunctionTypeTarget
+var GlobalAliasFunctionTypeValue:  GlobalLocFn = &globalFunctionTypeTarget
 var DirectGlobalFunctionTypeValue: func(loc = #callerlocation)->SourceCodeLocation = &globalFunctionTypeTarget
 
 func globalAliasFunctionTypeCaller()->SourceCodeLocation

@@ -5,8 +5,8 @@
 struct CMWC4096
 {
     q:     [4096] u32     // State array of 4096 32-bit unsigned integers
-    c:     u32            // Carry value
-    i:     u32 = 4096     // Current index into the state array (initialized to an invalid value to trigger seeding)
+    c: u32                // Carry value
+    i: u32 = 4096         // Current index into the state array (initialized to an invalid value to trigger seeding)
 }
 
 impl CMWC4096
@@ -18,8 +18,8 @@ impl CMWC4096
         rng.seedU32(value)
         for idx in @countof(.q) do
             .q[idx] = rng.nextU32()
-        .i = 4095
-        .c = value % 809430660
+        .i          = 4095
+        .c          = value % 809430660
     }
 
     // Generates the next 32-bit unsigned random number.
@@ -27,7 +27,7 @@ impl CMWC4096
     mtd nextU32()->u32
     {
         const a = 18782'u64
-        const r = 0xfffffffe
+        const r = 0xFFFFFFFE
 
         // Be sure we have seeded
         if .i > 4095 do

@@ -5,12 +5,12 @@
 
 struct ForkliftAudit
 {
-    rowCount:         u32
-    columnCount:      u32
-    totalRolls:       u32
-    accessibleRolls:  u32
-    blockedRolls:     u32
-    densestCluster:   u32
+    rowCount:        u32
+    columnCount:     u32
+    totalRolls:      u32
+    accessibleRolls: u32
+    blockedRolls:    u32
+    densestCluster:  u32
 }
 
 func maxU32(lhs, rhs: u32)->u32
@@ -54,7 +54,7 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
     @assert(@countof(plan) > 0)
 
     var result: ForkliftAudit
-    result.rowCount = cast(u32) @countof(plan)
+    result.rowCount    = cast(u32) @countof(plan)
     result.columnCount = cast(u32) @countof(cast(const [..] u8) plan[0])
 
     for line, row in plan

@@ -30,20 +30,20 @@ struct LibraryWnd
     breadcrumb:                  #late *BreadcrumbCtrl
     previewSize:                 PreviewSize
 
-    searchText:                  String
-    trashMode:                   bool
-    curFolder:                   String
+    searchText: String
+    trashMode:  bool
+    curFolder:  String
 
     // Backing storage for the breadcrumb drop-down entry ids (folder paths). Menu items
     // keep the id as a non-owning slice, so the strings must outlive the popup's modal loop.
     menuPaths:                   Array'String
 
-    invertSort:                  bool
-    sortMethod:                  SortMethod
-    showUpToDateLinkedImage:     bool = true
-    showLinkedImage:             bool = true
-    showUnSavedLinkedImage:      bool = true
-    showUnLinkedImage:           bool = true
+    invertSort:              bool
+    sortMethod:              SortMethod
+    showUpToDateLinkedImage: bool = true
+    showLinkedImage:         bool = true
+    showUnSavedLinkedImage:  bool = true
+    showUnLinkedImage:       bool = true
 }
 
 impl LibraryWnd
@@ -243,10 +243,10 @@ impl LibraryWnd
 
         var lastDateTime:    DateTime
         var hasLastDateTime: bool
-        var lastLine: #null *ListLine
-        var lastLineYear: #null *ListLine
-        var lastLineMonth: #null *ListLine
-        var lastLineDay: #null *ListLine
+        var lastLine:        #null *ListLine
+        var lastLineYear:    #null *ListLine
+        var lastLineMonth:   #null *ListLine
+        var lastLineDay:     #null *ListLine
 
         let icon1 = Icon.from(&.main.icons24, 3)
 
@@ -314,8 +314,8 @@ impl LibraryWnd
                 lastLineDay        = lastLine
             }
 
-            lastDateTime    = fi.lastWriteTime
-            hasLastDateTime = true
+            lastDateTime              = fi.lastWriteTime
+            hasLastDateTime           = true
             cptYear, cptMonth, cptDay += 1
         }
 
@@ -495,14 +495,14 @@ impl LibraryWnd
             .addColumn("name", 200)
             .addColumn("count", 70)
             .listView.style.addStyleSheetColors("listItem_SelectedBk $listItem_FocusSelectedBk")
-            .lineHeight = 30
-            .listFlags |= .NoMouseEmptySel
+            .lineHeight               = 30
+            .listFlags                |= .NoMouseEmptySel
             .scrollWnd.scrollWndFlags |= .SmallBar | .ForceVertical | .TransparentBar
             .header.hide()
             .backgroundStyle = .Window
-            .listFlags |= .ForceMarginExpandMark
-            .dockStyle = .Center
-            .sigSelChanged += func|view|(list)
+            .listFlags       |= .ForceMarginExpandMark
+            .dockStyle       = .Center
+            .sigSelChanged   += func|view|(list)
             {
                 var sel = list.getSelectedLine()
                 if !sel do
@@ -521,7 +521,7 @@ impl LibraryWnd
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
-            .sigItemPressed += func|res|(bc, idx)
+            .sigItemPressed  += func|res|(bc, idx)
             {
                 res.navigateFolder(bc.items[idx].tag.toString())
             }
@@ -553,8 +553,8 @@ impl LibraryWnd
         {
             .name.set("Size")
             .iconBtnFlags.add(.Center)
-            .textPos  = .Right
-            .arrowPos = .RightDown
+            .textPos    = .Right
+            .arrowPos   = .RightDown
             .sigPressed += func|res|(btn)
             {
                 var pos = btn.getSurfaceRect()
@@ -574,8 +574,8 @@ impl LibraryWnd
         {
             .name.set("Sort")
             .iconBtnFlags.add(.Center)
-            .textPos  = .Right
-            .arrowPos = .RightDown
+            .textPos    = .Right
+            .arrowPos   = .RightDown
             .sigPressed += func|res|(btn)
             {
                 var pos = btn.getSurfaceRect()
@@ -597,8 +597,8 @@ impl LibraryWnd
         {
             .name.set("Filter")
             .iconBtnFlags.add(.Center)
-            .textPos  = .Right
-            .arrowPos = .RightDown
+            .textPos    = .Right
+            .arrowPos   = .RightDown
             .sigPressed += func|res|(btn)
             {
                 var pos = btn.getSurfaceRect()
@@ -620,8 +620,8 @@ impl LibraryWnd
         {
             .name.set("Trash")
             .iconBtnFlags.add(.Center)
-            .textPos  = .Right
-            .arrowPos = .RightDown
+            .textPos    = .Right
+            .arrowPos   = .RightDown
             .sigPressed += func|res|(btn)
             {
                 var pos = btn.getSurfaceRect()

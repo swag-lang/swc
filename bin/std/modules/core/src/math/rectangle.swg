@@ -6,10 +6,10 @@
 #[Swag.Operators(opEquals, opCompare), Serialization.Final]
 struct Rectangle
 {
-    x:          f32     // Left position
-    y:          f32     // Top position
-    width:      f32     // Rectangle width
-    height:     f32     // Rectangle height
+    x:      f32     // Left position
+    y:      f32     // Top position
+    width:  f32     // Rectangle width
+    height: f32     // Rectangle height
 }
 
 impl Rectangle
@@ -95,7 +95,7 @@ impl Rectangle
     // Increases 'x' and decreases 'width' by 'value', effectively shrinking from the left.
     mtd moveLeft(value: f32)
     {
-        .x += value
+        .x     += value
         .width -= value
     }
 
@@ -110,7 +110,7 @@ impl Rectangle
     // Increases 'y' and decreases 'height' by 'value', effectively shrinking from the top.
     mtd moveTop(value: f32)
     {
-        .y += value
+        .y      += value
         .height -= value
     }
 
@@ -176,9 +176,9 @@ impl Rectangle
     // Uses Vector4 components as left, top, right, bottom padding values respectively.
     mtd applyPadding(padding: Math.Vector4)
     {
-        .x += padding.x
-        .y += padding.y
-        .width -= (padding.x + padding.z)
+        .x      += padding.x
+        .y      += padding.y
+        .width  -= (padding.x + padding.z)
         .height -= (padding.y + padding.w)
     }
 
@@ -193,7 +193,7 @@ impl Rectangle
     // Multiplies width by 'x' and height by 'y' without changing position.
     func scale(me, x, y: f32)
     {
-        .width *= x
+        .width  *= x
         .height *= y
     }
 
@@ -201,9 +201,9 @@ impl Rectangle
     // Expands the rectangle by 'value' on all sides, moving position and increasing dimensions.
     mtd inflate(value: f32)
     {
-        .x -= value
-        .y -= value
-        .width += value * 2
+        .x      -= value
+        .y      -= value
+        .width  += value * 2
         .height += value * 2
     }
 
@@ -211,9 +211,9 @@ impl Rectangle
     // Expands by 'x' horizontally and 'y' vertically on all sides.
     func inflate(me, x, y: f32)
     {
-        .x -= x
-        .y -= y
-        .width += x * 2
+        .x      -= x
+        .y      -= y
+        .width  += x * 2
         .height += y * 2
     }
 
@@ -370,12 +370,12 @@ impl Rectangle
     {
         if .width < 0
         {
-            .x += .width
+            .x     += .width
             .width = -.width
         }
         if .height < 0
         {
-            .y += .height
+            .y      += .height
             .height = -.height
         }
     }
@@ -465,10 +465,10 @@ impl Rectangle
         let scaleY = bounds.height / .height
         let scale  = Math.min(scaleX, scaleY)
 
-        .width *= scale
+        .width  *= scale
         .height *= scale
-        .x = bounds.x + (bounds.width - .width) * 0.5
-        .y = bounds.y + (bounds.height - .height) * 0.5
+        .x      = bounds.x + (bounds.width - .width) * 0.5
+        .y      = bounds.y + (bounds.height - .height) * 0.5
     }
 
     // Create a rectangle that fits within bounds while maintaining aspect ratio.

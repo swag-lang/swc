@@ -27,8 +27,8 @@ public enum PropDefaultState
 // One default-constructed instance backing a struct added to the grid (owned; freed on destroy).
 public struct PropDefaultRoot
 {
-    base:   #null *u8
-    type:   #null typeinfo
+    base: #null *u8
+    type: #null typeinfo
 }
 
 // Size of the revert arrow icon inside its (square, editBox-height) button, and the gap kept on

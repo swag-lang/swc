@@ -9,21 +9,21 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
 
-    f.capture.width = 64
-    f.capture.height = 48
-    f.capture.widthOrg = 64
+    f.capture.width     = 64
+    f.capture.height    = 48
+    f.capture.widthOrg  = 64
     f.capture.heightOrg = 48
-    f.capture.backImg = Image.create(64, 48, .BGRA8)
+    f.capture.backImg   = Image.create(64, 48, .BGRA8)
     f.capture.backImg.fill(ColorBlue)
 
     let shape = testAddShape(f.capture, 1, 2, 10, 11, .Highlight)
-    shape.kind = .RoundRectangle
+    shape.kind      = .RoundRectangle
     shape.roundSize = 18
 
     let line = testAddLine(f.capture, 3, 4, 20, 21, .PixSel)
-    line.bezier = true
-    line.xc = 6
-    line.yc = 7
+    line.bezier      = true
+    line.xc          = 6
+    line.yc          = 7
     line.paintShadow = false
 
     let arrow = testAddArrow(f.capture, 5, 6, 30, 31)
@@ -35,38 +35,38 @@ using Swag, Core
     points.add({18, 25})
 
     let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
-    polygon.bezier = true
+    polygon.bezier      = true
     polygon.paintShadow = false
 
     let draw = testAddDraw(f.capture, points.toSlice(), .PixSel)
     draw.paintShadow = false
 
     let text = testAddText(f.capture, 9, 10, 30, 12)
-    text.text = "roundtrip"
-    text.fontSize = 32
+    text.text      = "roundtrip"
+    text.fontSize  = 32
     text.alignHorz = .RightBottom
     text.alignVert = .LeftTop
 
     let step = testAddStep(f.capture, 11, 12, 20, 20)
-    step.index = 5
-    step.kind = .Rectangle
+    step.index     = 5
+    step.kind      = .Rectangle
     step.typeIndex = .LetterUp
 
     let image = testAddImage(f.capture, 13, 14, 16, 17)
-    image.kind = .Image
-    image.place = .Free
+    image.kind    = .Image
+    image.place   = .Free
     image.freePos = {2, 3, 8, 9}
-    image.image = Image.create(4, 3, .BGRA8)
+    image.image   = Image.create(4, 3, .BGRA8)
     image.image.fill(ColorYellow)
 
     let callout = testAddCallout(f.capture, 15, 16, 40, 24)
-    callout.text = "hi there"
+    callout.text      = "hi there"
     callout.roundSize = 20
-    callout.fontSize = 36
-    callout.boldSize = 3
+    callout.fontSize  = 36
+    callout.boldSize  = 3
     callout.textColor = ColorGreen
-    callout.tailX = 8
-    callout.tailY = 70
+    callout.tailX     = 8
+    callout.tailY     = 70
     callout.fontStyle = .BoldItalic
     callout.alignHorz = .LeftTop
     callout.alignVert = .RightBottom
@@ -74,8 +74,11 @@ using Swag, Core
     f.capture.title = "My Capture Name"
 
     let path = testTempCapturePath()
-    defer { discard catch File.delete(path) }
-    f.capture.file = path
+    defer
+    {
+        discard catch File.delete(path)
+    }
+    f.capture.file    = path
     f.capture.changed = true
 
     catch f.capture.save()
@@ -84,7 +87,10 @@ using Swag, Core
     let loaded = catch Capture.load(path)
     @assert(@err == null)
     @assert(loaded != null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
 
     @assert(loaded.width == 64)
     @assert(loaded.height == 48)
@@ -160,16 +166,19 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup()
 
-    f.capture.width = 32
-    f.capture.height = 32
+    f.capture.width   = 32
+    f.capture.height  = 32
     f.capture.backImg = Image.create(32, 32, .BGRA8)
     f.capture.backImg.fill(ColorRed)
     f.capture.title = "Preview Title"
     discard testAddShape(f.capture, 2, 3, 4, 5)
 
     let path = testTempCapturePath()
-    defer { discard catch File.delete(path) }
-    f.capture.file = path
+    defer
+    {
+        discard catch File.delete(path)
+    }
+    f.capture.file    = path
     f.capture.changed = true
 
     catch f.capture.save()
@@ -178,7 +187,10 @@ using Swag, Core
     let loaded = catch Capture.load(path, preview: true)
     @assert(@err == null)
     @assert(loaded != null)
-    defer { Memory.delete(loaded) }
+    defer
+    {
+        Memory.delete(loaded)
+    }
 
     @assert(loaded.forms.count == 1)
     @assert(!loaded.backImg.isValid())

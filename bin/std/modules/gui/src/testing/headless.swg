@@ -5,8 +5,8 @@ using Swag, Core
 // One labelled edit box of a modal to fill before accepting it.
 struct AutoEdit
 {
-    label:      String
-    text:       String
+    label: String
+    text:  String
 }
 
 enum AutoStageKind
@@ -19,35 +19,35 @@ enum AutoStageKind
 // One step of the auto UI driver (see clickModalButtonWhenShown and friends).
 struct AutoStage
 {
-    kind:       AutoStageKind = ModalButton
-    folder:     String
-    file:       String
-    label:      String
-    edits:      Array'AutoEdit
+    kind:   AutoStageKind = ModalButton
+    folder: String
+    file:   String
+    label:  String
+    edits:  Array'AutoEdit
     button: WndId = undefined
 }
 
 struct HeadlessHost
 {
-    app:                  Application
-    surface:              Surface
-    surfaceWnd:           SurfaceWnd
-    root:                 Wnd
+    app:        Application
+    surface:    Surface
+    surfaceWnd: SurfaceWnd
+    root:       Wnd
     theme:                #late *Theme
-    mousePos:             Math.Point
-    closed:               bool
-    commandCount:         u32
-    lastCommand:          #null WndId
+    mousePos:     Math.Point
+    closed:       bool
+    commandCount: u32
+    lastCommand:  #null WndId
 
     // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
     // is true once every armed stage has completed.
-    autoHandled:          bool
-    autoArmed:            bool
-    autoHookInstalled:    bool
-    autoFrames:           u32
-    autoMaxFrames:        u32
-    autoStages:           Array'AutoStage
-    autoStage:            u32
+    autoHandled:       bool
+    autoArmed:         bool
+    autoHookInstalled: bool
+    autoFrames:        u32
+    autoMaxFrames:     u32
+    autoStages:        Array'AutoStage
+    autoStage:         u32
 }
 
 impl HeadlessHost
@@ -69,21 +69,21 @@ impl HeadlessHost
         style.theme = .theme
         style.count = 3
 
-        .app.theme = .theme
+        .app.theme      = .theme
         .app.style.refr = style
 
-        .surface.app = &.app
-        .surface.position = {0, 0, width, height}
-        .surface.rc.width = cast(s32) width
+        .surface.app       = &.app
+        .surface.position  = {0, 0, width, height}
+        .surface.rc.width  = cast(s32) width
         .surface.rc.height = cast(s32) height
-        .app.mainSurface = &.surface
+        .app.mainSurface   = &.surface
 
         let root = &.root
-        root.itf = cast(IWnd) dref root
-        root.type = Wnd
-        root.surface = &.surface
-        root.style.refr = style
-        root.position = {0, 0, width, height}
+        root.itf             = cast(IWnd) dref root
+        root.type            = Wnd
+        root.surface         = &.surface
+        root.style.refr      = style
+        root.position        = {0, 0, width, height}
         root.backgroundStyle = .Dialog
         root.sendCreateEvent()
         root.sendResizeEvent()
@@ -119,7 +119,7 @@ impl HeadlessHost
         app.theme = .theme
 
         let style = .app.style.refr
-        style.count += 1
+        style.count    += 1
         app.style.refr = style
     }
 
@@ -171,7 +171,7 @@ impl HeadlessHost
         let stage = .autoStages.buffer + .autoStage
         if .runAutoStage(notnull stage)
         {
-            .autoStage += 1
+            .autoStage  += 1
             .autoFrames = 0
             if .autoStage == .autoStages.count
             {
@@ -301,8 +301,8 @@ impl HeadlessHost
             {
             case CommandEvent as cmd:
                 host.commandCount += 1
-                host.lastCommand = cmd.id
-                cmd.accepted = true
+                host.lastCommand  = cmd.id
+                cmd.accepted      = true
                 return true
             }
 
@@ -318,7 +318,7 @@ impl HeadlessHost
             {
             case CommandEvent as cmd:
                 host.commandCount += 1
-                host.lastCommand = cmd.id
+                host.lastCommand  = cmd.id
                 if cmd.id == cmdId
                 {
                     cmd.accepted = true
@@ -685,13 +685,16 @@ impl HeadlessHost
             return
 
         .setModifierKeys(modifiers, true)
-        defer { me.setModifierKeys(modifiers, false) }
+        defer
+        {
+            me.setModifierKeys(modifiers, false)
+        }
 
         var evt = MouseEvent{kind: .MouseWheel}
-        evt.button = Input.MouseButton.Left
+        evt.button     = Input.MouseButton.Left
         evt.surfacePos = target.screenToSurface(pt)
-        evt.move.y = delta
-        evt.modifiers = modifiers
+        evt.move.y     = delta
+        evt.modifiers  = modifiers
         target.sendEvent(&evt)
         .pump()
     }
@@ -710,7 +713,7 @@ impl HeadlessHost
         .setKeyState(key, true)
 
         var evt = KeyEvent{kind: .KeyPressed}
-        evt.key = key
+        evt.key       = key
         evt.modifiers = modifiers
         target.sendEvent(&evt)
 
@@ -742,8 +745,8 @@ impl HeadlessHost
         .setKeyState(key, true)
 
         var evt = KeyEvent{kind: .Rune}
-        evt.key = key
-        evt.char = char
+        evt.key       = key
+        evt.char      = char
         evt.modifiers = modifiers
         target.sendEvent(&evt)
 
@@ -767,14 +770,17 @@ impl HeadlessHost
     mtd sendMouseEvent(target: *Wnd, kind: MouseEvent.Kind, pt: Math.Point, button: Input.MouseButton, modifiers: Input.KeyModifiers)
     {
         .setModifierKeys(modifiers, true)
-        defer { me.setModifierKeys(modifiers, false) }
+        defer
+        {
+            me.setModifierKeys(modifiers, false)
+        }
 
         var evt = MouseEvent{kind: kind}
-        evt.button = button
+        evt.button     = button
         evt.surfacePos = target.screenToSurface(pt)
-        evt.move.x = pt.x - .mousePos.x
-        evt.move.y = pt.y - .mousePos.y
-        evt.modifiers = modifiers
+        evt.move.x     = pt.x - .mousePos.x
+        evt.move.y     = pt.y - .mousePos.y
+        evt.modifiers  = modifiers
         target.sendEvent(&evt)
     }
 

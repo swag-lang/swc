@@ -15,10 +15,10 @@ Each field is defined with a specific type.
 
     struct MyStruct1
     {
-        x:        s32          // Field 'x' of type 's32'
-        y, z:     s32          // Fields 'y' and 'z' of type 's32', declared together
-        val:      bool         // Field 'val' of type 'bool'
-        myS:      MyStruct     // Field 'myS' of type 'MyStruct', demonstrating a nested struct
+        x:    s32          // Field 'x' of type 's32'
+        y, z: s32          // Fields 'y' and 'z' of type 's32', declared together
+        val:  bool         // Field 'val' of type 'bool'
+        myS:  MyStruct     // Field 'myS' of type 'MyStruct', demonstrating a nested struct
     }
 }
 
@@ -36,7 +36,10 @@ The trailing separator is optional and can be omitted.
         name: #null string, val1: bool
     }
 
-    struct MyStruct1 { x: s32, y, z: s32, val: bool, myS: MyStruct }
+    struct MyStruct1
+    {
+        x: s32, y, z: s32, val: bool, myS: MyStruct
+    }
 }
 
 /**
@@ -49,8 +52,8 @@ This is particularly useful for lightweight, temporary groupings of data.
 {
     var tuple: struct
     {
-        x:     f32     // Field 'x' of type 'f32'
-        y:     f32     // Field 'y' of type 'f32'
+        x: f32     // Field 'x' of type 'f32'
+        y: f32     // Field 'y' of type 'f32'
     }
 
     var tuple1: struct
@@ -90,8 +93,8 @@ providing a convenient way to ensure fields are set to a known state.
 {
     struct MyStruct
     {
-        x:     s32 = 666          // Field 'x' initialized with default value 666
-        y:     string = "454"     // Field 'y' initialized with default value '454'
+        x: s32 = 666          // Field 'x' initialized with default value 666
+        y: string = "454"     // Field 'y' initialized with default value '454'
     }
 
     let v = MyStruct{}     // Initializing struct with default values
@@ -143,8 +146,8 @@ at compile time. This ensures immutability throughout program execution.
 {
     struct MyStruct
     {
-        x:     s32 = 666
-        y:     string = "454"
+        x: s32 = 666
+        y: string = "454"
     }
 
     const X: MyStruct{50, "value"}
@@ -160,7 +163,10 @@ Functions can take a struct as an argument. This is done by reference,
 with no copy made — equivalent to passing a const reference in C++.
 */
 
-struct Struct3 { x, y, z: s32 = 666 }
+struct Struct3
+{
+    x, y, z: s32 = 666
+}
 
 func toto(v: Struct3)
 {

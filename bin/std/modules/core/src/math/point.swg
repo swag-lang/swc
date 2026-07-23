@@ -6,8 +6,8 @@
 #[Serialization.Final]
 struct Point
 {
-    x:     f32     // X coordinate of the point
-    y:     f32     // Y coordinate of the point
+    x: f32     // X coordinate of the point
+    y: f32     // Y coordinate of the point
 }
 
 impl Point

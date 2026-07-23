@@ -14,18 +14,18 @@ const TGA_DESC_TOP   = 0x20'u8
 #[Swag.Pack(1)]
 struct TgaH
 {
-    idLength:          u8
-    colorMapType:      u8
-    imageTypeCode:     u8
-    colorMapFirst:     u16
-    colorMapLength:    u16
-    colorMapBpp:       u8
-    originX:           u16
-    originY:           u16
-    width:             u16
-    height:            u16
-    bpp:               u8
-    descriptorByte:    u8
+    idLength:       u8
+    colorMapType:   u8
+    imageTypeCode:  u8
+    colorMapFirst:  u16
+    colorMapLength: u16
+    colorMapBpp:    u8
+    originX:        u16
+    originY:        u16
+    width:          u16
+    height:         u16
+    bpp:            u8
+    descriptorByte: u8
 }
 
 func tgaCanEncode(fileName: string)->bool
@@ -73,7 +73,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, 0'u8, 2'u16, 2'u16)
@@ -159,10 +162,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
-    var h: TgaH
+    var h:  TgaH
     h.idLength      = 3'u8
     h.imageTypeCode = TGA_TYPE_RGB
     h.width         = 1'u16
@@ -189,7 +195,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, TGA_DESC_TOP, 2'u16, 2'u16)
@@ -216,7 +225,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, TGA_DESC_RIGHT, 2'u16, 1'u16)
@@ -241,7 +253,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RGB, 16'u8, 1'u8, 2'u16, 1'u16)
@@ -269,7 +284,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_MONO, 8'u8, 0'u8, 3'u16, 1'u16)
@@ -294,10 +312,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
-    var h: TgaH
+    var h:  TgaH
     h.colorMapType   = 1'u8
     h.imageTypeCode  = TGA_TYPE_MAP
     h.colorMapFirst  = 2'u16
@@ -330,10 +351,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
-    var h: TgaH
+    var h:  TgaH
     h.colorMapType   = 1'u8
     h.imageTypeCode  = TGA_TYPE_MAP
     h.colorMapLength = 1'u16
@@ -362,7 +386,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RLE_RGB, 24'u8, 0'u8, 4'u16, 1'u16)
@@ -385,10 +412,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
-    var h: TgaH
+    var h:  TgaH
     h.colorMapType   = 1'u8
     h.imageTypeCode  = TGA_TYPE_RLE_MAP
     h.colorMapLength = 3'u16
@@ -418,7 +448,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var cb: ConcatBuffer
     addTgaImageHeader(&cb, TGA_TYPE_RLE_MONO, 8'u8, 0'u8, 3'u16, 1'u16)
@@ -483,7 +516,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(2, 1, .BGR8)
     src.pixels.buffer[0] = 1'u8
@@ -510,7 +546,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(1, 1, .RGB8)
     src.pixels.buffer[0] = 10'u8
@@ -536,7 +575,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path = makeTempTgaPath()
-    defer { discard catch File.delete(path.toString()) }
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
 
     var src = Image.create(1, 1, .RGBA8)
     src.pixels.buffer[0] = 1'u8

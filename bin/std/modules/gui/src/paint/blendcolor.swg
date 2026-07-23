@@ -4,12 +4,12 @@ using Pixel
 // Used to animate the blending of a color.
 struct BlendColor
 {
-    curVec4:       Math.Vector4
-    startVec4:     Math.Vector4
-    destVec4:      Math.Vector4
-    factor:        f32
-    speed:         f32 = 8
-    themeCrc:      u32 = Swag.U32.Max
+    curVec4:   Math.Vector4
+    startVec4: Math.Vector4
+    destVec4:  Math.Vector4
+    factor:    f32
+    speed:     f32 = 8
+    themeCrc:  u32 = Swag.U32.Max
 }
 
 impl BlendColor
@@ -19,9 +19,9 @@ impl BlendColor
     {
         if wnd.getApp().dirtyTheme != .themeCrc
         {
-            .themeCrc = wnd.getApp().dirtyTheme
+            .themeCrc                       = wnd.getApp().dirtyTheme
             .curVec4, .startVec4, .destVec4 = target.toVector4()
-            .factor = 1.0
+            .factor                         = 1.0
             return
         }
 
@@ -55,7 +55,7 @@ impl BlendColor
         }
 
         .curVec4 = startV.lerpTo(destV, .factor)
-        .factor += wnd.getApp().getDt() * .speed
+        .factor  += wnd.getApp().getDt() * .speed
         wnd.invalidate()
     }
 

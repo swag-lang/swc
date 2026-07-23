@@ -46,9 +46,9 @@ func day6A()
         blocks[besti] = 0
         while best
         {
-            besti = (besti + 1) % blocks.count
+            besti         = (besti + 1) % blocks.count
             blocks[besti] += 1
-            best -= 1
+            best          -= 1
         }
 
         var val: String

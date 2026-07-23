@@ -57,8 +57,8 @@ using Swag
     for i in @countof(Input.GamePadButton)
     {
         let button = cast(Input.GamePadButton) i
-        pad.previousState.pressed[button] = true
-        pad.currentState.pressed[button]  = true
+        pad.previousState.pressed[button]  = true
+        pad.currentState.pressed[button]   = true
         pad.previousState.position[button] = Math.Point{1, 2}
         pad.currentState.position[button]  = Math.Point{3, 4}
     }

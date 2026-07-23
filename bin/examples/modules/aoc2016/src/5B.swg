@@ -34,7 +34,7 @@ func day5B()
             if pos < 8 and pwd[pos] == ' '
             {
                 pwd[pos] = result[6]
-                cpt += 1
+                cpt      += 1
             }
         }
 

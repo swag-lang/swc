@@ -65,7 +65,7 @@ func makeShapingTestFont()->*Font
 
     let largeFont = Font.create(font.cache.typeFace, 48, .Bitmap)
     var richText: RichString = "<b>A</b>\nA"
-    var format: RichStringFormat
+    var format:   RichStringFormat
     format.font.regular = font
     format.font.bold    = largeFont
     format.lineGap      = 3
@@ -75,13 +75,13 @@ func makeShapingTestFont()->*Font
     @assert(richText.boundRect.height >= largeFont.height + font.height + format.lineGap)
     @assert(richText.chunks[0].pos.y < richText.chunks[richText.chunks.count - 1].pos.y)
 
-    var paragraphText: RichString = "A\nB\nC"
+    var paragraphText:   RichString = "A\nB\nC"
     var paragraphFormat: RichStringFormat
-    paragraphFormat.font.regular = font
-    paragraphFormat.lineGap      = 2
-    paragraphFormat.paragraphGap = 7
+    paragraphFormat.font.regular  = font
+    paragraphFormat.lineGap       = 2
+    paragraphFormat.paragraphGap  = 7
     paragraphFormat.minLineHeight = font.height + 6.0
-    paragraphFormat.maxLines     = 2
+    paragraphFormat.maxLines      = 2
 
     paragraphText.compute()
     Painter.computeLayout({0, 0, 300, 300}, &paragraphText, paragraphFormat)

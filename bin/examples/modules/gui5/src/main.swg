@@ -1,17 +1,17 @@
 using Core, Gui, Pixel
 
-const W = 1320
-const H = 940
-const MaxPages = 5
-const TestFramesPerPage = 35
-const RootMargin = 24.0
-const PageTop = 112.0
-const PageBottomMargin = 58.0
-const PanelGap = 24.0
-const TopPanelHeight = 440.0
+const W                    = 1320
+const H                    = 940
+const MaxPages             = 5
+const TestFramesPerPage    = 35
+const RootMargin           = 24.0
+const PageTop              = 112.0
+const PageBottomMargin     = 58.0
+const PanelGap             = 24.0
+const TopPanelHeight       = 440.0
 const MinBottomPanelHeight = 260.0
-const ThemeButtonWidth = 152.0
-const HeaderGap = 18.0
+const ThemeButtonWidth     = 152.0
+const HeaderGap            = 18.0
 
 struct PagePanelLayout
 {
@@ -20,18 +20,18 @@ struct PagePanelLayout
     bottom: Math.Rectangle
 }
 
-var app: Application
-var g_Surface: #null *Surface
-var g_View: #null *Wnd
-var g_Title: #null *Label
-var g_SubTitle: #null *Label
+var app:           Application
+var g_Surface:     #null *Surface
+var g_View:        #null *Wnd
+var g_Title:       #null *Label
+var g_SubTitle:    #null *Label
 var g_ThemeButton: #null *PushButton
-var g_PageView: #null *Wnd
-var g_Footer: #null *Label
-var g_Page: s32
-var g_TestFrame: s32
-var g_DarkTheme: bool
-var g_Color: Color = Argb.CornflowerBlue
+var g_PageView:    #null *Wnd
+var g_Footer:      #null *Label
+var g_Page:        s32
+var g_TestFrame:   s32
+var g_DarkTheme:   bool
+var g_Color:       Color = Argb.CornflowerBlue
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
@@ -82,8 +82,8 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
-    result.left = {0, 0, halfWidth, topHeight}
-    result.right = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
+    result.left   = {0, 0, halfWidth, topHeight}
+    result.right  = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
     result.bottom = {0, bottomY, width, bottomHeight}
     return result
 }
@@ -210,7 +210,7 @@ func createQuickPalette(parent: *Wnd, rect: Math.Rectangle, title: string, keepA
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
-    picker.boxSize = 30
+    picker.boxSize   = 30
     picker.boxMargin = 6
     addPaletteColors(picker, makePickerPalette())
     picker.sigChanged += func|title, keepAlpha|(palette)
@@ -238,7 +238,7 @@ func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: 
 {
     createCaption(parent, title, rect.x, rect.y - 28, rect.width)
     let picker = PalettePicker.create(parent, rect)
-    picker.boxSize = 29
+    picker.boxSize   = 29
     picker.boxMargin = 5
 
     switch mode
@@ -275,11 +275,11 @@ func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: 
 func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 1'u32)
 {
     var richText: RichString = text
-    var format: RichStringFormat
-    format.flags = .WordWrap | .Clip
+    var format:   RichStringFormat
+    format.flags        = .WordWrap | .Clip
     format.font.regular = font
-    format.palette[0] = color
-    format.maxLines = maxLines
+    format.palette[0]   = color
+    format.maxLines     = maxLines
     painter.drawRichString(rect, &richText, format)
 }
 
@@ -519,13 +519,13 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
     elif evt is DestroyEvent
     {
         app.sigFrame.disable()
-        g_Surface = null
-        g_View = null
-        g_Title = null
-        g_SubTitle = null
+        g_Surface     = null
+        g_View        = null
+        g_Title       = null
+        g_SubTitle    = null
         g_ThemeButton = null
-        g_PageView = null
-        g_Footer = null
+        g_PageView    = null
+        g_Footer      = null
     }
 
     return false
@@ -589,7 +589,7 @@ func onFrame(app: *Application)
 
 func createRootView()
 {
-    g_View = g_Surface.getView()
+    g_View                 = g_Surface.getView()
     g_View.backgroundStyle = .View
 
     g_Title = Label.create(notnull g_View, "", {})
@@ -599,12 +599,12 @@ func createRootView()
     g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form = .Flat
-    g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
+    g_ThemeButton.form       = .Flat
+    g_ThemeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(notnull g_View, {})
+    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
     g_Footer = Label.create(notnull g_View, "", {})

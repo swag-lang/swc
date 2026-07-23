@@ -432,7 +432,7 @@ func semaTest010()
 {
     var visits = SemaReverseVisits{}
     var outside: s32 = 0
-    var inside: s32 = 0
+    var inside:  s32 = 0
 
     for value, i in visits
     {

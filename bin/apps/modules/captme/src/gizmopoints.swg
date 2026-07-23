@@ -2,17 +2,17 @@ struct GizmoPoints
 {
     anchorSize:      f32 = 12
 
-    startRect:       Math.Rectangle
-    anchors:         Array'Math.Point
-    hotAnchor:       u32 = Swag.U32.Max
-    moving:          bool
-    firstMoving:     bool
-    movingRect:      Math.Rectangle
-    movingStart:     Math.Point
-    sigChanged:      #null func||(Math.Point, u32, bool)
+    startRect:   Math.Rectangle
+    anchors:     Array'Math.Point
+    hotAnchor:   u32 = Swag.U32.Max
+    moving:      bool
+    firstMoving: bool
+    movingRect:  Math.Rectangle
+    movingStart: Math.Point
+    sigChanged:  #null func||(Math.Point, u32, bool)
 
-    minSizeX:        f32 = 2
-    minSizeY:        f32 = 2
+    minSizeX: f32 = 2
+    minSizeY: f32 = 2
 }
 
 impl GizmoPoints
@@ -27,7 +27,7 @@ impl GizmoPoints
             if evt.button != .Left or .hotAnchor == Swag.U32.Max do
                 break
             .moving, .firstMoving = true
-            .movingStart = pos
+            .movingStart          = pos
             view.captureMouse()
             return true
 
@@ -37,7 +37,7 @@ impl GizmoPoints
                 if evt.button == .Left
                 {
                     .moving, .firstMoving = false
-                    .hotAnchor = Swag.U32.Max
+                    .hotAnchor            = Swag.U32.Max
                     view.releaseMouse()
                 }
 
@@ -61,8 +61,8 @@ impl GizmoPoints
                 var rect: Math.Rectangle = undefined
                 for c, i in .anchors
                 {
-                    rect.x = c.x - .anchorSize * 0.5
-                    rect.y = c.y - .anchorSize * 0.5
+                    rect.x                  = c.x - .anchorSize * 0.5
+                    rect.y                  = c.y - .anchorSize * 0.5
                     rect.width, rect.height = .anchorSize
                     if rect.contains(pos)
                     {

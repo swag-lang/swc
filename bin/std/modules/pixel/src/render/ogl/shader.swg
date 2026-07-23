@@ -11,10 +11,10 @@ const InvalidShaderParamHandle: ShaderParamHandle = cast() -1
 
 struct ShaderBase
 {
-    handle:          ShaderHandle
-    mvp:             ShaderParamHandle
-    mdl:             ShaderParamHandle
-    boundRect:       ShaderParamHandle
+    handle:            ShaderHandle
+    mvp:               ShaderParamHandle
+    mdl:               ShaderParamHandle
+    boundRect:         ShaderParamHandle
     textureRect:       ShaderParamHandle
     uvMode:            ShaderParamHandle
     interpolationMode: ShaderParamHandle
@@ -47,24 +47,24 @@ struct ShaderFont
     using base: ShaderBase
 
     // TextMeshPro-style effect uniforms (MSDF font shader only).
-    fxEnabled:       ShaderParamHandle
-    fxFaceDilate:    ShaderParamHandle
-    fxFaceSoftness:  ShaderParamHandle
-    fxOutlineWidth:  ShaderParamHandle
-    fxOutlineColor:  ShaderParamHandle
-    fxGlowColor:     ShaderParamHandle
-    fxGlowOffset:    ShaderParamHandle
-    fxGlowInner:     ShaderParamHandle
-    fxGlowOuter:     ShaderParamHandle
-    fxGlowPower:     ShaderParamHandle
-    fxBevel:         ShaderParamHandle
+    fxEnabled:      ShaderParamHandle
+    fxFaceDilate:   ShaderParamHandle
+    fxFaceSoftness: ShaderParamHandle
+    fxOutlineWidth: ShaderParamHandle
+    fxOutlineColor: ShaderParamHandle
+    fxGlowColor:    ShaderParamHandle
+    fxGlowOffset:   ShaderParamHandle
+    fxGlowInner:    ShaderParamHandle
+    fxGlowOuter:    ShaderParamHandle
+    fxGlowPower:    ShaderParamHandle
+    fxBevel:        ShaderParamHandle
 }
 
 struct ShaderBlur
 {
     using base:     ShaderBase
-    radius:         ShaderParamHandle
-    axis:           ShaderParamHandle
+    radius: ShaderParamHandle
+    axis:   ShaderParamHandle
 }
 
 struct ShaderResolve

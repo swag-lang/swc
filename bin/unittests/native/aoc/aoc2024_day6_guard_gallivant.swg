@@ -98,7 +98,7 @@ func initIndexBuffer(initialCapacity: u32)->IndexBuffer
 {
     var result: IndexBuffer
     result.capacity = initialCapacity
-    result.data = cast(#null [*] u32) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
+    result.data     = cast(#null [*] u32) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(u32))
     @assert(result.data != null)
     return result
 }
@@ -112,12 +112,12 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
         let newCapacity = result.capacity * 2'u32
         result.data = cast(#null [*] u32) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(u32))
         @assert(result.data != null)
-        result.capacity = newCapacity
+        result.capacity  = newCapacity
         result.growCount += 1'u32
     }
 
     result.data[result.count] = value
-    result.count += 1'u32
+    result.count              += 1'u32
     return result
 }
 
@@ -177,7 +177,7 @@ func parseGrid(outGrid: *GridMap, text: string)
         width += 1
     }
 
-    var height: u32
+    var height:    u32
     var lineWidth: u32
     for @countof(bytes)
     {
@@ -187,7 +187,7 @@ func parseGrid(outGrid: *GridMap, text: string)
             if lineWidth != 0
             {
                 @assert(lineWidth == width)
-                height += 1'u32
+                height    += 1'u32
                 lineWidth = 0
             }
 
@@ -204,9 +204,9 @@ func parseGrid(outGrid: *GridMap, text: string)
     }
 
     var result: GridMap
-    result.width = width
+    result.width  = width
     result.height = height
-    result.cells = allocBytes(width * height)
+    result.cells  = allocBytes(width * height)
 
     var x: u32
     var y: u32
@@ -219,8 +219,8 @@ func parseGrid(outGrid: *GridMap, text: string)
         let writeIndex = cellIndex(x, y, width)
         if ch == '^''u8
         {
-            result.startX = x
-            result.startY = y
+            result.startX            = x
+            result.startY            = y
             result.cells[writeIndex] = '.''u8
         }
         else
@@ -257,9 +257,9 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
     var dir = Direction.Up
 
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
-    visited[startIndex] = 1'u8
+    visited[startIndex]  = 1'u8
     dref outVisitedCount = 1'u32
-    trace = appendIndex(trace, startIndex)
+    trace                = appendIndex(trace, startIndex)
 
     while true
     {
@@ -286,9 +286,9 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
         y = nextY
         if visited[nextIndex] == 0'u8
         {
-            visited[nextIndex] = 1'u8
+            visited[nextIndex]   = 1'u8
             dref outVisitedCount += 1'u32
-            trace = appendIndex(trace, nextIndex)
+            trace                = appendIndex(trace, nextIndex)
         }
     }
 
@@ -361,14 +361,14 @@ func auditPatrol(text: string)->PatrolReport
     defer freeGrid(grid)
 
     var visitedCount: u32
-    var trace: IndexBuffer
+    var trace:        IndexBuffer
     collectVisitedTrace(&visitedCount, &trace, grid)
     defer freeIndexBuffer(trace)
 
     var result: PatrolReport
-    result.visitedCount = visitedCount
-    result.traceCapacity = trace.capacity
-    result.reallocCount = trace.growCount
+    result.visitedCount      = visitedCount
+    result.traceCapacity     = trace.capacity
+    result.reallocCount      = trace.growCount
     result.loopObstacleCount = countLoopObstacles(grid, trace)
     return result
 }

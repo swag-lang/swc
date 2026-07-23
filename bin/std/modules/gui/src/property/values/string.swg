@@ -140,7 +140,7 @@ impl Properties
             ed.rightMargin = 24
             with let btn = IconButton.create(ed, .getTheme().getIcon24(.More, 20), {0, 0, 20, 20})
             {
-                .dockStyle = .Right
+                .dockStyle  = .Right
                 .sigPressed += func|prop = me, item, ed|(btn)
                 {
                     with let dlg = EditDlg.createMultiLine(notnull prop.surface)
@@ -172,7 +172,7 @@ impl Properties
                 .dockStyle = .CenterKeepSizeVert
             else do
                 .preferredSize.x = editWidth
-            .editBoxFlags = .ReadOnly
+            .editBoxFlags        = .ReadOnly
         }
 
         me.adaptCondensedControl(ed)

@@ -1,17 +1,17 @@
 using Core, Gui, Pixel
 
-const W = 1080
-const H = 810
-const MaxPages = 8
-const TestFramesPerPage = 35
-const RootMargin = 28.0
-const PageTop = 112.0
-const PageBottomMargin = 58.0
-const PanelGap = 28.0
-const TopPanelHeight = 300.0
+const W                    = 1080
+const H                    = 810
+const MaxPages             = 8
+const TestFramesPerPage    = 35
+const RootMargin           = 28.0
+const PageTop              = 112.0
+const PageBottomMargin     = 58.0
+const PanelGap             = 28.0
+const TopPanelHeight       = 300.0
 const MinBottomPanelHeight = 236.0
-const ThemeButtonWidth = 150.0
-const HeaderGap = 18.0
+const ThemeButtonWidth     = 150.0
+const HeaderGap            = 18.0
 
 struct PagePanelLayout
 {
@@ -20,18 +20,18 @@ struct PagePanelLayout
     bottom: Math.Rectangle
 }
 
-var app: Application
-var g_Surface: #null *Surface
-var g_View: #null *Wnd
-var g_Title: #null *Label
-var g_SubTitle: #null *Label
+var app:           Application
+var g_Surface:     #null *Surface
+var g_View:        #null *Wnd
+var g_Title:       #null *Label
+var g_SubTitle:    #null *Label
 var g_ThemeButton: #null *PushButton
-var g_PageView: #null *Wnd
-var g_Footer: #null *Label
-var g_Page: s32
-var g_TestFrame: s32
-var g_Progress: #null *ProgressBar
-var g_DarkTheme: bool
+var g_PageView:    #null *Wnd
+var g_Footer:      #null *Label
+var g_Page:        s32
+var g_TestFrame:   s32
+var g_Progress:    #null *ProgressBar
+var g_DarkTheme:   bool
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
@@ -318,7 +318,7 @@ func onFrame(app: *Application)
 
 func createRootView()
 {
-    g_View = g_Surface.getView()
+    g_View                 = g_Surface.getView()
     g_View.backgroundStyle = .View
 
     g_Title = Label.create(notnull g_View, "", {})
@@ -328,12 +328,12 @@ func createRootView()
     g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form = .Flat
-    g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
+    g_ThemeButton.form       = .Flat
+    g_ThemeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(notnull g_View, {})
+    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
     g_Footer = Label.create(notnull g_View, "", {})

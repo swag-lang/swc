@@ -11,7 +11,7 @@ struct Kilopascal {}
 struct(T) SafeBand
     where T == f32 or T == f64
 {
-    low: T
+    low:  T
     high: T
 }
 
@@ -36,12 +36,12 @@ struct(Unit, T, Count: s32) TelemetrySeries
     where Count >= 2
     where T == f32 or T == f64
 {
-    name: string
-    scale: T
+    name:   string
+    scale:  T
     offset: T
-    band: SafeBand'T
+    band:   SafeBand'T
     samples: [Count] T
-    next: s32
+    next:   s32
     filled: s32
 }
 
@@ -51,7 +51,7 @@ impl TelemetrySeries
     {
         let calibrated = clampToBand(raw * .scale + .offset, .band)
         .samples[.next] = calibrated
-        .next = (.next + 1) % Count
+        .next           = (.next + 1) % Count
         if .filled < Count do
             .filled += 1
         return calibrated

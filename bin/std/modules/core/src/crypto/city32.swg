@@ -14,8 +14,8 @@ public struct City32
 
 impl City32
 {
-    const C1 = 0xcc9e2d51
-    const C2 = 0x1b873593
+    const C1 = 0xCC9E2D51
+    const C2 = 0x1B873593
     func fetch(buf: const [*] u8) => Math.littleEndianToNative(dref cast(const [*] u32) buf)
 
     #[Swag.Safety(.Overflow, false)]
@@ -41,9 +41,9 @@ impl City32
         var b   = len * 5
         var c   = 9'u32
         let d   = b
-        a += fetch(s)
-        b += fetch(s + len - 4)
-        c += fetch(s + ((len >> 1) & 4))
+        a    += fetch(s)
+        b    += fetch(s + len - 4)
+        c    += fetch(s + ((len >> 1) & 4))
         .crc = murmur3(murmur3(c, murmur3(b, murmur3(a, d))))
     }
 
@@ -98,19 +98,19 @@ impl City32
         var a4 = Math.ror(fetch(s + len - 20) * C1, 17) * C2
         h ^= a0
         h = Math.ror(h, 19)
-        h = h * 5 + 0xe6546b64
+        h = h * 5 + 0xE6546B64
         h ^= a2
         h = Math.ror(h, 19)
-        h = h * 5 + 0xe6546b64
+        h = h * 5 + 0xE6546B64
         g ^= a1
         g = Math.ror(g, 19)
-        g = g * 5 + 0xe6546b64
+        g = g * 5 + 0xE6546B64
         g ^= a3
         g = Math.ror(g, 19)
-        g = g * 5 + 0xe6546b64
+        g = g * 5 + 0xE6546B64
         f += a4
         f = Math.ror(f, 19)
-        f = f * 5 + 0xe6546b64
+        f = f * 5 + 0xE6546B64
 
         for (len - 1) / 20
         {
@@ -119,23 +119,23 @@ impl City32
             a2 = Math.ror(fetch(s + 8) * C1, 17) * C2
             a3 = Math.ror(fetch(s + 12) * C1, 17) * C2
             a4 = fetch(s + 16)
-            h ^= a0
-            h = Math.ror(h, 18)
-            h = h * 5 + 0xe6546b64
-            f += a1
-            f = Math.ror(f, 19)
-            f = f * C1
-            g += a2
-            g = Math.ror(g, 18)
-            g = g * 5 + 0xe6546b64
-            h ^= a3 + a1
-            h = Math.ror(h, 19)
-            h = h * 5 + 0xe6546b64
-            g ^= a4
-            g = Math.byteswap(g) * 5
-            h += a4 * 5
-            h = Math.byteswap(h)
-            f += a0
+            h  ^= a0
+            h  = Math.ror(h, 18)
+            h  = h * 5 + 0xE6546B64
+            f  += a1
+            f  = Math.ror(f, 19)
+            f  = f * C1
+            g  += a2
+            g  = Math.ror(g, 18)
+            g  = g * 5 + 0xE6546B64
+            h  ^= a3 + a1
+            h  = Math.ror(h, 19)
+            h  = h * 5 + 0xE6546B64
+            g  ^= a4
+            g  = Math.byteswap(g) * 5
+            h  += a4 * 5
+            h  = Math.byteswap(h)
+            f  += a0
             swap(&f, &h)
             swap(&f, &g)
             s += 20
@@ -146,10 +146,10 @@ impl City32
         f    = Math.ror(f, 11) * C1
         f    = Math.ror(f, 17) * C1
         h    = Math.ror(h + g, 19)
-        h    = h * 5 + 0xe6546b64
+        h    = h * 5 + 0xE6546B64
         h    = Math.ror(h, 17) * C1
         h    = Math.ror(h + f, 19)
-        h    = h * 5 + 0xe6546b64
+        h    = h * 5 + 0xE6546B64
         h    = Math.ror(h, 17) * C1
         .crc = h
     }

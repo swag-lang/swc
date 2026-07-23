@@ -5,10 +5,10 @@ using Swag
 // It automatically manages memory and grows as needed.
 struct(T) Array
 {
-    allocator:     #null IAllocator     // The allocator used for memory operations.
-    buffer:        #null [*] T          // Pointer to the contiguous memory block holding the elements.
-    count:         u64                  // The number of valid elements currently in the array.
-    capacity:      u64                  // The total number of elements that can be stored in the allocated me.buffer.
+    allocator: #null IAllocator     // The allocator used for memory operations.
+    buffer:    #null [*] T          // Pointer to the contiguous memory block holding the elements.
+    count:     u64                  // The number of valid elements currently in the array.
+    capacity:  u64                  // The total number of elements that can be stored in the allocated me.buffer.
 }
 
 impl Array
@@ -257,7 +257,7 @@ impl Array
         }
 
         Memory.free(.buffer, .capacity * #sizeof(T), .allocator)
-        .buffer = null
+        .buffer           = null
         .count, .capacity = 0
     }
 
@@ -310,7 +310,7 @@ impl Array
         if !newCapacity
         {
             .free()
-            .buffer = null
+            .buffer           = null
             .count, .capacity = 0
             return
         }
@@ -382,7 +382,7 @@ impl Array
         .grow(.count + 1)
         .initNewSlots(.count, 1)
         .buffer[.count] = #nodrop #fwd value
-        .count += 1
+        .count          += 1
     }
 
     // Adds an element to the end of the array.
@@ -392,7 +392,7 @@ impl Array
         .grow(.count + 1)
         .initNewSlots(.count, 1)
         .buffer[.count] = #nodrop #fwd value
-        .count += 1
+        .count          += 1
     }
 
     // Reserves space for 'num' elements at the end of the array and returns a pointer to the start of the new space.
@@ -564,7 +564,7 @@ impl Array
             for sliceCount
             {
                 dref destPtr = #nodrop values[@index]
-                destPtr += 1
+                destPtr      += 1
             }
         }
             #else
@@ -664,7 +664,7 @@ impl Array
             for .count - index
             {
                 .buffer[idx] = #relocate .buffer[idx + numValues]
-                idx += 1
+                idx          += 1
             }
         }
             #else

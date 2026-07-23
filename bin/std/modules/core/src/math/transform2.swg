@@ -4,9 +4,9 @@
 // 2D transformation matrix structure
 struct Transform2
 {
-    m11, m12:     f32     // First row of the 2D transformation matrix
-    m21, m22:     f32     // Second row of the 2D transformation matrix
-    m31, m32:     f32     // Translation components of the transformation
+    m11, m12: f32     // First row of the 2D transformation matrix
+    m21, m22: f32     // Second row of the 2D transformation matrix
+    m31, m32: f32     // Translation components of the transformation
 
     #[Swag.Offset("m11")]
     m:   [2, 2] f32     // 2x2 matrix view for rotation/scale components

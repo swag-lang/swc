@@ -1,17 +1,17 @@
 using Core, Gui, Pixel
 
-const W = 1240
-const H = 820
-const MaxPages = 4
-const TestFramesPerPage = 35
-const RootMargin = 24.0
-const PageTop = 112.0
-const PageBottomMargin = 58.0
-const PanelGap = 24.0
-const TopPanelHeight = 360.0
+const W                    = 1240
+const H                    = 820
+const MaxPages             = 4
+const TestFramesPerPage    = 35
+const RootMargin           = 24.0
+const PageTop              = 112.0
+const PageBottomMargin     = 58.0
+const PanelGap             = 24.0
+const TopPanelHeight       = 360.0
 const MinBottomPanelHeight = 220.0
-const ThemeButtonWidth = 152.0
-const HeaderGap = 18.0
+const ThemeButtonWidth     = 152.0
+const HeaderGap            = 18.0
 
 struct MenuCmd
 {
@@ -62,27 +62,27 @@ struct PagePanelLayout
     bottom: Math.Rectangle
 }
 
-var app: Application
-var g_Surface: #null *Surface
-var g_View: #null *Wnd
-var g_Title: #null *Label
-var g_SubTitle: #null *Label
+var app:           Application
+var g_Surface:     #null *Surface
+var g_View:        #null *Wnd
+var g_Title:       #null *Label
+var g_SubTitle:    #null *Label
 var g_ThemeButton: #null *PushButton
-var g_PageView: #null *Wnd
-var g_Footer: #null *Label
+var g_PageView:    #null *Wnd
+var g_Footer:      #null *Label
 var g_StatusLabel: #null *Label
-var g_Preview: #null *Wnd
-var g_PageMenus: Array'(*MenuCtrl)
+var g_Preview:     #null *Wnd
+var g_PageMenus:   Array'(*MenuCtrl)
 var g_ContextMenu: #null *MenuCtrl
-var g_StateMenu: #null *MenuCtrl
-var g_Page: s32
-var g_TestFrame: s32
-var g_DarkTheme: bool
+var g_StateMenu:   #null *MenuCtrl
+var g_Page:        s32
+var g_TestFrame:   s32
+var g_DarkTheme:   bool
 var g_DocumentDirty = true
 var g_ShowGrid = true
 var g_ShowGuides = true
 var g_ContextPinned: bool
-var g_ActionCount: s32
+var g_ActionCount:   s32
 var g_Mode = PreviewMode.Detailed
 var g_StatusText: String
 
@@ -142,8 +142,8 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
-    result.left = {0, 0, halfWidth, topHeight}
-    result.right = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
+    result.left   = {0, 0, halfWidth, topHeight}
+    result.right  = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
     result.bottom = {0, bottomY, width, bottomHeight}
     return result
 }
@@ -276,7 +276,7 @@ func destroyPageMenus()
 
     g_PageMenus.clear()
     g_ContextMenu = null
-    g_StateMenu = null
+    g_StateMenu   = null
 }
 
 func addDocumentItems(menu: *MenuCtrl)
@@ -367,11 +367,11 @@ func createStatusPanel(parent: *Wnd, rect: Math.Rectangle)
 func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 2'u32)
 {
     var richText: RichString = text
-    var format: RichStringFormat
-    format.flags = .WordWrap | .Clip
+    var format:   RichStringFormat
+    format.flags        = .WordWrap | .Clip
     format.font.regular = font
-    format.palette[0] = color
-    format.maxLines = maxLines
+    format.palette[0]   = color
+    format.maxLines     = maxLines
     painter.drawRichString(rect, &richText, format)
 }
 
@@ -451,7 +451,7 @@ func createPreview(parent: *Wnd, rect: Math.Rectangle)->*Wnd
 
 func setMode(mode: PreviewMode)
 {
-    g_Mode = mode
+    g_Mode          = mode
     g_DocumentDirty = true
     setStatus(Format.toString("Preview mode changed to %.", currentModeName()))
 }
@@ -462,19 +462,19 @@ func processMenuCommand(id: WndId)->bool
     {
     case MenuCmd.NewFile:
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Created a new menu sample document.")
     case MenuCmd.OpenFile:
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Opened a simulated document from the File menu.")
     case MenuCmd.SaveFile:
         g_DocumentDirty = false
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Saved the current document; Save is now disabled until the next edit.")
     case MenuCmd.SaveAs:
         g_DocumentDirty = false
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Saved a copy through the Save As command.")
     case MenuCmd.Export:
         g_ActionCount += 1
@@ -485,37 +485,37 @@ func processMenuCommand(id: WndId)->bool
 
     case MenuCmd.Undo:
         g_DocumentDirty = false
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Undo consumed the simulated dirty state.")
     case MenuCmd.Redo:
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Redo restored the simulated dirty state.")
     case MenuCmd.Cut:
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Cut command selected.")
     case MenuCmd.Copy:
         g_ActionCount += 1
         setStatus("Copy command selected.")
     case MenuCmd.Paste:
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Paste command selected.")
     case MenuCmd.Duplicate:
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Duplicate command selected.")
 
     case MenuCmd.ToggleGrid:
-        g_ShowGrid = !g_ShowGrid
+        g_ShowGrid      = !g_ShowGrid
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus(Format.toString("Grid visibility is now %.", boolWord(g_ShowGrid)))
     case MenuCmd.ToggleGuides:
-        g_ShowGuides = !g_ShowGuides
+        g_ShowGuides    = !g_ShowGuides
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus(Format.toString("Guide visibility is now %.", boolWord(g_ShowGuides)))
     case MenuCmd.ModeCompact:
         g_ActionCount += 1
@@ -527,12 +527,12 @@ func processMenuCommand(id: WndId)->bool
         g_ActionCount += 1
         setMode(.Columns)
     case MenuCmd.ThemeLight:
-        g_DarkTheme = false
+        g_DarkTheme   = false
         g_ActionCount += 1
         applyTheme()
         setStatus("Light theme selected from a menu.")
     case MenuCmd.ThemeDark:
-        g_DarkTheme = true
+        g_DarkTheme   = true
         g_ActionCount += 1
         applyTheme()
         setStatus("Dark theme selected from a menu.")
@@ -542,11 +542,11 @@ func processMenuCommand(id: WndId)->bool
         setStatus("Inspect command selected from the context menu.")
     case MenuCmd.ContextRename:
         g_DocumentDirty = true
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus("Rename command selected from the context menu.")
     case MenuCmd.ContextPin:
         g_ContextPinned = !g_ContextPinned
-        g_ActionCount += 1
+        g_ActionCount   += 1
         setStatus(Format.toString("Context item pinned state is now %.", boolWord(g_ContextPinned)))
     case MenuCmd.ContextArchive:
         g_ActionCount += 1
@@ -588,33 +588,33 @@ func computeMenuCommandState(evt: *CommandStateEvent)->bool
         evt.disabled = g_DocumentDirty
     case MenuCmd.ToggleGrid:
         evt.setFlags |= .Checked
-        evt.checked = g_ShowGrid
+        evt.checked  = g_ShowGrid
     case MenuCmd.ToggleGuides:
         evt.setFlags |= .Checked
-        evt.checked = g_ShowGuides
+        evt.checked  = g_ShowGuides
     case MenuCmd.ModeCompact:
-        evt.setFlags |= .Checked | .RenderingHint
+        evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
-        evt.checked = g_Mode == .Compact
+        evt.checked       = g_Mode == .Compact
     case MenuCmd.ModeDetailed:
-        evt.setFlags |= .Checked | .RenderingHint
+        evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
-        evt.checked = g_Mode == .Detailed
+        evt.checked       = g_Mode == .Detailed
     case MenuCmd.ModeColumns:
-        evt.setFlags |= .Checked | .RenderingHint
+        evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
-        evt.checked = g_Mode == .Columns
+        evt.checked       = g_Mode == .Columns
     case MenuCmd.ThemeLight:
-        evt.setFlags |= .Checked | .RenderingHint
+        evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
-        evt.checked = !g_DarkTheme
+        evt.checked       = !g_DarkTheme
     case MenuCmd.ThemeDark:
-        evt.setFlags |= .Checked | .RenderingHint
+        evt.setFlags      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
-        evt.checked = g_DarkTheme
+        evt.checked       = g_DarkTheme
     case MenuCmd.ContextPin:
         evt.setFlags |= .Checked
-        evt.checked = g_ContextPinned
+        evt.checked  = g_ContextPinned
     case MenuCmd.ContextDelete:
         evt.setFlags |= .Disabled
         evt.disabled = g_ContextPinned
@@ -672,7 +672,7 @@ func clearPage()
 {
     destroyPageMenus()
     g_StatusLabel = null
-    g_Preview = null
+    g_Preview     = null
 
     for child in g_PageView.childs do
         child.destroy()
@@ -793,7 +793,7 @@ func registerMenuShortcuts()
 
 func createRootView()
 {
-    g_View = g_Surface.getView()
+    g_View                 = g_Surface.getView()
     g_View.backgroundStyle = .View
 
     g_Title = Label.create(notnull g_View, "", {})
@@ -803,12 +803,12 @@ func createRootView()
     g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
     setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
 
-    g_ThemeButton = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form = .Flat
-    g_ThemeButton.icon = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
+    g_ThemeButton.form       = .Flat
+    g_ThemeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
     g_ThemeButton.sigPressed += &toggleTheme
 
-    g_PageView = Wnd.create'Wnd(notnull g_View, {})
+    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
     g_PageView.backgroundStyle = .Transparent
 
     g_Footer = Label.create(notnull g_View, "", {})

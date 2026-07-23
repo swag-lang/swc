@@ -11,11 +11,11 @@ func assertFastNoise(value, expected: f32)
 func initFastNoise()->Noise.FastNoise
 {
     var noise: retval
-    noise.seed = 42
-    noise.frequency = 0.125
-    noise.octaves = 3
+    noise.seed       = 42
+    noise.frequency  = 0.125
+    noise.octaves    = 3
     noise.lacunarity = 2.25
-    noise.gain = 0.4
+    noise.gain       = 0.4
     noise.update()
     return noise
 }

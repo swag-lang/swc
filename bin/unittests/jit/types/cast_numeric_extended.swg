@@ -31,7 +31,7 @@
         return value32 == 0.0'f32 and value64 == 0.0'f64
     }
 
-    const TRUE_OK = #run boolToFloatCasts(true)
+    const TRUE_OK  = #run boolToFloatCasts(true)
     const FALSE_OK = #run boolToFloatCasts(false)
     #assert(TRUE_OK)
     #assert(FALSE_OK)

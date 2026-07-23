@@ -71,12 +71,12 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
     // Store type CRC
     var pzi = cast([*] u32) pz
     dref pzi = type ? type.crc : 0
-    pzi += 1
+    pzi      += 1
 
     // Store data size
     var pzu = cast([*] u64) pzi
     dref pzu = @countof(data)
-    pzu += 1
+    pzu      += 1
 
     // Store data
     Memory.copy(pzu, @dataof(data), @countof(data))

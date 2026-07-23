@@ -70,7 +70,7 @@ alias BitCastStrictF32 = f32
 
 #assert(cast #bit (rune) 65'u32 == 'A')
 
-const StrictBits = cast #bit (BitCastStrictU32) cast(BitCastStrictF32) 1.0'f32
+const StrictBits  = cast #bit (BitCastStrictU32) cast(BitCastStrictF32) 1.0'f32
 const StrictFloat = cast #bit (BitCastStrictF32) cast(BitCastStrictU32) 0x40000000'u32
 #assert(#typeof(StrictBits) == BitCastStrictU32)
 #assert(#typeof(StrictFloat) == BitCastStrictF32)
@@ -80,8 +80,8 @@ const StrictFloat = cast #bit (BitCastStrictF32) cast(BitCastStrictU32) 0x400000
 const NaN0    = cast #bit (f32) 0x7F800001
 const Inf0    = cast #bit (f32) 0x7F800000
 const NegInf0 = cast #bit (f32) 0xFF800000
-const NaN1    = cast #bit (f64) 0x7ff8000000000001
-const Inf1    = cast #bit (f64) 0x7ff0000000000000
-const NegInf1 = cast #bit (f64) 0xfff0000000000000
+const NaN1    = cast #bit (f64) 0x7FF8000000000001
+const Inf1    = cast #bit (f64) 0x7FF0000000000000
+const NegInf1 = cast #bit (f64) 0xFFF0000000000000
 
 const A = cast #bit (f32) -666

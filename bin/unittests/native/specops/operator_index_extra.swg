@@ -126,14 +126,14 @@ impl RuntimeMultiValueBox
     mtd opIndexSet(index: s32, value: s32)
     {
         .intWrites += 1
-        .intVal = value + index
+        .intVal    = value + index
     }
 
     #[Swag.NoInline]
     mtd opIndexSet(index: s32, value: f32)
     {
         .fltWrites += 1
-        .floatVal = value + cast(f32) index
+        .floatVal  = value + cast(f32) index
     }
 }
 

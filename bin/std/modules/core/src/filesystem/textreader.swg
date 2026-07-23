@@ -10,12 +10,12 @@ public enum TextEncoding
 // TextReader reads a text file from a FileStream with buffering and encoding support
 public struct TextReader
 {
-    stream:            FileStream              // File stream used to read from disk
-    buffer:            Array'u8                // Internal byte buffer used for reading data
+    stream: FileStream                         // File stream used to read from disk
+    buffer: Array'u8                           // Internal byte buffer used for reading data
     encodingType       = TextEncoding.Utf8     // Text encoding type (default is UTF-8)
-    byteSeek:          u64                     // Current byte offset in the buffer
-    bufferSize:        u64                     // Size of the buffer
-    checkPreamble:     bool                    // Indicates whether to check for a UTF-8 BOM on first read
+    byteSeek:      u64                         // Current byte offset in the buffer
+    bufferSize:    u64                         // Size of the buffer
+    checkPreamble: bool                        // Indicates whether to check for a UTF-8 BOM on first read
 }
 
 impl TextReader
@@ -35,7 +35,7 @@ impl TextReader
             {
                 let buffer = notnull .buffer.buffer
                 dref cast(*u32) buffer = 0
-                .buffer.count = .stream.read(buffer, .buffer.capacity)
+                .buffer.count          = .stream.read(buffer, .buffer.capacity)
 
                 // BOM
                 if .buffer.count >= 3 and .buffer[0] == 0xEF and .buffer[1] == 0xBB and .buffer[2] == 0xBF do

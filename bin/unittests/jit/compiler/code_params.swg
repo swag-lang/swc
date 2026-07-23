@@ -158,7 +158,7 @@ func runVarBinding()->bool
     var total = 0
     withVarBinding(5)
     {
-        v += 1
+        v     += 1
         total = v
     }
     return total == 6
@@ -213,26 +213,26 @@ func runBindingEvalOnce()->bool
     onceMacro()
     {
         evals += 1
-        got = v
+        got   = v
     }
 
     return evals == 1 and got == 111
 }
 
-const BareOk               = #run runBare()
-const ArrowCondOk          = #run runArrowCond()
-const DefaultNamesOk       = #run runDefaultNames()
-const BinderTrailingOk     = #run runBinderTrailing()
-const BinderInlineOk       = #run runBinderInline()
-const PartialBinderOk      = #run runPartialBinder()
-const BindingsOk           = #run runBindings()
-const BindingsBinderOk     = #run runBindingsWithBinder()
-const BindingsCallerOk     = #run runBindingsCallerScope()
-const VarBindingOk         = #run runVarBinding()
-const MixinBindingOk       = #run runMixinBinding()
-const ForwardNamesOk       = #run runForwardNames()
-const RepeatBindingsOk     = #run runRepeatBindings()
-const BindingEvalOnceOk    = #run runBindingEvalOnce()
+const BareOk            = #run runBare()
+const ArrowCondOk       = #run runArrowCond()
+const DefaultNamesOk    = #run runDefaultNames()
+const BinderTrailingOk  = #run runBinderTrailing()
+const BinderInlineOk    = #run runBinderInline()
+const PartialBinderOk   = #run runPartialBinder()
+const BindingsOk        = #run runBindings()
+const BindingsBinderOk  = #run runBindingsWithBinder()
+const BindingsCallerOk  = #run runBindingsCallerScope()
+const VarBindingOk      = #run runVarBinding()
+const MixinBindingOk    = #run runMixinBinding()
+const ForwardNamesOk    = #run runForwardNames()
+const RepeatBindingsOk  = #run runRepeatBindings()
+const BindingEvalOnceOk = #run runBindingEvalOnce()
 
 #assert(BareOk)
 #assert(ArrowCondOk)

@@ -155,7 +155,7 @@ impl MethodConstShadowHolder
 
 func semaTest001()
 {
-    let typeShadowHolder: MethodTypeShadowHolder'u16
+    let typeShadowHolder:  MethodTypeShadowHolder'u16
     let constShadowHolder: MethodConstShadowHolder'(u16, 9)
 
     #assert(functionLocalImplicitBox'u16())

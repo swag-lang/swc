@@ -55,9 +55,9 @@ namespace Platform.Win32
 {
     public struct Context
     {
-        hDC:          HDC
-        hRC:          HGLRC
-        window:       #null *Env.Window
+        hDC:    HDC
+        hRC:    HGLRC
+        window: #null *Env.Window
     }
 
     public func createContext(window: &Env.Window, colorBits: u8 = 32, makeCurrent = true)->Context throw

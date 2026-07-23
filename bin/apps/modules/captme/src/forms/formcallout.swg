@@ -21,18 +21,18 @@ struct FormCallout
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
     fontSize:        f32 = 40
     #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
-    roundSize:       f32 = 16
-    tailX, tailY:    f32
-    boldSize:        f32 = 0
+    roundSize:    f32 = 16
+    tailX, tailY: f32
+    boldSize:     f32 = 0
     lineSpacing      = 14.0
     textColor:       Color = Argb.White
 
     #[Serialization.NoSerialize]
     {
-        gizmoRect:   GizmoRect
-        gizmoTail:   GizmoPoints
-        render:      FormText
-        tailPath:    LinePath
+        gizmoRect: GizmoRect
+        gizmoTail: GizmoPoints
+        render:    FormText
+        tailPath:  LinePath
     }
 }
 
@@ -225,10 +225,10 @@ impl IForm for FormCallout
 
     mtd impl scaleBaseForm(scale: f32)
     {
-        .x = cast(s32) (.x * scale)
-        .y = cast(s32) (.y * scale)
-        .w = cast(s32) (.w * scale)
-        .h = cast(s32) (.h * scale)
+        .x     = cast(s32) (.x * scale)
+        .y     = cast(s32) (.y * scale)
+        .w     = cast(s32) (.w * scale)
+        .h     = cast(s32) (.h * scale)
         .tailX *= scale
         .tailY *= scale
     }
@@ -240,8 +240,8 @@ impl IForm for FormCallout
 
     mtd impl moveForm(newPosX, newPosY: s32)
     {
-        .x += newPosX
-        .y += newPosY
+        .x     += newPosX
+        .y     += newPosY
         .tailX += cast(f32) newPosX
         .tailY += cast(f32) newPosY
     }

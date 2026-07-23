@@ -4,13 +4,13 @@ using Core, Pixel
 struct PalettePicker
 {
     using wnd:         Wnd
-    selectedColor:     Color
-    pal:               Array'Color
-    palPos:            Array'Math.Rectangle
-    boxSize:           s32 = 24
-    boxMargin:         s32 = 3
-    sigChanged:        SigArray'func||(*PalettePicker)
-    hotIdx:            s32 = Swag.S32.Max
+    selectedColor: Color
+    pal:           Array'Color
+    palPos:        Array'Math.Rectangle
+    boxSize:       s32 = 24
+    boxMargin:     s32 = 3
+    sigChanged:    SigArray'func||(*PalettePicker)
+    hotIdx:        s32 = Swag.S32.Max
 }
 
 impl IWnd for PalettePicker

@@ -92,7 +92,7 @@ func consumeCannotCastExactGrid(grid: [2, 3] s16) {}
 
 #test
 {
-    let value: #null any = null
+    let value:    #null any = null
     let fallback: any = true
     let resolved = value orelse fallback     // swc-expected-error {{sema_err_cannot_cast}}
 }
@@ -152,7 +152,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
 {
     // Reassigning from a nullable source re-nullifies inside the guarded block.
     var storage: NarrowLimitNode
-    var p: #null *NarrowLimitNode = &storage
+    var p:       #null *NarrowLimitNode = &storage
     if p
     {
         p = null
@@ -164,7 +164,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
 {
     // Taking the address of the guarded variable drops its narrowing.
     var storage: NarrowLimitNode
-    var p: #null *NarrowLimitNode = &storage
+    var p:       #null *NarrowLimitNode = &storage
     if p
     {
         let pp = &p
@@ -178,7 +178,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
     // A loop body that reassigns the variable cannot rely on an outer guard: the
     // reassignment flows back through the loop's back edge.
     var storage: NarrowLimitNode
-    var p: #null *NarrowLimitNode = &storage
+    var p:       #null *NarrowLimitNode = &storage
     var i = 0
     if p
     {
@@ -195,7 +195,7 @@ func narrowLimitTakes(p: *NarrowLimitNode) {}
 {
     // A defer body runs at scope exit: narrowing at the declaration point does not hold.
     var storage: NarrowLimitNode
-    var p: #null *NarrowLimitNode = &storage
+    var p:       #null *NarrowLimitNode = &storage
     if p
     {
         defer narrowLimitTakes(p)     // swc-expected-error {{sema_err_cannot_cast}}

@@ -182,7 +182,7 @@ impl InterpolationWindow
 #test
 {
     let signedPair: Pair'(s32, string) = {first: 7, second: "ok"}
-    let floatBox: Wrapper'f32 = {value: 1.5}
+    let floatBox:   Wrapper'f32 = {value: 1.5}
 
     @assert(sameTypePair(1's32, 2's32) == 2)
     @assert(sameTypePair'(f64)(1.0'f64, 2.0'f64) == 2.0'f64)
@@ -196,8 +196,8 @@ impl InterpolationWindow
 
 #test
 {
-    let floatWindow: Window'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
-    let intWindow: Window'(s32, 3) = {values: [1, 2, 3]}
+    let floatWindow:  Window'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
+    let intWindow:    Window'(s32, 3) = {values: [1, 2, 3]}
     let interpolated: InterpolationWindow'(f64, 3) = {values: [10.0'f64, 20.0, 30.0]}
 
     @assert(floatWindow.at'1() == 20.0'f32)

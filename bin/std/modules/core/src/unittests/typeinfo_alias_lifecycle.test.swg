@@ -2,7 +2,7 @@
 #global private
 using Swag
 
-var CoreAliasLifecycleDropCount: s32
+var CoreAliasLifecycleDropCount:     s32
 var CoreAliasLifecyclePostCopyCount: s32
 var CoreAliasLifecyclePostMoveCount: s32
 

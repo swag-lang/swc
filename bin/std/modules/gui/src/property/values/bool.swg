@@ -102,7 +102,7 @@ impl Properties
             }
 
             itemP.checkBox = ed
-            ed.sigChanged += func|prop = me, itemP|(ed)
+            ed.sigChanged  += func|prop = me, itemP|(ed)
             {
                 prop.validateBool(itemP)
             }
@@ -147,8 +147,8 @@ impl Properties
         {
             with let label = Label.create(line, "", {lineHeight, 0, Math.max(editWidth - lineHeight, 1.0)})
             {
-                .dockStyle = .Center
-                .labelFlags |= .WordWrap | .AutoHeight
+                .dockStyle         = .Center
+                .labelFlags        |= .WordWrap | .AutoHeight
                 .horzAlignmentText = .Left
                 .setText(dispDesc == null ? "" : cast(string) (dispDesc))
             }

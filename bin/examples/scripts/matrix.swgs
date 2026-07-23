@@ -14,9 +14,9 @@ const MaxColumns   = 80
 
 struct C
 {
-    y:          f32
-    length:     s32
-    speed:      f32
+    y:      f32
+    length: s32
+    speed:  f32
     c:          [MaxTrailSize] rune
     lastYI:     s32
 }
@@ -30,8 +30,8 @@ func initC(i: s32)
     g_RD[i].length = g_Rng.nextS32(MinTrailSize, MaxTrailSize - 1)
     for j in g_RD[i].length do
         g_RD[i].c[j] = cast(rune) g_Rng.nextS32(FirstRune, LastRune)
-    g_RD[i].speed = g_Rng.nextF32(400, 800)
-    g_RD[i].y     = 0
+    g_RD[i].speed    = g_Rng.nextF32(400, 800)
+    g_RD[i].y        = 0
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool

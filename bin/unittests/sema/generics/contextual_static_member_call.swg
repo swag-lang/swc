@@ -41,7 +41,7 @@ impl ContextStaticBox
 
 func semaTest001()
 {
-    var v: ContextStaticVec2's32 = {x: 3, y: 4}
+    var v:   ContextStaticVec2's32 = {x: 3, y: 4}
     var box: ContextStaticBox's32 = {value: {x: 10, y: 20}}
     let doubled = v.doubled()
     let expanded = box.expanded()

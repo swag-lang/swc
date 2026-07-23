@@ -52,5 +52,5 @@ func useInterface(opponent: Shape)->Shape
     return iface.pick(opponent)
 }
 
-const DirectResult = #run useDirect(.Rock)
+const DirectResult    = #run useDirect(.Rock)
 const InterfaceResult = #run useInterface(.Rock)

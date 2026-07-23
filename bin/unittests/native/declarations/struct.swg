@@ -119,7 +119,7 @@ struct PtrWrap
     var h: Holder = {count: 10, flags: {a: false, b: false}}
     h.flags.a = true
     h.flags.b = true
-    h.count = 12
+    h.count   = 12
     @assert(h.count == 12)
     @assert(h.flags.a)
     @assert(h.flags.b)
@@ -146,7 +146,7 @@ struct PtrWrap
 
 #test
 {
-    var left: Vec2 = {x: 6, y: 9}
+    var left:  Vec2 = {x: 6, y: 9}
     var right: Vec2 = {x: 1, y: 2}
     var pleft = &left
     var pright = &right

@@ -6,7 +6,10 @@ of a variable, struct, or namespace within a scoped block. Inside a 'with' block
 the '.' prefix refers to the selected object, yielding concise, readable code.
 */
 
-struct Point { x, y: s32 }
+struct Point
+{
+    x, y: s32
+}
 
 impl Point
 {

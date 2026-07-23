@@ -23,14 +23,14 @@ using Swag
 
     @assert(rng.mti == Random.NN)
     @assert(rng.mt[0] == 0x0000000000001571'u64)
-    @assert(rng.mt[1] == 0xb5347f47116bd3de'u64)
-    @assert(rng.mt[311] == 0xc65ae95c45a5d796'u64)
+    @assert(rng.mt[1] == 0xB5347F47116BD3DE'u64)
+    @assert(rng.mt[311] == 0xC65AE95C45A5D796'u64)
 
-    @assert(rng.nextU64() == 0xc96d191cf6f6aea6'u64)
-    @assert(rng.nextU64() == 0x401f7ac78bc80f1c'u64)
-    @assert(rng.nextU64() == 0xb5ee8cb6abe457f8'u64)
-    @assert(rng.nextU64() == 0xf258d22d4db91392'u64)
-    @assert(rng.nextU64() == 0x04eef2b4b5d860cc'u64)
+    @assert(rng.nextU64() == 0xC96D191CF6F6AEA6'u64)
+    @assert(rng.nextU64() == 0x401F7AC78BC80F1C'u64)
+    @assert(rng.nextU64() == 0xB5EE8CB6ABE457F8'u64)
+    @assert(rng.nextU64() == 0xF258D22D4DB91392'u64)
+    @assert(rng.nextU64() == 0x04EEF2B4B5D860CC'u64)
     @assert(rng.mti == 5)
 }
 
@@ -40,15 +40,15 @@ using Swag
     rng.seedU64(123456789)
 
     @assert(rng.mti == Random.NN)
-    @assert(rng.mt[0] == 0x00000000075bcd15'u64)
-    @assert(rng.mt[1] == 0xe8739da96f1977b2'u64)
-    @assert(rng.mt[311] == 0x96513bca6a404a26'u64)
+    @assert(rng.mt[0] == 0x00000000075BCD15'u64)
+    @assert(rng.mt[1] == 0xE8739DA96F1977B2'u64)
+    @assert(rng.mt[311] == 0x96513BCA6A404A26'u64)
 
-    @assert(rng.nextU64() == 0x594fa7f19191c80e'u64)
-    @assert(rng.nextU64() == 0x44529f3328d35a75'u64)
-    @assert(rng.nextU64() == 0x22fb4065f1b6d99f'u64)
-    @assert(rng.nextU64() == 0x074f80bb4c13b3c0'u64)
-    @assert(rng.nextU64() == 0xde7269257ae40cad'u64)
+    @assert(rng.nextU64() == 0x594FA7F19191C80E'u64)
+    @assert(rng.nextU64() == 0x44529F3328D35A75'u64)
+    @assert(rng.nextU64() == 0x22FB4065F1B6D99F'u64)
+    @assert(rng.nextU64() == 0x074F80BB4C13B3C0'u64)
+    @assert(rng.nextU64() == 0xDE7269257AE40CAD'u64)
     @assert(rng.mti == 5)
 }
 
@@ -60,13 +60,13 @@ using Swag
 
     @assert(rng.mti == Random.NN)
     @assert(rng.mt[0] == 0x8000000000000000'u64)
-    @assert(rng.mt[1] == 0xa53da00c269cd27c'u64)
-    @assert(rng.mt[311] == 0x81a384fb290849cd'u64)
+    @assert(rng.mt[1] == 0xA53DA00C269CD27C'u64)
+    @assert(rng.mt[311] == 0x81A384FB290849CD'u64)
 
-    @assert(rng.nextU64() == 0x64d79b552a559d7f'u64)
-    @assert(rng.nextU64() == 0x44a572665a6ee240'u64)
-    @assert(rng.nextU64() == 0xeb2bf6dc3d72135c'u64)
-    @assert(rng.nextU64() == 0xe3836981f9f82ea0'u64)
-    @assert(rng.nextU64() == 0x43a38212350ee392'u64)
+    @assert(rng.nextU64() == 0x64D79B552A559D7F'u64)
+    @assert(rng.nextU64() == 0x44A572665A6EE240'u64)
+    @assert(rng.nextU64() == 0xEB2BF6DC3D72135C'u64)
+    @assert(rng.nextU64() == 0xE3836981F9F82EA0'u64)
+    @assert(rng.nextU64() == 0x43A38212350EE392'u64)
     @assert(rng.mti == 5)
 }

@@ -145,8 +145,8 @@ struct RuntimeIndexedState
 
 struct RuntimeIndexedHolder
 {
-    state:      RuntimeIndexedState
-    oldState:   RuntimeIndexedState
+    state:    RuntimeIndexedState
+    oldState: RuntimeIndexedState
     wideValues: [128] bool
 }
 
@@ -191,7 +191,7 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 #test
 {
     const values = [0, 1, 2]
-    const first = values[RuntimeIndexedSlot.First]
+    const first  = values[RuntimeIndexedSlot.First]
     @assert(first == 0)
 
     var index = RuntimeIndexedSlot.Third

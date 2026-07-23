@@ -332,10 +332,10 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 
 #test
 {
-    const add = cast(BinaryStrictS32) 40 + cast(BinaryStrictS32) 2
+    const add  = cast(BinaryStrictS32) 40 + cast(BinaryStrictS32) 2
     const fadd = cast(BinaryStrictF32) 1.5 + cast(BinaryStrictF32) 2.5
     const band = cast(BinaryStrictU32) 0x3F'u32 & cast(BinaryStrictU32) 0x2A'u32
-    const shl = cast(BinaryStrictU32) 21'u32 << cast(BinaryStrictS32) 1
+    const shl  = cast(BinaryStrictU32) 21'u32 << cast(BinaryStrictS32) 1
 
     #assert(#typeof(add) == BinaryStrictS32)
     #assert(#typeof(fadd) == BinaryStrictF32)

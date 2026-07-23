@@ -6,12 +6,12 @@ internal const ItemMargin = 8.0
 
 struct LibraryItem
 {
-    fi:           File.FileInfo
-    capture:      #null *Capture
-    texture:      Texture
-    rect:         Math.Rectangle
-    visible:      bool
-    filtered:     bool
+    fi:       File.FileInfo
+    capture:  #null *Capture
+    texture:  Texture
+    rect:     Math.Rectangle
+    visible:  bool
+    filtered: bool
 }
 
 impl LibraryItem
@@ -28,16 +28,16 @@ struct LibraryView
     scrollWnd:       #late *ScrollWnd
     libWnd:          #late *LibraryWnd
     mainWnd:         #late *MainWnd
-    allItems:        ArrayPtr'LibraryItem
-    items:           Array'*LibraryItem
-    mutexLoaded:     Sync.Mutex
-    thread:          Thread
+    allItems:    ArrayPtr'LibraryItem
+    items:       Array'*LibraryItem
+    mutexLoaded: Sync.Mutex
+    thread:      Thread
     hotItem          = Swag.U32.Max
     focusItem        = Swag.U32.Max
-    selModel:        SelModel
-    filterYear:      u64
-    filterMonth:     u64
-    filterDay:       u64
+    selModel:    SelModel
+    filterYear:  u64
+    filterMonth: u64
+    filterDay:   u64
     imgSpin:         #late *ImageRect
 }
 
@@ -347,7 +347,7 @@ impl LibraryView
         // that actually have a preview; the rest simply don't take part in similarity sort.
         if capture.preview.isValid() do
             capture.haar = ImageStatistics.quickExtractHaarFeatures(capture.preview, 32)
-        g_DirtyList = true
+        g_DirtyList      = true
 
         .mutexLoaded.lock()
         it.capture = capture
@@ -414,8 +414,8 @@ impl LibraryView
                 continue
             }
 
-            var best:      f32
-            var bestI:     u64
+            var best:  f32
+            var bestI: u64
             var foundMatch = false
             for it in remaining where it.capture and toCompare.capture.haar.size == it.capture.haar.size
             {

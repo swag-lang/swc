@@ -1,13 +1,13 @@
 #global private
 
 var gBasicF0Calls: s32
-var gBasicF1Last: s32
-var gBasicACalls: s32
-var gBasicBLast: s32
-var gBasicCLast: s32
-var gBasicDLast: s32
-var gBasicF5Last: s32
-var gBasicF6Last: s32
+var gBasicF1Last:  s32
+var gBasicACalls:  s32
+var gBasicBLast:   s32
+var gBasicCLast:   s32
+var gBasicDLast:   s32
+var gBasicF5Last:  s32
+var gBasicF6Last:  s32
 func A() { gBasicACalls += 1 }
 func B(x: s32) { gBasicBLast = x }
 func C(x: s32, y: s32) { gBasicCLast = x + y }

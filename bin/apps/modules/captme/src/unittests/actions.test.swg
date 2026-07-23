@@ -228,7 +228,7 @@ using Swag, Core
     @assert(!evt.hidden)
 
     text.rotate = 25
-    evt = Testing.commandState(ActionEdit.ResetRotation)
+    evt         = Testing.commandState(ActionEdit.ResetRotation)
     @assert(Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ResetRotation, &evt))
     @assert(!evt.disabled)
     @assert(!evt.hidden)
@@ -243,7 +243,7 @@ using Swag, Core
     @assert(evt.disabled)
 
     image.image = Image.create(2, 2, .BGRA8)
-    evt = Testing.commandState(ActionEdit.ClearImageInside)
+    evt         = Testing.commandState(ActionEdit.ClearImageInside)
     @assert(Testing.actionUpdate'ActionEdit(f.main, ActionEdit.ClearImageInside, &evt))
     @assert(!evt.disabled)
     f.main.sendCommandEvent(ActionEdit.ClearImageInside)
@@ -276,7 +276,7 @@ using Swag, Core
     @assert(Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(evt.disabled)
     f.capture.backImgOriginal = Image.create(5, 5, .BGRA8)
-    evt = Testing.commandState(ActionImage.RestoreOrg)
+    evt                       = Testing.commandState(ActionImage.RestoreOrg)
     @assert(Testing.actionUpdate'ActionImage(f.main, ActionImage.RestoreOrg, &evt))
     @assert(!evt.disabled)
 
@@ -474,7 +474,7 @@ using Swag, Core
     @assert(evt.disabled)
 
     f.capture.linkedImage = "linked.png"
-    evt = Testing.commandState(ActionFile.UnlinkImage)
+    evt                   = Testing.commandState(ActionFile.UnlinkImage)
     @assert(Testing.actionUpdate'ActionFile(f.main, ActionFile.UnlinkImage, &evt))
     @assert(!evt.disabled)
 

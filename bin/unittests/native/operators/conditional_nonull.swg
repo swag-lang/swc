@@ -27,7 +27,7 @@ func nativeConditionalNonNullBranches(flag: bool)->bool
     var second = NativeConditionalNonNullItem{value: 22}
     var indexed = NativeConditionalIndex'(*NativeConditionalNonNullItem){values: [&first]}
 
-    let legacy: *NativeConditionalNonNullItem          = &first
+    let legacy:   *NativeConditionalNonNullItem          = &first
     let nullable: #null *NativeConditionalNonNullItem  = nativeConditionalMaybe(&first)
     let required: *NativeConditionalNonNullItem = &second
 

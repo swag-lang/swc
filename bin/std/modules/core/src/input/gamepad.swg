@@ -5,8 +5,8 @@ using Math
 // Represents a gamepad
 struct GamePad
 {
-    previousState:     GamePadState
-    currentState:      GamePadState
+    previousState: GamePadState
+    currentState:  GamePadState
 
     // The pad index associated with that GamePad instance
     padIndex: u32

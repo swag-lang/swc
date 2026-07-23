@@ -10,23 +10,23 @@ enum MovieSource
 
 struct Movie
 {
-    enableCache:         bool = true
-    mustLoop:            bool = true
-    inPause:             bool
-    playFreq:            f32 = 0.05
-    sigFrameChanged:     SigArray'func||(*Movie)
+    enableCache:     bool = true
+    mustLoop:        bool = true
+    inPause:         bool
+    playFreq:        f32 = 0.05
+    sigFrameChanged: SigArray'func||(*Movie)
 
-    numFrames:           s32
-    frameIndex:          s32
-    frame:               Image
+    numFrames:  s32
+    frameIndex: s32
+    frame:      Image
 
-    source:              MovieSource = None
-    imgList:             ImageList
-    gif:                 Gif.Decoder
-    bytes:               Array'u8
-    cacheFrames:         Array'Image
-    currentTime:         f32
-    dirtyFrame:          bool
+    source:      MovieSource = None
+    imgList:     ImageList
+    gif:         Gif.Decoder
+    bytes:       Array'u8
+    cacheFrames: Array'Image
+    currentTime: f32
+    dirtyFrame:  bool
 }
 
 private impl Movie
@@ -181,7 +181,7 @@ impl Movie
         .currentTime += dt
         while .currentTime > .playFreq
         {
-            hasChanged = true
+            hasChanged   = true
             .currentTime -= .playFreq
             .nextFrame()
         }

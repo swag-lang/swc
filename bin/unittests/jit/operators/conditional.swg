@@ -89,8 +89,8 @@ struct CondPair
         return cond ? p0 : p1
     }
 
-    const A = cast(*void) 0x1234'u64
-    const B = cast(*void) 0x5678'u64
+    const A  = cast(*void) 0x1234'u64
+    const B  = cast(*void) 0x5678'u64
     const V0 = #run ternaryPointer(true, A, B)
     const V1 = #run ternaryPointer(false, A, B)
     #assert(V0 == A)

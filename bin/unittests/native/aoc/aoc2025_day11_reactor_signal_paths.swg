@@ -17,7 +17,7 @@ enum ReactorNode: s32
     Output,
 }
 
-const NodeCount = 10
+const NodeCount         = 10
 const MaxOutputsPerNode = 3
 
 struct ReactorGraph
@@ -98,7 +98,7 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
     resetMemo(chainMemo)
 
     var result: ReactorReport
-    result.pathCount = countPaths(pathMemo, graph, cast(u32) ReactorNode.Intake)
+    result.pathCount    = countPaths(pathMemo, graph, cast(u32) ReactorNode.Intake)
     result.longestChain = longestChain(chainMemo, graph, cast(u32) ReactorNode.Intake)
 
     let intakeIndex = cast(u32) ReactorNode.Intake
@@ -121,83 +121,83 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
 
 func buildSampleReactor()->ReactorGraph
 {
-    const Intake = cast(u32) ReactorNode.Intake
-    const Mixer = cast(u32) ReactorNode.Mixer
-    const Heater = cast(u32) ReactorNode.Heater
-    const Cooler = cast(u32) ReactorNode.Cooler
-    const Valve = cast(u32) ReactorNode.Valve
-    const Sensor = cast(u32) ReactorNode.Sensor
-    const Relay = cast(u32) ReactorNode.Relay
-    const Buffer = cast(u32) ReactorNode.Buffer
+    const Intake  = cast(u32) ReactorNode.Intake
+    const Mixer   = cast(u32) ReactorNode.Mixer
+    const Heater  = cast(u32) ReactorNode.Heater
+    const Cooler  = cast(u32) ReactorNode.Cooler
+    const Valve   = cast(u32) ReactorNode.Valve
+    const Sensor  = cast(u32) ReactorNode.Sensor
+    const Relay   = cast(u32) ReactorNode.Relay
+    const Buffer  = cast(u32) ReactorNode.Buffer
     const Chamber = cast(u32) ReactorNode.Chamber
-    const Output = cast(u32) ReactorNode.Output
+    const Output  = cast(u32) ReactorNode.Output
 
     var result: ReactorGraph
 
     result.outputCounts[Intake] = 3
-    result.outputs[Intake][0] = Mixer
-    result.outputs[Intake][1] = Heater
-    result.outputs[Intake][2] = Sensor
+    result.outputs[Intake][0]   = Mixer
+    result.outputs[Intake][1]   = Heater
+    result.outputs[Intake][2]   = Sensor
 
     result.outputCounts[Mixer] = 2
-    result.outputs[Mixer][0] = Valve
-    result.outputs[Mixer][1] = Buffer
+    result.outputs[Mixer][0]   = Valve
+    result.outputs[Mixer][1]   = Buffer
 
     result.outputCounts[Heater] = 2
-    result.outputs[Heater][0] = Valve
-    result.outputs[Heater][1] = Cooler
+    result.outputs[Heater][0]   = Valve
+    result.outputs[Heater][1]   = Cooler
 
     result.outputCounts[Cooler] = 1
-    result.outputs[Cooler][0] = Chamber
+    result.outputs[Cooler][0]   = Chamber
 
     result.outputCounts[Valve] = 2
-    result.outputs[Valve][0] = Chamber
-    result.outputs[Valve][1] = Relay
+    result.outputs[Valve][0]   = Chamber
+    result.outputs[Valve][1]   = Relay
 
     result.outputCounts[Sensor] = 1
-    result.outputs[Sensor][0] = Relay
+    result.outputs[Sensor][0]   = Relay
 
     result.outputCounts[Relay] = 2
-    result.outputs[Relay][0] = Chamber
-    result.outputs[Relay][1] = Output
+    result.outputs[Relay][0]   = Chamber
+    result.outputs[Relay][1]   = Output
 
     result.outputCounts[Buffer] = 1
-    result.outputs[Buffer][0] = Chamber
+    result.outputs[Buffer][0]   = Chamber
 
     result.outputCounts[Chamber] = 1
-    result.outputs[Chamber][0] = Output
+    result.outputs[Chamber][0]   = Output
 
     return result
 }
 
 func buildCompactReactor()->ReactorGraph
 {
-    const Intake = cast(u32) ReactorNode.Intake
-    const Mixer = cast(u32) ReactorNode.Mixer
-    const Heater = cast(u32) ReactorNode.Heater
-    const Valve = cast(u32) ReactorNode.Valve
+    const Intake  = cast(u32) ReactorNode.Intake
+    const Mixer   = cast(u32) ReactorNode.Mixer
+    const Heater  = cast(u32) ReactorNode.Heater
+    const Valve   = cast(u32) ReactorNode.Valve
     const Chamber = cast(u32) ReactorNode.Chamber
-    const Output = cast(u32) ReactorNode.Output
+    const Output  = cast(u32) ReactorNode.Output
 
     var result: ReactorGraph
 
     result.outputCounts[Intake] = 2
-    result.outputs[Intake][0] = Mixer
-    result.outputs[Intake][1] = Heater
+    result.outputs[Intake][0]   = Mixer
+    result.outputs[Intake][1]   = Heater
 
     result.outputCounts[Mixer] = 2
-    result.outputs[Mixer][0] = Valve
-    result.outputs[Mixer][1] = Chamber
+    result.outputs[Mixer][0]   = Valve
+    result.outputs[Mixer][1]   = Chamber
 
     result.outputCounts[Heater] = 2
-    result.outputs[Heater][0] = Chamber
-    result.outputs[Heater][1] = Output
+    result.outputs[Heater][0]   = Chamber
+    result.outputs[Heater][1]   = Output
 
     result.outputCounts[Valve] = 1
-    result.outputs[Valve][0] = Output
+    result.outputs[Valve][0]   = Output
 
     result.outputCounts[Chamber] = 1
-    result.outputs[Chamber][0] = Output
+    result.outputs[Chamber][0]   = Output
 
     return result
 }

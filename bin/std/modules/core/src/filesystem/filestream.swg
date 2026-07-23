@@ -8,11 +8,11 @@ alias FileHandle = #null const *void
 #[Swag.NoCopy]
 struct FileStream
 {
-    name:         String         // File name associated with the stream
-    handle:       FileHandle     // Platform-specific file handle
-    canRead:      bool           // True if the stream supports reading
-    canSeek:      bool           // True if the stream supports seeking
-    canWrite:     bool           // True if the stream supports writing
+    name:     String         // File name associated with the stream
+    handle:   FileHandle     // Platform-specific file handle
+    canRead:  bool           // True if the stream supports reading
+    canSeek:  bool           // True if the stream supports seeking
+    canWrite: bool           // True if the stream supports writing
 }
 
 impl FileStream

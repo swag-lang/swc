@@ -31,19 +31,19 @@ public enum VoiceState
 #[Swag.Opaque]
 public struct Voice
 {
-    handle:                     VoiceHandle
-    file:                       #null *SoundFile
+    handle: VoiceHandle
+    file:   #null *SoundFile
 
     requestedEncoding           = SoundFileEncoding.Unknown
     codec:                      #null ICodec
 
-    playFlags:                  VoicePlayFlags
-    state:                      VoiceState
-    idxInList:                  u32
+    playFlags: VoicePlayFlags
+    state:     VoiceState
+    idxInList: u32
     const StreamBufferSize      = 16 * 1024'u64
-    stream:                     File.FileStream
-    streamCurSeek:              u64
-    streamBuffer:               Array'u8
+    stream:        File.FileStream
+    streamCurSeek: u64
+    streamBuffer:  Array'u8
     const NumDecodedBuffers     = 3
     const DecodedBufferSize     = 65536'u64
     decodedBuffers:             [NumDecodedBuffers] Array'u8

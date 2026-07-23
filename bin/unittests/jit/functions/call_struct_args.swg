@@ -24,18 +24,18 @@ func SumPair32(value: Pair32)->u32
 #[Swag.Pack(1)]
 struct PackedHeader18
 {
-    idLength:          u8
-    colorMapType:      u8
-    imageTypeCode:     u8
-    colorMapFirst:     u16
-    colorMapLength:    u16
-    colorMapBpp:       u8
-    originX:           u16
-    originY:           u16
-    width:             u16
-    height:            u16
-    bpp:               u8
-    descriptorByte:    u8
+    idLength:       u8
+    colorMapType:   u8
+    imageTypeCode:  u8
+    colorMapFirst:  u16
+    colorMapLength: u16
+    colorMapBpp:    u8
+    originX:        u16
+    originY:        u16
+    width:          u16
+    height:         u16
+    bpp:            u8
+    descriptorByte: u8
 }
 
 struct PackedPointerTarget
@@ -59,7 +59,7 @@ struct PackedPaletteLike
 struct MiniArrayLike
 {
     buffer: [*] u8
-    count:  u64
+    count:    u64
     capacity: u64
 }
 

@@ -44,7 +44,7 @@ func day6B()
                 for writeCount
                 {
                     scan[0] += 1
-                    scan += 1
+                    scan    += 1
                 }
             }
 
@@ -56,7 +56,7 @@ func day6B()
                 {
                     if scan[0] do
                         scan[0] -= 1
-                    scan += 1
+                    scan        += 1
                 }
             }
 
@@ -67,7 +67,7 @@ func day6B()
                 for writeCount
                 {
                     scan[0] += 2
-                    scan += 1
+                    scan    += 1
                 }
             }
         }

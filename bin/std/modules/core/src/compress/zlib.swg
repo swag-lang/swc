@@ -5,8 +5,8 @@ using Core.Errors
 #[Swag.Opaque]
 struct ZLib
 {
-    decoder:     Inflate
-    encoder:     Deflate
+    decoder: Inflate
+    encoder: Deflate
 }
 
 impl ZLib

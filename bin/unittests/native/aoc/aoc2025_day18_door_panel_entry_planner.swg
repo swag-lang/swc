@@ -112,9 +112,9 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
 
     if !horizontalFirst
     {
-        firstMove = verticalMove
-        firstCount = verticalCount
-        secondMove = horizontalMove
+        firstMove   = verticalMove
+        firstCount  = verticalCount
+        secondMove  = horizontalMove
         secondCount = horizontalCount
     }
 
@@ -141,7 +141,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
         }
 
         path.buttons[path.count] = firstMove
-        path.count += 1
+        path.count               += 1
     }
 
     for secondCount
@@ -167,12 +167,12 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
         }
 
         path.buttons[path.count] = secondMove
-        path.count += 1
+        path.count               += 1
     }
 
     path.buttons[path.count] = 'A''u8
-    path.count += 1
-    dref outPath = path
+    path.count               += 1
+    dref outPath             = path
     return true
 }
 
@@ -218,7 +218,7 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
             }
 
             DirectionalMemo[depth][fromIndex][toIndex] = best
-            total += best
+            total                                      += best
         }
 
         current = next
@@ -270,7 +270,7 @@ func codePressCount(code: string, depth: u32)->u64
                 best = value
         }
 
-        total += best
+        total   += best
         current = next
     }
 

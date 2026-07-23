@@ -9,11 +9,11 @@ struct ThemeStyleRef
 
 struct ThemeStyle
 {
-    refr:                  #null *ThemeStyleRef
-    dirty:                 bool
-    styleSheetMetrics:     String
-    styleSheetColors:      String
-    font:                  FontFamily
+    refr:              #null *ThemeStyleRef
+    dirty:             bool
+    styleSheetMetrics: String
+    styleSheetColors:  String
+    font:              FontFamily
 }
 
 impl ThemeStyle
@@ -57,9 +57,9 @@ impl ThemeStyle
         // First time, initialize to parent
         if !.refr
         {
-            .refr = parent.refr
+            .refr       = parent.refr
             .refr.count += 1
-            .dirty = true
+            .dirty      = true
         }
 
         // If parent is dirty, or i am dirty, then we need
@@ -70,7 +70,7 @@ impl ThemeStyle
 
         // By default, same as the parent
         .free()
-        .refr = parent.refr
+        .refr       = parent.refr
         .refr.count += 1
 
         // Ask user

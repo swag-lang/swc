@@ -32,8 +32,8 @@ enum UnderlineStyle
 public struct TextEffect
 {
     // Outline drawn under the glyph face. 0 disables it; useful range ~0.05..0.35.
-    outlineWidth:    f32
-    outlineColor:    Color = Color.fromArgb(Argb.Black)
+    outlineWidth: f32
+    outlineColor: Color = Color.fromArgb(Argb.Black)
 
     // Grows (+) or shrinks (-) the glyph face; ~ -0.3..0.3.
     faceDilate:      f32
@@ -41,20 +41,20 @@ public struct TextEffect
     softness:        f32
 
     // Soft halo around the glyph. A fully transparent color disables it.
-    glowColor:       Color
-    glowOffset:      f32     // shifts the glow band outward
-    glowInner:       f32 = 0.0
-    glowOuter:       f32 = 0.45
-    glowPower:       f32 = 1.0
+    glowColor:  Color
+    glowOffset: f32     // shifts the glow band outward
+    glowInner:  f32 = 0.0
+    glowOuter:  f32 = 0.45
+    glowPower:  f32 = 1.0
 
     // Distance-field emboss amount, lit from the upper-left; 0 disables it (~0..1).
     bevel:           f32
 
     // Soft drop shadow (offset second pass). A transparent color disables it.
-    shadowColor:     Color
-    shadowOffset:    Math.Point
-    shadowDilate:    f32 = 0.0
-    shadowSoftness:  f32 = 0.35
+    shadowColor:    Color
+    shadowOffset:   Math.Point
+    shadowDilate:   f32 = 0.0
+    shadowSoftness: f32 = 0.35
 }
 
 public impl TextEffect
@@ -116,60 +116,60 @@ enum StringFormatFlags
 
 struct StringMetrics
 {
-    ascent:      f32     // Maximum size above baseline
-    descent:     f32     // Maximum size below baseline
-    width:       f32
-    height:      f32     // ascent + descent
+    ascent:  f32     // Maximum size above baseline
+    descent: f32     // Maximum size below baseline
+    width:   f32
+    height:  f32     // ascent + descent
 }
 
 struct ShapedGlyph
 {
-    desc:        const *GlyphDesc = undefined
-    glyphIndex:  u32
-    cluster:     u64
-    advanceX:    f32
-    advanceY:    f32
-    offsetX:     f32
-    offsetY:     f32
-    isTab:       bool
+    desc:       const *GlyphDesc = undefined
+    glyphIndex: u32
+    cluster:    u64
+    advanceX:   f32
+    advanceY:   f32
+    offsetX:    f32
+    offsetY:    f32
+    isTab:      bool
 }
 
 struct ShapedRun
 {
-    font:        *Font = undefined
-    glyphs:      Array'ShapedGlyph
-    metrics:     StringMetrics
-    inkBounds:   Math.Rectangle
-    hasInk:      bool
-    tabSize:     u32 = DefaultTextTabSize
+    font:          *Font = undefined
+    glyphs:        Array'ShapedGlyph
+    metrics:       StringMetrics
+    inkBounds:     Math.Rectangle
+    hasInk:        bool
+    tabSize:       u32 = DefaultTextTabSize
     letterSpacing: f32
 }
 
 public struct TextDrawInfo
 {
-    drawFont:    *Font = undefined
-    snapPixels:  bool
-    scale:       f32
+    drawFont:   *Font = undefined
+    snapPixels: bool
+    scale:      f32
 }
 
 struct RichStringFormat
 {
-    font:              FontFamily
-    fontStyle:         FontFamilyStyle = Regular
-    palette:           [4] Color                              // Color of text between <p?>...<p?> markers
-    colorUrl:          Color = Color.fromArgb(Argb.White)     // Color of text between <url>...<url> markers
-    colorHotUrl:       Color = Color.fromArgb(Argb.Blue)      // Color of text between <url>...<url> markers when mouse is inside
-    brush:             Brush
-    horzAlignment:     StringHorzAlignment = Left
-    vertAlignment:     StringVertAlignment = Top
-    lineGap:           s32
-    flags:             StringFormatFlags = Default
-    justifyLimit:      f32 = 2
-    tabSize:           u32 = DefaultTextTabSize
-    letterSpacing:     f32
-    minLineHeight:     f32
-    paragraphGap:      s32
-    maxLines:          u32
+    font:      FontFamily
+    fontStyle: FontFamilyStyle = Regular
+    palette:           [4] Color                          // Color of text between <p?>...<p?> markers
+    colorUrl:      Color = Color.fromArgb(Argb.White)     // Color of text between <url>...<url> markers
+    colorHotUrl:   Color = Color.fromArgb(Argb.Blue)      // Color of text between <url>...<url> markers when mouse is inside
+    brush:         Brush
+    horzAlignment: StringHorzAlignment = Left
+    vertAlignment: StringVertAlignment = Top
+    lineGap:       s32
+    flags:         StringFormatFlags = Default
+    justifyLimit:  f32 = 2
+    tabSize:       u32 = DefaultTextTabSize
+    letterSpacing: f32
+    minLineHeight: f32
+    paragraphGap:  s32
+    maxLines:      u32
 }
 
 private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)
@@ -179,9 +179,9 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
     glyph.glyphIndex = glyphIndex
     glyph.cluster    = cluster
     let desc          = glyph.desc
-    glyph.advanceX   = isTab ? customAdvanceX : desc.advanceX
-    glyph.advanceY   = desc.advanceY
-    glyph.isTab      = isTab
+    glyph.advanceX = isTab ? customAdvanceX : desc.advanceX
+    glyph.advanceY = desc.advanceY
+    glyph.isTab    = isTab
     if previousGlyphIndex and !isTab do
         glyph.offsetX = font.cache.kerning(previousGlyphIndex, glyphIndex) + letterSpacing
 
@@ -240,12 +240,12 @@ private func finishShapedRun(run: *ShapedRun, font: *Font)
     run.metrics.ascent  *= sc
     run.metrics.descent *= sc
     run.metrics.width   *= sc
-    run.metrics.height = run.metrics.ascent + run.metrics.descent
+    run.metrics.height  = run.metrics.ascent + run.metrics.descent
     if run.hasInk
     {
-        run.inkBounds.x *= sc
-        run.inkBounds.y *= sc
-        run.inkBounds.width *= sc
+        run.inkBounds.x      *= sc
+        run.inkBounds.y      *= sc
+        run.inkBounds.width  *= sc
         run.inkBounds.height *= sc
     }
 }
@@ -295,10 +295,10 @@ impl Painter
     {
         Debug.assert(font != null, "invalid font")
 
-        result.font          = font
-        result.tabSize       = tabSize
-        result.letterSpacing = letterSpacing
-        result.hasInk        = false
+        result.font                                                                                = font
+        result.tabSize                                                                             = tabSize
+        result.letterSpacing                                                                       = letterSpacing
+        result.hasInk                                                                              = false
         result.metrics.ascent, result.metrics.descent, result.metrics.width, result.metrics.height = 0
         result.glyphs.clear()
         result.glyphs.reserve(@countof(text))
@@ -329,8 +329,8 @@ impl Painter
             }
 
             byteIdx += eat
-            scan += eat
-            count -= eat
+            scan    += eat
+            count   -= eat
         }
 
         finishShapedRun(result, font)
@@ -352,8 +352,8 @@ impl Painter
         Debug.assert(run.font == null or run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
 
         var result: retval
-        result.font = font
-        result.tabSize = run.tabSize
+        result.font          = font
+        result.tabSize       = run.tabSize
         result.letterSpacing = run.letterSpacing
         result.glyphs.reserve(run.glyphs.count)
 
@@ -440,7 +440,7 @@ impl Painter
         // drawString re-shapes onto the resolved draw font; mirror that so the
         // advances use the same glyph metrics it will actually draw with.
         var drawShape: ShapedRun
-        var toDraw: const *ShapedRun = run
+        var toDraw:    const *ShapedRun = run
         if run.font != info.drawFont
         {
             drawShape = shapeRunForFont(run, info.drawFont)
@@ -478,14 +478,14 @@ impl Painter
             result.descent = Math.max(result.descent, refr.height - refr.shiftY)
             if i do
                 result.width += font.cache.kerning(text[i - 1].glyphIndex, refr.glyphIndex)
-            result.width += refr.advanceX
+            result.width     += refr.advanceX
         }
 
         let sc = font.scale()
         result.ascent  *= sc
         result.descent *= sc
         result.width   *= sc
-        result.height = result.ascent + result.descent
+        result.height  = result.ascent + result.descent
         return result
     }
 
@@ -688,14 +688,14 @@ impl Painter
 
         struct OneLine
         {
-            measure:         StringMetrics
-            height:          f32
-            fontAscent:      f32
-            fontDescent:     f32
-            start, end:      s32
-            countSpaces:     s32
-            whiteSpaces:     f32
-            hasEol:          bool
+            measure:     StringMetrics
+            height:      f32
+            fontAscent:  f32
+            fontDescent: f32
+            start, end:  s32
+            countSpaces: s32
+            whiteSpaces: f32
+            hasEol:      bool
         }
 
         // Divide in lines
@@ -727,17 +727,17 @@ impl Painter
                 line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
                 if format.minLineHeight > 0 do
                     line.height = Math.max(line.height, format.minLineHeight)
-                line.hasEol = true
+                line.hasEol     = true
                 lines.add(line)
 
-                startLine = line.end + 1
-                line.measure.width, line.measure.height = 0
+                startLine                                 = line.end + 1
+                line.measure.width, line.measure.height   = 0
                 line.measure.ascent, line.measure.descent = 0
-                line.height = 0
-                line.fontAscent, line.fontDescent = 0
-                line.countSpaces = 0
-                line.whiteSpaces = 0
-                line.hasEol      = false
+                line.height                               = 0
+                line.fontAscent, line.fontDescent         = 0
+                line.countSpaces                          = 0
+                line.whiteSpaces                          = 0
+                line.hasEol                               = false
                 continue
             }
 
@@ -763,7 +763,7 @@ impl Painter
                                 line.measure.width -= text.chunks[idx - 1].boundRect.width
                             else do
                                 line.whiteSpaces -= text.chunks[idx - 1].boundRect.width
-                            line.end -= 1
+                            line.end             -= 1
                         }
 
                         line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
@@ -772,20 +772,20 @@ impl Painter
                         lines.add(line)
                     }
 
-                    startLine = cast(s32) idx
-                    line.measure.width, line.measure.height = 0
+                    startLine                                 = cast(s32) idx
+                    line.measure.width, line.measure.height   = 0
                     line.measure.ascent, line.measure.descent = 0
-                    line.height = 0
-                    line.fontAscent, line.fontDescent = 0
-                    line.countSpaces = 0
-                    line.whiteSpaces = 0
+                    line.height                               = 0
+                    line.fontAscent, line.fontDescent         = 0
+                    line.countSpaces                          = 0
+                    line.whiteSpaces                          = 0
 
                     // We: not want the new line to start with a space
                     if c.isSpace do
                         startLine += 1
                     else
                     {
-                        line.measure.width += ms.width
+                        line.measure.width   += ms.width
                         line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
                         line.measure.descent = Math.max(line.measure.descent, ms.descent)
                         line.measure.height  = Math.max(line.measure.height, ms.height)
@@ -808,19 +808,19 @@ impl Painter
             }
             else do
                 line.measure.width += ms.width
-            line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
-            line.measure.descent = Math.max(line.measure.descent, ms.descent)
-            line.measure.height  = Math.max(line.measure.height, ms.height)
-            line.fontAscent      = Math.max(line.fontAscent, c.font.ascent)
-            line.fontDescent     = Math.min(line.fontDescent, c.font.descent)
+            line.measure.ascent    = Math.max(line.measure.ascent, ms.ascent)
+            line.measure.descent   = Math.max(line.measure.descent, ms.descent)
+            line.measure.height    = Math.max(line.measure.height, ms.height)
+            line.fontAscent        = Math.max(line.fontAscent, c.font.ascent)
+            line.fontDescent       = Math.min(line.fontDescent, c.font.descent)
 
             c.boundRect.height = Math.max(c.font.height, ms.height)
         }
 
         if startLine != text.chunks.count
         {
-            line.start = startLine
-            line.end   = cast(s32) text.chunks.count
+            line.start  = startLine
+            line.end    = cast(s32) text.chunks.count
             line.height = Math.max(defaultLineHeight, Math.max(line.measure.height, line.fontAscent - line.fontDescent))
             if format.minLineHeight > 0 do
                 line.height = Math.max(line.height, format.minLineHeight)
@@ -910,8 +910,8 @@ impl Painter
                 {
                     let c = &text.chunks[idx]
                     c.visible = true
-                    c.pos.x = x1
-                    c.pos.y = y1 + (l.fontAscent - c.font.ascent)
+                    c.pos.x   = x1
+                    c.pos.y   = y1 + (l.fontAscent - c.font.ascent)
 
                     text.boundRect.x = Math.min(text.boundRect.x, c.pos.x)
                     boundRight       = Math.max(boundRight, c.pos.x + c.boundRect.width)

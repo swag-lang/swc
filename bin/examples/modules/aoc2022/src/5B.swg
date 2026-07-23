@@ -51,8 +51,8 @@ func day5B()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    var stacks:  Array'String
-    var r:       Parser.RegExp
+    var stacks: Array'String
+    var r:      Parser.RegExp
     var moveMode = false
     for l in lines
     {

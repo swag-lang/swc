@@ -437,7 +437,10 @@ func day9B()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "9.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    struct W { x, y: s32 }
+    struct W
+    {
+        x, y: s32
+    }
     var set:  HashSet'W
     var rope: [10] W
 

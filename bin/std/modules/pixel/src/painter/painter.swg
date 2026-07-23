@@ -15,10 +15,10 @@ const AAHalf = 0.5'f32
 #[Swag.Pack(1)]
 struct VertexLayout
 {
-    pos:       Vector2
-    uv:        Vector2
-    color:     u32
-    cov:       f32     // antialiasing coverage: 1 = solid, 0 = outer fringe edge
+    pos:   Vector2
+    uv:    Vector2
+    color: u32
+    cov:   f32     // antialiasing coverage: 1 = solid, 0 = outer fringe edge
 }
 
 enum CommandId
@@ -86,34 +86,37 @@ enum BlendingMode
 
 struct PaintState
 {
-    paintParams:           PaintParams = Default
-    paintQuality:          PaintQuality = Normal
-    transform:             Transform2
-    blendingMode:          BlendingMode = Alpha
-    interpolationMode:     InterpolationMode = .Pixel
-    clippingRect:          Math.Rectangle
-    stackClipRect:         Array'Math.Rectangle
-    clippingRectOn:        bool
-    colorMask:             ColorMask
+    paintParams:       PaintParams = Default
+    paintQuality:      PaintQuality = Normal
+    transform:         Transform2
+    blendingMode:      BlendingMode = Alpha
+    interpolationMode: InterpolationMode = .Pixel
+    clippingRect:      Math.Rectangle
+    stackClipRect:     Array'Math.Rectangle
+    clippingRectOn:    bool
+    colorMask:         ColorMask
 }
 
-struct ColorMask { r, g, b, a: bool }
+struct ColorMask
+{
+    r, g, b, a: bool
+}
 
 // Resolved MSDF font-effect uniforms (see TextEffect / font_msdf.frag). Colors are
 // kept as Color (not Vector4) and expanded to vec4 at the GL layer.
 struct FontEffectParams
 {
-    enabled:       f32
-    faceDilate:    f32
-    faceSoftness:  f32
-    outlineWidth:  f32
-    outlineColor:  Color
-    glowColor:     Color
-    glowOffset:    f32
-    glowInner:     f32
-    glowOuter:     f32
-    glowPower:     f32
-    bevel:         f32
+    enabled:      f32
+    faceDilate:   f32
+    faceSoftness: f32
+    outlineWidth: f32
+    outlineColor: Color
+    glowColor:    Color
+    glowOffset:   f32
+    glowInner:    f32
+    glowOuter:    f32
+    glowPower:    f32
+    bevel:        f32
 }
 
 struct Command
@@ -122,44 +125,44 @@ struct Command
 
         using params: union
     {
-        clear:              struct{ color: Color }
-        drawTriangles:      struct{ start: u32, count: u32 }
-        transform:          struct{ tr: Transform2 }
-        clippingRect:       struct{ rect: Math.Rectangle }
-        clippingRegion:     struct{ mode: ClippingMode = undefined }
-        font:               struct{ fontRef: *Font }
-        blendingMode:       struct{ mode: BlendingMode = undefined }
-        textureFont:        struct{ font: *Font, atlasIndex: s32 }
-        colorMask:          ColorMask
-        renderTgt:          struct{ tgt: *RenderTarget, paintAlpha: bool }
-        shader:             struct{ shader: #null *ShaderBase }
+        clear:          struct{ color: Color }
+        drawTriangles:  struct{ start: u32, count: u32 }
+        transform:      struct{ tr: Transform2 }
+        clippingRect:   struct{ rect: Math.Rectangle }
+        clippingRegion: struct{ mode: ClippingMode = undefined }
+        font:           struct{ fontRef: *Font }
+        blendingMode:   struct{ mode: BlendingMode = undefined }
+        textureFont:    struct{ font: *Font, atlasIndex: s32 }
+        colorMask:      ColorMask
+        renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
+        shader:         struct{ shader: #null *ShaderBase }
 
         shaderParam: struct
         {
-            param:     ShaderParamHandle
-            type:      typeinfo = undefined
-            _f32:      f32
-            _s32:      s32
+            param: ShaderParamHandle
+            type:  typeinfo = undefined
+            _f32:  f32
+            _s32:  s32
         }
 
         fontEffect: FontEffectParams
 
         texture0: struct
         {
-            boundRect:             Vector4
-            textureRect:           Vector4
-            type:                  BrushType = undefined
-            hatch:                 HatchStyle = undefined
-            uvMode:                UVMode = undefined
-            interpolationMode:     InterpolationMode = undefined
-            texture:               Texture
-            gradientStart:         Vector2
-            gradientEnd:           Vector2
-            gradientRadius0:       f32
-            gradientRadius1:       f32
-            gradientAngle0:        f32
-            gradientAngle1:        f32
-            gradientSpread:        GradientSpread = undefined
+            boundRect:         Vector4
+            textureRect:       Vector4
+            type:              BrushType = undefined
+            hatch:             HatchStyle = undefined
+            uvMode:            UVMode = undefined
+            interpolationMode: InterpolationMode = undefined
+            texture:           Texture
+            gradientStart:     Vector2
+            gradientEnd:       Vector2
+            gradientRadius0:   f32
+            gradientRadius1:   f32
+            gradientAngle0:    f32
+            gradientAngle1:    f32
+            gradientSpread:    GradientSpread = undefined
             gradientStops:         [MaxGradientStops] GradientStop
             gradientStopCount:     u8
         }
@@ -168,51 +171,51 @@ struct Command
 
 struct Painter
 {
-    commandBuffer:          Array'Command
-    vertexBuffer:           Array'VertexLayout
-    triangulateIdx:         Array's32
-    fake:                   bool
+    commandBuffer:  Array'Command
+    vertexBuffer:   Array'VertexLayout
+    triangulateIdx: Array's32
+    fake:           bool
 
-    sharedLinePath:         LinePath
-    sharedLinePathList:     LinePathList
-    sharedRoundTmp:         Array'{ factor: f32, pos: Vector2 }
+    sharedLinePath:     LinePath
+    sharedLinePathList: LinePathList
+    sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }
 
-    curState:               PaintState
-    stackState:             Array'PaintState
-    stackTransform:         Array'Transform2
-    lastTexture0Type:       BrushType = SolidColor
-    tess:                   Poly2Tri.Tessellate
+    curState:         PaintState
+    stackState:       Array'PaintState
+    stackTransform:   Array'Transform2
+    lastTexture0Type: BrushType = SolidColor
+    tess:             Poly2Tri.Tessellate
 
-    stackRT:                Array'#null *RenderTarget
-    curRT:                  #null *RenderTarget
+    stackRT: Array'#null *RenderTarget
+    curRT:   #null *RenderTarget
 
-    lastTexture0Handle:     TextureHandle
-    hasTextureFont:         bool
+    lastTexture0Handle: TextureHandle
+    hasTextureFont:     bool
 
     // The paintType / gradient uniforms live per shader program, but texture0 state
     // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
     // program's paint uniforms stale, so a program switch forces the next texture0
     // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
-    texture0Dirty:          bool
-    curTextProgram:         s32
+    texture0Dirty:  bool
+    curTextProgram: s32
 
     // Last MSDF font-effect uniforms emitted this frame, to skip redundant
     // SetFontEffect commands (most text shares the same -- usually empty -- effect).
-    lastFontEffect:         FontEffectParams
-    hasFontEffect:          bool
+    lastFontEffect: FontEffectParams
+    hasFontEffect:  bool
 
     // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
     // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
-    curTextureFont:         #null *Font
-    curTextureFontAtlas:    s32 = -1
+    curTextureFont:      #null *Font
+    curTextureFontAtlas: s32 = -1
 
     // Reusable shaped run for the immediate drawString path, so per-frame text drawing
     // shapes without allocating a fresh glyph buffer on every call.
     scratchShaped:          ShapedRun
 
-    drawingBegin:           bool
-    overlapMode:            bool
-    canSetTexture0:         bool = true
+    drawingBegin:   bool
+    overlapMode:    bool
+    canSetTexture0: bool = true
 }
 
 impl Painter
@@ -284,10 +287,10 @@ impl Painter
             params.textureRect.w = ht
         }
 
-        params.type    = brush.type
-        params.hatch   = brush.hatch
-        params.texture = brush.texture
-        params.uvMode  = brush.uvMode
+        params.type              = brush.type
+        params.hatch             = brush.hatch
+        params.texture           = brush.texture
+        params.uvMode            = brush.uvMode
         params.gradientStart     = brush.gradientStart
         params.gradientEnd       = brush.gradientEnd
         params.gradientRadius0   = brush.gradientRadius0
@@ -382,8 +385,8 @@ impl Painter
 
         let cmd    = .newCommand(.BindTextureFont, true)
         let params = &cmd.textureFont
-        params.font       = font
-        params.atlasIndex = atlasIndex
+        params.font          = font
+        params.atlasIndex    = atlasIndex
         .hasTextureFont      = true
         .curTextureFont      = font
         .curTextureFontAtlas = atlasIndex
@@ -414,12 +417,12 @@ impl Painter
         ptr.color = color.argb
         ptr.cov   = 1
         ptr.uv    = uv1
-        ptr += 1
+        ptr       += 1
         ptr.pos   = p2
         ptr.color = color.argb
         ptr.cov   = 1
         ptr.uv    = uv2
-        ptr += 1
+        ptr       += 1
         ptr.pos   = p3
         ptr.color = color.argb
         ptr.cov   = 1
@@ -437,11 +440,11 @@ impl Painter
         ptr.pos   = p1
         ptr.color = color.argb
         ptr.cov   = 1
-        ptr += 1
+        ptr       += 1
         ptr.pos   = p2
         ptr.color = color.argb
         ptr.cov   = 1
-        ptr += 1
+        ptr       += 1
         ptr.pos   = p3
         ptr.color = color.argb
         ptr.cov   = 1
@@ -460,15 +463,15 @@ impl Painter
 
         var ptr = .vertexBuffer.emplaceAddress(6)
         ptr.pos = innerA; ptr.color = color; ptr.cov = 1
-        ptr += 1
+        ptr     += 1
         ptr.pos = innerB; ptr.color = color; ptr.cov = 1
-        ptr += 1
+        ptr     += 1
         ptr.pos = outerA; ptr.color = color; ptr.cov = 0
-        ptr += 1
+        ptr     += 1
         ptr.pos = innerB; ptr.color = color; ptr.cov = 1
-        ptr += 1
+        ptr     += 1
         ptr.pos = outerB; ptr.color = color; ptr.cov = 0
-        ptr += 1
+        ptr     += 1
         ptr.pos = outerA; ptr.color = color; ptr.cov = 0
     }
 
@@ -613,10 +616,10 @@ impl Painter
             .paintParams  = .Default
             .paintQuality = .Normal
             .transform.setIdentity()
-            .interpolationMode = .Pixel
-            .blendingMode      = .Alpha
+            .interpolationMode                       = .Pixel
+            .blendingMode                            = .Alpha
             .colorMask.r, .colorMask.g, .colorMask.b = true
-            .colorMask.a = false
+            .colorMask.a                             = false
         }
 
         .resetClippingRect()

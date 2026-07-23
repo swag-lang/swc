@@ -4,8 +4,8 @@
 // Allows getting keystrokes from keyboard
 struct Keyboard
 {
-    previousState:     KeyboardState
-    currentState:      KeyboardState
+    previousState: KeyboardState
+    currentState:  KeyboardState
     pressedRepeat:     [@countof(Key)] bool
     pressedTime:       [@countof(Key)] u32
 

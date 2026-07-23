@@ -20,7 +20,7 @@ func buildMutationMap(text: string)->[3] MutationSpan
         else
         {
             map[@index] = {nextId, runLength}
-            nextId += 1
+            nextId      += 1
         }
     }
 

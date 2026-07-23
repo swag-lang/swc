@@ -11,8 +11,8 @@ public enum GlyphFormat
 
 public struct GlyphMetrics
 {
-    width:            s32
-    height:           s32
+    width:              s32
+    height:             s32
     horizontalBearingX: s32
     horizontalBearingY: s32
     horizontalAdvance:  s32
@@ -24,18 +24,18 @@ public struct GlyphMetrics
 public struct GlyphSlot
 {
     face:                   #late *Face
-    index:                  u32
-    metrics:                GlyphMetrics
+    index:                   u32
+    metrics:                 GlyphMetrics
     linearHorizontalAdvance: s32
     linearVerticalAdvance:   s32
-    advance:                Vector
-    format:                 GlyphFormat = GlyphFormat.None
-    bitmap:                 Bitmap
-    bitmapLeft:             s32
-    bitmapTop:              s32
-    outline:                Outline
-    leftSideBearingDelta:   s32
-    rightSideBearingDelta:  s32
+    advance:                 Vector
+    format:                  GlyphFormat = GlyphFormat.None
+    bitmap:                  Bitmap
+    bitmapLeft:              s32
+    bitmapTop:               s32
+    outline:                 Outline
+    leftSideBearingDelta:    s32
+    rightSideBearingDelta:   s32
 }
 
 public impl GlyphSlot
@@ -57,22 +57,22 @@ func clearOutline(slot: *GlyphSlot)
 {
     slot.outline.contourCount = 0
     slot.outline.pointCount   = 0
-    slot.outline.points     = null
-    slot.outline.tags       = null
-    slot.outline.contours   = null
-    slot.outline.flags      = 0
+    slot.outline.points       = null
+    slot.outline.tags         = null
+    slot.outline.contours     = null
+    slot.outline.flags        = 0
 }
 
 func clearBitmap(slot: *GlyphSlot)
 {
-    slot.bitmap.rows         = 0
-    slot.bitmap.width        = 0
-    slot.bitmap.pitch        = 0
-    slot.bitmap.buffer       = null
-    slot.bitmap.pixelMode   = .Gray
-    slot.bitmap.grayCount    = 256
-    slot.bitmapLeft         = 0
-    slot.bitmapTop          = 0
+    slot.bitmap.rows      = 0
+    slot.bitmap.width     = 0
+    slot.bitmap.pitch     = 0
+    slot.bitmap.buffer    = null
+    slot.bitmap.pixelMode = .Gray
+    slot.bitmap.grayCount = 256
+    slot.bitmapLeft       = 0
+    slot.bitmapTop        = 0
 }
 
 func computeOutlineBounds(outline: const *Outline)->{ minX: s32, minY: s32, maxX: s32, maxY: s32 }
@@ -108,11 +108,11 @@ func updateSlotMetrics(slot: *GlyphSlot)
         return
     }
 
-    slot.metrics.width        = bounds.maxX - bounds.minX
-    slot.metrics.height       = bounds.maxY - bounds.minY
+    slot.metrics.width              = bounds.maxX - bounds.minX
+    slot.metrics.height             = bounds.maxY - bounds.minY
     slot.metrics.horizontalBearingX = bounds.minX
     slot.metrics.horizontalBearingY = bounds.maxY
-    slot.metrics.verticalAdvance  = 0
-    slot.metrics.verticalBearingX = 0
-    slot.metrics.verticalBearingY = 0
+    slot.metrics.verticalAdvance    = 0
+    slot.metrics.verticalBearingX   = 0
+    slot.metrics.verticalBearingY   = 0
 }

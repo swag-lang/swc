@@ -30,8 +30,8 @@ private enum Mode
 
 private struct Range
 {
-    src, srcE:     u64
-    dst:           u64
+    src, srcE: u64
+    dst:       u64
 }
 
 private struct SeedRange
@@ -57,25 +57,25 @@ func day5B()
         switch l.toString()
         {
         case "seed-to-soil map:":
-            mode = .ToSoil
+            mode     = .ToSoil
             isHeader = true
         case "soil-to-fertilizer map:":
-            mode = .ToFertilizer
+            mode     = .ToFertilizer
             isHeader = true
         case "fertilizer-to-water map:":
-            mode = .ToWater
+            mode     = .ToWater
             isHeader = true
         case "water-to-light map:":
-            mode = .ToLight
+            mode     = .ToLight
             isHeader = true
         case "light-to-temperature map:":
-            mode = .ToTemperature
+            mode     = .ToTemperature
             isHeader = true
         case "temperature-to-humidity map:":
-            mode = .ToHumidity
+            mode     = .ToHumidity
             isHeader = true
         case "humidity-to-location map:":
-            mode = .ToLocation
+            mode     = .ToLocation
             isHeader = true
         }
         if isHeader do

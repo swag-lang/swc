@@ -15,7 +15,7 @@ var CGPair: Pair = {x: 1, y: 2}
 #[Swag.Compiler]
 func updateCompilerGlobals()->s32
 {
-    CGZero = 11
+    CGZero   = 11
     CGPair.x += 5
     CGPair.y += 7
     return CGZero + CGPair.x + CGPair.y

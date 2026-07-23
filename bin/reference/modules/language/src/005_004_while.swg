@@ -73,7 +73,7 @@ A `while` loop can contain another `while` loop.
             if j == 2 do
                 break
             count += 1
-            j += 1
+            j     += 1
         }
         i += 1
     }
@@ -95,8 +95,8 @@ for more complex and controlled iteration logic.
 
     while a < 100 and b < 200
     {
-        a += 10
-        b += 20
+        a          += 10
+        b          += 20
         iterations += 1
     }
 

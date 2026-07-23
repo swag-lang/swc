@@ -18,7 +18,7 @@ alias StrictAddressArray = [3] s32
     }
 
     var st: AA
-    var v: *AA = &st
+    var v:  *AA = &st
     #assert(#typeof(v) == *AA)
     @assert(v == &st)
 }

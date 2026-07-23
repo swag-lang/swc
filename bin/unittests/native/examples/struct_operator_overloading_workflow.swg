@@ -21,7 +21,7 @@ impl WorkflowTarget
     mtd opSet(value: s32)
     {
         .value = value
-        .tag = 10
+        .tag   = 10
         .calls += 1
     }
 
@@ -29,7 +29,7 @@ impl WorkflowTarget
     mtd opSet(source: WorkflowSource)
     {
         .value = source.value + 5
-        .tag = 20
+        .tag   = 20
         .calls += 1
     }
 }
@@ -46,8 +46,8 @@ impl WorkflowAssignBox
     #[Swag.NoInline]
     mtd setPair(a, b: s32)
     {
-        .a = a
-        .b = b
+        .a     = a
+        .b     = b
         .calls += 1
     }
 
@@ -150,8 +150,8 @@ struct WorkflowState
 {
     var flow = WorkflowState{}
 
-    flow.target = 42's32
-    flow.accum += 5's32
+    flow.target   = 42's32
+    flow.accum    += 5's32
     flow.slots[0] = flow.target.value + flow.accum.a
     let first = flow.slots[0]
     let second = flow.slots[1]

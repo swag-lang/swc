@@ -25,7 +25,7 @@ impl CollMutVec
     mtd add(value: s32)
     {
         me.buffer[me.count] = value
-        me.count += 1
+        me.count            += 1
     }
 
     mtd remove()

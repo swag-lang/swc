@@ -107,7 +107,7 @@ impl IExportedMethodScore for ExportedMethodProbe
 }
 
 var RuntimeMethodReflectionCalls: s32
-var RuntimeMethodPointerCalls: s32
+var RuntimeMethodPointerCalls:    s32
 
 func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedName: string)->bool
 {

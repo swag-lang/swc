@@ -95,7 +95,7 @@ func day8B()
                 curNode[i] = nodes[c].left
             else do
                 curNode[i] = nodes[c].right
-            onEnd[i] += 1
+            onEnd[i]       += 1
             if nodes[curNode[i]].name[2] == 'Z' do
                 break
         }

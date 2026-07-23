@@ -41,7 +41,7 @@ func day9A()
             {
                 let sub = line[start until start + n]
                 decode += sub
-                x -= 1
+                x      -= 1
             }
 
             start += n
@@ -49,7 +49,7 @@ func day9A()
         }
 
         decode += line[start]
-        start += 1
+        start  += 1
     }
 
     @assert(decode.length == 120765)

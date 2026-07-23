@@ -18,7 +18,7 @@ impl DynArray
     {
         var result: DynArray'T
         result.capacity = DefaultCapacity
-        result.data = cast(#null [*] T) @alloc(DefaultCapacity * #sizeof(T))
+        result.data     = cast(#null [*] T) @alloc(DefaultCapacity * #sizeof(T))
         return result
     }
 
@@ -26,8 +26,8 @@ impl DynArray
     {
         if .data do
             @free(.data)
-        .data = null
-        .count = 0
+        .data     = null
+        .count    = 0
         .capacity = 0
     }
 
@@ -36,12 +36,12 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
+            me.data     = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
             me.capacity = newCapacity
         }
 
         me.data[me.count] = value
-        me.count += 1
+        me.count          += 1
     }
 
     mtd pop()->T
@@ -92,7 +92,7 @@ impl DynArray
         while i + 1 < me.count
         {
             me.data[i] = me.data[i + 1]
-            i += 1
+            i          += 1
         }
 
         me.count -= 1
@@ -104,7 +104,7 @@ impl DynArray
         if me.count == me.capacity
         {
             let newCapacity = me.capacity * 2
-            me.data = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
+            me.data     = cast(#null [*] T) @realloc(me.data, newCapacity * #sizeof(T))
             me.capacity = newCapacity
         }
 
@@ -112,11 +112,11 @@ impl DynArray
         while i > index
         {
             me.data[i] = me.data[i - 1]
-            i -= 1
+            i          -= 1
         }
 
         me.data[index] = value
-        me.count += 1
+        me.count       += 1
     }
 
     mtd reverse()
@@ -130,8 +130,8 @@ impl DynArray
             let tmp = .data[lo]
             .data[lo] = .data[hi]
             .data[hi] = tmp
-            lo += 1
-            hi -= 1
+            lo        += 1
+            hi        -= 1
         }
     }
 }

@@ -49,8 +49,8 @@ impl IActionUI for ActionProperties
         {
         case Copy:
             evt.setFlags |= .Name | .Icon
-            evt.name = "Copy"
-            evt.icon = theme.getIcon24(.Copy)
+            evt.name     = "Copy"
+            evt.icon     = theme.getIcon24(.Copy)
 
         case Paste:
             evt.setFlags |= .Name | .Icon | .Disabled
@@ -72,8 +72,8 @@ impl IActionUI for ActionProperties
 
         case MoveDown:
             evt.setFlags |= .Name | .Icon | .Disabled
-            evt.name = "Move Down"
-            evt.icon = theme.getIcon24(.SortArrowDown)
+            evt.name     = "Move Down"
+            evt.icon     = theme.getIcon24(.SortArrowDown)
             var atEnd = true
             if arr.arrElem
             {
@@ -90,8 +90,8 @@ impl IActionUI for ActionProperties
 
         case RemoveAll:
             evt.setFlags |= .Name | .Icon | .Disabled
-            evt.name = "Remove All"
-            evt.icon = theme.getIcon24(.RemoveAll)
+            evt.name     = "Remove All"
+            evt.icon     = theme.getIcon24(.RemoveAll)
             var empty = true
             if arr.arrItem
             {

@@ -263,7 +263,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
         // Set the associated 'isSet' boolean to true
         var addrIsSet = cast([*] bool) &result.isSet
-        addrIsSet += fieldResult.index
+        addrIsSet      += fieldResult.index
         dref addrIsSet = true
     }
 

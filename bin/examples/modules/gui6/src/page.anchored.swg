@@ -37,16 +37,16 @@ func createAnchoredPopupPage(parent: *Wnd)
 
     let left = createPanel(parent, "Toolbar anchors", "AnchorTopCenter and AnchorBottomCenter make compact menus feel attached to toolbar buttons.", layout.left)
     let topBtn = PushButton.create(left, "Open below", {24, 112, 200})
-    topBtn.form = .Default
-    topBtn.icon = app.theme.getIcon24(.BottomPopupArrow, 18)
+    topBtn.form       = .Default
+    topBtn.icon       = app.theme.getIcon24(.BottomPopupArrow, 18)
     topBtn.sigPressed += func(btn) { showAnchorMenu(btn, .AnchorTopCenter); }
 
     let bottomBtn = PushButton.create(left, "Open above", {246, 112, 200})
-    bottomBtn.icon = app.theme.getIcon24(.SortArrowUp, 18)
+    bottomBtn.icon       = app.theme.getIcon24(.SortArrowUp, 18)
     bottomBtn.sigPressed += func(btn) { showAnchorMenu(btn, .AnchorBottomCenter); }
 
     let plainBtn = PushButton.create(left, "Plain popup", {24, 178, 200})
-    plainBtn.icon = app.theme.getIcon24(.More, 18)
+    plainBtn.icon       = app.theme.getIcon24(.More, 18)
     plainBtn.sigPressed += func(btn) { showAnchorMenu(btn, .TopLeft); }
 
     discard createActionButton(left, "Switch to columns", {246, 178, 200}, MenuCmd.ModeColumns, .Sort)

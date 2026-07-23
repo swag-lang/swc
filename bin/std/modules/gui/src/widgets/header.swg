@@ -10,11 +10,11 @@ enum HeaderForm
 
 struct HeaderItem
 {
-    name:          RichString
-    icon:          Icon
-    width:         f32
-    minWidth:      f32
-    maxWidth:      f32
+    name:     RichString
+    icon:     Icon
+    width:    f32
+    minWidth: f32
+    maxWidth: f32
     sizeable       = true
     clickable      = true
     iconMargin     = false
@@ -34,18 +34,18 @@ struct Header
 
     form                  = HeaderForm.Flat
     headerFlags           = HeaderFlags.Clickable
-    marginItems:          f32 = 5
-    sigLayoutChanged:     #null func||(*Header)
-    sigClicked:           #null func||(*Header, u32)
+    marginItems:      f32 = 5
+    sigLayoutChanged: #null func||(*Header)
+    sigClicked:       #null func||(*Header, u32)
 
     items:                ArrayPtr'HeaderItem
     hotIdx                = Swag.U32.Max
-    hotSeparator:         bool
-    moving:               bool
-    clicked:              bool
-    correctMoving:        f32
-    sortColumn:           u32
-    sortMark:             s32
+    hotSeparator:  bool
+    moving:        bool
+    clicked:       bool
+    correctMoving: f32
+    sortColumn:    u32
+    sortMark:      s32
 }
 
 impl IWnd for Header
@@ -66,7 +66,7 @@ impl IWnd for Header
         if .hotIdx == idx and !.hotSeparator
         {
             var labelPosBk = labelPos
-            labelPosBk.x -= (metrics.header_Separator * 0.5)
+            labelPosBk.x     -= (metrics.header_Separator * 0.5)
             labelPosBk.width += metrics.header_Separator
             painter.fillRect(labelPosBk, .clicked ? colors.headerItem_ClickedBk : colors.headerItem_HotBk)
         }
@@ -238,7 +238,7 @@ impl IWnd for Header
                 {
                     .moving = true
                     var pos = .surfaceToLocal(evt.surfacePos)
-                    pos += .scrollPos.x
+                    pos            += .scrollPos.x
                     .correctMoving = pos.x - .getItemPosition(.hotIdx) + .padding.x
                     .correctMoving -= .getItemWidth(.hotIdx)
                     .captureMouse()

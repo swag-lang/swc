@@ -28,9 +28,9 @@ func(T) boxValue(box: Box'T)->T => box.value
 #test
 {
     let stringBox: Box'string = {value: "swag"}
-    let intBox: Box's32 = {value: 42}
-    let boolBox: Box'bool = {value: true}
-    let floatBox: Box'f64 = {value: 3.14}
+    let intBox:    Box's32 = {value: 42}
+    let boolBox:   Box'bool = {value: true}
+    let floatBox:  Box'f64 = {value: 3.14}
 
     @assert(stringBox.value == "swag")
     @assert(intBox.value == 42)
@@ -85,7 +85,7 @@ func(T) boxValue(box: Box'T)->T => box.value
             value: T
         }
 
-        let intBox: LocalBox's32 = {value: 11}
+        let intBox:  LocalBox's32 = {value: 11}
         let boolBox: LocalBox'bool = {value: false}
 
         @assert(intBox.value == 11)

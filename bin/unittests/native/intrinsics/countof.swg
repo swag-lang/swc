@@ -311,7 +311,7 @@ func loopSignedRef(value: &s32)->s32
 #test
 {
     var data: [5] u8 = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
-    var cstr: cstring = cast(cstring) &data[0]
+    var cstr:    cstring = cast(cstring) &data[0]
     var cstrRef: &cstring = &cstr
     @assert(@countof(cstrRef) == 4)
     @assert(countCStringRef(cstrRef) == 4)
@@ -334,7 +334,7 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var number: u32 = 7
+    var number:    u32 = 7
     var numberRef: &u32 = &number
     @assert(#typeof(@countof(numberRef)) == u32)
     @assert(@countof(numberRef) == 7)
@@ -344,7 +344,7 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var number: s32 = 7
+    var number:    s32 = 7
     var numberRef: &s32 = &number
     @assert(#typeof(@countof(numberRef)) == s32)
     @assert(@countof(numberRef) == 7)

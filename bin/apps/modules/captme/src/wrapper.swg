@@ -3,10 +3,10 @@
 // derives from this table; MainWnd.mdlByType is built in the same order.
 struct FormDesc
 {
-    type:            typeinfo = undefined
-    mode:            EditMode
-    canHighlight:    bool
-    canPixSel:       bool
+    type:         typeinfo = undefined
+    mode:         EditMode
+    canHighlight: bool
+    canPixSel:    bool
 }
 
 const FormRegistry: [?] FormDesc = [

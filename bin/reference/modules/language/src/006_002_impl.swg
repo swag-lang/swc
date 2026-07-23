@@ -9,9 +9,9 @@ This keeps related functionality close to the data it operates on.
 #[Swag.ExportType(.Methods)]     // Enable method reflection for this struct type
 struct MyStruct
 {
-    x:     s32 = 5      // Default 5
-    y:     s32 = 10     // Default 10
-    z:     s32 = 20     // Default 20
+    x: s32 = 5      // Default 5
+    y: s32 = 10     // Default 10
+    z: s32 = 20     // Default 20
 }
 
 impl MyStruct

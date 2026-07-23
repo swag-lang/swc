@@ -13,8 +13,8 @@ struct FileBrowserCtrl
 {
     using wnd:        Wnd
 
-    treeCtrl:         #null *ListCtrl
-    treePathStr:      Array'String
+    treeCtrl:    #null *ListCtrl
+    treePathStr: Array'String
     listCtrl:         #late *ListCtrl
     comboPath:        #late *ComboBox
     comboPathStr:     Array'String
@@ -22,8 +22,8 @@ struct FileBrowserCtrl
     comboType:        #late *ComboBox
     options:          FileDlgOptions
 
-    curFolder:        String
-    curList:          Array'FileInfo
+    curFolder: String
+    curList:   Array'FileInfo
 
     // A file/folder was activated (double-click or Enter on a non-directory).
     sigAccept:        SigArray'func||(*FileBrowserCtrl)
@@ -128,10 +128,10 @@ private impl FileBrowserCtrl
     {
         with me.listCtrl = ListCtrl.createMultiColumns(view)
         {
-            .selectionMode = me.options.mode == .SelectMultiFiles ? .Multi : .Single
-            .dockStyle     = .Center
-            .margin.z      = 10
-            .listFlags |= .HotTrack
+            .selectionMode   = me.options.mode == .SelectMultiFiles ? .Multi : .Single
+            .dockStyle       = .Center
+            .margin.z        = 10
+            .listFlags       |= .HotTrack
             .backgroundStyle = .View
             // NOTE: both branches are kept explicitly f32. A runtime conditional
             // whose unified result is integer, fed to an f32 parameter, is currently
@@ -200,7 +200,7 @@ private impl FileBrowserCtrl
 
                     if !txt.isEmpty() do
                         txt += ";"
-                    txt += Path.getFileName(fi.fullname)
+                    txt     += Path.getFileName(fi.fullname)
                 }
 
                 if !txt.isEmpty() do
@@ -246,8 +246,8 @@ impl FileBrowserCtrl
         {
             with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, {0, 0, 170})
             {
-                .dockStyle = .Left
-                .listFlags |= .HotTrack
+                .dockStyle       = .Left
+                .listFlags       |= .HotTrack
                 .lineHeight      = 28
                 .leftTextMargin  = 8
                 .backgroundStyle = .Dialog
@@ -277,8 +277,8 @@ impl FileBrowserCtrl
             let btn = PushButton.create(viewTop, "New Folder", {0, 0, 90})
             with btn
             {
-                .dockStyle = .Right
-                .margin.x  = 10
+                .dockStyle  = .Right
+                .margin.x   = 10
                 .sigPressed += func|fileBrowser|(btn)
                 {
                     fileBrowser.sigNewFolder.call(fileBrowser)
@@ -288,7 +288,7 @@ impl FileBrowserCtrl
 
         with fileBrowser.comboPath = ComboBox.create(viewTop)
         {
-            .dockStyle = .Center
+            .dockStyle  = .Center
             .sigChanged += func|fileBrowser|(combo, idx)
             {
                 fileBrowser.setCurFolder(fileBrowser.comboPathStr[idx])

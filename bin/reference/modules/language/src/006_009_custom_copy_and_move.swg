@@ -3,7 +3,10 @@
 Swag supports both copy and move semantics for structures. In this example, we demonstrate these concepts using a 'Vector3' struct. Although a 'Vector3' typically wouldn't require move semantics (no heap allocation), this illustrates how these features can be implemented and used in Swag.
 */
 
-struct Vector3 { x, y, z: s32 = 666 }
+struct Vector3
+{
+    x, y, z: s32 = 666
+}
 
 impl Vector3
 {

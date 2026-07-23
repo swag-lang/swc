@@ -8,15 +8,15 @@ using Core, Pixel
 // currently selected one).
 struct BreadcrumbItem
 {
-    name:        String
-    icon:        Icon
-    userData:    u64
-    tag:         String     // free app-defined string payload (e.g. a folder path)
+    name:     String
+    icon:     Icon
+    userData: u64
+    tag:      String     // free app-defined string payload (e.g. a folder path)
     hasArrow     = true
 
     // Computed by layout(), in control-local coordinates.
-    bodyRect:    Math.Rectangle
-    arrowRect:   Math.Rectangle
+    bodyRect:  Math.Rectangle
+    arrowRect: Math.Rectangle
 }
 
 // A horizontal breadcrumb / path bar. Each level is drawn as "[icon] name >". Clicking a
@@ -98,16 +98,16 @@ impl BreadcrumbCtrl
             var w = .padX
             if it.icon.isValid() do
                 w += it.icon.sizeX + .iconGap
-            w += Painter.measureString(it.name.toString(), font).width + .padX
+            w     += Painter.measureString(it.name.toString(), font).width + .padX
 
             it.bodyRect = {x, client.y, w, client.height}
-            x += w
+            x           += w
 
             if it.hasArrow
             {
                 let aw = .arrowPad + m.btnIcon_HeightArrow + .arrowPad
                 it.arrowRect = {x, client.y, aw, client.height}
-                x += aw
+                x            += aw
             }
             else
             {

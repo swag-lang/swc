@@ -24,36 +24,36 @@ impl IActionUI for ActionRecentSize
         {
         case RecentSmall:
             evt.setFlags |= .Name | .ToolTip | .Checked | .Icon
-            evt.toolTip = "Small recent view"
-            evt.checked = main.bottomSize == .Small
-            evt.icon    = Icon.from(&main.icons24, 0)
+            evt.toolTip  = "Small recent view"
+            evt.checked  = main.bottomSize == .Small
+            evt.icon     = Icon.from(&main.icons24, 0)
 
         case RecentMedium:
             evt.setFlags |= .Name | .ToolTip | .Checked | .Icon
-            evt.toolTip = "Medium recent view"
-            evt.checked = main.bottomSize == .Medium
-            evt.icon    = Icon.from(&main.icons24, 1)
+            evt.toolTip  = "Medium recent view"
+            evt.checked  = main.bottomSize == .Medium
+            evt.icon     = Icon.from(&main.icons24, 1)
 
         case RecentBig:
             evt.setFlags |= .Name | .ToolTip | .Checked | .Icon
-            evt.toolTip = "Big recent view"
-            evt.checked = main.bottomSize == .Big
-            evt.icon    = Icon.from(&main.icons24, 2)
+            evt.toolTip  = "Big recent view"
+            evt.checked  = main.bottomSize == .Big
+            evt.icon     = Icon.from(&main.icons24, 2)
 
         case LibSmall:
-            evt.setFlags |= .Name | .Checked | .RenderingHint
+            evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Small view"
             evt.checked       = main.libWnd.previewSize == PreviewSize.Small
 
         case LibMedium:
-            evt.setFlags |= .Name | .Checked | .RenderingHint
+            evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Medium view"
             evt.checked       = main.libWnd.previewSize == PreviewSize.Medium
 
         case LibBig:
-            evt.setFlags |= .Name | .Checked | .RenderingHint
+            evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Big view"
             evt.checked       = main.libWnd.previewSize == PreviewSize.Big

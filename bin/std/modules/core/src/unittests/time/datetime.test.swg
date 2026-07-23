@@ -77,31 +77,31 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     var invalid = value
     invalid.year = 0
     @assert(!invalid.isValid())
-    invalid = value
+    invalid      = value
     invalid.year = 10000
     @assert(!invalid.isValid())
-    invalid = value
+    invalid       = value
     invalid.month = 0
     @assert(!invalid.isValid())
-    invalid = value
+    invalid       = value
     invalid.month = 13
     @assert(!invalid.isValid())
-    invalid = value
+    invalid     = value
     invalid.day = 0
     @assert(!invalid.isValid())
-    invalid = value
+    invalid     = value
     invalid.day = 30
     @assert(!invalid.isValid())
-    invalid = value
+    invalid      = value
     invalid.hour = 24
     @assert(!invalid.isValid())
-    invalid = value
+    invalid        = value
     invalid.minute = 60
     @assert(!invalid.isValid())
-    invalid = value
+    invalid        = value
     invalid.second = 60
     @assert(!invalid.isValid())
-    invalid = value
+    invalid             = value
     invalid.millisecond = 1000
     @assert(!invalid.isValid())
 

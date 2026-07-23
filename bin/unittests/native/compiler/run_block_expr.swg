@@ -50,7 +50,7 @@ struct BytesHolder
 
 struct AnyPair
 {
-    item: any
+    item:  any
     other: any
 }
 
@@ -84,7 +84,7 @@ const PersistentStringArray: [1] string = #run
 const PersistentAnyPair: AnyPair = #run
 {
     var pair: AnyPair = undefined
-    pair.item = "abc"
+    pair.item  = "abc"
     pair.other = "def"
     return pair
 }
@@ -189,7 +189,7 @@ func functionScopedShortCompilerOnlyRunCall()
     let value = #run
     {
         var pair: AnyPair = undefined
-        pair.item = "abc"
+        pair.item  = "abc"
         pair.other = "def"
         return pair
     }

@@ -7,7 +7,7 @@ enum Mode
     B = 2,
 }
 
-const Folded = 2 + 3
+const Folded   = 2 + 3
 const Negative = -10
 
 #assert(#stringof(GlobalZero) == "0")

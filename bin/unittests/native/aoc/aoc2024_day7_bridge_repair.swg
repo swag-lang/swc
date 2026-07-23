@@ -5,7 +5,7 @@
 // and explicit cleanup through defer.
 
 const InitialEquationCapacity = 4'u32
-const MaxOperands = 16'u32
+const MaxOperands             = 16'u32
 
 const SampleInput =
     """190: 10 19
@@ -45,10 +45,10 @@ struct EquationList
 
 struct CalibrationReport
 {
-    equationCount:    u32
-    twoOpTotal:       u64
-    threeOpTotal:     u64
-    allocGrowCount:   u32
+    equationCount:  u32
+    twoOpTotal:     u64
+    threeOpTotal:   u64
+    allocGrowCount: u32
 }
 
 // ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ func concatNumbers(a, b: u64)->u64
     for
     {
         magnitude *= 10
-        tmp /= 10
+        tmp       /= 10
         if tmp == 0 do
             break
     }
@@ -88,7 +88,7 @@ func initEquationList(initialCapacity: u32)->EquationList
 {
     var result: EquationList
     result.capacity = initialCapacity
-    result.data = cast(#null [*] Equation) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
+    result.data     = cast(#null [*] Equation) @alloc(cast(u64) initialCapacity * cast(u64) #sizeof(Equation))
     @assert(result.data != null)
     return result
 }
@@ -108,12 +108,12 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
         let newCapacity = result.capacity * 2'u32
         result.data = cast(#null [*] Equation) @realloc(result.data, cast(u64) newCapacity * cast(u64) #sizeof(Equation))
         @assert(result.data != null)
-        result.capacity = newCapacity
+        result.capacity  = newCapacity
         result.growCount += 1'u32
     }
 
     result.data[result.count] = eq
-    result.count += 1'u32
+    result.count              += 1'u32
     return result
 }
 
@@ -126,7 +126,7 @@ func parseU64(bytes: const [..] u8, pos: *u32)->u64
     var value: u64
     while dref pos < @countof(bytes) and isDigit(bytes[dref pos])
     {
-        value = value * 10 + cast(u64) (bytes[dref pos] - '0')
+        value    = value * 10 + cast(u64) (bytes[dref pos] - '0')
         dref pos += 1
     }
 
@@ -166,7 +166,7 @@ func parseEquations(text: string)->EquationList
         {
             @assert(eq.operandCount < MaxOperands)
             eq.operands[eq.operandCount] = parseU64(bytes, &pos)
-            eq.operandCount += 1
+            eq.operandCount              += 1
             skipSpaces(bytes, &pos)
         }
 
@@ -217,7 +217,7 @@ func calibrate(text: string)->CalibrationReport
     defer freeEquationList(list)
 
     var result: CalibrationReport
-    result.equationCount = list.count
+    result.equationCount  = list.count
     result.allocGrowCount = list.growCount
 
     for list.count

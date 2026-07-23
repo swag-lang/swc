@@ -36,8 +36,8 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
     for
     {
         digits[digitCount] = cast(u8) (remaining % 10) + '0'
-        digitCount += 1
-        remaining /= 10
+        digitCount         += 1
+        remaining          /= 10
         if !remaining do
             break
     }
@@ -45,8 +45,8 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
     while digitCount
     {
         digitCount -= 1
-        scan[0] = digits[digitCount]
-        scan += 1
+        scan[0]    = digits[digitCount]
+        scan       += 1
     }
 
     return scan
@@ -68,15 +68,15 @@ internal func day10RunStep(input: string, output: &String)
         while i < inputLen and input[i] == digit
         {
             count += 1
-            i += 1
+            i     += 1
         }
 
         write    = day10WriteCount(write, count)
         write[0] = digit
-        write += 1
+        write    += 1
     }
 
-    output.length = cast(u64) (write - output.buffer)
+    output.length                = cast(u64) (write - output.buffer)
     output.buffer[output.length] = 0
 }
 
@@ -86,7 +86,7 @@ internal func day10EnsureLengths()
         return
 
     var current: String = "1113122113"
-    var next: String
+    var next:    String
     for 50
     {
         day10RunStep(current.toString(), &next)
@@ -96,7 +96,7 @@ internal func day10EnsureLengths()
             day10Length40 = current.length
     }
 
-    day10Length50    = current.length
+    day10Length50     = current.length
     day10LengthsReady = true
 }
 

@@ -14,8 +14,8 @@ func jitOrelseNonNullBranches()->bool
 {
     var primaryItem  = JitOrelseNonNullItem{value: 11}
     var fallbackItem = JitOrelseNonNullItem{value: 22}
-    var nullPointer: #null *JitOrelseNonNullItem = null
-    var presentPointer: #null *JitOrelseNonNullItem = jitOrelseMaybe(&primaryItem)
+    var nullPointer:     #null *JitOrelseNonNullItem = null
+    var presentPointer:  #null *JitOrelseNonNullItem = jitOrelseMaybe(&primaryItem)
     let fallbackPointer: *JitOrelseNonNullItem = &fallbackItem
     let selectedPointerFallback = nullPointer orelse fallbackPointer
     let selectedPointerPrimary  = presentPointer orelse fallbackPointer
@@ -35,7 +35,7 @@ func jitOrelseNonNullBranches()->bool
 
     var primaryValues: [2] u32 = [31, 32]
     var fallbackValues: [2] u32 = [41, 42]
-    var nullSlice: #null [..] u32 = null
+    var nullSlice:    #null [..] u32 = null
     var presentSlice: #null [..] u32 = primaryValues
     let fallbackSlice: [..] u32 = fallbackValues
     let selectedSliceFallback = nullSlice orelse fallbackSlice
@@ -48,8 +48,8 @@ func jitOrelseNonNullBranches()->bool
     if @countof(selectedSlicePrimary) != 2 or selectedSlicePrimary[0] != 31 or selectedSlicePrimary[1] != 32 do
         return false
 
-    var nullAny: #null any = null
-    var presentAny: #null any = 51'u32
+    var nullAny:     #null any = null
+    var presentAny:  #null any = 51'u32
     let fallbackAny: any = 61'u32
     let selectedAnyFallback = nullAny orelse fallbackAny
     let selectedAnyPrimary  = presentAny orelse fallbackAny
@@ -59,8 +59,8 @@ func jitOrelseNonNullBranches()->bool
     if cast(u32) selectedAnyFallback != 61 or cast(u32) selectedAnyPrimary != 51 do
         return false
 
-    var nullType: #null typeinfo = null
-    var presentType: #null typeinfo = s32
+    var nullType:     #null typeinfo = null
+    var presentType:  #null typeinfo = s32
     let fallbackType: typeinfo = u64
     let selectedTypeFallback = nullType orelse fallbackType
     let selectedTypePrimary  = presentType orelse fallbackType

@@ -2,13 +2,13 @@ using Core, Gui, Pixel
 
 func fillNarrativeEditor(ed: *RichEditCtrl)
 {
-    ed.styles[1].colFg = Argb.SteelBlue
-    ed.styles[1].fontMode = .Bold
-    ed.styles[2].colFg = Argb.SeaGreen
-    ed.styles[2].fontMode = .Italic
-    ed.styles[3].colFg = Argb.White
-    ed.styles[3].colBk = Color.fromArgb(190, Argb.SteelBlue)
-    ed.styles[4].colFg = Argb.DarkOrange
+    ed.styles[1].colFg     = Argb.SteelBlue
+    ed.styles[1].fontMode  = .Bold
+    ed.styles[2].colFg     = Argb.SeaGreen
+    ed.styles[2].fontMode  = .Italic
+    ed.styles[3].colFg     = Argb.White
+    ed.styles[3].colBk     = Color.fromArgb(190, Argb.SteelBlue)
+    ed.styles[4].colFg     = Argb.DarkOrange
     ed.styles[4].underline = .Underline
 
     ed.addText("Release notes\n", 1)
@@ -24,15 +24,15 @@ func fillNarrativeEditor(ed: *RichEditCtrl)
 
 func fillPaletteEditor(ed: *RichEditCtrl)
 {
-    ed.styles[1].colFg = Argb.SeaGreen
-    ed.styles[1].fontMode = .Bold
-    ed.styles[2].colFg = Argb.DarkOrange
-    ed.styles[2].fontMode = .Bold
-    ed.styles[3].colFg = Argb.Crimson
-    ed.styles[3].fontMode = .Bold
-    ed.styles[4].colFg = Argb.White
-    ed.styles[4].colBk = Color.fromArgb(190, Argb.MidnightBlue)
-    ed.styles[5].colFg = Argb.Purple
+    ed.styles[1].colFg     = Argb.SeaGreen
+    ed.styles[1].fontMode  = .Bold
+    ed.styles[2].colFg     = Argb.DarkOrange
+    ed.styles[2].fontMode  = .Bold
+    ed.styles[3].colFg     = Argb.Crimson
+    ed.styles[3].fontMode  = .Bold
+    ed.styles[4].colFg     = Argb.White
+    ed.styles[4].colBk     = Color.fromArgb(190, Argb.MidnightBlue)
+    ed.styles[5].colFg     = Argb.Purple
     ed.styles[5].underline = .Underline
 
     ed.addText("Status palette\n", 4)

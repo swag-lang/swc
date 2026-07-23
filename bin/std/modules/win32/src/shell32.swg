@@ -17,11 +17,11 @@ const CSIDL_FAVORITES               = 0x0006             // <user name>/Favorite
 const CSIDL_STARTUP                 = 0x0007             // Start Menu/Programs/Startup
 const CSIDL_RECENT                  = 0x0008             // <user name>/Recent
 const CSIDL_SENDTO                  = 0x0009             // <user name>/SendTo
-const CSIDL_BITBUCKET               = 0x000a             // <desktop>/Recycle Bin
-const CSIDL_STARTMENU               = 0x000b             // <user name>/Start Menu
+const CSIDL_BITBUCKET               = 0x000A             // <desktop>/Recycle Bin
+const CSIDL_STARTMENU               = 0x000B             // <user name>/Start Menu
 const CSIDL_MYDOCUMENTS             = CSIDL_PERSONAL     //  Personal was just a silly name for My Documents
-const CSIDL_MYMUSIC                 = 0x000d             // "My Music" folder
-const CSIDL_MYVIDEO                 = 0x000e             // "My Videos" folder
+const CSIDL_MYMUSIC                 = 0x000D             // "My Music" folder
+const CSIDL_MYVIDEO                 = 0x000E             // "My Videos" folder
 const CSIDL_DESKTOPDIRECTORY        = 0x0010             // <user name>/Desktop
 const CSIDL_DRIVES                  = 0x0011             // My Computer
 const CSIDL_NETWORK                 = 0x0012             // Network Neighborhood (My Network Places)
@@ -32,12 +32,12 @@ const CSIDL_COMMON_STARTMENU        = 0x0016     // All Users/Start Menu
 const CSIDL_COMMON_PROGRAMS         = 0x0017     // All Users/Start Menu/Programs
 const CSIDL_COMMON_STARTUP          = 0x0018     // All Users/Startup
 const CSIDL_COMMON_DESKTOPDIRECTORY = 0x0019     // All Users/Desktop
-const CSIDL_APPDATA                 = 0x001a     // <user name>/Application Data
-const CSIDL_PRINTHOOD               = 0x001b     // <user name>/PrintHood
-const CSIDL_LOCAL_APPDATA           = 0x001c     // <user name>/Local Settings/Applicaiton Data (non roaming)
-const CSIDL_ALTSTARTUP              = 0x001d     // non localized startup
-const CSIDL_COMMON_ALTSTARTUP       = 0x001e     // non localized common startup
-const CSIDL_COMMON_FAVORITES        = 0x001f
+const CSIDL_APPDATA                 = 0x001A     // <user name>/Application Data
+const CSIDL_PRINTHOOD               = 0x001B     // <user name>/PrintHood
+const CSIDL_LOCAL_APPDATA           = 0x001C     // <user name>/Local Settings/Applicaiton Data (non roaming)
+const CSIDL_ALTSTARTUP              = 0x001D     // non localized startup
+const CSIDL_COMMON_ALTSTARTUP       = 0x001E     // non localized common startup
+const CSIDL_COMMON_FAVORITES        = 0x001F
 const CSIDL_INTERNET_CACHE          = 0x0020
 const CSIDL_COOKIES                 = 0x0021
 const CSIDL_HISTORY                 = 0x0022
@@ -48,12 +48,12 @@ const CSIDL_PROGRAM_FILES           = 0x0026     // C:/Program Files
 const CSIDL_MYPICTURES              = 0x0027     // C:/Program Files/My Pictures
 const CSIDL_PROFILE                 = 0x0028     // USERPROFILE
 const CSIDL_SYSTEMX86               = 0x0029     // x86 system directory on RISC
-const CSIDL_PROGRAM_FILESX86        = 0x002a     // x86 C:/Program Files on RISC
-const CSIDL_PROGRAM_FILES_COMMON    = 0x002b     // C:/Program Files/Common
-const CSIDL_PROGRAM_FILES_COMMONX86 = 0x002c     // x86 Program Files/Common on RISC
-const CSIDL_COMMON_TEMPLATES        = 0x002d     // All Users/Templates
-const CSIDL_COMMON_DOCUMENTS        = 0x002e     // All Users/Documents
-const CSIDL_COMMON_ADMINTOOLS       = 0x002f     // All Users/Start Menu/Programs/Administrative Tools
+const CSIDL_PROGRAM_FILESX86        = 0x002A     // x86 C:/Program Files on RISC
+const CSIDL_PROGRAM_FILES_COMMON    = 0x002B     // C:/Program Files/Common
+const CSIDL_PROGRAM_FILES_COMMONX86 = 0x002C     // x86 Program Files/Common on RISC
+const CSIDL_COMMON_TEMPLATES        = 0x002D     // All Users/Templates
+const CSIDL_COMMON_DOCUMENTS        = 0x002E     // All Users/Documents
+const CSIDL_COMMON_ADMINTOOLS       = 0x002F     // All Users/Start Menu/Programs/Administrative Tools
 const CSIDL_ADMINTOOLS              = 0x0030     // <user name>/Start Menu/Programs/Administrative Tools
 const CSIDL_CONNECTIONS             = 0x0031     // Network and Dial-up Connections
 const CSIDL_COMMON_MUSIC            = 0x0035     // All Users/My Music
@@ -61,9 +61,9 @@ const CSIDL_COMMON_PICTURES         = 0x0036     // All Users/My Pictures
 const CSIDL_COMMON_VIDEO            = 0x0037     // All Users/My Video
 const CSIDL_RESOURCES               = 0x0038     // Resource Direcotry
 const CSIDL_RESOURCES_LOCALIZED     = 0x0039     // Localized Resource Direcotry
-const CSIDL_COMMON_OEM_LINKS        = 0x003a     // Links to All Users OEM specific apps
-const CSIDL_CDBURN_AREA             = 0x003b     // USERPROFILE/Local Settings/Application Data/Microsoft/CD Burning
-const CSIDL_COMPUTERSNEARME         = 0x003d     // Computers Near Me (computered from Workgroup membership)
+const CSIDL_COMMON_OEM_LINKS        = 0x003A     // Links to All Users OEM specific apps
+const CSIDL_CDBURN_AREA             = 0x003B     // USERPROFILE/Local Settings/Application Data/Microsoft/CD Burning
+const CSIDL_COMPUTERSNEARME         = 0x003D     // Computers Near Me (computered from Workgroup membership)
 const CSIDL_FLAG_CREATE             = 0x8000     // combine with CSIDL_ value to force folder creation in SHGetFolderPath()
 const CSIDL_FLAG_DONT_VERIFY        = 0x4000     // combine with CSIDL_ value to return an unverified folder path
 const CSIDL_FLAG_DONT_UNEXPAND      = 0x2000     // combine with CSIDL_ value to avoid unexpanding environment variables
@@ -187,51 +187,51 @@ enum SHSTOCKICONID
     SIID_SETTINGS          = 106     // Settings
     // 107-131 are private Vista RTM icons
     // 132-159 for SP1 icons
-    SIID_DRIVEHDDVD        = 132     // HDDVD Drive (all types)
-    SIID_DRIVEBD           = 133     // BluRay Drive (all types)
-    SIID_MEDIAHDDVDROM     = 134     // HDDVD-ROM Media
-    SIID_MEDIAHDDVDR       = 135     // HDDVD-R Media
-    SIID_MEDIAHDDVDRAM     = 136     // HDDVD-RAM Media
-    SIID_MEDIABDROM        = 137     // BluRay ROM Media
-    SIID_MEDIABDR          = 138     // BluRay R Media
-    SIID_MEDIABDRE         = 139     // BluRay RE Media (Rewriable and RAM)
-    SIID_CLUSTEREDDRIVE    = 140     // Clustered disk
+    SIID_DRIVEHDDVD     = 132     // HDDVD Drive (all types)
+    SIID_DRIVEBD        = 133     // BluRay Drive (all types)
+    SIID_MEDIAHDDVDROM  = 134     // HDDVD-ROM Media
+    SIID_MEDIAHDDVDR    = 135     // HDDVD-R Media
+    SIID_MEDIAHDDVDRAM  = 136     // HDDVD-RAM Media
+    SIID_MEDIABDROM     = 137     // BluRay ROM Media
+    SIID_MEDIABDR       = 138     // BluRay R Media
+    SIID_MEDIABDRE      = 139     // BluRay RE Media (Rewriable and RAM)
+    SIID_CLUSTEREDDRIVE = 140     // Clustered disk
     // 160+ are for Windows 7 icons
     SIID_MAX_ICONS         = 181
 }
 
 struct SHFILEINFOA
 {
-    hIcon:             HICON
-    iIcon:             s32
-    dwAttributes:      DWORD
+    hIcon:        HICON
+    iIcon:        s32
+    dwAttributes: DWORD
     szDisplayName:     [MAX_PATH] CHAR
     szTypeName:        [80] CHAR
 }
 
 struct SHFILEINFOW
 {
-    hIcon:             HICON
-    iIcon:             s32
-    dwAttributes:      DWORD
+    hIcon:        HICON
+    iIcon:        s32
+    dwAttributes: DWORD
     szDisplayName:     [MAX_PATH] WCHAR
     szTypeName:        [80] WCHAR
 }
 
 struct SHSTOCKICONINFO
 {
-    cbSize:             DWORD
-    hIcon:              HICON
-    iSysImageIndex:     s32
-    iIcon:              s32
+    cbSize:         DWORD
+    hIcon:          HICON
+    iSysImageIndex: s32
+    iIcon:          s32
     szPath:             [MAX_PATH] WCHAR
 }
 
 struct GUID
 {
-    Data1:     u32
-    Data2:     u16
-    Data3:     u16
+    Data1: u32
+    Data2: u16
+    Data3: u16
     Data4:     [8] u8
 }
 
@@ -252,48 +252,48 @@ const NIF_SHOWTIP  = 0x00000080
 
 struct NOTIFYICONDATAA
 {
-    cbSize:               DWORD
-    hWnd:                 HWND
-    uID:                  UINT
-    uFlags:               UINT
-    uCallbackMessage:     UINT
-    hIcon:                HICON
+    cbSize:           DWORD
+    hWnd:             HWND
+    uID:              UINT
+    uFlags:           UINT
+    uCallbackMessage: UINT
+    hIcon:            HICON
     szTip:                [128] CHAR
-    dwState:              DWORD
-    dwStateMask:          DWORD
+    dwState:     DWORD
+    dwStateMask: DWORD
     szInfo:               [256] CHAR
         using DUMMYUNIONNAME: union
     {
-        uTimeout:     UINT
-        uVersion:     UINT
+        uTimeout: UINT
+        uVersion: UINT
     }
     szInfoTitle:      [64] CHAR
-    dwInfoFlags:      DWORD
-    guidItem:         GUID
-    hBalloonIcon:     HICON
+    dwInfoFlags:  DWORD
+    guidItem:     GUID
+    hBalloonIcon: HICON
 }
 
 struct NOTIFYICONDATAW
 {
-    cbSize:               DWORD
-    hWnd:                 HWND
-    uID:                  UINT
-    uFlags:               UINT
-    uCallbackMessage:     UINT
-    hIcon:                HICON
+    cbSize:           DWORD
+    hWnd:             HWND
+    uID:              UINT
+    uFlags:           UINT
+    uCallbackMessage: UINT
+    hIcon:            HICON
     szTip:                [128] WCHAR
-    dwState:              DWORD
-    dwStateMask:          DWORD
+    dwState:     DWORD
+    dwStateMask: DWORD
     szInfo:               [256] WCHAR
         using DUMMYUNIONNAME: union
     {
-        uTimeout:     UINT
-        uVersion:     UINT
+        uTimeout: UINT
+        uVersion: UINT
     }
     szInfoTitle:      [64] WCHAR
-    dwInfoFlags:      DWORD
-    guidItem:         GUID
-    hBalloonIcon:     HICON
+    dwInfoFlags:  DWORD
+    guidItem:     GUID
+    hBalloonIcon: HICON
 }
 
 internal namespace Shell32Priv

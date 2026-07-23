@@ -1,7 +1,7 @@
 #global private
 
-var DeferTrace: s64 = 0
-var MacroState: s32 = 0
+var DeferTrace:     s64 = 0
+var MacroState:     s32 = 0
 var ScopeLockValue: s32 = 0
 
 func resetDeferTrace()

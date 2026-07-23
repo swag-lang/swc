@@ -17,16 +17,16 @@ struct Label
 
     sigUrlClicked:        SigArray'func||(*Label, string)
 
-    icon:                 Icon
-    iconColor:            Color
-    textColor:            Color
+    icon:      Icon
+    iconColor: Color
+    textColor: Color
     labelFlags            = LabelFlags.Zero
     horzAlignmentIcon     = StringHorzAlignment.Center
     vertAlignmentIcon     = StringVertAlignment.Center
     horzAlignmentText     = StringHorzAlignment.Center
     vertAlignmentText     = StringVertAlignment.Center
-    paddingText:          Math.Vector4
-    paddingIcon:          Math.Vector4
+    paddingText: Math.Vector4
+    paddingIcon: Math.Vector4
 
     hotChunk:             #null *RichChunk
 }
@@ -182,11 +182,11 @@ impl Label
                 sf.palette[0] = theme.colors.label_TextLight
             else do
                 sf.palette[0] = theme.colors.label_Text
-            sf.palette[1]  = theme.colors.label_Text1
-            sf.palette[2]  = theme.colors.label_Text2
-            sf.palette[3]  = theme.colors.label_Text3
-            sf.colorUrl    = theme.colors.url_Text
-            sf.colorHotUrl = theme.colors.url_HotText
+            sf.palette[1]     = theme.colors.label_Text1
+            sf.palette[2]     = theme.colors.label_Text2
+            sf.palette[3]     = theme.colors.label_Text3
+            sf.colorUrl       = theme.colors.url_Text
+            sf.colorHotUrl    = theme.colors.url_HotText
         }
 
         return sf
@@ -243,8 +243,8 @@ impl Label
 
             var height = .name.boundRect.height
             if !.name.isEmpty() do
-                height = Math.max(height, sf.font.regular.height)
-            height += .paddingText.y + .paddingText.w
+                height       = Math.max(height, sf.font.regular.height)
+            height           += .paddingText.y + .paddingText.w
             .position.height = height
             .preferredSize.y = height
         }

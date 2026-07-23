@@ -142,16 +142,20 @@ namespace
             }
 
             applyBreakBeforeElse();
+            applyBreakBeforeWhere();
         }
 
     private:
         FormatShortBlockStyle shortStyleFor(const FormatBlock& block) const
         {
-            // Blocks embedded in an expression or a type (closure bodies,
-            // anonymous struct / tuple types) keep their layout: splitting or
-            // joining them would reformat the middle of an expression.
+            // Blocks embedded in an expression or a type keep their layout,
+            // except closure bodies which have their own dedicated option.
             if (block.exprLevel)
+            {
+                if (block.kind == FormatBlockKind::Function)
+                    return options_->allowShortClosuresOnSingleLine;
                 return FormatShortBlockStyle::Preserve;
+            }
 
             switch (block.kind)
             {
@@ -366,6 +370,34 @@ namespace
             }
         }
 
+        // A `where` / `verify` clause moves to its own line, one level under
+        // the declaration it constrains.
+        void applyBreakBeforeWhere() const
+        {
+            if (!options_->breakBeforeWhere)
+                return;
+            const bool breakBefore = *options_->breakBeforeWhere;
+
+            for (uint32_t i = 0; i < model_->numPieces(); ++i)
+            {
+                const FormatPiece& piece = model_->piece(i);
+                if (piece.removed || !piece.hasRole(FormatRoleE::WhereKeyword))
+                    continue;
+                if (!FormatPassUtil::canEditGap(*model_, i))
+                    continue;
+
+                if (breakBefore && !model_->gapHasNewline(i))
+                {
+                    const uint32_t stmt = model_->lineStartOf(i);
+                    model_->setGapBreak(i, 1, FormatPassUtil::indentPlusOne(*model_, model_->lineIndentOf(stmt)).view());
+                }
+                else if (!breakBefore && model_->gapHasNewline(i))
+                {
+                    model_->setGapSpaces(i, 1);
+                }
+            }
+        }
+
         void runShortCases() const
         {
             if (!options_->allowShortCaseOnSingleLine)
@@ -448,8 +480,90 @@ namespace
     };
 }
 
+namespace
+{
+    // `;` before an end of line is a statement separator the grammar does not
+    // need; prototype terminators (marked KeepSemi) stay.
+    void removeRedundantSemicolons(FormatModel& model)
+    {
+        if (!model.options().removeRedundantSemicolons.value_or(false))
+            return;
+
+        for (uint32_t i = 0; i < model.numPieces(); ++i)
+        {
+            const FormatPiece& piece = model.piece(i);
+            if (piece.removed || piece.frozen || piece.isNot(TokenId::SymSemiColon))
+                continue;
+            if (piece.hasRole(FormatRoleE::KeepSemi))
+                continue;
+            if (!FormatPassUtil::canEditGap(model, i))
+                continue;
+
+            const uint32_t next = model.nextPiece(i);
+            if (next != INVALID_PIECE && !model.gapHasNewline(next))
+                continue; // same-line successor: `;` still separates
+            model.removePiece(i);
+        }
+    }
+
+    // `if (cond)` → `if cond` when the parentheses wrap the entire condition.
+    void removeConditionParentheses(FormatModel& model)
+    {
+        if (!model.options().removeConditionParentheses.value_or(false))
+            return;
+
+        for (uint32_t i = 0; i < model.numPieces(); ++i)
+        {
+            const FormatPiece& piece = model.piece(i);
+            if (piece.removed || piece.frozen || !piece.hasRole(FormatRoleE::ControlKeyword))
+                continue;
+            if (piece.isNot(TokenId::KwdIf) && piece.isNot(TokenId::KwdElseIf) && piece.isNot(TokenId::KwdWhile) &&
+                piece.isNot(TokenId::KwdSwitch))
+                continue;
+
+            const uint32_t open = model.nextPiece(i);
+            if (open == INVALID_PIECE || model.piece(open).isNot(TokenId::SymLeftParen))
+                continue;
+            const uint32_t close = model.piece(open).match;
+            if (close == INVALID_PIECE || !rangeEditable(model, open, close))
+                continue;
+
+            // The parentheses must cover the whole condition: the body (`{`
+            // or trailing `do`) follows immediately.
+            const uint32_t after = model.nextPiece(close);
+            if (after == INVALID_PIECE ||
+                (model.piece(after).isNot(TokenId::SymLeftCurly) && model.piece(after).isNot(TokenId::KwdDo)))
+                continue;
+
+            // Keep multi-line conditions: the parentheses anchor their layout.
+            bool multiLine = false;
+            for (uint32_t p = open + 1; p <= close && !multiLine; ++p)
+            {
+                if (!model.piece(p).removed && model.gapHasNewline(p))
+                    multiLine = true;
+            }
+            if (multiLine)
+                continue;
+
+            const uint32_t inner = model.nextPiece(open);
+            if (inner == close)
+                continue; // empty parens: not a removable condition
+
+            model.removePiece(open);
+            model.removePiece(close);
+            model.setGapSpaces(inner, 1);
+        }
+    }
+}
+
 namespace FormatPass
 {
+    void statements(FormatModel& model)
+    {
+        removeConditionParentheses(model);
+        removeRedundantSemicolons(model);
+    }
+
     void shortBlocks(FormatModel& model)
     {
         BracesPass(model).runShortBlocks();

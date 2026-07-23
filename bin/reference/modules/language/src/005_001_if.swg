@@ -19,7 +19,7 @@ They can be used for clarity or grouping, but they are not required.
     if a == 1 do
         @assert(false)
 
-    if (a == 1) do
+    if a == 1 do
         @assert(false)
 
     if a == 0

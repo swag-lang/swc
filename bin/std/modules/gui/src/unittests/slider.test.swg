@@ -9,19 +9,19 @@ var SliderHeadlessEndCount:     u32
 
 func sliderHeadlessStart(s: *Slider)
 {
-    discard s;
+    discard s
     SliderHeadlessStartCount += 1
 }
 
 func sliderHeadlessChanged(s: *Slider)
 {
-    discard s;
+    discard s
     SliderHeadlessChangedCount += 1
 }
 
 func sliderHeadlessEnd(s: *Slider)
 {
-    discard s;
+    discard s
     SliderHeadlessEndCount += 1
 }
 

@@ -250,8 +250,8 @@ impl IWnd for Wnd
 
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
-        .invalidate();
-        .sendResizeEvent();
+        .invalidate()
+        .sendResizeEvent()
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent) {}
@@ -260,47 +260,47 @@ impl IWnd for Wnd
 
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onFocusEvent(evt: *FocusEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onCommandEvent(evt: *CommandEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        evt.accepted = false;
+        evt.accepted = false
     }
 }
 

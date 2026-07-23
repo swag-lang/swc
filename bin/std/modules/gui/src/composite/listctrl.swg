@@ -835,15 +835,9 @@ impl ListCtrl
             .header                  = Header.create(fwnd, {})
             .header.dockStyle        = .Top
             .header.form             = .Round
-            .header.sigLayoutChanged = func|list|(header)
-            {
-                list.computeLayout()
-            }
+            .header.sigLayoutChanged = func|list|(header) { list.computeLayout() }
 
-            .header.sigClicked = func|list|(header, col)
-            {
-                list.sort(col, header.sortMark <= 0 ? false : true, true)
-            }
+            .header.sigClicked = func|list|(header, col) { list.sort(col, header.sortMark <= 0 ? false : true, true) }
 
             // Scroll that contains the list view
             .scrollWnd                 = Wnd.create'ScrollWnd(fwnd, {})

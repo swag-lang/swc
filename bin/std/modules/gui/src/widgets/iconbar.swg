@@ -79,17 +79,11 @@ impl IconBar
 
         if iconBtnFlags.has(.Checkable | .CheckableToggle)
         {
-            b.sigCheckChanged += func|bar = me|(btn)
-            {
-                bar.sigCheckChanged.call(btn)
-            }
+            b.sigCheckChanged += func|bar = me|(btn) { bar.sigCheckChanged.call(btn) }
         }
         else
         {
-            b.sigPressed += func|bar = me|(btn)
-            {
-                bar.sigPressed.call(cast(*IconButton) btn)
-            }
+            b.sigPressed += func|bar = me|(btn) { bar.sigPressed.call(cast(*IconButton) btn) }
         }
 
         .updateCommandState()

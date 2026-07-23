@@ -24,14 +24,14 @@ impl IActionUI for ActionImage
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         if updateFromTable(cxt, evt, [
-            {ResizeImage, "Resize Image...", .Capture},
-            {ExpandImage, "Expand Image...", .Capture},
-            {ExpandCapture, "Expand Capture...", .Capture},
-            {TrimCapture, "Trim Capture", .Capture},
-            {FlipImage, "Flip Image", .Capture},
-            {MirrorImage, "Mirror Image", .Capture},
+            {ResizeImage,      "Resize Image...",    .Capture},
+            {ExpandImage,      "Expand Image...",    .Capture},
+            {ExpandCapture,    "Expand Capture...",  .Capture},
+            {TrimCapture,      "Trim Capture",       .Capture},
+            {FlipImage,        "Flip Image",         .Capture},
+            {MirrorImage,      "Mirror Image",       .Capture},
             {RotateImageRight, "Rotate Image Right", .Capture},
-            {RotateImageLeft, "Rotate Image Left", .Capture}])
+            {RotateImageLeft,  "Rotate Image Left",  .Capture}])
         {
             return true
         }
@@ -269,10 +269,7 @@ impl MainWnd
 
         let btnRatio = CheckButton.create(dlg, "Keep Ratio", {70, 85})
         btnRatio.checked    = g_KeepRatio ? .Checked : .UnChecked
-        btnRatio.sigChanged += func||(btn)
-        {
-            g_KeepRatio = btn.isChecked()
-        }
+        btnRatio.sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }
 
         dlg.createBtnGrid()
 

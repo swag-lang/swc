@@ -8,10 +8,7 @@ func createCompositePage(parent: *Wnd)
         let picker = ColorPickerCtrl.create(left, {24, 92}, .All)
         picker.setFrameForm(.Round)
         picker.setColor(g_Color)
-        picker.sigChanged += func(picker)
-        {
-            setSelectedColor(picker.getColor(), "ColorPickerCtrl alpha")
-        }
+        picker.sigChanged += func(picker) { setSelectedColor(picker.getColor(), "ColorPickerCtrl alpha") }
         discard createQuickPalette(left, {400, 124, 196, 200}, "Shared presets")
     }
 
@@ -22,10 +19,7 @@ func createCompositePage(parent: *Wnd)
         let picker = ColorPickerCtrl.create(right, {24, 92}, .All & ~.Alpha)
         picker.setFrameForm(.Round)
         picker.setColor(opaque)
-        picker.sigChanged += func(picker)
-        {
-            setSelectedColor(picker.getColor(), "ColorPickerCtrl opaque")
-        }
+        picker.sigChanged += func(picker) { setSelectedColor(picker.getColor(), "ColorPickerCtrl opaque") }
         discard createQuickPalette(right, {400, 124, 196, 200}, "Opaque presets")
     }
 

@@ -94,10 +94,7 @@ impl Properties
             combo.addItem(fnt.name)
 
         .refreshFontName(item)
-        combo.sigChanged += func|prop = me, item|(ed, n)
-        {
-            prop.validateFontName(item)
-        }
+        combo.sigChanged += func|prop = me, item|(ed, n) { prop.validateFontName(item) }
     }
 
     mtd constructDynamicString(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)

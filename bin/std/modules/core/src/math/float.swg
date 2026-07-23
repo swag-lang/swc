@@ -45,14 +45,14 @@ alias ConstF64 = Const'f64
     // Cubic interpolation between 'a', 'b', 'c', and 'd' based on 't'
     func cubicLerp(a, b, c, d, t: f32)->f32
     {
-        let p = (d - c) - (a - b);
-        return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b;
+        let p = (d - c) - (a - b)
+        return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b
     }
 
     func cubicLerp(a, b, c, d, t: f64)->f64
     {
-        let p = (d - c) - (a - b);
-        return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b;
+        let p = (d - c) - (a - b)
+        return t * t * t * p + t * t * ((a - b) - p) + t * (c - a) + b
     }
 
     // Hermite interpolation function
@@ -71,7 +71,7 @@ alias ConstF64 = Const'f64
     func moveTowards(current, target, speed: f32)->f32
     {
         let distance = target - current
-        if (abs(distance) <= speed) do
+        if abs(distance) <= speed do
             return target
         return current + sign(distance) * speed
     }
@@ -79,7 +79,7 @@ alias ConstF64 = Const'f64
     func moveTowards(current, target, speed: f64)->f64
     {
         let distance = target - current
-        if (abs(distance) <= speed) do
+        if abs(distance) <= speed do
             return target
         return current + sign(distance) * speed
     }

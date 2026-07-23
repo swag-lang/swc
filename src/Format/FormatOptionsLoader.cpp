@@ -57,6 +57,7 @@ namespace
         schema.add("break-after-return-type", &options.breakAfterReturnType, "Break before `->` when a function signature does not fit");
         schema.add("break-before-do", &options.breakBeforeDo, "Move trailing `do` to a new line when its statement wraps");
         schema.add("break-before-else", &options.breakBeforeElse, "Place `else` on its own line in Stroustrup style");
+        schema.add("break-before-where", &options.breakBeforeWhere, "Place `where` / `verify` clauses on their own line");
 
         const std::initializer_list<std::pair<const char*, FormatBinPackStyle>> binPackChoices = {
             {"preserve", FormatBinPackStyle::Preserve},
@@ -84,10 +85,14 @@ namespace
         schema.addEnum("allow-short-blocks-on-single-line", &options.allowShortBlocksOnSingleLine, shortChoices, "Choose when generic `{ ... }` blocks stay on one line");
         schema.addEnum("allow-short-enums-on-single-line", &options.allowShortEnumsOnSingleLine, shortChoices, "Choose when `enum` bodies stay on one line");
         schema.addEnum("allow-short-structs-on-single-line", &options.allowShortStructsOnSingleLine, shortChoices, "Choose when `struct` bodies stay on one line");
+        schema.addEnum("allow-short-closures-on-single-line", &options.allowShortClosuresOnSingleLine, shortChoices, "Choose when closure bodies embedded in expressions stay on one line");
 
         schema.add("allow-short-if-statements-on-single-line", &options.allowShortIfStatementsOnSingleLine, "Keep short `if x do ...` and `if x { ... }` statements on one line");
         schema.add("allow-short-loops-on-single-line", &options.allowShortLoopsOnSingleLine, "Keep short `while` and `for` bodies on one line");
         schema.add("allow-short-case-on-single-line", &options.allowShortCaseOnSingleLine, "Keep single-statement `case` arms on one line");
+
+        schema.add("remove-redundant-semicolons", &options.removeRedundantSemicolons, "Drop `;` at end of line when the grammar does not require it");
+        schema.add("remove-condition-parentheses", &options.removeConditionParentheses, "Drop the parentheses wrapping a whole control-statement condition");
     }
 
     void bindAlignmentSchema(StructConfigSchema& schema, FormatOptions& options)
@@ -112,6 +117,7 @@ namespace
         schema.add("trailing-comment-max-column", &options.trailingCommentMaxColumn, "Set the maximum trailing-comment column; use 0 to disable the cap");
         schema.add("align-operands", &options.alignOperands, "Align operands in wrapped binary expressions");
         schema.add("align-after-open-bracket", &options.alignAfterOpenBracket, "Align wrapped arguments with their opening `(` or `[`");
+        schema.add("align-array-columns", &options.alignArrayColumns, "Align the columns of multi-line array-of-struct literals");
     }
 
     void bindSpacingSchema(StructConfigSchema& schema, FormatOptions& options)

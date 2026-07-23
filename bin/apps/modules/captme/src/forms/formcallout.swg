@@ -405,9 +405,6 @@ impl IForm for FormCallout
         .capture = capt
         .gizmoRect.setupForForm(cast(IForm) me)
         .gizmoTail.anchors.resize(1)
-        .gizmoTail.sigChanged = func|form = me|(diff, pt, first)
-        {
-            GizmoPoints.apply(form, diff, pt, first)
-        }
+        .gizmoTail.sigChanged = func|form = me|(diff, pt, first) { GizmoPoints.apply(form, diff, pt, first) }
     }
 }

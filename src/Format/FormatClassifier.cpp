@@ -591,6 +591,23 @@ namespace
                             addRole(prevCodeBeforeOperandIf(bodySpan.minPiece, TokenId::SymEqualGreater), FormatRoleE::FatArrow);
                         }
                     }
+                    else if (span.valid())
+                    {
+                        // Prototype (interface method, foreign function): the
+                        // terminating `;` is required by the grammar. It may
+                        // sit after closing brackets and suffix keywords such
+                        // as `throw`.
+                        for (uint32_t p = nextCode(span.maxPiece); p != INVALID_PIECE; p = nextCode(p))
+                        {
+                            if (model_->gapHasNewline(p))
+                                break; // next line: past the declaration
+                            if (model_->piece(p).is(TokenId::SymSemiColon))
+                            {
+                                addRole(p, FormatRoleE::KeepSemi);
+                                break;
+                            }
+                        }
+                    }
                     break;
                 }
 
@@ -738,6 +755,21 @@ namespace
 
                     markControlBody(stmt.nodeIfBlockRef, span.minPiece);
                     classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
+                    break;
+                }
+
+                case AstNodeId::ConstraintBlock:
+                case AstNodeId::ConstraintExpr:
+                {
+                    // `where` / `verify` clauses anchor on their keyword.
+                    addRole(span.minPiece, FormatRoleE::WhereKeyword);
+                    if (node.is(AstNodeId::ConstraintBlock))
+                    {
+                        markStatementStarts(node);
+                        nextParent = node.id();
+                        if (span.valid())
+                            registerBlock(findHeaderOpenBrace(span.minPiece), FormatBlockKind::Control, span.minPiece, true);
+                    }
                     break;
                 }
 

@@ -39,12 +39,12 @@ func countPercent(fmt: string)->u32
 // Can be a lot faster than the convenient version which returns a String.
 func replaceString(dest: *String, fmt: string, values: ...)
     verify
-{
-    if !#isconstexpr(fmt) or !#isconstexpr(values) do
+    {
+        if !#isconstexpr(fmt) or !#isconstexpr(values) do
+            return true
+        checkFormat(#curlocation.funcName, fmt, values)
         return true
-    checkFormat(#curlocation.funcName, fmt, values)
-    return true
-}
+    }
 {
     var buf: ConcatBuffer
 
@@ -75,12 +75,12 @@ func replaceString(dest: *String, fmt: string, values: ...)
 // * See [[ConvertFormatFloat.setFormat]] for some valid format options
 func toString(fmt: string, values: ...)->String
     verify
-{
-    if !#isconstexpr(fmt) or !#isconstexpr(values) do
+    {
+        if !#isconstexpr(fmt) or !#isconstexpr(values) do
+            return true
+        checkFormat(#curlocation.funcName, fmt, values)
         return true
-    checkFormat(#curlocation.funcName, fmt, values)
-    return true
-}
+    }
 {
     var buf: ConcatBuffer
 
@@ -93,12 +93,12 @@ func toString(fmt: string, values: ...)->String
 // Format a string and put the result in a ConcatBuffer.
 func append(buf: *ConcatBuffer, fmt: string, values: ...)
     verify
-{
-    if !#isconstexpr(fmt) or !#isconstexpr(values) do
+    {
+        if !#isconstexpr(fmt) or !#isconstexpr(values) do
+            return true
+        checkFormat(#curlocation.funcName, fmt, values)
         return true
-    checkFormat(#curlocation.funcName, fmt, values)
-    return true
-}
+    }
 {
     let ptr = @dataof(fmt)
     let cpt = @countof(fmt)
@@ -170,11 +170,11 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 #[Mixin]
 func toInterp(buf: *ConcatBuffer, exp: string)
     verify
-{
-    if !#isconstexpr(exp) do
-        @compilererror("expression should be constant", #location(exp))
-    return true
-}
+    {
+        if !#isconstexpr(exp) do
+            @compilererror("expression should be constant", #location(exp))
+        return true
+    }
 {
     #ast
     {
@@ -231,11 +231,11 @@ func toInterp(buf: *ConcatBuffer, exp: string)
 #[Mixin]
 func toInterp(exp: string)->String
     verify
-{
-    if !#isconstexpr(exp) do
-        @compilererror("expression should be constant", #location(exp))
-    return true
-}
+    {
+        if !#isconstexpr(exp) do
+            @compilererror("expression should be constant", #location(exp))
+        return true
+    }
 {
     var #uniq0: ConcatBuffer
     toInterp(&#uniq0, exp)

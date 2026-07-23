@@ -914,7 +914,7 @@ impl Deflate
         let n = cast(u64) (d.outputBufAddr - outputBufStart)
         if n != 0
         {
-            if (outputBufStart == &d.outputBuf[0])
+            if outputBufStart == &d.outputBuf[0]
             {
                 d.result.resize(d.result.count + n)
                 Memory.copy(d.result.buffer + d.outBufOfs, d.outputBuf, cast(u64) n)

@@ -130,10 +130,7 @@ impl HeadlessHost
             return
         .autoHookInstalled = true
 
-        .app.sigFrame += func|host = me|(app)
-        {
-            host.driveAutoStages(app)
-        }
+        .app.sigFrame += func|host = me|(app) { host.driveAutoStages(app) }
     }
 
     private mtd runAutoStage(stage: *AutoStage)->bool

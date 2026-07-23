@@ -78,10 +78,7 @@ impl Properties
         item.comboBox.addItem(cast(string) (notnull Reflection.getAttributeValue(value, .BoolCombo, "on")))
 
         .refreshBool(item)
-        item.comboBox.sigChanged += func|prop = me, item|(ed, n)
-        {
-            prop.validateBool(item)
-        }
+        item.comboBox.sigChanged += func|prop = me, item|(ed, n) { prop.validateBool(item) }
     }
 
     mtd constructBool(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
@@ -102,10 +99,7 @@ impl Properties
             }
 
             itemP.checkBox = ed
-            ed.sigChanged  += func|prop = me, itemP|(ed)
-            {
-                prop.validateBool(itemP)
-            }
+            ed.sigChanged  += func|prop = me, itemP|(ed) { prop.validateBool(itemP) }
 
             .refreshBool(itemP)
             return
@@ -173,10 +167,7 @@ impl Properties
         }
 
         item.checkBox = ed
-        ed.sigChanged += func|prop = me, item|(ed)
-        {
-            prop.validateBool(item)
-        }
+        ed.sigChanged += func|prop = me, item|(ed) { prop.validateBool(item) }
 
         .refreshBool(item)
     }

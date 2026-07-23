@@ -342,10 +342,7 @@ impl RecentWnd
         }
 
         var res = g_Library.files
-        res.sort(func(a, b)
-        {
-            return b.lastWriteTime <=> a.lastWriteTime
-        })
+        res.sort(func(a, b) { return b.lastWriteTime <=> a.lastWriteTime })
 
         for r in res
         {

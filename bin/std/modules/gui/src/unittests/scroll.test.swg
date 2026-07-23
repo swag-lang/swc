@@ -8,17 +8,17 @@ var ScrollHeadlessSizeCount: u32
 
 func scrollHeadlessPos(s: *ScrollWnd, o, n: Math.Point)
 {
-    discard s;
-    discard o;
-    discard n;
+    discard s
+    discard o
+    discard n
     ScrollHeadlessPosCount += 1
 }
 
 func scrollHeadlessSize(s: *ScrollWnd, o, n: Math.Point)
 {
-    discard s;
-    discard o;
-    discard n;
+    discard s
+    discard o
+    discard n
     ScrollHeadlessSizeCount += 1
 }
 

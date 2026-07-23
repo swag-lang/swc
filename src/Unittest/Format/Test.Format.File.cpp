@@ -124,6 +124,58 @@ SWC_TEST_BEGIN(FormatFile_AlignOperandsOnWrappedCondition)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatFile_WhereClauseIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func(T) foo(x: T)\n"
+        "        where T == s32\n"
+        "{\n"
+        "    return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func(T) foo(x: T)\n"
+        "    where T == s32\n"
+        "{\n"
+        "    return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatFile_WhereBlockIndent)
+{
+    static constexpr std::string_view SOURCE =
+        "func(T) foo(x: T)\n"
+        "    where\n"
+        "{\n"
+        "    return T == s32\n"
+        "}\n"
+        "{\n"
+        "    return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func(T) foo(x: T)\n"
+        "    where\n"
+        "    {\n"
+        "        return T == s32\n"
+        "    }\n"
+        "{\n"
+        "    return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatFile_EndOfLineStyleLf)
 {
     static constexpr std::string_view SOURCE =

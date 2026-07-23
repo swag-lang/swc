@@ -25,12 +25,12 @@ interface IPropertyNotify
 
     mtd isItemVisible(list: *Properties, item: *PropertiesItem)->bool
     {
-        return true;
+        return true
     }
 
     mtd isItemEnabled(list: *Properties, item: *PropertiesItem)->bool
     {
-        return true;
+        return true
     }
 
     // Return false to hide one value of an enum field (a value that makes no sense for the
@@ -39,7 +39,7 @@ interface IPropertyNotify
     // when the row is BUILT: rebuild the grid content to re-evaluate it.
     mtd isEnumValueVisible(list: *Properties, item: *PropertiesItem, enumValue: Swag.TypeValue)->bool
     {
-        return true;
+        return true
     }
 
     // Return true to make 'item' read-only at runtime: shown but not editable, and "Paste" is
@@ -47,7 +47,7 @@ interface IPropertyNotify
     // The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.
     mtd isItemReadOnly(list: *Properties, item: *PropertiesItem)->bool
     {
-        return false;
+        return false
     }
 
     // Called when the user right-clicks a row: add custom menu items (each with a unique
@@ -58,7 +58,7 @@ interface IPropertyNotify
     // actions. Return true once handled. This is how custom fillPopupMenu items are executed.
     mtd onPopupCommand(list: *Properties, item: *PropertiesItem, cmdId: string)->bool
     {
-        return false;
+        return false
     }
 
     // Return a validation state + message for 'item'. Called on build and after every
@@ -66,7 +66,7 @@ interface IPropertyNotify
     // tooltip. The most severe result along the item's parent chain wins.
     mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult
     {
-        return {};
+        return {}
     }
 
     // Customize the "is this field still at its default value?" test, used to decide whether the
@@ -76,7 +76,7 @@ interface IPropertyNotify
     // comparison. The first non-Auto result along the item's parent chain wins.
     mtd isItemAtDefault(list: *Properties, item: *PropertiesItem)->PropDefaultState
     {
-        return .Auto;
+        return .Auto
     }
 
     // Reset 'item' to its default value yourself; return true once handled. Return false (the
@@ -84,7 +84,7 @@ interface IPropertyNotify
     // default" action and the revert marker. Checked along the item's parent chain.
     mtd resetItemToDefault(list: *Properties, item: *PropertiesItem)->bool
     {
-        return false;
+        return false
     }
 }
 

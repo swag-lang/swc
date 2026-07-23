@@ -278,15 +278,15 @@ impl Decoder
         let h = h0
         var y = y0
         var p = (h - 1) / 8 + 1
-        if (y < p) do
+        if y < p do
             return y * 8
         y -= p
         p = (h - 5) / 8 + 1
-        if (y < p) do
+        if y < p do
             return y * 8 + 4
         y -= p
         p = (h - 3) / 4 + 1
-        if (y < p) do
+        if y < p do
             return y * 4 + 2
         y -= p
 

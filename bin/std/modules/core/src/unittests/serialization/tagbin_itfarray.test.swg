@@ -21,7 +21,7 @@ impl ITagBinArrayThing for TagBinArrayThing
 {
     mtd impl value()->s32
     {
-        return .v;
+        return .v
     }
 }
 

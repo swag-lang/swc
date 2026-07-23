@@ -79,12 +79,12 @@ public func resetColor()
 // Write a formatted message to the console
 public func printf(message: #null string, params: ...)
     verify
-{
-    if !#isconstexpr(message) or !#isconstexpr(params) do
+    {
+        if !#isconstexpr(message) or !#isconstexpr(params) do
+            return true
+        Format.checkFormat(#curlocation.funcName, message, params)
         return true
-    Format.checkFormat(#curlocation.funcName, message, params)
-    return true
-}
+    }
 {
     if g_SilentMode do
         return

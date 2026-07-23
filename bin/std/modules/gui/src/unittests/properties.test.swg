@@ -1239,10 +1239,7 @@ impl IPropertyEditor for PropAngleEditor
         }
 
         item.editBox    = ed
-        item.sigRefresh += func|angle|(item)
-        {
-            item.editBox.setText(Format.toString("% deg", angle.deg))
-        }
+        item.sigRefresh += func|angle|(item) { item.editBox.setText(Format.toString("% deg", angle.deg)) }
 
         return item
     }

@@ -41,24 +41,15 @@ func createCheckButtonPage(parent: *Wnd)
         let status = createText(bottom, "No option changed yet.", {24, 180, 420, 28})
 
         let grid = CheckButton.create(bottom, "Grid snapping", {24, 94, 210})
-        grid.sigChanged += func|status|(btn)
-        {
-            status.setText(btn.isChecked() ? "Grid snapping enabled" : "Grid snapping disabled")
-        }
+        grid.sigChanged += func|status|(btn) { status.setText(btn.isChecked() ? "Grid snapping enabled" : "Grid snapping disabled") }
 
         let guides = CheckButton.create(bottom, "Smart guides", {260, 94, 210})
         guides.checked    = .Checked
-        guides.sigChanged += func|status|(btn)
-        {
-            status.setText(btn.isChecked() ? "Smart guides enabled" : "Smart guides disabled")
-        }
+        guides.sigChanged += func|status|(btn) { status.setText(btn.isChecked() ? "Smart guides enabled" : "Smart guides disabled") }
 
         let mixed = CheckButton.create(bottom, "Mixed selection", {496, 94, 210})
         mixed.checkButtonFlags |= .ThreeState
         mixed.checked          = .Undefined
-        mixed.sigChanged       += func|status|(btn)
-        {
-            status.setText(btn.isUndefined() ? "Selection is mixed" : "Selection is explicit")
-        }
+        mixed.sigChanged       += func|status|(btn) { status.setText(btn.isUndefined() ? "Selection is mixed" : "Selection is explicit") }
     }
 }

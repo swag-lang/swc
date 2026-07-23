@@ -109,10 +109,7 @@ public func getMonitors()->Array'Monitor
     }
 
     EnumDisplayMonitors(null, null, cast() &proc, cast(LPARAM) cast(u64) &result)
-    result.sort(func||(a, b)
-    {
-        return a.rect.x <=> b.rect.x
-    })
+    result.sort(func||(a, b) { return a.rect.x <=> b.rect.x })
 
     return result
 }

@@ -125,7 +125,7 @@ func getRootLength(fullname: string)->u32
         i = 1
 
         //  Drive rooted (\foo) is one character
-        if (extendedUncSyntax or (pathLength > 1 and isDirectorySeparator(fullname[1])))
+        if extendedUncSyntax or (pathLength > 1 and isDirectorySeparator(fullname[1]))
         {
             // UNC (\\?\UNC\ or \\), scan past the next two directory separators at most
             // (e.g. to \\?\UNC\Server\Share or \\Server\Share\)

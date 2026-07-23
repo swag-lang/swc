@@ -213,10 +213,7 @@ func createQuickPalette(parent: *Wnd, rect: Math.Rectangle, title: string, keepA
     picker.boxSize   = 30
     picker.boxMargin = 6
     addPaletteColors(picker, makePickerPalette())
-    picker.sigChanged += func|title, keepAlpha|(palette)
-    {
-        selectPaletteColor(palette, title, keepAlpha)
-    }
+    picker.sigChanged += func|title, keepAlpha|(palette) { selectPaletteColor(palette, title, keepAlpha) }
     return picker
 }
 
@@ -227,10 +224,7 @@ func createModePicker(parent: *Wnd, title: string, rect: Math.Rectangle, mode: C
     let picker = ColorPicker.create(parent, rect)
     picker.setMode(mode)
     picker.setColor(g_Color)
-    picker.sigChanged += func(picker)
-    {
-        setSelectedColor(picker.getColor(), "ColorPicker")
-    }
+    picker.sigChanged += func(picker) { setSelectedColor(picker.getColor(), "ColorPicker") }
     return picker
 }
 
@@ -264,10 +258,7 @@ func createPaletteRamp(parent: *Wnd, title: string, rect: Math.Rectangle, mode: 
         picker.addColor(base.withAlpha(255'u8))
     }
 
-    picker.sigChanged += func|title, keepAlpha|(palette)
-    {
-        selectPaletteColor(palette, title, keepAlpha)
-    }
+    picker.sigChanged += func|title, keepAlpha|(palette) { selectPaletteColor(palette, title, keepAlpha) }
 
     return picker
 }

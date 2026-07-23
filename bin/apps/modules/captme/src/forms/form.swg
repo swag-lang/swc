@@ -41,12 +41,12 @@ interface IForm
 
     mtd mustClipToBound()->bool
     {
-        return false;
+        return false
     }
 
     mtd canRotate()->bool
     {
-        return false;
+        return false
     }
 }
 

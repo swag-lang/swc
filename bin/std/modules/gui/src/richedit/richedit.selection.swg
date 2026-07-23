@@ -348,7 +348,7 @@ impl RichEditCtrl
         {
             while .selBeg.charPosInLine and isWord(line.chars[.selBeg.charPosInLine - 1]) do
                 .selBeg.charPosInLine -= 1
-            while (.cursorPos.charPosInLine < len and isWord(line.chars[.cursorPos.charPosInLine])) do
+            while .cursorPos.charPosInLine < len and isWord(line.chars[.cursorPos.charPosInLine]) do
                 .cursorPos.charPosInLine += 1
             return
         }

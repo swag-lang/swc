@@ -117,8 +117,8 @@ func buildOrderSummary(lines: const [..] OrderLine, tier: CustomerTier)->OrderSu
     const order: [3] OrderLine =
         [
         {sku: "mechanical-keyboard", unitPriceCents: 12900, quantity: 1, fragile: true},
-        {sku: "usb-c-cable", unitPriceCents: 1500, quantity: 2, fragile: false},
-        {sku: "wrist-rest", unitPriceCents: 3500, quantity: 1, fragile: false},
+        {sku: "usb-c-cable",         unitPriceCents: 1500,  quantity: 2, fragile: false},
+        {sku: "wrist-rest",          unitPriceCents: 3500,  quantity: 1, fragile: false},
         ]
 
     @assert(@countof(order) == 3)

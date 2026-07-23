@@ -109,7 +109,7 @@ func day3B()
         {
             if n.y < s.y - 1 or n.y > s.y + 1 do
                 continue
-            if (s.x >= n.x - 1 and s.x <= n.lx + 1)
+            if s.x >= n.x - 1 and s.x <= n.lx + 1
             {
                 gear *= n.num
                 cpt  += 1

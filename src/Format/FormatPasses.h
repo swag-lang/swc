@@ -10,6 +10,7 @@ class FormatModel;
 namespace FormatPass
 {
     void sortUsing(FormatModel& model);      // sort-using-statements, merge-using-statements
+    void statements(FormatModel& model);     // remove-redundant-semicolons, remove-condition-parentheses
     void attributes(FormatModel& model);     // attribute-placement, break-after-attribute, sort-attribute-arguments
     void braces(FormatModel& model);         // brace-style, compact-empty-braces, break-before-else
     void shortBlocks(FormatModel& model);    // allow-short-*-on-single-line

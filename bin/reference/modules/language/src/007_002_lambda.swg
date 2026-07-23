@@ -103,10 +103,7 @@ When the variable type is known, parameter and return types can be omitted in th
     fct = func(x, y) => x == y
     @assert(fct(10, 10))
 
-    fct = func(x, y)
-    {
-        return x != y
-    }
+    fct = func(x, y) { return x != y }
 
     @assert(fct(20, 120))
 }
@@ -119,19 +116,13 @@ Lambdas may have parameters with default values, allowing flexible invocation.
 #test
 {
     {
-        let x = func(val = true)
-        {
-            @assert(val == true)
-        }
+        let x = func(val = true) { @assert(val == true) }
         x()
     }
 
     {
         var x: #null func(val: bool = true)
-        x = func(val)
-        {
-            @assert(val == true)
-        }
+        x = func(val) { @assert(val == true) }
 
         x()
         x(true)

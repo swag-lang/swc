@@ -148,15 +148,9 @@ impl FileDlg
         // Host the reusable browser composite.
         with dlg.browser = FileBrowserCtrl.create(srf.getView(), opt)
         {
-            .dockStyle = .Center
-            .sigAccept += func|fileDlg = dlg|(b)
-            {
-                fileDlg.validateId(Dialog.BtnOk)
-            }
-            .sigNewFolder += func|fileDlg = dlg|(b)
-            {
-                fileDlg.onNewFolder()
-            }
+            .dockStyle    = .Center
+            .sigAccept    += func|fileDlg = dlg|(b) { fileDlg.validateId(Dialog.BtnOk) }
+            .sigNewFolder += func|fileDlg = dlg|(b) { fileDlg.onNewFolder() }
         }
 
         dlg.sigPressedButton = func|dlg|(bdlg, id)

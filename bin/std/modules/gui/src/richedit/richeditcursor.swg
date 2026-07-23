@@ -229,7 +229,7 @@ impl RichEditCtrl
                     break
 
                 // At the end of line
-                if (pt.y >= rect.y and pt.y < rect.bottom() and pt.x >= rect.x)
+                if pt.y >= rect.y and pt.y < rect.bottom() and pt.x >= rect.x
                 {
                     cp.lineIndex     = i
                     cp.charPosInLine = count

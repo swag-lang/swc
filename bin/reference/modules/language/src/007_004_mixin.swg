@@ -74,7 +74,7 @@ The mixin can execute this block multiple times using '#inject'.
 
     var a = 0
     doItTwice(#code {
-        a += 1;
+        a += 1
     })
     @assert(a == 2)
 }
@@ -98,7 +98,7 @@ separate block after the call.
 
     // Inline code argument
     doItTwice(4, #code {
-        a += value;
+        a += value
     })
 
     // Separate trailing block

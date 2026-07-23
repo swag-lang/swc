@@ -283,20 +283,14 @@ impl FileBrowserCtrl
             {
                 .dockStyle  = .Right
                 .margin.x   = 10
-                .sigPressed += func|fileBrowser|(btn)
-                {
-                    fileBrowser.sigNewFolder.call(fileBrowser)
-                }
+                .sigPressed += func|fileBrowser|(btn) { fileBrowser.sigNewFolder.call(fileBrowser) }
             }
         }
 
         with fileBrowser.comboPath = ComboBox.create(viewTop)
         {
             .dockStyle  = .Center
-            .sigChanged += func|fileBrowser|(combo, idx)
-            {
-                fileBrowser.setCurFolder(fileBrowser.comboPathStr[idx])
-            }
+            .sigChanged += func|fileBrowser|(combo, idx) { fileBrowser.setCurFolder(fileBrowser.comboPathStr[idx]) }
         }
 
         // Bottom
@@ -320,10 +314,7 @@ impl FileBrowserCtrl
                 for f, idx in opt.filters do
                     .addItem(f.name, userData0: cast(#null *void) idx)
             .selectItem(0)
-            .sigChanged += func|fileBrowser|(c, idx)
-            {
-                fileBrowser.fillFileList()
-            }
+            .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }
         }
 
         let nameLbl0 = opt.mode == .SelectFolder ? "Folder Name" : "File Name"

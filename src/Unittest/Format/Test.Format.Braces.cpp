@@ -545,6 +545,111 @@ SWC_TEST_BEGIN(FormatBraces_ShortFunctionsInlineKeepsClosureBodies)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatStatements_RemoveRedundantSemicolons)
+{
+    static constexpr std::string_view SOURCE =
+        "interface IFoo\n"
+        "{\n"
+        "    mtd one();\n"
+        "    mtd two()->bool throw;\n"
+        "}\n"
+        "func foo()\n"
+        "{\n"
+        "    a = 1;\n"
+        "    b = 2; c = 3;\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "interface IFoo\n"
+        "{\n"
+        "    mtd one();\n"
+        "    mtd two()->bool throw;\n"
+        "}\n"
+        "func foo()\n"
+        "{\n"
+        "    a = 1\n"
+        "    b = 2; c = 3\n"
+        "}\n";
+
+    FormatOptions options;
+    options.removeRedundantSemicolons = true;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatStatements_RemoveConditionParentheses)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if (x) do\n"
+        "        return\n"
+        "    if (x) and x do\n"
+        "        return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(x: bool)\n"
+        "{\n"
+        "    if x do\n"
+        "        return\n"
+        "    if (x) and x do\n"
+        "        return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.removeConditionParentheses = true;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_BreakBeforeWhere)
+{
+    static constexpr std::string_view SOURCE =
+        "func(T) foo(x: T) where T == s32\n"
+        "{\n"
+        "    return\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func(T) foo(x: T)\n"
+        "    where T == s32\n"
+        "{\n"
+        "    return\n"
+        "}\n";
+
+    FormatOptions options;
+    options.breakBeforeWhere = true;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatBraces_ShortClosuresNeverSplits)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    bar(func() { baz() })\n"
+        "}\n"
+        "func bar(cb: func()) {}\n"
+        "func baz() {}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    bar(func() {\n"
+        "        baz()\n"
+        "    })\n"
+        "}\n"
+        "func bar(cb: func()) {}\n"
+        "func baz() {}\n";
+
+    FormatOptions options;
+    options.allowShortClosuresOnSingleLine = FormatShortBlockStyle::Never;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

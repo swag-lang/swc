@@ -75,6 +75,7 @@ namespace FormatPass
     void runAll(FormatModel& model)
     {
         sortUsing(model);
+        statements(model);
         attributes(model);
         shortBlocks(model);
         braces(model);

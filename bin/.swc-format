@@ -128,6 +128,10 @@ break-before-do = false
 # Place `else` on its own line (Stroustrup / Allman style).
 break-before-else = true
 
+# Place `where` / `verify` clauses on their own line, one level under the
+# declaration they constrain.
+break-before-where = true
+
 # How to lay out arguments across lines in calls.
 # Possible values: preserve, pack, one-per-line
 bin-pack-arguments = pack
@@ -163,6 +167,10 @@ allow-short-enums-on-single-line = inline
 # Possible values: preserve, never, empty, inline, always
 allow-short-structs-on-single-line = empty
 
+# When to keep closure bodies embedded in expressions on a single line.
+# Possible values: preserve, never, empty, inline, always
+allow-short-closures-on-single-line = inline
+
 # Allow `if x do ...` / `if x { ... }` on one line.
 allow-short-if-statements-on-single-line = false
 
@@ -171,6 +179,17 @@ allow-short-loops-on-single-line = false
 
 # Allow single-statement `case` arms to stay on one line.
 allow-short-case-on-single-line = false
+
+# ----------------------------------------------------------------------------
+# Statements
+# ----------------------------------------------------------------------------
+
+# Drop `;` at end of line when the grammar does not require it (prototype
+# terminators stay).
+remove-redundant-semicolons = true
+
+# Drop the parentheses wrapping a whole control-statement condition.
+remove-condition-parentheses = true
 
 # ----------------------------------------------------------------------------
 # Alignment
@@ -221,6 +240,10 @@ align-operands = true
 
 # Align wrapped arguments with the opening `(` / `[`.
 align-after-open-bracket = false
+
+# Align the columns of multi-line array literals whose rows are single-line
+# `{ ... }` literals.
+align-array-columns = true
 
 # ----------------------------------------------------------------------------
 # Spacing

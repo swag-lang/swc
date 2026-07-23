@@ -325,25 +325,25 @@ impl PopupListCtrl
     // never leave the page).
     mtd keyMove(dir: s32)
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view;
+        let view = cast(#null *PopupListView) .scrollWnd.view
         view.moveHot(dir)
     }
 
     mtd keyHome()
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view;
+        let view = cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: true)
     }
 
     mtd keyEnd()
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view;
+        let view = cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: false)
     }
 
     mtd keyCancel()
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view;
+        let view = cast(#null *PopupListView) .scrollWnd.view
         view.close(Swag.U32.Max)
     }
 

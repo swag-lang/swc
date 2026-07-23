@@ -222,7 +222,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
         }
     }
 
-    if (capture or !wasHidden)
+    if capture or !wasHidden
     {
         if surface.isMinimized do
             surface.showNormal()

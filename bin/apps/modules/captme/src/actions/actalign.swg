@@ -25,10 +25,10 @@ impl IActionUI for ActionAlign
         let main = cast(*MainWnd) notnull cxt.wnd
 
         if updateFromTable(cxt, evt, [
-            {AlignLeft, "Left", .MultiSel},
+            {AlignLeft,   "Left",   .MultiSel},
             {AlignCenter, "Center", .MultiSel},
-            {AlignRight, "Right", .MultiSel},
-            {AlignTop, "Top", .MultiSel},
+            {AlignRight,  "Right",  .MultiSel},
+            {AlignTop,    "Top",    .MultiSel},
             {AlignMiddle, "Middle", .MultiSel},
             {AlignBottom, "Bottom", .MultiSel}])
         {

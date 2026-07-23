@@ -64,15 +64,9 @@ impl IPropertyEditor for FontStyleEditor
             list.hasChanged(item)
         }
 
-        btnBold.sigCheckChanged += func|list, item, style, btnBold, btnItalic|(btn)
-        {
-            writeStyle(list, item, style, btnBold, btnItalic)
-        }
+        btnBold.sigCheckChanged += func|list, item, style, btnBold, btnItalic|(btn) { writeStyle(list, item, style, btnBold, btnItalic) }
 
-        btnItalic.sigCheckChanged += func|list, item, style, btnBold, btnItalic|(btn)
-        {
-            writeStyle(list, item, style, btnBold, btnItalic)
-        }
+        btnItalic.sigCheckChanged += func|list, item, style, btnBold, btnItalic|(btn) { writeStyle(list, item, style, btnBold, btnItalic) }
 
         item.sigRefresh += func|style, btnBold, btnItalic|(item)
         {

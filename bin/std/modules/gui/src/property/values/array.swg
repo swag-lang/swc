@@ -186,10 +186,7 @@ impl Properties
         item.arrayAddButton = addBtn
         if !.isGridLike() do
             item.label.wndFlags.remove(.ClipChildren)
-        addBtn.sigPressed += func|prop = me, item|(btn)
-        {
-            prop.appendArrayValue(item)
-        }
+        addBtn.sigPressed += func|prop = me, item|(btn) { prop.appendArrayValue(item) }
 
         with item.editBox = EditBox.create(item.line, "")
         {

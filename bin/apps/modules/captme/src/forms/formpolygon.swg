@@ -179,9 +179,6 @@ impl IForm for FormPolygon
     mtd impl setup(capt: *Capture)
     {
         .capture          = capt
-        .gizmo.sigChanged = func|form = me|(diff, pt, first)
-        {
-            GizmoPoints.apply(form, diff, pt, first)
-        }
+        .gizmo.sigChanged = func|form = me|(diff, pt, first) { GizmoPoints.apply(form, diff, pt, first) }
     }
 }

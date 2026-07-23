@@ -39,6 +39,7 @@ namespace
             runCategory(AlignCategory::EnumValues, options_->alignEnumValues);
             runCategory(AlignCategory::Attributes, options_->alignAttributes);
             runCategory(AlignCategory::FatArrows, options_->alignFatArrows);
+            runArrayColumns();
             runTrailingComments();
         }
 
@@ -237,6 +238,131 @@ namespace
                 if (model_->gapColumns(anchor) != 1)
                     model_->setGapSpaces(anchor, 1);
             }
+        }
+
+        // Aligns the columns of a multi-line array literal whose rows are
+        // single-line `{ ... }` literals: element k starts at the same column
+        // on every row. Rows with comments, ragged element counts, or scalar
+        // entries leave the literal untouched.
+        void runArrayColumns()
+        {
+            if (!options_->alignArrayColumns.value_or(false))
+                return;
+
+            for (uint32_t i = 0; i < model_->numPieces(); ++i)
+            {
+                const FormatPiece& open = model_->piece(i);
+                if (open.removed || open.frozen || open.isNot(TokenId::SymLeftBracket) || open.match == INVALID_PIECE)
+                    continue;
+
+                bool multiLine = false;
+                for (uint32_t p = i + 1; p <= open.match && !multiLine; ++p)
+                {
+                    if (!model_->piece(p).removed && model_->gapHasNewline(p))
+                        multiLine = true;
+                }
+                if (!multiLine)
+                    continue;
+
+                const std::vector<std::vector<uint32_t>> rows = collectArrayRows(i, open.match, open.depth + 1);
+                if (rows.size() < 2)
+                    continue;
+
+                // Pad column by column; later columns shift, so recompute per column.
+                const size_t elemCount = rows.front().size();
+                for (size_t k = 1; k < elemCount; ++k)
+                {
+                    uint32_t              target = 0;
+                    std::vector<uint32_t> currentCols(rows.size());
+                    std::vector<uint32_t> naturalCols(rows.size());
+                    for (size_t r = 0; r < rows.size(); ++r)
+                    {
+                        std::vector<PieceColumn> columns;
+                        FormatPassUtil::computeLineColumns(*model_, model_->lineStartOf(rows[r][k]), &columns);
+                        uint32_t prevEnd = 0;
+                        for (const PieceColumn& pc : columns)
+                        {
+                            if (pc.piece == rows[r][k])
+                            {
+                                currentCols[r] = pc.column;
+                                break;
+                            }
+                            prevEnd = pc.column + FormatModel::textColumns(model_->piece(pc.piece).text, std::max(options_->tabWidth, 1u), pc.column);
+                        }
+                        naturalCols[r] = prevEnd + 1;
+                        target         = std::max(target, naturalCols[r]);
+                    }
+
+                    for (size_t r = 0; r < rows.size(); ++r)
+                    {
+                        const uint32_t prevEndCol = currentCols[r] - model_->gapColumns(rows[r][k]);
+                        if (target > prevEndCol && currentCols[r] != target)
+                            model_->setGapSpaces(rows[r][k], target - prevEndCol);
+                    }
+                }
+            }
+        }
+
+        // The element-start pieces of each `{ ... }` row, or empty when the
+        // literal does not qualify (scalar rows, comments, ragged counts, ...).
+        std::vector<std::vector<uint32_t>> collectArrayRows(const uint32_t openPiece, const uint32_t closePiece, const uint32_t rowDepth) const
+        {
+            std::vector<std::vector<uint32_t>> rows;
+            size_t elemCount = SIZE_MAX;
+
+            for (uint32_t p = openPiece + 1; p < closePiece; ++p)
+            {
+                const FormatPiece& piece = model_->piece(p);
+                if (piece.removed)
+                    continue;
+                if (piece.depth != rowDepth)
+                    return {}; // stray content outside a row
+                if (piece.is(TokenId::SymComma))
+                    continue;
+                if (piece.isComment || piece.isNot(TokenId::SymLeftCurly) || piece.match == INVALID_PIECE || piece.match >= closePiece)
+                    return {};
+                if (model_->lineStartOf(p) != p)
+                    return {}; // each row starts its own line
+
+                std::vector<uint32_t> elems;
+                uint32_t              last = p;
+                for (uint32_t q = p + 1; q < piece.match; ++q)
+                {
+                    const FormatPiece& inner = model_->piece(q);
+                    if (inner.removed)
+                        continue;
+                    if (model_->gapHasNewline(q))
+                        return {}; // rows must be single-line
+                    if (inner.isComment)
+                        return {};
+                    if (last == p)
+                        elems.push_back(q);
+                    else if (inner.is(TokenId::SymComma) && inner.depth == rowDepth + 1)
+                    {
+                        const uint32_t next = model_->nextPiece(q);
+                        if (next != INVALID_PIECE && next < piece.match)
+                        {
+                            if (!FormatPassUtil::canEditGap(*model_, next))
+                                return {};
+                            elems.push_back(next);
+                        }
+                    }
+                    last = q;
+                }
+                if (model_->gapHasNewline(piece.match))
+                    return {};
+
+                if (elemCount == SIZE_MAX)
+                    elemCount = elems.size();
+                else if (elems.size() != elemCount)
+                    return {}; // ragged rows
+                rows.push_back(std::move(elems));
+                p = piece.match;
+            }
+
+            if (elemCount == SIZE_MAX || elemCount < 2)
+                return {};
+            return rows;
         }
 
         void runTrailingComments()

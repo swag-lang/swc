@@ -8,13 +8,13 @@ var EditHeadlessEscapeCount: u32
 
 func editHeadlessEnter(eb: *EditBox)
 {
-    discard eb;
+    discard eb
     EditHeadlessEnterCount += 1
 }
 
 func editHeadlessEscape(eb: *EditBox)
 {
-    discard eb;
+    discard eb
     EditHeadlessEscapeCount += 1
 }
 

@@ -101,7 +101,7 @@ func totalQty(lines: const [..] ProductLine)->s32
     const lines: [2] ProductLine =
         [
         {sku: "keyboard", qty: 1},
-        {sku: "cable", qty: 3},
+        {sku: "cable",    qty: 3},
         ]
 
     const view: const [..] ProductLine = lines

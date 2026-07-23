@@ -50,10 +50,7 @@ clear callback-local name.
     let leftBox  = Box{2}
     let rightBox = Box{7}
 
-    let fct: func||()->s32 = func|left = leftBox.value, right = rightBox.value|()->s32
-    {
-        return left * 10 + right
-    }
+    let fct: func||()->s32 = func|left = leftBox.value, right = rightBox.value|()->s32 { return left * 10 + right }
 
     @assert(fct() == 27)
 }
@@ -67,10 +64,7 @@ Use '&' to capture by reference; otherwise, capture is by value.
 {
     var a = 125
 
-    let fct: func||() = func|&a|()
-    {
-        a += 1
-    }
+    let fct: func||() = func|&a|() { a += 1 }
 
     fct()
     @assert(a == 126)

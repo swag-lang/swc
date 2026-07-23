@@ -296,6 +296,40 @@ SWC_TEST_BEGIN(FormatAlign_SingletonTightensStalePadding)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_ArrayColumns)
+{
+    static constexpr std::string_view SOURCE =
+        "const T = [\n"
+        "    { \"a\", 1 },\n"
+        "    { \"bbb\", 22 },\n"
+        "]\n";
+
+    static constexpr std::string_view EXPECTED =
+        "const T = [\n"
+        "    { \"a\",   1 },\n"
+        "    { \"bbb\", 22 },\n"
+        "]\n";
+
+    FormatOptions options;
+    options.alignArrayColumns = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_ArrayColumnsSkipsRaggedRows)
+{
+    static constexpr std::string_view SOURCE =
+        "const T = [\n"
+        "    { \"a\", 1 },\n"
+        "    { \"bbb\" },\n"
+        "]\n";
+
+    FormatOptions options;
+    options.alignArrayColumns = true;
+    return checkAlignRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

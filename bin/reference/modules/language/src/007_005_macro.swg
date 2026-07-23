@@ -55,7 +55,7 @@ locals.
 
     // Use '#code' to pass a block as code (not evaluated at call site)
     myMacro(#code {
-        a += 1;
+        a += 1
     })
 
     // If the last parameter is a '#code' statement block, the following statement

@@ -15,7 +15,7 @@ struct Holder
 }
 
 const CReg: [?] Holder = [
-    {MyStruct, 10},
+    {MyStruct,    10},
     {OtherStruct, 20}]
 
 #test
@@ -50,7 +50,7 @@ const CReg: [?] Holder = [
 {
     // Runtime array of structs with a typeinfo field
     var reg: [2] Holder = [
-        {MyStruct, 10},
+        {MyStruct,    10},
         {OtherStruct, 20}]
     @assert(reg[0].t == MyStruct)
     @assert(reg[1].t == OtherStruct)

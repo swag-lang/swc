@@ -40,6 +40,16 @@ namespace Command
         std::vector<FormatJob*> jobs;
         jobs.reserve(compiler.files().size());
 
+        const auto insideDotDirectory = [](const fs::path& path) {
+            for (const fs::path& part : path)
+            {
+                const std::string component = part.string();
+                if (component.size() > 1 && component[0] == '.' && component != "..")
+                    return true;
+            }
+            return false;
+        };
+
         for (SourceFile* file : compiler.files())
         {
             if (!file)
@@ -48,6 +58,11 @@ namespace Command
             // The runtime bootstrap is always part of the input set, but it is a compiler
             // resource and must never be rewritten by a user `format` invocation.
             if (file->isRuntime())
+                continue;
+
+            // Generated caches (`.dep`, ...) hold compiler-produced sources
+            // that must never be reformatted.
+            if (insideDotDirectory(file->path()))
                 continue;
 
             FormatOptions formatOptions;

@@ -28,11 +28,11 @@ func(T) onlyFloat(value: T)->T
 
 func(T) onlyIntegersBlock(value: T)->T
     where
-{
-    if T == s32 or T == s64 do
-        return true
-    return false
-}
+    {
+        if T == s32 or T == s64 do
+            return true
+        return false
+    }
 {
     return value
 }
@@ -64,11 +64,11 @@ func(T, U = T) sameTypePair(left: T, right: U)->U
 
 func(T, U = T) sameTypeBlock(left: T, right: U)->bool
     where
-{
-    if T == U do
-        return true
-    return false
-}
+    {
+        if T == U do
+            return true
+        return false
+    }
 {
     return true
 }

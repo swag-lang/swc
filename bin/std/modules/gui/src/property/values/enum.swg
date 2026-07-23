@@ -247,10 +247,7 @@ impl Properties
             }
 
             .refreshEnumFlags(itemB)
-            itemB.checkBox.sigChanged += func|prop = me, itemB|(ed)
-            {
-                prop.validateEnumFlags(itemB)
-            }
+            itemB.checkBox.sigChanged += func|prop = me, itemB|(ed) { prop.validateEnumFlags(itemB) }
 
             numChilds += 1
         }
@@ -311,9 +308,6 @@ impl Properties
         }
 
         .refreshEnum(item)
-        item.comboBox.sigChanged += func|prop = me, item|(ed, n)
-        {
-            prop.validateEnum(item)
-        }
+        item.comboBox.sigChanged += func|prop = me, item|(ed, n) { prop.validateEnum(item) }
     }
 }

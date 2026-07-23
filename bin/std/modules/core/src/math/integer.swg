@@ -132,7 +132,7 @@ func gcd(a0, b0: s64)->s64
 {
     var a = a0
     var b = b0
-    while (b != 0)
+    while b != 0
     {
         let temp = b
         b = a % b

@@ -238,10 +238,7 @@ impl LibraryWnd
         var item = line.setItem(1, Format.toString("% ", g_Library.files.count))
         item.horzAlign = .Right
 
-        g_Library.files.sort(func(a, b)
-        {
-            return b.lastWriteTime <=> a.lastWriteTime
-        })
+        g_Library.files.sort(func(a, b) { return b.lastWriteTime <=> a.lastWriteTime })
 
         var lastDateTime:    DateTime
         var hasLastDateTime: bool
@@ -524,18 +521,9 @@ impl LibraryWnd
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
-            .sigItemPressed  += func|res|(bc, idx)
-            {
-                res.navigateFolder(bc.items[idx].tag.toString())
-            }
-            .sigFillMenu = func|res|(bc, idx, menu)
-            {
-                res.fillBreadcrumbMenu(bc, idx, menu)
-            }
-            .sigMenuSelected += func|res|(bc, idx, id)
-            {
-                res.navigateFolder(id)
-            }
+            .sigItemPressed  += func|res|(bc, idx) { res.navigateFolder(bc.items[idx].tag.toString()) }
+            .sigFillMenu     = func|res|(bc, idx, menu) { res.fillBreadcrumbMenu(bc, idx, menu) }
+            .sigMenuSelected += func|res|(bc, idx, id) { res.navigateFolder(id) }
         }
 
         // Top bar
@@ -648,10 +636,7 @@ impl LibraryWnd
         {
             .setForm(.Round)
             .setNote("Search")
-            .sigChanged += func|res|(ed)
-            {
-                res.setSearch(ed.getText())
-            }
+            .sigChanged += func|res|(ed) { res.setSearch(ed.getText()) }
         }
 
         res.setPreviewSize(.Small)

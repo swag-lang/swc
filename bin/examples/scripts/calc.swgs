@@ -65,10 +65,7 @@ func createBtn(str: string, x, y: s32)
 {
     {
         let btn = PushButton.create(layout, str)
-        btn.sigPressed += func(btn)
-        {
-            validateOp(btn.name.raw)
-        }
+        btn.sigPressed += func(btn) { validateOp(btn.name.raw) }
         btn.style.setFont(notnull g_FontBtn, .Regular)
         layout.setColRowChild(btn, x, y)
 

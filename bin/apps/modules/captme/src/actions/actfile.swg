@@ -178,10 +178,7 @@ impl IActionUI for ActionFile
                 opt.sigCreate = func|main|(dlg)
                 {
                     let chk = CheckButton.create(dlg.surface.getView(), "Do not ask again", {0, 0, 100, 40})
-                    chk.sigChanged += func|main|(btn)
-                    {
-                        main.editorOptions.confirmLinkedOverwrite = !btn.isChecked()
-                    }
+                    chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = !btn.isChecked() }
                     dlg.setExtension(chk)
                 }
 
@@ -361,10 +358,7 @@ impl MainWnd
 
         let txt = Format.toString("Image <url>%</url> has been saved", nameFile)
         let emb = EmbInfoCtrl.create(notnull .editWnd.view, txt, .Information, flags: .Bottom | .AutoHide)
-        emb.label.sigUrlClicked += func(lbl, msg)
-        {
-            Env.locateInExplorer(msg)
-        }
+        emb.label.sigUrlClicked += func(lbl, msg) { Env.locateInExplorer(msg) }
     }
 
     mtd saveAsImage(linked = false)

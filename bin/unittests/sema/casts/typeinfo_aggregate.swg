@@ -37,7 +37,7 @@ const CA1: [?] typeinfo = [MyStruct, OtherStruct]
 
 // Const array of structs with a typeinfo field: the registry pattern
 const CReg: [?] Holder = [
-    {MyStruct, 10},
+    {MyStruct,    10},
     {OtherStruct, 20}]
 #assert(CReg[0].t == MyStruct)
 #assert(CReg[1].t == OtherStruct)

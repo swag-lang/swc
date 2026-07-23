@@ -13,16 +13,10 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
     var values: [4] s32 = [1, 2, 3, 4]
     let bias = 10
 
-    Slice.modify(values, func|bias|(it: *s32)
-    {
-        dref it += bias
-    })
+    Slice.modify(values, func|bias|(it: *s32) { dref it += bias })
     @assert(sameValues(values, [11, 12, 13, 14]))
 
-    let mapped = Slice.map(values, func(value: s32)->s32
-    {
-        return value / 2
-    })
+    let mapped = Slice.map(values, func(value: s32)->s32 { return value / 2 })
     @assert(mapped.count == 4)
     @assert(sameValues(cast([..] s32) mapped, [5, 6, 6, 7]))
 }

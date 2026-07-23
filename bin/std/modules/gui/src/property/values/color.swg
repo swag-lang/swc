@@ -100,10 +100,7 @@ impl Properties
             }
         }
 
-        btn.sigHidePopup += func|prop = me|(btn)
-        {
-            prop.editPopup = null
-        }
+        btn.sigHidePopup += func|prop = me|(btn) { prop.editPopup = null }
 
         item.sigRefresh += func|prop = me, ed, btn, color, editAlpha|(item)
         {

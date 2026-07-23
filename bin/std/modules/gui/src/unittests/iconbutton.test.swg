@@ -10,13 +10,13 @@ var IconButtonHeadlessCheckCount:   u32
 
 func iconButtonHeadlessPressed(btn: *Button)
 {
-    discard btn;
+    discard btn
     IconButtonHeadlessPressedCount += 1
 }
 
 func iconButtonHeadlessChecked(btn: *IconButton)
 {
-    discard btn;
+    discard btn
     IconButtonHeadlessCheckCount += 1
 }
 

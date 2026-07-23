@@ -812,10 +812,7 @@ impl QuickWnd
             btn.formItf  = it
             btn.quickWnd = me
 
-            btn.sigPaintIcon = func(btn, bc, pos, flags)
-            {
-                paintForm(bc.painter, cast(*QuickButton) btn)
-            }
+            btn.sigPaintIcon = func(btn, bc, pos, flags) { paintForm(bc.painter, cast(*QuickButton) btn) }
 
             btn.sigRightPressed += func(btn)
             {

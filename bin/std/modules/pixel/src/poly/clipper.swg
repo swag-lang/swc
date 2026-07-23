@@ -1694,7 +1694,7 @@ impl Transform
             if !.joinPoints(notnull join, outRec1, outRec2) do
                 continue
 
-            if (outRec1 == outRec2)
+            if outRec1 == outRec2
             {
                 outRec1.pts      = join.outPt1
                 outRec1.bottomPt = null
@@ -2134,7 +2134,7 @@ impl Transform
                 ip.x = topX(edge2, ip.y)
         }
 
-        if (ip.y > edge1.curr.y)
+        if ip.y > edge1.curr.y
         {
             ip.y = edge1.curr.y
             if Math.abs(edge1.dx) > Math.abs(edge2.dx) do

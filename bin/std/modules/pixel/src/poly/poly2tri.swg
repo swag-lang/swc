@@ -642,32 +642,32 @@ impl Tessellate
     {
         func newPoint()->*Point
         {
-            return Memory.new'Point();
+            return Memory.new'Point()
         }
 
         func deletePoint(ptr: *Point)
         {
-            Memory.delete(ptr);
+            Memory.delete(ptr)
         }
 
         func newEdge()->*Edge
         {
-            return Memory.new'Edge();
+            return Memory.new'Edge()
         }
 
         func deleteEdge(ptr: *Edge)
         {
-            Memory.delete(ptr);
+            Memory.delete(ptr)
         }
 
         func newTriangle()->*Triangle
         {
-            return Memory.new'Triangle();
+            return Memory.new'Triangle()
         }
 
         func deleteTriangle(ptr: *Triangle)
         {
-            Memory.delete(ptr);
+            Memory.delete(ptr)
         }
 
         mtd newNode()->*Node
@@ -1391,7 +1391,7 @@ impl Tessellate
                 let op = ot.oppositePoint(t, p)
                 let oi = ot.index(op)
 
-                if (ot.constrainedEdge[oi] or ot.delaunayEdge[oi])
+                if ot.constrainedEdge[oi] or ot.delaunayEdge[oi]
                 {
                     t.constrainedEdge[i] = ot.constrainedEdge[oi]
                     continue

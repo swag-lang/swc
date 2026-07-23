@@ -95,9 +95,9 @@ impl InPlaceEditWnd
         .actionBar.backgroundStyle = .Window
 
         let actions = [
-            {"save", ThemeIcons24.Save, "Save capture as image file"},
-            {"copy", ThemeIcons24.Copy, "Copy image to clipboard"},
-            {"edit", ThemeIcons24.Edit, "Open in Captme editor"},
+            {"save",  ThemeIcons24.Save,     "Save capture as image file"},
+            {"copy",  ThemeIcons24.Copy,     "Copy image to clipboard"},
+            {"edit",  ThemeIcons24.Edit,     "Open in Captme editor"},
             {"close", ThemeIcons24.WndClose, "Cancel and discard capture"}]
 
         let theme = .getTheme()
@@ -114,13 +114,13 @@ impl InPlaceEditWnd
         .editBar.setIconBarFlags(.Vertical)
 
         let editTools = [
-            {"draw", 7, "Free draw tool"},
-            {"line", 1, "Draw straight line"},
+            {"draw",   7,  "Free draw tool"},
+            {"line",   1,  "Draw straight line"},
             {"circle", 19, "Draw circle or ellipse"},
-            {"rect", 20, "Draw rectangle or square"},
-            {"arrow", 3, "Draw arrow"},
-            {"text", 4, "Add text annotation"},
-            {"marker", 9, "Highlight with marker"}]
+            {"rect",   20, "Draw rectangle or square"},
+            {"arrow",  3,  "Draw arrow"},
+            {"text",   4,  "Add text annotation"},
+            {"marker", 9,  "Highlight with marker"}]
 
         for tool in editTools do
             .editBar.addCheckableItem(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2

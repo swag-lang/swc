@@ -87,7 +87,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_DEADCHAR:
-            if (wParam == 27) do
+            if wParam == 27 do
                 return 1
             if surface.lastDeadChar != wParam
             {
@@ -98,7 +98,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             fallthrough
 
         case WM_CHAR:
-            if (wParam == 27) do
+            if wParam == 27 do
                 return 1
 
             surface.lastDeadChar = 0

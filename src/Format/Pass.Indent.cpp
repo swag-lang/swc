@@ -43,6 +43,11 @@ namespace
     private:
         uint32_t blockContribution(const FormatBlock& block) const
         {
+            // A `where { ... }` block is itself indented one level under its
+            // declaration: its content sits two levels deep.
+            if (model_->piece(block.headPiece).hasRole(FormatRoleE::WhereKeyword))
+                return 2;
+
             switch (block.kind)
             {
                 case FormatBlockKind::Namespace:
@@ -78,7 +83,23 @@ namespace
             // starts: their lines keep their relative indentation.
             return piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::AttrOpen,
                                        FormatRoleE::ElseKeyword, FormatRoleE::EnumValueStart, FormatRoleE::FieldDeclStart,
-                                       FormatRoleE::BlockOpen, FormatRoleE::BlockClose});
+                                       FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::WhereKeyword});
+        }
+
+        // `where` / `verify` clauses and the braces of their block bodies sit
+        // one level under the declaration they constrain.
+        bool lineBelongsToWhereClause(const uint32_t lineStart, const FormatPiece& piece) const
+        {
+            if (piece.hasRole(FormatRoleE::WhereKeyword))
+                return true;
+            if (!piece.roles.hasAny({FormatRoleE::BlockOpen, FormatRoleE::BlockClose}))
+                return false;
+            for (const FormatBlock& block : model_->blocks())
+            {
+                if (block.openPiece == lineStart || block.closePiece == lineStart)
+                    return model_->piece(block.headPiece).hasRole(FormatRoleE::WhereKeyword);
+            }
+            return false;
         }
 
         void processLine(const uint32_t lineStart)
@@ -192,6 +213,9 @@ namespace
                         entry.sawCase = true;
                 }
             }
+
+            if (lineBelongsToWhereClause(lineStart, piece))
+                depth += 1;
 
             return depth * indentWidth;
         }

@@ -145,6 +145,7 @@ struct FormatOptions
     std::optional<bool>     breakAfterReturnType;                                           // Newline before `->` in `func foo(...)->T`
     std::optional<bool>     breakBeforeDo;                                                  // Break before trailing `do` (`if x do ...`)
     std::optional<bool>     breakBeforeElse;                                                // Place `else` on its own line
+    std::optional<bool>     breakBeforeWhere;                                               // Place `where` / `verify` clauses on their own line
     FormatBinPackStyle      binPackArguments  = FormatBinPackStyle::Preserve;               // Call argument layout when wrapping
     FormatBinPackStyle      binPackParameters = FormatBinPackStyle::Preserve;               // Declaration parameter layout when wrapping
 
@@ -157,9 +158,16 @@ struct FormatOptions
     FormatShortBlockStyle allowShortBlocksOnSingleLine    = FormatShortBlockStyle::Preserve; // When to keep generic `{ ... }` blocks on one line
     FormatShortBlockStyle allowShortEnumsOnSingleLine     = FormatShortBlockStyle::Preserve; // When to keep `enum` bodies on one line
     FormatShortBlockStyle allowShortStructsOnSingleLine   = FormatShortBlockStyle::Preserve; // When to keep `struct` bodies on one line
+    FormatShortBlockStyle allowShortClosuresOnSingleLine  = FormatShortBlockStyle::Preserve; // When to keep closure bodies embedded in expressions on one line
     std::optional<bool>   allowShortIfStatementsOnSingleLine;                                // Allow `if cond do stmt` on one line
     std::optional<bool>   allowShortLoopsOnSingleLine;                                       // Allow short `while`/`for` bodies on one line
     std::optional<bool>   allowShortCaseOnSingleLine;                                        // Allow single-statement `case` arms on one line
+
+    // -----------------------------------------------------------------------
+    // Statements
+    // -----------------------------------------------------------------------
+    std::optional<bool>   removeRedundantSemicolons;                                         // Drop `;` at end of line (grammar-required ones stay)
+    std::optional<bool>   removeConditionParentheses;                                        // Drop `( ... )` wrapping a whole control condition
 
     // -----------------------------------------------------------------------
     // Alignment
@@ -176,6 +184,7 @@ struct FormatOptions
     uint32_t            trailingCommentMaxColumn = 0;                             // 0 = no limit on trailing comment column
     std::optional<bool> alignOperands;                                            // Align operands of wrapped binary expressions
     std::optional<bool> alignAfterOpenBracket;                                    // Align wrapped args with the opening `(` / `[`
+    std::optional<bool> alignArrayColumns;                                        // Align the columns of multi-line array-of-struct literals
 
     // -----------------------------------------------------------------------
     // Spacing

@@ -203,7 +203,7 @@ func day10B()
             for x in col
             {
                 let one1 = mp(cast(s64) x, cast(s64) line)
-                if (one1 & .Edge and one1 & .North) do
+                if one1 & .Edge and one1 & .North do
                     inside = !inside
             }
 

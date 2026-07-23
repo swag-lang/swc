@@ -294,10 +294,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     let expectedMoved: [6] s32 = [4, 5, 9, 5, 3, 8]
     @assert(assertIntArray(values, expectedMoved))
 
-    values.sort(func||(a, b)
-    {
-        return b <=> a
-    })
+    values.sort(func||(a, b) { return b <=> a })
 
     let expectedSortedByCallback: [6] s32 = [9, 8, 5, 5, 4, 3]
     @assert(assertIntArray(values, expectedSortedByCallback))

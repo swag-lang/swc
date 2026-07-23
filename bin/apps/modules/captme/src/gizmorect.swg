@@ -140,7 +140,7 @@ impl GizmoRect
                     deg -= 360
 
                 // Snap to 15° steps while Shift is held
-                if (evt.modifiers & .Shift) do
+                if evt.modifiers & .Shift do
                     deg = Math.round(deg / 15) * 15
 
                 .rotateValue = deg
@@ -489,17 +489,11 @@ impl GizmoRect
         .paintSimpleBorder = false
         .paintBigBorder    = true
 
-        .sigChanged = func|form = iform|(g, first, hitMove)
-        {
-            g.apply(form, first, hitMove)
-        }
+        .sigChanged = func|form = iform|(g, first, hitMove) { g.apply(form, first, hitMove) }
 
         if iform.canRotate()
         {
-            .sigRotate = func|form = iform|(g, first, last, angle)
-            {
-                g.applyRotate(form, first, last, angle)
-            }
+            .sigRotate = func|form = iform|(g, first, last, angle) { g.applyRotate(form, first, last, angle) }
         }
     }
 

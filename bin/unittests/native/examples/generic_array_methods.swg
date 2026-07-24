@@ -40,27 +40,30 @@ impl DynArray
             me.capacity = newCapacity
         }
 
-        me.data[me.count] = value
-        me.count          += 1
+        let data = notnull me.data
+        data[me.count] = value
+        me.count       += 1
     }
 
     mtd pop()->T
     {
         @assert(.count > 0)
         .count -= 1
-        return .data[.count]
+        return (notnull .data)[.count]
     }
 
     func get(me, index: u64)->T
     {
         @assert(index < me.count)
-        return me.data[index]
+        let data = notnull me.data
+        return data[index]
     }
 
     func set(me, index: u64, value: T)
     {
         @assert(index < me.count)
-        me.data[index] = value
+        let data = notnull me.data
+        data[index] = value
     }
 
     mtd clear()
@@ -71,14 +74,15 @@ impl DynArray
     mtd last()->T
     {
         @assert(.count > 0)
-        return .data[.count - 1]
+        return (notnull .data)[.count - 1]
     }
 
     func contains(me, value: T)->bool
     {
+        let data = notnull me.data
         for i in me.count
         {
-            if me.data[i] == value do
+            if data[i] == value do
                 return true
         }
 
@@ -88,11 +92,12 @@ impl DynArray
     func removeAt(me, index: u64)
     {
         @assert(index < me.count)
-        var i = index
+        let data = notnull me.data
+        var i    = index
         while i + 1 < me.count
         {
-            me.data[i] = me.data[i + 1]
-            i          += 1
+            data[i] = data[i + 1]
+            i       += 1
         }
 
         me.count -= 1
@@ -108,15 +113,16 @@ impl DynArray
             me.capacity = newCapacity
         }
 
-        var i = me.count
+        let data = notnull me.data
+        var i    = me.count
         while i > index
         {
-            me.data[i] = me.data[i - 1]
-            i          -= 1
+            data[i] = data[i - 1]
+            i       -= 1
         }
 
-        me.data[index] = value
-        me.count       += 1
+        data[index] = value
+        me.count    += 1
     }
 
     mtd reverse()
@@ -124,14 +130,15 @@ impl DynArray
         if .count <= 1 do
             return
         var lo: u64 = 0
-        var hi = .count - 1
+        var hi   = .count - 1
+        let data = notnull .data
         while lo < hi
         {
-            let tmp = .data[lo]
-            .data[lo] = .data[hi]
-            .data[hi] = tmp
-            lo        += 1
-            hi        -= 1
+            let tmp = data[lo]
+            data[lo] = data[hi]
+            data[hi] = tmp
+            lo       += 1
+            hi       -= 1
         }
     }
 }

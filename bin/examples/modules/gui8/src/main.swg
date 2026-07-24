@@ -140,18 +140,22 @@ func pageSubtitle(page: s32)->string
 
 func updateHeader()
 {
-    g_Title.setText(Format.toString("GUI8 list showcase - %", pageTitle(g_Page)))
-    g_SubTitle.setText(pageSubtitle(g_Page))
-    g_Footer.setText(Format.toString("F1 : next page (%/%). Resize the window to stress list and header layout.", g_Page + 1, MaxPages))
+    let title    = notnull g_Title
+    let subTitle = notnull g_SubTitle
+    let footer   = notnull g_Footer
+    title.setText(Format.toString("GUI8 list showcase - %", pageTitle(g_Page)))
+    subTitle.setText(pageSubtitle(g_Page))
+    footer.setText(Format.toString("F1 : next page (%/%). Resize the window to stress list and header layout.", g_Page + 1, MaxPages))
 }
 
 func updateThemeButton()
 {
+    let btn = notnull g_ThemeButton
     if g_DarkTheme do
-        g_ThemeButton.name = "White theme"
+        btn.name = "White theme"
     else do
-        g_ThemeButton.name = "Black theme"
-    g_ThemeButton.invalidate()
+        btn.name = "Black theme"
+    btn.invalidate()
 }
 
 func applyTheme()
@@ -173,8 +177,12 @@ func toggleTheme(_btn: *Button)
 
 func clearPage()
 {
-    for child in g_PageView.childs do
-        child.destroy()
+    let pageView0 = notnull g_PageView
+    for child in pageView0.childs
+    {
+        let c = notnull child
+        c.destroy()
+    }
 }
 
 func buildPage()
@@ -192,7 +200,8 @@ func buildPage()
     }
 
     refreshLayoutTree(notnull g_PageView)
-    g_PageView.invalidate()
+    let pv = notnull g_PageView
+    pv.invalidate()
 }
 
 func layoutRootView()
@@ -200,17 +209,24 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let rect = g_View.getClientRect()
+    let view     = notnull g_View
+    let pageView = notnull g_PageView
+
+    let rect = view.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, 360.0)
     let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    g_Title.setPosition({RootMargin, 18, titleWidth, 34})
-    g_ThemeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
-    g_PageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
-    g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
+    let title2      = notnull g_Title
+    let themeButton = notnull g_ThemeButton
+    let subTitle2   = notnull g_SubTitle
+    let footer2     = notnull g_Footer
+    title2.setPosition({RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
+    footer2.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
 func nextPage()
@@ -251,11 +267,14 @@ func canUsePageArrows()->bool
     if !g_View or !g_PageView do
         return false
 
-    let focus = g_View.getFocus()
+    let view2     = notnull g_View
+    let pageView2 = notnull g_PageView
+
+    let focus = view2.getFocus()
     if !focus or focus == g_View do
         return true
 
-    return !g_PageView.isParentOf(focus)
+    return !pageView2.isParentOf(notnull focus)
 }
 
 func onFrame(app: *Application)
@@ -295,38 +314,45 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    g_View                 = g_Surface.getView()
-    g_View.backgroundStyle = .View
+    let view = (notnull g_Surface).getView()
+    g_View               = view
+    view.backgroundStyle = .View
 
-    g_Title = Label.create(notnull g_View, "", {})
-    setLabelTextStyle(notnull g_Title, .Left, .Center)
-    g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
+    let title = Label.create(view, "", {})
+    g_Title = title
+    setLabelTextStyle(title, .Left, .Center)
+    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    g_SubTitle = subTitle
+    setLabelTextStyle(subTitle, .Left, .Top)
 
-    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form       = .Flat
-    g_ThemeButton.icon       = app.theme.getIcon24(.Picker, 18)
-    g_ThemeButton.sigPressed += &toggleTheme
+    let themeButton = PushButton.create(view, "", {})
+    g_ThemeButton          = themeButton
+    themeButton.form       = .Flat
+    themeButton.icon       = app.theme.getIcon24(.Picker, 18)
+    themeButton.sigPressed += &toggleTheme
 
-    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
-    g_PageView.backgroundStyle = .Transparent
+    let pageView = Wnd.create'Wnd(view, {})
+    g_PageView               = pageView
+    pageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(notnull g_View, "", {})
-    setLabelTextStyle(notnull g_Footer, .Left, .Center)
-    g_Footer.labelFlags.add(.LightText)
+    let footer = Label.create(view, "", {})
+    g_Footer = footer
+    setLabelTextStyle(footer, .Left, .Center)
+    footer.labelFlags.add(.LightText)
 
     layoutRootView()
-    g_View.hookOnEvent = &onRootEvent
+    view.hookOnEvent = &onRootEvent
 }
 
 #main
 {
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
-    g_Surface = try app.createSurface(120, 90, W - 46, H - 31, flags)
-    g_Surface.setTitle("GUI8 list showcase")
-    g_Surface.setIcon(app.theme.getIcon24(.Sort, 18))
+    let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
+    g_Surface = surface
+    surface.setTitle("GUI8 list showcase")
+    surface.setIcon(app.theme.getIcon24(.Sort, 18))
 
     createRootView()
     buildPage()
@@ -335,7 +361,7 @@ func createRootView()
     if Env.hasArg("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
-    g_Surface.show()
+    surface.show()
     applyTheme()
     app.run()
 }

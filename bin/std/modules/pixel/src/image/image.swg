@@ -127,15 +127,15 @@ impl Image
     // Replace the current image content with the working buffer
     mtd applyWorkingBuffer()
     {
-        Debug.assert(.workingBuffer != null)
-        swap(&.pf, &.workingBuffer.pf)
-        swap(&.pixels, &.workingBuffer.pixels)
-        swap(&.width, &.workingBuffer.width)
-        swap(&.height, &.workingBuffer.height)
-        swap(&.bpp, &.workingBuffer.bpp)
-        swap(&.bpp8, &.workingBuffer.bpp8)
-        swap(&.size, &.workingBuffer.size)
-        swap(&.width8, &.workingBuffer.width8)
+        let wb = notnull .workingBuffer
+        swap(&.pf, &wb.pf)
+        swap(&.pixels, &wb.pixels)
+        swap(&.width, &wb.width)
+        swap(&.height, &wb.height)
+        swap(&.bpp, &wb.bpp)
+        swap(&.bpp8, &wb.bpp8)
+        swap(&.size, &wb.size)
+        swap(&.width8, &wb.width8)
     }
 
     // Macro to visit all pixels of the image in parallel chunks.
@@ -250,7 +250,7 @@ impl Image
 
         #if PF == .RGBA8
         {
-            let pix = .pixels.buffer + (x * 4) + (y * .width * 4)
+            let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
@@ -258,7 +258,7 @@ impl Image
         }
         #elif PF == .RGB8
         {
-            let pix = .pixels.buffer + (x * 3) + (y * .width * 3)
+            let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
@@ -266,7 +266,7 @@ impl Image
         }
         #elif PF == .BGRA8
         {
-            let pix = .pixels.buffer + (x * 4) + (y * .width * 4)
+            let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
             result.b = pix[0]
             result.g = pix[1]
             result.r = pix[2]
@@ -274,7 +274,7 @@ impl Image
         }
         #elif PF == .BGR8
         {
-            let pix = .pixels.buffer + (x * 3) + (y * .width * 3)
+            let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
             result.b = pix[0]
             result.g = pix[1]
             result.r = pix[2]

@@ -36,7 +36,8 @@ alias CoreTupleLifecycleStrict = #decltype({first: CoreTupleLifecycleProbe{}, se
 
 func coreTupleLifecycleProbeAt(base: [*] u8, type: const *TypeInfoStruct, index: u64)->*CoreTupleLifecycleProbe
 {
-    return cast(*CoreTupleLifecycleProbe) (base + type.fields[index].offset)
+    let fields = notnull type.fields
+    return cast(*CoreTupleLifecycleProbe) (base + fields[index].offset)
 }
 
 func testCoreTupleRuntimeLifecycle()->bool

@@ -139,8 +139,7 @@ func assertTableStringValue(table: const &HashTable'(string, String), key: strin
     var original: HashTable'(string, s32)
     original.add("alpha", 1)
 
-    let entry = original.tryFind("alpha")
-    @assert(entry != null)
+    let entry = notnull original.tryFind("alpha")
     @assert(entry.value == 1)
 }
 

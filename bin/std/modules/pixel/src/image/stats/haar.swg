@@ -242,6 +242,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     // Fast grayscale resizing with proper bounds checking
     var grayData: Array'f32
     grayData.resize(windowSize * windowSize)
+    let grayBuf = notnull grayData.buffer
 
     let stepX = Math.max(1.0, cast(f32) image.width / cast(f32) windowSize)
     let stepY = Math.max(1.0, cast(f32) image.height / cast(f32) windowSize)
@@ -254,7 +255,7 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
             let srcX  = Math.min(cast(s32) (cast(f32) x * stepX), image.width - 1)
             let color = image.getPixelColor(srcX, srcY)
             let gray  = color.getGrayScalef()
-            grayData.buffer[y * windowSize + x] = gray
+            grayBuf[y * windowSize + x] = gray
         }
     }
 

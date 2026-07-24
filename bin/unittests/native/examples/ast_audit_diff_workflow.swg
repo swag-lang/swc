@@ -50,13 +50,13 @@ func appendAuditDiffFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
         len = appendAst(buffer, len, "old_")
         len = appendAst(buffer, len, notnull field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, notnull field.pointedType.name)
+        len = appendAst(buffer, len, notnull (notnull field.pointedType).name)
         len = appendAst(buffer, len, "\n")
 
         len = appendAst(buffer, len, "new_")
         len = appendAst(buffer, len, notnull field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, notnull field.pointedType.name)
+        len = appendAst(buffer, len, notnull (notnull field.pointedType).name)
         len = appendAst(buffer, len, "\n")
     }
 

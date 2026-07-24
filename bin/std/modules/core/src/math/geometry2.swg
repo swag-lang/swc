@@ -370,9 +370,12 @@ func segSegIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF3
 // Implementation of the PNPoly algorithm by W. Randolph Franklin.
 func polyContains(poly: Array'Math.Vector2, pt: Math.Vector2)->bool
 {
-    var c     = false
-    var verti = poly.buffer
-    var vertj = poly.buffer + cast(s32) poly.count - 1
+    var c = false
+    if !poly.count do
+        return c
+    let buffer = notnull poly.buffer
+    var verti  = buffer
+    var vertj  = buffer + cast(s32) poly.count - 1
     for poly.count
     {
         if ((verti.y > pt.y) != (vertj.y > pt.y)) and

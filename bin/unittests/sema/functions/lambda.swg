@@ -3,9 +3,11 @@
 func semaTest001()
 {
     var fn: #null func()
-    fn()
+    if fn do
+        fn()
     var fn1: #null func(s: string)
-    fn1("test")
+    if fn1 do
+        fn1("test")
 }
 
 struct A
@@ -16,17 +18,20 @@ struct A
 func semaTest002()
 {
     var a: A
-    a.fn()
+    if a.fn do
+        a.fn()
 }
 
 func semaTest003()
 {
     var fn3: #null func(v: string)
-    fn3("ok")
+    if fn3 do
+        fn3("ok")
 }
 
 func toto(message: string, loc: Swag.SourceCodeLocation)
 {
     let cxt = @getcontext()
-    cxt.panic(message, loc)
+    if cxt.panic do
+        cxt.panic(message, loc)
 }

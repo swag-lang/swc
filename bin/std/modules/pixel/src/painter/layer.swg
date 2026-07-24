@@ -83,7 +83,8 @@ impl Layer
     mtd end()
     {
         Debug.assert(.active)
-        .painter.unbindRenderTarget()
+        let painter = notnull .painter
+        painter.unbindRenderTarget()
         .active = false
     }
 
@@ -93,9 +94,9 @@ impl Layer
         if .resolved do
             return
 
-        let renderer       = .renderer
-        let painter        = .painter
-        let paintTarget    = .paintTarget
+        let renderer       = notnull .renderer
+        let painter        = notnull .painter
+        let paintTarget    = notnull .paintTarget
         let renderScale    = .renderScale
         let resolvedTarget = renderer.getRenderTarget(.width, .height)
         let srcRect        = Math.Rectangle{0, 0, .width * renderScale, .height * renderScale}
@@ -136,9 +137,9 @@ impl Layer
         let sourceRect   = Math.Rectangle{0, 0, .width, .height}
         let targetRect   = Math.Rectangle{margin, margin, .width, .height}
         let fullRect     = Math.Rectangle{0, 0, shadowWidth, shadowHeight}
-        let renderer     = .renderer
-        let painter      = .painter
-        let content      = .contentTarget
+        let renderer     = notnull .renderer
+        let painter      = notnull .painter
+        let content      = notnull .contentTarget
         let target1      = renderer.getRenderTarget(shadowWidth, shadowHeight)
         let target2      = renderer.getRenderTarget(shadowWidth, shadowHeight)
 
@@ -205,12 +206,12 @@ impl Layer
             dstRect.offset(info.shadow.offsetX - cast(f32) margin, info.shadow.offsetY - cast(f32) margin)
             dstRect.width, dstRect.height += cast(f32) (2 * margin)
             srcRect                       = Math.Rectangle{0, 0, .width + 2 * margin, .height + 2 * margin}
-            texture                       = .shadowTarget.colorBuffer
+            texture                       = (notnull .shadowTarget).colorBuffer
         }
         else do
             .resolve()
 
-        let painter = .painter
+        let painter = notnull .painter
         with painter
         {
             .pushState()
@@ -238,7 +239,8 @@ impl Layer
     mtd texture()->Texture
     {
         .resolve()
-        return .contentTarget.colorBuffer
+        let contentTarget = notnull .contentTarget
+        return contentTarget.colorBuffer
     }
 
     mtd sourceRect()->Math.Rectangle

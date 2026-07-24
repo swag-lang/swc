@@ -66,9 +66,10 @@ func checksumConfig(cfg: const &Config)->s32
 func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.TypeInfo)->s32
 {
     var n: s32 = 0
-    for i in @countof(info.fields)
+    let fields = notnull info.fields
+    for i in @countof(fields)
     {
-        if info.fields[i].pointedType == target do
+        if fields[i].pointedType == target do
             n += 1
     }
     return n
@@ -91,11 +92,12 @@ func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.Typ
 func nameFingerprint(info: const *Swag.TypeInfoStruct)->s32
 {
     var fp: s32 = 0
-    for i in @countof(info.fields)
+    let fields = notnull info.fields
+    for i in @countof(fields)
     {
-        let name = info.fields[i].name
+        let name = fields[i].name
         if @countof(name) > 0 do
-            fp += cast(s32) name[0]
+            fp += cast(s32) (notnull name)[0]
     }
     return fp
 }

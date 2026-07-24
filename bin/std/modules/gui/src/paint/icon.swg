@@ -37,8 +37,8 @@ impl Icon
     {
         .imageList = imageList
         .index     = index
-        let sx = sizeX orelse cast(f32) imageList.frameSizeX
-        let sy = sizeY orelse cast(f32) imageList.frameSizeY
+        let sx = sizeX orelse cast(f32) (notnull imageList).frameSizeX
+        let sy = sizeY orelse cast(f32) (notnull imageList).frameSizeY
         .sizeX = sx
         .sizeY = sy
     }

@@ -97,7 +97,8 @@ func memoInit()->Memo
     m.keys  = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
     m.vals  = cast(#null [*] u64)  @alloc(cast(u64) MapCap * #sizeof(u64))
     m.alive = cast(#null [*] bool) @alloc(cast(u64) MapCap * #sizeof(bool))
-    for MapCap { m.alive[@index] = false }
+    let alive = notnull m.alive
+    for MapCap { alive[@index] = false }
     return m
 }
 
@@ -114,9 +115,11 @@ func memoProbe(m: *Memo, key: u64)->u32
     h *= 0x45D9F3B
     h ^= h >> 16
     var idx = cast(u32) (h % cast(u64) MapCap)
+    let alive = notnull m.alive
+    let keys  = notnull m.keys
     for MapCap
     {
-        if !m.alive[idx] or m.keys[idx] == key do
+        if !alive[idx] or keys[idx] == key do
             return idx
         idx = (idx + 1) % MapCap
     }
@@ -126,11 +129,14 @@ func memoProbe(m: *Memo, key: u64)->u32
 
 func memoGet(m: *Memo, key: u64, found: *bool)->u64
 {
-    let idx = memoProbe(m, key)
-    if m.alive[idx] and m.keys[idx] == key
+    let idx   = memoProbe(m, key)
+    let alive = notnull m.alive
+    let keys  = notnull m.keys
+    let vals  = notnull m.vals
+    if alive[idx] and keys[idx] == key
     {
         dref found = true
-        return m.vals[idx]
+        return vals[idx]
     }
     dref found = false
     return 0
@@ -138,10 +144,13 @@ func memoGet(m: *Memo, key: u64, found: *bool)->u64
 
 func memoPut(m: *Memo, key: u64, val: u64)
 {
-    let idx = memoProbe(m, key)
-    m.keys[idx]  = key
-    m.vals[idx]  = val
-    m.alive[idx] = true
+    let idx   = memoProbe(m, key)
+    let keys  = notnull m.keys
+    let vals  = notnull m.vals
+    let alive = notnull m.alive
+    keys[idx]  = key
+    vals[idx]  = val
+    alive[idx] = true
 }
 
 // ---------------------------------------------------------------------------

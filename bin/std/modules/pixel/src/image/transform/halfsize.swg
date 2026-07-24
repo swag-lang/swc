@@ -11,7 +11,7 @@ impl Image
             let srcImage   = cast(const *Image) data.img
             let b8         = srcImage.bpp8
             let w8         = srcImage.width * b8
-            let pixSrc     = srcImage.pixels.buffer + (x * 2 * b8) + (y * 2 * w8)
+            let pixSrc     = (notnull srcImage.pixels.buffer) + (x * 2 * b8) + (y * 2 * w8)
             let pixSrcb8   = pixSrc + b8
             let pixSrcw8   = pixSrc + w8
             let pixSrcw8b8 = pixSrcw8 + b8

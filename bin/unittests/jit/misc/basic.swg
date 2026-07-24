@@ -53,51 +53,51 @@ struct S
 //#[Swag.PrintMicro("pre-regalloc", "post-emit")]
 #test
 {
-    const Cfg = #run dref @compiler.getBuildCfg()
+    const Cfg = #run dref notnull @compiler.getBuildCfg()
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 // const toto = #run @compiler.compileString("toto")
 }
 
 #test
 {
-    const Cfg = #run dref (@compiler.getBuildCfg)()
+    const Cfg = #run dref notnull (@compiler.getBuildCfg)()
     #assert(#typeof(Cfg) == Swag.BuildCfg)
 }
 
 #test
 {
-    const Cfg1 = #run dref @compiler.getBuildCfg()
-    const Cfg2 = #run dref @compiler.getBuildCfg()
+    const Cfg1 = #run dref notnull @compiler.getBuildCfg()
+    const Cfg2 = #run dref notnull @compiler.getBuildCfg()
     #assert(#typeof(Cfg1) == Swag.BuildCfg)
     #assert(#typeof(Cfg2) == Swag.BuildCfg)
 }
 
 #test
 {
-    const Cfg = #run dref @compiler.getBuildCfg()
+    const Cfg = #run dref notnull @compiler.getBuildCfg()
     #assert(#typeof(Cfg) == s32)     // swc-expected-error {{sema_err_compiler_assert}}
 }
 
 #[Swag.PrintMicro(123)]     // swc-expected-error {{sema_err_cannot_cast}}
 #test
 {
-    const Cfg = #run dref @compiler.getBuildCfg()
+    const Cfg = #run dref notnull @compiler.getBuildCfg()
 }
 
 #test
 {
-    const Cfg = #run dref @compiler.getBuildCfg()
+    const Cfg = #run dref notnull @compiler.getBuildCfg()
 }
 
 #test
 {
-    const Cfg = #run dref @compiler.getBuildCfg()
+    const Cfg = #run dref notnull @compiler.getBuildCfg()
 }
 
 #[Swag.PrintAst(1)]     // swc-expected-error {{sema_err_cannot_cast}}
 #test
 {
-    const Cfg = #run dref @compiler.getBuildCfg()
+    const Cfg = #run dref notnull @compiler.getBuildCfg()
 }
 
 #test

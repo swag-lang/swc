@@ -22,7 +22,7 @@ impl SelfPointerValue
 
     mtd const first()->u8
     {
-        return dref .buffer
+        return dref (notnull .buffer)
     }
 
     mtd opPostCopy()
@@ -60,7 +60,8 @@ impl EntryArray
 {
     mtd addAt(index: u64, value: T)
     {
-        .entries[index].value = #nodrop value
+        let slots = notnull .entries
+        slots[index].value = #nodrop value
     }
 }
 
@@ -95,8 +96,9 @@ impl InlineBufferText
         let newCapacity = @countof(value) + 1
         .length = newCapacity - 1
         .grow(newCapacity)
-        @memcpy(.buffer, @dataof(value), .length)
-        .buffer[.length] = 0
+        let buf = notnull .buffer
+        @memcpy(buf, @dataof(value), .length)
+        buf[.length] = 0
     }
 
     mtd grow(wantedCapacity: u64)
@@ -165,21 +167,24 @@ impl HashLikeTable
 {
     mtd add(key: K, value: V)
     {
-        .entries[0].key   = #nodrop key
-        .entries[0].value = #nodrop value
-        .entries[0].hash  = 2
+        let slots = notnull .entries
+        slots[0].key   = #nodrop key
+        slots[0].value = #nodrop value
+        slots[0].hash  = 2
     }
 
     mtd valueAddr(index: u64)->[*] void
     {
-        return cast([*] void) &.entries[index].value
+        let slots = notnull .entries
+        return cast([*] void) &slots[index].value
     }
 
     mtd free()
     {
-        for i in .capacity where .entries[i].hash >= 1 do
-            @drop(&.entries[i].value)
-        @free(notnull .entries)
+        let slots = notnull .entries
+        for i in .capacity where slots[i].hash >= 1 do
+            @drop(&slots[i].value)
+        @free(slots)
         .entries  = null
         .capacity = 0
     }

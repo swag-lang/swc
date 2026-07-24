@@ -352,7 +352,7 @@ impl TagBin
     // Updates the stream position and releases the section back to the pool.
     mtd endSection() throw
     {
-        let sec = .sections.back()
+        let sec = notnull .sections.back()
 
         // Fat is after the datas. We need to be sure to point
         // to what's next, except in raw mode where we are already at
@@ -433,7 +433,7 @@ impl TagBin
         }
 
         var reqCrcName = getTypeValueCrc(val)
-        let sec        = .sections.back()
+        let sec        = notnull .sections.back()
 
         // If section is raw, then we just have values without versionning
         if sec.kind == .Raw
@@ -644,8 +644,9 @@ impl TagBin
                 if !Reflection.isPod(valueType) do
                     throw SerializationError{"cannot load a raw array into a non-pod element type"}
 
-                let elemSize = valueType.sizeof
-                let bufArr   = cast(#null *Array'u8) data
+                let vt       = notnull valueType
+                let elemSize = vt.sizeof
+                let bufArr   = notnull cast(#null *Array'u8) data
                 bufArr.count = dref countElem
                 bufArr.reserve(bufArr.count * elemSize)
                 bufArr.capacity = bufArr.count
@@ -669,7 +670,8 @@ impl TagBin
                 if !Reflection.isPod(typeElem) do
                     throw SerializationError{"cannot load a raw array into a non-pod element type"}
 
-                .stream.readBytes(data, dref countElem * typeElem.sizeof)
+                let te = notnull typeElem
+                .stream.readBytes(data, dref countElem * te.sizeof)
                 return true
             }
         }
@@ -707,7 +709,8 @@ impl TagBin
     {
         if .sections.isEmpty() do
             return 0
-        return .sections.back().version
+        let sec = notnull .sections.back()
+        return sec.version
     }
 
     /////////////////////////////////

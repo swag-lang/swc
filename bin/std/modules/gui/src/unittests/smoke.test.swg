@@ -81,7 +81,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
 
-    let surface = assume host.app.createSurface(20, 30, 180, 100, SurfaceFlags.Secondary | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
+    let surface = notnull assume host.app.createSurface(20, 30, 180, 100, SurfaceFlags.Secondary | SurfaceFlags.TopMost | SurfaceFlags.NoShadow)
     let button = PushButton.create(surface.getView(), "OK", {20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
     button.sigPressed += func(btn) { btn.getApp().exitModal(btn.id orelse "") }
 
@@ -139,7 +139,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     captionMenu.addItem("File", "GuiHeadlessSmoke.File")
     captionMenu.computeLayoutBar()
 
-    let menuItemX = captionMenu.items[0].pos + captionMenu.items[0].size * 0.5
+    let menuIt0   = notnull captionMenu.items[0]
+    let menuItemX = menuIt0.pos + menuIt0.size * 0.5
     @assert(!host.surfaceWnd.hitTestCaption({menuItemX, 15}))
     @assert(host.surfaceWnd.hitTestCaption({180, 15}))
 

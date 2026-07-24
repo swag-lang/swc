@@ -421,6 +421,12 @@ namespace
         const TypeInfo& type = aliasEnumType(sema, view);
         if (!type.isAnyPointer())
             return SemaError::raiseUnaryOperandType(sema, sema.curNodeRef(), view.nodeRef(), view.typeRef());
+
+        // Use-site nullability: narrowing was already applied to the live view, so a
+        // remaining '#null' means no dominating test proves this dereference safe. A
+        // non-null compile-time constant is proof.
+        if (type.isNullable() && (!view.hasConstant() || view.cst()->isNull()))
+            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_deref, view.nodeRef(), view.typeRef());
         return Result::Continue;
     }
 

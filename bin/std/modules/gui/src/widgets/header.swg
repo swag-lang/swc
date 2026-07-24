@@ -140,7 +140,7 @@ impl IWnd for Header
         for item, idx in .items
         {
             .paintItem(evt.bc, notnull item, cast(u32) idx, x)
-            x += item.width
+            x += (notnull item).width
 
             var rect = clientRect
             rect.x = x + (metrics.header_Separator * 0.5)
@@ -158,7 +158,7 @@ impl IWnd for Header
             {
                 let (hit, ?) = .hitTest(evt.surfacePos)
                 if hit == .hotIdx do
-                    .sigClicked(me, .items[.hotIdx].column)
+                    .sigClicked(me, (notnull .items[.hotIdx]).column)
             }
 
             if .moving or .clicked
@@ -179,7 +179,7 @@ impl IWnd for Header
             {
                 if !.headerFlags.has(.Clickable) and !sep do
                     hit = Swag.U32.Max
-                elif !.items[hit].clickable do
+                elif !(notnull .items[hit]).clickable do
                     hit = Swag.U32.Max
             }
 
@@ -238,7 +238,7 @@ impl IWnd for Header
                     .correctMoving -= .getItemWidth(.hotIdx)
                     .captureMouse()
                 }
-                elif .items[.hotIdx].clickable
+                elif (notnull .items[.hotIdx]).clickable
                 {
                     .clicked = true
                     .captureMouse()
@@ -257,8 +257,9 @@ private impl Header
         var pos     = .surfaceToLocal(surfacePos)
         pos += .scrollPos.x
         var x = .padding.x
-        for item, idx in .items
+        for itemIt, idx in .items
         {
+            let item = notnull itemIt
             if pos.x >= x and pos.x < x + item.width do
                 return {cast(u32) idx, false}
             x += item.width
@@ -315,7 +316,7 @@ impl Header
 
         for item in .items
         {
-            if item.column == column do
+            if (notnull item).column == column do
                 return item
         }
 
@@ -326,7 +327,7 @@ impl Header
     mtd getItemWidth(idx: u32)->f32
     {
         Debug.assert(idx < .items.count)
-        return .getItemWidthByCol(.items[idx].column)
+        return .getItemWidthByCol((notnull .items[idx]).column)
     }
 
     // Get an item width by column
@@ -334,8 +335,9 @@ impl Header
     {
         Debug.assert(column < .items.count)
 
-        for item in .items
+        for itemIt in .items
         {
+            let item = notnull itemIt
             if item.column == column do
                 return item.width
         }
@@ -347,7 +349,7 @@ impl Header
     mtd getItemPosition(idx: u32)->f32
     {
         Debug.assert(idx < cast(u32) .items.count)
-        return .getItemPositionByCol(.items[idx].column)
+        return .getItemPositionByCol((notnull .items[idx]).column)
     }
 
     // Get an item position by column
@@ -357,8 +359,9 @@ impl Header
 
         var x = .padding.x
         let m = .getThemeMetrics().header_Separator
-        for item, i in .items
+        for itemIt, i in .items
         {
+            let item = notnull itemIt
             if item.column == column do
                 return x
             x += item.width + m
@@ -374,7 +377,7 @@ impl Header
             return .padding.x
 
         var w = .getItemPosition(cast(u32) .items.count - 1)
-        w += .items.back().width
+        w += (notnull .items.back()).width
         w += .getThemeMetrics().header_Separator
         return w
     }
@@ -383,7 +386,7 @@ impl Header
     mtd setItemWidth(idx: u32, width: f32)
     {
         Debug.assert(idx < .items.count)
-        .setItemWidthByCol(.items[idx].column, width)
+        .setItemWidthByCol((notnull .items[idx]).column, width)
     }
 
     // Set an item width by column
@@ -391,15 +394,16 @@ impl Header
     {
         Debug.assert(column < .items.count)
 
-        let item = .getItemByCol(column)
+        let item = notnull .getItemByCol(column)
         var move = Math.max(width, item.minWidth)
         if item.maxWidth > 0 do
             move = Math.min(move, item.maxWidth)
         if item.width == move do
             return
         item.width = move
-        if .sigLayoutChanged do
-            .sigLayoutChanged(me)
+        let sigLayoutChanged = .sigLayoutChanged
+        if sigLayoutChanged do
+            sigLayoutChanged(me)
         .invalidate()
     }
 }

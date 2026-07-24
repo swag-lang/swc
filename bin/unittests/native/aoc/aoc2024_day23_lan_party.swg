@@ -54,7 +54,8 @@ func graphInit()->Graph
 {
     var g: Graph
     g.adj = cast(#null [*] bool) @alloc(cast(u64) MaxNodes * MaxNodes * #sizeof(bool))
-    for MaxNodes * MaxNodes { g.adj[@index] = false }
+    let adj = notnull g.adj
+    for MaxNodes * MaxNodes { adj[@index] = false }
     return g
 }
 
@@ -70,12 +71,13 @@ func nameToIdx(a: u8, b: u8)->u32
 impl Graph
 {
     #[Swag.Inline]
-    mtd edge(a: u32, b: u32)->bool { return me.adj[a * MaxNodes + b] }
+    mtd edge(a: u32, b: u32)->bool { return (notnull me.adj)[a * MaxNodes + b] }
 
     mtd addEdge(a: u32, b: u32)
     {
-        me.adj[a * MaxNodes + b] = true
-        me.adj[b * MaxNodes + a] = true
+        let adj = notnull me.adj
+        adj[a * MaxNodes + b] = true
+        adj[b * MaxNodes + a] = true
         if !me.nodeUsed[a]
         {
             me.nodeUsed[a]        = true

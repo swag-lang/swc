@@ -31,9 +31,10 @@ func loadFonts() throw
     let path   = g_FontPath.toString()
 
     g_FontBytes = File.readAllBytes(path)
-    g_Face      = try Face.load(g_FontBytes.toSlice())
+    let face    = notnull (try Face.load(g_FontBytes.toSlice()))
+    g_Face      = face
 
-    g_FontInfo = Format.toString("% % | % glyphs | % bytes", g_Face.familyName, g_Face.styleName, g_Face.glyphCount, g_FontBytes.count)
+    g_FontInfo = Format.toString("% % | % glyphs | % bytes", face.familyName, face.styleName, face.glyphCount, g_FontBytes.count)
 
     g_TypeFace  = TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont = Font.create(notnull g_TypeFace, 54)
@@ -43,9 +44,10 @@ func loadFonts() throw
 
 func dropFonts()
 {
-    if g_Face
+    let face = g_Face
+    if face
     {
-        g_Face.destroy()
+        face.destroy()
         g_Face = null
     }
 }

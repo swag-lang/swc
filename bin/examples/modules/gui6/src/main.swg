@@ -198,15 +198,19 @@ func stateSummary()->String
 
 func updateHeader()
 {
-    g_Title.setText(Format.toString("GUI6 menu showcase - %", pageTitle(g_Page)))
-    g_SubTitle.setText(pageSubtitle(g_Page))
-    g_Footer.setText(Format.toString("F1 : next page (%/%). %", g_Page + 1, MaxPages, stateSummary()))
+    let title    = notnull g_Title
+    let subTitle = notnull g_SubTitle
+    let footer   = notnull g_Footer
+    title.setText(Format.toString("GUI6 menu showcase - %", pageTitle(g_Page)))
+    subTitle.setText(pageSubtitle(g_Page))
+    footer.setText(Format.toString("F1 : next page (%/%). %", g_Page + 1, MaxPages, stateSummary()))
 }
 
 func updateStatusLabel()
 {
-    if g_StatusLabel do
-        g_StatusLabel.setText(g_StatusText)
+    let statusLabel = g_StatusLabel
+    if statusLabel do
+        statusLabel.setText(g_StatusText)
 }
 
 func setStatus(text: string)
@@ -215,23 +219,26 @@ func setStatus(text: string)
     updateStatusLabel()
     updateHeader()
 
-    if g_Preview do
-        g_Preview.invalidate()
-    if g_PageView do
-        g_PageView.updateCommandState()
+    let preview = g_Preview
+    if preview do
+        preview.invalidate()
+    let pageView3 = g_PageView
+    if pageView3 do
+        pageView3.updateCommandState()
     app.invalidate()
 }
 
 func updateThemeButton()
 {
-    if !g_ThemeButton do
+    let btn = g_ThemeButton
+    if !btn do
         return
 
     if g_DarkTheme do
-        g_ThemeButton.name = "White theme"
+        btn.name = "White theme"
     else do
-        g_ThemeButton.name = "Black theme"
-    g_ThemeButton.invalidate()
+        btn.name = "Black theme"
+    btn.invalidate()
 }
 
 func applyTheme()
@@ -474,8 +481,9 @@ func processMenuCommand(id: WndId)->bool
         setStatus("Export command selected from a grouped menu section.")
 
     case MenuCmd.Quit:
-        if g_Surface do
-            g_Surface.destroy()
+        let srf = g_Surface
+        if srf do
+            srf.destroy()
 
     case MenuCmd.Undo:
         g_DocumentDirty = false
@@ -700,8 +708,12 @@ func clearPage()
     g_StatusLabel = null
     g_Preview     = null
 
-    for child in g_PageView.childs do
-        child.destroy()
+    let pageView0 = notnull g_PageView
+    for child in pageView0.childs
+    {
+        let c = notnull child
+        c.destroy()
+    }
 }
 
 func buildPage()
@@ -719,8 +731,9 @@ func buildPage()
     }
 
     updateStatusLabel()
-    g_PageView.updateCommandState()
-    g_PageView.invalidate()
+    let pv = notnull g_PageView
+    pv.updateCommandState()
+    pv.invalidate()
 }
 
 func layoutRootView()
@@ -728,17 +741,24 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let rect = g_View.getClientRect()
+    let view     = notnull g_View
+    let pageView = notnull g_PageView
+
+    let rect = view.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    g_Title.setPosition({RootMargin, 18, titleWidth, 34})
-    g_ThemeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
-    g_PageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
-    g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
+    let title2      = notnull g_Title
+    let themeButton = notnull g_ThemeButton
+    let subTitle2   = notnull g_SubTitle
+    let footer2     = notnull g_Footer
+    title2.setPosition({RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
+    footer2.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
 func nextPage()
@@ -779,11 +799,14 @@ func canUsePageArrows()->bool
     if !g_View or !g_PageView do
         return false
 
-    let focus = g_View.getFocus()
+    let view2     = notnull g_View
+    let pageView2 = notnull g_PageView
+
+    let focus = view2.getFocus()
     if !focus or focus == g_View do
         return true
 
-    return !g_PageView.isParentOf(focus)
+    return !pageView2.isParentOf(notnull focus)
 }
 
 func onFrame(app: *Application)
@@ -799,54 +822,62 @@ func onFrame(app: *Application)
 
 func registerMenuShortcuts()
 {
-    g_View.registerKeyShortcut(.Control, .N, MenuCmd.NewFile)
-    g_View.registerKeyShortcut(.Control, .O, MenuCmd.OpenFile)
-    g_View.registerKeyShortcut(.Control, .S, MenuCmd.SaveFile)
-    g_View.registerKeyShortcut(.CtrlShift, .S, MenuCmd.SaveAs)
-    g_View.registerKeyShortcut(.Control, .Z, MenuCmd.Undo)
-    g_View.registerKeyShortcut(.Control, .Y, MenuCmd.Redo)
-    g_View.registerKeyShortcut(.Control, .X, MenuCmd.Cut)
-    g_View.registerKeyShortcut(.Control, .C, MenuCmd.Copy)
-    g_View.registerKeyShortcut(.Control, .V, MenuCmd.Paste)
-    g_View.registerKeyShortcut(.Control, .G, MenuCmd.ToggleGrid)
-    g_View.registerKeyShortcut(.CtrlShift, .G, MenuCmd.ToggleGuides)
+    let view3 = notnull g_View
+    view3.registerKeyShortcut(.Control, .N, MenuCmd.NewFile)
+    view3.registerKeyShortcut(.Control, .O, MenuCmd.OpenFile)
+    view3.registerKeyShortcut(.Control, .S, MenuCmd.SaveFile)
+    view3.registerKeyShortcut(.CtrlShift, .S, MenuCmd.SaveAs)
+    view3.registerKeyShortcut(.Control, .Z, MenuCmd.Undo)
+    view3.registerKeyShortcut(.Control, .Y, MenuCmd.Redo)
+    view3.registerKeyShortcut(.Control, .X, MenuCmd.Cut)
+    view3.registerKeyShortcut(.Control, .C, MenuCmd.Copy)
+    view3.registerKeyShortcut(.Control, .V, MenuCmd.Paste)
+    view3.registerKeyShortcut(.Control, .G, MenuCmd.ToggleGrid)
+    view3.registerKeyShortcut(.CtrlShift, .G, MenuCmd.ToggleGuides)
 }
 
 func createRootView()
 {
-    g_View                 = g_Surface.getView()
-    g_View.backgroundStyle = .View
+    let view = (notnull g_Surface).getView()
+    g_View               = view
+    view.backgroundStyle = .View
 
-    g_Title = Label.create(notnull g_View, "", {})
-    setLabelTextStyle(notnull g_Title, .Left, .Center)
-    g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
+    let title = Label.create(view, "", {})
+    g_Title = title
+    setLabelTextStyle(title, .Left, .Center)
+    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    g_SubTitle = subTitle
+    setLabelTextStyle(subTitle, .Left, .Top)
 
-    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form       = .Flat
-    g_ThemeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
-    g_ThemeButton.sigPressed += &toggleTheme
+    let themeButton = PushButton.create(view, "", {})
+    g_ThemeButton          = themeButton
+    themeButton.form       = .Flat
+    themeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    themeButton.sigPressed += &toggleTheme
 
-    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
-    g_PageView.backgroundStyle = .Transparent
+    let pageView = Wnd.create'Wnd(view, {})
+    g_PageView               = pageView
+    pageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(notnull g_View, "", {})
-    setLabelTextStyle(notnull g_Footer, .Left, .Center)
-    g_Footer.labelFlags.add(.LightText)
+    let footer = Label.create(view, "", {})
+    g_Footer = footer
+    setLabelTextStyle(footer, .Left, .Center)
+    footer.labelFlags.add(.LightText)
 
     registerMenuShortcuts()
     layoutRootView()
-    g_View.hookOnEvent = &onRootEvent
+    view.hookOnEvent = &onRootEvent
 }
 
 #main
 {
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
-    g_Surface = try app.createSurface(100, 80, W - 46, H - 31, flags)
-    g_Surface.setTitle("GUI6 menu showcase")
-    g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.More, 18))
+    let surface = notnull (try app.createSurface(100, 80, W - 46, H - 31, flags))
+    g_Surface = surface
+    surface.setTitle("GUI6 menu showcase")
+    surface.setIcon(app.theme.getIcon24(ThemeIcons24.More, 18))
     g_StatusText = "Open a menu or use shortcuts to exercise command dispatch."
 
     createRootView()
@@ -856,7 +887,7 @@ func createRootView()
     if Env.hasArg("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
-    g_Surface.show()
+    surface.show()
     applyTheme()
     app.run()
 }

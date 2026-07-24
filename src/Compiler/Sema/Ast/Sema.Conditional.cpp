@@ -195,6 +195,20 @@ namespace
         const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
         return resultTypeRef == concreteLeftTypeRef ? leftTypeRef : resultTypeRef;
     }
+
+    // A '?.' chain whose result type cannot carry the null outcome fuses with an
+    // enclosing 'orelse': the chain's null exit lands directly on the fallback, so
+    // no truthiness test of the produced value is involved.
+    bool isFusedOptionalChainLeft(Sema& sema, const SemaNodeView& nodeLeftView)
+    {
+        if (!nodeLeftView.node() || !nodeLeftView.node()->is(AstNodeId::OptionalChainExpr))
+            return false;
+        if (!nodeLeftView.typeRef().isValid())
+            return false;
+
+        const TypeRef unwrappedRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
+        return unwrappedRef.isValid() && !sema.typeMgr().get(unwrappedRef).isNullable();
+    }
 }
 
 Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -278,6 +292,17 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
     sema.setIsValue(*this);
 
+    // Fused '?.' chain: the fallback replaces the chain's null outcome, and the
+    // produced value flows through untested (its own value may legitimately be
+    // zero or false).
+    if (isFusedOptionalChainLeft(sema, nodeLeftView))
+    {
+        const TypeRef resultTypeRef = nodeLeftView.typeRef();
+        SWC_RESULT(Cast::cast(sema, nodeRightView, resultTypeRef, CastKind::Implicit));
+        sema.setType(sema.curNodeRef(), resultTypeRef);
+        return Result::Continue;
+    }
+
     if (!nodeLeftView.type()->isConvertibleToBoolAliasAware(sema.ctx()))
         return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
 
@@ -307,6 +332,58 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
     }
 
     return Result::Continue;
+}
+
+Result AstOptionalChainExpr::semaPostNode(Sema& sema)
+{
+    const SemaNodeView exprView = sema.viewNodeType(nodeExprRef);
+    if (!exprView.typeRef().isValid())
+        return Result::Error;
+
+    const TypeRef unwrappedRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), exprView.typeRef());
+    SWC_ASSERT(unwrappedRef.isValid());
+    const TypeInfo& exprType = sema.typeMgr().get(unwrappedRef);
+
+    // A skipped void chain is a statement: its null exit simply lands after the call.
+    if (exprType.isVoid())
+    {
+        sema.setType(sema.curNodeRef(), exprView.typeRef());
+        return Result::Continue;
+    }
+
+    SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
+    sema.setIsValue(*this);
+
+    // A nullable-capable result carries the null outcome in its own type.
+    if (exprType.isSupportsNullableQualifier())
+    {
+        TypeRef resultTypeRef = exprView.typeRef();
+        if (!exprType.isNullable())
+        {
+            TypeInfo resultType = exprType;
+            resultType.addFlag(TypeInfoFlagsE::Nullable);
+            resultTypeRef = sema.typeMgr().addType(resultType);
+        }
+        sema.setType(sema.curNodeRef(), resultTypeRef);
+
+        // Wide results (string, slice, interface, ...) join through an address:
+        // the null outcome needs zeroed storage to point at.
+        if (exprType.sizeOf(sema.ctx()) > 8)
+            SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, resultTypeRef, "__optional_chain_storage"));
+        return Result::Continue;
+    }
+
+    // Any other result type must hand the null outcome to an immediate 'orelse'
+    // fallback (see isFusedOptionalChainLeft).
+    const AstNodeRef parentRef = sema.visit().parentNodeRef();
+    if (parentRef.isValid() && sema.node(parentRef).is(AstNodeId::NullCoalescingExpr) &&
+        sema.node(parentRef).cast<AstNullCoalescingExpr>().nodeLeftRef == sema.curNodeRef())
+    {
+        sema.setType(sema.curNodeRef(), exprView.typeRef());
+        return Result::Continue;
+    }
+
+    return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_optional_access_result_type, sema.curNodeRef(), exprView.typeRef());
 }
 
 SWC_END_NAMESPACE();

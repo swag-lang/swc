@@ -193,7 +193,7 @@ internal impl Properties
         {
         case Reflection.isStaticArray(value.pointedType):
             let item           = .addItem(value, data, parentItem)
-            let typeArr        = cast(#null const *Swag.TypeInfoArray) value.pointedType
+            let typeArr        = notnull cast(#null const *Swag.TypeInfoArray) value.pointedType
             let numItemsBefore = .items.count
 
             var newData = data
@@ -248,7 +248,8 @@ internal impl Properties
             // A plain (non-registered) struct expands inline into one row per field. Custom
             // struct editors (Color, the vector family, ...) are handled by the editor registry
             // at the top of this method and never reach here.
-            parentItem.flags.add(.NoSeparator | .NoFocus)
+            let pItem = notnull parentItem
+            pItem.flags.add(.NoSeparator | .NoFocus)
             let item           = .addItem(value, data, parentItem)
             let numItemsBefore = .items.count
             .addStructInternal(typeSubStruct, data, item)
@@ -273,9 +274,10 @@ internal impl Properties
         // structs after the struct's own fields — a derived type then edits its most specific
         // fields first even though the language forces the base to be declared first.
         var walkOrder: Array'u64
+        let tsFields = notnull typeStruct.fields
         for i in @countof(typeStruct.fields)
         {
-            if !.usingFieldsLast or !typeStruct.fields[i].flags.has(.HasUsing) do
+            if !.usingFieldsLast or !tsFields[i].flags.has(.HasUsing) do
                 walkOrder.add(i)
         }
 
@@ -283,14 +285,14 @@ internal impl Properties
         {
             for i in @countof(typeStruct.fields)
             {
-                if typeStruct.fields[i].flags.has(.HasUsing) do
+                if tsFields[i].flags.has(.HasUsing) do
                     walkOrder.add(i)
             }
         }
 
         for idx in walkOrder
         {
-            let value = typeStruct.fields[idx]
+            let value = tsFields[idx]
 
             // Opt-in mode (see addStructMulti 'onlyNamed'): a field participates only when it
             // carries an explicit display name. 'using' struct fields always recurse — their own
@@ -340,8 +342,11 @@ internal impl Properties
             .addValue(value, addr + value.offset, newParent)
 
             let added = cast(u32) (.items.count - numItemsBefore)
-            for &c in categPath do
-                c.item.numChilds += added
+            for &c in categPath
+            {
+                let categItem = notnull c.item
+                categItem.numChilds += added
+            }
         }
     }
 
@@ -388,7 +393,7 @@ internal impl Properties
         let item = .addItem(v, null, parentForCateg)
         item.label.style.setFont(&.fontCategory)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
-        if !parentForCateg.flags.has(.Category) do
+        if !(notnull parentForCateg).flags.has(.Category) do
             item.level = 0
         .sections.add({item, 1})
         return item
@@ -414,7 +419,7 @@ internal impl Properties
     {
         with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32) size, .Zero)
         {
-            .level = parentItem.level
+            .level = (notnull parentItem).level
             .flags.add(.Spacer | .NoSeparator | .NoFocus)
         }
 
@@ -430,7 +435,7 @@ internal impl Properties
         {
             if @isset(.label) do
                 .label.style.setFont(&.fontCategory)
-            .level = parentItem.level
+            .level = (notnull parentItem).level
             .flags.add(.Header | .NoSeparator | .NoFocus)
         }
 
@@ -443,7 +448,7 @@ internal impl Properties
     mtd addNoteRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
     {
         let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .Zero)
-        item.level = parentItem.level
+        item.level = (notnull parentItem).level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
         with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})

@@ -6,7 +6,7 @@ private impl RichEditCtrl
 {
     mtd getSelectionRectRange(lineIndex: u64, rankBeg, rankEnd: *u64)->bool
     {
-        let line = .lines[lineIndex]
+        let line = notnull .lines[lineIndex]
         let len  = line.length()
 
         var x  = .getMarginLeft()
@@ -167,7 +167,7 @@ impl RichEditCtrl
             .invalidate()
         }
 
-        let back = .lines.back()
+        let back = notnull .lines.back()
         if .selBeg.lineIndex == .lines.count - 1 and .selBeg.charPosInLine > back.length() do
             .selBeg.charPosInLine = back.length()
 
@@ -306,7 +306,7 @@ impl RichEditCtrl
         if end.charPosInLine == 0 and beg.lineIndex != end.lineIndex do
             .moveCursorLeft(&end)
         beg.charPosInLine = 0
-        end.charPosInLine = .lines[end.lineIndex].length()
+        end.charPosInLine = (notnull .lines[end.lineIndex]).length()
         .selBeg           = beg
         .setCursorPos(end)
         .moveCursorRight(&.cursorPos)
@@ -317,7 +317,7 @@ impl RichEditCtrl
 
     mtd selectWord()
     {
-        let line = .lines[.cursorPos.lineIndex]
+        let line = notnull .lines[.cursorPos.lineIndex]
         let len  = line.length()
         if !len do
             return

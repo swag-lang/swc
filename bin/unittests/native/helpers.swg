@@ -7,7 +7,8 @@ var DropCheck: s32
 func fail(code: u32)
 {
     var ptr: #null [*] u8 = null
-    ptr[code] = cast(u8) code
+    let p = notnull ptr
+    p[code] = cast(u8) code
 }
 
 func check(cond: bool, code: u32)

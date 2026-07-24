@@ -412,12 +412,12 @@ impl PropWnd
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
-            var curSel = prop.getSelectedBaseForm()
+            var curSel = notnull prop.getSelectedBaseForm()
             var rect   = pos
             rect.x                  = rect.horzCenter() - 21
             rect.y                  = rect.vertCenter() - 21
             rect.width, rect.height = 42
-            var backCol = curSel.subKind == .PixSel ? g_Main.pixSelFillCol : curSel.backColor
+            var backCol = curSel.subKind == .PixSel ? (notnull g_Main).pixSelFillCol : curSel.backColor
             if !backCol.isOpaque() do
                 bc.painter.fillRoundRect(rect, 10, 10, Brush.createHatch(.CheckBoardLarge, Argb.DarkGray))
             bc.painter.fillRoundRect(rect, 10, 10, backCol)
@@ -425,14 +425,15 @@ impl PropWnd
 
         btn.sigShowPopup += func|prop = me|(btn)
         {
-            var curSel  = prop.getSelectedBaseForm()
-            var backCol = curSel.subKind == .PixSel ? g_Main.pixSelFillCol : curSel.backColor
+            var curSel  = notnull prop.getSelectedBaseForm()
+            var backCol = curSel.subKind == .PixSel ? (notnull g_Main).pixSelFillCol : curSel.backColor
             var picker  = createColorPicker(btn, backCol)
             if curSel.subKind == .PixSel
             {
                 picker.sigChanged += func|btn|(pk)
                 {
-                    g_Main.pixSelFillCol = pk.getColor()
+                    let mainWnd = notnull g_Main
+                    mainWnd.pixSelFillCol = pk.getColor()
                     btn.invalidate()
                 }
             }
@@ -602,11 +603,11 @@ impl PropWnd
         {
             .setMessage("Press Shift+Enter to add a new line")
             .setText(curText)
-            .richEdit.selectAll()
-            .surface.setTitle("Enter Text")
-            .surface.center(notnull main.surface)
+            .richEdit?.selectAll()
+            .surface?.setTitle("Enter Text")
+            .surface?.center(notnull main.surface)
             if main.inPlaceEdit do
-                .surface.setTopMost()
+                .surface?.setTopMost()
         }
 
         if dlg.doModal() != Dialog.BtnOk do
@@ -779,11 +780,13 @@ impl PropWnd
         {
             for item in .grid.items
             {
-                if item.typeValue.name != #nameof(BaseForm.borderSize) or !item.sliderBox do
+                let it = notnull item
+                if it.typeValue.name != #nameof(BaseForm.borderSize) or !@isset(it.sliderBox) do
                     continue
-                item.sliderBox.label.setText("Outline")
-                item.sliderBox.setMinMaxS64(cast() MinTextBorderSize, cast() MaxTextBorderSize)
-                item.sliderBox.setValueNoChange(.getSelectedBaseForm().borderSize)
+                let sliderBox = it.sliderBox
+                sliderBox.label.setText("Outline")
+                sliderBox.setMinMaxS64(cast() MinTextBorderSize, cast() MaxTextBorderSize)
+                sliderBox.setValueNoChange((notnull .getSelectedBaseForm()).borderSize)
             }
         }
     }
@@ -827,7 +830,7 @@ impl PropWnd
 
         let capture = .main.getCapture()
         if capture do
-            capture.editView.setFocus()
+            capture.editView?.setFocus()
     }
 
     func create(parent: *Wnd, main: *MainWnd)->*PropWnd

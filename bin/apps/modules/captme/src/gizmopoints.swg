@@ -95,12 +95,13 @@ impl GizmoPoints
 
     func apply(iform: IForm, diff: Math.Point, pt: u32, first: bool)
     {
-        let form    = cast(*BaseForm) @dataof(iform)
-        let capture = form.capture
+        let form     = cast(*BaseForm) @dataof(iform)
+        let capture  = notnull form.capture
         if !first do
             capture.undo()
-        let undo = capture.newUndo(.MovePoint)
-        let zoom = capture.editView.zoom
+        let undo     = capture.newUndo(.MovePoint)
+        let editView = notnull capture.editView
+        let zoom     = editView.zoom
 
         undo.newPosX = cast(s32) (diff.x / zoom)
         undo.newPosY = cast(s32) (diff.y / zoom)
@@ -109,6 +110,6 @@ impl GizmoPoints
         undo.pointIdx = pt
         undo.baseForm = iform
         capture.pushUndo(undo)
-        capture.editView.invalidate()
+        editView.invalidate()
     }
 }

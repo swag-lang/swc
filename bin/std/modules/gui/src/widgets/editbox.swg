@@ -99,14 +99,15 @@ impl IWnd for EditBox
         {
         case SetFocus:
             .originalText = .text
-            .timerCaret   = .surface.app.addTimer(500'ms, me)
+            .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
             .visibleCaret = true
             .computeCaretPos()
             .invalidate()
 
         case KillFocus:
             .sigLoseFocus.call(me)
-            .surface.app.deleteTimer(notnull .timerCaret)
+            let srf = notnull .surface
+            srf.app.deleteTimer(notnull .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -894,13 +895,13 @@ private impl EditBox
         if s == sel do
             return sel
 
-        let test = !Latin1.isSpace(.text.buffer[s])
+        let test = !Latin1.isSpace((notnull .text.buffer)[s])
         for
         {
             let ns = .moveCaretLeft(s)
             if ns == s do
                 break
-            if Latin1.isSpace(.text.buffer[ns]) == test do
+            if Latin1.isSpace((notnull .text.buffer)[ns]) == test do
                 return s
             s = ns
         }
@@ -914,12 +915,12 @@ private impl EditBox
         if sel == .text.length do
             return sel
 
-        let test = !Latin1.isSpace(.text.buffer[sel])
+        let test = !Latin1.isSpace((notnull .text.buffer)[sel])
         var s    = sel
         while s != .text.length
         {
             s = .moveCaretRight(s)
-            if Latin1.isSpace(.text.buffer[s]) == test do
+            if Latin1.isSpace((notnull .text.buffer)[s]) == test do
                 return s
         }
 

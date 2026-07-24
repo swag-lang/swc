@@ -706,7 +706,7 @@ impl Painter
 
         var startLine    = 0
         var lastWasSpace = false
-        let defaultLineHeight = format.font.regular.height
+        let defaultLineHeight = (notnull format.font.regular).height
         for &resetChunk in text.chunks do
             resetChunk.visible = false
 

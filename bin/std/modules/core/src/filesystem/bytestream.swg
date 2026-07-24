@@ -62,13 +62,14 @@ public impl ByteStream
     {
         Debug.assert(writeBuffer != null)
 
-        if seek + #sizeof(T) > writeBuffer.count do
-            writeBuffer.reserve(seek + #sizeof(T))
-        let buffer = notnull writeBuffer.buffer
+        let wb = notnull writeBuffer
+        if seek + #sizeof(T) > wb.count do
+            wb.reserve(seek + #sizeof(T))
+        let buffer = notnull wb.buffer
         var ptr = cast(*T) (buffer + seek)
-        dref ptr          = val
-        seek              += #sizeof(T)
-        writeBuffer.count = Math.max(writeBuffer.count, seek)
+        dref ptr = val
+        seek     += #sizeof(T)
+        wb.count = Math.max(wb.count, seek)
     }
 
     // Writes a slice of bytes to the stream
@@ -80,13 +81,14 @@ public impl ByteStream
         if !count do
             return
 
-        if .seek + count > .writeBuffer.count do
-            .writeBuffer.reserve(.seek + count)
-        let buffer = notnull .writeBuffer.buffer
+        let wb = notnull .writeBuffer
+        if .seek + count > wb.count do
+            wb.reserve(.seek + count)
+        let buffer = notnull wb.buffer
         let ptr = buffer + .seek
         Memory.copy(ptr, @dataof(slice), count)
-        .seek              += count
-        .writeBuffer.count = Math.max(.writeBuffer.count, .seek)
+        .seek    += count
+        wb.count = Math.max(wb.count, .seek)
     }
 
     // Reads a native value of type 'T' from the stream

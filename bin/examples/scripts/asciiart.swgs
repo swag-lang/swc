@@ -69,7 +69,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         const GrayRamp = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[?]?-_+~<>i!lI;:,\"^`\'. "
 
-        let size = cast(f32) g_Font.size * 0.8
+        let font = notnull g_Font
+        let size = cast(f32) font.size * 0.8
 
         for x in g_Img.width
         {

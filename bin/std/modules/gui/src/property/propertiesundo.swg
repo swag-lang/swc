@@ -76,7 +76,7 @@ impl PropFieldValue
             .isString = true
             .strings.reserve(.n)
             for k in .n do
-                .strings.add(dref cast(#null *String) .addrs[k])
+                .strings.add(dref notnull cast(#null *String) .addrs[k])
         }
         else
         {
@@ -102,7 +102,7 @@ impl PropFieldValue
         if .isString
         {
             for k in .n do
-                dref cast(#null *String) .addrs[k] = .strings[k]
+                dref notnull cast(#null *String) .addrs[k] = .strings[k]
         }
         else
         {
@@ -177,8 +177,11 @@ internal impl Properties
     // after the instance addresses are assigned).
     mtd assignUndoSnapshots(fromIdx: u64)
     {
-        for i in fromIdx until .items.count do
-            .items[i].undoValue.capture(me, notnull .items[i])
+        for i in fromIdx until .items.count
+        {
+            let it = notnull .items[i]
+            it.undoValue.capture(me, it)
+        }
     }
 
     // Diff the row's current value against its snapshot; on a real change, push one undo
@@ -230,8 +233,11 @@ internal impl Properties
 
         // Resync every row snapshot with the restored values, so the next edit diffs against
         // the timeline position we just moved to.
-        for it in .items do
-            it.undoValue.capture(me, notnull it)
+        for it in .items
+        {
+            let itn = notnull it
+            itn.undoValue.capture(me, itn)
+        }
 
         var relayout = .updateValidation()
         if .updateDefaults() do
@@ -302,8 +308,11 @@ public impl Properties
     mtd clearUndo()
     {
         .activeUndoMgr().clear()
-        for it in .items do
-            it.undoValue.capture(me, notnull it)
+        for it in .items
+        {
+            let itn = notnull it
+            itn.undoValue.capture(me, itn)
+        }
     }
 
     // Turn recording on/off (e.g. to batch programmatic changes without polluting the history).

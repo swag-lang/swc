@@ -302,10 +302,11 @@ impl LibraryView
         let search = .libWnd.searchText.toString()
         for it in .allItems
         {
-            it.filtered = true
+            let itn = notnull it
+            itn.filtered = true
 
             .mutexLoaded.lock()
-            let capture = it.capture
+            let capture = itn.capture
             .mutexLoaded.unlock()
 
             if !capture
@@ -315,8 +316,8 @@ impl LibraryView
                 // are not padded with unloaded, possibly non-matching, captures.
                 if @countof(search) != 0 do
                     continue
-                it.filtered = false
-                .items.add(notnull it)
+                itn.filtered = false
+                .items.add(itn)
                 continue
             }
 
@@ -329,11 +330,11 @@ impl LibraryView
                 continue
             if !loaded.linkedUpToDate and !loaded.linkedImage.isEmpty() and !.libWnd.showUnSavedLinkedImage do
                 continue
-            if !.matchSearch(notnull it, loaded, search) do
+            if !.matchSearch(itn, loaded, search) do
                 continue
 
-            it.filtered = false
-            .items.add(notnull it)
+            itn.filtered = false
+            .items.add(itn)
         }
 
         .invalidate()
@@ -521,7 +522,7 @@ impl LibraryView
         // filtered out are absent from '.items' and would leak their GPU texture
         // when 'allItems' is cleared below.
         for it in .allItems do
-            renderer.removeTexture(&it.texture)
+            renderer.removeTexture(&(notnull it).texture)
 
         // Add items
         .allItems.clear()

@@ -70,7 +70,7 @@ impl IPropertyEditor for FontStyleEditor
 
         item.sigRefresh += func|style, btnBold, btnItalic|(item)
         {
-            let s = dref style
+            let s = dref notnull style
             btnBold.isChecked   = s == .Bold or s == .BoldItalic
             btnItalic.isChecked = s == .Italic or s == .BoldItalic
             btnBold.invalidate()

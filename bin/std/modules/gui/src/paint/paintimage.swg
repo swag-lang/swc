@@ -18,15 +18,16 @@ impl PaintImage
         if !evt is PaintEvent do
             return false
 
-        let pt = cast(#null *PaintImage) wnd.surface.userData
-        if !pt.paint do
+        let pt    = notnull cast(#null *PaintImage) (notnull wnd.surface).userData
+        let paint = pt.paint
+        if !paint do
             return false
 
         let painter = &pt.painter
         painter.begin()
         painter.setParams(.Antialiased)
         painter.clear(Argb.Zero)
-        pt.paint(wnd.getApp(), painter)
+        paint(wnd.getApp(), painter)
         painter.end()
 
         let r  = &wnd.getApp().renderer

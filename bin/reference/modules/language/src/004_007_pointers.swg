@@ -37,11 +37,15 @@ initialized with `null` and has no implicit default. A struct field of such a ty
 therefore be supplied by an aggregate initializer unless it declares an explicit non-null
 default. Use `#null` to opt into nullability when null is part of the intended contract.
 
-A `#null` value cannot flow into a bare (non-null) slot directly; after checking it
-against `null`, use `assume` to convert it (a safety check panics at runtime if the value
-is still null). Comparisons between `#null` and bare values of the same type are always
-allowed. `undefined` remains an explicit low-level escape hatch and must only be used
-when the storage is initialized manually before it is read.
+A `#null` value cannot flow into a bare (non-null) slot directly, and it cannot be
+dereferenced, indexed, member-accessed or called while it is still nullable: every use
+site needs a proof. Flow narrowing provides it implicitly (a dominating null test such
+as `if p == null do return`, `if p do ...`, or the left side of `and`/`or`), `notnull`
+asserts it explicitly (a safety check panics at runtime if the value is still null),
+and `?.` skips the access entirely when the value is null. Comparisons between `#null`
+and bare values of the same type are always allowed. `undefined` remains an explicit
+low-level escape hatch and must only be used when the storage is initialized manually
+before it is read.
 
 A value with `opDrop` can be consumed with `#move` only when resetting its moved-from
 source does not require explicit initialization. Give required fields a default, or use
@@ -66,6 +70,58 @@ droppable value.
     #assert(#typeof(text) == string)
     #assert(#typeof(slice) == [..] s32)
     #assert(#typeof(holder.ptr) == *u8)
+}
+
+/**
+# Use-Site Nullability and `?.`
+
+Dereferencing a value whose type is still `#null` is a compile-time error: the flow
+must prove the value non-null first. The three sanctioned routes are a dominating
+null test (flow narrowing), an explicit `notnull` assertion, and the `?.` guarded
+access, which skips the rest of the postfix chain when the tested value is null.
+
+A `?.` chain whose result is itself nullable-capable (a pointer, string, slice,
+interface...) simply produces the null outcome in its own type. A chain producing a
+plain value (an integer, a bool...) cannot carry the null outcome and must hand it to
+an immediate `orelse` fallback. A void call through `?.` is a statement that does
+nothing when the value is null.
+*/
+#test
+{
+    struct OptChainRefDoc
+    {
+        count: s64
+        next:  #null *OptChainRefDoc
+    }
+
+    var first:  OptChainRefDoc
+    var second: OptChainRefDoc
+    first.count  = 2
+    first.next   = &second
+    second.count = 7
+
+    var p: #null *OptChainRefDoc = &first
+
+    // Narrowing: the null test dominates the dereference.
+    if p != null do
+        @assert(p.count == 2)
+
+    // 'notnull' asserts the proof explicitly (panics at runtime if wrong).
+    let q = notnull p
+    @assert(q.count == 2)
+
+    // '?.' skips the access when null; 'orelse' provides the scalar fallback.
+    // 'orelse' binds loosely, so the comparison needs the parentheses.
+    @assert((p?.count orelse -1) == 2)
+    @assert((p?.next?.count orelse -1) == 7)
+
+    // A nullable-capable chain result carries the null outcome itself.
+    let tail = p?.next
+    @assert(tail != null)
+
+    p = null
+    @assert((p?.count orelse -1) == -1)
+    @assert(p?.next == null)
 }
 
 /**

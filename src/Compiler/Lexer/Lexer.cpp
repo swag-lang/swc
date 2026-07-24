@@ -1032,8 +1032,16 @@ void Lexer::lexSymbol()
             break;
 
         case '?':
-            token_.id = TokenId::SymQuestion;
-            buffer_++;
+            if (buffer_[1] == '.')
+            {
+                token_.id = TokenId::SymQuestionDot;
+                buffer_ += 2;
+            }
+            else
+            {
+                token_.id = TokenId::SymQuestion;
+                buffer_++;
+            }
             break;
 
         case '~':

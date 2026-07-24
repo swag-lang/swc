@@ -58,10 +58,11 @@ func validateOp(str: string)
         g_Op       = str
     }
 
+    let edit = notnull g_Edit
     if g_Error do
-        g_Edit.setText(notnull g_Error)
+        edit.setText(notnull g_Error)
     else do
-        g_Edit.setText(Format.toString("%", g_CurValue))
+        edit.setText(Format.toString("%", g_CurValue))
 }
 
 #[Swag.Mixin]

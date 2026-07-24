@@ -57,7 +57,7 @@ impl FormImage
         .image.visitPixels(mask)
         {
             var maskImg = cast(*Image) notnull userData
-            var pix1    = maskImg.pixels.buffer + x * 4
+            var pix1    = (notnull maskImg.pixels.buffer) + x * 4
             pix1 += maskImg.width * y * 4
             if !pix1[0] do
                 dref cast(*u32) pix = 0
@@ -70,8 +70,9 @@ impl FormImage
     mtd backCapture()
     {
         let renderer = g_App.getRenderer()
-        let x1       = cast(s32) (.x - .capture.backImagePos.x)
-        let y1       = cast(s32) (.y - .capture.backImagePos.y)
+        let capture  = notnull .capture
+        let x1       = cast(s32) (.x - capture.backImagePos.x)
+        let y1       = cast(s32) (.y - capture.backImagePos.y)
 
         if .w > 1 and .h > 1 and .isReadyToCapture
         {
@@ -79,7 +80,7 @@ impl FormImage
             .dirty            = false
             .textureKind      = .kind
             renderer.removeTexture(&.texture)
-            .image   = .capture.backImg.toCrop(x1, y1, .w, .h)
+            .image   = capture.backImg.toCrop(x1, y1, .w, .h)
             .texture = g_App.getRenderer().addImage(.image)
         }
         elif .image.isValid()
@@ -282,8 +283,9 @@ impl IForm for FormImage
         if !cxt.quickMode
         {
             let renderer = g_App.getRenderer()
-            let x1       = cast(s32) (.x - .capture.backImagePos.x)
-            let y1       = cast(s32) (.y - .capture.backImagePos.y)
+            let capture  = notnull .capture
+            let x1       = cast(s32) (.x - capture.backImagePos.x)
+            let y1       = cast(s32) (.y - capture.backImagePos.y)
 
             switch .kind
             {
@@ -313,12 +315,12 @@ impl IForm for FormImage
                    .textureKind != .kind or
                    .dirty or
                    .stc != .strength or
-                   .serial != .capture.serialBackTexture
+                   .serial != capture.serialBackTexture
                 {
                     if .w > 1 and .h > 1
                     {
                         .dirty       = false
-                        .serial      = .capture.serialBackTexture
+                        .serial      = capture.serialBackTexture
                         .textureKind = .kind
                         .stc         = .strength
                         .xc          = .x
@@ -326,7 +328,7 @@ impl IForm for FormImage
                         .wc          = .w
                         .hc          = .h
                         renderer.removeTexture(&.texture)
-                        var img = .capture.backImg.toCrop(x1, y1, .w, .h)
+                        var img = capture.backImg.toCrop(x1, y1, .w, .h)
                         let st  = Math.map(cast(f32) .strength, 0, 100, 1, 16)
                         let nw  = Math.max(cast(s32) (img.width / st), 4)
                         let nh  = Math.max(cast(s32) (img.height / st), 4)
@@ -342,12 +344,12 @@ impl IForm for FormImage
                    .textureKind != .kind or
                    .dirty or
                    .stc != .strength or
-                   .serial != .capture.serialBackTexture
+                   .serial != capture.serialBackTexture
                 {
                     if .w > 1 and .h > 1
                     {
                         .dirty       = false
-                        .serial      = .capture.serialBackTexture
+                        .serial      = capture.serialBackTexture
                         .textureKind = .kind
                         .stc         = .strength
                         .xc          = .x
@@ -358,7 +360,7 @@ impl IForm for FormImage
                         const ZoomFactor = 2.5
                         let stw          = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .w / ZoomFactor)
                         let sth          = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .h / ZoomFactor)
-                        var img          = .capture.backImg.toCrop(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
+                        var img          = capture.backImg.toCrop(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
                         img.resize(.w, .h, .Raw)
                         .texture = g_App.getRenderer().addImage(img)
                     }
@@ -384,19 +386,19 @@ impl IForm for FormImage
                 {
                 case Image:
                     painter.fillRect(pp, .backColor)
-                    icon = Icon.from(&g_Main.icons48, 13)
+                    icon = Icon.from(&(notnull g_Main).icons48, 13)
 
                 case Blur:
-                    icon = Icon.from(&g_Main.icons48, 14)
+                    icon = Icon.from(&(notnull g_Main).icons48, 14)
 
                 case Pixelate:
-                    icon = Icon.from(&g_Main.icons48, 15)
+                    icon = Icon.from(&(notnull g_Main).icons48, 15)
 
                 case Zoom:
-                    icon = Icon.from(&g_Main.icons48, 16)
+                    icon = Icon.from(&(notnull g_Main).icons48, 16)
 
                 case Capture:
-                    icon = Icon.from(&g_Main.icons48, 18)
+                    icon = Icon.from(&(notnull g_Main).icons48, 18)
                 }
 
                 icon.sizeX, icon.sizeY = 32
@@ -411,7 +413,7 @@ impl IForm for FormImage
             elif .kind == .Image and !.image.isValid()
             {
                 painter.fillRect(pp, .backColor)
-                let icon = Icon.from(&g_Main.icons48, 13)
+                let icon = Icon.from(&(notnull g_Main).icons48, 13)
                 icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
                 pp.inflate(-bSize * 0.5)
                 painter.drawRect(pp, pen)

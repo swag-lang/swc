@@ -202,8 +202,9 @@ public impl Face
         if xhS == xh and (ch <= xh or chS == ch) do
             return
 
+        let points = notnull o.points
         for cast(u32) o.pointCount do
-            o.points[@index].y = hintMapY(o.points[@index].y, xh, xhS, ch, chS)
+            points[@index].y = hintMapY(points[@index].y, xh, xhS, ch, chS)
     }
 
     mtd renderGlyphSdf(spread: u32 = 8) throw

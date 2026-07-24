@@ -57,7 +57,7 @@ func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let headlineSize = Painter.measureString(headline, notnull g_TitleFont)
     let headlineX = sample.horzCenter() - headlineSize.width * 0.5
     let headlineY = sample.y + 24
-    let headlineBoundsY = headlineY + g_TitleFont.height - headlineSize.height
+    let headlineBoundsY = headlineY + (notnull g_TitleFont).height - headlineSize.height
 
     var headlineBrush = Brush.createLinearGradient(headlineX, headlineY, headlineX + headlineSize.width, headlineY + headlineSize.height, Argb.DeepSkyBlue, Argb.Crimson)
     headlineBrush.addGradientStop(0.48, Argb.Goldenrod)
@@ -67,7 +67,7 @@ func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let sweepText = "subpixel MSDF"
     let sweepSize = Painter.measureString(sweepText, notnull g_LabelFont)
     let sweepX = sample.horzCenter() - sweepSize.width * 0.5
-    let sweepY = headlineY + g_TitleFont.height + 12
+    let sweepY = headlineY + (notnull g_TitleFont).height + 12
     var sweepBrush = Brush.createSweepGradient(Math.Vector2{sweepX + sweepSize.width * 0.5, sweepY + sweepSize.height * 0.5}, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
     sweepBrush.addGradientStop(0.4, Argb.SeaGreen)
     painter.drawString(sweepX, sweepY, sweepText, notnull g_LabelFont, sweepBrush)
@@ -75,7 +75,7 @@ func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let textureText = "texture brush + underline"
     let textureSize = Painter.measureString(textureText, notnull g_HelpFont)
     let textureX = sample.horzCenter() - textureSize.width * 0.5
-    let textureY = sample.bottom() - g_HelpFont.height - 12
+    let textureY = sample.bottom() - (notnull g_HelpFont).height - 12
     painter.drawString(textureX, textureY, textureText, notnull g_HelpFont, Brush.createTiled(g_TileTexture), UnderlineStyle.Underline)
 }
 
@@ -93,9 +93,9 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let bigMs = Painter.measureString(big, notnull g_TitleFont)
     let smallMs = Painter.measureString(small, notnull g_HelpFont)
     let bigX = sample.x + 34
-    let bigTop = baseline - g_TitleFont.ascent
+    let bigTop = baseline - (notnull g_TitleFont).ascent
     let smallX = bigX + bigMs.width + 18
-    let smallTop = baseline - g_HelpFont.ascent
+    let smallTop = baseline - (notnull g_HelpFont).ascent
 
     painter.fillRect(bigX, baseline - bigMs.ascent, bigMs.width, bigMs.height, Color.fromArgb(24, Argb.DeepSkyBlue))
     painter.fillRect(smallX, baseline - smallMs.ascent, smallMs.width, smallMs.height, Color.fromArgb(24, Argb.Goldenrod))
@@ -122,7 +122,7 @@ func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let outlineSize = Painter.measureString("PIXEL", notnull g_OutlineFont)
     let outlineX = preview.horzCenter() - outlineSize.width * 0.5
     let outlineTop = preview.y + (preview.height - outlineSize.height) * 0.5
-    let outlineY = outlineTop + g_OutlineFont.ascent
+    let outlineY = outlineTop + (notnull g_OutlineFont).ascent
 
     drawTextCardSurface(painter, preview, Color.fromArgb(255, 246, 248, 250))
 

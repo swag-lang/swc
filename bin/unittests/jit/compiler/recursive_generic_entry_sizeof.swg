@@ -54,16 +54,17 @@ impl RecursiveAssocTable
 
         let oldTable = .table
         let oldCapacity = .capacity
-        .table = cast(#null [*] RecursiveAssocEntry'(K, V)) @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        let newTable = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        .table = newTable
 
         for i in oldCapacity
         {
-            .table[i].hash = oldTable[i].hash
+            newTable[i].hash = oldTable[i].hash
             if oldTable[i].hash < 2 do
                 continue
 
-            .table[i].key   = #nodrop oldTable[i].key
-            .table[i].value = oldTable[i].value
+            newTable[i].key   = #nodrop oldTable[i].key
+            newTable[i].value = oldTable[i].value
         }
     }
 
@@ -94,13 +95,14 @@ impl RecursiveAssocTable
         let oldTable = .table
         let oldCapacity = .capacity
 
-        .table    = cast(#null [*] RecursiveAssocEntry'(K, V)) @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        let newTable = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        .table    = newTable
         .count    = 0
         .deleted  = 0
         .capacity = reqCapacity
 
         for i in reqCapacity do
-            .table[i].hash = 0
+            newTable[i].hash = 0
 
         if oldTable == null do
             return
@@ -121,22 +123,23 @@ impl RecursiveAssocTable
     {
         .grow()
 
+        let table = notnull .table
         var index = hashVal % .capacity
-        while .table[index].hash >= 2
+        while table[index].hash >= 2
         {
-            if .table[index].hash == hashVal and .table[index].key == key
+            if table[index].hash == hashVal and table[index].key == key
             {
-                .table[index].value = value
+                table[index].value = value
                 return .table + index
             }
 
             index = (index + 1) % .capacity
         }
 
-        .table[index].hash  = hashVal
-        .table[index].key   = key
-        .table[index].value = value
-        .count              += 1
+        table[index].hash  = hashVal
+        table[index].key   = key
+        table[index].value = value
+        .count             += 1
         return .table + index
     }
 
@@ -217,10 +220,8 @@ struct RecursiveAssocNode
     @assert(assocMap.contains(10))
     @assert(assocMap.contains(20))
 
-    let foundA = assocMap.tryFind(10)
-    let foundB = assocMap.tryFind(20)
-    @assert(foundA != null)
-    @assert(foundB != null)
+    let foundA = notnull assocMap.tryFind(10)
+    let foundB = notnull assocMap.tryFind(20)
     @assert(foundA.value.count == 1)
     @assert(foundB.value.count == 1)
     @assert(foundA.value.first == &nodeA)
@@ -243,10 +244,8 @@ struct RecursiveAssocNode
     @assert(assocCopy.contains(10))
     @assert(assocCopy.contains(20))
 
-    let copyA = assocCopy.tryFind(10)
-    let copyB = assocCopy.tryFind(20)
-    @assert(copyA != null)
-    @assert(copyB != null)
+    let copyA = notnull assocCopy.tryFind(10)
+    let copyB = notnull assocCopy.tryFind(20)
     @assert(copyA.value.count == 1)
     @assert(copyB.value.count == 1)
     @assert(copyA.value.first == &nodeA)

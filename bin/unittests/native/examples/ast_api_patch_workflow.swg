@@ -51,7 +51,7 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
         len = appendAst(buffer, len, ": ")
         if field.pointedType == string do
             len = appendAst(buffer, len, "#null ")
-        len     = appendAst(buffer, len, notnull field.pointedType.name)
+        len     = appendAst(buffer, len, notnull (notnull field.pointedType).name)
         len     = appendAst(buffer, len, "\n")
     }
 

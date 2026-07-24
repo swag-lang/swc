@@ -317,8 +317,8 @@ impl Decoder
             {
                 let componentId = .mcuOrg[mcuBlock]
 
-                var p   = .blockSeg[rowBlock]
-                let q   = .quant[.compQuant[componentId]].buffer
+                var p   = notnull .blockSeg[rowBlock]
+                let q   = notnull .quant[.compQuant[componentId]].buffer
                 var pAC = coeffBufGetp(.acCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
                 let pDC = coeffBufGetp(.dcCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
 
@@ -442,8 +442,8 @@ impl Decoder
             for mcuBlock in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
-                var p           = .blockSeg[rowBlock]
-                let q           = .quant[.compQuant[componentId]].buffer
+                var p           = notnull .blockSeg[rowBlock]
+                let q           = notnull .quant[.compQuant[componentId]].buffer
 
                 var s = .huffDecode(&.h[.compDcTab[componentId]])
                 if s != 0
@@ -811,7 +811,7 @@ impl Decoder
     mtd convertGrayscale()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.buffer
+        var d   = notnull .scanLine0.buffer
         var s   = .safeSampleBuf() + row * 8
         for #reverse i in 1 to .maxMcusPerRow
         {
@@ -832,7 +832,7 @@ impl Decoder
     mtd convertH1V1()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.buffer
+        var d   = notnull .scanLine0.buffer
         var s   = .safeSampleBuf() + row * 8
         for #reverse i in 1 to .maxMcusPerRow
         {
@@ -855,8 +855,8 @@ impl Decoder
     mtd convertH1V2()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.buffer
-        var d1  = .scanLine1.buffer
+        var d0  = notnull .scanLine0.buffer
+        var d1  = notnull .scanLine1.buffer
 
         var y: [*] u8 = undefined
         if row < 8 do
@@ -895,7 +895,7 @@ impl Decoder
     mtd convertH2V1()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.buffer
+        var d0  = notnull .scanLine0.buffer
         var y   = .safeSampleBuf() + row * 8
         var c   = .safeSampleBuf() + 2 * 64 + row * 8
 
@@ -937,8 +937,8 @@ impl Decoder
     mtd convertH2V2()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.buffer
-        var d1  = .scanLine1.buffer
+        var d0  = notnull .scanLine0.buffer
+        var d1  = notnull .scanLine1.buffer
 
         var y: [*] u8 = undefined
         if row < 8 do
@@ -1122,9 +1122,10 @@ impl Decoder
 
     mtd stuffChar(q: u8)
     {
-        .inBufOfs      -= 1
-        dref .inBufOfs = q
-        .inBufLeft     += 1
+        .inBufOfs -= 1
+        let inBufOfs = notnull .inBufOfs
+        dref inBufOfs = q
+        .inBufLeft    += 1
     }
 
     mtd fixInBuffer()
@@ -1157,9 +1158,10 @@ impl Decoder
         var huffCode: [257] u32
 
         var p = 0
+        let huffNumBuf = notnull .huffNum[idx].buffer
         for l in 1 to 16
         {
-            for var i = 1; i <= .huffNum[idx].buffer[l]; i += 1
+            for var i = 1; i <= huffNumBuf[l]; i += 1
             {
                 huffSize[p] = cast(u8) l
                 p           += 1
@@ -1189,10 +1191,11 @@ impl Decoder
         Memory.clear(hs.codeSize, #sizeof(hs.codeSize))
 
         var nextFreeEntry = -1
+        let huffValBuf    = notnull .huffVal[idx].buffer
         p = 0
         while p < lastp
         {
-            let i = .huffVal[idx].buffer[p]
+            let i = huffValBuf[p]
             cde = huffCode[p]
             let codeSize = huffSize[p]
             hs.codeSize[i] = cast(u8) codeSize
@@ -1721,7 +1724,8 @@ impl Decoder
         }
 
         dref paddingFlag = false
-        let c = dref .inBufOfs
+        let inBufOfs = notnull .inBufOfs
+        let c = dref inBufOfs
         .inBufOfs  += 1
         .inBufLeft -= 1
         return c
@@ -1742,7 +1746,8 @@ impl Decoder
             }
         }
 
-        let c = .inBufOfs[0]
+        let inBufOfs = notnull .inBufOfs
+        let c = inBufOfs[0]
         .inBufOfs  += 1
         .inBufLeft -= 1
         return c
@@ -1885,12 +1890,13 @@ impl Decoder
                 throw InvalidFormatError{"bad dqt table"}
 
             .quant[n].resize(64)
+            let qbuf = notnull .quant[n].buffer
             for i in 64
             {
                 var temp = .getBits1(8)
                 if prec do
-                    temp            = (temp << 8) + .getBits1(8)
-                .quant[n].buffer[i] = cast(s16) temp
+                    temp    = (temp << 8) + .getBits1(8)
+                qbuf[i] = cast(s16) temp
             }
 
             var i = 64 + 1

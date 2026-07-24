@@ -343,7 +343,7 @@ impl Decoder
                 break
             if ret == 1 do
                 keySize += 1
-            entry       = .table.entries.buffer[key]
+            entry       = (notnull .table.entries.buffer)[key]
             strLen      = entry.length
             for i in strLen
             {
@@ -355,7 +355,7 @@ impl Decoder
                 .frame[(.fy + y) * .width + .fx + x] = entry.suffix
                 if entry.prefix == 0xFFF do
                     break
-                entry = .table.entries.buffer[entry.prefix]
+                entry = (notnull .table.entries.buffer)[entry.prefix]
             }
 
             frmOff += strLen
@@ -402,7 +402,8 @@ impl Decoder
 
     mtd renderFrame(buffer: [*] u8, pf: PixelFormat)
     {
-        var i = cast(u32) .fy * .width + .fx
+        let palette = notnull .palette
+        var i       = cast(u32) .fy * .width + .fx
 
         if pf.hasAlpha()
         {
@@ -411,7 +412,7 @@ impl Decoder
                 for k in cast(u32) .fw
                 {
                     let index = .frame[(.fy + j) * cast(u32) .width + (.fx + k)]
-                    let color = cast([*] u8) &.palette.colors[index * 3'u32]
+                    let color = cast([*] u8) &palette.colors[index * 3'u32]
                     let b     = buffer + (i + k) * 4
                     b[0] = color[0]
                     b[1] = color[1]
@@ -429,7 +430,7 @@ impl Decoder
                 for k in .fw
                 {
                     let index = .frame[(.fy + j) * .width + (.fx + k)]
-                    let color = cast([*] u8) &.palette.colors[index * 3'u32]
+                    let color = cast([*] u8) &palette.colors[index * 3'u32]
                     let b     = buffer + (i + k) * 3
                     b[0] = color[0]
                     b[1] = color[1]
@@ -512,7 +513,7 @@ public impl Decoder
             .frame.resize(4 * size)
             let frame = notnull .frame.buffer
             Memory.set(frame, .bgIndex, size)
-            .canvas = &.frame.buffer[size]
+            .canvas = &frame[size]
 
             let bgcolor = cast([*] u8) &.palette.colors[.bgIndex * 3'u32]
             if bgcolor[0] or bgcolor[1] or bgcolor[2]

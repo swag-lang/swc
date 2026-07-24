@@ -130,11 +130,12 @@ func __failedAssume(loc: SourceCodeLocation)
     if type.kind == TypeInfoKind.Struct
     {
         let typeStruct = cast(const *Swag.TypeInfoStruct) type
-        if (@countof(typeStruct.fields) > 0 and typeStruct.fields[0].pointedType == Swag.BaseError) or
+        let fields     = typeStruct.fields
+        if (fields != null and @countof(fields) > 0 and fields[0].pointedType == Swag.BaseError) or
            (type == Swag.BaseError)
         {
             let data = @dataof(cxt.errors[cxt.errorIndex].value)
-            let val  = cast(#null const *Swag.BaseError) data
+            let val  = cast(const *Swag.BaseError) notnull data
             maxLen = @min(@countof(val.message), 128)
             if maxLen
             {

@@ -1276,7 +1276,12 @@ namespace
                 case AstNodeId::IndexExpr:
                 {
                     if (node.is(AstNodeId::MemberAccessExpr))
-                        noteParamUse(state, node.cast<AstMemberAccessExpr>().nodeLeftRef, true);
+                    {
+                        // A '?.' access is itself a null test of its left side, not an
+                        // unguarded dereference.
+                        const auto& member = node.cast<AstMemberAccessExpr>();
+                        noteParamUse(state, member.nodeLeftRef, !member.hasFlag(AstMemberAccessExprFlagsE::OptionalAccess));
+                    }
                     else if (node.is(AstNodeId::IndexExpr))
                         noteParamUse(state, node.cast<AstIndexExpr>().nodeExprRef, true);
 
@@ -1721,7 +1726,11 @@ namespace
                 {
                     const AstNode& calleeNode = sema_.node(resolvedCalleeRef);
                     if (calleeNode.is(AstNodeId::MemberAccessExpr))
-                        noteParamUse(state, calleeNode.cast<AstMemberAccessExpr>().nodeLeftRef, true);
+                    {
+                        // A '?.' receiver is itself a null test, not an unguarded dereference.
+                        const auto& calleeMember = calleeNode.cast<AstMemberAccessExpr>();
+                        noteParamUse(state, calleeMember.nodeLeftRef, !calleeMember.hasFlag(AstMemberAccessExprFlagsE::OptionalAccess));
+                    }
                     else
                         noteParamUse(state, resolvedCalleeRef, true);
                 }

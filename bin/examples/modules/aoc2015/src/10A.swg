@@ -76,8 +76,9 @@ internal func day10RunStep(input: string, output: &String)
         write    += 1
     }
 
-    output.length                = cast(u64) (write - output.buffer)
-    output.buffer[output.length] = 0
+    output.length = cast(u64) (write - output.buffer)
+    let outBuf    = notnull output.buffer
+    outBuf[output.length] = 0
 }
 
 internal func day10EnsureLengths()

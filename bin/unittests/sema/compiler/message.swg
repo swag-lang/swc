@@ -86,7 +86,7 @@ var MessageUnknownCountArrayCount = 0
 
 #message(CompilerMsgMask.SemFunctions)
 {
-    let msg = @compiler.getMessage()
+    let msg = notnull @compiler.getMessage()
     @assert(msg.kind == CompilerMsgKind.SemFunctions)
 
     if msg.name == "messageCompilerOnlyFn" do
@@ -105,29 +105,30 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageLateFunctionCount += 1
         MessageSawLateFunction   = true
-        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
+        let typeFunc = cast(const *TypeInfoFunc) notnull msg.type
         @assert(@countof(typeFunc.parameters) == 0)
-        @assert(typeFunc.returnType.name == "s32")
+        @assert((notnull typeFunc.returnType).name == "s32")
     }
 
     if msg.name == "MessagePlaceholderOnly"
     {
         MessagePlaceholderFunctionCount += 1
         MessageSawPlaceholderFunction   = true
-        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
-        @assert(@countof(typeFunc.parameters) == 1)
-        @assert(typeFunc.parameters[0].name == "value")
-        @assert(typeFunc.parameters[0].pointedType.name == "s32")
-        @assert(typeFunc.returnType.name == "s32")
+        let typeFunc = cast(const *TypeInfoFunc) notnull msg.type
+        let params   = notnull typeFunc.parameters
+        @assert(@countof(params) == 1)
+        @assert(params[0].name == "value")
+        @assert((notnull params[0].pointedType).name == "s32")
+        @assert((notnull typeFunc.returnType).name == "s32")
     }
 
     if msg.name == "MessageMarkedNoParam"
     {
         MessageMarkedNoParamCount += 1
         MessageSawMarkedNoParam   = true
-        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
+        let typeFunc = cast(const *TypeInfoFunc) notnull msg.type
         @assert(@countof(typeFunc.parameters) == 0)
-        @assert(typeFunc.returnType.name == "u32")
+        @assert((notnull typeFunc.returnType).name == "u32")
         var foundMarker = false
         for attribute in typeFunc.attributes where attribute.type == #typeof(MessageMarker) do
             foundMarker = true
@@ -138,9 +139,9 @@ var MessageUnknownCountArrayCount = 0
     {
         MessagePlainNoParamCount += 1
         MessageSawPlainNoParam   = true
-        let typeFunc = cast(#null const *TypeInfoFunc) msg.type
+        let typeFunc = cast(const *TypeInfoFunc) notnull msg.type
         @assert(@countof(typeFunc.parameters) == 0)
-        @assert(typeFunc.returnType.name == "u32")
+        @assert((notnull typeFunc.returnType).name == "u32")
         for attribute in typeFunc.attributes do
             @assert(attribute.type != #typeof(MessageMarker))
     }
@@ -148,57 +149,54 @@ var MessageUnknownCountArrayCount = 0
 
 #message(CompilerMsgMask.SemTypes)
 {
-    let msg = @compiler.getMessage()
+    let msg = notnull @compiler.getMessage()
     @assert(msg.kind == CompilerMsgKind.SemTypes)
 
     if msg.name == "MessageLateType"
     {
         MessageLateTypeCount += 1
         MessageSawLateType   = true
-        @assert(msg.type != null)
-        @assert(msg.type.kind == TypeInfoKind.Struct)
-        @assert(msg.type.name == "MessageLateType")
+        let msgType = notnull msg.type
+        @assert(msgType.kind == TypeInfoKind.Struct)
+        @assert(msgType.name == "MessageLateType")
     }
 
     if msg.name == "MessageStrictHandle"
     {
         MessageStrictAliasCount += 1
         MessageSawStrictAlias   = true
-        @assert(msg.type != null)
-        @assert(msg.type.kind == TypeInfoKind.Alias)
-        @assert(msg.type.name == "MessageStrictHandle")
+        let msgType = notnull msg.type
+        @assert(msgType.kind == TypeInfoKind.Alias)
+        @assert(msgType.name == "MessageStrictHandle")
 
-        let aliasType = cast(#null const *TypeInfoAlias) msg.type
-        @assert(aliasType.rawType != null)
-        @assert(aliasType.rawType.name == "const *void")
+        let aliasType = cast(const *TypeInfoAlias) msgType
+        let rawType   = notnull aliasType.rawType
+        @assert(rawType.name == "const *void")
     }
 }
 
 #message(CompilerMsgMask.SemGlobals)
 {
-    let msg = @compiler.getMessage()
+    let msg = notnull @compiler.getMessage()
     @assert(msg.kind == CompilerMsgKind.SemGlobals)
 
     if msg.name == "MessageLateGlobal"
     {
         MessageLateGlobalCount += 1
         MessageSawLateGlobal   = true
-        @assert(msg.type != null)
-        @assert(msg.type.name == "s32")
+        @assert((notnull msg.type).name == "s32")
     }
 
     if msg.name == "MessageUnknownCountArray"
     {
         MessageUnknownCountArrayCount += 1
         MessageSawUnknownCountArray   = true
-        @assert(msg.type != null)
-        @assert(msg.type.kind == TypeInfoKind.Array)
+        let msgType = notnull msg.type
+        @assert(msgType.kind == TypeInfoKind.Array)
 
-        let typeArray = cast(#null const *TypeInfoArray) msg.type
-        @assert(typeArray.pointedType != null)
-        @assert(typeArray.pointedType.name == "s32")
-        @assert(typeArray.finalType != null)
-        @assert(typeArray.finalType.name == "s32")
+        let typeArray = cast(const *TypeInfoArray) msgType
+        @assert((notnull typeArray.pointedType).name == "s32")
+        @assert((notnull typeArray.finalType).name == "s32")
         @assert(typeArray.count == 0)
         @assert(typeArray.totalCount == 0)
     }

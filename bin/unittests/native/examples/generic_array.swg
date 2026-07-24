@@ -37,27 +37,31 @@ func(T) push(arr: *DynArray'T, value: T)
         arr.capacity = newCapacity
     }
 
-    arr.data[arr.count] = value
-    arr.count           += 1
+    let data = notnull arr.data
+    data[arr.count] = value
+    arr.count       += 1
 }
 
 func(T) pop(arr: *DynArray'T)->T
 {
     @assert(arr.count > 0)
     arr.count -= 1
-    return arr.data[arr.count]
+    let data = notnull arr.data
+    return data[arr.count]
 }
 
 func(T) get(arr: *DynArray'T, index: u64)->T
 {
     @assert(index < arr.count)
-    return arr.data[index]
+    let data = notnull arr.data
+    return data[index]
 }
 
 func(T) set(arr: *DynArray'T, index: u64, value: T)
 {
     @assert(index < arr.count)
-    arr.data[index] = value
+    let data = notnull arr.data
+    data[index] = value
 }
 
 func(T) clear(arr: *DynArray'T)
@@ -68,14 +72,16 @@ func(T) clear(arr: *DynArray'T)
 func(T) last(arr: *DynArray'T)->T
 {
     @assert(arr.count > 0)
-    return arr.data[arr.count - 1]
+    let data = notnull arr.data
+    return data[arr.count - 1]
 }
 
 func(T) contains(arr: *DynArray'T, value: T)->bool
 {
+    let data = notnull arr.data
     for i in arr.count
     {
-        if arr.data[i] == value do
+        if data[i] == value do
             return true
     }
 
@@ -85,11 +91,12 @@ func(T) contains(arr: *DynArray'T, value: T)->bool
 func(T) removeAt(arr: *DynArray'T, index: u64)
 {
     @assert(index < arr.count)
-    var i = index
+    let data = notnull arr.data
+    var i    = index
     while i + 1 < arr.count
     {
-        arr.data[i] = arr.data[i + 1]
-        i           += 1
+        data[i] = data[i + 1]
+        i       += 1
     }
 
     arr.count -= 1
@@ -105,15 +112,16 @@ func(T) insertAt(arr: *DynArray'T, index: u64, value: T)
         arr.capacity = newCapacity
     }
 
-    var i = arr.count
+    let data = notnull arr.data
+    var i    = arr.count
     while i > index
     {
-        arr.data[i] = arr.data[i - 1]
-        i           -= 1
+        data[i] = data[i - 1]
+        i       -= 1
     }
 
-    arr.data[index] = value
-    arr.count       += 1
+    data[index] = value
+    arr.count   += 1
 }
 
 func(T) reverse(arr: *DynArray'T)
@@ -121,14 +129,15 @@ func(T) reverse(arr: *DynArray'T)
     if arr.count <= 1 do
         return
     var lo: u64 = 0
-    var hi = arr.count - 1
+    var hi   = arr.count - 1
+    let data = notnull arr.data
     while lo < hi
     {
-        let tmp = arr.data[lo]
-        arr.data[lo] = arr.data[hi]
-        arr.data[hi] = tmp
-        lo           += 1
-        hi           -= 1
+        let tmp = data[lo]
+        data[lo] = data[hi]
+        data[hi] = tmp
+        lo       += 1
+        hi       -= 1
     }
 }
 

@@ -108,7 +108,7 @@ func compositeSliderChanged(s: *SliderCtrl)
     ctrl.combo.selectItem(1)
     host.pump()
     @assert(ctrl.combo.selectedIdx == 1)
-    @assert(ctrl.combo.getSelectedItem().name.raw == "Two")
+    @assert((notnull ctrl.combo.getSelectedItem()).name.raw == "Two")
 
     host.shutdown()
 }

@@ -45,7 +45,7 @@ impl IPropertyEditor for AlignEditor
                 // The captme toolbar icons when the app is there, letter fallbacks otherwise
                 // (the headless fixtures build panels without a full application).
                 if g_Main do
-                    .icon = Icon.from(&g_Main.icons24, cast(s32) ((vert ? 11 : 8) + i))
+                    .icon = Icon.from(&(notnull g_Main).icons24, cast(s32) ((vert ? 11 : 8) + i))
                 else do
                     .name = Labels[i]
             }

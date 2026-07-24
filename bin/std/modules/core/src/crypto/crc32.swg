@@ -505,7 +505,7 @@ public impl Crc32
         var length = @countof(data)
         if !length do
             return
-        var current = cast(#null const [*] u32) @dataof(data)
+        var current = notnull cast(#null const [*] u32) @dataof(data)
 
         var cur           = ~.crc
         const unroll      = 4
@@ -555,7 +555,7 @@ public impl Crc32
             length -= bytesAtOnce
         }
 
-        var currentChar = cast(#null const [*] u8) current
+        var currentChar = notnull cast(#null const [*] u8) current
         while length
         {
             cur         = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]

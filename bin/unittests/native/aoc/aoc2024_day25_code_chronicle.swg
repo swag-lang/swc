@@ -169,8 +169,9 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             }
             h.col[col] = count
         }
-        result.locks[result.lockCount] = h
-        result.lockCount               += 1
+        let locks = notnull result.locks
+        locks[result.lockCount] = h
+        result.lockCount        += 1
     }
     else
     {
@@ -185,8 +186,9 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             }
             h.col[col] = count
         }
-        result.keys[result.keyCount] = h
-        result.keyCount              += 1
+        let keys = notnull result.keys
+        keys[result.keyCount] = h
+        result.keyCount       += 1
     }
 
     return pos
@@ -216,11 +218,13 @@ func parse(text: string)->ParseResult
 func countFittingPairs(r: *ParseResult)->u64
 {
     var count: u64
+    let locks = notnull r.locks
+    let keys  = notnull r.keys
     for li in r.lockCount
     {
         for ki in r.keyCount
         {
-            if r.locks[li].fits(r.keys[ki])
+            if locks[li].fits(keys[ki])
             {
                 count += 1
             }
@@ -301,19 +305,21 @@ func solve(text: string)->SolveResult
     @assert(pr.lockCount == 2'u32)
     @assert(pr.keyCount == 3'u32)
 
+    let locks = notnull pr.locks
+
     // Lock 1: 0,5,3,4,3
-    @assert(pr.locks[0].col[0] == 0)
-    @assert(pr.locks[0].col[1] == 5)
-    @assert(pr.locks[0].col[2] == 3)
-    @assert(pr.locks[0].col[3] == 4)
-    @assert(pr.locks[0].col[4] == 3)
+    @assert(locks[0].col[0] == 0)
+    @assert(locks[0].col[1] == 5)
+    @assert(locks[0].col[2] == 3)
+    @assert(locks[0].col[3] == 4)
+    @assert(locks[0].col[4] == 3)
 
     // Lock 2: 1,2,0,5,3
-    @assert(pr.locks[1].col[0] == 1)
-    @assert(pr.locks[1].col[1] == 2)
-    @assert(pr.locks[1].col[2] == 0)
-    @assert(pr.locks[1].col[3] == 5)
-    @assert(pr.locks[1].col[4] == 3)
+    @assert(locks[1].col[0] == 1)
+    @assert(locks[1].col[1] == 2)
+    @assert(locks[1].col[2] == 0)
+    @assert(locks[1].col[3] == 5)
+    @assert(locks[1].col[4] == 3)
 }
 
 // Parse keys from sample
@@ -322,26 +328,28 @@ func solve(text: string)->SolveResult
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
+    let keys = notnull pr.keys
+
     // Key 1: 5,0,2,1,3
-    @assert(pr.keys[0].col[0] == 5)
-    @assert(pr.keys[0].col[1] == 0)
-    @assert(pr.keys[0].col[2] == 2)
-    @assert(pr.keys[0].col[3] == 1)
-    @assert(pr.keys[0].col[4] == 3)
+    @assert(keys[0].col[0] == 5)
+    @assert(keys[0].col[1] == 0)
+    @assert(keys[0].col[2] == 2)
+    @assert(keys[0].col[3] == 1)
+    @assert(keys[0].col[4] == 3)
 
     // Key 2: 4,3,4,0,2
-    @assert(pr.keys[1].col[0] == 4)
-    @assert(pr.keys[1].col[1] == 3)
-    @assert(pr.keys[1].col[2] == 4)
-    @assert(pr.keys[1].col[3] == 0)
-    @assert(pr.keys[1].col[4] == 2)
+    @assert(keys[1].col[0] == 4)
+    @assert(keys[1].col[1] == 3)
+    @assert(keys[1].col[2] == 4)
+    @assert(keys[1].col[3] == 0)
+    @assert(keys[1].col[4] == 2)
 
     // Key 3: 3,0,2,0,1
-    @assert(pr.keys[2].col[0] == 3)
-    @assert(pr.keys[2].col[1] == 0)
-    @assert(pr.keys[2].col[2] == 2)
-    @assert(pr.keys[2].col[3] == 0)
-    @assert(pr.keys[2].col[4] == 1)
+    @assert(keys[2].col[0] == 3)
+    @assert(keys[2].col[1] == 0)
+    @assert(keys[2].col[2] == 2)
+    @assert(keys[2].col[3] == 0)
+    @assert(keys[2].col[4] == 1)
 }
 
 // countFittingPairs on parsed data
@@ -438,11 +446,12 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     defer parseFree(&pr)
     @assert(pr.lockCount == 1'u32)
     @assert(pr.keyCount == 0'u32)
-    @assert(pr.locks[0].col[0] == 0)
-    @assert(pr.locks[0].col[1] == 5)
-    @assert(pr.locks[0].col[2] == 3)
-    @assert(pr.locks[0].col[3] == 4)
-    @assert(pr.locks[0].col[4] == 3)
+    let locks = notnull pr.locks
+    @assert(locks[0].col[0] == 0)
+    @assert(locks[0].col[1] == 5)
+    @assert(locks[0].col[2] == 3)
+    @assert(locks[0].col[3] == 4)
+    @assert(locks[0].col[4] == 3)
 }
 
 // Single key schematic
@@ -460,11 +469,12 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     defer parseFree(&pr)
     @assert(pr.lockCount == 0'u32)
     @assert(pr.keyCount == 1'u32)
-    @assert(pr.keys[0].col[0] == 5)
-    @assert(pr.keys[0].col[1] == 0)
-    @assert(pr.keys[0].col[2] == 2)
-    @assert(pr.keys[0].col[3] == 1)
-    @assert(pr.keys[0].col[4] == 3)
+    let keys = notnull pr.keys
+    @assert(keys[0].col[0] == 5)
+    @assert(keys[0].col[1] == 0)
+    @assert(keys[0].col[2] == 2)
+    @assert(keys[0].col[3] == 1)
+    @assert(keys[0].col[4] == 3)
 }
 
 // All zeros lock vs all zeros key: should fit
@@ -520,18 +530,21 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
+    let locks = notnull pr.locks
+    let keys  = notnull pr.keys
+
     // Lock 0 (0,5,3,4,3) vs Key 0 (5,0,2,1,3): overlap col4: 3+3=6
-    @assert(!pr.locks[0].fits(pr.keys[0]))
+    @assert(!locks[0].fits(keys[0]))
     // Lock 0 vs Key 1 (4,3,4,0,2): overlap col1: 5+3=8
-    @assert(!pr.locks[0].fits(pr.keys[1]))
+    @assert(!locks[0].fits(keys[1]))
     // Lock 0 vs Key 2 (3,0,2,0,1): fit
-    @assert(pr.locks[0].fits(pr.keys[2]))
+    @assert(locks[0].fits(keys[2]))
     // Lock 1 (1,2,0,5,3) vs Key 0: overlap col0: 1+5=6
-    @assert(!pr.locks[1].fits(pr.keys[0]))
+    @assert(!locks[1].fits(keys[0]))
     // Lock 1 vs Key 1: fit
-    @assert(pr.locks[1].fits(pr.keys[1]))
+    @assert(locks[1].fits(keys[1]))
     // Lock 1 vs Key 2: fit
-    @assert(pr.locks[1].fits(pr.keys[2]))
+    @assert(locks[1].fits(keys[2]))
 }
 
 // for #reverse in key parsing (exercises reverse loop)
@@ -549,12 +562,13 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var pr = parse(keyStr)
     defer parseFree(&pr)
     @assert(pr.keyCount == 1'u32)
+    let keys = notnull pr.keys
     // Only bottom 2 rows have '#' → heights should be 1 for cols 0,2,4
-    @assert(pr.keys[0].col[0] == 1)
-    @assert(pr.keys[0].col[1] == 0)
-    @assert(pr.keys[0].col[2] == 1)
-    @assert(pr.keys[0].col[3] == 0)
-    @assert(pr.keys[0].col[4] == 1)
+    @assert(keys[0].col[0] == 1)
+    @assert(keys[0].col[1] == 0)
+    @assert(keys[0].col[2] == 1)
+    @assert(keys[0].col[3] == 0)
+    @assert(keys[0].col[4] == 1)
 }
 
 // Cast chain: u8 → u32 comparison in fits (exercises cast codegen)

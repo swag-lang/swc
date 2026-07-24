@@ -5,7 +5,7 @@ impl Properties
 {
     mtd validateDynamicString(item: *PropertiesItem)
     {
-        var data = cast(#null *String) item.data
+        var data = notnull cast(#null *String) item.data
         if @isset(item.editBox) do
             dref data = item.editBox.getText()
         .hasChanged(item)
@@ -24,7 +24,7 @@ impl Properties
             return
         }
 
-        let cur = cast(#null *String) item.data
+        let cur = notnull cast(#null *String) item.data
         var sel = 0'u32
         for &fnt, idx in g_PropSysFonts
         {
@@ -41,7 +41,7 @@ impl Properties
         if sel == Swag.U32.Max do
             return
 
-        var data = cast(#null *String) item.data
+        var data = notnull cast(#null *String) item.data
         if sel == 0 do
             data.clear()
         else do
@@ -87,14 +87,15 @@ impl Properties
             me.adaptCondensedControl(combo)
         }
 
-        item.comboBox = notnull combo
-        combo.addItem(.getTheme().res.defaultTypeFaceR.getFamilyName())
-        combo.addSeparator()
+        let combon = notnull combo
+        item.comboBox = combon
+        combon.addItem(.getTheme().res.defaultTypeFaceR.getFamilyName())
+        combon.addSeparator()
         for &fnt in g_PropSysFonts do
-            combo.addItem(fnt.name)
+            combon.addItem(fnt.name)
 
         .refreshFontName(item)
-        combo.sigChanged += func|prop = me, item|(ed, n) { prop.validateFontName(item) }
+        combon.sigChanged += func|prop = me, item|(ed, n) { prop.validateFontName(item) }
     }
 
     mtd constructDynamicString(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
@@ -109,7 +110,7 @@ impl Properties
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
-        with let ed = EditBox.create(item.line, dref cast(#null *String) data)
+        with let ed = EditBox.create(item.line, dref notnull cast(#null *String) data)
         {
             if me.kind == .Panel
             {
@@ -143,7 +144,8 @@ impl Properties
                     with let dlg = EditDlg.createMultiLine(notnull prop.surface)
                     {
                         .setText(ed.text)
-                        .richEdit.selectAll()
+                        let richEdit = notnull .richEdit
+                        richEdit.selectAll()
                     }
 
                     if dlg.doModal() != Dialog.BtnOk do
@@ -162,7 +164,7 @@ impl Properties
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
 
-        with let ed = EditBox.create(item.line, dref cast(#null *string) data)
+        with let ed = EditBox.create(item.line, dref notnull cast(#null *string) data)
         {
             .maxSize.x = editWidth
             if me.isGridLike() do

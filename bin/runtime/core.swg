@@ -138,12 +138,17 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
     // For tuples, we compare field by field
     if type1.flags & .Tuple
     {
-        let type1S = cast(const *TypeInfoStruct) type1
-        let type2S = cast(const *TypeInfoStruct) type2
-        for i in @countof(type1S.fields)
+        let type1S  = cast(const *TypeInfoStruct) type1
+        let type2S  = cast(const *TypeInfoStruct) type2
+        let fields1 = type1S.fields
+        let fields2 = type2S.fields
+        if fields1 == null or fields2 == null do
+            return @countof(fields1) == @countof(fields2)
+
+        for i in @countof(fields1)
         {
-            let field1 = type1S.fields[i]
-            let field2 = type2S.fields[i]
+            let field1 = fields1[i]
+            let field2 = fields2[i]
 
             var namesAreEqual = false
             if field1.flags & .AutoName do
@@ -173,10 +178,14 @@ func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
     if !structType or !itfType do
         return null
 
-    for i in @countof(structType.interfaces)
+    let itfs = structType.interfaces
+    if itfs == null do
+        return null
+
+    for i in @countof(itfs)
     {
-        if @stringcmp(structType.interfaces[i].name, itfType.fullname) do
-            return structType.interfaces[i].value
+        if @stringcmp(itfs[i].name, itfType.fullname) do
+            return itfs[i].value
     }
 
     return null
@@ -238,7 +247,7 @@ func @args()->const [..] string
 ////////////////////////////////////////////////////////////
 
 // Make a build configuration copy
-const __buildCfg = #run dref @compiler.getBuildCfg()
+const __buildCfg = #run dref notnull @compiler.getBuildCfg()
 
 func @rtflags()   => @getcontext().runtimeFlags
 func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false

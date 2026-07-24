@@ -46,12 +46,13 @@ impl SmallVec
         while newCap < want do
             newCap *= 2
 
-        let newBuf = cast(#null [*] s32) @alloc(newCap * #sizeof(s32))
+        let newBuf = cast([*] s32) notnull @alloc(newCap * #sizeof(s32))
+        let oldPtr = notnull .ptr
         for i in .count do
-            newBuf[i] = .ptr[i]
+            newBuf[i] = oldPtr[i]
 
         if !.isInline() do
-            @free(.ptr)
+            @free(oldPtr)
 
         .ptr      = newBuf
         .capacity = newCap
@@ -60,14 +61,15 @@ impl SmallVec
     mtd push(value: s32)
     {
         .growTo(.count + 1)
-        .ptr[.count] = value
-        .count       += 1
+        let ptr = notnull .ptr
+        ptr[.count] = value
+        .count      += 1
     }
 
     mtd const at(i: u64)->s32
     {
         @assert(i < .count)
-        return .ptr[i]
+        return (notnull .ptr)[i]
     }
 
     // -----------------------------------------------------------------------
@@ -96,10 +98,11 @@ impl SmallVec
         else
         {
             // Heap path: allocate a fresh buffer and copy the elements.
-            let oldPtr = .ptr
-            .ptr = cast(#null [*] s32) @alloc(.capacity * #sizeof(s32))
+            let oldPtr = notnull .ptr
+            let newPtr = cast([*] s32) notnull @alloc(.capacity * #sizeof(s32))
             for i in .count do
-                .ptr[i] = oldPtr[i]
+                newPtr[i] = oldPtr[i]
+            .ptr = newPtr
         }
     }
 
@@ -182,7 +185,8 @@ impl SmallVec
     @assert(dst.at(2) == 3)
 
     // Mutate dst -- src must be unaffected.
-    dst.ptr[0] = 99
+    let dstPtr = notnull dst.ptr
+    dstPtr[0] = 99
     @assert(src.at(0) == 1)
     @assert(dst.at(0) == 99)
 }
@@ -212,7 +216,8 @@ impl SmallVec
     @assert(dst.at(5) == 105)
 
     // Mutate dst -- src stays intact.
-    dst.ptr[0] = -1
+    let dstPtr = notnull dst.ptr
+    dstPtr[0] = -1
     @assert(src.at(0) == 100)
     @assert(dst.at(0) == -1)
 }

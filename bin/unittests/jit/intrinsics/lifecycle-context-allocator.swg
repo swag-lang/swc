@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 using Swag
 
 var DropCount: u32 = 0
@@ -19,7 +19,7 @@ func helperFree(buffer: #null [*] void, size: u64, allocator: #null IAllocator =
     req.size    = size
     req.address = buffer
 
-    let talloc = allocator orelse @getcontext().allocator
+    let talloc = notnull (allocator orelse @getcontext().allocator)
     talloc.free(&req)
 }
 
@@ -30,7 +30,7 @@ func helperRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, allocator
     req.size    = newSize
     req.oldSize = oldSize
 
-    let talloc = allocator orelse @getcontext().allocator
+    let talloc = notnull (allocator orelse @getcontext().allocator)
     talloc.realloc(&req)
     return req.address
 }
@@ -46,7 +46,7 @@ func memoryLikeFree(buffer: #null [*] void, size: u64, allocator: #null IAllocat
     req.address   = buffer
     req.hint      = hint
 
-    let talloc = allocator orelse @getcontext().allocator
+    let talloc = notnull (allocator orelse @getcontext().allocator)
     talloc.free(&req)
 }
 
@@ -60,7 +60,7 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
     req.oldSize   = oldSize
     req.alignment = alignment
 
-    let talloc = allocator orelse @getcontext().allocator
+    let talloc = notnull (allocator orelse @getcontext().allocator)
     talloc.realloc(&req)
     return req.address
 }
@@ -68,16 +68,22 @@ func memoryLikeRealloc(buffer: #null [*] void, newSize: u64, oldSize: u64, alloc
 func encodeByteTrace(buffer: #null [*] u8, count: u64)->u64
 {
     var result: u64 = 0
-    for i in count do
-        result = result * 100 + cast(u64) buffer[i]
+    if buffer != null
+    {
+        for i in count do
+            result = result * 100 + cast(u64) buffer[i]
+    }
     return result * 100 + count
 }
 
 func encodeTrackedTrace(buffer: #null [*] DropTracked, count: u64)->u64
 {
     var result: u64 = 0
-    for i in count do
-        result = result * 100 + cast(u64) buffer[i].value
+    if buffer != null
+    {
+        for i in count do
+            result = result * 100 + cast(u64) buffer[i].value
+    }
     return result * 100 + count
 }
 
@@ -135,7 +141,8 @@ impl DirectByteBuffer
         req.address = .buffer
         req.size    = newCapacity
         req.oldSize = .capacity
-        .allocator.realloc(&req)
+        let talloc = notnull .allocator
+        talloc.realloc(&req)
         .buffer   = cast(#null [*] u8) req.address
         .capacity = newCapacity
     }
@@ -167,7 +174,8 @@ impl DirectByteBuffer
         var req: AllocatorRequest
         req.size    = .capacity
         req.address = .buffer
-        .allocator.free(&req)
+        let talloc = notnull .allocator
+        talloc.free(&req)
         .buffer           = null
         .count, .capacity = 0
     }
@@ -283,8 +291,9 @@ func directAllocatorRunInitInfo()->ByteInitInfo
     values.resize(4)
     let firstTrace = encodeByteTrace(values.buffer, values.count)
 
-    values.buffer[0] = 3
-    values.buffer[1] = 7
+    let buf = notnull values.buffer
+    buf[0] = 3
+    buf[1] = 7
     values.resize(2)
     values.resize(5)
     let secondTrace = encodeByteTrace(values.buffer, values.count)
@@ -301,8 +310,9 @@ func helperAllocatorRunInitInfo()->ByteInitInfo
     values.resize(3)
     let firstTrace = encodeByteTrace(values.buffer, values.count)
 
-    values.buffer[0] = 4
-    values.buffer[2] = 9
+    let buf = notnull values.buffer
+    buf[0] = 4
+    buf[2] = 9
     values.resize(1)
     values.resize(4)
     let secondTrace = encodeByteTrace(values.buffer, values.count)
@@ -319,8 +329,9 @@ func memoryAllocatorRunDropInfo()->DropRunInfo
 
     var values: MemoryTrackedBuffer
     values.resize(4, 9)
+    let buf = notnull values.buffer
     for i in 4 do
-        values.buffer[i].value = cast(s32) (i + 1)
+        buf[i].value = cast(s32) (i + 1)
 
     values.resize(2, 8)
     values.resize(5, 8)

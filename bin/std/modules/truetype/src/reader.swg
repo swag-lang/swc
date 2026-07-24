@@ -15,13 +15,15 @@ func getSlice(buffer: #null const [..] u8, offset, length: u64)->#null const [..
 func readU8(buffer: #null const [..] u8, offset: u64)->u8 throw
 {
     assertRange(buffer, offset, 1)
-    return buffer[offset]
+    let buf = notnull buffer
+    return buf[offset]
 }
 
 func readU16(buffer: #null const [..] u8, offset: u64)->u16 throw
 {
     assertRange(buffer, offset, 2)
-    return cast(u16) buffer[offset] << 8 | buffer[offset + 1]
+    let buf = notnull buffer
+    return cast(u16) buf[offset] << 8 | buf[offset + 1]
 }
 
 func readS16(buffer: #null const [..] u8, offset: u64)->s16 throw
@@ -35,7 +37,8 @@ func readS16(buffer: #null const [..] u8, offset: u64)->s16 throw
 func readU32(buffer: #null const [..] u8, offset: u64)->u32 throw
 {
     assertRange(buffer, offset, 4)
-    return cast(u32) buffer[offset] << 24 | cast(u32) buffer[offset + 1] << 16 | cast(u32) buffer[offset + 2] << 8 | buffer[offset + 3]
+    let buf = notnull buffer
+    return cast(u32) buf[offset] << 24 | cast(u32) buf[offset + 1] << 16 | cast(u32) buf[offset + 2] << 8 | buf[offset + 3]
 }
 
 func readS32(buffer: const [..] u8, offset: u64)->s32 throw

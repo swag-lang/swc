@@ -90,7 +90,7 @@ impl LeakTrackedValue
 
     mtd const marker()->s32
     {
-        return .tag + cast(s32) dref .self + cast(s32) .storage[1]
+        return .tag + cast(s32) dref (notnull .self) + cast(s32) .storage[1]
     }
 
     mtd opDrop()
@@ -116,7 +116,7 @@ impl LeakTrackedValue
             @assert(dropAddr == LeakExpectedDropAddr)
             @assert(.self == LeakExpectedDropSelf)
             @assert(.tag == LeakExpectedDropTag)
-            @assert(dref .self == cast(u8) .tag)
+            @assert(dref (notnull .self) == cast(u8) .tag)
         }
     }
 }

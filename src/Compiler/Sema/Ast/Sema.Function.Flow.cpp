@@ -1284,6 +1284,20 @@ namespace
     {
         const SemaNodeView nodeCallee = sema.view(node.nodeExprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Symbol);
 
+        // Use-site nullability: invoking a function value reads its code pointer.
+        // Narrowing was already applied to the live callee view, so a remaining
+        // '#null' means no dominating test proves this call safe.
+        if (nodeCallee.typeRef().isValid())
+        {
+            const TypeRef calleeTypeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeCallee.typeRef());
+            if (calleeTypeRef.isValid())
+            {
+                const TypeInfo& calleeType = sema.typeMgr().get(calleeTypeRef);
+                if (calleeType.isFunction() && calleeType.isNullable())
+                    return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_call, node.nodeExprRef, nodeCallee.typeRef());
+            }
+        }
+
         SmallVector<AstNodeRef> args;
         node.collectArguments(args, sema.ast());
         SmallVector<AstNodeRef> sourceArgs = args;

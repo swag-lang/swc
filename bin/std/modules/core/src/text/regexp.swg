@@ -870,7 +870,8 @@ impl RegExp
             here = node.transitions.add(c, toT)
         }
 
-        here.value.add(toNode)
+        let h = notnull here
+        h.value.add(toNode)
     }
 
     mtd nfaPop()->*NfaTable throw
@@ -1115,7 +1116,7 @@ impl RegExp
             return
         }
 
-        var pz  = .preprocessed.buffer
+        var pz  = notnull .preprocessed.buffer
         var cpt = 0
         var expectAltExpr = true
 
@@ -1312,9 +1313,10 @@ impl RegExp
                 var found: #null *DfaNode
                 for tstate in .dfaNodes
                 {
-                    if equals(&tstate.table, &epsilonRes)
+                    let ts = notnull tstate
+                    if equals(&ts.table, &epsilonRes)
                     {
-                        found = tstate
+                        found = ts
                         break
                     }
                 }
@@ -1603,7 +1605,7 @@ impl RegExp
 
     mtd previousExpression()->Array'rune throw
     {
-        let pze      = .preprocessed.buffer + .preprocessed.count - 1
+        let pze      = (notnull .preprocessed.buffer) + .preprocessed.count - 1
         var pz1      = pze
         var cptParen = 0
         if pz1 != .preprocessed.buffer and (pz1 - 1)[0] == '\\' and isReservedChar(pz1[0]) do
@@ -2008,10 +2010,12 @@ impl RegExp
         addParenthesis(&in32)
         in32.add(0'rune)
 
-        var pz    = cast(#null const [*] rune) in32.buffer
-        let pzEnd = pz + in32.count
+        let buffer = notnull in32.buffer
+        var pz     = cast(#null const [*] rune) buffer
+        let pzEnd  = pz + in32.count
 
-        var c = .ignoreCase ? Unicode.toUpper(pz[0]) : pz[0]
+        let p0 = notnull pz
+        var c  = .ignoreCase ? Unicode.toUpper(p0[0]) : p0[0]
         while c
         {
             switch c

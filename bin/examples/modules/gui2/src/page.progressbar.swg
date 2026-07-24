@@ -23,8 +23,9 @@ func createProgressBarPage(parent: *Wnd)
     let bottom = createPanel(parent, "Frame-driven", "One bar is advanced from the application frame callback; another shows disabled rendering.", layout.bottom)
     {
         createCaption(bottom, "Application frame", 24, 92, 180)
-        g_Progress = ProgressBar.create(bottom, {24, 124, 420})
-        g_Progress.setProgression(0.0)
+        let framePrg = ProgressBar.create(bottom, {24, 124, 420})
+        g_Progress = framePrg
+        framePrg.setProgression(0.0)
 
         createCaption(bottom, "Disabled 50 percent", 500, 92, 200)
         let disabled = ProgressBar.create(bottom, {500, 124, 360})

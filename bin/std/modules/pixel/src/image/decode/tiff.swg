@@ -352,7 +352,7 @@ public impl IImageDecoder for Decoder
         // Convert top-down 'decoded' into the bottom-up result buffer
         for y in cast(s32) height
         {
-            let srcRow = decoded.buffer + cast(u64) y * rowBytes
+            let srcRow = (notnull decoded.buffer) + cast(u64) y * rowBytes
             let dstY   = result.height - y - 1
             var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8
 

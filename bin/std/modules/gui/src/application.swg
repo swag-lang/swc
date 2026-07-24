@@ -87,7 +87,8 @@ private impl Application
         event.target.processEvent(evt)
         while !event.accepted
         {
-            event.target = event.target.owner orelse event.target.parent
+            let target = notnull event.target
+            event.target = target.owner orelse target.parent
             if !event.target or event.target == stopAt do
                 break
             event.accepted = true
@@ -99,7 +100,7 @@ private impl Application
     {
         if !wnd do
             return null
-        if wnd.surface.isDisabled do
+        if (notnull wnd.surface).isDisabled do
             return null
         var scan = wnd
         while scan
@@ -315,10 +316,13 @@ private impl Application
         var needUpdateState = false
         for it in copy
         {
-            let evt = it as Event
+            let evt = notnull (it as Event)
 
-            if it is InvalidateEvent do
-                evt.target.invalidate()
+            if it is InvalidateEvent
+            {
+                let target = notnull evt.target
+                target.invalidate()
+            }
             else do
                 .sendEvent(it)
 
@@ -390,7 +394,7 @@ private impl Application
         // Be sure there's no posted event for that window
         for e in .postedEvents
         {
-            let ptr = e as Event
+            let ptr = notnull (e as Event)
             if ptr.target == wnd do
                 ptr.target = null
         }
@@ -541,7 +545,7 @@ impl Application
 
         for it in .postedEvents
         {
-            let ptr = it as Event
+            let ptr = notnull (it as Event)
             .toDelete.add({ptr, notnull ptr.type})
         }
 
@@ -588,7 +592,7 @@ impl Application
             flags &= ~.Sizeable
         if !borders do
             flags &= ~.Border
-        let surface = assume app.createSurface(x, y, width, height, flags, view, hook)
+        let surface = notnull (assume app.createSurface(x, y, width, height, flags, view, hook))
         surface.setTitle(title)
         if init do
             init(&app)

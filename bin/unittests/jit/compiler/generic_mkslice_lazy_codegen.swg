@@ -1,4 +1,4 @@
-﻿#global internal
+#global internal
 using Swag
 
 namespace GenericMkSliceLazyCodegen
@@ -12,7 +12,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = size
         req.address = buffer
 
-        let talloc = allocator orelse @getcontext().allocator
+        let talloc = notnull (allocator orelse @getcontext().allocator)
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = allocator orelse @getcontext().allocator
+        let talloc = notnull (allocator orelse @getcontext().allocator)
         talloc.realloc(&req)
         return req.address
     }
@@ -86,7 +86,8 @@ namespace GenericMkSliceLazyCodegen
 
         mtd add(value: T)
         {
-            .buffer[.count] = value
+            let buf = notnull .buffer
+            buf[.count] = value
             .count          += 1
         }
 

@@ -2003,6 +2003,13 @@ AstNodeRef AstNullCoalescingExpr::semaClone(Sema& sema, const CloneContext& clon
     return newRef;
 }
 
+AstNodeRef AstOptionalChainExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::OptionalChainExpr>(tokRef());
+    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstConditionalExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ConditionalExpr>(tokRef());

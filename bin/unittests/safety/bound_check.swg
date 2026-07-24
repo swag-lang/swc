@@ -14,7 +14,7 @@ func boundCheckEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()
+    const cfg      = #run dref notnull @compiler.getBuildCfg()
     const expected = cfg.safetyGuards & Swag.SafetyWhat.BoundCheck ? true : false
     #assert(#safety(Swag.SafetyWhat.BoundCheck) == expected)
 }
@@ -181,7 +181,8 @@ func opaqueIdx(v: u64)->u64
     #[Swag.Safety(.BoundCheck, true)]
     func emptySliceBoundCheck()->s32
     {
-        var slice: #null [..] s32
+        var values: [1] s32
+        let slice: [..] s32 = @mkslice(&values[0], 0)
         return slice[0]     // swc-expected-error {{safety_err_runtime}}
     }
 

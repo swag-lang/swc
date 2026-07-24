@@ -66,18 +66,23 @@ public impl EditDlg
     // Set the text
     mtd setText(text: string)
     {
-        if .edit do
-            .edit.setText(text)
-        else do
-            .richEdit.setText(text)
+        let edit = .edit
+        if edit do
+            edit.setText(text)
+        else
+        {
+            let richEdit = notnull .richEdit
+            richEdit.setText(text)
+        }
     }
 
     // Get the text
     mtd getText()->String
     {
-        if .edit do
-            return .edit.text
-        return .richEdit.getText()
+        let edit = .edit
+        if edit do
+            return edit.text
+        return (notnull .richEdit).getText()
     }
 
     // Associate a message above the editbox
@@ -85,7 +90,7 @@ public impl EditDlg
     {
         if !@isset(.label)
         {
-            .label = Label.create(.surface.getView(), message, {0, 0, 0, height})
+            .label = Label.create((notnull .surface).getView(), message, {0, 0, 0, height})
             with me.label
             {
                 .dockStyle         = .Center
@@ -93,22 +98,29 @@ public impl EditDlg
                 .horzAlignmentText = .Center
             }
 
-            if .edit do
-                .edit.margin.y = 0
-            else do
-                .richEdit.margin.y = 0
-            var pos = .surface.position
-            pos.height         += height
-            .surface.minSize.y += height
+            let edit2 = .edit
+            if edit2 do
+                edit2.margin.y = 0
+            else
+            {
+                let richEdit = notnull .richEdit
+                richEdit.margin.y = 0
+            }
+
+            let surface = notnull .surface
+            var pos = surface.position
+            pos.height        += height
+            surface.minSize.y += height
 
             // A single-line dialog has only '.edit' (no '.richEdit'). Temporarily
             // drop the rich edit anchor (when present) so it does not fight the
             // resize, then restore it.
-            if .richEdit do
-                .richEdit.anchorStyle = .None
-            .surface.setPosition(pos)
-            if .richEdit do
-                .richEdit.anchorStyle = .Height
+            let richEdit2 = .richEdit
+            if richEdit2 do
+                richEdit2.anchorStyle = .None
+            surface.setPosition(pos)
+            if richEdit2 do
+                richEdit2.anchorStyle = .Height
         }
         else
         {

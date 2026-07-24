@@ -56,7 +56,8 @@ impl IForm for FormShape
 
         var xbu = 0
         var ybu = 0
-        .capture.snap(&xbu, &ybu, true, true, 0, cast(IForm) me)
+        let capture = notnull .capture
+        capture.snap(&xbu, &ybu, true, true, 0, cast(IForm) me)
         xb += xbu
         yb += ybu
 

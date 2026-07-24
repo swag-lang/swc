@@ -61,10 +61,11 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
         {
             foundTyped = true
             @assert(@countof(attribute.params) == 2)
-            @assert(attribute.params[0].name == "tag")
-            @assert(cast(s32) attribute.params[0].value == 7)
-            @assert(attribute.params[1].name == "label")
-            @assert(cast(#null string) attribute.params[1].value == "hello")
+            let params = notnull attribute.params
+            @assert(params[0].name == "tag")
+            @assert(cast(s32) params[0].value == 7)
+            @assert(params[1].name == "label")
+            @assert(cast(#null string) params[1].value == "hello")
             continue
         }
 
@@ -79,10 +80,11 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
         {
             foundDefaulted = true
             @assert(@countof(attribute.params) == 2)
-            @assert(attribute.params[0].name == "priority")
-            @assert(cast(s32) attribute.params[0].value == 5)
-            @assert(attribute.params[1].name == "enabled")
-            @assert(cast(bool) attribute.params[1].value)
+            let params = notnull attribute.params
+            @assert(params[0].name == "priority")
+            @assert(cast(s32) params[0].value == 5)
+            @assert(params[1].name == "enabled")
+            @assert(cast(bool) params[1].value)
             continue
         }
 
@@ -90,12 +92,13 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
         {
             foundVariadic = true
             @assert(@countof(attribute.params) == 3)
-            @assert(attribute.params[0].name == "values")
-            @assert(attribute.params[1].name == "values")
-            @assert(attribute.params[2].name == "values")
-            @assert(cast(s32) attribute.params[0].value == 3)
-            @assert(cast(s32) attribute.params[1].value == 5)
-            @assert(cast(s32) attribute.params[2].value == 8)
+            let params = notnull attribute.params
+            @assert(params[0].name == "values")
+            @assert(params[1].name == "values")
+            @assert(params[2].name == "values")
+            @assert(cast(s32) params[0].value == 3)
+            @assert(cast(s32) params[1].value == 5)
+            @assert(cast(s32) params[2].value == 8)
         }
     }
 
@@ -110,15 +113,17 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     @assert(@countof(REFLECTED_FUNCTION_INFO.parameters) == 1)
 
     var foundParamAttribute = false
-    for attribute in REFLECTED_FUNCTION_INFO.parameters[0].attributes
+    let parameters = notnull REFLECTED_FUNCTION_INFO.parameters
+    for attribute in parameters[0].attributes
     {
         if attribute.type != #typeof(ParamReflectionAttr) do
             continue
 
         foundParamAttribute = true
         @assert(@countof(attribute.params) == 1)
-        @assert(attribute.params[0].name == "name")
-        @assert(cast(#null string) attribute.params[0].value == "payload")
+        let params = notnull attribute.params
+        @assert(params[0].name == "name")
+        @assert(cast(#null string) params[0].value == "payload")
     }
 
     @assert(foundParamAttribute)
@@ -128,24 +133,27 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
 {
     @assert(@countof(REFLECTED_STRUCT_INFO.attributes) == 1)
 
-    let attribute = REFLECTED_STRUCT_INFO.attributes[0]
+    let attribute = (notnull REFLECTED_STRUCT_INFO.attributes)[0]
     @assert(attribute.type == #typeof(StructReflectionAttr))
     @assert(@countof(attribute.params) == 1)
-    @assert(attribute.params[0].name == "name")
-    @assert(cast(#null string) attribute.params[0].value == "demo")
+    let params = notnull attribute.params
+    @assert(params[0].name == "name")
+    @assert(cast(#null string) params[0].value == "demo")
 
     @assert(@countof(REFLECTED_STRUCT_INFO.fields) == 1)
 
     var foundFieldAttribute = false
-    for fieldAttribute in REFLECTED_STRUCT_INFO.fields[0].attributes
+    let fields = notnull REFLECTED_STRUCT_INFO.fields
+    for fieldAttribute in fields[0].attributes
     {
         if fieldAttribute.type != #typeof(FieldReflectionAttr) do
             continue
 
         foundFieldAttribute = true
         @assert(@countof(fieldAttribute.params) == 1)
-        @assert(fieldAttribute.params[0].name == "weight")
-        @assert(cast(s32) fieldAttribute.params[0].value == 11)
+        let fieldParams = notnull fieldAttribute.params
+        @assert(fieldParams[0].name == "weight")
+        @assert(cast(s32) fieldParams[0].value == 11)
     }
 
     @assert(foundFieldAttribute)
@@ -156,11 +164,12 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
     @assert(@countof(REFLECTED_ENUM_INFO.attributes) == 1)
     @assert(@countof(REFLECTED_ENUM_INFO.values) == 2)
 
-    let enumAttribute = REFLECTED_ENUM_INFO.attributes[0]
+    let enumAttribute = (notnull REFLECTED_ENUM_INFO.attributes)[0]
     @assert(enumAttribute.type == #typeof(EnumReflectionAttr))
     @assert(@countof(enumAttribute.params) == 1)
-    @assert(enumAttribute.params[0].name == "label")
-    @assert(cast(#null string) enumAttribute.params[0].value == "state")
+    let enumParams = notnull enumAttribute.params
+    @assert(enumParams[0].name == "label")
+    @assert(cast(#null string) enumParams[0].value == "state")
 
     var foundFirstValueAttribute  = false
     var foundSecondValueAttribute = false
@@ -172,19 +181,20 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum) #typeof(Reflected
                 continue
 
             @assert(@countof(enumValueAttribute.params) == 1)
-            @assert(enumValueAttribute.params[0].name == "weight")
+            let valueParams = notnull enumValueAttribute.params
+            @assert(valueParams[0].name == "weight")
 
             if enumValue.name == "First"
             {
                 foundFirstValueAttribute = true
-                @assert(cast(s32) enumValueAttribute.params[0].value == 1)
+                @assert(cast(s32) valueParams[0].value == 1)
                 continue
             }
 
             if enumValue.name == "Second"
             {
                 foundSecondValueAttribute = true
-                @assert(cast(s32) enumValueAttribute.params[0].value == 2)
+                @assert(cast(s32) valueParams[0].value == 2)
             }
         }
     }

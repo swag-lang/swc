@@ -120,23 +120,24 @@ private impl RichEditCtrl
         .countVisibleLines = 0
         for i in @countof(.lines)
         {
-            .lines[i].drawingRect.clear()
+            let ln = notnull .lines[i]
+            ln.drawingRect.clear()
 
-            if .lines[i].isVisible()
+            if ln.isVisible()
             {
-                .countVisibleLines           += 1
-                .lines[i].drawingRect.y      = y
-                .lines[i].drawingRect.height = size.y
-                y                            += size.y
-                firstHidden                  = true
+                .countVisibleLines    += 1
+                ln.drawingRect.y      = y
+                ln.drawingRect.height = size.y
+                y                     += size.y
+                firstHidden           = true
             }
             elif firstHidden
             {
-                .countVisibleLines           += 1
-                .lines[i].drawingRect.y      = y
-                .lines[i].drawingRect.height = size.y
-                y                            += size.y
-                firstHidden                  = false
+                .countVisibleLines    += 1
+                ln.drawingRect.y      = y
+                ln.drawingRect.height = size.y
+                y                     += size.y
+                firstHidden           = false
             }
         }
     }
@@ -167,19 +168,20 @@ private impl RichEditCtrl
         else do
             p = Memory.new'RichEditLine()
 
-        p.resetInternal()
+        let pn = notnull p
+        pn.resetInternal()
 
         if .lines.count
         {
-            let insLine = index == .lines.count ? .lines.back() : .lines[index]
-            p.drawingRect   = insLine.drawingRect
-            p.drawingRect.y += p.drawingRect.height
+            let insLine = notnull (index == .lines.count ? .lines.back() : .lines[index])
+            pn.drawingRect   = insLine.drawingRect
+            pn.drawingRect.y += pn.drawingRect.height
         }
 
-        .lines.insertAt(index, p)
+        .lines.insertAt(index, pn)
         .recomputeScroll = true
 
-        return p
+        return pn
     }
 
     mtd deleteLine(lineIndex: u64)
@@ -191,7 +193,7 @@ private impl RichEditCtrl
 
     mtd getFirstVisibleLine()->u64
     {
-        for i in .lines.count where .lines[i].isVisible() do
+        for i in .lines.count where (notnull .lines[i]).isVisible() do
             return i
         return 0
     }
@@ -202,7 +204,7 @@ private impl RichEditCtrl
             return 0
         for var i = .lines.count - 1; i >= 0; i -= 0
         {
-            if .lines[i].isVisible() do
+            if (notnull .lines[i]).isVisible() do
                 return i
         }
 
@@ -216,7 +218,7 @@ private impl RichEditCtrl
         var i = lineIndex - 1
         for
         {
-            if .lines[i].isVisible() do
+            if (notnull .lines[i]).isVisible() do
                 return i
             if !i do
                 break
@@ -235,7 +237,7 @@ private impl RichEditCtrl
         var i = lineIndex + 1
         for
         {
-            if .lines[i].isVisible() do
+            if (notnull .lines[i]).isVisible() do
                 return i
             if i == count - 1 do
                 break
@@ -304,7 +306,7 @@ impl RichEditCtrl
         switch .form
         {
         case RichEditCtrl:
-            .style.setFont(.parent.getTheme().res.fontDefaultFs)
+            .style.setFont((notnull .parent).getTheme().res.fontDefaultFs)
 
             var mdlBk = .bkColorModel
             if .bkColorModel.length == 0 do
@@ -413,7 +415,7 @@ impl RichEditCtrl
         var prev, cur, next: #null *RichEditLine
         for i in @countof(.lines)
         {
-            cur  = .lines[i]
+            cur  = notnull .lines[i]
             next = i == .lines.count - 1 ? null : .lines[i + 1]
             .lexer.compute(prev, notnull cur, next)
             prev = cur

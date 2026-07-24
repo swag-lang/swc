@@ -8,6 +8,10 @@ func slicesEqual(lhs, rhs: #null const [..] s32)->bool
     if !@countof(lhs) or !@countof(rhs) do
         return true
 
+    // A null slice has a zero count, so both slices are non-null past this point.
+    if lhs == null or rhs == null do
+        return true
+
     for i in @countof(lhs) where lhs[i] != rhs[i] do
         return false
     return true

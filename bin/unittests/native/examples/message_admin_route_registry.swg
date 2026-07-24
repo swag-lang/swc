@@ -157,14 +157,15 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
             continue
 
         @assert(g_AdminRouteCount < MaxAdminRoutes)
+        let params = notnull attribute.params
         g_AdminRoutes[g_AdminRouteCount] = {
             type: msg.type,
             handlerName: notnull msg.name,
-            method: cast(string) notnull attribute.params[0].value,
-            path: cast(string) notnull attribute.params[1].value,
-            permission: cast(string) notnull attribute.params[2].value,
-            auditCode: cast(string) notnull attribute.params[3].value,
-            critical: cast(bool) attribute.params[4].value,
+            method: cast(string) notnull params[0].value,
+            path: cast(string) notnull params[1].value,
+            permission: cast(string) notnull params[2].value,
+            auditCode: cast(string) notnull params[3].value,
+            critical: cast(bool) params[4].value,
             }
         g_AdminRouteCount += 1
     }
@@ -189,7 +190,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
             len = appendAst(&buffer[0], len, "    ")
             len = appendAst(&buffer[0], len, notnull parameter.name)
             len = appendAst(&buffer[0], len, ": ")
-            len = appendAst(&buffer[0], len, notnull parameter.pointedType.name)
+            len = appendAst(&buffer[0], len, notnull (notnull parameter.pointedType).name)
             len = appendAst(&buffer[0], len, "\n")
         }
         len = appendAst(&buffer[0], len, "}\n\n")
@@ -202,7 +203,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         if typeFunc.returnType != null and typeFunc.returnType != void
         {
             len = appendAst(&buffer[0], len, "->")
-            len = appendAst(&buffer[0], len, notnull typeFunc.returnType.name)
+            len = appendAst(&buffer[0], len, notnull (notnull typeFunc.returnType).name)
         }
 
         len = appendAst(&buffer[0], len, "\n{\n    ")

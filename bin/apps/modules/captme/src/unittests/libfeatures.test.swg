@@ -84,7 +84,7 @@ using Swag, Core
 
     f.main.setCaptureTitle(path, "Renamed")
 
-    let loaded = catch Capture.load(path)
+    let loaded = notnull catch Capture.load(path)
     @assert(@err == null)
     defer
     {
@@ -232,9 +232,9 @@ using Swag, Core
     view.items.add(it)
     view.loadOne(it)
 
-    @assert(it.capture != null)
-    @assert(!it.capture.preview.isValid())
-    @assert(it.capture.haar.size == 0)
+    let itCapture = notnull it.capture
+    @assert(!itCapture.preview.isValid())
+    @assert(itCapture.haar.size == 0)
 
     f.shutdown()
 }

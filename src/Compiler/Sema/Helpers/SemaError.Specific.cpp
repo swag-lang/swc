@@ -313,6 +313,14 @@ Result SemaError::raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const 
     return Result::Error;
 }
 
+Result SemaError::raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, AstNodeRef atNodeRef, TypeRef typeRef)
+{
+    auto diag = report(sema, diagId, atNodeRef, ReportLocation::Children);
+    diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
 Result SemaError::raiseCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef)
 {
     return raiseTypeArgumentError(sema, DiagnosticId::sema_err_code_type_restricted, codeRef, typeRef);

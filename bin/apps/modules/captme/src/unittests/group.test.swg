@@ -153,9 +153,8 @@ using Swag, Core
     catch f.capture.save()
     @assert(@err == null)
 
-    let loaded = catch Capture.load(path)
-    @assert(@err == null)
-    @assert(loaded != null)
+    let loaded = notnull catch Capture.load(path)
+    @assert(@err == null)
     defer
     {
         Memory.delete(loaded)

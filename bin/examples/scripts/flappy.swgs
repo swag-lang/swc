@@ -46,7 +46,7 @@ So in our case, we need to import the module 'gui'. This module is used to creat
         let itf = @compiler
 
         // Get the build configuration
-        let cfg = itf.getBuildCfg()
+        let cfg = notnull itf.getBuildCfg()
 
         // Change something...
         // Here, for example, we force all safety guards to be present in 'debug', and we remove all

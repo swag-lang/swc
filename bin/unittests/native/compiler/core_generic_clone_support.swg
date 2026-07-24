@@ -1,4 +1,4 @@
-﻿#global internal
+#global internal
 using Swag
 
 namespace GenericCloneCodegenSupport
@@ -12,7 +12,7 @@ namespace GenericCloneCodegenSupport
         req.size    = size
         req.address = buffer
 
-        let talloc = allocator orelse @getcontext().allocator
+        let talloc = notnull (allocator orelse @getcontext().allocator)
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericCloneCodegenSupport
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = allocator orelse @getcontext().allocator
+        let talloc = notnull (allocator orelse @getcontext().allocator)
         talloc.realloc(&req)
         return req.address
     }
@@ -54,7 +54,8 @@ namespace GenericCloneCodegenSupport
 
         mtd add(value: T)
         {
-            .buffer[.count] = value
+            let buf = notnull .buffer
+            buf[.count] = value
             .count          += 1
         }
 
@@ -186,8 +187,8 @@ namespace GenericCloneCodegenSupport
     values.addNew(3)
     values.addNew(5)
 
-    @assert(dref values.first == 3)
-    @assert(dref values.second == 5)
+    @assert(dref (notnull values.first) == 3)
+    @assert(dref (notnull values.second) == 5)
 
     values.clearOwned()
     @assert(values.count == 0)

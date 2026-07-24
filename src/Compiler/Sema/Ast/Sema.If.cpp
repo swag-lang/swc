@@ -405,8 +405,9 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
 
     // `if let x = expr { ... }` only enters the block when `x` is truthy: a nullable
-    // binding is proven non-null inside it.
-    if (childRef == nodeIfBlockRef)
+    // binding is proven non-null inside it. The `where` clause short-circuits the
+    // same way, so it sees the proven binding too.
+    if (childRef == nodeIfBlockRef || childRef == nodeWhereRef)
     {
         Symbol* conditionSym = nullptr;
         if (singleIfVarDeclConditionSymbol(sema, nodeVarRef, conditionSym) && conditionSym && conditionSym->isVariable())

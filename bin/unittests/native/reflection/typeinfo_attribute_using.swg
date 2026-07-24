@@ -38,18 +38,19 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct) #typeof(AttributeU
                 continue
 
             @assert(@countof(attribute.params) == 1)
-            @assert(attribute.params[0].name == "value")
+            let params = notnull attribute.params
+            @assert(params[0].name == "value")
 
             if field.name == "grouped"
             {
                 foundGrouped = true
-                @assert(cast(#null string) attribute.params[0].value == "grouped")
+                @assert(cast(#null string) params[0].value == "grouped")
             }
 
             if field.name == "direct"
             {
                 foundDirect = true
-                @assert(cast(#null string) attribute.params[0].value == "direct")
+                @assert(cast(#null string) params[0].value == "direct")
             }
         }
     }

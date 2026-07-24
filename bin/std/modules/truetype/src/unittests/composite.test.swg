@@ -6,11 +6,12 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
+    let face = notnull scope.face
 
-    let glyphIndex = scope.face.glyphIndex(0x00E9)
+    let glyphIndex = face.glyphIndex(0x00E9)
     @assert(glyphIndex > 0)
 
-    let faceData = getFaceData(scope.face)
+    let faceData = getFaceData(face)
     let glyf: #null const [..] u8 = catch getTableSlice(faceData, TAG_GLYF, 0x10)
     @assert(@err == null)
 
@@ -22,15 +23,15 @@ using Swag, Core
     @assert(@err == null)
     @assert(contourCount < 0)
 
-    discard catch scope.face.setPixelSize(0, 20)
+    discard catch face.setPixelSize(0, 20)
     @assert(@err == null)
-    discard catch scope.face.loadChar(0x00E9, .NoBitmap)
+    discard catch face.loadChar(0x00E9, .NoBitmap)
     @assert(@err == null)
-    @assert(scope.face.glyph.index == glyphIndex)
-    @assert(scope.face.glyph.outline.pointCount > 0)
-    @assert(scope.face.glyph.outline.contourCount > 0)
+    @assert(face.glyph.index == glyphIndex)
+    @assert(face.glyph.outline.pointCount > 0)
+    @assert(face.glyph.outline.contourCount > 0)
 
-    discard catch scope.face.renderGlyph()
+    discard catch face.renderGlyph()
     @assert(@err == null)
-    @assert(countBitmapCoverage(&scope.face.glyph.bitmap) > 0)
+    @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 }

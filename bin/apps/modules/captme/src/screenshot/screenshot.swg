@@ -62,19 +62,20 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } th
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
     result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .Secondary | .TopMost | .NoShadow)
-    let captureWnd = Wnd.create'CaptureRectWnd(result.sf.wnd)
+    let sf = notnull result.sf
+    let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     captureWnd.main   = main
     captureWnd.cursor = Cursor.from(CursorShape.Cross)
-    captureWnd.setPosition(0, 0, result.sf.position.width, result.sf.position.height)
+    captureWnd.setPosition(0, 0, sf.position.width, sf.position.height)
     captureWnd.captureMouse()
 
-    result.sf.setView(captureWnd)
-    result.sf.show()
-    result.sf.bringToTop()
+    sf.setView(captureWnd)
+    sf.show()
+    sf.bringToTop()
 
     if !waitForCapture()
     {
-        result.sf.destroy()
+        sf.destroy()
         result.sf = null
     }
 
@@ -175,7 +176,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) throw
     defer discard SetThreadDpiAwarenessContext(awareness)
 
     // Hide editor before capture
-    let surface   = main.surface
+    let surface   = notnull main.surface
     let wasHidden = surface.isHidden
     if main.captureOptions.hideEditorBefore and !surface.isHidden and !surface.isMinimized do
         surface.hide()

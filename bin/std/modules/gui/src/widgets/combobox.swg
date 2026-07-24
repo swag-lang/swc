@@ -119,7 +119,7 @@ impl IWnd for ComboBox
         if !.editBox and .selectedIdx < .items.count
         {
             var format: RichStringFormat
-            let item     = .items[.selectedIdx]
+            let item     = notnull .items[.selectedIdx]
             var itemRect = clientRect
             itemRect.width -= metrics.comboBox_RightMargin
             itemRect.moveLeft(metrics.comboBox_Padding)
@@ -235,7 +235,7 @@ private impl ComboBox
             idx += dir
             if idx < 0 or idx >= cast(s32) .items.count do
                 return
-            if !.items[idx].isSeparator do
+            if !(notnull .items[idx]).isSeparator do
                 break
         }
 
@@ -249,7 +249,7 @@ private impl ComboBox
         {
             for item, idx in .items
             {
-                if !item.isSeparator
+                if !(notnull item).isSeparator
                 {
                     .selectItem(cast(u32) idx)
                     return
@@ -260,7 +260,7 @@ private impl ComboBox
         {
             for var i = cast(s32) .items.count - 1; i >= 0; i -= 1
             {
-                if !.items[i].isSeparator
+                if !(notnull .items[i]).isSeparator
                 {
                     .selectItem(cast(u32) i)
                     return
@@ -271,21 +271,23 @@ private impl ComboBox
 
     mtd showPopup()
     {
-        .popup                = PopupListCtrl.create(me)
-        .popup.minWidthPopup  = .minWidthPopup
-        .popup.maxHeightPopup = .maxHeightPopup
-        .popup.simFitY        = true
-        .popup.selectedIdx    = .selectedIdx
+        let popup = PopupListCtrl.create(me)
+        .popup               = popup
+        popup.minWidthPopup  = .minWidthPopup
+        popup.maxHeightPopup = .maxHeightPopup
+        popup.simFitY        = true
+        popup.selectedIdx    = .selectedIdx
 
-        for item in .items
+        for itemIt in .items
         {
+            let item = notnull itemIt
             if item.isSeparator do
-                .popup.addSeparator()
+                popup.addSeparator()
             else do
-                .popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)
+                popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)
         }
 
-        .popup.sigSelected = func|combo = me|(list, idx)
+        popup.sigSelected = func|combo = me|(list, idx)
         {
             if idx != Swag.U32.Max do
                 combo.selectItem(idx)
@@ -293,14 +295,15 @@ private impl ComboBox
         }
 
         let rect = .getSurfaceRect()
-        .popup.show(rect.x, rect.bottom(), rect.width)
+        popup.show(rect.x, rect.bottom(), rect.width)
     }
 
     mtd hidePopup()
     {
-        if !.popup do
+        let popup = .popup
+        if !popup do
             return
-        .popup.destroy()
+        popup.destroy()
         .popup = null
     }
 }
@@ -398,19 +401,20 @@ impl ComboBox
         if .selectedIdx < .items.count
         {
             .sigChanged.call(me, .selectedIdx)
-            .postCommandEvent(.items[.selectedIdx].id)
+            .postCommandEvent((notnull .items[.selectedIdx]).id)
         }
         else
         {
             .sigChanged.call(me, Swag.U32.Max)
         }
 
-        if .editBox
+        let editBox = .editBox
+        if editBox
         {
             if .selectedIdx < .items.count do
-                .editBox.setText(.items[.selectedIdx].name.raw)
+                editBox.setText((notnull .items[.selectedIdx]).name.raw)
             else do
-                .editBox.setText("")
+                editBox.setText("")
         }
 
         .invalidate()

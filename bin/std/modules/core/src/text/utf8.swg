@@ -344,7 +344,8 @@ func fromUtf16(src: const [..] u16)->String
     result.reserve(4 * @countof(src))
     result.length = fromUtf16(@mkslice(result.buffer, result.capacity), src)
     Debug.assert(result.length + 1 < result.capacity)
-    result.buffer[result.length] = 0
+    let buffer = notnull result.buffer
+    buffer[result.length] = 0
     return result
 }
 

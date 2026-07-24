@@ -9,7 +9,7 @@ impl Properties
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = .addItem(value, data, parentItem)
-        let color = cast(#null *Color) data
+        let color = notnull cast(#null *Color) data
 
         let opaque    = Reflection.hasAttribute(value, .Opaque)
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)

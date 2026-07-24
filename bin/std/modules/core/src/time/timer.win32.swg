@@ -10,7 +10,8 @@ private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)
     let t = cast(*Timer) safeParam
     if !@getcontext() do
         @setcontext(t.context)
-    t.userLambda(dref t)
+    let userLambda = notnull t.userLambda
+    userLambda(dref t)
 }
 
 impl Timer

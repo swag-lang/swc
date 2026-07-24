@@ -55,8 +55,9 @@ struct Holder
 
 func increment(h: *Holder)
 {
-    let cur = h.itf.getValue()
-    h.itf.setValue(cur + 1)
+    let itf = notnull h.itf
+    let cur = itf.getValue()
+    itf.setValue(cur + 1)
 }
 
 #test
@@ -67,7 +68,7 @@ func increment(h: *Holder)
     increment(&h)
     increment(&h)
     @assert(c.count == 12)
-    @assert(h.itf.getValue() == 12)
+    @assert((notnull h.itf).getValue() == 12)
 }
 
 // Iterate over an array of interfaces with different concrete types.

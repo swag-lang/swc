@@ -112,8 +112,9 @@ func appendEquation(list: EquationList, eq: Equation)->EquationList
         result.growCount += 1'u32
     }
 
-    result.data[result.count] = eq
-    result.count              += 1'u32
+    let data = notnull result.data
+    data[result.count] = eq
+    result.count       += 1'u32
     return result
 }
 
@@ -220,9 +221,10 @@ func calibrate(text: string)->CalibrationReport
     result.equationCount  = list.count
     result.allocGrowCount = list.growCount
 
+    let data = notnull list.data
     for list.count
     {
-        let eq = list.data[cast(u32) @index]
+        let eq = data[cast(u32) @index]
 
         if isEquationSolvable(eq, false) do
             result.twoOpTotal += eq.target

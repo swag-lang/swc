@@ -533,9 +533,10 @@ impl RenderOgl
     // Get current render target pixels
     mtd unbindRenderTargetToImage(x, y, w, h: s32)->Image
     {
+        let curRT = notnull .curRT
         if .headless
         {
-            var result: retval = Image.create(.curRT.colorBuffer.width, .curRT.colorBuffer.height, .curRT.colorBuffer.pf, .getTexturePixels(.curRT.colorBuffer, .curRT.colorBuffer.pf).toSlice())
+            var result: retval = Image.create(curRT.colorBuffer.width, curRT.colorBuffer.height, curRT.colorBuffer.pf, .getTexturePixels(curRT.colorBuffer, curRT.colorBuffer.pf).toSlice())
             result.crop(x, y, w, h)
             .unbindRenderTarget()
             return result
@@ -543,7 +544,7 @@ impl RenderOgl
 
         var result: retval = Image.create(w, h, .BGRA8)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
-        glReadPixels(x, .curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (notnull result.pixels.buffer))
+        glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (notnull result.pixels.buffer))
         .unbindRenderTarget()
         return result
     }
@@ -556,8 +557,9 @@ impl RenderOgl
             .curRT = .stackRT.popBack()
             if .headless do
                 return
-            glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) .curRT.handle)
-            glViewport(0, 0, .curRT.colorBuffer.width, .curRT.colorBuffer.height)
+            let curRT = notnull .curRT
+            glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) curRT.handle)
+            glViewport(0, 0, curRT.colorBuffer.width, curRT.colorBuffer.height)
         }
         else
         {
@@ -871,7 +873,8 @@ impl RenderOgl
         case Transform:
             let params = &cmd.transform
             .buildModelMatrix(params.tr)
-            glUniformMatrix4fv(cast(GLint) .curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
+            let curShader = notnull .curShader
+            glUniformMatrix4fv(cast(GLint) curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
 
         case StartClippingRegion:
             glEnable(GL_STENCIL_TEST)
@@ -1018,21 +1021,23 @@ impl RenderOgl
             }
 
         case ResetTexture0:
-            glUniform1f(cast(GLint) .curShader.paintType, cast(GLfloat) cast(u32) BrushType.SolidColor)
-            glUniform1f(cast(GLint) .curShader.uvMode, cast(GLfloat) cast(u32) UVMode.Fill)
-            glUniform1f(cast(GLint) .curShader.interpolationMode, cast(GLfloat) cast(u32) InterpolationMode.Pixel)
-            glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+            let curShader = notnull .curShader
+            glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) BrushType.SolidColor)
+            glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) cast(u32) UVMode.Fill)
+            glUniform1f(cast(GLint) curShader.interpolationMode, cast(GLfloat) cast(u32) InterpolationMode.Pixel)
+            glUniform1i(cast(GLint) curShader.gradientCount, 0)
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
         case BindTexture0:
-            let params = &cmd.texture0
-            glUniform4fv(cast(GLint) .curShader.boundRect, 1, &params.boundRect.x)
-            glUniform4fv(cast(GLint) .curShader.textureRect, 1, &params.textureRect.x)
-            glUniform1f(cast(GLint) .curShader.uvMode, cast(GLfloat) params.uvMode)
-            glUniform1f(cast(GLint) .curShader.interpolationMode, cast(GLfloat) params.interpolationMode)
-            glUniform1i(cast(GLint) .curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
-            glUniform1f(cast(GLint) .curShader.paintType, cast(GLfloat) cast(u32) params.type)
+            let params    = &cmd.texture0
+            let curShader = notnull .curShader
+            glUniform4fv(cast(GLint) curShader.boundRect, 1, &params.boundRect.x)
+            glUniform4fv(cast(GLint) curShader.textureRect, 1, &params.textureRect.x)
+            glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) params.uvMode)
+            glUniform1f(cast(GLint) curShader.interpolationMode, cast(GLfloat) params.interpolationMode)
+            glUniform1i(cast(GLint) curShader.copyMode, cast(GLint) (.blendingMode == .Copy))
+            glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) params.type)
             glActiveTexture(GL_TEXTURE0)
 
             #[Swag.Complete]
@@ -1040,26 +1045,26 @@ impl RenderOgl
             {
             case SolidColor:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
-                glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+                glUniform1i(cast(GLint) curShader.gradientCount, 0)
 
             case Texture:
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) params.texture.handle)
-                glUniform1f(cast(GLint) .curShader.textureW, cast(GLfloat) params.texture.width)
-                glUniform1f(cast(GLint) .curShader.textureH, cast(GLfloat) params.texture.height)
-                glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+                glUniform1f(cast(GLint) curShader.textureW, cast(GLfloat) params.texture.width)
+                glUniform1f(cast(GLint) curShader.textureH, cast(GLfloat) params.texture.height)
+                glUniform1i(cast(GLint) curShader.gradientCount, 0)
 
             case Hatch:
                 glBindTexture(GL_TEXTURE_2D, .hatchTextures[params.hatch])
-                glUniform1i(cast(GLint) .curShader.gradientCount, 0)
+                glUniform1i(cast(GLint) curShader.gradientCount, 0)
 
             case LinearGradient, RadialGradient, SweepGradient:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
-                glUniform1f(cast(GLint) .curShader.gradientSpread, cast(GLfloat) cast(u32) params.gradientSpread)
-                glUniform2f(cast(GLint) .curShader.gradientStart, cast(GLfloat) params.gradientStart.x, cast(GLfloat) params.gradientStart.y)
-                glUniform2f(cast(GLint) .curShader.gradientEnd, cast(GLfloat) params.gradientEnd.x, cast(GLfloat) params.gradientEnd.y)
-                glUniform2f(cast(GLint) .curShader.gradientRadius, cast(GLfloat) params.gradientRadius0, cast(GLfloat) params.gradientRadius1)
-                glUniform2f(cast(GLint) .curShader.gradientAngles, cast(GLfloat) params.gradientAngle0, cast(GLfloat) params.gradientAngle1)
-                glUniform1i(cast(GLint) .curShader.gradientCount, cast(GLint) params.gradientStopCount)
+                glUniform1f(cast(GLint) curShader.gradientSpread, cast(GLfloat) cast(u32) params.gradientSpread)
+                glUniform2f(cast(GLint) curShader.gradientStart, cast(GLfloat) params.gradientStart.x, cast(GLfloat) params.gradientStart.y)
+                glUniform2f(cast(GLint) curShader.gradientEnd, cast(GLfloat) params.gradientEnd.x, cast(GLfloat) params.gradientEnd.y)
+                glUniform2f(cast(GLint) curShader.gradientRadius, cast(GLfloat) params.gradientRadius0, cast(GLfloat) params.gradientRadius1)
+                glUniform2f(cast(GLint) curShader.gradientAngles, cast(GLfloat) params.gradientAngle0, cast(GLfloat) params.gradientAngle1)
+                glUniform1i(cast(GLint) curShader.gradientCount, cast(GLint) params.gradientStopCount)
 
                 var offsets: [MaxGradientStops] f32
                 var colors:  [MaxGradientStops] Vector4
@@ -1069,8 +1074,8 @@ impl RenderOgl
                     colors[i]  = params.gradientStops[i].color.toVector4()
                 }
 
-                glUniform1fv(cast(GLint) .curShader.gradientOffsets, cast(GLsizei) params.gradientStopCount, &offsets[0])
-                glUniform4fv(cast(GLint) .curShader.gradientColors, cast(GLsizei) params.gradientStopCount, &colors[0].x)
+                glUniform1fv(cast(GLint) curShader.gradientOffsets, cast(GLsizei) params.gradientStopCount, &offsets[0])
+                glUniform4fv(cast(GLint) curShader.gradientColors, cast(GLsizei) params.gradientStopCount, &colors[0].x)
             }
 
             #[Swag.Complete]
@@ -1099,14 +1104,17 @@ impl RenderOgl
 
         case BindRenderTarget:
             .bindRenderTarget(cmd.renderTgt.tgt)
-            .curRT.paintAlpha    = cmd.renderTgt.paintAlpha
-            .curRT.paintAlphaIdx = cmdIdx
-            .computeMatrices(.curShader.mvp, .curShader.mdl)
+            let curRT = notnull .curRT
+            curRT.paintAlpha    = cmd.renderTgt.paintAlpha
+            curRT.paintAlphaIdx = cmdIdx
+            let curShader = notnull .curShader
+            .computeMatrices(curShader.mvp, curShader.mdl)
 
         case UnbindRenderTarget:
             Debug.assert(.curRT != null)
 
-            if .curRT.paintAlpha
+            let curRT = notnull .curRT
+            if curRT.paintAlpha
             {
                 glEnable(GL_BLEND)
                 glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE)
@@ -1115,7 +1123,7 @@ impl RenderOgl
                 glBlendFunc(GL_SRC_ALPHA, GL_ZERO)
                 glBlendEquation(GL_MAX)
 
-                for var i = .curRT.paintAlphaIdx; i < cmdIdx; i += 1
+                for var i = curRT.paintAlphaIdx; i < cmdIdx; i += 1
                 {
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
@@ -1126,7 +1134,8 @@ impl RenderOgl
             }
 
             .unbindRenderTarget()
-            .computeMatrices(.curShader.mvp, .curShader.mdl)
+            let curShader = notnull .curShader
+            .computeMatrices(curShader.mvp, curShader.mdl)
 
         case ReleaseRenderTarget:
             .releaseRenderTarget(cmd.renderTgt.tgt)
@@ -1218,7 +1227,8 @@ impl RenderOgl
 
         // Default shader
         .setShader(&.shaderAA)
-        .computeMatrices(.curShader.mvp, .curShader.mdl)
+        let curShader = notnull .curShader
+        .computeMatrices(curShader.mvp, curShader.mdl)
 
         // Default state
         glDisable(GL_SCISSOR_TEST)
@@ -1267,19 +1277,21 @@ impl RenderOgl
 
         for rt, i in .stackReleasedRT
         {
-            if rt.colorBuffer.width == w2 and rt.colorBuffer.height == h2
+            let r = notnull rt
+            if r.colorBuffer.width == w2 and r.colorBuffer.height == h2
             {
                 .stackReleasedRT.removeAt(i)
-                return notnull rt
+                return r
             }
         }
 
         for rt, i in .stackReleasedRT
         {
-            if rt.colorBuffer.width >= w2 and rt.colorBuffer.height >= h2
+            let r = notnull rt
+            if r.colorBuffer.width >= w2 and r.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(i)
-                return notnull rt
+                return r
             }
         }
 

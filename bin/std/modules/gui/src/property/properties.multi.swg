@@ -64,10 +64,10 @@ internal impl Properties
         // Dynamic strings own a heap buffer, so compare by content not by bytes.
         if item.type == Core.String
         {
-            let s0 = cast(#null *String) item.dataInstances[0]
+            let s0 = notnull cast(#null *String) item.dataInstances[0]
             for i in 1 until n
             {
-                if dref cast(#null *String) item.dataInstances[i] != dref s0 do
+                if (dref notnull cast(#null *String) item.dataInstances[i]) != dref s0 do
                     return true
             }
 
@@ -98,7 +98,7 @@ internal impl Properties
         if item.type == Core.String
         {
             for i in 1 until n do
-                dref cast(#null *String) item.dataInstances[i] = dref cast(#null *String) item.dataInstances[0]
+                dref notnull cast(#null *String) item.dataInstances[i] = dref notnull cast(#null *String) item.dataInstances[0]
             return
         }
 
@@ -167,7 +167,7 @@ internal impl Properties
     {
         let n = .instanceCount(item)
         for k in n do
-            dref cast(#null *f32) (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset) = val
+            dref notnull cast(#null *f32) (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset) = val
     }
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
@@ -215,10 +215,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: return cast(u64) dref cast(#null *u8) addr
-        case 2: return cast(u64) dref cast(#null *u16) addr
-        case 4: return cast(u64) dref cast(#null *u32) addr
-        case 8: return dref cast(#null *u64) addr
+        case 1: return cast(u64) dref notnull cast(#null *u8) addr
+        case 2: return cast(u64) dref notnull cast(#null *u16) addr
+        case 4: return cast(u64) dref notnull cast(#null *u32) addr
+        case 8: return dref notnull cast(#null *u64) addr
         }
 
         return 0
@@ -228,10 +228,10 @@ private impl Properties
     {
         switch sz
         {
-        case 1: dref cast(#null *u8) addr = cast(u8) val
-        case 2: dref cast(#null *u16) addr = cast(u16) val
-        case 4: dref cast(#null *u32) addr = cast(u32) val
-        case 8: dref cast(#null *u64) addr = val
+        case 1: dref notnull cast(#null *u8) addr = cast(u8) val
+        case 2: dref notnull cast(#null *u16) addr = cast(u16) val
+        case 4: dref notnull cast(#null *u32) addr = cast(u32) val
+        case 8: dref notnull cast(#null *u64) addr = val
         }
     }
 }

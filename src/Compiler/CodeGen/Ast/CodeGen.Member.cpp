@@ -2,6 +2,7 @@
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
@@ -417,12 +418,43 @@ Result AstMemberAccessExpr::codeGenPreNodeChild(const CodeGen& codeGen, const As
 {
     if (childRef == nodeLeftRef)
     {
-        if (canSkipCompileTimeMemberAccessLeft(const_cast<CodeGen&>(codeGen), *this))
+        // A '?.' left side must always be materialized: its null test guards the rest
+        // of the chain, even when the member itself resolves to a function and the
+        // receiver would otherwise only be produced by the call machinery.
+        if (!hasFlag(AstMemberAccessExprFlagsE::OptionalAccess) &&
+            canSkipCompileTimeMemberAccessLeft(const_cast<CodeGen&>(codeGen), *this))
             return Result::SkipChildren;
     }
 
     if (childRef == nodeRightRef)
         return Result::SkipChildren;
+    return Result::Continue;
+}
+
+Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    if (!hasFlag(AstMemberAccessExprFlagsE::OptionalAccess))
+        return Result::Continue;
+
+    // Child callbacks receive the RESOLVED child (a qualification cast can rewrite
+    // the direct left node, e.g. the UFCS receiver bind of a '?.' method call), so
+    // the left child is identified through resolved references.
+    const AstNodeRef resolvedLeftRef = codeGen.resolvedNodeRef(nodeLeftRef);
+    SWC_ASSERT(resolvedLeftRef.isValid());
+    if (codeGen.resolvedNodeRef(childRef) != resolvedLeftRef)
+        return Result::Continue;
+
+    // '?.': test the freshly generated left value and take the enclosing chain's null
+    // exit when it is null. The rest of the member access then runs on a proven
+    // non-null value.
+    auto* chainState = codeGen.findEnclosingNodePayload<OptionalChainCodeGenPayload>(AstNodeId::OptionalChainExpr);
+    SWC_ASSERT(chainState != nullptr && chainState->falseLabel.isValid());
+
+    const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedLeftRef);
+    const SemaNodeView        leftView    = codeGen.viewType(resolvedLeftRef);
+    const TypeRef             leftTypeRef = leftPayload.effectiveTypeRef(leftView.typeRef());
+    const ScopedDebugSource   debugSource(codeGen.builder(), leftPayload.sourceCodeRef);
+    CodeGenCompareHelpers::emitConditionFalseJump(codeGen, leftPayload, leftTypeRef, chainState->falseLabel);
     return Result::Continue;
 }
 

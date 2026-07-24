@@ -120,18 +120,19 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     if method == null do
         return false
 
-    let methodType = cast(#null const *Swag.TypeInfoFunc) method.pointedType
+    let pointedType = notnull method.pointedType
+    let methodType  = cast(const *Swag.TypeInfoFunc) pointedType
     if method.name != "ping" or
-       method.pointedType.kind != .Func or
+       pointedType.kind != .Func or
        @countof(methodType.parameters) != 1 or
-       methodType.parameters[0].pointedType != #type &ReflectionProbe or
+       (notnull methodType.parameters)[0].pointedType != #type &ReflectionProbe or
        methodType.returnType != s32 or
        method.value == null or
        Reflection.getMethod(type, "visitMacro") != null do
         return false
 
     var probe: ReflectionProbe = {x: seed}
-    let ping = cast(ReflectionProbePingFn) (method.value)
+    let ping = cast(ReflectionProbePingFn) notnull method.value
     let result = ping(&probe)
     ReflectionRuntimePointerCalls += 1
     return result == seed + 1
@@ -143,8 +144,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     @assert(Reflection.isStructOfName(type, "ReflectionProbe"))
     @assert(!Reflection.isStructOfName(type, "Other"))
 
-    let fieldX = Reflection.getField(type, "x")
-    @assert(fieldX != null)
+    let fieldX = notnull Reflection.getField(type, "x")
     @assert(fieldX.name == "x")
     @assert(fieldX.pointedType == s32)
     @assert(Reflection.getField(type, "missing") == null)
@@ -162,13 +162,13 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     for &it in typeStruct.fields where it.name == "x"
     {
         @assert(Reflection.hasAttribute(it, FieldMeta))
-        let attrib = Reflection.getAttribute(it, FieldMeta)
-        @assert(attrib != null)
-        @assert(@countof(attrib.params) == 2)
-        @assert(attrib.params[0].name == "fieldAlias")
-        @assert(attrib.params[1].name == "rank")
-        @assert(cast(#null string) attrib.params[0].value == "primary")
-        @assert(cast(s32) attrib.params[1].value == 7)
+        let attrib = notnull Reflection.getAttribute(it, FieldMeta)
+        let params = notnull attrib.params
+        @assert(@countof(params) == 2)
+        @assert(params[0].name == "fieldAlias")
+        @assert(params[1].name == "rank")
+        @assert(cast(#null string) params[0].value == "primary")
+        @assert(cast(s32) params[1].value == 7)
     }
 
     @assert(cast(#null string) Reflection.getAttributeValue(fieldX, FieldMeta, "fieldAlias") == "primary")
@@ -289,17 +289,16 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 {
     let enumType = #typeof(ProbeState)
     let enumInfo = cast(const *Swag.TypeInfoEnum) enumType
-    let enumValue = Reflection.getEnumValue(enumType, "Busy")
+    let enumValue = notnull Reflection.getEnumValue(enumType, "Busy")
     var state = ProbeState.Busy
 
     @assert(Reflection.makeConcreteEnum(enumType) == u32)
-    @assert(enumValue != null)
     @assert(enumValue.name == "Busy")
     @assert(cast(#null const *u32) enumValue.value != null)
-    @assert(dref cast(#null const *u32) enumValue.value == 1)
+    @assert((dref notnull cast(#null const *u32) enumValue.value) == 1)
     @assert(Reflection.getEnumName(enumType, &state) == "ProbeState.Busy")
     @assert(Reflection.getEnumName(enumType, &state, fullname: false) == "Busy")
-    @assert(enumInfo.attributes[0].type == EnumMeta)
+    @assert((notnull enumInfo.attributes)[0].type == EnumMeta)
     @assert(cast(#null string) Reflection.getAttributeValue(enumType, EnumMeta, "label") == "state")
 }
 
@@ -309,7 +308,8 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let enumType = #typeof(flags)
     let attrs = Reflection.getAttributes(enumType, EnumMeta)
     @assert(attrs.count == 1)
-    @assert(cast(#null string) attrs[0].params[0].value == "flags")
+    let params = notnull attrs[0].params
+    @assert(cast(#null string) params[0].value == "flags")
 }
 
 #test
@@ -318,11 +318,12 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     let funcInfo = cast(const *Swag.TypeInfoFunc) funcType
     @assert(Reflection.isGeneric(funcType))
     @assert(@countof(funcInfo.generics) == 2)
-    @assert(funcInfo.generics[0].pointedType == u16)
-    @assert(funcInfo.generics[1].pointedType == s32)
-    @assert(cast(#null const *s32) funcInfo.generics[1].value != null)
-    @assert(dref cast(#null const *s32) funcInfo.generics[1].value == 3)
-    @assert(funcInfo.attributes[0].type == FuncMeta)
-    @assert(cast(string) Reflection.getAttributeValue(funcType, FuncMeta, "label") == "repeat")
+    let generics = notnull funcInfo.generics
+    @assert(generics[0].pointedType == u16)
+    @assert(generics[1].pointedType == s32)
+    @assert(cast(#null const *s32) generics[1].value != null)
+    @assert((dref notnull cast(#null const *s32) generics[1].value) == 3)
+    @assert((notnull funcInfo.attributes)[0].type == FuncMeta)
+    @assert(cast(#null string) Reflection.getAttributeValue(funcType, FuncMeta, "label") == "repeat")
     @assert(cast(s32) Reflection.getAttributeValue(funcType, FuncMeta, "arity") == 2)
 }

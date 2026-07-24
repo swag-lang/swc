@@ -80,7 +80,7 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let text = "GRADIENT"
     let size = Painter.measureString(text, notnull g_TitleFont)
     let x = body.horzCenter() - size.width * 0.5
-    let y = body.vertCenter() - g_TitleFont.height * 0.5
+    let y = body.vertCenter() - (notnull g_TitleFont).height * 0.5
 
     let back = Math.Rectangle{body.x + 26, body.y + 18, body.width - 52, body.height - 42}
     var backBrush = Brush.createLinearGradient(back.x, back.y, back.right(), back.bottom(), Argb.DeepSkyBlue, Argb.Goldenrod)

@@ -14,7 +14,7 @@ func unreachableSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()
+    const cfg      = #run dref notnull @compiler.getBuildCfg()
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Unreachable ? true : false
     #assert(#safety(Swag.SafetyWhat.Unreachable) == expected)
 }

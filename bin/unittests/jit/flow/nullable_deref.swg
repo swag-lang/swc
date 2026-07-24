@@ -1,13 +1,9 @@
 #global private
 
-// Dereferencing a `#null` pointer (here through a method-call receiver) is allowed
-// without any guard: it simply dereferences the pointer, C-like. It may fault at
-// runtime if the pointer is actually null, but the compiler does not force a proof
-// at the use site. Two boundaries frame that freedom:
-// - binding a `#null` pointer to a non-null reference/pointer storage is an error;
-// - a `#null` PARAMETER whose first use on every path requires its address is a
-//   dead contract (sema_err_nullable_param_contract), so the unguarded dereference
-//   below lives behind a reachable early-out.
+// Dereferencing a '#null' pointer now requires a proof at the use site: a
+// dominating null test (flow narrowing), a 'notnull' assertion, or a '?.'
+// guarded access. This file exercises the three sanctioned routes at runtime;
+// the rejected unguarded forms live in errors/sema/sema_err_nullable_use_site.swg.
 
 struct NullableDerefNode
 {
@@ -23,20 +19,33 @@ impl NullableDerefNode
     }
 }
 
-func nullableDerefUnguarded(n: #null *NullableDerefNode, skip: bool)->s32
+func nullableDerefNarrowed(n: #null *NullableDerefNode, skip: bool)->s32
+{
+    if skip or n == null do
+        return 0
+    return n.bump()
+}
+
+func nullableDerefAsserted(n: #null *NullableDerefNode, skip: bool)->s32
 {
     if skip do
         return 0
+    return (notnull n).bump()
+}
 
-    // No `if n do ...` guard: calling a method on the nullable pointer just derefs it.
-    return n.bump()
+func nullableDerefOptional(n: #null *NullableDerefNode)->s32
+{
+    return n?.bump() orelse 0
 }
 
 #test
 {
     var node = NullableDerefNode{value: 41}
-    let r    = nullableDerefUnguarded(&node, false)
-    @assert(r == 42)
+    @assert(nullableDerefNarrowed(&node, false) == 42)
     @assert(node.value == 42)
-    @assert(nullableDerefUnguarded(&node, true) == 0)
+    @assert(nullableDerefNarrowed(&node, true) == 0)
+    @assert(nullableDerefAsserted(&node, false) == 43)
+    @assert(nullableDerefOptional(&node) == 44)
+    @assert(nullableDerefOptional(null) == 0)
+    @assert(node.value == 44)
 }

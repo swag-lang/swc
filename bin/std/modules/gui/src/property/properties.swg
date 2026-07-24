@@ -221,12 +221,13 @@ impl IWnd for Properties
     // pastel background).
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
-        for it in .items
+        for itIt in .items
         {
+            let it = notnull itIt
             if @isset(it.validationLabel) and it.validation != .None do
-                .applyValidationVisual(notnull it)
+                .applyValidationVisual(it)
             if it.flags.has(.Note) do
-                .applyNoteVisual(notnull it)
+                .applyNoteVisual(it)
         }
     }
 
@@ -318,12 +319,12 @@ internal impl Properties
                 .refreshNative(item)
             elif Reflection.isString(pointed) and @isset(item.editBox)
             {
-                item.editBox.setText(dref cast(#null *string) item.data)
+                item.editBox.setText(dref notnull cast(#null *string) item.data)
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and @isset(item.editBox)
             {
-                item.editBox.setText(dref cast(#null *String) item.data)
+                item.editBox.setText(dref notnull cast(#null *String) item.data)
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and @isset(item.comboBox) do
@@ -440,8 +441,11 @@ impl Properties
 
         .freeDefaultRoots()
 
-        for it in .items do
-            it.line.destroyNow()
+        for it in .items
+        {
+            let itn = notnull it
+            itn.line.destroyNow()
+        }
         .items.clear()
         .sections.clear()
         .gridLevelHasMark.clear()
@@ -505,7 +509,8 @@ impl Properties
         let typeStruct = cast(const *Swag.TypeInfoStruct) typeof
         .addStructInternal(typeStruct, cast([*] u8) bases[0], item)
 
-        item.numChilds = cast(u32) (.items.count - numItemsBefore)
+        let itemn = notnull item
+        itemn.numChilds = cast(u32) (.items.count - numItemsBefore)
 
         .assignInstances(firstItemIdx, bases)
         .assignDefaults(firstItemIdx, typeof, cast([*] u8) bases[0])
@@ -532,7 +537,7 @@ impl Properties
         let base0 = cast([*] u8) bases[0]
         for i in fromIdx until .items.count
         {
-            let it = .items[i]
+            let it = notnull .items[i]
             it.dataInstances.clear()
             if !it.data do
                 continue

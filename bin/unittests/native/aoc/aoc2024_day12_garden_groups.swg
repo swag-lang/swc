@@ -65,7 +65,7 @@ struct Grid
 
 impl Grid
 {
-    mtd const at(r, c: u32)->u8         => .cells[r * MaxDim + c]
+    mtd const at(r, c: u32)->u8         => (notnull .cells)[r * MaxDim + c]
     mtd const cellCount()->u32          => .width * .height
     mtd const inBounds(r, c: s32)->bool => r >= 0 and c >= 0 and cast(u32) r < .height and cast(u32) c < .width
 }
@@ -74,9 +74,10 @@ func parseGrid(text: string)->Grid
 {
     var g: Grid
     g.cells = cast(#null [*] u8) @alloc(cast(u64) MaxDim * MaxDim)
+    let cells = notnull g.cells
     for MaxDim * MaxDim
     {
-        g.cells[@index] = 0
+        cells[@index] = 0
     }
     let bytes = cast(const [..] u8) text
     var col: u32
@@ -96,8 +97,8 @@ func parseGrid(text: string)->Grid
             continue
         }
 
-        g.cells[g.height * MaxDim + col] = ch
-        col                              += 1
+        cells[g.height * MaxDim + col] = ch
+        col                            += 1
     }
 
     if col > 0

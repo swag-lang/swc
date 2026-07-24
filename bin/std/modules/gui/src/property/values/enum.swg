@@ -23,23 +23,23 @@ impl Properties
         if @isset(item.checkBox)
         {
             var val1, val2: u64
-            switch item.typeValue.pointedType.sizeof
+            switch (notnull item.typeValue.pointedType).sizeof
             {
             case 1:
-                val1 = cast(u64) dref cast(#null *u8) item.data
-                val2 = cast(u64) dref cast(#null const *u8) item.typeValue.value
+                val1 = cast(u64) dref notnull cast(#null *u8) item.data
+                val2 = cast(u64) dref notnull cast(#null const *u8) item.typeValue.value
 
             case 2:
-                val1 = cast(u64) dref cast(#null *u16) item.data
-                val2 = cast(u64) dref cast(#null const *u16) item.typeValue.value
+                val1 = cast(u64) dref notnull cast(#null *u16) item.data
+                val2 = cast(u64) dref notnull cast(#null const *u16) item.typeValue.value
 
             case 4:
-                val1 = cast(u64) dref cast(#null *u32) item.data
-                val2 = cast(u64) dref cast(#null const *u32) item.typeValue.value
+                val1 = cast(u64) dref notnull cast(#null *u32) item.data
+                val2 = cast(u64) dref notnull cast(#null const *u32) item.typeValue.value
 
             case 8:
-                val1 = cast(u64) dref cast(#null *u64) item.data
-                val2 = cast(u64) dref cast(#null const *u64) item.typeValue.value
+                val1 = cast(u64) dref notnull cast(#null *u64) item.data
+                val2 = cast(u64) dref notnull cast(#null const *u64) item.typeValue.value
             }
 
             // Multi-selection: a flag whose bit disagrees across instances is indeterminate.
@@ -55,29 +55,29 @@ impl Properties
     {
         if @isset(item.comboBox)
         {
-            let typeEnum = cast(#null const *Swag.TypeInfoEnum) item.typeValue.pointedType
+            let typeEnum = notnull cast(#null const *Swag.TypeInfoEnum) item.typeValue.pointedType
 
             var val1, val2:   u64
             var val1s, val2s: #null string
-            switch typeEnum.rawType.sizeof
+            switch (notnull typeEnum.rawType).sizeof
             {
-            case 1:  val1 = cast(u64) dref cast(#null *u8) item.data
-            case 2:  val1 = cast(u64) dref cast(#null *u16) item.data
-            case 4:  val1 = cast(u64) dref cast(#null *u32) item.data
-            case 8:  val1 = cast(u64) dref cast(#null *u64) item.data
-            case 16: val1s = dref cast(#null *string) item.data
+            case 1:  val1 = cast(u64) dref notnull cast(#null *u8) item.data
+            case 2:  val1 = cast(u64) dref notnull cast(#null *u16) item.data
+            case 4:  val1 = cast(u64) dref notnull cast(#null *u32) item.data
+            case 8:  val1 = cast(u64) dref notnull cast(#null *u64) item.data
+            case 16: val1s = dref notnull cast(#null *string) item.data
             }
 
             var idxSel = 0'u64
             for v, idx in typeEnum.values
             {
-                switch typeEnum.rawType.sizeof
+                switch (notnull typeEnum.rawType).sizeof
                 {
-                case 1:  val2 = cast(u64) dref cast(#null const *u8) v.value
-                case 2:  val2 = cast(u64) dref cast(#null const *u16) v.value
-                case 4:  val2 = cast(u64) dref cast(#null const *u32) v.value
-                case 8:  val2 = cast(u64) dref cast(#null const *u64) v.value
-                case 16: val2s = dref cast(#null const *string) v.value
+                case 1:  val2 = cast(u64) dref notnull cast(#null const *u8) v.value
+                case 2:  val2 = cast(u64) dref notnull cast(#null const *u16) v.value
+                case 4:  val2 = cast(u64) dref notnull cast(#null const *u32) v.value
+                case 8:  val2 = cast(u64) dref notnull cast(#null const *u64) v.value
+                case 16: val2s = dref notnull cast(#null const *string) v.value
                 }
 
                 if val1 == val2 and val1s == val2s do
@@ -90,7 +90,7 @@ impl Properties
             var idxCombo = Swag.U32.Max
             for cb, cbIdx in item.comboBox.items
             {
-                if cast(u64) cb.userData0 == idxSel
+                if cast(u64) (notnull cb).userData0 == idxSel
                 {
                     idxCombo = cast(u32) cbIdx
                     break
@@ -111,7 +111,7 @@ impl Properties
         {
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
-            let sz   = item.typeValue.pointedType.sizeof
+            let sz   = (notnull item.typeValue.pointedType).sizeof
             let mask = readEnumBits(cast(#null *u8) item.checkBox.userData, sz)
             .writeEnumBit(item, mask, item.checkBox.checked == .Checked)
         }
@@ -126,12 +126,12 @@ impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p  = cast(#null *T) item.data
-                let p1 = cast(#null const *T) typeEnum.values[idxEnum].value
+                let p  = notnull cast(#null *T) item.data
+                let p1 = notnull cast(#null const *T) (notnull typeEnum.values)[idxEnum].value
                 dref p = dref p1
             }
 
-            let typeEnum = cast(#null const *Swag.TypeInfoEnum) item.typeValue.pointedType
+            let typeEnum = notnull cast(#null const *Swag.TypeInfoEnum) item.typeValue.pointedType
             let sel      = item.comboBox.selectedIdx
 
             // A deselected combo means "mixed" was just shown (multi-selection); there is
@@ -140,9 +140,9 @@ impl Properties
                 return
 
             // Combo slot -> enum value index (the combo may hide values, see constructEnum)
-            let idxEnum = cast(u64) item.comboBox.items[sel].userData0
+            let idxEnum = cast(u64) (notnull item.comboBox.items[sel]).userData0
 
-            switch typeEnum.rawType.sizeof
+            switch (notnull typeEnum.rawType).sizeof
             {
             case 1:  setEd'u8()
             case 2:  setEd'u16()

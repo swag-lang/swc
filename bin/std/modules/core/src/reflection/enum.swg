@@ -38,13 +38,14 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
         return result
     let safeType  = notnull type
     let safeValue = valueAddr
-    let typeEnum  = cast(const *TypeInfoEnum) safeType
+    let typeEnum = cast(const *TypeInfoEnum) safeType
+    let rawType  = notnull typeEnum.rawType
     let isFlags  = hasAttribute(type, EnumFlags)
 
     // Get the user value, as an 'u64' or a string
     var val1:  u64
     var val1s: #null string
-    switch typeEnum.rawType.sizeof
+    switch rawType.sizeof
     {
     case 1:  val1 = cast(u64) dref cast(const *u8) safeValue
     case 2:  val1 = cast(u64) dref cast(const *u16) safeValue
@@ -65,7 +66,7 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
         // Get the enum value, as an 'u64' or a string
         var val2:  u64
         var val2s: #null string
-        switch typeEnum.rawType.sizeof
+        switch rawType.sizeof
         {
         case 1:  val2 = cast(u64) dref cast(const *u8) safeItValue
         case 2:  val2 = cast(u64) dref cast(const *u16) safeItValue

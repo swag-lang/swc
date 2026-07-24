@@ -81,9 +81,9 @@ using Swag, Core
     @assert(rgb.height == 441)
     @assert(rgb.pf == .BGR8)
     @assert(rgb.pixels.count == 873180)
-    @assert(rgb.pixels.buffer[0] == 201'u8)
-    @assert(rgb.pixels.buffer[1] == 205'u8)
-    @assert(rgb.pixels.buffer[2] == 194'u8)
+    @assert((notnull rgb.pixels.buffer)[0] == 201'u8)
+    @assert((notnull rgb.pixels.buffer)[1] == 205'u8)
+    @assert((notnull rgb.pixels.buffer)[2] == 194'u8)
 
     var rgba: Image
     rgba = catch Image.load(getTestDataPath("rgba.bmp"))
@@ -93,10 +93,10 @@ using Swag, Core
     @assert(rgba.height == 441)
     @assert(rgba.pf == .BGRA8)
     @assert(rgba.pixels.count == 1164240)
-    @assert(rgba.pixels.buffer[0] == 201'u8)
-    @assert(rgba.pixels.buffer[1] == 205'u8)
-    @assert(rgba.pixels.buffer[2] == 194'u8)
-    @assert(rgba.pixels.buffer[3] == 255'u8)
+    @assert((notnull rgba.pixels.buffer)[0] == 201'u8)
+    @assert((notnull rgba.pixels.buffer)[1] == 205'u8)
+    @assert((notnull rgba.pixels.buffer)[2] == 194'u8)
+    @assert((notnull rgba.pixels.buffer)[3] == 255'u8)
 }
 
 // Decode tests - various BMP formats.
@@ -189,10 +189,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.bpp    == 32)
     @assert(img.bpp8   == 4)
     @assert(img.pixels.count == 16)
-    @assert(img.pixels.buffer[0]  == 10'u8)
-    @assert(img.pixels.buffer[1]  == 20'u8)
-    @assert(img.pixels.buffer[2]  == 30'u8)
-    @assert(img.pixels.buffer[3]  == 255'u8)
+    @assert((notnull img.pixels.buffer)[0]  == 10'u8)
+    @assert((notnull img.pixels.buffer)[1]  == 20'u8)
+    @assert((notnull img.pixels.buffer)[2]  == 30'u8)
+    @assert((notnull img.pixels.buffer)[3]  == 255'u8)
 }
 
 // Decode a 5x5 24-bit BGR8 BMP where each row has 1 byte of alignment padding on disk.
@@ -239,9 +239,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.pf     == .BGR8)
     @assert(img.bpp    == 24)
     @assert(img.pixels.count == 75)     // 5x5x3 = 75, no padding in decoded result
-    @assert(img.pixels.buffer[0] == 100'u8)
-    @assert(img.pixels.buffer[1] == 150'u8)
-    @assert(img.pixels.buffer[2] == 200'u8)
+    @assert((notnull img.pixels.buffer)[0] == 100'u8)
+    @assert((notnull img.pixels.buffer)[1] == 150'u8)
+    @assert((notnull img.pixels.buffer)[2] == 200'u8)
 }
 
 // Decode a 2x2 24-bit BMP written with the legacy 12-byte BITMAPCOREHEADER.
@@ -287,9 +287,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.height == 2)
     @assert(img.pf     == .BGR8)
     @assert(img.pixels.count == 12)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
 }
 
 // Decode a 2x2 24-bit BMP with biCompression=BI_BITFIELDS (value 3).
@@ -335,9 +335,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.width  == 2)
     @assert(img.height == 2)
     @assert(img.pf     == .BGR8)
-    @assert(img.pixels.buffer[0] == 55'u8)
-    @assert(img.pixels.buffer[1] == 66'u8)
-    @assert(img.pixels.buffer[2] == 77'u8)
+    @assert((notnull img.pixels.buffer)[0] == 55'u8)
+    @assert((notnull img.pixels.buffer)[1] == 66'u8)
+    @assert((notnull img.pixels.buffer)[2] == 77'u8)
 }
 
 // Decode a top-down 2x2 24-bit BMP. The decoder stores pixels in the
@@ -381,12 +381,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(@err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pixels.buffer[0] == 7'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 9'u8)
-    @assert(img.pixels.buffer[6] == 1'u8)
-    @assert(img.pixels.buffer[7] == 2'u8)
-    @assert(img.pixels.buffer[8] == 3'u8)
+    @assert((notnull img.pixels.buffer)[0] == 7'u8)
+    @assert((notnull img.pixels.buffer)[1] == 8'u8)
+    @assert((notnull img.pixels.buffer)[2] == 9'u8)
+    @assert((notnull img.pixels.buffer)[6] == 1'u8)
+    @assert((notnull img.pixels.buffer)[7] == 2'u8)
+    @assert((notnull img.pixels.buffer)[8] == 3'u8)
 }
 
 // Decode an 8-bit indexed BMP through its palette.
@@ -427,12 +427,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pf == .BGR8)
-    @assert(img.pixels.buffer[3] == 10'u8)
-    @assert(img.pixels.buffer[4] == 20'u8)
-    @assert(img.pixels.buffer[5] == 30'u8)
-    @assert(img.pixels.buffer[9] == 70'u8)
-    @assert(img.pixels.buffer[10] == 80'u8)
-    @assert(img.pixels.buffer[11] == 90'u8)
+    @assert((notnull img.pixels.buffer)[3] == 10'u8)
+    @assert((notnull img.pixels.buffer)[4] == 20'u8)
+    @assert((notnull img.pixels.buffer)[5] == 30'u8)
+    @assert((notnull img.pixels.buffer)[9] == 70'u8)
+    @assert((notnull img.pixels.buffer)[10] == 80'u8)
+    @assert((notnull img.pixels.buffer)[11] == 90'u8)
 }
 
 // Decode packed 1-bit indexed BMP rows.
@@ -471,11 +471,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 9'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 7'u8)
-    @assert(img.pixels.buffer[3] == 0'u8)
-    @assert(img.pixels.buffer[6] == 9'u8)
+    @assert((notnull img.pixels.buffer)[0] == 9'u8)
+    @assert((notnull img.pixels.buffer)[1] == 8'u8)
+    @assert((notnull img.pixels.buffer)[2] == 7'u8)
+    @assert((notnull img.pixels.buffer)[3] == 0'u8)
+    @assert((notnull img.pixels.buffer)[6] == 9'u8)
 }
 
 // Decode packed 4-bit indexed BMP rows.
@@ -515,12 +515,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 11'u8)
-    @assert(img.pixels.buffer[1] == 12'u8)
-    @assert(img.pixels.buffer[2] == 13'u8)
-    @assert(img.pixels.buffer[3] == 21'u8)
-    @assert(img.pixels.buffer[4] == 22'u8)
-    @assert(img.pixels.buffer[5] == 23'u8)
+    @assert((notnull img.pixels.buffer)[0] == 11'u8)
+    @assert((notnull img.pixels.buffer)[1] == 12'u8)
+    @assert((notnull img.pixels.buffer)[2] == 13'u8)
+    @assert((notnull img.pixels.buffer)[3] == 21'u8)
+    @assert((notnull img.pixels.buffer)[4] == 22'u8)
+    @assert((notnull img.pixels.buffer)[5] == 23'u8)
 }
 
 // Decode 16-bit BI_RGB pixels using the default 5-5-5 masks.
@@ -556,12 +556,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 0'u8)
-    @assert(img.pixels.buffer[1] == 0'u8)
-    @assert(img.pixels.buffer[2] == 255'u8)
-    @assert(img.pixels.buffer[3] == 0'u8)
-    @assert(img.pixels.buffer[4] == 255'u8)
-    @assert(img.pixels.buffer[5] == 0'u8)
+    @assert((notnull img.pixels.buffer)[0] == 0'u8)
+    @assert((notnull img.pixels.buffer)[1] == 0'u8)
+    @assert((notnull img.pixels.buffer)[2] == 255'u8)
+    @assert((notnull img.pixels.buffer)[3] == 0'u8)
+    @assert((notnull img.pixels.buffer)[4] == 255'u8)
+    @assert((notnull img.pixels.buffer)[5] == 0'u8)
 }
 
 // Decode 16-bit BI_BITFIELDS pixels using explicit 5-6-5 masks.
@@ -601,12 +601,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 255'u8)
-    @assert(img.pixels.buffer[1] == 0'u8)
-    @assert(img.pixels.buffer[2] == 0'u8)
-    @assert(img.pixels.buffer[3] == 0'u8)
-    @assert(img.pixels.buffer[4] == 255'u8)
-    @assert(img.pixels.buffer[5] == 0'u8)
+    @assert((notnull img.pixels.buffer)[0] == 255'u8)
+    @assert((notnull img.pixels.buffer)[1] == 0'u8)
+    @assert((notnull img.pixels.buffer)[2] == 0'u8)
+    @assert((notnull img.pixels.buffer)[3] == 0'u8)
+    @assert((notnull img.pixels.buffer)[4] == 255'u8)
+    @assert((notnull img.pixels.buffer)[5] == 0'u8)
 }
 
 // Decode BI_RLE8 indexed data.
@@ -651,12 +651,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[12] == 0'u8)
-    @assert(img.pixels.buffer[13] == 20'u8)
-    @assert(img.pixels.buffer[15] == 0'u8)
-    @assert(img.pixels.buffer[16] == 0'u8)
-    @assert(img.pixels.buffer[17] == 30'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[12] == 0'u8)
+    @assert((notnull img.pixels.buffer)[13] == 20'u8)
+    @assert((notnull img.pixels.buffer)[15] == 0'u8)
+    @assert((notnull img.pixels.buffer)[16] == 0'u8)
+    @assert((notnull img.pixels.buffer)[17] == 30'u8)
 }
 
 // Decode BI_RLE4 indexed data.
@@ -698,12 +698,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 11'u8)
-    @assert(img.pixels.buffer[1] == 12'u8)
-    @assert(img.pixels.buffer[2] == 13'u8)
-    @assert(img.pixels.buffer[3] == 21'u8)
-    @assert(img.pixels.buffer[4] == 22'u8)
-    @assert(img.pixels.buffer[5] == 23'u8)
+    @assert((notnull img.pixels.buffer)[0] == 11'u8)
+    @assert((notnull img.pixels.buffer)[1] == 12'u8)
+    @assert((notnull img.pixels.buffer)[2] == 13'u8)
+    @assert((notnull img.pixels.buffer)[3] == 21'u8)
+    @assert((notnull img.pixels.buffer)[4] == 22'u8)
+    @assert((notnull img.pixels.buffer)[5] == 23'u8)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
@@ -899,10 +899,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(4, 4, .BGR8)
     src.clear()
-    src.pixels.buffer[0]  = 200'u8     // pixel(0,0) B
-    src.pixels.buffer[1]  = 128'u8     //             G
-    src.pixels.buffer[2]  = 64'u8      //             R
-    src.pixels.buffer[45] = 33'u8      // last row, pixel 3, B channel
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0]  = 200'u8     // pixel(0,0) B
+    srcBuf[1]  = 128'u8     //             G
+    srcBuf[2]  = 64'u8      //             R
+    srcBuf[45] = 33'u8      // last row, pixel 3, B channel
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -913,10 +914,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0]  == 200'u8)
-    @assert(img.pixels.buffer[1]  == 128'u8)
-    @assert(img.pixels.buffer[2]  == 64'u8)
-    @assert(img.pixels.buffer[45] == 33'u8)
+    @assert((notnull img.pixels.buffer)[0]  == 200'u8)
+    @assert((notnull img.pixels.buffer)[1]  == 128'u8)
+    @assert((notnull img.pixels.buffer)[2]  == 64'u8)
+    @assert((notnull img.pixels.buffer)[45] == 33'u8)
 }
 
 // Encode a BGRA8 2x2 image: raw 32-bit bytes are copied directly by the encoder.
@@ -959,12 +960,13 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
-    src.pixels.buffer[0] = 10'u8      // pixel(0,0) B
-    src.pixels.buffer[1] = 20'u8      //             G
-    src.pixels.buffer[2] = 30'u8      //             R
-    src.pixels.buffer[3] = 200'u8     //             A
-    src.pixels.buffer[4] = 50'u8      // pixel(1,0) B
-    src.pixels.buffer[7] = 128'u8     // pixel(1,0) A
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 10'u8      // pixel(0,0) B
+    srcBuf[1] = 20'u8      //             G
+    srcBuf[2] = 30'u8      //             R
+    srcBuf[3] = 200'u8     //             A
+    srcBuf[4] = 50'u8      // pixel(1,0) B
+    srcBuf[7] = 128'u8     // pixel(1,0) A
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -975,12 +977,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0]  == 10'u8)
-    @assert(img.pixels.buffer[1]  == 20'u8)
-    @assert(img.pixels.buffer[2]  == 30'u8)
-    @assert(img.pixels.buffer[3]  == 200'u8)
-    @assert(img.pixels.buffer[4]  == 50'u8)
-    @assert(img.pixels.buffer[7]  == 128'u8)
+    @assert((notnull img.pixels.buffer)[0]  == 10'u8)
+    @assert((notnull img.pixels.buffer)[1]  == 20'u8)
+    @assert((notnull img.pixels.buffer)[2]  == 30'u8)
+    @assert((notnull img.pixels.buffer)[3]  == 200'u8)
+    @assert((notnull img.pixels.buffer)[4]  == 50'u8)
+    @assert((notnull img.pixels.buffer)[7]  == 128'u8)
 }
 
 // Encode an RGB8 4x4 image: encoder swaps R/B to write BGR bytes into the BMP file,
@@ -995,9 +997,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(4, 4, .RGB8)
     src.clear()
-    src.pixels.buffer[0] = 100'u8     // pixel(0,0) R
-    src.pixels.buffer[1] = 150'u8     //             G
-    src.pixels.buffer[2] = 200'u8     //             B
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 100'u8     // pixel(0,0) R
+    srcBuf[1] = 150'u8     //             G
+    srcBuf[2] = 200'u8     //             B
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -1012,9 +1015,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.height == 4)
     @assert(img.pf     == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
     // Encoder writes [B=200, G=150, R=100]; decoder stores as BGR8 bytes verbatim
-    @assert(img.pixels.buffer[0] == 200'u8)     // B
-    @assert(img.pixels.buffer[1] == 150'u8)     // G
-    @assert(img.pixels.buffer[2] == 100'u8)     // R
+    @assert((notnull img.pixels.buffer)[0] == 200'u8)     // B
+    @assert((notnull img.pixels.buffer)[1] == 150'u8)     // G
+    @assert((notnull img.pixels.buffer)[2] == 100'u8)     // R
 }
 
 // Encode an RGBA8 2x2 image: encoder swaps R/B to write BGRA bytes,
@@ -1029,10 +1032,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(2, 2, .RGBA8)
     src.clear()
-    src.pixels.buffer[0] = 10'u8      // pixel(0,0) R
-    src.pixels.buffer[1] = 20'u8      //             G
-    src.pixels.buffer[2] = 30'u8      //             B
-    src.pixels.buffer[3] = 255'u8     //             A
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 10'u8      // pixel(0,0) R
+    srcBuf[1] = 20'u8      //             G
+    srcBuf[2] = 30'u8      //             B
+    srcBuf[3] = 255'u8     //             A
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -1047,10 +1051,10 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.height == 2)
     @assert(img.pf     == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
     // Encoder writes [B=30, G=20, R=10, A=255]; decoder stores as BGRA8 bytes verbatim
-    @assert(img.pixels.buffer[0] == 30'u8)      // B
-    @assert(img.pixels.buffer[1] == 20'u8)      // G
-    @assert(img.pixels.buffer[2] == 10'u8)      // R
-    @assert(img.pixels.buffer[3] == 255'u8)     // A
+    @assert((notnull img.pixels.buffer)[0] == 30'u8)      // B
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)      // G
+    @assert((notnull img.pixels.buffer)[2] == 10'u8)      // R
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)     // A
 }
 
 // Encode BGR8 5x5 with row padding: pixel values survive despite the on-disk stride difference.
@@ -1065,10 +1069,11 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var src = Image.create(5, 5, .BGR8)
     src.clear()
-    src.pixels.buffer[0]  = 77'u8     // pixel(0,0) B
-    src.pixels.buffer[1]  = 88'u8     //             G
-    src.pixels.buffer[2]  = 99'u8     //             R
-    src.pixels.buffer[72] = 42'u8     // row4 pixel(0) B
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0]  = 77'u8     // pixel(0,0) B
+    srcBuf[1]  = 88'u8     //             G
+    srcBuf[2]  = 99'u8     //             R
+    srcBuf[72] = 42'u8     // row4 pixel(0) B
 
     var cb: ConcatBuffer
     catch encodeBmp(&cb, src)
@@ -1092,8 +1097,8 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pixels.count     == 75)
-    @assert(img.pixels.buffer[0]  == 77'u8)
-    @assert(img.pixels.buffer[1]  == 88'u8)
-    @assert(img.pixels.buffer[2]  == 99'u8)
-    @assert(img.pixels.buffer[72] == 42'u8)
+    @assert((notnull img.pixels.buffer)[0]  == 77'u8)
+    @assert((notnull img.pixels.buffer)[1]  == 88'u8)
+    @assert((notnull img.pixels.buffer)[2]  == 99'u8)
+    @assert((notnull img.pixels.buffer)[72] == 42'u8)
 }

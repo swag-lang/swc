@@ -275,8 +275,9 @@ impl QuickWnd
         let res = menu.doModal(pos, autoDestroy: true)
         if res == "0" and btn
         {
-            let qbtn = cast(*QuickButton) btn
-            .currentStyle.remove(notnull qbtn.formItf)
+            let qbtn  = cast(*QuickButton) btn
+            let style = notnull .currentStyle
+            style.remove(notnull qbtn.formItf)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
         }
@@ -714,7 +715,7 @@ impl QuickWnd
             if !paintForm.title.isEmpty()
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
-                let rect = paintForm.itf.boundRect()
+                let rect = (notnull paintForm.itf).boundRect()
                 painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, captmeFont(btnp.getFont().regular), textColor)
             }
         }
@@ -859,7 +860,8 @@ impl QuickWnd
                 let mdl = main.newFormFromModel(main.getEditMode())
                 if mdl
                 {
-                    quickWnd.currentStyle.forms.add(mdl)
+                    let style = notnull quickWnd.currentStyle
+                    style.forms.add(mdl)
                     quickWnd.updateQuickStyles()
                 }
             }

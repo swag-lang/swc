@@ -54,7 +54,7 @@ impl Image
             }
 
         case HueHorz:
-            var pix = .pixels.buffer
+            var pix = notnull .pixels.buffer
             for x in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -108,7 +108,7 @@ impl Image
             }
 
         case SaturationHorz:
-            var pix = .pixels.buffer
+            var pix = notnull .pixels.buffer
             for x in .width
             {
                 let factor0 = x / cast(f32) .width
@@ -162,7 +162,7 @@ impl Image
             }
 
         case LightnessHorz:
-            var pix = .pixels.buffer
+            var pix = notnull .pixels.buffer
             for x in .width
             {
                 let factor0 = x / cast(f32) .width

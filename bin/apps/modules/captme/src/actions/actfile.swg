@@ -177,7 +177,7 @@ impl IActionUI for ActionFile
                 var opt: MessageDlgOptions
                 opt.sigCreate = func|main|(dlg)
                 {
-                    let chk = CheckButton.create(dlg.surface.getView(), "Do not ask again", {0, 0, 100, 40})
+                    let chk = CheckButton.create((notnull dlg.surface).getView(), "Do not ask again", {0, 0, 100, 40})
                     chk.sigChanged += func|main|(btn) { main.editorOptions.confirmLinkedOverwrite = !btn.isChecked() }
                     dlg.setExtension(chk)
                 }
@@ -236,11 +236,11 @@ impl IActionUI for ActionFile
             let dlg   = EditDlg.createSingleLine(notnull main.surface)
             dlg.setMessage("Capture name")
             dlg.setText(capture.title)
-            dlg.edit.selectAll()
+            dlg.edit?.selectAll()
 
             // EditDlg.createSingleLine (unlike Dialog.createDialog) does not center itself;
             // do it here now the surface has its final size, so the box opens centered.
-            dlg.surface.center(notnull main.surface)
+            dlg.surface?.center(notnull main.surface)
             if dlg.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dlg.getText())
 
@@ -392,7 +392,7 @@ impl MainWnd
 
         let dlg = FileDlg.create(notnull .surface, opt)
         if .inPlaceEdit do
-            dlg.surface.setTopMost()
+            dlg.surface?.setTopMost()
         if dlg.doModal() != Dialog.BtnOk do
             return ""
         return dlg.getSelectedName()

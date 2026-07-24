@@ -27,7 +27,7 @@ func exerciseGenericCloneCodegen()->bool
     var owned: GenericCloneCodegenSupport.OwnedPtrVisitBox's32
     owned.addNew(6)
     owned.addNew(7)
-    if dref owned.first != 6 or dref owned.second != 7 do
+    if dref (notnull owned.first) != 6 or dref (notnull owned.second) != 7 do
         return false
     owned.clearOwned()
     if owned.count != 0 do

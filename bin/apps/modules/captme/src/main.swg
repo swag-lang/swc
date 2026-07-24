@@ -46,7 +46,7 @@ var g_App: Application
     img.setPixelFormat(.BGRA8)
     g_App.setAppIcon(img)
 
-    let surface = try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.OverlappedWindow, surfaceID: "Captme")
+    let surface = notnull (try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.OverlappedWindow, surfaceID: "Captme"))
     let mainWnd = MainWnd.create(surface.wnd)
 
     if Env.hasArg("swag.test") do

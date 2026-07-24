@@ -48,8 +48,9 @@ impl Array
         #if Reflection.hasPostCopy(T)
         {
             .initNewSlots(0, .count)
+            let buffer = notnull .buffer
             for .count do
-                .buffer[@index] = #nodrop oldBuffer[@index]
+                buffer[@index] = #nodrop oldBuffer[@index]
         }
         #else
         {
@@ -106,8 +107,8 @@ impl Array
         where Reflection.canCopy(T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        Debug.assert(.buffer != null)
-        .buffer[index] = value
+        let buffer = notnull .buffer
+        buffer[index] = value
     }
 
     // Handles compound assignment operators (e.g., `+=`, `-=`) for elements.
@@ -115,7 +116,8 @@ impl Array
     mtd(op: string) opIndexAssign(index: u64, value: T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        #ast "me.buffer[index] " ++ op ++ " value"
+        let buffer = notnull .buffer
+        #ast "buffer[index] " ++ op ++ " value"
     }
 
     // Replaces the content of the array with elements copied from a slice.
@@ -144,8 +146,10 @@ impl Array
         #if Reflection.hasPostCopy(T)
         {
             .initNewSlots(0, countof)
+            let buffer = notnull .buffer
+            let srcPtr = notnull dataof
             for i in countof do
-                .buffer[i] = #nodrop dataof[i]
+                buffer[i] = #nodrop srcPtr[i]
         }
         #else
         {
@@ -369,8 +373,11 @@ impl Array
     // All existing elements are overwritten.
     mtd fill(value: T)
     {
+        if !.count do
+            return
+        let buffer = notnull .buffer
         for i in .count do
-            .buffer[i] = value
+            buffer[i] = value
     }
 
     // Adds an element to the end of the array, but only if it's not already present.
@@ -382,8 +389,9 @@ impl Array
             return
         .grow(.count + 1)
         .initNewSlots(.count, 1)
-        .buffer[.count] = #nodrop #fwd value
-        .count          += 1
+        let buffer = notnull .buffer
+        buffer[.count] = #nodrop #fwd value
+        .count         += 1
     }
 
     // Adds an element to the end of the array.
@@ -392,8 +400,9 @@ impl Array
     {
         .grow(.count + 1)
         .initNewSlots(.count, 1)
-        .buffer[.count] = #nodrop #fwd value
-        .count          += 1
+        let buffer = notnull .buffer
+        buffer[.count] = #nodrop #fwd value
+        .count         += 1
     }
 
     // Reserves space for 'num' elements at the end of the array and returns a pointer to the start of the new space.
@@ -428,18 +437,19 @@ impl Array
         .grow(.count + 1)
         .count += 1
         .initNewSlots(.count - 1, 1)
+        let buffer = notnull .buffer
 
         #if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx > index; idx -= 1 do
-                .buffer[idx] = #relocate .buffer[idx - 1]
+                buffer[idx] = #relocate buffer[idx - 1]
         }
         #else
         {
-            Memory.copyOver(.buffer + index + 1, .buffer + index, #sizeof(T) * (.count - 1 - index))
+            Memory.copyOver(buffer + index + 1, buffer + index, #sizeof(T) * (.count - 1 - index))
         }
 
-        .buffer[index] = #nodrop #fwd value
+        buffer[index] = #nodrop #fwd value
     }
 
     // Inserts elements from a slice at a specific index, shifting existing elements to the right.
@@ -467,25 +477,26 @@ impl Array
         .grow(.count + sliceCount)
         .count += sliceCount
         .initNewSlots(.count - sliceCount, sliceCount)
+        let buffer = notnull .buffer
 
         #if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
-                .buffer[idx] = #relocate .buffer[idx - sliceCount]
+                buffer[idx] = #relocate buffer[idx - sliceCount]
         }
         #else
         {
-            Memory.copyOver(.buffer + index + sliceCount, .buffer + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOver(buffer + index + sliceCount, buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
         #if Reflection.hasPostCopy(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
-                .buffer[index + idx] = #nodrop values[idx]
+                buffer[index + idx] = #nodrop values[idx]
         }
         #else
         {
-            Memory.copy(.buffer + index, @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(buffer + index, @dataof(values), #sizeof(T) * sliceCount)
         }
     }
 
@@ -514,25 +525,26 @@ impl Array
         .grow(.count + sliceCount)
         .count += sliceCount
         .initNewSlots(.count - sliceCount, sliceCount)
+        let buffer = notnull .buffer
 
         #if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
-                .buffer[idx] = #relocate .buffer[idx - sliceCount]
+                buffer[idx] = #relocate buffer[idx - sliceCount]
         }
         #else
         {
-            Memory.copyOver(.buffer + index + @countof(values), .buffer + index, #sizeof(T) * (.count - sliceCount - index))
+            Memory.copyOver(buffer + index + @countof(values), buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
         #if Reflection.hasPostMove(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
-                .buffer[index + idx] = #nodrop #move values[idx]
+                buffer[index + idx] = #nodrop #move values[idx]
         }
         #else
         {
-            Memory.copy(.buffer + index, @dataof(values), #sizeof(T) * sliceCount)
+            Memory.copy(buffer + index, @dataof(values), #sizeof(T) * sliceCount)
         }
     }
 
@@ -558,19 +570,21 @@ impl Array
         var oldCount = .count
         .count += sliceCount
         .initNewSlots(oldCount, sliceCount)
+        let buffer = notnull .buffer
 
         #if Reflection.hasPostCopy(T)
         {
-            var destPtr = .buffer + oldCount
+            let vals    = notnull values
+            var destPtr = buffer + oldCount
             for sliceCount
             {
-                dref destPtr = #nodrop values[@index]
+                dref destPtr = #nodrop vals[@index]
                 destPtr      += 1
             }
         }
         #else
         {
-            Memory.copy(.buffer + oldCount, @dataof(values), sliceCount * #sizeof(T))
+            Memory.copy(buffer + oldCount, @dataof(values), sliceCount * #sizeof(T))
         }
     }
 
@@ -605,9 +619,10 @@ impl Array
                 @drop(.buffer + index, num)
             }
 
+            let buffer = notnull .buffer
             for i in shiftCount
             {
-                .buffer[index + i] = #relocate .buffer[index + num + i]
+                buffer[index + i] = #relocate buffer[index + num + i]
             }
         }
 
@@ -637,7 +652,8 @@ impl Array
         else
         {
             @drop(.buffer + index)
-            .buffer[index] = #relocate .buffer[.count]
+            let buffer = notnull .buffer
+            buffer[index] = #relocate buffer[.count]
         }
     }
 
@@ -661,11 +677,12 @@ impl Array
 
         #if Reflection.hasPostMove(T)
         {
-            var idx = index
+            let buffer = notnull .buffer
+            var idx    = index
             for .count - index
             {
-                .buffer[idx] = #relocate .buffer[idx + numValues]
-                idx          += 1
+                buffer[idx] = #relocate buffer[idx + numValues]
+                idx         += 1
             }
         }
         #else
@@ -725,7 +742,8 @@ impl Array
     mtd const front()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let result: retval = .buffer[0]
+        let buffer = notnull .buffer
+        let result: retval = buffer[0]
         return result
     }
 
@@ -742,7 +760,8 @@ impl Array
     mtd const back()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let result: retval = .buffer[.count - 1]
+        let buffer = notnull .buffer
+        let result: retval = buffer[.count - 1]
         return result
     }
 
@@ -760,8 +779,9 @@ impl Array
     mtd popBack()->T
     {
         Debug.assert(.count > 0, "array is empty")
+        let buffer = notnull .buffer
         var result: retval = undefined
-        result = #relocate .buffer[.count - 1]
+        result = #relocate buffer[.count - 1]
         .count -= 1
         return result
     }
@@ -781,11 +801,15 @@ impl StrConv.IConvert for Array
     mtd const impl convert(buf: *ConcatBuffer, convFmt: StrConv.ConvertFormat, strFormat: #null string)
     {
         buf.addBytes("[")
-        for i in .count
+        if .count
         {
-            if i do
-                buf.addBytes(", ")
-            StrConv.convert'T(buf, .buffer[i], convFmt, strFormat)
+            let buffer = notnull .buffer
+            for i in .count
+            {
+                if i do
+                    buf.addBytes(", ")
+                StrConv.convert'T(buf, buffer[i], convFmt, strFormat)
+            }
         }
 
         buf.addBytes("]")

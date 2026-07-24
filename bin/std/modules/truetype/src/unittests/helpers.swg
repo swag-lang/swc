@@ -73,9 +73,10 @@ func getOutlineBounds(outline: const *Outline)->BBox
         return result
     }
 
+    let pts = notnull outline.points
     for cast(u32) outline.pointCount
     {
-        let pt = outline.points[@index]
+        let pt = pts[@index]
         result.xMin = Math.min(result.xMin, pt.x)
         result.yMin = Math.min(result.yMin, pt.y)
         result.xMax = Math.max(result.xMax, pt.x)
@@ -103,9 +104,10 @@ func countBitmapCoverage(bitmap: const *Bitmap)->u32
 func findPointWithNonZeroY(outline: const *Outline)->u32
 {
     @assert(outline != null)
+    let pts = notnull outline.points
     for cast(u32) outline.pointCount
     {
-        if outline.points[@index].y != 0 do
+        if pts[@index].y != 0 do
             return @index
     }
 

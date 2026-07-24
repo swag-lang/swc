@@ -69,7 +69,7 @@ impl IWnd for MainWnd
 {
     mtd popupBar()
     {
-        let sf = catch .surface.app.createSurface(500, 400, 300, 300, .Secondary | .TopMost)
+        let sf = notnull (catch .getApp().createSurface(500, 400, 300, 300, .Secondary | .TopMost))
         with let menu = Wnd.create'MenuCtrl(sf.wnd.view, cast(WndId) null)
         {
             .addItem(ActionGlobal.ShowEditor)
@@ -111,7 +111,7 @@ impl IWnd for MainWnd
         sf.show()
         sf.bringToTop()
         while !menu.endModal do
-            .surface.app.runFrame()
+            .getApp().runFrame()
         sf.hide()
         if menu.endModalResult do
             .postCommandEvent(menu.endModalResult)
@@ -127,8 +127,9 @@ impl IWnd for MainWnd
             case Win32.WM_USER:
                 if evt.param1 == Win32.WM_LBUTTONDBLCLK
                 {
-                    .surface.show()
-                    .surface.bringToTop()
+                    let srf = notnull .surface
+                    srf.show()
+                    srf.bringToTop()
                 }
                 elif evt.param1 == Win32.WM_RBUTTONDOWN do
                     .popupBar()
@@ -148,7 +149,7 @@ impl IWnd for MainWnd
             evt.accepted = true
             .saveAppState()
             if .editorOptions.hideOnClose do
-                .surface.hide()
+                .surface?.hide()
             else do
                 .postCommandEvent(ActionGlobal.Exit)
         }
@@ -170,7 +171,7 @@ impl IWnd for MainWnd
             // ever displayed (no black/empty flash on startup).
             .firstShow = false
             catch g_App.loadState()
-            .surface.constaintPositionToScreen(topLeft: true, margin: 10)
+            .surface?.constaintPositionToScreen(topLeft: true, margin: 10)
             .recentWnd.scheduleLoadRecent()
             evt.accepted = true
 
@@ -196,8 +197,8 @@ impl IWnd for MainWnd
                 .serialize("MainWnd.bottomSize", &me.bottomSize)
                 .serialize("MainWnd.fileDlgState", &me.fileDlgState)
                 .serialize("MainWnd.fileDlgStateInPlace", &me.fileDlgStateInPlace)
-                .serialize("MainWnd.RightBar.Pane0", &me.quickStyleBar.items[0].size)
-                .serialize("MainWnd.RightBar.Pane1", &me.quickStyleBar.items[1].size)
+                .serialize("MainWnd.RightBar.Pane0", &(notnull me.quickStyleBar.items[0]).size)
+                .serialize("MainWnd.RightBar.Pane1", &(notnull me.quickStyleBar.items[1]).size)
                 .serialize("MainWnd.captureOptions", &me.captureOptions)
                 .serialize("MainWnd.editorOptions", &me.editorOptions)
             }
@@ -329,7 +330,7 @@ impl MainWnd
             .updateState()
         }
 
-        .surface.bringToTop()
+        .surface?.bringToTop()
     }
 
     mtd getEditMode()->EditMode
@@ -538,12 +539,13 @@ impl MainWnd
 
     mtd createTopMenu()
     {
-        with let topMenu = MenuCtrl.createBar(notnull me.parent, owner: me)
+        let parentWnd = notnull me.parent
+        with let topMenu = MenuCtrl.createBar(parentWnd, owner: me)
         {
             .bringToFront()
-            .position.height = Math.max(.position.height, me.parent.padding.y)
+            .position.height = Math.max(.position.height, parentWnd.padding.y)
             .dockStyle       = .Top
-            .margin.y        = -me.parent.padding.y
+            .margin.y        = -parentWnd.padding.y
             .backgroundStyle = .Transparent
         }
 
@@ -747,7 +749,8 @@ impl MainWnd
 
     func create(parent: *Wnd)->*MainWnd
     {
-        parent.surface.minSize = {1152, 512}
+        let srf = notnull parent.surface
+        srf.minSize = {1152, 512}
 
         var img24:  Image
         var img48:  Image
@@ -769,7 +772,8 @@ impl MainWnd
 
         with let res = Wnd.create'MainWnd(parent, "captme.mainwnd")
         {
-            .surface.setView(res)
+            let resSrf = notnull res.surface
+            resSrf.setView(res)
             .icons24.set(renderer.addImage(img24), 24, 24)
             .icons48.set(renderer.addImage(img48), 48, 48)
             .appIcon.set(renderer.addImage(imgApp))
@@ -832,12 +836,12 @@ impl MainWnd
         with let quickPane = res.quickStyleBar.addPane(res.quickWnd, title: true)
         {
             .tryPreserveSize = true
-            .label.setText("Quick Styles")
+            .label?.setText("Quick Styles")
         }
 
         with let quickStyle = res.quickStyleBar.addPane(res.propWnd, title: true)
         {
-            .label.setText("Tool Properties")
+            .label?.setText("Tool Properties")
         }
 
         res.quickStyleBar.setPaneSize(0, 300)

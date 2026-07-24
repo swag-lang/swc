@@ -80,9 +80,8 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     @assert(json.indexOf("transient") == Swag.U64.Max)
 
     var decoder: Serialization.Decoder'Serialization.Read.JSon
-    let decoded = catch decoder.readAll'JsonPayload(json.toSlice())
+    let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice())
     @assert(@err == null)
-    @assert(decoded != null)
     @assert(assertJsonPayload(dref decoded))
     @assert(decoded.transient == 0)
 
@@ -110,9 +109,8 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     let json: String = "{\n  \"id\": 8,\n  \"active\": false,\n  \"name\": null,\n  \"counts\": [9, 8],\n  \"pair\": {\"x\": -1, \"y\": 2},\n  \"fixed\": [5, 6, 7]\n}"
 
     var decoder: Serialization.Decoder'Serialization.Read.JSon
-    let decoded = catch decoder.readAll'JsonPayload(json.toSlice())
+    let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice())
     @assert(@err == null)
-    @assert(decoded != null)
 
     @assert(decoded.id == 8)
     @assert(!decoded.active)

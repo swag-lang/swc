@@ -158,19 +158,22 @@ impl Encoder
 
     mtd writeData(buf: const [*] u8, bytes: u32)
     {
-        .stream.addBytes(@mkslice(buf, bytes))
+        let stream = notnull .stream
+        stream.addBytes(@mkslice(buf, bytes))
     }
 
     mtd writeU32(val: u32)
     {
-        var v = Math.nativeToBigEndian(val)
-        .stream.addBytes(@mkslice(cast(const [*] u8) &v, 4))
+        var v      = Math.nativeToBigEndian(val)
+        let stream = notnull .stream
+        stream.addBytes(@mkslice(cast(const [*] u8) &v, 4))
     }
 
     mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8
     {
-        let total = chunkLength + 8 + 4
-        .stream.grow(total)
+        let total  = chunkLength + 8 + 4
+        let stream = notnull .stream
+        stream.grow(total)
 
         .currentChunk.length = cast(u32) chunkLength
         .writeU32(.currentChunk.length)
@@ -183,8 +186,8 @@ impl Encoder
         .crc.update(chunkType)
         .currentChunk.crc = .crc.crc
 
-        let dataPtr = .stream.currentSP
-        .stream.moveSeek(chunkLength)
+        let dataPtr = stream.currentSP
+        stream.moveSeek(chunkLength)
 
         return cast([*] u8) (notnull dataPtr)
     }
@@ -334,7 +337,8 @@ impl Encoder
             var shiftAmount    = initialShift
 
             let row_uc = row
-            Memory.clear(cast([*] u8) (notnull .scanline), cast(u64) .subimage[pass].scanlineWidth)
+            var scanline = notnull .scanline
+            Memory.clear(cast([*] u8) scanline, cast(u64) .subimage[pass].scanlineWidth)
 
             for k in .subimage[pass].width
             {
@@ -345,18 +349,19 @@ impl Encoder
                 sample = sample & mask
                 sample = sample << shiftAmount
 
-                .scanline[0] |= sample
+                scanline[0] |= sample
 
                 shiftAmount -= bitDepth
 
                 if shiftAmount > 7
                 {
                     shiftAmount = initialShift
+                    scanline    += 1
                     .scanline   += 1
                 }
             }
 
-            return .encodeScanLine(cast([*] u8) (notnull .scanline))
+            return .encodeScanLine(cast([*] u8) scanline)
         }
 
         for k in .subimage[pass].width
@@ -428,22 +433,24 @@ impl Encoder
         var sum:     s32
         var a, b, c: s32
 
+        let scanline     = notnull .scanline
+        let prevScanline = notnull .prevScanline
         for i in size
         {
             if i >= .bytesPerPixel
             {
-                a = .scanline[i - .bytesPerPixel]
-                b = .prevScanline[i]
-                c = .prevScanline[i - .bytesPerPixel]
+                a = scanline[i - .bytesPerPixel]
+                b = prevScanline[i]
+                c = prevScanline[i - .bytesPerPixel]
             }
             else
             {
                 a = 0
-                b = .prevScanline[i]
+                b = prevScanline[i]
                 c = 0
             }
 
-            var x = cast(s32) .scanline[i]
+            var x = cast(s32) scanline[i]
 
             switch filter
             {
@@ -472,23 +479,25 @@ impl Encoder
 
     mtd filterScanline(filtered: [*] u8, size: u32, filter: Filter)
     {
+        let scanline     = notnull .scanline
+        let prevScanline = notnull .prevScanline
         for i in size
         {
             var a, b, c: s32
             if i >= .bytesPerPixel
             {
-                a = .scanline[i - .bytesPerPixel]
-                b = .prevScanline[i]
-                c = .prevScanline[i - .bytesPerPixel]
+                a = scanline[i - .bytesPerPixel]
+                b = prevScanline[i]
+                c = prevScanline[i - .bytesPerPixel]
             }
             else
             {
                 a = 0
-                b = .prevScanline[i]
+                b = prevScanline[i]
                 c = 0
             }
 
-            var x = cast(s32) .scanline[i]
+            var x = cast(s32) scanline[i]
 
             switch filter
             {
@@ -519,11 +528,12 @@ impl Encoder
         {
             if .swapRB and .bytesPerPixel == 3
             {
+                let scanline = notnull .scanline
                 for var i = 0; i < scanlineWidth - 1; i += 3
                 {
-                    .scanline[i]     = sl[i + 2]
-                    .scanline[i + 1] = sl[i + 1]
-                    .scanline[i + 2] = sl[i]
+                    scanline[i]     = sl[i + 2]
+                    scanline[i + 1] = sl[i + 1]
+                    scanline[i + 2] = sl[i]
                 }
             }
             elif .swapRB and .bytesPerPixel == 4

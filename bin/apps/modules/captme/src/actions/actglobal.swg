@@ -51,8 +51,9 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case ShowEditor:
-            main.surface.show()
-            main.surface.bringToTop()
+            let srf = notnull main.surface
+            srf.show()
+            srf.bringToTop()
 
         case ShowLibrary:
             main.swapLibraryMode()
@@ -65,7 +66,7 @@ impl IActionUI for ActionGlobal
 
         case Minimize:
             main.saveAppState()
-            main.surface.hide()
+            main.surface?.hide()
         }
 
         return true

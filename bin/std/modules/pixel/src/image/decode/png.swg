@@ -495,9 +495,10 @@ impl Decoder
                     let out_x   = (i * Adam7SpacingX[p]) + Adam7OrigX[p]
                     var out_off = out_y * .header.width * .inChannels
                     out_off += out_x * .inChannels
+                    let dstPixels = .safeDstPixels()
                     for z in .inChannels do
-                        .dstPixels[out_off + z] = t[z]
-                    t                           += .inChannels
+                        dstPixels[out_off + z] = t[z]
+                    t += .inChannels
                 }
             }
 

@@ -23,8 +23,9 @@ func getStructArrayType(t: #null typeinfo)->#null typeinfo
     if !isStructArray(t) do
         return null
 
-    let tt = cast(const *TypeInfoStruct) notnull t
-    return tt.generics[0].pointedType
+    let tt       = cast(const *TypeInfoStruct) notnull t
+    let generics = notnull tt.generics
+    return generics[0].pointedType
 }
 
 // Used to clear a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType)

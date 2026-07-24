@@ -52,8 +52,9 @@ func onEditSingle(_b: *Button)
     {
         .setMessage("Enter your name:")
         .setText("John Doe")
-        .surface.setTitle("Single line edit")
-        .surface.center(notnull g_Surface)
+        let srf = notnull .surface
+        srf.setTitle("Single line edit")
+        srf.center(notnull g_Surface)
     }
 
     discard dlg.doModal()
@@ -65,8 +66,9 @@ func onEditMulti(_b: *Button)
     {
         .setMessage("Enter a description:")
         .setText("First line\nSecond line")
-        .surface.setTitle("Multi line edit")
-        .surface.center(notnull g_Surface)
+        let srf = notnull .surface
+        srf.setTitle("Multi line edit")
+        srf.center(notnull g_Surface)
     }
 
     discard dlg.doModal()
@@ -109,8 +111,9 @@ func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 
 func createRootView()
 {
-    g_View                 = g_Surface.getView()
-    g_View.backgroundStyle = .View
+    let view = (notnull g_Surface).getView()
+    g_View               = view
+    view.backgroundStyle = .View
 
     // Title bar (docked top so the layout reflows on resize).
     with let title = Label.create(notnull g_View, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
@@ -119,7 +122,7 @@ func createRootView()
         .margin            = {16, 12, 16, 0}
         .horzAlignmentText = .Left
         .vertAlignmentText = .Center
-        .style.setFont(g_View.getTheme().createDefaultFont(24), .Regular)
+        .style.setFont(view.getTheme().createDefaultFont(24), .Regular)
     }
 
     // Content area below the title.
@@ -168,7 +171,7 @@ func createRootView()
         addDlgButton(stack, "File: select folder", &onSelectFolder)
     }
 
-    g_View.applyLayout()
+    view.applyLayout()
 }
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
@@ -188,17 +191,19 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 #main
 {
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
-    g_Surface = try app.createSurface(120, 90, W - 46, H - 31, flags)
-    g_Surface.setTitle("GUI9 dialogs showcase")
+    let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
+    g_Surface = surface
+    surface.setTitle("GUI9 dialogs showcase")
 
     createRootView()
-    g_View.hookOnEvent = &onRootEvent
+    let view = notnull g_View
+    view.hookOnEvent = &onRootEvent
 
     // In automated test mode we just exercise the composite/build and exit;
     // the modal dialogs require interaction so they are not auto-opened.
     if Env.hasArg("swag.test") do
         app.maxRunFrame = 30
 
-    g_Surface.show()
+    surface.show()
     app.run()
 }

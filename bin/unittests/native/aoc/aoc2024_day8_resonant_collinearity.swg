@@ -109,9 +109,10 @@ func initAntinodeGrid(width, height: u32)->AntinodeGrid
     let size = cast(u64) width * cast(u64) height
     result.cells = cast(#null [*] u8) @alloc(size)
     @assert(result.cells != null)
+    let cells = notnull result.cells
     for width * height
     {
-        result.cells[cast(u32) @index] = 0'u8
+        cells[cast(u32) @index] = 0'u8
     }
     return result
 }
@@ -127,26 +128,29 @@ func markAntinode(grid: &AntinodeGrid, x, y: s32)->bool
     if x < 0 or y < 0 or cast(u32) x >= grid.width or cast(u32) y >= grid.height do
         return false
 
-    let idx = cast(u32) y * grid.width + cast(u32) x
-    let isNew = grid.cells[idx] == 0'u8
-    grid.cells[idx] = 1'u8
+    let idx   = cast(u32) y * grid.width + cast(u32) x
+    let cells = notnull grid.cells
+    let isNew = cells[idx] == 0'u8
+    cells[idx] = 1'u8
     return isNew
 }
 
 func clearGrid(grid: &AntinodeGrid)
 {
+    let cells = notnull grid.cells
     for grid.width * grid.height
     {
-        grid.cells[cast(u32) @index] = 0'u8
+        cells[cast(u32) @index] = 0'u8
     }
 }
 
 func countMarked(grid: const &AntinodeGrid)->u32
 {
     var count: u32
+    let cells = notnull grid.cells
     for grid.width * grid.height
     {
-        if grid.cells[cast(u32) @index] != 0'u8 do
+        if cells[cast(u32) @index] != 0'u8 do
             count += 1
     }
     return count

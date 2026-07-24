@@ -65,9 +65,10 @@ func fakeAddTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u
         entry = g_Fake.typed.backPtr()
     }
 
-    entry.crc = type ? type.crc : 0
-    entry.data.clear()
-    entry.data.add(data)
+    let e = notnull entry
+    e.crc = type ? type.crc : 0
+    e.data.clear()
+    e.data.add(data)
 }
 
 func fakeGetTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8

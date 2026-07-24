@@ -34,8 +34,9 @@ impl IWnd for PropertiesView
         {
             let cw       = .ed.listUsefulWidth()
             let contentW = .ed.listContentWidthFromUseful(cw)
-            for item in .ed.items
+            for itemIt in .ed.items
             {
+                let item = notnull itemIt
                 item.line.maxSize.x = cw
                 if @isset(item.label) do
                     item.label.position.width = contentW
@@ -47,8 +48,9 @@ impl IWnd for PropertiesView
         .computeLayout()
 
         var lastItem: #null *PropertiesItem
-        for item in .ed.items
+        for itemIt in .ed.items
         {
+            let item = notnull itemIt
             if @isset(item.label) do
                 item.label.autoHeight()
             if @isset(item.labelDesc) do
@@ -76,7 +78,7 @@ impl IWnd for PropertiesView
 
         // Vertical size is the bottom position of the last line
         if lastItem do
-            .ed.scrollWnd.setScrollSize(0, lastItem.line.position.bottom() + 10)
+            .ed.scrollWnd.setScrollSize(0, (notnull lastItem).line.position.bottom() + 10)
         else do
             .ed.scrollWnd.setScrollSize(0, 0)
     }

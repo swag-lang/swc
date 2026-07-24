@@ -45,8 +45,9 @@ impl IWnd for FileDlg
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         // The browser saves the folder/column widths; the dialog owns the position.
-        if .dlgOptions.state do
-            .dlgOptions.state.position = .surface.position
+        let state = .dlgOptions.state
+        if state do
+            state.position = (notnull .surface).position
     }
 }
 
@@ -58,11 +59,13 @@ private impl FileDlg
 
         with let dlg = EditDlg.createSingleLine(notnull me.surface)
         {
-            .edit.setText(folderName)
-            .edit.selectAll()
-            .edit.setNote("Folder name")
-            .surface.setTitle("Folder Name")
-            .surface.center(notnull me.surface)
+            let edit = notnull .edit
+            edit.setText(folderName)
+            edit.selectAll()
+            edit.setNote("Folder name")
+            let srf = notnull .surface
+            srf.setTitle("Folder Name")
+            srf.center(notnull me.surface)
         }
 
         dlg.sigPressedButton = func|dlg, browser = me.browser|(fdlg, btnid)
@@ -70,20 +73,21 @@ private impl FileDlg
             if btnid != Dialog.BtnOk do
                 return true
 
-            var folderName = dlg.edit.text
+            let dedit      = notnull dlg.edit
+            var folderName = dedit.text
             folderName.trim()
             if folderName.isEmpty()
             {
-                dlg.edit.selectAll()
-                dlg.edit.setFocus()
+                dedit.selectAll()
+                dedit.setFocus()
                 return false
             }
 
             if !Path.isValidFileName(folderName)
             {
                 MessageDlg.error(notnull dlg.surface, "Invalid folder name")
-                dlg.edit.selectAll()
-                dlg.edit.setFocus()
+                dedit.selectAll()
+                dedit.setFocus()
                 return false
             }
 
@@ -91,8 +95,8 @@ private impl FileDlg
             if Directory.exists(path)
             {
                 MessageDlg.error(notnull dlg.surface, "Folder already exists")
-                dlg.edit.selectAll()
-                dlg.edit.setFocus()
+                dedit.selectAll()
+                dedit.setFocus()
                 return false
             }
 
@@ -102,7 +106,7 @@ private impl FileDlg
         if dlg.doModal() != Dialog.BtnOk do
             return
 
-        if !.browser.createFolder(dlg.edit.text.toString()) do
+        if !.browser.createFolder((notnull dlg.edit).text.toString()) do
             MessageDlg.error(notnull .surface, "Cannot create folder")
     }
 }

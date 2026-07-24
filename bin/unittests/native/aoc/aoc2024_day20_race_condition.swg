@@ -49,10 +49,12 @@ func gridInit()->Grid
     var g: Grid
     g.cells = cast(#null [*] u8)  @alloc(cast(u64) MaxCells)
     g.dist  = cast(#null [*] u32) @alloc(cast(u64) MaxCells * #sizeof(u32))
+    let cells = notnull g.cells
+    let dist  = notnull g.dist
     for MaxCells
     {
-        g.cells[@index] = 0
-        g.dist[@index]  = Unvisited
+        cells[@index] = 0
+        dist[@index]  = Unvisited
     }
     return g
 }
@@ -69,15 +71,15 @@ impl Grid
     mtd idx(r: u32, c: u32)->u32 { return r * MaxDim + c }
 
     #[Swag.Inline]
-    mtd cell(r: u32, c: u32)->u8 { return me.cells[me.idx(r, c)] }
+    mtd cell(r: u32, c: u32)->u8 { return (notnull me.cells)[me.idx(r, c)] }
 
     #[Swag.Inline]
     mtd isOpen(r: u32, c: u32)->bool { return me.cell(r, c) != '#' }
 
     #[Swag.Inline]
-    mtd distAt(r: u32, c: u32)->u32 { return me.dist[me.idx(r, c)] }
+    mtd distAt(r: u32, c: u32)->u32 { return (notnull me.dist)[me.idx(r, c)] }
 
-    mtd setDist(r: u32, c: u32, d: u32) { me.dist[me.idx(r, c)] = d }
+    mtd setDist(r: u32, c: u32, d: u32) { let dist = notnull me.dist; dist[me.idx(r, c)] = d }
 
     #[Swag.Inline]
     mtd inBounds(r: s32, c: s32)->bool
@@ -123,6 +125,7 @@ func manhattan(a: Pos, b: Pos)->u32
 func parseGrid(text: string)->Grid
 {
     var g = gridInit()
+    let cells = notnull g.cells
     let bytes = cast(const [..] u8) text
     var row: u32
     var col: u32
@@ -142,7 +145,7 @@ func parseGrid(text: string)->Grid
             continue
         }
 
-        g.cells[row * MaxDim + col] = ch
+        cells[row * MaxDim + col] = ch
         if ch == 'S' { g.sr = row; g.sc = col }
         if ch == 'E' { g.er = row; g.ec = col }
         col += 1
@@ -360,10 +363,11 @@ func solve(text: string, minSaving: u32)->SolveResult
     // ###
     // #S#   (S is also E)
     // ###
-    g.cells[0 * MaxDim + 0] = '#'; g.cells[0 * MaxDim + 1] = '#'; g.cells[0 * MaxDim + 2] = '#'
-    g.cells[1 * MaxDim + 0] = '#'; g.cells[1 * MaxDim + 1] = 'S'; g.cells[1 * MaxDim + 2] = '#'
-    g.cells[2 * MaxDim + 0] = '#'; g.cells[2 * MaxDim + 1] = '#'; g.cells[2 * MaxDim + 2] = '#'
-    g.sr                    = 1; g.sc = 1; g.er = 1; g.ec = 1
+    let cells = notnull g.cells
+    cells[0 * MaxDim + 0] = '#'; cells[0 * MaxDim + 1] = '#'; cells[0 * MaxDim + 2] = '#'
+    cells[1 * MaxDim + 0] = '#'; cells[1 * MaxDim + 1] = 'S'; cells[1 * MaxDim + 2] = '#'
+    cells[2 * MaxDim + 0] = '#'; cells[2 * MaxDim + 1] = '#'; cells[2 * MaxDim + 2] = '#'
+    g.sr                  = 1; g.sc = 1; g.er = 1; g.ec = 1
     tracePath(&g)
     @assert(g.pathLen == 0'u32)
 }

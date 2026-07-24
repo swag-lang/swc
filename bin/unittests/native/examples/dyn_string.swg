@@ -41,17 +41,22 @@ func reserve(s: *DynString, want: u64)
 func storeBytes(s: *DynString, src: const [*] u8, len: u64)
 {
     reserve(s, len)
+    let data = notnull s.data
     for i in len do
-        s.data[i] = src[i]
-    s.count       = len
+        data[i] = src[i]
+    s.count = len
 }
 
 func appendBytes(s: *DynString, src: #null const [*] u8, len: u64)
 {
+    if len == 0 do
+        return
     reserve(s, s.count + len)
+    let data = notnull s.data
+    let from = notnull src
     for i in len do
-        s.data[s.count + i] = src[i]
-    s.count                 += len
+        data[s.count + i] = from[i]
+    s.count += len
 }
 
 // ---------------------------------------------------------------------------
@@ -84,12 +89,13 @@ impl DynString
             return
         }
 
-        let oldData = .data
+        let oldData = notnull .data
         .data     = null
         .capacity = 0
         reserve(&me, .count)
+        let data = notnull .data
         for i in .count do
-            .data[i] = oldData[i]
+            data[i] = oldData[i]
     }
 
     // Called on the destination right after a bytewise move. The raw bytes
@@ -114,14 +120,15 @@ impl DynString
     mtd opIndex(index: u64)->u8
     {
         @assert(index < .count)
-        return .data[index]
+        return (notnull .data)[index]
     }
 
     // Write a byte: `s[i] = c`
     mtd opIndexSet(index: u64, value: u8)
     {
         @assert(index < .count)
-        .data[index] = value
+        let data = notnull .data
+        data[index] = value
     }
 
     // Append: `s += "world"`
@@ -154,9 +161,13 @@ impl DynString
     {
         if .count != other.count do
             return false
+        if .count == 0 do
+            return true
+        let data      = notnull .data
+        let otherData = notnull other.data
         for i in .count
         {
-            if .data[i] != other.data[i] do
+            if data[i] != otherData[i] do
                 return false
         }
         return true

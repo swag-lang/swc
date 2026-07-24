@@ -16,7 +16,8 @@ func compute()
 {
     using Math
 
-    var data = {minS: g_Slider.getValueLeft(), maxS: g_Slider.getValueRight()}
+    let slider = notnull g_Slider
+    var data = {minS: slider.getValueLeft(), maxS: slider.getValueRight()}
     g_Image.visitPixels(&data)
     {
         var params = cast(*#decltype(data)) notnull userData
@@ -60,10 +61,11 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        g_Slider = Slider.create(wnd, {0, 0, 200}, range: true)
-        g_Slider.setMinMax(-2.5, 2.5)
-        g_Slider.setRangeValues(-2.5, 2.5)
-        g_Slider.sigChanged += func|wnd|(s)
+        let slider = Slider.create(wnd, {0, 0, 200}, range: true)
+        g_Slider = slider
+        slider.setMinMax(-2.5, 2.5)
+        slider.setRangeValues(-2.5, 2.5)
+        slider.sigChanged += func|wnd|(s)
         {
             compute()
             wnd.invalidate()

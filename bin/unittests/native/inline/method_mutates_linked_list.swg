@@ -33,11 +33,13 @@ impl InlineBug11List
 
     mtd pop(outNode: **InlineBug11Node)->bool
     {
-        if !.head do
+        let head = .head
+        if !head do
             return false
 
-        dref outNode = .head
-        .unlink(.head)
+        let node = notnull head
+        dref outNode = node
+        .unlink(node)
         return true
     }
 }

@@ -45,7 +45,7 @@ impl PathOwner
 {
     mtd makeCallback()->ClosureNullary
     {
-        return func|me.target, me.bias|()->s32 { return (target orelse null).value + bias }
+        return func|me.target, me.bias|()->s32 { return (notnull target).value + bias }
     }
 }
 
@@ -89,7 +89,7 @@ func semaTest004()
     var holder: PathHolder
     holder.target = &target
 
-    let cb: ClosureNullary = func|holder.target|()->s32 { return target.value }
+    let cb: ClosureNullary = func|holder.target|()->s32 { return (notnull target).value }
     #assert(#typeof(cb) == ClosureNullary)
 }
 

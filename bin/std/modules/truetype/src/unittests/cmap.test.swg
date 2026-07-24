@@ -28,10 +28,11 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
+    let face = notnull scope.face
 
-    let glyphA = scope.face.glyphIndex('A')
-    let glyphE = scope.face.glyphIndex(0x00E9)
-    let glyphMissing = scope.face.glyphIndex(0x10FFFF)
+    let glyphA = face.glyphIndex('A')
+    let glyphE = face.glyphIndex(0x00E9)
+    let glyphMissing = face.glyphIndex(0x10FFFF)
 
     @assert(glyphA > 0)
     @assert(glyphE > 0)

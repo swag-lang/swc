@@ -328,7 +328,8 @@ impl StrConv.IConvert for DateTime
             str = .toString(.DateTime)
         else
         {
-            switch strFormat[0]
+            let fmt = notnull strFormat
+            switch fmt[0]
             {
             case 'a': str = .toString(.DateTime)
             case 'b': str = .toString(.DateTimeMs)

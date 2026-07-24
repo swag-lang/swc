@@ -63,20 +63,22 @@ impl Offset
         var highI = path.count - 1
         if highI < 0 do
             return
-        while highI > 0 and path.buffer[0].x == path.buffer[highI].x and path.buffer[0].y == path.buffer[highI].y do
+        let pathBuf = notnull path.buffer
+        while highI > 0 and pathBuf[0].x == pathBuf[highI].x and pathBuf[0].y == pathBuf[highI].y do
             highI -= 1
 
         let newNode = Memory.new'PolyNode()
         newNode.jointype = joinType
         newNode.contour.reserve(highI + 1)
-        newNode.contour.add(path.buffer[0])
+        newNode.contour.add(pathBuf[0])
 
         var uniqueCount: s32 = 0
         var lowestIdx:   s32 = 0
         for i in 1 to highI
         {
-            let pt = path.buffer[i]
-            if newNode.contour.buffer[uniqueCount].x == pt.x and newNode.contour.buffer[uniqueCount].y == pt.y do
+            let pt      = pathBuf[i]
+            let contour = notnull newNode.contour.buffer
+            if contour[uniqueCount].x == pt.x and contour[uniqueCount].y == pt.y do
                 continue
 
             uniqueCount += 1

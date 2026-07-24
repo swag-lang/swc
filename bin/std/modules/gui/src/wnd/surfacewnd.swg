@@ -25,15 +25,16 @@ impl IWnd for SurfaceWnd
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        let srfn = notnull .surface
         switch evt.kind
         {
         case MousePressed:
             if evt.button != .Left do
                 break
-            .surface.bringToTop()
-            if .surface.isMaximized do
+            srfn.bringToTop()
+            if srfn.isMaximized do
                 break
-            if .surface.flags.has(.Sizeable) do
+            if srfn.flags.has(.Sizeable) do
                 .sizingBorder = .hitTestBorders(evt.surfacePos)
             else do
                 .sizingBorder = .Zero
@@ -55,12 +56,12 @@ impl IWnd for SurfaceWnd
             fallthrough
 
         case MouseMove:
-            if .surface.isMaximized do
+            if srfn.isMaximized do
                 break
             if .getApp().mouseEnterWnd != me do
                 break
 
-            if !.movingSurface and .surface.flags.has(.Sizeable)
+            if !.movingSurface and srfn.flags.has(.Sizeable)
             {
                 let newSizingBorder = .hitTestBorders(evt.surfacePos)
                 if newSizingBorder != .sizingBorder do
@@ -69,17 +70,17 @@ impl IWnd for SurfaceWnd
 
             switch .sizingBorder
             {
-            case Left, Right:                .surface.app.setFrameCursor(Cursor.from(.SizeWE))
-            case Top, Bottom:                .surface.app.setFrameCursor(Cursor.from(.SizeNS))
-            case Right | Bottom, Left | Top: .surface.app.setFrameCursor(Cursor.from(.SizeNWSE))
-            case Right | Top, Left | Bottom: .surface.app.setFrameCursor(Cursor.from(.SizeNESW))
+            case Left, Right:                srfn.app.setFrameCursor(Cursor.from(.SizeWE))
+            case Top, Bottom:                srfn.app.setFrameCursor(Cursor.from(.SizeNS))
+            case Right | Bottom, Left | Top: srfn.app.setFrameCursor(Cursor.from(.SizeNWSE))
+            case Right | Top, Left | Bottom: srfn.app.setFrameCursor(Cursor.from(.SizeNESW))
             }
 
             if !.movingSurface do
                 break
 
             var hasChanged = false
-            var pos        = .surface.position
+            var pos        = srfn.position
 
             if .sizingBorder & .Left
             {
@@ -115,8 +116,8 @@ impl IWnd for SurfaceWnd
 
             if hasChanged
             {
-                .surface.setPosition(pos)
-                .surface.invalidate()
+                srfn.setPosition(pos)
+                srfn.invalidate()
             }
         }
     }
@@ -129,22 +130,24 @@ impl IWnd for SurfaceWnd
 
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
+        let srfn = notnull .surface
         switch evt.kind
         {
-        case Maximize: .surface.showMaximized()
-        case Minimize: .surface.showMinimized()
-        case Restore:  .surface.showNormal()
-        case Close:    .surface.destroy()
+        case Maximize: srfn.showMaximized()
+        case Minimize: srfn.showMinimized()
+        case Restore:  srfn.showNormal()
+        case Close:    srfn.destroy()
         }
     }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
+        let srfn = notnull .surface
         let clientRect = .getClientRect()
         let metrics    = .getThemeMetrics()
 
         var pos = clientRect
-        pos.height = Math.max(0, .surface.wnd.padding.y - 2 * metrics.wnd_CaptionButtonMargin)
+        pos.height = Math.max(0, srfn.wnd.padding.y - 2 * metrics.wnd_CaptionButtonMargin)
         pos.width  = Math.max(metrics.wnd_CaptionButtonMinWidth, pos.height * metrics.wnd_CaptionButtonAspect)
         pos.x      = clientRect.right() - pos.width - metrics.wnd_CaptionButtonMargin
         pos.y      = metrics.wnd_CaptionButtonMargin
@@ -172,6 +175,7 @@ impl IWnd for SurfaceWnd
 
     mtd impl onPaintEvent(evt: *PaintEvent)
     {
+        let srfn = notnull .surface
         if .isPendingDestroy do
             return
         let bc     = evt.bc
@@ -180,7 +184,7 @@ impl IWnd for SurfaceWnd
         let metrics = .getThemeMetrics()
 
         let clientRect = .getClientRect()
-        let radius     = .surface.getCornerRadius()
+        let radius     = srfn.getCornerRadius()
 
         if radius > 0 and metrics.surfaceWnd_ShadowSize > 0 do
             bc.painter.fillRoundRect(clientRect, radius, radius, colors.wnd_Bk)
@@ -188,17 +192,17 @@ impl IWnd for SurfaceWnd
             bc.painter.fillRect(clientRect, colors.wnd_Bk)
 
         var posCaption = clientRect
-        if .surface.flags.has(.BigCaption) do
-            posCaption.height = .surface.wnd.padding.y
+        if srfn.flags.has(.BigCaption) do
+            posCaption.height = srfn.wnd.padding.y
 
-        if .surface.flags.has(.SmallCaption) do
-            posCaption.height = .surface.wnd.padding.y
+        if srfn.flags.has(.SmallCaption) do
+            posCaption.height = srfn.wnd.padding.y
 
-        let captionColor = .surface.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
-        if .surface.flags.has(.BigCaption | .SmallCaption) do
+        let captionColor = srfn.app.isActivated ? colors.wnd_CaptionBk : colors.wnd_CaptionBkNotActived
+        if srfn.flags.has(.BigCaption | .SmallCaption) do
             bc.painter.fillRect(posCaption, captionColor)
 
-        if .surface.flags.has(.Border) and metrics.surfaceWnd_ShadowSize > 0
+        if srfn.flags.has(.Border) and metrics.surfaceWnd_ShadowSize > 0
         {
             var pen = Pen.createSolid(colors.wnd_Border, metrics.wnd_BorderSize)
             pen.borderPos = .Inside
@@ -208,21 +212,21 @@ impl IWnd for SurfaceWnd
                 bc.painter.drawRect(clientRect, pen)
         }
 
-        if .surface.flags.has(.BigCaption | .SmallCaption)
+        if srfn.flags.has(.BigCaption | .SmallCaption)
         {
             posCaption.x += theme.metrics.wnd_CaptionMarginTitle
 
             var posClip = posCaption
-            if .surface.flags.has(.MinimizeBtn) do
-                posClip.setRight(.minimizeBtn.position.x)
-            elif .surface.flags.has(.MaximizeBtn) do
-                posClip.setRight(.maximizeBtn.position.x)
-            elif .surface.flags.has(.CloseBtn) do
-                posClip.setRight(.closeBtn.position.x)
+            if srfn.flags.has(.MinimizeBtn) do
+                posClip.setRight((notnull .minimizeBtn).position.x)
+            elif srfn.flags.has(.MaximizeBtn) do
+                posClip.setRight((notnull .maximizeBtn).position.x)
+            elif srfn.flags.has(.CloseBtn) do
+                posClip.setRight((notnull .closeBtn).position.x)
             bc.painter.pushClippingRect(posClip)
             defer bc.painter.popClippingRect()
 
-            let captionTextColor = .surface.app.isActivated ? colors.wnd_CaptionText : colors.wnd_CaptionNotActivatedText
+            let captionTextColor = srfn.app.isActivated ? colors.wnd_CaptionText : colors.wnd_CaptionNotActivatedText
             if .icon.isValid()
             {
                 .icon.paint(bc.painter, posCaption.x, posCaption.vertCenter() - .icon.sizeY * 0.5, captionTextColor)
@@ -254,7 +258,8 @@ impl SurfaceWnd
 
     mtd hitTestCaption(surfacePos: Math.Point)->bool
     {
-        if !.surface.flags.has(.BigCaption | .SmallCaption) do
+        let srfn = notnull .surface
+        if !srfn.flags.has(.BigCaption | .SmallCaption) do
             return false
         if .hitTestCaptionButton(surfacePos) do
             return false
@@ -262,7 +267,7 @@ impl SurfaceWnd
         let pos = .surfaceToLocal(surfacePos)
         if pos.x < 0 or pos.x >= .position.width do
             return false
-        if pos.y < 0 or pos.y >= .surface.wnd.padding.y do
+        if pos.y < 0 or pos.y >= srfn.wnd.padding.y do
             return false
 
         let target = .getWndAt(pos.x, pos.y, true)
@@ -283,18 +288,19 @@ impl SurfaceWnd
 
     mtd hitTestBorders(surfacePos: Math.Point)->SizingBorder
     {
+        let srfn = notnull .surface
         let metrics = .getThemeMetrics()
         let sdw     = metrics.surfaceWnd_ShadowSize
 
         var newSizingBorder = SizingBorder.Zero
-        if .surface.flags.has(.Sizeable)
+        if srfn.flags.has(.Sizeable)
         {
             let SizeBorder    = metrics.wnd_SizingBorderSize
             let TopSizeBorder = Math.min(SizeBorder, metrics.wnd_TopSizingBorderSize)
             if surfacePos.x > sdw - SizeBorder and
                surfacePos.x < sdw + SizeBorder and
                surfacePos.y > sdw - SizeBorder and
-               surfacePos.y < .surface.position.height - sdw + SizeBorder
+               surfacePos.y < srfn.position.height - sdw + SizeBorder
             {
                 newSizingBorder |= .Left
             }
@@ -302,23 +308,23 @@ impl SurfaceWnd
             if surfacePos.y > sdw - TopSizeBorder and
                surfacePos.y < sdw + TopSizeBorder and
                surfacePos.x > sdw - SizeBorder and
-               surfacePos.x < .surface.position.width - sdw + SizeBorder
+               surfacePos.x < srfn.position.width - sdw + SizeBorder
             {
                 newSizingBorder |= .Top
             }
 
-            if surfacePos.x > .surface.position.width - sdw - SizeBorder and
-               surfacePos.x < .surface.position.width - sdw + SizeBorder and
+            if surfacePos.x > srfn.position.width - sdw - SizeBorder and
+               surfacePos.x < srfn.position.width - sdw + SizeBorder and
                surfacePos.y > sdw - SizeBorder and
-               surfacePos.y < .surface.position.height - sdw + SizeBorder
+               surfacePos.y < srfn.position.height - sdw + SizeBorder
             {
                 newSizingBorder |= .Right
             }
 
-            if surfacePos.y > .surface.position.height - sdw - SizeBorder and
-               surfacePos.y < .surface.position.height - sdw + SizeBorder and
+            if surfacePos.y > srfn.position.height - sdw - SizeBorder and
+               surfacePos.y < srfn.position.height - sdw + SizeBorder and
                surfacePos.x > sdw - SizeBorder and
-               surfacePos.x < .surface.position.width - sdw + SizeBorder
+               surfacePos.x < srfn.position.width - sdw + SizeBorder
             {
                 newSizingBorder |= .Bottom
             }
@@ -329,29 +335,33 @@ impl SurfaceWnd
 
     func onMinimize(btn: *Button)
     {
-        btn.surface.requestMinimize()
+        let srfn = notnull btn.surface
+        srfn.requestMinimize()
     }
 
     func onMaximize(btn: *Button)
     {
-        if btn.surface.isMaximized do
-            btn.surface.requestRestore()
+        let srfn = notnull btn.surface
+        if srfn.isMaximized do
+            srfn.requestRestore()
         else do
-            btn.surface.requestMaximize()
+            srfn.requestMaximize()
     }
 
     func onClose(btn: *Button)
     {
-        btn.surface.requestClose()
+        let srfn = notnull btn.surface
+        srfn.requestClose()
     }
 
     private mtd applySurfaceFlags()
     {
-        let theme = .surface.app.theme
+        let srfn = notnull .surface
+        let theme = srfn.app.theme
         if !theme.intialized do
             return
 
-        if .surface.flags.has(.MinimizeBtn)
+        if srfn.flags.has(.MinimizeBtn)
         {
             if !.minimizeBtn
             {
@@ -369,7 +379,7 @@ impl SurfaceWnd
             .minimizeBtn = null
         }
 
-        if .surface.flags.has(.MaximizeBtn)
+        if srfn.flags.has(.MaximizeBtn)
         {
             if !.maximizeBtn
             {
@@ -387,7 +397,7 @@ impl SurfaceWnd
             .maximizeBtn = null
         }
 
-        if .surface.flags.has(.CloseBtn)
+        if srfn.flags.has(.CloseBtn)
         {
             if !.closeBtn
             {

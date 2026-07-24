@@ -690,15 +690,23 @@ AstNodeRef Parser::parsePostFixExpression()
     // Postfix operations are greedily folded into the left expression. The blank/EOL
     // checks are semantic: they prevent accidental calls/indexes/member accesses across
     // token boundaries where the language expects a new expression.
+    TokenRef firstOptionalAccessTokRef = TokenRef::invalid();
     while (true)
     {
         // Scope resolution
-        if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore))
+        if ((is(TokenId::SymDot) || is(TokenId::SymQuestionDot)) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
+            const bool optionalAccess  = is(TokenId::SymQuestionDot);
             auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::MemberAccessExpr>(consume());
             nodePtr->nodeLeftRef       = nodeRef;
             nodePtr->nodeRightRef      = parseIdentifier();
-            nodeRef                    = nodeParent;
+            if (optionalAccess)
+            {
+                nodePtr->addFlag(AstMemberAccessExprFlagsE::OptionalAccess);
+                if (firstOptionalAccessTokRef.isInvalid())
+                    firstOptionalAccessTokRef = nodePtr->tokRef();
+            }
+            nodeRef = nodeParent;
             continue;
         }
 
@@ -746,6 +754,15 @@ AstNodeRef Parser::parsePostFixExpression()
         }
 
         break;
+    }
+
+    // A '?.' anywhere in the chain gives the whole postfix chain a null short-circuit
+    // outcome: wrap it so sema and codegen have a single anchor for the null exit.
+    if (firstOptionalAccessTokRef.isValid())
+    {
+        auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::OptionalChainExpr>(firstOptionalAccessTokRef);
+        nodePtr->nodeExprRef       = nodeRef;
+        nodeRef                    = nodeParent;
     }
 
     // 'as'

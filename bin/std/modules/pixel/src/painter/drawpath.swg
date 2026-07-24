@@ -392,7 +392,7 @@ impl Painter
         // #null any pointer into it.
         elif .curState.paintParams & .Antialiased
         {
-            let prim2p = .vertexBuffer.buffer + cxt.prim2
+            let prim2p = (notnull .vertexBuffer.buffer) + cxt.prim2
             let p      = prim2p.pos
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)
@@ -830,7 +830,7 @@ impl Painter
         {
             // Copy positions out before addEdgeAA: it appends geometry and may
             // reallocate the vertex buffer, invalidating pointers into it.
-            let prim2p = .vertexBuffer.buffer + cxt.prim2
+            let prim2p = (notnull .vertexBuffer.buffer) + cxt.prim2
             let p      = prim2p.pos
             let q      = (prim2p + 2).pos
             .addEdgeAA(cxt.prim1, p, q)

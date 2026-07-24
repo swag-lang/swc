@@ -3,7 +3,7 @@
 #run
 {
     let itf = @compiler
-    let cfg = itf.getBuildCfg()
+    let cfg = notnull itf.getBuildCfg()
     cfg.moduleVersion   = #swcversion
     cfg.moduleRevision  = #swcrevision
     cfg.moduleBuildNum  = #swcbuildnum

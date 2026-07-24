@@ -81,19 +81,20 @@ public impl IWnd for MenuCtrl
 
         for i, idx in .items
         {
-            if i.hidden do
+            let it = notnull i
+            if it.hidden do
                 continue
-            if i.separator do
+            if it.separator do
                 continue
 
             labelPos = .getBarLabelRect(notnull i)
 
             var format: RichStringFormat
-            colorText      = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
-            colorRightText = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_RightText
+            colorText      = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
+            colorRightText = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_RightText
 
             // Back selection
-            let selected = !i.disabled and (.hotIdx == idx or .selectedIdx == idx)
+            let selected = !it.disabled and (.hotIdx == idx or .selectedIdx == idx)
             var colorSel: Color
             if selected
             {
@@ -105,13 +106,13 @@ public impl IWnd for MenuCtrl
             var backPos = labelPos
             backPos.x     -= metrics.menuBar_SpaceBetween * 0.5
             backPos.width += metrics.menuBar_SpaceBetween
-            if selected and @isset(i.popup) and .subVisible == i.popup
+            if selected and @isset(it.popup) and .subVisible == it.popup
             {
                 backPos.height += metrics.menuPopup_BarItemOverlap
                 theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
             }
-            elif selected and @isset(i.popup)
+            elif selected and @isset(it.popup)
             {
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBk, colors.menuPopup_Bk)
                 theme.drawSubRect(painter, backPos, &rects.menuBar_PopupSelectedBorder, colors.menuPopup_Border, interpol: .Pixel)
@@ -120,10 +121,10 @@ public impl IWnd for MenuCtrl
                 theme.drawSubRect(painter, backPos, &rects.menuBar_SelectedBk, colorSel)
 
             // Icon
-            if i.icon.isValid()
+            if it.icon.isValid()
             {
-                i.icon.sizeX, i.icon.sizeY = i.size - 4
-                i.icon.paint(painter, labelPos.x, labelPos.vertCenter() - i.icon.sizeY * 0.5, colorText)
+                it.icon.sizeX, it.icon.sizeY = it.size - 4
+                it.icon.paint(painter, labelPos.x, labelPos.vertCenter() - it.icon.sizeY * 0.5, colorText)
             }
 
             // Text
@@ -132,7 +133,7 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .getFont()
-            painter.drawRichString(labelPos, &i.name, format)
+            painter.drawRichString(labelPos, &it.name, format)
         }
     }
 
@@ -169,29 +170,30 @@ public impl IWnd for MenuCtrl
         var lastIsSeparator = true
         for i, idx in .items
         {
-            if i.hidden do
+            let it = notnull i
+            if it.hidden do
                 continue
-            if i.separator and lastIsSeparator do
+            if it.separator and lastIsSeparator do
                 continue
 
             labelPos.x      = clientRect.x
-            labelPos.y      = i.pos
+            labelPos.y      = it.pos
             labelPos.width  = clientRect.width
-            labelPos.height = i.size
+            labelPos.height = it.size
 
-            lastIsSeparator = i.separator
-            if i.separator
+            lastIsSeparator = it.separator
+            if it.separator
             {
                 painter.drawLine(labelPos.x, labelPos.vertCenter(), labelPos.right(), labelPos.vertCenter(), Pen.createSolid(colors.menuPopup_Separator))
                 continue
             }
 
-            colorText      = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
-            colorRightText = i.disabled ? colors.popupItem_DisabledText : colors.popupItem_RightText
+            colorText      = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_Text
+            colorRightText = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_RightText
 
             // Back selection
             var colorSel: Color
-            if .hotIdx == idx and !i.disabled
+            if .hotIdx == idx and !it.disabled
             {
                 colorSel       = colors.popupItem_HotBk
                 colorText      = colors.popupItem_HotText
@@ -206,8 +208,8 @@ public impl IWnd for MenuCtrl
 
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin
-            labelPos.moveLeft(metrics.menuPopup_IconTextMargin + i.size)
-            labelPos.width -= i.size
+            labelPos.moveLeft(metrics.menuPopup_IconTextMargin + it.size)
+            labelPos.width -= it.size
 
             // Text
             var format: RichStringFormat
@@ -216,45 +218,45 @@ public impl IWnd for MenuCtrl
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .getFont()
-            painter.drawRichString(labelPos, &i.name, format)
+            painter.drawRichString(labelPos, &it.name, format)
 
-            let textCenterY = i.name.isEmpty() ? labelPos.vertCenter() : i.name.boundRect.vertCenter()
+            let textCenterY = it.name.isEmpty() ? labelPos.vertCenter() : it.name.boundRect.vertCenter()
 
             // Icon
-            if i.checked or i.rg == .ExclusiveGroup
+            if it.checked or it.rg == .ExclusiveGroup
             {
                 var checkPos = iconPos
-                checkPos.y                      = textCenterY - i.size * 0.5
-                checkPos.width, checkPos.height = i.size
+                checkPos.y                      = textCenterY - it.size * 0.5
+                checkPos.width, checkPos.height = it.size
 
-                if i.rg == .ExclusiveGroup
+                if it.rg == .ExclusiveGroup
                 {
                     theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedBorder, colorText)
-                    if i.checked do
+                    if it.checked do
                         theme.drawSubRect(painter, checkPos, &rects.btnRadio_CheckedMark, colorText)
                 }
                 else do
                     theme.drawSubRect(painter, checkPos, &rects.btnCheck_CheckedMark, colorText)
             }
-            elif i.icon.isValid()
+            elif it.icon.isValid()
             {
-                i.icon.sizeX, i.icon.sizeY = i.size - 4
-                i.icon.paint(painter, iconPos.x, textCenterY - i.icon.sizeY * 0.5, colorText)
+                it.icon.sizeX, it.icon.sizeY = it.size - 4
+                it.icon.paint(painter, iconPos.x, textCenterY - it.icon.sizeY * 0.5, colorText)
             }
 
             // Text right
-            if !.menuCtrlFlags.has(.NoKeyShortcuts) and !i.rightName.isEmpty()
+            if !.menuCtrlFlags.has(.NoKeyShortcuts) and !it.rightName.isEmpty()
             {
                 format.palette[0]    = colorRightText
                 format.horzAlignment = .Right
                 format.vertAlignment = .Center
                 format.flags         = .Clip
                 format.font          = .getFont()
-                painter.drawRichString(labelPos, &i.rightName, format)
+                painter.drawRichString(labelPos, &it.rightName, format)
             }
 
             // Right icon
-            if @isset(i.popup)
+            if @isset(it.popup)
             {
                 let icon = theme.getIcon24(ThemeIcons24.RightPopupArrow)
                 icon.paint(painter, labelPos.right(), textCenterY - icon.sizeY * 0.5, colorText)
@@ -287,8 +289,9 @@ public impl IWnd for MenuCtrl
             if !.bar
             {
                 if !.timer do
-                    .timer = .surface.app.addTimer(300'ms, me)
-                .timer.restart()
+                    .timer = (notnull .surface).app.addTimer(300'ms, me)
+                let timer = notnull .timer
+                timer.restart()
             }
 
             .hotIdx = hit
@@ -353,7 +356,7 @@ public impl IWnd for MenuCtrl
         {
             if .hotIdx != Swag.U32.Max
             {
-                let hotItem = .items[.hotIdx]
+                let hotItem = notnull .items[.hotIdx]
                 if @isset(hotItem.popup)
                 {
                     .hideSubVisible()
@@ -467,7 +470,7 @@ impl MenuCtrl
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
-        let i = .ownerMenu.items[.popupBarItemIdx]
+        let i = notnull (notnull .ownerMenu).items[.popupBarItemIdx]
         var labelPos = anchorRect
         labelPos.x     += metrics.menuBar_SpaceBetween * 0.5
         labelPos.width -= metrics.menuBar_SpaceBetween
@@ -540,7 +543,8 @@ impl MenuCtrl
     {
         if !.timer do
             return
-        .surface.app.deleteTimer(.timer)
+        let srf = notnull .surface
+        srf.app.deleteTimer(.timer)
         .timer = null
     }
 
@@ -548,23 +552,24 @@ impl MenuCtrl
     {
         for i in .items
         {
-            let evt = .sendComputeCommandStateEvent(i.id)
+            let it  = notnull i
+            let evt = .sendComputeCommandStateEvent(it.id)
             if evt.setFlags.has(.Disabled) do
-                i.disabled = evt.disabled
+                it.disabled = evt.disabled
             if evt.setFlags.has(.Hidden) do
-                i.hidden = evt.hidden
+                it.hidden = evt.hidden
             if evt.setFlags.has(.Icon) do
-                i.icon = evt.icon
+                it.icon = evt.icon
             if evt.setFlags.has(.LongName) do
-                i.name = evt.longName
+                it.name = evt.longName
             elif evt.setFlags.has(.Name) do
-                i.name = evt.name
+                it.name = evt.name
             if evt.setFlags.has(.Shortcut) do
-                i.rightName.set(evt.shortcut)
+                it.rightName.set(evt.shortcut)
             if evt.setFlags.has(.Checked) do
-                i.checked = evt.checked
+                it.checked = evt.checked
             if evt.setFlags.has(.RenderingHint) do
-                i.rg = evt.renderingHint
+                it.rg = evt.renderingHint
         }
     }
 
@@ -572,7 +577,7 @@ impl MenuCtrl
     {
         with me.subVisible
         {
-            let pt = .parent.surfaceToLocal(ptSurface)
+            let pt = (notnull .parent).surfaceToLocal(ptSurface)
             .setPosition({pt.x, pt.y, .position.width, .position.height})
             .bringToTop()
             .show()
@@ -587,24 +592,25 @@ impl MenuCtrl
     mtd showHotPopupBar()
     {
         .selectedIdx = .hotIdx
-        let hotItem = .items[.hotIdx]
+        let hotItem = notnull .items[.hotIdx]
         let metrics = .getThemeMetrics()
 
-        var anchorRect = .localToSurface(.getBarItemRect(notnull hotItem))
+        var anchorRect = .localToSurface(.getBarItemRect(hotItem))
 
         var pos = anchorRect
-        pos.x                         -= metrics.menuPopup_ShadowSize
-        pos.y                         -= metrics.menuPopup_ShadowSize
-        .subVisible                   = hotItem.popup
-        .subVisible.ignoreNextRelease = false
-        .subVisible.setPopupBarAnchor(.hotIdx, anchorRect)
+        pos.x -= metrics.menuPopup_ShadowSize
+        pos.y -= metrics.menuPopup_ShadowSize
+        let sub = hotItem.popup
+        .subVisible           = sub
+        sub.ignoreNextRelease = false
+        sub.setPopupBarAnchor(.hotIdx, anchorRect)
 
         // Be sure popup menu is in the client area of the top view
-        .subVisible.updateState()
-        .subVisible.computeLayoutPopup()
+        sub.updateState()
+        sub.computeLayoutPopup()
         let topView = .getTopView()
         var pt      = topView.surfaceToLocal({pos.x, pos.y})
-        let subPos  = .subVisible.position
+        let subPos  = sub.position
         if pt.x + subPos.width > topView.position.width do
             pt.x = topView.position.width - subPos.width
         if pt.y + subPos.height > topView.position.height do
@@ -617,25 +623,26 @@ impl MenuCtrl
     mtd showHotPopupPopup()
     {
         .selectedIdx = .hotIdx
-        let hotItem = .items[.hotIdx]
+        let hotItem = notnull .items[.hotIdx]
 
         var pos         = .getSurfaceRect()
         let sdw         = .getThemeMetrics().menuPopup_ShadowSize
         let surfaceRect = pos
-        pos.x                         = pos.right() - sdw
-        pos.y                         += hotItem.pos
-        pos.y                         -= .padding.y
-        .subVisible                   = hotItem.popup
-        .subVisible.ignoreNextRelease = false
-        .subVisible.clearPopupBarAnchor()
+        pos.x = pos.right() - sdw
+        pos.y += hotItem.pos
+        pos.y -= .padding.y
+        let sub = hotItem.popup
+        .subVisible           = sub
+        sub.ignoreNextRelease = false
+        sub.clearPopupBarAnchor()
 
         // Be sure popup menu is in the client area of the top view
-        .subVisible.updateState()
-        .subVisible.computeLayoutPopup()
+        sub.updateState()
+        sub.computeLayoutPopup()
         let topView = .getTopView()
         var pt      = topView.surfaceToLocal({pos.x, pos.y})
         pt -= sdw
-        let subPos = .subVisible.position
+        let subPos = sub.position
         if pt.x + subPos.width > topView.position.width do
             pt.x = surfaceRect.x - subPos.width
         if pt.y + subPos.height > topView.position.height do
@@ -647,7 +654,7 @@ impl MenuCtrl
 
     mtd showHotPopup()
     {
-        if .hotIdx == Swag.U32.Max or !@isset(.items[.hotIdx].popup)
+        if .hotIdx == Swag.U32.Max or !@isset((notnull .items[.hotIdx]).popup)
         {
             .selectedIdx = Swag.U32.Max
             return
@@ -662,8 +669,9 @@ impl MenuCtrl
     mtd hitTestBar(surfacePos: Math.Point)->u32
     {
         let pos        = .surfaceToLocal(surfacePos)
-        for i, idx in .items
+        for iIt, idx in .items
         {
+            let i = notnull iIt
             if i.hidden do
                 continue
             if i.separator do
@@ -685,16 +693,17 @@ impl MenuCtrl
         var lastIsSeparator = true
         for i, idx in .items
         {
-            if i.hidden do
+            let it = notnull i
+            if it.hidden do
                 continue
-            if i.separator and lastIsSeparator do
+            if it.separator and lastIsSeparator do
                 continue
 
-            let rect = Math.Rectangle{clientRect.x, i.pos - sl * 0.5, clientRect.width, i.size + sl}
+            let rect = Math.Rectangle{clientRect.x, it.pos - sl * 0.5, clientRect.width, it.size + sl}
             if rect.contains(pos) do
                 return cast(u32) idx
 
-            lastIsSeparator = i.separator
+            lastIsSeparator = it.separator
         }
 
         return Swag.U32.Max
@@ -718,14 +727,15 @@ impl MenuCtrl
 
         for i, idx in .items
         {
-            if i.hidden do
+            let it = notnull i
+            if it.hidden do
                 continue
             if .onComputeItem do
                 .onComputeItem(notnull i)
-            i.pos = x + metrics.menuBar_SpaceBetween * 0.5
-            fake.drawRichString({0, 0, 512, 0}, &i.name, rsf)
-            i.size = i.name.boundRect.width
-            x      = i.pos + i.size + metrics.menuBar_SpaceBetween * 0.5
+            it.pos = x + metrics.menuBar_SpaceBetween * 0.5
+            fake.drawRichString({0, 0, 512, 0}, &it.name, rsf)
+            it.size = it.name.boundRect.width
+            x      = it.pos + it.size + metrics.menuBar_SpaceBetween * 0.5
         }
     }
 
@@ -746,45 +756,46 @@ impl MenuCtrl
         var lastIsSeparator = true
         for i, idx in .items
         {
-            if i.hidden do
+            let it = notnull i
+            if it.hidden do
                 continue
-            if i.separator and lastIsSeparator do
+            if it.separator and lastIsSeparator do
                 continue
 
             if .onComputeItem do
                 .onComputeItem(notnull i)
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
-            i.pos                = .position.height
+            it.pos                = .position.height
 
-            lastIsSeparator = i.separator
-            if i.separator
+            lastIsSeparator = it.separator
+            if it.separator
             {
-                i.size           = metrics.menuPopup_SeparatorHeight
-                .position.height += i.size
+                it.size           = metrics.menuPopup_SeparatorHeight
+                .position.height += it.size
                 continue
             }
 
-            i.size = rsf.font.regular.height
+            it.size = (notnull rsf.font.regular).height
 
-            fake.drawRichString({0, 0, 512, 0}, &i.name, rsf)
-            var w = i.name.boundRect.width
+            fake.drawRichString({0, 0, 512, 0}, &it.name, rsf)
+            var w = it.name.boundRect.width
 
-            if !.menuCtrlFlags.has(.NoKeyShortcuts) and !i.rightName.isEmpty()
+            if !.menuCtrlFlags.has(.NoKeyShortcuts) and !it.rightName.isEmpty()
             {
-                fake.drawRichString({0, 0, 512, 0}, &i.rightName, rsf)
-                w += i.rightName.boundRect.width + rsf.font.regular.height * 3
+                fake.drawRichString({0, 0, 512, 0}, &it.rightName, rsf)
+                w += it.rightName.boundRect.width + (notnull rsf.font.regular).height * 3
             }
 
             .position.width  = Math.max(.position.width, w)
-            .position.height += i.size
+            .position.height += it.size
         }
 
         // Add shadow size
         if !.paintByFrame do
             .position.width += 2 * metrics.menuPopup_ShadowSize
 
-        .position.width += (2 * rsf.font.regular.height) + (1 * metrics.menuPopup_IconTextMargin)
+        .position.width += (2 * (notnull rsf.font.regular).height) + (1 * metrics.menuPopup_IconTextMargin)
 
         if .hasPopupBarAnchor() and !.paintByFrame
         {
@@ -932,7 +943,7 @@ public impl MenuCtrl
         .computeLayoutPopup()
 
         // Be sure popup menu is in the client area of the top view
-        var pt = .parent.surfaceToLocal(surfacePos)
+        var pt = (notnull .parent).surfaceToLocal(surfacePos)
 
         switch pos
         {
@@ -969,8 +980,9 @@ public impl MenuCtrl
         .endModal             = false
         .endModalResult       = null
         .getApp().inModalLoop += 1
+        let srf = notnull .surface
         while !.endModal do
-            .surface.app.runFrame()
+            srf.app.runFrame()
         .getApp().inModalLoop -= 1
 
         .hideSubVisible()

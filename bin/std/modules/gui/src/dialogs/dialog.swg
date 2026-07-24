@@ -64,7 +64,7 @@ impl IWnd for Dialog
                 }
 
             case Escape:
-                if .surface.flags.has(.CloseBtn)
+                if (notnull .surface).flags.has(.CloseBtn)
                 {
                     .validateId(BtnCancel)
                     break
@@ -107,7 +107,7 @@ impl Dialog
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.Zero)->*Surface
     {
         let surfaceFlags = SurfaceFlags.BigCaption | SurfaceFlags.Secondary | flags
-        let srf = assume from.app.createSurface(x, y, width, height, surfaceFlags, me)
+        let srf = notnull (assume from.app.createSurface(x, y, width, height, surfaceFlags, me))
         srf.wnd.view.backgroundStyle = .Dialog
 
         let metrics = .getThemeMetrics()
@@ -123,23 +123,24 @@ impl Dialog
         }
 
         .setFocus()
-        return notnull srf
+        return srf
     }
 
     // Returns the view where stuff can be put.
     mtd getView()->*Wnd
     {
-        return .surface.wnd.view
+        return (notnull .surface).wnd.view
     }
 
     // Display dialog as modal, and returns the user selected window id
     mtd doModal()->WndId
     {
-        .surface.bringToTop()
-        .surface.show()
+        let surface = notnull .surface
+        surface.bringToTop()
+        surface.show()
         if .fromSurface and .fromSurface.isTopMost() do
-            .surface.setTopMost()
-        return .surface.app.doModalLoop(.surface)
+            surface.setTopMost()
+        return surface.app.doModalLoop(surface)
     }
 
     // Add a button
@@ -152,15 +153,19 @@ impl Dialog
 
             .sigPressed += func|dlg = me|(btn)
             {
-                if !dlg.sigPressedButton or dlg.sigPressedButton(dlg, btn.id) do
+                let sig = dlg.sigPressedButton
+                if !sig or sig(dlg, btn.id) do
                     btn.getApp().exitModal(btn.id orelse "")
             }
 
             me.buttons.add(btn)
         }
 
-        if id == BtnCancel or id == BtnNo do
-            .surface.setSurfaceFlags(add: .CloseBtn)
+        if id == BtnCancel or id == BtnNo
+        {
+            let srf = notnull .surface
+            srf.setSurfaceFlags(add: .CloseBtn)
+        }
 
         return btn
     }
@@ -168,7 +173,8 @@ impl Dialog
     mtd validateId(btnId: #null WndId)
     {
         let safeBtnId = btnId orelse ""
-        if !.sigPressedButton or .sigPressedButton(me, safeBtnId) do
+        let sig       = .sigPressedButton
+        if !sig or sig(me, safeBtnId) do
             .getApp().exitModal(safeBtnId)
     }
 }

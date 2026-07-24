@@ -91,21 +91,22 @@ func testCoreNonNullDynamicInitialization()->bool
 
     let allocatedDefaults = Memory.new(defaultArrayType)
     let allocatedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) allocatedDefaults
-    let initializedNewArray = allocatedDefaults and
+    let initializedNewArray = allocatedDefaultValues != null and
                               (dref allocatedDefaultValues)[0].value == "fallback" and
                               (dref allocatedDefaultValues)[1].value == "fallback"
     if allocatedDefaults do
         Memory.free(cast(#null [*] void) allocatedDefaults, cast(u64) defaultArrayType.sizeof)
 
     let allocatedAlias = Memory.new(defaultAliasType)
-    let initializedNewAlias = allocatedAlias and (cast(#null *CoreNonNullRuntimeDefault) allocatedAlias).value == "fallback"
+    let allocatedAliasValue = cast(#null *CoreNonNullRuntimeDefault) allocatedAlias
+    let initializedNewAlias = allocatedAliasValue != null and allocatedAliasValue.value == "fallback"
     if allocatedAlias do
         Memory.free(cast(#null [*] void) allocatedAlias, cast(u64) defaultAliasType.sizeof)
 
     let nestedAliasArrayType = #typeof([3] CoreNonNullRuntimeDefaultPair)
     let allocatedNestedAliasArray = Memory.new(nestedAliasArrayType)
     let nestedAliasValues = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedAliasArray
-    let initializedNestedAliasArray = allocatedNestedAliasArray and
+    let initializedNestedAliasArray = nestedAliasValues != null and
                                       nestedAliasValues[0].value == "fallback" and
                                       nestedAliasValues[5].value == "fallback"
     if allocatedNestedAliasArray do
@@ -114,7 +115,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let nestedArrayType = #typeof([3][2] CoreNonNullRuntimeDefault)
     let allocatedNestedArray = Memory.new(nestedArrayType)
     let nestedValues = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedArray
-    let initializedNestedArray = allocatedNestedArray and
+    let initializedNestedArray = nestedValues != null and
                                  nestedValues[0].value == "fallback" and
                                  nestedValues[5].value == "fallback"
     if allocatedNestedArray do
@@ -133,13 +134,14 @@ func testCoreNonNullDynamicInitialization()->bool
     var appendedDefaults: Array'CoreNonNullRuntimeDefaultPair
     let appendedDefaultsPtr = Reflection.appendValueStructArray(&appendedDefaults, defaultArrayType)
     let appendedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) appendedDefaultsPtr
-    let initializedAppendArray = appendedDefaultsPtr and
+    let initializedAppendArray = appendedDefaultValues != null and
                                  (dref appendedDefaultValues)[0].value == "fallback" and
                                  (dref appendedDefaultValues)[1].value == "fallback"
 
     var appendedAliases: Array'CoreNonNullRuntimeDefaultAlias
     let appendedAliasPtr = Reflection.appendValueStructArray(&appendedAliases, defaultAliasType)
-    let initializedAppendAlias = appendedAliasPtr and (cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr).value == "fallback"
+    let appendedAliasValue = cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr
+    let initializedAppendAlias = appendedAliasValue != null and appendedAliasValue.value == "fallback"
 
     @assert(cxt.user0 == 6)
     @assert(rejectedNew)

@@ -246,13 +246,13 @@ namespace ResizeTools
     func scaleRow(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: *LineContrib)
     {
         let bpp8   = imgDst.bpp8
-        var dstRow = imgDst.pixels.buffer + row * bpp8 * imgDst.width
-        let srcRow = imgSrc.pixels.buffer + row * bpp8 * imgSrc.width
+        var dstRow = (notnull imgDst.pixels.buffer) + row * bpp8 * imgDst.width
+        let srcRow = (notnull imgSrc.pixels.buffer) + row * bpp8 * imgSrc.width
 
         #[Swag.Mixin]
         func(BPP: u8) doIt()
         {
-            let crow0 = contrib.row.buffer
+            let crow0 = notnull contrib.row.buffer
             for x in imgDst.width
             {
                 let crow  = crow0 + x
@@ -262,7 +262,7 @@ namespace ResizeTools
                 #if BPP == 32 do
                     var da:     f64
                 var dr, dg, db: f64
-                var pw  = crow.weights.buffer
+                var pw  = notnull crow.weights.buffer
                 var ptr = srcRow + left * bpp8
                 for (right - left) + 1
                 {
@@ -297,15 +297,15 @@ namespace ResizeTools
     func scaleCol(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: *LineContrib)
     {
         let bpp8   = imgDst.bpp8
-        var dstCol = imgDst.pixels.buffer + col * bpp8
-        let srcCol = imgSrc.pixels.buffer + col * bpp8
+        var dstCol = (notnull imgDst.pixels.buffer) + col * bpp8
+        let srcCol = (notnull imgSrc.pixels.buffer) + col * bpp8
         let w8Dst  = imgDst.width * bpp8
         let w8Src  = imgSrc.width * bpp8
 
         #[Swag.Mixin]
         func(BPP: u8) doIt()
         {
-            let crow0 = contrib.row.buffer
+            let crow0 = notnull contrib.row.buffer
             for y in imgDst.height
             {
                 let crow  = crow0 + y
@@ -315,7 +315,7 @@ namespace ResizeTools
                 #if BPP == 32 do
                     var da:     f64
                 var dr, dg, db: f64
-                var pw  = crow.weights.buffer
+                var pw  = notnull crow.weights.buffer
                 var ptr = srcCol + left * w8Src
                 for (right - left) + 1
                 {

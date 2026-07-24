@@ -13,12 +13,12 @@ impl RichEditCtrl
         if !.hasSelRect
         {
             // First line
-            var line  = .lines[start.lineIndex]
+            var line  = notnull .lines[start.lineIndex]
             var count = line.length()
             if count
             {
-                let pchar  = line.chars.buffer
-                let pstyle = line.styles.buffer
+                let pchar  = notnull line.chars.buffer
+                let pstyle = notnull line.styles.buffer
                 if start.lineIndex == end.lineIndex do
                     count = end.charPosInLine
                 for var i = start.charPosInLine; i < count; i += 1
@@ -40,14 +40,14 @@ impl RichEditCtrl
                 // Pre allocate string to optimize append
                 count = 0
                 for var i = start.lineIndex + 1; i < end.lineIndex; i += 1 do
-                    count += .lines[i].length()
+                    count += (notnull .lines[i]).length()
                 result.text.reserve(result.text.count + count)
                 result.styles.reserve(result.styles.count + count)
 
                 for var i = start.lineIndex + 1; i < end.lineIndex; i += 1
                 {
-                    result.text.add(.lines[i].chars.toSlice())
-                    result.styles.add(.lines[i].styles.toSlice())
+                    result.text.add((notnull .lines[i]).chars.toSlice())
+                    result.styles.add((notnull .lines[i]).styles.toSlice())
                     result.text.add('\n')
                     result.styles.add(0)
                 }
@@ -56,12 +56,12 @@ impl RichEditCtrl
             // Last line
             if start.lineIndex != end.lineIndex
             {
-                line  = .lines[end.lineIndex]
+                line  = notnull .lines[end.lineIndex]
                 count = line.length()
                 if count
                 {
-                    let pchar  = line.chars.buffer
-                    let pstyle = line.styles.buffer
+                    let pchar  = notnull line.chars.buffer
+                    let pstyle = notnull line.styles.buffer
                     for var i = 0; i < end.charPosInLine; i += 1
                     {
                         result.text.add(pchar[i])
@@ -80,8 +80,8 @@ impl RichEditCtrl
                 {
                     for i in rankEnd - rankBeg
                     {
-                        result.text.add(.lines[li].chars[rankBeg + i])
-                        result.styles.add(.lines[li].styles[rankBeg + i])
+                        result.text.add((notnull .lines[li]).chars[rankBeg + i])
+                        result.styles.add((notnull .lines[li]).styles[rankBeg + i])
                     }
                 }
 
@@ -101,25 +101,27 @@ impl RichEditCtrl
 
         // Make one single line with current wrapped lines
         var i = lineIndex + 1
+        let dstLine = notnull .lines[lineIndex]
         while i < .lines.count
         {
-            if !.lines[i].wordWrap do
+            let srcLine = notnull .lines[i]
+            if !srcLine.wordWrap do
                 break
 
             if .cursorPos.lineIndex == i
             {
                 .cursorPos.lineIndex     = lineIndex
-                .cursorPos.charPosInLine += .lines[lineIndex].chars.count
+                .cursorPos.charPosInLine += dstLine.chars.count
             }
 
             if .selBeg.lineIndex == i
             {
                 .selBeg.lineIndex     = lineIndex
-                .selBeg.charPosInLine += .lines[lineIndex].chars.count
+                .selBeg.charPosInLine += dstLine.chars.count
             }
 
-            .lines[lineIndex].chars.add(.lines[i].chars.toSlice())
-            .lines[lineIndex].styles.add(.lines[i].styles.toSlice())
+            dstLine.chars.add(srcLine.chars.toSlice())
+            dstLine.styles.add(srcLine.styles.toSlice())
             i += 1
         }
 
@@ -150,9 +152,9 @@ impl RichEditCtrl
         var str: String
 
         var cutAti = i
-        while i < .lines[curLine].length()
+        while i < (notnull .lines[curLine]).length()
         {
-            let l  = .lines[curLine]
+            let l  = notnull .lines[curLine]
             let ch = l.chars[i]
             str += ch
 
@@ -209,9 +211,9 @@ impl RichEditCtrl
 
         if c == '\n'
         {
-            let linep = .lines[cp.lineIndex]
+            let linep = notnull .lines[cp.lineIndex]
             discard .newLine(cp.lineIndex + 1)
-            let line = .lines[cp.lineIndex + 1]
+            let line = notnull .lines[cp.lineIndex + 1]
             if cp.charPosInLine < linep.length() do
                 line.insertRunes(0, notnull linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
             linep.setLength(cp.charPosInLine)
@@ -220,7 +222,7 @@ impl RichEditCtrl
         }
         elif c == '\t' and (.richEdFlags & .TabToSpaces)
         {
-            let line = .lines[cp.lineIndex]
+            let line = notnull .lines[cp.lineIndex]
             for .tabSize
             {
                 let posIns = Math.min(cp.charPosInLine, line.length())
@@ -230,7 +232,7 @@ impl RichEditCtrl
         }
         else
         {
-            let line   = .lines[cp.lineIndex]
+            let line   = notnull .lines[cp.lineIndex]
             let posIns = Math.min(cp.charPosInLine, line.length())
             line.insertRune(posIns, c, txtStyle)
             cp.charPosInLine += 1
@@ -262,7 +264,7 @@ impl RichEditCtrl
             var rankBeg, rankEnd: u64
             for
             {
-                let line = .lines[lineIndex]
+                let line = notnull .lines[lineIndex]
                 if rankEnd == runes.count or runes[rankEnd] == '\n'
                 {
                     var posIns = posInLine
@@ -336,8 +338,8 @@ impl RichEditCtrl
                 pe.lineIndex -= 1
             }
 
-            let lineSrc = .lines[ps.lineIndex]
-            let lineEnd = .lines[pe.lineIndex]
+            let lineSrc = notnull .lines[ps.lineIndex]
+            let lineEnd = notnull .lines[pe.lineIndex]
 
             if ps.lineIndex == pe.lineIndex
             {
@@ -365,7 +367,8 @@ impl RichEditCtrl
                 var rankBeg, rankEnd: u64
                 if .getSelectionRectRange(li, &rankBeg, &rankEnd)
                 {
-                    .lines[li].removeRunes(rankBeg, rankEnd - rankBeg)
+                    let ln = notnull .lines[li]
+                    ln.removeRunes(rankBeg, rankEnd - rankBeg)
                 }
 
                 li += 1
@@ -461,7 +464,7 @@ public impl RichEditCtrl
         if .lines.count
         {
             cp.lineIndex     = .lines.count - 1
-            cp.charPosInLine = .lines[cp.lineIndex].length()
+            cp.charPosInLine = (notnull .lines[cp.lineIndex]).length()
         }
 
         .insertTextPrivate(&cp, text, txtStyle)
@@ -510,13 +513,13 @@ public impl RichEditCtrl
         var result: retval
         if cp.lineIndex >= .lines.count do
             return result
-        let len = .lines[cp.lineIndex].chars.count
+        let len = (notnull .lines[cp.lineIndex]).chars.count
         if cp.charPosInLine > len do
             return result
         if cp.charPosInLine == len do
             return {'\n', 0}
-        result.char  = .lines[cp.lineIndex].chars[cp.charPosInLine]
-        result.style = .lines[cp.lineIndex].styles[cp.charPosInLine]
+        result.char  = (notnull .lines[cp.lineIndex]).chars[cp.charPosInLine]
+        result.style = (notnull .lines[cp.lineIndex]).styles[cp.charPosInLine]
         return result
     }
 
@@ -554,7 +557,7 @@ public impl RichEditCtrl
                 .serialUndo += 1
 
             // Register action of deletion for overmode
-            if .overwriteMode and .cursorPos.charPosInLine != .lines[.cursorPos.lineIndex].length()
+            if .overwriteMode and .cursorPos.charPosInLine != (notnull .lines[.cursorPos.lineIndex]).length()
             {
                 pundo                    = Memory.new'RichEditUndo()
                 pundo.type               = .Delete
@@ -588,10 +591,10 @@ public impl RichEditCtrl
         // Add a deletion
         if .currentUndo > 1
         {
-            pundo = .undoMgr[.currentUndo - 2]
+            pundo = notnull .undoMgr[.currentUndo - 2]
             if pundo.type == .Delete and pundo.concatChars
             {
-                if .cursorPos.charPosInLine != .lines[.cursorPos.lineIndex].length()
+                if .cursorPos.charPosInLine != (notnull .lines[.cursorPos.lineIndex]).length()
                 {
                     let r = .getRune(.cursorPos)
                     pundo.runes.add(r.char)
@@ -604,11 +607,11 @@ public impl RichEditCtrl
         }
 
         // Append the character to the last undo
-        pundo = .undoMgr[.currentUndo - 1]
+        pundo = notnull .undoMgr[.currentUndo - 1]
         pundo.runes.add(c)
 
         // Get the style from the previous character
-        let line = .lines[.cursorPos.lineIndex]
+        let line = notnull .lines[.cursorPos.lineIndex]
         var st: u8
         if !.cursorPos.charPosInLine and line.length() do
             st = line.styles[0]
@@ -625,7 +628,7 @@ public impl RichEditCtrl
             {
                 var cp = se
                 cp.lineIndex = caretI
-                if cp.charPosInLine > .lines[cp.lineIndex].length() do
+                if cp.charPosInLine > (notnull .lines[cp.lineIndex]).length() do
                     continue
                 .insertTextPrivate(&cp, @mkstring(&az[0], cpt), st)
             }
@@ -724,7 +727,7 @@ public impl RichEditCtrl
         while beg.lineIndex <= end.lineIndex
         {
             // Go to the first non white character
-            let line = .lines[beg.lineIndex]
+            let line = notnull .lines[beg.lineIndex]
             if multiline
             {
                 while beg.charPosInLine < line.length() and Unicode.isSpace(line.chars[beg.charPosInLine])
@@ -818,7 +821,7 @@ public impl RichEditCtrl
             let font = nnFont(fontR)
             for l in .lines
             {
-                let arr     = Painter.getGlyphs(l.chars, font)
+                let arr     = Painter.getGlyphs((notnull l).chars, font)
                 let measure = Painter.measureString(arr, font)
                 result.w = Math.max(result.w, measure.width)
             }

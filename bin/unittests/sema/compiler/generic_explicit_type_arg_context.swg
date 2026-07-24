@@ -21,7 +21,8 @@ impl List
         discard node
         let n = nullPtr'ListEntry()
         #assert(#typeof(n) == #null *ListEntry'T)
-        n.value = value
+        let nn = notnull n
+        nn.value = value
         return n
     }
 }

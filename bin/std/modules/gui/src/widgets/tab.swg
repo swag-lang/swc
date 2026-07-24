@@ -251,10 +251,10 @@ impl IWnd for Tab
             {
                 if idx == .selectedIdx do
                     continue
-                let v = .views[idx]
+                let v = notnull .views[idx]
                 if v.pos + v.width > clientRect.right() do
                     break
-                .paintItem(painter, notnull v, cast(u32) idx)
+                .paintItem(painter, v, cast(u32) idx)
             }
 
             // Paint selected item
@@ -270,7 +270,7 @@ impl IWnd for Tab
         .computeTabLayout()
         .ensureVisible(.selectedIdx)
 
-        let curView = .views[.selectedIdx].view
+        let curView = (notnull .views[.selectedIdx]).view
         if curView
         {
             var clientRect = .getClientRect()
@@ -320,23 +320,25 @@ private impl Tab
 {
     mtd showPopup(x, y: f32)
     {
-        .popup = PopupListCtrl.create(me)
+        let popup = PopupListCtrl.create(me)
+        .popup = popup
         for item in .views do
-            .popup.addItem(item.name.raw, item.id, item.icon, item.userData0)
+            popup.addItem((notnull item).name.raw, (notnull item).id, (notnull item).icon, (notnull item).userData0)
 
-        .popup.sigSelected = func|tab = me|(list, idx)
+        popup.sigSelected = func|tab = me|(list, idx)
         {
             if idx != Swag.U32.Max do
                 tab.select(idx)
             tab.hidePopup()
         }
 
-        .popup.show(x, y)
+        popup.show(x, y)
     }
 
     mtd hidePopup()
     {
-        .popup.destroy()
+        let popup = notnull .popup
+        popup.destroy()
         .popup = null
     }
 
@@ -357,7 +359,7 @@ private impl Tab
         let rect = .getBarRectItems()
         for idx in .firstVisibleIdx until cast(u32) .views.count
         {
-            let v = .views[idx]
+            let v = notnull .views[idx]
             if v.pos + v.width > rect.right() do
                 break
             if pos.x >= v.pos and pos.x < v.pos + v.width do
@@ -377,24 +379,27 @@ private impl Tab
         case Divide:
             var w = cast(f32) (rect.width / .views.count)
             w = Math.max(w, .itemMinWidth)
-            for v in .views
+            for vIt in .views
             {
+                let v = notnull vIt
                 v.width       = w
                 .mostRightPos += w
             }
 
         case Fixed:
             let w = Math.max(.itemFixedLayoutWidth, .itemMinWidth)
-            for v in .views
+            for vIt in .views
             {
+                let v = notnull vIt
                 v.width       = w
                 .mostRightPos += w
             }
 
         case Auto:
             let font = nnFont(.getFont().regular)
-            for v in .views
+            for vIt in .views
             {
+                let v   = notnull vIt
                 let mes = Painter.measureString(v.item.name.raw, font)
 
                 // Text
@@ -415,7 +420,7 @@ private impl Tab
         .mostRightPos = Math.round(rect.x)
         for idx in .firstVisibleIdx until cast(u32) .views.count
         {
-            let v = .views[idx]
+            let v = notnull .views[idx]
             let left = Math.round(x)
             x += v.width
             let right = Math.round(x)
@@ -435,22 +440,25 @@ private impl Tab
             // Create a button if there are too many items for the given size
             if !.buttonPopup
             {
-                .buttonPopup            = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.SortArrowDown), {})
-                .buttonPopup.form       = .Round
-                .buttonPopup.sigPressed += func|tab = me|(btn)
+                let btnPopup = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.SortArrowDown), {})
+                .buttonPopup       = btnPopup
+                btnPopup.form       = .Round
+                btnPopup.sigPressed += func|tab = me|(btn)
                 {
                     var rect = btn.getSurfaceRect()
                     tab.showPopup(rect.x, rect.y + btn.position.height)
                 }
             }
 
-            let x = barRect.right() - 32
-            .buttonPopup.setPosition({x, (.barHeight * 0.5) - 12, 24, 24})
+            let x  = barRect.right() - 32
+            let bp = notnull .buttonPopup
+            bp.setPosition({x, (.barHeight * 0.5) - 12, 24, 24})
         }
         elif .buttonPopup
         {
             .firstVisibleIdx = 0
-            .buttonPopup.destroy()
+            let bp = notnull .buttonPopup
+            bp.destroy()
             .buttonPopup = null
             .computeTabLayout()
         }
@@ -459,13 +467,13 @@ private impl Tab
     mtd ensureVisible(idx: u32)
     {
         let rect = .getBarRectItems()
-        if idx < .firstVisibleIdx or .views[idx].pos + .views[idx].width >= rect.right()
+        if idx < .firstVisibleIdx or (notnull .views[idx]).pos + (notnull .views[idx]).width >= rect.right()
         {
             .firstVisibleIdx = idx
-            var x = rect.right() - .views[.firstVisibleIdx].width
+            var x = rect.right() - (notnull .views[.firstVisibleIdx]).width
             while .firstVisibleIdx
             {
-                x -= .views[.firstVisibleIdx - 1].width
+                x -= (notnull .views[.firstVisibleIdx - 1]).width
                 if x < rect.x do
                     break
                 .firstVisibleIdx -= 1
@@ -559,11 +567,13 @@ impl Tab
         if .selectedIdx == idx or .selectedIdx >= .views.count do
             return
 
-        if .views[.selectedIdx].view do
-            .views[.selectedIdx].view.wndFlags |= .Hidden
-        .selectedIdx                           = idx
-        if .views[.selectedIdx].view do
-            .views[.selectedIdx].view.wndFlags &= ~.Hidden
+        let oldView = (notnull .views[.selectedIdx]).view
+        if oldView do
+            oldView.wndFlags |= .Hidden
+        .selectedIdx = idx
+        let newView = (notnull .views[.selectedIdx]).view
+        if newView do
+            newView.wndFlags &= ~.Hidden
 
         .sigSelChanged.call(me)
 

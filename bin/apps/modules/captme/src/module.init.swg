@@ -3,7 +3,7 @@
 #message(Swag.CompilerMsgMask.PassBeforeOutput)
 {
     let itf = @compiler
-    let cfg = itf.getBuildCfg()
+    let cfg = notnull itf.getBuildCfg()
     cfg.resAppIcoFileName = Path.getDirectoryName(#file) ++ "/datas/appicon.ico"
 }
 

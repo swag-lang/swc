@@ -77,8 +77,9 @@ impl String
         let newCapacity = @countof(value) + 1
         .length = newCapacity - 1
         .grow(newCapacity)
-        Memory.copy(.buffer, @dataof(value), .length)
-        .buffer[.length] = 0
+        let buffer = notnull .buffer
+        Memory.copy(buffer, @dataof(value), .length)
+        buffer[.length] = 0
     }
 
     mtd const opSlice(lower, upper: u64)->string
@@ -104,10 +105,11 @@ impl String
     mtd(op: string) opIndexAssign(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
+        let buffer = notnull .buffer
         #if op == "+=" do
-            .buffer[index] += #wrap value
+            buffer[index] += #wrap value
         #elif op == "-=" do
-            .buffer[index] -= #wrap value
+            buffer[index] -= #wrap value
         #else do
             #error("invalid operator '" ++ op ++ "'")
     }
@@ -115,7 +117,8 @@ impl String
     mtd opIndexSet(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        .buffer[index] = value
+        let buffer = notnull .buffer
+        buffer[index] = value
     }
 
     mtd(op: string) opAssign(value: const [..] string)
@@ -215,7 +218,8 @@ impl String
     mtd const opIndex(index: u64)->u8
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        return .buffer[index]
+        let buffer = notnull .buffer
+        return buffer[index]
     }
 
     // Visit the String runes
@@ -342,7 +346,8 @@ impl String
             idx = Utf8.indexOf(.toString(), what, idx)
         }
 
-        .buffer[.length] = 0
+        let buffer = notnull .buffer
+        buffer[.length] = 0
     }
 
     // Replace all occurences of 'what' with 'by'
@@ -386,7 +391,8 @@ impl String
             idx = Utf8.indexOf(.toString(), what, idx, comparisonType)
         }
 
-        .buffer[.length] = 0
+        let buffer = notnull .buffer
+        buffer[.length] = 0
     }
 
     // Get the last byte
@@ -394,7 +400,8 @@ impl String
     {
         if !.length do
             return 0
-        return .buffer[.length - 1]
+        let buffer = notnull .buffer
+        return buffer[.length - 1]
     }
 
     // Remove some bytes at the given index
@@ -403,9 +410,10 @@ impl String
         if !byteCount do
             return
         Debug.safetyBoundCheck(byteIndex + byteCount <= .length, "index out of range")
-        Memory.copyOver(.buffer + byteIndex, .buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
-        .length          -= byteCount
-        .buffer[.length] = 0
+        let buffer = notnull .buffer
+        Memory.copyOver(buffer + byteIndex, buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
+        .length         -= byteCount
+        buffer[.length] = 0
     }
 
     // Remove some bytes at the end
@@ -414,8 +422,9 @@ impl String
         if !byteCount do
             return
         Debug.safetyBoundCheck(byteCount <= .length, "index out of range")
-        .length          -= byteCount
-        .buffer[.length] = 0
+        let buffer = notnull .buffer
+        .length         -= byteCount
+        buffer[.length] = 0
     }
 
     // Insert an ascii byte at the given position
@@ -431,9 +440,10 @@ impl String
         Debug.assert(value != 0)
 
         .grow(.length + 2)
-        Memory.copyOver(.buffer + byteIndex + 1, .buffer + byteIndex, .length - byteIndex + 1)
-        .buffer[byteIndex] = value
-        .length            += 1
+        let buffer = notnull .buffer
+        Memory.copyOver(buffer + byteIndex + 1, buffer + byteIndex, .length - byteIndex + 1)
+        buffer[byteIndex] = value
+        .length           += 1
     }
 
     // Insert a substring at the given position
@@ -490,10 +500,11 @@ impl String
         var tmp: [4] u8
         let eat  = Utf8.encodeRune(tmp, value)
         .grow(.length + eat + 1)
+        let buffer = notnull .buffer
         for i in eat do
-            .buffer[.length + i] = tmp[i]
-        .length                  += eat
-        .buffer[.length]         = 0
+            buffer[.length + i] = tmp[i]
+        .length         += eat
+        buffer[.length] = 0
     }
 
     // Append a string to the String
@@ -515,9 +526,10 @@ impl String
 
         let newLength = .length + concatLength + 1
         .grow(newLength)
-        Memory.copy(.buffer + .length, @dataof(value), concatLength)
-        .length          = newLength - 1
-        .buffer[.length] = 0
+        let buffer = notnull .buffer
+        Memory.copy(buffer + .length, @dataof(value), concatLength)
+        .length         = newLength - 1
+        buffer[.length] = 0
     }
 
     // Join a list of strings to make a unique one
@@ -606,7 +618,8 @@ impl String
         if !.length do
             return
 
-        var ptr = .buffer
+        let buffer = notnull .buffer
+        var ptr    = buffer
         for
         {
             let sl = @mkslice(ptr, .length)
@@ -617,8 +630,8 @@ impl String
             ptr     += eat
         }
 
-        Memory.copy(.buffer, ptr, .length)
-        .buffer[.length] = 0
+        Memory.copy(buffer, ptr, .length)
+        buffer[.length] = 0
     }
 
     // Remove whitespaces at the end of the String
@@ -627,16 +640,17 @@ impl String
         if !.length do
             return
 
+        let buffer = notnull .buffer
         for
         {
-            let sl = @mkslice(.buffer, .length)
+            let sl = @mkslice(buffer, .length)
                 let (c, eat) = Utf8.decodeLastRune(sl)
             if !Unicode.isSpace(c) do
                 break
             .length -= eat
         }
 
-        .buffer[.length] = 0
+        buffer[.length] = 0
     }
 
     // Removes all leading and trailing white-space characters from the current String

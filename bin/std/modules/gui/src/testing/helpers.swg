@@ -48,7 +48,7 @@ func indexedImage(w, h: s32)->Image
         let value = cast(u8) ((1 + x + y * 17) % 251)
         let green = cast(u8) ((cast(u32) value + 3) % 251)
         let blue  = cast(u8) ((cast(u32) value + 7) % 251)
-        dref cast(#null *u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
+        dref notnull cast(#null *u32) pix = Color.fromArgb(255'u8, value, green, blue).argb
     }
 
     return result

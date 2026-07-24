@@ -49,7 +49,7 @@ impl ThemeStyle
     {
         .free()
         var theme = Memory.new'Theme()
-        dref theme = dref parent.refr.theme
+        dref theme = dref (notnull parent.refr).theme
         .set(theme)
     }
 
@@ -58,9 +58,10 @@ impl ThemeStyle
         // First time, initialize to parent
         if !.refr
         {
-            .refr       = parent.refr
-            .refr.count += 1
-            .dirty      = true
+            let refr = notnull parent.refr
+            .refr      = refr
+            refr.count += 1
+            .dirty     = true
         }
 
         // If parent is dirty, or i am dirty, then we need
@@ -71,8 +72,9 @@ impl ThemeStyle
 
         // By default, same as the parent
         .free()
-        .refr       = parent.refr
-        .refr.count += 1
+        let refr = notnull parent.refr
+        .refr      = refr
+        refr.count += 1
 
         // Ask user
         var evt = ThemeEvent{}
@@ -148,7 +150,7 @@ impl ThemeStyle
     mtd const getFont()->FontFamily
     {
         var result: retval
-        let df      = &.refr.theme.res.fontDefault
+        let df      = &(notnull .refr).theme.res.fontDefault
         result.regular    = .font.regular orelse df.regular
         result.bold       = .font.bold orelse df.bold
         result.italic     = .font.italic orelse df.italic

@@ -99,7 +99,7 @@ func unpremultiplyChannel(value, alpha: u8)->u8
 
 func unpremultiplyImage(image: *Image)
 {
-    var ptr = image.pixels.buffer
+    var ptr = notnull image.pixels.buffer
     for image.width * image.height
     {
         let alpha = ptr[3]
@@ -225,7 +225,7 @@ func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
 {
     var result: retval
-    assume g_TypeFace.getStringOutline(&result, text, size, embolden)
+    assume (notnull g_TypeFace).getStringOutline(&result, text, size, embolden)
     result.flatten(.High)
     return result
 }

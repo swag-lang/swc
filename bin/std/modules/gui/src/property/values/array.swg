@@ -2,14 +2,14 @@ impl Properties
 {
     func setDescEditBox(item: *PropertiesItem)
     {
-        let arrData = cast(#null *Array'u8) item.data
+        let arrData = notnull cast(#null *Array'u8) item.data
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
     mtd reconstructArray(item: *PropertiesItem)
     {
         let valueType        = notnull Reflection.getStructArrayType(item.type)
-        let arrData          = cast(#null *Array'u8) item.data
+        let arrData          = notnull cast(#null *Array'u8) item.data
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
         let insertItemIdx    = itemIdx + item.numChilds + 1
@@ -52,7 +52,7 @@ impl Properties
 
     mtd refreshArray(item: *PropertiesItem)
     {
-        let arrData = cast(#null *Array'u8) item.data
+        let arrData = notnull cast(#null *Array'u8) item.data
         if arrData.count == cast(u64) item.userData0 do
             return
         item.userData0 = cast(#null *void) arrData.count
@@ -82,11 +82,11 @@ impl Properties
         if Reflection.isStructArray(arrayItem.type)
         {
             let vt  = notnull Reflection.getStructArrayType(arrayItem.type)
-            let arr = cast(#null *Array'u8) arrayItem.data
+            let arr = notnull cast(#null *Array'u8) arrayItem.data
             return {arr.buffer, vt, arr.count}
         }
 
-        let typeArr = cast(#null const *Swag.TypeInfoArray) arrayItem.type
+        let typeArr = notnull cast(#null const *Swag.TypeInfoArray) arrayItem.type
         return {cast(#null [*] u8) arrayItem.data, typeArr.pointedType, typeArr.count}
     }
 
@@ -99,7 +99,7 @@ impl Properties
         {
             if it == elemItem do
                 break
-            if it.parent == elemItem.parent do
+            if (notnull it).parent == elemItem.parent do
                 idx += 1
         }
 
@@ -138,7 +138,7 @@ impl Properties
 
     mtd removeArrayValue(item: *PropertiesItem)
     {
-        let parentItem = item.parent
+        let parentItem = notnull item.parent
         let valueType  = notnull Reflection.getStructArrayType(parentItem.type)
         let removeIdx  = .arrayElementIndex(item)
 
@@ -165,7 +165,7 @@ impl Properties
         item.flags.add(.NoSeparator)
 
         let valueType = notnull Reflection.getStructArrayType(item.type)
-        let arrData   = cast(#null *Array'u8) data
+        let arrData   = notnull cast(#null *Array'u8) data
         var newData   = arrData.buffer
 
         item.userData0 = cast(#null *void) arrData.count

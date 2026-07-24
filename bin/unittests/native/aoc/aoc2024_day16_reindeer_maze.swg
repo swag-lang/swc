@@ -56,7 +56,8 @@ func mazeInit()->Maze
 {
     var m: Maze
     m.cells = cast(#null [*] u8) @alloc(cast(u64) MaxCells)
-    for MaxCells { m.cells[@index] = 0 }
+    let cells = notnull m.cells
+    for MaxCells { cells[@index] = 0 }
     return m
 }
 
@@ -70,7 +71,8 @@ func mazeFree(m: *Maze)
 #[Swag.Inline]
 func cellAt(m: *Maze, r: u32, c: u32)->u8
 {
-    return m.cells[r * MaxDim + c]
+    let cells = notnull m.cells
+    return cells[r * MaxDim + c]
 }
 
 // Nested inline that compares with a char literal — previously crashed
@@ -89,6 +91,7 @@ func isEnd(m: *Maze, r: u32, c: u32)->bool
 func parseMaze(text: string)->Maze
 {
     var m = mazeInit()
+    let cells = notnull m.cells
     let bytes = cast(const [..] u8) text
     var row: u32
     var col: u32
@@ -108,7 +111,7 @@ func parseMaze(text: string)->Maze
             continue
         }
 
-        m.cells[row * MaxDim + col] = ch
+        cells[row * MaxDim + col] = ch
         if ch == cast(u8) Start { m.sr = row; m.sc = col }
         if ch == cast(u8) End   { m.er = row; m.ec = col }
         col += 1

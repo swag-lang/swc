@@ -125,6 +125,7 @@ SWC_NODE_DEF(BinaryExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(LogicalExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(RelationalExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(NullCoalescingExpr, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(OptionalChainExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(ConditionalExpr, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(IndexExpr, AstNodeIdFlagsE::Zero)

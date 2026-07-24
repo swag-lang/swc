@@ -1519,8 +1519,11 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     if (preservesNullableRepresentation)
         SWC_RESULT(validateNonNullableConstant(sema, castRequest, srcTypeRef, srcTypeRef, dstTypeRef, castRequest.constantFoldingSrc()));
 
+    // A UFCS receiver is exempt from the nullable boundary: member accesses through a
+    // still-nullable value are rejected upstream at the use site, so a nullable receiver
+    // reaching this cast is either flow-narrowed or guarded by a '?.' chain link.
     const bool boxesTypedValueIntoAny = dstType.isAny() && !srcType.isAny();
-    if (srcType.isNullable() && dstType.isNonNullable() && !boxesTypedValueIntoAny)
+    if (srcType.isNullable() && dstType.isNonNullable() && !boxesTypedValueIntoAny && !castRequest.flags.has(CastFlagsE::UfcsArgument))
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     if (isImplicitNullableQualificationCast(srcType, dstType))

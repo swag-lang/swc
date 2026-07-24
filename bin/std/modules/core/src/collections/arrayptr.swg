@@ -23,18 +23,21 @@ impl ArrayPtr
     // content is copied over, ensuring the new array owns its own set of objects.
     mtd opPostCopy()
     {
+        if !.count do
+            return
+        let buffer = notnull .buffer
         for i in .count
         {
-            let oldPtr = .buffer[i]
+            let oldPtr = buffer[i]
             if oldPtr == null
             {
-                .buffer[i] = null
+                buffer[i] = null
                 continue
             }
 
             let newPtr = Memory.new'T(.allocator)
             dref newPtr = dref oldPtr
-            .buffer[i]  = newPtr
+            buffer[i]   = newPtr
         }
     }
 
@@ -97,7 +100,8 @@ impl ArrayPtr
     {
         if .count == 0 do
             return null
-        return .buffer[0]
+        let buffer = notnull .buffer
+        return buffer[0]
     }
 
     // Returns the last pointer in the array, or null if the array is empty.
@@ -105,16 +109,21 @@ impl ArrayPtr
     {
         if .count == 0 do
             return null
-        return .buffer[.count - 1]
+        let buffer = notnull .buffer
+        return buffer[.count - 1]
     }
 
     // Returns the index of the given pointer (by identity), or 'Swag.U64.Max' if not present.
     mtd indexOf(item: #null *T)->u64
     {
-        for i in .count
+        if .count
         {
-            if .buffer[i] == item do
-                return i
+            let buffer = notnull .buffer
+            for i in .count
+            {
+                if buffer[i] == item do
+                    return i
+            }
         }
 
         return Swag.U64.Max
@@ -130,8 +139,13 @@ impl ArrayPtr
     // the order of the remaining elements. Use removeAtOrdered to remove without deallocating.
     mtd deleteAt(index: u64, num: u64 = 1)
     {
-        for i in num do
-            Memory.delete(.buffer[index + i], .allocator)
+        if num
+        {
+            let buffer = notnull .buffer
+            for i in num do
+                Memory.delete(buffer[index + i], .allocator)
+        }
+
         .removeAtOrdered(index, num)
     }
 
@@ -139,7 +153,8 @@ impl ArrayPtr
     // place (does not preserve order). Use removeAt to remove without deallocating.
     mtd deleteAtUnordered(index: u64)
     {
-        Memory.delete(.buffer[index], .allocator)
+        let buffer = notnull .buffer
+        Memory.delete(buffer[index], .allocator)
         .removeAt(index)
     }
 
@@ -149,7 +164,8 @@ impl ArrayPtr
     {
         if .count == 0 do
             return
-        Memory.delete(.buffer[.count - 1], .allocator)
+        let buffer = notnull .buffer
+        Memory.delete(buffer[.count - 1], .allocator)
         .removeBack()
     }
 }

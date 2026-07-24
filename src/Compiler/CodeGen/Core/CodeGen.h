@@ -348,6 +348,22 @@ public:
         return payload;
     }
 
+    // Payload of the innermost enclosing ancestor with the given node id. Every '?.'
+    // link is by construction inside its own OptionalChainExpr root, so the first
+    // match going up is always the right owner.
+    template<typename T>
+    T* findEnclosingNodePayload(AstNodeId nodeId)
+    {
+        for (uint32_t up = 0;; up++)
+        {
+            const AstNodeRef parentRef = visit_.parentNodeRef(up);
+            if (parentRef.isInvalid())
+                return nullptr;
+            if (node(parentRef).is(nodeId))
+                return safeNodePayload<T>(parentRef);
+        }
+    }
+
     template<typename T>
     void clearNodePayload(AstNodeRef nodeRef)
     {

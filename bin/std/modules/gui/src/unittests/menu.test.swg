@@ -16,8 +16,8 @@ const Menu_Quit = "Menu.Quit"
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     bar.addItem("New", Menu_New)
     @assert(bar.items.count == 1)
-    @assert(bar.items[0].name.raw == "New")
-    @assert(bar.items[0].id == Menu_New)
+    @assert((notnull bar.items[0]).name.raw == "New")
+    @assert((notnull bar.items[0]).id == Menu_New)
 
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
@@ -25,10 +25,10 @@ const Menu_Quit = "Menu.Quit"
     sub.addItem("Quit", Menu_Quit, disabled: true)
 
     @assert(sub.items.count == 3)
-    @assert(!sub.items[0].separator)
-    @assert(sub.items[1].separator)
-    @assert(sub.items[2].disabled)
-    @assert(sub.items[2].name.raw == "Quit")
+    @assert(!(notnull sub.items[0]).separator)
+    @assert((notnull sub.items[1]).separator)
+    @assert((notnull sub.items[2]).disabled)
+    @assert((notnull sub.items[2]).name.raw == "Quit")
 
     host.shutdown()
 }
@@ -151,15 +151,17 @@ const Menu_Quit = "Menu.Quit"
     // Consecutive separators collapse into one, so this is Open / Hidden / --- / Quit.
     @assert(popup.items.count == 4)
 
-    popup.items[1].hidden = true
+    let hiddenIt = notnull popup.items[1]
+    let quitIt   = notnull popup.items[3]
+    hiddenIt.hidden = true
     popup.computeLayoutPopup()
     popup.setPosition({0, 0, popup.position.width, popup.position.height})
 
     // Move the hidden row on top of Quit: it keeps its stale layout but must not steal the hit.
-    popup.items[1].pos  = popup.items[3].pos
-    popup.items[1].size = popup.items[3].size
+    hiddenIt.pos  = quitIt.pos
+    hiddenIt.size = quitIt.size
 
-    let pointOnQuit = Math.Point{popup.position.width * 0.5, popup.items[3].pos + popup.items[3].size * 0.5}
+    let pointOnQuit = Math.Point{popup.position.width * 0.5, quitIt.pos + quitIt.size * 0.5}
     @assert(popup.hitTestPopup(pointOnQuit) == 3)
 
     host.shutdown()
@@ -179,8 +181,8 @@ const Menu_Quit = "Menu.Quit"
     bar.addPopup("File", sub)
 
     @assert(bar.items.count == 2)
-    @assert(bar.items[1].name.raw == "File")
-    @assert(bar.items[1].popup == sub)
+    @assert((notnull bar.items[1]).name.raw == "File")
+    @assert((notnull bar.items[1]).popup == sub)
     @assert(sub.ownerMenu == bar)
 
     host.shutdown()
@@ -199,7 +201,8 @@ const Menu_Quit = "Menu.Quit"
     bar.addPopup("File", sub)
 
     bar.computeLayoutBar()
-    let itemX = bar.items[0].pos + bar.items[0].size * 0.5
+    let barIt0 = notnull bar.items[0]
+    let itemX  = barIt0.pos + barIt0.size * 0.5
     let itemY = bar.position.height * 0.5
 
     host.mouseDown({itemX, itemY})
@@ -231,7 +234,8 @@ const Menu_Quit = "Menu.Quit"
     bar.computeLayoutBar()
     let expectedItemY = (barHeight - metrics.menuBar_Height) * 0.5
 
-    let itemX = bar.items[0].pos + bar.items[0].size * 0.5
+    let barIt0 = notnull bar.items[0]
+    let itemX  = barIt0.pos + barIt0.size * 0.5
     @assert(bar.hitTestBar({itemX, 1}) == Swag.U32.Max)
     @assert(bar.hitTestBar({itemX, expectedItemY + 1}) == 0)
 
@@ -265,7 +269,7 @@ const Menu_Quit = "Menu.Quit"
     @assert(sub.popupBarItemIdx == 0)
     @assert(sub.popupBarItemSurfaceRect.height == bar.position.height)
     @assert(sub.position.y == -metrics.menuPopup_ShadowSize)
-    @assert(sub.items[0].pos > metrics.menuPopup_ShadowSize + bar.position.height)
+    @assert((notnull sub.items[0]).pos > metrics.menuPopup_ShadowSize + bar.position.height)
 
     host.shutdown()
 }

@@ -228,7 +228,8 @@ impl CaptureClipboardForm
             return result
         }
 
-        result.setup(capture)
+        let r = notnull result
+        r.setup(capture)
         return result
     }
 }
@@ -278,13 +279,14 @@ impl Capture
         .editView         = view
         .gizmo.sigChanged = func|capture = me|(g, first, hitMove)
         {
+            let editView = notnull capture.editView
             var undo = capture.newUndo(.MoveCapture)
-            undo.newPosX  = cast(s32) ((g.rect.x - g.movingRect.x) / capture.editView.zoom)
-            undo.newPosY  = cast(s32) ((g.rect.y - g.movingRect.y) / capture.editView.zoom)
-            undo.newSizeX = cast(s32) ((g.movingRect.width - g.rect.width) / capture.editView.zoom)
-            undo.newSizeY = cast(s32) ((g.movingRect.height - g.rect.height) / capture.editView.zoom)
+            undo.newPosX  = cast(s32) ((g.rect.x - g.movingRect.x) / editView.zoom)
+            undo.newPosY  = cast(s32) ((g.rect.y - g.movingRect.y) / editView.zoom)
+            undo.newSizeX = cast(s32) ((g.movingRect.width - g.rect.width) / editView.zoom)
+            undo.newSizeY = cast(s32) ((g.movingRect.height - g.rect.height) / editView.zoom)
             capture.pushUndo(undo)
-            capture.editView.invalidate()
+            editView.invalidate()
         }
     }
 
@@ -310,7 +312,8 @@ impl Capture
         var painter: Pixel.Painter
 
         let render = g_App.getRenderer()
-        render.begin(.editView.surface.rc)
+        let srf    = notnull (notnull .editView).surface
+        render.begin(srf.rc)
         painter.begin()
 
         var layer: Layer
@@ -351,7 +354,7 @@ impl Capture
         render.draw(&painter)
         render.end()
 
-        let rt = layer.contentTarget
+        let rt = notnull layer.contentTarget
         var buffer = render.getTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
         result.crop(0, 0, cast(s32) rect.width, cast(s32) rect.height)
@@ -377,9 +380,12 @@ impl Capture
         if .interactiveMove do
             return
 
-        .editView.invalidate()
-        .editView.main.captureHasChanged()
-        .editView.main.updateRecent()
+        let editView = .editView
+        if !editView do
+            return
+        editView.invalidate()
+        editView.main.captureHasChanged()
+        editView.main.updateRecent()
     }
 
     // Called once when an interactive form move/resize ends, to refresh the toolbar
@@ -418,7 +424,7 @@ impl Capture
             decoder.serializer.ignoreElements.add(#nameof(Capture.backImgOriginal))
         }
 
-        let capture = decoder.readAll'Capture(res.toSlice())
+        let capture = notnull decoder.readAll'Capture(res.toSlice())
         capture.file = file
 
         for itf in capture.forms do
@@ -535,10 +541,11 @@ impl Capture
         undo.oldForms = res
 
         // Move around mouse
-        var pt = .editView.getApp().mouse.getPosition()
-        pt   = .editView.screenToSurface(pt)
-        pt   = .editView.surfaceToLocal(pt)
-        pt   += .editView.scrollPos
+        let editView = notnull .editView
+        var pt = editView.getApp().mouse.getPosition()
+        pt   = editView.screenToSurface(pt)
+        pt   = editView.surfaceToLocal(pt)
+        pt   += editView.scrollPos
         pt.x -= .paintRect.x
         pt.y -= .paintRect.y
         let zoom = .paintRect.width / .width
@@ -685,7 +692,8 @@ impl Capture
 
     mtd paintBackImage(painter: *Painter, x, y: f32, z: f32)
     {
-        let renderer = .editView.getApp().getRenderer()
+        let editView = notnull .editView
+        let renderer = editView.getApp().getRenderer()
 
         // Background image
         if !.backTexture.isValid() and .backImg.width > 0
@@ -710,8 +718,8 @@ impl Capture
             {
                 backRect.x      = 0
                 backRect.y      = 0
-                backRect.width  = .editView.position.width
-                backRect.height = .editView.position.height
+                backRect.width  = editView.position.width
+                backRect.height = editView.position.height
             }
             else
             {
@@ -967,9 +975,10 @@ impl Capture
         if y do
             .snapY = -1
 
-        let keyb        = &.editView.getApp().keyb
+        let editView    = notnull .editView
+        let keyb        = &editView.getApp().keyb
         let ctrlPressed = keyb.isKeyPressed(.Control) or keyb.isKeyPressed(.RControl) or keyb.isKeyPressed(.LControl)
-        if !.editView.main.snap and !ctrlPressed do
+        if !editView.main.snap and !ctrlPressed do
             return
 
         var nx = x ? dref x : 0
@@ -1458,16 +1467,17 @@ impl Capture
 
             if .firstMouseMove
             {
-                if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 and .editView.main.editMode != .Step do
+                let editView = notnull .editView
+                if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 and editView.main.editMode != .Step do
                     return true
                 .firstMouseMove = false
 
-                let mode = .editView.main.getEditMode()
-                let itf  = .editView.main.newFormFromModel(mode, clear: true)
+                let mode = editView.main.getEditMode()
+                let itf  = editView.main.newFormFromModel(mode, clear: true)
                 if itf do
                     itf.setup(me)
                 let base = cast(*BaseForm) @dataof(itf)
-                if base and .editView.main.editMode == .PixSel do
+                if base and editView.main.editMode == .PixSel do
                     base.subKind = .PixSel
                 let undo = .newUndo(.CreateForm)
                 undo.oldForms.add(itf)
@@ -1500,7 +1510,7 @@ impl Capture
     {
         // Holding 'O' makes the mouse ignore every form, so a click can start a
         // lasso or create a new form on top of existing ones.
-        if .editView.getApp().keyb.isKeyPressed(Input.Key.O) do
+        if (notnull .editView).getApp().keyb.isKeyPressed(Input.Key.O) do
             return Swag.U64.Max
         let res = .hitTests(localPos, true)
         if res.isEmpty() do
@@ -1513,10 +1523,11 @@ impl Capture
         var result: retval
         if !.forms.count do
             return result
+        let editView = notnull .editView
         for #reverse i in @countof(.forms)
         {
             let f = .forms[i]
-            if !f.hitTest(localPos, .editView.zoom) do
+            if !f.hitTest(localPos, editView.zoom) do
                 continue
             result.add(i)
             if retFirst do
@@ -1550,7 +1561,7 @@ impl Capture
         if !.selection.count do
             return
 
-        let main = .editView.main
+        let main = (notnull .editView).main
         if main.editMode == .Selection do
             return
 
@@ -1562,24 +1573,27 @@ impl Capture
     {
         if !.selection.count do
             return
-        let f = .forms[.selection.back()]
-        .editView.main.updateModelValues(f)
+        let f        = .forms[.selection.back()]
+        let editView = notnull .editView
+        editView.main.updateModelValues(f)
     }
 
     mtd updateModelFromSelection()
     {
         if !.selection.count do
             return
-        let f = .forms[.selection.back()]
-        .editView.main.updateModel(f)
+        let f        = .forms[.selection.back()]
+        let editView = notnull .editView
+        editView.main.updateModel(f)
     }
 
     mtd selectionHasChanged()
     {
         .updateEditModeFromSelection()
         .updateModelFromSelection()
-        .editView.main.updateState()
-        .editView.invalidate()
+        let editView = notnull .editView
+        editView.main.updateState()
+        editView.invalidate()
     }
 
     //////////////////////////////
@@ -1733,7 +1747,7 @@ impl Capture
         // During an interactive drag, apply() calls undo() every move to re-apply the
         // move from scratch; the per-form partial invalidate handles the repaint.
         if !.interactiveMove do
-            .editView.invalidate()
+            .editView?.invalidate()
     }
 
     mtd redo()
@@ -1741,7 +1755,7 @@ impl Capture
         .undoMgr.redo()
 
         if !.interactiveMove do
-            .editView.invalidate()
+            .editView?.invalidate()
     }
 
     // Push a command onto the undo timeline. A non-zero 'serial' groups this command with the

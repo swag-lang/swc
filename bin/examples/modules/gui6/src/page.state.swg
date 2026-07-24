@@ -2,21 +2,23 @@ using Core, Gui, Pixel
 
 func createStateMenuModel(parent: *Wnd)
 {
-    g_StateMenu = createTrackedPopup(parent)
-    addViewItems(notnull g_StateMenu)
-    g_StateMenu.addSeparator()
-    addThemeItems(notnull g_StateMenu)
-    g_StateMenu.addSeparator()
-    addDocumentItems(notnull g_StateMenu)
+    let stateMenu = createTrackedPopup(parent)
+    g_StateMenu = stateMenu
+    addViewItems(stateMenu)
+    stateMenu.addSeparator()
+    addThemeItems(stateMenu)
+    stateMenu.addSeparator()
+    addDocumentItems(stateMenu)
 }
 
 func showStateMenuFrom(btn: *Button)
 {
-    if !g_StateMenu do
+    let stateMenu = g_StateMenu
+    if !stateMenu do
         return
 
     let pos = btn.getSurfaceRect()
-    discard g_StateMenu.doModal({pos.horzCenter(), pos.bottom() + 8}, .AnchorTopCenter)
+    discard stateMenu.doModal({pos.horzCenter(), pos.bottom() + 8}, .AnchorTopCenter)
 }
 
 func createCommandStatePage(parent: *Wnd)

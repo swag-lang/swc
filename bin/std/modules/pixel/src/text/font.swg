@@ -411,18 +411,19 @@ public impl GlyphCache
         let rowBytes = bmpRef.width * bpp
 
         // Creates a new atlas if this is the first time, or if the last atlas is full
-        var atlas = .atlases.count ? &.atlases.buffer[.atlases.count - 1] : null
+        var atlas = .atlases.count ? &(notnull .atlases.buffer)[.atlases.count - 1] : null
         if atlas
         {
-            if atlas.curX + rowBytes > atlas.width
+            let a = notnull atlas
+            if a.curX + rowBytes > a.width
             {
-                atlas.curX = 0
-                if atlas.nextY + bmpRef.rows > atlas.height do
+                a.curX = 0
+                if a.nextY + bmpRef.rows > a.height do
                     atlas = null
                 else do
-                    atlas.curY = atlas.nextY
+                    a.curY = a.nextY
             }
-            elif atlas.curY + bmpRef.rows > atlas.height
+            elif a.curY + bmpRef.rows > a.height
             {
                 atlas = null
             }
@@ -439,23 +440,24 @@ public impl GlyphCache
             let datas = notnull newAtlas.datas.buffer
             Memory.clear(datas, newAtlas.datas.count)
             .atlases.add(newAtlas)
-            atlas = &.atlases.buffer[.atlases.count - 1]
+            atlas = &(notnull .atlases.buffer)[.atlases.count - 1]
         }
 
-        let x = atlas.curX
-        let y = atlas.curY
-        atlas.curX  += rowBytes
-        atlas.nextY = Math.max(atlas.nextY, atlas.curY + bmpRef.rows)
+        let ca = notnull atlas
+        let x  = ca.curX
+        let y  = ca.curY
+        ca.curX  += rowBytes
+        ca.nextY = Math.max(ca.nextY, ca.curY + bmpRef.rows)
 
         // Copy the rendered glyph to the atlas datas
-        var buffer = atlas.datas.buffer + x + (atlas.width * (atlas.height - 1))
-        buffer -= (y * atlas.width)
+        var buffer = (notnull ca.datas.buffer) + x + (ca.width * (ca.height - 1))
+        buffer -= (y * ca.width)
         var src = bmpRef.buffer
         for j in bmpRef.rows
         {
             Memory.copy(buffer, src, cast(u64) rowBytes)
             src    += bmpRef.pitch
-            buffer -= atlas.width
+            buffer -= ca.width
         }
 
         // Setup GlyphDesc
@@ -474,8 +476,8 @@ public impl GlyphCache
 
         // 'x' and the atlas width are measured in bytes; both numerator and
         // denominator carry the bpp factor, so the resulting uv stays correct.
-        let widthf  = cast(f32) atlas.width
-        let heightf = cast(f32) atlas.height
+        let widthf  = cast(f32) ca.width
+        let heightf = cast(f32) ca.height
         refr.uv.x      = x / widthf
         refr.uv.y      = y / heightf
         refr.uv.width  = cast(f32) rowBytes / widthf
@@ -483,8 +485,8 @@ public impl GlyphCache
 
         refr.atlasIndex = cast(u32) (.atlases.count - 1)
 
-        .dirty      = true
-        atlas.dirty = true
+        .dirty   = true
+        ca.dirty = true
 
         return refr
     }

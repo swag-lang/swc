@@ -93,7 +93,7 @@ impl IPropertyNotify for PropHeadlessRoData
 
     // 1 implicit section item + 3 fields.
     @assert(prop.items.count == 4)
-    @assert(prop.items[0].flags.has(.Section))
+    @assert((notnull prop.items[0]).flags.has(.Section))
 
     host.shutdown()
 }
@@ -116,7 +116,8 @@ impl IPropertyNotify for PropHeadlessRoData
     ctrl.prop.setColumnSize(150)
     ctrl.addStruct(data, "Settings")
     ctrl.splitter.setPaneSize(0, 160)
-    ctrl.splitter.items[0].tryPreserveSize = true
+    let paneIt = notnull ctrl.splitter.items[0]
+    paneIt.tryPreserveSize = true
 
     let preview = Wnd.create'FrameWnd(page, {})
     preview.dockStyle = .Center
@@ -131,10 +132,10 @@ impl IPropertyNotify for PropHeadlessRoData
     @assert(ctrl.prop.edView.position.width > 0)
     @assert(ctrl.prop.edView.position.height > 0)
     @assert(ctrl.prop.items.count == 6)
-    @assert(ctrl.prop.items[0].line.isVisible())
-    @assert(ctrl.prop.items[1].line.isVisible())
-    @assert(ctrl.prop.items[1].line.position.height == ctrl.prop.gridLineHeight)
-    @assert(ctrl.prop.items[1].line.position.y >= ctrl.prop.gridLineHeight)
+    @assert((notnull ctrl.prop.items[0]).line.isVisible())
+    @assert((notnull ctrl.prop.items[1]).line.isVisible())
+    @assert((notnull ctrl.prop.items[1]).line.position.height == ctrl.prop.gridLineHeight)
+    @assert((notnull ctrl.prop.items[1]).line.position.y >= ctrl.prop.gridLineHeight)
 
     host.shutdown()
 }
@@ -184,7 +185,7 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNav()     // selItem = count row
     host.keyPress(Input.Key.Return)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.items[1].editBox)
+    @assert(host.app.keybFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
 
     host.keyPress(Input.Key.Escape)
     @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
@@ -205,7 +206,7 @@ impl IPropertyNotify for PropHeadlessRoData
 
     prop.focusNav()                     // count row
     host.keyPress(Input.Key.Return)     // edit count
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.items[1].editBox)
+    @assert(host.app.keybFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to label row
     @assert(prop.selItem == prop.items[2])
@@ -228,7 +229,7 @@ impl IPropertyNotify for PropHeadlessRoData
     host.keyPress(Input.Key.Return)     // edit count
     host.keyPress(Input.Key.Tab)        // -> edit label row
     @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.items[2].editBox)
+    @assert(host.app.keybFocusWnd == cast(#null *Wnd) (notnull prop.items[2]).editBox)
 
     host.shutdown()
 }
@@ -261,7 +262,7 @@ struct PropHeadlessArrayData
     prop.edView.sendResizeEvent()
 
     // items: [0]=section [1]=origin (vector) [2]=actions (array) [3]=element "0" [4]=visible (bool)
-    @assert(@isset(prop.items[1].label) and @isset(prop.items[2].label) and @isset(prop.items[4].label))
+    @assert(@isset((notnull prop.items[1]).label) and @isset((notnull prop.items[2]).label) and @isset((notnull prop.items[4]).label))
 
     // For each value row, the inner value line must start at or below the label bottom.
     func assertBelowLabel(item: *PropertiesItem)
@@ -280,27 +281,29 @@ struct PropHeadlessArrayData
     assertBelowLabel(notnull prop.items[4])     // bool
 
     // Rows and labels span the whole control (the value editors keep their own cap)
-    let rowWidth = prop.items[1].line.position.width
+    let originItem = notnull prop.items[1]
+    let rowWidth   = originItem.line.position.width
     @assert(rowWidth > cast(f32) prop.sizeEditValue)
-    @assert(Math.isEqualEpsilon(prop.items[1].label.position.x, cast(f32) prop.leftMargin, 0.01))
-    @assert(Math.isEqualEpsilon(prop.items[1].label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
+    @assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32) prop.leftMargin, 0.01))
+    @assert(Math.isEqualEpsilon(originItem.label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
 
-    let actionsItem = prop.items[2]
+    let actionsItem = notnull prop.items[2]
     let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
     @assert(@isset(actionsItem.arrayAddButton))
     @assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
 
     // The bool description is nudged down to optically center on the box: it carries a
     // positive top text padding derived from the font descent (never a hard-coded value).
-    let chk  = prop.items[4].checkBox
+    let chk    = (notnull prop.items[4]).checkBox
+    let chkRow = notnull chk.parent
     var desc: #null *Label
-    for c in chk.parent.childs do
+    for c in chkRow.childs do
         if c != cast(#null *Wnd) chk do
             desc = cast(*Label) c
-    @assert(desc != null)
-    @assert(desc.paddingText.y > 0)
-    @assert(Math.abs(desc.paddingText.y + desc.paddingText.w) < 0.01)     // pure translation, no height loss
-    @assert(chk.parent.position.height >= desc.position.bottom())         // wrapped info text is not clipped
+    let descLbl = notnull desc
+    @assert(descLbl.paddingText.y > 0)
+    @assert(Math.abs(descLbl.paddingText.y + descLbl.paddingText.w) < 0.01)     // pure translation, no height loss
+    @assert(chkRow.position.height >= descLbl.position.bottom())                // wrapped info text is not clipped
 
     host.shutdown()
 }
@@ -382,17 +385,16 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    let btn = findIconButton(notnull prop.items[9].line)     // the color swatch button
-    @assert(btn != null)
+    let btn = notnull findIconButton((notnull prop.items[9]).line)     // the color swatch button
 
     // Hover the button (no popup yet) -> hot.
-    host.sendMouseEvent(notnull btn, .MouseEnter, {0, 0}, .Left, .Zero)
+    host.sendMouseEvent(btn, .MouseEnter, {0, 0}, .Left, .Zero)
     @assert(btn.isHot)
 
     // With a popup open, a MouseLeave must still reach the button and clear the hover.
     let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
-    host.sendMouseEvent(notnull btn, .MouseLeave, {0, 0}, .Left, .Zero)
+    host.sendMouseEvent(btn, .MouseLeave, {0, 0}, .Left, .Zero)
     @assert(!btn.isHot)
 
     host.shutdown()
@@ -410,8 +412,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 
     prop.focusNav()
     host.keyPress(Input.Key.End)     // enabled (checkbox) row
-    let chk = prop.items[3].checkBox
-    @assert(chk != null)
+    let chk = (notnull prop.items[3]).checkBox
     @assert(chk.isChecked())
 
     host.keyPress(Input.Key.Space)
@@ -440,14 +441,15 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     // The very first Right in navigation steps the slider and focuses it (so the
     // value changes immediately, not only on the second press).
     host.keyPress(Input.Key.Right)
-    @assert(prop.items[1].sliderBox.getValue() > 50)
+    let volumeSlider = (notnull prop.items[1]).sliderBox
+    @assert(volumeSlider.getValue() > 50)
     @assert(data.volume > 50)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.items[1].sliderBox.slider)
+    @assert(host.app.keybFocusWnd == cast(#null *Wnd) volumeSlider.slider)
 
     // A further Right keeps stepping (now in edit mode on the focused slider).
-    let v1 = prop.items[1].sliderBox.getValue()
+    let v1 = volumeSlider.getValue()
     host.keyPress(Input.Key.Right)
-    @assert(prop.items[1].sliderBox.getValue() > v1)
+    @assert(volumeSlider.getValue() > v1)
 
     // Down auto-commits and moves to the next row, back in navigation mode.
     host.keyPress(Input.Key.Down)
@@ -472,8 +474,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.focusNav()
     @assert(prop.selItem == prop.items[1])
 
-    let edit = prop.items[1].sliderBox.edit
-    @assert(edit != null)
+    let edit = (notnull prop.items[1]).sliderBox.edit
 
     // Enter focuses the value box (not the slider track) and selects its whole text.
     host.keyPress(Input.Key.Return)
@@ -498,8 +499,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 
     prop.focusNav()
     @assert(prop.selItem == prop.items[1])
-    let combo = prop.items[1].comboBox
-    @assert(combo != null)
+    let combo = (notnull prop.items[1]).comboBox
     @assert(combo.selectedIdx == 1)     // Mid
 
     // Enter opens the drop-down popup. The grid keeps the keyboard focus and forwards
@@ -508,7 +508,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(combo.popup != null)
     @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
 
-    let pview = cast(#null *PopupListView) combo.popup.scrollWnd.view
+    let pview = notnull cast(#null *PopupListView) (notnull combo.popup).scrollWnd.view
     @assert(pview.hotIdx == 1)     // highlight starts on the current value
 
     // Down moves the highlight only; the committed value stays until Enter.
@@ -548,8 +548,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     @assert(prop.selItem == prop.items[1])     // the custom 'origin' row is selectable
 
     host.keyPress(Input.Key.Return)     // edit -> focus the first inner editbox
-    let f = host.app.keybFocusWnd
-    @assert(f != null)
+    let f = notnull host.app.keybFocusWnd
     @assert(f.type == EditBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to the next row
@@ -588,7 +587,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "Settings")
 
     @assert(prop.items.count == 4)
-    @assert(prop.items[0].flags.has(.Section))
+    @assert((notnull prop.items[0]).flags.has(.Section))
     @assert(prop.sections.count == 1)
 
     host.shutdown()
@@ -606,17 +605,21 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     ctrl.prop.edView.sendResizeEvent()
 
     @assert(ctrl.prop.items.count == 4)
-    @assert(ctrl.prop.items[0].line.position.y == 6)
-    @assert(ctrl.prop.items[1].line.position.y == 53)
-    @assert(ctrl.prop.items[2].line.position.y == 100)
-    @assert(ctrl.prop.items[3].line.position.y == 147)
-    @assert(ctrl.prop.items[0].line.position.height == 35)
-    @assert(ctrl.prop.items[1].line.position.height == 35)
-    @assert(ctrl.prop.items[2].line.position.height == 35)
-    @assert(ctrl.prop.items[3].line.position.height == 35)
-    @assert(ctrl.prop.items[0].line.position.width > 0)
+    let it0 = notnull ctrl.prop.items[0]
+    let it1 = notnull ctrl.prop.items[1]
+    let it2 = notnull ctrl.prop.items[2]
+    let it3 = notnull ctrl.prop.items[3]
+    @assert(it0.line.position.y == 6)
+    @assert(it1.line.position.y == 53)
+    @assert(it2.line.position.y == 100)
+    @assert(it3.line.position.y == 147)
+    @assert(it0.line.position.height == 35)
+    @assert(it1.line.position.height == 35)
+    @assert(it2.line.position.height == 35)
+    @assert(it3.line.position.height == 35)
+    @assert(it0.line.position.width > 0)
 
-    let countItem = ctrl.prop.items[1]
+    let countItem = it1
     @assert(countItem.label.position == Math.Rectangle{0, 0, 150, 35})
     @assert(countItem.editBox.position.height == ctrl.prop.getThemeMetrics().editBox_Height)
     @assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
@@ -651,12 +654,14 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     page.applyLayout()
 
     @assert(prop.items.count == 18)
-    @assert(prop.items[0].line.isVisible())
-    @assert(prop.items[1].line.isVisible())
-    @assert(prop.items[0].line.position.height > 0)
-    @assert(prop.items[1].line.position.y > prop.items[0].line.position.y)
-    @assert(prop.items[0].label.position.height > 0)
-    @assert(prop.items[1].label.position.height > 0)
+    let it0 = notnull prop.items[0]
+    let it1 = notnull prop.items[1]
+    @assert(it0.line.isVisible())
+    @assert(it1.line.isVisible())
+    @assert(it0.line.position.height > 0)
+    @assert(it1.line.position.y > it0.line.position.y)
+    @assert(it0.label.position.height > 0)
+    @assert(it1.label.position.height > 0)
     @assert(prop.scrollWnd.scrollSize.y > prop.position.height)
 
     host.shutdown()
@@ -696,8 +701,9 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 {
     for it in prop.items
     {
-        if it.typeValue.name == name do
-            return it
+        let item = notnull it
+        if item.typeValue.name == name do
+            return item
     }
 
     return null
@@ -719,23 +725,22 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let countItem = findFieldItem(prop, "count")
-    @assert(countItem != null)
-    @assert(prop.instanceCount(notnull countItem) == 3)
-    @assert(!prop.fieldIsMixed(notnull countItem))     // all start equal (0)
+    let countItem = notnull findFieldItem(prop, "count")
+    @assert(prop.instanceCount(countItem) == 3)
+    @assert(!prop.fieldIsMixed(countItem))     // all start equal (0)
 
     // Edit the native field: all three instances change together.
     countItem.editBox.setText("9")
-    prop.validateNative(notnull countItem)
+    prop.validateNative(countItem)
     @assert(t0.count == 9 and t1.count == 9 and t2.count == 9)
 
     // Bool toggle propagates to all.
-    let flagItem = findFieldItem(prop, "flag")
+    let flagItem = notnull findFieldItem(prop, "flag")
     flagItem.checkBox.toggle()
     @assert(t0.flag and t1.flag and t2.flag)
 
     // Enum selection propagates to all.
-    let choiceItem = findFieldItem(prop, "choice")
+    let choiceItem = notnull findFieldItem(prop, "choice")
     choiceItem.comboBox.selectItem(2)     // High
     @assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
 
@@ -762,19 +767,19 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let countItem = findFieldItem(prop, "count")
-    @assert(prop.fieldIsMixed(notnull countItem))
+    let countItem = notnull findFieldItem(prop, "count")
+    @assert(prop.fieldIsMixed(countItem))
     @assert(countItem.editBox.getText() == "")     // blank when mixed
 
-    let flagItem = findFieldItem(prop, "flag")
-    @assert(prop.fieldIsMixed(notnull flagItem))
+    let flagItem = notnull findFieldItem(prop, "flag")
+    @assert(prop.fieldIsMixed(flagItem))
     @assert(flagItem.checkBox.checked == .Undefined)     // indeterminate when mixed
 
     // Editing the mixed native field sets both instances and clears the mixed state.
     countItem.editBox.setText("7")
-    prop.validateNative(notnull countItem)
+    prop.validateNative(countItem)
     @assert(t0.count == 7 and t1.count == 7)
-    @assert(!prop.fieldIsMixed(notnull countItem))
+    @assert(!prop.fieldIsMixed(countItem))
     @assert(countItem.editBox.getText() == "7")
 
     host.shutdown()
@@ -794,13 +799,13 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let countItem = findFieldItem(prop, "count")
-    @assert(prop.instanceCount(notnull countItem) == 1)
-    @assert(!prop.fieldIsMixed(notnull countItem))
+    let countItem = notnull findFieldItem(prop, "count")
+    @assert(prop.instanceCount(countItem) == 1)
+    @assert(!prop.fieldIsMixed(countItem))
     @assert(countItem.editBox.getText() == "3")
 
     countItem.editBox.setText("8")
-    prop.validateNative(notnull countItem)
+    prop.validateNative(countItem)
     @assert(t0.count == 8)
 
     host.shutdown()
@@ -834,23 +839,23 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let posItem = findFieldItem(prop, "pos")
-    @assert(posItem != null)
+    let posItem = notnull findFieldItem(prop, "pos")
 
     // x component differs -> mixed; y component is uniform -> not mixed.
-    @assert(prop.subFieldIsMixed(notnull posItem, 0, #sizeof(f32)))
-    @assert(!prop.subFieldIsMixed(notnull posItem, #sizeof(f32), #sizeof(f32)))
+    @assert(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
+    @assert(!prop.subFieldIsMixed(posItem, #sizeof(f32), #sizeof(f32)))
 
     var boxes: Array'(#null *EditBox)
     collectEditBoxes(posItem.line, &boxes)
     @assert(boxes.count == 2)     // x and y
 
     // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
-    boxes[0].setText("5")
-    boxes[0].sigLoseFocus.call(boxes[0])
+    let box0 = notnull boxes[0]
+    box0.setText("5")
+    box0.sigLoseFocus.call(box0)
     @assert(t0.pos.x == 5 and t1.pos.x == 5)
     @assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
-    @assert(!prop.subFieldIsMixed(notnull posItem, 0, #sizeof(f32)))
+    @assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
 
     host.shutdown()
 }
@@ -913,20 +918,19 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let nameItem = findFieldItem(prop, "name")
-    @assert(nameItem != null)
-    @assert(prop.fieldIsMixed(notnull nameItem))
+    let nameItem = notnull findFieldItem(prop, "name")
+    @assert(prop.fieldIsMixed(nameItem))
     @assert(nameItem.editBox.getText() == "")
 
     nameItem.editBox.setText("shared")
-    prop.validateDynamicString(notnull nameItem)
+    prop.validateDynamicString(nameItem)
     @assert(t0.name == "shared" and t1.name == "shared")
-    @assert(!prop.fieldIsMixed(notnull nameItem))
+    @assert(!prop.fieldIsMixed(nameItem))
 
     // Same content in distinct buffers must not read as mixed.
     t0.name = "same"
     t1.name = "same"
-    @assert(!prop.fieldIsMixed(notnull nameItem))
+    @assert(!prop.fieldIsMixed(nameItem))
 
     host.shutdown()
 }
@@ -948,14 +952,13 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let tintItem = findFieldItem(prop, "tint")
-    @assert(tintItem != null)
-    @assert(prop.fieldIsMixed(notnull tintItem))
+    let tintItem = notnull findFieldItem(prop, "tint")
+    @assert(prop.fieldIsMixed(tintItem))
 
     // Make them equal and refresh: no longer mixed.
     t1.tint = Pixel.Argb.Red
     prop.refresh()
-    @assert(!prop.fieldIsMixed(notnull tintItem))
+    @assert(!prop.fieldIsMixed(tintItem))
 
     host.shutdown()
 }
@@ -1000,9 +1003,8 @@ impl Gui.IPropertyNotify for ValData
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    let nameItem  = findFieldItem(prop, "name")
-    let countItem = findFieldItem(prop, "count")
-    @assert(nameItem != null and countItem != null)
+    let nameItem  = notnull findFieldItem(prop, "name")
+    let countItem = notnull findFieldItem(prop, "count")
 
     @assert(nameItem.validation == .Error)     // empty name flagged on build
     @assert(nameItem.validationMsg == "Name is required.")
@@ -1013,14 +1015,14 @@ impl Gui.IPropertyNotify for ValData
 
     // Editing into an invalid range raises a warning.
     countItem.editBox.setText("150")
-    prop.validateNative(notnull countItem)
+    prop.validateNative(countItem)
     @assert(data.count == 150)
     @assert(countItem.validation == .Warning)
     @assert(countItem.validationMsg == "Count is unusually large.")
 
     // Fixing the name clears its error.
     nameItem.editBox.setText("hello")
-    prop.validateDynamicString(notnull nameItem)
+    prop.validateDynamicString(nameItem)
     @assert(nameItem.validation == .None)
 
     host.shutdown()
@@ -1037,17 +1039,16 @@ impl Gui.IPropertyNotify for ValData
     prop.addStruct(data)
     prop.edView.sendResizeEvent()
 
-    let it = findFieldItem(prop, "count")
-    @assert(it != null)
+    let it = notnull findFieldItem(prop, "count")
 
-    prop.setItemValidation(notnull it, .Error, "bad value")
+    prop.setItemValidation(it, .Error, "bad value")
     @assert(it.validation == .Error and it.validationMsg == "bad value")
 
     // updateValidation must not clobber a manual state when there is no notify interface.
     prop.updateValidation()
     @assert(it.validation == .Error)
 
-    prop.setItemValidation(notnull it, .None)
+    prop.setItemValidation(it, .None)
     @assert(it.validation == .None)
 
     host.shutdown()
@@ -1066,10 +1067,9 @@ impl Gui.IPropertyNotify for ValData
     let prop = Properties.create(&host.root, {0, 0, 240, 340})
     prop.addStruct(data)
 
-    let normalItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.normal))
-    let lockedItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.locked))
-    let dynamicItem = findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))
-    @assert(normalItem != null and lockedItem != null and dynamicItem != null)
+    let normalItem  = notnull findFieldItem(prop, #nameof(PropHeadlessRoData.normal))
+    let lockedItem  = notnull findFieldItem(prop, #nameof(PropHeadlessRoData.locked))
+    let dynamicItem = notnull findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))
     @assert(@isset(normalItem.editBox) and @isset(lockedItem.editBox) and @isset(dynamicItem.editBox))
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
@@ -1077,17 +1077,17 @@ impl Gui.IPropertyNotify for ValData
     @assert(!normalItem.editBox.editBoxFlags.has(.ReadOnly))
     @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
     @assert(dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(prop.canChangeItem(notnull normalItem))
-    @assert(!prop.canChangeItem(notnull lockedItem))
-    @assert(!prop.canChangeItem(notnull dynamicItem))
+    @assert(prop.canChangeItem(normalItem))
+    @assert(!prop.canChangeItem(lockedItem))
+    @assert(!prop.canChangeItem(dynamicItem))
 
     // Clearing the dynamic flag releases only that field; the attribute one stays locked.
     g_PropRoDynamic = false
     prop.setCurrentSection(Swag.U32.Max)
     @assert(!dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(prop.canChangeItem(notnull dynamicItem))
+    @assert(prop.canChangeItem(dynamicItem))
     @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(!prop.canChangeItem(notnull lockedItem))
+    @assert(!prop.canChangeItem(lockedItem))
 
     host.shutdown()
 }
@@ -1111,10 +1111,9 @@ impl Gui.IPropertyNotify for ValData
     let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
     prop.addStruct(data)
 
-    let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
-    @assert(dynArr != null)
+    let dynArr = notnull findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(#null *PropertiesItem)
-    for it in prop.items where it.parent == dynArr do
+    for it in prop.items where (notnull it).parent == dynArr do
         elems.add(it)
     @assert(elems.count == 3)
 
@@ -1134,10 +1133,9 @@ impl Gui.IPropertyNotify for ValData
     @assert(data.dyn.count == 2 and data.dyn[0].id == 20 and data.dyn[1].id == 10)
 
     // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
-    let statArr = findFieldItem(prop, #nameof(PropMoveData.stat))
-    @assert(statArr != null)
+    let statArr = notnull findFieldItem(prop, #nameof(PropMoveData.stat))
     var statElems: Array'(#null *PropertiesItem)
-    for it in prop.items where it.parent == statArr do
+    for it in prop.items where (notnull it).parent == statArr do
         statElems.add(it)
     @assert(statElems.count == 3)
     prop.moveArrayValue(notnull statElems[0], 1)
@@ -1164,8 +1162,7 @@ impl Gui.IPropertyNotify for ValData
     prop.addStruct(data)
 
     // Copy the first element's 'id' field (value 10) and read it back from the clipboard.
-    let idField = findFieldItem(prop, #nameof(PropMoveElem.id))
-    @assert(idField != null)
+    let idField = notnull findFieldItem(prop, #nameof(PropMoveElem.id))
     prop.menuItem = idField
     prop.sendCommandEvent(ActionProperties.Copy)
     var got: s32
@@ -1173,7 +1170,7 @@ impl Gui.IPropertyNotify for ValData
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(#null *PropertiesItem)
-    for it in prop.items where it.parent == dynArr do
+    for it in prop.items where (notnull it).parent == dynArr do
         elems.add(it)
     @assert(elems.count == 3)
 
@@ -1226,7 +1223,7 @@ impl IPropertyEditor for PropAngleEditor
         g_PropAngleEditorCalls += 1
 
         let item  = list.addItem(value, data, parent)
-        let angle = cast(#null *PropHeadlessAngle) data
+        let angle = cast(*PropHeadlessAngle) notnull data
 
         with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
         {
@@ -1270,8 +1267,7 @@ impl IPropertyEditor for PropAngleEditor
     @assert(g_PropAngleEditorCalls == 1)
     @assert(prop.items.count == 3)
 
-    let rot = findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
-    @assert(rot != null)
+    let rot = notnull findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
     @assert(@isset(rot.editBox))
     @assert(rot.numChilds == 0)
     @assert(rot.editBox.getText() == "45 deg")
@@ -1338,45 +1334,43 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null)
+    let countItem = notnull findFieldItem(prop, #nameof(PropDefaultData.count))
 
     // The default value comes from a real default-constructed instance of the struct.
     @assert(countItem.defaultData != null)
-    @assert(dref cast(#null *s32) countItem.defaultData == 42)
+    @assert((dref notnull cast(#null *s32) countItem.defaultData) == 42)
 
     // Freshly built: at default -> not modified, no revert button, cannot... still resettable type.
     @assert(!countItem.isModified)
-    @assert(prop.canReset(notnull countItem))
+    @assert(prop.canReset(countItem))
     @assert(!@isset(countItem.revertButton) or !countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
-    let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))
-    @assert(nameItem != null)
-    @assert(!prop.canReset(notnull nameItem))
+    let nameItem = notnull findFieldItem(prop, #nameof(PropDefaultData.name))
+    @assert(!prop.canReset(nameItem))
     @assert(!nameItem.isModified)
 
     // Bool list rows span the whole row (the side description wraps over the control
     // width). List mode has NO revert button: a modified row is marked by the painted
     // vertical accent bar (VSCode-style), and reset lives in the context menu.
-    let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))
-    @assert(enabledItem != null and @isset(enabledItem.checkBox))
+    let enabledItem = notnull findFieldItem(prop, #nameof(PropDefaultData.enabled))
+    @assert(@isset(enabledItem.checkBox))
     data.enabled = false
     prop.updateStates()
     @assert(enabledItem.isModified)
     @assert(!@isset(enabledItem.revertButton))
     let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
-    @assert(enabledItem.checkBox.parent.position.width > contentWidth)
+    @assert((notnull enabledItem.checkBox.parent).position.width > contentWidth)
 
     // Edit the value away from its default: the row becomes modified (no button either).
     countItem.editBox.setText("99")
-    prop.validateNative(notnull countItem)
+    prop.validateNative(countItem)
     @assert(data.count == 99)
     @assert(countItem.isModified)
     @assert(!@isset(countItem.revertButton))
 
     // Reset (the context-menu action path) restores the declared default.
-    prop.resetItemDefault(notnull countItem)
+    prop.resetItemDefault(countItem)
     @assert(data.count == 42)
     @assert(!countItem.isModified)
 
@@ -1394,7 +1388,7 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
+    let countItem = notnull findFieldItem(prop, #nameof(PropDefaultData.count))
     prop.menuItem = countItem
 
     // At default: the command exists but is disabled.
@@ -1428,15 +1422,14 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))
-    @assert(valItem != null)
+    let valItem = notnull findFieldItem(prop, #nameof(PropDefaultCustom.val))
 
     // Value equals the declared default (5), but the override forces "modified".
-    @assert(dref cast(#null *s32) valItem.data == 5)
+    @assert((dref notnull cast(#null *s32) valItem.data) == 5)
     @assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
-    prop.resetItemDefault(notnull valItem)
+    prop.resetItemDefault(valItem)
     @assert(g_PropDefResetCalls == 1)
 
     // Flipping the override back reports "at default".
@@ -1459,14 +1452,14 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null and @isset(countItem.editBox))
+    let countItem = notnull findFieldItem(prop, #nameof(PropDefaultData.count))
+    @assert(@isset(countItem.editBox))
 
     // The revert arrow is docked to the right of the row (the trailing action margin) and present
     // from the start; while at its default the arrow is hidden (disabled) but the column stays
     // reserved so the editor keeps a constant width.
     let btn = countItem.revertButton
-    @assert(btn != null and btn.dockStyle == .Right)
+    @assert(btn.dockStyle == .Right)
     @assert(btn.isDisabled())
     let editWidthClean = countItem.editBox.position.width
 
@@ -1484,7 +1477,7 @@ impl IPropertyNotify for PropDefaultCustom
     btn.aniBk.themeCrc       = 42'u32
     host.app.mouseEnterWnd   = btn
     host.app.mouseCaptureWnd = btn
-    prop.resetItemDefault(notnull countItem)
+    prop.resetItemDefault(countItem)
     @assert(!countItem.isModified and btn.isDisabled())
     @assert(countItem.editBox.position.width == editWidthClean)
     @assert(!btn.icon.isValid())
@@ -1510,8 +1503,8 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Condensed)
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null and @isset(countItem.revertButton))
+    let countItem = notnull findFieldItem(prop, #nameof(PropDefaultData.count))
+    @assert(@isset(countItem.revertButton))
 
     let btn = countItem.revertButton
     @assert(btn.position.height == PropCondensedControlHeight)
@@ -1543,11 +1536,10 @@ impl IPropertyNotify for PropDefaultCustom
     bases.add(cast(*u8) &t1)
     prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))
-    @assert(countItem != null)
+    let countItem = notnull findFieldItem(prop, #nameof(PropDefaultData.count))
     @assert(countItem.isModified)     // one instance differs
 
-    prop.resetItemDefault(notnull countItem)
+    prop.resetItemDefault(countItem)
     @assert(t0.count == 42 and t1.count == 42)
     @assert(!countItem.isModified)
 
@@ -1566,22 +1558,21 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
-    @assert(it != null)
+    let it = notnull findFieldItem(prop, #nameof(PropHeadlessData.count))
     @assert(!prop.canUndo() and !prop.canRedo())
 
     // Writing the same value back records nothing.
-    dref cast(#null *s32) it.data = 42
-    prop.hasChanged(notnull it)
+    dref notnull cast(#null *s32) it.data = 42
+    prop.hasChanged(it)
     @assert(!prop.canUndo())
 
     // Two real edits.
-    dref cast(#null *s32) it.data = 100
-    prop.hasChanged(notnull it)
+    dref notnull cast(#null *s32) it.data = 100
+    prop.hasChanged(it)
     @assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
 
-    dref cast(#null *s32) it.data = 7
-    prop.hasChanged(notnull it)
+    dref notnull cast(#null *s32) it.data = 7
+    prop.hasChanged(it)
     @assert(data.count == 7)
 
     prop.undo()
@@ -1597,8 +1588,8 @@ impl IPropertyNotify for PropDefaultCustom
     // New edit after undo truncates the redo tail.
     prop.undo()     // -> 100
     prop.undo()     // -> 42
-    dref cast(#null *s32) it.data = 55
-    prop.hasChanged(notnull it)
+    dref notnull cast(#null *s32) it.data = 55
+    prop.hasChanged(it)
     @assert(data.count == 55 and !prop.canRedo())
     prop.undo()
     @assert(data.count == 42)
@@ -1617,11 +1608,10 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 280, 340}, .List)
     prop.addStruct(data)
 
-    let it = findFieldItem(prop, #nameof(MultiTile.name))
-    @assert(it != null)
+    let it = notnull findFieldItem(prop, #nameof(MultiTile.name))
 
-    dref cast(#null *String) it.data = "beta"
-    prop.hasChanged(notnull it)
+    dref notnull cast(#null *String) it.data = "beta"
+    prop.hasChanged(it)
     @assert(data.name == "beta")
 
     prop.undo()
@@ -1645,11 +1635,10 @@ impl IPropertyNotify for PropDefaultCustom
     bases.add(cast(*u8) &t1)
     prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")
 
-    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
-    @assert(it != null)
+    let it = notnull findFieldItem(prop, #nameof(PropHeadlessData.count))
 
-    dref cast(#null *s32) it.data = 100     // edit instance 0; hasChanged propagates
-    prop.hasChanged(notnull it)
+    dref notnull cast(#null *s32) it.data = 100     // edit instance 0; hasChanged propagates
+    prop.hasChanged(it)
     @assert(t0.count == 100 and t1.count == 100)
 
     prop.undo()
@@ -1671,9 +1660,9 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
     prop.focusNav()
 
-    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))
-    dref cast(#null *s32) it.data = 100
-    prop.hasChanged(notnull it)
+    let it = notnull findFieldItem(prop, #nameof(PropHeadlessData.count))
+    dref notnull cast(#null *s32) it.data = 100
+    prop.hasChanged(it)
     @assert(data.count == 100)
 
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
@@ -1719,10 +1708,9 @@ struct PropDecorData
 
     // Nested categories: Transform is a top-level group (level 0); Advanced is nested under it
     // (level 1, reusing the same Transform header); Physics is a second top-level group (level 0).
-    let transform = findFieldItem(prop, "Transform")
-    let advanced  = findFieldItem(prop, "Advanced")
-    let physics   = findFieldItem(prop, "Physics")
-    @assert(transform != null and advanced != null and physics != null)
+    let transform = notnull findFieldItem(prop, "Transform")
+    let advanced  = notnull findFieldItem(prop, "Advanced")
+    let physics   = notnull findFieldItem(prop, "Physics")
     @assert(transform.flags.has(.Category) and transform.level == 0)
     @assert(advanced.flags.has(.Category)  and advanced.level == 1)
     @assert(physics.flags.has(.Category)   and physics.level == 0)
@@ -1730,35 +1718,37 @@ struct PropDecorData
 
     // Fields indent with their group depth: a top-level field is at indent 0, a subgroup field one
     // step further, and the subgroup header lines up with the fields it groups.
-    let px    = findFieldItem(prop, #nameof(PropDecorData.px))
-    let shear = findFieldItem(prop, #nameof(PropDecorData.shear))
-    @assert(px != null and shear != null)
-    @assert(prop.itemIndent(notnull px) == 0)
-    @assert(prop.itemIndent(notnull transform) == 0)
-    @assert(prop.itemIndent(notnull shear) > prop.itemIndent(notnull px))
-    @assert(prop.itemIndent(notnull advanced) == prop.itemIndent(notnull shear))     // subgroup header aligns with its field
+    let px    = notnull findFieldItem(prop, #nameof(PropDecorData.px))
+    let shear = notnull findFieldItem(prop, #nameof(PropDecorData.shear))
+    @assert(prop.itemIndent(px) == 0)
+    @assert(prop.itemIndent(transform) == 0)
+    @assert(prop.itemIndent(shear) > prop.itemIndent(px))
+    @assert(prop.itemIndent(advanced) == prop.itemIndent(shear))     // subgroup header aligns with its field
 
     // The three decorators on 'mass' produced three extra rows before it, all under Physics.
     var spacer, heading, note: #null *PropertiesItem
     for it in prop.items
     {
-        if it.flags.has(.Spacer) do
-            spacer = it
-        if it.flags.has(.Header) do
-            heading = it
-        if it.flags.has(.Note) do
-            note = it
+        let item = notnull it
+        if item.flags.has(.Spacer) do
+            spacer = item
+        if item.flags.has(.Header) do
+            heading = item
+        if item.flags.has(.Note) do
+            note = item
     }
 
-    @assert(spacer != null and heading != null and note != null)
-    @assert(heading.parent == physics and spacer.parent == physics and note.parent == physics)
-    @assert(heading.typeValue.name == "Body")
-    @assert(spacer.line.position.height == 16)     // Gap(16)
-    @assert(@isset(note.label))                    // the info bar label
+    let spacerIt  = notnull spacer
+    let headingIt = notnull heading
+    let noteIt    = notnull note
+    @assert(headingIt.parent == physics and spacerIt.parent == physics and noteIt.parent == physics)
+    @assert(headingIt.typeValue.name == "Body")
+    @assert(spacerIt.line.position.height == 16)     // Gap(16)
+    @assert(@isset(noteIt.label))                    // the info bar label
 
     // Decorators are inert: not focusable and never expandable.
-    @assert(heading.flags.has(.NoFocus) and spacer.flags.has(.NoFocus) and note.flags.has(.NoFocus))
-    @assert(heading.numChilds == 0 and spacer.numChilds == 0 and note.numChilds == 0)
+    @assert(headingIt.flags.has(.NoFocus) and spacerIt.flags.has(.NoFocus) and noteIt.flags.has(.NoFocus))
+    @assert(headingIt.numChilds == 0 and spacerIt.numChilds == 0 and noteIt.numChilds == 0)
 
     host.shutdown()
 }
@@ -1783,7 +1773,7 @@ struct PropHeadlessFontStyleData
     host.pump()
 
     // items[0] is the implicit section; the editor stacks the B and I buttons in a sub-line
-    let item      = prop.items[1]
+    let item      = notnull prop.items[1]
     let stack     = item.line.childs[0]
     let btnBold   = cast(*IconButton) stack.childs[0]
     let btnItalic = cast(*IconButton) stack.childs[1]
@@ -1822,7 +1812,7 @@ struct PropHeadlessUsingDerived
     {
         for item, idx in prop.items
         {
-            if item.typeValue.name == name do
+            if (notnull item).typeValue.name == name do
                 return idx
         }
 
@@ -1882,7 +1872,7 @@ impl IPropertyNotify for PropFilterHost
     prop.setNotify(cast(IPropertyNotify) &ntfy)
     prop.addStruct(data)
 
-    let item = prop.items[1]
+    let item = notnull prop.items[1]
     @assert(@isset(item.comboBox))
     @assert(item.comboBox.items.count == 3)
 
@@ -1927,7 +1917,7 @@ struct PropSameCategData
     var categs = 0
     for item in opt.prop.items
     {
-        if item.flags.has(.Category) do
+        if (notnull item).flags.has(.Category) do
             categs += 1
     }
 
@@ -1938,12 +1928,13 @@ struct PropSameCategData
     var descItem: #null *PropertiesItem
     for item in opt.prop.items
     {
-        if item.typeValue.name == "first" do
+        if (notnull item).typeValue.name == "first" do
             descItem = item
     }
 
-    @assert(descItem != null and @isset(descItem.checkBox))
-    @assert(descItem.checkBox.parent.position.width > cast(f32) opt.prop.sizeEditValue)
+    let descIt = notnull descItem
+    @assert(@isset(descIt.checkBox))
+    @assert((notnull descIt.checkBox.parent).position.width > cast(f32) opt.prop.sizeEditValue)
 
     host.shutdown()
 }
@@ -1979,19 +1970,21 @@ struct PropAlignData
         var right = -1.0'f32
         for item in prop.items
         {
+            let it = notnull item
             var w: #null *Wnd
-            if @isset(item.sliderBox) do
-                w = item.sliderBox
-            elif @isset(item.comboBox) do
-                w = item.comboBox
-            elif @isset(item.editBox) do
-                w = item.editBox
+            if @isset(it.sliderBox) do
+                w = it.sliderBox
+            elif @isset(it.comboBox) do
+                w = it.comboBox
+            elif @isset(it.editBox) do
+                w = it.editBox
             if !w do
                 continue
 
+            let wnd = notnull w
             if right < 0 do
-                right = w.position.right()
-            @assert(Math.isEqualEpsilon(w.position.right(), right, 0.01))
+                right = wnd.position.right()
+            @assert(Math.isEqualEpsilon(wnd.position.right(), right, 0.01))
         }
 
         @assert(right > 0)

@@ -80,9 +80,10 @@ func warehouseInit()->Warehouse
     var wh: Warehouse
     let size = cast(u64) MaxDim * MaxDim * #sizeof(Tile)
     wh.cells = cast(#null [*] Tile) @alloc(size)
+    let cells = notnull wh.cells
     for MaxDim * MaxDim
     {
-        wh.cells[@index] = Tile.Empty
+        cells[@index] = Tile.Empty
     }
     return wh
 }
@@ -93,11 +94,12 @@ func warehouseFree(wh: *Warehouse)
         @free(wh.cells)
 }
 
-func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => wh.cells[r * MaxDim + c]
+func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => (notnull wh.cells)[r * MaxDim + c]
 
 func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 {
-    wh.cells[r * MaxDim + c] = t
+    let cells = notnull wh.cells
+    cells[r * MaxDim + c] = t
 }
 
 // ---------------------------------------------------------------------------
@@ -210,8 +212,9 @@ func parseInput(text: string)->Parsed
         pos += 1
         if ch == '^' or ch == 'v' or ch == '<' or ch == '>'
         {
-            result.moves[mi] = ch
-            mi               += 1
+            let moves = notnull result.moves
+            moves[mi] = ch
+            mi        += 1
         }
     }
 
@@ -234,11 +237,12 @@ func dirDelta(ch: u8, dr: *s32, dc: *s32)
 
 func simulate(p: *Parsed)
 {
+    let moves = notnull p.moves
     for mi in p.nMoves
     {
         var dr: s32
         var dc: s32
-        dirDelta(p.moves[mi], &dr, &dc)
+        dirDelta(moves[mi], &dr, &dc)
 
         let nr = cast(s32) p.wh.robotR + dr
         let nc = cast(s32) p.wh.robotC + dc
@@ -390,12 +394,13 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    let moveSlice = @mkslice(notnull p.moves, cast(u64) p.nMoves)
+    let moves     = notnull p.moves
+    let moveSlice = @mkslice(moves, cast(u64) p.nMoves)
     @assert(@countof(moveSlice) == cast(u64) p.nMoves)
     @assert(@dataof(moveSlice) == p.moves)
 
     // First move is '<'
-    @assert(p.moves[0] == '<')
+    @assert(moves[0] == '<')
 }
 
 // Small sample: GPS = 2028
@@ -405,7 +410,8 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32) @floor(boxRmsFromCentre(wh))
     defer parsedFree(&p)
 
     // Verify first move
-    @assert(p.moves[0] == '<')
+    let moves = notnull p.moves
+    @assert(moves[0] == '<')
 
     simulate(&p)
     let score = gpsScore(&p.wh)

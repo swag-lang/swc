@@ -24,7 +24,7 @@ var TabHeadlessSelChangedCount: u32
     tab.select(2)
     @assert(tab.selectedIdx == 2)
     @assert(TabHeadlessSelChangedCount == 1)
-    @assert(tab.getSelectedItem().name.raw == "C")
+    @assert((notnull tab.getSelectedItem()).name.raw == "C")
 
     // Selecting the current tab is a no-op.
     tab.select(2)

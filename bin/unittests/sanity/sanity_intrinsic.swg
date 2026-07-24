@@ -1,7 +1,7 @@
 #global private
 
 // '#sanity(...)' mirrors '#safety(...)': it evaluates, at compile time, whether the
-// given static check is active here — the build-config default combined with the
+// given static check is active here â€” the build-config default combined with the
 // 'Swag.Sanity' overrides in scope.
 
 #[Swag.Sanity(.Lifecycle, false)]
@@ -32,7 +32,7 @@ func sanityUnaffectedBySafety()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()
+    const cfg      = #run dref notnull @compiler.getBuildCfg()
     const expected = cfg.sanityGuards & Swag.SafetyWhat.Null ? true : false
     #assert(#sanity(Swag.SafetyWhat.Null) == expected)
     #assert(sanityUnaffectedBySafety() == (cfg.sanityGuards & Swag.SafetyWhat.BoundCheck ? true : false))

@@ -161,6 +161,7 @@ func day6A1()
     day6EnsureInstructions()
     var lights: Array'bool
     lights.resize(DAY6_GRID_SIZE * DAY6_GRID_SIZE)
+    let lightsBuf = notnull lights.buffer
 
     for instruction in day6Instructions
     {
@@ -174,7 +175,7 @@ func day6A1()
         case .TurnOn:
             for y in y0 to y1
             {
-                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
                 {
                     scan[0] = true
@@ -185,7 +186,7 @@ func day6A1()
         case .TurnOff:
             for y in y0 to y1
             {
-                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
                 {
                     scan[0] = false
@@ -196,7 +197,7 @@ func day6A1()
         case .Toggle:
             for y in y0 to y1
             {
-                var scan = lights.buffer + (y * DAY6_GRID_SIZE) + x0
+                var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
                 {
                     scan[0] = !scan[0]

@@ -1,7 +1,7 @@
 #run
 {
     let itf = @compiler
-    let cfg = itf.getBuildCfg()
+    let cfg = notnull itf.getBuildCfg()
     cfg.moduleVersion       = 1
     cfg.moduleRevision      = 0
     cfg.moduleBuildNum      = 0

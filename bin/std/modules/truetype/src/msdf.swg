@@ -121,11 +121,12 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     let crossThreshold = 0.05233595624294383'f64
 
     var corners: Array'u32
-    var pdx = elements.buffer[first + count - 1].edx1
-    var pdy = elements.buffer[first + count - 1].edy1
+    let ebuf = notnull elements.buffer
+    var pdx  = ebuf[first + count - 1].edx1
+    var pdy  = ebuf[first + count - 1].edy1
     for i in count
     {
-        let e = &elements.buffer[first + i]
+        let e = &ebuf[first + i]
         if msdfIsCorner(pdx, pdy, e.sdx0, e.sdy0, crossThreshold) do
             corners.add(i)
         pdx = e.edx1
@@ -137,7 +138,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     if corners.count == 0
     {
         for i in count do
-            elements.buffer[first + i].color = MSDF_WHITE
+            ebuf[first + i].color = MSDF_WHITE
         return
     }
 
@@ -148,7 +149,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
         var color = MSDF_WHITE
         msdfSwitchColor(&color, seed)
         for i in count do
-            elements.buffer[first + i].color = color
+            ebuf[first + i].color = color
         return
     }
 
@@ -169,7 +170,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
             msdfSwitchColor(&color, seed, banned)
         }
 
-        elements.buffer[first + index].color = color
+        ebuf[first + index].color = color
     }
 }
 
@@ -263,23 +264,27 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
         msdfColorContour(&elements, first, count, &seed)
     }
 
+    if !segs.count do
+        return
+    let sbuf = notnull segs.buffer
+
     // Propagate element colors down to their segments.
     for el in elements
     {
         for i in el.segCount do
-            segs.buffer[el.firstSeg + i].color = el.color
+            sbuf[el.firstSeg + i].color = el.color
     }
 
     // Guarantee every channel is carried by at least one segment, otherwise that
     // channel's distance would be undefined and the median would be meaningless.
     var unionColor = 0'u8
     for i in segs.count do
-        unionColor |= segs.buffer[i].color
+        unionColor |= sbuf[i].color
     let missing = (~unionColor) & MSDF_WHITE
     if missing
     {
         for i in segs.count do
-            segs.buffer[i].color |= missing
+            sbuf[i].color |= missing
     }
 }
 

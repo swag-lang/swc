@@ -188,8 +188,9 @@ func runDottedPathCapture()->s32
 
     let cb: func||()->s32 = func|holder.target|()->s32
     {
-        target.value += 3
-        return target.value
+        let t = notnull target
+        t.value += 3
+        return t.value
     }
 
     holder.target = &second

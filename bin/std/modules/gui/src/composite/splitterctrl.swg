@@ -58,12 +58,12 @@ impl IWnd for SplitterCtrl
                 if .isVertical()
                 {
                     let diff = local.y - (rect.y + .correctMoving)
-                    .setPaneSize(.hotIdx, .items[.hotIdx].size + diff)
+                    .setPaneSize(.hotIdx, (notnull .items[.hotIdx]).size + diff)
                 }
                 else
                 {
                     let diff = local.x - (rect.x + .correctMoving)
-                    .setPaneSize(.hotIdx, .items[.hotIdx].size + diff)
+                    .setPaneSize(.hotIdx, (notnull .items[.hotIdx]).size + diff)
                 }
 
                 .invalidate()
@@ -81,7 +81,8 @@ impl IWnd for SplitterCtrl
             {
                 let rect = .getBarRect(.hotIdx)
                 .moving = true
-                .surface.app.captureMouse(me)
+                let srf = notnull .surface
+                srf.app.captureMouse(me)
                 if .isVertical() do
                     .correctMoving = local.y - rect.y
                 else do
@@ -92,7 +93,8 @@ impl IWnd for SplitterCtrl
             if .moving
             {
                 .moving = false
-                .surface.app.releaseMouse()
+                let srf = notnull .surface
+                srf.app.releaseMouse()
             }
         }
 
@@ -113,44 +115,45 @@ impl IWnd for SplitterCtrl
 
         for item in .items
         {
-            if !item.visible do
+            let it = notnull item
+            if !it.visible do
                 continue
 
             if .isVertical()
             {
-                var paneRect = Math.Rectangle{client.x, y, client.width, item.size}
-                paneRect.applyPadding(item.view.margin)
+                var paneRect = Math.Rectangle{client.x, y, client.width, it.size}
+                paneRect.applyPadding(it.view.margin)
 
-                if item.label
+                if it.label
                 {
                     var labelRect = paneRect
                     labelRect.height = .titleSize
-                    item.label.setPosition(labelRect)
+                    it.label.setPosition(labelRect)
 
                     paneRect.y      += .titleSize
                     paneRect.height -= .titleSize
                 }
 
-                item.view.setPosition(paneRect)
-                y += item.size + barSize
+                it.view.setPosition(paneRect)
+                y += it.size + barSize
             }
             else
             {
-                var paneRect = Math.Rectangle{x, client.y, item.size, client.height}
-                paneRect.applyPadding(item.view.margin)
+                var paneRect = Math.Rectangle{x, client.y, it.size, client.height}
+                paneRect.applyPadding(it.view.margin)
 
-                if item.label
+                if it.label
                 {
                     var labelRect = paneRect
                     labelRect.width = .titleSize
-                    item.label.setPosition(labelRect)
+                    it.label.setPosition(labelRect)
 
                     paneRect.x     += .titleSize
                     paneRect.width -= .titleSize
                 }
 
-                item.view.setPosition(paneRect)
-                x += item.size + barSize
+                it.view.setPosition(paneRect)
+                x += it.size + barSize
             }
         }
     }
@@ -167,7 +170,8 @@ impl IWnd for SplitterCtrl
 
         for idx in .items.count - 1
         {
-            if !.items[idx].visible do
+            let it = notnull .items[idx]
+            if !it.visible do
                 continue
 
             let rect  = .getBarRect(cast(u32) idx)
@@ -175,16 +179,16 @@ impl IWnd for SplitterCtrl
             if isHot or !.splitterFlags.has(.HideBars)
             {
                 let colorBar = isHot ? colors.splitView_BarHot : colors.splitView_Bar
-                .items[idx].aniBar.apply(me, colorBar)
+                it.aniBar.apply(me, colorBar)
                 if .isVertical()
                 {
                     let rectBar = isHot ? &rects.splitView_HorzBarHotBk : &rects.splitView_HorzBarBk
-                    theme.drawSubRect(painter, rect, rectBar, .items[idx].aniBar.cur())
+                    theme.drawSubRect(painter, rect, rectBar, it.aniBar.cur())
                 }
                 else
                 {
                     let rectBar = isHot ? &rects.splitView_VertBarHotBk : &rects.splitView_VertBarBk
-                    theme.drawSubRect(painter, rect, rectBar, .items[idx].aniBar.cur())
+                    theme.drawSubRect(painter, rect, rectBar, it.aniBar.cur())
                 }
             }
         }
@@ -211,12 +215,13 @@ private impl SplitterCtrl
             var totalSize = 0'f32
             for item, idx in .items
             {
-                if !item.visible do
+                let it = notnull item
+                if !it.visible do
                     continue
 
-                totalSize        += item.size
-                countPreserve    += item.tryPreserveSize ? 1 : 0
-                countNotPreserve += item.tryPreserveSize ? 0 : 1
+                totalSize        += it.size
+                countPreserve    += it.tryPreserveSize ? 1 : 0
+                countNotPreserve += it.tryPreserveSize ? 0 : 1
             }
 
             totalSize += cast(f32) ((.numVisiblePanes - 1) * barSize)
@@ -233,20 +238,21 @@ private impl SplitterCtrl
                 let diff = cast(f32) Math.round(dispatch / countNotPreserve)
                 for item, idx in .items
                 {
-                    if item.tryPreserveSize do
+                    let it = notnull item
+                    if it.tryPreserveSize do
                         continue
-                    if !item.visible do
+                    if !it.visible do
                         continue
 
                     countNotPreserve -= 1
 
                     var realDiff = countNotPreserve ? diff : dispatch
-                    if item.maxSize > 0 and realDiff > 0 and item.size + realDiff > item.maxSize do
-                        realDiff = item.maxSize - item.size
-                    elif realDiff < 0 and item.size + realDiff < item.minSize do
-                        realDiff = item.minSize - item.size
+                    if it.maxSize > 0 and realDiff > 0 and it.size + realDiff > it.maxSize do
+                        realDiff = it.maxSize - it.size
+                    elif realDiff < 0 and it.size + realDiff < it.minSize do
+                        realDiff = it.minSize - it.size
 
-                    item.size += realDiff
+                    it.size += realDiff
                     dispatch  -= realDiff
                 }
             }
@@ -257,20 +263,21 @@ private impl SplitterCtrl
                 let diff = cast(f32) Math.round(dispatch / countPreserve)
                 for item, idx in .items
                 {
-                    if !item.tryPreserveSize do
+                    let it = notnull item
+                    if !it.tryPreserveSize do
                         continue
-                    if !item.visible do
+                    if !it.visible do
                         continue
 
                     countPreserve -= 1
 
                     var realDiff = countNotPreserve ? diff : dispatch
-                    if item.maxSize > 0 and realDiff > 0 and item.size + realDiff > item.maxSize do
-                        realDiff = item.maxSize - item.size
-                    elif realDiff < 0 and item.size + realDiff < item.minSize do
-                        realDiff = item.minSize - item.size
+                    if it.maxSize > 0 and realDiff > 0 and it.size + realDiff > it.maxSize do
+                        realDiff = it.maxSize - it.size
+                    elif realDiff < 0 and it.size + realDiff < it.minSize do
+                        realDiff = it.minSize - it.size
 
-                    item.size += realDiff
+                    it.size += realDiff
                     dispatch  -= realDiff
                 }
             }
@@ -278,10 +285,11 @@ private impl SplitterCtrl
 
         for item, idx in .items
         {
-            if !item.visible do
+            let it = notnull item
+            if !it.visible do
                 continue
 
-            .setPaneSizePrivate(cast(u32) idx, item.size)
+            .setPaneSizePrivate(cast(u32) idx, it.size)
         }
     }
 
@@ -296,12 +304,13 @@ private impl SplitterCtrl
 
         for item, idx in .items
         {
-            if !item.visible do
+            let it = notnull item
+            if !it.visible do
                 continue
             var rect = client
             if .isVertical()
             {
-                rect.y      = y + item.size
+                rect.y      = y + it.size
                 rect.height = barSize
                 if rect.contains(local) do
                     return cast(u32) idx
@@ -309,7 +318,7 @@ private impl SplitterCtrl
             }
             else
             {
-                rect.x     = x + item.size
+                rect.x     = x + it.size
                 rect.width = barSize
                 if rect.contains(local) do
                     return cast(u32) idx
@@ -329,14 +338,14 @@ private impl SplitterCtrl
         {
             if .isVertical()
             {
-                result.y += .items[i].size
+                result.y += (notnull .items[i]).size
                 if i != idx do
                     result.y  += barSize
                 result.height = barSize
             }
             else
             {
-                result.x += .items[i].size
+                result.x += (notnull .items[i]).size
                 if i != idx do
                     result.x += barSize
                 result.width = barSize
@@ -348,7 +357,7 @@ private impl SplitterCtrl
 
     mtd setPaneSizePrivate(idx: u32, newSize: f32)
     {
-        let curPane = .items[idx]
+        let curPane = notnull .items[idx]
 
         var reqSize = Math.max(curPane.minSize, newSize)
         if curPane.maxSize > 0 do
@@ -371,7 +380,7 @@ private impl SplitterCtrl
             if !scanLeft and i == .items.count - 1 do
                 break
 
-            let otherPane = scanLeft ? .items[i - 1] : .items[i + 1]
+            let otherPane = notnull (scanLeft ? .items[i - 1] : .items[i + 1])
             i += scanLeft ? -1 : 1
 
             var realDiff = diff
@@ -468,7 +477,7 @@ impl SplitterCtrl
     mtd showPane(idx: u32, show: bool)
     {
         Debug.assert(idx < .items.count)
-        let pane = .items[idx]
+        let pane = notnull .items[idx]
 
         if pane.visible == show do
             return
@@ -492,6 +501,6 @@ impl SplitterCtrl
     mtd isPaneVisible(idx: u32)->bool
     {
         Debug.assert(idx < .items.count)
-        return .items[idx].visible
+        return (notnull .items[idx]).visible
     }
 }

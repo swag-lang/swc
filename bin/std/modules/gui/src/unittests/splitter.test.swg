@@ -19,12 +19,12 @@ using Swag, Core
     @assert(splitter.numVisiblePanes == 2)
     @assert(splitter.isPaneVisible(0))
     @assert(splitter.isPaneVisible(1))
-    @assert(splitter.items[1].view == pane1)
+    @assert((notnull splitter.items[1]).view == pane1)
     @assert(pane1.parent == splitter)
 
     let client  = splitter.getClientRectPadding()
     let barSize = splitter.getThemeMetrics().splitView_BarSize
-    let total   = splitter.items[0].size + splitter.items[1].size + barSize
+    let total   = (notnull splitter.items[0]).size + (notnull splitter.items[1]).size + barSize
     @assert(Math.abs(total - client.width) < 1.5)
 
     host.shutdown()
@@ -67,9 +67,10 @@ using Swag, Core
     splitter.addPane(pane0)
     splitter.addPane(pane1, 100)
 
-    splitter.items[0].minSize = 20
+    let pane0It = notnull splitter.items[0]
+    pane0It.minSize = 20
     splitter.setPaneSize(0, -50)
-    @assert(splitter.items[0].size >= 20)
+    @assert(pane0It.size >= 20)
 
     host.shutdown()
 }

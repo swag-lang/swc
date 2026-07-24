@@ -11,9 +11,9 @@ func assertNearByte(value, expected: u8, tolerance: u8)
 func assertJpgPixelNear(img: Image, b, g, r: u8, tolerance: u8)
 {
     @assert(img.isValid())
-    assertNearByte(img.pixels.buffer[0], b, tolerance)
-    assertNearByte(img.pixels.buffer[1], g, tolerance)
-    assertNearByte(img.pixels.buffer[2], r, tolerance)
+    assertNearByte((notnull img.pixels.buffer)[0], b, tolerance)
+    assertNearByte((notnull img.pixels.buffer)[1], g, tolerance)
+    assertNearByte((notnull img.pixels.buffer)[2], r, tolerance)
 }
 
 func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
@@ -58,7 +58,7 @@ func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
 
 func fillSolidImage(img: *Image, b, g, r, a: u8)
 {
-    var pix = img.pixels.buffer
+    var pix = notnull img.pixels.buffer
     for img.width * img.height
     {
         switch img.pf

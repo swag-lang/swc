@@ -75,4 +75,14 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     }
 };
 
+// Lowering state of an OptionalChainExpr root. Created before the chain body is
+// generated so every '?.' link can jump to 'falseLabel' when its left side is null.
+// A fused chain (scalar result consumed by 'orelse') leaves its labels valid for the
+// enclosing coalescing to adopt; a standalone chain invalidates them once placed.
+struct OptionalChainCodeGenPayload : CodeGenNodePayload
+{
+    MicroLabelRef falseLabel = MicroLabelRef::invalid();
+    MicroLabelRef doneLabel  = MicroLabelRef::invalid();
+};
+
 SWC_END_NAMESPACE();

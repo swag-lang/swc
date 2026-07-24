@@ -19,11 +19,11 @@ func encodeGif(result: *ConcatBuffer, image: Image) throw
 func assertGifPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
     let idx = cast(u64) (yFromBottom * img.width + x) * img.bpp8
-    @assert(img.pixels.buffer[idx] == r)
-    @assert(img.pixels.buffer[idx + 1] == g)
-    @assert(img.pixels.buffer[idx + 2] == b)
+    @assert((notnull img.pixels.buffer)[idx] == r)
+    @assert((notnull img.pixels.buffer)[idx + 1] == g)
+    @assert((notnull img.pixels.buffer)[idx + 2] == b)
     if img.bpp8 == 4 do
-        @assert(img.pixels.buffer[idx + 3] == a)
+        @assert((notnull img.pixels.buffer)[idx + 3] == a)
 }
 
 func assertGifHeader(bytes: const [..] u8, width, height: u16)
@@ -157,18 +157,19 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var src = Image.create(2, 2, .RGB8)
-    src.pixels.buffer[0]  = 10'u8
-    src.pixels.buffer[1]  = 20'u8
-    src.pixels.buffer[2]  = 30'u8
-    src.pixels.buffer[3]  = 40'u8
-    src.pixels.buffer[4]  = 50'u8
-    src.pixels.buffer[5]  = 60'u8
-    src.pixels.buffer[6]  = 70'u8
-    src.pixels.buffer[7]  = 80'u8
-    src.pixels.buffer[8]  = 90'u8
-    src.pixels.buffer[9]  = 100'u8
-    src.pixels.buffer[10] = 110'u8
-    src.pixels.buffer[11] = 120'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0]  = 10'u8
+    srcBuf[1]  = 20'u8
+    srcBuf[2]  = 30'u8
+    srcBuf[3]  = 40'u8
+    srcBuf[4]  = 50'u8
+    srcBuf[5]  = 60'u8
+    srcBuf[6]  = 70'u8
+    srcBuf[7]  = 80'u8
+    srcBuf[8]  = 90'u8
+    srcBuf[9]  = 100'u8
+    srcBuf[10] = 110'u8
+    srcBuf[11] = 120'u8
 
     var cb: ConcatBuffer
     catch encodeGif(&cb, src)
@@ -185,14 +186,15 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var src = Image.create(2, 1, .RGBA8)
-    src.pixels.buffer[0] = 1'u8
-    src.pixels.buffer[1] = 2'u8
-    src.pixels.buffer[2] = 3'u8
-    src.pixels.buffer[3] = 0'u8
-    src.pixels.buffer[4] = 40'u8
-    src.pixels.buffer[5] = 50'u8
-    src.pixels.buffer[6] = 60'u8
-    src.pixels.buffer[7] = 255'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 1'u8
+    srcBuf[1] = 2'u8
+    srcBuf[2] = 3'u8
+    srcBuf[3] = 0'u8
+    srcBuf[4] = 40'u8
+    srcBuf[5] = 50'u8
+    srcBuf[6] = 60'u8
+    srcBuf[7] = 255'u8
 
     assertEncodedGifRoundtrip(src, .RGBA8)
 
@@ -211,9 +213,10 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var bgr = Image.create(1, 1, .BGR8)
-    bgr.pixels.buffer[0] = 30'u8
-    bgr.pixels.buffer[1] = 20'u8
-    bgr.pixels.buffer[2] = 10'u8
+    let bgrBuf = notnull bgr.pixels.buffer
+    bgrBuf[0] = 30'u8
+    bgrBuf[1] = 20'u8
+    bgrBuf[2] = 10'u8
 
     var cb: ConcatBuffer
     catch encodeGif(&cb, bgr)
@@ -225,10 +228,11 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(img, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
     var bgra = Image.create(1, 1, .BGRA8)
-    bgra.pixels.buffer[0] = 7'u8
-    bgra.pixels.buffer[1] = 8'u8
-    bgra.pixels.buffer[2] = 9'u8
-    bgra.pixels.buffer[3] = 10'u8
+    let bgraBuf = notnull bgra.pixels.buffer
+    bgraBuf[0] = 7'u8
+    bgraBuf[1] = 8'u8
+    bgraBuf[2] = 9'u8
+    bgraBuf[3] = 10'u8
 
     cb.clear()
     catch encodeGif(&cb, bgra)
@@ -243,7 +247,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var src = Image.create(17, 17, .RGB8)
-    var pix = src.pixels.buffer
+    var pix = notnull src.pixels.buffer
     for i in src.width * src.height
     {
         let x = i % src.width
@@ -277,9 +281,10 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     }
 
     var src = Image.create(1, 1, .RGB8)
-    src.pixels.buffer[0] = 12'u8
-    src.pixels.buffer[1] = 34'u8
-    src.pixels.buffer[2] = 56'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 12'u8
+    srcBuf[1] = 34'u8
+    srcBuf[2] = 56'u8
 
     var cb: ConcatBuffer
     catch encodeGif(&cb, src)

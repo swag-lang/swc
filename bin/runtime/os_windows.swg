@@ -520,7 +520,10 @@ func __dbgStr(off: u32)->string
 {
     if off == 0 do
         return ""
-    let p = cast([*] u8) &__dbgCacheSection[cast(u64) off]
+
+    // Callers only symbolize once '__dbgCacheValid' guarantees the section pointer.
+    let sec = notnull __dbgCacheSection
+    let p   = cast([*] u8) &sec[cast(u64) off]
     return @mkstring(p, @countof(cast(cstring) p))
 }
 
@@ -583,20 +586,26 @@ func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation 
                 continue
             if startAfter.lineStart + 1 != info.line do
                 continue
-            if @countof(info.file) != @countof(startAfter.fileName) do
+            let afterName = startAfter.fileName
+            if @countof(info.file) != @countof(afterName) do
                 continue
 
+            // The counts match, so a null 'afterName' means both paths are empty
+            // and the comparison loop has nothing to do.
             var samePath = true
-            for it in @countof(info.file)
+            if afterName != null
             {
-                if info.file[it] == startAfter.fileName[it] do
-                    continue
-                if info.file[it] == '\\' and startAfter.fileName[it] == '/' do
-                    continue
-                if info.file[it] == '/' and startAfter.fileName[it] == '\\' do
-                    continue
-                samePath = false
-                break
+                for it in @countof(info.file)
+                {
+                    if info.file[it] == afterName[it] do
+                        continue
+                    if info.file[it] == '\\' and afterName[it] == '/' do
+                        continue
+                    if info.file[it] == '/' and afterName[it] == '\\' do
+                        continue
+                    samePath = false
+                    break
+                }
             }
 
             if !samePath do

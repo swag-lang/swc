@@ -87,12 +87,14 @@ impl Owner
     var color, item: Box
     owner.build(&color, &item, true, false)
 
-    g_outer(0)
+    let outerFn = notnull g_outer
+    outerFn(0)
     // The early use must have written through the captured pointers.
     @assert(owner.pop == &item)
     @assert(item.a == 1)
 
-    g_inner(5)
+    let innerFn = notnull g_inner
+    innerFn(5)
     // The nested closure must write through the re-captured pointers.
     @assert(color.v == (5 | 0x10) + 7)
     @assert(item.v == (5 | 0x10))

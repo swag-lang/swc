@@ -59,13 +59,14 @@ impl IForm for FormStep
 
         var xbu = 0
         var ybu = 0
-        .capture.snap(&xbu, &ybu, true, true, 0, cast(IForm) me)
+        let capture = notnull .capture
+        capture.snap(&xbu, &ybu, true, true, 0, cast(IForm) me)
         xa += xbu
         ya += ybu
         .setBaseForm(xa, ya, .ws, .hs)
 
-        .index                 = .capture.nextStepIndex
-        .capture.nextStepIndex += 1
+        .index                 = capture.nextStepIndex
+        capture.nextStepIndex += 1
         .isDirty               = true
 
         return false

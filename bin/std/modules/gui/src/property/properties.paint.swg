@@ -31,7 +31,7 @@ internal impl Properties
             colBk     = colors.prop_FocusBk
             colBorder = colors.prop_FocusBorder
         }
-        elif .hotItem == item and .hotItem.line.isEnabled()
+        elif .hotItem == item and (notnull .hotItem).line.isEnabled()
         {
             colBk     = colors.prop_HotBk
             colBorder = colors.prop_HotBorder

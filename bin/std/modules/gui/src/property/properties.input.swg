@@ -17,15 +17,16 @@ internal impl Properties
     {
         if !target or !@isset(.edView) do
             return false
-        let view = cast(#null *Wnd) .edView
+        let view = notnull cast(#null *Wnd) .edView
         return target == view or view.isParentOf(target)
     }
 
     mtd hitTest(ptLoc: Math.Point)->#null *PropertiesItem
     {
         let pt = ptLoc + .scrollWnd.getScrollPos()
-        for item in .items
+        for itemIt in .items
         {
+            let item = notnull itemIt
             if !item.line.isVisible() do
                 continue
             var r = item.line.position
@@ -129,16 +130,18 @@ internal impl Properties
             // Toggle/Expand
             if prop.isGridLike() and
                prop.selItem and
-               prop.selItem.numChilds
+               (notnull prop.selItem).numChilds
             {
-                prop.selItem.flags.toggle(.Expanded)
+                let selItem = notnull prop.selItem
+                selItem.flags.toggle(.Expanded)
                 prop.updateStates()
             }
 
             // Toggle checkbox
-            elif @isset(prop.selItem.checkBox)
+            elif @isset((notnull prop.selItem).checkBox)
             {
-                prop.selItem.checkBox.toggle()
+                let selItem = notnull prop.selItem
+                selItem.checkBox.toggle()
             }
 
         case MouseEvent as mouseEvt where mouseEvt.kind == .MouseReleased:

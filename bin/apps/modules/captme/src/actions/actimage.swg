@@ -203,7 +203,7 @@ impl MainWnd
             btn.userData   = cast(*void) id
             btn.sigChanged += func(btn)
             {
-                for c in btn.parent.childs
+                for c in (notnull btn.parent).childs
                 {
                     if c.userData
                     {

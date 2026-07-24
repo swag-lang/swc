@@ -18,7 +18,7 @@ struct AutoScopeRequest
 
 func semaTest001()
 {
-    var request: #null *AutoScopeRequest
+    var request: AutoScopeRequest
     if request.mode == .Realloc {}
 }
 

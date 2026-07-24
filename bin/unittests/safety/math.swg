@@ -54,7 +54,7 @@ func invalidConstantPow()->f64
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()
+    const cfg      = #run dref notnull @compiler.getBuildCfg()
     const expected = cfg.safetyGuards & Swag.SafetyWhat.Math ? true : false
     #assert(#safety(Swag.SafetyWhat.Math) == expected)
 }

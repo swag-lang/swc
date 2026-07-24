@@ -415,10 +415,11 @@ func paintBoard(paintEvt: *PaintEvent)
 
     var rect = Math.Rectangle{b, b + s, CellSize, b}
     var str: String = "A"
+    let buf = notnull str.buffer
 
     for column in 8
     {
-        str.buffer[0] = cast(u8) (65 + column)
+        buf[0] = cast(u8) (65 + column)
         rs.set(str)
         painter.drawRichString(rect, &rs, rsf)
         rect.x += CellSize
@@ -427,7 +428,7 @@ func paintBoard(paintEvt: *PaintEvent)
     rect = Math.Rectangle{0, b, b, CellSize}
     for row in 8
     {
-        str.buffer[0] = cast(u8) (56 - row)
+        buf[0] = cast(u8) (56 - row)
         rs.set(str)
         painter.drawRichString(rect, &rs, rsf)
         rect.y += CellSize
@@ -571,7 +572,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     var app: Gui.Application
     app.applyTestArgs()
 
-    let surface = try app.createSurface(100, 100, 978, 993, flags: (.OverlappedWindow & ~.Sizeable), hook: &onEvent)
+    let surface = notnull (try app.createSurface(100, 100, 978, 993, flags: (.OverlappedWindow & ~.Sizeable), hook: &onEvent))
     surface.setTitle("Chess")
 
     var dataPath: String = Path.getDirectoryName(#curlocation.fileName)

@@ -40,7 +40,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.selectedIdx == 1)
     @assert(ComboHeadlessChangedCount == 1)
     @assert(ComboHeadlessLastIdx == 1)
-    @assert(combo.getSelectedItem().name.raw == "Two")
+    @assert((notnull combo.getSelectedItem()).name.raw == "Two")
     @assert(host.commandCount == 1)
     @assert(host.lastCommand == ComboHeadless_Item2)
 
@@ -91,7 +91,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
 
     combo.selectItem(1)
     host.pump()
-    @assert(combo.editBox.getText() == "Beta")
+    @assert((notnull combo.editBox).getText() == "Beta")
 
     host.shutdown()
 }

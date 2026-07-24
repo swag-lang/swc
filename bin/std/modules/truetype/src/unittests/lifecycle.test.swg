@@ -6,25 +6,26 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var scope: FaceScope
     scope.init(fileName)
+    let face = notnull scope.face
 
     @assert(scope.bytes.count > 0)
-    @assert(scope.face.faceCount == 1)
-    @assert(scope.face.faceIndex == 0)
-    @assert(scope.face.glyphCount > 0)
-    @assert(!scope.face.familyName.isEmpty())
-    @assert(!scope.face.styleName.isEmpty())
-    @assert((scope.face.style & (.Bold | .Italic)) == expectedStyle)
+    @assert(face.faceCount == 1)
+    @assert(face.faceIndex == 0)
+    @assert(face.glyphCount > 0)
+    @assert(!face.familyName.isEmpty())
+    @assert(!face.styleName.isEmpty())
+    @assert((face.style & (.Bold | .Italic)) == expectedStyle)
 
-    let glyphA = scope.face.glyphIndex('A')
+    let glyphA = face.glyphIndex('A')
     @assert(glyphA > 0)
 
-    discard catch scope.face.setPixelSize(0, 18)
+    discard catch face.setPixelSize(0, 18)
     @assert(@err == null)
-    discard catch scope.face.loadGlyph(glyphA, .Render)
+    discard catch face.loadGlyph(glyphA, .Render)
     @assert(@err == null)
-    @assert(scope.face.glyph.bitmap.width > 0)
-    @assert(scope.face.glyph.bitmap.rows > 0)
-    @assert(countBitmapCoverage(&scope.face.glyph.bitmap) > 0)
+    @assert(face.glyph.bitmap.width > 0)
+    @assert(face.glyph.bitmap.rows > 0)
+    @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 }
 
 #test
@@ -45,30 +46,31 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var scope: FaceScope
     scope.init()
+    let face = notnull scope.face
 
     @assert(scope.bytes.count > 0)
-    @assert(scope.face.glyphCount > 0)
-    @assert(!scope.face.familyName.isEmpty())
-    @assert(!scope.face.styleName.isEmpty())
-    @assert(scope.face.unitsPerEm > 0)
-    @assert(scope.face.ascender > 0)
-    @assert(scope.face.descender < 0)
-    @assert(scope.face.maxAdvanceWidth > 0)
+    @assert(face.glyphCount > 0)
+    @assert(!face.familyName.isEmpty())
+    @assert(!face.styleName.isEmpty())
+    @assert(face.unitsPerEm > 0)
+    @assert(face.ascender > 0)
+    @assert(face.descender < 0)
+    @assert(face.maxAdvanceWidth > 0)
 
-    discard catch scope.face.setPixelSize(0, 16)
+    discard catch face.setPixelSize(0, 16)
     @assert(@err == null)
-    @assert(scope.face.size.metrics.xPpem == 16)
-    @assert(scope.face.size.metrics.yPpem == 16)
-    @assert(scope.face.size.metrics.ascender > 0)
-    @assert(scope.face.size.metrics.descender < 0)
-    @assert(scope.face.size.metrics.maxAdvance > 0)
+    @assert(face.size.metrics.xPpem == 16)
+    @assert(face.size.metrics.yPpem == 16)
+    @assert(face.size.metrics.ascender > 0)
+    @assert(face.size.metrics.descender < 0)
+    @assert(face.size.metrics.maxAdvance > 0)
 
-    discard catch scope.face.setPixelSize(24, 0)
+    discard catch face.setPixelSize(24, 0)
     @assert(@err == null)
-    @assert(scope.face.size.metrics.xPpem == 24)
-    @assert(scope.face.size.metrics.yPpem == 24)
+    @assert(face.size.metrics.xPpem == 24)
+    @assert(face.size.metrics.yPpem == 24)
 
-    discard catch scope.face.setPixelSize(0, 0)
+    discard catch face.setPixelSize(0, 0)
     @assert(@err != null)
 }
 

@@ -88,7 +88,8 @@ private impl FileBrowserCtrl
 
     mtd fillFileListFolders()
     {
-        var l = .treeCtrl.createLine("Shortcuts")
+        let treeCtrl = notnull .treeCtrl
+        var l        = treeCtrl.createLine("Shortcuts")
         l.separator = true
 
         for v in .options.shortcuts
@@ -96,13 +97,13 @@ private impl FileBrowserCtrl
             let c    = Env.getSpecialDirectory(v.type)
             var icon = .getApp().getSpecialDirectoryIcon(v.type, true)
             icon.color       = Pixel.Argb.White
-            l                = .treeCtrl.createLine(v.name, icon)
+            l                = treeCtrl.createLine(v.name, icon)
             l.userData0      = cast(#null *void) .treePathStr.count
             l.leftTextMargin = 10
             .treePathStr.add(c)
         }
 
-        l           = .treeCtrl.createLine("Drives")
+        l           = treeCtrl.createLine("Drives")
         l.separator = true
 
         let volumes = catch Directory.getDrives()
@@ -111,13 +112,13 @@ private impl FileBrowserCtrl
             v.removeBack()
             var icon = .getApp().getDirectoryIcon(v, true)
             icon.color       = Pixel.Argb.White
-            l                = .treeCtrl.createLine(v.toString(), icon)
+            l                = treeCtrl.createLine(v.toString(), icon)
             l.userData0      = cast(#null *void) .treePathStr.count
             l.leftTextMargin = 10
             .treePathStr.add(v)
         }
 
-        .treeCtrl.sigSelChanged += func|fileBrowser = me|(list)
+        treeCtrl.sigSelChanged += func|fileBrowser = me|(list)
         {
             var line = list.getSelectedLine()
             if !line do
@@ -156,7 +157,7 @@ private impl FileBrowserCtrl
                     let l = list.getFocusLine()
                     if !l do
                         break
-                    let fi = cast(#null const *FileInfo) l.userData0
+                    let fi = notnull cast(#null const *FileInfo) l.userData0
                     if fi.isDirectory()
                     {
                         fileBrowser.setCurFolder(fi.fullname)
@@ -173,7 +174,7 @@ private impl FileBrowserCtrl
                 var l = list.getSelectedLine()
                 if !l do
                     return
-                var fi = cast(#null const *FileInfo) l.userData0
+                var fi = notnull cast(#null const *FileInfo) l.userData0
                 if fi.isDirectory()
                 {
                     fileBrowser.setCurFolder(fi.fullname)
@@ -190,7 +191,7 @@ private impl FileBrowserCtrl
                 var txt: String
                 for l in sel
                 {
-                    let fi = cast(#null const *FileInfo) l.userData0
+                    let fi = notnull cast(#null const *FileInfo) (notnull l).userData0
                     if fi.isDirectory()
                     {
                         if fileBrowser.options.mode != .SelectFolder do
@@ -215,8 +216,8 @@ private impl FileBrowserCtrl
                 if l1 == null or l2 == null do
                     return 0
 
-                var fi1 = cast(#null *FileInfo) l1.userData0
-                var fi2 = cast(#null *FileInfo) l2.userData0
+                var fi1 = notnull cast(#null *FileInfo) l1.userData0
+                var fi2 = notnull cast(#null *FileInfo) l2.userData0
                 if fi1.isDirectory() and !fi2.isDirectory() do
                     return -1
                 if !fi1.isDirectory() and fi2.isDirectory() do
@@ -390,7 +391,7 @@ impl FileBrowserCtrl
         var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
-            let item        = .comboType.getSelectedItem()
+            let item        = notnull .comboType.getSelectedItem()
             let filterIndex = cast(u64) item.userData0
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions
@@ -461,7 +462,7 @@ impl FileBrowserCtrl
         var filterExtensions: #null string
         if me.options.mode != .SelectFolder and .options.filters.count
         {
-            let item        = .comboType.getSelectedItem()
+            let item        = notnull .comboType.getSelectedItem()
             let filterIndex = cast(u64) item.userData0
             if filterIndex < .options.filters.count do
                 filterExtensions = .options.filters[filterIndex].extensions

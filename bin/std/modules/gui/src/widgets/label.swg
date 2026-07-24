@@ -229,7 +229,7 @@ impl Label
             if rect.height <= 0 do
                 rect.height = .preferredSize.y
             if rect.height <= 0 do
-                rect.height = sf.font.regular.height
+                rect.height = (notnull sf.font.regular).height
 
             // The text is drawn inside paddingText, so wrap against that inset width (else a
             // padded label under-measures and clips), and add the vertical inset back in.
@@ -240,7 +240,7 @@ impl Label
 
             var height = .name.boundRect.height
             if !.name.isEmpty() do
-                height       = Math.max(height, sf.font.regular.height)
+                height       = Math.max(height, (notnull sf.font.regular).height)
             height           += .paddingText.y + .paddingText.w
             .position.height = height
             .preferredSize.y = height

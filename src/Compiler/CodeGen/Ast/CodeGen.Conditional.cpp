@@ -212,6 +212,36 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen)
     return Result::Continue;
 }
 
+namespace
+{
+    // Emit the lhs-selected value of a null-coalescing and fall through to the false
+    // label where the rhs will be produced. Shared by the truthiness-tested path and
+    // the fused '?.'-chain path.
+    void emitNullCoalescingSelectedLeft(CodeGen& codeGen, const NullCoalescingCodeGenPayload& state, const CodeGenNodePayload& leftPayload, TypeRef resultTypeRef, bool addressBacked)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        if (addressBacked)
+        {
+            const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
+            builder.emitLoadRegReg(resultPayload.reg, leftPayload.reg, MicroOpBits::B64);
+        }
+        else
+        {
+            const TypeInfo&     resultType    = codeGen.typeMgr().get(resultTypeRef);
+            const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
+            CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+            // The join register must match the result type's register class: a float
+            // selection materialized in an integer register would turn the branch
+            // moves into bit reinterprets and break every float consumer downstream.
+            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
+            emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state.doneLabel);
+        builder.placeLabel(state.falseLabel);
+    }
+}
+
 Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
@@ -227,6 +257,24 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     // callback is the lhs; the presence of lowering state identifies the rhs callback.
     if (state == nullptr)
     {
+        // Fused '?.' chain: the chain's null exit doubles as this coalescing's false
+        // label, and the produced value flows through untested (its own value may
+        // legitimately be zero or false).
+        OptionalChainCodeGenPayload* chainState = nullptr;
+        if (codeGen.node(resolvedChildRef).is(AstNodeId::OptionalChainExpr))
+            chainState = codeGen.safeNodePayload<OptionalChainCodeGenPayload>(resolvedChildRef);
+        if (chainState != nullptr && chainState->falseLabel.isValid())
+        {
+            NullCoalescingCodeGenPayload& newState = ensureNullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+            newState.falseLabel                    = chainState->falseLabel;
+            newState.doneLabel                     = chainState->doneLabel;
+            chainState->falseLabel                 = MicroLabelRef::invalid();
+            chainState->doneLabel                  = MicroLabelRef::invalid();
+
+            emitNullCoalescingSelectedLeft(codeGen, newState, codeGen.payload(resolvedChildRef), resultTypeRef, addressBacked);
+            return Result::Continue;
+        }
+
         const SemaNodeView        leftView    = codeGen.viewType(resolvedChildRef);
         const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedChildRef);
         const TypeRef             leftTypeRef = leftPayload.typeRef.isValid() ? leftPayload.typeRef : leftView.typeRef();
@@ -236,31 +284,15 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
 
         const MicroReg condReg = materializeTruthyOperand(codeGen, leftPayload, leftTypeRef);
 
-        NullCoalescingCodeGenPayload& state = ensureNullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
-        state.falseLabel                    = builder.createLabel();
-        state.doneLabel                     = builder.createLabel();
+        NullCoalescingCodeGenPayload& newState = ensureNullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+        newState.falseLabel                    = builder.createLabel();
+        newState.doneLabel                     = builder.createLabel();
 
         CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, leftType, condBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen, leftType, CodeGenCompareHelpers::falseyCondition(leftType), state.falseLabel);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, leftType, CodeGenCompareHelpers::falseyCondition(leftType), newState.falseLabel);
 
         // When the lhs is present, null-coalescing resolves immediately and the rhs is skipped entirely.
-        if (addressBacked)
-        {
-            const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
-            builder.emitLoadRegReg(resultPayload.reg, leftPayload.reg, MicroOpBits::B64);
-        }
-        else
-        {
-            const TypeInfo&     resultType    = codeGen.typeMgr().get(resultTypeRef);
-            const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
-            CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-            // Same register-class constraint as the conditional expression above.
-            resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef);
-            emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
-        }
-
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state.doneLabel);
-        builder.placeLabel(state.falseLabel);
+        emitNullCoalescingSelectedLeft(codeGen, newState, leftPayload, resultTypeRef, addressBacked);
         return Result::Continue;
     }
 
@@ -283,6 +315,87 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         eraseNullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
     }
 
+    return Result::Continue;
+}
+
+Result AstOptionalChainExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    SWC_UNUSED(childRef);
+
+    // Create the null exit before the chain body is generated: every '?.' link inside
+    // jumps here when its left side is null.
+    OptionalChainCodeGenPayload& state = codeGen.ensureNodePayload<OptionalChainCodeGenPayload>(codeGen.curNodeRef());
+    state.falseLabel                   = codeGen.builder().createLabel();
+    state.doneLabel                    = codeGen.builder().createLabel();
+    return Result::Continue;
+}
+
+Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
+    SWC_ASSERT(resolvedChildRef.isValid());
+
+    MicroBuilder&                builder = codeGen.builder();
+    OptionalChainCodeGenPayload* state   = codeGen.safeNodePayload<OptionalChainCodeGenPayload>(codeGen.curNodeRef());
+    SWC_ASSERT(state != nullptr && state->falseLabel.isValid());
+    const MicroLabelRef falseLabel = state->falseLabel;
+    const MicroLabelRef doneLabel  = state->doneLabel;
+
+    const TypeRef   chainTypeRef = codeGen.transparentPayloadTypeRef();
+    const TypeInfo& chainType    = codeGen.typeMgr().get(chainTypeRef);
+
+    // Statement chain: the null exit simply lands after the skipped call.
+    if (chainType.isVoid())
+    {
+        builder.placeLabel(falseLabel);
+        builder.placeLabel(doneLabel);
+        state->falseLabel = MicroLabelRef::invalid();
+        state->doneLabel  = MicroLabelRef::invalid();
+        return Result::Continue;
+    }
+
+    // Fused with 'orelse' (result type cannot carry the null outcome): forward the
+    // chain value untouched and leave the labels valid for the enclosing coalescing
+    // to adopt (see AstNullCoalescingExpr::codeGenPostNodeChild).
+    if (!chainType.isNullable())
+    {
+        codeGen.inheritPayload(codeGen.curNodeRef(), resolvedChildRef, chainTypeRef);
+        return Result::Continue;
+    }
+
+    // Standalone nullable result: join the produced value with a materialized null.
+    const CodeGenNodePayload& childPayload = codeGen.payload(resolvedChildRef);
+    if (usesAddressBackedSelection(codeGen, chainTypeRef))
+    {
+        const uint64_t chainSize = chainType.sizeOf(codeGen.ctx());
+        SWC_ASSERT(chainSize % 8 == 0);
+        const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), chainTypeRef);
+        builder.emitLoadRegReg(resultPayload.reg, childPayload.reg, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(falseLabel);
+        const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+        for (uint64_t offset = 0; offset < chainSize; offset += 8)
+            builder.emitLoadMemImm(storageReg, offset, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitLoadRegReg(resultPayload.reg, storageReg, MicroOpBits::B64);
+        builder.placeLabel(doneLabel);
+    }
+    else
+    {
+        const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(chainType, codeGen.ctx());
+        CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), chainTypeRef);
+        resultPayload.reg                 = codeGen.nextVirtualRegisterForType(chainTypeRef);
+        emitSelectedOperand(codeGen, resultPayload, childPayload, resultBits);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+        builder.placeLabel(falseLabel);
+        builder.emitClearReg(resultPayload.reg, resultBits);
+        builder.placeLabel(doneLabel);
+    }
+
+    // The chain owns its own join; nothing is left for a parent to adopt.
+    state = codeGen.safeNodePayload<OptionalChainCodeGenPayload>(codeGen.curNodeRef());
+    SWC_ASSERT(state != nullptr);
+    state->falseLabel = MicroLabelRef::invalid();
+    state->doneLabel  = MicroLabelRef::invalid();
     return Result::Continue;
 }
 

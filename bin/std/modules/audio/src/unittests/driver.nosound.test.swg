@@ -33,13 +33,13 @@ func audioStartNoSoundEngine()
     audioStartNoSoundEngine()
     defer destroyEngine()
 
-    let root = catch Bus.create(2)
+    let root = notnull catch Bus.create(2)
     @assert(@err == null)
-    let child = catch Bus.create(1, root)
+    let child = notnull catch Bus.create(1, root)
     @assert(@err == null)
 
-    let rootHandle = cast(#null *NoSoundBus) root.handle
-    let childHandle = cast(#null *NoSoundBus) child.handle
+    let rootHandle = cast(*NoSoundBus) notnull root.handle
+    let childHandle = cast(*NoSoundBus) notnull child.handle
     @assert(rootHandle.numChannels == 2)
     @assert(rootHandle.parent == null)
     @assert(childHandle.numChannels == 1)
@@ -77,10 +77,9 @@ func audioStartNoSoundEngine()
     var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     @assert(@err == null)
 
-    let voice = catch Voice.create(&file)
+    let voice = notnull catch Voice.create(&file)
     @assert(@err == null)
-    let handle = cast(#null *NoSoundVoice) voice.handle
-    @assert(handle != null)
+    let handle = cast(*NoSoundVoice) notnull voice.handle
     @assert(voice.requestedEncoding == .Pcm16)
     @assert(!voice.isPlaying())
 
@@ -150,9 +149,9 @@ func audioStartNoSoundEngine()
     var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     @assert(@err == null)
 
-    let voice = catch Voice.create(&file)
+    let voice = notnull catch Voice.create(&file)
     @assert(@err == null)
-    let handle = cast(#null *NoSoundVoice) voice.handle
+    let handle = cast(*NoSoundVoice) notnull voice.handle
 
     discard catch voice.play()
     @assert(@err == null)

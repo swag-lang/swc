@@ -43,25 +43,25 @@ impl IActionUI for ActionAlign
         case SendToFront:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Send To Front"
-            evt.disabled = !hasSel or capture.selection.contains(capture.forms.count - 1)
+            evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
             evt.icon     = main.getTheme().getIcon24(.BringToFront)
 
         case SendToBack:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Send To Back"
-            evt.disabled = !hasSel or capture.selection.contains(0)
+            evt.disabled = !hasSel or (notnull capture).selection.contains(0)
             evt.icon     = main.getTheme().getIcon24(.SendToBack)
 
         case MoveForward:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Move Forward"
-            evt.disabled = !hasSel or capture.selection.contains(capture.forms.count - 1)
+            evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
             evt.icon     = main.getTheme().getIcon24(.BringForward)
 
         case MoveBackward:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Move Backward"
-            evt.disabled = !hasSel or capture.selection.contains(0)
+            evt.disabled = !hasSel or (notnull capture).selection.contains(0)
             evt.icon     = main.getTheme().getIcon24(.SendBackward)
         }
 

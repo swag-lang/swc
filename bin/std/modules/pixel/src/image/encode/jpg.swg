@@ -235,8 +235,8 @@ impl Encoder
             yDiv8 = .imageY
 
         .bufferRGB.resize(cast(u64) xDiv8 * yDiv8)
-        let pdst = .bufferRGB.buffer
-        var pref = image.pixels.buffer
+        let pdst = notnull .bufferRGB.buffer
+        var pref = notnull image.pixels.buffer
 
         for nrline in .imageY
         {
@@ -431,20 +431,23 @@ impl Encoder
     #[Swag.Inline]
     mtd writeByte(b: u8)
     {
-        .stream.addNative(b)
+        let stream = notnull .stream
+        stream.addNative(b)
     }
 
     #[Swag.Inline]
     mtd writeWord(w: u16)
     {
-        .stream.addNative(cast(u8) (w >> 8))
-        .stream.addNative(cast(u8) (w & 0xFF))
+        let stream = notnull .stream
+        stream.addNative(cast(u8) (w >> 8))
+        stream.addNative(cast(u8) (w & 0xFF))
     }
 
     #[Swag.Inline]
     mtd writeBytes(s: const [..] u8)
     {
-        .stream.addBytes(s)
+        let stream = notnull .stream
+        stream.addBytes(s)
     }
 
     mtd writeBits(bs: BitString)
@@ -549,7 +552,7 @@ impl Encoder
     {
         var pos      = 0
         var location = cast(s32) ypos * .imageX + xpos
-        let pdst     = .bufferRGB.buffer
+        let pdst     = notnull .bufferRGB.buffer
 
         for y in 8
         {
@@ -687,9 +690,11 @@ impl Encoder
             .writeBits(hTDC[0])
         else
         {
-            let diffc = cast #bit (u64) cast(s64) diff     // If negative
-            .writeBits(hTDC[.category[diffc]])
-            .writeBits(.bitcode[diffc])
+            let diffc    = cast #bit (u64) cast(s64) diff     // If negative
+            let category = notnull .category
+            let bitcode  = notnull .bitcode
+            .writeBits(hTDC[category[diffc]])
+            .writeBits(bitcode[diffc])
         }
 
         var end0pos = 63
@@ -716,9 +721,11 @@ impl Encoder
                 nrzeroes = nrzeroes % 16
             }
 
-            let offc = cast #bit (u64) cast(s64) .du[i]     // If negative
-            .writeBits(hTAC[nrzeroes * 16 + .category[offc]])
-            .writeBits(.bitcode[offc])
+            let offc     = cast #bit (u64) cast(s64) .du[i]     // If negative
+            let category = notnull .category
+            let bitcode  = notnull .bitcode
+            .writeBits(hTAC[nrzeroes * 16 + category[offc]])
+            .writeBits(bitcode[offc])
             i += 1
         }
 

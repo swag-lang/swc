@@ -8,7 +8,7 @@ impl Properties
             if .fieldIsMixed(item) do
                 item.checkBox.checked = .Undefined
             else do
-                item.checkBox.checked = dref cast(#null *bool) item.data ? .Checked : .UnChecked
+                item.checkBox.checked = (dref notnull cast(#null *bool) item.data) ? .Checked : .UnChecked
             item.checkBox.invalidate()
         }
         elif @isset(item.comboBox)
@@ -17,13 +17,13 @@ impl Properties
             if .fieldIsMixed(item) do
                 item.comboBox.selectItem(Swag.U32.Max)
             else do
-                item.comboBox.selectItem(dref cast(#null *bool) item.data ? 1 : 0)
+                item.comboBox.selectItem((dref notnull cast(#null *bool) item.data) ? 1 : 0)
         }
     }
 
     mtd validateBool(item: *PropertiesItem)
     {
-        var data = cast(#null *bool) item.data
+        var data = notnull cast(#null *bool) item.data
         if @isset(item.checkBox) do
             dref data = item.checkBox.checked == .Checked ? true : false
         elif @isset(item.comboBox)

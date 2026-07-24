@@ -55,7 +55,8 @@ public impl MessageDlg
     mtd doModal(from: *Surface)->WndId
     {
         .adaptSizeToMessage()
-        .surface.center(from)
+        let srf = notnull .surface
+        srf.center(from)
         return Dialog.doModal(me)
     }
 
@@ -99,21 +100,23 @@ public impl MessageDlg
             h += metrics.dialog_Padding
         h     += .wndBottom.position.height
         h     += 2 * metrics.wnd_BorderSize
-        if .surface.flags & .SmallCaption do
+        let srf = notnull .surface
+        if srf.flags & .SmallCaption do
             h += metrics.wnd_SmallCaptionCY
-        elif .surface.flags & .BigCaption do
+        elif srf.flags & .BigCaption do
             h += metrics.wnd_BigCaptionCY
 
-        if .extension do
-            h += .extension.position.height
+        let ext = .extension
+        if ext do
+            h += ext.position.height
 
-        var pos = .surface.position
+        var pos = srf.position
         pos.width  = w
         pos.height = h
-        let sdw = .surface.app.theme.metrics.surfaceWnd_ShadowSize
+        let sdw = srf.app.theme.metrics.surfaceWnd_ShadowSize
         pos.width  += sdw * 2
         pos.height += sdw * 2
-        .surface.setPosition(pos)
+        srf.setPosition(pos)
     }
 
     // Add a bottom extended window
@@ -139,7 +142,7 @@ public impl MessageDlg
             return
 
         if !@isset(.labelIcon) do
-            .labelIcon   = Label.create(.surface.wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
+            .labelIcon   = Label.create((notnull .surface).wnd.view, "", {0, 0, 0, icon.sizeX + icon.sizeX * 0.5})
         .label.padding.y = 0
 
         with me.labelIcon
@@ -187,7 +190,8 @@ public impl MessageDlg
 
         with let dlg = create(from, message, opt)
         {
-            .surface.setTitle(title)
+            let srf = notnull .surface
+            srf.setTitle(title)
             .addButton("Yes", Dialog.BtnYes, defaultId == Dialog.BtnYes)
             .addButton("No", Dialog.BtnNo, defaultId == Dialog.BtnNo)
         }
@@ -254,7 +258,8 @@ public impl MessageDlg
 
         with let dlg = create(from, txt.toString(), opt)
         {
-            .surface.setTitle("Error")
+            let srf = notnull .surface
+            srf.setTitle("Error")
             .addButton("OK", Dialog.BtnOk, true)
         }
 

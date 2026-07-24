@@ -2,29 +2,31 @@ using Core, Gui, Pixel
 
 func createContextMenuModel(parent: *Wnd)
 {
-    g_ContextMenu = createTrackedPopup(parent)
-    g_ContextMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.getIcon24(.Search, 18))
-    g_ContextMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.getIcon24(.Edit, 18))
-    g_ContextMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.getIcon24(.Link, 18))
-    g_ContextMenu.addSeparator()
+    let ctxMenu = createTrackedPopup(parent)
+    g_ContextMenu = ctxMenu
+    ctxMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.getIcon24(.Search, 18))
+    ctxMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.getIcon24(.Edit, 18))
+    ctxMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.getIcon24(.Link, 18))
+    ctxMenu.addSeparator()
 
     let alignMenu = createTrackedPopup(parent)
     alignMenu.addItem("Align left", MenuCmd.AlignLeft)
     alignMenu.addItem("Align center", MenuCmd.AlignCenter)
     alignMenu.addItem("Align right", MenuCmd.AlignRight)
-    g_ContextMenu.addPopup("Align", alignMenu)
+    ctxMenu.addPopup("Align", alignMenu)
 
-    g_ContextMenu.addSeparator()
-    g_ContextMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.getIcon24(.Download, 18))
-    g_ContextMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.getIcon24(.Remove, 18))
+    ctxMenu.addSeparator()
+    ctxMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.getIcon24(.Download, 18))
+    ctxMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.getIcon24(.Remove, 18))
 }
 
 func showContextMenuAt(pt: Math.Point)
 {
-    if !g_ContextMenu do
+    let menu = g_ContextMenu
+    if !menu do
         return
 
-    discard g_ContextMenu.doModal(pt)
+    discard menu.doModal(pt)
 }
 
 func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool

@@ -47,11 +47,14 @@ impl RecentView
         let view = .main.editWnd.editView
 
         // Save current zoom
-        if .selected < .items.count do
-            .items[.selected].zoom = view.zoom
+        if .selected < .items.count
+        {
+            let sel = notnull .items[.selected]
+            sel.zoom = view.zoom
+        }
 
         // Select new recent item
-        let item    = .items[idx]
+        let item    = notnull .items[idx]
         let capture: #null *Capture = catch Capture.load(item.file)
         if capture
         {
@@ -86,7 +89,7 @@ impl IWnd for RecentView
         var ht = Swag.U64.Max
         for i, idx in .items
         {
-            if i.rect.contains(pos)
+            if (notnull i).rect.contains(pos)
             {
                 ht = idx
                 break
@@ -159,11 +162,11 @@ impl IWnd for RecentView
         if infos.linked != null
         {
             let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
-            var icon11    = Icon.from(&g_Main.icons48, 21)
+            var icon11    = Icon.from(&(notnull g_Main).icons48, 21)
             icon11.sizeX, icon11.sizeY = 24
             icon11.paint(painter, rect.x + 4, rect.y + 4, backColor)
 
-            var icon12 = Icon.from(&g_Main.icons48, 22)
+            var icon12 = Icon.from(&(notnull g_Main).icons48, 22)
             icon12.sizeX, icon12.sizeY = 24
             icon12.paint(painter, rect.x + 4, rect.y + 4, backColor.getContrasting())
 
@@ -186,20 +189,21 @@ impl IWnd for RecentView
         var x = clientRect.x
         for item, idx in .items
         {
-            let w = clientRect.height * 4.0 / 3
+            let it = notnull item
+            let w  = clientRect.height * 4.0 / 3
 
             let rect = Math.Rectangle{x, clientRect.y, w, clientRect.height}
-            item.rect = rect
+            it.rect = rect
 
             with var infos: RecentInfos
             {
                 .hot            = idx == me.hotItem
                 .selected       = idx == me.selected
-                .linkedUpToDate = item.linkedUpToDate
-                .linked         = item.linked
+                .linkedUpToDate = it.linkedUpToDate
+                .linked         = it.linked
             }
 
-            paintRecent(me, painter, item.preview, rect, infos)
+            paintRecent(me, painter, it.preview, rect, infos)
             x = rect.right() + RecentPadding
         }
 
@@ -259,7 +263,7 @@ impl IWnd for RecentWnd
             if .recentView.selected != Swag.U64.Max and .recentView.selected < .recentView.items.count
             {
                 capture.computePreview()
-                let item = .recentView.items[.recentView.selected]
+                let item = notnull .recentView.items[.recentView.selected]
                 .getApp().getRenderer().removeTexture(&item.preview)
                 item.preview = .getApp().getRenderer().addImage(capture.preview)
                 .invalidate()
@@ -316,7 +320,7 @@ impl RecentWnd
         {
             for it, i in self.recentView.items
             {
-                if it.file == file
+                if (notnull it).file == file
                 {
                     // Remove from recent
                     self.recentView.items.deletePtr(it)
@@ -398,7 +402,7 @@ impl RecentWnd
         if !capture do
             return
 
-        let item = .recentView.items[.recentView.selected]
+        let item = notnull .recentView.items[.recentView.selected]
         item.linked         = capture.linkedImage
         item.linkedUpToDate = capture.linkedUpToDate
         .invalidate()
@@ -409,7 +413,7 @@ impl RecentWnd
         if .recentView.selected >= .recentView.items.count do
             return
 
-        let item = .recentView.items[.recentView.selected]
+        let item = notnull .recentView.items[.recentView.selected]
 
         // Be sure there's no pending save
         if .timer do
@@ -429,7 +433,7 @@ impl RecentWnd
         // Too much recent. Remove the oldest
         if front and .recentView.items.count > MaxRecent
         {
-            let back = .recentView.items.back()
+            let back = notnull .recentView.items.back()
             if back.preview.isValid() do
                 .getApp().getRenderer().removeTexture(&back.preview)
             .recentView.items.deletePtr(back)
@@ -444,7 +448,8 @@ impl RecentWnd
         // Already there ?
         for it, i in .recentView.items
         {
-            if it.file == file
+            let itn = notnull it
+            if itn.file == file
             {
                 var idxSel = i
 
@@ -461,7 +466,7 @@ impl RecentWnd
                 if sel do
                     .recentView.select(idxSel, true)
 
-                it.linked = linked
+                itn.linked = linked
                 return
             }
         }

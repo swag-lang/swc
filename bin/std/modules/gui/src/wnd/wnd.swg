@@ -334,10 +334,10 @@ impl Wnd
         mtd getApp()          => (notnull .surface).app
         mtd getTopView()      => (notnull .surface).wnd.view
         mtd getTopWnd()       => (notnull .surface).wnd
-        mtd getTheme()        => .style.refr.theme
-        mtd getThemeMetrics() => &.style.refr.theme.metrics
-        mtd getThemeColors()  => &.style.refr.theme.colors
-        mtd getThemeRects()   => &.style.refr.theme.rects
+        mtd getTheme()        => (notnull .style.refr).theme
+        mtd getThemeMetrics() => &(notnull .style.refr).theme.metrics
+        mtd getThemeColors()  => &(notnull .style.refr).theme.colors
+        mtd getThemeRects()   => &(notnull .style.refr).theme.rects
         mtd getTiming()       => &(notnull .surface).app.timing
         mtd getFont()         => .style.getFont()
     }
@@ -380,6 +380,7 @@ impl Wnd
     // Destroy the window
     mtd destroyNow()
     {
+        let srfn = notnull .surface
         Debug.assert(!.isPendingDestroy)
 
         // Each child's destroyWnd removes it from '.childs': iterating the array while it
@@ -387,19 +388,20 @@ impl Wnd
         while .childs.count do
             .childs.back().destroyNow()
 
-        .surface.app.destroyWnd(me)
+        srfn.app.destroyWnd(me)
     }
 
     // Destroy the window
     mtd destroy()
     {
+        let srfn = notnull .surface
         .wndFlags.add(.Hidden)
         if .isPendingDestroy do
             return
         .isPendingDestroy = true
         for c in .childs do
             c.destroy()
-        .surface.app.postDestroy.add(me)
+        srfn.app.postDestroy.add(me)
         .invalidate()
 
         if .parent and !.parent.isPendingDestroy do
@@ -475,7 +477,8 @@ impl Wnd
         if !.wndFlags.has(.Hidden) do
             return
         .wndFlags.remove(.Hidden)
-        .parent.invalidate()
+        let parent = notnull .parent
+        parent.invalidate()
     }
 
     // Hide the window
@@ -486,7 +489,8 @@ impl Wnd
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
         .getApp().unregisterWnd(me)
-        .parent.invalidate()
+        let parent = notnull .parent
+        parent.invalidate()
     }
 
     // Enable/Disable the window
@@ -572,8 +576,9 @@ impl Wnd
 
     mtd computeStyle()
     {
-        if .surface do
-            .style.compute(me, &(.surface).app.style)
+        let srf = .surface
+        if srf do
+            .style.compute(me, &srf.app.style)
     }
 
     mtd paint(bc: *PaintContext)
@@ -672,15 +677,17 @@ impl Wnd
         var rect = .getSurfaceRect()
         rect.applyPadding(.invalidatePadding)
         rect.applyPadding({-32, -32, -32, -32})
-        if .surface do
-            .surface.invalidateRect(rect)
+        let srf = .surface
+        if srf do
+            srf.invalidateRect(rect)
     }
 
     // Force o local position to be repainted
     mtd invalidateRect(rect: Math.Rectangle)
     {
-        if .surface do
-            .surface.invalidateRect(.localToSurface(rect))
+        let srf = .surface
+        if srf do
+            srf.invalidateRect(.localToSurface(rect))
     }
 
     //////////////////////////////////////////////
@@ -765,7 +772,8 @@ impl Wnd
 
     mtd dumpLayoutTree()
     {
-        if .surface and !.surface.app.options.dumpLayoutTree do
+        let srf = .surface
+        if srf and !srf.app.options.dumpLayoutTree do
             return
         .dumpLayoutTreeNode(0)
     }
@@ -798,21 +806,22 @@ impl Wnd
     // Be sure rect is fully inside the parent rectangle (if possible)
     mtd fitPosInParent(marginW, marginH: f32 = 0, simX, simY = false)
     {
-        var pos = .position
-        if pos.x + pos.width > .parent.position.width - marginW
+        let parent = notnull .parent
+        var pos    = .position
+        if pos.x + pos.width > parent.position.width - marginW
         {
             if simX do
                 pos.x -= (pos.width + marginH)
             else do
-                pos.x = .parent.position.width - pos.width - marginW
+                pos.x = parent.position.width - pos.width - marginW
         }
 
-        if pos.y + pos.height > .parent.position.height - marginH
+        if pos.y + pos.height > parent.position.height - marginH
         {
             if simY do
                 pos.y -= (pos.height + marginH)
             else do
-                pos.y = .parent.position.height - pos.height - marginH
+                pos.y = parent.position.height - pos.height - marginH
         }
 
         if pos != .position do
@@ -822,7 +831,8 @@ impl Wnd
     // Convert a screen coordinate to a surface coordinate (relative to my surface)
     mtd const screenToSurface(pos: Math.Point)->Math.Point
     {
-        return {pos.x - .surface.position.x, pos.y - .surface.position.y}
+        let srfn = notnull .surface
+        return {pos.x - srfn.position.x, pos.y - srfn.position.y}
     }
 
     // Convert a surface coordinate to a local coordinate (relative to me)
@@ -940,32 +950,32 @@ impl Wnd
     // Force the window to be the first painted (before all siblings)
     mtd bringToFront()
     {
-        Debug.assert(.parent != null)
-        if .parent.childs.front() == me do
+        let parent = notnull .parent
+        if parent.childs.front() == me do
             return
 
-        let idx = Slice.findLinear(.parent.childs.toSlice(), me)
+        let idx = Slice.findLinear(parent.childs.toSlice(), me)
         Debug.assert(idx != Swag.U64.Max)
 
-        .parent.childs.removeAtOrdered(idx)
-        .parent.childs.insertAt(0, me)
+        parent.childs.removeAtOrdered(idx)
+        parent.childs.insertAt(0, me)
     }
 
     // Force the window to be the last painted (on top of siblings)
     mtd bringToTop()
     {
-        Debug.assert(.parent != null)
-        if .parent.childs.back() == me do
+        let parent = notnull .parent
+        if parent.childs.back() == me do
             return
 
-        let idx = Slice.findLinear(.parent.childs.toSlice(), me)
+        let idx = Slice.findLinear(parent.childs.toSlice(), me)
         Debug.assert(idx != Swag.U64.Max)
 
         // Put the window at the back, or just before the first topmost window
-        var idxToReplace = .parent.childs.count - 1
+        var idxToReplace = parent.childs.count - 1
         if !.wndFlags.has(.TopMost)
         {
-            let firstTopMost = .parent.firstTopMostIndex()
+            let firstTopMost = parent.firstTopMostIndex()
             if firstTopMost != Swag.U64.Max do
                 idxToReplace = firstTopMost - 1
         }
@@ -973,7 +983,7 @@ impl Wnd
         if idx == idxToReplace do
             return
 
-        swap(notnull .parent.childs.buffer + idx, notnull .parent.childs.buffer + idxToReplace)
+        swap((notnull parent.childs.buffer) + idx, (notnull parent.childs.buffer) + idxToReplace)
     }
 
     // Move and size the wnd
@@ -1267,17 +1277,20 @@ impl Wnd
 
     mtd captureMouse()
     {
-        .surface.app.captureMouse(me)
+        let srfn = notnull .surface
+        srfn.app.captureMouse(me)
     }
 
     mtd releaseMouse()
     {
-        .surface.app.releaseMouse()
+        let srfn = notnull .surface
+        srfn.app.releaseMouse()
     }
 
     mtd getMouseCapture()->#null *Wnd
     {
-        return .surface.app.getMouseCapture()
+        let srfn = notnull .surface
+        return srfn.app.getMouseCapture()
     }
 
     //////////////////////////////////////////////
@@ -1287,12 +1300,13 @@ impl Wnd
     // Set the keyboard focus
     mtd setFocus()
     {
-        if .surface.app.keybFocusWnd == me do
+        let srfn = notnull .surface
+        if srfn.app.keybFocusWnd == me do
             return
         if !.isEnabled() do
             return
 
-        let last = .surface.app.keybFocusWnd
+        let last = srfn.app.keybFocusWnd
 
         // Ask the window with the current focus if we can steal it
         if last
@@ -1320,10 +1334,10 @@ impl Wnd
             last.ownerNotifyEvent(.ChildFocusChanged)
         }
 
-        .surface.setFocus()
+        srfn.setFocus()
 
         var evt = FocusEvent{kind: FocusEvent.Kind.SetFocus, other: last}
-        .surface.app.keybFocusWnd = me
+        srfn.app.keybFocusWnd = me
         .sendEvent(&evt)
         .invalidate()
 
@@ -1409,14 +1423,16 @@ impl Wnd
 
     mtd postQuitEvent()
     {
-        .surface.app.postQuitEvent()
+        let srfn = notnull .surface
+        srfn.app.postQuitEvent()
     }
 
     mtd postEvent(evt: IEvent)
     {
-        let ptr = evt as Event
+        let srfn = notnull .surface
+        let ptr = notnull (evt as Event)
         ptr.target = me
-        .surface.app.postEvent(evt)
+        srfn.app.postEvent(evt)
     }
 
     mtd postInvalidateEvent()
@@ -1427,9 +1443,10 @@ impl Wnd
 
     mtd sendEvent(evt: IEvent)
     {
-        let ptr = evt as Event
+        let srfn = notnull .surface
+        let ptr = notnull (evt as Event)
         ptr.target = me
-        .surface.app.sendEvent(evt)
+        srfn.app.sendEvent(evt)
     }
 
     mtd sendStateEvent(kind: StateEvent.Kind)

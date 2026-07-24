@@ -435,11 +435,12 @@ impl Polygon
 
         var first = true
         var lastC = 0'f32
+        let pbuf  = notnull .points.buffer
         while q < n
         {
             // Convex
-            let v  = .points.buffer[(q + 2) % .points.count] - .points.buffer[(q + 1) % .points.count]
-            let v1 = .points.buffer[(q + 1) % .points.count] - .points.buffer[(q + 0) % .points.count]
+            let v  = pbuf[(q + 2) % .points.count] - pbuf[(q + 1) % .points.count]
+            let v1 = pbuf[(q + 1) % .points.count] - pbuf[(q + 0) % .points.count]
             let c  = v.cross(v1)
             if first
             {

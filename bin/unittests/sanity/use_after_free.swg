@@ -17,7 +17,8 @@ func myAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
     req.size = size
-    @getcontext().allocator.alloc(&req)
+    let allocItf = notnull @getcontext().allocator
+    allocItf.alloc(&req)
     return notnull req.address
 }
 
@@ -27,7 +28,8 @@ func myFree(ptr: *void, size: u64)
     var req: AllocatorRequest
     req.address = ptr
     req.size    = size
-    @getcontext().allocator.free(&req)
+    let allocItf = notnull @getcontext().allocator
+    allocItf.free(&req)
 }
 
 // Read after free.
@@ -68,7 +70,8 @@ func rejectFreeBorrowed()
     var req:   AllocatorRequest
     req.address = &value
     req.size    = #sizeof(s32)
-    @getcontext().allocator.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
+    let allocItf = notnull @getcontext().allocator
+    allocItf.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 
 // Reassigning the pointer revalidates it.

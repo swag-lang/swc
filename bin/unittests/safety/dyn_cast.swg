@@ -18,7 +18,7 @@ func dynCastSafetyEnabled()->bool
 
 #test
 {
-    const cfg      = #run dref @compiler.getBuildCfg()
+    const cfg      = #run dref notnull @compiler.getBuildCfg()
     const expected = cfg.safetyGuards & Swag.SafetyWhat.DynCast ? true : false
     #assert(#safety(Swag.SafetyWhat.DynCast) == expected)
 }

@@ -59,7 +59,7 @@ impl MainWnd
 
     mtd pixSelFill()
     {
-        .pixSelSetPixels(g_Main.pixSelFillCol.argb)
+        .pixSelSetPixels((notnull g_Main).pixSelFillCol.argb)
     }
 
     // Set every pixel inside the pixel selection to the given color
@@ -82,12 +82,13 @@ impl MainWnd
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) notnull userData
+            let boundRects = notnull p.boundRects
             for f, idx in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
                 pt.y += p.capture.backImagePos.y
-                if !p.boundRects[idx].contains(pt) do
+                if !boundRects[idx].contains(pt) do
                     continue
 
                 if f.isInside(pt)
@@ -182,17 +183,18 @@ impl MainWnd
         undo.newImg.visitPixels(&params)
         {
             var p = cast(*#decltype(params)) notnull userData
+            let infos = notnull p.infos
             for f, idx in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
                 pt.y += p.capture.backImagePos.y
-                if !p.infos[idx].boundRect.contains(pt) do
+                if !infos[idx].boundRect.contains(pt) do
                     continue
 
                 if f.isInside(pt)
                 {
-                    let p1   = p.infos[idx].boundCols[x]
+                    let p1   = infos[idx].boundCols[x]
                     let col1 = p1.col1
                     let col2 = p1.col2
                     let y1   = p1.y1
@@ -202,13 +204,14 @@ impl MainWnd
                         // Store pixel mask
                         if p.masks
                         {
-                            let xx    = cast(s32) (pt.x - p.infos[idx].boundRect.x)
-                            var yy    = cast(s32) (pt.y - p.infos[idx].boundRect.y)
-                            let pmask = p.masks.buffer + idx
+                            let masks = notnull p.masks
+                            let xx    = cast(s32) (pt.x - infos[idx].boundRect.x)
+                            var yy    = cast(s32) (pt.y - infos[idx].boundRect.y)
+                            let pmask = (notnull masks.buffer) + idx
                             yy = pmask.height - yy
                             if xx < pmask.width and yy < pmask.height
                             {
-                                var pix1 = pmask.pixels.buffer + xx * pmask.bpp8
+                                var pix1 = (notnull pmask.pixels.buffer) + xx * pmask.bpp8
                                 pix1                         += yy * pmask.width * pmask.bpp8
                                 dref cast(*u32) notnull pix1 = 0xFFFFFFFF
                             }

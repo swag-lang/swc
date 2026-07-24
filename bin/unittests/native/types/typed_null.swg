@@ -56,7 +56,8 @@ func typedNullSliceConditional(flag: bool)->bool
     let resolved = flag ? left : right
     if flag do
         return resolved == null and @countof(resolved) == 0
-    return @countof(resolved) == 2 and resolved[0] == 7 and resolved[1] == 8
+    let vals = notnull resolved
+    return @countof(vals) == 2 and vals[0] == 7 and vals[1] == 8
 }
 
 func typedNullDataOf()->bool

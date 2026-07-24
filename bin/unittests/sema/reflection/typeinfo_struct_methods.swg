@@ -133,9 +133,11 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
     if expectedCount == 0 do
         return true
 
-    return info.methods[0].name == expectedName and
-           info.methods[0].pointedType.kind == .Func and
-           info.methods[0].value != null
+    let methods = notnull info.methods
+    let m0Type  = methods[0].pointedType
+    return methods[0].name == expectedName and
+           m0Type != null and m0Type.kind == .Func and
+           methods[0].value != null
 }
 
 func hasMethodNamed(type: typeinfo, expectedName: string)->bool
@@ -156,12 +158,16 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
     if @countof(info.methods) != 1 do
         return false
 
-    let methodInfo = info.methods[0]
+    let methodInfo = (notnull info.methods)[0]
     let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
+    if methodType == null do
+        return false
+    let params = methodType.parameters
     if methodInfo.name != "ping" or
-       methodInfo.pointedType.kind != .Func or
-       @countof(methodType.parameters) != 1 or
-       methodType.parameters[0].pointedType != #type const &SimpleMethodProbe or
+       methodType.kind != .Func or
+       params == null or
+       @countof(params) != 1 or
+       params[0].pointedType != #type const &SimpleMethodProbe or
        methodType.returnType != s32 or
        methodInfo.value == null do
         return false
@@ -177,13 +183,17 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
     if @countof(info.methods) != 1 do
         return false
 
-    let methodInfo = info.methods[0]
+    let methodInfo = (notnull info.methods)[0]
     let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
+    if methodType == null do
+        return false
+    let params = methodType.parameters
     if methodInfo.name != "copyFrom" or
-       methodInfo.pointedType.kind != .Func or
-       @countof(methodType.parameters) != 2 or
-       methodType.parameters[0].pointedType != #type &GenericMethodProbe's32 or
-       methodType.parameters[1].pointedType != #type const [..] s32 or
+       methodType.kind != .Func or
+       params == null or
+       @countof(params) != 2 or
+       params[0].pointedType != #type &GenericMethodProbe's32 or
+       params[1].pointedType != #type const [..] s32 or
        methodType.returnType != s32 or
        methodInfo.value == null do
         return false
@@ -201,48 +211,59 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if @countof(info.methods) != 4 do
         return false
 
-    let scaleInfo = info.methods[0]
-    let addInfo = info.methods[1]
-    let scaledInfo = info.methods[2]
-    let scoreInfo = info.methods[3]
+    let methods    = notnull info.methods
+    let scaleInfo  = methods[0]
+    let addInfo    = methods[1]
+    let scaledInfo = methods[2]
+    let scoreInfo  = methods[3]
 
-    let scaleType = cast(#null const *Swag.TypeInfoFunc) scaleInfo.pointedType
-    let addType = cast(#null const *Swag.TypeInfoFunc) addInfo.pointedType
+    let scaleType  = cast(#null const *Swag.TypeInfoFunc) scaleInfo.pointedType
+    let addType    = cast(#null const *Swag.TypeInfoFunc) addInfo.pointedType
     let scaledType = cast(#null const *Swag.TypeInfoFunc) scaledInfo.pointedType
-    let scoreType = cast(#null const *Swag.TypeInfoFunc) scoreInfo.pointedType
+    let scoreType  = cast(#null const *Swag.TypeInfoFunc) scoreInfo.pointedType
+    if scaleType == null or addType == null or scaledType == null or scoreType == null do
+        return false
 
+    let scaleParams = scaleType.parameters
     if scaleInfo.name != "scaleValue" or
-       scaleInfo.pointedType.kind != .Func or
-       @countof(scaleType.parameters) != 2 or
-       scaleType.parameters[0].pointedType != s32 or
-       scaleType.parameters[1].pointedType != s32 or
+       scaleType.kind != .Func or
+       scaleParams == null or
+       @countof(scaleParams) != 2 or
+       scaleParams[0].pointedType != s32 or
+       scaleParams[1].pointedType != s32 or
        scaleType.returnType != s32 or
        scaleInfo.value == null do
         return false
 
+    let addParams = addType.parameters
     if addInfo.name != "add" or
-       addInfo.pointedType.kind != .Func or
-       @countof(addType.parameters) != 2 or
-       addType.parameters[0].pointedType != #type &ExportedMethodProbe or
-       addType.parameters[1].pointedType != s32 or
+       addType.kind != .Func or
+       addParams == null or
+       @countof(addParams) != 2 or
+       addParams[0].pointedType != #type &ExportedMethodProbe or
+       addParams[1].pointedType != s32 or
        addType.returnType != s32 or
        addInfo.value == null do
         return false
 
+    let scaledParams = scaledType.parameters
     if scaledInfo.name != "scaled" or
-       scaledInfo.pointedType.kind != .Func or
-       @countof(scaledType.parameters) != 2 or
-       scaledType.parameters[0].pointedType != #type const &ExportedMethodProbe or
-       scaledType.parameters[1].pointedType != s32 or
+       scaledType.kind != .Func or
+       scaledParams == null or
+       @countof(scaledParams) != 2 or
+       scaledParams[0].pointedType != #type const &ExportedMethodProbe or
+       scaledParams[1].pointedType != s32 or
        scaledType.returnType != s32 or
        scaledInfo.value == null do
         return false
 
+    let scoreParams = scoreType.parameters
     if scoreInfo.name != "score" or
-       scoreInfo.pointedType.kind != .Func or
-       @countof(scoreType.parameters) != 2 or
-       scoreType.parameters[0].pointedType != #type &ExportedMethodProbe or
-       scoreType.parameters[1].pointedType != s32 or
+       scoreType.kind != .Func or
+       scoreParams == null or
+       @countof(scoreParams) != 2 or
+       scoreParams[0].pointedType != #type &ExportedMethodProbe or
+       scoreParams[1].pointedType != s32 or
        scoreType.returnType != s32 or
        scoreInfo.value == null do
         return false

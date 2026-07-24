@@ -62,7 +62,8 @@ impl AstAfterInvalidCastSignal
                     if i do
                         sb.append(",")
                     sb.append("cast(")
-                    sb.append(notnull ts.parameters[i].pointedType.fullname)
+                    let paramType = notnull ts.parameters[i].pointedType
+                    sb.append(notnull paramType.fullname)
                     sb.append(") params[")
                     sb.append("0")
                     sb.append("]")

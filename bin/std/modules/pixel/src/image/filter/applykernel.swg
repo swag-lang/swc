@@ -101,7 +101,7 @@ impl Image
             if ksum > 1 do
                 bs, gs, rs /= ksum
 
-            var dpix = params.dstImage.pixels.buffer + (x * b8) + (y * w8)
+            var dpix = (notnull params.dstImage.pixels.buffer) + (x * b8) + (y * w8)
             dpix[0] = cast(u8) Math.clamp(bs, 0, 255)
             dpix[1] = cast(u8) Math.clamp(gs, 0, 255)
             dpix[2] = cast(u8) Math.clamp(rs, 0, 255)

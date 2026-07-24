@@ -36,7 +36,7 @@ impl Crc64
         if length == 0 do
             return
 
-        let bytes = cast(#null const [*] u8) @dataof(data)
+        let bytes = notnull cast(#null const [*] u8) @dataof(data)
         var cur   = .crc
         var i     = 0'u64
         #[Swag.Complete]

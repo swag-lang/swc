@@ -419,7 +419,7 @@ impl IWnd for IconButton
             case Top:
                 sf.vertAlignment = .Top
                 bc.painter.drawRichString(pos, &.name, sf)
-                pos.moveTop(sf.font.regular.height + metrics.btnIcon_SpacingTextV)
+                pos.moveTop((notnull sf.font.regular).height + metrics.btnIcon_SpacingTextV)
 
                 if !.icon.isValid() do
                     .icon.sizeY = pos.height
@@ -439,7 +439,7 @@ impl IWnd for IconButton
                 sf.vertAlignment = .Bottom
                 bc.painter.drawRichString(pos, &.name, sf)
 
-                pos.height -= sf.font.regular.height + metrics.btnIcon_SpacingTextV
+                pos.height -= (notnull sf.font.regular).height + metrics.btnIcon_SpacingTextV
                 if !.icon.isValid() do
                     .icon.sizeY = pos.height
                 if pos.height < .icon.sizeY

@@ -24,7 +24,7 @@ impl Image
                 let dstImage = cast(*Image) params.dstImage
                 let srcImage = cast(const *Image) params.srcImage
 
-                var pixDst = dstImage.pixels.buffer + x * image.bpp8
+                var pixDst = (notnull dstImage.pixels.buffer) + x * image.bpp8
                 pixDst += cast(u64) (y * (image.width * image.bpp8))
 
                 // fast path: outside blit rect, keep pixel as-is
@@ -38,7 +38,7 @@ impl Image
                 {
                     let x1     = x - params.x
                     let y1     = y - params.y
-                    var pixSrc = srcImage.pixels.buffer + x1 * srcImage.bpp8
+                    var pixSrc = (notnull srcImage.pixels.buffer) + x1 * srcImage.bpp8
                     pixSrc += cast(u64) (y1 * (srcImage.width * srcImage.bpp8))
 
                     #[Swag.Complete]

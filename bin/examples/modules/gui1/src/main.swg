@@ -7,13 +7,14 @@ var g_Button: #null *PushButton
 
 func centerButton(view: *Wnd)
 {
-    if !g_Button do
+    let button = g_Button
+    if !button do
         return
 
     let clientRect = view.getClientRect()
-    let x          = clientRect.horzCenter() - g_Button.position.width * 0.5
-    let y          = clientRect.vertCenter() - g_Button.position.height * 0.5
-    g_Button.setPosition({x, y, g_Button.position.width, g_Button.position.height})
+    let x          = clientRect.horzCenter() - button.position.width * 0.5
+    let y          = clientRect.vertCenter() - button.position.height * 0.5
+    button.setPosition({x, y, button.position.width, button.position.height})
 }
 
 func onEvent(view: *Wnd, evt: IEvent)->bool
@@ -28,7 +29,7 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    let surface = try app.createSurface(100, 100, 594, 449, SurfaceFlags.OverlappedWindow)
+    let surface = notnull (try app.createSurface(100, 100, 594, 449, SurfaceFlags.OverlappedWindow))
     surface.setTitle("GUI example")
 
     let view         = surface.getView()

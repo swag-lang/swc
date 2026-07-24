@@ -1,6 +1,6 @@
 #global private
 
-const Cfg = #run dref @compiler.getBuildCfg()
+const Cfg = #run dref notnull @compiler.getBuildCfg()
 
 #test
 {

@@ -119,10 +119,11 @@ impl ListLine
     mtd getItem(column: u32)->*ListItem
     {
         Debug.assert(column < .items.count)
-        for item in .items
+        for itemIt in .items
         {
+            let item = notnull itemIt
             if item.column == column do
-                return notnull item
+                return item
         }
 
         unreachable
@@ -132,13 +133,14 @@ impl ListLine
     #[Swag.Discardable]
     mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
     {
-        for item in .items
+        for itemIt in .items
         {
+            let item = notnull itemIt
             if item.column == column
             {
                 item.name = name
                 item.icon = icon
-                return notnull item
+                return item
             }
         }
 
@@ -190,7 +192,7 @@ impl IWnd for ListView
         switch evt.key
         {
         case Space where focusLine:
-            if focusLine.canCheck
+            if (notnull focusLine).canCheck
             {
                 for l in .list.selModel
                 {
@@ -198,7 +200,7 @@ impl IWnd for ListView
                     if !res do
                         continue
                     let idx = res.value
-                    if !.list.lines[idx].canCheck do
+                    if !(notnull .list.lines[idx]).canCheck do
                         continue
                     let checked = !.list.checkModel.isSelected(l)
                     .list.checkModel.select(l, checked)
@@ -213,7 +215,7 @@ impl IWnd for ListView
             }
 
         case Enter where focusLine:
-            if focusLine.canCheck
+            if (notnull focusLine).canCheck
             {
                 for l in .list.selModel
                 {
@@ -221,7 +223,7 @@ impl IWnd for ListView
                     if !res do
                         continue
                     let idx = res.value
-                    if !.list.lines[idx].canCheck do
+                    if !(notnull .list.lines[idx]).canCheck do
                         continue
                     .list.checkModel.select(l, true)
                 }
@@ -345,7 +347,7 @@ impl IWnd for ListView
             {
                 if evt.kind == .MousePressed
                 {
-                    let idxLine = .list.isVirtual ? idx : .list.lines[idx].index
+                    let idxLine = .list.isVirtual ? idx : (notnull .list.lines[idx]).index
                     if !.list.selModel.isSelected(idxLine)
                     {
                         .list.selModel.unselectAll()
@@ -369,7 +371,7 @@ impl IWnd for ListView
 
         if idx != Swag.U32.Max and !.list.isVirtual
         {
-            let hitLine  = .list.lines[idx]
+            let hitLine  = notnull .list.lines[idx]
             let idxLine  = hitLine.index
             var localPos = .surfaceToLocal(evt.surfacePos)
             localPos.x += .scrollPos.x
@@ -380,7 +382,7 @@ impl IWnd for ListView
                 // ============================
 
                 widthLeft += Math.min(metrics.btnCheck_Size, .list.getLineHeight())
-                if .list.lines[idx].canExpand()
+                if hitLine.canExpand()
                 {
                     var eatCheck = false
                     if localPos.x < widthLeft do
@@ -475,7 +477,7 @@ impl IWnd for ListView
                 let idx1     = Math.max(startIdx, idx)
                 for i in idx0 to idx1
                 {
-                    let idxLine = .list.isVirtual ? i : .list.lines[i].index
+                    let idxLine = .list.isVirtual ? i : (notnull .list.lines[i]).index
                     .list.selModel.select(idxLine, true)
                 }
             }
@@ -483,7 +485,7 @@ impl IWnd for ListView
             // Invert selection
             else
             {
-                let idxLine = .list.isVirtual ? idx : .list.lines[idx].index
+                let idxLine = .list.isVirtual ? idx : (notnull .list.lines[idx]).index
                 let toSel   = !.list.selModel.isSelected(idxLine)
                 .list.selModel.select(idxLine, toSel)
             }
@@ -526,11 +528,11 @@ impl IWnd for ListView
 
         if .list.isVirtual
         {
-            Debug.assert(.list.sigVirtualFill != null)
+            let sigVirtualFill = notnull .list.sigVirtualFill
             for i in firstIdx to lastIdx
             {
                 var line: ListLine
-                .list.sigVirtualFill(notnull .list, &line, i)
+                sigVirtualFill(notnull .list, &line, i)
                 .paintLine(bc, i, &line, rect, line.canCheck)
                 rect.y = rect.bottom()
 
@@ -556,13 +558,13 @@ impl IWnd for ListView
             rect = .getClientRectPadding()
             for idx in 1 until .list.header.items.count
             {
-                var x = .getXPos(.list.header.items[idx].column)
+                var x = .getXPos((notnull .list.header.items[idx]).column)
                 x -= .scrollPos.x
                 x -= metrics.header_Separator * 0.5
                 painter.drawLine(x, rect.y, x, rect.bottom(), colors.listItem_Line, 1)
             }
 
-            let last = .list.header.items.back()
+            let last = notnull .list.header.items.back()
             var x    = .getXPos(last.column)
             x -= .scrollPos.x
             x += last.width
@@ -639,8 +641,9 @@ private impl ListView
         }
 
         var format: RichStringFormat
-        for item, idxItem in line.items
+        for itemIt, idxItem in line.items
         {
+            let item = notnull itemIt
             var colorFg: Color = undefined
             if item.colorFg.a and !isSelected do
                 colorFg = item.colorFg
@@ -761,7 +764,7 @@ private impl ListView
         let idx = cast(u32) (res.y / .list.getLineHeight())
         if idx >= lc do
             return Swag.U32.Max
-        if !.list.isVirtual and .list.lines[idx].separator do
+        if !.list.isVirtual and (notnull .list.lines[idx]).separator do
             return Swag.U32.Max
         return idx
     }
@@ -884,7 +887,8 @@ impl ListCtrl
             return false
         if .isVirtual do
             return .selModel.isSelected(idx)
-        return !.lines[idx].separator and .selModel.isSelected(.lines[idx].index)
+        let line = notnull .lines[idx]
+        return !line.separator and .selModel.isSelected(line.index)
     }
 
     // Select of unselect the given line
@@ -895,13 +899,13 @@ impl ListCtrl
 
         if .selectionMode == .None or lineCount == 0 do
             return
-        if !.isVirtual and .lines[idx].separator do
+        if !.isVirtual and (notnull .lines[idx]).separator do
             return
 
         if .selectionMode == .Single do
             .selModel.unselectAll()
 
-        let idxLine = .isVirtual ? idx : .lines[idx].index
+        let idxLine = .isVirtual ? idx : (notnull .lines[idx]).index
         .selModel.select(idxLine, select)
         .invalidate()
 
@@ -928,9 +932,9 @@ impl ListCtrl
         let idx1 = Math.max(start, end)
         for i in idx0 to idx1
         {
-            if !.isVirtual and .lines[i].separator do
+            if !.isVirtual and (notnull .lines[i]).separator do
                 continue
-            let idxLine = .isVirtual ? i : .lines[i].index
+            let idxLine = .isVirtual ? i : (notnull .lines[i]).index
             .selModel.select(idxLine, select)
         }
 
@@ -959,7 +963,7 @@ impl ListCtrl
     // Get the height of one line
     mtd getLineHeight()->f32
     {
-        return .lineHeight orelse .getFont().regular.height + 8
+        return .lineHeight orelse (notnull .getFont().regular).height + 8
     }
 
     // Get a line by index
@@ -983,7 +987,7 @@ impl ListCtrl
 
         for line in .lines
         {
-            if line.canCheck do
+            if (notnull line).canCheck do
                 return true
         }
 
@@ -1112,7 +1116,7 @@ impl ListCtrl
     // Returns true if the line at the given index is selected
     mtd const isSelectedLine(idx: u32)->bool
     {
-        let idxLine = .isVirtual ? idx : .lines[idx].index
+        let idxLine = .isVirtual ? idx : (notnull .lines[idx]).index
         return .selModel.isSelected(idxLine)
     }
 
@@ -1178,14 +1182,15 @@ impl ListCtrl
     {
         .idxLineToIdxList.clear()
         for l, idx in .lines do
-            .idxLineToIdxList.add(l.index, cast(u32) idx)
+            .idxLineToIdxList.add((notnull l).index, cast(u32) idx)
     }
 
     private mtd collectVisibleLines(result: *Array'(#null *ListLine), lines: [..] #null *ListLine)
     {
-        for l in lines
+        for lIt in lines
         {
-            result.add(l)
+            result.add(lIt)
+            let l = notnull lIt
             if l.expanded do
                 .collectVisibleLines(result, l.lines.toSlice())
         }
@@ -1213,8 +1218,9 @@ impl ListCtrl
             if a == null or b == null do
                 return 0
 
-            if list.sigSort do
-                return list.sigSort(a, b, column, descentOrder)
+            let sigSort = list.sigSort
+            if sigSort do
+                return sigSort(a, b, column, descentOrder)
 
             if a.parent != b.parent
             {
@@ -1223,16 +1229,16 @@ impl ListCtrl
                 if b.isParentOf(notnull a) do
                     return 1
 
-                var a1 = a
-                var b1 = b
+                var a1 = notnull a
+                var b1 = notnull b
                 while a1.level > b1.level do
-                    a1 = a1.parent
+                    a1 = notnull a1.parent
                 while b1.level > a1.level do
-                    b1 = b1.parent
+                    b1 = notnull b1.parent
                 while a1.parent != b1.parent
                 {
-                    a1 = a1.parent
-                    b1 = b1.parent
+                    a1 = notnull a1.parent
+                    b1 = notnull b1.parent
                 }
 
                 return sortFunc(column, descentOrder, a1, b1)
@@ -1314,11 +1320,11 @@ impl ListCtrl
         var removeCount = 0'u32
         while tmp.count
         {
-            let toI = tmp.popBack()
+            let toI = notnull tmp.popBack()
             for l in toI.lines
             {
                 removeCount += 1
-                if l.expanded do
+                if (notnull l).expanded do
                     tmp.add(l)
             }
         }
@@ -1350,8 +1356,9 @@ impl ListCtrl
     {
         func collapseRec(sl: [..] #null *ListLine)
         {
-            for l in sl
+            for lIt in sl
             {
+                let l = notnull lIt
                 l.expanded = false
                 collapseRec(l.lines.toSlice())
             }
@@ -1359,7 +1366,7 @@ impl ListCtrl
 
         for l in .lines
         {
-            if l.expanded do
+            if (notnull l).expanded do
                 .collapse(notnull l)
         }
 

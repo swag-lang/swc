@@ -117,8 +117,9 @@ impl TagBin
     // Begins the root section of the serialization structure
     mtd beginRoot()
     {
-        .output.addNative(TagBinSignatures.Root)
-        .output.addNative(TagBinVersion)
+        let output = notnull .output
+        output.addNative(TagBinSignatures.Root)
+        output.addNative(TagBinVersion)
     }
 
     // Ends the root section and asserts that all subsections have been closed
@@ -135,33 +136,35 @@ impl TagBin
 
         if sec.kind == .Unordered
         {
-            .output.addNative(TagBinSignatures.Fat)
-            sec.startSeek = .output.getSeek()
-            .output.addNative(0'u64)     // Will store the fat offset here
-            .output.addNative(0'u64)     // Will store the fat count here
+            let output = notnull .output
+            output.addNative(TagBinSignatures.Fat)
+            sec.startSeek = output.getSeek()
+            output.addNative(0'u64)     // Will store the fat offset here
+            output.addNative(0'u64)     // Will store the fat count here
         }
     }
 
     // Ends the current section and writes out any required metadata
     mtd endSection()
     {
-        let sec = .sections.back()
+        let sec = notnull .sections.back()
 
         if sec.kind == .Unordered
         {
             // Patch fat table seek and count
-            let curSeek = .output.getSeek()
-            .output.setSeek(sec.startSeek)
-            .output.addNative(ConcatBuffer.getOffset(curSeek))
-            .output.addNative(sec.mapSeek.count)
-            .output.setSeek(curSeek)
+            let output  = notnull .output
+            let curSeek = output.getSeek()
+            output.setSeek(sec.startSeek)
+            output.addNative(ConcatBuffer.getOffset(curSeek))
+            output.addNative(sec.mapSeek.count)
+            output.setSeek(curSeek)
 
             // Write fat table
-            .output.addNative(TagBinSignatures.Fat)
+            output.addNative(TagBinSignatures.Fat)
             for k, v in sec.mapSeek
             {
-                .output.addNative(k)                             // Crc
-                .output.addNative(ConcatBuffer.getOffset(v))     // Linear seek inside the buffer
+                output.addNative(k)                             // Crc
+                output.addNative(ConcatBuffer.getOffset(v))     // Linear seek inside the buffer
             }
         }
 
@@ -172,20 +175,21 @@ impl TagBin
     mtd beginStruct(structType: #null typeinfo, _structData: #null const [*] u8)->bool
     {
         let (pod, ?) = isPodFinal(structType)
+        let output   = notnull .output
         if pod
         {
-            .output.addNative(TagBinSignatures.Raw)
+            output.addNative(TagBinSignatures.Raw)
             .beginSection(.Raw)
         }
         else
         {
             // Struct version
-            .output.addNative(TagBinSignatures.Version)
+            output.addNative(TagBinSignatures.Version)
             let version = Reflection.getAttributeValue(structType, Serialization.Version, "v")
             if version == null do
-                .output.addNative(0'u32)
+                output.addNative(0'u32)
             else do
-                .output.addNative(cast(u32) version)
+                output.addNative(cast(u32) version)
 
             // Start unordered section
             .beginSection(.Unordered)
@@ -206,26 +210,27 @@ impl TagBin
         Debug.assert(.sections.count != 0, "Missing a previous 'beginSection' call")
 
         // If section is raw, then we just have values without versioning
-        let sec = .sections.back()
+        let sec = notnull .sections.back()
         if sec.kind == .Raw do
             return
 
         // Register the current seek for the fat generation
+        let output = notnull .output
         if sec.kind == .Unordered
         {
             let crcName = getTypeValueCrc(val)
             Debug.assert(!sec.mapSeek.contains(crcName))
-            sec.mapSeek.add(crcName, .output.getSeek())
+            sec.mapSeek.add(crcName, output.getSeek())
         }
 
         // Write element signature
-        .output.addNative(getTypeValueCrc(val))
-        .output.addNative(getTypeInfoCrc(val.pointedType))
+        output.addNative(getTypeValueCrc(val))
+        output.addNative(getTypeInfoCrc(val.pointedType))
 
         var valSig: TagBinValueFlags = .Zero
         if Reflection.hasAttribute(val, Compress) or Reflection.hasAttribute(val.pointedType, Compress) do
             valSig.add(TagBinValueFlags.Compressed)
-        .output.addNative(valSig)
+        output.addNative(valSig)
 
         // If compressed, push a new ConcatBuffer that will collect all payload for this element
         if valSig.has(.Compressed)
@@ -250,7 +255,7 @@ impl TagBin
     mtd endElement(val: TypeValue)
     {
         // If section is raw, then we just have values without versioning
-        let sec = .sections.back()
+        let sec = notnull .sections.back()
         if sec.kind == .Raw do
             return
 
@@ -261,10 +266,11 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Debug.assert(.outStack.count != 0)
-        let parentOut = .outStack.popBack()
+        let parentOut = notnull .outStack.popBack()
 
         // Gather uncompressed bytes
-        let childBytes = ctx.tmpBuf.toString()
+        let tmpBuf     = notnull ctx.tmpBuf
+        let childBytes = tmpBuf.toString()
 
         // Compress
         .compressor.init(.compressionLevel, .compressionStrategy, .compressionFlags)
@@ -288,7 +294,7 @@ impl TagBin
 
         // Switch current 'output' back to parent and recycle tmp
         .output = parentOut
-        .releaseTmpBuf(notnull ctx.tmpBuf)
+        .releaseTmpBuf(tmpBuf)
     }
 
     // Begins a value (stubbed out)
@@ -302,8 +308,9 @@ impl TagBin
     // Begins a sequence and determines if elements can be written in bulk as raw data
     mtd beginSequence(typeElem: #null typeinfo, data: #null const *void, countElem: u64)->bool
     {
-        .output.addNative(TagBinSignatures.Sequence)
-        .output.addNative(countElem)
+        let output = notnull .output
+        output.addNative(TagBinSignatures.Sequence)
+        output.addNative(countElem)
 
         // Dynamic array of raw serializable types
         // Just write them in one batch
@@ -314,16 +321,16 @@ impl TagBin
 
             if raw
             {
-                .output.addNative(TagBinSignatures.Raw)
+                output.addNative(TagBinSignatures.Raw)
                 if !data do
                     return true
                 let bufArr = cast(const *Array'u8) data
-                .output.addBytes(@mkslice(bufArr.buffer, countElem * sizeof))
+                output.addBytes(@mkslice(bufArr.buffer, countElem * sizeof))
                 return true
             }
             else
             {
-                .output.addNative(TagBinSignatures.UnRaw)
+                output.addNative(TagBinSignatures.UnRaw)
             }
         }
 
@@ -333,15 +340,15 @@ impl TagBin
             let (raw, sizeof) = isPodFinal(typeElem)
             if raw
             {
-                .output.addNative(TagBinSignatures.Raw)
+                output.addNative(TagBinSignatures.Raw)
                 if !data do
                     return true
-                .output.addBytes(@mkslice(cast(const [*] u8) data, countElem * sizeof))
+                output.addBytes(@mkslice(cast(const [*] u8) data, countElem * sizeof))
                 return true
             }
             else
             {
-                .output.addNative(TagBinSignatures.UnRaw)
+                output.addNative(TagBinSignatures.UnRaw)
             }
         }
 
@@ -359,14 +366,15 @@ impl TagBin
     // Writes a native value to the output buffer, with special handling for strings
     mtd(NT) writeNative(value: NT)
     {
+        let output = notnull .output
         #if Reflection.isString(NT)
         {
-            .output.addNative(cast(u32) @countof(value))
-            .output.addBytes(value)
+            output.addNative(cast(u32) @countof(value))
+            output.addBytes(value)
         }
         #else
         {
-            .output.addNative(value)
+            output.addNative(value)
         }
     }
 }

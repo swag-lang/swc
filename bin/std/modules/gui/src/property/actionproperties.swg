@@ -96,7 +96,7 @@ impl IActionUI for ActionProperties
             var empty = true
             if arr.arrItem
             {
-                let arrData = cast(#null *Array'u8) arr.arrItem.data
+                let arrData = notnull cast(#null *Array'u8) arr.arrItem.data
                 empty = arrData.isEmpty()
             }
 

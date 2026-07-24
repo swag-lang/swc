@@ -180,8 +180,9 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
 
     if hasPalette
     {
+        let pal = notnull palette
         for i in palCount do
-            tw16(&cb, le, palette[i])
+            tw16(&cb, le, pal[i])
     }
 
     // Pixel data
@@ -234,12 +235,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     @assert(img.width == 2)
     @assert(img.height == 1)
     @assert(img.pf == .RGB8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 40'u8)
-    @assert(img.pixels.buffer[4] == 50'u8)
-    @assert(img.pixels.buffer[5] == 60'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 40'u8)
+    @assert((notnull img.pixels.buffer)[4] == 50'u8)
+    @assert((notnull img.pixels.buffer)[5] == 60'u8)
 }
 
 // Decode a big-endian (MM) image and confirm it matches the little-endian path.
@@ -253,9 +254,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .RGB8)
-    @assert(img.pixels.buffer[0] == 11'u8)
-    @assert(img.pixels.buffer[3] == 44'u8)
-    @assert(img.pixels.buffer[5] == 66'u8)
+    @assert((notnull img.pixels.buffer)[0] == 11'u8)
+    @assert((notnull img.pixels.buffer)[3] == 44'u8)
+    @assert((notnull img.pixels.buffer)[5] == 66'u8)
 }
 
 // Decode an 8-bit grayscale (BlackIsZero) image into replicated BGR8 channels.
@@ -268,11 +269,11 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGR8)
-    @assert(img.pixels.buffer[0] == 5'u8)
-    @assert(img.pixels.buffer[1] == 5'u8)
-    @assert(img.pixels.buffer[2] == 5'u8)
-    @assert(img.pixels.buffer[3] == 10'u8)
-    @assert(img.pixels.buffer[6] == 15'u8)
+    @assert((notnull img.pixels.buffer)[0] == 5'u8)
+    @assert((notnull img.pixels.buffer)[1] == 5'u8)
+    @assert((notnull img.pixels.buffer)[2] == 5'u8)
+    @assert((notnull img.pixels.buffer)[3] == 10'u8)
+    @assert((notnull img.pixels.buffer)[6] == 15'u8)
 }
 
 // Decode WhiteIsZero grayscale: sample values are inverted.
@@ -284,8 +285,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     let buf = buildTiff(true, 2, 1, 1, 0, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 250'u8)
-    @assert(img.pixels.buffer[3] == 5'u8)
+    @assert((notnull img.pixels.buffer)[0] == 250'u8)
+    @assert((notnull img.pixels.buffer)[3] == 5'u8)
 }
 
 // Decode a palette (color-mapped) image via its 16-bit color map.
@@ -303,12 +304,12 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .RGB8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 40'u8)
-    @assert(img.pixels.buffer[4] == 50'u8)
-    @assert(img.pixels.buffer[5] == 60'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 40'u8)
+    @assert((notnull img.pixels.buffer)[4] == 50'u8)
+    @assert((notnull img.pixels.buffer)[5] == 60'u8)
 }
 
 // Decode an RGBA image (extra alpha sample) into RGBA8.
@@ -321,10 +322,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .RGBA8)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[1] == 2'u8)
-    @assert(img.pixels.buffer[2] == 3'u8)
-    @assert(img.pixels.buffer[3] == 4'u8)
+    @assert((notnull img.pixels.buffer)[0] == 1'u8)
+    @assert((notnull img.pixels.buffer)[1] == 2'u8)
+    @assert((notnull img.pixels.buffer)[2] == 3'u8)
+    @assert((notnull img.pixels.buffer)[3] == 4'u8)
 }
 
 // Decode a PackBits-compressed RGB image (literal run).
@@ -340,10 +341,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     let buf = buildTiff(true, 4, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[5] == 60'u8)
-    @assert(img.pixels.buffer[9] == 100'u8)
-    @assert(img.pixels.buffer[11] == 120'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[5] == 60'u8)
+    @assert((notnull img.pixels.buffer)[9] == 100'u8)
+    @assert((notnull img.pixels.buffer)[11] == 120'u8)
 }
 
 // Decode a PackBits repeat run.
@@ -356,9 +357,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     let buf = buildTiff(true, 1, 1, 3, 2, 32773, 1, 8, nnBytes(pix.toSlice()), null, false)
     var img = catch decodeTiff(nnBytes(buf.toSlice()))
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 0xAB'u8)
-    @assert(img.pixels.buffer[1] == 0xAB'u8)
-    @assert(img.pixels.buffer[2] == 0xAB'u8)
+    @assert((notnull img.pixels.buffer)[0] == 0xAB'u8)
+    @assert((notnull img.pixels.buffer)[1] == 0xAB'u8)
+    @assert((notnull img.pixels.buffer)[2] == 0xAB'u8)
 }
 
 // Decode a multi-strip image and verify the top-down to bottom-up flip.
@@ -377,10 +378,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     @assert(img.height == 4)
 
     // Internal buffer is bottom-up: row 0 holds the file's bottom row.
-    @assert(img.pixels.buffer[0] == 40'u8)
-    @assert(img.pixels.buffer[3] == 30'u8)
-    @assert(img.pixels.buffer[6] == 20'u8)
-    @assert(img.pixels.buffer[9] == 10'u8)
+    @assert((notnull img.pixels.buffer)[0] == 40'u8)
+    @assert((notnull img.pixels.buffer)[3] == 30'u8)
+    @assert((notnull img.pixels.buffer)[6] == 20'u8)
+    @assert((notnull img.pixels.buffer)[9] == 10'u8)
 }
 
 // Decode metadata only: dimensions are populated but pixels are not allocated.
@@ -468,10 +469,11 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 {
     var src = Image.create(2, 2, .RGB8)
     src.clear()
-    src.pixels.buffer[0] = 11'u8     // bottom-left R
-    src.pixels.buffer[1] = 22'u8
-    src.pixels.buffer[2] = 33'u8
-    src.pixels.buffer[9] = 99'u8     // top-right R (last pixel)
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 11'u8     // bottom-left R
+    srcBuf[1] = 22'u8
+    srcBuf[2] = 33'u8
+    srcBuf[9] = 99'u8     // top-right R (last pixel)
 
     var cb: ConcatBuffer
     catch encodeTiff(&cb, src)
@@ -482,20 +484,21 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pf == .RGB8)
-    @assert(img.pixels.buffer[0] == 11'u8)
-    @assert(img.pixels.buffer[1] == 22'u8)
-    @assert(img.pixels.buffer[2] == 33'u8)
-    @assert(img.pixels.buffer[9] == 99'u8)
+    @assert((notnull img.pixels.buffer)[0] == 11'u8)
+    @assert((notnull img.pixels.buffer)[1] == 22'u8)
+    @assert((notnull img.pixels.buffer)[2] == 33'u8)
+    @assert((notnull img.pixels.buffer)[9] == 99'u8)
 }
 
 // Encode an RGBA8 image: alpha survives the round-trip.
 #test
 {
     var src = Image.create(1, 1, .RGBA8)
-    src.pixels.buffer[0] = 1'u8
-    src.pixels.buffer[1] = 2'u8
-    src.pixels.buffer[2] = 3'u8
-    src.pixels.buffer[3] = 200'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 1'u8
+    srcBuf[1] = 2'u8
+    srcBuf[2] = 3'u8
+    srcBuf[3] = 200'u8
 
     var cb: ConcatBuffer
     catch encodeTiff(&cb, src)
@@ -504,19 +507,20 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     var img = catch decodeTiff(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .RGBA8)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[1] == 2'u8)
-    @assert(img.pixels.buffer[2] == 3'u8)
-    @assert(img.pixels.buffer[3] == 200'u8)
+    @assert((notnull img.pixels.buffer)[0] == 1'u8)
+    @assert((notnull img.pixels.buffer)[1] == 2'u8)
+    @assert((notnull img.pixels.buffer)[2] == 3'u8)
+    @assert((notnull img.pixels.buffer)[3] == 200'u8)
 }
 
 // Encode a BGR8 image: channels are swapped to RGB on disk and decode as RGB8.
 #test
 {
     var src = Image.create(1, 1, .BGR8)
-    src.pixels.buffer[0] = 10'u8     // B
-    src.pixels.buffer[1] = 20'u8     // G
-    src.pixels.buffer[2] = 30'u8     // R
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 10'u8     // B
+    srcBuf[1] = 20'u8     // G
+    srcBuf[2] = 30'u8     // R
 
     var cb: ConcatBuffer
     catch encodeTiff(&cb, src)
@@ -525,9 +529,9 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     var img = catch decodeTiff(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .RGB8)
-    @assert(img.pixels.buffer[0] == 30'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 10'u8)
+    @assert((notnull img.pixels.buffer)[0] == 30'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 10'u8)
 }
 
 // Full registry round-trip through Image.save / Image.load on a temp file.
@@ -541,9 +545,10 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 
     var src = Image.create(3, 2, .RGB8)
     src.clear()
-    src.pixels.buffer[0] = 123'u8
-    src.pixels.buffer[1] = 45'u8
-    src.pixels.buffer[2] = 67'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 123'u8
+    srcBuf[1] = 45'u8
+    srcBuf[2] = 67'u8
 
     catch src.save(path.toString())
     @assert(@err == null)
@@ -553,7 +558,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
     @assert(img.width == 3)
     @assert(img.height == 2)
     @assert(img.pf == .RGB8)
-    @assert(img.pixels.buffer[0] == 123'u8)
-    @assert(img.pixels.buffer[1] == 45'u8)
-    @assert(img.pixels.buffer[2] == 67'u8)
+    @assert((notnull img.pixels.buffer)[0] == 123'u8)
+    @assert((notnull img.pixels.buffer)[1] == 45'u8)
+    @assert((notnull img.pixels.buffer)[2] == 67'u8)
 }

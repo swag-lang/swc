@@ -238,7 +238,7 @@ impl IForm for FormText
             for t, idx in tokens
             {
                 let pathl = &.paths[idx]
-                assume face.getStringOutline(pathl, t, cast() fSize, cast() sSize)
+                assume (notnull face).getStringOutline(pathl, t, cast() fSize, cast() sSize)
                 pathl.flatten(.High)
                 pathl.clean()
                 if !pathl.paths.count
@@ -250,7 +250,7 @@ impl IForm for FormText
                 let borderPath = &.borderPaths[idx]
                 if !Math.isZeroEpsilon(bSize) and .borderColor.a
                 {
-                    assume face.getStringOutline(borderPath, t, cast() fSize, cast() sSize)
+                    assume (notnull face).getStringOutline(borderPath, t, cast() fSize, cast() sSize)
                     borderPath.flatten(.Normal)
                     borderPath.clean()
                     borderPath.offset(bSize, .joinStyle, 0.25)

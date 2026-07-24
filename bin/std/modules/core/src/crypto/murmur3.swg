@@ -59,7 +59,7 @@ public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 
     var h = seed ^ (len * m)
 
-    let data    = cast(#null const [*] u64) key
+    let data    = notnull cast(#null const [*] u64) key
     let nblocks = len / 8
 
     for i in nblocks

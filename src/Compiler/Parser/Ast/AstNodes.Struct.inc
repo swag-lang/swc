@@ -668,6 +668,20 @@ struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
 };
 
 // -----------------------------------------------------------------------------
+// Root of a postfix chain containing at least one '?.' access: the single anchor
+// for the chain's null exit and the type of its "skipped" outcome.
+struct AstOptionalChainExpr : AstNodeT<AstNodeId::OptionalChainExpr>
+{
+    AstNodeRef nodeExprRef;
+
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema);
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+};
+
+// -----------------------------------------------------------------------------
 struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
 {
     AstNodeRef nodeCondRef;
@@ -809,8 +823,9 @@ struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr, AstAu
 // -----------------------------------------------------------------------------
 enum class AstMemberAccessExprFlagsE : AstNode::ParserFlags
 {
-    Zero       = 0,
-    CallCallee = 1 << 0,
+    Zero           = 0,
+    CallCallee     = 1 << 0,
+    OptionalAccess = 1 << 1, // '?.': skip the access when the left side is null
 };
 
 struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAccessExprFlagsE>
@@ -820,6 +835,7 @@ struct AstMemberAccessExpr : AstNodeT<AstNodeId::MemberAccessExpr, AstMemberAcce
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
     Result     codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

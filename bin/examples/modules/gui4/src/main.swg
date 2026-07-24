@@ -188,10 +188,11 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 
 func updateThemeButton()
 {
-    if !g_ThemeButton do
+    let btn = g_ThemeButton
+    if !btn do
         return
-    g_ThemeButton.name = g_DarkTheme ? "White theme" : "Black theme"
-    g_ThemeButton.invalidate()
+    btn.name = g_DarkTheme ? "White theme" : "Black theme"
+    btn.invalidate()
 }
 
 func applyTheme()
@@ -267,34 +268,38 @@ func displayModeFromIndex(idx: u32)->PropertiesKind
 // multi-selection page did on a count change).
 func rebuildInspector()
 {
-    if !g_ObjHost do
+    let objHost = g_ObjHost
+    if !objHost do
         return
 
-    if g_Props do
-        g_Props.destroy()
+    let oldProps = g_Props
+    if oldProps do
+        oldProps.destroy()
 
-    g_Props               = Properties.create(notnull g_ObjHost, {}, g_DisplayMode)
-    g_Props.dockStyle     = .Center
-    g_Props.sizeEditValue = 320
-    if g_Props.isGridLike() do
-        g_Props.setColumnSize(190)
+    let props = Properties.create(objHost, {}, g_DisplayMode)
+    g_Props             = props
+    props.dockStyle     = .Center
+    props.sizeEditValue = 320
+    if props.isGridLike() do
+        props.setColumnSize(190)
 
     var bases: Array'(*u8)
     for i in g_CardCount do
         bases.add(cast(*u8) &g_Cards[i])
-    g_Props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
+    props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
     if !g_Filter.isEmpty() do
-        g_Props.setStringFilter(g_Filter.toString())
+        props.setStringFilter(g_Filter.toString())
 
-    g_Props.sigChanged += func(_list, item)
+    props.sigChanged += func(_list, item)
     {
         updateStatus(item)
-        if g_Preview do
-            g_Preview.invalidate()
+        let preview = g_Preview
+        if preview do
+            preview.invalidate()
     }
 
-    g_ObjHost.applyLayout()
+    objHost.applyLayout()
 }
 
 func setDisplayMode(kind: PropertiesKind)
@@ -311,18 +316,20 @@ func setCardCount(count: s32)
         return
     g_CardCount = count
     rebuildInspector()
-    if g_Preview do
-        g_Preview.invalidate()
+    let preview = g_Preview
+    if preview do
+        preview.invalidate()
 }
 
 func createInspectorPage(parent: *Wnd)
 {
     // Left column: a control row (display mode + edited count), a search box, then the grid.
-    g_ObjHost           = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
-    g_ObjHost.dockStyle = .Left
-    g_ObjHost.margin.z  = SplitGap
+    let objHost = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
+    g_ObjHost         = objHost
+    objHost.dockStyle = .Left
+    objHost.margin.z  = SplitGap
 
-    let controls        = Wnd.create'Wnd(notnull g_ObjHost, {0, 0, 0, 44})
+    let controls        = Wnd.create'Wnd(objHost, {0, 0, 0, 44})
     controls.dockStyle = .Top
     controls.margin.w  = 8
 
@@ -356,17 +363,19 @@ func createInspectorPage(parent: *Wnd)
         .sigChanged += func(fil)
         {
             g_Filter = fil.text
-            if g_Props do
-                g_Props.setStringFilter(fil.text)
+            let props = g_Props
+            if props do
+                props.setStringFilter(fil.text)
         }
     }
 
     rebuildInspector()
 
     let frame = createPanel(parent, "Live preview", "Each card is one edited instance; the highlighted ones are bound to the grid, so editing a field writes them all.", {})
-    frame.dockStyle       = .Center
-    g_Preview             = frame.view
-    g_Preview.hookOnEvent = &onPreviewEvent
+    frame.dockStyle = .Center
+    let preview = notnull frame.view
+    g_Preview           = preview
+    preview.hookOnEvent = &onPreviewEvent
 }
 
 // ---------------------------------------------------------------------------
@@ -429,10 +438,10 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
     if selected
     {
         let sel = Math.Rectangle{slot.x + 6, slot.y + 4, slot.width - 12, slot.height - 8}
-        painter.drawRoundRect(sel, 12, 12, g_View.getThemeColors().prop_FocusBorder, 2.0)
+        painter.drawRoundRect(sel, 12, 12, (notnull g_View).getThemeColors().prop_FocusBorder, 2.0)
     }
 
-    let font = g_View.getTheme().createDefaultFont(15, .Bold)
+    let font = (notnull g_View).getTheme().createDefaultFont(15, .Bold)
     let tcol = Color.getBlendKeepAlpha(card.fill, Argb.Black, 0.72).withAlpha(a)
     painter.drawStringCenter(body.horzCenter(), body.vertCenter(), card.label.toString(), font, tcol)
 }
@@ -500,13 +509,14 @@ impl IPropertyEditor for RatingEditor
                 .iconBtnFlags.add(.Flat)
                 .sigPressed += func|prop, item, rating, idx|(b)
                 {
-                    rating.value = rating.value == idx + 1 ? idx : idx + 1
+                    let rat = notnull rating
+                    rat.value = rat.value == idx + 1 ? idx : idx + 1
                     prop.hasChanged(item)
                 }
                 .sigPaintIcon = func|rating, idx|(b, bc, pos, paintFlags)
                 {
                     bc.painter.setParams(.Antialiased)
-                    let on  = idx < rating.value
+                    let on  = idx < (notnull rating).value
                     let col = on ? Argb.Goldenrod : Color.fromArgb(70'u8, Argb.Gray)
                     let rad = Math.min(pos.width, pos.height) * 0.28
                     bc.painter.fillCircle(pos.horzCenter(), pos.vertCenter(), rad, col)
@@ -552,9 +562,12 @@ func updateStatus(item: #null *PropertiesItem)
 
 func updateHeader()
 {
-    g_Title.setText("GUI4 property control inspector")
-    g_SubTitle.setText("One property control edits several cards at once (multi-selection). The card struct uses nested category subgroups plus Heading / Gap / HelpBox decorators; the combo switches the display mode.")
-    g_Footer.setText(Format.toString("Grouping, decorators, multi-selection and live preview in one grid. %", g_StatusText))
+    let title    = notnull g_Title
+    let subTitle = notnull g_SubTitle
+    let footer   = notnull g_Footer
+    title.setText("GUI4 property control inspector")
+    subTitle.setText("One property control edits several cards at once (multi-selection). The card struct uses nested category subgroups plus Heading / Gap / HelpBox decorators; the combo switches the display mode.")
+    footer.setText(Format.toString("Grouping, decorators, multi-selection and live preview in one grid. %", g_StatusText))
 }
 
 func layoutRootView()
@@ -562,17 +575,24 @@ func layoutRootView()
     if !g_View or !g_PageView do
         return
 
-    let rect = g_View.getClientRect()
+    let view     = notnull g_View
+    let pageView = notnull g_PageView
+
+    let rect = view.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, 1.0)
     let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    g_Title.setPosition({RootMargin, 18, titleWidth, 34})
-    g_ThemeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    g_SubTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
-    g_PageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
-    g_Footer.setPosition({RootMargin, footerY, contentWidth, 28})
+    let title       = notnull g_Title
+    let themeButton = notnull g_ThemeButton
+    let subTitle    = notnull g_SubTitle
+    let footer      = notnull g_Footer
+    title.setPosition({RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
+    footer.setPosition({RootMargin, footerY, contentWidth, 28})
 }
 
 func onRootEvent(_view: *Wnd, evt: IEvent)->bool
@@ -603,30 +623,36 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    g_View                 = g_Surface.getView()
-    g_View.backgroundStyle = .View
+    let view = (notnull g_Surface).getView()
+    g_View               = view
+    view.backgroundStyle = .View
 
-    g_Title = Label.create(notnull g_View, "", {})
-    setLabelTextStyle(notnull g_Title, .Left, .Center)
-    g_Title.style.setFont(g_View.getTheme().createDefaultFont(28), .Regular)
+    let title = Label.create(view, "", {})
+    g_Title = title
+    setLabelTextStyle(title, .Left, .Center)
+    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
 
-    g_SubTitle = Label.create(notnull g_View, "", {}, null, .WordWrap | .LightText)
-    setLabelTextStyle(notnull g_SubTitle, .Left, .Top)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    g_SubTitle = subTitle
+    setLabelTextStyle(subTitle, .Left, .Top)
 
-    g_ThemeButton            = PushButton.create(notnull g_View, "", {})
-    g_ThemeButton.form       = .Flat
-    g_ThemeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
-    g_ThemeButton.sigPressed += &toggleTheme
+    let themeButton = PushButton.create(view, "", {})
+    g_ThemeButton          = themeButton
+    themeButton.form       = .Flat
+    themeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    themeButton.sigPressed += &toggleTheme
 
-    g_PageView                 = Wnd.create'Wnd(notnull g_View, {})
-    g_PageView.backgroundStyle = .Transparent
+    let pageView = Wnd.create'Wnd(view, {})
+    g_PageView               = pageView
+    pageView.backgroundStyle = .Transparent
 
-    g_Footer = Label.create(notnull g_View, "", {})
-    setLabelTextStyle(notnull g_Footer, .Left, .Center)
-    g_Footer.labelFlags.add(.LightText)
+    let footer = Label.create(view, "", {})
+    g_Footer = footer
+    setLabelTextStyle(footer, .Left, .Center)
+    footer.labelFlags.add(.LightText)
 
     layoutRootView()
-    g_View.hookOnEvent = &onRootEvent
+    view.hookOnEvent = &onRootEvent
 }
 
 // In test mode, cycle the display mode and the edited-card count through the combos (driving the
@@ -637,11 +663,13 @@ func updateTestMode()
         return
 
     g_TestFrame += 1
-    if g_TestFrame % 24 == 0 and g_DisplayCombo and g_CountCombo
+    let displayCombo = g_DisplayCombo
+    let countCombo   = g_CountCombo
+    if g_TestFrame % 24 == 0 and displayCombo and countCombo
     {
         g_TestStep += 1
-        g_DisplayCombo.selectItem(cast(u32) (g_TestStep % 3))
-        g_CountCombo.selectItem(cast(u32) ((g_TestStep / 3) % 3))
+        displayCombo.selectItem(cast(u32) (g_TestStep % 3))
+        countCombo.selectItem(cast(u32) ((g_TestStep / 3) % 3))
     }
 
     if g_TestFrame >= 200 do
@@ -658,9 +686,10 @@ func onFrame(_app: *Application)
     initDemoData()
 
     let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
-    g_Surface = try app.createSurface(100, 100, W - 46, H - 31, flags)
-    g_Surface.setTitle("GUI4 property control inspector")
-    g_Surface.setIcon(app.theme.getIcon24(ThemeIcons24.Options, 18))
+    let surface = notnull (try app.createSurface(100, 100, W - 46, H - 31, flags))
+    g_Surface = surface
+    surface.setTitle("GUI4 property control inspector")
+    surface.setIcon(app.theme.getIcon24(ThemeIcons24.Options, 18))
 
     createRootView()
     createInspectorPage(notnull g_PageView)
@@ -671,6 +700,6 @@ func onFrame(_app: *Application)
     if Env.hasArg("swag.test") do
         app.maxRunFrame = 240
 
-    g_Surface.show()
+    surface.show()
     app.run()
 }

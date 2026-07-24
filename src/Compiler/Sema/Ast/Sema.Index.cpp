@@ -335,6 +335,13 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     const TypeRef      indexedTypeRef = resolveIndexedExprTypeRef(sema, nodeExprView);
     const TypeInfo&    indexedType    = sema.typeMgr().get(indexedTypeRef);
 
+    // Use-site nullability: indexing reads through the indexed value (pointer block,
+    // slice or string data pointer). Narrowing was already applied to the live view,
+    // so a remaining '#null' means no dominating test proves this access safe. A
+    // non-null compile-time constant (e.g. reflection's 'typeinfo.fields') is proof.
+    if (indexedType.isNullable() && (!nodeExprView.hasConstant() || nodeExprView.cst()->isNull()))
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_index, nodeExprRef, nodeExprView.typeRef());
+
     if (sema.node(nodeArgRef).is(AstNodeId::RangeExpr))
     {
         bool handled = false;

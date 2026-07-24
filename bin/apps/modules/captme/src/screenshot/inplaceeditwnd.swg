@@ -337,7 +337,8 @@ impl InPlaceEditWnd
 
     mtd moveButtons()
     {
-        let rect = Math.Rectangle{-.capture.backImagePos.x, -.capture.backImagePos.y, .capture.width, .capture.height}
+        let capture = notnull .capture
+        let rect    = Math.Rectangle{-capture.backImagePos.x, -capture.backImagePos.y, capture.width, capture.height}
         .positionActionBar(rect)
         .positionEditBar(rect)
     }

@@ -76,7 +76,7 @@ var g_Obstacles: Array'Obstacle
 
 func updatePlayer()
 {
-    let kb = g_Wnd.getApp().getKeyboard()
+    let kb = (notnull g_Wnd).getApp().getKeyboard()
 
     // Move
     if kb.isKeyPressed(.Left) do
@@ -271,26 +271,27 @@ func startGame()
 
 func display()
 {
+    let painter = notnull g_Painter
     // Aliens
     for alien in g_Aliens where !alien.dead do
-        g_Painter.drawTexture(alien.x, alien.y, dref alien.type)
+        painter.drawTexture(alien.x, alien.y, dref alien.type)
 
     // Player
-    g_Painter.drawTexture(g_Player.x, g_Player.y, g_PlayerImg)
+    painter.drawTexture(g_Player.x, g_Player.y, g_PlayerImg)
 
     // Obstacles
     for obs in g_Obstacles where !obs.dead do
-        g_Painter.fillRect(obs.x, obs.y, OBS_SIZE, OBS_SIZE, Argb.White)
+        painter.fillRect(obs.x, obs.y, OBS_SIZE, OBS_SIZE, Argb.White)
 
     // Lasers
     for laser in g_Lasers where !laser.dead
     {
         let color = laser.player ? Argb.Green : Argb.Red
-        g_Painter.drawLine(laser.x, laser.y, laser.x, laser.y + LASER_LENGTH, color, 2)
+        painter.drawLine(laser.x, laser.y, laser.x, laser.y + LASER_LENGTH, color, 2)
     }
 
     // Score
-    g_Painter.drawString(40, 0, Format.toString("score: %", g_Score), notnull g_Font, Argb.White)
+    painter.drawString(40, 0, Format.toString("score: %", g_Score), notnull g_Font, Argb.White)
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
@@ -320,7 +321,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 func loadBindTextures()
 {
-    func loadAndBindTexture(name: string)->Texture throw => g_Wnd.getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
+    func loadAndBindTexture(name: string)->Texture throw => (notnull g_Wnd).getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
     func loadSound(name: string)->Audio.SoundFile throw  => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
 
     g_DataPath = Path.getDirectoryName(#curlocation.fileName)

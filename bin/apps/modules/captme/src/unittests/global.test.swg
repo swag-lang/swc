@@ -66,14 +66,15 @@ func testSetupGlobalMain(main: *MainWnd)
     @assert(f.main.editWnd.isVisibleState())
     @assert(!f.main.libWnd.isVisibleState())
 
-    f.main.surface.show()
-    @assert(!f.main.surface.isHidden)
+    let surface = notnull f.main.surface
+    surface.show()
+    @assert(!surface.isHidden)
 
     @assert(Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize))
-    @assert(f.main.surface.isHidden)
+    @assert(surface.isHidden)
 
     @assert(Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor))
-    @assert(!f.main.surface.isHidden)
+    @assert(!surface.isHidden)
 
     evt = Testing.commandState(ActionGlobal.Exit)
     @assert(Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))

@@ -134,12 +134,12 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 40'u8)
-    @assert(img.pixels.buffer[4] == 50'u8)
-    @assert(img.pixels.buffer[7] == 80'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 40'u8)
+    @assert((notnull img.pixels.buffer)[4] == 50'u8)
+    @assert((notnull img.pixels.buffer)[7] == 80'u8)
 }
 
 // Decode a 2x2 24-bit icon, applying the AND mask as alpha.
@@ -165,14 +165,14 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     var img = catch decodeIco(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)     // opaque
-    @assert(img.pixels.buffer[4] == 40'u8)
-    @assert(img.pixels.buffer[5] == 50'u8)
-    @assert(img.pixels.buffer[6] == 60'u8)
-    @assert(img.pixels.buffer[7] == 0'u8)     // transparent via AND mask
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)     // opaque
+    @assert((notnull img.pixels.buffer)[4] == 40'u8)
+    @assert((notnull img.pixels.buffer)[5] == 50'u8)
+    @assert((notnull img.pixels.buffer)[6] == 60'u8)
+    @assert((notnull img.pixels.buffer)[7] == 0'u8)     // transparent via AND mask
 }
 
 // Decode a 2x2 8-bit indexed icon through its palette.
@@ -198,12 +198,12 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     var img = catch decodeIco(nnBytes(buf.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
-    @assert(img.pixels.buffer[4] == 40'u8)
-    @assert(img.pixels.buffer[6] == 60'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)
+    @assert((notnull img.pixels.buffer)[4] == 40'u8)
+    @assert((notnull img.pixels.buffer)[6] == 60'u8)
 }
 
 // Decode a 2x1 1-bit indexed icon.
@@ -223,11 +223,11 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
     var img = catch decodeIco(nnBytes(buf.toSlice()))
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 7'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 9'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
-    @assert(img.pixels.buffer[4] == 0'u8)     // idx 0 color
+    @assert((notnull img.pixels.buffer)[0] == 7'u8)
+    @assert((notnull img.pixels.buffer)[1] == 8'u8)
+    @assert((notnull img.pixels.buffer)[2] == 9'u8)
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)
+    @assert((notnull img.pixels.buffer)[4] == 0'u8)     // idx 0 color
 }
 
 // With multiple entries, the decoder picks the largest image.
@@ -291,8 +291,8 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     @assert(@err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pixels.buffer[0] == 200'u8)
-    @assert(img.pixels.buffer[3] == 203'u8)
+    @assert((notnull img.pixels.buffer)[0] == 200'u8)
+    @assert((notnull img.pixels.buffer)[3] == 203'u8)
 }
 
 // A PNG-compressed icon entry is delegated to the PNG decoder.
@@ -300,10 +300,11 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 {
     var src = Image.create(3, 2, .RGBA8)
     src.clear()
-    src.pixels.buffer[0] = 11'u8
-    src.pixels.buffer[1] = 22'u8
-    src.pixels.buffer[2] = 33'u8
-    src.pixels.buffer[3] = 255'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 11'u8
+    srcBuf[1] = 22'u8
+    srcBuf[2] = 33'u8
+    srcBuf[3] = 255'u8
 
     var png: ConcatBuffer
     catch encodePng(&png, src)
@@ -383,11 +384,12 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 {
     var src = Image.create(2, 2, .BGRA8)
     src.clear()
-    src.pixels.buffer[0]  = 10'u8
-    src.pixels.buffer[1]  = 20'u8
-    src.pixels.buffer[2]  = 30'u8
-    src.pixels.buffer[3]  = 128'u8
-    src.pixels.buffer[12] = 200'u8     // last pixel B
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0]  = 10'u8
+    srcBuf[1]  = 20'u8
+    srcBuf[2]  = 30'u8
+    srcBuf[3]  = 128'u8
+    srcBuf[12] = 200'u8     // last pixel B
 
     var cb: ConcatBuffer
     catch encodeIco(&cb, src)
@@ -398,20 +400,21 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0]  == 10'u8)
-    @assert(img.pixels.buffer[1]  == 20'u8)
-    @assert(img.pixels.buffer[2]  == 30'u8)
-    @assert(img.pixels.buffer[3]  == 128'u8)
-    @assert(img.pixels.buffer[12] == 200'u8)
+    @assert((notnull img.pixels.buffer)[0]  == 10'u8)
+    @assert((notnull img.pixels.buffer)[1]  == 20'u8)
+    @assert((notnull img.pixels.buffer)[2]  == 30'u8)
+    @assert((notnull img.pixels.buffer)[3]  == 128'u8)
+    @assert((notnull img.pixels.buffer)[12] == 200'u8)
 }
 
 // Encode a BGR8 image: alpha is filled opaque.
 #test
 {
     var src = Image.create(1, 1, .BGR8)
-    src.pixels.buffer[0] = 10'u8
-    src.pixels.buffer[1] = 20'u8
-    src.pixels.buffer[2] = 30'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 10'u8
+    srcBuf[1] = 20'u8
+    srcBuf[2] = 30'u8
 
     var cb: ConcatBuffer
     catch encodeIco(&cb, src)
@@ -420,20 +423,21 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)
 }
 
 // Encode an RGBA8 image: channels are swapped to BGRA on disk.
 #test
 {
     var src = Image.create(1, 1, .RGBA8)
-    src.pixels.buffer[0] = 30'u8     // R
-    src.pixels.buffer[1] = 20'u8     // G
-    src.pixels.buffer[2] = 10'u8     // B
-    src.pixels.buffer[3] = 99'u8     // A
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 30'u8     // R
+    srcBuf[1] = 20'u8     // G
+    srcBuf[2] = 10'u8     // B
+    srcBuf[3] = 99'u8     // A
 
     var cb: ConcatBuffer
     catch encodeIco(&cb, src)
@@ -442,10 +446,10 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     var img = catch decodeIco(nnBytes(cb.toSlice()))
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 10'u8)     // B
-    @assert(img.pixels.buffer[1] == 20'u8)     // G
-    @assert(img.pixels.buffer[2] == 30'u8)     // R
-    @assert(img.pixels.buffer[3] == 99'u8)     // A
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)     // B
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)     // G
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)     // R
+    @assert((notnull img.pixels.buffer)[3] == 99'u8)     // A
 }
 
 // Error: dimensions above 256 cannot be encoded.
@@ -470,10 +474,11 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 
     var src = Image.create(4, 4, .BGRA8)
     src.clear()
-    src.pixels.buffer[0] = 77'u8
-    src.pixels.buffer[1] = 88'u8
-    src.pixels.buffer[2] = 99'u8
-    src.pixels.buffer[3] = 255'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 77'u8
+    srcBuf[1] = 88'u8
+    srcBuf[2] = 99'u8
+    srcBuf[3] = 255'u8
 
     catch src.save(path.toString())
     @assert(@err == null)
@@ -483,7 +488,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
     @assert(img.width == 4)
     @assert(img.height == 4)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 77'u8)
-    @assert(img.pixels.buffer[1] == 88'u8)
-    @assert(img.pixels.buffer[2] == 99'u8)
+    @assert((notnull img.pixels.buffer)[0] == 77'u8)
+    @assert((notnull img.pixels.buffer)[1] == 88'u8)
+    @assert((notnull img.pixels.buffer)[2] == 99'u8)
 }

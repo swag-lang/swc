@@ -396,7 +396,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
         var req: AllocatorRequest
         req.size = 64
-        s.itf.alloc(&req)
+        let itf = notnull s.itf
+        itf.alloc(&req)
         s.slots[slot] = req.address
 
         releaseAllocatorThreadCache()
@@ -405,13 +406,14 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     func stressFreerThread(param: *void)->Th.DWORD
     {
-        let s = cast(*StressShared) param
+        let s   = cast(*StressShared) param
+        let itf = notnull s.itf
         for i in StressCount
         {
             var req: AllocatorRequest
             req.address = s.slots[i]
             req.size    = 64
-            s.itf.free(&req)
+            itf.free(&req)
         }
         @atomadd(&s.freerDone, 1)
         return 0
@@ -419,9 +421,10 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     func stressReclaimThread(param: *void)->Th.DWORD
     {
-        let s = cast(*StressShared) param
+        let s     = cast(*StressShared) param
+        let alloc = notnull s.alloc
         while @atomcmpxchg(&s.freerDone, 0, 0) == 0 do
-            s.alloc.releaseRetiredHeaps()
+            alloc.releaseRetiredHeaps()
         return 0
     }
 

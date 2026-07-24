@@ -39,41 +39,46 @@ var g_Functions: Array'OneFunc
     for e in g_Functions
     {
         var builderVars: StringBuilder
+        let etype = notnull e.type
 
         // Declare a lambda variable for that extension.
         builderVars.appendString("var ext_")
         builderVars.appendString(e.name)
         builderVars.appendString(": #null ")
-        builderVars.appendString(e.type.fullname)
+        builderVars.appendString(etype.fullname)
         builderVars.appendString("\n")
 
         // Generate the wrapper function body.
         builderVars.appendString("public func ")
         builderVars.appendString(e.name)
         builderVars.appendString("(")
-        for p, i in e.type.parameters
+        for p, i in etype.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")
             builderVars.appendString(p.name)
             builderVars.appendString(": ")
-            builderVars.appendString(p.pointedType.fullname)
+            builderVars.appendString((notnull p.pointedType).fullname)
         }
 
-        if e.type.returnType == null or e.type.returnType == void
+        let retType = etype.returnType
+        if retType == null or retType == void
         {
-            builderVars.appendString(")\n{\n\text_")
+            builderVars.appendString(")\n{\n\tlet exfn_ = notnull ext_")
+            builderVars.appendString(e.name)
+            builderVars.appendString("\n\texfn_")
         }
         else
         {
             builderVars.appendString(")->")
-            builderVars.appendString(e.type.returnType.fullname)
-            builderVars.appendString("\n{\n\treturn ext_")
+            builderVars.appendString(retType.fullname)
+            builderVars.appendString("\n{\n\tlet exfn_ = notnull ext_")
+            builderVars.appendString(e.name)
+            builderVars.appendString("\n\treturn exfn_")
         }
 
-        builderVars.appendString(e.name)
         builderVars.appendString("(")
-        for p, i in e.type.parameters
+        for p, i in etype.parameters
         {
             if i != 0 do
                 builderVars.appendString(", ")
@@ -88,7 +93,7 @@ var g_Functions: Array'OneFunc
         builderInit.appendString("\text_")
         builderInit.appendString(e.name)
         builderInit.appendString(" = cast(#null ")
-        builderInit.appendString(e.type.fullname)
+        builderInit.appendString(etype.fullname)
         builderInit.appendString(") getExtensionAddress(@dataof(\"")
         builderInit.appendString(e.name)
         builderInit.appendString("\"))\n")

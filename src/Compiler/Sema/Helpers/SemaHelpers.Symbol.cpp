@@ -1381,6 +1381,29 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
     if (const SymbolEnum* enumSym = enumSymbolFromTypeRef(sema, nodeLeftView.typeRef()))
         return memberEnum(sema, memberRef, node, *enumSym, idRef, tokNameRef, allowOverloadSet);
 
+    // Use-site nullability: reaching a member through a value whose type is still
+    // nullable dereferences it (struct receiver, interface itable, typeinfo payload)
+    // or binds it as a UFCS receiver. Narrowing was already applied to the live left
+    // view, so a remaining '#null' means no dominating test proves this access safe.
+    if (node.hasFlag(AstMemberAccessExprFlagsE::OptionalAccess))
+    {
+        // '?.' takes the guarded route: it requires a left side that can actually be
+        // null. Legality is judged on the DECLARED type so a redundant '?.' inside a
+        // narrowed region stays valid (the flow proof makes the test dead, not wrong).
+        const TypeRef storedLeftTypeRef = sema.viewStored(node.nodeLeftRef, SemaNodeViewPartE::Type).typeRef();
+        const TypeRef unwrappedLeftRef  = storedLeftTypeRef.isValid() ? sema.typeMgr().unwrapAliasEnum(sema.ctx(), storedLeftTypeRef) : TypeRef::invalid();
+        if (unwrappedLeftRef.isInvalid() || !sema.typeMgr().get(unwrappedLeftRef).isNullable())
+            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_optional_access_not_nullable, node.nodeLeftRef, nodeLeftView.typeRef());
+    }
+    else if (aliasEnumType(sema, nodeLeftView).isNullable())
+    {
+        // A compile-time constant that is not null is the strongest proof there is:
+        // reflection data (e.g. 'typeinfo.fields') is typed nullable but folds to a
+        // known value in constant contexts.
+        if (!nodeLeftView.hasConstant() || nodeLeftView.cst()->isNull())
+            return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_member_access, node.nodeLeftRef, nodeLeftView.typeRef());
+    }
+
     // Interface
     if (nodeLeftView.type()->isInterface())
         return memberInterface(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);

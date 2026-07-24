@@ -97,7 +97,7 @@ impl IWnd for PopupListView
                 return
             }
 
-            if !.parent.getSurfaceRect().contains(evt.surfacePos)
+            if !(notnull .parent).getSurfaceRect().contains(evt.surfacePos)
             {
                 .close(Swag.U32.Max)
                 return
@@ -112,8 +112,9 @@ impl IWnd for PopupListView
     mtd hitAt(pos: Math.Point)->u32
     {
         var y = pos.y + .scrollPos.y
-        for v, i in .list.items
+        for vIt, i in .list.items
         {
+            let v = notnull vIt
             let h = v.isSeparator ? .list.heightSeparator : .list.heightItem
             if y <= h
             {
@@ -146,6 +147,7 @@ impl IWnd for PopupListView
         var y = 0'f32
         for i, idx in .list.items
         {
+            let it = notnull i
             labelPos.x      = clientRect.x
             labelPos.y      = y
             labelPos.width  = clientRect.width
@@ -155,7 +157,7 @@ impl IWnd for PopupListView
             colorText = colors.popupList_Text
 
             // Separator
-            if i.isSeparator
+            if it.isSeparator
             {
                 labelPos.height = .list.heightSeparator
                 painter.drawLine(labelPos.x + metrics.popupList_SeparatorPadding, labelPos.vertCenter(), labelPos.right() - metrics.popupList_SeparatorPadding, labelPos.vertCenter(), colors.popupList_Separator)
@@ -177,16 +179,16 @@ impl IWnd for PopupListView
             labelPos.moveLeft(metrics.popupList_Padding)
 
             // Icon
-            if i.icon.isValid()
+            if it.icon.isValid()
             {
-                let iconColor = i.icon.color.a ? i.icon.color : colorText
-                i.icon.paint(painter, labelPos.x, labelPos.vertCenter() - i.icon.sizeY * 0.5, iconColor)
+                let iconColor = it.icon.color.a ? it.icon.color : colorText
+                it.icon.paint(painter, labelPos.x, labelPos.vertCenter() - it.icon.sizeY * 0.5, iconColor)
             }
 
             if .list.maxIconSize do
                 labelPos.moveLeft(.list.maxIconSize + metrics.popupList_IconTextMargin)
 
-            let fntHeight = .getFont().regular.height
+            let fntHeight = (notnull .getFont().regular).height
             if idx == .list.selectedIdx do
                 labelPos.setRight(labelPos.right() - fntHeight - metrics.popupList_IconTextMargin)
 
@@ -196,7 +198,7 @@ impl IWnd for PopupListView
             format.vertAlignment = .Center
             format.flags         = .Clip
             format.font          = .getFont()
-            painter.drawRichString(labelPos, &i.name, format)
+            painter.drawRichString(labelPos, &it.name, format)
 
             // Check mark
             if idx == .list.selectedIdx
@@ -254,7 +256,7 @@ private impl PopupListView
             idx += dir
             if idx < 0 or idx >= cast(s64) .list.items.count do
                 return
-            if !.list.items[cast(u64) idx].isSeparator do
+            if !(notnull .list.items[cast(u64) idx]).isSeparator do
                 break
         }
 
@@ -268,7 +270,7 @@ private impl PopupListView
         {
             for v, idx in .list.items
             {
-                if !v.isSeparator
+                if !(notnull v).isSeparator
                 {
                     .hotIdx = cast(u32) idx
                     .invalidate()
@@ -280,7 +282,7 @@ private impl PopupListView
         {
             for var i = cast(s64) .list.items.count - 1; i >= 0; i -= 1
             {
-                if !.list.items[cast(u64) i].isSeparator
+                if !(notnull .list.items[cast(u64) i]).isSeparator
                 {
                     .hotIdx = cast(u32) i
                     .invalidate()
@@ -318,31 +320,31 @@ impl PopupListCtrl
     // never leave the page).
     mtd keyMove(dir: s32)
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view
+        let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.moveHot(dir)
     }
 
     mtd keyHome()
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view
+        let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: true)
     }
 
     mtd keyEnd()
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view
+        let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: false)
     }
 
     mtd keyCancel()
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view
+        let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.close(Swag.U32.Max)
     }
 
     mtd keyCommit()
     {
-        let view = cast(#null *PopupListView) .scrollWnd.view
+        let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.close(view.hotIdx)
     }
 
@@ -352,10 +354,10 @@ impl PopupListCtrl
         .scrollWnd.setScrollSize(0, cast(f32) .items.count * .heightItem)
 
         // Highlight the current selection as the keyboard starting point.
-        let startView = cast(#null *PopupListView) .scrollWnd.view
+        let startView = notnull cast(#null *PopupListView) .scrollWnd.view
         startView.hotIdx = .selectedIdx
 
-        let pt  = .parent.surfaceToLocal({x, y})
+        let pt  = (notnull .parent).surfaceToLocal({x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
         pos.width  = Math.max(width, .minWidthPopup)
         pos.height = Math.min(.scrollWnd.scrollSize.y, .maxHeightPopup)

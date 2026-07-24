@@ -119,7 +119,7 @@ impl HeadlessHost
         app.renderer.setupHeadless()
         app.theme = .theme
 
-        let style = .app.style.refr
+        let style = notnull .app.style.refr
         style.count    += 1
         app.style.refr = style
     }
@@ -163,8 +163,8 @@ impl HeadlessHost
 
         .autoFrames += 1
 
-        let stage = .autoStages.buffer + .autoStage
-        if .runAutoStage(notnull stage)
+        let stage = (notnull .autoStages.buffer) + .autoStage
+        if .runAutoStage(stage)
         {
             .autoStage  += 1
             .autoFrames = 0
@@ -276,7 +276,7 @@ impl HeadlessHost
     mtd withModalEdit(label, text: string)
     {
         Debug.assert(.autoArmed and .autoStages.count > 0)
-        let stage = .autoStages.buffer + .autoStages.count - 1
+        let stage = (notnull .autoStages.buffer) + .autoStages.count - 1
         let edit  = cast(*AutoEdit) stage.edits.emplaceInitAddress()
         edit.label = label
         edit.text  = text
@@ -455,8 +455,9 @@ impl HeadlessHost
     {
         Debug.assert(wnd != null)
 
-        var pt = wnd.getSurfaceRect().center()
-        wnd.surface.surfaceToScreen(&pt)
+        var pt  = wnd.getSurfaceRect().center()
+        let srf = notnull wnd.surface
+        srf.surfaceToScreen(&pt)
         .click(pt, button, modifiers)
     }
 
@@ -581,8 +582,9 @@ impl HeadlessHost
         if !menu do
             return false
 
-        for item in menu.items
+        for itemIt in menu.items
         {
+            let item = notnull itemIt
             if item.id != id do
                 continue
             if item.hidden or item.separator or item.disabled do
@@ -591,7 +593,8 @@ impl HeadlessHost
             let clientRect = menu.getClientRect()
             var pt = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
-            menu.surface.surfaceToScreen(&pt)
+            let srf = notnull menu.surface
+            srf.surfaceToScreen(&pt)
             .click(pt)
             return true
         }
@@ -605,8 +608,9 @@ impl HeadlessHost
         if !menu do
             return false
 
-        for item in menu.items
+        for itemIt in menu.items
         {
+            let item = notnull itemIt
             if item.name.raw != label do
                 continue
             if item.hidden or item.separator or item.disabled do
@@ -615,7 +619,8 @@ impl HeadlessHost
             let clientRect = menu.getClientRect()
             var pt = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
-            menu.surface.surfaceToScreen(&pt)
+            let srf = notnull menu.surface
+            srf.surfaceToScreen(&pt)
             .moveMouse(pt)
             return true
         }
@@ -648,8 +653,9 @@ impl HeadlessHost
             return false
 
         let rect = menu.getSurfaceRect()
-        var pt = Math.Point{rect.right() + 4, rect.bottom() + 4}
-        menu.surface.surfaceToScreen(&pt)
+        var pt   = Math.Point{rect.right() + 4, rect.bottom() + 4}
+        let srf  = notnull menu.surface
+        srf.surfaceToScreen(&pt)
         .click(pt)
         return true
     }
@@ -701,8 +707,7 @@ impl HeadlessHost
 
     mtd keyPress(key: Input.Key, modifiers: Input.KeyModifiers = Zero)
     {
-        let target = .app.keybFocusWnd
-        Debug.assert(target != null)
+        let target = notnull .app.keybFocusWnd
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
@@ -733,8 +738,7 @@ impl HeadlessHost
 
     mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = Zero)
     {
-        let target = .app.keybFocusWnd
-        Debug.assert(target != null)
+        let target = notnull .app.keybFocusWnd
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
@@ -787,11 +791,12 @@ impl HeadlessHost
         var needUpdateState = false
         for it in copy
         {
-            let evt = it as Event
+            let evt = notnull (it as Event)
             if it is InvalidateEvent
             {
-                if evt.target do
-                    evt.target.invalidate()
+                let target = evt.target
+                if target do
+                    target.invalidate()
             }
             else do
                 .app.sendEvent(it)

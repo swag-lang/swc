@@ -1,11 +1,12 @@
 #global private
 
-// A parameter declared '#null' advertises that callers may pass null. When the
-// body's FIRST use of that parameter, on every path to an exit, is an operation
-// that requires a valid runtime address (dereference, member access, indexing,
-// call), no call with null can survive: the signature promises what the body
-// forbids. This is proven, so it is a compile-time error. Any other first use
-// (null test, copy, argument, 'notnull') disarms the check.
+// A parameter declared '#null' advertises that callers may pass null. Use-site
+// nullability enforcement fronts the old dead-contract analysis: every unguarded
+// dereference of such a parameter (dereference, member access, indexing, call)
+// is rejected AT THE USE SITE, before the whole-function contract verdict can
+// even run. The dead-contract cases below therefore report the use-site error.
+// The return and local contract checks remain reachable and are exercised at
+// the end of this file.
 
 struct NpcItem
 {
@@ -30,29 +31,29 @@ func npcCheck(x: #null *s32)->bool => x != null
 // Dead contracts: rejected.
 // -----------------------------------------------------------------------------
 
-func npcErrDeref(x: #null *s32)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrDeref(x: #null *s32)->s32
 {
-    return dref x
+    return dref x     // swc-expected-error {{sema_err_nullable_deref}}
 }
 
-func npcErrMember(v: #null *NpcItem)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrMember(v: #null *NpcItem)->s32
 {
-    return v.value
+    return v.value     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
-func npcErrIndex(s: #null [*] s32)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrIndex(s: #null [*] s32)->s32
 {
-    return s[0]
+    return s[0]     // swc-expected-error {{sema_err_nullable_index}}
 }
 
-func npcErrCall(f: #null func()->s32)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrCall(f: #null func()->s32)->s32
 {
-    return f()
+    return f()     // swc-expected-error {{sema_err_nullable_call}}
 }
 
-func npcErrInterface(i: #null INpcFace)->s32     // swc-expected-error {{sema_err_nullable_param_contract}}
+func npcErrInterface(i: #null INpcFace)->s32
 {
-    return i.get()
+    return i.get()     // swc-expected-error {{sema_err_nullable_member_access}}
 }
 
 // -----------------------------------------------------------------------------
@@ -83,10 +84,12 @@ func npcOkAsserted(v: #null *NpcItem)->s32
 }
 
 // The first use hands the parameter to someone else: the body cannot be proven
-// fatal for null.
+// fatal for null. The dereference itself still needs its own local proof.
 func npcOkDelegated(x: #null *s32)->s32
 {
     if !npcCheck(x) do
+        return 0
+    if x == null do
         return 0
     return dref x
 }
@@ -95,13 +98,13 @@ func npcOkDelegated(x: #null *s32)->s32
 func npcOkThrowFirst(x: #null *s32)->s32 throw
 {
     try npcBoom()
-    return dref x
+    return dref notnull x
 }
 
 // Dereference on one branch only: some executions never touch the parameter.
 func npcOkConditional(x: #null *s32, use: bool)->s32
 {
-    if use do
+    if use and x != null do
         return dref x
     return 0
 }
@@ -163,6 +166,8 @@ func npcFillPtrPtr(pp: *#null *s32)
 func npcErrLocalNeverNull()->s32
 {
     var p: #null *s32 = &g_npcStorage     // swc-expected-error {{sema_err_nullable_local_contract}}
+    if p == null do
+        return 0
     return dref p
 }
 

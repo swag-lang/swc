@@ -75,6 +75,6 @@ const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
     @assert(arrayInfo.count == 2)
     @assert(arrayInfo.pointedType == ReflectMode)
     @assert(sliceInfo.pointedType == ReflectMode)
-    @assert(funcInfo.parameters[0].pointedType == ReflectMode)
+    @assert((notnull funcInfo.parameters)[0].pointedType == ReflectMode)
     @assert(funcInfo.returnType == bool)
 }

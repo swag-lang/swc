@@ -5,7 +5,7 @@ internal var MessageBeforeOutputValue = 0
 
 #message(CompilerMsgMask.PassBeforeOutput)
 {
-    let msg = @compiler.getMessage()
+    let msg = notnull @compiler.getMessage()
     let itf = @compiler
     @assert(msg.kind == CompilerMsgKind.PassBeforeOutput)
     @assert(msg.name == "")

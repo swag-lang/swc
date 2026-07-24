@@ -48,6 +48,9 @@ var g_Wnd:      #null *Wnd
 var g_DataPath: String
 var g_Painter:  #null *Painter
 
+func thePainter()->*Painter => notnull g_Painter
+func theWnd()->*Wnd         => notnull g_Wnd
+
 var g_MapTex:      Texture
 var g_PillTex:     Texture
 var g_BigPillTex:  [2] Texture
@@ -890,16 +893,16 @@ impl Ghost
     {
         if .drawScore
         {
-            g_Painter.pushTransform()
+            thePainter().pushTransform()
             translateMapOrigin()
             translateMapCoords(.x, .y)
-            g_Painter.translateTransform(-4 * Scale, 0)     // Account for over-sized sprite (16x8 on 8x8 tile)
-            g_Painter.translateTransform(8 * Scale, 4 * Scale)
+            thePainter().translateTransform(-4 * Scale, 0)     // Account for over-sized sprite (16x8 on 8x8 tile)
+            thePainter().translateTransform(8 * Scale, 4 * Scale)
 
             // Determine which score sprite to draw based on the number of ghosts eaten since the last big pill was eaten
             let ghostScore = Math.min(g_GhostsEaten - 1, 3)
-            g_Painter.drawTexture(-8, -4, 16, 8, g_GScoreTex[ghostScore])
-            g_Painter.popTransform()
+            thePainter().drawTexture(-8, -4, 16, 8, g_GScoreTex[ghostScore])
+            thePainter().popTransform()
         }
         else
         {
@@ -913,11 +916,11 @@ impl Ghost
         // Reset drawScore flag - when eaten, drawEaten() is called during pause,: not draw score again
         .drawScore = false
 
-        g_Painter.pushTransform()
+        thePainter().pushTransform()
         translateMapOrigin()
         translateMapCoords(.x, .y)
-        g_Painter.translateTransform(-3 * Scale, -3 * Scale)     // Account for over-sized sprite (14x14 on 8x8 tile)
-        g_Painter.translateTransform(7 * Scale, 7 * Scale)
+        thePainter().translateTransform(-3 * Scale, -3 * Scale)     // Account for over-sized sprite (14x14 on 8x8 tile)
+        thePainter().translateTransform(7 * Scale, 7 * Scale)
 
         // Determine which colour ghost to draw and whether it is the alternate texture (wiggle animation)
         var ghostTex: Texture
@@ -946,7 +949,7 @@ impl Ghost
 
         // Draw ghost sprite with determined texture at current location only if not DEAD
         if .ai != .DEAD do
-            g_Painter.drawTexture(-7, -7, 14, 14, ghostTex)
+            thePainter().drawTexture(-7, -7, 14, 14, ghostTex)
 
         // Only draw the ghost's eyes if it's not FRIGHTENED
         if .ai != .FRIGHTENED
@@ -962,13 +965,13 @@ impl Ghost
             }
 
             // Draw direction-based eyes sprite atop ghost body
-            g_Painter.drawTexture(-7, -7, 14, 14, eyesTex)
+            thePainter().drawTexture(-7, -7, 14, 14, eyesTex)
         }
 
         // Increment texture counter every frame
         .texCount += 1
 
-        g_Painter.popTransform()
+        thePainter().popTransform()
     }
 }
 
@@ -1032,10 +1035,11 @@ impl Pacman
         switch getTile(.getX(), .getY())
         {
         case o:
-            if !g_VoiceChomp or !g_VoiceChomp.isPlaying()
+            let chomp = g_VoiceChomp
+            if !chomp or !chomp.isPlaying()
             {
-                if g_VoiceChomp do
-                    g_VoiceChomp.destroy()
+                if chomp do
+                    chomp.destroy()
                 g_VoiceChomp = assume Audio.Voice.play(&g_SoundChomp)
             }
 
@@ -1072,9 +1076,10 @@ impl Pacman
             }
 
         default:
-            if g_VoiceChomp and !g_VoiceChomp.isPlaying()
+            let chomp = g_VoiceChomp
+            if chomp and !chomp.isPlaying()
             {
-                g_VoiceChomp.destroy()
+                chomp.destroy()
                 g_VoiceChomp = null
             }
         }
@@ -1177,25 +1182,25 @@ impl Pacman
      */
     mtd drawDead()
     {
-        g_Painter.pushTransform()
+        thePainter().pushTransform()
 
         translateMapOrigin()
         translateMapCoords(.x, .y)
-        g_Painter.translateTransform(-3 * Scale, -4 * Scale)     // Account for over-sized sprite (15x15 on 8x8 tile)
-        g_Painter.translateTransform(7.5 * Scale, 7.5 * Scale)
+        thePainter().translateTransform(-3 * Scale, -4 * Scale)     // Account for over-sized sprite (15x15 on 8x8 tile)
+        thePainter().translateTransform(7.5 * Scale, 7.5 * Scale)
 
         // Determine which texture to draw based on tick-incremented counter
         // Draw current sprite of Pac-Man's death animation sequence
         if .deadTexCount < 55
         {
             let deadFrame = cast(s32) Math.floor(.deadTexCount / 5)
-            g_Painter.drawTexture(-7.5, -7.5, 15, 15, g_DeadTex[deadFrame])
+            thePainter().drawTexture(-7.5, -7.5, 15, 15, g_DeadTex[deadFrame])
         }
 
         // Increment dead texture counter
         .deadTexCount += 1
 
-        g_Painter.popTransform()
+        thePainter().popTransform()
     }
 
     /**
@@ -1203,26 +1208,26 @@ impl Pacman
      */
     mtd drawFruitScore()
     {
-        g_Painter.pushTransform()
+        thePainter().pushTransform()
 
         translateMapOrigin()
         translateMapCoords(.x, .y)
-        g_Painter.translateTransform(-6 * Scale, 0)     // Account for over-sized sprite (20x8 on 8x8 tile)
-        g_Painter.translateTransform(10 * Scale, 4 * Scale)
+        thePainter().translateTransform(-6 * Scale, 0)     // Account for over-sized sprite (20x8 on 8x8 tile)
+        thePainter().translateTransform(10 * Scale, 4 * Scale)
 
         // Determine which fruit score texture to draw based on how many fruits have been eaten
-        g_Painter.drawTexture(-10, -4, 20, 8, g_FScoreTex[g_Fruits - 1])
+        thePainter().drawTexture(-10, -4, 20, 8, g_FScoreTex[g_Fruits - 1])
 
-        g_Painter.popTransform()
+        thePainter().popTransform()
     }
 
     mtd draw()
     {
-        g_Painter.pushTransform()
+        thePainter().pushTransform()
         translateMapOrigin()
         translateMapCoords(.x, .y)
-        g_Painter.translateTransform(-2 * Scale, -2 * Scale)
-        g_Painter.translateTransform(6.5 * Scale, 6.5 * Scale)
+        thePainter().translateTransform(-2 * Scale, -2 * Scale)
+        thePainter().translateTransform(6.5 * Scale, 6.5 * Scale)
 
         // Determine rotation angle of sprite based on direction
         switch .dir
@@ -1233,7 +1238,7 @@ impl Pacman
         case LEFT:  .angle = 0.0
         }
 
-        g_Painter.rotateTransformInPlace(Math.toRadians(.angle))
+        thePainter().rotateTransformInPlace(Math.toRadians(.angle))
 
         // Determine which texture to draw based on tick-incremented counter
         var pacmanTex: Texture
@@ -1245,19 +1250,19 @@ impl Pacman
             pacmanTex = g_Pac2Tex
 
         // Draw Pac-Man sprite with determined texture at determined angle
-        g_Painter.drawTexture(-6.5, -6.5, 13, 13, pacmanTex)
+        thePainter().drawTexture(-6.5, -6.5, 13, 13, pacmanTex)
 
         // Increment texture counter only if moving
         // If stationary, continue until sprite animation cycle is complete
         if !(.dir == .NONE and .texCount % 20 < 5) and .ready do
             .texCount += 1
 
-        g_Painter.popTransform()
+        thePainter().popTransform()
     }
 }
 
-func translateMapOrigin()          => g_Painter.translateTransform(38.0, 26.0)
-func translateMapCoords(x, y: f32) => g_Painter.translateTransform(x * 8 * Scale, y * 8 * Scale)
+func translateMapOrigin()          => thePainter().translateTransform(38.0, 26.0)
+func translateMapCoords(x, y: f32) => thePainter().translateTransform(x * 8 * Scale, y * 8 * Scale)
 func isImpassible(t: Tile)         => t == .W or t == .G
 
 func getTile(x, y: s32) => g_Map[x, y]
@@ -1269,16 +1274,16 @@ func setTile(x, y: s32, t: Tile)
 
 func drawMap()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
 
     // Map (background)
-    g_Painter.drawTexture(0, 0, 224, 248, g_MapTex)
+    thePainter().drawTexture(0, 0, 224, 248, g_MapTex)
 
     // Content
     for x in 28
     {
-        g_Painter.pushTransform()
+        thePainter().pushTransform()
         for y in 31
         {
             // Determine size of big pills to draw depending on ticks
@@ -1286,19 +1291,19 @@ func drawMap()
 
             switch getTile(x, y)
             {
-            case o: g_Painter.drawTexture(0, 0, 8, 8, g_PillTex)
-            case O: g_Painter.drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
+            case o: thePainter().drawTexture(0, 0, 8, 8, g_PillTex)
+            case O: thePainter().drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
             case F: drawFruit(x, y)
             }
 
             translateMapCoords(0, 1)
         }
 
-        g_Painter.popTransform()
+        thePainter().popTransform()
         translateMapCoords(1, 0)
     }
 
-    g_Painter.popTransform()
+    thePainter().popTransform()
 }
 
 /**
@@ -1308,87 +1313,87 @@ func drawMap()
  */
 func drawNumberAsSprite(number: s32)
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
 
     let str = Format.toString("%", number)
     for #reverse i in @countof(str)
     {
         switch str[i]
         {
-        case '0': g_Painter.drawTexture(0, 0, 8, 8, g_Num0Tex)
-        case '1': g_Painter.drawTexture(0, 0, 8, 8, g_Num1Tex)
-        case '2': g_Painter.drawTexture(0, 0, 8, 8, g_Num2Tex)
-        case '3': g_Painter.drawTexture(0, 0, 8, 8, g_Num3Tex)
-        case '4': g_Painter.drawTexture(0, 0, 8, 8, g_Num4Tex)
-        case '5': g_Painter.drawTexture(0, 0, 8, 8, g_Num5Tex)
-        case '6': g_Painter.drawTexture(0, 0, 8, 8, g_Num6Tex)
-        case '7': g_Painter.drawTexture(0, 0, 8, 8, g_Num7Tex)
-        case '8': g_Painter.drawTexture(0, 0, 8, 8, g_Num8Tex)
-        case '9': g_Painter.drawTexture(0, 0, 8, 8, g_Num9Tex)
+        case '0': thePainter().drawTexture(0, 0, 8, 8, g_Num0Tex)
+        case '1': thePainter().drawTexture(0, 0, 8, 8, g_Num1Tex)
+        case '2': thePainter().drawTexture(0, 0, 8, 8, g_Num2Tex)
+        case '3': thePainter().drawTexture(0, 0, 8, 8, g_Num3Tex)
+        case '4': thePainter().drawTexture(0, 0, 8, 8, g_Num4Tex)
+        case '5': thePainter().drawTexture(0, 0, 8, 8, g_Num5Tex)
+        case '6': thePainter().drawTexture(0, 0, 8, 8, g_Num6Tex)
+        case '7': thePainter().drawTexture(0, 0, 8, 8, g_Num7Tex)
+        case '8': thePainter().drawTexture(0, 0, 8, 8, g_Num8Tex)
+        case '9': thePainter().drawTexture(0, 0, 8, 8, g_Num9Tex)
         }
 
         translateMapCoords(-1, 0)
     }
 
     if str.length == 1 do
-        g_Painter.drawTexture(0, 0, 8, 8, g_Num0Tex)
+        thePainter().drawTexture(0, 0, 8, 8, g_Num0Tex)
 
-    g_Painter.popTransform()
+    thePainter().popTransform()
 }
 
 func drawLevel()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(1, -2.5)
-    g_Painter.drawTexture(0, 0, 24, 8, g_OneUpTex)
+    thePainter().drawTexture(0, 0, 24, 8, g_OneUpTex)
     translateMapCoords(3, 1)
     drawNumberAsSprite(g_Level)
-    g_Painter.popTransform()
+    thePainter().popTransform()
 }
 
 func drawScore()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
 
     translateMapOrigin()
     translateMapCoords(6.5, -2.5)
-    g_Painter.drawTexture(0, 0, 80, 8, g_ScoreTex)
+    thePainter().drawTexture(0, 0, 80, 8, g_ScoreTex)
 
     translateMapCoords(4, 1)
     drawNumberAsSprite(Math.min(g_HighScore, 99999))
     translateMapCoords(6, 0)
     drawNumberAsSprite(Math.min(g_Score, 99999))
 
-    g_Painter.popTransform()
+    thePainter().popTransform()
 }
 
 func drawLives()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(1, 31.5)
     for i in g_Lives
     {
-        g_Painter.drawTexture(0, 0, 14, 14, g_LifeTex)
+        thePainter().drawTexture(0, 0, 14, 14, g_LifeTex)
         translateMapCoords(2, 0)
     }
 
-    g_Painter.popTransform()
+    thePainter().popTransform()
 }
 
 func drawFruits()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(25, 31.5)
     for i in g_Fruits
     {
-        g_Painter.drawTexture(0, 0, 14, 14, g_FruitsTex[i])
+        thePainter().drawTexture(0, 0, 14, 14, g_FruitsTex[i])
         translateMapCoords(-2, 0)
     }
 
-    g_Painter.popTransform()
+    thePainter().popTransform()
 }
 
 func drawCharacters()
@@ -1400,49 +1405,49 @@ func drawCharacters()
 
 func drawHelp()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(19, -2)
-    g_Painter.drawTexture(0, 0, 64, 8, g_HelpTex)
-    g_Painter.popTransform()
+    thePainter().drawTexture(0, 0, 64, 8, g_HelpTex)
+    thePainter().popTransform()
 }
 
 func drawGameOver()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(9, 13)
-    g_Painter.drawTexture(0, 0, 80, 8, g_GameOverTex)
-    g_Painter.popTransform()
+    thePainter().drawTexture(0, 0, 80, 8, g_GameOverTex)
+    thePainter().popTransform()
 }
 
 func drawReady()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(11, 13)
-    g_Painter.drawTexture(0, 0, 48, 8, g_ReadyTex)
-    g_Painter.popTransform()
+    thePainter().drawTexture(0, 0, 48, 8, g_ReadyTex)
+    thePainter().popTransform()
 }
 
 func drawPause(gameover: bool)
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     if !gameover do
-        g_Painter.drawTexture(0, 0, 224, 248, g_PauseTex)
+        thePainter().drawTexture(0, 0, 224, 248, g_PauseTex)
     else do
-        g_Painter.drawTexture(0, 0, 224, 248, g_PauseAltTex)
-    g_Painter.popTransform()
+        thePainter().drawTexture(0, 0, 224, 248, g_PauseAltTex)
+    thePainter().popTransform()
 }
 
 func drawQuit()
 {
-    g_Painter.pushTransform()
+    thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(19, 32)
-    g_Painter.drawTexture(0, 0, 64, 8, g_QuitTex)
-    g_Painter.popTransform()
+    thePainter().drawTexture(0, 0, 64, 8, g_QuitTex)
+    thePainter().popTransform()
 }
 
 /**
@@ -1464,9 +1469,9 @@ func drawPlayScreen()
  */
 func display()
 {
-    let rect = g_Wnd.getClientRect()
-    g_Painter.fillRect(rect, Argb.Black)
-    g_Painter.scaleTransform(Scale, Scale)
+    let rect = theWnd().getClientRect()
+    thePainter().fillRect(rect, Argb.Black)
+    thePainter().scaleTransform(Scale, Scale)
 
     switch g_Mode
     {
@@ -1512,27 +1517,27 @@ func soundState()
 {
     if g_Mode != .PLAY or g_TimeStamp != -1
     {
-        if g_VoiceSiren
+        if let voice = g_VoiceSiren
         {
-            g_VoiceSiren.destroy()
+            voice.destroy()
             g_VoiceSiren = null
         }
 
-        if g_VoiceScared
+        if let voice = g_VoiceScared
         {
-            g_VoiceScared.destroy()
+            voice.destroy()
             g_VoiceScared = null
         }
 
-        if g_VoiceRetreat
+        if let voice = g_VoiceRetreat
         {
-            g_VoiceRetreat.destroy()
+            voice.destroy()
             g_VoiceRetreat = null
         }
 
-        if g_VoiceChomp
+        if let voice = g_VoiceChomp
         {
-            g_VoiceChomp.destroy()
+            voice.destroy()
             g_VoiceChomp = null
         }
 
@@ -1562,15 +1567,15 @@ func soundState()
     switch soundState
     {
     case DEATH:
-        if g_VoiceSiren
+        if let voice = g_VoiceSiren
         {
-            g_VoiceSiren.destroy()
+            voice.destroy()
             g_VoiceSiren = null
         }
 
-        if g_VoiceScared
+        if let voice = g_VoiceScared
         {
-            g_VoiceScared.destroy()
+            voice.destroy()
             g_VoiceScared = null
         }
 
@@ -1578,15 +1583,15 @@ func soundState()
             g_VoiceRetreat = assume Audio.Voice.play(&g_SoundRetreat, playFlags: .Loop)
 
     case FRIGHTENED:
-        if g_VoiceSiren
+        if let voice = g_VoiceSiren
         {
-            g_VoiceSiren.destroy()
+            voice.destroy()
             g_VoiceSiren = null
         }
 
-        if g_VoiceRetreat
+        if let voice = g_VoiceRetreat
         {
-            g_VoiceRetreat.destroy()
+            voice.destroy()
             g_VoiceRetreat = null
         }
 
@@ -1594,22 +1599,23 @@ func soundState()
             g_VoiceScared = assume Audio.Voice.play(&g_SoundScared, playFlags: .Loop)
 
     case SIREN:
-        if g_VoiceScared
+        if let voice = g_VoiceScared
         {
-            g_VoiceScared.destroy()
+            voice.destroy()
             g_VoiceScared = null
         }
 
-        if g_VoiceRetreat
+        if let voice = g_VoiceRetreat
         {
-            g_VoiceRetreat.destroy()
+            voice.destroy()
             g_VoiceRetreat = null
         }
 
         if !g_VoiceSiren
         {
-            g_VoiceSiren = assume Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
-            assume g_VoiceSiren.setVolume(0.4)
+            let siren    = notnull assume Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
+            g_VoiceSiren = siren
+            assume siren.setVolume(0.4)
         }
     }
 }
@@ -1809,13 +1815,13 @@ func drawFruit(x, y: s32)
 {
     if g_FruitTimer <= 900
     {
-        g_Painter.pushTransform()
-        g_Painter.translateTransform(-3 * Scale, -3 * Scale)     // Account for over-sized sprite (14x14 on 8x8 tile)
-        g_Painter.translateTransform(7 * Scale, 7 * Scale)
+        thePainter().pushTransform()
+        thePainter().translateTransform(-3 * Scale, -3 * Scale)     // Account for over-sized sprite (14x14 on 8x8 tile)
+        thePainter().translateTransform(7 * Scale, 7 * Scale)
 
         // Determine which fruit sprite to draw from the array based on current fruit consumption count
-        g_Painter.drawTexture(-7, -7, 14, 14, g_FruitsTex[g_Fruits])
-        g_Painter.popTransform()
+        thePainter().drawTexture(-7, -7, 14, 14, g_FruitsTex[g_Fruits])
+        thePainter().popTransform()
         g_FruitTimer += 1
     }
     else
@@ -1940,9 +1946,10 @@ func gameLoop()
     case STARTLEVEL:
         if !g_VoiceReady do
             g_VoiceReady = assume Audio.Voice.play(&g_SoundReady)
-        if !g_VoiceReady.isPlaying()
+        let voice = notnull g_VoiceReady
+        if !voice.isPlaying()
         {
-            g_VoiceReady.destroy()
+            voice.destroy()
             g_VoiceReady = null
             g_Mode       = READY
         }
@@ -1998,9 +2005,10 @@ func gameLoop()
             g_VoiceEatFruit = assume Audio.Voice.play(&g_SoundEatFruit)
 
         // if g_Ticks == g_TimeStamp + 90
-        if !g_VoiceEatFruit.isPlaying()
+        let voice = notnull g_VoiceEatFruit
+        if !voice.isPlaying()
         {
-            g_VoiceEatFruit.destroy()
+            voice.destroy()
             g_VoiceEatFruit = null
             g_TimeStamp     = -1
             g_PacMan.startChomping()
@@ -2012,9 +2020,10 @@ func gameLoop()
             g_VoiceEatGhost = assume Audio.Voice.play(&g_SoundEatGhost)
 
         // if g_Ticks == g_TimeStamp + 90
-        if !g_VoiceEatGhost.isPlaying()
+        let voice = notnull g_VoiceEatGhost
+        if !voice.isPlaying()
         {
-            g_VoiceEatGhost.destroy()
+            voice.destroy()
             g_VoiceEatGhost = null
             g_TimeStamp     = -1
             g_PacMan.startChomping()
@@ -2026,9 +2035,10 @@ func gameLoop()
             g_VoiceDeath = assume Audio.Voice.play(&g_SoundDeath)
 
         // if g_Ticks > g_TimeStamp + 180
-        if !g_VoiceDeath.isPlaying()
+        let voice = notnull g_VoiceDeath
+        if !voice.isPlaying()
         {
-            g_VoiceDeath.destroy()
+            voice.destroy()
             g_VoiceDeath = null
 
             if g_Lives == 0
@@ -2078,7 +2088,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             }
             else
             {
-                g_Wnd.postQuitEvent()
+                theWnd().postQuitEvent()
             }
 
         case Left:
@@ -2111,7 +2121,7 @@ func loadBindTextures()
 {
     func loadAndBindTexture(name: string)->Texture
     {
-        return assume g_Wnd.getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
+        return assume theWnd().getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
     }
 
     // Assets are located in the 'datas/pacman' sub folder

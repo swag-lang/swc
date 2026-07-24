@@ -1,12 +1,12 @@
 struct EditView
 {
-    using wnd:   Wnd
-    main:        #late *MainWnd
-    scroll:      #late *ScrollWnd
-    capture:     #null *Capture
-    zoom:        f32 = 1
-    viewMargin:  f32 = 32
-    firstPaint:  bool = true
+    using wnd:  Wnd
+    main:       #late *MainWnd
+    scroll:     #late *ScrollWnd
+    capture:    #null *Capture
+    zoom:       f32 = 1
+    viewMargin: f32 = 32
+    firstPaint = true
     inPlaceEdit: bool
 }
 
@@ -89,12 +89,13 @@ impl EditView
     {
         var captureRect: retval
         let rect         = .scroll.getClientScrollRect()
-        captureRect.width  = .capture.width * .zoom
-        captureRect.height = .capture.height * .zoom
+        let capture      = notnull .capture
+        captureRect.width  = capture.width * .zoom
+        captureRect.height = capture.height * .zoom
         if .inPlaceEdit
         {
-            captureRect.x = -.capture.backImagePos.x
-            captureRect.y = -.capture.backImagePos.y
+            captureRect.x = -capture.backImagePos.x
+            captureRect.y = -capture.backImagePos.y
         }
         else
         {

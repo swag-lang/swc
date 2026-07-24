@@ -136,9 +136,10 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     for &value in values do
         value.value += 10
 
-    @assert(values.head.value.value == 11)
-    @assert(values.head.next.value.value == 12)
-    @assert(values.tail.value.value == 13)
+    let head = notnull values.head
+    @assert(head.value.value == 11)
+    @assert((notnull head.next).value.value == 12)
+    @assert((notnull values.tail).value.value == 13)
     @assert(visitStructList(&values) == 123)
     @assert(visitStructListReverse(&values) == 142)
 }

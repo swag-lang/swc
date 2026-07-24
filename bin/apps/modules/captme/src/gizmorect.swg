@@ -412,14 +412,14 @@ impl GizmoRect
     mtd apply(iform: IForm, first: bool, hitMove: u32)
     {
         let form    = cast(*BaseForm) @dataof(iform)
-        let capture = form.capture
+        let capture = notnull form.capture
         let oldRect = iform.boundRect()
         capture.interactiveMove = true
         if !first do
             capture.undo()
         let undo = capture.newUndo(.MoveBaseForm)
         undo.baseForm = iform
-        let zoom = capture.editView.zoom
+        let zoom = (notnull capture.editView).zoom
 
         // Rotated resize: movingRect lives in the box-centered, rotated frame.
         // Convert it back to an absolute axis-aligned model box (no snapping).
@@ -498,7 +498,7 @@ impl GizmoRect
     mtd applyRotate(iform: IForm, first, last: bool, angle: f32)
     {
         let form    = cast(*BaseForm) @dataof(iform)
-        let capture = form.capture
+        let capture = notnull form.capture
         if !first do
             capture.undo()
 
@@ -507,7 +507,7 @@ impl GizmoRect
         undo.valRef = notnull Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
         capture.pushUndo(undo)
 
-        let main = capture.editView.main
+        let main = (notnull capture.editView).main
         if @isset(main.quickWnd) do
             main.quickWnd.updateSelection()
         if last and @isset(main.propWnd) do

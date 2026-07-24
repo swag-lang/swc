@@ -53,7 +53,7 @@ func buildFillBrushImage()->Image
     var img = Image.create(96, 96, .RGBA8)
     for y in img.height
     {
-        var pix = img.pixels.buffer + y * img.width8
+        var pix = (notnull img.pixels.buffer) + y * img.width8
         for x in img.width
         {
             if ((x / 12 + y / 12) & 1) == 0
@@ -90,7 +90,7 @@ func buildTileBrushImage()->Image
     var img = Image.create(48, 48, .RGBA8)
     for y in img.height
     {
-        var pix = img.pixels.buffer + y * img.width8
+        var pix = (notnull img.pixels.buffer) + y * img.width8
         for x in img.width
         {
             if ((x / 8 + y / 8) & 1) == 0
@@ -131,7 +131,7 @@ func loadBrushTextures()
 
 func loadTextShowcase()
 {
-    assume g_TypeFace.getStringOutline(&g_OutlineText, "PIXEL", 84)
+    assume (notnull g_TypeFace).getStringOutline(&g_OutlineText, "PIXEL", 84)
 }
 
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle

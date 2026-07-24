@@ -196,9 +196,10 @@ internal impl Properties
         .gridLevelHasMark.clear()
         if !.isGridLike() do
             return
-        for item in .items
+        for itemIt in .items
         {
-            if .isGridHeader(notnull item) or !item.numChilds do
+            let item = notnull itemIt
+            if .isGridHeader(item) or !item.numChilds do
                 continue
             let depth = .itemDepth(notnull item)
             while .gridLevelHasMark.count <= depth do

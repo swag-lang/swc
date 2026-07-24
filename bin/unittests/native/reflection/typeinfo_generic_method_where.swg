@@ -50,9 +50,13 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
             continue
 
         let methodType = cast(#null const *Swag.TypeInfoFunc) methodInfo.pointedType
-        if methodInfo.pointedType.kind != .Func or
-           @countof(methodType.parameters) != 1 or
-           methodType.parameters[0].pointedType != #type &GenericLazyMethodBox'func||()->s32 or
+        if methodType == null do
+            return false
+        let params = methodType.parameters
+        if methodType.kind != .Func or
+           params == null or
+           @countof(params) != 1 or
+           params[0].pointedType != #type &GenericLazyMethodBox'func||()->s32 or
            methodType.returnType != s32 do
             return false
 

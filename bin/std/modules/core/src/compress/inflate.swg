@@ -208,8 +208,9 @@ impl Inflate
                     cap = dest.capacity
                 }
 
-                buf[count] = cast(u8) value
-                count      += 1
+                let obuf = notnull buf
+                obuf[count] = cast(u8) value
+                count       += 1
                 continue
             }
 
@@ -263,10 +264,11 @@ impl Inflate
                 // Overlapping back-reference: grow once, then copy forward so each byte
                 // naturally references previously written output (handles distance < length)
                 dest.grow(dest.count + length)
-                let start = dest.count
+                let buffer = notnull dest.buffer
+                let start  = dest.count
                 for i in cast(u64) length
                 {
-                    dest.buffer[start + i] = dest.buffer[start + i - distance]
+                    buffer[start + i] = buffer[start + i - distance]
                 }
 
                 dest.count += length

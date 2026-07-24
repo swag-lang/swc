@@ -105,7 +105,7 @@ public impl Voice
     #[Swag.Discardable]
     func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice throw
     {
-        let voice = create(file, createFlags)
+        let voice = notnull create(file, createFlags)
         voice.play(playFlags)
         return voice
     }

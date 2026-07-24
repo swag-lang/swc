@@ -19,11 +19,11 @@ func encodePng(result: *ConcatBuffer, image: Image, options: #null any = null) t
 func assertPngPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
     let idx = cast(u64) (yFromBottom * img.width + x) * img.bpp8
-    @assert(img.pixels.buffer[idx] == r)
-    @assert(img.pixels.buffer[idx + 1] == g)
-    @assert(img.pixels.buffer[idx + 2] == b)
+    @assert((notnull img.pixels.buffer)[idx] == r)
+    @assert((notnull img.pixels.buffer)[idx + 1] == g)
+    @assert((notnull img.pixels.buffer)[idx + 2] == b)
     if img.bpp8 == 4 do
-        @assert(img.pixels.buffer[idx + 3] == a)
+        @assert((notnull img.pixels.buffer)[idx + 3] == a)
 }
 
 func assertLoadedPng(fileName: string, width, height: s32, pf: PixelFormat, r, g, b, a: u8)
@@ -81,7 +81,7 @@ func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat)
 
 func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 {
-    var pix = img.pixels.buffer
+    var pix = notnull img.pixels.buffer
     for img.width * img.height
     {
         switch img.pf
@@ -237,24 +237,26 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 {
     var rgb = Image.create(2, 2, .RGB8)
     rgb.clear()
-    rgb.pixels.buffer[0]  = 10'u8
-    rgb.pixels.buffer[1]  = 20'u8
-    rgb.pixels.buffer[2]  = 30'u8
-    rgb.pixels.buffer[9]  = 100'u8
-    rgb.pixels.buffer[10] = 110'u8
-    rgb.pixels.buffer[11] = 120'u8
+    let rgbBuf = notnull rgb.pixels.buffer
+    rgbBuf[0]  = 10'u8
+    rgbBuf[1]  = 20'u8
+    rgbBuf[2]  = 30'u8
+    rgbBuf[9]  = 100'u8
+    rgbBuf[10] = 110'u8
+    rgbBuf[11] = 120'u8
     assertEncodedPngRoundtrip(rgb, .RGB8)
 
     var rgba = Image.create(2, 2, .RGBA8)
     rgba.clear()
-    rgba.pixels.buffer[0]  = 1'u8
-    rgba.pixels.buffer[1]  = 2'u8
-    rgba.pixels.buffer[2]  = 3'u8
-    rgba.pixels.buffer[3]  = 4'u8
-    rgba.pixels.buffer[12] = 200'u8
-    rgba.pixels.buffer[13] = 201'u8
-    rgba.pixels.buffer[14] = 202'u8
-    rgba.pixels.buffer[15] = 203'u8
+    let rgbaBuf = notnull rgba.pixels.buffer
+    rgbaBuf[0]  = 1'u8
+    rgbaBuf[1]  = 2'u8
+    rgbaBuf[2]  = 3'u8
+    rgbaBuf[3]  = 4'u8
+    rgbaBuf[12] = 200'u8
+    rgbaBuf[13] = 201'u8
+    rgbaBuf[14] = 202'u8
+    rgbaBuf[15] = 203'u8
     assertEncodedPngRoundtrip(rgba, .RGBA8)
 }
 
@@ -262,9 +264,10 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 #test
 {
     var bgr = Image.create(1, 1, .BGR8)
-    bgr.pixels.buffer[0] = 30'u8
-    bgr.pixels.buffer[1] = 20'u8
-    bgr.pixels.buffer[2] = 10'u8
+    let bgrBuf = notnull bgr.pixels.buffer
+    bgrBuf[0] = 30'u8
+    bgrBuf[1] = 20'u8
+    bgrBuf[2] = 10'u8
 
     var cb: ConcatBuffer
     catch encodePng(&cb, bgr)
@@ -277,10 +280,11 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     assertPngPixelAt(img, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
     var bgra = Image.create(1, 1, .BGRA8)
-    bgra.pixels.buffer[0] = 7'u8
-    bgra.pixels.buffer[1] = 8'u8
-    bgra.pixels.buffer[2] = 9'u8
-    bgra.pixels.buffer[3] = 10'u8
+    let bgraBuf = notnull bgra.pixels.buffer
+    bgraBuf[0] = 7'u8
+    bgraBuf[1] = 8'u8
+    bgraBuf[2] = 9'u8
+    bgraBuf[3] = 10'u8
 
     cb.clear()
     catch encodePng(&cb, bgra)

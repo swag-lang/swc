@@ -108,5 +108,6 @@ func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->#null const 
     let rec = findTable(faceData, tag)
     if !rec do
         fail(missingCode)
-    return getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    let r = notnull rec
+    return getSlice(faceData.fontData.toSlice(), r.offset, r.length)
 }

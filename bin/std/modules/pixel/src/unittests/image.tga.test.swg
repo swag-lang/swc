@@ -95,12 +95,12 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pf == .BGR8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[9] == 100'u8)
-    @assert(img.pixels.buffer[10] == 110'u8)
-    @assert(img.pixels.buffer[11] == 120'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[9] == 100'u8)
+    @assert((notnull img.pixels.buffer)[10] == 110'u8)
+    @assert((notnull img.pixels.buffer)[11] == 120'u8)
 }
 
 // Load larger RGB/RGBA fixtures copied from the historical pixel test data.
@@ -114,9 +114,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rgb.height == 441)
     @assert(rgb.pf == .BGR8)
     @assert(rgb.pixels.count == 873180)
-    @assert(rgb.pixels.buffer[0] == 201'u8)
-    @assert(rgb.pixels.buffer[1] == 205'u8)
-    @assert(rgb.pixels.buffer[2] == 194'u8)
+    @assert((notnull rgb.pixels.buffer)[0] == 201'u8)
+    @assert((notnull rgb.pixels.buffer)[1] == 205'u8)
+    @assert((notnull rgb.pixels.buffer)[2] == 194'u8)
 
     var rgba: Image
     rgba = catch Image.load(getTestDataPath("rgba.tga"))
@@ -126,10 +126,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rgba.height == 441)
     @assert(rgba.pf == .BGRA8)
     @assert(rgba.pixels.count == 1164240)
-    @assert(rgba.pixels.buffer[0] == 201'u8)
-    @assert(rgba.pixels.buffer[1] == 205'u8)
-    @assert(rgba.pixels.buffer[2] == 194'u8)
-    @assert(rgba.pixels.buffer[3] == 255'u8)
+    @assert((notnull rgba.pixels.buffer)[0] == 201'u8)
+    @assert((notnull rgba.pixels.buffer)[1] == 205'u8)
+    @assert((notnull rgba.pixels.buffer)[2] == 194'u8)
+    @assert((notnull rgba.pixels.buffer)[3] == 255'u8)
 }
 
 // Load RLE RGB/RGBA fixtures copied from the historical pixel test data.
@@ -142,9 +142,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rle24.width == 660)
     @assert(rle24.height == 441)
     @assert(rle24.pf == .BGR8)
-    @assert(rle24.pixels.buffer[0] == 201'u8)
-    @assert(rle24.pixels.buffer[1] == 205'u8)
-    @assert(rle24.pixels.buffer[2] == 194'u8)
+    @assert((notnull rle24.pixels.buffer)[0] == 201'u8)
+    @assert((notnull rle24.pixels.buffer)[1] == 205'u8)
+    @assert((notnull rle24.pixels.buffer)[2] == 194'u8)
 
     var rle32: Image
     rle32 = catch Image.load(getTestDataPath("rle32.tga"))
@@ -153,10 +153,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(rle32.width == 660)
     @assert(rle32.height == 441)
     @assert(rle32.pf == .BGRA8)
-    @assert(rle32.pixels.buffer[0] == 201'u8)
-    @assert(rle32.pixels.buffer[1] == 205'u8)
-    @assert(rle32.pixels.buffer[2] == 194'u8)
-    @assert(rle32.pixels.buffer[3] == 255'u8)
+    @assert((notnull rle32.pixels.buffer)[0] == 201'u8)
+    @assert((notnull rle32.pixels.buffer)[1] == 205'u8)
+    @assert((notnull rle32.pixels.buffer)[2] == 194'u8)
+    @assert((notnull rle32.pixels.buffer)[3] == 255'u8)
 }
 
 // Decode skips the optional image ID field before pixel data.
@@ -187,9 +187,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 8'u8)
-    @assert(img.pixels.buffer[1] == 9'u8)
-    @assert(img.pixels.buffer[2] == 10'u8)
+    @assert((notnull img.pixels.buffer)[0] == 8'u8)
+    @assert((notnull img.pixels.buffer)[1] == 9'u8)
+    @assert((notnull img.pixels.buffer)[2] == 10'u8)
 }
 
 // Decode a top-origin TGA into the module's bottom-up image buffer.
@@ -214,12 +214,12 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 7'u8)
-    @assert(img.pixels.buffer[1] == 8'u8)
-    @assert(img.pixels.buffer[2] == 9'u8)
-    @assert(img.pixels.buffer[6] == 1'u8)
-    @assert(img.pixels.buffer[7] == 2'u8)
-    @assert(img.pixels.buffer[8] == 3'u8)
+    @assert((notnull img.pixels.buffer)[0] == 7'u8)
+    @assert((notnull img.pixels.buffer)[1] == 8'u8)
+    @assert((notnull img.pixels.buffer)[2] == 9'u8)
+    @assert((notnull img.pixels.buffer)[6] == 1'u8)
+    @assert((notnull img.pixels.buffer)[7] == 2'u8)
+    @assert((notnull img.pixels.buffer)[8] == 3'u8)
 }
 
 // Decode a right-origin TGA by reversing pixels within the row.
@@ -242,12 +242,12 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 4'u8)
-    @assert(img.pixels.buffer[1] == 5'u8)
-    @assert(img.pixels.buffer[2] == 6'u8)
-    @assert(img.pixels.buffer[3] == 1'u8)
-    @assert(img.pixels.buffer[4] == 2'u8)
-    @assert(img.pixels.buffer[5] == 3'u8)
+    @assert((notnull img.pixels.buffer)[0] == 4'u8)
+    @assert((notnull img.pixels.buffer)[1] == 5'u8)
+    @assert((notnull img.pixels.buffer)[2] == 6'u8)
+    @assert((notnull img.pixels.buffer)[3] == 1'u8)
+    @assert((notnull img.pixels.buffer)[4] == 2'u8)
+    @assert((notnull img.pixels.buffer)[5] == 3'u8)
 }
 
 // Decode 16-bit true-color TGA pixels as BGRA8.
@@ -271,14 +271,14 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 0'u8)
-    @assert(img.pixels.buffer[1] == 0'u8)
-    @assert(img.pixels.buffer[2] == 255'u8)
-    @assert(img.pixels.buffer[3] == 255'u8)
-    @assert(img.pixels.buffer[4] == 0'u8)
-    @assert(img.pixels.buffer[5] == 255'u8)
-    @assert(img.pixels.buffer[6] == 0'u8)
-    @assert(img.pixels.buffer[7] == 0'u8)
+    @assert((notnull img.pixels.buffer)[0] == 0'u8)
+    @assert((notnull img.pixels.buffer)[1] == 0'u8)
+    @assert((notnull img.pixels.buffer)[2] == 255'u8)
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)
+    @assert((notnull img.pixels.buffer)[4] == 0'u8)
+    @assert((notnull img.pixels.buffer)[5] == 255'u8)
+    @assert((notnull img.pixels.buffer)[6] == 0'u8)
+    @assert((notnull img.pixels.buffer)[7] == 0'u8)
 }
 
 // Decode 8-bit grayscale TGA as BGR8.
@@ -301,12 +301,12 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pf == .BGR8)
-    @assert(img.pixels.buffer[0] == 5'u8)
-    @assert(img.pixels.buffer[1] == 5'u8)
-    @assert(img.pixels.buffer[2] == 5'u8)
-    @assert(img.pixels.buffer[6] == 15'u8)
-    @assert(img.pixels.buffer[7] == 15'u8)
-    @assert(img.pixels.buffer[8] == 15'u8)
+    @assert((notnull img.pixels.buffer)[0] == 5'u8)
+    @assert((notnull img.pixels.buffer)[1] == 5'u8)
+    @assert((notnull img.pixels.buffer)[2] == 5'u8)
+    @assert((notnull img.pixels.buffer)[6] == 15'u8)
+    @assert((notnull img.pixels.buffer)[7] == 15'u8)
+    @assert((notnull img.pixels.buffer)[8] == 15'u8)
 }
 
 // Decode an 8-bit indexed TGA with a non-zero palette base index.
@@ -340,12 +340,12 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pf == .BGR8)
-    @assert(img.pixels.buffer[0] == 10'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 30'u8)
-    @assert(img.pixels.buffer[3] == 40'u8)
-    @assert(img.pixels.buffer[4] == 50'u8)
-    @assert(img.pixels.buffer[5] == 60'u8)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 40'u8)
+    @assert((notnull img.pixels.buffer)[4] == 50'u8)
+    @assert((notnull img.pixels.buffer)[5] == 60'u8)
 }
 
 // Decode indexed TGA with 32-bit palette entries and preserve alpha.
@@ -377,10 +377,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 3'u8)
-    @assert(img.pixels.buffer[1] == 4'u8)
-    @assert(img.pixels.buffer[2] == 5'u8)
-    @assert(img.pixels.buffer[3] == 6'u8)
+    @assert((notnull img.pixels.buffer)[0] == 3'u8)
+    @assert((notnull img.pixels.buffer)[1] == 4'u8)
+    @assert((notnull img.pixels.buffer)[2] == 5'u8)
+    @assert((notnull img.pixels.buffer)[3] == 6'u8)
 }
 
 // Decode RLE true-color packets.
@@ -403,10 +403,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[9] == 1'u8)
-    @assert(img.pixels.buffer[10] == 2'u8)
-    @assert(img.pixels.buffer[11] == 3'u8)
+    @assert((notnull img.pixels.buffer)[0] == 1'u8)
+    @assert((notnull img.pixels.buffer)[9] == 1'u8)
+    @assert((notnull img.pixels.buffer)[10] == 2'u8)
+    @assert((notnull img.pixels.buffer)[11] == 3'u8)
 }
 
 // Decode RLE color-mapped packets.
@@ -440,9 +440,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[3] == 4'u8)
-    @assert(img.pixels.buffer[6] == 7'u8)
+    @assert((notnull img.pixels.buffer)[0] == 1'u8)
+    @assert((notnull img.pixels.buffer)[3] == 4'u8)
+    @assert((notnull img.pixels.buffer)[6] == 7'u8)
 }
 
 // Decode RLE grayscale packets.
@@ -465,9 +465,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 9'u8)
-    @assert(img.pixels.buffer[3] == 10'u8)
-    @assert(img.pixels.buffer[6] == 11'u8)
+    @assert((notnull img.pixels.buffer)[0] == 9'u8)
+    @assert((notnull img.pixels.buffer)[3] == 10'u8)
+    @assert((notnull img.pixels.buffer)[6] == 11'u8)
 }
 
 // Decode metadata without allocating pixels.
@@ -523,12 +523,13 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     }
 
     var src = Image.create(2, 1, .BGR8)
-    src.pixels.buffer[0] = 1'u8
-    src.pixels.buffer[1] = 2'u8
-    src.pixels.buffer[2] = 3'u8
-    src.pixels.buffer[3] = 4'u8
-    src.pixels.buffer[4] = 5'u8
-    src.pixels.buffer[5] = 6'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 1'u8
+    srcBuf[1] = 2'u8
+    srcBuf[2] = 3'u8
+    srcBuf[3] = 4'u8
+    srcBuf[4] = 5'u8
+    srcBuf[5] = 6'u8
 
     var cb: ConcatBuffer
     catch encodeTga(&cb, src)
@@ -539,8 +540,8 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString())
     @assert(@err == null)
-    @assert(img.pixels.buffer[0] == 1'u8)
-    @assert(img.pixels.buffer[5] == 6'u8)
+    @assert((notnull img.pixels.buffer)[0] == 1'u8)
+    @assert((notnull img.pixels.buffer)[5] == 6'u8)
 }
 
 // Encode RGB8 by swapping R/B into the on-disk BGR order.
@@ -553,9 +554,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     }
 
     var src = Image.create(1, 1, .RGB8)
-    src.pixels.buffer[0] = 10'u8
-    src.pixels.buffer[1] = 20'u8
-    src.pixels.buffer[2] = 30'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 10'u8
+    srcBuf[1] = 20'u8
+    srcBuf[2] = 30'u8
 
     var cb: ConcatBuffer
     catch encodeTga(&cb, src)
@@ -567,9 +569,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pf == .BGR8)
-    @assert(img.pixels.buffer[0] == 30'u8)
-    @assert(img.pixels.buffer[1] == 20'u8)
-    @assert(img.pixels.buffer[2] == 10'u8)
+    @assert((notnull img.pixels.buffer)[0] == 30'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 10'u8)
 }
 
 // Encode RGBA8 with descriptor alpha bits and preserve alpha through round-trip.
@@ -582,10 +584,11 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     }
 
     var src = Image.create(1, 1, .RGBA8)
-    src.pixels.buffer[0] = 1'u8
-    src.pixels.buffer[1] = 2'u8
-    src.pixels.buffer[2] = 3'u8
-    src.pixels.buffer[3] = 4'u8
+    let srcBuf = notnull src.pixels.buffer
+    srcBuf[0] = 1'u8
+    srcBuf[1] = 2'u8
+    srcBuf[2] = 3'u8
+    srcBuf[3] = 4'u8
 
     var cb: ConcatBuffer
     catch encodeTga(&cb, src)
@@ -605,8 +608,8 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     img = catch Image.load(path.toString())
     @assert(@err == null)
     @assert(img.pf == .BGRA8)
-    @assert(img.pixels.buffer[0] == 3'u8)
-    @assert(img.pixels.buffer[1] == 2'u8)
-    @assert(img.pixels.buffer[2] == 1'u8)
-    @assert(img.pixels.buffer[3] == 4'u8)
+    @assert((notnull img.pixels.buffer)[0] == 3'u8)
+    @assert((notnull img.pixels.buffer)[1] == 2'u8)
+    @assert((notnull img.pixels.buffer)[2] == 1'u8)
+    @assert((notnull img.pixels.buffer)[3] == 4'u8)
 }

@@ -322,7 +322,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage == linkedPath)
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = catch Capture.load(capturePath)
+    let loaded = notnull catch Capture.load(capturePath)
     @assert(@err == null)
     defer
     {
@@ -369,7 +369,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(testSamePath(f.capture.linkedImage, linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = catch Capture.load(capturePath)
+    let loaded = notnull catch Capture.load(capturePath)
     @assert(@err == null)
     defer
     {
@@ -423,7 +423,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(linked.height == 16)
     @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
-    let loaded = catch Capture.load(capturePath)
+    let loaded = notnull catch Capture.load(capturePath)
     @assert(@err == null)
     defer
     {
@@ -480,7 +480,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(linked.height == 26)
     @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
-    let loaded = catch Capture.load(capturePath)
+    let loaded = notnull catch Capture.load(capturePath)
     @assert(@err == null)
     defer
     {
@@ -528,7 +528,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage.isEmpty())
     @assert(!f.capture.linkedUpToDate)
 
-    let loaded = catch Capture.load(capturePath)
+    let loaded = notnull catch Capture.load(capturePath)
     @assert(@err == null)
     defer
     {
@@ -562,7 +562,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.main.recentWnd.recentView.items.count == 1)
     @assert(f.main.recentWnd.recentView.selected == 0)
 
-    let duplicatedPath = f.main.recentWnd.recentView.items[0].file
+    let duplicatedPath = (notnull f.main.recentWnd.recentView.items[0]).file
     defer
     {
         discard catch File.delete(duplicatedPath)
@@ -572,7 +572,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(!testSamePath(duplicatedPath, originalPath))
     @assert(File.exists(duplicatedPath))
 
-    let duplicated = catch Capture.load(duplicatedPath)
+    let duplicated = notnull catch Capture.load(duplicatedPath)
     @assert(@err == null)
     defer
     {

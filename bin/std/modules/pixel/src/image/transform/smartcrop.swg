@@ -177,7 +177,8 @@ public impl Image
             let params = cast(*#decltype(f)) (notnull userData)
 
             // linear luminance
-            params.lum.buffer[index] = p.getRelativeLuminance()
+            let lumBuf = notnull params.lum.buffer
+            lumBuf[index] = p.getRelativeLuminance()
 
             // saturation in sRGB
             let rs   = p.r / 255.0
@@ -186,7 +187,8 @@ public impl Image
             let maxC = Math.max(Math.max(rs, gs), bs)
             let minC = Math.min(Math.min(rs, gs), bs)
             let eps  = 1e-6'f32
-            params.sat.buffer[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
+            let satBuf = notnull params.sat.buffer
+            satBuf[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
         }
     }
 

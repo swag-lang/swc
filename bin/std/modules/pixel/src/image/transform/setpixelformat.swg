@@ -16,7 +16,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -26,7 +26,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -48,7 +48,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -59,7 +59,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -70,7 +70,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -93,7 +93,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -103,7 +103,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -125,7 +125,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[0]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[2]
@@ -136,7 +136,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]
@@ -147,7 +147,7 @@ impl Image
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
-                let pixDst   = dstImage.pixels.buffer + x * dstImage.bpp8 + y * dstImage.width8
+                let pixDst   = (notnull dstImage.pixels.buffer) + x * dstImage.bpp8 + y * dstImage.width8
                 pixDst[0] = pix[2]
                 pixDst[1] = pix[1]
                 pixDst[2] = pix[0]

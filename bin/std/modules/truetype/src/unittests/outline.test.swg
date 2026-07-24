@@ -27,18 +27,19 @@ using Swag, Core
 {
     var scope: FaceScope
     scope.init()
+    let face = notnull scope.face
 
-    discard catch scope.face.setPixelSize(0, 18)
+    discard catch face.setPixelSize(0, 18)
     @assert(@err == null)
 
-    discard catch scope.face.loadChar('A', .NoBitmap)
+    discard catch face.loadChar('A', .NoBitmap)
     @assert(@err == null)
-    @assert(scope.face.glyph.outline.contourCount > 0)
-    @assert(scope.face.glyph.outline.pointCount > 0)
-    @assert(scope.face.glyph.advance.x > 0)
+    @assert(face.glyph.outline.contourCount > 0)
+    @assert(face.glyph.outline.pointCount > 0)
+    @assert(face.glyph.advance.x > 0)
 
     var counter: OutlineCounter
-    let commands = scope.face.glyph.outline.decompose()
+    let commands = face.glyph.outline.decompose()
     for cmd in commands
     {
         switch cmd.kind
@@ -53,47 +54,49 @@ using Swag, Core
     @assert(counter.moves > 0)
     @assert(counter.lines + counter.conics > 0)
 
-    let bounds0 = getOutlineBounds(&scope.face.glyph.outline)
-    scope.face.glyph.outline.translate(64, 0)
-    let bounds1 = getOutlineBounds(&scope.face.glyph.outline)
+    let bounds0 = getOutlineBounds(&face.glyph.outline)
+    face.glyph.outline.translate(64, 0)
+    let bounds1 = getOutlineBounds(&face.glyph.outline)
     @assert(bounds1.xMin == bounds0.xMin + 64)
     @assert(bounds1.xMax == bounds0.xMax + 64)
 
-    discard catch scope.face.loadChar('A', .NoBitmap)
+    discard catch face.loadChar('A', .NoBitmap)
     @assert(@err == null)
-    let transformIdx = findPointWithNonZeroY(&scope.face.glyph.outline)
-    let beforeTransformX = scope.face.glyph.outline.points[transformIdx].x
-    let beforeTransformY = scope.face.glyph.outline.points[transformIdx].y
+    let transformIdx     = findPointWithNonZeroY(&face.glyph.outline)
+    let transformPts     = notnull face.glyph.outline.points
+    let beforeTransformX = transformPts[transformIdx].x
+    let beforeTransformY = transformPts[transformIdx].y
     let scaleY = Matrix{xx: 65536, yy: 131072}
-    scope.face.glyph.outline.transform(scaleY)
-    @assert(scope.face.glyph.outline.points[transformIdx].x == beforeTransformX)
-    @assert(scope.face.glyph.outline.points[transformIdx].y == beforeTransformY * 2)
+    face.glyph.outline.transform(scaleY)
+    @assert(transformPts[transformIdx].x == beforeTransformX)
+    @assert(transformPts[transformIdx].y == beforeTransformY * 2)
 
-    discard catch scope.face.loadChar('A', .NoBitmap)
+    discard catch face.loadChar('A', .NoBitmap)
     @assert(@err == null)
-    let bounds2 = getOutlineBounds(&scope.face.glyph.outline)
-    discard catch scope.face.glyph.outline.embolden(64)
+    let bounds2 = getOutlineBounds(&face.glyph.outline)
+    discard catch face.glyph.outline.embolden(64)
     @assert(@err == null)
-    let bounds3 = getOutlineBounds(&scope.face.glyph.outline)
+    let bounds3 = getOutlineBounds(&face.glyph.outline)
     @assert(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
 
     // Emboldening a glyph with a counter ('o') must add ink: the outer contour
     // grows while the inner hole shrinks. A per-contour winding bug would instead
     // grow the hole, so the total filled area would not increase.
-    discard catch scope.face.loadChar('o', .NoBitmap)
+    discard catch face.loadChar('o', .NoBitmap)
     @assert(@err == null)
-    @assert(scope.face.glyph.outline.contourCount >= 2)
-    let inkBefore = Math.abs(totalOutlineSignedArea(&scope.face.glyph.outline))
-    discard catch scope.face.glyph.outline.embolden(128)
+    @assert(face.glyph.outline.contourCount >= 2)
+    let inkBefore = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
+    discard catch face.glyph.outline.embolden(128)
     @assert(@err == null)
-    let inkAfter = Math.abs(totalOutlineSignedArea(&scope.face.glyph.outline))
+    let inkAfter = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
     @assert(inkAfter > inkBefore)
 
-    discard catch scope.face.loadChar('A', .NoBitmap)
+    discard catch face.loadChar('A', .NoBitmap)
     @assert(@err == null)
-    let sampleIdx = findPointWithNonZeroY(&scope.face.glyph.outline)
-    let sampleBeforeX = scope.face.glyph.outline.points[sampleIdx].x
-    let sampleBeforeY = scope.face.glyph.outline.points[sampleIdx].y
-    scope.face.glyph.oblique()
-    @assert(scope.face.glyph.outline.points[sampleIdx].x == sampleBeforeX + cast(s32) Math.round(sampleBeforeY * 0.21256))
+    let sampleIdx     = findPointWithNonZeroY(&face.glyph.outline)
+    let samplePts     = notnull face.glyph.outline.points
+    let sampleBeforeX = samplePts[sampleIdx].x
+    let sampleBeforeY = samplePts[sampleIdx].y
+    face.glyph.oblique()
+    @assert(samplePts[sampleIdx].x == sampleBeforeX + cast(s32) Math.round(sampleBeforeY * 0.21256))
 }

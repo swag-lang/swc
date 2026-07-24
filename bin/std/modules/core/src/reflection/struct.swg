@@ -82,7 +82,8 @@ func getFieldValue(dest: #null *void, type: #null const *TypeValue, src: #null *
     default:
         if !hardCast do
             Debug.assert(false, "unsupported getFieldValue type")
-        switch nnType.pointedType.sizeof
+        let pointedType = notnull nnType.pointedType
+        switch pointedType.sizeof
         {
         case 1:  dref cast(*u8) nnDest = dref cast(*u8) patch
         case 2:  dref cast(*u16) nnDest = dref cast(*u16) patch
@@ -123,7 +124,8 @@ func setFieldValue(dest: *void, type: #null const *TypeValue, src: const *void, 
     default:
         if !hardCast do
             Debug.assert(false, "unsupported setFieldValue type")
-        switch nnType.pointedType.sizeof
+        let pointedType = notnull nnType.pointedType
+        switch pointedType.sizeof
         {
         case 1:  dref cast(*u8) patch = dref cast(const *u8) nnSrc
         case 2:  dref cast(*u16) patch = dref cast(const *u16) nnSrc

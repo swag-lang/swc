@@ -22,21 +22,21 @@ impl ScratchAllocator
     // Free a block, if possible.
     mtd freeMem(addr: *void, size: u64)
     {
-        @assert(.allocator != null)
+        let allocItf = notnull .allocator
         var req: AllocatorRequest
         req.address = addr
         req.size    = size
-        .allocator.free(&req)
+        allocItf.free(&req)
     }
 
     // Allocate a block
     mtd alloc(size: u64, alignment: u32 = 0)->#null *void
     {
-        @assert(.allocator != null)
+        let allocItf = notnull .allocator
         var req: AllocatorRequest
         req.size      = size
         req.alignment = alignment
-        .allocator.alloc(&req)
+        allocItf.alloc(&req)
         return req.address
     }
 
@@ -143,7 +143,7 @@ impl IAllocator for ScratchAllocator
         // We prepend a LeakHeader to the user block, and linked it in
         // the chained list of leak allocations (at the first position)
         let totalSize = request.size + #sizeof(LeakHeader)
-        let ptr       = cast(#null [*] LeakHeader) .alloc(totalSize, request.alignment)
+        let ptr       = cast([*] LeakHeader) notnull .alloc(totalSize, request.alignment)
         let leak      = cast(#null [*] LeakHeader) .firstLeak
         if leak do
             leak.prev   = ptr

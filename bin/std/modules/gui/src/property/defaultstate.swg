@@ -65,7 +65,7 @@ impl Properties
 
         for i in fromIdx until .items.count
         {
-            let it = .items[i]
+            let it = notnull .items[i]
             it.defaultData = null
 
             if !it.data do
@@ -132,10 +132,10 @@ impl Properties
 
         if item.type == Core.String
         {
-            let d = cast(#null *String) item.defaultData
+            let d = notnull cast(#null *String) item.defaultData
             for k in n
             {
-                if dref cast(#null *String) .instanceAddr(item, k) != dref d do
+                if (dref notnull cast(#null *String) .instanceAddr(item, k)) != dref d do
                     return true
             }
 
@@ -181,7 +181,7 @@ impl Properties
         if item.type == Core.String
         {
             for k in n do
-                dref cast(#null *String) .instanceAddr(item, k) = dref cast(#null *String) item.defaultData
+                dref notnull cast(#null *String) .instanceAddr(item, k) = dref notnull cast(#null *String) item.defaultData
         }
         else
         {

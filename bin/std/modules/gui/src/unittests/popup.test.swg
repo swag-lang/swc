@@ -35,7 +35,9 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.popup != null)
 
     // Selecting item 1 via the popup routes back to the combobox.
-    combo.popup.sigSelected(notnull combo.popup, 1)
+    let popup = notnull combo.popup
+    let sig   = notnull popup.sigSelected
+    sig(popup, 1)
     host.pump()
     @assert(combo.popup == null)
     @assert(combo.selectedIdx == 1)
@@ -60,7 +62,9 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.popup != null)
 
     // The open popup captured the mouse; closing it via its own dismiss path.
-    combo.popup.sigSelected(notnull combo.popup, Swag.U32.Max)
+    let popup = notnull combo.popup
+    let sig   = notnull popup.sigSelected
+    sig(popup, Swag.U32.Max)
     host.pump()
     @assert(combo.popup == null)
     @assert(combo.selectedIdx == Swag.U32.Max)
@@ -81,8 +85,8 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     popup.addItem("B")
 
     @assert(popup.items.count == 3)
-    @assert(!popup.items[0].isSeparator)
-    @assert(popup.items[1].isSeparator)
+    @assert(!(notnull popup.items[0]).isSeparator)
+    @assert((notnull popup.items[1]).isSeparator)
     @assert(popup.selectedIdx == Swag.U32.Max)
 
     popup.destroy()

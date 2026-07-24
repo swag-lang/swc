@@ -271,8 +271,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     values.add(seed)
 
     @assert(@countof(values) == 4)
-    let raw = cast(#null const [*] s32) @dataof(values)
-    @assert(raw != null)
+    let raw = notnull cast(#null const [*] s32) @dataof(values)
     @assert(raw[0] == 5)
     @assert(raw[3] == 3)
 

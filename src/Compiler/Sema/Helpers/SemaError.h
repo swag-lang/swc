@@ -76,6 +76,7 @@ namespace SemaError
     Result     raiseCodeTypeRestricted(Sema& sema, const SourceCodeRef& codeRef, TypeRef typeRef);
     Result     raiseCodeTypeRestricted(Sema& sema, AstNodeRef atNodeRef, TypeRef typeRef);
     Result     raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, const SourceCodeRef& codeRef, TypeRef typeRef);
+    Result     raiseTypeArgumentError(Sema& sema, DiagnosticId diagId, AstNodeRef atNodeRef, TypeRef typeRef);
     Result     raiseIndexOutOfRange(Sema& sema, AstNodeRef atNodeRef, int64_t index, size_t maxCount);
 }
 

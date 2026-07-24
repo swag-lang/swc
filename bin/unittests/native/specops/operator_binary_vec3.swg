@@ -47,7 +47,7 @@ impl GenVec3
 {
     var a: GenVec3's32 = {x: 1, y: 2, z: 3}
     var b: GenVec3's32 = {x: 10, y: 20, z: 30}
-    let sum = a + b
+    let sum            = a + b
 
     #assert(#typeof(sum) == GenVec3's32)
     @assert(sum.x == 11)
@@ -60,7 +60,7 @@ impl GenVec3
 {
     var a: GenVec3's64 = {x: 100, y: 200, z: 300}
     var b: GenVec3's64 = {x: 150, y: 50, z: 300}
-    let diff = a - b
+    let diff           = a - b
 
     @assert(diff.x == -50)
     @assert(diff.y == 150)
@@ -72,7 +72,7 @@ impl GenVec3
 {
     var a: GenVec3'u32 = {x: 2, y: 3, z: 4}
     var b: GenVec3'u32 = {x: 5, y: 6, z: 7}
-    let prod = a * b
+    let prod           = a * b
 
     @assert(prod.x == 10)
     @assert(prod.y == 18)
@@ -84,7 +84,7 @@ impl GenVec3
 {
     var a: GenVec3'u64 = {x: 100, y: 200, z: 300}
     var b: GenVec3'u64 = {x: 10, y: 20, z: 30}
-    let quot = a / b
+    let quot           = a / b
 
     @assert(quot.x == 10'u64)
     @assert(quot.y == 10'u64)
@@ -95,7 +95,7 @@ impl GenVec3
 #test
 {
     var a: GenVec3'u32 = {x: 1, y: 2, z: 3}
-    let result = a * 10'u32
+    let result         = a * 10'u32
 
     @assert(result.x == 10)
     @assert(result.y == 20)
@@ -106,7 +106,7 @@ impl GenVec3
 #test
 {
     var a: GenVec3's32 = {x: -5, y: 0, z: 5}
-    let result = a + 10's32
+    let result         = a + 10's32
 
     @assert(result.x == 5)
     @assert(result.y == 10)
@@ -117,7 +117,7 @@ impl GenVec3
 #test
 {
     var a: GenVec3'u64 = {x: 100, y: 200, z: 300}
-    let result = a / 10'u64
+    let result         = a / 10'u64
 
     @assert(result.x == 10'u64)
     @assert(result.y == 20'u64)
@@ -130,7 +130,7 @@ impl GenVec3
     var a: GenVec3's32 = {x: 1, y: 2, z: 3}
     var b: GenVec3's32 = {x: 4, y: 5, z: 6}
     var c: GenVec3's32 = {x: 10, y: 10, z: 10}
-    let result = a + b - c
+    let result         = a + b - c
 
     @assert(result.x == -5)
     @assert(result.y == -3)
@@ -142,8 +142,8 @@ impl GenVec3
 {
     var a: GenVec3'u8 = {x: 10, y: 20, z: 30}
     var b: GenVec3'u8 = {x: 1, y: 2, z: 3}
-    let sum = a + b
-    let diff = a - b
+    let sum           = a + b
+    let diff          = a - b
 
     #assert(#typeof(sum) == GenVec3'u8)
     @assert(sum.x == 11)
@@ -158,7 +158,7 @@ impl GenVec3
 #test
 {
     var a: GenVec3's64 = {x: 0, y: 0, z: 0}
-    let result = a - 42's64
+    let result         = a - 42's64
 
     @assert(result.x == -42)
     @assert(result.y == -42)

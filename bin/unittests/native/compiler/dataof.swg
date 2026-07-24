@@ -37,16 +37,16 @@ impl ConstDataOfSpecBuffer
 {
     var arr0: [3] s32
     var a:    [..] s32 = arr0
-    var b = @dataof(a)
+    var b              = @dataof(a)
     #assert(#typeof(b) == [*] s32)
 
     var c: string = "x"
-    var d = @dataof(c)
+    var d         = @dataof(c)
     #assert(#typeof(d) == const [*] u8)
 
-    var ebuf: [2] u8 = ['x''u8, 0]
+    var ebuf: [2] u8  = ['x''u8, 0]
     var e:    cstring = cast(cstring) &ebuf[0]
-    var f = @dataof(e)
+    var f             = @dataof(e)
     #assert(#typeof(f) == const [*] u8)
 
     var g: [5] s32
@@ -54,7 +54,7 @@ impl ConstDataOfSpecBuffer
     #assert(#typeof(h) == [*] s32)
 
     var i: any = 0's32
-    var j = @dataof(i)
+    var j      = @dataof(i)
     #assert(#typeof(j) == [*] void)
     @assert(#typeof(b) == [*] s32)
     @assert(#typeof(d) == const [*] u8)
@@ -67,7 +67,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var s: string = "abc"
-    var p = @dataof(s)
+    var p         = @dataof(s)
     @assert(p[0] == 'a')
     @assert(p[1] == 'b')
     @assert(p[2] == 'c')
@@ -77,7 +77,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var arr: [3] u8 = [1, 2, 3]
-    var p = @dataof(arr)
+    var p           = @dataof(arr)
     @assert(p[0] == 1'u8)
     @assert(p[1] == 2'u8)
     @assert(p[2] == 3'u8)
@@ -87,7 +87,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var s: #null string = null
-    var p = @dataof(s)
+    var p               = @dataof(s)
     #assert(#typeof(p) == const [*] u8)
     @assert(p == null)
 }
@@ -96,7 +96,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var arr: [2] s32 = [1, 2]
-    var p = @dataof(arr)
+    var p            = @dataof(arr)
     p[0] = 7
     @assert(arr[0] == 7)
 }
@@ -137,7 +137,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var value: DataOfSpecBuffer = {data: [4, 5, 6]}
-    let p = @dataof(value)
+    let p                       = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[1] = 42
     @assert(value.data[0] == 4)
@@ -157,7 +157,7 @@ impl ConstDataOfSpecBuffer
 #test
 {
     var value: StrictDataOfArray = cast(StrictDataOfArray) [10, 20, 30]
-    let p = @dataof(value)
+    let p                        = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[1] = 44
     @assert(value[0] == 10)
@@ -176,9 +176,9 @@ impl ConstDataOfSpecBuffer
 
 #test
 {
-    var storage: [4] s32 = [3, 6, 9, 12]
+    var storage: [4] s32           = [3, 6, 9, 12]
     var value:   StrictDataOfSlice = cast(StrictDataOfSlice) storage
-    let p = @dataof(value)
+    let p                          = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[2] = 55
     @assert(storage[0] == 3)

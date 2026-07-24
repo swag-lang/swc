@@ -84,7 +84,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
         let shapeRect = insetRect(middleCell, 26, 22, 26, 82)
         var blob      = makeBlobPath(shapeRect)
         blob.flatten(.Normal)
-        var pen       = Pen.createSolid(Argb.White, 18)
+        var pen = Pen.createSolid(Argb.White, 18)
         pen.brush     = Brush.createTexture(g_FillTexture)
         pen.joinStyle = .Round
         painter.drawPath(&blob, pen)

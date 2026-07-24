@@ -39,7 +39,7 @@ func makeShadowItem(value: s32)->ShadowItem { return {count: value} }
 func semaTest001()
 {
     let set: ShadowItem = {count: 3}
-    let count = set.count
+    let count           = set.count
 
     #assert(#typeof(count) == s32)
 }
@@ -47,7 +47,7 @@ func semaTest001()
 func semaTest002()
 {
     let set: ShadowItem = makeShadowItem(4)
-    let count = set.count
+    let count           = set.count
 
     #assert(#typeof(count) == s32)
 }
@@ -67,7 +67,7 @@ func semaTest004()
 {
     {
         let set: ShadowItem = {count: 6}
-        let count = set.count
+        let count           = set.count
         #assert(#typeof(count) == s32)
     }
 }
@@ -75,7 +75,7 @@ func semaTest004()
 func semaTest005()
 {
     let set: ShadowItem = makeShadowItem(7)
-    let count = set.count
+    let count           = set.count
 
     #assert(#typeof(count) == s32)
 }
@@ -83,16 +83,16 @@ func semaTest005()
 func semaTest006()
 {
     let set: SetterItem = 8
-    let count = set.count
+    let count           = set.count
 
     #assert(#typeof(count) == s32)
 }
 
 func semaTest007()
 {
-    let values = [1, 2, 3]
+    let values                     = [1, 2, 3]
     let set: GenericSetterItem's32 = values[to]
-    let count = set.count
+    let count                      = set.count
 
     #assert(#typeof(count) == u64)
 }

@@ -416,7 +416,7 @@ impl Encoder
     mtd prepareQuantTables()
     {
         const AanSf: [8] f64 = [1.0, 1.387039845, 1.306562965, 1.175875602, 1.0, 0.785694958, 0.541196100, 0.275899379]
-        var i        = 0
+        var i = 0
         for [row] in 8
         {
             for [col] in 8
@@ -735,7 +735,7 @@ impl Encoder
 
     mtd encoder()
     {
-        var dcy:  s16  = 0
+        var dcy:  s16 = 0
         var dccb: s16 = 0
         var dccr: s16 = 0
         for var ypos = 0'u16; ypos < .imageY; ypos += 8

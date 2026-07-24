@@ -129,8 +129,8 @@ func(T) reverse(arr: *DynArray'T)
     if arr.count <= 1 do
         return
     var lo: u64 = 0
-    var hi   = arr.count - 1
-    let data = notnull arr.data
+    var hi      = arr.count - 1
+    let data    = notnull arr.data
     while lo < hi
     {
         let tmp = data[lo]

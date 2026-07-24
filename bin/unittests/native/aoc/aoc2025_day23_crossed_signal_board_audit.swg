@@ -37,8 +37,8 @@ struct BoardAudit
 
 func stringLess(left, right: string)->bool
 {
-    let leftBytes = cast(const [..] u8) left
-    let rightBytes = cast(const [..] u8) right
+    let leftBytes    = cast(const [..] u8) left
+    let rightBytes   = cast(const [..] u8) right
     let commonLength = @min(@countof(leftBytes), @countof(rightBytes))
 
     for commonLength
@@ -190,8 +190,8 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     var wireNames:     [MaxWires] string = undefined
     var wireKnown:     [MaxWires] bool
     var wireValues:    [MaxWires] u8
-    var wireNameSlice: [..] string = wireNames
-    var suspectSlice:  [..] string = result.suspects
+    var wireNameSlice: [..] string       = wireNames
+    var suspectSlice:  [..] string       = result.suspects
     var wireCount:     u32
 
     for wire in initialWires
@@ -216,7 +216,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
             if gateResolved[gateIndex] do
                 continue
 
-            let leftIndex = findWireIndex(wireNameSlice, wireCount, gate.left)
+            let leftIndex  = findWireIndex(wireNameSlice, wireCount, gate.left)
             let rightIndex = findWireIndex(wireNameSlice, wireCount, gate.right)
             if leftIndex == Swag.U32.Max or rightIndex == Swag.U32.Max do
                 continue

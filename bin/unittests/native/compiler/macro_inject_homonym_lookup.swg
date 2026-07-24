@@ -33,7 +33,7 @@ func injectPlain(stmt: #code)
     injectPlain()
     {
         let before = score()
-        let score = 12
+        let score  = 12
         result = before + score
     }
 

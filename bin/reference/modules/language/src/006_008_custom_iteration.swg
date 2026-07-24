@@ -64,7 +64,7 @@ built-in collections, `for [i] in value` binds only that second parameter.
 #test
 {
     var myStruct = MyStruct{}
-    var cpt = 0
+    var cpt      = 0
 
     for v, [i] in myStruct
     {
@@ -125,7 +125,7 @@ Using 'opVisitReverse' to iterate fields from last to first.
 #test
 {
     var myStruct = MyStruct{}
-    var cpt = 0
+    var cpt      = 0
 
     for #Reverse v, [i] in myStruct
     {
@@ -185,7 +185,7 @@ Sum elements of a slice via 'opVisit'.
 #test
 {
     var arrStruct = SliceStruct{}
-    var sum = 0
+    var sum       = 0
 
     for v, [i] in arrStruct do
         sum += v
@@ -248,7 +248,7 @@ tracks the iteration ordinal.
 #test
 {
     let windows = WindowStruct{}
-    var code = 0
+    var code    = 0
     var ordinals: u64
 
     for #Pairs left, [right] in windows

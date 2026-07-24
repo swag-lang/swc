@@ -137,7 +137,7 @@ func refNestedIndexAssign(values: &LoopRefIndexContainer, index: &s32, value: s3
 #test
 {
     var values = LoopRefIndexContainer{values: [7, 11, 13, 17, 99, 0]}
-    var index = 0
+    var index  = 0
     @assert(refIndexSentinelSum(&values, &index) == 28)
     @assert(index == 4)
 }
@@ -145,7 +145,7 @@ func refNestedIndexAssign(values: &LoopRefIndexContainer, index: &s32, value: s3
 #test
 {
     var values = LoopRefIndexContainer{values: [5, 8, 13, 21, 34, 55]}
-    var index = 1
+    var index  = 1
     refIndexAssignAt(&values, &index, 42)
     @assert(values[1] == 42)
     @assert(index == 1)
@@ -154,7 +154,7 @@ func refNestedIndexAssign(values: &LoopRefIndexContainer, index: &s32, value: s3
 #test
 {
     var values = LoopRefIndexContainer{values: [0, 4, 2, 3, 1, 5]}
-    var index = 0
+    var index  = 0
     refNestedIndexAssign(&values, &index, 42)
     @assert(values[4] == 42)
     @assert(index == 0)

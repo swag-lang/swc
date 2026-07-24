@@ -55,12 +55,12 @@ func runIntrinsicDynamicTypeInfo()->bool
         return false
 
     let strictDerivedPtr = cast(DynamicCastStrictDerivedPtr) &derived
-    let strictBaseRaw = @as(baseType, derivedType, strictDerivedPtr)
+    let strictBaseRaw    = @as(baseType, derivedType, strictDerivedPtr)
     if strictBaseRaw == null do
         return false
 
-    let intPtr  = cast(#null *s32) intRaw
-    let basePtr = cast(#null *Base) baseRaw
+    let intPtr        = cast(#null *s32) intRaw
+    let basePtr       = cast(#null *Base) baseRaw
     let strictBasePtr = cast(#null *Base) strictBaseRaw
     if intPtr != &number or dref intPtr != 45 do
         return false
@@ -88,8 +88,8 @@ func runIntrinsicDynamicTypeInfo()->bool
     @assert(asMid == &derived.mid)
     @assert(asBase == &derived.mid.base)
 
-    var base    = Base{value: 77}
-    var wrapper = PointerWrapper{base: &base}
+    var base        = Base{value: 77}
+    var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
     let wrappedBase = wrapperPtr as Base
     @assert(wrapperPtr is Base)

@@ -187,7 +187,7 @@ private impl FileBrowserCtrl
             }
             .sigSelChanged += func|fileBrowser = me|(list)
             {
-                var sel  = list.getSelectedLines()
+                var sel = list.getSelectedLines()
                 var txt: String
                 for l in sel
                 {

@@ -204,7 +204,7 @@ func day10A()
     }
 
     var cycle, x = 1
-    var total = 0
+    var total    = 0
     for l in lines
     {
         toCheck()

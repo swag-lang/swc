@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createSliderPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "Horizontal", "Single value sliders with continuous and stepped ranges.", layout.left)
+    let left   = createPanel(parent, "Horizontal", "Single value sliders with continuous and stepped ranges.", layout.left)
     {
         createCaption(left, "Continuous 0..100", 24, 88, 180)
         var slider = Slider.create(left, {24, 116, 320})

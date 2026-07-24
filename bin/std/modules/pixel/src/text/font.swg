@@ -433,7 +433,7 @@ public impl GlyphCache
         {
             var newAtlas: GlyphAtlas
             newAtlas.bpp = bpp
-            let atlasSide   = Math.roundUpToPowerOf2(Math.max(.refSize * 4, Math.max(bmpRef.width, bmpRef.rows) * 2))
+            let atlasSide = Math.roundUpToPowerOf2(Math.max(.refSize * 4, Math.max(bmpRef.width, bmpRef.rows) * 2))
             newAtlas.width  = atlasSide * newAtlas.bpp
             newAtlas.height = atlasSide
             newAtlas.datas.resize(cast(u64) newAtlas.width * newAtlas.height)

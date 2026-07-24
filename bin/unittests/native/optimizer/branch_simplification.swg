@@ -24,7 +24,7 @@ func branchSimplifyKnownFalse()->s32
 func branchSimplifyLoop()->s32
 {
     var total = 0
-    var i = 0
+    var i     = 0
     while i < 8
     {
         defer i += 1

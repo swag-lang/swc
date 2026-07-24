@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createRgbModesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "RGB planes", "ColorPicker can map two RGB channels at a time for direct component editing.", layout.left)
+    let left   = createPanel(parent, "RGB planes", "ColorPicker can map two RGB channels at a time for direct component editing.", layout.left)
     {
         discard createModePicker(left, "Red / green", {24, 122, 176, 176}, .RedGreen)
         discard createModePicker(left, "Red / blue", {226, 122, 176, 176}, .RedBlue)

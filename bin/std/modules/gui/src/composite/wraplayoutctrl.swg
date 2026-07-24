@@ -32,8 +32,8 @@ impl IWnd for WrapLayoutCtrl
                 continue
 
             let margin = c.getLayoutMargin()
-            let hint = c.measure({client.width, client.height})
-            var width = .wrapWidth
+            let hint   = c.measure({client.width, client.height})
+            var width  = .wrapWidth
             var height = .wrapHeight
             if hint.preferred.x > 0 do
                 width = hint.preferred.x

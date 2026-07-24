@@ -228,7 +228,7 @@ impl Spring
     // Crude spring force (no sqrt). Pushes both particles.
     func applySpringForce(const me)->Spring
     {
-        let sep   = me.separation()
+        let sep    = me.separation()
         let distSq = sep.lengthSq()
 
         // Force magnitude proportional to displacement squared
@@ -296,9 +296,9 @@ impl Spring
 
 #test
 {
-    var lo: Vec2's32  = {x: 1, y: 2}
-    var hi: Vec2's32  = {x: 10, y: 20}
-    let mid = Vec2's32.lerp(&lo, &hi, 0's32)
+    var lo: Vec2's32 = {x: 1, y: 2}
+    var hi: Vec2's32 = {x: 10, y: 20}
+    let mid          = Vec2's32.lerp(&lo, &hi, 0's32)
     @assert(mid.x == 1 and mid.y == 2)
 
     let end = Vec2's32.lerp(&lo, &hi, 1's32)
@@ -309,18 +309,18 @@ impl Spring
 {
     var a: Vec2's32 = {x: 3, y: 10}
     var b: Vec2's32 = {x: 7, y: 2}
-    let mn = Vec2's32.min(&a, &b)
-    let mx = Vec2's32.max(&a, &b)
+    let mn          = Vec2's32.min(&a, &b)
+    let mx          = Vec2's32.max(&a, &b)
     @assert(mn.x == 3 and mn.y == 2)
     @assert(mx.x == 7 and mx.y == 10)
 }
 
 #test
 {
-    var v:  Vec2's32  = {x: 15, y: -5}
+    var v:  Vec2's32 = {x: 15, y: -5}
     var lo: Vec2's32 = {x: 0, y: 0}
     var hi: Vec2's32 = {x: 10, y: 10}
-    let c = Vec2's32.clamp(&v, &lo, &hi)
+    let c            = Vec2's32.clamp(&v, &lo, &hi)
     @assert(c.x == 10 and c.y == 0)
 }
 
@@ -347,7 +347,7 @@ impl Spring
 #test
 {
     let box:     AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
-    var inside:  Vec2's32  = {x: 5, y: 5}
+    var inside:  Vec2's32 = {x: 5, y: 5}
     var outside: Vec2's32 = {x: 11, y: 5}
 
     @assert(box.contains(&inside))
@@ -367,7 +367,7 @@ impl Spring
 #test
 {
     let box: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
-    let expanded = box.expand(2's32)
+    let expanded      = box.expand(2's32)
     @assert(expanded.lo.x == -2 and expanded.lo.y == -2)
     @assert(expanded.hi.x == 12 and expanded.hi.y == 12)
 }
@@ -376,7 +376,7 @@ impl Spring
 {
     let a: AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 5, y: 5}}
     let b: AABB's32 = {lo: {x: 3, y: 3}, hi: {x: 10, y: 10}}
-    let m = AABB's32.merge(&a, &b)
+    let m           = AABB's32.merge(&a, &b)
     @assert(m.lo.x == 0 and m.lo.y == 0)
     @assert(m.hi.x == 10 and m.hi.y == 10)
 }
@@ -385,7 +385,7 @@ impl Spring
 {
     let box:    AABB's32 = {lo: {x: 0, y: 0}, hi: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
-    let moved = box + offset
+    let moved            = box + offset
     #assert(#typeof(moved) == AABB's32)
     @assert(moved.lo.x == 5 and moved.lo.y == -3)
     @assert(moved.hi.x == 15 and moved.hi.y == 7)
@@ -395,7 +395,7 @@ impl Spring
 #test
 {
     let box: AABB's32 = {lo: {x: 1, y: 2}, hi: {x: 3, y: 4}}
-    let scaled = box * 10's32
+    let scaled        = box * 10's32
     @assert(scaled.lo.x == 10 and scaled.lo.y == 20)
     @assert(scaled.hi.x == 30 and scaled.hi.y == 40)
 }
@@ -407,7 +407,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 10, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    let p1 = p.step(1's32)
+    let p1              = p.step(1's32)
 
     @assert(p1.pos.x == 10 and p1.pos.y == 0)
     @assert(p1.vel.x == 10 and p1.vel.y == 0)
@@ -416,7 +416,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: -10}, mass: 1}
-    let p1 = p.step(1's32)
+    let p1              = p.step(1's32)
 
     // v += a*dt = (0,-10), p += v*dt = (0,-10)
     @assert(p1.vel.x == 0 and p1.vel.y == -10)
@@ -426,8 +426,8 @@ impl Spring
 #test
 {
     let p:     Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    var force: Vec2's32 = {x: 10, y: 5}
-    let p1 = p.applyForce(&force)
+    var force: Vec2's32     = {x: 10, y: 5}
+    let p1                  = p.applyForce(&force)
 
     // acc += force/mass = (10, 5) since mass=1
     @assert(p1.acc.x == 10 and p1.acc.y == 5)
@@ -446,7 +446,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 5, y: 5}, vel: {x: 0, y: 0}, acc: {x: 0, y: 0}, mass: 1}
-    let b = p.bounds(2's32)
+    let b               = p.bounds(2's32)
     #assert(#typeof(b) == AABB's32)
     @assert(b.lo.x == 3 and b.lo.y == 3)
     @assert(b.hi.x == 7 and b.hi.y == 7)
@@ -455,7 +455,7 @@ impl Spring
 #test
 {
     let p: Particle's32 = {pos: {x: 0, y: 0}, vel: {x: 1, y: 1}, acc: {x: 5, y: -5}, mass: 1}
-    let p1 = p.resetAcceleration()
+    let p1              = p.resetAcceleration()
     @assert(p1.acc.x == 0 and p1.acc.y == 0)
     @assert(p1.vel.x == 1 and p1.vel.y == 1)
 }
@@ -514,7 +514,7 @@ impl Spring
 {
     var a: Vec2's64 = {x: 100000's64, y: -200000's64}
     var b: Vec2's64 = {x: 300000's64, y: 400000's64}
-    let sum = a + b
+    let sum         = a + b
     #assert(#typeof(sum) == Vec2's64)
     @assert(sum.x == 400000 and sum.y == 200000)
 }
@@ -531,7 +531,7 @@ impl Spring
 #test
 {
     let p: Particle's64 = {pos: {x: 0's64, y: 0's64}, vel: {x: 100's64, y: 0's64}, acc: {x: 0's64, y: -10's64}, mass: 5's64}
-    let p1 = p.step(2's64)
+    let p1              = p.step(2's64)
     // v = (100, -20), p = (200, -40)
     @assert(p1.vel.x == 100 and p1.vel.y == -20)
     @assert(p1.pos.x == 200 and p1.pos.y == -40)

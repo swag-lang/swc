@@ -49,8 +49,8 @@ impl SimpleMethodProbe
 
 #test
 {
-    var simple = SimpleMethodProbe{}
-    let freeOk = freeAccepts'(bool)(true, 0.0'f32)
+    var simple   = SimpleMethodProbe{}
+    let freeOk   = freeAccepts'(bool)(true, 0.0'f32)
     let methodOk = simple.accepts'(bool)(true, 0.0'f32)
 
     #assert(#typeof(freeOk) == bool)
@@ -62,7 +62,7 @@ impl SimpleMethodProbe
 #test
 {
     let concrete = concreteLocalStructPartialTypeAnnotation()
-    let local = localStructPartialTypeAnnotation'(bool, f32)(true, 1.5)
+    let local    = localStructPartialTypeAnnotation'(bool, f32)(true, 1.5)
 
     #assert(#typeof(concrete) == bool)
     #assert(#typeof(local) == bool)

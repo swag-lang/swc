@@ -19,18 +19,18 @@ struct SplitterItem
     label:           #null *Label
     tryPreserveSize: bool
     visible              = true
-    aniBar: BlendColor
+    aniBar:          BlendColor
 }
 
 struct SplitterCtrl
 {
     using frameWnd: FrameWnd
-    splitterFlags        = SplitterFlags.Zero
-    titleSize: f32 = 30
+    splitterFlags       = SplitterFlags.Zero
+    titleSize:      f32 = 30
 
-    items:         ArrayPtr'SplitterItem
-    correctMoving: f32
-    hotIdx               = Swag.U32.Max
+    items:           ArrayPtr'SplitterItem
+    correctMoving:   f32
+    hotIdx = Swag.U32.Max
     moving:          bool
     numVisiblePanes: s32
 }
@@ -212,7 +212,7 @@ private impl SplitterCtrl
         {
             // Compute the current total sizes of panes
             var countNotPreserve, countPreserve = 0
-            var totalSize = 0'f32
+            var totalSize                       = 0'f32
             for item, [idx] in .items
             {
                 let it = notnull item
@@ -252,8 +252,8 @@ private impl SplitterCtrl
                     elif realDiff < 0 and it.size + realDiff < it.minSize do
                         realDiff = it.minSize - it.size
 
-                    it.size += realDiff
-                    dispatch  -= realDiff
+                    it.size  += realDiff
+                    dispatch -= realDiff
                 }
             }
 
@@ -277,8 +277,8 @@ private impl SplitterCtrl
                     elif realDiff < 0 and it.size + realDiff < it.minSize do
                         realDiff = it.minSize - it.size
 
-                    it.size += realDiff
-                    dispatch  -= realDiff
+                    it.size  += realDiff
+                    dispatch -= realDiff
                 }
             }
         }

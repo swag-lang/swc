@@ -126,7 +126,7 @@ impl Container
 #test
 {
     let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 20, y: 10}}
-    let c = r.center()
+    let c           = r.center()
 
     #assert(#typeof(c) == Vec2's32)
     @assert(c.x == 10)
@@ -138,7 +138,7 @@ impl Container
 {
     let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
-    let moved = r.translate(&offset)
+    let moved            = r.translate(&offset)
 
     #assert(#typeof(moved) == Rect's32)
     @assert(moved.min.x == 5)
@@ -151,7 +151,7 @@ impl Container
 #test
 {
     let r: Rect's32 = {min: {x: 1, y: 2}, max: {x: 3, y: 4}}
-    let scaled = r.scale(10)
+    let scaled      = r.scale(10)
 
     #assert(#typeof(scaled) == Rect's32)
     @assert(scaled.min.x == 10)
@@ -165,7 +165,7 @@ impl Container
 {
     var a: Vec2's32 = {x: 1, y: 2}
     var b: Vec2's32 = {x: 10, y: 20}
-    let sum = a.add(&b)
+    let sum         = a.add(&b)
 
     #assert(#typeof(sum) == Vec2's32)
     @assert(sum.x == 11)
@@ -176,7 +176,7 @@ impl Container
 #test
 {
     var v: Vec2's32 = {x: 3, y: -7}
-    let neg = v.negate()
+    let neg         = v.negate()
 
     #assert(#typeof(neg) == Vec2's32)
     @assert(neg.x == -3)
@@ -187,7 +187,7 @@ impl Container
 #test
 {
     var v: Vec2's32 = {x: 3, y: 4}
-    let doubled = v.doubled()
+    let doubled     = v.doubled()
 
     #assert(#typeof(doubled) == Vec2's32)
     @assert(doubled.x == 6)
@@ -198,7 +198,7 @@ impl Container
 #test
 {
     let c: Container's32 = {val: {x: 42, y: 99}}
-    let v = c.getVec()
+    let v                = c.getVec()
 
     #assert(#typeof(v) == Vec2's32)
     @assert(v.x == 42)
@@ -209,7 +209,7 @@ impl Container
 #test
 {
     let r: Rect's64 = {min: {x: 0, y: 0}, max: {x: 100000, y: 50000}}
-    let c = r.center()
+    let c           = r.center()
 
     #assert(#typeof(c) == Vec2's64)
     @assert(c.x == 50000)
@@ -220,7 +220,7 @@ impl Container
 #test
 {
     let w: Wrapper's32 = {inner: 42}
-    let val = w.get()
+    let val            = w.get()
 
     #assert(#typeof(val) == s32)
     @assert(val == 42)

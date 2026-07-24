@@ -10,7 +10,7 @@ namespace compiler1643
     #test
     {
         const tbl = "0123456789ABCDEF"
-        var c     = tbl[0]
+        var c = tbl[0]
         // @print(cast(s64) c)
         @assert(tbl[0] == cast(u8) '0''rune)
         @assert(tbl[1] == cast(u8) '1''rune)
@@ -25,8 +25,8 @@ namespace compiler1644
     #test
     {
         const tbl = "0123456789ABCDEF"
-        let x     = 1
-        let c     = tbl[x]
+        let x = 1
+        let c = tbl[x]
         @assert(c == cast(u8) '1''rune)
     }
 }
@@ -249,7 +249,7 @@ namespace compiler302
     //#[Swag.PrintBc]
     #test
     {
-        let str = "ABCD"
+        let str             = "ABCD"
         let p: const [*] u8 = @dataof(str)
         @assert(p[0] == cast(u8) 'A''rune)
         @assert(p[1] == cast(u8) 'B''rune)

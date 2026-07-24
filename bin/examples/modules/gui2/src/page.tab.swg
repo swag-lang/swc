@@ -14,7 +14,7 @@ func addTabSample(tab: *Tab, prefix: string)
 func createTabPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "Flat", "Classic tabs with real child views and a framed selected page.", layout.left)
+    let left   = createPanel(parent, "Flat", "Classic tabs with real child views and a framed selected page.", layout.left)
     {
         let tab = Tab.create(left, {22, 88, 430, 122})
         tab.setForm(.Flat)

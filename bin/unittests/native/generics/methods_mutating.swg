@@ -254,18 +254,18 @@ impl CopyGate
 // Zip two boxes
 #test
 {
-    let b1: Box's32 = {value: 10}
+    let b1: Box's32    = {value: 10}
     let b2: Box'string = {value: "ten"}
-    let pair = b1.zipWith'(string)(b2)
+    let pair           = b1.zipWith'(string)(b2)
     @assert(pair.first == 10)
     @assert(pair.second == "ten")
 }
 
 #test
 {
-    let b1: Box'f64 = {value: 3.14}
+    let b1: Box'f64  = {value: 3.14}
     let b2: Box'bool = {value: true}
-    let pair = b1.zipWith'(bool)(b2)
+    let pair         = b1.zipWith'(bool)(b2)
     @assert(pair.first == 3.14)
     @assert(pair.second == true)
 }

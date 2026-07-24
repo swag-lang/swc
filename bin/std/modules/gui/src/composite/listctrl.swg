@@ -29,7 +29,7 @@ struct ListItem
     colorBk:    Color
     colorFg:    Color
     column:     u32
-    horzAlign       = StringHorzAlignment.Left
+    horzAlign = StringHorzAlignment.Left
 }
 
 struct ListLine
@@ -62,10 +62,10 @@ struct ListCtrl
     lineHeight:       f32
     indentWidth:      f32 = 22
     iconSize:         f32
-    iconMarginFirstCol      = true
-    listFlags               = ListFlags.Zero
-    selectionMode           = ListSelectionMode.Single
-    leftTextMargin: f32
+    iconMarginFirstCol    = true
+    listFlags             = ListFlags.Zero
+    selectionMode         = ListSelectionMode.Single
+    leftTextMargin:   f32
 
     sigSelChanged:      SigArray'func||(*ListCtrl)
     sigCheckChanged:    SigArray'func||(*ListCtrl)
@@ -83,13 +83,13 @@ struct ListCtrl
     selModel:         SelModel
     checkModel:       SelModel
     nextLineIndex:    u32
-    focusIndex              = Swag.U32.Max
-    hotIndex                = Swag.U32.Max
-    scrollWnd:    #late *ScrollWnd
-    listView:     #late *ListView
-    header:       #late *Header
-    virtualCount: u32
-    isVirtual:    bool
+    focusIndex = Swag.U32.Max
+    hotIndex   = Swag.U32.Max
+    scrollWnd:        #late *ScrollWnd
+    listView:         #late *ListView
+    header:           #late *Header
+    virtualCount:     u32
+    isVirtual:        bool
 }
 
 struct ListView
@@ -516,8 +516,8 @@ impl IWnd for ListView
         var clipRect = .getSurfaceRect()
         clipRect.applyPadding(.padding)
 
-        let firstIdx = .list.getFirstVisibleLineIndex()
-        let lastIdx  = .list.getLastVisibleLineIndex()
+        let firstIdx           = .list.getFirstVisibleLineIndex()
+        let lastIdx            = .list.getLastVisibleLineIndex()
         let reserveCheckMargin = !.list.isVirtual and .list.hasVisibleCheckBoxes()
 
         // Do not display with bigs coordinates to avoid precision issues
@@ -643,7 +643,7 @@ private impl ListView
         var format: RichStringFormat
         for itemIt, [idxItem] in line.items
         {
-            let item = notnull itemIt
+            let item           = notnull itemIt
             var colorFg: Color = undefined
             if item.colorFg.a and !isSelected do
                 colorFg = item.colorFg
@@ -716,7 +716,7 @@ private impl ListView
                         subRectBorder = &rects.btnCheck_CheckedBorder
                     }
 
-                    var posBox     = labelPos
+                    var posBox = labelPos
                     posBox.height = widthCheck
                     posBox.y      = labelPos.vertCenter() - (posBox.height * 0.5)
                     posBox.width  = posBox.height
@@ -1082,7 +1082,7 @@ impl ListCtrl
             return Swag.U32.Max
 
         let viewRect = .listView.getClientRectPadding()
-        var y = .listView.scrollPos.y + viewRect.height
+        var y        = .listView.scrollPos.y + viewRect.height
         if y <= 0 do
             return cast(u32) (.listView.scrollPos.y / .getLineHeight())
         y = Math.max(y - Math.ConstF32.Epsilon, 0)

@@ -61,9 +61,9 @@ func firstNonAsciiRune(text: string)->rune
 
 #test
 {
-    let expected = "A\u00E9\u20AC\U0001F642"
+    let expected        = "A\u00E9\u20AC\U0001F642"
     let runes: [4] rune = ['A''rune, '\u00E9''rune, '\u20AC''rune, '\U0001F642''rune]
-    let utf16: [5] u16 = [0x0041, 0x00E9, 0x20AC, 0xD83D, 0xDE42]
+    let utf16: [5] u16  = [0x0041, 0x00E9, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [16] u8
     var count = Utf8.fromUnicode(dest, runes)

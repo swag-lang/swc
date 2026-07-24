@@ -127,7 +127,7 @@ func(T) localUnionPartialLiteral(value: T)->T
     @assert(localUnionDefaultType'f32())
 
     let structValue = localStructExplicitType'f32()
-    let unionValue = localUnionExplicitType'f32()
+    let unionValue  = localUnionExplicitType'f32()
     #assert(#typeof(structValue) == u16)
     #assert(#typeof(unionValue) == u16)
     @assert(structValue == 7'u16)
@@ -138,8 +138,8 @@ func(T) localUnionPartialLiteral(value: T)->T
 {
     let structExplicit = localStructExplicitLiteral'f32()
     let structImplicit = localStructImplicitLiteral(1.5'f32)
-    let unionExplicit = localUnionExplicitLiteral'f32()
-    let unionImplicit = localUnionImplicitLiteral(2.5'f32)
+    let unionExplicit  = localUnionExplicitLiteral'f32()
+    let unionImplicit  = localUnionImplicitLiteral(2.5'f32)
 
     #assert(#typeof(structExplicit) == u16)
     #assert(#typeof(structImplicit) == f32)
@@ -154,7 +154,7 @@ func(T) localUnionPartialLiteral(value: T)->T
 #test
 {
     let structPartial = localStructPartialLiteral'(bool, f32)(4.5)
-    let unionPartial = localUnionPartialLiteral'f32(6.5)
+    let unionPartial  = localUnionPartialLiteral'f32(6.5)
 
     #assert(#typeof(structPartial) == f32)
     #assert(#typeof(unionPartial) == f32)

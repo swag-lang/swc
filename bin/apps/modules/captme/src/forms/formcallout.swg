@@ -13,19 +13,19 @@ struct FormCallout
     #[Name("Text"), MultiLine]
     text: String
     #[Name("Font Style")]
-    fontStyle        = FontFamilyStyle.Regular
+    fontStyle = FontFamilyStyle.Regular
     #[Name("Align")]
-    alignHorz        = FormTextAlign.Center
+    alignHorz = FormTextAlign.Center
     #[Name("Vertical Align")]
-    alignVert        = FormTextAlign.Center
+    alignVert = FormTextAlign.Center
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
     fontSize: f32 = 40
     #[Name("Round"), SliderMinMax(MinRoundSize, MaxRoundSize)]
-    roundSize:    f32 = 16
+    roundSize:    f32   = 16
     tailX, tailY: f32
-    boldSize:     f32 = 0
-    lineSpacing      = 14.0
-    textColor: Color = Argb.White
+    boldSize:     f32   = 0
+    lineSpacing         = 14.0
+    textColor:    Color = Argb.White
 
     #[Serialization.NoSerialize]
     {

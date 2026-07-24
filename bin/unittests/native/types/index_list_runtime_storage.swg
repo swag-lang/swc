@@ -7,7 +7,7 @@ struct NativeIndexListRuntimeStorageCallbackHolder
 
 #test
 {
-    let flag = false
+    let flag   = false
     let holder = NativeIndexListRuntimeStorageCallbackHolder{
         cb: func(v: bool)->[2, 2] u16
     {

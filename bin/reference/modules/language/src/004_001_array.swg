@@ -44,7 +44,7 @@ The '@dataof' intrinsic retrieves the address of the first element in an array.
 #test
 {
     var array: [2] s32
-    var ptr0   = @dataof(array)
+    var ptr0 = @dataof(array)
     ptr0[0] = 1
 
     var ptr1 = cast([*] s32) &array[0]

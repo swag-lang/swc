@@ -30,7 +30,7 @@ struct Application
     mustQuit:    bool
     endModal:    bool
     isActivated: bool
-    fadeDisabledSurface     = true
+    fadeDisabledSurface = true
 
     mutexPostedEvents: Sync.Mutex
 

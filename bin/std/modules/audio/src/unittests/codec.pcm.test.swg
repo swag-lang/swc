@@ -20,7 +20,7 @@ using Swag, Core
 #test
 {
     var src: [4] u8 = [0x34, 0x12, 0xFE, 0xFF]
-    let decoded = catch audioDecodePcmToPcm16(.Pcm16, src, 4)
+    let decoded     = catch audioDecodePcmToPcm16(.Pcm16, src, 4)
     @assert(@err == null)
     @assert(decoded.used.write == 4)
     @assert(decoded.used.read == 4)
@@ -30,7 +30,7 @@ using Swag, Core
 #test
 {
     var src: [4] u8 = [0x34, 0x12, 0xFE, 0xFF]
-    let decoded = catch audioDecodePcmToPcm16(.Pcm16, src, 2)
+    let decoded     = catch audioDecodePcmToPcm16(.Pcm16, src, 2)
     @assert(@err == null)
     @assert(decoded.used.write == 2)
     @assert(decoded.used.read == 2)
@@ -40,7 +40,7 @@ using Swag, Core
 #test
 {
     var src: [3] u8 = [0'u8, 128'u8, 255'u8]
-    let decoded = catch audioDecodePcmToPcm16(.Pcm8, src, 6)
+    let decoded     = catch audioDecodePcmToPcm16(.Pcm8, src, 6)
     @assert(@err == null)
     @assert(decoded.used.write == 6)
     @assert(decoded.used.read == 3)
@@ -50,7 +50,7 @@ using Swag, Core
 #test
 {
     var src: [9] u8 = [0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x7F]
-    let decoded = catch audioDecodePcmToPcm16(.Pcm24, src, 6)
+    let decoded     = catch audioDecodePcmToPcm16(.Pcm24, src, 6)
     @assert(@err == null)
     @assert(decoded.used.write == 6)
     @assert(decoded.used.read == 9)
@@ -60,7 +60,7 @@ using Swag, Core
 #test
 {
     var src: [8] u8 = [0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0xFF, 0x7F]
-    let decoded = catch audioDecodePcmToPcm16(.Pcm32, src, 4)
+    let decoded     = catch audioDecodePcmToPcm16(.Pcm32, src, 4)
     @assert(@err == null)
     @assert(decoded.used.write == 4)
     @assert(decoded.used.read == 8)
@@ -70,7 +70,7 @@ using Swag, Core
 #test
 {
     var src: [12] f32 = [-1.0, 0.0, 0.5, 1.0, 2.0, -2.0, 0.25, -0.25, 0.9999, -0.9999, 0.0001, -0.0001]
-    let decoded = catch audioDecodePcmToPcm16(.Float32, cast([..] u8) src, @countof(src) * #sizeof(s16))
+    let decoded       = catch audioDecodePcmToPcm16(.Float32, cast([..] u8) src, @countof(src) * #sizeof(s16))
     @assert(@err == null)
     @assert(decoded.used.write == @countof(src) * #sizeof(s16))
     @assert(decoded.used.read == @countof(src) * #sizeof(f32))

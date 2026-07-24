@@ -43,8 +43,8 @@ func runDynamicStructCast()->bool
     if asMid != &derived.mid or asBase != &derived.mid.base do
         return false
 
-    var base    = Base{value: 77}
-    var wrapper = PointerWrapper{base: &base}
+    var base        = Base{value: 77}
+    var wrapper     = PointerWrapper{base: &base}
     let wrapperPtr  = &wrapper
     let wrappedBase = wrapperPtr as Base
     if !wrapperPtr is Base or wrappedBase != &base do

@@ -67,8 +67,8 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 
 #test
 {
-    let first:   Buffer'(u8, 3) = {values: [1'u8, 2, 3]}
-    let second:  Buffer'(u8, 3) = {values: [4'u8, 5, 6]}
+    let first:   Buffer'(u8, 3)       = {values: [1'u8, 2, 3]}
+    let second:  Buffer'(u8, 3)       = {values: [4'u8, 5, 6]}
     let doubled: DoubleBuffer'(u8, 3) = {first: first, second: second}
 
     @assert(doubled.first.values[0] == 1'u8)
@@ -96,12 +96,12 @@ func(T) swapPair(p: Pair'(T, T))->Pair'(T, T)
 #test
 {
     let p: Pair'(s32, s32) = {first: 10, second: 20}
-    let swapped = swapPair'(s32)(p)
+    let swapped            = swapPair'(s32)(p)
     @assert(swapped.first == 20)
     @assert(swapped.second == 10)
 
     let names: Pair'(string, string) = {first: "left", second: "right"}
-    let swappedNames = swapPair'(string)(names)
+    let swappedNames                 = swapPair'(string)(names)
     @assert(swappedNames.first == "right")
     @assert(swappedNames.second == "left")
 }

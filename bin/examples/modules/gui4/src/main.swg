@@ -143,7 +143,7 @@ var g_DarkTheme:   bool
 var g_StatusText:  String
 
 var g_Cards:       [NumCards] SceneCard
-var g_CardCount:   s32 = 2
+var g_CardCount:   s32            = 2
 var g_DisplayMode: PropertiesKind = .Grid
 var g_Filter:      String
 
@@ -329,7 +329,7 @@ func createInspectorPage(parent: *Wnd)
     objHost.dockStyle = .Left
     objHost.margin.z  = SplitGap
 
-    let controls        = Wnd.create'Wnd(objHost, {0, 0, 0, 44})
+    let controls = Wnd.create'Wnd(objHost, {0, 0, 0, 44})
     controls.dockStyle = .Top
     controls.margin.w  = 8
 
@@ -398,13 +398,13 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
 {
     painter.setParams(.Antialiased)
 
-    let a = cast(u8) (Math.clamp(card.opacity, 0.0, 1.0) * 255)
-    let w = Math.min(320.0 * card.scale, slot.width - 40)
-    let h = Math.min(120.0 * card.scale, slot.height - 22)
-    let cx = slot.horzCenter() + cast(f32) card.offset.x
-    let cy = slot.vertCenter() + cast(f32) card.offset.y
+    let a    = cast(u8) (Math.clamp(card.opacity, 0.0, 1.0) * 255)
+    let w    = Math.min(320.0 * card.scale, slot.width - 40)
+    let h    = Math.min(120.0 * card.scale, slot.height - 22)
+    let cx   = slot.horzCenter() + cast(f32) card.offset.x
+    let cy   = slot.vertCenter() + cast(f32) card.offset.y
     let body = Math.Rectangle{cx - w * 0.5, cy - h * 0.5, w, h}
-    let rad = cardRadius(card, h)
+    let rad  = cardRadius(card, h)
 
     if card.castShadow and card.shadowKind != .None
     {
@@ -578,11 +578,11 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect = view.getClientRect()
+    let rect         = view.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, 1.0)
-    let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
-    let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, 1.0)
+    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     let title       = notnull g_Title
     let themeButton = notnull g_ThemeButton
@@ -685,7 +685,7 @@ func onFrame(_app: *Application)
 {
     initDemoData()
 
-    let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 100, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI4 property control inspector")

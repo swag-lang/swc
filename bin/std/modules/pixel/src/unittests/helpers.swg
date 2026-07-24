@@ -14,7 +14,7 @@ func getTestDataPath(fileName: string, loc = #callerlocation)->String
 
 func makeTempBmpPath()->String
 {
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_bmp_"
     name += GUID64.getRandom().getString()
     name += ".bmp"
@@ -23,7 +23,7 @@ func makeTempBmpPath()->String
 
 func makeTempTgaPath()->String
 {
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_tga_"
     name += GUID64.getRandom().getString()
     name += ".tga"
@@ -32,7 +32,7 @@ func makeTempTgaPath()->String
 
 func makeTempPngPath()->String
 {
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_png_"
     name += GUID64.getRandom().getString()
     name += ".png"
@@ -41,7 +41,7 @@ func makeTempPngPath()->String
 
 func makeTempGifPath()->String
 {
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_gif_"
     name += GUID64.getRandom().getString()
     name += ".gif"
@@ -50,7 +50,7 @@ func makeTempGifPath()->String
 
 func makeTempTiffPath()->String
 {
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_tiff_"
     name += GUID64.getRandom().getString()
     name += ".tif"
@@ -59,7 +59,7 @@ func makeTempTiffPath()->String
 
 func makeTempIcoPath()->String
 {
-    let tempDir = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
+    let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_ico_"
     name += GUID64.getRandom().getString()
     name += ".ico"

@@ -52,7 +52,7 @@ impl InlineBug11List
     nodes[0].next  = &nodes[1]
     nodes[1].prev  = &nodes[0]
 
-    var list = InlineBug11List{&nodes[0]}
+    var list                     = InlineBug11List{&nodes[0]}
     var popped: *InlineBug11Node = undefined
     @assert(list.pop(&popped))
     @assert(popped == &nodes[0])

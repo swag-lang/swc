@@ -84,7 +84,7 @@ func computeDiscount(subtotalCents: u32, tier: CustomerTier)->u32
 
 func findTopSku(lines: const [..] OrderLine)->string
 {
-    var bestSku = lines[0].sku
+    var bestSku   = lines[0].sku
     var bestPrice = lines[0].unitPriceCents
 
     for line in lines

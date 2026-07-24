@@ -4,7 +4,7 @@
 #test
 {
     var v: s32 = -3
-    var hit = 0
+    var hit    = 0
     switch v
     {
     case -5:
@@ -27,7 +27,7 @@
 #test
 {
     var v: s32 = -2
-    var hit = 0
+    var hit    = 0
     switch v
     {
     case -5 to -1:
@@ -46,7 +46,7 @@
 // Switch hitting default
 #test
 {
-    var v = 999
+    var v   = 999
     var hit = 0
     switch v
     {
@@ -66,7 +66,7 @@
 // Switch with no matching case and no default (hit is 0)
 #test
 {
-    var v = 999
+    var v   = 999
     var hit = 0
     switch v
     {
@@ -83,8 +83,8 @@
 // Multiple switch statements in sequence
 #test
 {
-    var a = 1
-    var b = 2
+    var a  = 1
+    var b  = 2
     var ra = 0
     var rb = 0
     switch a
@@ -139,7 +139,7 @@
 #test
 {
     var v: s32 = -1
-    var hit = 0
+    var hit    = 0
     switch v
     {
     case -1, 0, 1:
@@ -155,8 +155,8 @@
 // Nested switch
 #test
 {
-    var a = 1
-    var b = 2
+    var a   = 1
+    var b   = 2
     var hit = 0
     switch a
     {
@@ -188,7 +188,7 @@
 #test
 {
     var v: u8 = 255
-    var hit = 0
+    var hit   = 0
     switch v
     {
     case 0:
@@ -207,7 +207,7 @@
 // Switch with range at boundaries
 #test
 {
-    var v = 3
+    var v   = 3
     var hit = 0
     switch v
     {
@@ -248,8 +248,8 @@ func getChoice()->s32 { return 2 }
 #test
 {
     var mode = 1
-    var v = 5
-    var hit = 0
+    var v    = 5
+    var hit  = 0
     switch v
     {
     case 5 where mode == 1:
@@ -269,8 +269,8 @@ func getChoice()->s32 { return 2 }
 #test
 {
     var mode = 99
-    var v = 5
-    var hit = 0
+    var v    = 5
+    var hit  = 0
     switch v
     {
     case 5 where mode == 1:

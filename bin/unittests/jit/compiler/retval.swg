@@ -31,7 +31,7 @@ struct DefaultSmallRet
 struct DefaultNestedRet
 {
     small:   DefaultSmallRet
-    scale:   s32 = 7
+    scale:   s32  = 7
     enabled: bool = true
 }
 

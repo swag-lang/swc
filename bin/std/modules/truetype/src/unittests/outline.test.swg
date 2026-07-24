@@ -5,8 +5,8 @@ using Swag, Core
 #test
 {
     var points:   [3] Vector = [{x: 0, y: 0}, {x: 64, y: 64}, {x: 128, y: 0}]
-    var tags:     [3] u8 = [1, 0, 1]
-    var contours: [1] s16 = [2]
+    var tags:     [3] u8     = [1, 0, 1]
+    var contours: [1] s16    = [2]
 
     var outline = Outline{
         contourCount: 1,
@@ -66,7 +66,7 @@ using Swag, Core
     let transformPts     = notnull face.glyph.outline.points
     let beforeTransformX = transformPts[transformIdx].x
     let beforeTransformY = transformPts[transformIdx].y
-    let scaleY = Matrix{xx: 65536, yy: 131072}
+    let scaleY           = Matrix{xx: 65536, yy: 131072}
     face.glyph.outline.transform(scaleY)
     @assert(transformPts[transformIdx].x == beforeTransformX)
     @assert(transformPts[transformIdx].y == beforeTransformY * 2)

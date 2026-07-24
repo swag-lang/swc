@@ -392,8 +392,8 @@ impl IRichEditLexer for RichEditLexerSwag
         // Smart return
         if ch == '\n'
         {
-            let cp   = ed.getBegSelection()
-            let line = notnull ed.lines[cp.lineIndex]
+            let cp          = ed.getBegSelection()
+            let line        = notnull ed.lines[cp.lineIndex]
             var str: String = "\n"
 
             if cp.charPosInLine
@@ -421,9 +421,9 @@ impl IRichEditLexer for RichEditLexerSwag
 
     mtd impl compute(linePrev: #null *RichEditLine, line: *RichEditLine, lineNext: #null *RichEditLine)
     {
-        var seek          = 0'u64
+        var seek                = 0'u64
         var currentState: State = linePrev ? cast(State) linePrev.lexerEndingState : State.Default
-        var currentCptCmt = linePrev ? linePrev.lexerCptCmt : 0
+        var currentCptCmt       = linePrev ? linePrev.lexerCptCmt : 0
 
         #[Swag.Mixin]
         func getCur()->rune

@@ -55,7 +55,7 @@ impl Direction
 
 func semaTest002()
 {
-    var dir = Direction.North
+    var dir      = Direction.North
     let opposite = dir.opposite()
     let vertical = dir.isVertical()
     #assert(#typeof(opposite) == Direction)

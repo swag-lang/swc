@@ -108,21 +108,21 @@ var g_VoiceSiren:    #null *Audio.Voice
 var g_VoiceRetreat:  #null *Audio.Voice
 var g_VoiceScared:   #null *Audio.Voice
 
-var g_Mode:      GameMode = STARTLEVEL
-var g_TempMode:  GameMode = STARTLEVEL
-var g_LastTime:  u64
-var g_Score:     s32
-var g_HighScore: s32
-var g_Level        = 1
-var g_Lives        = 2
-var g_PillsLeft    = 244
-var g_Fruits:    s32
-var g_ExtraLife: bool     // True if received
-var g_FruitSpawned = false
-var g_GhostsEaten: s32                    // Counts how many ghosts have been eaten since consuming the last big pill
-var g_FruitTimer   = -1                   // Fruit timer incremented with each frame - fruit is removed after approx 10s if not eaten
-var g_Wave         = Movement.SCATTER     // Ghost AI targeting is wave-based, varying between CHASE and SCATTER over time
-var g_Ticks: s32                          // Game ticks, effectively enacting a frame counter
+var g_Mode:        GameMode = STARTLEVEL
+var g_TempMode:    GameMode = STARTLEVEL
+var g_LastTime:    u64
+var g_Score:       s32
+var g_HighScore:   s32
+var g_Level                 = 1
+var g_Lives                 = 2
+var g_PillsLeft             = 244
+var g_Fruits:      s32
+var g_ExtraLife:   bool     // True if received
+var g_FruitSpawned          = false
+var g_GhostsEaten: s32                             // Counts how many ghosts have been eaten since consuming the last big pill
+var g_FruitTimer            = -1                   // Fruit timer incremented with each frame - fruit is removed after approx 10s if not eaten
+var g_Wave                  = Movement.SCATTER     // Ghost AI targeting is wave-based, varying between CHASE and SCATTER over time
+var g_Ticks:       s32                             // Game ticks, effectively enacting a frame counter
 
 /**
  * Timestamp represents symbolic points in the game, allowing specific frame-based timing from a certain tick:
@@ -146,15 +146,15 @@ struct Dest
 
 struct Pacman
 {
-    x                 = 13.5      // X position relative to map - float allows for smooth movement between tiles
-    y                 = 7.0       // Y position relative to map - float allows for smooth movement between tiles
-    dir:     Direction            // Direction of movement
-    tempDir: Direction            // Temporary direction storage
-    saveDir: Direction            // Secondary direction storage for stopping and starting animation
-    texCount          = 10        // Counter to determine which texture to draw
-    deadTexCount: f32             // Counter to determine which sprite of death animation sequence to draw
-    angle:        f32             // Angle at which to draw the sprite - class var to retain angle when dir=NONE
-    ready             = false     // Flag prevents incorrect Pac-Man texture or position rounding at start of game
+    x        = 13.5             // X position relative to map - float allows for smooth movement between tiles
+    y        = 7.0              // Y position relative to map - float allows for smooth movement between tiles
+    dir:          Direction     // Direction of movement
+    tempDir:      Direction     // Temporary direction storage
+    saveDir:      Direction     // Secondary direction storage for stopping and starting animation
+    texCount = 10               // Counter to determine which texture to draw
+    deadTexCount: f32           // Counter to determine which sprite of death animation sequence to draw
+    angle:        f32           // Angle at which to draw the sprite - class var to retain angle when dir=NONE
+    ready    = false            // Flag prevents incorrect Pac-Man texture or position rounding at start of game
 }
 
 struct Ghost
@@ -619,9 +619,9 @@ impl Ghost
      */
     mtd targetTile(target: Dest)->Direction
     {
-        var nextPos: Dest         // Initialize next position, updated in each possible direction
-        var distance = 999.0      // Set max distance to unreachable value
-        var newDir: Direction     // Initialize returned direction
+        var nextPos: Dest          // Initialize next position, updated in each possible direction
+        var distance = 999.0       // Set max distance to unreachable value
+        var newDir:  Direction     // Initialize returned direction
 
         // Check UP exit
         // UP exits have an additional condition such that, at 4 specific intersections, the ghost cannot opt to travel UP
@@ -924,7 +924,7 @@ impl Ghost
 
         // Determine which colour ghost to draw and whether it is the alternate texture (wiggle animation)
         var ghostTex: Texture
-        let ghostAlt  = cast(s32) Math.floor(.texCount % 20 / 10.0)
+        let ghostAlt = cast(s32) Math.floor(.texCount % 20 / 10.0)
 
         // If in FRIGHTENED mode, draw the correct skin
         if .ai == .FRIGHTENED
@@ -1613,7 +1613,7 @@ func soundState()
 
         if !g_VoiceSiren
         {
-            let siren    = notnull assume Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
+            let siren = notnull assume Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
             g_VoiceSiren = siren
             assume siren.setVolume(0.4)
         }

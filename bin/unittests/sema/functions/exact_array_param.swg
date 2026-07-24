@@ -32,8 +32,8 @@ func(T) exactArrayParamTail(values: [4] T)->T
 #test
 {
     var values: [4] s32 = [1, 2, 3, 4]
-    let total = exactArrayParamSum(values)
-    let totalPlus = total + 1
+    let total           = exactArrayParamSum(values)
+    let totalPlus       = total + 1
     #assert(#typeof(totalPlus) == s32)
 
     var digest: ExactArrayParamDigest = undefined
@@ -44,8 +44,8 @@ func(T) exactArrayParamTail(values: [4] T)->T
     #assert(#typeof(lastByte) == u8)
 
     var grid: [2, 3] s16 = [[1, 2, 3], [4, 5, 6]]
-    let tail = exactGridParamRead(grid)
-    let tailPlus = tail + 1's16
+    let tail             = exactGridParamRead(grid)
+    let tailPlus         = tail + 1's16
     #assert(#typeof(tailPlus) == s16)
 }
 
@@ -59,8 +59,8 @@ func(T) exactArrayParamTail(values: [4] T)->T
     }
 
     var values: [4] s32 = [5, 6, 7, 8]
-    let combined = reader(values)
-    let exactTail = exactArrayParamTail([9'u16, 10'u16, 11'u16, 12'u16])
+    let combined        = reader(values)
+    let exactTail       = exactArrayParamTail([9'u16, 10'u16, 11'u16, 12'u16])
     #assert(#typeof(combined) == s32)
     #assert(#typeof(exactTail) == u16)
 }

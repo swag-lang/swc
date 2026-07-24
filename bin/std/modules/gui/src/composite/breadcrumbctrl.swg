@@ -13,7 +13,7 @@ struct BreadcrumbItem
     icon:     Icon
     userData: u64
     tag:      String     // free app-defined string payload (e.g. a folder path)
-    hasArrow     = true
+    hasArrow = true
 
     // Computed by layout(), in control-local coordinates.
     bodyRect:  Math.Rectangle
@@ -29,17 +29,17 @@ struct BreadcrumbCtrl
 {
     using wnd: Wnd
 
-    items: Array'BreadcrumbItem
-    hotItem             = Swag.U64.Max
-    hotArrow: bool
-    pressItem           = Swag.U64.Max
+    items:      Array'BreadcrumbItem
+    hotItem   = Swag.U64.Max
+    hotArrow:   bool
+    pressItem = Swag.U64.Max
     pressArrow: bool
 
     // Horizontal padding inside a level body, gap between icon and text, and the padding
     // on each side of a chevron.
-    padX                = 7.0'f32
-    iconGap             = 5.0'f32
-    arrowPad            = 6.0'f32
+    padX     = 7.0'f32
+    iconGap  = 5.0'f32
+    arrowPad = 6.0'f32
 
     // Clicking a level body: navigate to the level at this index.
     sigItemPressed: SigArray'func||(*BreadcrumbCtrl, u64)
@@ -265,7 +265,7 @@ impl IWnd for BreadcrumbCtrl
                 posArrow.height = m.btnIcon_WidthArrow
                 posArrow.x      = it.arrowRect.horzCenter() - posArrow.width * 0.5
                 posArrow.y      = it.arrowRect.vertCenter() - posArrow.height * 0.5
-                let arrowColor  = hotArr ? colors.btnIcon_HotText : colors.btnIcon_Icon
+                let arrowColor = hotArr ? colors.btnIcon_HotText : colors.btnIcon_Icon
                 theme.drawSubRect(painter, posArrow, &rects.btnIcon_ArrowRight, arrowColor)
             }
         }

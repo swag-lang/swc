@@ -51,7 +51,7 @@ func semaTest003()
 func semaTest004()
 {
     var owner = InitCaptureOwner{bias: 6}
-    let cb = owner.makeCallback()
+    let cb    = owner.makeCallback()
     #assert(#typeof(cb) == InitCaptureNullary)
 }
 

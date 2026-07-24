@@ -142,7 +142,7 @@ impl IWnd for SurfaceWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        let srfn = notnull .surface
+        let srfn       = notnull .surface
         let clientRect = .getClientRect()
         let metrics    = .getThemeMetrics()
 
@@ -178,9 +178,9 @@ impl IWnd for SurfaceWnd
         let srfn = notnull .surface
         if .isPendingDestroy do
             return
-        let bc     = evt.bc
-        let theme  = .getTheme()
-        let colors = .getThemeColors()
+        let bc      = evt.bc
+        let theme   = .getTheme()
+        let colors  = .getThemeColors()
         let metrics = .getThemeMetrics()
 
         let clientRect = .getClientRect()
@@ -288,7 +288,7 @@ impl SurfaceWnd
 
     mtd hitTestBorders(surfacePos: Math.Point)->SizingBorder
     {
-        let srfn = notnull .surface
+        let srfn    = notnull .surface
         let metrics = .getThemeMetrics()
         let sdw     = metrics.surfaceWnd_ShadowSize
 
@@ -356,7 +356,7 @@ impl SurfaceWnd
 
     private mtd applySurfaceFlags()
     {
-        let srfn = notnull .surface
+        let srfn  = notnull .surface
         let theme = srfn.app.theme
         if !theme.intialized do
             return

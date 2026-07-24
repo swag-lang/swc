@@ -124,8 +124,8 @@
 #test
 {
     var arr: [1]s32 = [42]
-    var count = 0
-    var sum = 0
+    var count       = 0
+    var sum         = 0
     for [v] in @countof(arr)
     {
         count += 1
@@ -184,7 +184,7 @@ func forEarlyReturn()->s32
 #test
 {
     var count = 0
-    var val = -1
+    var val   = -1
     for [i] in 5 to 5
     {
         val   = cast(s32) i
@@ -198,7 +198,7 @@ func forEarlyReturn()->s32
 #test
 {
     var count = 0
-    var val = -1
+    var val   = -1
     for [i] in 5 until 6
     {
         val   = cast(s32) i

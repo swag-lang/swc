@@ -19,7 +19,7 @@ const C_DWORD2: u32    = cast(u32) A_DWORD2
     alias Seconds = s32
 }
 
-const m: Meters   = cast(Meters) 10
+const m:  Meters  = cast(Meters) 10
 const s2: Seconds = cast(Seconds) m
 
 const base_from_m_ok: s32 = cast(s32) m

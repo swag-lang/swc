@@ -189,8 +189,8 @@ impl Encoder
             if valueType
             {
                 let safeValueType = valueType
-                let ptrArr  = cast(const *Array'u8) data
-                let treated = .serializer.beginSequence(type, data, ptrArr.count)
+                let ptrArr        = cast(const *Array'u8) data
+                let treated       = .serializer.beginSequence(type, data, ptrArr.count)
                 defer .serializer.endSequence()
 
                 if !treated
@@ -248,7 +248,7 @@ impl Encoder
             if !typeArr.pointedType do
                 throw SerializationError{"missing array pointed type"}
             let elemType = typeArr.pointedType orelse #typeof(u8)
-            let treated = .serializer.beginSequence(elemType, data, typeArr.count)
+            let treated  = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()
             if treated do
                 return
@@ -335,7 +335,7 @@ impl IEncoder for Encoder
         }
 
         let safeData = data
-        let treated = .serializer.beginSequence(u8, safeData, count)
+        let treated  = .serializer.beginSequence(u8, safeData, count)
         defer #noerr .serializer.endSequence()
 
         if !treated

@@ -25,7 +25,7 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
-    var A = 10's32
+    var A  = 10's32
     var PA = &A
     #assert(#typeof(PA) == *s32)
     @assert(dref PA == 10)
@@ -42,7 +42,7 @@ alias StrictAddressArray = [3] s32
 #test
 {
     var x: StrictAddressArray = cast(StrictAddressArray) [1, 2, 3]
-    var px = &x
+    var px                    = &x
     #assert(#typeof(px) == [*]StrictAddressArray)
     @assert(px == &x)
 }
@@ -73,7 +73,7 @@ alias StrictAddressArray = [3] s32
 #test
 {
     var x: s32
-    var px = &x
+    var px  = &x
     var ppx = &px
     #assert(#typeof(ppx) == **s32)
     @assert(dref ppx == &x)
@@ -121,8 +121,8 @@ alias StrictAddressArray = [3] s32
 
 #test
 {
-    var A = 10's32
-    var B = 20's32
+    var A  = 10's32
+    var B  = 20's32
     var PA = &A
     var PB = &B
     #assert(#typeof(PA) == *s32)
@@ -134,8 +134,8 @@ alias StrictAddressArray = [3] s32
 {
     var x: s32
     var y: s32
-    var px = &x
-    var py = &y
+    var px  = &x
+    var py  = &y
     var ppx = &px
     var ppy = &py
     #assert(#typeof(ppx) == **s32)
@@ -147,7 +147,7 @@ alias StrictAddressArray = [3] s32
 #test
 {
     var x: s32
-    var y = x
+    var y  = x
     var p1 = &x
     var p2 = &y
     #assert(#typeof(p1) == *s32)
@@ -187,7 +187,7 @@ alias StrictAddressArray = [3] s32
     inspectConstRefPtr(4, 4)
     inspectConstRefPtr(2 + 5, 7)
 
-    var y: s32 = 91
+    var y: s32  = 91
     var r: &s32 = &y
     let rebound = &r
     #assert(#typeof(rebound) == *s32)
@@ -196,7 +196,7 @@ alias StrictAddressArray = [3] s32
     @assert(y == 123)
 
     var cr: const &s32 = &x
-    let constRefPtr = &cr
+    let constRefPtr    = &cr
     #assert(#typeof(constRefPtr) == const *s32)
     @assert(dref constRefPtr == 55)
 }
@@ -248,7 +248,7 @@ alias StrictAddressArray = [3] s32
     @assert(p != null)
 
     var value = 77
-    let rp = &nativeFunctionAddressReturnedReference(&value)
+    let rp    = &nativeFunctionAddressReturnedReference(&value)
     #assert(#typeof(rp) == *s32)
     @assert(rp == &value)
 }

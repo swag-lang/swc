@@ -17,11 +17,11 @@ struct Slider
 {
     using wnd: Wnd
 
-    value1: f32
-    value2: f32
-    min:    f32
-    max:    f32 = 1.0
-    steps:  f32
+    value1:         f32
+    value2:         f32
+    min:            f32
+    max:            f32 = 1.0
+    steps:          f32
     sliderFlags         = SliderFlags.HilightBar
     sigStartChange: SigArray'func||(*Slider)
     sigChanged:     SigArray'func||(*Slider)
@@ -459,7 +459,7 @@ private impl Slider
     mtd getOffsetedClientRect()->Math.Rectangle
     {
         var result: retval = .getClientRect()
-        let boxSize = .getThemeMetrics().slider_BoxSize
+        let boxSize        = .getThemeMetrics().slider_BoxSize
 
         if .sliderFlags.has(.Vertical)
         {
@@ -478,7 +478,7 @@ private impl Slider
     mtd getTrackRect()->Math.Rectangle
     {
         var result: retval = .getOffsetedClientRect()
-        let trackSize = .getThemeMetrics().slider_TrackSize
+        let trackSize      = .getThemeMetrics().slider_TrackSize
 
         if .sliderFlags.has(.Vertical)
         {

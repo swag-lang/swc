@@ -243,7 +243,7 @@ func parseGrid(outGrid: *GridMap, text: string)
 func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: GridMap)
 {
     let cellCount = grid.width * grid.height
-    let visited = allocBytes(cellCount)
+    let visited   = allocBytes(cellCount)
     defer @free(visited)
     zeroBytes(visited, cellCount)
 
@@ -253,8 +253,8 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
     var trace = initIndexBuffer(InitialTraceCapacity)
 
-    var x = cast(s32) grid.startX
-    var y = cast(s32) grid.startY
+    var x   = cast(s32) grid.startX
+    var y   = cast(s32) grid.startY
     var dir = Direction.Up
 
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
@@ -299,13 +299,13 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
 func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
 {
-    let cellCount = grid.width * grid.height
+    let cellCount  = grid.width * grid.height
     let seenStates = allocBytes(cellCount * 4'u32)
     defer @free(seenStates)
     zeroBytes(seenStates, cellCount * 4'u32)
 
-    var x = cast(s32) grid.startX
-    var y = cast(s32) grid.startY
+    var x   = cast(s32) grid.startX
+    var y   = cast(s32) grid.startY
     var dir = Direction.Up
 
     while true

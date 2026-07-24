@@ -120,7 +120,7 @@ func day6B()
     {
         var sx   = sx0
         var sy   = sy0
-        var dx = 0, dy = -1
+        var dx   = 0, dy = -1
         var what = 'D''u8
         for
         {

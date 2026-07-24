@@ -69,9 +69,9 @@ func parseBuyers(text: string)->BuyerList
 {
     var result: BuyerList
     let bytes = cast(const [..] u8) text
-    var pos: u32
+    var pos:    u32
     var inNum = false
-    var acc: u64
+    var acc:    u64
 
     for @countof(bytes)
     {
@@ -165,7 +165,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
         // Clear seen flags
         for SeqCount { seen[@index] = false }
 
-        var s = buyers.secrets[bi]
+        var s         = buyers.secrets[bi]
         var prevPrice = cast(s32) (s % 10)
 
         // Collect changes
@@ -173,7 +173,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
         for [step] in steps
         {
             s = evolve(s)
-            let price = cast(s32) (s % 10)
+            let price  = cast(s32) (s % 10)
             let change = price - prevPrice
             prevPrice = price
 
@@ -304,7 +304,7 @@ func solve(text: string)->SolveResult
 #test
 {
     var buyers = parseBuyers(SamplePart2)
-    let p2 = solvePart2(&buyers, 2000)
+    let p2     = solvePart2(&buyers, 2000)
     @assert(p2.bestBananas == 23'u64)
 }
 

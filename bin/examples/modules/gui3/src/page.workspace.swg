@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createWorkspacePage(parent: *Wnd)
 {
     let panel = createPanel(parent, "Workspace composition", "A fuller gui3-only composition: one code pane, one note pane and one read-only preview pane.", getFullPageRect(parent))
-    let rect = panel.getClientRect()
+    let rect  = panel.getClientRect()
 
     // This page keeps only the enclosing panel and the splitter bars: every
     // richedit/splitter frame border is removed so the panes read as a single

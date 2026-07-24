@@ -16,7 +16,7 @@ const A2 = [1, true, 3]
 
 #test
 {
-    var x = 1
+    var x          = 1
     var B: [3] s32 = [x, 2, 3]
     #assert(#typeof(B) == #type [3] s32)
 
@@ -66,7 +66,7 @@ const I: [2] s32 = [1, cast(s32) 2.2]
     @assert(M[0][1] == 2)
 }
 
-const AB: [2] u32  = [1, 2]
+const AB:  [2] u32 = [1, 2]
 const AB1: [?] u32 = [1, 2]
 #assert(#typeof(AB1) == #type [2] u32)
 

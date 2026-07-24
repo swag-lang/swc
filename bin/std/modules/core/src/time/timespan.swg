@@ -56,7 +56,7 @@ impl TimeSpan
         Debug.assert(-120000 <= months and months <= 120000, "overflow")
             var (y, m, d) = ticksToDate(.ticks)
         var year = cast(s32) y
-        let i = cast(s32) (m - 1) + months
+        let i    = cast(s32) (m - 1) + months
         if i >= 0
         {
             m    = cast(u16) (i % 12 + 1)

@@ -92,7 +92,7 @@ func parseInput(text: string)->{ patterns: PatternList, designs: DesignList }
 {
     var result: retval
     let bytes = cast(const [..] u8) text
-    var pos: u32
+    var pos:    u32
 
     // Parse patterns (comma-separated first line)
     for
@@ -222,8 +222,8 @@ func solve(text: string)->SolveResult
 
     for [d] in input.designs.count
     {
-        let des = &input.designs.items[d]
-        let sl = des.asSlice()
+        let des  = &input.designs.items[d]
+        let sl   = des.asSlice()
         let ways = countWays(sl, des.len, &input.patterns)
         if ways > 0
         {

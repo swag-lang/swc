@@ -10,7 +10,7 @@ alias StrictKindOfAny = any
 #test
 {
     var a: any = 0's32
-    var b = @kindof(a)
+    var b      = @kindof(a)
     #assert(#typeof(b) == typeinfo)
     @assert(#typeof(b) == typeinfo)
 }
@@ -23,7 +23,7 @@ alias StrictKindOfAny = any
 {
     var x: s32
     var a: any = @mkany(&x, s32)
-    var b = @kindof(a)
+    var b      = @kindof(a)
     @assert(b == s32)
 }
 
@@ -31,7 +31,7 @@ alias StrictKindOfAny = any
 {
     var x: f32
     var a: any = @mkany(cast(*void) &x, f32)
-    var b = @kindof(a)
+    var b      = @kindof(a)
     @assert(b == f32)
 }
 
@@ -113,7 +113,7 @@ struct Point { x: s32, y: s32 }
 
 #test
 {
-    var p = Point{1, 2}
+    var p      = Point{1, 2}
     var a: any = @mkany(&p, Point)
     @assert(@kindof(a) == Point)
 }
@@ -134,14 +134,14 @@ alias StrictKindAlias = Kind
 
 #test
 {
-    var k = Kind.A
+    var k      = Kind.A
     var a: any = @mkany(&k, Kind)
     @assert(@kindof(a) == Kind)
 }
 
 #test
 {
-    var k = cast(StrictKindAlias) Kind.B
+    var k      = cast(StrictKindAlias) Kind.B
     var a: any = @mkany(&k, StrictKindAlias)
     @assert(@kindof(a) == StrictKindAlias)
     @assert(cast(StrictKindAlias) a == cast(StrictKindAlias) Kind.B)
@@ -168,7 +168,7 @@ alias StrictKindAlias = Kind
 #test
 {
     var s: string = "hello"
-    var a: any = @mkany(&s, string)
+    var a: any    = @mkany(&s, string)
     @assert(@kindof(a) == string)
 }
 
@@ -176,8 +176,8 @@ alias StrictKindAlias = Kind
 {
     var x:   s32 = 42
     var raw: any = @mkany(&x, s32)
-    let boxed = dref cast(*StrictKindOfAny) &raw
-    var b = @kindof(boxed)
+    let boxed    = dref cast(*StrictKindOfAny) &raw
+    var b        = @kindof(boxed)
     #assert(#typeof(b) == typeinfo)
     @assert(b == s32)
 }
@@ -185,7 +185,7 @@ alias StrictKindAlias = Kind
 #test
 {
     var text: string = "alias-kind"
-    var raw:  any = @mkany(&text, string)
-    let boxed = dref cast(*StrictKindOfAny) &raw
+    var raw:  any    = @mkany(&text, string)
+    let boxed        = dref cast(*StrictKindOfAny) &raw
     @assert(@kindof(boxed) == string)
 }

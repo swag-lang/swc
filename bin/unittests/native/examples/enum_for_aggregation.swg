@@ -80,7 +80,7 @@ func countDelayedEssentialItems(items: const [..] InventoryItem)->u32
 
 func pickTopSku(items: const [..] InventoryItem)->string
 {
-    var bestSku = items[0].sku
+    var bestSku     = items[0].sku
     var bestMissing = missingUnits(items[0])
 
     for item in items

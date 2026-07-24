@@ -111,7 +111,7 @@ internal func execute(lines: Array'String)
                 break
             }
 
-            let low:  &Bot  = &getBot(assume StrConv.toS32(r1[3]))
+            let low:  &Bot = &getBot(assume StrConv.toS32(r1[3]))
             let high: &Bot = &getBot(assume StrConv.toS32(r1[5]))
 
             if r1[2] == "bot" do

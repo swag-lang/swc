@@ -108,7 +108,7 @@ func semaTest001()
     }
 
     var holder: LambdaHolder = {cb: cb}
-    let result = invokeAggregate(holder.cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
+    let result               = invokeAggregate(holder.cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     #assert(#typeof(result) == LambdaResult)
     #assert(#typeof(result.mirrored) == [4] s32)
 }
@@ -220,7 +220,7 @@ func semaTest007()
 
 func semaTest008()
 {
-    let doubled = makeDouble()
+    let doubled   = makeDouble()
     let defaulted = makeDefaulted()
 
     #assert(#typeof(doubled) == LambdaUnary)

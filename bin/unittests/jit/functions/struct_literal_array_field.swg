@@ -2,7 +2,7 @@
 
 func freeStructLiteralDigits()->s32
 {
-    let payload = {values: [1, 2, 3, 4], tag: 5}
+    let payload     = {values: [1, 2, 3, 4], tag: 5}
     var digits: s32 = 0
     for value in payload.values
     {

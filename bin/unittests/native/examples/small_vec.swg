@@ -102,7 +102,7 @@ impl SmallVec
             let newPtr = cast([*] s32) notnull @alloc(.capacity * #sizeof(s32))
             for [i] in .count do
                 newPtr[i] = oldPtr[i]
-            .ptr = newPtr
+            .ptr          = newPtr
         }
     }
 

@@ -189,8 +189,8 @@ struct(A, B) Pair
 #test
 {
     var v: Vec2's32 = {x: 3, y: -7}
-    let pos = +v
-    let neg = -v
+    let pos         = +v
+    let neg         = -v
 
     @assert(pos.x == 3)
     @assert(pos.y == -7)
@@ -203,7 +203,7 @@ struct(A, B) Pair
 {
     var a: Vec2's32 = {x: 1, y: 2}
     var b: Vec2's32 = {x: 10, y: 20}
-    let sum = a + b
+    let sum         = a + b
 
     #assert(#typeof(sum) == Vec2's32)
     @assert(sum.x == 11)
@@ -214,7 +214,7 @@ struct(A, B) Pair
 #test
 {
     var v: Vec2's32 = {x: 5, y: -3}
-    let scaled = v * 4's32
+    let scaled      = v * 4's32
 
     @assert(scaled.x == 20)
     @assert(scaled.y == -12)
@@ -225,7 +225,7 @@ struct(A, B) Pair
 {
     var a: Vec2's32 = {x: 3, y: 4}
     var b: Vec2's32 = {x: 4, y: -3}
-    let d = Vec2's32.dot(&a, &b)
+    let d           = Vec2's32.dot(&a, &b)
 
     // 12 + (-12) = 0  (perpendicular)
     @assert(d == 0)
@@ -249,7 +249,7 @@ struct(A, B) Pair
 #test
 {
     let r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 20, y: 10}}
-    let c = r.center()
+    let c           = r.center()
 
     @assert(c.x == 10)
     @assert(c.y == 5)
@@ -260,7 +260,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
     var offset: Vec2's32 = {x: 5, y: -3}
-    let moved = r + offset
+    let moved            = r + offset
 
     @assert(moved.min.x == 5)
     @assert(moved.min.y == -3)
@@ -276,7 +276,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 5, y: 5}, max: {x: 15, y: 15}}
     var offset: Vec2's32 = {x: 5, y: 5}
-    let moved = r - offset
+    let moved            = r - offset
 
     @assert(moved.min.x == 0)
     @assert(moved.min.y == 0)
@@ -288,7 +288,7 @@ struct(A, B) Pair
 #test
 {
     let r: Rect's32 = {min: {x: 1, y: 2}, max: {x: 3, y: 4}}
-    let scaled = r * 10's32
+    let scaled      = r * 10's32
 
     @assert(scaled.min.x == 10)
     @assert(scaled.min.y == 20)
@@ -301,7 +301,7 @@ struct(A, B) Pair
 #test
 {
     let r: Rect's32 = {min: {x: 10, y: 20}, max: {x: 30, y: 40}}
-    let shrunk = r / 10's32
+    let shrunk      = r / 10's32
 
     @assert(shrunk.min.x == 1)
     @assert(shrunk.min.y == 2)
@@ -313,7 +313,7 @@ struct(A, B) Pair
 #test
 {
     let r: Rect's32 = {min: {x: 2, y: 3}, max: {x: 8, y: 7}}
-    let reflected = -r
+    let reflected   = -r
 
     // -max becomes new min, -min becomes new max
     @assert(reflected.min.x == -8)
@@ -330,7 +330,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 0, y: 0}, max: {x: 4, y: 2}}
     var offset: Vec2's32 = {x: 1, y: 1}
-    let result = (r + offset) * 3's32
+    let result           = (r + offset) * 3's32
 
     // After translate: min={1,1}, max={5,3}
     // After scale:     min={3,3}, max={15,9}
@@ -348,8 +348,8 @@ struct(A, B) Pair
 #test
 {
     let identity: Transform2D's32 = {pos: {x: 0, y: 0}, scale: {x: 1, y: 1}}
-    var p:        Vec2's32 = {x: 7, y: 13}
-    let result = identity.apply(&p)
+    var p:        Vec2's32        = {x: 7, y: 13}
+    let result                    = identity.apply(&p)
 
     @assert(result.x == 7)
     @assert(result.y == 13)
@@ -359,8 +359,8 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 10, y: -5}, scale: {x: 1, y: 1}}
-    var p: Vec2's32 = {x: 3, y: 4}
-    let result = t.apply(&p)
+    var p: Vec2's32        = {x: 3, y: 4}
+    let result             = t.apply(&p)
 
     @assert(result.x == 13)
     @assert(result.y == -1)
@@ -370,8 +370,8 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 0, y: 0}, scale: {x: 2, y: 3}}
-    var p: Vec2's32 = {x: 5, y: 10}
-    let result = t.apply(&p)
+    var p: Vec2's32        = {x: 5, y: 10}
+    let result             = t.apply(&p)
 
     @assert(result.x == 10)
     @assert(result.y == 30)
@@ -381,8 +381,8 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 100, y: 200}, scale: {x: 3, y: 4}}
-    var p: Vec2's32 = {x: 1, y: 1}
-    let result = t.apply(&p)
+    var p: Vec2's32        = {x: 1, y: 1}
+    let result             = t.apply(&p)
 
     // 1*3 + 100 = 103, 1*4 + 200 = 204
     @assert(result.x == 103)
@@ -393,8 +393,8 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 10, y: 10}, scale: {x: 2, y: 2}}
-    var r: Rect's32 = {min: {x: 0, y: 0}, max: {x: 5, y: 3}}
-    let result = t.applyRect(&r)
+    var r: Rect's32        = {min: {x: 0, y: 0}, max: {x: 5, y: 3}}
+    let result             = t.applyRect(&r)
 
     // min: 0*2+10=10, 0*2+10=10
     // max: 5*2+10=20, 3*2+10=16
@@ -409,7 +409,7 @@ struct(A, B) Pair
 {
     let a: Transform2D's32 = {pos: {x: 10, y: 20}, scale: {x: 2, y: 3}}
     let b: Transform2D's32 = {pos: {x: 5, y: -5},  scale: {x: 4, y: 2}}
-    let combined = a + b
+    let combined           = a + b
 
     // pos: 10+5=15, 20+(-5)=15
     // scale: 2*4=8, 3*2=6
@@ -423,7 +423,7 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 10, y: 20}, scale: {x: 2, y: 3}}
-    let inv = -t
+    let inv                = -t
 
     @assert(inv.pos.x == -10)
     @assert(inv.pos.y == -20)
@@ -436,7 +436,7 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's32 = {pos: {x: 3, y: 4}, scale: {x: 1, y: 2}}
-    let result = t * 5's32
+    let result             = t * 5's32
 
     @assert(result.pos.x == 15)
     @assert(result.pos.y == 20)
@@ -451,8 +451,8 @@ struct(A, B) Pair
 // Test: Pair of two Rects with independent ops
 #test
 {
-    let left:  Rect's32 = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
-    let right: Rect's32 = {min: {x: 20, y: 20}, max: {x: 30, y: 30}}
+    let left:  Rect's32                  = {min: {x: 0, y: 0}, max: {x: 10, y: 10}}
+    let right: Rect's32                  = {min: {x: 20, y: 20}, max: {x: 30, y: 30}}
     let p:     Pair'(Rect's32, Rect's32) = {first: left, second: right}
 
     @assert(p.first.area() == 100)
@@ -464,10 +464,10 @@ struct(A, B) Pair
 // Test: Pair of Transform2D and Rect -- apply first to second
 #test
 {
-    let t:     Transform2D's32 = {pos: {x: 100, y: 100}, scale: {x: 2, y: 2}}
-    let r:     Rect's32 = {min: {x: 0, y: 0}, max: {x: 5, y: 5}}
+    let t:     Transform2D's32                  = {pos: {x: 100, y: 100}, scale: {x: 2, y: 2}}
+    let r:     Rect's32                         = {min: {x: 0, y: 0}, max: {x: 5, y: 5}}
     let scene: Pair'(Transform2D's32, Rect's32) = {first: t, second: r}
-    let world = scene.first.applyRect(&scene.second)
+    let world                                   = scene.first.applyRect(&scene.second)
 
     @assert(world.min.x == 100)
     @assert(world.min.y == 100)
@@ -480,10 +480,10 @@ struct(A, B) Pair
 {
     let t1: Transform2D's32 = {pos: {x: 10, y: 0}, scale: {x: 1, y: 1}}
     let t2: Transform2D's32 = {pos: {x: 0, y: 10}, scale: {x: 2, y: 2}}
-    let combined = t1 + t2
+    let combined            = t1 + t2
 
     var r: Rect's32 = {min: {x: 1, y: 1}, max: {x: 3, y: 3}}
-    let result = combined.applyRect(&r)
+    let result      = combined.applyRect(&r)
 
     // combined: pos={10,10}, scale={2,2}
     // min: 1*2+10=12, 1*2+10=12
@@ -500,7 +500,7 @@ struct(A, B) Pair
 {
     let r:      Rect's32 = {min: {x: 2, y: 4}, max: {x: 6, y: 8}}
     var offset: Vec2's32 = {x: 10, y: 10}
-    let result = (-r) + offset
+    let result           = (-r) + offset
 
     // Reflected: min={-6,-8}, max={-2,-4}
     // Translated: min={4,2}, max={8,6}
@@ -521,7 +521,7 @@ struct(A, B) Pair
 {
     var a: Vec2's64 = {x: 100000, y: -200000}
     var b: Vec2's64 = {x: 300000, y: 400000}
-    let sum = a + b
+    let sum         = a + b
 
     #assert(#typeof(sum) == Vec2's64)
     @assert(sum.x == 400000)
@@ -541,8 +541,8 @@ struct(A, B) Pair
 #test
 {
     let t: Transform2D's16 = {pos: {x: 10, y: 20}, scale: {x: 2, y: 3}}
-    var p: Vec2's16 = {x: 5, y: 4}
-    let result = t.apply(&p)
+    var p: Vec2's16        = {x: 5, y: 4}
+    let result             = t.apply(&p)
 
     #assert(#typeof(result) == Vec2's16)
     @assert(result.x == 20)

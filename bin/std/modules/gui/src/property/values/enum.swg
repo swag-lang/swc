@@ -211,7 +211,7 @@ impl Properties
             me.adaptCondensedControl(ed)
             itemB.checkBox = ed
 
-            let dispDesc = Reflection.getAttributeValue(v, Properties.Description, "desc")
+            let dispDesc    = Reflection.getAttributeValue(v, Properties.Description, "desc")
             let dispDescStr = dispDesc == null ? "" : cast(string) (dispDesc)
             itemB.filter += dispDescStr
 

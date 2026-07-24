@@ -12,8 +12,8 @@ struct RadioButton
     // empty/unset group means "ungrouped" — grouping is then left to the caller (backward
     // compatible; several radios under one parent stay independent). Give the radios you want
     // mutually exclusive the same non-empty id.
-    group: WndId
-    radioButtonFlags     = RadioButtonFlags.Zero
+    group:      WndId
+    radioButtonFlags = RadioButtonFlags.Zero
     sigChanged: SigArray'func||(*RadioButton)
 }
 

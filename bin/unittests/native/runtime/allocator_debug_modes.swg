@@ -193,7 +193,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
         @assert(req.address != null)
         @assert(alloc.countOsAlloc >= 2)
 
-        let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
+        let header   = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
         let rawBlock = cast(*AllocatorRawBlock) (cast([*] u8) (notnull header.allocAddr) - #sizeof(AllocatorRawBlock))
         @assert(rawBlock.address != null)
         @assert(rawBlock.size >= header.allocSize + #sizeof(AllocatorRawBlock))

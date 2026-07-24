@@ -207,7 +207,7 @@ func largeShiftRightS32(value: s32, count: s32)->s32
 
 #test
 {
-    var r = 'A''rune
+    var r    = 'A''rune
     let next = r + #wrap 1
     r += #wrap 1
 
@@ -288,22 +288,22 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 
 #test
 {
-    let a = cast(BinaryStrictS32) 40
-    let b = cast(BinaryStrictS32) 2
+    let a  = cast(BinaryStrictS32) 40
+    let b  = cast(BinaryStrictS32) 2
     let u0 = cast(BinaryStrictU32) 0x3F'u32
     let u1 = cast(BinaryStrictU32) 0x2A'u32
 
-    let add = binaryStrictAdd(a, b)
-    let sub = binaryStrictSub(cast(BinaryStrictS32) 84, cast(BinaryStrictS32) 42)
-    let mul = binaryStrictMul(cast(BinaryStrictS32) 6, cast(BinaryStrictS32) 7)
-    let div = binaryStrictDiv(cast(BinaryStrictS32) 84, b)
-    let mod = binaryStrictMod(cast(BinaryStrictS32) 212, cast(BinaryStrictS32) 85)
+    let add  = binaryStrictAdd(a, b)
+    let sub  = binaryStrictSub(cast(BinaryStrictS32) 84, cast(BinaryStrictS32) 42)
+    let mul  = binaryStrictMul(cast(BinaryStrictS32) 6, cast(BinaryStrictS32) 7)
+    let div  = binaryStrictDiv(cast(BinaryStrictS32) 84, b)
+    let mod  = binaryStrictMod(cast(BinaryStrictS32) 212, cast(BinaryStrictS32) 85)
     let fadd = binaryStrictFloatAdd(cast(BinaryStrictF32) 1.5, cast(BinaryStrictF32) 2.5)
     let band = binaryStrictBitAnd(u0, u1)
-    let bor = binaryStrictBitOr(cast(BinaryStrictU32) 0x20'u32, cast(BinaryStrictU32) 0x0A'u32)
+    let bor  = binaryStrictBitOr(cast(BinaryStrictU32) 0x20'u32, cast(BinaryStrictU32) 0x0A'u32)
     let bxor = binaryStrictBitXor(cast(BinaryStrictU32) 0x7F'u32, cast(BinaryStrictU32) 0x55'u32)
-    let shl = binaryStrictShiftLeft(cast(BinaryStrictU32) 21'u32, cast(BinaryStrictS32) 1)
-    let shr = binaryStrictShiftRight(cast(BinaryStrictU32) 84'u32, cast(BinaryStrictS32) 1)
+    let shl  = binaryStrictShiftLeft(cast(BinaryStrictU32) 21'u32, cast(BinaryStrictS32) 1)
+    let shr  = binaryStrictShiftRight(cast(BinaryStrictU32) 84'u32, cast(BinaryStrictS32) 1)
 
     #assert(#typeof(add) == BinaryStrictS32)
     #assert(#typeof(sub) == BinaryStrictS32)
@@ -351,8 +351,8 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 #test
 {
     let wrapped = binaryStrictWrapAdd(cast(BinaryStrictS32) 0x7FFF_FFFF, cast(BinaryStrictS32) 1)
-    let r = cast(BinaryStrictRune) 'A''rune
-    let next = r + #wrap cast(BinaryStrictRune) 1
+    let r       = cast(BinaryStrictRune) 'A''rune
+    let next    = r + #wrap cast(BinaryStrictRune) 1
 
     #assert(#typeof(wrapped) == BinaryStrictS32)
     #assert(#typeof(next) == BinaryStrictRune)
@@ -363,9 +363,9 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 #test
 {
     var data: [3] s32 = [10, 20, 30]
-    let base = cast(BinaryStrictS32Ptr) &data[0]
-    let one = cast(BinaryStrictS32) 1
-    let next = binaryStrictPointerOffset(base, one)
+    let base          = cast(BinaryStrictS32Ptr) &data[0]
+    let one           = cast(BinaryStrictS32) 1
+    let next          = binaryStrictPointerOffset(base, one)
 
     #assert(#typeof(next) == BinaryStrictS32Ptr)
     @assert(dref next == 20)

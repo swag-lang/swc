@@ -48,7 +48,7 @@ var g_target: Handle
 #test
 {
     // Copying an lvalue into an array literal element is a copy.
-    var h = Handle{1}
+    var h   = Handle{1}
     var arr = [h, h]     // swc-expected-error {{sema_err_cannot_copy_nocopy}}
 }
 

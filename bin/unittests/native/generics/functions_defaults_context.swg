@@ -91,7 +91,7 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
 
 #test
 {
-    let made = callGenericFactory(&genericFunctionMakeS32)
+    let made   = callGenericFactory(&genericFunctionMakeS32)
     let mapped = applyGenericMapper(&genericFunctionS32ToBool, 42)
 
     #assert(#typeof(made) == s32)
@@ -104,8 +104,8 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
 {
     acceptGenericConsumer(&genericFunctionConsumeS32)
 
-    let first = genericVariadicFirst(1'u16, 2'u16)
-    let tail = genericVariadicAfterHead(10, 3'u8, 4'u8)
+    let first     = genericVariadicFirst(1'u16, 2'u16)
+    let tail      = genericVariadicAfterHead(10, 3'u8, 4'u8)
     let forwarded = genericVariadicForward(5's64, 6's64)
 
     #assert(#typeof(first) == u16)
@@ -118,12 +118,12 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
 
 #test
 {
-    let value = genericDefaultArgument()
-    let arrayValue = genericDefaultArray()
+    let value       = genericDefaultArgument()
+    let arrayValue  = genericDefaultArray()
     let matrixValue = genericDefaultMatrix()
-    let sliceValue = genericDefaultSlice()
+    let sliceValue  = genericDefaultSlice()
     let stringValue = genericDefaultStringSlice()
-    let firstChar = genericSliceFirst("abc")
+    let firstChar   = genericSliceFirst("abc")
 
     #assert(#typeof(value) == s32)
     #assert(#typeof(arrayValue) == u16)
@@ -141,9 +141,9 @@ func(T) genericDefaultAnonymousField(value: struct { field: T } = {field: 12'u16
 
 #test
 {
-    let count = genericDefaultBuffer()
-    let renamed = genericDefaultRenamedBuffer()
-    let field = genericAnonymousField(struct { field: u16 }{field: 12'u16})
+    let count        = genericDefaultBuffer()
+    let renamed      = genericDefaultRenamedBuffer()
+    let field        = genericAnonymousField(struct { field: u16 }{field: 12'u16})
     let defaultField = genericDefaultAnonymousField()
 
     #assert(#typeof(renamed) == u8)

@@ -29,7 +29,7 @@ struct ConcatBuffer
     curBucket:       #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.
     lastBucket:      #null *ConcatBufferBucket     // The last bucket in the chain.
     currentSP:       #null [*] u8                  // The current read/write pointer in the `curBucket`.
-    granularity:     u64 = 1024                    // The default size for newly allocated buckets.
+    granularity:     u64  = 1024                   // The default size for newly allocated buckets.
     isAtEnd:         bool = true                   // 'true' if the seek pointer is at the very end of the buffer.
     viewFirstBucket: ConcatBufferBucket            // A pre-allocated bucket used for views, to avoid a separate allocation.
 }
@@ -145,7 +145,7 @@ impl ConcatBuffer
 
         .curBucket, .lastBucket = newBucket
 
-        let bsize = Math.max(.granularity, numBytes)
+        let bsize      = Math.max(.granularity, numBytes)
         let lastBucket = notnull .lastBucket
         lastBucket.datas = Memory.alloc(bsize, .allocator)
         lastBucket.size  = bsize
@@ -486,9 +486,9 @@ impl ConcatBuffer
         Debug.assert(.lastBucket == .firstBucket)
 
         let firstBucket = notnull .firstBucket
-        let rdata     = notnull firstBucket.datas
-        let rcount    = firstBucket.count
-        let rcapacity = firstBucket.size
+        let rdata       = notnull firstBucket.datas
+        let rcount      = firstBucket.count
+        let rcapacity   = firstBucket.size
 
         if firstBucket != &.viewFirstBucket do
             Memory.free(firstBucket, #sizeof(ConcatBufferBucket), .allocator)

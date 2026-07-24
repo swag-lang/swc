@@ -137,8 +137,8 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
 
 #test
 {
-    let pair0 = passPair({a: 9, b: 13})
-    let pair1 = passPair({a: -9, b: -13})
+    let pair0    = passPair({a: 9, b: 13})
+    let pair1    = passPair({a: -9, b: -13})
     let payload0 = passPayload({a0: 10'u64, a1: 20'u64, a2: 30'u64, a3: 40'u64})
     let payload1 = passPayload({a0: 1'u64, a1: 2'u64, a2: 3'u64, a3: 4'u64})
 

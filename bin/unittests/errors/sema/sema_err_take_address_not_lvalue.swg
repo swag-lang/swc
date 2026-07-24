@@ -23,7 +23,7 @@
 
 #test
 {
-    var A = 10's32
+    var A  = 10's32
     var PA = &A
     var PB = &(A + 1)     // swc-expected-error {{sema_err_take_address_not_lvalue}}
 }

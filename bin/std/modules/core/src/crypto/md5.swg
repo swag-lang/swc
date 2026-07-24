@@ -197,10 +197,10 @@ impl Md5
 
     func transform(state: [4] u32, block: const [*] u8)
     {
-        var a  = state[0]
-        var b  = state[1]
-        var c  = state[2]
-        var d  = state[3]
+        var a = state[0]
+        var b = state[1]
+        var c = state[2]
+        var d = state[3]
         var x: [16] u32
 
         decode(x, block, 64)

@@ -702,7 +702,7 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var arr:   [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
-    var count: u64 = 2
+    var count: u64         = 2
     @postmove(&arr[0], count)
     @drop(&arr[0], count)
     return {arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -1056,7 +1056,7 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
         var outer = CompactDropTracked{9}
         for [i] in 2
         {
-            let base = cast(s32) (i * 3 + 1)
+            let base       = cast(s32) (i * 3 + 1)
             let value: s32 = trycatch intrinsicAutoDropTryCatchLoopStep(base)
             if value == 0
             {
@@ -1141,7 +1141,7 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
         if var flag = 1 where flag == 1
         {
             var branch = AutoCompactBranch{CompactDropTracked{2}, AutoCompactPair{CompactDropTracked{3}, CompactDropTracked{4}}}
-            var inner = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
+            var inner  = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
             result.first  = flag + outer.value
             result.second = branch.pair.first.value
             result.third  = inner.second.value
@@ -1235,8 +1235,8 @@ func intrinsicAutoDropShadowInfo()->IntrinsicInfo
 func intrinsicInitRuntimeCountScalarInfo()->s32
 {
     var values: [4] s32 = [9, 8, 7, 6]
-    var start:  u64 = 1
-    var count:  u64 = 2
+    var start:  u64     = 1
+    var count:  u64     = 2
     @init(cast([*] s32) &values[0] + start, count)
     return values[0] * 1000 + values[1] * 100 + values[2] * 10 + values[3]
 }
@@ -1244,8 +1244,8 @@ func intrinsicInitRuntimeCountScalarInfo()->s32
 func intrinsicInitRuntimeCountStructInfo()->s32
 {
     var values: [4] InitRgb = [InitRgb{9, 9, 9}, InitRgb{8, 8, 8}, InitRgb{7, 7, 7}, InitRgb{6, 6, 6}]
-    var start:  u64 = 1
-    var count:  u64 = 2
+    var start:  u64         = 1
+    var count:  u64         = 2
     @init(cast([*] InitRgb) &values[0] + start, count)
     return values[0].r * 1000 + values[1].r * 100 + values[2].r * 10 + values[3].r
 }
@@ -1253,7 +1253,7 @@ func intrinsicInitRuntimeCountStructInfo()->s32
 func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
 {
     var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
-    var values = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 1}
+    var values                     = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 1}
     values.resize(3)
     return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + storage[3].value
 }
@@ -1261,7 +1261,7 @@ func intrinsicFieldPointerResizeRuntimeInitInfo()->s32
 func intrinsicFieldPointerResizeRuntimeDropIgnoredInfo()->s32
 {
     var storage: [4] ResizeTracked = [ResizeTracked{9}, ResizeTracked{8}, ResizeTracked{7}, ResizeTracked{6}]
-    var values = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 3}
+    var values                     = ResizeBuffer{cast([*] ResizeTracked) &storage[0], 3}
     values.resize(1)
     return storage[0].value * 1000 + storage[1].value * 100 + storage[2].value * 10 + cast(s32) values.count
 }
@@ -1270,7 +1270,7 @@ func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var storage: [3] DropOnlyTracked = [DropOnlyTracked{1}, DropOnlyTracked{2}, DropOnlyTracked{3}]
-    var values = RemoveBuffer{cast([*] DropOnlyTracked) &storage[0], 3}
+    var values                       = RemoveBuffer{cast([*] DropOnlyTracked) &storage[0], 3}
     values.removeAt(1)
     return {storage[0].value, storage[1].value, cast(s32) values.count, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -1290,7 +1290,7 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
 
     @drop(ptr + 1)
     ptr[1] = #relocate ptr[2]
-    let first = ptr[0].value
+    let first  = ptr[0].value
     let second = ptr[1].value
     @drop(ptr, 2)
     itf.free(&req)
@@ -1362,9 +1362,9 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        let itf = notnull @getcontext().allocator
+        let itf    = notnull @getcontext().allocator
         var values = ReallocDropBuffer{itf, null, 0, 0}
-        let ptr = values.emplaceAddress(3)
+        let ptr    = values.emplaceAddress(3)
         for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
@@ -1377,9 +1377,9 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     {
-        let itf = notnull @getcontext().allocator
+        let itf    = notnull @getcontext().allocator
         var values = GenericOwnedBuffer'DropOnlyTracked{itf, null, 0, 0}
-        let ptr = values.emplaceAddress(3)
+        let ptr    = values.emplaceAddress(3)
         for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
@@ -1393,7 +1393,7 @@ func intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()->IntrinsicInfo
 
     {
         var values = GenericOwnedBuffer'DropOnlyTracked{@getcontext().allocator, null, 0, 0}
-        let ptr = values.emplaceAddress(3)
+        let ptr    = values.emplaceAddress(3)
         for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
@@ -1462,9 +1462,9 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
-    let itf = notnull @getcontext().allocator
+    let itf    = notnull @getcontext().allocator
     var values = ReallocDropBuffer{itf, null, 0, 0}
-    let ptr = values.emplaceAddress(3)
+    let ptr    = values.emplaceAddress(3)
     for [i] in 3 do
         ptr[i].value = cast(s32) (i + 1)
 

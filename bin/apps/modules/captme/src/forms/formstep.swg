@@ -13,18 +13,18 @@ struct FormStep
 {
     using base: BaseForm
     kind:       FormShapeKind = Ellipse
-    index:      u32 = 1
+    index:      u32           = 1
     #[Name("Step")]
-    typeIndex       = FormStepType.Number
+    typeIndex = FormStepType.Number
 
     #[Serialization.NoSerialize]
     {
-        ws, hs:     s32 = 48
+        ws, hs:     s32  = 48
         gizmo:      GizmoRect
         isDirty:    bool = true
         cachefSize: f32
-        cacheTypeIndex     = FormStepType.Number
-        pathl: LinePathList
+        cacheTypeIndex   = FormStepType.Number
+        pathl:      LinePathList
     }
 }
 
@@ -57,17 +57,17 @@ impl IForm for FormStep
         ya -= .hs / 2
         .setBaseForm(xa, ya, .ws, .hs)
 
-        var xbu = 0
-        var ybu = 0
+        var xbu     = 0
+        var ybu     = 0
         let capture = notnull .capture
         capture.snap(&xbu, &ybu, true, true, 0, cast(IForm) me)
         xa += xbu
         ya += ybu
         .setBaseForm(xa, ya, .ws, .hs)
 
-        .index                 = capture.nextStepIndex
+        .index                = capture.nextStepIndex
         capture.nextStepIndex += 1
-        .isDirty               = true
+        .isDirty              = true
 
         return false
     }

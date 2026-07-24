@@ -34,8 +34,8 @@ var duplicateValues: [DuplicateArrayIndex] s32     // swc-expected-error {{sema_
 
 enum ImplicitAfterGapArrayIndex
 {
-    First  = 0
-    Third  = 2
+    First = 0
+    Third = 2
     Fourth
 }
 

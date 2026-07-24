@@ -112,7 +112,7 @@ public impl Image
 
         let t1: f32 = 1.0 / 3.0
         let t2: f32 = 2.0 / 3.0
-        let sig2 = sigma * sigma
+        let sig2    = sigma * sigma
 
         for [x] in 0 to (w - 1)
         {
@@ -181,12 +181,12 @@ public impl Image
             lumBuf[index] = p.getRelativeLuminance()
 
             // saturation in sRGB
-            let rs   = p.r / 255.0
-            let gs   = p.g / 255.0
-            let bs   = p.b / 255.0
-            let maxC = Math.max(Math.max(rs, gs), bs)
-            let minC = Math.min(Math.min(rs, gs), bs)
-            let eps  = 1e-6'f32
+            let rs     = p.r / 255.0
+            let gs     = p.g / 255.0
+            let bs     = p.b / 255.0
+            let maxC   = Math.max(Math.max(rs, gs), bs)
+            let minC   = Math.min(Math.min(rs, gs), bs)
+            let eps    = 1e-6'f32
             let satBuf = notnull params.sat.buffer
             satBuf[index] = (maxC > 0.0) ? ((maxC - minC) / (maxC + eps)) : 0.0
         }
@@ -220,7 +220,7 @@ public impl Image
     {
         const K = 4096's32
         var tmp: Array'f32
-        var M    = Math.min(K, N)
+        var M = Math.min(K, N)
         tmp.resize(M)
 
         if N <= K
@@ -284,7 +284,7 @@ public impl Image
         }
 
         // Blur luminance and compute Sobel once
-        var lumBlur  = boxBlurViaIntegral(lum, w, h, 1)
+        var lumBlur = boxBlurViaIntegral(lum, w, h, 1)
         var edgeMag: Array'f32
         edgeMag.resize(N)
         sobelMagFromLumBlur(&lumBlur, w, h, &edgeMag)
@@ -472,9 +472,9 @@ public impl Image
 
     internal func refinePosition(ctx: &ScoreCtx, bestX, bestY, bestW, bestH: s32, range: s32 = 2)->{ x: s32, y: s32, score: f32, d2: f32 }
     {
-        let maxX   = ctx.w - bestW
-        let maxY   = ctx.h - bestH
-        var bx = bestX, by = bestY
+        let maxX        = ctx.w - bestW
+        let maxY        = ctx.h - bestH
+        var bx          = bestX, by = bestY
         var bScore: f32 = -1.0e30
         var bD2:    f32 = 1.0e30
 
@@ -508,7 +508,7 @@ public impl Image
     {
         let scales: [5] f32 = [0.88, 0.94, 1.00, 1.06, 1.12]
 
-        var bx = bestX, by = bestY, bw = bestW, bh = bestH
+        var bx          = bestX, by = bestY, bw = bestW, bh = bestH
         var bScore: f32 = -1.0e30
         var bD2:    f32 = 1.0e30
 
@@ -576,7 +576,7 @@ public impl Image
         let imgArea = cast(f32) (w * h)
         var ctx     = prepareScoreCtx(w, h, &pack, imgArea, opts, 0.0)     // single-scale ignores shrink prior
 
-        var bestX, bestY = 0
+        var bestX, bestY   = 0
         var bestScore: f32 = -1.0e30
         var bestD2:    f32 = 1.0e30
 
@@ -638,8 +638,8 @@ public impl Image
         let steps   = opts.maxSearchSteps
 
         var bestX, bestY, bestW, bestH = 0
-        var bestScore:    f32 = -1.0e30
-        var bestCenterD2: f32 = 1.0e30
+        var bestScore:    f32          = -1.0e30
+        var bestCenterD2: f32          = 1.0e30
 
         for [step] in 0 to (steps - 1)
         {
@@ -769,7 +769,7 @@ public impl Image
 
     internal mtd const evaluateCropScoreFull(rect: Math.Rectangle, opts: SmartCropSearchOpts)->f32
     {
-        let w = .width, h = .height
+        let w    = .width, h = .height
         var pack = .buildFeaturePack(w, h, opts, true)
         var ctx  = prepareScoreCtx(w, h, &pack, cast(f32) (w * h), opts, cast(f32) opts.shrinkPrior)
         let r    = scoreWindow(&ctx, cast() rect.x, cast() rect.y, cast() rect.width, cast() rect.height)

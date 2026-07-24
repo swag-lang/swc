@@ -44,8 +44,8 @@ var g_lateGlobalAddrStorage: LateGlobalItem
 func lateGlobalAddressOf()->bool
 {
     g_lateGlobalAddrStorage.value = 3
-    let slot                      = &g_lateGlobalAddr
-    dref slot                     = &g_lateGlobalAddrStorage
+    let slot = &g_lateGlobalAddr
+    dref slot = &g_lateGlobalAddrStorage
     return @isset(g_lateGlobalAddr) and g_lateGlobalAddr.value == 3
 }
 

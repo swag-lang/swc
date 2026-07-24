@@ -76,7 +76,7 @@ func semaTest003()
 {
     let globalReader: ClosureNullary = func()->s32 { return GlobalSeed }
     let fromLambda = acceptUnary(func(value: s32)->s32 { return value * 2 })
-    let fromNull = acceptNullary()
+    let fromNull   = acceptNullary()
 
     #assert(#typeof(globalReader) == ClosureNullary)
     #assert(#typeof(fromLambda) == ClosureUnary)

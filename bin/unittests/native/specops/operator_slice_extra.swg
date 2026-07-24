@@ -33,7 +33,7 @@ impl RuntimeSliceEdgeBox
 // Test: single-element slice [2 to 2]
 #test
 {
-    var box = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[2 to 2]
 
     @assert(@countof(slice) == 1)
@@ -46,7 +46,7 @@ impl RuntimeSliceEdgeBox
 // Test: first element only [0 to 0]
 #test
 {
-    var box = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[0 to 0]
 
     @assert(@countof(slice) == 1)
@@ -56,7 +56,7 @@ impl RuntimeSliceEdgeBox
 // Test: last element only [4 to 4]
 #test
 {
-    var box = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[4 to 4]
 
     @assert(@countof(slice) == 1)
@@ -66,7 +66,7 @@ impl RuntimeSliceEdgeBox
 // Test: single element via 'until' [2 until 3]
 #test
 {
-    var box = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[2 until 3]
 
     @assert(@countof(slice) == 1)
@@ -76,7 +76,7 @@ impl RuntimeSliceEdgeBox
 // Test: two-element slice at boundaries [0 to 1]
 #test
 {
-    var box = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[0 to 1]
 
     @assert(@countof(slice) == 2)
@@ -87,7 +87,7 @@ impl RuntimeSliceEdgeBox
 // Test: two-element slice at end [3 to 4]
 #test
 {
-    var box = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceEdgeBox{values: [10, 20, 30, 40, 50]}
     let slice = box[3 to 4]
 
     @assert(@countof(slice) == 2)
@@ -98,9 +98,9 @@ impl RuntimeSliceEdgeBox
 // Test: multiple slices on same box
 #test
 {
-    var box = RuntimeSliceEdgeBox{values: [1, 2, 3, 4, 5]}
+    var box  = RuntimeSliceEdgeBox{values: [1, 2, 3, 4, 5]}
     let head = box[to 1]
-    let mid = box[2 to 2]
+    let mid  = box[2 to 2]
     let tail = box[3 to]
 
     @assert(@countof(head) == 2)

@@ -6,18 +6,18 @@ struct LayerBeginInfo
 {
     width:        s32
     height:       s32
-    renderScale:  s32 = 1
-    paintAlpha:   bool = true
-    clearColor:   Color = Color.fromArgb(Argb.Zero)
-    antialiased:  bool = true
+    renderScale:  s32          = 1
+    paintAlpha:   bool         = true
+    clearColor:   Color        = Color.fromArgb(Argb.Zero)
+    antialiased:  bool         = true
     blendingMode: BlendingMode = .Alpha
 }
 
 struct LayerShadowInfo
 {
     enabled: bool
-    margin:  s32 = 8
-    radius:  f32 = 8
+    margin:  s32   = 8
+    radius:  f32   = 8
     offsetX: f32
     offsetY: f32
     color:   Color = Color.fromArgb(150, Argb.Black)
@@ -26,11 +26,11 @@ struct LayerShadowInfo
 struct LayerDrawInfo
 {
     dstRect:           Math.Rectangle
-    color:             Color = Color.fromArgb(Argb.White)
+    color:             Color             = Color.fromArgb(Argb.White)
     interpolationMode: InterpolationMode = .Linear
-    writeAlpha:        bool = true
-    alphaBlendingMode: BlendingMode = .Max
-    releaseAfterDraw:  bool = true
+    writeAlpha:        bool              = true
+    alphaBlendingMode: BlendingMode      = .Max
+    releaseAfterDraw:  bool              = true
     shadow:            LayerShadowInfo
 }
 

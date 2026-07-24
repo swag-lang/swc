@@ -44,7 +44,7 @@ public func murmur3(a, b: u32)->u32
 public func murmur3(a, b: u64)->u64
 {
     const K = 0x9DDFEA08EB382D69
-    var na  = (a ^ b) * K
+    var na = (a ^ b) * K
     na ^= (na >> 47)
     var nb = (b ^ na) * K
     nb ^= (nb >> 47)

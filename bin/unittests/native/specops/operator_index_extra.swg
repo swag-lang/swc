@@ -22,9 +22,9 @@ impl RuntimeRefMutBox
 #test
 {
     var box = RuntimeRefMutBox{buffer: [10, 20, 30]}
-    let v0 = box[0]
-    let v1 = box[1]
-    let v2 = box[2]
+    let v0  = box[0]
+    let v1  = box[1]
+    let v2  = box[2]
 
     @assert(v0 == 10)
     @assert(v1 == 20)
@@ -77,7 +77,7 @@ impl RuntimeMultiKeyBox
 #test
 {
     var box = RuntimeMultiKeyBox{data: [1, 2, 3, 4]}
-    let v = box[1's32]
+    let v   = box[1's32]
 
     @assert(v == 2)
     @assert(box.s32Reads == 1)
@@ -88,7 +88,7 @@ impl RuntimeMultiKeyBox
 #test
 {
     var box = RuntimeMultiKeyBox{data: [1, 2, 3, 4]}
-    let v = box[2'u64]
+    let v   = box[2'u64]
 
     @assert(v == 30)
     @assert(box.s32Reads == 0)
@@ -99,8 +99,8 @@ impl RuntimeMultiKeyBox
 #test
 {
     var box = RuntimeMultiKeyBox{data: [10, 20, 30, 40]}
-    let a = box[0's32]
-    let b = box[3'u64]
+    let a   = box[0's32]
+    let b   = box[3'u64]
 
     @assert(a == 10)
     @assert(b == 400)
@@ -202,7 +202,7 @@ impl RuntimeConstMutBox
 #test
 {
     var box = RuntimeConstMutBox{data: [7, 8]}
-    let v = box[0]
+    let v   = box[0]
 
     @assert(v == 7)
     @assert(box.mutReads == 1)

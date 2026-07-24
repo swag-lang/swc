@@ -71,8 +71,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var first = -1
-    var last = -1
-    var sum = 0
+    var last  = -1
+    var sum   = 0
     for #reverse [i] in 3
     {
         var x = i
@@ -155,7 +155,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var sum = 0
+    var sum   = 0
     for [i] in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
     {
         #assert(#typeof(i) == ForStrictU8)
@@ -169,7 +169,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var sum = 0
+    var sum   = 0
     for [i] in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
     {
         let value = forStrictU8RefValue(i)
@@ -183,7 +183,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var sum = 0
+    var sum   = 0
     for #reverse [i] in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
     {
         let value = forStrictU8RefValue(i)
@@ -196,7 +196,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
 #test
 {
-    var count = 0
+    var count       = 0
     var first:  u64 = 0
     var second: u64 = 0
     for [i] in 0xFFFF_FFFF_FFFF_FFFF'u64 to 0xFFFF_FFFF_FFFF_FFFF'u64
@@ -220,7 +220,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
 #test
 {
-    var count = 0
+    var count      = 0
     var first: u64 = 42
     for [i] in 0xFFFF_FFFF_FFFF_FFFF'u64
     {
@@ -247,8 +247,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var first = -1
-    var last = -1
-    var sum = 0
+    var last  = -1
+    var sum   = 0
     for #reverse [i] in 1 to 5
     {
         var x = i
@@ -265,8 +265,8 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var first = -1
-    var last = -1
-    var sum = 0
+    var last  = -1
+    var sum   = 0
     for #reverse [i] in 1 until 5
     {
         var x = i
@@ -283,7 +283,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var sum = 0
+    var sum   = 0
     for [i] in 10 where i > 3
     {
         var x = i
@@ -315,7 +315,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     let value = FixedCountedLoop{}
     var count = 0
-    var sum = 0
+    var sum   = 0
 
     for value do
         count += 1
@@ -330,7 +330,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var sum = 0
+    var sum   = 0
     for [i] in 0 to 10 where i % 2 == 0
     {
         var x = i
@@ -344,7 +344,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var sum = 0
+    var sum   = 0
     for [i] in 0 until 10 where i > 5
     {
         var x = i
@@ -358,7 +358,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var first = -1
-    var last = -1
+    var last  = -1
     var count = 0
     for #reverse [i] in 10 where i < 5
     {
@@ -391,7 +391,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    var last = -1
+    var last  = -1
     for [i] in 1
     {
         for [j] in 1
@@ -451,7 +451,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var arr: [5]s32 = [1, 2, 3, 4, 5]
-    var count = 0
+    var count       = 0
     for arr
     {
         var x = 0
@@ -463,7 +463,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var arr: [3]s32 = [1, 2, 3]
-    var sum = 0
+    var sum         = 0
     for [i] in @countof(arr)
     {
         var x = i
@@ -525,7 +525,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
 #test
 {
-    var i = 5
+    var i     = 5
     var count = 0
     for [i] in 3
     {
@@ -584,7 +584,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     enum Bits: u32 { A, B, C }
 
     var count = 0
-    var sum = 0
+    var sum   = 0
     for [idx] in @countof(Bits)
     {
         #assert(#typeof(idx) == u32)

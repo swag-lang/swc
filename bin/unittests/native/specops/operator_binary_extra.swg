@@ -32,8 +32,8 @@ impl RuntimeCommBox
 // Test: additive identity (a + 0 == a)
 #test
 {
-    var a = RuntimeCommBox{value: 42}
-    var zero = RuntimeCommBox{value: 0}
+    var a      = RuntimeCommBox{value: 42}
+    var zero   = RuntimeCommBox{value: 0}
     let result = a + zero
 
     @assert(result.value == 42)
@@ -42,8 +42,8 @@ impl RuntimeCommBox
 // Test: multiplicative identity (a * 1 == a)
 #test
 {
-    var a = RuntimeCommBox{value: 42}
-    var one = RuntimeCommBox{value: 1}
+    var a      = RuntimeCommBox{value: 42}
+    var one    = RuntimeCommBox{value: 1}
     let result = a * one
 
     @assert(result.value == 42)
@@ -52,8 +52,8 @@ impl RuntimeCommBox
 // Test: multiplicative zero (a * 0 == 0)
 #test
 {
-    var a = RuntimeCommBox{value: 42}
-    var zero = RuntimeCommBox{value: 0}
+    var a      = RuntimeCommBox{value: 42}
+    var zero   = RuntimeCommBox{value: 0}
     let result = a * zero
 
     @assert(result.value == 0)
@@ -137,8 +137,8 @@ impl RuntimeFullArithBox
 // Test: struct - struct
 #test
 {
-    var lhs = RuntimeFullArithBox{a: 10, b: 20}
-    var rhs = RuntimeFullArithBox{a: 3, b: 7}
+    var lhs  = RuntimeFullArithBox{a: 10, b: 20}
+    var rhs  = RuntimeFullArithBox{a: 3, b: 7}
     let diff = lhs - rhs
 
     @assert(diff.a == 7)
@@ -148,8 +148,8 @@ impl RuntimeFullArithBox
 // Test: struct / struct
 #test
 {
-    var lhs = RuntimeFullArithBox{a: 100, b: 50}
-    var rhs = RuntimeFullArithBox{a: 10, b: 5}
+    var lhs  = RuntimeFullArithBox{a: 100, b: 50}
+    var rhs  = RuntimeFullArithBox{a: 10, b: 5}
     let quot = lhs / rhs
 
     @assert(quot.a == 10)
@@ -170,7 +170,7 @@ impl RuntimeFullArithBox
 // Test: struct - scalar
 #test
 {
-    var box = RuntimeFullArithBox{a: 10, b: 20}
+    var box    = RuntimeFullArithBox{a: 10, b: 20}
     let result = box - 3
 
     @assert(result.a == 7)
@@ -180,7 +180,7 @@ impl RuntimeFullArithBox
 // Test: struct / scalar
 #test
 {
-    var box = RuntimeFullArithBox{a: 100, b: 200}
+    var box    = RuntimeFullArithBox{a: 100, b: 200}
     let result = box / 10
 
     @assert(result.a == 10)
@@ -190,7 +190,7 @@ impl RuntimeFullArithBox
 // Test: struct % scalar
 #test
 {
-    var box = RuntimeFullArithBox{a: 10, b: 17}
+    var box    = RuntimeFullArithBox{a: 10, b: 17}
     let result = box % 3
 
     @assert(result.a == 1)
@@ -200,8 +200,8 @@ impl RuntimeFullArithBox
 // Test: mixed chaining (a + b - c * d)
 #test
 {
-    var a = RuntimeFullArithBox{a: 10, b: 10}
-    var b = RuntimeFullArithBox{a: 5, b: 5}
+    var a      = RuntimeFullArithBox{a: 10, b: 10}
+    var b      = RuntimeFullArithBox{a: 5, b: 5}
     let result = a + b - a
 
     @assert(result.a == 5)
@@ -246,7 +246,7 @@ impl RuntimeRightArithBox
 // Test: scalar * struct uses Commutative opBinary on the right operand
 #test
 {
-    var box = RuntimeRightArithBox{a: 3, b: 7}
+    var box    = RuntimeRightArithBox{a: 3, b: 7}
     let result = 4 * box
 
     @assert(result.a == 12)
@@ -256,7 +256,7 @@ impl RuntimeRightArithBox
 // Test: non-commutative scalar - struct keeps the operand order
 #test
 {
-    var box = RuntimeRightArithBox{a: 3, b: 7}
+    var box    = RuntimeRightArithBox{a: 3, b: 7}
     let result = 10 - box
 
     @assert(result.a == 7)

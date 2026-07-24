@@ -140,7 +140,7 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
 
     var totalSimilarity: f64 = 0.0
     var totalWeight:     f64 = 0.0
-    let size             = haar1.size
+    let size                 = haar1.size
 
     for [level] in haar1.levels
     {

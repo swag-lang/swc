@@ -308,8 +308,8 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
     @assert(assertIntArray(values, seed))
 
     var copy: Array's32 = values
-    let frontPtr = copy.frontPtr()
-    let backPtr = copy.backPtr()
+    let frontPtr        = copy.frontPtr()
+    let backPtr         = copy.backPtr()
     dref frontPtr = 9
     dref backPtr  = 7
 
@@ -492,7 +492,7 @@ func visitStructArrayReverse(values: &Array'ArrayVisitProbe)->s32
 
     values.fill(7)
     let frontPtr = values.frontPtr()
-    let backPtr = values.backPtr()
+    let backPtr  = values.backPtr()
     dref frontPtr = 1
     dref backPtr  = 9
 

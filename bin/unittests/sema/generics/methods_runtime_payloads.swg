@@ -28,9 +28,9 @@ func semaTest001()
     values[0] = 11
     values[1] = 22
     values[2] = 33
-    var box    = BufferBox's32{buffer: cast([*] s32) &values[0], count: 3}
-    let ptr    = box.firstPtr()
-    let sl     = box.toLocalSlice()
+    var box = BufferBox's32{buffer: cast([*] s32) &values[0], count: 3}
+    let ptr = box.firstPtr()
+    let sl  = box.toLocalSlice()
 
     #assert(#typeof(ptr) == [*] s32)
     #assert(#typeof(sl) == [..] s32)

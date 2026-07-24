@@ -13,7 +13,7 @@ func takeMoveCtx(v: #move MoveCtxVec) {}
 
 #test
 {
-    var v = MoveCtxVec{1}
+    var v                    = MoveCtxVec{1}
     var rr: #move MoveCtxVec = (#move v)     // swc-expected-error {{sema_err_move_ref_type_context}}
 }
 

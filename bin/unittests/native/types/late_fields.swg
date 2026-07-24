@@ -39,7 +39,7 @@ func nativeLateLifecycle()->bool
 // Address-of never reads the value: filling through a pointer works.
 func nativeLateAddressOf()->bool
 {
-    var it = NativeLateItem{value: 3}
+    var it   = NativeLateItem{value: 3}
     var box: NativeLateBox
     let slot = &box.item
     dref slot = &it

@@ -5,9 +5,9 @@ using Swag, Core
 struct HeadlessFixture
 {
     gui:      Testing.HeadlessHost
-    main:     *MainWnd = undefined
+    main:     *MainWnd  = undefined
     editView: *EditView = undefined
-    capture:  *Capture = undefined
+    capture:  *Capture  = undefined
 }
 
 impl HeadlessFixture
@@ -51,7 +51,7 @@ impl HeadlessFixture
         .main.libWnd.registerActions()
 
         let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
-        let view = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
+        let view   = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
         view.libWnd    = .main.libWnd
         view.mainWnd   = .main
         view.scrollWnd = scroll
@@ -69,7 +69,7 @@ impl HeadlessFixture
 
 func testMouse(kind: MouseEvent.Kind, button = Input.MouseButton.Left)->MouseEvent
 {
-    var evt  = MouseEvent{kind: kind}
+    var evt = MouseEvent{kind: kind}
     evt.button = button
     return evt
 }

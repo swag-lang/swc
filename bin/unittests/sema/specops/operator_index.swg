@@ -49,8 +49,8 @@ impl MultiIndexBox
 
 func semaTest001()
 {
-    var box = ValueIndexBox{first: 7, second: 9}
-    let first = box[0]
+    var box    = ValueIndexBox{first: 7, second: 9}
+    let first  = box[0]
     let second = box[1]
     #assert(#typeof(first) == s32)
     #assert(#typeof(second) == s32)
@@ -58,7 +58,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    var box = RefIndexBox{buffer: [3, 5]}
+    var box   = RefIndexBox{buffer: [3, 5]}
     let first = box[1]
     #assert(#typeof(first) == s32)
 
@@ -69,7 +69,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    var box = MultiIndexBox{}
+    var box   = MultiIndexBox{}
     let value = box[1, 0]
 
     #assert(#typeof(value) == s32)
@@ -95,7 +95,7 @@ func semaTest004()
     let first = values[IndexedSlot.First]
 
     var index = IndexedSlot.Third
-    let last = values[index]
+    let last  = values[index]
 
     #assert(#typeof(first) == s32)
     #assert(#typeof(last) == s32)

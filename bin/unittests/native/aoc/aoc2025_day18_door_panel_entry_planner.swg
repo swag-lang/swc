@@ -90,8 +90,8 @@ func absValue(value: s32)->u32
 func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: bool, horizontalFirst: bool)->bool
 {
     var path: PathBuffer
-    var x = fromPos.x
-    var y = fromPos.y
+    var x  = fromPos.x
+    var y  = fromPos.y
     let dx = toPos.x - fromPos.x
     let dy = toPos.y - fromPos.y
 
@@ -103,11 +103,11 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     if dy < 0 do
         verticalMove = '^''u8
     let horizontalCount = absValue(dx)
-    let verticalCount = absValue(dy)
+    let verticalCount   = absValue(dy)
 
-    var firstMove = horizontalMove
-    var firstCount = horizontalCount
-    var secondMove = verticalMove
+    var firstMove   = horizontalMove
+    var firstCount  = horizontalCount
+    var secondMove  = verticalMove
     var secondCount = verticalCount
 
     if !horizontalFirst
@@ -186,10 +186,10 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
 
     for path.count
     {
-        let next = path.buttons[@index]
+        let next      = path.buttons[@index]
         let fromIndex = directionalKeyIndex(current)
-        let toIndex = directionalKeyIndex(next)
-        let cached = DirectionalMemo[depth][fromIndex][toIndex]
+        let toIndex   = directionalKeyIndex(next)
+        let cached    = DirectionalMemo[depth][fromIndex][toIndex]
 
         if cached != 0
         {
@@ -198,10 +198,10 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
         else
         {
             let fromPos = directionalPos(current)
-            let toPos = directionalPos(next)
+            let toPos   = directionalPos(next)
             var candidateA: PathBuffer
             var candidateB: PathBuffer
-            var best = Swag.U64.Max
+            var best    = Swag.U64.Max
 
             if buildPath(&candidateA, fromPos, toPos, true, true)
             {
@@ -244,17 +244,17 @@ func codeValue(code: string)->u64
 
 func codePressCount(code: string, depth: u32)->u64
 {
-    let bytes = cast(const [..] u8) code
+    let bytes   = cast(const [..] u8) code
     var total: u64
     var current = 'A''u8
 
     for next in bytes
     {
         let fromPos = numericPos(current)
-        let toPos = numericPos(next)
+        let toPos   = numericPos(next)
         var candidateA: PathBuffer
         var candidateB: PathBuffer
-        var best = Swag.U64.Max
+        var best    = Swag.U64.Max
 
         if buildPath(&candidateA, fromPos, toPos, false, true)
         {

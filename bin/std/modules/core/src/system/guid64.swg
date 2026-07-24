@@ -41,8 +41,8 @@ impl GUID64
         initRng()
 
         var result: retval = undefined
-        let nowMs   = Time.nowMilliseconds()
-        let nowUs   = Time.nowMicroseconds()
+        let nowMs          = Time.nowMilliseconds()
+        let nowUs          = Time.nowMicroseconds()
 
         // Extract components
         let timestamp = cast(u32) (nowMs / 1000)               // 32-bit Unix timestamp
@@ -79,10 +79,10 @@ impl GUID64
         initRng()
 
         var result: retval = undefined
-        let nowMs   = Time.nowMilliseconds()
-        let nowUs   = Time.nowMicroseconds()
-        let pid     = cast(u64) Env.Process.getProcessId()
-        let tid     = cast(u64) Env.Process.getThreadId()
+        let nowMs          = Time.nowMilliseconds()
+        let nowUs          = Time.nowMicroseconds()
+        let pid            = cast(u64) Env.Process.getProcessId()
+        let tid            = cast(u64) Env.Process.getThreadId()
 
         // Mix multiple entropy sources using XOR
         result.guid = g_Rng.nextU64()
@@ -148,7 +148,7 @@ impl GUID64
     func parse(str: string)->GUID64
     {
         var result: retval = undefined
-        var startIdx = 0
+        var startIdx       = 0
 
         // Skip "0x" prefix if present
         if @countof(str) >= 2 and str[0] == '0' and (str[1] == 'x' or str[1] == 'X') do
@@ -158,7 +158,7 @@ impl GUID64
         var value: u64 = 0
         for [i] in Math.min(16, @countof(str) - startIdx)
         {
-            let c      = str[startIdx + i]
+            let c          = str[startIdx + i]
             var digit: u64 = 0
 
             if c >= '0' and c <= '9' do

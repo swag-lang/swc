@@ -29,10 +29,10 @@ namespace Scoped
 }
 
 var ScopedValue:     Scoped.Box
-var ScopedFunc:      func(Scoped.Box)->Scoped.Box = undefined
-var ScopedClosure:   func||(Scoped.Box)->Scoped.Box = undefined
+var ScopedFunc:      func(Scoped.Box)->Scoped.Box              = undefined
+var ScopedClosure:   func||(Scoped.Box)->Scoped.Box            = undefined
 var ScopedNamedFunc: func(value: Scoped.Box)->Scoped.Box throw = undefined
-var ScopedVariadic:  func(Scoped.Box...)->Scoped.Box = undefined
+var ScopedVariadic:  func(Scoped.Box...)->Scoped.Box           = undefined
 var ScopedArray:     [2] Scoped.Box
 var ScopedWrapped:   Scoped.Wrapper'(Scoped.Box)
 

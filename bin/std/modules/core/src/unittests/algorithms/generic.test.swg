@@ -11,7 +11,7 @@ using Swag
     @assert(left == -4)
     @assert(right == 10)
 
-    var first:  String  = "alpha"
+    var first:  String = "alpha"
     var second: String = "beta"
     Core.swap(&first, &second)
     @assert(first == "beta")

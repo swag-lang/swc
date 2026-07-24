@@ -105,8 +105,8 @@ func day7B()
     var total = 0
     for
     {
-        var op = [prg, prg, prg, prg, prg]
-        var ip = [0, 0, 0, 0, 0]
+        var op         = [prg, prg, prg, prg, prg]
+        var ip         = [0, 0, 0, 0, 0]
         var input, cpt = 0
         for
         {

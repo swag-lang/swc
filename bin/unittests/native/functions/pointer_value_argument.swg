@@ -14,7 +14,7 @@ func readPointerValueArgument(value: PointerValueArgumentPayload)->s32
 #test
 {
     var value = PointerValueArgumentPayload{x: 4, y: 7}
-    let ptr = &value
+    let ptr   = &value
 
     @assert(readPointerValueArgument(ptr) == 47)
 }

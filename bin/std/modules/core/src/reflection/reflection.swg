@@ -251,7 +251,7 @@ func inferTypeWithInterfaceFields(itf: typeinfo, fieldCrcs: const [..] u32)->#nu
             continue
 
         let typeStruct = cast(const *TypeInfoStruct) notnull t
-        var score = 0'u64
+        var score      = 0'u64
         for streamCrc in fieldCrcs
         {
             for &field in typeStruct.fields

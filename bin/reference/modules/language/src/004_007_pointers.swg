@@ -59,12 +59,12 @@ droppable value.
         ptr: *u8
     }
 
-    var value = 42'u8
-    var values = [1, 2, 3]
-    let ptr:   *u8 = &value
-    let text:  string = "value"
+    var value           = 42'u8
+    var values          = [1, 2, 3]
+    let ptr:   *u8      = &value
+    let text:  string   = "value"
     let slice: [..] s32 = values
-    let holder = NonNullPointerHolder{ptr: &value}
+    let holder          = NonNullPointerHolder{ptr: &value}
 
     #assert(#typeof(ptr) == *u8)
     #assert(#typeof(text) == string)
@@ -200,7 +200,7 @@ Const pointers help guarantee that a pointer always refers to the same memory lo
 */
 #test
 {
-    let str  = "string"
+    let str            = "string"
     let ptr: const *u8 = @dataof(str)
     @assert(dref ptr == 's')     // Access the first byte of the string
 }
@@ -248,7 +248,7 @@ single element. Cast it to a multi-value pointer when pointer arithmetic is inte
 #test
 {
     var arr: [4] s32
-    var ptr  = cast([*] s32) &arr[1]
+    var ptr = cast([*] s32) &arr[1]
 
     // The pointer is treated as a multi-value pointer
     ptr = ptr - 1

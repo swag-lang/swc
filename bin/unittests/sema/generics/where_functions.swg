@@ -204,7 +204,7 @@ func semaTest001()
     @assert(onlyIntegersBlock(12's32) == 12)
 
     let values: [3] s32 = [5, 6, 7]
-    let fixed:  [4] u8 = [1'u8, 2, 3, 4]
+    let fixed:  [4] u8  = [1'u8, 2, 3, 4]
     @assert(head(values) == 5)
     @assert(mustBePositive'3() == 3)
     @assert(defaultFloatValue() == 2.0'f32)
@@ -224,8 +224,8 @@ func semaTest001()
     @assert(floatBox.mirrorType(2.5'f32) == 2.5'f32)
     @assert(floatBox.copyIfFloat() == 1.5'f32)
 
-    let floatWindow:  Window'(f32, 3) = {values: [10.0'f32, 20.0, 30.0]}
-    let intWindow:    Window'(s32, 3) = {values: [1, 2, 3]}
+    let floatWindow:  Window'(f32, 3)              = {values: [10.0'f32, 20.0, 30.0]}
+    let intWindow:    Window'(s32, 3)              = {values: [1, 2, 3]}
     let interpolated: InterpolationWindow'(f64, 3) = {values: [10.0'f64, 20.0, 30.0]}
     @assert(floatWindow.at'1() == 20.0'f32)
     @assert(intWindow.at'2() == 3)

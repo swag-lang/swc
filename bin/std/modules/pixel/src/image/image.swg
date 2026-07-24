@@ -152,7 +152,7 @@ impl Image
         Debug.assert(stride > 0)
 
         let self: const &Image = me
-        var p = {image: self, userData: pixelUserData}
+        var p                  = {image: self, userData: pixelUserData}
         Jobs.parallelVisit(@mkslice(cast([*] u8) (notnull self.pixels.buffer), self.pixels.count), cast(u32) (.bpp8 * stride), &p)
         {
             if !data do
@@ -244,8 +244,8 @@ impl Image
     mtd(PF: PixelFormat) const getPixelColorDirect(pixX, pixY: s32)->Color
     {
         var result: retval
-        let x       = Math.clamp(pixX, 0, .width - 1)
-        var y       = Math.clamp(pixY, 0, .height - 1)
+        let x = Math.clamp(pixX, 0, .width - 1)
+        var y = Math.clamp(pixY, 0, .height - 1)
         y = .height - y - 1
 
         #if PF == .RGBA8

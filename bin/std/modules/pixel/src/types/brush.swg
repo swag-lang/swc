@@ -29,11 +29,11 @@ struct GradientStop
 
 struct Brush
 {
-    color:   Color = Color.fromArgb(Argb.White)
-    type:    BrushType = SolidColor
+    color:   Color      = Color.fromArgb(Argb.White)
+    type:    BrushType  = SolidColor
     hatch:   HatchStyle = Dot
     texture: Texture
-    uvMode:  UVMode = Fill
+    uvMode:  UVMode     = Fill
     uvRect:  Math.Rectangle
 
     gradientStart:     Math.Vector2
@@ -100,7 +100,7 @@ impl Brush
     {
         Debug.assert(.gradientStopCount < MaxGradientStops, "too many gradient stops")
 
-        let clamped = Math.saturate(offset)
+        let clamped      = Math.saturate(offset)
         var insertAt: u8 = .gradientStopCount
         for [i] in .gradientStopCount
         {

@@ -61,10 +61,10 @@ func(T, U) choose(value: T, other: U)->bool
 
 #test
 {
-    let ok = GenericFreeAlias'(bool)(true, 2.5'f32)
-    let local = functionLocalAliasBox'u16(12)
+    let ok                            = GenericFreeAlias'(bool)(true, 2.5'f32)
+    let local                         = functionLocalAliasBox'u16(12)
     let boxed:   GenericBoxAlias'bool = {value: true}
-    let wrapped: WrapperAliasBox'f32 = {item: {value: 3.5}}
+    let wrapped: WrapperAliasBox'f32  = {item: {value: 3.5}}
 
     #assert(#typeof(ok) == bool)
     #assert(#typeof(local) == u16)
@@ -80,8 +80,8 @@ func(T, U) choose(value: T, other: U)->bool
 {
     var a: VectorAlias2's32 = {x: 1, y: 2, z: 3}
     var b: VectorAlias2's32 = {x: 4, y: 5, z: 6}
-    let d = VectorAlias2's32.dot(&a, &b)
-    let picked = choose'(bool)(true, 0.0'f32)
+    let d                   = VectorAlias2's32.dot(&a, &b)
+    let picked              = choose'(bool)(true, 0.0'f32)
 
     #assert(#typeof(d) == s32)
     #assert(#typeof(picked) == bool)

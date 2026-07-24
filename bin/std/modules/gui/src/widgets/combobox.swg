@@ -33,11 +33,11 @@ struct ComboBox
     maxHeightPopup: f32 = 300
     sigChanged:     SigArray'func||(*ComboBox, u32)
 
-    editBox: #null *EditBox
-    isHot:   bool
-    popup:   #null *PopupListCtrl
-    items:   ArrayPtr'ComboBoxItem
-    selectedIdx         = Swag.U32.Max
+    editBox:     #null *EditBox
+    isHot:       bool
+    popup:       #null *PopupListCtrl
+    items:       ArrayPtr'ComboBoxItem
+    selectedIdx = Swag.U32.Max
     maxIconSize: s32
 
     aniBk:     BlendColor

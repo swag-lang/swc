@@ -15,8 +15,8 @@ const TextFormSuperSample = 3
 
 struct Capture
 {
-    const MinSize            = 16
-    const MaxSize            = 4096
+    const MinSize = 16
+    const MaxSize = 4096
     width, height:       s32
     backImg:             Image
     widthOrg, heightOrg: s32
@@ -43,7 +43,7 @@ struct Capture
         editView:  #null *EditView
         gizmo:     GizmoRect
         undoMgr:   UndoManager
-        hotForm:   u64 = Swag.U64.Max
+        hotForm:   u64       = Swag.U64.Max
         selection: Array'u64
         paintRect: Math.Rectangle
 
@@ -280,7 +280,7 @@ impl Capture
         .gizmo.sigChanged = func|capture = me|(g, first, hitMove)
         {
             let editView = notnull capture.editView
-            var undo = capture.newUndo(.MoveCapture)
+            var undo     = capture.newUndo(.MoveCapture)
             undo.newPosX  = cast(s32) ((g.rect.x - g.movingRect.x) / editView.zoom)
             undo.newPosY  = cast(s32) ((g.rect.y - g.movingRect.y) / editView.zoom)
             undo.newSizeX = cast(s32) ((g.movingRect.width - g.rect.width) / editView.zoom)
@@ -308,7 +308,7 @@ impl Capture
     {
         var result: retval
 
-        let rect     = Math.Rectangle{width: .width * zoom, height: .height * zoom}
+        let rect = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         var painter: Pixel.Painter
 
         let render = g_App.getRenderer()
@@ -354,7 +354,7 @@ impl Capture
         render.draw(&painter)
         render.end()
 
-        let rt = notnull layer.contentTarget
+        let rt     = notnull layer.contentTarget
         var buffer = render.getTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
         result.crop(0, 0, cast(s32) rect.width, cast(s32) rect.height)
@@ -542,7 +542,7 @@ impl Capture
 
         // Move around mouse
         let editView = notnull .editView
-        var pt = editView.getApp().mouse.getPosition()
+        var pt       = editView.getApp().mouse.getPosition()
         pt   = editView.screenToSurface(pt)
         pt   = editView.surfaceToLocal(pt)
         pt   += editView.scrollPos

@@ -30,7 +30,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var v = 2
+    var v   = 2
     var hit = 0
     switch v
     {
@@ -104,7 +104,7 @@ alias StrictSwitchF32 = f32
     }
 
     var v: E = E.B
-    var hit = 0
+    var hit  = 0
     switch v
     {
     case E.A:
@@ -122,7 +122,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var v = cast(StrictSwitchAliasEnum) SwitchStrictAliasEnum.B
+    var v   = cast(StrictSwitchAliasEnum) SwitchStrictAliasEnum.B
     var hit = 0
     switch v
     {
@@ -161,7 +161,7 @@ alias StrictSwitchF32 = f32
     }
 
     var v: E = E.B
-    var hit = 0
+    var hit  = 0
     switch v
     {
     case E.A:
@@ -178,7 +178,7 @@ alias StrictSwitchF32 = f32
 {
     alias MyInt = s32
     var v: MyInt = 3
-    var hit = 0
+    var hit      = 0
     switch v
     {
     case 1:
@@ -196,7 +196,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var v = cast(StrictSwitchS32) 3
+    var v   = cast(StrictSwitchS32) 3
     var hit = 0
     switch v
     {
@@ -215,7 +215,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var v = cast(StrictSwitchF32) 1.5
+    var v   = cast(StrictSwitchF32) 1.5
     var hit = 0
     switch v
     {
@@ -231,7 +231,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var v = 1.5
+    var v   = 1.5
     var hit = 0
     switch v
     {
@@ -261,7 +261,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var c = '{'
+    var c                            = '{'
     var garbage, group, score, count = 0
     switch
     {
@@ -289,7 +289,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var v = true
+    var v   = true
     var hit = 0
     switch v
     {
@@ -305,7 +305,7 @@ alias StrictSwitchF32 = f32
 
 #test
 {
-    var v = "hello"
+    var v   = "hello"
     var hit = 0
     switch v
     {
@@ -332,7 +332,7 @@ enum SwitchEnumRangeMode
 #test
 {
     var mode = SwitchEnumRangeMode.Screen2
-    var hit = 0
+    var hit  = 0
     switch mode
     {
     case .Screen0 to .Screen3:
@@ -359,7 +359,7 @@ enum SwitchEnumRangeMode
 
 #test
 {
-    var v = 2
+    var v   = 2
     var hit = 0
     switch v
     {
@@ -375,7 +375,7 @@ enum SwitchEnumRangeMode
 
 #test
 {
-    var v = 2
+    var v   = 2
     var hit = 0
     #[Swag.Complete]
     switch v
@@ -403,8 +403,8 @@ func toto()->s32 => 1
 
 #test
 {
-    var a = 2
-    var b = 1
+    var a   = 2
+    var b   = 1
     var hit = 0
     switch a
     {

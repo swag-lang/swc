@@ -34,7 +34,7 @@ func inlineRefIndexWriteAt(values: &InlineRefIndexWriteValues, index: &s32, valu
 func inlineRefIndexWriteResult()->InlineRefIndexWriteInfo
 {
     var values = InlineRefIndexWriteValues{values: [11, 22]}
-    var index = 0
+    var index  = 0
     inlineRefIndexWriteAt(&values, &index, 42)
     return {values[0], index}
 }

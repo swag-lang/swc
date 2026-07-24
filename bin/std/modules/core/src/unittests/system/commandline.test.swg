@@ -92,7 +92,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     let args: [4] string = ["  -name:Bob  ", " -count = 42 ", "", "payload"]
-    let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
+    let split            = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
 
     @assert(split.count == 5)
     @assert(split[0] == "-name")
@@ -105,7 +105,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     let args: [4] string = [" -threshold = -.5 ", "-values:-1", " 2 ", " 3 "]
-    let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
+    let split            = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
 
     @assert(split.count == 6)
     @assert(split[0] == "-threshold")
@@ -118,7 +118,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 
 #test
 {
-    var options = BasicOptions{}
+    var options          = BasicOptions{}
     let args: [7] string = ["-delta", "-7", "-count", "-12", "-enabled", "-mode", "Gamma"]
 
     let result = catch CommandLine.parse(&options, args)
@@ -136,7 +136,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 
 #test
 {
-    let fieldByName = CommandLine.getField(#typeof(NameOptions), "name")
+    let fieldByName  = CommandLine.getField(#typeof(NameOptions), "name")
     let fieldByAlias = CommandLine.getField(#typeof(NameOptions), "n")
 
     @assert(fieldByName.field != null)
@@ -179,7 +179,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var value = 0'f32
-    let rest = catch StrConv.parseValue(&value, f32, "-0.5")
+    let rest  = catch StrConv.parseValue(&value, f32, "-0.5")
     @assert(@err == null)
     @assert(@countof(rest) == 0)
     @assert(value == -0.5)

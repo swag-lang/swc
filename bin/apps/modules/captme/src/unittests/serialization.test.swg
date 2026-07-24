@@ -86,7 +86,8 @@ using Swag, Core
     @assert(@err == null)
 
     let loaded = notnull catch Capture.load(path)
-    @assert(@err == null)
+    @assert(@err == null)
+
     defer
     {
         Memory.delete(loaded)
@@ -186,7 +187,8 @@ using Swag, Core
     @assert(@err == null)
 
     let loaded = notnull catch Capture.load(path, preview: true)
-    @assert(@err == null)
+    @assert(@err == null)
+
     defer
     {
         Memory.delete(loaded)

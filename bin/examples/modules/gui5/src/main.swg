@@ -73,12 +73,12 @@ func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 
 func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
-    let rect = parent.getClientRect()
-    let width = Math.max(rect.width, 1.0)
-    let height = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let halfWidth = (width - PanelGap) * 0.5
-    let topHeight = Math.min(TopPanelHeight, Math.max(400.0, (height - PanelGap) * 0.62))
-    let bottomY = topHeight + PanelGap
+    let rect         = parent.getClientRect()
+    let width        = Math.max(rect.width, 1.0)
+    let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let halfWidth    = (width - PanelGap) * 0.5
+    let topHeight    = Math.min(TopPanelHeight, Math.max(400.0, (height - PanelGap) * 0.62))
+    let bottomY      = topHeight + PanelGap
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
@@ -287,7 +287,7 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
     let titleFont = view.getTheme().createDefaultFont(24, .Bold)
     let bodyFont  = view.getTheme().createDefaultFont(14)
     let textColor = g_Color.getContrasting()
-    let accent = g_Color.getComplementary()
+    let accent    = g_Color.getComplementary()
 
     painter.fillRoundRect(rect, 22, 22, Brush.createHatch(.CheckBoardLarge, colors.colorPicker_BackAlpha))
     painter.fillRoundRect(rect, 22, 22, g_Color)
@@ -309,10 +309,10 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 // short, wide bottom panels where a tall card would overlap or clip.
 func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: *ThemeColors, names: Array'(string), cols: Array'Color)
 {
-    let n = Math.max(cast(f32) cols.count, 1.0)
+    let n   = Math.max(cast(f32) cols.count, 1.0)
     let pad = 16.0
-    let sw = Math.max((rect.width - pad * (n + 1)) / n, 40.0)
-    let sh = Math.max(rect.height - 34, 24.0)
+    let sw  = Math.max((rect.width - pad * (n + 1)) / n, 40.0)
+    let sh  = Math.max(rect.height - 34, 24.0)
     for c, [i] in cols
     {
         let x = rect.x + pad + cast(f32) i * (sw + pad)
@@ -326,9 +326,9 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
     {
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
-        let rect = view.getClientRect()
-        let colors = view.getThemeColors()
-        let font = view.getTheme().createDefaultFont(14)
+        let rect    = view.getClientRect()
+        let colors  = view.getThemeColors()
+        let font    = view.getTheme().createDefaultFont(14)
 
         painter.fillRect(rect, colors.view_Bk)
 
@@ -339,7 +339,7 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
             let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 116, 120.0)}
             drawLiveCard(painter, card, colors)
 
-            let y = card.bottom() + 28
+            let y     = card.bottom() + 28
             let width = Math.max((rect.width - 96) / 4, 70.0)
             drawSwatch(painter, {24, y, width, 40}, "lighter", Color.getLighter(g_Color, 0.34), font, colors)
             drawSwatch(painter, {24 + width + 16, y, width, 40}, "darker", Color.getDarker(g_Color, 0.34), font, colors)
@@ -368,9 +368,9 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
     {
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
-        let rect = view.getClientRect()
-        let colors = view.getThemeColors()
-        let font = view.getTheme().createDefaultFont(14)
+        let rect    = view.getClientRect()
+        let colors  = view.getThemeColors()
+        let font    = view.getTheme().createDefaultFont(14)
 
         painter.fillRect(rect, colors.view_Bk)
 
@@ -387,15 +387,15 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
         // row so the bottom row is never clipped.
         if rect.height >= 220
         {
-            let pad = 16.0
+            let pad   = 16.0
             let cellW = Math.max((rect.width - pad * 4) / 3, 88.0)
             let cellH = Math.max((rect.height - pad * 3 - 48) / 2, 50.0)
             for c, [i] in cols
             {
                 let col = cast(f32) (i % 3)
                 let row = cast(f32) (i / 3)
-                let x = rect.x + pad + col * (cellW + pad)
-                let y = rect.y + pad + row * (cellH + 24 + pad)
+                let x   = rect.x + pad + col * (cellW + pad)
+                let y   = rect.y + pad + row * (cellH + 24 + pad)
                 drawSwatch(painter, {x, y, cellW, cellH}, names[i], c, font, colors)
             }
         }
@@ -413,21 +413,21 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
-        let rect = view.getClientRect()
-        let colors = view.getThemeColors()
-        let font = view.getTheme().createDefaultFont(14)
+        let painter   = paintEvt.bc.painter
+        let rect      = view.getClientRect()
+        let colors    = view.getThemeColors()
+        let font      = view.getTheme().createDefaultFont(14)
         let titleFont = view.getTheme().createDefaultFont(18, .Bold)
 
         painter.fillRect(rect, colors.view_Bk)
 
-        let left = Math.Rectangle{24, 28, Math.max((rect.width - 72) * 0.5, 120.0), Math.max(rect.height - 56, 80.0)}
+        let left  = Math.Rectangle{24, 28, Math.max((rect.width - 72) * 0.5, 120.0), Math.max(rect.height - 56, 80.0)}
         let right = Math.Rectangle{left.right() + 24, 28, left.width, left.height}
-        let text = g_Color.getContrasting()
+        let text  = g_Color.getContrasting()
 
         // Fit the body text to whatever height the card actually has.
         let bodyTop = 50.0
-        let lines = cast(u32) Math.max((left.height - bodyTop) / 18.0, 1.0)
+        let lines   = cast(u32) Math.max((left.height - bodyTop) / 18.0, 1.0)
 
         painter.fillRoundRect(left, 18, 18, g_Color)
         painter.drawRoundRect(left, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
@@ -488,11 +488,11 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect = view.getClientRect()
+    let rect         = view.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
-    let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     let title2      = notnull g_Title
     let themeButton = notnull g_ThemeButton
@@ -622,7 +622,7 @@ func createRootView()
 
 #main
 {
-    let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 50, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI5 color widgets")

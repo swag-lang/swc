@@ -132,8 +132,8 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: ReflectionProbe = {x: seed}
-    let ping = cast(ReflectionProbePingFn) notnull method.value
-    let result = ping(&probe)
+    let ping                   = cast(ReflectionProbePingFn) notnull method.value
+    let result                 = ping(&probe)
     ReflectionRuntimePointerCalls += 1
     return result == seed + 1
 }
@@ -152,10 +152,10 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
-    let type = #typeof(ReflectionProbe)
-    let fieldX = Reflection.getField(type, "x")
+    let type         = #typeof(ReflectionProbe)
+    let fieldX       = Reflection.getField(type, "x")
     let fieldEnabled = Reflection.getField(type, "enabled")
-    let typeStruct = cast(const *Swag.TypeInfoStruct) type
+    let typeStruct   = cast(const *Swag.TypeInfoStruct) type
 
     @assert(cast(#null string) Reflection.getAttributeValue(type, TypeMeta, "label") == "probe")
     @assert(cast(s32) Reflection.getAttributeValue(type, TypeMeta, "priority") == 3)
@@ -182,9 +182,9 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 {
     var probe = ReflectionProbe{}
 
-    let fieldX = Reflection.getField(#typeof(probe), "x")
+    let fieldX       = Reflection.getField(#typeof(probe), "x")
     let fieldEnabled = Reflection.getField(#typeof(probe), "enabled")
-    let fieldLabel = Reflection.getField(#typeof(probe), "label")
+    let fieldLabel   = Reflection.getField(#typeof(probe), "label")
 
     var readX:       s32
     var readEnabled: bool
@@ -198,9 +198,9 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
     @assert(readEnabled)
     @assert(readLabel == "seed")
 
-    let newX: s32 = 42
+    let newX: s32  = 42
     let newEnabled = false
-    let newLabel = "patched"
+    let newLabel   = "patched"
 
     Reflection.setFieldValue(&probe, fieldX, &newX)
     Reflection.setFieldValue(&probe, fieldEnabled, &newEnabled)
@@ -265,7 +265,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
-    let aliasType = #typeof(ReflectionProbeAlias2)
+    let aliasType    = #typeof(ReflectionProbeAlias2)
     let concreteType = Reflection.makeConcreteAlias(aliasType)
 
     @assert(concreteType == #typeof(ReflectionProbe))
@@ -287,10 +287,10 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
-    let enumType = #typeof(ProbeState)
-    let enumInfo = cast(const *Swag.TypeInfoEnum) enumType
+    let enumType  = #typeof(ProbeState)
+    let enumInfo  = cast(const *Swag.TypeInfoEnum) enumType
     let enumValue = notnull Reflection.getEnumValue(enumType, "Busy")
-    var state = ProbeState.Busy
+    var state     = ProbeState.Busy
 
     @assert(Reflection.makeConcreteEnum(enumType) == u32)
     @assert(enumValue.name == "Busy")
@@ -304,9 +304,9 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
-    var flags = ProbeFlags.Read | ProbeFlags.Exec
+    var flags    = ProbeFlags.Read | ProbeFlags.Exec
     let enumType = #typeof(flags)
-    let attrs = Reflection.getAttributes(enumType, EnumMeta)
+    let attrs    = Reflection.getAttributes(enumType, EnumMeta)
     @assert(attrs.count == 1)
     let params = notnull attrs[0].params
     @assert(cast(#null string) params[0].value == "flags")

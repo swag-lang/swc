@@ -53,8 +53,8 @@ func moveDelta(outDx: *s32, outDy: *s32, instruction: u8)
 
 func simulateWarehouse(layout: const [..] string, instructions: string)->WarehouseReport
 {
-    let height = cast(u32) @countof(layout)
-    let width = lineWidth(layout[0])
+    let height     = cast(u32) @countof(layout)
+    let width      = lineWidth(layout[0])
     let totalCells = width * height
 
     @assert(totalCells <= MaxWarehouseCells)
@@ -70,8 +70,8 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         let row = cast(const [..] u8) layout[rowIndex]
         for width
         {
-            let x = cast(u32) @index
-            let src = row[x]
+            let x     = cast(u32) @index
+            let src   = row[x]
             let index = cellIndex(x, cast(u32) rowIndex, width)
 
             if src == '@''u8
@@ -96,10 +96,10 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         var dy: s32
         moveDelta(&dx, &dy, instruction)
 
-        let nextX = robotX + dx
-        let nextY = robotY + dy
+        let nextX     = robotX + dx
+        let nextY     = robotY + dy
         let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, width)
-        let nextCell = cells[nextIndex]
+        let nextCell  = cells[nextIndex]
 
         if nextCell == '#''u8 do
             continue
@@ -113,8 +113,8 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
         @assert(nextCell == 'O''u8)
 
-        var scanX = nextX
-        var scanY = nextY
+        var scanX     = nextX
+        var scanY     = nextY
         var scanIndex = nextIndex
 
         while cells[scanIndex] == 'O''u8
@@ -129,8 +129,8 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
         while scanX != nextX or scanY != nextY
         {
-            let prevX = scanX - dx
-            let prevY = scanY - dy
+            let prevX     = scanX - dx
+            let prevY     = scanY - dy
             let prevIndex = cellIndex(cast(u32) prevX, cast(u32) prevY, width)
 
             cells[scanIndex] = cells[prevIndex]

@@ -148,7 +148,7 @@ impl StringRefIndexBox
 {
     func fixedStructCountLoop()->s32
     {
-        let value = FixedCountedLoop{}
+        let value    = FixedCountedLoop{}
         var acc: s32 = 0
         for value do
             acc += 1
@@ -163,7 +163,7 @@ impl StringRefIndexBox
 {
     func fixedStructIndexedLoop()->s32
     {
-        let value = FixedCountedLoop{}
+        let value    = FixedCountedLoop{}
         var acc: s32 = 0
         for [i] in @countof(value) do
             acc += cast(s32) i

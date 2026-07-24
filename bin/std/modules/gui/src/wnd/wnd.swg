@@ -66,10 +66,10 @@ struct SizeHint
 
 struct LayoutSpec
 {
-    policyX: SizePolicy = SizePolicy.Content
-    policyY: SizePolicy = SizePolicy.Content
-    weightX: f32 = 1
-    weightY: f32 = 1
+    policyX: SizePolicy  = SizePolicy.Content
+    policyY: SizePolicy  = SizePolicy.Content
+    weightX: f32         = 1
+    weightY: f32         = 1
     alignX:  LayoutAlign = LayoutAlign.Stretch
     alignY:  LayoutAlign = LayoutAlign.Stretch
     margin:  Math.Vector4
@@ -92,8 +92,8 @@ struct LayoutDebugInfo
 struct KeyShortcut
 {
     mdf:    Input.KeyModifiers = Zero
-    key:    Input.Key = None
-    id:     WndId = undefined
+    key:    Input.Key          = None
+    id:     WndId              = undefined
     target: #null *Wnd
 }
 
@@ -139,11 +139,11 @@ enum WndFlags
 
 struct Wnd
 {
-    itf:     #late IWnd
-    type:    #late typeinfo
-    surface: #null *Surface
-    style:   ThemeStyle
-    wndFlags               = WndFlags.ClipChildren
+    itf:      #late IWnd
+    type:     #late typeinfo
+    surface:  #null *Surface
+    style:    ThemeStyle
+    wndFlags = WndFlags.ClipChildren
     userData: #null *void
 
     position:      Math.Rectangle
@@ -168,7 +168,7 @@ struct Wnd
 
     margin:         Math.Vector4
     padding:        Math.Vector4
-    dockStyle:      DockStyle = None
+    dockStyle:      DockStyle   = None
     anchorStyle:    AnchorStyle = None
     layoutSpec:     LayoutSpec
     cachedSizeHint: SizeHint
@@ -180,7 +180,7 @@ struct Wnd
     isAllocated:      bool
     isPendingDestroy: bool
     createEventDone:  bool
-    layoutDirty:      bool = true
+    layoutDirty:      bool            = true
     managedByLayout:  bool
 
     hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
@@ -754,7 +754,7 @@ impl Wnd
 
     mtd arrange(rect: Math.Rectangle)
     {
-        var pos = rect
+        var pos    = rect
         let before = pos
         .clampSize(&pos)
 
@@ -874,7 +874,7 @@ impl Wnd
     mtd const getSurfaceRect()->Math.Rectangle
     {
         var result: retval = .position
-        var p       = .parent
+        var p              = .parent
         while p
         {
             result.x += p.position.x
@@ -891,7 +891,7 @@ impl Wnd
     mtd const getRectIn(wnd: #null *Wnd)->Math.Rectangle
     {
         var result: retval = .position
-        var p       = .parent
+        var p              = .parent
         while p and p != wnd
         {
             result.x += p.position.x
@@ -1430,7 +1430,7 @@ impl Wnd
     mtd postEvent(evt: IEvent)
     {
         let srfn = notnull .surface
-        let ptr = notnull (evt as Event)
+        let ptr  = notnull (evt as Event)
         ptr.target = me
         srfn.app.postEvent(evt)
     }
@@ -1444,7 +1444,7 @@ impl Wnd
     mtd sendEvent(evt: IEvent)
     {
         let srfn = notnull .surface
-        let ptr = notnull (evt as Event)
+        let ptr  = notnull (evt as Event)
         ptr.target = me
         srfn.app.sendEvent(evt)
     }
@@ -1505,7 +1505,7 @@ impl Wnd
         if cmdId == null do
             return
         let safeCmdId = cmdId orelse ""
-        let evt = Event.create'CommandEvent()
+        let evt       = Event.create'CommandEvent()
         evt.id     = safeCmdId
         evt.source = me
         .postEvent(evt)

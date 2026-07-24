@@ -27,7 +27,7 @@ func day4A()
         var total = 0's64
         for l in lines
         {
-            var idx    = 0
+            var idx = 0
             var count: [26] s32
             while Latin1.isLetter(l[idx]) or l[idx] == '-'
             {

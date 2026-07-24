@@ -63,12 +63,12 @@ struct MoveInfo
 
 struct GameInfo
 {
-    gameStatus: String
-    whiteTurn          = true
-    castle: [2, 2] bool = true
-    priseEnPassant     = -1's8
+    gameStatus:    String
+    whiteTurn                  = true
+    castle:        [2, 2] bool = true
+    priseEnPassant             = -1's8
     possibleMoves: Array'MoveInfo
-    selectedCell       = -1's8
+    selectedCell               = -1's8
 }
 
 var g_Board:     [96] Cell
@@ -412,9 +412,9 @@ func paintBoard(paintEvt: *PaintEvent)
     rsf.vertAlignment = .Center
     rsf.palette[0]    = Argb.Black
 
-    var rect = Math.Rectangle{b, b + s, CellSize, b}
+    var rect        = Math.Rectangle{b, b + s, CellSize, b}
     var str: String = "A"
-    let buf = notnull str.buffer
+    let buf         = notnull str.buffer
 
     for [column] in 8
     {

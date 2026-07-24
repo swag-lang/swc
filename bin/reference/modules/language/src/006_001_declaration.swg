@@ -94,7 +94,7 @@ providing a convenient way to ensure fields are set to a known state.
 {
     struct MyStruct
     {
-        x: s32 = 666          // Field 'x' initialized with default value 666
+        x: s32    = 666       // Field 'x' initialized with default value 666
         y: string = "454"     // Field 'y' initialized with default value '454'
     }
 
@@ -147,7 +147,7 @@ at compile time. This ensures immutability throughout program execution.
 {
     struct MyStruct
     {
-        x: s32 = 666
+        x: s32    = 666
         y: string = "454"
     }
 

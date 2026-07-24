@@ -114,7 +114,7 @@
 #test
 {
     var x: s32 = 10
-    var p = &x
+    var p      = &x
     dref p += 5
     @assert(x == 15)
     dref p *= 2

@@ -21,6 +21,6 @@ impl RestrictedCommutativeBox
 
 #test
 {
-    var box = RestrictedCommutativeBox{value: 3}
+    var box    = RestrictedCommutativeBox{value: 3}
     let result = 10 - box     // swc-expected-error {{sema_err_binary_operand_type}}
 }

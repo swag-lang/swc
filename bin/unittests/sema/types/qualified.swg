@@ -19,7 +19,7 @@ var D0: #null const *s32
 var D1: #null const [..] s32
 var D2: #null const [*] s32
 var D3: const [2] s32
-var D4: const QualifiedStrictPtr = undefined
+var D4: const QualifiedStrictPtr   = undefined
 var D5: const QualifiedStrictSlice = undefined
 
 #assert(#typeof(D3) == const [2] s32)
@@ -35,7 +35,7 @@ var E2:  #null [*] s32
 var E3:  #null any
 var E4:  #null string
 var E5:  #null cstring
-var E6:  #null typeinfo = null
+var E6:  #null typeinfo                = null
 var E7:  #null QualifiedStrictPtr
 var E8:  #null QualifiedStrictSlice
 var E9:  #null QualifiedStrictString
@@ -65,30 +65,30 @@ func acceptNullableTypeInfo(value: #null typeinfo) {}
 
 func semaTest001()
 {
-    var storage:           s32 = 7
-    let ptr:               *s32 = &storage
-    var nullablePtr:       #null *s32 = ptr
+    var storage:           s32                      = 7
+    let ptr:               *s32                     = &storage
+    var nullablePtr:       #null *s32               = ptr
     var nullableStrictPtr: #null QualifiedStrictPtr = cast(QualifiedStrictPtr) ptr
-    let widenedPtr:        #null *s32 = widenNullablePointer(ptr)
+    let widenedPtr:        #null *s32               = widenNullablePointer(ptr)
     acceptNullablePointer(ptr)
     acceptNullablePointer(widenedPtr)
 
-    let text:               string = "abc"
-    let nullableText:       #null string = text
+    let text:               string                      = "abc"
+    let nullableText:       #null string                = text
     var nullableStrictText: #null QualifiedStrictString = cast(QualifiedStrictString) text
-    let widenedText:        #null string = widenNullableString(text)
+    let widenedText:        #null string                = widenNullableString(text)
     acceptNullableString(text)
     acceptNullableString(widenedText)
 
-    let values:              [3] s32 = [1, 2, 3]
-    let slice:               [..] s32 = values
-    let nullableSlice:       #null [..] s32 = slice
+    let values:              [3] s32                    = [1, 2, 3]
+    let slice:               [..] s32                   = values
+    let nullableSlice:       #null [..] s32             = slice
     var nullableStrictSlice: #null QualifiedStrictSlice = cast(QualifiedStrictSlice) slice
-    let widenedSlice:        #null [..] s32 = widenNullableSlice(slice)
+    let widenedSlice:        #null [..] s32             = widenNullableSlice(slice)
     acceptNullableSlice(slice)
     acceptNullableSlice(widenedSlice)
 
-    let boxed:           any = 123
+    let boxed:           any       = 123
     let nullableAny:     #null any = boxed
     let widenedAny:      #null any = widenNullableAny(boxed)
     let constAny:        const any = boxed
@@ -99,18 +99,18 @@ func semaTest001()
     acceptConstAny(widenedConstAny)
     #assert(#typeof(constAny) == const any)
 
-    var cstrData:           [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
-    let cstr:               cstring = cast(cstring) &cstrData[0]
-    var nullableCstr:       #null cstring = cstr
+    var cstrData:           [4] u8                       = ['a''u8, 'b''u8, 'c''u8, 0]
+    let cstr:               cstring                      = cast(cstring) &cstrData[0]
+    var nullableCstr:       #null cstring                = cstr
     var nullableStrictCstr: #null QualifiedStrictCString = cast(QualifiedStrictCString) cstr
-    let widenedCstr:        #null cstring = widenNullableCString(cstr)
+    let widenedCstr:        #null cstring                = widenNullableCString(cstr)
     acceptNullableCString(cstr)
     acceptNullableCString(widenedCstr)
 
-    let info:               typeinfo = s32
-    let nullableInfo:       #null typeinfo = info
+    let info:               typeinfo                      = s32
+    let nullableInfo:       #null typeinfo                = info
     var nullableStrictInfo: #null QualifiedStrictTypeInfo = cast(QualifiedStrictTypeInfo) info
-    let widenedInfo:        #null typeinfo = widenNullableTypeInfo(info)
+    let widenedInfo:        #null typeinfo                = widenNullableTypeInfo(info)
     acceptNullableTypeInfo(info)
     acceptNullableTypeInfo(widenedInfo)
 

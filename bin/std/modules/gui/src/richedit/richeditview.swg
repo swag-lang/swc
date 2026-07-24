@@ -163,7 +163,7 @@ impl IWnd for RichEditView
 
     mtd impl onPaintEvent(evt: *PaintEvent)
     {
-        let edn = notnull .ed
+        let edn     = notnull .ed
         let painter = evt.bc.painter
         let colors  = .getThemeColors()
 
@@ -328,7 +328,7 @@ impl RichEditView
 
     mtd paintString(bc: *PaintContext, x, y: f32, str: String, strStyle: RichEditRuneStyle, visible: bool)->f32
     {
-        let edn = notnull .ed
+        let edn     = notnull .ed
         let painter = bc.painter
 
         let fontR = edn.getFont().getFont(strStyle.fontMode)
@@ -336,7 +336,7 @@ impl RichEditView
             return x
         let font = nnFont(fontR)
 
-        var shaped = Painter.shapeRun(str, font)
+        var shaped     = Painter.shapeRun(str, font)
         let info       = Painter.getTextDrawInfo(font)
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
@@ -349,7 +349,7 @@ impl RichEditView
             runToDraw = &drawShape
         }
 
-        let left = snapPixels ? Math.round(x) : x
+        let left  = snapPixels ? Math.round(x) : x
         var right = left
         for glyph, [idx] in runToDraw.glyphs
         {
@@ -374,7 +374,7 @@ impl RichEditView
 
     mtd paintLine(bc: *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
     {
-        let edn = notnull .ed
+        let edn  = notnull .ed
         let line = notnull edn.lines[lineIndex]
         let y    = py
 

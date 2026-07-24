@@ -51,9 +51,9 @@ internal func day2EnsurePresents()
     for line in lines
     {
         var cursor = 0'u64
-        var x = day2ParseNumber(line, &cursor)
-        var y = day2ParseNumber(line, &cursor)
-        var z = day2ParseNumber(line, &cursor)
+        var x      = day2ParseNumber(line, &cursor)
+        var y      = day2ParseNumber(line, &cursor)
+        var z      = day2ParseNumber(line, &cursor)
         orderMinMax(&x, &y)
         orderMinMax(&y, &z)
         orderMinMax(&x, &y)

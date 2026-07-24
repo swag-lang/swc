@@ -40,14 +40,14 @@ const PA = cast(const *Swag.TypeInfoStruct) #typeof(A)
 func semaTest002()
 {
     var a: typeinfo = #typeof(f32)
-    let b = a.flags | .Nullable
+    let b           = a.flags | .Nullable
 }
 
 func semaTest003()
 {
     var a: typeinfo = #typeof(*f32)
-    var b = cast(const *Swag.TypeInfoPointer) (a)
-    var c = b.pointedType == f32
+    var b           = cast(const *Swag.TypeInfoPointer) (a)
+    var c           = b.pointedType == f32
 }
 
 func semaTest004()

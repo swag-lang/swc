@@ -4,8 +4,8 @@ public struct TypeFace
 {
     fullname:     string = ""
     buffer:       Array'u8
-    face:         *Face = undefined
-    forceBoldDiv: u32 = 11
+    face:         *Face  = undefined
+    forceBoldDiv: u32    = 11
     forceItalic:  bool
     forceBold:    bool
 }
@@ -192,7 +192,7 @@ public impl TypeFace
         .face.loadChar(c, .NoBitmap)
         .transform(size, embolden)
 
-        let prevIdx = pathList.paths.count
+        let prevIdx  = pathList.paths.count
         let commands = .face.glyph.outline.decompose()
         addOutlineToPathList(pathList, commands.toSlice())
 
@@ -222,7 +222,7 @@ public impl TypeFace
 
             .face.glyph.outline.translate(x, 0)
 
-            let prevIdx = pathList.paths.count
+            let prevIdx  = pathList.paths.count
             let commands = .face.glyph.outline.decompose()
             addOutlineToPathList(pathList, commands.toSlice())
 

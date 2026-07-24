@@ -96,7 +96,7 @@
 // Scope continue counting up
 #test
 {
-    var i = 0
+    var i   = 0
     var sum = 0
     #scope(Loop)
     {

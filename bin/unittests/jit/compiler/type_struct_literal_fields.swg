@@ -26,7 +26,7 @@ func makeTypeStructLiteralJitPayloads() => [{first: #type [2] TypeStructLiteralJ
 
 #test
 {
-    let payloads = makeTypeStructLiteralJitPayloads()
+    let payloads   = makeTypeStructLiteralJitPayloads()
     var total: u64 = 0
     for payload in payloads
     {

@@ -18,7 +18,7 @@ enum MkanyKind: u16
     {
         var x: s32 = 42
         let a: any = @mkany(&x, s32)
-        let p = cast(*s32) @dataof(a)
+        let p      = cast(*s32) @dataof(a)
         return dref p
     }
 
@@ -61,9 +61,9 @@ enum MkanyKind: u16
     func mkanyRoundtripPair()->s32
     {
         var p: MkanyPair = {a: 11, b: 31}
-        let a: any = @mkany(&p, MkanyPair)
-        let data = cast(*MkanyPair) @dataof(a)
-        let value = dref data
+        let a: any       = @mkany(&p, MkanyPair)
+        let data         = cast(*MkanyPair) @dataof(a)
+        let value        = dref data
         return value.a + value.b
     }
 
@@ -76,11 +76,11 @@ enum MkanyKind: u16
     func mkanyRoundtripArray()->s32
     {
         var arr: [6] s32 = [1, 2, 3, 4, 5, 6]
-        let ptr = cast(*[6] s32) &arr
-        let a: any = @mkany(ptr, [6] s32)
-        let p = cast(*[6] s32) @dataof(a)
-        let value = dref p
-        var acc: s32 = 0
+        let ptr          = cast(*[6] s32) &arr
+        let a:   any     = @mkany(ptr, [6] s32)
+        let p            = cast(*[6] s32) @dataof(a)
+        let value        = dref p
+        var acc: s32     = 0
         for v, [i] in value
         {
             acc += v * cast(s32) (i + 1)
@@ -98,9 +98,9 @@ enum MkanyKind: u16
     func mkanyBlockVoidPointer()->s32
     {
         var x: s32 = 55
-        let ptr = cast([*] void) &x
+        let ptr    = cast([*] void) &x
         let a: any = @mkany(ptr, s32)
-        let p = cast(*s32) @dataof(a)
+        let p      = cast(*s32) @dataof(a)
         return dref p
     }
 
@@ -113,7 +113,7 @@ enum MkanyKind: u16
     func mkanyKindAndValue()->bool
     {
         var k: MkanyKind = MkanyKind.B
-        let a: any = @mkany(&k, MkanyKind)
+        let a: any       = @mkany(&k, MkanyKind)
         if @kindof(a) != MkanyKind do
             return false
         let p = cast(*MkanyKind) @dataof(a)
@@ -191,10 +191,10 @@ enum MkanyKind: u16
     {
         var b:  bool = true
         var r:  rune = 'A'
-        let ab: any = @mkany(&b, bool)
-        let ar: any = @mkany(&r, rune)
-        let pb = cast(*bool) @dataof(ab)
-        let pr = cast(*rune) @dataof(ar)
+        let ab: any  = @mkany(&b, bool)
+        let ar: any  = @mkany(&r, rune)
+        let pb       = cast(*bool) @dataof(ab)
+        let pr       = cast(*rune) @dataof(ar)
         return cast(s32) dref pb + cast(s32) dref pr
     }
 
@@ -206,11 +206,11 @@ enum MkanyKind: u16
 {
     func mkanyStoredTypeValueArray()->f32
     {
-        var values = [1, 2.5]
-        let info = #typeof(values)
+        var values     = [1, 2.5]
+        let info       = #typeof(values)
         let boxed: any = @mkany(&values, info)
-        let data = cast(*[2] f32) @dataof(boxed)
-        let array = dref data
+        let data       = cast(*[2] f32) @dataof(boxed)
+        let array      = dref data
         return array[0] + array[1]
     }
 

@@ -364,7 +364,7 @@ impl Decoder
         // the number of channels; otherwise narrow Adam7 passes underflow here.
         let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64) .inChannels
         let nk           = rowStrideIn > filterOffset ? rowStrideIn - filterOffset : 0
-        var row = 0'u32
+        var row          = 0'u32
         while row < height
         {
             let filter = cast(RowFilter) src[0]
@@ -434,7 +434,7 @@ impl Decoder
                 var k = 0'u64
                 while k < nk
                 {
-                    let idx   = filterOffset + k
+                    let idx = filterOffset + k
                     if idx >= rowStrideIn do
                         break
                     let paeth = cast(u32) filterPaeth(destOff[k], up[idx], up[k])
@@ -472,7 +472,7 @@ impl Decoder
     mtd adam7()
     {
         var tmpArr: Array'u8
-        var input   = notnull .dcmpBuf.buffer
+        var input = notnull .dcmpBuf.buffer
         for [p] in 7
         {
             let x = (.header.width - Adam7OrigX[p] + Adam7SpacingX[p] - 1) / Adam7SpacingX[p]
@@ -498,7 +498,7 @@ impl Decoder
                     let dstPixels = .safeDstPixels()
                     for [z] in .inChannels do
                         dstPixels[out_off + z] = t[z]
-                    t += .inChannels
+                    t                          += .inChannels
                 }
             }
 
@@ -692,7 +692,7 @@ impl Decoder
             var dst = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
-                let pal  = src[0]
+                let pal   = src[0]
                 let color = .palette[pal]
                 dst[0] = cast() ((color >> 16) & 0xFF)
                 dst[1] = cast() ((color >> 8) & 0xFF)
@@ -709,7 +709,7 @@ impl Decoder
             var dst = cast([*] u8) (notnull result.pixels.buffer)
             for result.width * result.height
             {
-                let pal  = src[0]
+                let pal   = src[0]
                 let color = .palette[pal]
                 dst[0] = cast() ((color >> 16) & 0xFF)
                 dst[1] = cast() ((color >> 8) & 0xFF)

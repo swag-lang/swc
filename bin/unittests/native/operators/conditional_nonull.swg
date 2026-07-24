@@ -23,23 +23,23 @@ func nativeConditionalMaybe(p: *NativeConditionalNonNullItem)->#null *NativeCond
 
 func nativeConditionalNonNullBranches(flag: bool)->bool
 {
-    var first  = NativeConditionalNonNullItem{value: 11}
-    var second = NativeConditionalNonNullItem{value: 22}
+    var first   = NativeConditionalNonNullItem{value: 11}
+    var second  = NativeConditionalNonNullItem{value: 22}
     var indexed = NativeConditionalIndex'(*NativeConditionalNonNullItem){values: [&first]}
 
-    let legacy:   *NativeConditionalNonNullItem          = &first
-    let nullable: #null *NativeConditionalNonNullItem  = nativeConditionalMaybe(&first)
-    let required: *NativeConditionalNonNullItem = &second
+    let legacy:   *NativeConditionalNonNullItem       = &first
+    let nullable: #null *NativeConditionalNonNullItem = nativeConditionalMaybe(&first)
+    let required: *NativeConditionalNonNullItem       = &second
 
-    let indexedNullLast  = flag ? indexed[0] : null
-    let indexedNullFirst = flag ? null : indexed[0]
-    let requiredNullLast = flag ? required : null
-    let requiredNullFirst = flag ? null : required
-    let legacyRequiredFirst = flag ? legacy : required
-    let legacyRequiredLast  = flag ? required : legacy
+    let indexedNullLast       = flag ? indexed[0] : null
+    let indexedNullFirst      = flag ? null : indexed[0]
+    let requiredNullLast      = flag ? required : null
+    let requiredNullFirst     = flag ? null : required
+    let legacyRequiredFirst   = flag ? legacy : required
+    let legacyRequiredLast    = flag ? required : legacy
     let nullableRequiredFirst = flag ? nullable : required
     let nullableRequiredLast  = flag ? required : nullable
-    let requiredOnly = flag ? required : required
+    let requiredOnly          = flag ? required : required
 
     #assert(#typeof(indexedNullLast) == #null *NativeConditionalNonNullItem)
     #assert(#typeof(indexedNullFirst) == #null *NativeConditionalNonNullItem)

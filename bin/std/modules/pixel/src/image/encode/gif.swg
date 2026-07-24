@@ -270,7 +270,7 @@ impl Encoder
                 }
                 else
                 {
-                    let key = colorKey(col)
+                    let key   = colorKey(col)
                     let found = colorMap.tryFind(key)
                     if found
                     {
@@ -409,7 +409,7 @@ public impl IImageEncoder for Encoder
             throw UnsupportedFormatError{"height is too big"}
 
         let palette = buildPalette(image)
-        let packed = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
+        let packed  = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)
 
         result.addBytes("GIF89a")
         Encoder.writeU16(result, cast(u16) image.width)

@@ -5,7 +5,7 @@ func takes_f64(v: f64) {}
 
 func semaTest001()
 {
-    var a: u8 = 10
+    var a: u8  = 10
     var b: f32 = a
     var c: f64 = a
 }

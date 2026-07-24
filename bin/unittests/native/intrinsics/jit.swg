@@ -12,7 +12,7 @@ func jitCallMatchesContext()->bool
 
 func jitCallCanBeStored()->bool
 {
-    let first = @jit()
+    let first  = @jit()
     let second = @jit()
     return first == second and first == contextSaysJit()
 }

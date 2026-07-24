@@ -125,7 +125,7 @@ impl Decoder
         if .streamLen < 2 do
             throw InvalidFormatError{"read error"}
         let stream = .safeStream()
-        let res = cast(u16) (stream[0] + (cast(u16) stream[1] << 8))
+        let res    = cast(u16) (stream[0] + (cast(u16) stream[1] << 8))
         .stream    += 2
         .streamLen -= 2
         return res
@@ -308,14 +308,14 @@ impl Decoder
         let stop  = clear + 1
         .initTable(keySize)
         keySize += 1
-        let initKeySize = keySize
+        let initKeySize   = keySize
         var subLen, shift = 0'u8
-        var key         = .getKey(keySize, &subLen, &shift, &byte)     // clear code
-        var frmOff      = 0
-        var ret         = 0
-        let frmSize     = cast(u32) .fw * .fh
-        var tableIsFull = 0
-        var strLen      = 0'u16
+        var key           = .getKey(keySize, &subLen, &shift, &byte)     // clear code
+        var frmOff        = 0
+        var ret           = 0
+        let frmSize       = cast(u32) .fw * .fh
+        var tableIsFull   = 0
+        var strLen        = 0'u16
 
         var entry: Entry
         while frmOff < frmSize

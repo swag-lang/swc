@@ -88,7 +88,7 @@ struct(T) GenericBox
 
 struct InitOnly
 {
-    value: s32 = 17
+    value: s32  = 17
     ready: bool = true
 }
 

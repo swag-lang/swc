@@ -4,8 +4,8 @@ using Core, Pixel
 // baseline math of drawStringCenter.
 func drawEffectSample(painter: *Pixel.Painter, area: Math.Rectangle, text: string, font: *Pixel.Font, color: Color, fx: TextEffect)
 {
-    let ms  = Painter.measureString(text, font)
-    let top = area.vertCenter() - ms.height * 0.5 - (font.ascent - ms.ascent)
+    let ms   = Painter.measureString(text, font)
+    let top  = area.vertCenter() - ms.height * 0.5 - (font.ascent - ms.ascent)
     let left = area.horzCenter() - ms.width * 0.5
     painter.drawString(left, top, text, font, color, fx)
 }
@@ -18,7 +18,7 @@ func drawEffectSurface(painter: *Pixel.Painter, rect: Math.Rectangle, color: Col
 
 func drawOutlineEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Outline", "A second distance threshold draws a crisp border under the glyph face. Its width scales with the text size.")
+    let body   = drawPanel(painter, rect, "Outline", "A second distance threshold draws a crisp border under the glyph face. Its width scales with the text size.")
     let sample = insetRect(body, 20, 12, 20, 30)
     drawEffectSurface(painter, sample, Color.fromArgb(255, 246, 248, 250))
 
@@ -32,7 +32,7 @@ func drawOutlineEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawGlowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Glow / neon", "A soft halo derived from the distance to the edge, composited under the face. A thin outline keeps the core sharp.")
+    let body   = drawPanel(painter, rect, "Glow / neon", "A soft halo derived from the distance to the edge, composited under the face. A thin outline keeps the core sharp.")
     let sample = insetRect(body, 20, 12, 20, 30)
     drawEffectSurface(painter, sample, Color.fromArgb(255, 16, 18, 30))
 
@@ -50,7 +50,7 @@ func drawGlowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawBevelEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Bevel", "The distance-field gradient is lit from the upper-left, embossing the face for a raised, metallic look.")
+    let body   = drawPanel(painter, rect, "Bevel", "The distance-field gradient is lit from the upper-left, embossing the face for a raised, metallic look.")
     let sample = insetRect(body, 20, 12, 20, 30)
     drawEffectSurface(painter, sample, Color.fromArgb(255, 238, 240, 244))
 
@@ -65,7 +65,7 @@ func drawBevelEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawShadowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Drop shadow", "A softened, offset second pass behind the text. Combined here with an outline in a single drawString call.")
+    let body   = drawPanel(painter, rect, "Drop shadow", "A softened, offset second pass behind the text. Combined here with an outline in a single drawString call.")
     let sample = insetRect(body, 20, 12, 20, 30)
     drawEffectSurface(painter, sample, Color.fromArgb(255, 248, 249, 251))
 

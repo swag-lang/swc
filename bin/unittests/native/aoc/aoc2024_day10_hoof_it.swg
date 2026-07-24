@@ -271,7 +271,7 @@ func analyzeTrails(text: string)->HikingReport
     @assert(NumDirections == 4'u32)
     let a: TrailResult = {score: 10, rating: 20}
     let b: TrailResult = {score: 5, rating: 15}
-    let c = addTrailResult(a, b)
+    let c              = addTrailResult(a, b)
     @assert(c.score == 15'u32)
     @assert(c.rating == 35'u32)
 }

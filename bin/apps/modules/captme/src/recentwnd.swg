@@ -54,7 +54,7 @@ impl RecentView
         }
 
         // Select new recent item
-        let item    = notnull .items[idx]
+        let item                    = notnull .items[idx]
         let capture: #null *Capture = catch Capture.load(item.file)
         if capture
         {
@@ -371,7 +371,7 @@ impl RecentWnd
         if .pendingRecentIndex >= .pendingRecentFiles.count do
             return
 
-        let idx     = .pendingRecentIndex
+        let idx                     = .pendingRecentIndex
         let capture: #null *Capture = catch .addRecent(.pendingRecentFiles[idx], front: false)
         defer #err Memory.delete(capture)
         if @err == null

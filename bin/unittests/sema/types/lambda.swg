@@ -36,8 +36,8 @@ var LambdaBoxA: LambdaTypeBox'func||(s32) = undefined
 var LambdaBoxB: LambdaTypeBox'func||(s32) = undefined
 #assert(#typeof(LambdaBoxA) == #typeof(LambdaBoxB))
 
-var I: func() = undefined
-var J: func(...) = undefined
+var I: func()       = undefined
+var J: func(...)    = undefined
 var K: func(s32...) = undefined
 #assert(#nameof(#typeof(I)) == "func()")
 #assert(#nameof(#typeof(J)) == "func(...)")
@@ -63,11 +63,11 @@ func PtrMatch5(values: ...)->s32
 
 func semaTest001()
 {
-    let p0: func() = &PtrMatch0
-    let p1: func(value: s32) = &PtrMatch1
+    let p0: func()                  = &PtrMatch0
+    let p1: func(value: s32)        = &PtrMatch1
     let p2: func(s32, bool)->string = &PtrMatch2
-    let p4: func(s32...)->s32 = &PtrMatch4
-    let p5: func(...)->s32 = &PtrMatch5
+    let p4: func(s32...)->s32       = &PtrMatch4
+    let p5: func(...)->s32          = &PtrMatch5
 
     p0()
     p1(10)

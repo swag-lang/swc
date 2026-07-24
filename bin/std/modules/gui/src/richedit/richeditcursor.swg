@@ -36,7 +36,7 @@ impl RichEditCtrl
             return x + .getTabOffset(cast(s32) x)
 
         let styleIdx = line.styles[i]
-        let info = .getTextDrawInfo(styleIdx)
+        let info     = .getTextDrawInfo(styleIdx)
         let drawFont = info.drawFont
         if !drawFont do
             return x

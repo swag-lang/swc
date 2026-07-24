@@ -10,7 +10,7 @@ struct OffPair
 {
     func scalarLayout()->u64
     {
-        let a: s8 = 1
+        let a: s8  = 1
         let b: s16 = 2
         let c: s32 = 3
         let d: s64 = 4
@@ -65,9 +65,9 @@ struct OffPair
 {
     func aggregateLayout()->u64
     {
-        let lead: s8 = 0
+        let lead: s8      = 0
         let pair: OffPair = {a: 1, b: 2}
-        let tail: s16 = 0
+        let tail: s16     = 0
 
         #assert(#offsetof(lead) == 0)
         #assert(#offsetof(pair) == 8)

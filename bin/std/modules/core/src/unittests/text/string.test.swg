@@ -180,7 +180,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 #test
 {
     var value: String = "1234"
-    let tail = value[1 to 3]
+    let tail          = value[1 to 3]
     value = tail
     @assert(assertString(value, "234"))
 
@@ -264,7 +264,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 #test
 {
     var value: String = "alpha"
-    let ref = cast(const &String) value
+    let ref           = cast(const &String) value
 
     @assert(ref.toString() == "alpha")
     @assert(ref == "alpha")
@@ -305,7 +305,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     movedSmall = #move smallCopy
     @assert(assertString(movedSmall, "small"))
 
-    var big = makePatternString(80)
+    var big                 = makePatternString(80)
     var expectedBig: String = big
     @assert(big.capacity > StringSmallSize)
 

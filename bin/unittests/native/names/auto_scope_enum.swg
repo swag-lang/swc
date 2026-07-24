@@ -38,7 +38,7 @@ func toto()->A { return .R }
 #test
 {
     let x: A = .B
-    let y = x | .R
+    let y    = x | .R
     @assert(y == 5)
 }
 

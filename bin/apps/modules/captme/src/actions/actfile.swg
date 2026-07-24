@@ -232,8 +232,8 @@ impl IActionUI for ActionFile
 
             // Snapshot the values now: 'capture' may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
-            let file  = capture.file.toString()
-            let dlg   = EditDlg.createSingleLine(notnull main.surface)
+            let file = capture.file.toString()
+            let dlg  = EditDlg.createSingleLine(notnull main.surface)
             dlg.setMessage("Capture name")
             dlg.setText(capture.title)
             dlg.edit?.selectAll()

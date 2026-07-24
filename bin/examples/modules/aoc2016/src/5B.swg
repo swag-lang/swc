@@ -23,7 +23,7 @@ func day5B()
     const IDX = [1617991, 2564359, 2834991, 3605750, 12187005, 13432325, 21679503, 25067104]
 
     var pwd: String = "        "
-    var cpt  = 0
+    var cpt         = 0
     for idx in IDX
     {
         let str    = Format.toString("reyedfim%", idx)

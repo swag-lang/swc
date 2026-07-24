@@ -37,11 +37,11 @@ public impl IImageEncoder for Encoder
             throw UnsupportedFormatError{"image is too big"}
 
         // Layout: header(8) | pixel data | IFD | BitsPerSample array
-        let dataPad     = dataLen & 1
-        let ifdOffset   = 8 + dataLen + dataPad
-        let numEntries  = hasAlpha ? 10'u32 : 9'u32
-        let ifdLen      = cast(u64) 2 + cast(u64) numEntries * 12 + 4
-        let bpsOffset   = ifdOffset + ifdLen
+        let dataPad    = dataLen & 1
+        let ifdOffset  = 8 + dataLen + dataPad
+        let numEntries = hasAlpha ? 10'u32 : 9'u32
+        let ifdLen     = cast(u64) 2 + cast(u64) numEntries * 12 + 4
+        let bpsOffset  = ifdOffset + ifdLen
         if bpsOffset + cast(u64) samples * 2 > Swag.U32.Max do
             throw UnsupportedFormatError{"image is too big"}
 

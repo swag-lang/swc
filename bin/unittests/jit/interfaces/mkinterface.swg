@@ -44,7 +44,7 @@ func runActionRegistry()->bool
     actions[0] = @mkinterface(null, #typeof(UndoAction{}), IAction)
     actions[1] = @mkinterface(null, #typeof(RedoAction{}), IAction)
 
-    var local = UndoAction{}
+    var local               = UndoAction{}
     var castAction: IAction = local
 
     return actions[0].accept(1) and

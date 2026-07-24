@@ -346,8 +346,8 @@ func simulate(c: *Circuit)
             if c.isSet(g.out) do continue
             if !c.isSet(g.inA) or !c.isSet(g.inB) do continue
 
-            let va = c.getWire(g.inA)
-            let vb = c.getWire(g.inB)
+            let va     = c.getWire(g.inA)
+            let vb     = c.getWire(g.inB)
             let result = evalGate(g.op, va, vb)
             c.setWire(g.out, result)
             changed = true
@@ -360,8 +360,8 @@ func readZValue(c: *Circuit)->u64
     var result: u64
     for [bit] in c.maxZBit + 1
     {
-        let d0 = cast(u8) (bit / 10) + '0'
-        let d1 = cast(u8) (bit % 10) + '0'
+        let d0  = cast(u8) (bit / 10) + '0'
+        let d1  = cast(u8) (bit % 10) + '0'
         let idx = encodeWire('z', d0, d1)
         if c.isSet(idx)
         {
@@ -449,7 +449,7 @@ func findSwapped(c: *Circuit)->SwappedResult
     {
         let g = &c.gates[gi]
 
-        let outIsZ = g.nameOut0 == 'z'
+        let outIsZ      = g.nameOut0 == 'z'
         let inputsAreXY = isXY(g.nameA0) and isXY(g.nameB0)
 
         // Highest z-bit is the carry-out, skip it for rule 1

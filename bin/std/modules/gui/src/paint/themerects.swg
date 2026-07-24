@@ -6,7 +6,7 @@ struct ThemeImageRect
 {
     rect:   Math.Rectangle
     corner: f32
-    keepBordersRatio     = true
+    keepBordersRatio = true
 }
 
 struct ThemeImageRects

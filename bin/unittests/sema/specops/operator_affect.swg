@@ -226,7 +226,7 @@ func semaTest004()
 func semaTest005()
 {
     var target = SetTarget{}
-    let ptr = &target
+    let ptr    = &target
     dref ptr = 99's32
 }
 
@@ -246,8 +246,8 @@ func semaTest007()
 {
     let delay1: LiteralSetTarget = 5's
     let delay2: LiteralSetTarget = 500'ms
-    let delay3 = cast(LiteralSetTarget) 2'min
-    var delay4 = LiteralSetTarget{}
+    let delay3                   = cast(LiteralSetTarget) 2'min
+    var delay4                   = LiteralSetTarget{}
     delay4 = 1'h
 
     func takesImplicit(value: LiteralSetTarget) {}
@@ -264,7 +264,7 @@ func semaTest008()
     let fromInt:   LiteralOverloadTarget = 5's
     let fromFloat: LiteralOverloadTarget = 1.5's
 
-    let castInt = cast(LiteralOverloadTarget) 250'ms
+    let castInt   = cast(LiteralOverloadTarget) 250'ms
     let castFloat = cast(LiteralOverloadTarget) 0.5'h
 
     func takesImplicit(value: LiteralOverloadTarget) {}

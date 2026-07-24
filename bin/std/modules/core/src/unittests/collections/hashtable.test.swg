@@ -81,7 +81,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
     table.add(3, 30)
     table.add(4, 40)
 
-    var sumKeys = 0
+    var sumKeys   = 0
     var sumValues = 0
     for key, [value] in table
     {

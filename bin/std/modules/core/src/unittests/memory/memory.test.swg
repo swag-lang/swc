@@ -57,7 +57,7 @@ func pushAllocatorAcceptsNull()->bool
     let misaligned = cast([*] u8) @dataof(buffer) + 1
     @assert(cast(u64) misaligned == cast(u64) @dataof(buffer) + 1)
     let alignedValue = Memory.align(cast(u64) misaligned, 8)
-    let aligned = Memory.align(misaligned, 8)
+    let aligned      = Memory.align(misaligned, 8)
     @assert(cast(u64) aligned % 8 == 0)
     @assert(cast(u64) aligned == alignedValue)
     @assert(cast(u64) aligned >= cast(u64) misaligned)

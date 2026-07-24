@@ -7,7 +7,7 @@ struct NativeMemberAggregateRuntimeStorageHolder
 
 #test
 {
-    let flag = false
+    let flag   = false
     let holder = NativeMemberAggregateRuntimeStorageHolder{
         cb: func(v: bool)->#decltype({first: 50'u16, second: 51'u16})
     {

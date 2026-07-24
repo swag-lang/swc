@@ -79,7 +79,7 @@ func day5B()
                             continue
 
                         let candidatePage = update[candidateIndex]
-                        var hasIncoming = false
+                        var hasIncoming   = false
 
                         for [otherIndex] in update.count
                         {

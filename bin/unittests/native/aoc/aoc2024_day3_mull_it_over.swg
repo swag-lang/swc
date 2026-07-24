@@ -176,8 +176,8 @@ func evaluateClean(stream: TokenStream)->MulResult
 #[Swag.Mixin]
 func declareScannerState()
 {
-    var scanPos:    u64
-    var scanTokens: TokenStream
+    var scanPos:        u64
+    var scanTokens:     TokenStream
     var scanEnabled = true
     var scanSumAll:     s64
     var scanSumEnabled: s64

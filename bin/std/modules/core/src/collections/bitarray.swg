@@ -151,8 +151,8 @@ public impl BitArray
         var totalWords = .count >> 5
         if totalWords << 5 < .count do
             totalWords += 1
-        var countBits  = 0'u64
-        let buffer     = notnull .buffer
+        var countBits = 0'u64
+        let buffer    = notnull .buffer
 
         #scope(Up)
             for [idx] in totalWords
@@ -206,9 +206,9 @@ public impl BitArray
     mtd set(index: u64, value: bool)
     {
         Debug.assert(index < .count)
-        let val   = index >> 5
-        let bit   = index - (val << 5)
-        let shift = 1'u32 << cast(u32) bit
+        let val    = index >> 5
+        let bit    = index - (val << 5)
+        let shift  = 1'u32 << cast(u32) bit
         let buffer = .dataPtr()
         if value do
             buffer[val] |= shift
@@ -231,9 +231,9 @@ public impl BitArray
     mtd invert(index: u64)
     {
         Debug.assert(index < .count)
-        let val   = index >> 5
-        let bit   = index - (val << 5)
-        let shift = 1'u32 << cast(u32) bit
+        let val    = index >> 5
+        let bit    = index - (val << 5)
+        let shift  = 1'u32 << cast(u32) bit
         let buffer = .dataPtr()
         if buffer[val] & shift do
             buffer[val] ^= shift

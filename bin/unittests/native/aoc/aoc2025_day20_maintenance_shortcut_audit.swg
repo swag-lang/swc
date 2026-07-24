@@ -30,8 +30,8 @@ func absDiff(a, b: u32)->u32
 
 func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
 {
-    let height = cast(u32) @countof(layout)
-    let width = lineWidth(layout[0])
+    let height     = cast(u32) @countof(layout)
+    let width      = lineWidth(layout[0])
     let totalCells = width * height
     @assert(totalCells <= MaxTrackCells)
 
@@ -49,9 +49,9 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
 
         for width
         {
-            let x = cast(u32) @index
+            let x     = cast(u32) @index
             let index = cellIndex(x, cast(u32) rowIndex, width)
-            let cell = row[x]
+            let cell  = row[x]
 
             walkable[index]      = cell != '#''u8
             distFromStart[index] = Swag.U32.Max
@@ -75,8 +75,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
         let current = queue[head]
         head += 1
 
-        let x = current % width
-        let y = current / width
+        let x            = current % width
+        let y            = current / width
         let nextDistance = distFromStart[current] + 1
 
         if x > 0
@@ -135,8 +135,8 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
         let current = queue[head]
         head += 1
 
-        let x = current % width
-        let y = current / width
+        let x            = current % width
+        let y            = current / width
         let nextDistance = distFromEnd[current] + 1
 
         if x > 0

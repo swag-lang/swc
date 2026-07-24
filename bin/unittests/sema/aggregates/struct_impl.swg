@@ -78,8 +78,8 @@ func semaTest001()
     let conv  = cast(ConvertNs.IConvert) value
     let hash  = cast(HashNs.IHash32) value
 
-    let converted = conv.convert()
-    let hashValue = hash.hash()
+    let converted  = conv.convert()
+    let hashValue  = hash.hash()
     let helperText = QualifiedInterfacesA.IConvert.helper()
     let helperHash = QualifiedInterfacesA.IHash32.helper()
 }
@@ -107,6 +107,6 @@ impl ImplPendingOverloadSet
 
 func semaTest002()
 {
-    var pad = ImplPendingOverloadSet{}
+    var pad   = ImplPendingOverloadSet{}
     let value = pad.setVibration(0.0, 1.0)
 }

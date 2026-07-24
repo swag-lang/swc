@@ -507,7 +507,7 @@ public impl Crc32
             return
         var current = notnull cast(#null const [*] u32) @dataof(data)
 
-        var cur           = ~.crc
+        var cur = ~.crc
         const unroll      = 4
         const bytesAtOnce = 16 * unroll
         while length >= bytesAtOnce

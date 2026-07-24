@@ -29,7 +29,7 @@ internal func day10WriteCount(write: [*] u8, count: u64)->[*] u8
         return write + 1
     }
 
-    var scan = write
+    var scan       = write
     var digits: [20] u8
     var digitCount = 0'u64
     var remaining  = count
@@ -77,7 +77,7 @@ internal func day10RunStep(input: string, output: &String)
     }
 
     output.length = cast(u64) (write - output.buffer)
-    let outBuf    = notnull output.buffer
+    let outBuf = notnull output.buffer
     outBuf[output.length] = 0
 }
 

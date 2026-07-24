@@ -193,7 +193,7 @@ func auditLan(connections: const [..] string)->LanAudit
     var result:         LanAudit
     var labels:         [MaxComputers] u16
     var adjacency:      [MaxComputers * MaxComputers] bool
-    var labelSlice:     [..] u16 = labels
+    var labelSlice:     [..] u16  = labels
     var adjacencySlice: [..] bool = adjacency
     var computerCount:  u32
 
@@ -203,7 +203,7 @@ func auditLan(connections: const [..] string)->LanAudit
         @assert(@countof(bytes) == 5)
         @assert(bytes[2] == '-''u8)
 
-        let leftLabel = parseLabel(bytes, 0)
+        let leftLabel  = parseLabel(bytes, 0)
         let rightLabel = parseLabel(bytes, 3)
 
         var leftIndex = findComputerIndex(labelSlice, computerCount, leftLabel)
@@ -260,7 +260,7 @@ func auditLan(connections: const [..] string)->LanAudit
 
     for subsetCount - 1
     {
-        let mask = cast(u32) @index + 1
+        let mask       = cast(u32) @index + 1
         let cliqueSize = countBits(mask)
         if cliqueSize < result.largestCliqueSize do
             continue

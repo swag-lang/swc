@@ -18,7 +18,7 @@ public struct ScrollWnd
     scrollIncrementH: f32 = 50
 
     scrollSize: Math.Point
-    scrollWndFlags            = ScrollWndFlags.Zero
+    scrollWndFlags = ScrollWndFlags.Zero
 
     sigScrollPosChanged:  SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
     sigScrollSizeChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
@@ -383,10 +383,10 @@ impl ScrollWnd
         if .position.width == 0 or .position.height == 0 do
             return
         let clientRect = .getClientRectPadding()
-        let metrics = .getThemeMetrics()
-        let barSize = .scrollWndFlags.has(.SmallBar) ? metrics.scrollBar_SmallSize : metrics.scrollBar_NormalSize
-        var sx      = Math.max(.scrollSize.x, clientRect.width)
-        var sy      = Math.max(.scrollSize.y, clientRect.height)
+        let metrics    = .getThemeMetrics()
+        let barSize    = .scrollWndFlags.has(.SmallBar) ? metrics.scrollBar_SmallSize : metrics.scrollBar_NormalSize
+        var sx         = Math.max(.scrollSize.x, clientRect.width)
+        var sy         = Math.max(.scrollSize.y, clientRect.height)
 
         .showBarV, .showBarH = false
         .needH, .needV       = false

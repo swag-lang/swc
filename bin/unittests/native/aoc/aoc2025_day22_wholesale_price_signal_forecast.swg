@@ -58,8 +58,8 @@ func analyzeForecast(initialSecrets: const [..] u32)->MarketForecast
 
     for initialSecret, [buyerIndex] in initialSecrets
     {
-        var secret = initialSecret
-        var lastPrice = priceDigit(secret)
+        var secret     = initialSecret
+        var lastPrice  = priceDigit(secret)
         var changes: [ForecastRounds] s32
         let buyerStamp = cast(u32) buyerIndex + 1
 

@@ -165,7 +165,7 @@ func mulAssignStrict(a: &CompoundStrictS32, b: CompoundStrictS32)
 #test
 {
     var data: [3] s32 = [10, 20, 30]
-    var ptr = cast(CompoundStrictS32Ptr) &data[0]
+    var ptr           = cast(CompoundStrictS32Ptr) &data[0]
     ptr += cast(CompoundStrictS32) 1
     @assert(dref ptr == 20)
     ptr -= cast(CompoundStrictS32) 1

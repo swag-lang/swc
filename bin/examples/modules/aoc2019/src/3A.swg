@@ -62,7 +62,7 @@ func day3A0()
 
     func trace(idx: s32, line: string)
     {
-        var x, y = S / 2
+        var x, y   = S / 2
         var dx, dy = 0
         for v in Tokenize.split(line, ',''u8)
         {

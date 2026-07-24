@@ -20,9 +20,9 @@ struct InPlaceEditWnd
     capture:          #null *Capture
     newMain:          #late *MainWnd
     editMode:         InPlaceEditMode = .Arrow
-    editColor:        Color = Argb.Red
-    editColorHilight: Color = Argb.Yellow
-    uiScale:          f32 = 1     // DPI scale of the monitor the capture sits on
+    editColor:        Color           = Argb.Red
+    editColorHilight: Color           = Argb.Yellow
+    uiScale:          f32             = 1     // DPI scale of the monitor the capture sits on
 }
 
 // The capture overlay spans the whole virtual desktop in physical pixels, so the

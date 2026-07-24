@@ -343,8 +343,8 @@ func semaTest003()
     for value in values
     {
         let ordinal = @index
-        var x = ordinal
-        var y = value
+        var x       = ordinal
+        var y       = value
     }
 }
 
@@ -356,8 +356,8 @@ func semaTest004()
     {
         #assert(#typeof(value) == s32)
         let ordinal = @index
-        var x = value
-        var y = ordinal
+        var x       = value
+        var y       = ordinal
     }
 }
 
@@ -370,9 +370,9 @@ func semaTest005()
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
         let ordinal = @index
-        var x = value
-        var y = scaled
-        var z = ordinal
+        var x       = value
+        var y       = scaled
+        var z       = ordinal
     }
 }
 
@@ -397,9 +397,9 @@ func semaTest007()
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
         let ordinal = @index
-        var x = left
-        var y = right
-        var z = ordinal
+        var x       = left
+        var y       = right
+        var z       = ordinal
     }
 }
 
@@ -430,7 +430,7 @@ func semaTest009()
 
 func semaTest010()
 {
-    var visits = SemaReverseVisits{}
+    var visits       = SemaReverseVisits{}
     var outside: s32 = 0
     var inside:  s32 = 0
 

@@ -45,7 +45,7 @@ namespace compiler1629
     #test
     {
         var arr: [64] u8
-        var ptr  = cast([*] #null [*] void) &arr[0]
+        var ptr = cast([*] #null [*] void) &arr[0]
         ptr[0] = null
         @assert(ptr[0] == null)
     }
@@ -180,7 +180,7 @@ namespace compiler1659
     #test
     {
         let precision: u32 = 5
-        let roundValue = 0.5 / (10 * precision)
+        let roundValue     = 0.5 / (10 * precision)
         @assert(roundValue == 0.01)
     }
 }
@@ -198,7 +198,7 @@ namespace compiler1661
     #test
     {
         var addr:  [1] *#null *TT = undefined
-        var addr1: #null *TT = null
+        var addr1: #null *TT      = null
         var value: TT
 
         addr[0] = &addr1
@@ -221,9 +221,9 @@ namespace compiler1662
     //#[Swag.PrintBc]
     #test
     {
-        var value: s64 = 666
+        var value: s64             = 666
         var addr:  [1] [*] [*] s64 = undefined
-        var addr1: [*] s64 = cast([*] s64) &value
+        var addr1: [*] s64         = cast([*] s64) &value
 
         addr[0] = cast([*] [*] s64) &addr1
 
@@ -245,7 +245,7 @@ namespace compiler1663
     {
         var value: TT
         var addr:  [1] [*] [*] TT = undefined
-        var addr1: [*] TT = cast([*] TT) &value
+        var addr1: [*] TT         = cast([*] TT) &value
 
         addr[0] = cast([*] [*] TT) &addr1
 
@@ -709,10 +709,10 @@ namespace compiler224
 {
     //
     var b0: bool = true
-    var b1: u8 = 1
-    var b2: u16 = 2
-    var b3: u32 = 3
-    var b4: u64 = 4
+    var b1: u8   = 1
+    var b2: u16  = 2
+    var b3: u32  = 3
+    var b4: u64  = 4
 
     //#[PrintBc]
     func main()
@@ -737,8 +737,8 @@ namespace compiler225
 {
     //
     var b0: bool = true
-    var b1: u64 = 666
-    var b2: f32 = 1.5
+    var b1: u64  = 666
+    var b2: f32  = 1.5
 
     //#[PrintBc]
     func main()
@@ -983,16 +983,16 @@ namespace compiler287
     #test
     {
         var a: bool = true
-        let b  = &a
-        let c  = dref b
+        let b       = &a
+        let c       = dref b
         @assert(c == true)
     }
 
     #test
     {
         var a: s32 = 666
-        let b  = &a
-        let c  = dref b
+        let b      = &a
+        let c      = dref b
         @assert(c == 666)
     }
 }
@@ -1019,8 +1019,8 @@ namespace compiler322
     //#[Swag.PrintBc]
     #test
     {
-        var a: s32 = 666
-        let b  = &a
+        var a: s32  = 666
+        let b       = &a
         var c: *s32 = b
         c = b; @assert(dref b == 666)
         @assert(dref c == 666)
@@ -1038,7 +1038,7 @@ namespace compiler323
     #test
     {
         var a: s32 = 1
-        var b  = &a
+        var b      = &a
         dref b = 666; @assert(a == 666)
         @assert(dref b == a)
     }
@@ -1067,7 +1067,7 @@ namespace compiler332
     #test
     {
         var a: [2] s32 = [50, 60]
-        let b  = 666
+        let b          = 666
         @assert(a[0] == 50)
         @assert(a[1] == 60)
         @assert(b == 666)

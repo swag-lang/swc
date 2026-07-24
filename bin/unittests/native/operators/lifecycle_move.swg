@@ -245,7 +245,7 @@ func sliceMoveRefAssignInfo()->LifecycleInfo
     resetLifecycleHooks()
     var dst: Tracked
     var src: [2] Tracked = [Tracked{1}, Tracked{2}]
-    let slice = @mkslice(&src[0], 2)
+    let slice            = @mkslice(&src[0], 2)
     assignTracked(&dst, #move slice[0])
     return {dst.value, src[0].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -291,7 +291,7 @@ func foreachOverloadMoveInfo()->LifecycleInfo
 func borrowedParamInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
-    var src = Tracked{7}
+    var src   = Tracked{7}
     let value = takeTracked(src)
     return {value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
@@ -299,7 +299,7 @@ func borrowedParamInfo()->LifecycleInfo
 func borrowedAddressableParamInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
-    var src = LargeTracked{1, 2, 3, 4, Tracked{7}}
+    var src   = LargeTracked{1, 2, 3, 4, Tracked{7}}
     let value = takeLargeTrackedAddress(src)
     return {value, src.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }

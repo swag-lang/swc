@@ -23,26 +23,26 @@ enum RichEditForm
 
 struct RichEditMapping
 {
-    key:       Input.Key = undefined
+    key:       Input.Key          = undefined
     modifiers: Input.KeyModifiers = undefined
-    command:   RichEditCommand = undefined
+    command:   RichEditCommand    = undefined
 }
 
 struct RichEditCtrl
 {
     using frameWnd: FrameWnd
-    richEdFlags                  = RichEditFlags.Zero
-    lineSpacing:   f32
-    overwriteMode: bool
-    tabSize:       s32 = 4
-    marginLeft:    f32
-    marginRight:   f32
-    lexer:         #null IRichEditLexer
-    form                         = RichEditForm.RichEditCtrl
-    sigIsReadOnly: SigArray'func||(*bool)
-    sigChanged:    SigArray'func||(*RichEditCtrl)
-    sigModified:   SigArray'func||(*RichEditCtrl)
-    bkColorModel:  String
+    richEdFlags         = RichEditFlags.Zero
+    lineSpacing:    f32
+    overwriteMode:  bool
+    tabSize:        s32 = 4
+    marginLeft:     f32
+    marginRight:    f32
+    lexer:          #null IRichEditLexer
+    form                = RichEditForm.RichEditCtrl
+    sigIsReadOnly:  SigArray'func||(*bool)
+    sigChanged:     SigArray'func||(*RichEditCtrl)
+    sigModified:    SigArray'func||(*RichEditCtrl)
+    bkColorModel:   String
 
     styles:       [256] RichEditRuneStyle
     stylesSelect: [2] RichEditRuneStyle

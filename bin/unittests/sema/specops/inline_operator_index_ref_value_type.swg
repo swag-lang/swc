@@ -16,7 +16,7 @@ impl InlineRefIndexBox
 
 func semaTest001()
 {
-    var box = InlineRefIndexBox{buffer: [3, 5]}
+    var box   = InlineRefIndexBox{buffer: [3, 5]}
     let value = box[1]
 
     #assert(#typeof(value) == s32)

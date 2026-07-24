@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createPreviewPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "Selected color card", "The selected color is rendered with checkerboard alpha, automatic contrast text and complement accent.", layout.left)
+    let left   = createPanel(parent, "Selected color card", "The selected color is rendered with checkerboard alpha, automatic contrast text and complement accent.", layout.left)
     discard createPreview(left, {18, 86, layout.left.width - 36, layout.left.height - 104}, &onLivePreviewEvent)
 
     let right = createPanel(parent, "Derived colors", "Hue rotation, complementary, saturation and grayscale helpers become real UI swatches.", layout.right)

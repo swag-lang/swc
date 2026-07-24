@@ -147,7 +147,7 @@ func day10B()
     })
 
     var groups: Array'DirectionGroup
-    var haveGroup = false
+    var haveGroup          = false
     var lastDirX, lastDirY = 0's64
     for it in arr
     {

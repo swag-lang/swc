@@ -126,7 +126,7 @@ Swag panics if a cast from 'any' to another type is invalid.
 #test
 {
     let x: any = "1"
-    let y  = cast(string) x
+    let y      = cast(string) x
 
 // var z = cast(s32) x  // Would panic: underlying type mismatch
 // @assert(z == 0)
@@ -160,7 +160,7 @@ Indexing a slice is checked for bounds.
 #test
 {
     let x: const [..] s32 = [0, 1, 2]
-    var idx = 1
+    var idx               = 1
     @assert(x[idx] == 1)
     idx += 9
 

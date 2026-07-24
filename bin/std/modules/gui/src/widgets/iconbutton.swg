@@ -57,11 +57,11 @@ struct IconButton
 {
     using button: Button
 
-    form                 = IconButtonForm.Square
-    iconBtnFlags         = IconButtonFlags.Zero
-    checkedForm          = IconButtonCheckedForm.Full
-    arrowPos             = IconButtonArrowPos.None
-    textPos              = IconButtonTextPos.Bottom
+    form         = IconButtonForm.Square
+    iconBtnFlags = IconButtonFlags.Zero
+    checkedForm  = IconButtonCheckedForm.Full
+    arrowPos     = IconButtonArrowPos.None
+    textPos      = IconButtonTextPos.Bottom
     iconColor: Color
     textColor: Color
 

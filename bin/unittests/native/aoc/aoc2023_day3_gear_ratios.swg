@@ -517,7 +517,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 
 #test
 {
-    let grid = parseGrid(cast(const [..] u8) EdgeInput)
+    let grid  = parseGrid(cast(const [..] u8) EdgeInput)
     let clean = solveClean(grid)
     // Both 100s are adjacent to '*'
     @assert(clean.partNumberSum == 200'u64)
@@ -531,7 +531,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 
 #test
 {
-    let grid = parseGrid(cast(const [..] u8) SingleDigitInput)
+    let grid  = parseGrid(cast(const [..] u8) SingleDigitInput)
     let clean = solveClean(grid)
     // 5 adjacent to '*', 3 adjacent to '*'
     @assert(clean.partNumberSum == 8'u64)

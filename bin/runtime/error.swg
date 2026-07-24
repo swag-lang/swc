@@ -31,7 +31,7 @@ func __setErrRaw(data: *void, type: const *Swag.TypeInfoStruct)
     if !cxt.errorAllocator.capacity do
         cxt.errorAllocator.setCapacity(cast() __buildCfg.errorAllocatorCapacity, __runtimeAllocator())
 
-    let ptr  = cxt.errorAllocator.alloc(cast(u64) type.sizeof)
+    let ptr = cxt.errorAllocator.alloc(cast(u64) type.sizeof)
     @memcpy(ptr, data, cast(u64) type.sizeof)
     if type.opPostCopy do
         type.opPostCopy(ptr)
@@ -225,7 +225,7 @@ func __printPanicReport(message: #null string, loc: SourceCodeLocation)
     // Print the calling stack trace
     @print("runtime trace\n")
     var arr: [64] *void = undefined
-    let nb   = __captureStack(1, arr)
+    let nb              = __captureStack(1, arr)
     __logStackTrace(@mkslice(&arr[0], nb))
     @print("\n")
 }

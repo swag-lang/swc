@@ -49,9 +49,9 @@ func executeProgram(initial: VmState, program: const [..] u8)->VmReport
 
     while ip + 1 < @countof(program)
     {
-        let opcode = program[ip]
+        let opcode  = program[ip]
         let operand = program[ip + 1]
-        var jumped = false
+        var jumped  = false
 
         switch opcode
         {

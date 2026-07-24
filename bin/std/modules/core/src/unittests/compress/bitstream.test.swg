@@ -20,7 +20,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 #test
 {
     let input: [3] u8 = [0xCA, 0x74, 0x05]
-    let start = cast(const [*] u8) @dataof(input)
+    let start         = cast(const [*] u8) @dataof(input)
 
     var stream: Compress.BitStream
     stream.init(input)
@@ -51,8 +51,8 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     stream.init(input)
 
     let widths: [8] u8 = [1, 3, 5, 7, 9, 11, 13, 2]
-    var bitPos = 0'u64
-    var wi     = 0
+    var bitPos         = 0'u64
+    var wi             = 0
     while bitPos + 16 <= 64 * 8
     {
         let w = widths[wi % 8]
@@ -90,7 +90,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 #test
 {
     let input: [3] u8 = [0xAA, 0xBB, 0xCC]
-    let start = cast(const [*] u8) @dataof(input)
+    let start         = cast(const [*] u8) @dataof(input)
 
     var stream: Compress.BitStream
     stream.init(input)

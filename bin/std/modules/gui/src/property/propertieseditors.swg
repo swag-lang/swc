@@ -73,7 +73,7 @@ impl Properties
     func findEditor(type: #null typeinfo)->#null *PropertyEditorReg
     {
         var found: #null *PropertyEditorReg
-        var i     = Properties.editors.count
+        var i = Properties.editors.count
         while i > 0
         {
             i -= 1

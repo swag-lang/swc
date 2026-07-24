@@ -29,7 +29,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, xPpe
         offset              += 2
     }
 
-    let pointCount = contourCount ? contourEnds.back() + 1 : 0
+    let pointCount        = contourCount ? contourEnds.back() + 1 : 0
     let instructionLength = readU16(glyphData, offset)
     offset += 2 + instructionLength
 
@@ -113,7 +113,7 @@ func appendCompositeGlyph(faceData: *FaceImpl, glyphData: #null const [..] u8, x
     if depth >= MAX_RECURSE do
         fail(0x15)
 
-    var offset = 10'u64
+    var offset  = 10'u64
     var hasMore = true
     while hasMore
     {
@@ -234,7 +234,7 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
 func loadGlyphInternal(face: *Face, glyphIndex: u32) throw
 {
     let faceData = getFaceImpl(face)
-    let slot = &face.glyph
+    let slot     = &face.glyph
     clearOutline(slot)
     clearBitmap(slot)
 
@@ -256,7 +256,7 @@ func loadGlyphInternal(face: *Face, glyphIndex: u32) throw
     slot.outline.contours     = faceData.outlineContours.count ? faceData.outlineContours.buffer : null
     slot.outline.flags        = 0
 
-    let metric              = faceData.glyphMetrics[glyphIndex]
+    let metric = faceData.glyphMetrics[glyphIndex]
     slot.advance.x                 = scale26_6(metric.advanceWidth, xPpem, faceData.unitsPerEm)
     slot.advance.y                 = 0
     slot.metrics.horizontalAdvance = slot.advance.x

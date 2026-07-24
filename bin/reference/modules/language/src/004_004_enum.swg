@@ -231,7 +231,7 @@ forming the contiguous range from zero to the last value.
     enum MyIndex { First, Second, Third }
 
     const Array: [MyIndex] s32 = [0, 1, 2]
-    const Valu  = Array[MyIndex.First]
+    const Valu                 = Array[MyIndex.First]
     @assert(Valu == 0)
 
     var index = MyIndex.Third

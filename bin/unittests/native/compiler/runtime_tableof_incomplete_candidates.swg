@@ -33,7 +33,7 @@ func canLookupImplementedTypeAtRuntime()
 
 func materializeInterfaceTable()->bool
 {
-    var concrete = TableProbe{value: 17}
+    var concrete         = TableProbe{value: 17}
     var itf: ITableProbe = concrete
     return itf.score() == 17
 }

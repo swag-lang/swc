@@ -7,7 +7,7 @@ using Win32
 private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)
 {
     let safeParam = notnull param
-    let t = cast(*Timer) safeParam
+    let t         = cast(*Timer) safeParam
     if !@getcontext() do
         @setcontext(t.context)
     let userLambda = notnull t.userLambda

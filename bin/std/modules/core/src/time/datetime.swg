@@ -76,7 +76,7 @@ impl DateTime
     {
         let m: u32 = (.month + 9) % 12
         let y: u32 = .year - m / 10
-        var dn = 365 * y + #wrap y / 4 + #wrap y / 400 + #wrap (m * 306 + 5) / 10 + #wrap .day - 1 - #wrap y / 100
+        var dn     = 365 * y + #wrap y / 4 + #wrap y / 400 + #wrap (m * 306 + 5) / 10 + #wrap .day - 1 - #wrap y / 100
         dn += 3
         return cast(DayOfWeek) (dn % 7)
     }
@@ -131,7 +131,7 @@ impl DateTime
     func parse(str: string, checkDate = true)->{ value: DateTime, eat: u32 } throw
     {
         var result: retval
-        var buf     = str
+        var buf = str
 
         if !@countof(buf) do
             throw SyntaxError{}
@@ -140,7 +140,7 @@ impl DateTime
            Latin1.isLetter(buf[0])
         {
             // Day of week name
-            var done       = false
+            var done = false
             var dayOfWeek: DayOfWeek
             for dow, [idx] in DayOfWeekNames
             {

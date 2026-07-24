@@ -21,7 +21,7 @@ impl IPropertyEditor for FontStyleEditor
         let style = cast(#null *FontFamilyStyle) data
 
         const BtnW = 34
-        let lineH  = list.getThemeMetrics().btnPush_Height
+        let lineH = list.getThemeMetrics().btnPush_Height
 
         // Grid mode packs the pair left in the value column; the panel/list modes center
         // it as its own full-width row.

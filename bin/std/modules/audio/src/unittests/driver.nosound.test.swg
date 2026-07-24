@@ -38,7 +38,7 @@ func audioStartNoSoundEngine()
     let child = notnull catch Bus.create(1, root)
     @assert(@err == null)
 
-    let rootHandle = cast(*NoSoundBus) notnull root.handle
+    let rootHandle  = cast(*NoSoundBus) notnull root.handle
     let childHandle = cast(*NoSoundBus) notnull child.handle
     @assert(rootHandle.numChannels == 2)
     @assert(rootHandle.parent == null)
@@ -107,7 +107,7 @@ func audioStartNoSoundEngine()
     let bus0 = catch Bus.create(2)
     @assert(@err == null)
     let safeBus0 = notnull bus0
-    let bus1 = catch Bus.create(2, safeBus0)
+    let bus1     = catch Bus.create(2, safeBus0)
     @assert(@err == null)
     let safeBus1 = notnull bus1
     discard catch voice.setRooting([safeBus0, safeBus1])

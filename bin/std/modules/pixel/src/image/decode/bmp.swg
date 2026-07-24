@@ -287,7 +287,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 
         default:
             let absoluteCount = cast(u32) value
-            let padding = absoluteCount & 1
+            let padding       = absoluteCount & 1
             checkBuffer(p, last, absoluteCount + padding)
             if x + absoluteCount > result.width do
                 throw InvalidFormatError{"invalid source buffer"}

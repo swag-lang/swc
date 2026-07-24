@@ -20,12 +20,12 @@ struct SceneLayout
 
 struct CardOptions
 {
-    angle:         Math.Angle = 0.0'deg
-    scale:         f32 = 1.0
+    angle:         Math.Angle        = 0.0'deg
+    scale:         f32               = 1.0
     interpolation: InterpolationMode = .Linear
     sourceRect:    Math.Rectangle
-    offsetX:       f32 = 0
-    offsetY:       f32 = 0
+    offsetX:       f32               = 0
+    offsetY:       f32               = 0
 }
 
 struct TextureCard
@@ -69,7 +69,7 @@ func dataPath(fileName: string, loc = #callerlocation)->String
 func loadFonts() throw
 {
     g_FontPath = dataPath("segoeui.ttf")
-    let path   = g_FontPath.toString()
+    let path = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont    = Font.create(notnull g_TypeFace, 34)
@@ -85,7 +85,7 @@ func cloneImage(image: const &Image)->Image
 
 func normalizeShowcaseImage(image: const &Image)->Image
 {
-    var result = cloneImage(image)
+    var result  = cloneImage(image)
     let maxSide = cast(f32) Math.max(result.width, result.height)
     if maxSide > 760.0
     {
@@ -212,12 +212,12 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
     if !card.texture.isValid() do
         return
 
-    let srcRect = card.options.sourceRect
-    let sourceWidth = srcRect.isEmpty() ? cast(f32) card.texture.width : srcRect.width
+    let srcRect      = card.options.sourceRect
+    let sourceWidth  = srcRect.isEmpty() ? cast(f32) card.texture.width : srcRect.width
     let sourceHeight = srcRect.isEmpty() ? cast(f32) card.texture.height : srcRect.height
-    var textureRect = fitTextureRect(rect, sourceWidth, sourceHeight, card.options.angle)
-    let centerX = textureRect.horzCenter()
-    let centerY = textureRect.vertCenter()
+    var textureRect  = fitTextureRect(rect, sourceWidth, sourceHeight, card.options.angle)
+    let centerX      = textureRect.horzCenter()
+    let centerY      = textureRect.vertCenter()
     textureRect.width  *= card.options.scale
     textureRect.height *= card.options.scale
     textureRect.x      = centerX - textureRect.width * 0.5 + card.options.offsetX

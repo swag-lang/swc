@@ -93,7 +93,7 @@ func parseBytes(text: string)->ByteList
 {
     var result: ByteList
     let bytes = cast(const [..] u8) text
-    var pos: u32
+    var pos:    u32
 
     for
     {
@@ -230,7 +230,7 @@ func bfs(g: *Grid)->s32
 func findBlockingByte(g: *Grid, bl: *ByteList)->u32
 {
     var lo: u32 = 0
-    var hi = bl.count
+    var hi      = bl.count
 
     for bl.count
     {

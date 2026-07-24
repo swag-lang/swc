@@ -244,7 +244,7 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
 #test
 {
     let values: [3] s32 = [1, 2, 3]
-    let doubled = mapS32x3(values, &doubleS32)
+    let doubled         = mapS32x3(values, &doubleS32)
     @assert(doubled[0] == 2)
     @assert(doubled[1] == 4)
     @assert(doubled[2] == 6)
@@ -307,14 +307,14 @@ func(T, N: s32) countOf(values: [N] T, target: T)->s32
 #test
 {
     let arr: [4] s32 = [10, 20, 30, 40]
-    let rev = reverse(arr)
+    let rev          = reverse(arr)
     @assert(rev[0] == 40)
     @assert(rev[1] == 30)
     @assert(rev[2] == 20)
     @assert(rev[3] == 10)
 
     let farr: [3] f64 = [1.0, 2.0, 3.0]
-    let frev = reverse(farr)
+    let frev          = reverse(farr)
     @assert(frev[0] == 3.0)
     @assert(frev[1] == 2.0)
     @assert(frev[2] == 1.0)

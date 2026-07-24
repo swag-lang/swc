@@ -114,7 +114,7 @@ func rollupWorksheet(sheet: const [..] string)->WorksheetRollup
     @assert(@countof(sheet) >= 2)
 
     let firstLine = cast(const [..] u8) sheet[0]
-    let width = cast(u32) @countof(firstLine)
+    let width     = cast(u32) @countof(firstLine)
 
     for line in sheet
     {

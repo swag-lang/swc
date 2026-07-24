@@ -11,9 +11,9 @@
 
 using Core, Gui, Pixel, Core.Math
 
-var Palette: [9] Color
-var newDrop       = true
-var counter       = 0
+var Palette:      [9] Color
+var newDrop = true
+var counter = 0
 var currentColor: Color
 var drops:        Array'(*Drop)
 var lastPos:      Vector2
@@ -34,8 +34,8 @@ var lastPos:      Vector2
 struct Drop
 {
     center:       Vector2
-    r:            f32 = 50
-    circleDetail: u32 = 50
+    r:            f32   = 50
+    circleDetail: u32   = 50
     vertices:     Array'Vector2
     col:          Color = Argb.Red
     lp:           LinePath

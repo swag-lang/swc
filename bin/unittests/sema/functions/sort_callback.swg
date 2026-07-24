@@ -21,14 +21,14 @@ func(T) pickCompare(values: [..] T, cb: func||(T, T)->s32)->s32
 func semaTest001()
 {
     var values: [2] SortNamedItem = [{rank: 1, total: 20}, {rank: 0, total: 10}]
-    let result = pickCompare(values[to], func(x, y) => x.total <=> y.total)
+    let result                    = pickCompare(values[to], func(x, y) => x.total <=> y.total)
     #assert(#typeof(result) == s32)
 }
 
 func semaTest002()
 {
     var values: [2] SortNamedItem = [{rank: 1, total: 20}, {rank: 0, total: 10}]
-    let result = values[to].pickCompare(func(x, y) => x.total <=> y.total)
+    let result                    = values[to].pickCompare(func(x, y) => x.total <=> y.total)
     #assert(#typeof(result) == s32)
 }
 

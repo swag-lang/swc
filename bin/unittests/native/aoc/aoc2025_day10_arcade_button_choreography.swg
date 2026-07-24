@@ -22,7 +22,7 @@ func pressCount(mask: u32)->u32
 
 func minimumPresses(buttonMasks: const [..] u32, targetMask: u32)->u32
 {
-    var best = 255'u32
+    var best             = 255'u32
     let combinationCount = 1'u32 << cast(u32) @countof(buttonMasks)
 
     var combo: u32

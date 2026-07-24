@@ -30,8 +30,8 @@ using Swag, Core
     scope.init()
     let face = notnull scope.face
 
-    let glyphA = face.glyphIndex('A')
-    let glyphE = face.glyphIndex(0x00E9)
+    let glyphA       = face.glyphIndex('A')
+    let glyphE       = face.glyphIndex(0x00E9)
     let glyphMissing = face.glyphIndex(0x10FFFF)
 
     @assert(glyphA > 0)

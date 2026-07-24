@@ -16,16 +16,16 @@ struct FormText
     #[Name("Text"), MultiLine]
     text: String
     #[Name("Font Style")]
-    fontStyle       = FontFamilyStyle.Regular
+    fontStyle = FontFamilyStyle.Regular
     #[Name("Align")]
-    alignHorz       = FormTextAlign.Center
+    alignHorz = FormTextAlign.Center
     #[Name("Vertical Align")]
-    alignVert       = FormTextAlign.Center
+    alignVert = FormTextAlign.Center
     #[Name("Size"), SliderMinMax(MinFontSize, MaxFontSize)]
     fontSize: f32 = 48
     #[Name("Strength"), SliderMinMax(MinBoldSize, MaxBoldSize)]
     boldSize: f32 = 0
-    lineSpacing     = 14.0
+    lineSpacing   = 14.0
 
     #[Serialization.NoSerialize]
     {
@@ -307,7 +307,7 @@ impl IForm for FormText
             case RightBottom: x0 = pp.right() - (wt + addSize)
             }
 
-            let tt  = painter.curState.transform
+            let tt    = painter.curState.transform
             let drawX = x0 - (borderPath.bvMin.x * zscale)
             let drawY = y0 - (borderPath.bvMin.y * zscale)
 

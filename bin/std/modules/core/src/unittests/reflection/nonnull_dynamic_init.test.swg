@@ -32,9 +32,9 @@ func recordCoreNonNullGuardPanic(message: #null string, loc: Swag.SourceCodeLoca
 
 func testCoreNonNullDynamicInitialization()->bool
 {
-    var item = CoreNonNullDynamicItem{value: 71}
-    let requiredType = #typeof(*CoreNonNullDynamicItem)
-    let cxt = @getcontext()
+    var item          = CoreNonNullDynamicItem{value: 71}
+    let requiredType  = #typeof(*CoreNonNullDynamicItem)
+    let cxt           = @getcontext()
     let previousPanic = cxt.panic
     let previousUser0 = cxt.user0
     cxt.user0 = 0
@@ -43,7 +43,7 @@ func testCoreNonNullDynamicInitialization()->bool
     defer cxt.user0 = previousUser0
 
     let allocatedRequired = Memory.new(requiredType)
-    let rejectedNew = allocatedRequired == null
+    let rejectedNew       = allocatedRequired == null
     if allocatedRequired do
         Memory.free(cast(#null [*] void) allocatedRequired, cast(u64) requiredType.sizeof)
 
@@ -55,7 +55,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let rejectedAppend = Reflection.appendValueStructArray(&rejectedArray, requiredType)
     let preservedArray = rejectedAppend == null and rejectedArray.buffer == null and !rejectedArray.count and !rejectedArray.capacity
 
-    let zeroType = #typeof(CoreNonNullZeroUnion)
+    let zeroType       = #typeof(CoreNonNullZeroUnion)
     let zeroStructType = cast(const *Swag.TypeInfoStruct) zeroType
     if zeroStructType.opInit != null or zeroType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
@@ -69,7 +69,7 @@ func testCoreNonNullDynamicInitialization()->bool
        Memory.canDefaultInit(zeroTupleType) do
         return false
 
-    let allocatedZero = Memory.new(zeroType)
+    let allocatedZero   = Memory.new(zeroType)
     let rejectedZeroNew = allocatedZero == null
     if allocatedZero do
         Memory.free(cast(#null [*] void) allocatedZero, cast(u64) zeroType.sizeof)
@@ -79,7 +79,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let preservedZeroReset = resetZero.bits == 0xFFFF
 
     var zeroArray: Array'CoreNonNullZeroUnion
-    let appendedZero = Reflection.appendValueStructArray(&zeroArray, zeroType)
+    let appendedZero       = Reflection.appendValueStructArray(&zeroArray, zeroType)
     let rejectedZeroAppend = appendedZero == null and zeroArray.buffer == null and !zeroArray.count and !zeroArray.capacity
 
     let defaultArrayType = #typeof([2] CoreNonNullRuntimeDefault)
@@ -89,32 +89,32 @@ func testCoreNonNullDynamicInitialization()->bool
     if defaultArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit or defaultAliasType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
 
-    let allocatedDefaults = Memory.new(defaultArrayType)
+    let allocatedDefaults      = Memory.new(defaultArrayType)
     let allocatedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) allocatedDefaults
-    let initializedNewArray = allocatedDefaultValues != null and
+    let initializedNewArray    = allocatedDefaultValues != null and
                               (dref allocatedDefaultValues)[0].value == "fallback" and
                               (dref allocatedDefaultValues)[1].value == "fallback"
     if allocatedDefaults do
         Memory.free(cast(#null [*] void) allocatedDefaults, cast(u64) defaultArrayType.sizeof)
 
-    let allocatedAlias = Memory.new(defaultAliasType)
+    let allocatedAlias      = Memory.new(defaultAliasType)
     let allocatedAliasValue = cast(#null *CoreNonNullRuntimeDefault) allocatedAlias
     let initializedNewAlias = allocatedAliasValue != null and allocatedAliasValue.value == "fallback"
     if allocatedAlias do
         Memory.free(cast(#null [*] void) allocatedAlias, cast(u64) defaultAliasType.sizeof)
 
-    let nestedAliasArrayType = #typeof([3] CoreNonNullRuntimeDefaultPair)
-    let allocatedNestedAliasArray = Memory.new(nestedAliasArrayType)
-    let nestedAliasValues = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedAliasArray
+    let nestedAliasArrayType        = #typeof([3] CoreNonNullRuntimeDefaultPair)
+    let allocatedNestedAliasArray   = Memory.new(nestedAliasArrayType)
+    let nestedAliasValues           = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedAliasArray
     let initializedNestedAliasArray = nestedAliasValues != null and
                                       nestedAliasValues[0].value == "fallback" and
                                       nestedAliasValues[5].value == "fallback"
     if allocatedNestedAliasArray do
         Memory.free(cast(#null [*] void) allocatedNestedAliasArray, cast(u64) nestedAliasArrayType.sizeof)
 
-    let nestedArrayType = #typeof([3][2] CoreNonNullRuntimeDefault)
-    let allocatedNestedArray = Memory.new(nestedArrayType)
-    let nestedValues = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedArray
+    let nestedArrayType        = #typeof([3][2] CoreNonNullRuntimeDefault)
+    let allocatedNestedArray   = Memory.new(nestedArrayType)
+    let nestedValues           = cast(#null [*] CoreNonNullRuntimeDefault) allocatedNestedArray
     let initializedNestedArray = nestedValues != null and
                                  nestedValues[0].value == "fallback" and
                                  nestedValues[5].value == "fallback"
@@ -132,15 +132,15 @@ func testCoreNonNullDynamicInitialization()->bool
     let initializedResetAlias = resetAlias.value == "fallback"
 
     var appendedDefaults: Array'CoreNonNullRuntimeDefaultPair
-    let appendedDefaultsPtr = Reflection.appendValueStructArray(&appendedDefaults, defaultArrayType)
-    let appendedDefaultValues = cast(#null *[2] CoreNonNullRuntimeDefault) appendedDefaultsPtr
+    let appendedDefaultsPtr    = Reflection.appendValueStructArray(&appendedDefaults, defaultArrayType)
+    let appendedDefaultValues  = cast(#null *[2] CoreNonNullRuntimeDefault) appendedDefaultsPtr
     let initializedAppendArray = appendedDefaultValues != null and
                                  (dref appendedDefaultValues)[0].value == "fallback" and
                                  (dref appendedDefaultValues)[1].value == "fallback"
 
     var appendedAliases: Array'CoreNonNullRuntimeDefaultAlias
-    let appendedAliasPtr = Reflection.appendValueStructArray(&appendedAliases, defaultAliasType)
-    let appendedAliasValue = cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr
+    let appendedAliasPtr       = Reflection.appendValueStructArray(&appendedAliases, defaultAliasType)
+    let appendedAliasValue     = cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr
     let initializedAppendAlias = appendedAliasValue != null and appendedAliasValue.value == "fallback"
 
     @assert(cxt.user0 == 6)

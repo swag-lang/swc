@@ -155,7 +155,7 @@ func narrowIfLet(o: *NarrowOwner)->s32
 // `notnull` on an already non-null value is a tolerated no-op.
 func narrowAssumeTolerant()->s32
 {
-    var node = NarrowNode{value: 9}
+    var node           = NarrowNode{value: 9}
     let q: *NarrowNode = &node
     return takesPtr(notnull q)
 }

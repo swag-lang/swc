@@ -105,7 +105,7 @@ struct Properties
 {
     using frameWnd: FrameWnd
 
-    kind                = PropertiesKind.List
+    kind = PropertiesKind.List
 
     sizeEditValue: s32 = 200
 
@@ -446,6 +446,7 @@ impl Properties
             let itn = notnull it
             itn.line.destroyNow()
         }
+
         .items.clear()
         .sections.clear()
         .gridLevelHasMark.clear()

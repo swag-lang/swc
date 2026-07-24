@@ -11,13 +11,13 @@ using Swag, Core
     let glyphIndex = face.glyphIndex(0x00E9)
     @assert(glyphIndex > 0)
 
-    let faceData = getFaceData(face)
+    let faceData                  = getFaceData(face)
     let glyf: #null const [..] u8 = catch getTableSlice(faceData, TAG_GLYF, 0x10)
     @assert(@err == null)
 
     let glyphStart = faceData.glyphLocations[glyphIndex]
-    let glyphEnd = faceData.glyphLocations[glyphIndex + 1]
-    let glyphData = catch getSlice(glyf, glyphStart, glyphEnd - glyphStart)
+    let glyphEnd   = faceData.glyphLocations[glyphIndex + 1]
+    let glyphData  = catch getSlice(glyf, glyphStart, glyphEnd - glyphStart)
     @assert(@err == null)
     let contourCount = catch readS16(glyphData, 0)
     @assert(@err == null)

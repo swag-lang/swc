@@ -28,11 +28,11 @@ func fontPath(fileName: string, loc = #callerlocation)->String
 func loadFonts() throw
 {
     g_FontPath = fontPath("segoeui.ttf")
-    let path   = g_FontPath.toString()
+    let path = g_FontPath.toString()
 
     g_FontBytes = File.readAllBytes(path)
-    let face    = notnull (try Face.load(g_FontBytes.toSlice()))
-    g_Face      = face
+    let face = notnull (try Face.load(g_FontBytes.toSlice()))
+    g_Face = face
 
     g_FontInfo = Format.toString("% % | % glyphs | % bytes", face.familyName, face.styleName, face.glyphCount, g_FontBytes.count)
 

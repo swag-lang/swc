@@ -55,8 +55,8 @@ impl IForm for FormLine
         .xb = cast(s32) (localPos.x / zoom)
         .yb = cast(s32) (localPos.y / zoom)
 
-        var xbu = 0
-        var ybu = 0
+        var xbu     = 0
+        var ybu     = 0
         let capture = notnull .capture
         capture.snap(&xbu, &ybu, true, true, 1, cast(IForm) me)
         .xb += xbu

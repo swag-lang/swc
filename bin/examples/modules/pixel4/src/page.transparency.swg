@@ -7,7 +7,7 @@ func drawBlobSurface(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.fillPath(&blob, Color.fromArgb(42, Argb.MediumPurple))
 
     let outlineOffset = blob.polygon.isClockwise ? 3.0 : -3.0
-    var outline = blob.polygon.getOffset(outlineOffset, JoinStyle.Round)
+    var outline       = blob.polygon.getOffset(outlineOffset, JoinStyle.Round)
 
     var pen = Pen.createSolid(Color.fromArgb(136, Argb.MediumPurple), 6)
     pen.begCapStyle = .None
@@ -76,7 +76,7 @@ func drawTransparencyPage(painter: *Pixel.Painter)
 
     painter.popClippingRect()
 
-    let alphaBody = drawPanel(painter, {28, 530, 924, 154}, "Opacity samples", "Same path, same geometry, different alpha values.")
+    let alphaBody      = drawPanel(painter, {28, 530, 924, 154}, "Opacity samples", "Same path, same geometry, different alpha values.")
     let alphaRowHeight = alphaBody.height / 3.0
     drawAlphaRow(painter, {alphaBody.x, alphaBody.y + 0 * alphaRowHeight, alphaBody.width, alphaRowHeight}, 64, "25% alpha")
     drawAlphaRow(painter, {alphaBody.x, alphaBody.y + 1 * alphaRowHeight, alphaBody.width, alphaRowHeight}, 128, "50% alpha")

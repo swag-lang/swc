@@ -42,7 +42,7 @@ impl BitStream
         {
             let chunk = dref notnull cast(#null const *u64) .curPtr()
             .codeBuffer |= chunk << #wrap .numBits
-            let nbytes  = (64 - cast(u64) .numBits) >> 3
+            let nbytes = (64 - cast(u64) .numBits) >> 3
             .curByte += nbytes
             .numBits += cast(u8) (nbytes << 3)
 

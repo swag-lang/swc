@@ -20,7 +20,7 @@ func semaTest002()
     #assert(#typeof(x) == bool)
 
     var y: u16 = 5
-    var z = y
+    var z      = y
     #assert(#typeof(z) == u16)
 }
 

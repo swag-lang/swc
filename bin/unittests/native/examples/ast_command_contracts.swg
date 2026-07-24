@@ -46,7 +46,7 @@ func scheduleDeployment(replicas: s32, region: string, dryRun: bool, authToken: 
 #[StringPolicyRule("approvalCode", 6, false, true)]
 func submitWireTransfer(cents: s32, toAccount: string, approvalCode: string)->WireReceipt
 {
-    let approved = cents <= 500_000 and @countof(approvalCode) >= 6
+    let approved  = cents <= 500_000 and @countof(approvalCode) >= 6
     let queueSlot = cents / 100
     return {approved: approved, queueSlot: queueSlot, reviewRequired: cents > 200_000}
 }
@@ -321,7 +321,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
     command.authToken = "tok_0123456789abcd"
 
     let redacted = redactScheduleDeploymentCommand(command)
-    let result = invokeScheduleDeploymentCommand(command)
+    let result   = invokeScheduleDeploymentCommand(command)
 
     @assert(command.replicas == 6)
     @assert(command.region == "eu-west")
@@ -357,7 +357,7 @@ func appendCommandContract(buffer: [*] u8, start: u64, contractName, handlerName
     command.toAccount    = "acct-7781"
     command.approvalCode = "APR-8832"
 
-    let receipt = invokeSubmitWireTransferCommand(command)
+    let receipt  = invokeSubmitWireTransferCommand(command)
     let redacted = redactSubmitWireTransferCommand(command)
 
     @assert(validateSubmitWireTransferCommand(command))

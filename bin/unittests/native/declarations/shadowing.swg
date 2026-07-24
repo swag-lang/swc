@@ -67,7 +67,7 @@
 #test
 {
     var count = 100
-    var i = 0
+    var i     = 0
     while i < 3
     {
         var count = i

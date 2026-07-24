@@ -711,12 +711,12 @@ impl QuickWnd
             if !paintForm.title.isEmpty()
             {
                 let textColor = g_App.theme.colors.btnIcon_Text
-                let rect = (notnull paintForm.itf).boundRect()
+                let rect      = (notnull paintForm.itf).boundRect()
                 painter.drawStringCenter(rect.horzCenter(), rect.bottom(), paintForm.title, captmeFont(btnp.getFont().regular), textColor)
             }
         }
 
-        let edMode = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
+        let edMode    = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
         let prevStyle = .currentStyle
         #[Swag.Complete]
         switch edMode
@@ -785,7 +785,7 @@ impl QuickWnd
 
             btn.sigRightPressed += func(btn)
             {
-                var rect = btn.getSurfaceRect()
+                var rect     = btn.getSurfaceRect()
                 let quickBtn = cast(*QuickButton) btn
                 quickBtn.quickWnd.btnPopup(btn, rect.center())
             }
@@ -853,7 +853,7 @@ impl QuickWnd
             btn1.sigPressed += func|quickWnd = me|(btn)
             {
                 let main = quickWnd.main
-                let mdl = main.newFormFromModel(main.getEditMode())
+                let mdl  = main.newFormFromModel(main.getEditMode())
                 if mdl
                 {
                     let style = notnull quickWnd.currentStyle

@@ -20,8 +20,8 @@ func arity(a: s32, b: s32) { gArityResult = a + b }
 // Method overload with different param types (using explicit suffixes)
 struct OverS {}
 
-var gOverMethodS32:  s32 = 0
-var gOverMethodBool: bool = false
+var gOverMethodS32:  s32    = 0
+var gOverMethodBool: bool   = false
 var gOverMethodStr:  string = ""
 
 impl OverS
@@ -46,7 +46,7 @@ impl OverS
 }
 
 // Overload with u8 vs u32 (explicit type suffixes needed)
-var gOverU8:  u8 = 0
+var gOverU8:  u8  = 0
 var gOverU32: u32 = 0
 
 func sizedOp(a: u8) { gOverU8 = a }
@@ -120,7 +120,7 @@ impl MOverS
 
 // Overload: bool vs s32 (bool is distinct from integer)
 var gBoolHit: bool = false
-var gIntHit:  s32 = 0
+var gIntHit:  s32  = 0
 
 func boolOrInt(a: bool) { gBoolHit = a }
 func boolOrInt(a: s32)  { gIntHit = a }

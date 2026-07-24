@@ -80,7 +80,7 @@ enum StressKind: u16
         var k: StressKind = StressKind.A
         k = StressKind.C
 
-        var a: s8 = -10's8
+        var a: s8  = -10's8
         var b: u16 = 300'u16
         var c: s64 = cast(s64) a + cast(s64) b + cast(s64) cast(u16) k
 
@@ -111,8 +111,8 @@ enum StressKind: u16
     func stressCallAndIndex()->s32
     {
         var arr: [4] s32 = [3, 5, 7, 11]
-        var idx: s32 = 1
-        var acc: s32 = 0
+        var idx: s32     = 1
+        var acc: s32     = 0
 
         acc += stressHelper(arr[0], arr[idx])
         idx += 1
@@ -151,7 +151,7 @@ enum StressKind: u16
     func stressWideCoverage()->s32
     {
         var arr: [5] s32 = [2, 4, 6, 8, 10]
-        var acc: s32 = 0
+        var acc: s32     = 0
 
         acc += stressBlend(arr[0], arr[1], arr[2])
         acc += stressBlend(arr[3], arr[4], arr[0])

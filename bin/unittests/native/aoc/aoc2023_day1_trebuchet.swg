@@ -127,7 +127,7 @@ func calibrationValueWithWords(line: const [..] u8)->u32
 
     for @countof(line)
     {
-        var d = -1's32
+        var d  = -1's32
         let ch = line[@index]
 
         if isDigit(ch) do
@@ -164,7 +164,7 @@ func solveClean(bytes: const [..] u8)->CalibrationResult
             if lineEnd > lineStart
             {
                 let lineLen = lineEnd - lineStart
-                let line = bytes[lineStart until lineStart + lineLen]
+                let line    = bytes[lineStart until lineStart + lineLen]
                 result.digitOnly += cast(u64) calibrationValueDigitOnly(line)
                 result.withWords += cast(u64) calibrationValueWithWords(line)
             }
@@ -296,8 +296,8 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->CalibrationResult
 // Compile-time evaluation
 // ---------------------------------------------------------------------------
 
-const SampleAResult: CalibrationResult  = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInputA)
-const SampleBResult: CalibrationResult  = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInputB)
+const SampleAResult:  CalibrationResult = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInputA)
+const SampleBResult:  CalibrationResult = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInputB)
 const CoverageResult: CalibrationResult = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
 
 // ---------------------------------------------------------------------------

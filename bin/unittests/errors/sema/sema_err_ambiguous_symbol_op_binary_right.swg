@@ -28,7 +28,7 @@ impl AmbiguousBinaryRight
 
 #test
 {
-    var left = AmbiguousBinaryLeft{value: 1}
-    var right = AmbiguousBinaryRight{value: 2}
+    var left   = AmbiguousBinaryLeft{value: 1}
+    var right  = AmbiguousBinaryRight{value: 2}
     let result = left + right     // swc-expected-error {{sema_err_ambiguous_symbol}}
 }

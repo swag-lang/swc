@@ -43,7 +43,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
     @assert(@countof(plan) > 0)
 
     let firstRow = cast(const [..] u8) plan[0]
-    let width = cast(u32) @countof(firstRow)
+    let width    = cast(u32) @countof(firstRow)
 
     @assert(width <= 96)
 

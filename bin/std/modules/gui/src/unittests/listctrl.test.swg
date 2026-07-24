@@ -64,9 +64,9 @@ func listCtrlHeadlessSel(list: *ListCtrl)
 {
     var list: ListCtrl
 
-    let root0 = list.createLine("root0")
-    let child0 = list.createLine("child0", parentLine: root0)
-    let root1 = list.createLine("root1")
+    let root0     = list.createLine("root0")
+    let child0    = list.createLine("child0", parentLine: root0)
+    let root1     = list.createLine("root1")
     let separator = list.createLine("separator")
     separator.separator = true
     let root2 = list.createLine("root2")
@@ -93,10 +93,10 @@ func listCtrlHeadlessSel(list: *ListCtrl)
     var list: ListCtrl
     list.selectionMode = .Multi
 
-    let root0 = list.createLine("root0")
+    let root0       = list.createLine("root0")
     let hiddenChild = list.createLine("hidden", parentLine: root0)
-    let root1 = list.createLine("root1")
-    let separator = list.createLine("separator")
+    let root1       = list.createLine("root1")
+    let separator   = list.createLine("separator")
     separator.separator = true
     let root2 = list.createLine("root2")
 

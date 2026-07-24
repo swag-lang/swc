@@ -33,8 +33,8 @@ struct ColorPicker
     using wnd:     Wnd
     hue, sat, lum: f32
     a, r, g, b:    f32
-    mode               = ColorPickerMode.SaturationLightness
-    sigChanged: SigArray'func||(*ColorPicker)
+    mode = ColorPickerMode.SaturationLightness
+    sigChanged:    SigArray'func||(*ColorPicker)
 
     internal
     {

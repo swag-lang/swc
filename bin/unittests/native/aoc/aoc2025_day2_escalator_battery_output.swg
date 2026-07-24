@@ -40,7 +40,7 @@ func bestBankOutput(bank: string)->s32
         for [j] in i + 1 to cast(u64) @countof(digits) - 1
         {
             let second = digitValue(digits[j])
-            let value = first * 10 + second
+            let value  = first * 10 + second
             best = maxS32(best, value)
         }
     }

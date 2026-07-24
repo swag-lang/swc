@@ -16,10 +16,10 @@ struct HeaderItem
     width:    f32
     minWidth: f32
     maxWidth: f32
-    sizeable       = true
-    clickable      = true
-    iconMargin     = false
-    column: u32
+    sizeable   = true
+    clickable  = true
+    iconMargin = false
+    column:   u32
 }
 
 #[Swag.EnumFlags]
@@ -39,8 +39,8 @@ struct Header
     sigLayoutChanged: #null func||(*Header)
     sigClicked:       #null func||(*Header, u32)
 
-    items: ArrayPtr'HeaderItem
-    hotIdx                = Swag.U32.Max
+    items:         ArrayPtr'HeaderItem
+    hotIdx = Swag.U32.Max
     hotSeparator:  bool
     moving:        bool
     clicked:       bool

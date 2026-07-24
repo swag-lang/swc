@@ -8,14 +8,14 @@ func contextPointerIsPresent()->bool
 
 func contextAllocatorFieldHasRuntimeShape()->bool
 {
-    let context = @getcontext()
+    let context    = @getcontext()
     let runtimeItf = cast(const *Swag.Interface) &context.allocator
     return runtimeItf != null and runtimeItf.obj != null and runtimeItf.itable != null
 }
 
 func copiedContextAllocatorHasRuntimeShape()->bool
 {
-    let allocator = @getcontext().allocator
+    let allocator  = @getcontext().allocator
     let runtimeItf = cast(const *Swag.Interface) &allocator
     return runtimeItf != null and runtimeItf.obj != null and runtimeItf.itable != null
 }
@@ -88,7 +88,7 @@ func coalescedContextAllocatorRoundtrip()->bool
     var req: AllocatorRequest
     req.size = 16
 
-    let allocator = notnull (cast(#null IAllocator) null orelse @getcontext().allocator)
+    let allocator  = notnull (cast(#null IAllocator) null orelse @getcontext().allocator)
     let runtimeItf = cast(const *Swag.Interface) &allocator
     if runtimeItf == null or runtimeItf.obj == null or runtimeItf.itable == null do
         return false

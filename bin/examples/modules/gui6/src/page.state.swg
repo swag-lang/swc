@@ -26,7 +26,7 @@ func createCommandStatePage(parent: *Wnd)
     let layout = getPagePanelLayout(parent)
     createStateMenuModel(parent)
 
-    let left = createPanel(parent, "Computed rows", "Open the menu to inspect check marks, radio groups and disabled save/undo/redo rows.", layout.left)
+    let left     = createPanel(parent, "Computed rows", "Open the menu to inspect check marks, radio groups and disabled save/undo/redo rows.", layout.left)
     let stateBtn = PushButton.create(left, "Open state menu", {24, 104, 230})
     stateBtn.form       = .Default
     stateBtn.icon       = app.theme.getIcon24(.Options, 18)

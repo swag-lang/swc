@@ -347,7 +347,7 @@ func createRootView()
 
 #main
 {
-    let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 100, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI2 widget showcase")

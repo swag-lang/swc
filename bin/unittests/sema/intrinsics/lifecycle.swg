@@ -246,7 +246,7 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
     var arr:   [3] Tracked = [Tracked{1}, Tracked{2}, Tracked{3}]
-    var count: u64 = 2
+    var count: u64         = 2
     @postmove(&arr[0], count)
     @drop(&arr[0], count)
     return {arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
@@ -600,7 +600,7 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
         var outer = CompactDropTracked{9}
         for [i] in 2
         {
-            let base = cast(s32) (i * 3 + 1)
+            let base       = cast(s32) (i * 3 + 1)
             let value: s32 = trycatch intrinsicAutoDropTryCatchLoopStep(base)
             if value == 0
             {
@@ -685,7 +685,7 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
         if var flag = 1 where flag == 1
         {
             var branch = AutoCompactBranch{CompactDropTracked{2}, AutoCompactPair{CompactDropTracked{3}, CompactDropTracked{4}}}
-            var inner = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
+            var inner  = AutoCompactPair{CompactDropTracked{5}, CompactDropTracked{6}}
             result.first  = flag + outer.value
             result.second = branch.pair.first.value
             result.third  = inner.second.value

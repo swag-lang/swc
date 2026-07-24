@@ -6,7 +6,7 @@ var A: #null [..] s32
 
 #test
 {
-    var a: [3] s32 = [1, 2, 3]
+    var a: [3] s32  = [1, 2, 3]
     var s: [..] s32 = a
     @assert(s[0] == 1)
     s[1] = 7
@@ -30,7 +30,7 @@ var A: #null [..] s32
 
 #test
 {
-    var a: [3] s32 = [1, 2, 3]
+    var a: [3] s32        = [1, 2, 3]
     var s: const [..] s32 = a
     @assert(@countof(s) == 3)
     @assert(s[1] == 2)
@@ -38,7 +38,7 @@ var A: #null [..] s32
 
 #test
 {
-    var a: [3] s32 = [1, 2, 3]
+    var a: [3] s32  = [1, 2, 3]
     var s: [..] s32 = a
     @assert(@countof(s) == 3)
     s[2] = 9
@@ -56,7 +56,7 @@ var A: #null [..] s32
 #test
 {
     var arr: [5] s32 = [10, 20, 30, 40, 50]
-    let slice = arr[1 to 3]
+    let slice        = arr[1 to 3]
 
     @assert(@countof(slice) == 3)
     @assert(slice[0] == 20)
@@ -69,8 +69,8 @@ var A: #null [..] s32
 #test
 {
     var arr: [5] s32 = [10, 20, 30, 40, 50]
-    let slice = arr[until 2]
-    let full  = arr[to]
+    let slice        = arr[until 2]
+    let full         = arr[to]
 
     @assert(@countof(slice) == 2)
     @assert(slice[0] == 10)
@@ -82,8 +82,8 @@ var A: #null [..] s32
 #test
 {
     var arr: [5] s32 = [10, 20, 30, 40, 50]
-    let slice0 = arr[1 to 4]
-    let slice1 = slice0[1 until 3]
+    let slice0       = arr[1 to 4]
+    let slice1       = slice0[1 until 3]
 
     @assert(@countof(slice0) == 4)
     @assert(@countof(slice1) == 2)
@@ -97,9 +97,9 @@ var A: #null [..] s32
 #test
 {
     let str = "string"
-    let a = str[1 to 3]
-    let b = str[2 to]
-    let c = str[until 2]
+    let a   = str[1 to 3]
+    let b   = str[2 to]
+    let c   = str[until 2]
 
     @assert(a == "tri")
     @assert(b == "ring")
@@ -109,10 +109,10 @@ var A: #null [..] s32
 #test
 {
     let cstr: const cstring = cast(const cstring) @dataof("slice")
-    let a = cstr[1 to 3]
-    let b = cstr[2 to]
-    let c = cstr[until 2]
-    let full = cstr[to]
+    let a                   = cstr[1 to 3]
+    let b                   = cstr[2 to]
+    let c                   = cstr[until 2]
+    let full                = cstr[to]
 
     @assert(a == "lic")
     @assert(b == "ice")
@@ -122,22 +122,22 @@ var A: #null [..] s32
 
 #test
 {
-    var arr:    [5] s32 = [10, 20, 30, 40, 50]
+    var arr:    [5] s32  = [10, 20, 30, 40, 50]
     var arrRef: &[5] s32 = &arr
-    let arrSlice = arrRef[1 to 3]
+    let arrSlice         = arrRef[1 to 3]
     @assert(@countof(arrSlice) == 3)
     @assert(arrSlice[0] == 20)
     arrSlice[1] = 77
     @assert(arr[2] == 77)
 
-    var view:    [..] s32 = arr
+    var view:    [..] s32        = arr
     let viewRef: const &[..] s32 = &view
-    let sub = viewRef[1 until 3]
+    let sub                      = viewRef[1 until 3]
     @assert(@countof(sub) == 2)
     @assert(sub[0] == 20)
     @assert(sub[1] == 77)
 
-    let text = "string"
+    let text                   = "string"
     let textRef: const &string = &text
     @assert(textRef[1 to 3] == "tri")
 }

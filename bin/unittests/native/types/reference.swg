@@ -21,7 +21,7 @@ impl RefIndexBuffer
 {
     func testRead(x: &Vec2)->s32 { return x.x + x.y; }
     var v: Vec2 = {x: 8, y: 13}
-    var sum = testRead(&v)
+    var sum     = testRead(&v)
     @assert(sum == 21)
 }
 
@@ -46,7 +46,7 @@ impl RefIndexBuffer
         dref p = 42
     }
     var v: s32 = 10
-    var p = getPtr(&v)
+    var p      = getPtr(&v)
     @assert(dref p == 10)
     writeThrough(p)
     @assert(v == 42)
@@ -59,7 +59,7 @@ func writeScalarRef(target: &s32, value: s32)
 
 #test
 {
-    var value:    s32 = 10
+    var value:    s32  = 10
     var valueRef: &s32 = &value
 
     valueRef = 42
@@ -84,7 +84,7 @@ func writeScalarRef(target: &s32, value: s32)
         p.y = 99
     }
     var v: Vec2 = {x: 1, y: 2}
-    var p = getPtr(&v)
+    var p       = getPtr(&v)
     writeThrough(p)
     @assert(v.x == -3)
     @assert(v.y == 99)
@@ -97,9 +97,9 @@ func writeVecRef(target: &Vec2, value: Vec2)
 
 #test
 {
-    var value:    Vec2 = {x: 1, y: 2}
+    var value:    Vec2  = {x: 1, y: 2}
     var valueRef: &Vec2 = &value
-    let other:    Vec2 = {x: 30, y: 40}
+    let other:    Vec2  = {x: 30, y: 40}
 
     valueRef = other
     @assert(valueRef.x == 30)
@@ -124,8 +124,8 @@ func writeVecRef(target: &Vec2, value: Vec2)
     }
     var left:  Vec2 = {x: 100, y: 200}
     var right: Vec2 = {x: 300, y: 400}
-    var p0 = choose(true, &left, &right)
-    var p1 = choose(false, &left, &right)
+    var p0          = choose(true, &left, &right)
+    var p1          = choose(false, &left, &right)
     @assert(p0.x == 100)
     @assert(p0.y == 200)
     @assert(p1.x == 300)
@@ -156,8 +156,8 @@ func writeVecRef(target: &Vec2, value: Vec2)
 #test
 {
     var values: RefIndexBuffer = {values: [12]}
-    var total = 1's32
-    var index = 0's64
+    var total                  = 1's32
+    var index                  = 0's64
 
     let valueRef: &s32 = &values.ref1(index)
     total    += valueRef
@@ -203,7 +203,7 @@ func readConstAddr(value: const &ConstAddrValue)->s32 { return value.x }
 
 #test
 {
-    let holder:   ConstAddrHolder = {value: {x: 123}}
+    let holder:   ConstAddrHolder       = {value: {x: 123}}
     var valueRef: const &ConstAddrValue = &holder.value
 
     @assert(valueRef.x == 123)
@@ -244,9 +244,9 @@ func(T) dampRefValue(currentVelocity: &T, omega, clampedChange, deltaTime: T)->T
 
 func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smoothTime, deltaTime: T)->T
 {
-    let omega = 2.0 / smoothTime
+    let omega  = 2.0 / smoothTime
     let change = current - target
-    let temp = (currentVelocity + omega * change) * deltaTime
+    let temp   = (currentVelocity + omega * change) * deltaTime
     return temp
 }
 
@@ -266,10 +266,10 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 
 #test
 {
-    var value:    f32 = 1.5
+    var value:    f32        = 1.5
     let valueRef: const &f32 = &value
-    let copied = cast(f32) valueRef
-    let sum = valueRef + 2.5'f32
+    let copied               = cast(f32) valueRef
+    let sum                  = valueRef + 2.5'f32
 
     #assert(#typeof(copied) == f32)
     #assert(#typeof(sum) == f32)
@@ -281,7 +281,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 #test
 {
     var value: f32 = 1.5
-    let sum = addRefValue(&value, 2.5'f32)
+    let sum        = addRefValue(&value, 2.5'f32)
 
     #assert(#typeof(sum) == f32)
     @assert(sum == 4.0'f32)
@@ -290,7 +290,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 #test
 {
     var value: f32 = 1.5
-    let temp = dampRefValue(&value, 2.0'f32, 3.0'f32, 0.5'f32)
+    let temp       = dampRefValue(&value, 2.0'f32, 3.0'f32, 0.5'f32)
 
     #assert(#typeof(temp) == f32)
     @assert(temp == 3.75'f32)
@@ -299,8 +299,8 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 #test
 {
     var box: RefFloatBox = {value: 1.5}
-    let sum = addRefValue(&box.value, 2.5'f32)
-    let temp = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
+    let sum              = addRefValue(&box.value, 2.5'f32)
+    let temp             = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
 
     #assert(#typeof(sum) == f32)
     #assert(#typeof(temp) == f32)
@@ -311,7 +311,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: &T, smooth
 #test
 {
     var value: f32 = 1.5
-    let temp = dampRefValueWithLiterals(4.0'f32, 1.0'f32, &value, 0.5'f32, 0.25'f32)
+    let temp       = dampRefValueWithLiterals(4.0'f32, 1.0'f32, &value, 0.5'f32, 0.25'f32)
 
     #assert(#typeof(temp) == f32)
     @assert(temp == 3.375'f32)

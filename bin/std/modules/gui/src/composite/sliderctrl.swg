@@ -5,9 +5,9 @@ using Core, Pixel
 struct SliderCtrl
 {
     using frameWnd: FrameWnd
-    labelSize:      f32 = 60
-    editSize:       f32 = 60
-    gap:            f32 = 8
+    labelSize:      f32  = 60
+    editSize:       f32  = 60
+    gap:            f32  = 8
     autoEditSize:   bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
 
     sigChanged: SigArray'func||(*SliderCtrl)

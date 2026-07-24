@@ -9,9 +9,9 @@ using Swag
     let culture1 = Globalization.getCultureInfo()
     @assert(culture0 == culture1)
 
-    let oldNegativeSign      = culture0.numberFormat.negativeSign
-    let oldPositiveSign      = culture0.numberFormat.positiveSign
-    let oldDecimalSeparator  = culture0.numberFormat.decimalSeparator
+    let oldNegativeSign     = culture0.numberFormat.negativeSign
+    let oldPositiveSign     = culture0.numberFormat.positiveSign
+    let oldDecimalSeparator = culture0.numberFormat.decimalSeparator
 
     culture0.numberFormat.negativeSign     = '~'
     culture0.numberFormat.positiveSign     = '^'

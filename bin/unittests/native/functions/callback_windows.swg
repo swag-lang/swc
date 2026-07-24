@@ -36,11 +36,11 @@ func threadCallback(param: #null *void)->DWORD
 
     let callback: ThreadProc = &threadCallback
 
-    var id = 0'u32
+    var id     = 0'u32
     let thread = CreateThread(null, 0, callback, &data, 0, &id)
     @assert(thread != null)
 
-    let waitRes = WaitForSingleObject(thread, INFINITE)
+    let waitRes  = WaitForSingleObject(thread, INFINITE)
     let closeRes = CloseHandle(thread)
 
     @assert(waitRes == WAIT_OBJECT_0)

@@ -55,8 +55,8 @@ func forwardY(y: s32, direction: u32)->s32
 
 func analyzeRoute(layout: const [..] string)->RouteReport
 {
-    let height = cast(u32) @countof(layout)
-    let width = lineWidth(layout[0])
+    let height     = cast(u32) @countof(layout)
+    let width      = lineWidth(layout[0])
     let totalCells = width * height
 
     @assert(totalCells <= MaxHallwayCells)
@@ -72,7 +72,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
         for width
         {
-            let x = cast(u32) @index
+            let x     = cast(u32) @index
             let index = cellIndex(x, cast(u32) rowIndex, width)
             let value = row[x]
 
@@ -102,8 +102,8 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
     for stateCount
     {
-        var bestState = Swag.U32.Max
-        var bestDistance = Swag.U64.Max
+        var bestState     = Swag.U32.Max
+        var bestDistance  = Swag.U64.Max
         var bestStepCount = Swag.U32.Max
 
         for stateCount
@@ -126,19 +126,19 @@ func analyzeRoute(layout: const [..] string)->RouteReport
 
         visited[bestState] = true
 
-        let cell = bestState / 4'u32
+        let cell      = bestState / 4'u32
         let direction = bestState % 4'u32
-        let x = cast(s32) (cell % width)
-        let y = cast(s32) (cell / width)
+        let x         = cast(s32) (cell % width)
+        let y         = cast(s32) (cell / width)
 
-        let nextX = forwardX(x, direction)
-        let nextY = forwardY(y, direction)
+        let nextX    = forwardX(x, direction)
+        let nextY    = forwardY(y, direction)
         let nextCell = cellIndex(cast(u32) nextX, cast(u32) nextY, width)
         if cells[nextCell] != '#''u8
         {
-            let forwardState = stateIndex(nextCell, direction)
+            let forwardState      = stateIndex(nextCell, direction)
             let candidateDistance = bestDistance + 1'u64
-            let candidateSteps = bestStepCount + 1'u32
+            let candidateSteps    = bestStepCount + 1'u32
 
             if candidateDistance < dist[forwardState] or candidateDistance == dist[forwardState] and candidateSteps < steps[forwardState]
             {
@@ -148,7 +148,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         }
 
         let rightDirection = (direction + 1'u32) % 4'u32
-        let leftDirection = (direction + 3'u32) % 4'u32
+        let leftDirection  = (direction + 3'u32) % 4'u32
 
         let rightState = stateIndex(cell, rightDirection)
         if bestDistance + 1000'u64 < dist[rightState] or bestDistance + 1000'u64 == dist[rightState] and bestStepCount < steps[rightState]

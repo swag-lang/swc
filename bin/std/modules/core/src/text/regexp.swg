@@ -283,10 +283,10 @@ impl RegExp
         if str == null do
             return result
 
-        var res              = str orelse ""
-        let end              = @dataof(res) + @countof(res)
-        var atBufferStart    = true
-        var previousWasWord  = false
+        var res             = str orelse ""
+        let end             = @dataof(res) + @countof(res)
+        var atBufferStart   = true
+        var previousWasWord = false
 
         for
         {
@@ -348,10 +348,10 @@ impl RegExp
 
     mtd internalGrep(str: string, atBufferStart = true, prevWasWord = false)->#null string
     {
-        var beg  = cast(#null const [*] u8) @dataof(str)
-        let last = beg + @countof(str)
-        var atStart   = atBufferStart
-        var wasWord   = prevWasWord
+        var beg     = cast(#null const [*] u8) @dataof(str)
+        let last    = beg + @countof(str)
+        var atStart = atBufferStart
+        var wasWord = prevWasWord
 
         for
         {
@@ -444,7 +444,7 @@ impl RegExp
             while !pstack1.isEmpty()
             {
                 var curState = pstack1.popBack()
-                let curNode = notnull curState.node
+                let curNode  = notnull curState.node
                 if curNode.terminal and forGrep do
                     grepTerm = curState
                 if curState.parseIdx >= .bufLength
@@ -454,7 +454,7 @@ impl RegExp
                 }
 
                 let bufStart = .bufStart
-                let ptr = bufStart + curState.parseIdx
+                let ptr      = bufStart + curState.parseIdx
                     let (cr, eat) = Utf8.decodeRune(@mkslice(ptr, .bufLength - curState.parseIdx))
                 let c = .ignoreCase ? Unicode.toUpper(cr) : cr
 
@@ -489,7 +489,7 @@ impl RegExp
             while !pstack1.isEmpty()
             {
                 var curState = pstack1.popBack()
-                let curNode = notnull curState.node
+                let curNode  = notnull curState.node
                 if curNode.terminal and (forGrep or curState.parseIdx >= .bufLength)
                 {
                     .closeGroup(&curState)
@@ -559,15 +559,15 @@ impl RegExp
     mtd backward(out: *Array'DfaState, what: rune, state: *DfaState)
     {
         let stateNode = notnull state.node
-        let grp = stateNode.transitions.tryFind(what)
+        let grp       = stateNode.transitions.tryFind(what)
         if grp
         {
             let grpNode = notnull grp.value
-            var st = dref state
+            var st      = dref state
             .syncActiveGroups(&st, grpNode.rawGroup)
             var strGroup: string = ""
-            var hasGroup = false
-            let rank = 1 + (what - RuneGroup1)
+            var hasGroup         = false
+            let rank             = 1 + (what - RuneGroup1)
             for g in st.groups
             {
                 if g.rank == rank
@@ -586,7 +586,7 @@ impl RegExp
             if hasGroup
             {
                 let bufStart = notnull .bufStart
-                let ptr = bufStart + st.parseIdx
+                let ptr      = bufStart + st.parseIdx
                 if !@countof(strGroup) or Utf8.startsWith(@mkslice(ptr, .bufLength - st.parseIdx), strGroup, .ignoreCase ? .UnicodeNoCase : .Unicode)
                 {
                     st.node     = grpNode
@@ -676,7 +676,7 @@ impl RegExp
         var bestDepth: u32
         let currentRaw  = state.activeGroups.count ? state.activeGroups.back().rawGroup : 0
         let currentRank = state.activeGroups.count ? state.activeGroups.back().rank : 0
-        let stateNode = notnull state.node
+        let stateNode   = notnull state.node
         for node in stateNode.table
         {
             let find = node.transitions.tryFind(c)
@@ -738,8 +738,8 @@ impl RegExp
             let #uniq1 = #uniq2.transitions.tryFind(c)
             if #uniq1
             {
-                var st = dref curState
-                let #uniq3 = notnull #uniq1.value
+                var st                = dref curState
+                let #uniq3            = notnull #uniq1.value
                 let pendingEmptyGroup = .findDisappearingEmptyGroup(&st, #uniq3, c)
                 if pendingEmptyGroup do
                     setCapture(&st, cast(s32) pendingEmptyGroup, "")
@@ -1116,8 +1116,8 @@ impl RegExp
             return
         }
 
-        var pz  = notnull .preprocessed.buffer
-        var cpt = 0
+        var pz            = notnull .preprocessed.buffer
+        var cpt           = 0
         var expectAltExpr = true
 
         while cpt < .preprocessed.count

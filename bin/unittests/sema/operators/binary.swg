@@ -2,8 +2,8 @@
 
 func semaTest001()
 {
-    let r = 'A''rune
-    let anded = r & 0x7F
+    let r       = 'A''rune
+    let anded   = r & 0x7F
     let shifted = r << 1
 
     #assert(#typeof(anded) == rune)

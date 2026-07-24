@@ -142,7 +142,7 @@ struct PaintEvent
     }
 
     using base: Event
-    kind:       Kind = .Paint
+    kind:       Kind          = .Paint
     bc:         *PaintContext = undefined
 }
 
@@ -176,7 +176,7 @@ struct KeyEvent
     using base: Event
     kind:       Kind
     modifiers:  Input.KeyModifiers = Zero
-    key:        Input.Key = undefined
+    key:        Input.Key          = undefined
     char:       rune
 }
 
@@ -199,7 +199,7 @@ struct MouseEvent
 
     using base: Event
     kind:       Kind
-    button:     Input.MouseButton = undefined
+    button:     Input.MouseButton  = undefined
     surfacePos: Math.Point
     move:       Math.Point
     modifiers:  Input.KeyModifiers = Zero
@@ -228,7 +228,7 @@ struct FocusEvent
     using base: Event
     kind:       Kind
     other:      #null *Wnd
-    canChangeFocus     = true
+    canChangeFocus = true
 }
 
 impl IEvent for FocusEvent {}

@@ -144,7 +144,7 @@ public impl Face
     mtd glyphIndex(charCode: rune)->u32
     {
         let faceData = cast(*FaceImpl) cast(*void) me
-        let idx = catch lookupGlyphIndex(faceData, cast(u32) charCode)
+        let idx      = catch lookupGlyphIndex(faceData, cast(u32) charCode)
         return @err != null ? 0 : idx
     }
 
@@ -158,7 +158,7 @@ public impl Face
     mtd loadChar(charCode: rune, loadFlags = LoadFlag.Default) throw
     {
         let faceData = getFaceImpl(me)
-        let idx = lookupGlyphIndex(faceData, cast(u32) charCode)
+        let idx      = lookupGlyphIndex(faceData, cast(u32) charCode)
         .loadGlyph(idx, loadFlags)
     }
 

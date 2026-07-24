@@ -302,7 +302,7 @@ func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Arr
     var result: retval
     result.add(bytes.toSlice())
 
-    let seek = findTagBinFieldSeek(result.toSlice(), fieldName)
+    let seek   = findTagBinFieldSeek(result.toSlice(), fieldName)
     var writer = ByteStream.openWrite(&result)
     writer.setSeek(seek + #sizeof(u32))
     writer.writeNative(typeCrc)
@@ -314,7 +314,7 @@ func corruptTagBinInterfaceObjectType(bytes: String, fieldName: string, typeCrc:
     var result: retval
     result.add(bytes.toSlice())
 
-    let seek = findTagBinFieldSeek(result.toSlice(), fieldName)
+    let seek   = findTagBinFieldSeek(result.toSlice(), fieldName)
     var writer = ByteStream.openWrite(&result)
     writer.setSeek(seek + #sizeof(u32) + #sizeof(u32) + #sizeof(Serialization.Write.TagBinValueFlags))
     writer.writeNative(typeCrc)
@@ -424,7 +424,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     var buffer:  ConcatBuffer
     catch encoder.writeAll(&buffer, payload)
     @assert(@err == null)
-    let bytes = buffer.toString()
+    let bytes     = buffer.toString()
     let byteSlice = bytes.toSlice()
 
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
@@ -653,7 +653,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
 {
     var source:        TagBinConversionSource
     let staticToArray: [3] s16 = [-7, 8, 19]
-    let arrayToStatic: [3] s8 = [-2, 4, 9]
+    let arrayToStatic: [3] s8  = [-2, 4, 9]
     let arrayToSingle: [2] s16 = [55, 66]
 
     source.small          = -123

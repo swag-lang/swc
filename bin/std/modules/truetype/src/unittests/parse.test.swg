@@ -37,7 +37,7 @@ using Swag, Core
     let badFace1: #null *Face = catch Face.load(empty.toSlice())
     @assert(@err != null)
 
-    let bytes = loadFontBytes()
+    let bytes                 = loadFontBytes()
     let badFace2: #null *Face = catch Face.load(bytes.toSlice(), 1)
     @assert(@err != null)
 }

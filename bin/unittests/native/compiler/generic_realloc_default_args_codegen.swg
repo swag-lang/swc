@@ -4,8 +4,8 @@ using Swag
 namespace GenericReallocDefaultArgsCodegen
 {
     var gLastCaller: SourceCodeLocation
-    var gLastHintWasNull = false
-    var gLastAlignment   = 1'u32
+    var gLastHintWasNull  = false
+    var gLastAlignment    = 1'u32
     var gReallocCallCount = 0'u64
 
     func resetTracker()
@@ -140,7 +140,7 @@ namespace GenericReallocDefaultArgsCodegen
                 .reserve(.capacity ? .capacity * 2 : 2)
             let buf = notnull .buffer
             buf[.count] = value
-            .count          += 1
+            .count      += 1
         }
 
         mtd appendNamed(value: T)
@@ -149,7 +149,7 @@ namespace GenericReallocDefaultArgsCodegen
                 .reserveNamed(.capacity ? .capacity * 2 : 3)
             let buf = notnull .buffer
             buf[.count] = value
-            .count          += 1
+            .count      += 1
         }
 
         #[Inline]
@@ -211,7 +211,7 @@ namespace GenericReallocDefaultArgsCodegen
             values.append(item)
 
         let count = cast(u64) N
-        let ok = values.count == count and
+        let ok    = values.count == count and
                  @countof(values.toSlice()) == count and
                  values.capacity == expectedCapacity(2, count) and
                  values.stableCode() == expectedStableCode(count, expectedCapacity(2, count)) and
@@ -230,7 +230,7 @@ namespace GenericReallocDefaultArgsCodegen
             values.appendNamed(item)
 
         let count = cast(u64) N
-        let ok = values.count == count and
+        let ok    = values.count == count and
                  @countof(values.toSlice()) == count and
                  values.capacity == expectedCapacity(3, count) and
                  values.stableCode() == expectedStableCode(count, expectedCapacity(3, count)) and

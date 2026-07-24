@@ -138,13 +138,13 @@ enum IfElseKind: u16
     {
         if flag
         {
-            var a: s8 = cast(s8) -12
+            var a: s8  = cast(s8) -12
             var b: s16 = cast(s16) (3 * 4)
             return cast(s32) a + cast(s32) b
         }
         else
         {
-            var a: u8 = 7'u8
+            var a: u8  = 7'u8
             var b: u16 = cast(u16) (20 + 5)
             return cast(s32) a + cast(s32) b
         }
@@ -184,7 +184,7 @@ enum IfElseKind: u16
     {
         if flag
         {
-            var b = 10 > 5 and !false
+            var b       = 10 > 5 and !false
             var r: rune = 'A'
             if b
             {
@@ -197,7 +197,7 @@ enum IfElseKind: u16
         }
         else
         {
-            var b = false or true
+            var b       = false or true
             var r: rune = 'z'
             if b
             {
@@ -289,7 +289,7 @@ enum IfElseKind: u16
         if flag
         {
             var e: IfElseKind = IfElseKind.A
-            var v: s32 = cast(s32) cast(u16) e
+            var v: s32        = cast(s32) cast(u16) e
             return v + 1
         }
         else

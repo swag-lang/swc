@@ -218,7 +218,7 @@ using Swag, Core
     f.capture.redo()
     @assert(f.capture.forms.count == 1)
 
-    let undo = f.capture.newUndo(.CreateForm)
+    let undo    = f.capture.newUndo(.CreateForm)
     let newText = Memory.new'FormText()
     newText.IForm.setup(f.capture)
     newText.IForm.setBaseForm(70, 80, 20, 25)
@@ -242,7 +242,7 @@ using Swag, Core
     f.setup()
 
     let shape = testAddShape(f.capture, 10, 20, 30, 40)
-    let line = testAddLine(f.capture, 100, 120, 150, 170)
+    let line  = testAddLine(f.capture, 100, 120, 150, 170)
 
     var moveBase = f.capture.newUndo(.MoveBaseForm)
     moveBase.baseForm = cast(IForm) shape

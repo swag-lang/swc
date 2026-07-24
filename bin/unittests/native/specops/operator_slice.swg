@@ -53,7 +53,7 @@ struct RuntimeSliceHolder
 
 #test
 {
-    var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[1 to 3]
 
     #assert(#typeof(slice) == [..] s32)
@@ -68,7 +68,7 @@ struct RuntimeSliceHolder
 
 #test
 {
-    var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[1 until 3]
 
     @assert(@countof(slice) == 2)
@@ -81,7 +81,7 @@ struct RuntimeSliceHolder
 
 #test
 {
-    var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[to 2]
 
     @assert(@countof(slice) == 3)
@@ -94,7 +94,7 @@ struct RuntimeSliceHolder
 
 #test
 {
-    var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[2 to]
 
     @assert(@countof(slice) == 3)
@@ -107,7 +107,7 @@ struct RuntimeSliceHolder
 
 #test
 {
-    var box = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
+    var box   = RuntimeSliceBox{values: [10, 20, 30, 40, 50]}
     let slice = box[to]
 
     @assert(@countof(slice) == 5)
@@ -120,7 +120,7 @@ struct RuntimeSliceHolder
 #test
 {
     var holder = RuntimeSliceHolder{value: RuntimeSliceBox{values: [10, 20, 30, 40, 50]}}
-    let slice = holder.value[1 until 4]
+    let slice  = holder.value[1 until 4]
 
     @assert(@countof(slice) == 3)
     @assert(slice[0] == 20)
@@ -135,8 +135,8 @@ struct RuntimeSliceHolder
 {
     const box = RuntimeStringSliceBox{bytes: [115'u8, 116'u8, 114'u8, 105'u8, 110'u8, 103'u8]}
     let middle = box[1 until 5]
-    let tail = box[2 to]
-    let head = box[to 2]
+    let tail   = box[2 to]
+    let head   = box[to 2]
 
     #assert(#typeof(middle) == string)
     @assert(middle == "trin")

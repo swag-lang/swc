@@ -13,7 +13,7 @@ struct DesignReport
 
 func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bool
 {
-    let patternBytes = cast(const [..] u8) pattern
+    let patternBytes  = cast(const [..] u8) pattern
     let patternLength = cast(u32) @countof(patternBytes)
 
     if startIndex + patternLength > cast(u32) @countof(design) do
@@ -31,7 +31,7 @@ func matchesPattern(design: const [..] u8, startIndex: u32, pattern: string)->bo
 
 func countAssemblies(patterns: const [..] string, design: string)->u64
 {
-    let designBytes = cast(const [..] u8) design
+    let designBytes  = cast(const [..] u8) design
     let designLength = cast(u32) @countof(designBytes)
     @assert(designLength <= MaxDesignLength)
 
@@ -77,7 +77,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
 #test
 {
     const samplePatterns: [8] string = ["r", "wr", "b", "g", "bwu", "rb", "gb", "br"]
-    const sampleDesigns: [8] string  =
+    const sampleDesigns:  [8] string =
         [
         "brwrr",
         "bggr",
@@ -95,7 +95,7 @@ func analyzeBadgeRequests(patterns: const [..] string, designs: const [..] strin
     @assert(sampleReport.totalArrangements == 16)
 
     const compactPatterns: [4] string = ["a", "ab", "ba", "b"]
-    const compactDesigns: [4] string  = ["aba", "abba", "bbb", "c"]
+    const compactDesigns:  [4] string = ["aba", "abba", "bbb", "c"]
 
     let compactReport = analyzeBadgeRequests(compactPatterns, compactDesigns)
 

@@ -24,9 +24,9 @@ enum ForeachIndexedSlot: u8
 {
     func foreachStrictArrayAlias()->s32
     {
-        var raw: [3] s32 = [4, 5, 6]
+        var raw: [3] s32            = [4, 5, 6]
         var arr: ForeachStrictArray = cast(ForeachStrictArray) raw
-        var acc: s32 = 0
+        var acc: s32                = 0
 
         for v, [i] in arr
         {
@@ -44,10 +44,10 @@ enum ForeachIndexedSlot: u8
 {
     func foreachStrictSliceAlias()->s32
     {
-        var arr: [3] s32 = [7, 8, 9]
-        var rawSl = cast([..] s32) arr
+        var arr: [3] s32            = [7, 8, 9]
+        var rawSl                   = cast([..] s32) arr
         var sl:  ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
-        var acc: s32 = 0
+        var acc: s32                = 0
 
         for v, [i] in sl
         {
@@ -66,7 +66,7 @@ enum ForeachIndexedSlot: u8
     func foreachArrayValueIndex()->s32
     {
         var arr: [5] s32 = [1, 2, 3, 4, 5]
-        var acc: s32 = 0
+        var acc: s32     = 0
 
         for v, [i] in arr
         {
@@ -85,7 +85,7 @@ enum ForeachIndexedSlot: u8
     func foreachWhereControl()->s32
     {
         var arr: [8] s32 = [1, 2, 3, 4, 5, 6, 7, 8]
-        var acc: s32 = 0
+        var acc: s32     = 0
 
         for v in arr where (v & 1) == 0
         {
@@ -112,7 +112,7 @@ enum ForeachIndexedSlot: u8
     func foreachByAddressRead()->s32
     {
         var arr: [4] s32 = [1, 2, 3, 4]
-        var sum: s32 = 0
+        var sum: s32     = 0
 
         for &v, [i] in arr
         {
@@ -131,7 +131,7 @@ enum ForeachIndexedSlot: u8
     func foreachNoAlias()->u64
     {
         var arr:   [3] s32 = [11, 22, 33]
-        var count: u64 = 0
+        var count: u64     = 0
 
         for arr
         {
@@ -150,7 +150,7 @@ enum ForeachIndexedSlot: u8
     func foreachStringValueIndex()->u32
     {
         var text: string = "ABC"
-        var acc:  u32 = 0
+        var acc:  u32    = 0
 
         for v, [i] in text
         {
@@ -185,8 +185,8 @@ enum ForeachIndexedSlot: u8
     func foreachSliceValueIndex()->s32
     {
         var arr: [4] s32 = [5, 6, 7, 8]
-        var sl = cast([..] s32) arr
-        var acc: s32 = 0
+        var sl           = cast([..] s32) arr
+        var acc: s32     = 0
 
         for v, [i] in sl
         {
@@ -205,8 +205,8 @@ enum ForeachIndexedSlot: u8
     func foreachSliceWeighted()->s32
     {
         var arr: [4] s32 = [5, 6, 7, 8]
-        var sl = cast([..] s32) arr
-        var acc: s32 = 0
+        var sl           = cast([..] s32) arr
+        var acc: s32     = 0
         for v, [i] in sl
         {
             acc += v * cast(s32) (i + 1)
@@ -384,7 +384,7 @@ enum ForeachIndexedSlot: u8
 {
     func foreachEnumIndexedArray()->s32
     {
-        let values: [ForeachIndexedSlot] s32 = [10, 20, 30]
+        let values:  [ForeachIndexedSlot] s32 = [10, 20, 30]
         var byIndex: s32
         var byValue: s32
 

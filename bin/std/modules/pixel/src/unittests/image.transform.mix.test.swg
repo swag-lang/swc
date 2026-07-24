@@ -17,9 +17,9 @@ using Swag, Core
         200'u8, 210'u8, 220'u8, 128'u8,  0'u8, 10'u8, 20'u8, 64'u8,
         ]
 
-    let dst      = makeImage(3, 2, .RGBA8, dstPixels)
-    let srcCopy  = makeImage(2, 1, .RGBA8, copyPixels)
-    let copied   = dst.toMix(srcCopy, 1, 0, .Copy)
+    let dst     = makeImage(3, 2, .RGBA8, dstPixels)
+    let srcCopy = makeImage(2, 1, .RGBA8, copyPixels)
+    let copied  = dst.toMix(srcCopy, 1, 0, .Copy)
     assertImage(copied, 3, 2, .RGBA8)
 
     assertPixel(copied, 0, 1, Color.fromArgb(200'u8, 10'u8, 20'u8, 30'u8))

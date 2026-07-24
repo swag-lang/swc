@@ -21,9 +21,9 @@ struct PartialUndefinedEvent
 
 struct PartialUndefinedDefaults
 {
-    required: s32 = undefined
+    required: s32    = undefined
     label:    string = "ready"
-    value:    s32 = 17
+    value:    s32    = 17
     enabled:  bool
 }
 
@@ -34,7 +34,7 @@ struct AllUndefinedDefaults
 }
 
 const PARTIAL_UNDEFINED_CONST: PartialUndefinedDefaults
-const ALL_UNDEFINED_CONST: AllUndefinedDefaults
+const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
 
 #assert(PARTIAL_UNDEFINED_CONST.required == 0)
 #assert(PARTIAL_UNDEFINED_CONST.value == 17)

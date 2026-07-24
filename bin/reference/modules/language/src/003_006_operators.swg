@@ -194,7 +194,7 @@ otherwise, it returns the right-hand expression.
 #test
 {
     var a: #null string = "string1"
-    let b = "string2"
+    let b               = "string2"
 
     var c = a orelse b
     @assert(c == "string1")

@@ -7,14 +7,14 @@ func jitValueFromRuntimeFlags()->bool
 
 func jitStableWithNullAllocatorContext()->bool
 {
-    let prev = @getcontext()
+    let prev     = @getcontext()
     let expected = @jit()
 
     var cxt = dref prev
     cxt.allocator = null
     @setcontext(cxt)
 
-    let during = @jit()
+    let during              = @jit()
     let matchesRuntimeFlags = during == jitValueFromRuntimeFlags()
 
     @setcontext(prev)

@@ -124,7 +124,7 @@ func manhattan(a: Pos, b: Pos)->u32
 
 func parseGrid(text: string)->Grid
 {
-    var g = gridInit()
+    var g     = gridInit()
     let cells = notnull g.cells
     let bytes = cast(const [..] u8) text
     var row: u32
@@ -170,8 +170,8 @@ const DC: [4] s32 = [1, 0, -1, 0]
 func tracePath(g: *Grid)
 {
     g.setDist(g.sr, g.sc, 0)
-    var cr = g.sr
-    var cc = g.sc
+    var cr     = g.sr
+    var cc     = g.sc
     var d: u32 = 0
 
     for MaxCells
@@ -211,7 +211,7 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32)->u64
 
     // Collect path cells into array for efficient pairwise iteration
     let pathSize = g.pathLen + 1
-    let pathBuf = cast([*] Pos) notnull @alloc(cast(u64) pathSize * #sizeof(Pos))
+    let pathBuf  = cast([*] Pos) notnull @alloc(cast(u64) pathSize * #sizeof(Pos))
     defer @free(pathBuf)
 
     // Fill path buffer in distance order

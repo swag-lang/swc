@@ -71,7 +71,7 @@ func logicalFloatProbe(value: f32, delta: s32)->f32
 // must not clobber that storage with the result of the whole expression.
 func logicalKeepsLeftOperand(flag: bool)->bool
 {
-    let d = false
+    let d        = false
     let combined = flag and d
     return flag
 }

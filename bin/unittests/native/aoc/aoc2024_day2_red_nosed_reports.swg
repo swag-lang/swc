@@ -127,7 +127,7 @@ func parseReports(bytes: const [..] u8)->ReportBatch
 
 func isSafeReport(report: Report, skippedIndex: s32)->bool
 {
-    var trend = Trend.Unknown
+    var trend        = Trend.Unknown
     var previous: s32
     var havePrevious = false
 
@@ -182,8 +182,8 @@ func auditReportsClean(batch: ReportBatch)->SafetyAudit
 
     for batch.count
     {
-        let index = cast(u32) @index
-        let report = batch.reports[index]
+        let index      = cast(u32) @index
+        let report     = batch.reports[index]
         let strictSafe = isSafeReport(report, -1)
         if strictSafe do
             result.safeWithoutDampener += 1
@@ -198,11 +198,11 @@ func auditReportsClean(batch: ReportBatch)->SafetyAudit
 #[Swag.Mixin]
 func declareFeatureState()
 {
-    var featureTrend = Trend.Unknown
-    var featurePrevious: s32
+    var featureTrend       = Trend.Unknown
+    var featurePrevious:      s32
     var featureHasPrevious = false
     var featureVisitedLevels: u32
-    var featureSafe = true
+    var featureSafe        = true
 }
 
 #[Swag.Mixin]
@@ -293,8 +293,8 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
     for batch.count
     {
-        let index = cast(u32) @index
-        let report = batch.reports[index]
+        let index      = cast(u32) @index
+        let report     = batch.reports[index]
         let strictSafe = isSafeReportWithLanguageFeatures(report, -1)
         if strictSafe do
             result.safeWithoutDampener += 1
@@ -308,8 +308,8 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
 #test
 {
-    let sampleBatch = parseReports(cast(const [..] u8) SampleInput)
-    let sampleClean = auditReportsClean(sampleBatch)
+    let sampleBatch    = parseReports(cast(const [..] u8) SampleInput)
+    let sampleClean    = auditReportsClean(sampleBatch)
     let sampleFeatures = auditReportsWithLanguageFeatures(sampleBatch)
 
     @assert(sampleBatch.count == 6'u32)
@@ -331,8 +331,8 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
 #test
 {
-    let edgeBatch = parseReports(cast(const [..] u8) EdgeInput)
-    let edgeClean = auditReportsClean(edgeBatch)
+    let edgeBatch    = parseReports(cast(const [..] u8) EdgeInput)
+    let edgeClean    = auditReportsClean(edgeBatch)
     let edgeFeatures = auditReportsWithLanguageFeatures(edgeBatch)
 
     @assert(edgeBatch.count == 4'u32)
@@ -345,8 +345,8 @@ func auditReportsWithLanguageFeatures(batch: ReportBatch)->SafetyAudit
 
 #test
 {
-    let coverageBatch = parseReports(cast(const [..] u8) CoverageInput)
-    let coverageClean = auditReportsClean(coverageBatch)
+    let coverageBatch    = parseReports(cast(const [..] u8) CoverageInput)
+    let coverageClean    = auditReportsClean(coverageBatch)
     let coverageFeatures = auditReportsWithLanguageFeatures(coverageBatch)
 
     @assert(coverageClean.reportCount == 8'u32)

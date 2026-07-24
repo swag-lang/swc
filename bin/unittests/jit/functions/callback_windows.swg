@@ -36,7 +36,7 @@ func runThreadCallback()->u64
 
     let callback: ThreadProc = &threadCallback
 
-    var id = 0'u32
+    var id     = 0'u32
     let thread = CreateThread(null, 0, callback, &data, 0, &id)
     if thread == null do
         return 0

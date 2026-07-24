@@ -1157,7 +1157,7 @@ impl Decoder
         var huffSize: [257] u8
         var huffCode: [257] u32
 
-        var p = 0
+        var p          = 0
         let huffNumBuf = notnull .huffNum[idx].buffer
         for [l] in 1 to 16
         {
@@ -1530,8 +1530,8 @@ impl Decoder
                 for [mcuBlock] in .blocksPerMcu
                 {
                     let componentId = .mcuOrg[mcuBlock]
-                    let blkX = blockMcutX[componentId] + blockMcuOfsX
-                    let blkY = blockMcutY[componentId] + blockMcuOfsY
+                    let blkX        = blockMcutX[componentId] + blockMcuOfsX
+                    let blkY        = blockMcutY[componentId] + blockMcuOfsY
                     if dcOnlyScan
                     {
                         if refinementScan do
@@ -1683,7 +1683,7 @@ impl Decoder
     mtd getOctet()->u8
     {
         var paddingFlag: bool
-        var c            = .getChar(&paddingFlag)
+        var c = .getChar(&paddingFlag)
         if c == 0xFF
         {
             if paddingFlag do
@@ -1725,7 +1725,7 @@ impl Decoder
 
         dref paddingFlag = false
         let inBufOfs = notnull .inBufOfs
-        let c = dref inBufOfs
+        let c        = dref inBufOfs
         .inBufOfs  += 1
         .inBufLeft -= 1
         return c
@@ -1747,7 +1747,7 @@ impl Decoder
         }
 
         let inBufOfs = notnull .inBufOfs
-        let c = inBufOfs[0]
+        let c        = inBufOfs[0]
         .inBufOfs  += 1
         .inBufLeft -= 1
         return c
@@ -1895,8 +1895,8 @@ impl Decoder
             {
                 var temp = .getBits1(8)
                 if prec do
-                    temp    = (temp << 8) + .getBits1(8)
-                qbuf[i] = cast(s16) temp
+                    temp = (temp << 8) + .getBits1(8)
+                qbuf[i]  = cast(s16) temp
             }
 
             var i = 64 + 1

@@ -522,7 +522,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         discard catch File.delete(path.toString())
     }
 
-    var src = Image.create(2, 1, .BGR8)
+    var src    = Image.create(2, 1, .BGR8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8
@@ -553,7 +553,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         discard catch File.delete(path.toString())
     }
 
-    var src = Image.create(1, 1, .RGB8)
+    var src    = Image.create(1, 1, .RGB8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 10'u8
     srcBuf[1] = 20'u8
@@ -583,7 +583,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         discard catch File.delete(path.toString())
     }
 
-    var src = Image.create(1, 1, .RGBA8)
+    var src    = Image.create(1, 1, .RGBA8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8

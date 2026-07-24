@@ -87,7 +87,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 1, y: -2, z: 3}
-    let pos = +v
+    let pos            = +v
 
     #assert(#typeof(pos) == Vector3's32)
     @assert(pos.x == 1)
@@ -99,7 +99,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 5, y: -10, z: 0}
-    let neg = -v
+    let neg            = -v
 
     @assert(neg.x == -5)
     @assert(neg.y == 10)
@@ -110,7 +110,7 @@ impl Vector3
 #test
 {
     var v: Vector3'u32 = {x: 0, y: 0xFFFF_FFFF, z: 0x00FF_00FF}
-    let inv = ~v
+    let inv            = ~v
 
     @assert(inv.x == 0xFFFF_FFFF)
     @assert(inv.y == 0)
@@ -121,7 +121,7 @@ impl Vector3
 #test
 {
     var v: Vector3's64 = {x: 42, y: -99, z: 0}
-    let dn = -(-v)
+    let dn             = -(-v)
 
     @assert(dn.x == 42)
     @assert(dn.y == -99)
@@ -132,7 +132,7 @@ impl Vector3
 #test
 {
     var v: Vector3'u64 = {x: 0xCAFE, y: 0xBABE, z: 0xDEAD}
-    let di = ~(~v)
+    let di             = ~(~v)
 
     @assert(di.x == 0xCAFE'u64)
     @assert(di.y == 0xBABE'u64)
@@ -148,7 +148,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 1, y: 2, z: 3}
     var b: Vector3's32 = {x: 10, y: 20, z: 30}
-    let sum = a + b
+    let sum            = a + b
 
     #assert(#typeof(sum) == Vector3's32)
     @assert(sum.x == 11)
@@ -161,7 +161,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 3, y: 5, z: 1}
     var b: Vector3's32 = {x: 10, y: 5, z: 8}
-    let diff = a - b
+    let diff           = a - b
 
     @assert(diff.x == -7)
     @assert(diff.y == 0)
@@ -173,7 +173,7 @@ impl Vector3
 {
     var a: Vector3'u32 = {x: 2, y: 3, z: 4}
     var b: Vector3'u32 = {x: 5, y: 6, z: 7}
-    let prod = a * b
+    let prod           = a * b
 
     @assert(prod.x == 10)
     @assert(prod.y == 18)
@@ -185,7 +185,7 @@ impl Vector3
 {
     var a: Vector3'u64 = {x: 100, y: 200, z: 300}
     var b: Vector3'u64 = {x: 10, y: 20, z: 30}
-    let quot = a / b
+    let quot           = a / b
 
     @assert(quot.x == 10'u64)
     @assert(quot.y == 10'u64)
@@ -200,7 +200,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 1, y: -2, z: 3}
-    let scaled = v * 3's32
+    let scaled         = v * 3's32
 
     @assert(scaled.x == 3)
     @assert(scaled.y == -6)
@@ -211,7 +211,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: -5, y: 0, z: 5}
-    let result = v + 10's32
+    let result         = v + 10's32
 
     @assert(result.x == 5)
     @assert(result.y == 10)
@@ -222,7 +222,7 @@ impl Vector3
 #test
 {
     var v: Vector3'u64 = {x: 100, y: 200, z: 300}
-    let result = v / 10'u64
+    let result         = v / 10'u64
 
     @assert(result.x == 10'u64)
     @assert(result.y == 20'u64)
@@ -233,7 +233,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 2, y: 5, z: 0}
-    let result = v - 3's32
+    let result         = v - 3's32
 
     @assert(result.x == -1)
     @assert(result.y == 2)
@@ -244,7 +244,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 1, y: -2, z: 3}
-    let scaled = 3's32 * v
+    let scaled         = 3's32 * v
 
     @assert(scaled.x == 3)
     @assert(scaled.y == -6)
@@ -255,7 +255,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 1, y: 2, z: 3}
-    let result = 10's32 - v
+    let result         = 10's32 - v
 
     @assert(result.x == 9)
     @assert(result.y == 8)
@@ -272,7 +272,7 @@ impl Vector3
     var a: Vector3's32 = {x: 1, y: 2, z: 3}
     var b: Vector3's32 = {x: 4, y: 5, z: 6}
     var c: Vector3's32 = {x: 10, y: 10, z: 10}
-    let result = a + b - c
+    let result         = a + b - c
 
     @assert(result.x == -5)
     @assert(result.y == -3)
@@ -284,7 +284,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 1, y: 2, z: 3}
     var b: Vector3's32 = {x: 1, y: 2, z: 3}
-    let result = (-a) + b
+    let result         = (-a) + b
 
     @assert(result.x == 0)
     @assert(result.y == 0)
@@ -296,7 +296,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 3, y: 6, z: 9}
     var b: Vector3's32 = {x: 1, y: 2, z: 3}
-    let result = a - b * 2's32
+    let result         = a - b * 2's32
 
     @assert(result.x == 1)
     @assert(result.y == 2)
@@ -312,7 +312,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 1, y: 0, z: 0}
     var b: Vector3's32 = {x: 0, y: 1, z: 0}
-    let d = Vector3's32.dot(&a, &b)
+    let d              = Vector3's32.dot(&a, &b)
 
     @assert(d == 0)
 }
@@ -322,7 +322,7 @@ impl Vector3
 {
     var a: Vector3's32 = {x: 2, y: 3, z: 4}
     var b: Vector3's32 = {x: 2, y: 3, z: 4}
-    let d = Vector3's32.dot(&a, &b)
+    let d              = Vector3's32.dot(&a, &b)
 
     // 4 + 9 + 16 = 29
     @assert(d == 29)
@@ -332,7 +332,7 @@ impl Vector3
 #test
 {
     var v: Vector3's32 = {x: 3, y: 4, z: 0}
-    let lsq = v.lengthSq()
+    let lsq            = v.lengthSq()
 
     // 9 + 16 + 0 = 25
     @assert(lsq == 25)
@@ -347,8 +347,8 @@ impl Vector3
 {
     var a: Vector3'u8 = {x: 10, y: 20, z: 30}
     var b: Vector3'u8 = {x: 1, y: 2, z: 3}
-    let sum = a + b
-    let diff = a - b
+    let sum           = a + b
+    let diff          = a - b
 
     #assert(#typeof(sum) == Vector3'u8)
     @assert(sum.x == 11)
@@ -363,7 +363,7 @@ impl Vector3
 #test
 {
     var v: Vector3's16 = {x: 100, y: -200, z: 300}
-    let neg = -v
+    let neg            = -v
 
     #assert(#typeof(neg) == Vector3's16)
     @assert(neg.x == -100)
@@ -375,7 +375,7 @@ impl Vector3
 #test
 {
     var v: Vector3'u64 = {x: 1, y: 2, z: 3}
-    let result = v * 1000'u64
+    let result         = v * 1000'u64
 
     @assert(result.x == 1000'u64)
     @assert(result.y == 2000'u64)

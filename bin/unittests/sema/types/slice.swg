@@ -6,7 +6,7 @@ var A: #null [..] s32
 
 func semaTest001()
 {
-    var a: [3] s32 = [1, 2, 3]
+    var a: [3] s32  = [1, 2, 3]
     var s: [..] s32 = a
     @assert(s[0] == 1)
     s[1] = 7
@@ -30,7 +30,7 @@ func semaTest003()
 
 func semaTest004()
 {
-    var a: [3] s32 = [1, 2, 3]
+    var a: [3] s32        = [1, 2, 3]
     var s: const [..] s32 = a
     @assert(@countof(s) == 3)
     @assert(s[1] == 2)
@@ -38,7 +38,7 @@ func semaTest004()
 
 func semaTest005()
 {
-    var a: [3] s32 = [1, 2, 3]
+    var a: [3] s32  = [1, 2, 3]
     var s: [..] s32 = a
     @assert(@countof(s) == 3)
     s[2] = 9
@@ -55,18 +55,18 @@ func semaTest006()
 
 func semaTest007()
 {
-    var arr:    [5] s32 = [10, 20, 30, 40, 50]
+    var arr:    [5] s32  = [10, 20, 30, 40, 50]
     var arrRef: &[5] s32 = &arr
-    let arrSlice = arrRef[1 to 3]
+    let arrSlice         = arrRef[1 to 3]
     #assert(#nameof(#typeof(arrSlice)) == "[..] s32")
 
-    var view:    [..] s32 = arr
+    var view:    [..] s32        = arr
     let viewRef: const &[..] s32 = &view
-    let sub = viewRef[1 until 3]
+    let sub                      = viewRef[1 until 3]
     #assert(#typeof(sub) == [..] s32)
 
-    let text = "string"
+    let text                   = "string"
     let textRef: const &string = &text
-    let textSlice = textRef[1 to 3]
+    let textSlice              = textRef[1 to 3]
     #assert(#typeof(textSlice) == string)
 }

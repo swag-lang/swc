@@ -21,7 +21,7 @@ func touch(fullName: string) throw
     Errors.transformWinErrors(fullName)
     defer CloseHandle(hFile)
 
-    var ft: FILETIME = undefined
+    var ft: FILETIME   = undefined
     var st: SYSTEMTIME = undefined
     GetSystemTime(&st)
     SystemTimeToFileTime(&st, &ft)
@@ -33,7 +33,7 @@ func exists(fullName: string)->bool
 {
     if fullName == null do
         return false
-    let safeName = fullName orelse ""
+    let safeName   = fullName orelse ""
     let winPath    = Utf16.toZeroTerminated(safeName)
     let attributes = catch GetFileAttributesW(@dataof(winPath))
     if @err != null do

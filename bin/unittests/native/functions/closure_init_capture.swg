@@ -54,7 +54,7 @@ impl InitCaptureOwner
 #test
 {
     var owner = InitCaptureOwner{value: 4}
-    let cb = owner.makeCallback()
+    let cb    = owner.makeCallback()
     @assert(cb() == 45)
     @assert(cb() == 46)
     @assert(owner.value == 6)

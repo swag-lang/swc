@@ -21,8 +21,8 @@ struct CheckButton
 {
     using button: Button
 
-    checked              = ButtonCheckState.UnChecked
-    checkButtonFlags     = CheckButtonFlags.Zero
+    checked          = ButtonCheckState.UnChecked
+    checkButtonFlags = CheckButtonFlags.Zero
     sigChanged: SigArray'func||(*CheckButton)
 }
 

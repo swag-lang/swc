@@ -139,7 +139,7 @@ func new(type: typeinfo, allocator: #null IAllocator = null, alignment: u32 = 0,
         return null
     }
 
-    let ptr      = alloc(cast(u64) type.sizeof, allocator, alignment, userHint, loc)
+    let ptr = alloc(cast(u64) type.sizeof, allocator, alignment, userHint, loc)
     defaultInit(ptr, type)
     return ptr
 }

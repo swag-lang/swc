@@ -47,7 +47,7 @@ func accumulateInvoiceLine(lineTotalCents: s32, isTaxable: bool)
 #[Swag.Mixin]
 func declareShippingFees(baseFeeCents: s32)
 {
-    const standardShippingCents: s32  = baseFeeCents
+    const standardShippingCents:  s32 = baseFeeCents
     const expeditedShippingCents: s32 = baseFeeCents + 900
 }
 
@@ -92,7 +92,7 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
         shippingCents = expeditedShippingCents
 
     let discountCents = tieredDiscount(subtotalCents)
-    let taxCents = taxableSubtotalCents / 10
+    let taxCents      = taxableSubtotalCents / 10
 
     var result: InvoiceTotals
     result.lineCount            = lineCount

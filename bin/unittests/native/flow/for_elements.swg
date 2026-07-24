@@ -18,7 +18,7 @@ alias StrictForeachF32 = f32
 #test
 {
     var arr: [3] s32 = [1, 2, 3]
-    var sum = 0
+    var sum          = 0
     for v in arr
     {
         #assert(#typeof(v) == s32)
@@ -31,8 +31,8 @@ alias StrictForeachF32 = f32
 #test
 {
     var arr: [2] s32 = [1, 2]
-    var sumV = 0
-    var sumI = 0
+    var sumV         = 0
+    var sumI         = 0
     for v, [i] in arr
     {
         #assert(#typeof(v) == s32)
@@ -49,7 +49,7 @@ alias StrictForeachF32 = f32
 #test
 {
     var arr: [2] s32 = [1, 2]
-    var sum = 0
+    var sum          = 0
     for v in arr where v > 0
     {
         var x = v
@@ -72,8 +72,8 @@ alias StrictForeachF32 = f32
 #test
 {
     var text: string = "AB"
-    var sumV = 0
-    var sumI = 0
+    var sumV         = 0
+    var sumI         = 0
     for v, [i] in text
     {
         #assert(#typeof(v) == u8)
@@ -90,7 +90,7 @@ alias StrictForeachF32 = f32
 #test
 {
     var text: string = "CD"
-    var sum = 0
+    var sum          = 0
     for &v in text
     {
         #assert(#typeof(v) == #type const &u8)
@@ -102,7 +102,7 @@ alias StrictForeachF32 = f32
 #test
 {
     var text: const cstring = cast(const cstring) @dataof("AZ")
-    var sumV = 0
+    var sumV                = 0
     var sumI: u64
     for v, [i] in text
     {
@@ -118,7 +118,7 @@ alias StrictForeachF32 = f32
 #test
 {
     var text: const cstring = cast(const cstring) @dataof("CD")
-    var sum = 0
+    var sum                 = 0
     for &v in text
     {
         #assert(#typeof(v) == #type const &u8)
@@ -153,7 +153,7 @@ func foreachCStringRefSum(value: &cstring)->s32
 
 #test
 {
-    var textData: [3] u8 = ['B''u8, 'Y''u8, 0]
+    var textData: [3] u8  = ['B''u8, 'Y''u8, 0]
     var text:     cstring = cast(cstring) &textData[0]
     @assert(foreachCStringRefSum(&text) == cast(s32) 'B''u8 + cast(s32) 'Y''u8)
 }
@@ -161,9 +161,9 @@ func foreachCStringRefSum(value: &cstring)->s32
 #test
 {
     var arr: [2] s32 = [3, 4]
-    var sl = cast([..] s32) arr
-    var sumV = 0
-    var sumI = 0
+    var sl           = cast([..] s32) arr
+    var sumV         = 0
+    var sumI         = 0
     for v, [i] in sl
     {
         #assert(#typeof(v) == s32)

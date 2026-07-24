@@ -21,20 +21,20 @@ struct DoublePoint
 // Handles the creation of offset polygons with different join types and miter limits.
 struct Offset
 {
-    miterLimit:   f64 = 2                       // Maximum ratio of miter length to offset distance before square join is used
-    arcTolerance: f64 = DefaultArcTolerance     // Maximum allowed distance between true arc and approximating line segments
-    destPolys:    ClipperPaths                  // Output collection of offset polygons
-    srcPoly:      ClipperPath                   // Current source polygon being processed
-    destPoly:     ClipperPath                   // Current destination polygon being built
-    normals:      Array'DoublePoint             // Unit normal vectors for each edge of the source polygon
-    deltaVal:     f64                           // Current offset distance (positive for outward, negative for inward)
-    sinaVal:      f64                           // Sine of angle between adjacent edge normals
-    sinVal:       f64                           // Sine value for arc step calculations
-    cosVal:       f64                           // Cosine value for arc step calculations
-    miterLim:     f64                           // Computed miter limit threshold for join type switching
-    stepsPerRad:  f64                           // Number of steps per radian for arc approximation
-    lowest:       IntPoint = {-1, 0}            // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
-    polyNodes:    PolyNode                      // Tree structure holding all input polygons with their join types
+    miterLimit:   f64      = 2                       // Maximum ratio of miter length to offset distance before square join is used
+    arcTolerance: f64      = DefaultArcTolerance     // Maximum allowed distance between true arc and approximating line segments
+    destPolys:    ClipperPaths                       // Output collection of offset polygons
+    srcPoly:      ClipperPath                        // Current source polygon being processed
+    destPoly:     ClipperPath                        // Current destination polygon being built
+    normals:      Array'DoublePoint                  // Unit normal vectors for each edge of the source polygon
+    deltaVal:     f64                                // Current offset distance (positive for outward, negative for inward)
+    sinaVal:      f64                                // Sine of angle between adjacent edge normals
+    sinVal:       f64                                // Sine value for arc step calculations
+    cosVal:       f64                                // Cosine value for arc step calculations
+    miterLim:     f64                                // Computed miter limit threshold for join type switching
+    stepsPerRad:  f64                                // Number of steps per radian for arc approximation
+    lowest:       IntPoint = {-1, 0}                 // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
+    polyNodes:    PolyNode                           // Tree structure holding all input polygons with their join types
 }
 
 impl Offset
@@ -125,7 +125,7 @@ impl Offset
         }
         else
         {
-            let r      = clpr.getBounds()
+            let r = clpr.getBounds()
             var outer: ClipperPath
             outer.add(IntPoint{r.left - 10, r.bottom + 10})
             outer.add(IntPoint{r.right + 10, r.bottom + 10})
@@ -236,7 +236,7 @@ impl Offset
 
         const Pi    = ConstF64.Pi
         const TwoPi = ConstF64.TwoPi
-        var steps   = Pi / acos(1 - arcT / abs(delta))
+        var steps = Pi / acos(1 - arcT / abs(delta))
         if steps > abs(delta) * Pi do
             steps    = abs(delta) * Pi
         .sinVal      = sin(TwoPi / steps)

@@ -9,7 +9,7 @@ func semaTest001()
 
     var st: AA
     var v:  *AA = &st
-    var v1 = dref v
+    var v1      = dref v
     #assert(#typeof(v1) == AA)
 }
 
@@ -22,7 +22,7 @@ func semaTest002()
 
     var st: AA
     var v:  const *AA = &st
-    var v1 = dref v
+    var v1            = dref v
     #assert(#typeof(v1) == AA)
 }
 
@@ -34,7 +34,7 @@ func semaTest003()
     }
 
     var st: AA
-    var v = &st
+    var v  = &st
     var v1 = dref v
     #assert(#typeof(v) == *AA)
     #assert(#typeof(v1) == AA)
@@ -49,8 +49,8 @@ func semaTest004()
 
     var st: AA
     var v:  *AA = &st
-    var pp = &v
-    var v1 = dref pp
+    var pp      = &v
+    var v1      = dref pp
     #assert(#typeof(pp) == **AA)
     #assert(#typeof(v1) == *AA)
 }

@@ -20,7 +20,7 @@ func semaTest003()
 {
     var arr6: [2] s32
     var a6:   [..] s32 = arr6
-    var b6 = a6[0]
+    var b6             = a6[0]
     #assert(#typeof(b6) == s32)
 }
 
@@ -28,7 +28,7 @@ func semaTest004()
 {
     var arr2: [2] s32
     var a2:   [..] s32 = arr2
-    var b2 = a2[0]
+    var b2             = a2[0]
     #assert(#typeof(b2) == s32)
 }
 
@@ -40,9 +40,9 @@ func semaTest005()
 
 func semaTest006()
 {
-    var text = "hello"
+    var text             = "hello"
     var textRef: &string = &text
-    var ch = textRef[1]
+    var ch               = textRef[1]
     #assert(#typeof(ch) == u8)
 
     var grid:    [2, 3] s32
@@ -51,8 +51,8 @@ func semaTest006()
     #assert(#typeof(gridRef[0, 0]) == s32)
 
     var backing:  [2] s32
-    var slice:    [..] s32 = backing
+    var slice:    [..] s32  = backing
     var sliceRef: &[..] s32 = &slice
-    var elem = sliceRef[0]
+    var elem                = sliceRef[0]
     #assert(#typeof(elem) == s32)
 }

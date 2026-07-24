@@ -358,9 +358,9 @@ impl IForm for FormImage
                         .hc          = .h
                         renderer.removeTexture(&.texture)
                         const ZoomFactor = 2.5
-                        let stw          = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .w / ZoomFactor)
-                        let sth          = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .h / ZoomFactor)
-                        var img          = capture.backImg.toCrop(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
+                        let stw = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .w / ZoomFactor)
+                        let sth = cast(s32) Math.map(cast(f32) .strength, 0, 100, 1, .h / ZoomFactor)
+                        var img = capture.backImg.toCrop(x1 + stw, y1 + sth, .w - stw * 2, .h - sth * 2)
                         img.resize(.w, .h, .Raw)
                         .texture = g_App.getRenderer().addImage(img)
                     }

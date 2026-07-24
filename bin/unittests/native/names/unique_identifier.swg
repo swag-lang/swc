@@ -16,7 +16,7 @@ func mixinUniq(value: s32)
 
 func computeUniq(value: s32)->s32
 {
-    var total = 100
+    var total  = 100
     var marker = 7
     mixinUniq(value)
     mixinUniq(value + 2)

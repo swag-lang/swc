@@ -88,7 +88,7 @@ func semaTest005()
 func semaTest006()
 {
     var arr: [2] s32 = [3, 4]
-    var sl = cast([..] s32) arr
+    var sl           = cast([..] s32) arr
     for v, [i] in sl
     {
         #assert(#typeof(v) == s32)
@@ -100,9 +100,9 @@ func semaTest006()
 
 func semaTest007()
 {
-    var arr: [2] s32 = [5, 6]
-    var rawSl = cast([..] s32) arr
-    var sl: ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
+    var arr: [2] s32            = [5, 6]
+    var rawSl                   = cast([..] s32) arr
+    var sl:  ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
     for v, [i] in sl
     {
         #assert(#typeof(v) == s32)

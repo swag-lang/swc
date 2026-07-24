@@ -39,7 +39,7 @@ impl IForwardSignature for ForwardReceiver
 
 #test
 {
-    let receiver = ForwardReceiver{base: 10}
+    let receiver               = ForwardReceiver{base: 10}
     let itf: IForwardSignature = receiver
     @assert(itf.score(.Bonus, {value: 7}) == 22)
 }

@@ -73,7 +73,7 @@ Swag allows compile-time concatenation of strings and other values using the
     #assert(a == "the devil's number is 666")
 
     const b = 666
-    let c   = "the devil's number is not " ++ (b + 1) ++ "!"
+    let c = "the devil's number is not " ++ (b + 1) ++ "!"
     @assert(c == "the devil's number is not 667!")
 
     let d = "there are " ++ 4 ++ " apples in " ++ (2 * 2) ++ " baskets"
@@ -122,15 +122,15 @@ integer type or a 'rune' if the value fits within the target type.
 #test
 {
     {
-        let a: u8 = 'a'
-        let b: u16 = 'a'
-        let c: u32 = '我'
-        let d: u64 = '我'
+        let a: u8   = 'a'
+        let b: u16  = 'a'
+        let c: u32  = '我'
+        let d: u64  = '我'
         let e: rune = '我'
     }
 
     {
-        let a: s8 = 'a'
+        let a: s8  = 'a'
         let b: s16 = 'a'
         let c: s32 = '我'
         let d: s64 = '我'

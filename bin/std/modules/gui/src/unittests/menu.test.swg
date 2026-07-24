@@ -203,7 +203,7 @@ const Menu_Quit = "Menu.Quit"
     bar.computeLayoutBar()
     let barIt0 = notnull bar.items[0]
     let itemX  = barIt0.pos + barIt0.size * 0.5
-    let itemY = bar.position.height * 0.5
+    let itemY  = bar.position.height * 0.5
 
     host.mouseDown({itemX, itemY})
 
@@ -224,10 +224,10 @@ const Menu_Quit = "Menu.Quit"
     var host: Testing.HeadlessHost
     host.setup(320, 200)
 
-    let metrics = host.root.getThemeMetrics()
+    let metrics   = host.root.getThemeMetrics()
     let barHeight = metrics.menuBar_Height + 12
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, barHeight})
-    let sub = MenuCtrl.createPopup(&host.root)
+    let bar       = MenuCtrl.createBar(&host.root, {0, 0, 300, barHeight})
+    let sub       = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     bar.addPopup("File", sub)
 
@@ -256,8 +256,8 @@ const Menu_Quit = "Menu.Quit"
     host.setup(320, 200)
 
     let metrics = host.root.getThemeMetrics()
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
-    let sub = MenuCtrl.createPopup(&host.root)
+    let bar     = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let sub     = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     bar.addPopup("File", sub)
 

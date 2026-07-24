@@ -47,8 +47,8 @@ func isRepeatedDoubleId(value: u64)->bool
         return false
 
     let splitPower = pow10u64(digits / 2'u32)
-    let left = value / splitPower
-    let right = value % splitPower
+    let left       = value / splitPower
+    let right      = value % splitPower
     return left == right
 }
 

@@ -17,7 +17,7 @@ func semaTest001()
 func semaTest002()
 {
     var x: s32
-    var px = &x
+    var px  = &x
     var ppx = &px
     #assert(#typeof(ppx) == **s32)
 }
@@ -50,8 +50,8 @@ func semaTest005()
 
 func semaTest006()
 {
-    var A = 10's32
-    var B = 20's32
+    var A  = 10's32
+    var B  = 20's32
     var PA = &A
     var PB = &B
     #assert(#typeof(PA) == *s32)
@@ -62,8 +62,8 @@ func semaTest007()
 {
     var x: s32
     var y: s32
-    var px = &x
-    var py = &y
+    var px  = &x
+    var py  = &y
     var ppx = &px
     var ppy = &py
     #assert(#typeof(ppx) == **s32)
@@ -73,7 +73,7 @@ func semaTest007()
 func semaTest008()
 {
     var x: s32
-    var y = x
+    var y  = x
     var p1 = &x
     var p2 = &y
     #assert(#typeof(p1) == *s32)
@@ -105,11 +105,11 @@ func semaTest010()
 
     var x: s32
     var r: &s32 = &x
-    let p = &r
+    let p       = &r
     #assert(#typeof(p) == *s32)
 
     var cr: const &s32 = &x
-    let cp = &cr
+    let cp             = &cr
     #assert(#typeof(cp) == const *s32)
 }
 

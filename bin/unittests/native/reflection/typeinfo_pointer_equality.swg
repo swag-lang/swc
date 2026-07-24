@@ -10,7 +10,7 @@ func selectArrayTypeInfo(flag: bool)->const *Swag.TypeInfoArray
 
 #test
 {
-    let infoTrue = selectArrayTypeInfo(true)
+    let infoTrue  = selectArrayTypeInfo(true)
     let infoFalse = selectArrayTypeInfo(false)
 
     @assert(infoTrue == #type const [2] f32)

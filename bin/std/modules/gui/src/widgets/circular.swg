@@ -39,7 +39,7 @@ struct Circular
 
     // Configuration flags and visual settings
     circularFlags: CircularFlags                    // Control behavior flags (Range, Integer, etc.)
-    stepForm:      CircularStepForm = .Tick         // Visual form of step indicators (None, Dot, Tick)
+    stepForm:      CircularStepForm   = .Tick       // Visual form of step indicators (None, Dot, Tick)
     markerForm:    CircularMarkerForm = .Circle     // Visual form of value markers (None, Circle, Needle)
 
     // Angular configuration (in radians)
@@ -528,8 +528,8 @@ private impl Circular
     {
         .updateGeometry()
 
-        let angle   = .valueToAngle(val)
-        let pos     = .getPositionFromAngle(angle)
+        let angle = .valueToAngle(val)
+        let pos   = .getPositionFromAngle(angle)
         var result: retval
         result.x      = pos.x - size
         result.y      = pos.y - size

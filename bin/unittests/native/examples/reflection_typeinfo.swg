@@ -35,8 +35,8 @@ struct Metadata
 // offsets from typeinfo and accessing memory through a raw pointer.
 func checksumConfig(cfg: const &Config)->s32
 {
-    let info = cast(const *Swag.TypeInfoStruct) #typeof(Config)
-    let base = cast(const [*] u8) &cfg
+    let info     = cast(const *Swag.TypeInfoStruct) #typeof(Config)
+    let base     = cast(const [*] u8) &cfg
     var sum: s32 = 0
     for [i] in @countof(info.fields)
     {
@@ -77,9 +77,9 @@ func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.Typ
 
 #test
 {
-    let configInfo   = cast(const *Swag.TypeInfoStruct) #typeof(Config)
-    let vertexInfo   = cast(const *Swag.TypeInfoStruct) #typeof(Vertex)
-    let metaInfo     = cast(const *Swag.TypeInfoStruct) #typeof(Metadata)
+    let configInfo = cast(const *Swag.TypeInfoStruct) #typeof(Config)
+    let vertexInfo = cast(const *Swag.TypeInfoStruct) #typeof(Vertex)
+    let metaInfo   = cast(const *Swag.TypeInfoStruct) #typeof(Metadata)
 
     @assert(countFieldsOfType(configInfo, #typeof(s32)) == 3)
     @assert(countFieldsOfType(configInfo, #typeof(u32)) == 1)
@@ -92,7 +92,7 @@ func countFieldsOfType(info: const *Swag.TypeInfoStruct, target: const *Swag.Typ
 func nameFingerprint(info: const *Swag.TypeInfoStruct)->s32
 {
     var fp: s32 = 0
-    let fields = notnull info.fields
+    let fields  = notnull info.fields
     for [i] in @countof(fields)
     {
         let name = fields[i].name

@@ -231,7 +231,7 @@ public impl Xml
         #elif NT == Core.String
         {
             var result: retval
-            var c       = .stream.peekU8()
+            var c = .stream.peekU8()
             while c and c != '<'
             {
                 c      = .stream.readU8()

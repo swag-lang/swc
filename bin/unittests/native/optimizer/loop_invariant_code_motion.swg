@@ -11,7 +11,7 @@ var GTab: [256] s32
 #[Swag.Optimize(true)]
 func sumInvariantArith(n: s32, k: s32)->s32
 {
-    var acc = 0
+    var acc  = 0
     let base = k * 1000 + 7     // invariant in the loop
     for [i] in 0 until n do
         acc += base + i

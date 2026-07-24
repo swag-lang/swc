@@ -49,7 +49,7 @@ impl Voice
         if !desc do
             throw UnsupportedFormatError{"unsupported encoding"}
         let decoderData = notnull Memory.new(desc.type)
-        let decoder = cast(*Codec) decoderData
+        let decoder     = cast(*Codec) decoderData
         decoder.srcEncoding = file.encoding
         decoder.dstEncoding = .requestedEncoding
         decoder.type        = desc.type
@@ -86,14 +86,14 @@ impl Voice
         {
             assume .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
-            let readStart = .streamCurSeek
+            let readStart    = .streamCurSeek
             let streamBuffer = notnull .streamBuffer.buffer
             let codec        = notnull .codec
             .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
             .streamCurSeek      = readStart + codec.init(streamBuffer, .streamBuffer.count)
         }
 
-        let readStart = .streamCurSeek
+        let readStart    = .streamCurSeek
         let streamBuffer = notnull .streamBuffer.buffer
         let codec        = notnull .codec
         .streamBuffer.count = .readData(streamBuffer, StreamBufferSize)
@@ -116,7 +116,7 @@ impl Voice
         // from the file.
         if .streamCurSeek < file.datas.count
         {
-            let remain = Math.min(file.datas.count - .streamCurSeek, length)
+            let remain      = Math.min(file.datas.count - .streamCurSeek, length)
             let datasBuffer = notnull file.datas.buffer
             Memory.copy(destBuffer, datasBuffer + .streamCurSeek, remain)
             .streamCurSeek += remain

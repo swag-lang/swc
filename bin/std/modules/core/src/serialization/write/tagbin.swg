@@ -38,8 +38,8 @@ struct TagBinSection
 #[Swag.Opaque]
 struct TagBin
 {
-    compressionFlags:    Core.Compress.Deflate.CompressionFlags = .Zero
-    compressionLevel:    Core.Compress.Deflate.CompressionLevel = .BestSpeed
+    compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero
+    compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed
     compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default
 
     internal
@@ -175,7 +175,7 @@ impl TagBin
     mtd beginStruct(structType: #null typeinfo, _structData: #null const [*] u8)->bool
     {
         let (pod, ?) = isPodFinal(structType)
-        let output   = notnull .output
+        let output = notnull .output
         if pod
         {
             output.addNative(TagBinSignatures.Raw)

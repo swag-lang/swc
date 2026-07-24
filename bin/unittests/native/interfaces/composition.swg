@@ -36,8 +36,8 @@ impl IValue for Counter
 #test
 {
     var c: Counter = {label: "hits", count: 0}
-    var n = cast(IName) c
-    var v = cast(IValue) c
+    var n          = cast(IName) c
+    var v          = cast(IValue) c
 
     @assert(n.getName() == "hits")
     @assert(v.getValue() == 0)
@@ -89,8 +89,8 @@ impl IValue for Tripler
 
 #test
 {
-    var d:     Doubler = {val: 5}
-    var t:     Tripler = {val: 5}
+    var d:     Doubler    = {val: 5}
+    var t:     Tripler    = {val: 5}
     var items: [2] IValue = undefined
     items[0] = cast(IValue) d
     items[1] = cast(IValue) t

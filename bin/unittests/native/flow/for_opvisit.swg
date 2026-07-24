@@ -332,7 +332,7 @@ impl GenericScopedVisits
 
 #test
 {
-    var values: FieldAlias
+    var values:     FieldAlias
     var sumValues = 0
     var sumIndexes: u64
 
@@ -351,7 +351,7 @@ impl GenericScopedVisits
 #test
 {
     var values = BufferVisits{}
-    var acc = 0
+    var acc    = 0
 
     for value, [ordinal] in values where value != 6
     {
@@ -380,7 +380,7 @@ impl GenericScopedVisits
 #test
 {
     var values = ReverseVisits{}
-    var code = 0
+    var code   = 0
     var order: u64
 
     for #reverse value, [index] in values
@@ -396,7 +396,7 @@ impl GenericScopedVisits
 #test
 {
     var values = ReverseVisits{}
-    var code = 0
+    var code   = 0
 
     for #Reverse value, [index] in values
     {
@@ -412,7 +412,7 @@ impl GenericScopedVisits
 {
     var values = HiddenAliasVisits{}
     var count: u64
-    var sum = 0
+    var sum    = 0
 
     for value in values
     {
@@ -428,7 +428,7 @@ impl GenericScopedVisits
 #test
 {
     var values = HiddenAliasVisits{}
-    var code = 0
+    var code   = 0
     var order: u64
 
     for value in values
@@ -445,7 +445,7 @@ impl GenericScopedVisits
 #test
 {
     var values = HiddenAliasVisits{}
-    var sum = 0
+    var sum    = 0
 
     for value, [scaled] in values
     {
@@ -459,7 +459,7 @@ impl GenericScopedVisits
 
 #test
 {
-    var values = FieldPointerVisits{}
+    var values     = FieldPointerVisits{}
     var mutatedSum = 0
 
     for &value, [ordinal] in values
@@ -477,7 +477,7 @@ impl GenericScopedVisits
 
 #test
 {
-    var values = PairVisits{}
+    var values    = PairVisits{}
     var signature = 0
     var order: u64
 
@@ -496,7 +496,7 @@ impl GenericScopedVisits
 #test
 {
     let values = ConstPointerVisits{}
-    var sum = 0
+    var sum    = 0
 
     for &value, [ordinal] in values
     {
@@ -514,8 +514,8 @@ impl GenericScopedVisits
 
 #test
 {
-    let values: GenericScopedVisits's32 = {values: [10, 20, 30]}
-    var sum = 0
+    let values:  GenericScopedVisits's32 = {values: [10, 20, 30]}
+    var sum                              = 0
     var indexes: u64
 
     for value, [ordinal] in values

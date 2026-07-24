@@ -31,7 +31,7 @@ func semaTest002()
 func semaTest003()
 {
     let x: A = .B
-    let y = x | .R
+    let y    = x | .R
     @assert(y == 5)
 }
 
@@ -100,7 +100,7 @@ impl ConflictingFlagOwner
 
     mtd checkFlags()
     {
-        var flags = ConflictingFlagName.Name
+        var flags   = ConflictingFlagName.Name
         let hasName = flags.has(.Name)
         flags.add(.Other)
         let hasOther = flags.has(.Other)

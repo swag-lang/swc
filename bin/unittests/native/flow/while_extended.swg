@@ -28,7 +28,7 @@
 #test
 {
     var sum = 0
-    var i = 0
+    var i   = 0
     while i < 10
     {
         i += 1
@@ -43,7 +43,7 @@
 #test
 {
     var sum = 0
-    var i = 0
+    var i   = 0
     while true
     {
         i += 1
@@ -60,8 +60,8 @@
 // While with complex boolean condition (AND)
 #test
 {
-    var i = 0
-    var j = 10
+    var i     = 0
+    var j     = 10
     var count = 0
     while i < 5 and j > 5
     {
@@ -77,7 +77,7 @@
 // While with complex boolean condition (OR)
 #test
 {
-    var i = 0
+    var i    = 0
     var done = false
     while i < 3 or !done
     {
@@ -111,7 +111,7 @@ func whileEarlyReturn(limit: s32)->s32
 #test
 {
     var total = 0
-    var i = 0
+    var i     = 0
     while i < 5
     {
         var j = 0
@@ -130,7 +130,7 @@ func whileEarlyReturn(limit: s32)->s32
 // While modifying condition variable in complex way
 #test
 {
-    var x = 1
+    var x     = 1
     var steps = 0
     while x < 100
     {
@@ -165,7 +165,7 @@ func sideEffectCheck(val: s32)->bool
 #test
 {
     var count = 0
-    var i = 0
+    var i     = 0
     while i < 1
     {
         count += 1

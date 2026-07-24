@@ -7,7 +7,7 @@ using Win32
 private func threadEntry(param: #null *void)->DWORD
 {
     let safeParam = notnull param
-    let th = cast(*Thread) safeParam
+    let th        = cast(*Thread) safeParam
     @setcontext(th.context)
     let lambda = th.userLambda
     if !lambda do
@@ -25,7 +25,7 @@ func wait(threads: *Thread...)
     var handles: [MAXIMUM_WAIT_OBJECTS] HANDLE
 
     var startIndex: u64 = 0
-    var total = @countof(threads)
+    var total           = @countof(threads)
     while total > 0
     {
         let toTreat = Math.min(MAXIMUM_WAIT_OBJECTS, cast(u32) total)

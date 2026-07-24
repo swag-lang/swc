@@ -193,7 +193,7 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
     var opponentToken: u8
     var codeToken:     u8
     var haveOpponent = false
-    var haveCode = false
+    var haveCode     = false
 
     for @countof(bytes)
     {
@@ -248,10 +248,10 @@ func solveClean(guide: StrategyGuide)->ScoreSummary
 
     for guide.count
     {
-        let round = guide.rounds[cast(u32) @index]
-        let opponent = decodeOpponent(round.opponentToken)
+        let round        = guide.rounds[cast(u32) @index]
+        let opponent     = decodeOpponent(round.opponentToken)
         let partOneShape = decodePartOneShape(round.codeToken)
-        let desired = decodeDesiredOutcome(round.codeToken)
+        let desired      = decodeDesiredOutcome(round.codeToken)
         let partTwoShape = chooseShape(opponent, desired)
 
         result.partOne += roundScore(partOneShape, opponent)
@@ -266,7 +266,7 @@ impl IRoundScorer for PartOneScorer
     mtd impl score(opponentToken: u8, codeToken: u8)->u32
     {
         let opponent = decodeOpponent(opponentToken)
-        let mine = decodePartOneShape(codeToken)
+        let mine     = decodePartOneShape(codeToken)
         return roundScore(mine, opponent)
     }
 }
@@ -276,8 +276,8 @@ impl IRoundScorer for PartTwoScorer
     mtd impl score(opponentToken: u8, codeToken: u8)->u32
     {
         let opponent = decodeOpponent(opponentToken)
-        let desired = decodeDesiredOutcome(codeToken)
-        let mine = chooseShape(opponent, desired)
+        let desired  = decodeDesiredOutcome(codeToken)
+        let mine     = chooseShape(opponent, desired)
         return roundScore(mine, opponent)
     }
 }
@@ -296,7 +296,7 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
     var lineOpponentToken: u8
     var lineCodeToken:     u8
     var haveOpponent = false
-    var haveCode = false
+    var haveCode     = false
 
     for @countof(bytes)
     {
@@ -367,7 +367,7 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->ScoreSummary
     return result
 }
 
-const SampleResult: ScoreSummary   = #run solveWithLanguageFeatures(SampleInput)
+const SampleResult:   ScoreSummary = #run solveWithLanguageFeatures(SampleInput)
 const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInput)
 
 #assert(#sizeof(Shape) == 1)
@@ -375,9 +375,9 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
 
 #test
 {
-    let bytes = cast(const [..] u8) SampleInput
-    let guide = parseGuide(bytes)
-    let clean = solveClean(guide)
+    let bytes    = cast(const [..] u8) SampleInput
+    let guide    = parseGuide(bytes)
+    let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
     @assert(guide.count == 3'u32)
@@ -391,9 +391,9 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
 
 #test
 {
-    let bytes = cast(const [..] u8) CoverageInput
-    let guide = parseGuide(bytes)
-    let clean = solveClean(guide)
+    let bytes    = cast(const [..] u8) CoverageInput
+    let guide    = parseGuide(bytes)
+    let clean    = solveClean(guide)
     let features = solveWithLanguageFeatures(bytes)
 
     @assert(guide.count == 9'u32)
@@ -407,9 +407,9 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
 
 #test
 {
-    let edgeBytes = cast(const [..] u8) EdgeInput
-    let edgeGuide = parseGuide(edgeBytes)
-    let edgeClean = solveClean(edgeGuide)
+    let edgeBytes    = cast(const [..] u8) EdgeInput
+    let edgeGuide    = parseGuide(edgeBytes)
+    let edgeClean    = solveClean(edgeGuide)
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)
 
     @assert(edgeGuide.count == 2'u32)

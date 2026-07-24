@@ -18,19 +18,19 @@ namespace __Win32RT
     alias WCHAR   = u16
     alias BOOL    = u8
 
-    const STD_OUTPUT_HANDLE         = 0xFFFF_FFF5'u32
-    const MB_CANCELTRYCONTINUE      = 0x00000006
-    const MB_ICONERROR              = 0x00000010
-    const IDCANCEL                  = 2
-    const IDTRYAGAIN                = 10
-    const IDCONTINUE                = 11
-    const FALSE:               BOOL = 0
-    const TRUE:                BOOL = 1
-    const SRWLOCK_INIT              = cast(SRWLOCK) null
-    const MEM_COMMIT                = 0x0000_1000'u32
-    const MEM_RESERVE               = 0x0000_2000'u32
-    const MEM_RELEASE               = 0x0000_8000'u32
-    const PAGE_READWRITE            = 0x0000_0004'u32
+    const STD_OUTPUT_HANDLE    = 0xFFFF_FFF5'u32
+    const MB_CANCELTRYCONTINUE = 0x00000006
+    const MB_ICONERROR         = 0x00000010
+    const IDCANCEL             = 2
+    const IDTRYAGAIN           = 10
+    const IDCONTINUE           = 11
+    const FALSE: BOOL          = 0
+    const TRUE:  BOOL          = 1
+    const SRWLOCK_INIT         = cast(SRWLOCK) null
+    const MEM_COMMIT           = 0x0000_1000'u32
+    const MEM_RESERVE          = 0x0000_2000'u32
+    const MEM_RELEASE          = 0x0000_8000'u32
+    const PAGE_READWRITE       = 0x0000_0004'u32
 
     #[Swag.Foreign("kernel32")]
     {
@@ -468,8 +468,8 @@ struct __SwagSym
 
 var __dbgCacheBase:    #null *void  = null
 var __dbgCacheSection: #null [*] u8 = null
-var __dbgCacheCount:   u32    = 0
-var __dbgCacheValid:   bool   = false
+var __dbgCacheCount:   u32          = 0
+var __dbgCacheValid:   bool         = false
 
 func __peU16(p: [*] u8, off: u64)->u16 => dref cast(*u16) &p[off]
 func __peU32(p: [*] u8, off: u64)->u32 => dref cast(*u32) &p[off]
@@ -504,8 +504,8 @@ func __dbgFindSection(base: #null *void)
 
         if match
         {
-            let rva           = __peU32(b, secOff + 12)
-            let secPtr        = cast([*] u8) &b[cast(u64) rva]
+            let rva    = __peU32(b, secOff + 12)
+            let secPtr = cast([*] u8) &b[cast(u64) rva]
             __dbgCacheSection = secPtr
             __dbgCacheCount   = __peU32(secPtr, 8)
             __dbgCacheValid   = true

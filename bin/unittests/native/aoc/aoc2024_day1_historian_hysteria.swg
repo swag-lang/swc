@@ -196,7 +196,7 @@ func sortValues(values: [..] u32)
     var index = 1'u32
     while index < count
     {
-        let value = values[index]
+        let value       = values[index]
         var insertIndex = index
 
         while insertIndex > 0 and values[insertIndex - 1] > value
@@ -286,8 +286,8 @@ func computeSimilarityBySorting(lists: LocationLists)->u64
 
     for lists.count
     {
-        let index = cast(u32) @index
-        let value = lists.left[index]
+        let index     = cast(u32) @index
+        let value     = lists.left[index]
         let frequency = countSortedOccurrences(sortedSlice, value)
         result += cast(u64) value * cast(u64) frequency
     }
@@ -332,14 +332,14 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->HistorianReport
     return result
 }
 
-const SampleLanguageReport: HistorianReport   = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
-const DenseLanguageReport: HistorianReport    = #run solveWithLanguageFeatures(cast(const [..] u8) DenseInput)
+const SampleLanguageReport:   HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
+const DenseLanguageReport:    HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) DenseInput)
 const CoverageLanguageReport: HistorianReport = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
 
 #test
 {
-    let sampleLists = parseLocationLists(cast(const [..] u8) SampleInput)
-    let sampleClean = solveClean(sampleLists)
+    let sampleLists    = parseLocationLists(cast(const [..] u8) SampleInput)
+    let sampleClean    = solveClean(sampleLists)
     let sampleFeatures = solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
 
     @assert(sampleClean.pairCount == 6'u32)

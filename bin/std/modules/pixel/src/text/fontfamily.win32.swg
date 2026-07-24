@@ -98,7 +98,7 @@ impl FontFamily
         defer ReleaseDC(null, hdc)
 
         var arr: Array'FontFamilyEnumerate
-        let v    = Utf16.toZeroTerminated(fontFamily)
+        let v = Utf16.toZeroTerminated(fontFamily)
         EnumFontFamiliesW(hdc, v.buffer, &enumFamily, cast(LPARAM) cast(u64) &arr)
 
         if arr.isEmpty() do

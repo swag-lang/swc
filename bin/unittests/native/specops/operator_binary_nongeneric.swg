@@ -45,7 +45,7 @@ impl RuntimeBinaryBox
 // Test: struct << scalar
 #test
 {
-    var value = RuntimeBinaryBox{a: 2, b: 3, c: 4, d: 5}
+    var value   = RuntimeBinaryBox{a: 2, b: 3, c: 4, d: 5}
     let shifted = value << 2'u64
 
     @assert(shifted.a == 8'u64)
@@ -70,7 +70,7 @@ impl RuntimeBinaryBox
 // Test: struct << 0 (identity)
 #test
 {
-    var value = RuntimeBinaryBox{a: 7, b: 13, c: 42, d: 99}
+    var value   = RuntimeBinaryBox{a: 7, b: 13, c: 42, d: 99}
     let shifted = value << 0'u64
 
     @assert(shifted.a == 7'u64)
@@ -82,9 +82,9 @@ impl RuntimeBinaryBox
 // Test: chaining struct + struct + struct
 #test
 {
-    var a = RuntimeBinaryBox{a: 1, b: 1, c: 1, d: 1}
-    var b = RuntimeBinaryBox{a: 2, b: 2, c: 2, d: 2}
-    var c = RuntimeBinaryBox{a: 3, b: 3, c: 3, d: 3}
+    var a   = RuntimeBinaryBox{a: 1, b: 1, c: 1, d: 1}
+    var b   = RuntimeBinaryBox{a: 2, b: 2, c: 2, d: 2}
+    var c   = RuntimeBinaryBox{a: 3, b: 3, c: 3, d: 3}
     let sum = a + b + c
 
     @assert(sum.a == 6'u64)

@@ -17,8 +17,8 @@ public struct InvoiceDeliveryReceipt
 }
 
 var RebuildCacheCalls = 0
-var RebuildLastFull  = false
-var RebuildLastIndex = ""
+var RebuildLastFull   = false
+var RebuildLastIndex  = ""
 
 #[AdminRoute("GET", "/tenants/:tenantId/users", "tenant.read", "tenant.users.list")]
 public func listTenantUsers(tenantId: s64, includeSuspended: bool)->s32

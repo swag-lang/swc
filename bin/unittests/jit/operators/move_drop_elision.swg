@@ -7,8 +7,8 @@
 
 var DropCount: u32 = 0
 var DropTrace: s64 = 0
-var g_sink:    s32   = 0
-var g_cond        = true
+var g_sink:    s32 = 0
+var g_cond         = true
 
 func resetHooks()
 {
@@ -85,7 +85,7 @@ impl Tracked
     {
         var src = Tracked{3}
         var dst = Tracked{7}
-        let p = &src
+        let p   = &src
         g_sink = p.value
         dst    = #move src
     }

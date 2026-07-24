@@ -38,8 +38,8 @@ struct JitNonNullDefaultContainer
     aliased: JitNonNullStringDefaultAlias
 }
 
-const JIT_NONULL_DEFAULT_CONTAINER: JitNonNullDefaultContainer = {}
-const JIT_NONULL_PARTIAL_ARRAY: [2] JitNonNullStringDefault    = [{value: "explicit"}]
+const JIT_NONULL_DEFAULT_CONTAINER: JitNonNullDefaultContainer  = {}
+const JIT_NONULL_PARTIAL_ARRAY:     [2] JitNonNullStringDefault = [{value: "explicit"}]
 
 #assert(JIT_NONULL_DEFAULT_CONTAINER.direct.value == "fallback")
 #assert(JIT_NONULL_DEFAULT_CONTAINER.array[0].value == "fallback")
@@ -110,35 +110,35 @@ func migrateJitLegacyPointer(value: *JitNonNullItem)->*JitNonNullItem => value
 
 func jitNonNullConstruction()->bool
 {
-    var first  = JitNonNullItem{value: 11}
-    var second = JitNonNullItem{value: 22}
+    var first                              = JitNonNullItem{value: 11}
+    var second                             = JitNonNullItem{value: 22}
     var blockStorage:   [2] JitNonNullItem = [{value: 31}, {value: 32}]
-    var cstringStorage: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
+    var cstringStorage: [4] u8             = ['a''u8, 'b''u8, 'c''u8, 0]
 
-    let direct:                    *JitNonNullItem = &first
-    let block:                     [*] JitNonNullItem = cast([*] JitNonNullItem) &blockStorage[0]
-    let slice:                     [..] JitNonNullItem = blockStorage
-    let text:                      string = "nonull"
-    let ctext:                     cstring = cast(cstring) &cstringStorage[0]
-    let boxed:                     any = 123
-    let reflectedType:             typeinfo = JitNonNullItem
-    var nullableValuePointer:      #null *JitNonNullItem = null
-    var nullableBlockPointer:      #null [*] JitNonNullItem = null
-    var nullableSlice:             #null [..] JitNonNullItem = null
-    var nullableString:            #null string = null
-    var nullableCString:           #null cstring = null
-    var nullableTypeInfo:          #null typeinfo = null
-    let boxedNullableValuePointer: any = nullableValuePointer
-    let boxedNullableBlockPointer: any = nullableBlockPointer
-    let boxedNullableSlice:        any = nullableSlice
-    let boxedNullableString:       any = nullableString
-    let boxedNullableCString:      any = nullableCString
-    let boxedNullableTypeInfo:     any = nullableTypeInfo
+    let direct:                    *JitNonNullItem              = &first
+    let block:                     [*] JitNonNullItem           = cast([*] JitNonNullItem) &blockStorage[0]
+    let slice:                     [..] JitNonNullItem          = blockStorage
+    let text:                      string                       = "nonull"
+    let ctext:                     cstring                      = cast(cstring) &cstringStorage[0]
+    let boxed:                     any                          = 123
+    let reflectedType:             typeinfo                     = JitNonNullItem
+    var nullableValuePointer:      #null *JitNonNullItem        = null
+    var nullableBlockPointer:      #null [*] JitNonNullItem     = null
+    var nullableSlice:             #null [..] JitNonNullItem    = null
+    var nullableString:            #null string                 = null
+    var nullableCString:           #null cstring                = null
+    var nullableTypeInfo:          #null typeinfo               = null
+    let boxedNullableValuePointer: any                          = nullableValuePointer
+    let boxedNullableBlockPointer: any                          = nullableBlockPointer
+    let boxedNullableSlice:        any                          = nullableSlice
+    let boxedNullableString:       any                          = nullableString
+    let boxedNullableCString:      any                          = nullableCString
+    let boxedNullableTypeInfo:     any                          = nullableTypeInfo
     let aliasReadOnly:             const JitNonNullPointerAlias = &first
-    let aliasRequired:             JitConstPointerAlias = &first
-    let legacySource:              *JitNonNullItem = &first
-    let migrated:                  *JitNonNullItem = migrateJitLegacyPointer(legacySource)
-    var widened:                   #null *JitNonNullItem = migrated
+    let aliasRequired:             JitConstPointerAlias         = &first
+    let legacySource:              *JitNonNullItem              = &first
+    let migrated:                  *JitNonNullItem              = migrateJitLegacyPointer(legacySource)
+    var widened:                   #null *JitNonNullItem        = migrated
     widened = null     // the qualifier is real: null flows into it
     widened = migrated
 
@@ -168,13 +168,13 @@ func jitNonNullConstruction()->bool
     @assert(aliasRequiredType.flags & Swag.TypeInfoFlags.Const)
     @assert(aliasRequiredType.flags & Swag.TypeInfoFlags.RequiresExplicitInit)
 
-    let holderType = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullHolder)
-    let nestedType = #typeof(JitNonNullNested)
-    let holderArrayType = #typeof([2] JitNonNullHolder)
-    let pointerArrayType = #typeof([2] *JitNonNullItem)
+    let holderType           = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullHolder)
+    let nestedType           = #typeof(JitNonNullNested)
+    let holderArrayType      = #typeof([2] JitNonNullHolder)
+    let pointerArrayType     = #typeof([2] *JitNonNullItem)
     let defaultContainerType = #typeof(JitNonNullDefaultContainer)
-    let genericRequiredType = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'(*JitNonNullItem))
-    let genericDefaultType = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'JitNonNullStringDefault)
+    let genericRequiredType  = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'(*JitNonNullItem))
+    let genericDefaultType   = cast(const *Swag.TypeInfoStruct) #typeof(JitNonNullGenericBox'JitNonNullStringDefault)
     if holderType.opInit != null or !(holderType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
         return false
     if !(nestedType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(holderArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) or !(pointerArrayType.flags & Swag.TypeInfoFlags.RequiresExplicitInit) do
@@ -188,22 +188,22 @@ func jitNonNullConstruction()->bool
     if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
 
-    let holder = JitNonNullHolder{required: direct}
+    let holder     = JitNonNullHolder{required: direct}
     var moveSource = JitNonNullHolder{required: &first}
     let moveTarget = #move moveSource
-    let blockHolder = JitNonNullBlockHolder{required: block}
-    let contextual: JitNonNullHolder = {required: &second, count: 9}
-    let nested = JitNonNullNested{holder: {required: &first}}
-    let array: [2] JitNonNullHolder = [
+    let blockHolder                      = JitNonNullBlockHolder{required: block}
+    let contextual: JitNonNullHolder     = {required: &second, count: 9}
+    let nested                           = JitNonNullNested{holder: {required: &first}}
+    let array:      [2] JitNonNullHolder = [
         {required: &first},
         {required: &second, count: 8},
         ]
     let genericRequired: JitNonNullGenericBox'(*JitNonNullItem) = {value: &first}
     var genericDefault:  JitNonNullGenericBox'JitNonNullStringDefault
-    let pointerArray:    [2] *JitNonNullItem = [&first, &second]
-    let aliasedHolder:   JitNonNullHolderAlias = {required: &first}
-    let pointerDefault = JitNonNullPointerDefault{}
-    var moveDefaultSource = JitNonNullMoveDefault{required: "explicit"}
+    let pointerArray:    [2] *JitNonNullItem                    = [&first, &second]
+    let aliasedHolder:   JitNonNullHolderAlias                  = {required: &first}
+    let pointerDefault                                          = JitNonNullPointerDefault{}
+    var moveDefaultSource                                       = JitNonNullMoveDefault{required: "explicit"}
     let moveDefaultTarget = #move moveDefaultSource
     let families = JitNonNullFamilies{
         valuePointer:  direct,
@@ -270,9 +270,9 @@ func jitNonNullConstruction()->bool
         return false
     if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
         return false
-    var defaultItem:  JitNonNullStringDefault
-    var defaultArray: [2] JitNonNullStringDefault
-    let omittedDefaults = JitNonNullDefaultContainer{}
+    var defaultItem:     JitNonNullStringDefault
+    var defaultArray:    [2] JitNonNullStringDefault
+    let omittedDefaults                              = JitNonNullDefaultContainer{}
     let partialDefaults: [2] JitNonNullStringDefault = [{value: "explicit"}]
 
     @assert(defaultItem.value == "fallback")
@@ -295,7 +295,7 @@ func jitNonNullConstruction()->bool
 
     // 'undefined' remains an explicit low-level escape hatch; its value must not be read.
     var undefinedPointer: *JitNonNullItem = undefined
-    var undefinedHolder = JitNonNullUndefinedHolder{}
+    var undefinedHolder                   = JitNonNullUndefinedHolder{}
     #assert(#typeof(undefinedPointer) == *JitNonNullItem)
     #assert(#typeof(undefinedHolder.required) == *JitNonNullItem)
 

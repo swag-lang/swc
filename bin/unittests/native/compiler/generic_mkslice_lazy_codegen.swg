@@ -88,7 +88,7 @@ namespace GenericMkSliceLazyCodegen
         {
             let buf = notnull .buffer
             buf[.count] = value
-            .count          += 1
+            .count      += 1
         }
 
         mtd free()

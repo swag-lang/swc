@@ -96,7 +96,7 @@ func(T) pickGenericFlags(flags: T, value: T)->T
     return flags | value
 }
 
-const RunStrictTestFlag: StrictTestFlags      = #run makeStrictTestFlag()
+const RunStrictTestFlag:  StrictTestFlags     = #run makeStrictTestFlag()
 const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
 #test
@@ -116,10 +116,10 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
 
 #test
 {
-    var value = cast(StrictTestFlags) TestFlags.A | cast(StrictTestFlags) TestFlags.B
-    var masked = value & cast(StrictTestFlags) TestFlags.B
-    var missing = value & cast(StrictTestFlags) TestFlags.C
-    var toggled = value ^ cast(StrictTestFlags) TestFlags.B
+    var value    = cast(StrictTestFlags) TestFlags.A | cast(StrictTestFlags) TestFlags.B
+    var masked   = value & cast(StrictTestFlags) TestFlags.B
+    var missing  = value & cast(StrictTestFlags) TestFlags.C
+    var toggled  = value ^ cast(StrictTestFlags) TestFlags.B
     var inverted = ~cast(StrictTestFlags) TestFlags.C
 
     #assert(#typeof(value) == StrictTestFlags)
@@ -199,7 +199,7 @@ const RunStrictTestFlags: [2] StrictTestFlags = #run makeStrictTestFlagArray()
     values.values[0] = .West | .East
     values.values[1] = .North | .South
 
-    var tookEast = false
+    var tookEast   = false
     let horizontal = values.refAt(0)
     switch
     {

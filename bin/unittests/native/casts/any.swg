@@ -39,7 +39,7 @@ alias AnyCastStrictAny = any
 
 #test
 {
-    var a: any = 42
+    var a: any   = 42
     let refValue = cast(const &s32) a
     let ptrValue = cast(const *s32) a
     @assert(refValue == 42)
@@ -62,8 +62,8 @@ struct AnyCompareType {}
 #test
 {
     var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
-    let baseRef = cast(const &AnyCastBase) boxed
-    let basePtr = cast(const *AnyCastBase) boxed
+    let baseRef    = cast(const &AnyCastBase) boxed
+    let basePtr    = cast(const *AnyCastBase) boxed
     @assert(baseRef.value == 9)
     @assert(basePtr.value == 9)
 }
@@ -85,7 +85,7 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = 12
-    let boxed = dref cast(*AnyCastStrictAny) &raw
+    let boxed    = dref cast(*AnyCastStrictAny) &raw
 
     @assert(cast(s32) boxed == 12)
 }
@@ -100,7 +100,7 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = 42
-    let boxed = dref cast(*AnyCastStrictAny) &raw
+    let boxed    = dref cast(*AnyCastStrictAny) &raw
     let refValue = cast(const &s32) boxed
     let ptrValue = cast(const *s32) boxed
 
@@ -111,9 +111,9 @@ struct AnyCompareType {}
 #test
 {
     var raw: any = AnyCastDerived{base: {value: 9}, extra: 2}
-    let boxed = dref cast(*AnyCastStrictAny) &raw
-    let baseRef = cast(const &AnyCastBase) boxed
-    let basePtr = cast(const *AnyCastBase) boxed
+    let boxed    = dref cast(*AnyCastStrictAny) &raw
+    let baseRef  = cast(const &AnyCastBase) boxed
+    let basePtr  = cast(const *AnyCastBase) boxed
 
     @assert(baseRef.value == 9)
     @assert(basePtr.value == 9)

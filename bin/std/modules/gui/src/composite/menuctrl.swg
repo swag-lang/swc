@@ -147,7 +147,7 @@ public impl IWnd for MenuCtrl
         // Shadow
         if !.paintByFrame
         {
-            let subRect = &theme.rects.menuPopup_Shadow
+            let subRect      = &theme.rects.menuPopup_Shadow
             let anchorHeight = .getPopupBarAnchorHeight()
             theme.drawSubRect(painter, {0, anchorHeight, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
         }
@@ -403,7 +403,7 @@ impl MenuCtrl
     private mtd getPopupBarAnchorLocalRect()->Math.Rectangle
     {
         var result: retval = .popupBarItemSurfaceRect
-        let surfaceRect = .getSurfaceRect()
+        let surfaceRect    = .getSurfaceRect()
         result.x -= surfaceRect.x
         result.y -= surfaceRect.y
         return result
@@ -437,9 +437,9 @@ impl MenuCtrl
 
     private mtd getPopupBodyRect()->Math.Rectangle
     {
-        let metrics = .getThemeMetrics()
+        let metrics        = .getThemeMetrics()
         var result: retval = .getClientRect()
-        let anchorHeight = .getPopupBarAnchorHeight()
+        let anchorHeight   = .getPopupBarAnchorHeight()
         if anchorHeight
         {
             result.y      += anchorHeight
@@ -470,7 +470,7 @@ impl MenuCtrl
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBk, colors.menuPopup_Bk)
         theme.drawSubRect(painter, anchorBk, &rects.menuPopup_BarAnchorBorder, colors.menuPopup_Border, interpol: .Pixel)
 
-        let i = notnull (notnull .ownerMenu).items[.popupBarItemIdx]
+        let i        = notnull (notnull .ownerMenu).items[.popupBarItemIdx]
         var labelPos = anchorRect
         labelPos.x     += metrics.menuBar_SpaceBetween * 0.5
         labelPos.width -= metrics.menuBar_SpaceBetween
@@ -668,7 +668,7 @@ impl MenuCtrl
 
     mtd hitTestBar(surfacePos: Math.Point)->u32
     {
-        let pos        = .surfaceToLocal(surfacePos)
+        let pos = .surfaceToLocal(surfacePos)
         for iIt, [idx] in .items
         {
             let i = notnull iIt
@@ -686,10 +686,10 @@ impl MenuCtrl
 
     mtd hitTestPopup(surfacePos: Math.Point)->u32
     {
-        let pos        = .surfaceToLocal(surfacePos)
-        let metrics    = .getThemeMetrics()
-        let clientRect = .getClientRect()
-        let sl         = metrics.menuPopup_SpaceLines
+        let pos             = .surfaceToLocal(surfacePos)
+        let metrics         = .getThemeMetrics()
+        let clientRect      = .getClientRect()
+        let sl              = metrics.menuPopup_SpaceLines
         var lastIsSeparator = true
         for i, [idx] in .items
         {
@@ -735,7 +735,7 @@ impl MenuCtrl
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
             fake.drawRichString({0, 0, 512, 0}, &it.name, rsf)
             it.size = it.name.boundRect.width
-            x      = it.pos + it.size + metrics.menuBar_SpaceBetween * 0.5
+            x       = it.pos + it.size + metrics.menuBar_SpaceBetween * 0.5
         }
     }
 
@@ -766,12 +766,12 @@ impl MenuCtrl
                 .onComputeItem(notnull i)
             if idx do
                 .position.height += metrics.menuPopup_SpaceLines
-            it.pos                = .position.height
+            it.pos               = .position.height
 
             lastIsSeparator = it.separator
             if it.separator
             {
-                it.size           = metrics.menuPopup_SeparatorHeight
+                it.size          = metrics.menuPopup_SeparatorHeight
                 .position.height += it.size
                 continue
             }

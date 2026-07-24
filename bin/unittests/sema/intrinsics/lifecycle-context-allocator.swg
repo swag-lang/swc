@@ -298,7 +298,7 @@ func directAllocatorRunInitInfo()->ByteInitInfo
     values.resize(5)
     let secondTrace = encodeByteTrace(values.buffer, values.count)
 
-    let count = values.count
+    let count    = values.count
     let capacity = values.capacity
     values.free()
     return {firstTrace, secondTrace, count, capacity}
@@ -317,7 +317,7 @@ func helperAllocatorRunInitInfo()->ByteInitInfo
     values.resize(4)
     let secondTrace = encodeByteTrace(values.buffer, values.count)
 
-    let count = values.count
+    let count    = values.count
     let capacity = values.capacity
     values.free()
     return {firstTrace, secondTrace, count, capacity}

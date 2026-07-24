@@ -118,7 +118,7 @@ impl Matrix
 // Generic pointer to generic struct
 #test
 {
-    var box:  Box's32 = {value: 77}
+    var box:  Box's32    = {value: 77}
     let refb: RefBox's32 = {ptr: &box}
     @assert(dref refb.ptr == box)
     @assert((dref refb.ptr).value == 77)

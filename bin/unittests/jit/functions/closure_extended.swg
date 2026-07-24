@@ -98,13 +98,13 @@ func runMePathCapture()->s32
 {
     var first:  PathTarget = {value: 5}
     var second: PathTarget = {value: 90}
-    var owner:  PathOwner = {target: &first, bias: 4}
+    var owner:  PathOwner  = {target: &first, bias: 4}
 
     let cb = owner.makeCallback()
     owner.target = &second
     owner.bias   = 100
 
-    let firstValue = cb()
+    let firstValue  = cb()
     let secondValue = cb()
     @assert(first.value == 13)
     @assert(second.value == 90)
@@ -200,7 +200,7 @@ func runMePathCapture()->s32
 
 #test
 {
-    var total = 4
+    var total  = 4
     var factor = 3
     let cb: func||(s32)->s32 = func|factor, &total|(value: s32)->s32
     {
@@ -268,7 +268,7 @@ func runMePathCapture()->s32
     let fromFunction = relayUnary(&addOne)
     @assert(fromFunction(4) == 5)
 
-    let offset = 10
+    let offset   = 10
     let captured = relayUnary(func|offset|(value: s32)->s32 { return value + offset })
     @assert(captured(4) == 14)
 }

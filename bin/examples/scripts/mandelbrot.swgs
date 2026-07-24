@@ -17,7 +17,7 @@ func compute()
     using Math
 
     let slider = notnull g_Slider
-    var data = {minS: slider.getValueLeft(), maxS: slider.getValueRight()}
+    var data   = {minS: slider.getValueLeft(), maxS: slider.getValueRight()}
     g_Image.visitPixels(&data)
     {
         var params = cast(*#decltype(data)) notnull userData
@@ -30,7 +30,7 @@ func compute()
         var ca = a
         var cb = b
 
-        var n               = 0
+        var n = 0
         const MaxIterations = 100
         while n < MaxIterations
         {

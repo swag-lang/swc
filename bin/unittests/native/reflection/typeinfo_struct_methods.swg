@@ -160,8 +160,8 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
         return false
 
     var probe: SimpleMethodProbe = {value: seed}
-    let method = cast(SimplePingFn) methodInfo.value
-    let result = method(&probe)
+    let method                   = cast(SimplePingFn) methodInfo.value
+    let result                   = method(&probe)
     RuntimeMethodPointerCalls += 1
     return result == seed + 1
 }
@@ -188,9 +188,9 @@ func callReflectedGenericMethod(type: typeinfo, start: s32, next: s32)->bool
         return false
 
     var probe: GenericMethodProbe's32 = {value: start}
-    let values = [next, start]
-    let method = cast(GenericCopyFromFn) methodInfo.value
-    let result = method(&probe, values)
+    let values                        = [next, start]
+    let method                        = cast(GenericCopyFromFn) methodInfo.value
+    let result                        = method(&probe, values)
     RuntimeMethodPointerCalls += 1
     return result == next and probe.value == next
 }

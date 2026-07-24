@@ -17,7 +17,7 @@ func day4B()
     var total = 0
     for [x] in 246515 to 739105
     {
-        var div  = 100_000
+        var div         = 100_000
         var str: [6] u8 = undefined
         for [i] in 6
         {

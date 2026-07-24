@@ -62,7 +62,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } th
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
     result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .Secondary | .TopMost | .NoShadow)
-    let sf = notnull result.sf
+    let sf         = notnull result.sf
     let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     captureWnd.main   = main
     captureWnd.cursor = Cursor.from(CursorShape.Cross)
@@ -150,7 +150,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
         g_EndGrabY   = r.bottom()
 
     case .Screen0, .Screen1, .Screen2, .Screen3:
-        let idx  = cast(s32) captureMode - cast(s32) CaptureMode.Screen0
+        let idx = cast(s32) captureMode - cast(s32) CaptureMode.Screen0
         if cast(u64) idx >= main.monitors.count do
             return false
         let rect = screenToDesktopRect(main.monitors[idx].rectReal)

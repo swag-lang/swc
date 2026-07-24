@@ -79,12 +79,12 @@ using Swag, Core, File
 {
     var f: HeadlessFixture
     f.setup()
-    let lib = f.setupLibraryWnd()
+    let lib  = f.setupLibraryWnd()
     let view = notnull lib.view
-    let wnd = cast(*Wnd) lib
+    let wnd  = cast(*Wnd) lib
 
-    let old = testAddLibraryItem(view, "old.captme", 10, 1)
-    let big = testAddLibraryItem(view, "big-linked.captme", 30, 3, "big.png")
+    let old   = testAddLibraryItem(view, "old.captme", 10, 1)
+    let big   = testAddLibraryItem(view, "big-linked.captme", 30, 3, "big.png")
     let dirty = testAddLibraryItem(view, "dirty-linked.captme", 20, 2, "dirty.png", linkedUpToDate: false)
 
     lib.sortMethod = .FileSize

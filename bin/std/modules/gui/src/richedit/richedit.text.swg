@@ -100,7 +100,7 @@ impl RichEditCtrl
             return
 
         // Make one single line with current wrapped lines
-        var i = lineIndex + 1
+        var i       = lineIndex + 1
         let dstLine = notnull .lines[lineIndex]
         while i < .lines.count
         {

@@ -13,7 +13,7 @@ struct Surface
 {
     using native: NativeSurface
     app:          *Application = undefined
-    wnd:          *SurfaceWnd = undefined
+    wnd:          *SurfaceWnd  = undefined
     painter:      Painter
     rt:           RenderTarget
     userData:     #null *void
@@ -23,7 +23,7 @@ struct Surface
     minSize: Math.Point
     maxSize: Math.Point
 
-    flags:         SurfaceFlags = Zero
+    flags:         SurfaceFlags   = Zero
     dirtyRect:     Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}
     colorDisabled: Color
 
@@ -352,7 +352,7 @@ impl Surface
                 continue
 
             let spread = metrics.surfaceWnd_ShadowSpread * t
-            var rect = bodyRect
+            var rect   = bodyRect
             rect.inflate(spread)
             let radius = .getCornerRadius() + spread
             .painter.fillRoundRect(rect, radius, radius, .app.theme.colors.wnd_Shadow.withAlpha(alpha))
@@ -381,7 +381,7 @@ impl Surface
 
     private mtd paintAlphaMask()
     {
-        let rect   = .wnd.getSurfaceRect()
+        let rect = .wnd.getSurfaceRect()
 
         .painter.resetTransform()
         .painter.setColorMaskAlpha()

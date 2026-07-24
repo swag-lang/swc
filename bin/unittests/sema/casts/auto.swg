@@ -11,8 +11,8 @@ func takes_f64(v: f64) {}
 
 func semaTest001()
 {
-    var u: u32 = 100
-    var s: s32 = cast() u
+    var u: u32  = 100
+    var s: s32  = cast() u
     var b: bool = cast() u
 }
 
@@ -25,7 +25,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    var a: u8 = 255
+    var a: u8  = 255
     var b: u16 = cast() a
     var c: u32 = cast() a
 }
@@ -81,8 +81,8 @@ func semaTest011()
 
 func semaTest012()
 {
-    var p:  #null *u32 = cast() null
-    var s:  #null string = cast() null
+    var p:  #null *u32     = cast() null
+    var s:  #null string   = cast() null
     var sl: #null [..] s32 = cast() null
 }
 

@@ -591,7 +591,7 @@ namespace compiler345
     //#[Swag.PrintBc]
     #test
     {
-        var a: s32 = undefined
+        var a: s32  = undefined
         var b: *s32 = undefined
         @assert(#typeof(a) == s32)
         @assert(#typeof(b) == *s32)
@@ -605,7 +605,7 @@ namespace compiler350
     #test
     {
         const a = 666
-        let b   = #run a
+        let b = #run a
         @assert(b == 666)
     }
 }

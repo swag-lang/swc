@@ -38,7 +38,7 @@ func fontPath(fileName: string, loc = #callerlocation)->String
 func loadFonts() throw
 {
     g_FontPath = fontPath("segoeui.ttf")
-    let path   = g_FontPath.toString()
+    let path = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
     g_TitleFont    = Font.create(notnull g_TypeFace, 34)
@@ -286,9 +286,9 @@ func makeTransparencyPath(rect: Math.Rectangle, variant: s32)->LinePath
 func makeBlobPath(rect: Math.Rectangle)->LinePath
 {
     var path: retval
-    let left  = rect.x
-    let top   = rect.y
-    let width = rect.width
+    let left   = rect.x
+    let top    = rect.y
+    let width  = rect.width
     let height = rect.height
 
     path.start(left + width * 0.311, top + height * 0.464)

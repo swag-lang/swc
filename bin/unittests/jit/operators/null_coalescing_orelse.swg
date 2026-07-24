@@ -70,9 +70,9 @@ var GNullCoerc: s32 = 56
 {
     func nonNullPointerWins()->bool
     {
-        var x: u8 = 0
-        var y: u8 = 0
-        let ptr = cast(*void) &x
+        var x: u8    = 0
+        var y: u8    = 0
+        let ptr      = cast(*void) &x
         let fallback = cast(*void) &y
         let resolved = ptr orelse fallback
         return resolved == ptr and resolved != fallback

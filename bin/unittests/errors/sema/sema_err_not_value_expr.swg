@@ -1,6 +1,6 @@
 #global private
 
-var a: s32 = 0
+var a: s32          = 0
 var b: #decltype(a) = 5
 #assert(#typeof(b) == s32)
 

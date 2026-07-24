@@ -281,17 +281,17 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
 {
     const Bold = 0'u32
 
-    var outline = makeOutline(text, OutlineFontSize, Bold)
-    let textWidth = ((outline.bvMax.x - outline.bvMin.x) + 2 * OutlineBorder) * scale
+    var outline    = makeOutline(text, OutlineFontSize, Bold)
+    let textWidth  = ((outline.bvMax.x - outline.bvMin.x) + 2 * OutlineBorder) * scale
     let textHeight = ((outline.bvMax.y - outline.bvMin.y) + 2 * OutlineBorder) * scale
-    let localW = cast(s32) Math.ceil(textWidth + OutlineShadowMargin * 2)
-    let localH = cast(s32) Math.ceil(textHeight + OutlineShadowMargin * 2)
-    let textX = cast(f32) OutlineShadowMargin
-    let textY = cast(f32) OutlineShadowMargin
+    let localW     = cast(s32) Math.ceil(textWidth + OutlineShadowMargin * 2)
+    let localH     = cast(s32) Math.ceil(textHeight + OutlineShadowMargin * 2)
+    let textX      = cast(f32) OutlineShadowMargin
+    let textY      = cast(f32) OutlineShadowMargin
 
-    let rtText = g_Renderer.getRenderTarget(localW, localH)
+    let rtText   = g_Renderer.getRenderTarget(localW, localH)
     let rtShadow = g_Renderer.getRenderTarget(localW, localH)
-    let rtBlur = g_Renderer.getRenderTarget(localW, localH)
+    let rtBlur   = g_Renderer.getRenderTarget(localW, localH)
 
     if superSample <= 1
     {
@@ -299,7 +299,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     }
     else
     {
-        let ss = cast(f32) superSample
+        let ss      = cast(f32) superSample
         let rtSuper = g_Renderer.getRenderTarget(localW * superSample, localH * superSample)
         renderOutlineToTarget(painter, rtSuper, &outline, textX * ss, textY * ss, scale * ss, mode)
 
@@ -416,12 +416,12 @@ func drawSampleGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle, title: str
 {
     drawFrame(painter, rowRect, title)
 
-    let body = insetRect(rowRect, 18, 48, 18, 18)
-    let gap = 16.0
+    let body  = insetRect(rowRect, 18, 48, 18, 18)
+    let gap   = 16.0
     let cellW = (body.width - gap * 3) / 4
     for sample, [idx] in Samples
     {
-        let x = body.x + cast(f32) idx * (cellW + gap)
+        let x    = body.x + cast(f32) idx * (cellW + gap)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)
@@ -435,12 +435,12 @@ func drawGdiGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle)
 {
     drawFrame(painter, rowRect, "GDI+ reference (GraphicsPath DrawPath + FillPath)")
 
-    let body = insetRect(rowRect, 18, 48, 18, 18)
-    let gap = 16.0
+    let body  = insetRect(rowRect, 18, 48, 18, 18)
+    let gap   = 16.0
     let cellW = (body.width - gap * 3) / 4
     for sample, [idx] in Samples
     {
-        let x = body.x + cast(f32) idx * (cellW + gap)
+        let x    = body.x + cast(f32) idx * (cellW + gap)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
         painter.fillRoundRect(cell, 6, 6, Color.fromArgb(255, 247, 249, 251))
         painter.drawRoundRect(cell, 6, 6, Color.fromArgb(32, Argb.SlateGray), 1)

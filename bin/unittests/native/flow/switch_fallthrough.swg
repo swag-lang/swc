@@ -2,7 +2,7 @@
 
 #test
 {
-    var v = 1
+    var v   = 1
     var hit = 0
     switch v
     {
@@ -21,7 +21,7 @@
 
 #test
 {
-    var v = 1
+    var v   = 1
     var hit = 0
     switch v
     {
@@ -37,7 +37,7 @@
 
 #test
 {
-    var v = 0
+    var v   = 0
     var hit = 0
     switch v
     {
@@ -56,7 +56,7 @@
 
 #test
 {
-    var v = 0
+    var v   = 0
     var hit = 0
     switch v
     {
@@ -72,7 +72,7 @@
 
 #test
 {
-    var v = 1
+    var v   = 1
     var hit = 0
     switch v
     {
@@ -91,7 +91,7 @@
 
 #test
 {
-    var v = 1
+    var v   = 1
     var hit = 0
     switch v
     {

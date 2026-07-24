@@ -38,9 +38,9 @@
 // Hex and binary consistency
 #test
 {
-    let hex  = 0x2A'u32
-    let bin  = 0b0010_1010'u32
-    let dec  = 42'u32
+    let hex = 0x2A'u32
+    let bin = 0b0010_1010'u32
+    let dec = 42'u32
     @assert(hex == bin)
     @assert(hex == dec)
 }

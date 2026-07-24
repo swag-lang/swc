@@ -117,7 +117,7 @@ acknowledge potential data loss.
 {
     // Explicit cast from 's16' to 's8' required
     let z0: s16 = 256
-    let z1: s8 = cast #wrap (s8) z0
+    let z1: s8  = cast #wrap (s8) z0
     @assert(z1 == 0)
 
     // Explicit cast from 'u16' to 's16' required

@@ -229,7 +229,7 @@ impl Deflate
         d.lzCodeBufAddr  += 3
 
         let lzFlags = notnull d.lzFlags
-        dref lzFlags = cast(u8) ((dref lzFlags >> 1) | 0x80)
+        dref lzFlags   = cast(u8) ((dref lzFlags >> 1) | 0x80)
         d.numFlagsLeft -= 1
         if d.numFlagsLeft == 0
         {
@@ -254,10 +254,10 @@ impl Deflate
         var probePos = pos
 
         var numProbesLeft = d.maxProbes[matchLen >= 32 ? 1 : 0]
-        var s: [*] u8 = &d.dict[0]
+        var s: [*] u8     = &d.dict[0]
         s += pos
-        var c0            = d.dict[pos + matchLen]
-        var c1            = d.dict[pos + matchLen - 1]
+        var c0 = d.dict[pos + matchLen]
+        var c1 = d.dict[pos + matchLen - 1]
 
         if maxMatchLen <= matchLen do
             return
@@ -673,7 +673,7 @@ impl Deflate
 
         var codeSizesToPack: [MaxHuffSymbols0 + MaxHuffSymbols1] u8 = undefined
         var packedCodeSizes: [MaxHuffSymbols0 + MaxHuffSymbols1] u8 = undefined
-        var prevCodeSize     = 0xFF'u8
+        var prevCodeSize                                            = 0xFF'u8
 
         d.huffCount[0, 256] = 1
 
@@ -861,8 +861,8 @@ impl Deflate
         d.outputFlushOfs = 0
 
         let numFlagsLeft = cast(u8) d.numFlagsLeft
-        let lzFlags = notnull d.lzFlags
-        dref lzFlags = cast(u8) (dref lzFlags >> numFlagsLeft)
+        let lzFlags      = notnull d.lzFlags
+        dref lzFlags    = cast(u8) (dref lzFlags >> numFlagsLeft)
         d.lzCodeBufAddr -= (d.numFlagsLeft == 8) ? 1 : 0
 
         .putBits(finish ? 1 : 0, 1)

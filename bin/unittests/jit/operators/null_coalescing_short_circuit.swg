@@ -40,7 +40,7 @@ func fallbackString()->string
     {
         GNullCoercCounter = 0
         var ptr: #null *s32 = null
-        let value = ptr orelse fallbackPointer()
+        let value           = ptr orelse fallbackPointer()
         return dref value + GNullCoercCounter * 100
     }
 
@@ -54,7 +54,7 @@ func fallbackString()->string
     {
         GNullCoercCounter = 0
         let value: string = "ok"
-        let resolved = value orelse fallbackString()
+        let resolved      = value orelse fallbackString()
         return resolved == "ok" and GNullCoercCounter == 0
     }
 
@@ -68,7 +68,7 @@ func fallbackString()->string
     {
         GNullCoercCounter = 0
         var value: #null string = null
-        let resolved = value orelse fallbackString()
+        let resolved            = value orelse fallbackString()
         return resolved == "fallback" and GNullCoercCounter == 1
     }
 

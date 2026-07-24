@@ -57,7 +57,7 @@ the alias and its base type. Explicit casting is still permitted.
     #assert(#typeof(MyType) != s32)
 
     let x: MyType = cast(MyType) 0
-    let y: s32 = cast(s32) x
+    let y: s32    = cast(s32) x
 }
 
 /**

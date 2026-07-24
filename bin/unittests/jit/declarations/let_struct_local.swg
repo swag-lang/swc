@@ -9,7 +9,7 @@ struct LocalVarPoint
 struct LocalVarState
 {
     enabled: bool = true
-    weight:  s32 = 5
+    weight:  s32  = 5
 }
 
 struct LocalVarNode

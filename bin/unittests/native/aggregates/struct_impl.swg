@@ -44,7 +44,7 @@ impl Vec2
 {
     var a: Vec2 = {x: 1, y: 2}
     var b: Vec2 = {x: 3, y: 4}
-    let result = a.add(b).scale(2)
+    let result  = a.add(b).scale(2)
     @assert(result.x == 8)
     @assert(result.y == 12)
 }
@@ -86,7 +86,7 @@ impl Vec2
 #test
 {
     var v: Vec2 = {x: 6, y: 8}
-    let p = cast(StructImplStrictVec2Ptr) &v
+    let p       = cast(StructImplStrictVec2Ptr) &v
     @assert(p.length2() == 100)
     p.negate()
     @assert(v.x == -6)
@@ -135,7 +135,7 @@ impl ListNode
 {
     mtd count()->s32
     {
-        var n = 1
+        var n   = 1
         var cur = .next
         while cur != null
         {

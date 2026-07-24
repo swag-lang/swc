@@ -3,7 +3,7 @@
 
 func pushContextRestoresAfterContinue()->bool
 {
-    let base = @getcontext()
+    let base   = @getcontext()
     var pushed = dref base
     pushed.user0 = 0xC071E
 
@@ -32,7 +32,7 @@ func pushContextRestoresAfterContinue()->bool
 
 func pushContextRestoresAfterBreak()->bool
 {
-    let base = @getcontext()
+    let base   = @getcontext()
     var pushed = dref base
     pushed.user0 = 0xBEEA
 
@@ -58,7 +58,7 @@ func pushContextRestoresAfterBreak()->bool
 
 func pushContextRestoresAfterReturn()->bool
 {
-    let base = @getcontext()
+    let base   = @getcontext()
     var pushed = dref base
     pushed.user0 = 0xCA11EE
 
@@ -77,7 +77,7 @@ func pushContextRestoresAfterReturn()->bool
     @assert(pushContextRestoresAfterContinue())
     @assert(pushContextRestoresAfterBreak())
 
-    let base = @getcontext()
+    let base      = @getcontext()
     let baseUser0 = base.user0
     @assert(pushContextRestoresAfterReturn())
     @assert(@getcontext () == base)

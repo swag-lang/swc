@@ -344,9 +344,9 @@ func segSegIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF3
         if overlapStart > overlapEnd + epsilon do
             return result
 
-        let denom = Math.abs(r.x) >= Math.abs(r.y) ? r.x : r.y
+        let denom  = Math.abs(r.x) >= Math.abs(r.y) ? r.x : r.y
         let origin = Math.abs(r.x) >= Math.abs(r.y) ? start0.x : start0.y
-        let t = (overlapStart - origin) / denom
+        let t      = (overlapStart - origin) / denom
 
         result.yes = true
         result.pos = start0 + r * t

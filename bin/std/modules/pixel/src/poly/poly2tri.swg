@@ -88,7 +88,7 @@ struct Basin
 
 struct Node
 {
-    point:    *Point = undefined
+    point:    *Point    = undefined
     triangle: *Triangle = undefined
     next:     #null *Node
     prev:     #null *Node
@@ -552,10 +552,10 @@ impl AdvancingFront
 {
     mtd locatePoint(point: *Point)->#null *Node
     {
-        let px    = point.x
-        let start = nnNode(.searchNode)
+        let px                = point.x
+        let start             = nnNode(.searchNode)
         var node: #null *Node = start
-        let nx    = start.point.x
+        let nx                = start.point.x
 
         if px == nx
         {
@@ -597,7 +597,7 @@ impl AdvancingFront
 
     mtd locateNode(x: f32)->*Node
     {
-        let start = nnNode(.searchNode)
+        let start             = nnNode(.searchNode)
         var node: #null *Node = start
         if x < start.value
         {
@@ -1165,14 +1165,14 @@ impl Tessellate
         let leftNode   = nnNode(.basin.leftNode)
         var bottomNode = leftNode
         while bottomNode.next and bottomNode.point.y >= nnNode(bottomNode.next).point.y do
-            bottomNode = nnNode(bottomNode.next)
+            bottomNode    = nnNode(bottomNode.next)
         .basin.bottomNode = bottomNode
         if bottomNode == leftNode do
             return
 
         var rightNode = bottomNode
         while rightNode.next and rightNode.point.y < nnNode(rightNode.next).point.y do
-            rightNode = nnNode(rightNode.next)
+            rightNode    = nnNode(rightNode.next)
         .basin.rightNode = rightNode
         if rightNode == bottomNode do
             return
@@ -1511,9 +1511,9 @@ impl Tessellate
 
     mtd finalizationPolygon()
     {
-        let headNext = nnNode(nnNode(.front.head).next)
+        let headNext           = nnNode(nnNode(.front.head).next)
         var t: #null *Triangle = headNext.triangle
-        let p = headNext.point
+        let p                  = headNext.point
         while t and !t.getConstrainedEdgeCW(p) do
             t = t.neighborCCW(p)
         if t do
@@ -1570,8 +1570,8 @@ impl Tessellate
         }
 
         const KAlpha = 0.3'f32
-        let dx       = KAlpha * (xmax - xmin)
-        let dy       = KAlpha * (ymax - ymin)
+        let dx = KAlpha * (xmax - xmin)
+        let dy = KAlpha * (ymax - ymin)
         .head   = newPoint()
         .head.x = xmin - dx
         .head.y = ymin - dy

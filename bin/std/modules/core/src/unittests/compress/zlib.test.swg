@@ -87,19 +87,19 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 {
     let tooSmall: [5] u8 = [0x78, 0x9C, 0, 0, 0]
     var reader:   Compress.ZLib
-    let tooSmallResult = catch reader.decompress(tooSmall)
+    let tooSmallResult   = catch reader.decompress(tooSmall)
     @assert(tooSmallResult.count == 0)
     @assert(@err is Errors.InvalidFormatError)
 
     let badMethod:       [6] u8 = [0x79, 0x9C, 0, 0, 0, 0]
     var badMethodReader: Compress.ZLib
-    let badMethodResult = catch badMethodReader.decompress(badMethod)
+    let badMethodResult         = catch badMethodReader.decompress(badMethod)
     @assert(badMethodResult.count == 0)
     @assert(@err is Errors.InvalidFormatError)
 
     let dictionary:       [6] u8 = [0x78, 0x20, 0, 0, 0, 0]
     var dictionaryReader: Compress.ZLib
-    let dictionaryResult = catch dictionaryReader.decompress(dictionary)
+    let dictionaryResult         = catch dictionaryReader.decompress(dictionary)
     @assert(dictionaryResult.count == 0)
     @assert(@err is Errors.UnsupportedFormatError)
 }

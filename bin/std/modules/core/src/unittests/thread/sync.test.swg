@@ -40,7 +40,7 @@ impl FakeSync
 
 func scopedLockUnlocksAfterContinue()->bool
 {
-    var sync = FakeSync{}
+    var sync        = FakeSync{}
     var reachedTail = 0
 
     for 4
@@ -63,7 +63,7 @@ func scopedLockUnlocksAfterContinue()->bool
 
 func scopedLockUnlocksAfterBreak()->bool
 {
-    var sync = FakeSync{}
+    var sync       = FakeSync{}
     var seenInside = 0
 
     for 5
@@ -96,7 +96,7 @@ func scopedLockUnlocksAfterReturn()->bool
 
 func sharedLockUnlocksAfterContinue()->bool
 {
-    var sync = FakeSync{}
+    var sync        = FakeSync{}
     var reachedTail = 0
 
     for 3

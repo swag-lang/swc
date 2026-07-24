@@ -9,7 +9,7 @@ enum Color
 
 #test
 {
-    var c = Color.Green
+    var c   = Color.Green
     var hit = 0
     #[Swag.Complete]
     switch (c)
@@ -29,7 +29,7 @@ enum Color
 
 #test
 {
-    var c = Color.Red
+    var c   = Color.Red
     var hit = 0
     #[Swag.Complete]
     switch (c)

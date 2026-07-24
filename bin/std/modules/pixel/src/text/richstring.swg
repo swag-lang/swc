@@ -4,7 +4,7 @@ using Core
 
 struct RichChunk
 {
-    slice:        string = ""
+    slice:        string          = ""
     fontStyle:    FontFamilyStyle = Regular
     hasFontStyle: bool
     isSpace:      bool
@@ -16,7 +16,7 @@ struct RichChunk
 
     boundRect: Math.Rectangle
     pos:       Math.Point
-    font:      *Font = undefined
+    font:      *Font          = undefined
     shaped:    ShapedRun
     under:     UnderlineStyle = None
 }
@@ -143,7 +143,7 @@ impl RichString
 
         while count
         {
-            let sl = @mkslice(scan, count)
+            let sl      = @mkslice(scan, count)
             var handled = false
             switch
             {
@@ -228,7 +228,7 @@ impl RichString
         var startChunk = 0'u64
         var chunk: RichChunk
 
-        var byteIdx   = 0'u64
+        var byteIdx = 0'u64
         var isBold:   Array'bool
         var isItalic: Array'bool
         var isUrl:    Array'bool
@@ -244,7 +244,7 @@ impl RichString
         var scan = .raw.buffer
         while count
         {
-            var sl = @mkslice(scan, count)
+            var sl      = @mkslice(scan, count)
             var handled = false
             switch
             {

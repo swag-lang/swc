@@ -282,7 +282,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 #test
 {
     let bot: Robot = {px: 2, py: 4, vx: 2, vy: -3}
-    let b1 = advanceRobot(bot, 1, SampleWidth, SampleHeight)
+    let b1         = advanceRobot(bot, 1, SampleWidth, SampleHeight)
     @assert(b1.px == 4)
     @assert(b1.py == 1)
 
@@ -302,14 +302,14 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 #test
 {
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
-    let sf = safetyFactor(&fleet, Steps)
+    let sf    = safetyFactor(&fleet, Steps)
     @assert(sf == 12'u64)
 }
 
 // cast() auto-inference
 #test
 {
-    let v: s32 = 42
+    let v: s32  = 42
     let b: bool = cast() (v > 0)
     @assert(b)
     let f: f32 = cast() v
@@ -342,7 +342,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 #test
 {
     var fleet = parseFleet(SampleInput, SampleWidth, SampleHeight)
-    let best = findClusterStep(&fleet, 20)
+    let best  = findClusterStep(&fleet, 20)
     @assert(best < 20'u32)
 }
 

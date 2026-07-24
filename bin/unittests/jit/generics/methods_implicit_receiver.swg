@@ -26,8 +26,8 @@ impl Box
 
 #test
 {
-    var box = Box{value: 42}
-    let pair = box.pairWith(0'u8)
+    var box    = Box{value: 42}
+    let pair   = box.pairWith(0'u8)
     let tagged = box.tagged'(string, 3)("ok")
 
     #assert(#typeof(pair) == Pair'(s32, u8))

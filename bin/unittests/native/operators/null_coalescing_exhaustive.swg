@@ -27,8 +27,8 @@ func zeroLiteralOrelseReturn(value: u8)->u8
 func strictHandleFallback()->bool
 {
     var storage: s32 = 1
-    let fallback = cast(OrelseStrictHandle) &storage
-    let resolved = cast(OrelseStrictHandle) null orelse fallback
+    let fallback     = cast(OrelseStrictHandle) &storage
+    let resolved     = cast(OrelseStrictHandle) null orelse fallback
     #assert(#typeof(resolved) == OrelseStrictHandle)
     return resolved == fallback and resolved != null
 }
@@ -36,25 +36,25 @@ func strictHandleFallback()->bool
 func typeInfoFallback()->bool
 {
     let primary:  #null typeinfo = null
-    let fallback: typeinfo = s32
-    let resolved = primary orelse fallback
+    let fallback: typeinfo       = s32
+    let resolved                 = primary orelse fallback
     return resolved == s32
 }
 
 func cstringFallback()->bool
 {
     var data: [3] u8 = ['o''u8, 'k''u8, 0]
-    let resolved = cast(#null cstring) null orelse cast(cstring) &data[0]
+    let resolved     = cast(#null cstring) null orelse cast(cstring) &data[0]
     #assert(#typeof(resolved) == cstring)
     return resolved != null and @countof(resolved) == 2
 }
 
 func interfaceFallback()->bool
 {
-    var probe = OrelseProbe{value: 55}
+    var probe                       = OrelseProbe{value: 55}
     var primary: #null IOrelseProbe = null
-    let fallback = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
-    let resolved = primary orelse fallback
+    let fallback                    = @mkinterface(&probe, #typeof(probe), IOrelseProbe)
+    let resolved                    = primary orelse fallback
     return resolved.id() == 55
 }
 
@@ -84,8 +84,8 @@ func interfaceFallback()->bool
     func explicitAnyChecks()->bool
     {
         let missing:   #null any = null
-        let boolTrue:  any = true
-        let boolFalse: any = false
+        let boolTrue:  any       = true
+        let boolFalse: any       = false
         return missing == null and
                boolTrue != null and
                boolFalse != null and

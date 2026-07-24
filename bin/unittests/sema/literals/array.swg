@@ -16,7 +16,7 @@ const A2 = [1, true, 3]
 
 func semaTest001()
 {
-    var x = 1
+    var x          = 1
     var B: [3] s32 = [x, 2, 3]
     #assert(#typeof(B) == #type [3] s32)
 
@@ -55,7 +55,7 @@ func semaTest002()
     #assert(M[1][0] == 3)
 }
 
-const AB: [2] u32  = [1, 2]
+const AB:  [2] u32 = [1, 2]
 const AB1: [?] u32 = [1, 2]
 #assert(#typeof(AB1) == #type [2] u32)
 
@@ -101,8 +101,8 @@ const SemaLitArr6: [3] u8 = HexFill
 func semaTest003()
 {
     const values = [{x: 1, y: 2}, {3, 4}]
-    var firstX   = values[0].x
-    var secondY  = values[1].y
+    var firstX  = values[0].x
+    var secondY = values[1].y
     #assert(#typeof(firstX) == s32)
     #assert(#typeof(secondY) == s32)
 }

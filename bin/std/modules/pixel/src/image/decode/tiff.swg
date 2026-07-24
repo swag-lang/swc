@@ -101,7 +101,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
     if !ts do
         throw UnsupportedFormatError{"unsupported field type"}
 
-    let totalBytes = cast(u64) e.count * ts
+    let totalBytes      = cast(u64) e.count * ts
     var p: const [*] u8 = e.fieldAt
     if totalBytes > 4
     {
@@ -210,7 +210,7 @@ public impl IImageDecoder for Decoder
         checkBuffer(base + ifdOffset, last, cast(u64) 2 + cast(u64) numEntries * 12)
         for [i] in numEntries
         {
-            let ep = base + ifdOffset + 2 + cast(u64) i * 12
+            let ep       = base + ifdOffset + 2 + cast(u64) i * 12
             var e: Entry = undefined
             e.tag     = rd16(ep, le)
             e.type    = rd16(ep + 2, le)
@@ -227,11 +227,11 @@ public impl IImageDecoder for Decoder
         if width > Swag.S32.Max or height > Swag.S32.Max do
             throw UnsupportedFormatError{"image is too big"}
 
-        let compression   = readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
-        let photometric   = readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
-        let samples       = readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
-        let planar        = readScalar(base, last, le, &ifd, TAG_PLANAR_CONFIG, 1)
-        var rowsPerStrip  = readScalar(base, last, le, &ifd, TAG_ROWS_PER_STRIP, height)
+        let compression  = readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
+        let photometric  = readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
+        let samples      = readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
+        let planar       = readScalar(base, last, le, &ifd, TAG_PLANAR_CONFIG, 1)
+        var rowsPerStrip = readScalar(base, last, le, &ifd, TAG_ROWS_PER_STRIP, height)
 
         if compression != COMPRESSION_NONE and compression != COMPRESSION_PACKBITS do
             throw UnsupportedFormatError{"unsupported compression"}
@@ -287,7 +287,7 @@ public impl IImageDecoder for Decoder
             let cmEntry = ifd.find(TAG_COLOR_MAP)
             if !cmEntry do
                 throw InvalidFormatError{"missing color map"}
-            let cm = try readValues(base, last, le, cast(*Entry) (cmEntry))
+            let cm      = try readValues(base, last, le, cast(*Entry) (cmEntry))
             let entries = cm.count / 3
             for [i] in entries
             {

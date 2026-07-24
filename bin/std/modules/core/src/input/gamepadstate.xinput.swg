@@ -31,7 +31,7 @@ impl GamePadState
     mtd update(padIndex: u32) throw
     {
         var state: XINPUT_STATE = undefined
-        let res    = XInputGetState(padIndex, &state)
+        let res                 = XInputGetState(padIndex, &state)
         switch res
         {
         case ERROR_SUCCESS:              break

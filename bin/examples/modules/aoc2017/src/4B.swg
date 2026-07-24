@@ -22,7 +22,7 @@ func day4B()
     var total = 0
     for l in lines
     {
-        let s    = Tokenize.split(l, " ")
+        let s = Tokenize.split(l, " ")
         var set: HashSet'(string)
 
         for w in s

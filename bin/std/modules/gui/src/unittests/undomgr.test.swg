@@ -58,7 +58,7 @@ impl IUndoCommand for IncCommand
     g_undoCounter = 0
 
     let serial = mgr.newSerial()
-    let a = Memory.new'IncCommand()
+    let a      = Memory.new'IncCommand()
     a.delta = 1
     let b = Memory.new'IncCommand()
     b.delta = 2

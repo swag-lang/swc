@@ -108,7 +108,7 @@ impl Properties
         let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
         let item     = .addItem(value, data, parentItem, flags: AddItemFlags.Name)
 
-        var editWidth  = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+        var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !.isGridLike() do
             editWidth = .listContentWidthFromUseful(editWidth)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height

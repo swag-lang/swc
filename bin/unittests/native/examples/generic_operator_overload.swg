@@ -76,7 +76,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 3, im: -4}
-    let pos = +z
+    let pos            = +z
 
     #assert(#typeof(pos) == Complex's32)
     @assert(pos.re == 3)
@@ -87,7 +87,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 5, im: -7}
-    let neg = -z
+    let neg            = -z
 
     @assert(neg.re == -5)
     @assert(neg.im == 7)
@@ -97,7 +97,7 @@ impl Complex
 #test
 {
     var z: Complex's64 = {re: 42, im: -99}
-    let dn = -(-z)
+    let dn             = -(-z)
 
     @assert(dn.re == 42)
     @assert(dn.im == -99)
@@ -107,7 +107,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 0, im: 0}
-    let neg = -z
+    let neg            = -z
 
     @assert(neg.re == 0)
     @assert(neg.im == 0)
@@ -122,7 +122,7 @@ impl Complex
 {
     var a: Complex's32 = {re: 1, im: 2}
     var b: Complex's32 = {re: 3, im: 4}
-    let sum = a + b
+    let sum            = a + b
 
     #assert(#typeof(sum) == Complex's32)
     @assert(sum.re == 4)
@@ -134,7 +134,7 @@ impl Complex
 {
     var a: Complex's32 = {re: 10, im: 20}
     var b: Complex's32 = {re: 3, im: 25}
-    let diff = a - b
+    let diff           = a - b
 
     @assert(diff.re == 7)
     @assert(diff.im == -5)
@@ -145,7 +145,7 @@ impl Complex
 {
     var a: Complex's32 = {re: 1, im: 2}
     var b: Complex's32 = {re: 3, im: 4}
-    let prod = a * b
+    let prod           = a * b
 
     @assert(prod.re == -5)
     @assert(prod.im == 10)
@@ -156,8 +156,8 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 3, im: 4}
-    let conj = z.conjugate()
-    let prod = z * conj
+    let conj           = z.conjugate()
+    let prod           = z * conj
 
     @assert(prod.re == 25)
     @assert(prod.im == 0)
@@ -169,7 +169,7 @@ impl Complex
 {
     var z:      Complex's32 = {re: 5, im: 3}
     var i_unit: Complex's32 = {re: 0, im: 1}
-    let rot = z * i_unit
+    let rot                 = z * i_unit
 
     @assert(rot.re == -3)
     @assert(rot.im == 5)
@@ -183,7 +183,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 2, im: 7}
-    let result = z + 10's32
+    let result         = z + 10's32
 
     @assert(result.re == 12)
     @assert(result.im == 7)
@@ -193,7 +193,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 5, im: 3}
-    let result = z - 8's32
+    let result         = z - 8's32
 
     @assert(result.re == -3)
     @assert(result.im == 3)
@@ -203,7 +203,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 2, im: -3}
-    let result = z * 4's32
+    let result         = z * 4's32
 
     @assert(result.re == 8)
     @assert(result.im == -12)
@@ -213,7 +213,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 99, im: -42}
-    let result = z * 0's32
+    let result         = z * 0's32
 
     @assert(result.re == 0)
     @assert(result.im == 0)
@@ -229,7 +229,7 @@ impl Complex
     var a: Complex's32 = {re: 1, im: 1}
     var b: Complex's32 = {re: 2, im: 2}
     var c: Complex's32 = {re: 3, im: 3}
-    let result = a + b + c
+    let result         = a + b + c
 
     @assert(result.re == 6)
     @assert(result.im == 6)
@@ -240,7 +240,7 @@ impl Complex
 {
     var a: Complex's32 = {re: 10, im: 20}
     var b: Complex's32 = {re: 5, im: 5}
-    let result = -(a + b)
+    let result         = -(a + b)
 
     @assert(result.re == -15)
     @assert(result.im == -25)
@@ -250,7 +250,7 @@ impl Complex
 #test
 {
     var z: Complex's64 = {re: 123, im: -456}
-    let result = z + (-z)
+    let result         = z + (-z)
 
     @assert(result.re == 0)
     @assert(result.im == 0)
@@ -261,7 +261,7 @@ impl Complex
 {
     var a: Complex's32 = {re: 6, im: 9}
     var b: Complex's32 = {re: 2, im: 3}
-    let result = a - b * 2's32
+    let result         = a - b * 2's32
 
     @assert(result.re == 2)
     @assert(result.im == 3)
@@ -275,7 +275,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 3, im: 4}
-    let conj = z.conjugate()
+    let conj           = z.conjugate()
 
     @assert(conj.re == 3)
     @assert(conj.im == -4)
@@ -285,7 +285,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 7, im: 0}
-    let conj = z.conjugate()
+    let conj           = z.conjugate()
 
     @assert(conj.re == 7)
     @assert(conj.im == 0)
@@ -295,7 +295,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: -2, im: 5}
-    let cc = z.conjugate().conjugate()
+    let cc             = z.conjugate().conjugate()
 
     @assert(cc.re == -2)
     @assert(cc.im == 5)
@@ -305,7 +305,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 3, im: 4}
-    let n = z.normSq()
+    let n              = z.normSq()
 
     @assert(n == 25)
 }
@@ -314,7 +314,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 0, im: 6}
-    let n = z.normSq()
+    let n              = z.normSq()
 
     @assert(n == 36)
 }
@@ -323,7 +323,7 @@ impl Complex
 #test
 {
     var z: Complex's32 = {re: 0, im: 0}
-    let n = z.normSq()
+    let n              = z.normSq()
 
     @assert(n == 0)
 }
@@ -337,7 +337,7 @@ impl Complex
 {
     var a: Complex's64 = {re: 100000, im: -200000}
     var b: Complex's64 = {re: 300000, im: 400000}
-    let sum = a + b
+    let sum            = a + b
 
     #assert(#typeof(sum) == Complex's64)
     @assert(sum.re == 400000)
@@ -349,7 +349,7 @@ impl Complex
 {
     var a: Complex's16 = {re: 10, im: 20}
     var b: Complex's16 = {re: 5, im: -10}
-    let prod = a * b
+    let prod           = a * b
 
     // (10+20i)*(5-10i) = (50+200)+(−100+100)i = 250+0i
     #assert(#typeof(prod) == Complex's16)

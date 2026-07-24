@@ -126,7 +126,7 @@ func editHeadlessEscape(eb: *EditBox)
     host.setup(400, 60)
 
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
-    let edit = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.Zero)
+    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.Zero)
     host.focus(edit)
 
     let len = @countof(edit.getText())
@@ -150,7 +150,7 @@ func editHeadlessEscape(eb: *EditBox)
     host.setup(400, 60)
 
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
-    let edit = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAlign)
+    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAlign)
     host.focus(edit)
 
     let len = @countof(edit.getText())

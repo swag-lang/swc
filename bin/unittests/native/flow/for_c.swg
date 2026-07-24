@@ -13,7 +13,7 @@
 #test
 {
     var count = 0
-    var last = -1
+    var last  = -1
     for var i = 0; i < 1; i += 1
     {
         var x = i

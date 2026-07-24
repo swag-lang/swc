@@ -101,7 +101,7 @@ func __ftoa(result: [*] u8, value: f64)
     n    += 1
 
     const AfterFracN = 8
-    var afterPoint   = AfterFracN
+    var afterPoint = AfterFracN
     if fpart < 0 do
         fpart = -fpart
 

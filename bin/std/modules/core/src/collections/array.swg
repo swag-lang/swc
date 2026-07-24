@@ -422,7 +422,7 @@ impl Array
         .grow(.count + num)
         .count += num
         let buffer = notnull .buffer
-        var res = buffer + .count - num
+        var res    = buffer + .count - num
         @init(res, num)
         return res
     }
@@ -742,7 +742,7 @@ impl Array
     mtd const front()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer = notnull .buffer
+        let buffer         = notnull .buffer
         let result: retval = buffer[0]
         return result
     }
@@ -760,7 +760,7 @@ impl Array
     mtd const back()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer = notnull .buffer
+        let buffer         = notnull .buffer
         let result: retval = buffer[.count - 1]
         return result
     }
@@ -779,7 +779,7 @@ impl Array
     mtd popBack()->T
     {
         Debug.assert(.count > 0, "array is empty")
-        let buffer = notnull .buffer
+        let buffer         = notnull .buffer
         var result: retval = undefined
         result = #relocate buffer[.count - 1]
         .count -= 1

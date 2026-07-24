@@ -622,13 +622,13 @@ namespace Swag
     // Will be available for all types
     struct TypeInfo
     {
-        fullname: #null string                   // The full scoped name of the type
-        name:     #null string                   // The unscoped name
-        sizeof:   u32                            // Size in bytes
-        crc:      u32                            // A unique CRC to identify the type
-        flags         = TypeInfoFlags.Zero       // Some additional flags
-        kind          = TypeInfoKind.Invalid     // The kind of the type
-        padding: [3] u8
+        fullname: #null string           // The full scoped name of the type
+        name:     #null string           // The unscoped name
+        sizeof:   u32                    // Size in bytes
+        crc:      u32                    // A unique CRC to identify the type
+        flags = TypeInfoFlags.Zero       // Some additional flags
+        kind  = TypeInfoKind.Invalid     // The kind of the type
+        padding:  [3] u8
     }
 
     struct TypeInfoNative
@@ -768,18 +768,18 @@ namespace Swag
     // Backend options
     struct BuildCfgBackend
     {
-        optimize: bool
-        debugInfo               = false     // Output debug information if 'true'
-        enableExceptions        = true      // Generate unwind info for JIT code and register SEH function tables
-        fpMathFma:          bool            // true in 'release'
-        fpMathNoNaN:        bool            // true in 'release'
-        fpMathNoInf:        bool            // true in 'release'
-        fpMathNoSignedZero: bool            // true in 'release'
+        optimize:           bool
+        debugInfo        = false     // Output debug information if 'true'
+        enableExceptions = true      // Generate unwind info for JIT code and register SEH function tables
+        fpMathFma:          bool     // true in 'release'
+        fpMathNoNaN:        bool     // true in 'release'
+        fpMathNoInf:        bool     // true in 'release'
+        fpMathNoSignedZero: bool     // true in 'release'
         fpMathUnsafe:       bool
         fpMathApproxFunc:   bool
-        unrollMemLimit:     u32                                            // Maximum number of bytes to unroll memset/cpy in optimize mode
-        inlineMode              = BuildCfgBackendInlineMode.MarkedOnly     // Inlining policy (set per build config)
-        cpuVectorize            = BuildCfgBackendCpuVectorize.None         // Auto-vectorization policy (set per build config)
+        unrollMemLimit:     u32                                     // Maximum number of bytes to unroll memset/cpy in optimize mode
+        inlineMode       = BuildCfgBackendInlineMode.MarkedOnly     // Inlining policy (set per build config)
+        cpuVectorize     = BuildCfgBackendCpuVectorize.None         // Auto-vectorization policy (set per build config)
     }
 
     // The kind of native backend to generate.
@@ -845,23 +845,23 @@ namespace Swag
     // See [[ICompiler]]
     struct BuildCfg
     {
-        moduleVersion:   u32 = 0                   // The module version
-        moduleRevision:  u32 = 0                   // The module revision
-        moduleBuildNum:  u32 = 0                   // The module build value
-        moduleNamespace: #null string              // The namespace name of the module
-        embeddedImports                = false     // Module should embed all its dependencies
-        ignoreInWorkspace              = false     // Skip this module when building a workspace
+        moduleVersion:   u32 = 0          // The module version
+        moduleRevision:  u32 = 0          // The module revision
+        moduleBuildNum:  u32 = 0          // The module build value
+        moduleNamespace: #null string     // The namespace name of the module
+        embeddedImports      = false      // Module should embed all its dependencies
+        ignoreInWorkspace    = false      // Skip this module when building a workspace
 
-        tempAllocatorCapacity          = 4'u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
-        errorAllocatorCapacity         = 16'u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
-        safetyGuards                   = SafetyWhat.All          // Activate specific RUNTIME safety checks (guards, panics, poisoning)
-        sanityGuards                   = SafetyWhat.All          // Activate specific STATIC (compile-time) sanity checks
-        allocatorCaptureStack          = false                   // Capture a call stack for each tracked allocation
-        allocatorLeaks                 = true                    // Report memory leaks at runtime shutdown
-        allocatorTrackAllocations      = false                   // Keep an exact allocation list for detailed leak reporting
-        allocatorElectricMode          = false                   // Never reuse freed blocks
-        allocatorFillMemory            = false                   // Fill allocated/freed memory with debug patterns
-        errorStackTrace                = true                    // Add stack trace in case a 'throw' is raised
+        tempAllocatorCapacity     = 4'u32 * 1024 * 1024     // Default capacity of the 'temp' allocator (in bytes)
+        errorAllocatorCapacity    = 16'u32 * 1024           // Default capacity of the 'error' allocator (in bytes)
+        safetyGuards              = SafetyWhat.All          // Activate specific RUNTIME safety checks (guards, panics, poisoning)
+        sanityGuards              = SafetyWhat.All          // Activate specific STATIC (compile-time) sanity checks
+        allocatorCaptureStack     = false                   // Capture a call stack for each tracked allocation
+        allocatorLeaks            = true                    // Report memory leaks at runtime shutdown
+        allocatorTrackAllocations = false                   // Keep an exact allocation list for detailed leak reporting
+        allocatorElectricMode     = false                   // Never reuse freed blocks
+        allocatorFillMemory       = false                   // Fill allocated/freed memory with debug patterns
+        errorStackTrace           = true                    // Add stack trace in case a 'throw' is raised
 
         warnAsErrors:        #null string     // Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."
         warnAsWarning:       #null string     // Override 'warnAsErrors', restoring warnings as warnings
@@ -869,8 +869,8 @@ namespace Swag
         warnDefaultDisabled: bool             // All warnings are disabled, except those specified above
         warnDefaultErrors:   bool             // All warnings are treated as errors, except those specified above
 
-        backendKind                    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
-        backendSubKind                 = BuildCfgBackendSubKind.Console     // Backend sub kind
+        backendKind    = BuildCfgBackendKind.Executable     // Backend type (executable, shared library, static library, export...)
+        backendSubKind = BuildCfgBackendSubKind.Console     // Backend sub kind
 
         name:    #null string     // Artifact name
         outDir:  #null string     // Artifact output directory

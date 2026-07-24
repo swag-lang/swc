@@ -153,7 +153,7 @@ struct WorkflowState
     flow.target   = 42's32
     flow.accum    += 5's32
     flow.slots[0] = flow.target.value + flow.accum.a
-    let first = flow.slots[0]
+    let first  = flow.slots[0]
     let second = flow.slots[1]
 
     @assert(flow.target.value == 42)

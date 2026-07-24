@@ -53,7 +53,7 @@ func inlinePayloadEcho(payload: Payload)->Payload => payload
     @assert(a0[2] == 12)
 
     var a1: [3] s32 = [5, 15, 22]
-    var a2 = inlineArrayEcho(a1)
+    var a2          = inlineArrayEcho(a1)
     @assert(a2[0] == 5)
     @assert(a2[1] == 15)
     @assert(a2[2] == 22)

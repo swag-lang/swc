@@ -1,7 +1,7 @@
 struct ActionImage {}
 
 var g_KeepRatio:       bool = true
-var g_ResizeMode:      u64 = 5
+var g_ResizeMode:      u64  = 5
 var g_Width, g_Height: s32
 
 impl ActionImage
@@ -306,8 +306,8 @@ impl MainWnd
             return
 
         var l, t, r, b: s32 = 0
-        let cw = w - cast(s32) capture.backImg.width
-        let ch = h - cast(s32) capture.backImg.height
+        let cw              = w - cast(s32) capture.backImg.width
+        let ch              = h - cast(s32) capture.backImg.height
 
         switch g_ResizeMode
         {

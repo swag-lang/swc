@@ -25,7 +25,7 @@ struct AutoStage
     file:   String
     label:  String
     edits:  Array'AutoEdit
-    button: WndId = undefined
+    button: WndId         = undefined
 }
 
 struct HeadlessHost
@@ -591,7 +591,7 @@ impl HeadlessHost
                 return false
 
             let clientRect = menu.getClientRect()
-            var pt = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
+            var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
             let srf = notnull menu.surface
             srf.surfaceToScreen(&pt)
@@ -617,7 +617,7 @@ impl HeadlessHost
                 return false
 
             let clientRect = menu.getClientRect()
-            var pt = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
+            var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
             let srf = notnull menu.surface
             srf.surfaceToScreen(&pt)

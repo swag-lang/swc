@@ -58,7 +58,7 @@ func day6A()
     let lines    = assume File.readAllLines(dataPath)
 
     var values: Array's32
-    let str     = Tokenize.split(lines[0], ',''u8)
+    let str = Tokenize.split(lines[0], ',''u8)
     for v in str do
         values.add(assume StrConv.toS32(v))
 

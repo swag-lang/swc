@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createProgressBarPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "Finite", "Static progression values cover empty, partial, full and disabled bars.", layout.left)
+    let left   = createPanel(parent, "Finite", "Static progression values cover empty, partial, full and disabled bars.", layout.left)
     {
         createCaption(left, "25 percent", 24, 88, 160)
         var prg = ProgressBar.create(left, {24, 116, 320})

@@ -211,7 +211,7 @@ impl AffineMap
     // Compose: (A after B).  apply(compose(a, b), p) == apply(a, apply(b, p))
     func compose(a: const &AffineMap, b: const &AffineMap)->AffineMap
     {
-        let newMat = a.mat * b.mat
+        let newMat     = a.mat * b.mat
         let rotatedOff = a.mat.transform(&b.offset)
         return {mat: newMat, offset: rotatedOff + a.offset}
     }
@@ -314,14 +314,14 @@ impl AffineMap
 #test
 {
     let m: Mat2's32 = {a: 2, b: -1, c: 3, d: 5}
-    let scaled = m * 3's32
+    let scaled      = m * 3's32
     @assert(scaled.a == 6 and scaled.b == -3 and scaled.c == 9 and scaled.d == 15)
 }
 
 #test
 {
     let m: Mat2's32 = {a: 1, b: -2, c: 3, d: -4}
-    let neg = -m
+    let neg         = -m
     @assert(neg.a == -1 and neg.b == 2 and neg.c == -3 and neg.d == 4)
 
     // Double negation is identity
@@ -397,7 +397,7 @@ impl AffineMap
 {
     let id: Mat2's32 = {a: 1, b: 0, c: 0, d: 1}
     var v:  Vec2's32 = {x: 7, y: 13}
-    let result = id.transform(&v)
+    let result       = id.transform(&v)
 
     #assert(#typeof(result) == Vec2's32)
     @assert(result.x == 7 and result.y == 13)
@@ -409,7 +409,7 @@ impl AffineMap
     let rot90: Mat2's32 = {a: 0, b: -1, c: 1, d: 0}
 
     var v0: Vec2's32 = {x: 1, y: 0}
-    var v1 = rot90.transform(&v0)
+    var v1           = rot90.transform(&v0)
     @assert(v1.x == 0 and v1.y == 1)
 
     var v2 = rot90.transform(&v1)
@@ -427,7 +427,7 @@ impl AffineMap
 {
     let scale: Mat2's32 = {a: 3, b: 0, c: 0, d: 2}
     var v:     Vec2's32 = {x: 4, y: 5}
-    let result = scale.transform(&v)
+    let result          = scale.transform(&v)
     @assert(result.x == 12 and result.y == 10)
 }
 
@@ -436,7 +436,7 @@ impl AffineMap
 {
     let shear: Mat2's32 = {a: 1, b: 2, c: 0, d: 1}
     var v:     Vec2's32 = {x: 3, y: 4}
-    let result = shear.transform(&v)
+    let result          = shear.transform(&v)
 
     // x' = 1*3 + 2*4 = 11, y' = 0*3 + 1*4 = 4
     @assert(result.x == 11 and result.y == 4)
@@ -450,7 +450,7 @@ impl AffineMap
 {
     var c0: Vec2's32 = {x: 1, y: 3}
     var c1: Vec2's32 = {x: 2, y: 4}
-    let m = Mat2's32.fromCols(&c0, &c1)
+    let m            = Mat2's32.fromCols(&c0, &c1)
 
     // row0 = (c0.x, c1.x), row1 = (c0.y, c1.y)
     @assert(m.a == 1 and m.b == 2)
@@ -467,7 +467,7 @@ impl AffineMap
 {
     var r0: Vec2's32 = {x: 5, y: 6}
     var r1: Vec2's32 = {x: 7, y: 8}
-    let m = Mat2's32.fromRows(&r0, &r1)
+    let m            = Mat2's32.fromRows(&r0, &r1)
 
     @assert(m.a == 5 and m.b == 6)
     @assert(m.c == 7 and m.d == 8)
@@ -483,7 +483,7 @@ impl AffineMap
 {
     var v: Vec2's32 = {x: 2, y: 3}
     var w: Vec2's32 = {x: 4, y: 5}
-    let m = Mat2's32.outer(&v, &w)
+    let m           = Mat2's32.outer(&v, &w)
 
     // | 2*4  2*5 |   | 8   10 |
     // | 3*4  3*5 | = | 12  15 |
@@ -500,9 +500,9 @@ impl AffineMap
 // Pure translation
 #test
 {
-    let t = AffineMap's32.translation(10, -5)
+    let t           = AffineMap's32.translation(10, -5)
     var p: Vec2's32 = {x: 3, y: 7}
-    let result = t.apply(&p)
+    let result      = t.apply(&p)
 
     #assert(#typeof(result) == Vec2's32)
     @assert(result.x == 13 and result.y == 2)
@@ -511,9 +511,9 @@ impl AffineMap
 // Pure scaling
 #test
 {
-    let s = AffineMap's32.scaling(3, 2)
+    let s           = AffineMap's32.scaling(3, 2)
     var p: Vec2's32 = {x: 4, y: 5}
-    let result = s.apply(&p)
+    let result      = s.apply(&p)
 
     @assert(result.x == 12 and result.y == 10)
     @assert(s.det() == 6)     // 3 * 2
@@ -526,7 +526,7 @@ impl AffineMap
     let scale     = AffineMap's32.scaling(2, 2)
 
     // "scale after translate": first translate p, then scale result
-    let composed = AffineMap's32.compose(&scale, &translate)
+    let composed    = AffineMap's32.compose(&scale, &translate)
     var p: Vec2's32 = {x: 3, y: 4}
 
     // translate(3,4) = (4,5), then scale(4,5) = (8,10)
@@ -546,7 +546,7 @@ impl AffineMap
     let scale     = AffineMap's32.scaling(2, 2)
 
     // "translate after scale": first scale p, then translate result
-    let composed = AffineMap's32.compose(&translate, &scale)
+    let composed    = AffineMap's32.compose(&translate, &scale)
     var p: Vec2's32 = {x: 3, y: 4}
 
     // scale(3,4) = (6,8), then translate(6,8) = (7,9)
@@ -554,7 +554,7 @@ impl AffineMap
     @assert(result.x == 7 and result.y == 9)
 
     // Composition is non-commutative
-    let otherWay = AffineMap's32.compose(&scale, &translate)
+    let otherWay    = AffineMap's32.compose(&scale, &translate)
     let otherResult = otherWay.apply(&p)
     @assert(result.x != otherResult.x or result.y != otherResult.y)
 }
@@ -573,8 +573,8 @@ impl AffineMap
     let a_bc = AffineMap's32.compose(&a, &bc)
 
     var p: Vec2's32 = {x: 1, y: 1}
-    let r1 = ab_c.apply(&p)
-    let r2 = a_bc.apply(&p)
+    let r1          = ab_c.apply(&p)
+    let r2          = a_bc.apply(&p)
     @assert(r1.x == r2.x and r1.y == r2.y)
 }
 
@@ -589,7 +589,7 @@ impl AffineMap
     @assert(m.det() == 100000's64 * 400000 - 200000's64 * 300000)
 
     var v: Vec2's64 = {x: 1000's64, y: 2000's64}
-    let result = m.transform(&v)
+    let result      = m.transform(&v)
     #assert(#typeof(result) == Vec2's64)
 
     // x' = 100000*1000 + 200000*2000 = 500000000
@@ -600,9 +600,9 @@ impl AffineMap
 
 #test
 {
-    let t = AffineMap's64.translation(1000000's64, -500000's64)
+    let t           = AffineMap's64.translation(1000000's64, -500000's64)
     var p: Vec2's64 = {x: 42's64, y: 99's64}
-    let result = t.apply(&p)
+    let result      = t.apply(&p)
 
     #assert(#typeof(result) == Vec2's64)
     @assert(result.x == 1000042's64 and result.y == -499901's64)

@@ -85,24 +85,24 @@ func inlineTypedVariadicLiteralEdges(values: s32...)->s32
     var n2: s32 = 9
     @assert(inlineTypedVariadicNamed(n0, n1, n2) == 24)
 
-    var u0: s32 = 1
-    var u1: bool = true
+    var u0: s32    = 1
+    var u1: bool   = true
     var u2: string = "A"
     @assert(inlineUntypedVariadicScore(u0, u1, u2) == 76)
 
-    var u3: s32 = 2
-    var u4: bool = false
+    var u3: s32    = 2
+    var u4: bool   = false
     var u5: string = "B"
-    var u6: s32 = 3
+    var u6: s32    = 3
     @assert(inlineUntypedVariadicScore(u3, u4, u5, u6) == 71)
 
-    var h0: s32 = 40
-    var h1: s32 = 1
+    var h0: s32    = 40
+    var h1: s32    = 1
     var h2: string = "a"
-    var h3: bool = false
+    var h3: bool   = false
     @assert(inlineUntypedVariadicHead(h0, h1, h2, h3) == 43)
 
-    var h4: s32 = 50
+    var h4: s32    = 50
     var h5: string = "x"
     @assert(inlineUntypedVariadicHead(h4, h5) == 51)
 

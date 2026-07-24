@@ -110,7 +110,7 @@ func auditReactor(graph: ReactorGraph)->ReactorReport
         var branchMemo:        [..] s32 = branchMemoStorage
         resetMemo(branchMemo)
 
-        let nextIndex = graph.outputs[intakeIndex][@index]
+        let nextIndex   = graph.outputs[intakeIndex][@index]
         let branchPaths = countPaths(branchMemo, graph, nextIndex)
         if branchPaths > result.busiestBranchPaths do
             result.busiestBranchPaths = branchPaths

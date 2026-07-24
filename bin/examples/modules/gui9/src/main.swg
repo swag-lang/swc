@@ -190,7 +190,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
+    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
     let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI9 dialogs showcase")

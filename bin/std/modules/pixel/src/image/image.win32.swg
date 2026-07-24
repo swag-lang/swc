@@ -46,7 +46,7 @@ impl Image
         bi.bmiHeader.biCompression = BI_RGB
 
         var ppvBits: *u8 = undefined
-        let hbmp     = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
+        let hbmp         = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
         defer #noerr DeleteObject(cast() hbmp)
 
         Memory.copy(ppvBits, .pixels.buffer, cast(u64) .width * .height * .bpp8)

@@ -19,8 +19,8 @@ struct PopupListCtrl
 
     sigSelected: #null func||(*PopupListCtrl, u32)
 
-    items: ArrayPtr'PopupListCtrlItem
-    selectedIdx           = Swag.U32.Max
+    items:       ArrayPtr'PopupListCtrlItem
+    selectedIdx = Swag.U32.Max
     scrollWnd:   #late *ScrollWnd
     maxIconSize: s32
 }

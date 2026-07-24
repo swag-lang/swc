@@ -181,7 +181,7 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) throw
         throw InvalidFormatError{"invalid palette index"}
 
     let paletteData = cast(const [*] u8) (notnull palette.data)
-    let entry = paletteData + cast(u64) (index - palette.first) * palette.bpp8
+    let entry       = paletteData + cast(u64) (index - palette.first) * palette.bpp8
     switch palette.bpp
     {
     case 15: writeTga16Pixel(dst, dref cast(const *u16) entry, false, false)

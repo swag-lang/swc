@@ -28,8 +28,8 @@ func cropAt(layout: const [..] string, x, y: u32)->u8
 
 func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 {
-    let height = cast(u32) @countof(layout)
-    let width = lineWidth(layout[0])
+    let height     = cast(u32) @countof(layout)
+    let width      = lineWidth(layout[0])
     let totalCells = width * height
 
     @assert(height > 0)
@@ -55,7 +55,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
 
         let startX = startIndex % width
         let startY = startIndex / width
-        let crop = cropAt(layout, startX, startY)
+        let crop   = cropAt(layout, startX, startY)
 
         var head:        u32
         var tail:        u32
@@ -130,21 +130,21 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
         for regionCount
         {
             let current = regionCells[@index]
-            let x = current % width
-            let y = current / width
+            let x       = current % width
+            let y       = current / width
 
-            let leftInRegion = x > 0 and inRegion[cellIndex(x - 1, y, width)]
-            let rightInRegion = x + 1 < width and inRegion[cellIndex(x + 1, y, width)]
-            let topInRegion = y > 0 and inRegion[cellIndex(x, y - 1, width)]
-            let bottomInRegion = y + 1 < height and inRegion[cellIndex(x, y + 1, width)]
-            let topLeftInRegion = x > 0 and y > 0 and inRegion[cellIndex(x - 1, y - 1, width)]
-            let topRightInRegion = x + 1 < width and y > 0 and inRegion[cellIndex(x + 1, y - 1, width)]
+            let leftInRegion       = x > 0 and inRegion[cellIndex(x - 1, y, width)]
+            let rightInRegion      = x + 1 < width and inRegion[cellIndex(x + 1, y, width)]
+            let topInRegion        = y > 0 and inRegion[cellIndex(x, y - 1, width)]
+            let bottomInRegion     = y + 1 < height and inRegion[cellIndex(x, y + 1, width)]
+            let topLeftInRegion    = x > 0 and y > 0 and inRegion[cellIndex(x - 1, y - 1, width)]
+            let topRightInRegion   = x + 1 < width and y > 0 and inRegion[cellIndex(x + 1, y - 1, width)]
             let bottomLeftInRegion = x > 0 and y + 1 < height and inRegion[cellIndex(x - 1, y + 1, width)]
 
-            let exposedTop = !topInRegion
+            let exposedTop    = !topInRegion
             let exposedBottom = !bottomInRegion
-            let exposedLeft = !leftInRegion
-            let exposedRight = !rightInRegion
+            let exposedLeft   = !leftInRegion
+            let exposedRight  = !rightInRegion
 
             if exposedTop do
                 perimeter += 1

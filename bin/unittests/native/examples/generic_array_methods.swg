@@ -130,8 +130,8 @@ impl DynArray
         if .count <= 1 do
             return
         var lo: u64 = 0
-        var hi   = .count - 1
-        let data = notnull .data
+        var hi      = .count - 1
+        let data    = notnull .data
         while lo < hi
         {
             let tmp = data[lo]

@@ -5,7 +5,7 @@ impl Image
     mtd const doCrop(dstImage: *Image, x, y, w, h: s32)
     {
         let self: const &Image = me
-        var f = {x: x, y: .height - y - h, self: self}
+        var f                  = {x: x, y: .height - y - h, self: self}
         dstImage.visitPixels(&f, stride: w)
         {
             let params = cast(*#decltype(f)) (notnull userData)

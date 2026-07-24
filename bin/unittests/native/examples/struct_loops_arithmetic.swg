@@ -53,7 +53,7 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
 {
     var result: OvenSchedule
     var currentMinute = shiftStartMinute
-    var currentTemp = -1
+    var currentTemp   = -1
 
     for order in orders
     {
@@ -69,7 +69,7 @@ func buildSchedule(orders: const [..] BakeOrder, trayCapacity: s32, shiftStartMi
             currentMinute       += 12
         }
 
-        let totalBatches = ceilDiv(traysNeeded, trayCapacity)
+        let totalBatches   = ceilDiv(traysNeeded, trayCapacity)
         var traysRemaining = traysNeeded
 
         for cast(u32) totalBatches

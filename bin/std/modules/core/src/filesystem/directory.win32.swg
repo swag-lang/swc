@@ -127,7 +127,7 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
 func getCurrent()->String throw
 {
     var result: retval
-    let length  = GetCurrentDirectoryW(0, null)
+    let length = GetCurrentDirectoryW(0, null)
 
     var arr16: Array'u16
     arr16.reserve(cast(u64) length + 1)

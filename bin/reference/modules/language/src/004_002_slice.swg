@@ -43,8 +43,8 @@ the number of elements.
 #test
 {
     var a: const [..] u32 = [10, 20, 30, 40, 50]
-    let count = @countof(a)
-    let addr  = @dataof(a)
+    let count             = @countof(a)
+    let addr              = @dataof(a)
 
     @assert(count == 5)
     @assert(addr[0] == 10)
@@ -79,7 +79,7 @@ Strings can be sliced, but the result must be declared as 'const' since strings 
 */
 #test
 {
-    let str       = "string"
+    let str                     = "string"
     let strSlice: const [..] u8 = @mkslice(@dataof(str), 2)
     @assert(strSlice[0] == 's')
     @assert(strSlice[1] == 't')

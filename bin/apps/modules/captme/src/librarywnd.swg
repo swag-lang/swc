@@ -383,7 +383,7 @@ impl LibraryWnd
         // derived from it) stays backed by live memory for the whole walk.
         let folder = .currentFolder()
         var fulls: Array'String
-        var p = folder.toString()
+        var p      = folder.toString()
         while @countof(p) != 0
         {
             fulls.add(String.from(p))

@@ -20,9 +20,9 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
     painter.drawCircle(ox + 96, 110, 58, Argb.Firebrick, 4)
 
     // --- Rotated square (diamond): diagonal straight edges ---
-    let dcx   = ox + 270
-    let dcy   = 110'f32
-    let dhalf = 62'f32
+    let dcx     = ox + 270
+    let dcy     = 110'f32
+    let dhalf   = 62'f32
     let diamond = [
         Math.Vector2{dcx, dcy - dhalf},
         Math.Vector2{dcx + dhalf, dcy},

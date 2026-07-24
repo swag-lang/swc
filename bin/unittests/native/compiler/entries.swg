@@ -32,7 +32,7 @@ var state: s32
     if state != 11 and state != 1111
     {
         var ptr: #null [*] u8 = null
-        let p = notnull ptr
+        let p                 = notnull ptr
         p[111] = 111
     }
 }

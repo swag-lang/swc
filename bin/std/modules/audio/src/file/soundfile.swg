@@ -41,7 +41,7 @@ struct SoundFile
     dataSize:    u64     // Total size, in bytes, of datas
     dataSeek:    u64     // The position in the file where the datas are stored
 
-    encoding                = SoundFileEncoding.Unknown     // Encoding type of the datas
+    encoding = SoundFileEncoding.Unknown     // Encoding type of the datas
 
     validity:           SoundFileValidityMask     // What informations in this struct are valid
     frequency:          u32                       // Sound frequency

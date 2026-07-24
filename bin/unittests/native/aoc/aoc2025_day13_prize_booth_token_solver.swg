@@ -21,8 +21,8 @@ struct PrizeReport
 
 func solveMachine(machine: PrizeMachine, prizeOffset: s64)->s64
 {
-    let targetX = machine.prizeX + prizeOffset
-    let targetY = machine.prizeY + prizeOffset
+    let targetX     = machine.prizeX + prizeOffset
+    let targetY     = machine.prizeY + prizeOffset
     let determinant = machine.buttonAX * machine.buttonBY - machine.buttonAY * machine.buttonBX
 
     if determinant == 0 do
@@ -70,7 +70,7 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
         {buttonAX: 69, buttonAY: 23, buttonBX: 27, buttonBY: 71, prizeX: 18641, prizeY: 10279},
         ]
 
-    let sampleReport = analyzeMachines(sampleMachines, 0)
+    let sampleReport     = analyzeMachines(sampleMachines, 0)
     let calibratedReport = analyzeMachines(sampleMachines, 10_000_000_000_000)
 
     @assert(sampleReport.solvableCount == 2'u32)
@@ -85,7 +85,7 @@ func analyzeMachines(machines: const [..] PrizeMachine, prizeOffset: s64)->Prize
         {buttonAX: 5, buttonAY: 4, buttonBX: 2, buttonBY: 1, prizeX: 18, prizeY: 11},
         ]
 
-    let arcadeReport = analyzeMachines(arcadeMachines, 0)
+    let arcadeReport       = analyzeMachines(arcadeMachines, 0)
     let recalibratedArcade = analyzeMachines(arcadeMachines, 100)
 
     @assert(arcadeReport.solvableCount == 1'u32)

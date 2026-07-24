@@ -181,9 +181,9 @@ func auditPairings(lockProfiles: const [..] PinProfile, keyProfiles: const [..] 
 
     let lockProfile0 = profileFromSchematic(lock0)
     let lockProfile1 = profileFromSchematic(lock1)
-    let keyProfile0 = profileFromSchematic(key0)
-    let keyProfile1 = profileFromSchematic(key1)
-    let keyProfile2 = profileFromSchematic(key2)
+    let keyProfile0  = profileFromSchematic(key0)
+    let keyProfile1  = profileFromSchematic(key1)
+    let keyProfile2  = profileFromSchematic(key2)
 
     @assert(lockProfile0.heights[0] == 0)
     @assert(lockProfile0.heights[1] == 5)

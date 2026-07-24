@@ -55,7 +55,7 @@ impl ExactArrayParamNativeMixer
 #test
 {
     var values: [4] s32 = [2, 4, 6, 8]
-    var mixer = ExactArrayParamNativeMixer{}
+    var mixer           = ExactArrayParamNativeMixer{}
     mixer.mix(values, 3)
     @assert(values[0] == 5)
     @assert(values[1] == 10)

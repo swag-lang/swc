@@ -14,7 +14,7 @@ struct Movie
     enableCache:     bool = true
     mustLoop:        bool = true
     inPause:         bool
-    playFreq:        f32 = 0.05
+    playFreq:        f32  = 0.05
     sigFrameChanged: SigArray'func||(*Movie)
 
     numFrames:  s32

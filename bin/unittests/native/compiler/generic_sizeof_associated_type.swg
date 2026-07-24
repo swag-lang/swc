@@ -43,7 +43,7 @@ impl NativeGenericSizeBox
 #test
 {
     var box: NativeGenericSizeBox's32
-    let entry = box.makeEntry(7)
+    let entry      = box.makeEntry(7)
     let aliasEntry = box.makeAliasedEntry(9)
 
     #assert(#offsetof(entry.hash) == 0)

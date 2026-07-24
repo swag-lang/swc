@@ -159,7 +159,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     for [edgeIndex] in requestedLinks
     {
-        let edge = edges[edgeIndex]
+        let edge  = edges[edgeIndex]
         let rootA = findRoot(parents[0 to @countof(pointLines)], edge.a)
         let rootB = findRoot(parents[0 to @countof(pointLines)], edge.b)
 

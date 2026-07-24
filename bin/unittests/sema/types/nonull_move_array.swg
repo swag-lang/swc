@@ -39,7 +39,7 @@ func semaNonNullMoveArrayDefaults()
     assignTarget = #move assignSource
 
     var callSource: SemaNonNullMoveArrayNestedAlias = [{value: "call-a"}, {value: "call-b"}]
-    let callResult = consumeSemaNonNullMoveArray(#move callSource)
+    let callResult                                  = consumeSemaNonNullMoveArray(#move callSource)
 
     var escapeSource = SemaNonNullMoveUndefinedEscape{value: "explicit"}
     let escapeTarget = #move escapeSource

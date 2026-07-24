@@ -108,7 +108,7 @@ public impl EditDlg
             }
 
             let surface = notnull .surface
-            var pos = surface.position
+            var pos     = surface.position
             pos.height        += height
             surface.minSize.y += height
 

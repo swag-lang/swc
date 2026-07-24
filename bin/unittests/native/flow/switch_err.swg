@@ -2,7 +2,7 @@
 
 #test
 {
-    var v = 1
+    var v   = 1
     var hit = 0
     switch v
     {
@@ -30,7 +30,7 @@
 
 #test
 {
-    var v = 2
+    var v   = 2
     var hit = 0
     switch v
     {
@@ -56,7 +56,7 @@
 
 #test
 {
-    var b = "hello"
+    var b   = "hello"
     var hit = 0
     switch b
     {
@@ -69,7 +69,7 @@
 
 #test
 {
-    var a = 2
+    var a   = 2
     var hit = 0
     switch a
     {

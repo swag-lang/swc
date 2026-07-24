@@ -57,9 +57,9 @@ func consumeNullableStrictPtr(value: #null OpCastStrictPtr)->s32
 {
     var value = RuntimeCastBox{value: 41}
 
-    let explicitInt = cast(s32) value
-    let explicitBool = cast(bool) value
-    let implicitInt = consumeInt(value)
+    let explicitInt      = cast(s32) value
+    let explicitBool     = cast(bool) value
+    let implicitInt      = consumeInt(value)
     let initialized: s32 = value
 
     @assert(explicitInt == 42)

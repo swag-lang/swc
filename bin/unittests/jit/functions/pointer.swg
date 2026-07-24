@@ -51,7 +51,7 @@ func runTransformPointers()->bool
     let alternate: Transform = &scaleTransform
 
     var holder:    TransformHolder = {cb: &addTransform}
-    var callbacks: [2] Transform = undefined
+    var callbacks: [2] Transform   = undefined
     callbacks[0] = &addTransform
     callbacks[1] = alternate
 
@@ -65,7 +65,7 @@ func runTransformPointers()->bool
 
 func runVariadicPointers()->bool
 {
-    let reduce:   Reducer = &sumReducer
+    let reduce:   Reducer     = &sumReducer
     var reducers: [2] Reducer = undefined
     reducers[0] = reduce
     reducers[1] = &weightedReducer

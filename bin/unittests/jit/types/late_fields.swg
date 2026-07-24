@@ -39,7 +39,7 @@ func jitLateLifecycle()->bool
 // Address-of never reads the value: filling through a pointer works.
 func jitLateAddressOf()->bool
 {
-    var it = JitLateItem{value: 3}
+    var it   = JitLateItem{value: 3}
     var box: JitLateBox
     let slot = &box.item
     dref slot = &it

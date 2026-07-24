@@ -21,7 +21,7 @@ impl IPropertyEditor for AlignEditor
         let vert  = value.name == #nameof(FormText.alignVert)
 
         const BtnW = 34
-        let lineH  = list.getThemeMetrics().btnPush_Height
+        let lineH = list.getThemeMetrics().btnPush_Height
 
         // Centered as its own full-width row in the panel; packed left in a grid cell.
         with let line = StackLayoutCtrl.create(notnull item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})

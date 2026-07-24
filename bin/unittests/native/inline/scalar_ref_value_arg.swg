@@ -9,7 +9,7 @@ func inlineByteLookup(c: u8)->u8 => table[c]
 {
     table[3] = 37
 
-    var x: u8 = 3
+    var x: u8  = 3
     let r: &u8 = &x
 
     @assert(inlineByteLookup(r) == 37)

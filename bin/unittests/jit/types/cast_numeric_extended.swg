@@ -5,8 +5,8 @@
     func unsignedToFloatCasts()->bool
     {
         let small32 = cast(f32) 45'u32
-        let max32 = cast(f32) Swag.U32.Max
-        let max64 = cast(f64) Swag.U64.Max
+        let max32   = cast(f32) Swag.U32.Max
+        let max64   = cast(f64) Swag.U64.Max
 
         return small32 == 45.0'f32 and
                max32 > 4_000_000_000.0'f32 and

@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createPushButtonPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "Forms", "The same command rendered with the standard push button forms.", layout.left)
+    let left   = createPanel(parent, "Forms", "The same command rendered with the standard push button forms.", layout.left)
     {
         var btn = PushButton.create(left, "Normal", {22, 92, 150})
         btn.icon = app.theme.getIcon24(ThemeIcons24.Play, 18)

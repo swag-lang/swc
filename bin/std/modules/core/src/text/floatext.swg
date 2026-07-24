@@ -300,7 +300,7 @@ impl FloatExt
 
         // Write the digits of integer: the digits of rest are omitted.
         var buf: [32] u8
-        var pos  = @countof(buf)
+        var pos = @countof(buf)
 
         var v = integer
         while v > 0
@@ -434,8 +434,8 @@ impl FloatExt
         {
             // an exact integer.
             var buf: [24] u8
-            var n    = @countof(buf) - 1
-            var v    = .mant
+            var n = @countof(buf) - 1
+            var v = .mant
             while v > 0
             {
                 let v1 = v / 10
@@ -495,7 +495,7 @@ impl FloatExt
 
         // Count integral digits: there are at most 10.
         var integerDigits: s64
-        var pow            = 1'u64
+        var pow = 1'u64
         for [i] in 20
         {
             if pow > cast(u64) integer

@@ -72,7 +72,7 @@ should be used cautiously.
 */
 #test
 {
-    var a: bool = undefined
+    var a: bool         = undefined
     var b: #null string = undefined
 }
 

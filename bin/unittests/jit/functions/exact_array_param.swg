@@ -65,7 +65,7 @@ impl ExactArrayParamJitWriter
 #test
 {
     var values: [4] s32 = [1, 10, 100, 1000]
-    var writer = ExactArrayParamJitWriter{delta: 5}
+    var writer          = ExactArrayParamJitWriter{delta: 5}
     writer.write(values)
     @assert(values[0] == 6)
     @assert(values[1] == 16)

@@ -13,17 +13,17 @@ func createModesPage(parent: *Wnd)
     let right = createPanel(parent, "Edit form", "A softer document presentation for wrapped notes, review summaries and scratch prose.", layout.right)
     {
         let rect = right.getClientRect()
-        let ed = createDocumentEditor(right, {18, 88, rect.width - 36, rect.height - 106}, "This variant uses the Edit form.\n\nIt keeps the rich selection model but relaxes the visual framing so notes sit more naturally beside buttons, forms and inspectors.\n\nBecause the control stays the same underneath, switching between prose and code does not mean switching engines.")
+        let ed   = createDocumentEditor(right, {18, 88, rect.width - 36, rect.height - 106}, "This variant uses the Edit form.\n\nIt keeps the rich selection model but relaxes the visual framing so notes sit more naturally beside buttons, forms and inspectors.\n\nBecause the control stays the same underneath, switching between prose and code does not mean switching engines.")
         ed.lineSpacing = 2
     }
 
     let bottom = createPanel(parent, "Flags matrix", "Read-only, blank rendering and wrapping can be combined per instance depending on the job.", layout.bottom)
     {
-        let rect = bottom.getClientRect()
-        let gutter = 18.0
-        let columnWidth = (rect.width - gutter * 4) / 3
-        let top = 92.0
-        let editorY = top + 28
+        let rect         = bottom.getClientRect()
+        let gutter       = 18.0
+        let columnWidth  = (rect.width - gutter * 4) / 3
+        let top          = 92.0
+        let editorY      = top + 28
         let editorHeight = rect.height - editorY - 22
 
         createCaption(bottom, "Draw blanks", gutter, top, columnWidth)

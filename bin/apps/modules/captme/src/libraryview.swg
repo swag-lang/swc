@@ -32,8 +32,8 @@ struct LibraryView
     items:       Array'*LibraryItem
     mutexLoaded: Sync.Mutex
     thread:      Thread
-    hotItem          = Swag.U32.Max
-    focusItem        = Swag.U32.Max
+    hotItem   = Swag.U32.Max
+    focusItem = Swag.U32.Max
     selModel:    SelModel
     filterYear:  u64
     filterMonth: u64

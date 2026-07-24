@@ -20,7 +20,7 @@ struct StackLayoutCtrl
     using wnd: Wnd
 
     layoutKind:   StackLayoutKind = Top
-    spacing:      f32 = 5
+    spacing:      f32             = 5
     fitToContent: bool
 }
 
@@ -168,8 +168,8 @@ private impl StackLayoutCtrl
 
     mtd arrangeLinear()
     {
-        let client = .getClientRectPadding()
-        let availableMain = .mainFromRect(client)
+        let client         = .getClientRectPadding()
+        let availableMain  = .mainFromRect(client)
         let availableCross = .crossFromRect(client)
 
         var visible:  Array'(*Wnd)
@@ -187,17 +187,17 @@ private impl StackLayoutCtrl
         if visible.isEmpty() do
             return
 
-        let count = cast(f32) visible.count
+        let count        = cast(f32) visible.count
         let spacingTotal = cast(f32) (visible.count - 1) * .spacing
 
         var totalPreferred = spacingTotal
-        var totalMinimum = spacingTotal
-        var totalMargins = 0'f32
-        var totalWeight = 0'f32
-        var shrinkPool = 0'f32
+        var totalMinimum   = spacingTotal
+        var totalMargins   = 0'f32
+        var totalWeight    = 0'f32
+        var shrinkPool     = 0'f32
         for c, [idx] in visible
         {
-            let margin = c.getLayoutMargin()
+            let margin     = c.getLayoutMargin()
             let marginMain = .mainMargin(margin)
             totalMargins   += marginMain
             totalPreferred += .preferredMain(hints[idx]) + marginMain
@@ -214,7 +214,7 @@ private impl StackLayoutCtrl
             }
         }
 
-        var extra = 0'f32
+        var extra    = 0'f32
         var shortage = 0'f32
         if .isFitMain()
         {
@@ -240,9 +240,9 @@ private impl StackLayoutCtrl
         var contentEnd = 0'f32
         for [idxLoop] in visible.count
         {
-            let idx = idxLoop
-            let c = visible[idx]
-            let hint = hints[idx]
+            let idx    = idxLoop
+            let c      = visible[idx]
+            let hint   = hints[idx]
             let margin = c.getLayoutMargin()
 
             var mainSize = .preferredMain(hint)
@@ -273,8 +273,8 @@ private impl StackLayoutCtrl
 
             var crossSize: f32
             let crossAvailable = Math.max(availableCross - .crossMargin(margin), 0)
-            let polCross = .crossPolicy(c)
-            let align = .isHorizontal() ? c.layoutSpec.alignY : c.layoutSpec.alignX
+            let polCross       = .crossPolicy(c)
+            let align          = .isHorizontal() ? c.layoutSpec.alignY : c.layoutSpec.alignX
             if !.isCenteringMain() and (align == LayoutAlign.Stretch or polCross == SizePolicy.Fill or polCross == SizePolicy.Expand) do
                 crossSize = crossAvailable
             else do
@@ -295,7 +295,7 @@ private impl StackLayoutCtrl
             }
 
             let crossBase = .isHorizontal() ? client.y : client.x
-            var crossPos = crossBase + .crossStartMargin(margin)
+            var crossPos  = crossBase + .crossStartMargin(margin)
             if .layoutKind == .HorzCenterVertCenter or .layoutKind == .VertCenter or align == LayoutAlign.Center do
                 crossPos = crossBase + (availableCross - crossSize) * 0.5
             elif align == LayoutAlign.End do
@@ -307,7 +307,7 @@ private impl StackLayoutCtrl
             c.arrange(rect)
             c.applyLayout(oldSizes[idx])
             let actualMainSize = .mainFromRect(c.position)
-            let mainDelta = actualMainSize - mainSize
+            let mainDelta      = actualMainSize - mainSize
             if mainDelta != 0
             {
                 if .isReverse()

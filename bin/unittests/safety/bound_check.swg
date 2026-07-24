@@ -182,7 +182,7 @@ func opaqueIdx(v: u64)->u64
     func emptySliceBoundCheck()->s32
     {
         var values: [1] s32
-        let slice: [..] s32 = @mkslice(&values[0], 0)
+        let slice:  [..] s32 = @mkslice(&values[0], 0)
         return slice[0]     // swc-expected-error {{safety_err_runtime}}
     }
 

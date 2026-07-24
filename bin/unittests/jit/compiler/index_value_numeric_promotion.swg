@@ -31,7 +31,7 @@ func boxShift0(values: &ByteBox, shift: s64)->s64
 #test
 {
     var values: [2] u8 = [0, 1]
-    let shift = 482's64
+    let shift          = 482's64
 
     @assert(values[0] == 0'u8)
     @assert(values[1] == 1'u8)

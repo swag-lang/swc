@@ -9,7 +9,7 @@ func selectTypeInfo(flag: bool)->typeinfo
 #test
 {
     let arrayInfo = selectTypeInfo(true)
-    let funcInfo = selectTypeInfo(false)
+    let funcInfo  = selectTypeInfo(false)
     #assert(#typeof(arrayInfo) == typeinfo)
     #assert(#typeof(funcInfo) == typeinfo)
     @assert(arrayInfo == #type const [2] f32)

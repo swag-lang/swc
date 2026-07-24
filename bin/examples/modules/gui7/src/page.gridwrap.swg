@@ -45,7 +45,7 @@ func createGridWrapPage(parent: *Wnd)
     grid.computeLayout()
 
     let right = createPanel(parent, "WrapLayoutCtrl", "Tiles wrap to the next row as the pane narrows.", layout.right)
-    let wrap = WrapLayoutCtrl.create(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
+    let wrap  = WrapLayoutCtrl.create(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
     wrap.wrapWidth  = 128
     wrap.wrapHeight = 38
     wrap.spacing    = 10

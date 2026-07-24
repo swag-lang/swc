@@ -2,8 +2,8 @@ using Swag, Core
 
 func edgeDistanceSquared(edge: Edge, x, y: f64)->f64
 {
-    let vx = edge.x1 - edge.x0
-    let vy = edge.y1 - edge.y0
+    let vx         = edge.x1 - edge.x0
+    let vy         = edge.y1 - edge.y0
     let lenSquared = vx * vx + vy * vy
     if lenSquared <= 0.0000001
     {
@@ -63,18 +63,18 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
     let bitmapBuffer = notnull faceData.bitmapPixels.buffer
-    var dst = bitmapBuffer
-    let scale = 127.0 / cast(f64) safeSpread
+    var dst          = bitmapBuffer
+    let scale        = 127.0 / cast(f64) safeSpread
 
     for [py] in rows
     {
         for [px] in width
         {
-            let sampleX = left + cast(f64) px + 0.5
-            let sampleY = top - (cast(f64) py + 0.5)
-            let distance = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
+            let sampleX        = left + cast(f64) px + 0.5
+            let sampleY        = top - (cast(f64) py + 0.5)
+            let distance       = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
             let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
-            let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
+            let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
             dref dst = cast(u8) Math.round(value)
             dst      += 1
         }

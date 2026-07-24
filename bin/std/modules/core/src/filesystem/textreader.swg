@@ -10,12 +10,12 @@ public enum TextEncoding
 // TextReader reads a text file from a FileStream with buffering and encoding support
 public struct TextReader
 {
-    stream: FileStream                         // File stream used to read from disk
-    buffer: Array'u8                           // Internal byte buffer used for reading data
-    encodingType       = TextEncoding.Utf8     // Text encoding type (default is UTF-8)
-    byteSeek:      u64                         // Current byte offset in the buffer
-    bufferSize:    u64                         // Size of the buffer
-    checkPreamble: bool                        // Indicates whether to check for a UTF-8 BOM on first read
+    stream:        FileStream            // File stream used to read from disk
+    buffer:        Array'u8              // Internal byte buffer used for reading data
+    encodingType = TextEncoding.Utf8     // Text encoding type (default is UTF-8)
+    byteSeek:      u64                   // Current byte offset in the buffer
+    bufferSize:    u64                   // Size of the buffer
+    checkPreamble: bool                  // Indicates whether to check for a UTF-8 BOM on first read
 }
 
 impl TextReader

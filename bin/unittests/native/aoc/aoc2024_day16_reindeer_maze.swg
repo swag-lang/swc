@@ -90,7 +90,7 @@ func isEnd(m: *Maze, r: u32, c: u32)->bool
 
 func parseMaze(text: string)->Maze
 {
-    var m = mazeInit()
+    var m     = mazeInit()
     let cells = notnull m.cells
     let bytes = cast(const [..] u8) text
     var row: u32
@@ -157,7 +157,7 @@ func solve(text: string)->u64
     defer mazeFree(&m)
 
     let stateCount = MaxCells * 4
-    let best = cast([*] u64) notnull @alloc(cast(u64) stateCount * #sizeof(u64))
+    let best       = cast([*] u64) notnull @alloc(cast(u64) stateCount * #sizeof(u64))
     defer @free(best)
     for stateCount { best[@index] = Infinity }
 
@@ -188,7 +188,7 @@ func solve(text: string)->u64
             if !isWall(&m, cast(u32) nr, cast(u32) nc)
             {
                 let newCost = cur.cost + MoveCost
-                let si = stateIdx(cast(u32) nr, cast(u32) nc, cur.dir)
+                let si      = stateIdx(cast(u32) nr, cast(u32) nc, cur.dir)
                 if newCost < best[si]
                 {
                     best[si]    = newCost

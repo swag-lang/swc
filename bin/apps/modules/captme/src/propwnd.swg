@@ -254,7 +254,7 @@ impl PropWnd
             btn0.sigPaintIcon = func|begin|(btn, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
-                var rect  = pos
+                var rect = pos
                 rect.inflate(-9, -9)
                 let cap   = enumFromUserData'LineCapStyle(btn.userData)
                 let color = flags & .Checked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
@@ -320,7 +320,7 @@ impl PropWnd
             btn0.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
             {
                 bc.painter.setParams(.Antialiased)
-                var rect   = pos
+                var rect = pos
                 rect.inflate(-9, -9)
                 var dash  = enumFromUserData'DashStyle(btn.userData)
                 let color = flags & .Checked ? btn.getThemeColors().btnIcon_CheckedIcon : btn.getThemeColors().btnIcon_Icon
@@ -346,7 +346,7 @@ impl PropWnd
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
-        let btn  = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
+        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
 
         let curSelType = .getSelectedFormType()
         switch curSelType
@@ -405,7 +405,7 @@ impl PropWnd
             }
         }
 
-        let btn  = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
+        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
         btn.name         = "Fill"
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
@@ -459,7 +459,7 @@ impl PropWnd
         if curSel.subKind == .PixSel do
             return
 
-        let btn  = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
+        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
         btn.name         = "Shape"
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
@@ -477,7 +477,7 @@ impl PropWnd
         if curSelType != FormStep do
             return
 
-        let btn  = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
+        let btn = createArrowButton(stack, BtnColorWidth, BtnColorHeight)
         btn.name         = "Shape"
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
@@ -495,7 +495,7 @@ impl PropWnd
         if curSelType != FormLine and curSelType != FormArrow do
             return
 
-        let btn  = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
+        let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
         btn.name = "Start"
 
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
@@ -522,7 +522,7 @@ impl PropWnd
         if curSelType != FormLine and curSelType != FormArrow do
             return
 
-        let btn  = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
+        let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
         btn.name         = "End"
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {
@@ -552,7 +552,7 @@ impl PropWnd
         if curSel.subKind == .Highlight or curSel.subKind == .PixSel do
             return
 
-        let btn  = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
+        let btn = createArrowButton(stack, BtnStyleWidth, BtnStyleHeight)
         btn.name         = "Dash"
         btn.sigPaintIcon = func|prop = me|(btn, bc, pos, flags)
         {

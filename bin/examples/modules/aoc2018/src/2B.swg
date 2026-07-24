@@ -29,7 +29,7 @@ func day2B()
         {
             if i == j do
                 continue
-            var diff    = 0
+            var diff = 0
             var result: String
             for [k] in @countof(b)
             {

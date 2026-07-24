@@ -13,7 +13,7 @@ func semaTest001()
 
     var xv:  s32
     var ptr: const *s32 = &xv
-    let str3 = @mkslice(ptr, 20)
+    let str3            = @mkslice(ptr, 20)
     #assert(#typeof(str3) == const [..] s32)
 }
 

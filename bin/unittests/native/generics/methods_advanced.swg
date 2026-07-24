@@ -77,7 +77,7 @@ impl LocalWrap
 #test
 {
     let sample: Sample'(s32, 4) = {values: [10, 20, 30, 40]}
-    let pair = sample.pairWith'(string)("ten")
+    let pair                    = sample.pairWith'(string)("ten")
 
     #assert(#typeof(pair.first) == s32)
     #assert(#typeof(pair.second) == string)
@@ -88,7 +88,7 @@ impl LocalWrap
 #test
 {
     let sample: Sample'(u16, 3) = {values: [1'u16, 2, 3]}
-    let triple = sample.makeTriple'(u8, bool)(9'u8, true)
+    let triple                  = sample.makeTriple'(u8, bool)(9'u8, true)
 
     #assert(#typeof(triple.first) == u16)
     #assert(#typeof(triple.second) == u8)
@@ -101,7 +101,7 @@ impl LocalWrap
 #test
 {
     let sample: Sample'(s32, 4) = {values: [11, 22, 33, 44]}
-    let picked = sample.pickPair'(1, 3)()
+    let picked                  = sample.pickPair'(1, 3)()
 
     #assert(#typeof(picked.first) == s32)
     #assert(#typeof(picked.second) == s32)
@@ -113,7 +113,7 @@ impl LocalWrap
 #test
 {
     let sample: Sample'(s32, 4) = {values: [100, 200, 300, 400]}
-    let mixed = sample.makeIndexedTriple'(u16, string, 0, 2)(7'u16, "done")
+    let mixed                   = sample.makeIndexedTriple'(u16, string, 0, 2)(7'u16, "done")
 
     #assert(#typeof(mixed.first) == s32)
     #assert(#typeof(mixed.second) == u16)
@@ -127,7 +127,7 @@ impl LocalWrap
 #test
 {
     let wrapped: LocalWrap's32 = {value: 7}
-    let clone = wrapped.cloneThroughHelper()
+    let clone                  = wrapped.cloneThroughHelper()
 
     #assert(#typeof(clone) == LocalWrap's32)
     @assert(clone.value == 7)

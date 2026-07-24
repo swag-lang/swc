@@ -12,17 +12,17 @@ const SimulationSpeed = 50'f32
 const MaxFrameStep    = 1'f32
 const FixedStep       = 0.05'f32
 
-var r1   = 125.0
-var r2   = 125.0
-var m1   = 10.0
-var m2   = 10.0
-var a1   = 0.0
-var a2   = 0.0
-var a1_v = 0.0
-var a2_v = 0.0
-var g:      f32 = 0.98
-var cx, cy: f32
-var friction  = 1.0
+var r1            = 125.0
+var r2            = 125.0
+var m1            = 10.0
+var m2            = 10.0
+var a1            = 0.0
+var a2            = 0.0
+var a1_v          = 0.0
+var a2_v          = 0.0
+var g:        f32 = 0.98
+var cx, cy:   f32
+var friction      = 1.0
 var linePath: Array'Vector2
 
 func restartPendulum()

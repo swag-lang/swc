@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createHslModesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "HSL planes", "Two-dimensional HSL pickers cover the principal hue, saturation and lightness relationships.", layout.left)
+    let left   = createPanel(parent, "HSL planes", "Two-dimensional HSL pickers cover the principal hue, saturation and lightness relationships.", layout.left)
     {
         discard createModePicker(left, "Saturation / lightness", {24, 120, 250, 210}, .SaturationLightness)
         discard createModePicker(left, "Hue / saturation", {314, 120, 250, 210}, .HueSaturation)

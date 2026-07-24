@@ -264,7 +264,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         table.capacity = 1
 
         table.add("alpha", makeInlineBufferText("one"))
-        let expectedDropAddr = cast([*] void) &table.entries[0].value
+        let expectedDropAddr   = cast([*] void) &table.entries[0].value
         let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
         @assert(table.valueAddr(0) == expectedDropAddr)
 
@@ -290,7 +290,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     table.capacity = 1
 
     table.add(7, "one")
-    let expectedDropAddr = table.valueAddr(0)
+    let expectedDropAddr   = table.valueAddr(0)
     let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
     LastInlineBufferTextDropAddr       = null
     LastInlineBufferTextDropBuffer     = null
@@ -313,7 +313,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         table.capacity = 1
 
         table.add(7, "one")
-        let expectedDropAddr = cast([*] void) &table.entries[0].value
+        let expectedDropAddr   = cast([*] void) &table.entries[0].value
         let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
 
         LastInlineBufferTextDropAddr       = null
@@ -335,7 +335,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
         table.capacity = 1
 
         table.add(7, "one")
-        let expectedDropAddr = cast([*] void) &table.entries[0].value
+        let expectedDropAddr   = cast([*] void) &table.entries[0].value
         let expectedDropBuffer = cast([*] u8) &table.entries[0].value.padding[0]
 
         LastInlineBufferTextDropAddr       = null

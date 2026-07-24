@@ -118,7 +118,7 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
         assignTo = #fwd from
     }
 
-    var a  = Vector3{1, 2, 3}
+    var a = Vector3{1, 2, 3}
     var b: Vector3
 
     // Copy path.
@@ -141,7 +141,7 @@ automatically discarded at overload resolution: only a '#move' call is accepted.
         assignTo = #move from
     }
 
-    var a  = Vector3{1, 2, 3}
+    var a = Vector3{1, 2, 3}
     var b: Vector3
 
     // Copy call style: 'a' is copied into a temporary (+1), the temporary is moved (+2).

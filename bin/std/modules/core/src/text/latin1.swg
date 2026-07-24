@@ -101,8 +101,8 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 {
     func compareLeft(src, dst: const [..] u8)->s32
     {
-        var csrc = @countof(src)
-        var cdst = @countof(dst)
+        var csrc   = @countof(src)
+        var cdst   = @countof(dst)
         var ai, bi = 0
         for
         {
@@ -132,9 +132,9 @@ func compareNatural(src, dst: const [..] u8, ignoreCase = false)->s32
 
     func compareRight(src, dst: const [..] u8)->s32
     {
-        var bias = 0
-        var csrc = @countof(src)
-        var cdst = @countof(dst)
+        var bias   = 0
+        var csrc   = @countof(src)
+        var cdst   = @countof(dst)
         var ai, bi = 0
         for
         {

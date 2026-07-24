@@ -38,9 +38,9 @@ func getEnumName(type: #null typeinfo, valueAddr: #null const *void, fullname = 
         return result
     let safeType  = notnull type
     let safeValue = valueAddr
-    let typeEnum = cast(const *TypeInfoEnum) safeType
-    let rawType  = notnull typeEnum.rawType
-    let isFlags  = hasAttribute(type, EnumFlags)
+    let typeEnum  = cast(const *TypeInfoEnum) safeType
+    let rawType   = notnull typeEnum.rawType
+    let isFlags   = hasAttribute(type, EnumFlags)
 
     // Get the user value, as an 'u64' or a string
     var val1:  u64

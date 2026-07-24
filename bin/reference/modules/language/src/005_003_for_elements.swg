@@ -76,7 +76,7 @@ enum Channel: u8
 #test
 {
     let levels: [Channel] s32 = [10, 20, 30]
-    var sum = 0
+    var sum                   = 0
 
     for value, [channel] in levels
     {
@@ -139,7 +139,7 @@ Element iteration works with multi-dimensional arrays and visits each element in
 #test
 {
     var array: [2, 2] s32 = [[10, 20], [30, 40]]
-    var result = 0
+    var result            = 0
     for it in array do
         result += it
     @assert(result == 10 + 20 + 30 + 40)
@@ -153,7 +153,7 @@ Prefix the element name with '&' to visit elements by address and modify them in
 #test
 {
     var array: [2, 2] s32 = [[1, 2], [3, 4]]
-    var result = 0
+    var result            = 0
 
     for &it in array
     {
@@ -177,7 +177,7 @@ This avoids explicit branching inside the loop.
 #test
 {
     var array: [?] s32 = [1, 2, 3, 4]
-    var result = 0
+    var result         = 0
 
     for value in array where value & 1 == 0 do
         result += value

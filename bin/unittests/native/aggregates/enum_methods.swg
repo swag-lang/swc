@@ -166,7 +166,7 @@ enum ImportedErrorsThroughStrictAlias
 #test
 {
     let loaded = ImportedAliasErrorsAlias.FailedToLoad
-    let saved = StrictImportedAliasErrorsAlias.FailedToSave
+    let saved  = StrictImportedAliasErrorsAlias.FailedToSave
     #assert(#typeof(loaded) == ImportedAliasErrors)
     #assert(#typeof(saved) == ImportedAliasErrors)
     @assert(loaded == ImportedAliasErrors.FailedToLoad)

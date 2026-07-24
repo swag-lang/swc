@@ -104,7 +104,7 @@ func defaultFromPreviousParam(a: s32, b: s32 = a + 1)->s32     // swc-expected-e
     return b
 }
 
-var RuntimeDefaultForLambda = 11
+var RuntimeDefaultForLambda   = 11
 var RuntimeDefaultForFuncType = 13
 
 func failLambdaDefaultFromRuntimeValue()

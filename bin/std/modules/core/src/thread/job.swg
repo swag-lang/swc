@@ -17,7 +17,7 @@ public struct Job
 
     // Internal state
     state:        JobState = .Zero
-    pendingIndex: u32 = Swag.U32.Max
+    pendingIndex: u32      = Swag.U32.Max
 }
 
 public struct(T) SliceJob
@@ -230,7 +230,7 @@ public func(T) parallelVisit(range: [..] T, offset: u32 = 1, contextData: #null 
         if !scan do
             return
         var safeScan = notnull scan
-        let countof = @countof(sliceBuffer)
+        let countof  = @countof(sliceBuffer)
         for countof / sliceOffset
         {
             #inject(stmt, buffer = cast #unconst (*T) safeScan, data = sliceContextData)

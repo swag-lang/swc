@@ -346,8 +346,8 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         var alloc: Allocator
         let itf = makeAllocator(&alloc)
 
-        var blockAddr: #null *void = null
-        var done:      s32 = 0
+        var blockAddr: #null *void        = null
+        var done:      s32                = 0
         var payload:   AllocRetirePayload = undefined
         payload.allocator = itf
         payload.out       = &blockAddr
@@ -391,7 +391,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     func stressAllocRetireThread(param: *void)->Th.DWORD
     {
-        let s = cast(*StressShared) param
+        let s    = cast(*StressShared) param
         let slot = @atomadd(&s.index, 1)
 
         var req: AllocatorRequest

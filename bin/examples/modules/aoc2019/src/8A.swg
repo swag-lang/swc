@@ -31,8 +31,8 @@ func day8A()
 
     var x, y:  s32
     var count: [10] s32
-    var best0  = Swag.S32.Max
-    var total  = 0
+    var best0 = Swag.S32.Max
+    var total = 0
 
     for #Bytes c in lines[0]
     {

@@ -11,7 +11,7 @@ struct GenericProbe
 
 struct GenericInitProbe
 {
-    value: s32 = 21
+    value: s32  = 21
     ready: bool = true
 }
 

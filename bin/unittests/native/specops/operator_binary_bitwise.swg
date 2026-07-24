@@ -34,7 +34,7 @@ impl GenBitwisePair
 {
     var a: GenBitwisePair'u32 = {x: 0xFF, y: 0x0F}
     var b: GenBitwisePair'u32 = {x: 0x0F, y: 0xFF}
-    let result = a & b
+    let result                = a & b
 
     @assert(result.x == 0x0F)
     @assert(result.y == 0x0F)
@@ -45,7 +45,7 @@ impl GenBitwisePair
 {
     var a: GenBitwisePair'u32 = {x: 0xF0, y: 0x0F}
     var b: GenBitwisePair'u32 = {x: 0x0F, y: 0xF0}
-    let result = a | b
+    let result                = a | b
 
     @assert(result.x == 0xFF)
     @assert(result.y == 0xFF)
@@ -56,7 +56,7 @@ impl GenBitwisePair
 {
     var a: GenBitwisePair'u64 = {x: 0xFF00, y: 0x00FF}
     var b: GenBitwisePair'u64 = {x: 0xFFFF, y: 0xFFFF}
-    let result = a ^ b
+    let result                = a ^ b
 
     @assert(result.x == 0x00FF'u64)
     @assert(result.y == 0xFF00'u64)
@@ -67,7 +67,7 @@ impl GenBitwisePair
 {
     var a: GenBitwisePair'u32 = {x: 1, y: 3}
     var b: GenBitwisePair'u32 = {x: 4, y: 2}
-    let result = a << b
+    let result                = a << b
 
     @assert(result.x == 16)
     @assert(result.y == 12)
@@ -78,7 +78,7 @@ impl GenBitwisePair
 {
     var a: GenBitwisePair'u32 = {x: 256, y: 64}
     var b: GenBitwisePair'u32 = {x: 4, y: 3}
-    let result = a >> b
+    let result                = a >> b
 
     @assert(result.x == 16)
     @assert(result.y == 8)
@@ -89,7 +89,7 @@ impl GenBitwisePair
 {
     var a: GenBitwisePair'u8 = {x: 0b1010_1010, y: 0b1100_1100}
     var b: GenBitwisePair'u8 = {x: 0b1111_0000, y: 0b0000_1111}
-    let result = a & b
+    let result               = a & b
 
     @assert(result.x == 0b1010_0000)
     @assert(result.y == 0b0000_1100)
@@ -99,7 +99,7 @@ impl GenBitwisePair
 #test
 {
     var a: GenBitwisePair'u32 = {x: 12345, y: 67890}
-    let result = a ^ a
+    let result                = a ^ a
 
     @assert(result.x == 0)
     @assert(result.y == 0)
@@ -110,7 +110,7 @@ impl GenBitwisePair
 {
     var a:    GenBitwisePair'u64 = {x: 0xDEAD_BEEF, y: 0xCAFE_BABE}
     var zero: GenBitwisePair'u64 = {x: 0, y: 0}
-    let result = a | zero
+    let result                   = a | zero
 
     @assert(result.x == 0xDEAD_BEEF'u64)
     @assert(result.y == 0xCAFE_BABE'u64)

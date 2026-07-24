@@ -8,6 +8,6 @@ struct RichEditRuneStyle
 {
     colBk: Color
     colFg: Color
-    fontMode      = FontFamilyStyle.Regular
-    underline     = UnderlineStyle.None
+    fontMode  = FontFamilyStyle.Regular
+    underline = UnderlineStyle.None
 }

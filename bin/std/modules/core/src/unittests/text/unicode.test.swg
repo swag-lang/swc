@@ -92,7 +92,7 @@ func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool
 
 #test
 {
-    let text = "A\u00E9\u03A9\U0001F642"
+    let text               = "A\u00E9\u03A9\U0001F642"
     let expected: [4] rune = ['A''rune, '\u00E9''rune, '\u03A9''rune, '\U0001F642''rune]
 
     var dest: [8] rune
@@ -104,8 +104,8 @@ func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool
     let result = Unicode.fromUtf8(text)
     @assert(assertRuneArray(result, expected))
 
-    let invalid: [1] u8 = [0x80]
-    let invalidResult = Unicode.fromUtf8(invalid)
+    let invalid:         [1] u8   = [0x80]
+    let invalidResult             = Unicode.fromUtf8(invalid)
     let expectedInvalid: [1] rune = [Utf8.RuneError]
     @assert(assertRuneArray(invalidResult, expectedInvalid))
 }

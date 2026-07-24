@@ -33,6 +33,6 @@ impl SelfRefPool
 func selfRefStore()
 {
     var root: SelfRefNode = undefined
-    let child = root.pool.newPtr()
+    let child             = root.pool.newPtr()
     child.parent = &root
 }

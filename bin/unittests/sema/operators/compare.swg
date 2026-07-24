@@ -11,8 +11,8 @@ func semaTest001()
 func semaTest002()
 {
     var a: #null *s32 = null
-    let b = a == null
-    let c = a != null
+    let b             = a == null
+    let c             = a != null
     #assert(#typeof(b) == bool)
     #assert(#typeof(c) == bool)
 }
@@ -28,16 +28,16 @@ func semaTest003()
 
 func semaTest004()
 {
-    var value:    s32 = 42
+    var value:    s32        = 42
     let valueRef: const &s32 = &value
-    let eq0 = valueRef == 42
-    let eq1 = 42 == valueRef
-    let ne0 = valueRef != 0
-    let lt0 = valueRef < 100
-    let lt1 = 0 < valueRef
-    let le0 = valueRef <= 42
-    let ge0 = valueRef >= 42
-    let cmp0 = valueRef <=> 42
+    let eq0                  = valueRef == 42
+    let eq1                  = 42 == valueRef
+    let ne0                  = valueRef != 0
+    let lt0                  = valueRef < 100
+    let lt1                  = 0 < valueRef
+    let le0                  = valueRef <= 42
+    let ge0                  = valueRef >= 42
+    let cmp0                 = valueRef <=> 42
 
     #assert(#typeof(eq0) == bool)
     #assert(#typeof(eq1) == bool)
@@ -51,19 +51,19 @@ func semaTest004()
 
 func semaTest005()
 {
-    var value:    s32 = 2
+    var value:    s32  = 2
     var refValue: &s32 = &value
-    let ok = refValue == 2
+    let ok             = refValue == 2
     #assert(#typeof(ok) == bool)
 }
 
 func semaTest006()
 {
-    var value:    f32 = 1.5
+    var value:    f32        = 1.5
     let valueRef: const &f32 = &value
-    let ok0 = valueRef == 1.5
-    let ok1 = valueRef < 2.0
-    let cmp = valueRef <=> 1.5
+    let ok0                  = valueRef == 1.5
+    let ok1                  = valueRef < 2.0
+    let cmp                  = valueRef <=> 1.5
 
     #assert(#typeof(ok0) == bool)
     #assert(#typeof(ok1) == bool)
@@ -116,9 +116,9 @@ impl CompareAllocatorHolder
 func semaTest007()
 {
     var holder = CompareAllocatorHolder{}
-    let a = holder.needsAllocator()
-    let b = holder.needsAllocatorLeft()
-    let c = holder.hasAllocator()
+    let a      = holder.needsAllocator()
+    let b      = holder.needsAllocatorLeft()
+    let c      = holder.hasAllocator()
     #assert(#typeof(a) == bool)
     #assert(#typeof(b) == bool)
     #assert(#typeof(c) == bool)
@@ -127,7 +127,7 @@ func semaTest007()
 func semaTest008()
 {
     var holder = CompareAllocatorHolder{}
-    var alloc = CompareAllocator{id: 77}
+    var alloc  = CompareAllocator{id: 77}
     holder.allocator = alloc
 
     let a = holder.needsAllocator()

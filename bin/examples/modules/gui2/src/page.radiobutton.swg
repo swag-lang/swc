@@ -27,7 +27,7 @@ func bindRadioGroup(r0, r1, r2: *RadioButton)
 func createRadioButtonPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "Exclusive group", "A small manual group checks the selected and unselected visual states.", layout.left)
+    let left   = createPanel(parent, "Exclusive group", "A small manual group checks the selected and unselected visual states.", layout.left)
     {
         let r0 = RadioButton.create(left, "Compact", {24, 90, 180})
         let r1 = RadioButton.create(left, "Comfortable", {24, 128, 180})

@@ -61,7 +61,7 @@ func bug10ReverseIndexOfVisitAtLeast(values: const &InlineBug10VisitBytes, minVa
 
 #test
 {
-    var values = [1'u8, 4, 2, 9, 3]
+    var values      = [1'u8, 4, 2, 9, 3]
     let visitValues = InlineBug10VisitBytes{values, @countof(values)}
     @assert(bug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)
     @assert(inlineBug10ReverseIndexOfVisitAtLeast(visitValues, 8) == 3)

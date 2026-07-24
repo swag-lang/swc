@@ -21,15 +21,15 @@ struct FileDlgState
 
 struct FileDlgOptions
 {
-    title:      string = ""
-    btnOkName:  string = ""
-    openFolder: string = ""
-    editName:   string = ""
-    drivePane       = true
-    mode:      FileDlgMode = SelectOneFile
-    filters:   Array'{ name: string, extensions: string }
-    shortcuts: Array'{ type: Core.Env.SpecialDirectory, name: string }
-    state:     #null *FileDlgState
+    title:      string      = ""
+    btnOkName:  string      = ""
+    openFolder: string      = ""
+    editName:   string      = ""
+    drivePane               = true
+    mode:       FileDlgMode = SelectOneFile
+    filters:    Array'{ name: string, extensions: string }
+    shortcuts:  Array'{ type: Core.Env.SpecialDirectory, name: string }
+    state:      #null *FileDlgState
 }
 
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.

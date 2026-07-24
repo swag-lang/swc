@@ -296,7 +296,7 @@ func(T) genericParallelVisitLike(range: [..] T, offset: u32 = 1, contextData: #n
 {
     func visitSlice(sliceBuffer: const [..] T, sliceOffset: u32, sliceContextData: #null *void)
     {
-        var scan = @dataof(sliceBuffer)
+        var scan    = @dataof(sliceBuffer)
         let countof = @countof(sliceBuffer)
         for countof / sliceOffset
         {
@@ -372,7 +372,7 @@ func inlineInjectedPointerOffsetShadow(dstImage: *InlinePixelProbe)
     image.visitWithUserData(dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
-        let pixDst = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
         pixDst[0] = 103
     }
 }
@@ -384,7 +384,7 @@ func inlineInjectedContextDataShadow(dstImage: *InlinePixelProbe)
     image.visitParallelLike(dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
-        let pixDst = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
         pixDst[0] = 117
     }
 }
@@ -396,7 +396,7 @@ func inlineInjectedLocalContextDataShadow(dstImage: *InlinePixelProbe)
     image.visitParallelLocalLike(dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) userData
-        let pixDst = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
         pixDst[0] = 119
     }
 }
@@ -407,9 +407,9 @@ func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
     genericParallelVisitLike(@mkslice(dstImage.buffer, 1), 1, dstImage)
     {
         let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe) notnull data
-        let x = 1
-        let y = 1
-        let pixDst = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
+        let x        = 1
+        let y        = 1
+        let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width
         pixDst[0] = 121
     }
 }

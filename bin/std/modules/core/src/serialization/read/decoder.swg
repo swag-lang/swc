@@ -182,8 +182,8 @@ impl Decoder
             if valueType
             {
                 let safeValueType = valueType
-                var count   = 0'u64
-                let treated = .serializer.beginSequence(type, data, &count)
+                var count         = 0'u64
+                let treated       = .serializer.beginSequence(type, data, &count)
                 defer #noerr .serializer.endSequence()
 
                 if !treated
@@ -226,7 +226,7 @@ impl Decoder
                 if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
                 {
                     let fieldData = cast([*] u8) data + field.offset
-                    let doIt = catch .serializer.beginElement(field)
+                    let doIt      = catch .serializer.beginElement(field)
                     defer #noerr .serializer.endElement(field)
 
                     if @err != null and !(.flags & .IgnoreStructFieldError) do
@@ -260,8 +260,8 @@ impl Decoder
             if !typeArr.pointedType do
                 throw SerializationError{"missing array pointed type"}
             let elemType = typeArr.pointedType orelse #typeof(u8)
-            var count   = typeArr.count
-            let treated = .serializer.beginSequence(elemType, data, &count)
+            var count    = typeArr.count
+            let treated  = .serializer.beginSequence(elemType, data, &count)
             defer #noerr .serializer.endSequence()
             if treated do
                 return

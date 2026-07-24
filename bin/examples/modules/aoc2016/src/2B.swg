@@ -33,8 +33,8 @@ func day2B()
         [0, 0, 10, 11, 12, 0, 0],
         [0, 0, 0, 13, 0, 0, 0],
         [0, 0, 0, 0, 0, 0, 0]]
-    var x      = 1
-    var y      = 3
+    var x = 1
+    var y = 3
 
     var cde = 0
     for l in lines

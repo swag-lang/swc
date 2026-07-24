@@ -111,8 +111,8 @@ func duplicateMask(line: const [..] u8)->u64
 {
     @assert((@countof(line) & 1'u64) == 0'u64)
 
-    let half = @countof(line) / 2
-    let leftMask = buildMask(line[until half])
+    let half      = @countof(line) / 2
+    let leftMask  = buildMask(line[until half])
     let rightMask = buildMask(line[half to])
     return leftMask & rightMask
 }
@@ -228,8 +228,8 @@ func declareFeatureState()
     var featureGroupCount:    u32
     var featurePartOne:       u64
     var featurePartTwo:       u64
-    var featureState          = GroupState.NeedFirst
-    var featureMasks: [3] u64
+    var featureState = GroupState.NeedFirst
+    var featureMasks:         [3] u64
 }
 
 #[Swag.Macro]
@@ -291,17 +291,17 @@ func solveWithLanguageFeatures(bytes: const [..] u8)->RucksackReport
     return result
 }
 
-const SampleFeatureReport: RucksackReport   = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
+const SampleFeatureReport:   RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) SampleInput)
 const CoverageFeatureReport: RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) CoverageInput)
-const EdgeFeatureReport: RucksackReport     = #run solveWithLanguageFeatures(cast(const [..] u8) EdgeInput)
+const EdgeFeatureReport:     RucksackReport = #run solveWithLanguageFeatures(cast(const [..] u8) EdgeInput)
 
 #assert(#sizeof(GroupState) == 1)
 #assert(#sizeof(RucksackReport) != 0)
 
 #test
 {
-    let sampleBytes = cast(const [..] u8) SampleInput
-    let sampleClean = solveClean(sampleBytes)
+    let sampleBytes    = cast(const [..] u8) SampleInput
+    let sampleClean    = solveClean(sampleBytes)
     let sampleFeatures = solveWithLanguageFeatures(sampleBytes)
 
     @assert(sampleClean.rucksackCount == 6'u32)
@@ -318,8 +318,8 @@ const EdgeFeatureReport: RucksackReport     = #run solveWithLanguageFeatures(cas
 
 #test
 {
-    let coverageBytes = cast(const [..] u8) CoverageInput
-    let coverageClean = solveClean(coverageBytes)
+    let coverageBytes    = cast(const [..] u8) CoverageInput
+    let coverageClean    = solveClean(coverageBytes)
     let coverageFeatures = solveWithLanguageFeatures(coverageBytes)
 
     @assert(coverageClean.rucksackCount == 6'u32)
@@ -334,8 +334,8 @@ const EdgeFeatureReport: RucksackReport     = #run solveWithLanguageFeatures(cas
 
 #test
 {
-    let edgeBytes = cast(const [..] u8) EdgeInput
-    let edgeClean = solveClean(edgeBytes)
+    let edgeBytes    = cast(const [..] u8) EdgeInput
+    let edgeClean    = solveClean(edgeBytes)
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)
 
     @assert(edgeClean.rucksackCount == 3'u32)
@@ -347,9 +347,9 @@ const EdgeFeatureReport: RucksackReport     = #run solveWithLanguageFeatures(cas
     @assert(edgeFeatures.misplacedPrioritySum == edgeClean.misplacedPrioritySum)
     @assert(edgeFeatures.badgePrioritySum == edgeClean.badgePrioritySum)
 
-    let first = cast(const [..] u8) "vJrwpWtwJgWrhcsFMMfFFhFp"
+    let first  = cast(const [..] u8) "vJrwpWtwJgWrhcsFMMfFFhFp"
     let second = cast(const [..] u8) "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL"
-    let third = cast(const [..] u8) "PmmdzqPrVvPwwTWBwg"
+    let third  = cast(const [..] u8) "PmmdzqPrVvPwwTWBwg"
 
     @assert(priorityOf('a') == 1)
     @assert(priorityOf('z') == 26)

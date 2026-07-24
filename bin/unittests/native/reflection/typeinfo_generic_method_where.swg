@@ -36,7 +36,7 @@ func genericLazyMethodReflectionSkipsFailedWhere()->bool
     if @countof(info.methods) < 1 do
         return false
 
-    var hasCount = false
+    var hasCount               = false
     var defaultCompareCallable = false
     for &methodInfo in info.methods
     {

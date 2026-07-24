@@ -151,15 +151,15 @@ func(T, const Pad: s32) readValue(store: const &GenericIsolationStore'(T, Pad), 
     wides.write(1, makeGenericIsolationWide(11, 12), 13, 14)
     intsWide.write(1, 88, 17, 18)
 
-    let intEntry = cloneEntry'(s32, #sizeof(s32) + 1)(&intsDefault, 1)
+    let intEntry     = cloneEntry'(s32, #sizeof(s32) + 1)(&intsDefault, 1)
     let intWideEntry = cloneEntry'(s32, 9)(&intsWide, 0)
-    let textEntry = cloneEntry'(string, #sizeof(string) + 1)(&texts, 0)
-    let wideEntry = cloneEntry'(GenericIsolationWide, #sizeof(GenericIsolationWide) + 1)(&wides, 1)
+    let textEntry    = cloneEntry'(string, #sizeof(string) + 1)(&texts, 0)
+    let wideEntry    = cloneEntry'(GenericIsolationWide, #sizeof(GenericIsolationWide) + 1)(&wides, 1)
 
-    let intValue = readValue'(s32, #sizeof(s32) + 1)(&intsDefault, 0)
+    let intValue     = readValue'(s32, #sizeof(s32) + 1)(&intsDefault, 0)
     let intWideValue = readValue'(s32, 9)(&intsWide, 1)
-    let textValue = readValue'(string, #sizeof(string) + 1)(&texts, 1)
-    let wideValue = readValue'(GenericIsolationWide, #sizeof(GenericIsolationWide) + 1)(&wides, 0)
+    let textValue    = readValue'(string, #sizeof(string) + 1)(&texts, 1)
+    let wideValue    = readValue'(GenericIsolationWide, #sizeof(GenericIsolationWide) + 1)(&wides, 0)
 
     #assert(#typeof(intEntry) == GenericIsolationEntry's32)
     #assert(#typeof(intWideEntry) == GenericIsolationEntry'(s32, 9))

@@ -22,7 +22,7 @@ impl A
 func semaTest001()
 {
     let value = A{count: 3, x: 1, y: 2}
-    let ok = value.whereFunction(3)
+    let ok    = value.whereFunction(3)
     #assert(#typeof(ok) == bool)
 }
 
@@ -57,7 +57,7 @@ impl AutoScopeUnaryBox
 func semaTest002()
 {
     var value: AutoScopeUnaryBox's32 = {value: 42}
-    let inverted = ~value
+    let inverted                     = ~value
     #assert(#typeof(inverted) == AutoScopeUnaryBox's32)
     #assert(#typeof(inverted.value) == s32)
 }

@@ -24,7 +24,7 @@ impl CountedBag
 #test
 {
     var arr: [3] s32 = [10, 20, 30]
-    var sum = 0
+    var sum          = 0
     for v in arr do
         sum += v
     @assert(sum == 60)
@@ -33,9 +33,9 @@ impl CountedBag
 // Single name over a slice binds the element values.
 #test
 {
-    var arr:   [3] s32 = [10, 20, 30]
+    var arr:   [3] s32        = [10, 20, 30]
     let slice: const [..] s32 = arr
-    var sum = 0
+    var sum                   = 0
     for v in slice do
         sum += v
     @assert(sum == 60)
@@ -45,7 +45,7 @@ impl CountedBag
 #test
 {
     let text = "abc"
-    var sum = 0
+    var sum  = 0
     for b in text do
         sum += cast(s32) b
     @assert(sum == 97 + 98 + 99)
@@ -55,7 +55,7 @@ impl CountedBag
 #test
 {
     var arr: [3] s32 = [10, 20, 30]
-    var sum = 0
+    var sum          = 0
     for v, [i] in arr do
         sum += v + cast(s32) i
     @assert(sum == 60 + 3)
@@ -86,7 +86,7 @@ impl CountedBag
 #test
 {
     var arr: [3] s32 = [10, 20, 30]
-    var total = 0'u64
+    var total        = 0'u64
 
     for [i] in @countof(arr) do
         total += i
@@ -100,7 +100,7 @@ impl CountedBag
 // The unnamed form stays a count loop, including through 'opCount'.
 #test
 {
-    var bag = CountedBag{}
+    var bag   = CountedBag{}
     var count = 0
     for bag do
         count += 1
@@ -112,7 +112,7 @@ impl CountedBag
 {
     var arr:   [3] s32 = [1, 2, 3]
     var order: [3] s32
-    var slot = 0
+    var slot           = 0
     for #reverse v in arr
     {
         order[slot] = v
@@ -125,7 +125,7 @@ impl CountedBag
 #test
 {
     var arr: [4] s32 = [1, 2, 3, 4]
-    var sum = 0
+    var sum          = 0
     for v in arr where v % 2 == 0 do
         sum += v
     @assert(sum == 6)

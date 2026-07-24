@@ -73,7 +73,7 @@ public impl Outline
         // double the visual weight for the same nominal value.
         let perSide = cast(f64) strength * 0.5
 
-        var start = 0'u32
+        var start    = 0'u32
         let points   = notnull .points
         let contours = notnull .contours
         for cast(u32) .contourCount
@@ -113,9 +113,9 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
         return commands
 
     var contourStart = 0'u32
-    let points   = cast(const [*] Vector) (notnull outline.points)
-    let tags     = cast(const [*] u8) (notnull outline.tags)
-    let contours = cast(const [*] s16) (notnull outline.contours)
+    let points       = cast(const [*] Vector) (notnull outline.points)
+    let tags         = cast(const [*] u8) (notnull outline.tags)
+    let contours     = cast(const [*] s16) (notnull outline.contours)
     for cast(u32) outline.contourCount
     {
         let contourEnd = cast(u32) contours[@index]
@@ -203,8 +203,8 @@ func totalOutlineSignedArea(outline: const *Outline)->f64
     if outline.pointCount <= 0 or outline.contourCount <= 0 do
         return 0
 
-    var total = 0.0'f64
-    var start = 0'u32
+    var total    = 0.0'f64
+    var start    = 0'u32
     let points   = cast(const [*] Vector) (notnull outline.points)
     let contours = cast(const [*] s16) (notnull outline.contours)
     for cast(u32) outline.contourCount
@@ -258,8 +258,8 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
         let n1x = ccw ? e1y * il1 : -e1y * il1
         let n1y = ccw ? -e1x * il1 : e1x * il1
 
-        var dirx = n0x + n1x
-        var diry = n0y + n1y
+        var dirx   = n0x + n1x
+        var diry   = n0y + n1y
         let dirLen = Math.sqrt(dirx * dirx + diry * diry)
         if Math.isZeroEpsilon(cast(f32) dirLen)
         {
@@ -272,8 +272,8 @@ func applyEmboldenToContour(points: [..] Vector, strength: f64, ccw: bool)
             diry /= dirLen
         }
 
-        let dot    = Math.abs(dirx * n1x + diry * n1y)
-        let miter  = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
+        let dot   = Math.abs(dirx * n1x + diry * n1y)
+        let miter = dot > 0.25 ? Math.min(4.0, 1.0 / dot) : 1.0
         points[@index].x = cast(s32) Math.round(cur.x + dirx * strength * miter)
         points[@index].y = cast(s32) Math.round(cur.y + diry * strength * miter)
     }

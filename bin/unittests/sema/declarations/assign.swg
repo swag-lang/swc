@@ -46,7 +46,7 @@ func semaTest007()
 {
     var value:    AssignRefValue
     var valueRef: &AssignRefValue = &value
-    let other:    AssignRefValue = {x: 4, y: 5}
+    let other:    AssignRefValue  = {x: 4, y: 5}
     valueRef = other
 }
 

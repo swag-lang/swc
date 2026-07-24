@@ -32,7 +32,7 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
     let surface = notnull (try app.createSurface(100, 100, 594, 449, SurfaceFlags.OverlappedWindow))
     surface.setTitle("GUI example")
 
-    let view         = surface.getView()
+    let view = surface.getView()
     view.hookOnEvent = &onEvent
     g_Button         = PushButton.create(view, "Push Button")
     centerButton(view)

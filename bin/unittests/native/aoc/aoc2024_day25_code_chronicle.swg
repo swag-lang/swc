@@ -197,7 +197,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
 func parse(text: string)->ParseResult
 {
     var result = parseInit()
-    let bytes = cast(const [..] u8) text
+    let bytes  = cast(const [..] u8) text
     var pos: u32
 
     for

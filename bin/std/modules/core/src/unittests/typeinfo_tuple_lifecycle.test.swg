@@ -9,7 +9,7 @@ var CoreTupleLifecyclePostMoveOrder: s32
 
 struct CoreTupleLifecycleProbe
 {
-    id:    s32 = 7
+    id:    s32    = 7
     value: string = "tuple-default"
 }
 
@@ -112,8 +112,8 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
         return false
     defer Memory.free(cast(#null [*] void) values, cast(u64) arrayType.sizeof)
 
-    let tuple0 = cast([*] u8) (values)
-    let tuple1 = tuple0 + arrayStruct.pointedType.sizeof
+    let tuple0  = cast([*] u8) (values)
+    let tuple1  = tuple0 + arrayStruct.pointedType.sizeof
     let first0  = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 0)
     let second0 = coreTupleLifecycleProbeAt(tuple0, tupleStruct, 1)
     let first1  = coreTupleLifecycleProbeAt(tuple1, tupleStruct, 0)

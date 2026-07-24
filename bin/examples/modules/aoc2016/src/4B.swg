@@ -20,7 +20,7 @@ func day4B()
 
     for l in lines
     {
-        var idx  = 0
+        var idx = 0
         var str: String
         while !Latin1.isDigit(l[idx])
         {

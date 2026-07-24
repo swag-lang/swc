@@ -12,8 +12,8 @@
 #test
 {
     let name = "Alice"
-    let age = 30
-    let t = {name, age}
+    let age  = 30
+    let t    = {name, age}
     @assert(t.name == "Alice")
     @assert(t.age == 30)
 }

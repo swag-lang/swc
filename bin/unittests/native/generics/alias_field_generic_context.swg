@@ -57,8 +57,8 @@ func(U) localAliasPrefixBuffer(value: U)->U
 {
     var partial: AliasPartialHolder'(u32, f64) = undefined
     var prefix:  AliasExplicitPrefixHolder'u8
-    let tail = localAliasPartialTail'(bool, f32)(true, 1.5)
-    let value = localAliasPrefixBuffer'u16(12)
+    let tail                                   = localAliasPartialTail'(bool, f32)(true, 1.5)
+    let value                                  = localAliasPrefixBuffer'u16(12)
 
     partial.item.first    = 7
     partial.item.second   = "ok"

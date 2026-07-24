@@ -107,7 +107,7 @@ impl Dialog
     mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.Zero)->*Surface
     {
         let surfaceFlags = SurfaceFlags.BigCaption | SurfaceFlags.Secondary | flags
-        let srf = notnull (assume from.app.createSurface(x, y, width, height, surfaceFlags, me))
+        let srf          = notnull (assume from.app.createSurface(x, y, width, height, surfaceFlags, me))
         srf.wnd.view.backgroundStyle = .Dialog
 
         let metrics = .getThemeMetrics()

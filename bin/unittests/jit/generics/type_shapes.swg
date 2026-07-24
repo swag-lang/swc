@@ -35,7 +35,7 @@ struct(T)
     let ints:   [3] s32 = [1, 2, 3]
     let floats: [2] f64 = [1.0, 2.0]
 
-    let ints2 = arrayIdentity(ints)
+    let ints2   = arrayIdentity(ints)
     let floats2 = arrayIdentity(floats)
 
     #assert(#typeof(ints2) == #type [3] s32)
@@ -48,9 +48,9 @@ struct(T)
 
 #test
 {
-    let wrap: Wrapper's32 = {inner: {value: 12}}
+    let wrap: Wrapper's32                = {inner: {value: 12}}
     let pair: Pair'(Box's32, Box'string) = {first: {value: 7}, second: {value: "ok"}}
-    let deep: Box'(Box'(Box'bool)) = {value: {value: {value: true}}}
+    let deep: Box'(Box'(Box'bool))       = {value: {value: {value: true}}}
 
     #assert(#typeof(wrap.inner.value) == s32)
     #assert(#typeof(pair.first.value) == s32)
@@ -64,8 +64,8 @@ struct(T)
 
 #test
 {
-    let b1: Box's32 = {value: 1}
-    let b2: Box's32 = {value: 2}
+    let b1: Box's32         = {value: 1}
+    let b2: Box's32         = {value: 2}
     let p1: Pair'(s32, f64) = {first: 1, second: 2.5}
 
     #assert(#typeof(b1) == #typeof(b2))

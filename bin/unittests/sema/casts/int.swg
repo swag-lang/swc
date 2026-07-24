@@ -6,7 +6,7 @@ func takes_s32(v: s32) {}
 
 func semaTest001()
 {
-    var a: u8 = 10
+    var a: u8  = 10
     var b: u16 = a
     var c: u32 = b
     var d: u64 = c
@@ -14,7 +14,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    var a: s8 = -10
+    var a: s8  = -10
     var b: s16 = a
     var c: s32 = b
     var d: s64 = c

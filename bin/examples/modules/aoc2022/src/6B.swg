@@ -18,12 +18,12 @@ using Core
 
 func day6B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let dataPath           = Path.combine(Path.getDirectoryName(#curlocation.fileName), "6.txt")
+    let lines              = assume File.readAllLines(dataPath)
     let str: const &String = &lines[0]
 
     var arr: [128] s32
-    var len  = 0
+    var len = 0
 
     const LEN = 14
     for [i] in @countof(str)

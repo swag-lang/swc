@@ -39,7 +39,7 @@ enum LowerFlags: u32
     func lowerTypeInfoFlags()->bool
     {
         let t: typeinfo = #typeof(s32)
-        let f = t.flags | .Nullable
+        let f           = t.flags | .Nullable
         return (f & .Nullable) != 0
     }
 

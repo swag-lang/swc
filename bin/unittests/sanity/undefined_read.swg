@@ -75,7 +75,7 @@ func undFill(v: *UndItem)
 #test
 {
     var a: UndItem = undefined
-    let address = &a
+    let address    = &a
     discard address
     @assert(a.x == 1)     // swc-expected-error {{sanity_err_undefined_read}}
 }

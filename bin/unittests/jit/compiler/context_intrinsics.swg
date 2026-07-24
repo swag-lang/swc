@@ -16,7 +16,7 @@
     func canSwapContextPointer()->bool
     {
         let prev = @getcontext()
-        var cxt = dref prev
+        var cxt  = dref prev
         cxt.user0 = 0xA17E
 
         @setcontext(cxt)

@@ -20,7 +20,7 @@ struct Context
     prim1, prim2:    u64
     prev:            Math.Vector2
     path:            const *LinePath = undefined
-    pen:             const *Pen = undefined
+    pen:             const *Pen      = undefined
     offsetPath:      f32
 
     remainingPatternLen: f32

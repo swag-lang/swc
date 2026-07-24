@@ -307,7 +307,7 @@ impl Encoder
     mtd finishIDat() throw
     {
         var zlib: Compress.ZLib
-        let cmp   = zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
+        let cmp = zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
 
         .writePtr = .writeHeader(TypeIDat, cmp.count)
         Memory.copy(.writePtr, cmp.buffer, cmp.count)
@@ -336,7 +336,7 @@ impl Encoder
             let initialShift   = 8 - bitDepth
             var shiftAmount    = initialShift
 
-            let row_uc = row
+            let row_uc   = row
             var scanline = notnull .scanline
             Memory.clear(cast([*] u8) scanline, cast(u64) .subimage[pass].scanlineWidth)
 
@@ -614,8 +614,8 @@ impl Encoder
 
 public struct EncodeOptions
 {
-    compressionLevel     = Compress.Deflate.CompressionLevel.Default
-    filtering            = true
+    compressionLevel = Compress.Deflate.CompressionLevel.Default
+    filtering        = true
 }
 
 public impl IImageEncoder for Encoder

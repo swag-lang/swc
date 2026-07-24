@@ -5,15 +5,15 @@ using Swag, Core
 
 struct PropHeadlessData
 {
-    count:   s32 = 42
+    count:   s32          = 42
     label:   #null string = "hello"
-    enabled: bool = true
+    enabled: bool         = true
 }
 
 struct PropHeadlessCustomData
 {
     origin: Math.Point = {10, 20}
-    count:  s32 = 3
+    count:  s32        = 3
 }
 
 enum PropHeadlessChoice
@@ -688,13 +688,13 @@ enum MultiBadges
 
 struct MultiTile
 {
-    count:  s32 = 0
-    flag:   bool = false
+    count:  s32         = 0
+    flag:   bool        = false
     name:   String
     choice: MultiChoice = .Low
     badges: MultiBadges
     tint:   Pixel.Color
-    pos:    Math.Point = {0, 0}
+    pos:    Math.Point  = {0, 0}
 }
 
 private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesItem
@@ -1287,9 +1287,9 @@ impl IPropertyEditor for PropAngleEditor
 
 struct PropDefaultData
 {
-    count:   s32 = 42
+    count:   s32          = 42
     name:    #null string = "hello"     // static string: read-only, never resettable
-    enabled: bool = true
+    enabled: bool         = true
 }
 
 var g_PropDefResetCalls:    s32
@@ -1630,7 +1630,7 @@ impl IPropertyNotify for PropDefaultCustom
 
     var t0, t1: PropHeadlessData     // both count = 42
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
-    var bases: Array'(*u8)
+    var bases:  Array'(*u8)
     bases.add(cast(*u8) &t0)
     bases.add(cast(*u8) &t1)
     prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")

@@ -89,7 +89,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
     rules[0] = cast(IDiscountRule) bulk
 
     var line: OrderLine = {kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
-    let disc = rules[0].apply(&line)
+    let disc            = rules[0].apply(&line)
     @assert(disc == 200)
 }
 

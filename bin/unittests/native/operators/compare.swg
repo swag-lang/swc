@@ -46,8 +46,8 @@ func touch(flag: bool, delta: s32)->bool
 #test
 {
     var a: #null *s32 = null
-    let b = a == null
-    let c = a != null
+    let b             = a == null
+    let c             = a != null
     #assert(#typeof(b) == bool)
     #assert(#typeof(c) == bool)
     @assert(b)
@@ -121,9 +121,9 @@ func touch(flag: bool, delta: s32)->bool
 {
     var value0: s32 = 77
     var value1: s32 = 10
-    let p0 = &value0
-    let p1 = p0
-    let p2 = &value1
+    let p0          = &value0
+    let p1          = p0
+    let p2          = &value1
 
     @assert(p0 == p1)
     @assert(p0 != p2)
@@ -137,13 +137,13 @@ func touch(flag: bool, delta: s32)->bool
     var other   = CompareIdentityBase{value: 20}
     var derived = CompareIdentityDerived{base: {value: 30}, extra: 40}
 
-    let basePtr:        *CompareIdentityBase       = &base
-    let otherPtr:       *CompareIdentityBase      = &other
+    let basePtr:        *CompareIdentityBase = &base
+    let otherPtr:       *CompareIdentityBase = &other
     let derivedBasePtr: *CompareIdentityBase = &derived.base
 
     var baseRef:    &CompareIdentityBase       = &base
     let otherRef:   const &CompareIdentityBase = &other
-    var derivedRef: &CompareIdentityDerived = &derived
+    var derivedRef: &CompareIdentityDerived    = &derived
 
     @assert(basePtr == baseRef)
     @assert(baseRef == basePtr)
@@ -168,7 +168,7 @@ func matchReferenceValue(value: const &s32)->bool
     var y: s32 = 42
     var z: s32 = 7
 
-    var refX: &s32 = &x
+    var refX: &s32       = &x
     let refY: const &s32 = &y
     let refZ: const &s32 = &z
 
@@ -194,7 +194,7 @@ func matchReferenceValue(value: const &s32)->bool
 // Const-reference parameters keep value-style comparisons
 #test
 {
-    var value:    s32 = 4
+    var value:    s32        = 4
     let valueRef: const &s32 = &value
     @assert(matchReferenceValue(valueRef))
 }
@@ -202,7 +202,7 @@ func matchReferenceValue(value: const &s32)->bool
 // Float references use the same comparison pipeline
 #test
 {
-    var value:    f32 = 1.5
+    var value:    f32        = 1.5
     let valueRef: const &f32 = &value
 
     @assert(valueRef == 1.5)
@@ -230,7 +230,7 @@ func matchReferenceValue(value: const &s32)->bool
 {
     var value: s32 = 42
     var raw:   any = @mkany(&value, s32)
-    let boxed = dref cast(*CompareStrictAny) &raw
+    let boxed      = dref cast(*CompareStrictAny) &raw
 
     @assert(boxed == s32)
     @assert(s32 == boxed)
@@ -241,11 +241,11 @@ func matchReferenceValue(value: const &s32)->bool
 #test
 {
     var data: [3] s32 = [10, 20, 30]
-    let raw0 = cast([*] s32) &data[0]
-    let raw1 = cast([*] s32) &data[1]
-    let strict0 = cast(CompareStrictS32Ptr) raw0
-    let strict1 = cast(CompareStrictS32Ptr) raw1
-    let other0 = cast(CompareOtherStrictS32Ptr) raw0
+    let raw0          = cast([*] s32) &data[0]
+    let raw1          = cast([*] s32) &data[1]
+    let strict0       = cast(CompareStrictS32Ptr) raw0
+    let strict1       = cast(CompareStrictS32Ptr) raw1
+    let other0        = cast(CompareOtherStrictS32Ptr) raw0
 
     @assert(strict0 == raw0)
     @assert(raw0 == strict0)

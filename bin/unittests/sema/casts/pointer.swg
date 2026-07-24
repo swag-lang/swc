@@ -4,7 +4,7 @@ func semaTest001()
 {
     var ax: s32
     var x:  *s32 = &ax
-    var b = cast([*]s32) x
+    var b        = cast([*]s32) x
 
     var v: *s32 = b
     #assert(#typeof(v) == *s32)
@@ -17,7 +17,7 @@ func semaTest002()
 {
     var ax: s32
     var x:  *s32 = &ax
-    var b = cast([*]s32) x
+    var b        = cast([*]s32) x
 
     var v: *s32 = b
     #assert(#typeof(v) == *s32)
@@ -33,7 +33,7 @@ func semaTest003()
 {
     var ax: s32
     var x:  *s32 = &ax
-    var y = cast(*u8) x
+    var y        = cast(*u8) x
     #assert(#typeof(y) == *u8)
 }
 
@@ -41,7 +41,7 @@ func semaTest004()
 {
     var ax: s32
     var x:  const *s32 = &ax
-    var y = cast #unconst (*u8) x
+    var y              = cast #unconst (*u8) x
     #assert(#typeof(y) == *u8)
 }
 
@@ -56,7 +56,7 @@ func semaTest005()
 func semaTest006()
 {
     var a:  [2] s32
-    var p1: *s32 = a
+    var p1: *s32       = a
     var p2: const *s32 = a
 }
 
@@ -68,23 +68,23 @@ func semaTest007()
 
 func semaTest008()
 {
-    var str1: string = "abc"
-    let data1 = @dataof(str1)
+    var str1:  string         = "abc"
+    let data1                 = @dataof(str1)
     let data2: const [*] void = data1
 }
 
 func semaTest009()
 {
     var a: typeinfo = #typeof(s32)
-    var b = cast(const *u8) a
-    var c = cast(const *void) a
+    var b           = cast(const *u8) a
+    var c           = cast(const *void) a
 }
 
 func semaTest010()
 {
     var ax: s32
     var x:  const *s32 = &ax
-    var y = cast(const *u8) x
+    var y              = cast(const *u8) x
     #assert(#typeof(y) == const *u8)
 }
 

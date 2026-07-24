@@ -4,7 +4,7 @@ func createListsPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
 
-    let left = createPanel(parent, "Simple ListCtrl", "Single-column rows with icons, hot tracking and multi-selection.", layout.left)
+    let left   = createPanel(parent, "Simple ListCtrl", "Single-column rows with icons, hot tracking and multi-selection.", layout.left)
     let simple = ListCtrl.createSimple(left, {18, 92, layout.left.width - 36, layout.left.height - 112})
     simple.setFrameForm(.Round)
     simple.frameFlags.add(.FocusBorder)
@@ -15,7 +15,7 @@ func createListsPage(parent: *Wnd)
         discard simple.createLine(Format.toString("Inbox item %", i + 1), sampleIcon(i))
     simple.computeLayout()
 
-    let right = createPanel(parent, "Virtual list", "A million logical rows filled on demand by sigVirtualFill.", layout.right)
+    let right       = createPanel(parent, "Virtual list", "A million logical rows filled on demand by sigVirtualFill.", layout.right)
     let virtualList = ListCtrl.createSimple(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
     virtualList.setFrameForm(.Round)
     virtualList.selectionMode    = .Single

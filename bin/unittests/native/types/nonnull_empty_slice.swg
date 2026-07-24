@@ -5,11 +5,11 @@ struct NativePresentEmptySliceDefault
     value: const [..] u8 = ""
 }
 
-const NATIVE_PRESENT_EMPTY_STRING_SLICE: const [..] u8                   = ""
-const NATIVE_PRESENT_EMPTY_CSTRING: const cstring                        = cast(const cstring) @dataof("")
+const NATIVE_PRESENT_EMPTY_STRING_SLICE:  const [..] u8                  = ""
+const NATIVE_PRESENT_EMPTY_CSTRING:       const cstring                  = cast(const cstring) @dataof("")
 const NATIVE_PRESENT_EMPTY_CSTRING_SLICE: const [..] u8                  = cast(const [..] u8) NATIVE_PRESENT_EMPTY_CSTRING
 const NATIVE_PRESENT_EMPTY_SLICE_DEFAULT: NativePresentEmptySliceDefault = {}
-const NATIVE_MISSING_EMPTY_SLICE: #null const [..] u8                    = null
+const NATIVE_MISSING_EMPTY_SLICE:         #null const [..] u8            = null
 
 func nativePresentEmptySlices()->bool
 {

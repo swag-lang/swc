@@ -68,7 +68,7 @@ You can also explicitly declare a type when desired.
 #test
 {
     let name:  string = "Alice"
-    var score: s32 = 100
+    var score: s32    = 100
 }
 
 /**
@@ -139,7 +139,7 @@ Swag supports both integer and floating-point numeric types.
 {
     let maxHeight: u32 = 500        // Unsigned 32-bit integer
     let distance:  f64 = 42.195     // Double-precision float
-    let result = maxHeight + 50
+    let result         = maxHeight + 50
     print("New height: ", result, "\n")
 }
 

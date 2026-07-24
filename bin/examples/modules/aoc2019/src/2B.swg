@@ -30,7 +30,7 @@ func day2B()
     for v in Tokenize.split(lines[0], ',''u8) do
         prg.add(assume StrConv.toS32(v))
 
-    var op = prg
+    var op   = prg
     var x, y = 0
     for
     {

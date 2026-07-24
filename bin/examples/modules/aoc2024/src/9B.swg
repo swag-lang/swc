@@ -122,7 +122,7 @@ func day9BB()
     for var i = 0; i < line.length; i += 2 do
         filesBySize[line[i] - '0'].add(i)
 
-    var total = 0'u64
+    var total         = 0'u64
     var idx, blockIdx = 0
     while idx < line.length
     {
@@ -142,7 +142,7 @@ func day9BB()
         }
         else
         {
-            var numSpaces = line[idx] - '0'
+            var numSpaces      = line[idx] - '0'
             var maxIdx, vecIdx = -1
 
             if numSpaces

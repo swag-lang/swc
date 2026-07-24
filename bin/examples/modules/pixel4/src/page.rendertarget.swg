@@ -55,7 +55,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
     let body = drawPanel(painter, rect, "Render target as a brush", "Once the offscreen pass is complete, its color buffer can feed regular brush and pen paths in the main scene.")
 
     {
-        let leftRect = Math.Rectangle{body.x + 18, body.y + 18, body.width * 0.44, body.height - 36}
+        let leftRect  = Math.Rectangle{body.x + 18, body.y + 18, body.width * 0.44, body.height - 36}
         let fillBrush = Brush.createTexture(texture)
         var pen       = Pen.createSolid(Argb.White, 12)
         pen.brush     = Brush.createTiled(g_TileTexture)

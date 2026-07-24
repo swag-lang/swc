@@ -160,9 +160,9 @@ func(T) makePair(a: T, b: T)->Pair'(T, T)
 // Multi-arg deduction from two generic structs
 #test
 {
-    let a: Box's32 = {value: 10}
+    let a: Box's32    = {value: 10}
     let b: Box'string = {value: "zip"}
-    let pair = zipBoxes(a, b)
+    let pair          = zipBoxes(a, b)
     @assert(pair.first == 10)
     @assert(pair.second == "zip")
 }
@@ -212,7 +212,7 @@ func(T) makePair(a: T, b: T)->Pair'(T, T)
 // Explicit vs deduced produce same result
 #test
 {
-    let deduced = unbox(Box'string{value: "test"})
+    let deduced  = unbox(Box'string{value: "test"})
     let explicit = unbox'(string)(Box'string{value: "test"})
     @assert(deduced == explicit)
     @assert(deduced == "test")

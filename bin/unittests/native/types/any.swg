@@ -67,7 +67,7 @@ func sumAny(a: any, b: any)->s64
 {
     var a: s64 = 100
     var b: s64 = 23
-    let d = sumAny(a, b)
+    let d      = sumAny(a, b)
     @assert(d == 123)
 }
 

@@ -114,7 +114,7 @@ func memoProbe(m: *Memo, key: u64)->u32
     var h = key ^ (key >> 16)
     h *= 0x45D9F3B
     h ^= h >> 16
-    var idx = cast(u32) (h % cast(u64) MapCap)
+    var idx   = cast(u32) (h % cast(u64) MapCap)
     let alive = notnull m.alive
     let keys  = notnull m.keys
     for MapCap
@@ -169,7 +169,7 @@ func packKey(fromIdx: u32, dstIdx: u32, depth: u32, isNum: bool)->u64
 // isNum = true for first robot (numeric pad), false for directional pad.
 func moveCost(from: u32, dst: u32, depth: u32, isNum: bool, memo: *Memo)->u64
 {
-    let key = packKey(from, dst, depth, isNum)
+    let key    = packKey(from, dst, depth, isNum)
     var found: bool
     let cached = memoGet(memo, key, &found)
     if found do return cached
@@ -342,7 +342,7 @@ func solve(text: string)->SolveResult
 
     var result: SolveResult
     let bytes = cast(const [..] u8) text
-    var pos: u32
+    var pos:    u32
 
     for
     {
@@ -370,7 +370,7 @@ func solve(text: string)->SolveResult
         if codeLen == 0 do continue
 
         let codeSlice = @mkslice(&bytes[codeStart], cast(u64) codeLen)
-        let numVal = codeNumericValue(codeSlice, codeLen)
+        let numVal    = codeNumericValue(codeSlice, codeLen)
 
         let cost1 = solveCode(codeSlice, codeLen, 2, &memo)
         result.part1 += cost1 * numVal
@@ -490,7 +490,7 @@ func solve(text: string)->SolveResult
     defer memoFree(&m)
     var buf: [4] u8
     buf[0] = '0'; buf[1] = '2'; buf[2] = '9'; buf[3] = 'A'
-    let sl = @mkslice(&buf[0], 4'u64)
+    let sl   = @mkslice(&buf[0], 4'u64)
     let cost = solveCode(sl, 4, 2, &m)
     @assert(cost == 68'u64)
 }

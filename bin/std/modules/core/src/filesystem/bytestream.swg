@@ -66,7 +66,7 @@ public impl ByteStream
         if seek + #sizeof(T) > wb.count do
             wb.reserve(seek + #sizeof(T))
         let buffer = notnull wb.buffer
-        var ptr = cast(*T) (buffer + seek)
+        var ptr    = cast(*T) (buffer + seek)
         dref ptr = val
         seek     += #sizeof(T)
         wb.count = Math.max(wb.count, seek)
@@ -85,7 +85,7 @@ public impl ByteStream
         if .seek + count > wb.count do
             wb.reserve(.seek + count)
         let buffer = notnull wb.buffer
-        let ptr = buffer + .seek
+        let ptr    = buffer + .seek
         Memory.copy(ptr, @dataof(slice), count)
         .seek    += count
         wb.count = Math.max(wb.count, .seek)

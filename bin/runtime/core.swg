@@ -78,8 +78,8 @@ func @as(toType, fromType: typeinfo, ptr: *void)->#null *void
         }
         elif usingType.kind == .Pointer
         {
-            let ptrType      = cast(const *Swag.TypeInfoPointer) usingType
-            let pointedType  = __concreteAlias(ptrType.pointedType)
+            let ptrType     = cast(const *Swag.TypeInfoPointer) usingType
+            let pointedType = __concreteAlias(ptrType.pointedType)
             if pointedType.kind != .Struct do
                 continue
 
@@ -195,7 +195,7 @@ func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
 
 const __MAX_ARGUMENTS = 512
 var __argv: [__MAX_ARGUMENTS] string = undefined
-var __argc            = 0'u32
+var __argc                           = 0'u32
 
 func __convertArgcArgv(args: const [*] u8)
 {

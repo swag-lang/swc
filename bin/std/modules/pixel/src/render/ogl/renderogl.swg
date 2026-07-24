@@ -51,28 +51,28 @@ struct HeadlessTexture
 #[Swag.NoCopy]
 struct RenderOgl
 {
-    using native:    NativeRenderOgl
-    vertexbuffer:    GLuint
-    shaderSimple:    ShaderSimple
-    shaderAA:        ShaderAA
-    shaderBlur:      ShaderBlur
-    shaderResolve:   ShaderResolve
-    shaderFont:      ShaderFont
-    shaderFontMsdf:  ShaderFont
-    worldTransform:  Transform2
-    orthoMatrix:     Matrix4x4
-    modelMatrix:     Matrix4x4
-    whiteTexture:    GLuint
-    hatchTextures:   [HatchStyle] GLuint
-    blendingMode:    BlendingMode = .Alpha
-    curRC:           RenderingContext
-    stackReleasedRT: Array'#null *RenderTarget
-    stackRT:         Array'#null *RenderTarget
-    curRT:           #null *RenderTarget
-    curShader:       #null *ShaderBase
-    overlapMode          = false
+    using native:       NativeRenderOgl
+    vertexbuffer:       GLuint
+    shaderSimple:       ShaderSimple
+    shaderAA:           ShaderAA
+    shaderBlur:         ShaderBlur
+    shaderResolve:      ShaderResolve
+    shaderFont:         ShaderFont
+    shaderFontMsdf:     ShaderFont
+    worldTransform:     Transform2
+    orthoMatrix:        Matrix4x4
+    modelMatrix:        Matrix4x4
+    whiteTexture:       GLuint
+    hatchTextures:      [HatchStyle] GLuint
+    blendingMode:       BlendingMode = .Alpha
+    curRC:              RenderingContext
+    stackReleasedRT:    Array'#null *RenderTarget
+    stackRT:            Array'#null *RenderTarget
+    curRT:              #null *RenderTarget
+    curShader:          #null *ShaderBase
+    overlapMode                      = false
     headless:           bool
-    headlessNextHandle: u64 = 1
+    headlessNextHandle: u64          = 1
     headlessTextures:   Array'HeadlessTexture
 }
 
@@ -685,7 +685,7 @@ impl RenderOgl
         }
 
         var fmt: GLenum = 0
-        var tinternal = GL_RGB
+        var tinternal   = GL_RGB
 
         #[Swag.Complete]
         switch image.pf
@@ -956,9 +956,9 @@ impl RenderOgl
 
             // Distance-field atlases are mipmapped: trilinear minification fixes the
             // undersampling that wrecks a minified MSDF at arbitrary scale ratios.
-            let isDF   = cache.renderMode.isDistanceField()
-            let magF   = isDF ? GL_LINEAR : GL_NEAREST
-            let minF   = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
+            let isDF = cache.renderMode.isDistanceField()
+            let magF = isDF ? GL_LINEAR : GL_NEAREST
+            let minF = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
             glActiveTexture(GL_TEXTURE1)
             let texture = cache.atlases[params.atlasIndex].texture.handle
             glBindTexture(GL_TEXTURE_2D, cast(GLuint) texture)
@@ -975,9 +975,9 @@ impl RenderOgl
             let cache = cmd.font.fontRef.cache
 
             // Mipmapped trilinear minification for distance-field atlases (see BindTextureFont).
-            let isDF  = cache.renderMode.isDistanceField()
-            let magF  = isDF ? GL_LINEAR : GL_NEAREST
-            let minF  = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
+            let isDF = cache.renderMode.isDistanceField()
+            let magF = isDF ? GL_LINEAR : GL_NEAREST
+            let minF = isDF ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST
             cache.dirty = false
             glActiveTexture(GL_TEXTURE1)
             let bpp = cache.renderMode.bytesPerPixel()
@@ -1157,8 +1157,8 @@ impl RenderOgl
 
             // Always emitted right after StartMsdfFont, so the MSDF font program is
             // the active one and these uniforms land on it.
-            let p = &cmd.fontEffect
-            let s = &.shaderFontMsdf
+            let p  = &cmd.fontEffect
+            let s  = &.shaderFontMsdf
             let oc = p.outlineColor.toVector4()
             let gc = p.glowColor.toVector4()
             glUniform1f(cast(GLint) s.fxEnabled,      p.enabled)

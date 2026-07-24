@@ -31,10 +31,10 @@ struct FrameWnd
 {
     using wnd: Wnd
 
-    view: #late *Wnd
-    frameForm        = FrameWndForm.Transparent
-    frameFlags       = FrameWndFlags.Borders
-    anchor           = FrameWndAnchor.None
+    view:        #late *Wnd
+    frameForm  = FrameWndForm.Transparent
+    frameFlags = FrameWndFlags.Borders
+    anchor     = FrameWndAnchor.None
     anchorPos:   f32
     usedColorBk: Color
 }
@@ -144,7 +144,7 @@ impl IWnd for FrameWnd
         // Anchor
         if .anchor != .None
         {
-            var posA     = .anchorPos
+            var posA = .anchorPos
             var marginA: f32
             switch .frameForm
             {

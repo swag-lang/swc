@@ -18,14 +18,14 @@ struct Label
 
     sigUrlClicked: SigArray'func||(*Label, string)
 
-    icon:      Icon
-    iconColor: Color
-    textColor: Color
-    labelFlags            = LabelFlags.Zero
-    horzAlignmentIcon     = StringHorzAlignment.Center
-    vertAlignmentIcon     = StringVertAlignment.Center
-    horzAlignmentText     = StringHorzAlignment.Center
-    vertAlignmentText     = StringVertAlignment.Center
+    icon:        Icon
+    iconColor:   Color
+    textColor:   Color
+    labelFlags        = LabelFlags.Zero
+    horzAlignmentIcon = StringHorzAlignment.Center
+    vertAlignmentIcon = StringVertAlignment.Center
+    horzAlignmentText = StringHorzAlignment.Center
+    vertAlignmentText = StringVertAlignment.Center
     paddingText: Math.Vector4
     paddingIcon: Math.Vector4
 
@@ -222,7 +222,7 @@ impl Label
     {
         if .labelFlags.has(.AutoHeight)
         {
-            let sf = .getStringFormat(false)
+            let sf   = .getStringFormat(false)
             var rect = .position
             if rect.width <= 0 do
                 rect.width = .preferredSize.x

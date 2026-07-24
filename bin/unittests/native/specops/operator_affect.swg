@@ -318,7 +318,7 @@ func assertRuntimeLiteralOverloadSet(value: RuntimeLiteralOverloadTarget, expect
 #test
 {
     var target = RuntimeSetTarget{}
-    let ptr = &target
+    let ptr    = &target
     dref ptr = 12's32
 
     @assert(target.value == 12)

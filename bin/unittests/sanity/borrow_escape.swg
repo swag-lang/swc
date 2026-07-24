@@ -132,7 +132,7 @@ func borrowEscapeInnerScope()->s32
 func borrowEscapeSameScope()->s32
 {
     var v: s32 = 42
-    var p = &v
+    var p      = &v
     return dref p
 }
 
@@ -205,7 +205,7 @@ func borrowEscapeTemporary()->u64
 
 func borrowEscapeNamedOwner()->u64
 {
-    var o = borrowEscapeMakeOwner()
+    var o         = borrowEscapeMakeOwner()
     let s: string = o
     return @countof(s)
 }
@@ -430,8 +430,8 @@ alias BorrowEscapeVisitor = func||()->s32
 func borrowEscapeClosureLocal()->s32
 {
     var total: s32 = 7
-    let pTotal = &total
-    let cb: BorrowEscapeVisitor = func|pTotal|()->s32 { return dref pTotal }
+    let pTotal     = &total
+    let cb:    BorrowEscapeVisitor = func|pTotal|()->s32 { return dref pTotal }
     return cb()
 }
 
@@ -439,7 +439,7 @@ func borrowEscapeClosureLocal()->s32
 func borrowEscapeClosureReturn()->BorrowEscapeVisitor
 {
     var total: s32 = 7
-    let pTotal = &total
+    let pTotal     = &total
     return func|pTotal|()->s32 { return dref pTotal }     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -477,7 +477,7 @@ func borrowEscapeThroughLocalPointerAlias()->u64
     owner.length    = 1
 
     var holder: BorrowEscapeSelfRef
-    let pHolder = &holder
+    let pHolder  = &holder
     let ptrAlias = pHolder
     ptrAlias.text = owner
     return @countof(ptrAlias.text)
@@ -796,7 +796,7 @@ func borrowEscapeChainedReadOnly()->*s32
 func borrowEscapeChainedLocalOnly()->s32
 {
     var v: s32 = 7
-    let p = borrowEscapePassthrough(&v)
+    let p      = borrowEscapePassthrough(&v)
     return dref p
 }
 
@@ -1107,7 +1107,7 @@ func borrowEscapeChainedArgReadOnly()
 func borrowEscapeChainedArgHarmless()->s32
 {
     var v: s32 = 4
-    let p = borrowEscapePassthrough(&v)
+    let p      = borrowEscapePassthrough(&v)
     return borrowEscapeReadOnly(p)
 }
 
@@ -1299,7 +1299,7 @@ func borrowEscapeRetainVisitor(visitor: BorrowEscapeVisitor)
 
 func borrowEscapeRetainedClosure()
 {
-    var local: s32
+    var local:   s32
     let pLocal = &local
     let visitor: BorrowEscapeVisitor = func|pLocal|()->s32 { return dref pLocal }
     borrowEscapeRetainVisitor(visitor)     // swc-expected-error {{sanity_err_borrow_escape}}

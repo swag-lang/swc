@@ -39,7 +39,7 @@ struct Pair
 
     g_PostCopy = 0
     g_Drop     = 0
-    var sum    = 0
+    var sum = 0
     for v in arr do
         sum += v.x
 
@@ -96,8 +96,8 @@ struct Pair
 #test
 {
     var arr: [3] Pair = [{1, 1}, {2, 2}, {3, 3}]
-    let wanted = Pair{2, 2}
-    var hits   = 0
+    let wanted        = Pair{2, 2}
+    var hits          = 0
     for v in arr
     {
         if v == Pair{2, 2} do
@@ -112,7 +112,7 @@ struct Pair
 #test
 {
     var text: string = "AB"
-    var sum = 0
+    var sum          = 0
     for &b in text do
         sum += cast(s32) b
     @assert(sum == 65 + 66)

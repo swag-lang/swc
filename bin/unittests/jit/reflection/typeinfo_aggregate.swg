@@ -61,7 +61,7 @@ const CReg: [?] Holder = [
 {
     // A typeinfo variable mixed with real values in the same literal
     let t: typeinfo = MyStruct
-    var h: Holder = {t, 3}
+    var h: Holder   = {t, 3}
     @assert(h.t == MyStruct)
     @assert(h.tag == 3)
 

@@ -67,7 +67,7 @@ struct BaseForm
     #[Name("Tickness"), SliderMinMax(MinBorderSize, MaxBorderSize)]
     borderSize: f32 = 5
     #[Name("Joins")]
-    joinStyle            = JoinStyle.Round
+    joinStyle = JoinStyle.Round
     #[Name("Line"), BoolCombo("Straight", "Bezier")]
     bezier: bool
     #[Category("Effects"), Name("Scale"), SliderMinMax(0, 100), Unit("%")]
@@ -79,10 +79,10 @@ struct BaseForm
     #[Name("Shadow"), BoolCombo("No Shadow", "Small")]
     paintShadow: bool = true
 
-    shadowOffsetX: f32 = 2
-    shadowOffsetY: f32 = 2
-    borderColor:   Color = Argb.White
-    backColor:     Color = Argb.Red
+    shadowOffsetX: f32       = 2
+    shadowOffsetY: f32       = 2
+    borderColor:   Color     = Argb.White
+    backColor:     Color     = Argb.Red
     dashStyle:     DashStyle = None
 
     // Unused, kept because it is serialized: removing it would fail the decoding of

@@ -30,16 +30,16 @@ func semaTest001()
 {
     var arr0: [3] s32
     var a:    [..] s32 = arr0
-    var b = @dataof(a)
+    var b              = @dataof(a)
     #assert(#typeof(b) == [*] s32)
 
     var c: string = "x"
-    var d = @dataof(c)
+    var d         = @dataof(c)
     #assert(#typeof(d) == const [*] u8)
 
-    var ebuf: [2] u8 = ['x''u8, 0]
+    var ebuf: [2] u8  = ['x''u8, 0]
     var e:    cstring = cast(cstring) &ebuf[0]
-    var f = @dataof(e)
+    var f             = @dataof(e)
     #assert(#typeof(f) == const [*] u8)
 
     var g: [5] s32
@@ -47,14 +47,14 @@ func semaTest001()
     #assert(#typeof(h) == [*] s32)
 
     var i: any = 0's32
-    var j = @dataof(i)
+    var j      = @dataof(i)
     #assert(#typeof(j) == [*] void)
 }
 
 func semaTest002()
 {
     var s: string = "abc"
-    var p = @dataof(s)
+    var p         = @dataof(s)
     @assert(p[0] == 'a')
     @assert(p[1] == 'b')
     @assert(p[2] == 'c')
@@ -63,7 +63,7 @@ func semaTest002()
 func semaTest003()
 {
     var arr: [3] u8 = [1, 2, 3]
-    var p = @dataof(arr)
+    var p           = @dataof(arr)
     @assert(p[0] == 1'u8)
     @assert(p[1] == 2'u8)
     @assert(p[2] == 3'u8)
@@ -72,14 +72,14 @@ func semaTest003()
 func semaTest004()
 {
     var s: #null string = null
-    var p = @dataof(s)
+    var p               = @dataof(s)
     #assert(#typeof(p) == const [*] u8)
 }
 
 func semaTest005()
 {
     var arr: [2] s32 = [1, 2]
-    var p = @dataof(arr)
+    var p            = @dataof(arr)
     p[0] = 7
     @assert(arr[0] == 7)
 }
@@ -111,7 +111,7 @@ func semaTest008()
 func semaTest009()
 {
     var value: DataOfSpecBuffer = {data: [4, 5, 6]}
-    var p = @dataof(value)
+    var p                       = @dataof(value)
     #assert(#typeof(p) == [*] s32)
     p[1] = 42
     @assert(value.data[0] == 4)

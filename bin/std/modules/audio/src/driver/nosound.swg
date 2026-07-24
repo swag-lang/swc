@@ -48,7 +48,7 @@ impl Voice
 {
     func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
     {
-        voice.handle            = cast(VoiceHandle) Memory.new'NoSoundVoice()
+        voice.handle = cast(VoiceHandle) Memory.new'NoSoundVoice()
         let file = notnull voice.file
         voice.requestedEncoding = file.encoding
         if !voice.handle do
@@ -133,7 +133,7 @@ public impl Voice
             return
 
         let handle = cast(*NoSoundVoice) .handle
-        let count = @countof(buses)
+        let count  = @countof(buses)
         if count >= @countof(handle.buses) do
             throw SystemError{"too many buses", errorID: count}
 

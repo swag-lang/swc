@@ -133,9 +133,9 @@ internal impl Properties
         // Expand/Collapse icon
         if .isGridLike() and item.numChilds
         {
-            let expand = .getTheme().getIcon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
+            let expand    = .getTheme().getIcon24(item.flags.has(.Expanded) ? .Expanded : .Collapsed)
             let iconColor = item.line.isDisabled() ? colors.label_DisabledIcon : colors.label_Icon
-            let iconPos = .getDisclosureIconPosition(item, r, expand)
+            let iconPos   = .getDisclosureIconPosition(item, r, expand)
             expand.paint(painter, iconPos.x, iconPos.y, iconColor)
         }
     }

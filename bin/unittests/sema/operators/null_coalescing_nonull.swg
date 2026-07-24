@@ -14,11 +14,11 @@ alias OrelseNullableStringAlias = #null string
 #[Swag.Strict]
 alias OrelseRequiredPointerAlias = *OrelseNonNullItem
 
-const NullablePresentType: #null typeinfo = s32
-const NullableMissingType: #null typeinfo = null
-const RequiredFallbackType: typeinfo      = u64
-const FoldedPresentType                   = NullablePresentType orelse RequiredFallbackType
-const FoldedFallbackType                  = NullableMissingType orelse RequiredFallbackType
+const NullablePresentType:  #null typeinfo = s32
+const NullableMissingType:  #null typeinfo = null
+const RequiredFallbackType: typeinfo       = u64
+const FoldedPresentType                    = NullablePresentType orelse RequiredFallbackType
+const FoldedFallbackType                   = NullableMissingType orelse RequiredFallbackType
 
 #assert(#typeof(FoldedPresentType) == typeinfo)
 #assert(#typeof(FoldedFallbackType) == typeinfo)

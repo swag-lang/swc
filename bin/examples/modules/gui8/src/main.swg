@@ -98,11 +98,11 @@ func addListFlags(list: *ListCtrl)
 
 func getPageLayout(parent: *Wnd)->PageLayout
 {
-    let rect = parent.getClientRect()
-    let gap = 20.0
+    let rect    = parent.getClientRect()
+    let gap     = 20.0
     let bottomH = Math.max(190.0, rect.height * 0.31)
-    let topH = Math.max(rect.height - bottomH - gap, 260.0)
-    let halfW = (rect.width - gap) * 0.5
+    let topH    = Math.max(rect.height - bottomH - gap, 260.0)
+    let halfW   = (rect.width - gap) * 0.5
 
     var result: retval
     result.full   = {0, 0, rect.width, rect.height}
@@ -212,11 +212,11 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect = view.getClientRect()
+    let rect         = view.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, 360.0)
-    let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
-    let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, 360.0)
+    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     let title2      = notnull g_Title
     let themeButton = notnull g_ThemeButton
@@ -348,7 +348,7 @@ func createRootView()
 
 #main
 {
-    let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
+    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
     let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI8 list showcase")

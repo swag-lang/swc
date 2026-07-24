@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createPalettesPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let left = createPanel(parent, "Generated ramps", "PalettePicker can fill itself from hue, luminance and saturation helpers.", layout.left)
+    let left   = createPanel(parent, "Generated ramps", "PalettePicker can fill itself from hue, luminance and saturation helpers.", layout.left)
     {
         discard createPaletteRamp(left, "Hue families", {24, 118, 360, 68}, 0, g_Color)
         discard createPaletteRamp(left, "Luminance from selected", {24, 226, 360, 68}, 1, g_Color)

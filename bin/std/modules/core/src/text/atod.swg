@@ -785,7 +785,7 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     man <<= cast(u32) clz
 
     const ExponentBias = 1023
-    var retExp2        = cast(u64) (((217706's64 * exp10) >> 16) + 64 + ExponentBias) - clz
+    var retExp2 = cast(u64) (((217706's64 * exp10) >> 16) + 64 + ExponentBias) - clz
 
     // Multiplication.
     var v = PowersOfTen[exp10 - PowersOfTenMinExp10, 1]

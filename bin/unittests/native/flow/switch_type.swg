@@ -3,7 +3,7 @@
 #test
 {
     var a: typeinfo = s32
-    var hit = 0
+    var hit         = 0
     switch a
     {
     case s32:
@@ -16,7 +16,7 @@
 #test
 {
     var a: typeinfo = s32
-    var hit = 0
+    var hit         = 0
     switch a
     {
     case s32:
@@ -29,7 +29,7 @@
 #test
 {
     var a: typeinfo = f32
-    var hit = 0
+    var hit         = 0
     switch a
     {
     case s32:

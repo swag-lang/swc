@@ -20,10 +20,10 @@ struct Thread
     context:   Swag.Context
     userParam: #null *void
 
-    priority        = ThreadPriority.Normal
+    priority   = ThreadPriority.Normal
     handle: ThreadHandle
     id:     u32
-    requestEnd      = false
+    requestEnd = false
 }
 
 impl Thread

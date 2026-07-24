@@ -724,7 +724,7 @@ impl TagBin
         #if NT == Core.String
         {
             var result: retval
-            let count   = cast(u64) .stream.readNative'u32()
+            let count = cast(u64) .stream.readNative'u32()
             result.reserve(count)
             .stream.readBytes(result.buffer, count)
             result.length = count

@@ -80,7 +80,7 @@ func readShadow(set: ShadowItem)->s32
 
 #test
 {
-    let values = [1, 2, 3]
+    let values                     = [1, 2, 3]
     let set: GenericSetterItem's32 = values[to]
     @assert(set.count == 3)
 }

@@ -63,7 +63,7 @@ namespace GenericForeachLazyCodegen
         {
             let buf = notnull .buffer
             buf[.count] = value
-            .count          += 1
+            .count      += 1
         }
 
         mtd free()
@@ -165,7 +165,7 @@ namespace GenericForeachLazyCodegen
     func compileTimeIntSuite()->bool
     {
         var box = makeIntBox()
-        let ok = box.whereIndexSum(3) == 6 and
+        let ok  = box.whereIndexSum(3) == 6 and
                  box.constWhereCount(7) == 3 and
                  box.reverseIndexCode() == 4321
         box.free()
@@ -175,7 +175,7 @@ namespace GenericForeachLazyCodegen
     func compileTimeBoolSuite()->bool
     {
         var box = makeBoolBox()
-        let ok = box.whereIndexSum(false) == 4 and
+        let ok  = box.whereIndexSum(false) == 4 and
                  box.constWhereCount(true) == 2 and
                  box.reverseIndexCode() == 4321
         box.free()
@@ -184,19 +184,19 @@ namespace GenericForeachLazyCodegen
 
     func runRuntimeSuite()->bool
     {
-        var ints = makeIntBox()
+        var ints   = makeIntBox()
         let intsOk = ints.whereIndexSum(3) == 6 and
                      ints.constWhereCount(7) == 3 and
                      ints.reverseIndexCode() == 4321
         ints.free()
 
-        var bools = makeBoolBox()
+        var bools   = makeBoolBox()
         let boolsOk = bools.whereIndexSum(false) == 4 and
                       bools.constWhereCount(true) == 2 and
                       bools.reverseIndexCode() == 4321
         bools.free()
 
-        var ptrs = makePtrBox()
+        var ptrs   = makePtrBox()
         let ptrsOk = ptrs.nonNullIndexSum() == 4
         for ptr in ptrs.values.toSlice() where ptr != null do
             @free(ptr)

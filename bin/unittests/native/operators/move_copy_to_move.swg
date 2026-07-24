@@ -90,7 +90,7 @@ func sinkIf(cond: bool, v: #move Tracked)
 {
     g_copies, g_moves, g_drops = 0
     let f: func(v: #move Tracked) = &sink
-    var e = Tracked{5}
+    var e                         = Tracked{5}
     f(e)
     @assert(g_slot.x == 5)
     @assert(g_copies == 1)

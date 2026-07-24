@@ -19,7 +19,7 @@ func useGlobalCallback(value: s32)->s32
 func semaTest001()
 {
     let cb: UnaryFn = GAddOne
-    let value = useGlobalCallback(41)
+    let value       = useGlobalCallback(41)
     #assert(#typeof(cb) == UnaryFn)
     #assert(#typeof(value) == s32)
 }

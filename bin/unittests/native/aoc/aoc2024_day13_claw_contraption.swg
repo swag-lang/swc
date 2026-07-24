@@ -184,7 +184,7 @@ func solve(text: string)->Result
 {
     var machines: [MaxMachines] Machine
     let n = parseMachines(text, &machines[0])
-    var result: Result
+    var result:   Result
 
     // Part 1: solve each machine as-is
     for [i] in n
@@ -271,14 +271,14 @@ func costTier(cost: u64)->u32
 // Parse number with ternary, negative, while..do
 #test
 {
-    let bytes = cast(const [..] u8) "X+94"
+    let bytes    = cast(const [..] u8) "X+94"
     var pos: u32 = 2
-    let v = parseNum(bytes, &pos)
+    let v        = parseNum(bytes, &pos)
     @assert(v == 94)
 
-    let bytes2 = cast(const [..] u8) "-42rest"
+    let bytes2    = cast(const [..] u8) "-42rest"
     var pos2: u32 = 0
-    let v2 = parseNum(bytes2, &pos2)
+    let v2        = parseNum(bytes2, &pos2)
     @assert(v2 == -42)
 }
 

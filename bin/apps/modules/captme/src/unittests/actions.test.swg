@@ -207,8 +207,8 @@ using Swag, Core
     var f: HeadlessFixture
     f.setup(registerHeadlessCommands: true)
 
-    let text = testAddText(f.capture, 0, 0, 40, 20)
-    let image = testAddImage(f.capture, 50, 0, 20, 20)
+    let text   = testAddText(f.capture, 0, 0, 40, 20)
+    let image  = testAddImage(f.capture, 50, 0, 20, 20)
     let pixSel = testAddShape(f.capture, 80, 0, 20, 20, .PixSel)
     pixSel.kind = .Rectangle
 

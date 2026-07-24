@@ -3,7 +3,7 @@ struct GizmoRect
     paintSimpleBorder: bool = true
     paintBigBorder:    bool = true
     roundShape:        bool = false
-    anchorSize:        f32 = 12
+    anchorSize:        f32  = 12
     trackChange:       bool = false
 
     rect:          Math.Rectangle
@@ -502,7 +502,7 @@ impl GizmoRect
         if !first do
             capture.undo()
 
-        let undo    = capture.newUndo(.SetTypedValue)
+        let undo = capture.newUndo(.SetTypedValue)
         undo.valU32 = cast #bit (u32) angle
         undo.valRef = notnull Reflection.getField(BaseForm, #nameof(BaseForm.rotate))
         capture.pushUndo(undo)

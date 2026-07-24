@@ -92,7 +92,7 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 {
     NullCoercCounter = 0
     var ptr: #null *s32 = null
-    let value = ptr orelse fallbackPointer()
+    let value           = ptr orelse fallbackPointer()
 
     @assert(value == &NullCoercValue)
     @assert(dref value == 33)
@@ -103,7 +103,7 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 {
     NullCoercCounter = 0
     var s: #null string = null
-    let value = s orelse fallbackString()
+    let value           = s orelse fallbackString()
 
     @assert(value == "fallback")
     @assert(NullCoercCounter == 1)
@@ -113,7 +113,7 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 {
     NullCoercCounter = 0
     let s: string = "ok"
-    let value = s orelse fallbackString()
+    let value     = s orelse fallbackString()
 
     @assert(value == "ok")
     @assert(NullCoercCounter == 0)

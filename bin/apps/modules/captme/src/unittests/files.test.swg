@@ -67,7 +67,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
-    let capture = notnull f.main.getCapture()
+    let capture       = notnull f.main.getCapture()
     let generatedPath = capture.file
     defer
     {
@@ -100,7 +100,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard))
     f.gui.pump()
 
-    let capture = notnull f.main.getCapture()
+    let capture       = notnull f.main.getCapture()
     let generatedPath = capture.file
     defer
     {
@@ -145,7 +145,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
-    let capture = notnull f.main.getCapture()
+    let capture       = notnull f.main.getCapture()
     let generatedPath = capture.file
     defer
     {

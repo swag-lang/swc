@@ -3,7 +3,7 @@ using Core, Gui, Pixel
 func createEditBoxPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
-    let forms = createPanel(parent, "Forms", "Square, round, flat and transparent edit boxes with placeholder notes.", layout.left)
+    let forms  = createPanel(parent, "Forms", "Square, round, flat and transparent edit boxes with placeholder notes.", layout.left)
     {
         var edit = EditBox.create(forms, "plain text", {24, 90, 180})
         edit.setNote("Square")

@@ -39,8 +39,8 @@ impl SemaGenericSizeBox
 func semaTest001()
 {
     var box: SemaGenericSizeBox's32
-    let stride = box.byteCount(4)
-    let entry = box.makeEntry(7)
+    let stride     = box.byteCount(4)
+    let entry      = box.makeEntry(7)
     let aliasEntry = box.makeAliasedEntry(9)
 
     #assert(#offsetof(entry.hash) == 0)

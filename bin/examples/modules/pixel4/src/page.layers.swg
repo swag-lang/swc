@@ -23,8 +23,8 @@ func drawLayerArtwork(painter: *Pixel.Painter, width, height: s32, label: string
     painter.drawPath(&path, pen)
 
     let textSize = Painter.measureString(label, notnull g_SubTitleFont)
-    let textX = w * 0.5 - textSize.width * 0.5
-    let textY = h - 52
+    let textX    = w * 0.5 - textSize.width * 0.5
+    let textY    = h - 52
     var textBack = accent
     textBack.a = 224
     painter.fillRoundRect(textX - 12, textY - 8, textSize.width + 24, textSize.height + 16, 10, 10, textBack)
@@ -33,10 +33,10 @@ func drawLayerArtwork(painter: *Pixel.Painter, width, height: s32, label: string
 
 func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string, renderScale: s32, shadow: bool, angle: Math.Angle, accent: Color)
 {
-    let body = drawPanel(painter, rect, title, subtitle)
+    let body        = drawPanel(painter, rect, title, subtitle)
     let layerWidth  = 310
     let layerHeight = 170
-    let dstRect = Math.Rectangle{body.horzCenter() - layerWidth * 0.5, body.vertCenter() - layerHeight * 0.5 + 8, layerWidth, layerHeight}
+    let dstRect     = Math.Rectangle{body.horzCenter() - layerWidth * 0.5, body.vertCenter() - layerHeight * 0.5 + 8, layerWidth, layerHeight}
 
     painter.fillRoundRect(insetRect(body, 18, 14, 18, 14), 18, 18, Brush.createTiled(g_TileTexture))
 

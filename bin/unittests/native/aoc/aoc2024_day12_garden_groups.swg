@@ -221,7 +221,7 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
         if head >= tail do
             break
 
-        let pos  = queue[head]
+        let pos = queue[head]
         head += 1
         let r = unpackRow(pos)
         let c = unpackCol(pos)
@@ -238,8 +238,8 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
             let nc = cast(s32) c + DC[d]
             if !g.inBounds(nr, nc) do
                 continue
-            let ur = cast(u32) nr
-            let uc = cast(u32) nc
+            let ur  = cast(u32) nr
+            let uc  = cast(u32) nc
             let idx = ur * MaxDim + uc
             if visited[idx] or g.at(ur, uc) != plant do
                 continue

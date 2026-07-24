@@ -29,7 +29,7 @@ func countAdjacentRolls(plan: const [..] string, row, column: u32)->u32
             if rowOffset == 0 and columnOffset == 0 do
                 continue
 
-            let neighborRow = cast(s32) row + rowOffset
+            let neighborRow    = cast(s32) row + rowOffset
             let neighborColumn = cast(s32) column + columnOffset
 
             if neighborRow < 0 or neighborColumn < 0 do

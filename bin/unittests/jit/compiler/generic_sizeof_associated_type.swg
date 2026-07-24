@@ -42,7 +42,7 @@ impl GenericSizeBox
 #test
 {
     var box: GenericSizeBox's32
-    let entry = box.makeEntry(7)
+    let entry      = box.makeEntry(7)
     let aliasEntry = box.makeAliasedEntry(9)
 
     #assert(#offsetof(entry.hash) == 0)

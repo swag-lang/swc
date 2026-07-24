@@ -37,7 +37,7 @@ impl RefRangeModel
     {
         let range: &RefRange = &.selection[0]
         #assert(#typeof(range) == #type &RefRange)
-        let end   = range.end
+        let end = range.end
 
         range.end = idx - 1
         .selection.add({idx + 1, end})

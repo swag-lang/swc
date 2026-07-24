@@ -28,7 +28,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u32 = {value: 42}
-    let pos = +value
+    let pos                    = +value
 
     @assert(pos.value == 42)
 }
@@ -37,8 +37,8 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's32 = {value: 42}
-    let neg = -value
-    let inv = ~value
+    let neg                    = -value
+    let inv                    = ~value
 
     @assert(neg.value == -42)
     @assert(inv.value == -43)
@@ -48,7 +48,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's32 = {value: 0}
-    let neg = -value
+    let neg                    = -value
 
     @assert(neg.value == 0)
 }
@@ -57,7 +57,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u32 = {value: 0}
-    let inv = ~value
+    let inv                    = ~value
 
     @assert(inv.value == 0xFFFF_FFFF)
 }
@@ -66,7 +66,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u8 = {value: 0}
-    let inv = ~value
+    let inv                   = ~value
 
     @assert(inv.value == 0xFF)
 }
@@ -75,7 +75,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u64 = {value: 0}
-    let inv = ~value
+    let inv                    = ~value
 
     @assert(inv.value == 0xFFFF_FFFF_FFFF_FFFF)
 }
@@ -84,7 +84,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's64 = {value: -100}
-    let pos = +value
+    let pos                    = +value
 
     @assert(pos.value == -100)
 }
@@ -93,7 +93,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's64 = {value: -999}
-    let neg = -value
+    let neg                    = -value
 
     @assert(neg.value == 999)
 }
@@ -102,7 +102,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's16 = {value: 123}
-    let neg = -value
+    let neg                    = -value
 
     #assert(#typeof(neg) == IntUnaryBox's16)
     @assert(neg.value == -123)
@@ -112,7 +112,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u16 = {value: 0x00FF}
-    let inv = ~value
+    let inv                    = ~value
 
     #assert(#typeof(inv) == IntUnaryBox'u16)
     @assert(inv.value == 0xFF00)
@@ -122,7 +122,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u8 = {value: 255}
-    let pos = +value
+    let pos                   = +value
 
     #assert(#typeof(pos) == IntUnaryBox'u8)
     @assert(pos.value == 255)
@@ -132,7 +132,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's8 = {value: 127}
-    let neg = -value
+    let neg                   = -value
 
     #assert(#typeof(neg) == IntUnaryBox's8)
     @assert(neg.value == -127)
@@ -142,7 +142,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox's32 = {value: 42}
-    let double_neg = -(-value)
+    let double_neg             = -(-value)
 
     @assert(double_neg.value == 42)
 }
@@ -151,7 +151,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u32 = {value: 0xDEAD_BEEF}
-    let double_inv = ~(~value)
+    let double_inv             = ~(~value)
 
     @assert(double_inv.value == 0xDEAD_BEEF)
 }
@@ -160,7 +160,7 @@ impl IntUnaryBox
 #test
 {
     var value: IntUnaryBox'u16 = {value: 0xAAAA}
-    let inv = ~value
+    let inv                    = ~value
 
     @assert(inv.value == 0x5555)
 }

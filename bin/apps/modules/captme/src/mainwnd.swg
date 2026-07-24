@@ -37,14 +37,14 @@ struct MainWnd
     monitors:                        Array'Env.Monitor
 
     // State
-    editMode:                                  EditMode = .Shape
+    editMode:                                  EditMode   = .Shape
     bottomSize:                                BottomSize = Medium
-    pixSelFillCol:                             Color = Argb.White
+    pixSelFillCol:                             Color      = Argb.White
     inPlaceEdit, snap, freezeSel, libraryMode: bool
-    firstShow                                      = true
-    fileDlgState, fileDlgStateInPlace: FileDlgState
-    captureOptions:                    CaptureOptions
-    editorOptions:                     EditorOptions
+    firstShow                                             = true
+    fileDlgState, fileDlgStateInPlace:         FileDlgState
+    captureOptions:                            CaptureOptions
+    editorOptions:                             EditorOptions
 
     // Form models
     mdlFormShape:   FormShape

@@ -4,13 +4,13 @@
 // Options for customizing file and directory enumeration
 struct EnumerationOptions
 {
-    matchExtension: #null string                              // Optional extension to match (e.g. ".txt")
-    matchFileName:  #null string                              // Optional file name pattern to match
-    skipAttributes             = File.FileAttributes.Zero     // Attributes to skip during enumeration
-    recurse                    = false                        // Whether to recurse into subdirectories
-    wantFiles                  = true                         // Whether to include files in the results
-    wantDirectories            = true                         // Whether to include directories in the results
-    wantSpecialDirectories     = false                        // Whether to include "." and ".." in the results
+    matchExtension: #null string                          // Optional extension to match (e.g. ".txt")
+    matchFileName:  #null string                          // Optional file name pattern to match
+    skipAttributes         = File.FileAttributes.Zero     // Attributes to skip during enumeration
+    recurse                = false                        // Whether to recurse into subdirectories
+    wantFiles              = true                         // Whether to include files in the results
+    wantDirectories        = true                         // Whether to include directories in the results
+    wantSpecialDirectories = false                        // Whether to include "." and ".." in the results
 
     filterLambda: #null func(File.FileInfo)->bool     // Optional lambda to filter results
 }

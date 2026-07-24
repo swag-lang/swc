@@ -156,7 +156,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 // Encode RGB8 images with an exact palette and preserve the colors through the decoder.
 #test
 {
-    var src = Image.create(2, 2, .RGB8)
+    var src    = Image.create(2, 2, .RGB8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0]  = 10'u8
     srcBuf[1]  = 20'u8
@@ -185,7 +185,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 // Encode RGBA8 with GIF's single transparent index.
 #test
 {
-    var src = Image.create(2, 1, .RGBA8)
+    var src    = Image.create(2, 1, .RGBA8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8
@@ -212,7 +212,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 // Encode BGR/BGRA source images by reading their channel layout correctly.
 #test
 {
-    var bgr = Image.create(1, 1, .BGR8)
+    var bgr    = Image.create(1, 1, .BGR8)
     let bgrBuf = notnull bgr.pixels.buffer
     bgrBuf[0] = 30'u8
     bgrBuf[1] = 20'u8
@@ -227,7 +227,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     @assert(@err == null)
     assertGifPixelAt(img, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
-    var bgra = Image.create(1, 1, .BGRA8)
+    var bgra    = Image.create(1, 1, .BGRA8)
     let bgraBuf = notnull bgra.pixels.buffer
     bgraBuf[0] = 7'u8
     bgraBuf[1] = 8'u8
@@ -280,7 +280,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
         discard catch File.delete(path.toString())
     }
 
-    var src = Image.create(1, 1, .RGB8)
+    var src    = Image.create(1, 1, .RGB8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 12'u8
     srcBuf[1] = 34'u8

@@ -132,7 +132,7 @@ impl IForm for FormDraw
         var bSize = BaseForm.adaptSize(.borderSize, MinBorderSize, MaxBorderSize, cxt)
         bSize = Math.max(bSize, 2)
 
-        let z   = cxt.z
+        let z = cxt.z
         var pl: LinePath
         pl.start(.points[0].x * z, .points[0].y * z)
         for [i] in 1 until .points.count do

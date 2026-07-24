@@ -73,14 +73,14 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 
 #test
 {
-    var item = NonNullCannotCastItem{value: 1}
+    var item                          = NonNullCannotCastItem{value: 1}
     var value: *NonNullCannotCastItem = &item
     value = null     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
 {
-    var item = NonNullCannotCastItem{value: 1}
+    var item                          = NonNullCannotCastItem{value: 1}
     var value: *NonNullCannotCastItem = &item
     @init(&value)(null)     // swc-expected-error {{sema_err_cannot_cast}}
 }
@@ -93,7 +93,7 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 #test
 {
     var nullable: #null *NonNullCannotCastItem = null
-    let value:    *NonNullCannotCastItem = nullable     // swc-expected-error {{sema_err_cannot_cast}}
+    let value:    *NonNullCannotCastItem       = nullable     // swc-expected-error {{sema_err_cannot_cast}}
 }
 
 #test
@@ -132,7 +132,7 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 
     // Boxing a typed null pointer also creates a present 'any' value.
     let nullPointer:  #null *NonNullCannotCastItem = null
-    let boxedPointer: any = cast(any) nullPointer
+    let boxedPointer: any                          = cast(any) nullPointer
     #assert(boxedPointer != null)
 }
 
@@ -151,9 +151,9 @@ func returnNonNullCannotCast()->*NonNullCannotCastItem
 #test
 {
     // Identical string bytes under distinct nullability contracts must keep distinct types.
-    let legacy:   string = "same-bytes"
+    let legacy:   string       = "same-bytes"
     let optional: #null string = "same-bytes"
-    let required: string = "same-bytes"
+    let required: string       = "same-bytes"
     #assert(#typeof(legacy) == string)
     #assert(#typeof(optional) == #null string)
     #assert(#typeof(required) == string)

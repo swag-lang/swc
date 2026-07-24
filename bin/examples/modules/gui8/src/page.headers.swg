@@ -2,7 +2,7 @@ using Core, Gui, Pixel
 
 func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: bool, disabledClick: bool)
 {
-    let panel = createPanel(parent, title, "Standalone Header items can be resized, clamped, decorated and marked as sorted.", rect)
+    let panel  = createPanel(parent, title, "Standalone Header items can be resized, clamped, decorated and marked as sorted.", rect)
     let header = Header.create(panel, {18, 94, rect.width - 36, 34})
     header.form = round ? .Round : .Flat
     if disabledClick do
@@ -21,7 +21,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     let rowY = 148.0
     for [i] in 4
     {
-        let y = rowY + i * 34
+        let y    = rowY + i * 34
         let icon = Label.create(panel, "", {34, y, 20, 24})
         icon.icon = sampleIcon(i, 16)
         discard createText(panel, Format.toString("Header row %", i + 1), {60, y, 180, 24})
@@ -39,7 +39,7 @@ func createHeadersPage(parent: *Wnd)
     createHeaderBand(parent, layout.right, "Flat locked header", false, true)
 
     let bottom = createPanel(parent, "List-backed header", "ListCtrl owns a Header and keeps it synchronized with scrolling and column resizing.", layout.bottom)
-    let list = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    let list   = ListCtrl.createMultiColumns(bottom, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     list.setFrameForm(.Round)
     list.selectionMode = .Single
     list.iconSize      = 16

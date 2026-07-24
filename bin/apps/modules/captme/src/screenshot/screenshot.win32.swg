@@ -24,8 +24,8 @@ internal
            g_HitTest.y < r.bottom
         {
             var className: [256] CHAR
-            let n          = GetClassNameA(hWnd, &className[0], 256)
-            let str        = String.from(@mkstring(&className[0], n))
+            let n   = GetClassNameA(hWnd, &className[0], 256)
+            let str = String.from(@mkstring(&className[0], n))
 
             let systemClasses = [
                 "Windows.UI.Core.CoreWindow",     // UWP system windows
@@ -164,7 +164,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image throw
     bi.bmiHeader.biCompression = BI_RGB
 
     var bits: *u8 = undefined
-    let memBMP = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
+    let memBMP    = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
     if !memBMP or !bits do
         throw Swag.SystemError{"CreateDIBSection failed"}
     defer catch DeleteObject(cast() memBMP)

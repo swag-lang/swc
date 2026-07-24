@@ -377,7 +377,7 @@ impl LinePath
     mtd flattenCurve(pos: Math.Vector2, i: u64, quality: PaintQuality)
     {
         var p0, p1, p2, p3: Vector2 = undefined
-        let lastElem = .elements.count - 1
+        let lastElem                = .elements.count - 1
 
         if lastElem <= 1
         {

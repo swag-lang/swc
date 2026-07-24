@@ -41,7 +41,7 @@ struct PtrWrap
 #test
 {
     var a: Vec2 = {x: -9, y: 12}
-    var b = a
+    var b       = a
     @assert(b.x == -9)
     @assert(b.y == 12)
 }
@@ -58,7 +58,7 @@ struct PtrWrap
 #test
 {
     var a: Vec2 = {x: 10, y: 20}
-    var p = &a
+    var p       = &a
     dref p = {x: 30, y: 40}
     @assert(a.x == 30)
     @assert(a.y == 40)
@@ -67,8 +67,8 @@ struct PtrWrap
 #test
 {
     var a: Vec2 = {x: 7, y: 8}
-    var px = &a.x
-    var py = &a.y
+    var px      = &a.x
+    var py      = &a.y
     dref px = 70
     dref py = 80
     @assert(a.x == 70)
@@ -128,7 +128,7 @@ struct PtrWrap
 #test
 {
     var h: Holder = {count: 1, flags: {a: false, b: true}}
-    var ph = &h
+    var ph        = &h
     dref ph = {count: 9, flags: {a: true, b: false}}
     @assert(h.count == 9)
     @assert(h.flags.a)
@@ -137,7 +137,7 @@ struct PtrWrap
 
 #test
 {
-    var v = 123's32
+    var v             = 123's32
     var wrap: PtrWrap = {value: &v}
     @assert(dref wrap.value == 123)
     dref wrap.value = 321
@@ -148,8 +148,8 @@ struct PtrWrap
 {
     var left:  Vec2 = {x: 6, y: 9}
     var right: Vec2 = {x: 1, y: 2}
-    var pleft = &left
-    var pright = &right
+    var pleft       = &left
+    var pright      = &right
     dref pleft = dref pright
     @assert(left.x == 1)
     @assert(left.y == 2)
@@ -170,7 +170,7 @@ struct PtrWrap
 {
     func test(x: &Vec2)->*Vec2 { return &x; }
     var v: Vec2 = {x: 5, y: 10}
-    var p = test(&v)
+    var p       = test(&v)
     @assert(p.x == 5)
     @assert(p.y == 10)
 }

@@ -39,14 +39,14 @@ func falseBoolFallback(value: bool)->bool
 func nullStringFallback()->bool
 {
     var value: #null string = null
-    let fallback = "fallback"
-    let resolved = value orelse fallback
+    let fallback            = "fallback"
+    let resolved            = value orelse fallback
     return resolved == fallback
 }
 
 func nonNullStringWins()->bool
 {
-    let value = "ok"
+    let value    = "ok"
     let fallback = "fallback"
     let resolved = value orelse fallback
     return resolved == value
@@ -55,28 +55,28 @@ func nonNullStringWins()->bool
 func nullSliceFallback()->bool
 {
     var value:          #null [..] u32 = null
-    let fallbackValues: [2] u32 = [7, 9]
-    let fallback:       [..] u32 = fallbackValues
-    let resolved = value orelse fallback
+    let fallbackValues: [2] u32        = [7, 9]
+    let fallback:       [..] u32       = fallbackValues
+    let resolved                       = value orelse fallback
     return @countof(resolved) == 2 and resolved[0] == 7 and resolved[1] == 9
 }
 
 func nonNullSliceWins()->bool
 {
-    let primaryValues:  [2] u32 = [1, 2]
-    let fallbackValues: [2] u32 = [7, 9]
+    let primaryValues:  [2] u32  = [1, 2]
+    let fallbackValues: [2] u32  = [7, 9]
     let primary:        [..] u32 = primaryValues
     let fallback:       [..] u32 = fallbackValues
-    let resolved = primary orelse fallback
+    let resolved                 = primary orelse fallback
     return @countof(resolved) == 2 and resolved[0] == 1 and resolved[1] == 2
 }
 
 func nullInterfaceFallbackWritesThroughSelectedReceiver()->bool
 {
     var value: #null INullCoalescingProbe = null
-    var fallbackProbe = NullCoalescingProbe{tag: 77}
-    let fallback = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
-    let selected = value orelse fallback
+    var fallbackProbe                     = NullCoalescingProbe{tag: 77}
+    let fallback                          = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
+    let selected                          = value orelse fallback
 
     var written: u64 = 0
     selected.write(&written)
@@ -87,11 +87,11 @@ func nullInterfaceFallbackWritesThroughSelectedReceiver()->bool
 
 func nonNullInterfaceWinsAndKeepsRuntimeShape()->bool
 {
-    var primaryProbe = NullCoalescingProbe{tag: 11}
+    var primaryProbe  = NullCoalescingProbe{tag: 11}
     var fallbackProbe = NullCoalescingProbe{tag: 22}
-    let primary = @mkinterface(&primaryProbe, #typeof(primaryProbe), INullCoalescingProbe)
-    let fallback = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
-    let selected = primary orelse fallback
+    let primary       = @mkinterface(&primaryProbe, #typeof(primaryProbe), INullCoalescingProbe)
+    let fallback      = @mkinterface(&fallbackProbe, #typeof(fallbackProbe), INullCoalescingProbe)
+    let selected      = primary orelse fallback
 
     var written: u64 = 0
     selected.write(&written)

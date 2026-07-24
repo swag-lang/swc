@@ -22,7 +22,7 @@ func autocastTempArrayToStringConsume(text: string)->u8
         }
 
     let text: string = holder.cb(false)
-    let bytes = cast(const [..] u8) text
+    let bytes        = cast(const [..] u8) text
     @assert(@countof(bytes) == 5)
     @assert(text[0] == 'w''u8)
     @assert(text[4] == 'd''u8)

@@ -24,7 +24,7 @@ impl BoolUnaryBox
 #test
 {
     var value: BoolUnaryBox'bool = {value: false}
-    let flipped = !value
+    let flipped                  = !value
 
     @assert(flipped.value)
 }
@@ -33,7 +33,7 @@ impl BoolUnaryBox
 #test
 {
     var value: BoolUnaryBox'bool = {value: true}
-    let flipped = !value
+    let flipped                  = !value
 
     @assert(!flipped.value)
 }
@@ -42,7 +42,7 @@ impl BoolUnaryBox
 #test
 {
     var value: BoolUnaryBox'bool = {value: true}
-    let double_flip = !(!value)
+    let double_flip              = !(!value)
 
     @assert(double_flip.value)
 }

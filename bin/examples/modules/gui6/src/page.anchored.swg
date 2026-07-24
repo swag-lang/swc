@@ -32,7 +32,7 @@ func createAnchoredPopupPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
 
-    let left = createPanel(parent, "Toolbar anchors", "AnchorTopCenter and AnchorBottomCenter make compact menus feel attached to toolbar buttons.", layout.left)
+    let left   = createPanel(parent, "Toolbar anchors", "AnchorTopCenter and AnchorBottomCenter make compact menus feel attached to toolbar buttons.", layout.left)
     let topBtn = PushButton.create(left, "Open below", {24, 112, 200})
     topBtn.form       = .Default
     topBtn.icon       = app.theme.getIcon24(.BottomPopupArrow, 18)

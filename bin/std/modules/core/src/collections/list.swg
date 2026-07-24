@@ -57,7 +57,7 @@ impl List
         #if back do
             var n = .tail
         #else do
-            var n = .head
+            var n        = .head
         var ordinal: u64 = 0
         #scope(Up)
             while n

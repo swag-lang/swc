@@ -40,7 +40,7 @@ using Swag, Core
     discard catch face.renderGlyph()
     @assert(@err == null)
 
-    let normal = face.glyph.bitmap
+    let normal     = face.glyph.bitmap
     let normalLeft = face.glyph.bitmapLeft
     let normalTop  = face.glyph.bitmapTop
 
@@ -171,7 +171,7 @@ using Swag, Core
     var channelsDiffer = false
     var hasInsideA     = false
     var hasOutsideA    = false
-    let msdfBuf = notnull msdf.buffer
+    let msdfBuf        = notnull msdf.buffer
     for [y] in msdf.rows
     {
         for [x] in msdf.width

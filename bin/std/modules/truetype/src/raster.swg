@@ -58,9 +58,9 @@ func buildEdges(outline: const *Outline)->Array'Edge
     var edges: Array'Edge
     let commands = buildOutlineCommands(outline)
 
-    var currentX = 0.0
-    var currentY = 0.0
-    var havePos  = false
+    var currentX  = 0.0
+    var currentY  = 0.0
+    var havePos   = false
     let tolerance = 0.20 / OVERSAMPLE
 
     for cmd in commands
@@ -154,8 +154,8 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
         return
     }
 
-    let xL = Math.min(xa, xb)
-    let xR = Math.max(xa, xb)
+    let xL      = Math.min(xa, xb)
+    let xR      = Math.max(xa, xb)
     var cxStart = Math.floorS32(xL)
     var cxEnd   = Math.floorS32(xR)
     if cxEnd < 0 or cxStart > width - 1 do
@@ -221,7 +221,7 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
 
     faceData.bitmapPixels.resize(cast(u64) width * rows)
     let bitmapBuffer = notnull faceData.bitmapPixels.buffer
-    var dst = bitmapBuffer
+    var dst          = bitmapBuffer
 
     // Per-row signed-area accumulation buffers (analytic anti-aliasing).
     var area:  Array'f64

@@ -221,7 +221,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     var f: HeadlessFixture
     f.setup()
 
-    let shape = testAddShape(f.capture, 0, 0, 1, 1)
+    let shape   = testAddShape(f.capture, 0, 0, 1, 1)
     var moveEvt = testMouse(.MouseMove)
     @assert(shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1))
     Testing.assertRect(shape.IForm.boundRect(), 50, 20, 30, 50)
@@ -251,9 +251,9 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     var f: HeadlessFixture
     f.setup()
 
-    var moveEvt = testMouse(.MouseMove)
+    var moveEvt    = testMouse(.MouseMove)
     var releaseEvt = testMouse(.MouseReleased)
-    var doubleEvt = testMouse(.MouseDoubleClick)
+    var doubleEvt  = testMouse(.MouseDoubleClick)
 
     var emptyPoints: Array'Math.Vector2
     let polygon = testAddPolygon(f.capture, emptyPoints.toSlice())

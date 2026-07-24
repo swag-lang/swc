@@ -41,7 +41,7 @@ func day1B()
     let lines    = assume File.readAllLines(dataPath)
 
     var total: u64
-    var last   = Swag.U64.Max
+    var last = Swag.U64.Max
     for [i] in lines.count - 2
     {
         let cur = assume StrConv.toS32(lines[i]) + assume StrConv.toS32(lines[i + 1]) + assume StrConv.toS32(lines[i + 2])

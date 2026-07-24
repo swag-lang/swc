@@ -266,7 +266,7 @@ impl Allocator
     {
         let align = cast(u64) (alignment orelse cast(u32) #sizeof(*void))
         let bytes = size + align - 1 + #sizeof(AllocatorRawBlock)
-        let raw = .osAlloc(bytes)
+        let raw   = .osAlloc(bytes)
         if !raw do
             return null
 
@@ -318,7 +318,7 @@ impl Allocator
     mtd threadHeap()->*AllocatorThreadHeap
     {
         let heap = g_AllocatorThreadHeap
-        let tid = currentThreadId()
+        let tid  = currentThreadId()
         if heap and heap.allocator == me and heap.threadId == tid do
             return heap
 
@@ -424,7 +424,7 @@ impl Allocator
 
     mtd releaseRetiredRemote(heap: *AllocatorThreadHeap, classIndex: u32)
     {
-        let cls = &heap.classes[classIndex]
+        let cls  = &heap.classes[classIndex]
         var list = atomicExchangeHeader(&cls.remoteFree, null)
         while list
         {
@@ -456,7 +456,7 @@ impl Allocator
 
     mtd drainThreadRemote(heap: *AllocatorThreadHeap, classIndex: u32)
     {
-        let cls = &heap.classes[classIndex]
+        let cls  = &heap.classes[classIndex]
         var list = atomicExchangeHeader(&cls.remoteFree, null)
         while list
         {
@@ -468,7 +468,7 @@ impl Allocator
 
     mtd releaseThreadCached(heap: *AllocatorThreadHeap, classIndex: u32)
     {
-        let cls = &heap.classes[classIndex]
+        let cls    = &heap.classes[classIndex]
         let header = cls.firstFree
         if !header do
             return
@@ -550,7 +550,7 @@ impl Allocator
     {
         .drainThreadRemote(heap, classIndex)
 
-        let cls = &heap.classes[classIndex]
+        let cls    = &heap.classes[classIndex]
         let header = cls.firstFree
         if !header do
             return null
@@ -742,7 +742,7 @@ impl Allocator
         if .electricMode or classIndex == AllocatorInvalidClass do
             return null
 
-        let cls = &.classes[classIndex]
+        let cls    = &.classes[classIndex]
         let header = cls.firstFree
         if !header do
             return null
@@ -755,11 +755,11 @@ impl Allocator
 
     mtd allocateBlock(request: *AllocatorRequest, blockSize: u64, classIndex: u32)->#null *AllocatorHeader
     {
-        let alignment = request.alignment orelse cast(u32) #sizeof(*void)
+        let alignment  = request.alignment orelse cast(u32) #sizeof(*void)
         let toAddAlign = memAlign(#sizeof(AllocatorHeader), alignment)
 
         let allocSize = toAddAlign + blockSize + #sizeof(AllocatorFooter)
-        let address = .rawAlloc(allocSize, alignment)
+        let address   = .rawAlloc(allocSize, alignment)
         if !address do
             return null
 
@@ -902,7 +902,7 @@ impl Allocator
             return
 
         let userAddr = cast([*] u8) request.address
-        let header = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
+        let header   = cast(*AllocatorHeader) (userAddr - #sizeof(AllocatorHeader))
         .checkAllocated(header, request.callerLoc)
         let foot = .footer(header)
 

@@ -251,7 +251,7 @@ impl Properties
         }
         else
         {
-            let unit = Reflection.getAttributeValue(value, .Unit, "value")
+            let unit      = Reflection.getAttributeValue(value, .Unit, "value")
             var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
             if !me.isGridLike() do
                 editWidth = me.listContentWidthFromUseful(editWidth)

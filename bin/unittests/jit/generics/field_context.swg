@@ -141,7 +141,7 @@ func(T, V) functionLocalPartialBox(value: T, tail: V)->V
 #test
 {
     let value = functionLocalImplicitBox'u16(12)
-    let tail = functionLocalPartialBox'(bool, f32)(true, 4.5)
+    let tail  = functionLocalPartialBox'(bool, f32)(true, 4.5)
 
     @assert(value == 12'u16)
     @assert(tail == 4.5'f32)

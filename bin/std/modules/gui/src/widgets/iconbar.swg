@@ -13,7 +13,7 @@ struct IconBar
 {
     using wnd: Wnd
 
-    iconBarFlags         = IconBarFlags.Zero
+    iconBarFlags     = IconBarFlags.Zero
     iconSize:    f32
     iconPadding: f32 = 4
 

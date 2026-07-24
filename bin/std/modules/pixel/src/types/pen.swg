@@ -54,7 +54,7 @@ struct Pen
     pattern:         Array'f32
     dashBegCapStyle: DashCapStyle = None
     dashEndCapStyle: DashCapStyle = None
-    borderPos:       BorderPos = None
+    borderPos:       BorderPos    = None
 
     capBegScaleX: f32 = 2
     capBegScaleY: f32 = 2
@@ -64,11 +64,11 @@ struct Pen
     joinMiterLimit: f32 = 3
     plotOffset:     f32
 
-    dashStyle:      DashStyle = None
-    dashBlankScale: f32 = 1.0
+    dashStyle:      DashStyle    = None
+    dashBlankScale: f32          = 1.0
     begCapStyle:    LineCapStyle = Round
     endCapStyle:    LineCapStyle = Round
-    joinStyle:      JoinStyle = Miter
+    joinStyle:      JoinStyle    = Miter
 }
 
 impl Pen

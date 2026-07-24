@@ -54,7 +54,7 @@ public impl Adler32
         else
         {
             const n = NMax / 16
-            var i   = 0'u64
+            var i = 0'u64
 
             while i + NMax <= countof
             {

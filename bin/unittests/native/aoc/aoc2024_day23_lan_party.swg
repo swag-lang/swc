@@ -106,7 +106,7 @@ impl Graph
 
 func parseGraph(text: string)->Graph
 {
-    var g = graphInit()
+    var g     = graphInit()
     let bytes = cast(const [..] u8) text
     var pos: u32
 

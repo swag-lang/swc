@@ -47,8 +47,8 @@ const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
 
 #test
 {
-    let enumInfo = cast(const *Swag.TypeInfoEnum) #typeof(ReflectMode)
-    let second = cast(#null const *ReflectMode) enumInfo.values[1].value
+    let enumInfo  = cast(const *Swag.TypeInfoEnum) #typeof(ReflectMode)
+    let second    = cast(#null const *ReflectMode) enumInfo.values[1].value
     let arrayInfo = cast(const *Swag.TypeInfoArray) #typeof(#type [2, 3] ReflectMode)
     let sliceInfo = cast(const *Swag.TypeInfoSlice) #typeof(#type [..] ReflectMode)
 
@@ -63,10 +63,10 @@ const FUNC_INFO = cast(const *Swag.TypeInfoFunc) #typeof(isSecond)
 #test
 {
     var types: [?] typeinfo = [#typeof(ReflectMode), #typeof(#type [2] ReflectMode), #typeof(#type [..] ReflectMode), #typeof(isSecond)]
-    let enumInfo = cast(const *Swag.TypeInfoEnum) types[0]
-    let arrayInfo = cast(const *Swag.TypeInfoArray) types[1]
-    let sliceInfo = cast(const *Swag.TypeInfoSlice) types[2]
-    let funcInfo = cast(const *Swag.TypeInfoFunc) types[3]
+    let enumInfo            = cast(const *Swag.TypeInfoEnum) types[0]
+    let arrayInfo           = cast(const *Swag.TypeInfoArray) types[1]
+    let sliceInfo           = cast(const *Swag.TypeInfoSlice) types[2]
+    let funcInfo            = cast(const *Swag.TypeInfoFunc) types[3]
     @assert(types[0] == ReflectMode)
     @assert(types[1] == #type [2] ReflectMode)
     @assert(types[2] == #type [..] ReflectMode)

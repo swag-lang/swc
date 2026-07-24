@@ -19,7 +19,7 @@ struct WaitJobThreadData
 
 func reusedJobEntry(data: #null *void)
 {
-    let jobData = cast(*ReusedJobData) (notnull data)
+    let jobData        = cast(*ReusedJobData) (notnull data)
     let executionIndex = Atomic.add(&jobData.executionCount, 1) + 1
     if executionIndex == 2
     {
@@ -59,8 +59,8 @@ func waitJobThread(th: Threading.Thread)
     jobData.startedSecondRun.wait()
 
     var waitReturned: s32 = 0
-    var waitData = WaitJobThreadData{job: &job, waitReturned: &waitReturned}
-    var waitThread: Threading.Thread
+    var waitData          = WaitJobThreadData{job: &job, waitReturned: &waitReturned}
+    var waitThread:   Threading.Thread
 
     discard catch waitThread.init(&waitJobThread, &waitData)
     @assert(@err == null)

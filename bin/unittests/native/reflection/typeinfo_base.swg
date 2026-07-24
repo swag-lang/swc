@@ -29,8 +29,8 @@ namespace Scoped
 {
     using Swag
 
-    let nativeInfo = bool
-    let arrayInfo = #type [2] s32
+    let nativeInfo       = bool
+    let arrayInfo        = #type [2] s32
     let literalArrayInfo = #typeof([1, 2, 3])
 
     #assert(#typeof(nativeInfo) == #typeof(const *TypeInfoNative))
@@ -122,7 +122,7 @@ const PScopedWrapper = cast(const *Swag.TypeInfo) #typeof(Scoped.Wrapper'(Scoped
 #test
 {
     let info = #typeof(A)
-    var hit = false
+    var hit  = false
 
     switch info
     {

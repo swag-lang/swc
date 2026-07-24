@@ -62,29 +62,29 @@ struct PagePanelLayout
     bottom: Math.Rectangle
 }
 
-var app:           Application
-var g_Surface:     #null *Surface
-var g_View:        #null *Wnd
-var g_Title:       #null *Label
-var g_SubTitle:    #null *Label
-var g_ThemeButton: #null *PushButton
-var g_PageView:    #null *Wnd
-var g_Footer:      #null *Label
-var g_StatusLabel: #null *Label
-var g_Preview:     #null *Wnd
-var g_PageMenus:   Array'(*MenuCtrl)
-var g_ContextMenu: #null *MenuCtrl
-var g_StateMenu:   #null *MenuCtrl
-var g_Page:        s32
-var g_TestFrame:   s32
-var g_DarkTheme:   bool
+var app:             Application
+var g_Surface:       #null *Surface
+var g_View:          #null *Wnd
+var g_Title:         #null *Label
+var g_SubTitle:      #null *Label
+var g_ThemeButton:   #null *PushButton
+var g_PageView:      #null *Wnd
+var g_Footer:        #null *Label
+var g_StatusLabel:   #null *Label
+var g_Preview:       #null *Wnd
+var g_PageMenus:     Array'(*MenuCtrl)
+var g_ContextMenu:   #null *MenuCtrl
+var g_StateMenu:     #null *MenuCtrl
+var g_Page:          s32
+var g_TestFrame:     s32
+var g_DarkTheme:     bool
 var g_DocumentDirty = true
-var g_ShowGrid = true
-var g_ShowGuides = true
+var g_ShowGrid      = true
+var g_ShowGuides    = true
 var g_ContextPinned: bool
 var g_ActionCount:   s32
-var g_Mode = PreviewMode.Detailed
-var g_StatusText: String
+var g_Mode          = PreviewMode.Detailed
+var g_StatusText:    String
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
@@ -133,12 +133,12 @@ func createActionButton(parent: *Wnd, text: string, rect: Math.Rectangle, id: Wn
 
 func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
-    let rect = parent.getClientRect()
-    let width = Math.max(rect.width, 1.0)
-    let height = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let halfWidth = (width - PanelGap) * 0.5
-    let topHeight = Math.min(TopPanelHeight, Math.max(330.0, (height - PanelGap) * 0.58))
-    let bottomY = topHeight + PanelGap
+    let rect         = parent.getClientRect()
+    let width        = Math.max(rect.width, 1.0)
+    let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let halfWidth    = (width - PanelGap) * 0.5
+    let topHeight    = Math.min(TopPanelHeight, Math.max(330.0, (height - PanelGap) * 0.58))
+    let bottomY      = topHeight + PanelGap
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
@@ -373,7 +373,7 @@ func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font
 
 func drawStatePill(painter: *Painter, rect: Math.Rectangle, text: string, active: bool, font: *Font, colors: *ThemeColors)
 {
-    let fill = active ? Argb.CornflowerBlue : colors.view_Bk
+    let fill      = active ? Argb.CornflowerBlue : colors.view_Bk
     let textColor = active ? Argb.White : colors.label_Text
     painter.fillRoundRect(rect, 16, 16, fill)
     painter.drawRoundRect(rect, 16, 16, active ? Argb.CornflowerBlue : colors.frameWnd_Border, 1)
@@ -385,10 +385,10 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
-        let rect = view.getClientRect()
-        let colors = view.getThemeColors()
-        let font = view.getTheme().createDefaultFont(14)
+        let painter   = paintEvt.bc.painter
+        let rect      = view.getClientRect()
+        let colors    = view.getThemeColors()
+        let font      = view.getTheme().createDefaultFont(14)
         let titleFont = view.getTheme().createDefaultFont(20, .Bold)
 
         painter.fillRect(rect, colors.view_Bk)
@@ -396,14 +396,14 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         painter.fillRoundRect(card, 20, 20, Color.fromArgb(255, 246, 248, 250))
         painter.drawRoundRect(card, 20, 20, Color.fromArgb(70'u8, Argb.Black), 1)
 
-        let contentX = card.x + 24
+        let contentX     = card.x + 24
         let contentWidth = Math.max(card.width - 48, 1.0)
         painter.drawString(contentX, card.y + 22, "Menu-driven workspace", titleFont, Argb.DarkSlateGray)
         drawWrappedText(painter, {contentX, card.y + 60, contentWidth, 42}, g_StatusText, font, Argb.DimGray, 2)
 
-        let pillGap = 12.0
+        let pillGap    = 12.0
         let pillHeight = 32.0
-        let pillTop = card.y + 100
+        let pillTop    = card.y + 100
         var pillsBottom: f32
 
         if contentWidth >= 560.0
@@ -418,7 +418,7 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         else
         {
             let pillWidth = (contentWidth - pillGap) * 0.5
-            let secondX = contentX + pillWidth + pillGap
+            let secondX   = contentX + pillWidth + pillGap
             let secondRow = pillTop + pillHeight + 10
             drawStatePill(painter, {contentX, pillTop, pillWidth, pillHeight}, Format.toString("grid %", boolWord(g_ShowGrid)), g_ShowGrid, font, colors)
             drawStatePill(painter, {secondX, pillTop, pillWidth, pillHeight}, Format.toString("guides %", boolWord(g_ShowGuides)), g_ShowGuides, font, colors)
@@ -744,11 +744,11 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect = view.getClientRect()
+    let rect         = view.getClientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
-    let pageHeight = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let footerY = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
-    let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
+    let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
+    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     let title2      = notnull g_Title
     let themeButton = notnull g_ThemeButton
@@ -873,7 +873,7 @@ func createRootView()
 
 #main
 {
-    let flags = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 80, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI6 menu showcase")

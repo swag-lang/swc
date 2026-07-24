@@ -81,7 +81,7 @@ func(T) buildAuditDiff(before: const &T, after: const &T)->AuditDiff'T
     #ast
     {
         var buffer: [8192] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {
@@ -118,7 +118,7 @@ func(T) auditChangedCount(diff: const &AuditDiff'T)->s32
     #ast
     {
         var buffer: [4096] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {
@@ -140,7 +140,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
     #ast
     {
         var buffer: [4096] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {
@@ -180,7 +180,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         owner: "ops@contoso.test",
         }
 
-    let diff = buildAuditDiff'(DeployConfig)(before, after)
+    let diff    = buildAuditDiff'(DeployConfig)(before, after)
     let rebuilt = applyAuditDiff'(DeployConfig)(before, diff)
 
     @assert(diff.changed_replicas)
@@ -229,7 +229,7 @@ func(T) applyAuditDiff(base: T, diff: const &AuditDiff'T)->T
         overflowContact: "dispatch@warehouse.test",
         }
 
-    let diff = buildAuditDiff'(WarehouseLimits)(before, after)
+    let diff    = buildAuditDiff'(WarehouseLimits)(before, after)
     let rebuilt = applyAuditDiff'(WarehouseLimits)(before, diff)
 
     @assert(!diff.changed_maxBins)

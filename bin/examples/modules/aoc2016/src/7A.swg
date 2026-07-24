@@ -21,7 +21,7 @@ func day7A()
     let lines    = assume File.readAllLines(dataPath)
 
     var cpt, total = 0
-    var ok = false
+    var ok         = false
     for l in lines
     {
         cpt = 0

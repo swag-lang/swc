@@ -23,23 +23,23 @@ func jitConditionalMaybe(p: *JitConditionalNonNullItem)->#null *JitConditionalNo
 
 func jitConditionalNonNullBranches(flag: bool)->bool
 {
-    var first  = JitConditionalNonNullItem{value: 11}
-    var second = JitConditionalNonNullItem{value: 22}
+    var first   = JitConditionalNonNullItem{value: 11}
+    var second  = JitConditionalNonNullItem{value: 22}
     var indexed = JitConditionalIndex'(*JitConditionalNonNullItem){values: [&first]}
 
-    let legacy:   *JitConditionalNonNullItem          = &first
-    let nullable: #null *JitConditionalNonNullItem  = jitConditionalMaybe(&first)
-    let required: *JitConditionalNonNullItem = &second
+    let legacy:   *JitConditionalNonNullItem       = &first
+    let nullable: #null *JitConditionalNonNullItem = jitConditionalMaybe(&first)
+    let required: *JitConditionalNonNullItem       = &second
 
-    let indexedNullLast  = flag ? indexed[0] : null
-    let indexedNullFirst = flag ? null : indexed[0]
-    let requiredNullLast = flag ? required : null
-    let requiredNullFirst = flag ? null : required
-    let legacyRequiredFirst = flag ? legacy : required
-    let legacyRequiredLast  = flag ? required : legacy
+    let indexedNullLast       = flag ? indexed[0] : null
+    let indexedNullFirst      = flag ? null : indexed[0]
+    let requiredNullLast      = flag ? required : null
+    let requiredNullFirst     = flag ? null : required
+    let legacyRequiredFirst   = flag ? legacy : required
+    let legacyRequiredLast    = flag ? required : legacy
     let nullableRequiredFirst = flag ? nullable : required
     let nullableRequiredLast  = flag ? required : nullable
-    let requiredOnly = flag ? required : required
+    let requiredOnly          = flag ? required : required
 
     #assert(#typeof(indexedNullLast) == #null *JitConditionalNonNullItem)
     #assert(#typeof(indexedNullFirst) == #null *JitConditionalNonNullItem)

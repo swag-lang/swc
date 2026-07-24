@@ -16,7 +16,7 @@ struct CastTempArrayToStringHolder
     },
         }
 
-    let text = cast(string) holder.cb(false)
+    let text  = cast(string) holder.cb(false)
     let bytes = cast(const [..] u8) text
     @assert(@countof(bytes) == 5)
     @assert(text[0] == 'w''u8)

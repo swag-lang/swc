@@ -68,7 +68,7 @@ func isLineBreak(ch: u8)->bool
 func concatNumbers(a, b: u64)->u64
 {
     var magnitude = 1'u64
-    var tmp = b
+    var tmp       = b
     for
     {
         magnitude *= 10
@@ -145,7 +145,7 @@ func skipSpaces(bytes: const [..] u8, pos: *u32)
 func parseEquations(text: string)->EquationList
 {
     let bytes = cast(const [..] u8) text
-    var list = initEquationList(InitialEquationCapacity)
+    var list  = initEquationList(InitialEquationCapacity)
     var pos: u32
 
     while pos < @countof(bytes)
@@ -188,7 +188,7 @@ func canSolve(eq: Equation, accumulator: u64, index: u32, allowConcat: bool)->bo
     if accumulator > eq.target do
         return false
 
-    let next = eq.operands[index]
+    let next      = eq.operands[index]
     let nextIndex = index + 1
 
     if canSolve(eq, accumulator + next, nextIndex, allowConcat) do

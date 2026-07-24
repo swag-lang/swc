@@ -263,7 +263,7 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
 // Encode BGR/BGRA source images by swapping R/B into PNG's RGB component order.
 #test
 {
-    var bgr = Image.create(1, 1, .BGR8)
+    var bgr    = Image.create(1, 1, .BGR8)
     let bgrBuf = notnull bgr.pixels.buffer
     bgrBuf[0] = 30'u8
     bgrBuf[1] = 20'u8
@@ -279,7 +279,7 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     @assert(img.pf == .RGB8)
     assertPngPixelAt(img, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
-    var bgra = Image.create(1, 1, .BGRA8)
+    var bgra    = Image.create(1, 1, .BGRA8)
     let bgraBuf = notnull bgra.pixels.buffer
     bgraBuf[0] = 7'u8
     bgraBuf[1] = 8'u8

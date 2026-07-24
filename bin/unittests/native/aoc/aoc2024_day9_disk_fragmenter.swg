@@ -64,7 +64,7 @@ namespace DiskLayout
 
     func parseDiskMap(text: string)->DiskMap
     {
-        let bytes = cast(const [..] u8) text
+        let bytes  = cast(const [..] u8) text
         var result = initDiskMap()
         let blocks = notnull result.blocks
         var currentFileId: u16
@@ -295,9 +295,9 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
 
     var spanCount: u32
     var firstFree: u32
-    var prevId = cast(u32) FreeId + 1
+    var prevId    = cast(u32) FreeId + 1
     var foundFree = false
-    let blocks = notnull dm.blocks
+    let blocks    = notnull dm.blocks
     for dm.blockCount
     {
         let pos = cast(u32) @index

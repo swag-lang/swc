@@ -493,7 +493,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 // Encode an RGBA8 image: alpha survives the round-trip.
 #test
 {
-    var src = Image.create(1, 1, .RGBA8)
+    var src    = Image.create(1, 1, .RGBA8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 1'u8
     srcBuf[1] = 2'u8
@@ -516,7 +516,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
 // Encode a BGR8 image: channels are swapped to RGB on disk and decode as RGB8.
 #test
 {
-    var src = Image.create(1, 1, .BGR8)
+    var src    = Image.create(1, 1, .BGR8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 10'u8     // B
     srcBuf[1] = 20'u8     // G

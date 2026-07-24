@@ -106,7 +106,7 @@ impl Properties
             return
         }
 
-        let item = .addItem(value, data, parentItem)
+        let item      = .addItem(value, data, parentItem)
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)
@@ -159,7 +159,7 @@ impl Properties
 
     mtd constructStaticString(value: Swag.TypeValue, data: #null *u8, parentItem: #null *PropertiesItem)
     {
-        let item = .addItem(value, data, parentItem)
+        let item      = .addItem(value, data, parentItem)
         var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
         if !me.isGridLike() do
             editWidth = me.listContentWidthFromUseful(editWidth)

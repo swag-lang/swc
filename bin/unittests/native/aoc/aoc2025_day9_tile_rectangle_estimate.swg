@@ -72,11 +72,11 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
 
         for [rhs] in cast(u32) lhs + 1 to @countof(pointLines) - 1
         {
-            let a = points[lhs]
-            let b = points[rhs]
-            let width = cast(u64) absDiff(a.x, b.x) + 1'u64
+            let a      = points[lhs]
+            let b      = points[rhs]
+            let width  = cast(u64) absDiff(a.x, b.x) + 1'u64
             let height = cast(u64) absDiff(a.y, b.y) + 1'u64
-            let area = width * height
+            let area   = width * height
 
             if area > result.bestArea
             {

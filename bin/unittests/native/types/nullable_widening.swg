@@ -10,7 +10,7 @@ func widenNullableTypeInfo(value: typeinfo)->#null typeinfo => value
 func nullableWidening()->bool
 {
     var storage: s32 = 7
-    let ptr = widenNullablePointer(&storage)
+    let ptr          = widenNullablePointer(&storage)
     if ptr == null or ptr != &storage do
         return false
 
@@ -21,7 +21,7 @@ func nullableWidening()->bool
         return false
 
     let values: [3] s32 = [1, 2, 3]
-    let slice = widenNullableSlice(values)
+    let slice           = widenNullableSlice(values)
     if slice == null or @countof(slice) != 3 or slice[1] != 2 do
         return false
 
@@ -30,12 +30,12 @@ func nullableWidening()->bool
         return false
 
     var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
-    let cstr = widenNullableCString(cast(cstring) &cstrData[0])
+    let cstr             = widenNullableCString(cast(cstring) &cstrData[0])
     if cstr == null or @countof(cstr) != 3 do
         return false
 
     let infoType: typeinfo = s32
-    let info = widenNullableTypeInfo(infoType)
+    let info               = widenNullableTypeInfo(infoType)
     if info != infoType do
         return false
 

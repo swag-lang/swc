@@ -45,7 +45,7 @@ func totalQty(lines: const [..] ProductLine)->s32
     #assert(s[0] == 1)
     #assert(s[2] == 3)
 
-    const a: [3] s32           = [4, 5, 6]
+    const a:    [3] s32        = [4, 5, 6]
     const view: const [..] s32 = a
     @assert(pick(a, 2) == 6)
     @assert(pick([10, 20, 30], 1) == 20)
@@ -56,7 +56,7 @@ func totalQty(lines: const [..] ProductLine)->s32
 #test
 {
     const values: const [..] s32 = [10, 20, 30, 40, 50]
-    let mid = values[1 to 3]
+    let mid  = values[1 to 3]
     let tail = mid[1 to]
 
     @assert(@countof(mid) == 3)
@@ -70,9 +70,9 @@ func totalQty(lines: const [..] ProductLine)->s32
 #test
 {
     let text: string = "const"
-    let bytes = cast(const [..] u8) text
-    let head = bytes[until 3]
-    let tail = bytes[2 to]
+    let bytes        = cast(const [..] u8) text
+    let head         = bytes[until 3]
+    let tail         = bytes[2 to]
 
     @assert(@countof(head) == 3)
     @assert(head[0] == 'c''u8)

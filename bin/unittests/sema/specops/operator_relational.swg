@@ -38,8 +38,8 @@ impl CompareSpecBox
 
 func semaTest001()
 {
-    let lhs = CompareSpecBox{value: 42}
-    let rhs = CompareSpecBox{value: 42}
+    let lhs      = CompareSpecBox{value: 42}
+    let rhs      = CompareSpecBox{value: 42}
     let eq: bool = lhs == rhs
     let ne: bool = lhs != rhs
 
@@ -51,7 +51,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    let lhs = CompareSpecBox{value: 42}
+    let lhs      = CompareSpecBox{value: 42}
     let eq: bool = lhs == 42
     let ne: bool = lhs != 41
 
@@ -63,13 +63,13 @@ func semaTest002()
 
 func semaTest003()
 {
-    let lhs = CompareSpecBox{value: 10}
-    let rhs = CompareSpecBox{value: 20}
+    let lhs       = CompareSpecBox{value: 10}
+    let rhs       = CompareSpecBox{value: 20}
     let lt:  bool = lhs < rhs
     let le:  bool = lhs <= rhs
     let gt:  bool = lhs > rhs
     let ge:  bool = lhs >= rhs
-    let cmp: s32 = lhs <=> rhs
+    let cmp: s32  = lhs <=> rhs
 
     #assert(#typeof(lhs < rhs) == bool)
     #assert(#typeof(lhs <= rhs) == bool)
@@ -85,13 +85,13 @@ func semaTest003()
 
 func semaTest004()
 {
-    let lhs = CompareSpecBox{value: 20}
-    let rhs = CompareSpecBox{value: 10}
+    let lhs       = CompareSpecBox{value: 20}
+    let rhs       = CompareSpecBox{value: 10}
     let lt:  bool = lhs < rhs
     let le:  bool = lhs <= rhs
     let gt:  bool = lhs > rhs
     let ge:  bool = lhs >= rhs
-    let cmp: s32 = lhs <=> rhs
+    let cmp: s32  = lhs <=> rhs
 
     #assert(#typeof(lt) == bool)
     #assert(#typeof(le) == bool)
@@ -102,13 +102,13 @@ func semaTest004()
 
 func semaTest005()
 {
-    let lhs = CompareSpecBox{value: 15}
-    let rhs = CompareSpecBox{value: 15}
+    let lhs       = CompareSpecBox{value: 15}
+    let rhs       = CompareSpecBox{value: 15}
     let lt:  bool = lhs < rhs
     let le:  bool = lhs <= rhs
     let gt:  bool = lhs > rhs
     let ge:  bool = lhs >= rhs
-    let cmp: s32 = lhs <=> rhs
+    let cmp: s32  = lhs <=> rhs
 
     #assert(#typeof(lt) == bool)
     #assert(#typeof(le) == bool)
@@ -119,14 +119,14 @@ func semaTest005()
 
 func semaTest006()
 {
-    let lhs = CompareSpecBox{value: 8}
+    let lhs            = CompareSpecBox{value: 8}
     let lt:       bool = lhs < 9
     let le:       bool = lhs <= 8
     let gt:       bool = lhs > 7
     let ge:       bool = lhs >= 8
-    let cmpLower: s32 = lhs <=> 9
-    let cmpUpper: s32 = lhs <=> 7
-    let cmpEqual: s32 = lhs <=> 8
+    let cmpLower: s32  = lhs <=> 9
+    let cmpUpper: s32  = lhs <=> 7
+    let cmpEqual: s32  = lhs <=> 8
 
     #assert(#typeof(lt) == bool)
     #assert(#typeof(le) == bool)

@@ -90,10 +90,10 @@ func swapValues(basePtr: #null *void, valueType: #null typeinfo, indexA, indexB:
         return
 
     let nnType = valueType
-    let size = nnType.sizeof
-    let base = cast([*] u8) basePtr
-    let pa   = base + indexA * size
-    let pb   = base + indexB * size
+    let size   = nnType.sizeof
+    let base   = cast([*] u8) basePtr
+    let pa     = base + indexA * size
+    let pb     = base + indexB * size
 
     let allocator = @getcontext().allocator
     let tmp       = cast([*] u8) Memory.alloc(size, allocator)
@@ -144,7 +144,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
         let oldBuffer   = arr.buffer
         let oldCapacity = arr.capacity
         let newCapacity = Math.max(arr.count + 1, arr.capacity * 2)
-        let newBuffer = cast([*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
+        let newBuffer   = cast([*] u8) Memory.alloc(newCapacity * sizeValue, arr.allocator)
         Memory.clear(newBuffer, newCapacity * sizeValue)
 
         // Move old values to the new buffer

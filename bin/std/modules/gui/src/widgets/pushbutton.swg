@@ -14,7 +14,7 @@ struct PushButton
 {
     using button: Button
 
-    form              = PushButtonForm.Normal
+    form = PushButtonForm.Normal
 
     aniBk:     BlendColor
     aniBorder: BlendColor

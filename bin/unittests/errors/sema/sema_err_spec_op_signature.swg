@@ -41,7 +41,7 @@ impl BadMultiIndexAssign
 
 #test
 {
-    var value = MissingConstUnaryMe{value: 1}
+    var value  = MissingConstUnaryMe{value: 1}
     let result = -value
     #assert(#typeof(result) == MissingConstUnaryMe)
 }
@@ -49,13 +49,13 @@ impl BadMultiIndexAssign
 #test
 {
     var value: GenericMissingConstUnaryMe's32 = {value: 1}
-    let result = -value
+    let result                                = -value
     #assert(#typeof(result) == GenericMissingConstUnaryMe's32)
 }
 
 #test
 {
-    var get = BadMultiIndexGet{}
+    var get   = BadMultiIndexGet{}
     let value = get[0, 0]
 
     var set = BadMultiIndexSet{}

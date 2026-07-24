@@ -52,9 +52,9 @@
 {
     func typedNullPointerOrelse()->bool
     {
-        let value = cast(#null *s32) null
+        let value         = cast(#null *s32) null
         var fallback: s32 = 19
-        let resolved = value orelse &fallback
+        let resolved      = value orelse &fallback
         return value == null and resolved == &fallback and dref resolved == 19
     }
 
@@ -66,9 +66,9 @@
 {
     func typedNullConditional(flag: bool)->bool
     {
-        let left = cast(#null string) null
+        let left          = cast(#null string) null
         let right: string = "ok"
-        let resolved = flag ? left : right
+        let resolved      = flag ? left : right
         if flag do
             return resolved == null
         return resolved == "ok"

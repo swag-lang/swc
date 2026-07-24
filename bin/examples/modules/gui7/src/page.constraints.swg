@@ -15,7 +15,7 @@ func createDockLabel(parent: *Wnd, title, text: string, dock: DockStyle, size: M
 func createConstraintsPage(parent: *Wnd)
 {
     let layout = getPageLayout(parent)
-    let page = createPanel(parent, "Docking and constraints", "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.", layout.full)
+    let page   = createPanel(parent, "Docking and constraints", "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.", layout.full)
 
     let host = Wnd.create'Wnd(page, {18, 92, layout.full.width - 36, layout.full.height - 114})
     host.padding = 8
@@ -53,7 +53,7 @@ func createConstraintsPage(parent: *Wnd)
 
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)
-    let action = PushButton.create(center, "Anchored action", {actionX, actionY, 170, 34})
+    let action  = PushButton.create(center, "Anchored action", {actionX, actionY, 170, 34})
     action.icon        = app.theme.getIcon24(.Link, 18)
     action.anchorStyle = .X | .Y
 

@@ -121,7 +121,7 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let panel = Wnd.create'Wnd(&host.root, {0, 0, 160, 80})
+    let panel  = Wnd.create'Wnd(&host.root, {0, 0, 160, 80})
     let button = PushButton.create(panel, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32

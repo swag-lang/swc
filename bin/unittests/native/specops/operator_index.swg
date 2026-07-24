@@ -66,8 +66,8 @@ struct RuntimeIndexHolder
 #test
 {
     var box = RuntimeValueIndexBox{first: 7, second: 9}
-    let a = box[0]
-    let b = box[1]
+    let a   = box[0]
+    let b   = box[1]
 
     @assert(a == 7)
     @assert(b == 9)
@@ -77,8 +77,8 @@ struct RuntimeIndexHolder
 #test
 {
     var box = RuntimeRefIndexBox{buffer: [3, 5]}
-    let v1 = box[1]
-    let v0 = box[0]
+    let v1  = box[1]
+    let v0  = box[0]
 
     @assert(v1 == 5)
     @assert(v0 == 3)
@@ -95,7 +95,7 @@ struct RuntimeIndexHolder
 
 #test
 {
-    var box = RuntimeMultiIndexBox{values: [10, 20, 30, 40]}
+    var box   = RuntimeMultiIndexBox{values: [10, 20, 30, 40]}
     let value = box[1, 0]
 
     @assert(value == 30)
@@ -109,7 +109,7 @@ struct RuntimeIndexHolder
         refs:  RuntimeRefIndexBox{buffer: [20, 30]},
         }
 
-    let nested = holder.value[1]
+    let nested    = holder.value[1]
     let nestedRef = holder.refs[0]
 
     @assert(nested == 2)
@@ -203,7 +203,7 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 #test
 {
     const values: [RuntimeIndexedSlot] s32 = [0, 1, 2]
-    const first  = values[RuntimeIndexedSlot.First]
+    const first                            = values[RuntimeIndexedSlot.First]
     @assert(first == 0)
 
     var index = RuntimeIndexedSlot.Third

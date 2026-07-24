@@ -18,7 +18,7 @@ func drawClipRectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
 func drawClipRegionCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body = drawPanel(painter, rect, "Clipping region", "A region can be carved with a second pass to create holes before the actual color fill happens.")
+    let body     = drawPanel(painter, rect, "Clipping region", "A region can be carved with a second pass to create holes before the actual color fill happens.")
     let maskRect = insetRect(body, 34, 22, 34, 26)
 
     painter.startClippingRegion(.Set)
@@ -77,11 +77,11 @@ func buildPathModeList(x, y: f32)->LinePathList
 
 func drawPathModeCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 {
-    let body    = drawPanel(painter, rect, "Path-list modes", "Separate and Merge behave differently once thick strokes overlap, so both remain in the replacement showcase.")
-    let leftBox = Math.Rectangle{body.x + 20, body.y + 20, body.width * 0.5 - 30, body.height - 40}
+    let body     = drawPanel(painter, rect, "Path-list modes", "Separate and Merge behave differently once thick strokes overlap, so both remain in the replacement showcase.")
+    let leftBox  = Math.Rectangle{body.x + 20, body.y + 20, body.width * 0.5 - 30, body.height - 40}
     let rightBox = Math.Rectangle{leftBox.right() + 20, body.y + 20, body.width - leftBox.width - 40, body.height - 40}
-    var listL   = buildPathModeList(leftBox.x + 58, leftBox.y + 28)
-    var listR   = buildPathModeList(rightBox.x + 58, rightBox.y + 28)
+    var listL    = buildPathModeList(leftBox.x + 58, leftBox.y + 28)
+    var listR    = buildPathModeList(rightBox.x + 58, rightBox.y + 28)
 
     painter.fillRoundRect(leftBox, 16, 16, Color.fromArgb(255, 247, 249, 251))
     painter.fillRoundRect(rightBox, 16, 16, Color.fromArgb(255, 247, 249, 251))

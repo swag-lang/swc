@@ -339,7 +339,7 @@ impl Surface
     // layout and is intentionally not used.
     mtd setTrayIcon(icon: Pixel.Image, tip: #null string = null)
     {
-        var img   = icon
+        var img = icon
         .trayIcon = catch img.toHICON()
 
         var tnid: NOTIFYICONDATAA

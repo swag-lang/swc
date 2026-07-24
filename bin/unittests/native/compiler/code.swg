@@ -204,7 +204,7 @@ func remapLoopFlow(stmt: #code)
 // break remapped to continue in element-iteration loop
 #test
 {
-    var count = 0
+    var count           = 0
     var values: [4] s32 = [10, 20, 30, 40]
     for value in values
     {

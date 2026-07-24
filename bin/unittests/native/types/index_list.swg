@@ -52,8 +52,8 @@ func sumValues(values: [..] s32)->s32
 #test
 {
     var grid: [3, 2] s32 = [[1, 2], [3, 4], [5, 6]]
-    let top = grid[0]
-    let middle = grid[1]
+    let top              = grid[0]
+    let middle           = grid[1]
 
     grid[2, 0] = top[1] + middle[1]
     grid[2, 1] = top[0] + middle[0]

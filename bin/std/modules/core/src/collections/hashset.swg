@@ -14,10 +14,10 @@ struct(K) HashSetEntry
 struct(K) HashSet
 {
     // Special hash values to indicate the state of a slot in the me.table.
-    const HASH_FREE        = 0'u32     // The slot is empty and has never been used.
-    const HASH_DELETED     = 1'u32     // The slot was previously occupied but has been me.deleted.
-    const HASH_FIRST       = 2'u32     // The first possible valid hash value.
-    const HASH_MASK        = 2'u32     // A mask to ensure that valid hashes are >= HASH_FIRST.
+    const HASH_FREE    = 0'u32     // The slot is empty and has never been used.
+    const HASH_DELETED = 1'u32     // The slot was previously occupied but has been me.deleted.
+    const HASH_FIRST   = 2'u32     // The first possible valid hash value.
+    const HASH_MASK    = 2'u32     // A mask to ensure that valid hashes are >= HASH_FIRST.
 
     allocator: #null IAllocator           // The me.allocator used for memory operations.
     table:     #null [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
@@ -110,7 +110,7 @@ impl HashSet
         if !.count do
             return
 
-        let table = .constTablePtr()
+        let table  = .constTablePtr()
         var remain = .count
         #scope(Up)
             for .capacity
@@ -316,11 +316,11 @@ impl HashSet
     {
         .grow()
 
-        let hashVal       = hashKey(key)
-        let mask          = .capacity - 1
-        var firstDeleted  = Swag.U64.Max
-        var index         = cast(u64) hashVal & mask
-        let table         = .tablePtr()
+        let hashVal      = hashKey(key)
+        let mask         = .capacity - 1
+        var firstDeleted = Swag.U64.Max
+        var index        = cast(u64) hashVal & mask
+        let table        = .tablePtr()
 
         for
         {

@@ -9,7 +9,7 @@ using Swag, Core
         9'u8, 10'u8, 11'u8, 12'u8,       13'u8, 14'u8, 15'u8, 16'u8,
         ]
 
-    var img = makeImage(2, 2, .RGBA8, pixels)
+    var img       = makeImage(2, 2, .RGBA8, pixels)
     let fillColor = Color.fromArgb(66'u8, 11'u8, 22'u8, 33'u8)
     img.fill(fillColor)
     assertImage(img, 2, 2, .RGBA8)

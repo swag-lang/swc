@@ -29,9 +29,9 @@ impl PointerFieldHolder
     func pointerStepAndDistance()->s64
     {
         var arr: [6] u16 = [10, 20, 30, 40, 50, 60]
-        let base = cast([*] u16) &arr[0]
-        let next = 1 + base
-        var ptr  = base
+        let base         = cast([*] u16) &arr[0]
+        let next         = 1 + base
+        var ptr          = base
         ptr += 4
         ptr -= 2
         return (ptr - next) * 100 + dref ptr + dref next

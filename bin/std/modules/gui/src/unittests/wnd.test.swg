@@ -10,8 +10,8 @@ using Swag, Core
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let a = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
-    let b = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
+    let a         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
+    let b         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
 
     @assert(container.childs.count == 2)
     @assert(a.parent == container)
@@ -167,8 +167,8 @@ using Swag, Core
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let a = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
-    let b = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
+    let a         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
+    let b         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
 
     // b was added last -> painted on top -> hit first.
     @assert(host.root.getWndAt(50, 50, true) == b)

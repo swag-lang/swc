@@ -146,7 +146,7 @@ namespace NS {}
     @assert(@countof(text) == 5)
 
     var data: [3] u8 = [1, 2, 3]
-    var slice = cast(CountOfStrictSlice) data
+    var slice        = cast(CountOfStrictSlice) data
     @assert(@countof(slice) == 3)
 }
 
@@ -214,7 +214,7 @@ namespace NS {}
 #test
 {
     var buf: [5] s32 = [10, 20, 30, 40, 50]
-    let sl = @mkslice(&buf[0], 3)
+    let sl           = @mkslice(&buf[0], 3)
     @assert(@countof(sl) == 3)
 
     let sl2 = @mkslice(&buf[0], 5)
@@ -301,7 +301,7 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var text = "hello"
+    var text             = "hello"
     var textRef: &string = &text
     @assert(@countof(textRef) == 5)
     @assert(countStringRef(textRef) == 5)
@@ -310,8 +310,8 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var data:    [5] u8 = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
-    var cstr:    cstring = cast(cstring) &data[0]
+    var data:    [5] u8   = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
+    var cstr:    cstring  = cast(cstring) &data[0]
     var cstrRef: &cstring = &cstr
     @assert(@countof(cstrRef) == 4)
     @assert(countCStringRef(cstrRef) == 4)
@@ -324,8 +324,8 @@ func loopSignedRef(value: &s32)->s32
     var arrayRef: &[2, 3] u8 = &array
     @assert(@countof(arrayRef) == 6)
 
-    var flat: [6] u8 = [1, 2, 3, 4, 5, 6]
-    let slice = cast([..] u8) flat
+    var flat:     [6] u8         = [1, 2, 3, 4, 5, 6]
+    let slice                    = cast([..] u8) flat
     var sliceRef: const &[..] u8 = &slice
     @assert(@countof(sliceRef) == 6)
     @assert(countSliceRef(sliceRef) == 6)
@@ -334,7 +334,7 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var number:    u32 = 7
+    var number:    u32  = 7
     var numberRef: &u32 = &number
     @assert(#typeof(@countof(numberRef)) == u32)
     @assert(@countof(numberRef) == 7)
@@ -344,7 +344,7 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var number:    s32 = 7
+    var number:    s32  = 7
     var numberRef: &s32 = &number
     @assert(#typeof(@countof(numberRef)) == s32)
     @assert(@countof(numberRef) == 7)
@@ -354,12 +354,12 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var kind = RefCountKind.C
+    var kind                   = RefCountKind.C
     var kindRef: &RefCountKind = &kind
     @assert(@countof(kindRef) == 4)
     @assert(countEnumRef(kindRef) == 4)
 
-    let counted = RefCountedRuntime{count: 11}
+    let counted                              = RefCountedRuntime{count: 11}
     let countedRef: const &RefCountedRuntime = &counted
     @assert(@countof(countedRef) == 11)
     @assert(countSpecOpRef(countedRef) == 11)

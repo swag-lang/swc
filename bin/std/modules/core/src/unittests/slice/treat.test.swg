@@ -11,7 +11,7 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     var values: [4] s32 = [1, 2, 3, 4]
-    let bias = 10
+    let bias            = 10
 
     Slice.modify(values, func|bias|(it: *s32) { dref it += bias })
     @assert(sameValues(values, [11, 12, 13, 14]))
@@ -31,8 +31,8 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     let values: [5] s32 = [4, -3, 9, -1, 9]
-    let minValue = Slice.min(values)
-    let maxValue = Slice.max(values)
+    let minValue        = Slice.min(values)
+    let maxValue        = Slice.max(values)
 
     @assert(minValue.value == -3)
     @assert(minValue.index == 1)
@@ -48,7 +48,7 @@ func sameValues(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     let values: [4] s32 = [2, 4, 6, 8]
-    let empty = @mkslice(@dataof(values), 0)
+    let empty           = @mkslice(@dataof(values), 0)
 
     @assert(Slice.allOf(values, func(value: s32)->bool { return value % 2 == 0 }))
     @assert(!Slice.allOf(values, func(value: s32)->bool { return value < 8 }))

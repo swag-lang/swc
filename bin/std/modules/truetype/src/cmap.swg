@@ -33,13 +33,13 @@ func lookupCMap4(cmap: #null const [..] u8, charCode: u32)->u32 throw
     if charCode < startCode do
         return 0
 
-    let delta     = readS16(cmap, deltasOff + idx * 2)
-    let range     = readU16(cmap, rangesOff + idx * 2)
+    let delta = readS16(cmap, deltasOff + idx * 2)
+    let range = readU16(cmap, rangesOff + idx * 2)
     if !range do
         return cast(u32) ((cast(s32) charCode + delta) & 0xFFFF)
 
-    let rangePos  = rangesOff + idx * 2
-    let glyphPos  = rangePos + range + cast(u64) (charCode - startCode) * 2
+    let rangePos = rangesOff + idx * 2
+    let glyphPos = rangePos + range + cast(u64) (charCode - startCode) * 2
     if glyphPos + 2 > @countof(cmap) do
         return 0
 

@@ -31,7 +31,7 @@ struct GridLayoutCtrl
 {
     using wnd: Wnd
 
-    gridLayoutFlags     = GridLayoutCtrlFlags.Zero
+    gridLayoutFlags  = GridLayoutCtrlFlags.Zero
     numColumns:  s32
     numRows:     s32
     spacingHorz: f32 = 5
@@ -59,8 +59,8 @@ private impl GridLayoutCtrl
     {
         Debug.assert(.numColumns > 0 and .numRows > 0)
 
-        let cols = cast(u64) .numColumns
-        let rows = cast(u64) .numRows
+        let cols  = cast(u64) .numColumns
+        let rows  = cast(u64) .numRows
         let cells = cols * rows
 
         if .layout.count != cells do
@@ -116,8 +116,8 @@ private impl GridLayoutCtrl
     mtd spanH(col, row: s32, child: *Wnd)->s32
     {
         var result: retval = 0
-        var idx = col + (row * .numColumns)
-        var c = col
+        var idx            = col + (row * .numColumns)
+        var c              = col
         while c < .numColumns
         {
             if .layout[idx] != child do
@@ -133,8 +133,8 @@ private impl GridLayoutCtrl
     mtd spanV(col, row: s32, child: *Wnd)->s32
     {
         var result: retval = 0
-        var idx = col + (row * .numColumns)
-        var r = row
+        var idx            = col + (row * .numColumns)
+        var r              = row
         while r < .numRows
         {
             if .layout[idx] != child do
@@ -160,7 +160,7 @@ private impl GridLayoutCtrl
         {
             for [col] in .numColumns
             {
-                let idx = col + (row * .numColumns)
+                let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
                 if !child do
                     continue
@@ -170,9 +170,9 @@ private impl GridLayoutCtrl
                     continue
                 done.add(child)
 
-                let sh = .spanH(col, row, child)
-                let sv = .spanV(col, row, child)
-                let hint = child.measure({client.width, client.height})
+                let sh     = .spanH(col, row, child)
+                let sv     = .spanV(col, row, child)
+                let hint   = child.measure({client.width, client.height})
                 let margin = child.getLayoutMargin()
                 if columns
                 {
@@ -206,7 +206,7 @@ private impl GridLayoutCtrl
             return result
         }
 
-        var total = spacingTotal
+        var total  = spacingTotal
         var weight = 0'f32
         for [i] in count
         {
@@ -230,7 +230,7 @@ private impl GridLayoutCtrl
                 if tracks[i].kind != GridTrackKind.Fraction and tracks[i].kind != GridTrackKind.Fill do
                     continue
 
-                let w = tracks[i].value > 0 ? tracks[i].value : 1
+                let w   = tracks[i].value > 0 ? tracks[i].value : 1
                 let add = extra * w / weight
                 result[i] = Math.min(result[i] + add, .trackMax(tracks[i]))
             }
@@ -304,10 +304,10 @@ impl GridLayoutCtrl
             return
         .ensureStorage()
 
-        let client = .getClientRectPadding()
+        let client     = .getClientRectPadding()
         let colContent = .computeContentSizes(true)
         let rowContent = .computeContentSizes(false)
-        let colWidths = .computeTrackSizes(.colTracks.toSlice(), colContent.toSlice(), client.width, .spacingHorz, .gridLayoutFlags.has(.AdaptColWidth))
+        let colWidths  = .computeTrackSizes(.colTracks.toSlice(), colContent.toSlice(), client.width, .spacingHorz, .gridLayoutFlags.has(.AdaptColWidth))
         let rowHeights = .computeTrackSizes(.rowTracks.toSlice(), rowContent.toSlice(), client.height, .spacingVert, .gridLayoutFlags.has(.AdaptRowHeight))
 
         var done: Array'(#null *Wnd)
@@ -316,7 +316,7 @@ impl GridLayoutCtrl
         {
             for [col] in .numColumns
             {
-                let idx = col + (row * .numColumns)
+                let idx   = col + (row * .numColumns)
                 let child = .layout[idx]
                 if !child do
                     continue

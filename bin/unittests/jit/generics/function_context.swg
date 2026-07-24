@@ -117,10 +117,10 @@ impl MethodConstShadowHolder
 
 #test
 {
-    let value = functionLocalImplicitRenamedBox'u16(12)
-    let first = functionLocalImplicitRenamedBuffer'(u8, 4)()
-    let tail = functionLocalRenamedPartialBox'(bool, f32)(true, 4.5)
-    let explicit = functionLocalRenamedExplicitPrefixValue's64()
+    let value     = functionLocalImplicitRenamedBox'u16(12)
+    let first     = functionLocalImplicitRenamedBuffer'(u8, 4)()
+    let tail      = functionLocalRenamedPartialBox'(bool, f32)(true, 4.5)
+    let explicit  = functionLocalRenamedExplicitPrefixValue's64()
     let forwarded = functionReturnOnlyForward'u16(12)
 
     #assert(#typeof(value) == u16)

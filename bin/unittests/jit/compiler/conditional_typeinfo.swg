@@ -10,7 +10,7 @@ func selectArrayInfo(flag: bool)->const *TypeInfoArray
 
 #test
 {
-    let trueInfo = selectArrayInfo(true)
+    let trueInfo  = selectArrayInfo(true)
     let falseInfo = selectArrayInfo(false)
     @assert(trueInfo.count == 2)
     @assert(trueInfo.finalType == f32)

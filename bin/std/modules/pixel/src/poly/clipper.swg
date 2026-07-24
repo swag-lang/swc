@@ -188,7 +188,7 @@ public struct Transform
     maximaList:        Array'CInt
     clipFillType:      PolyFillType = undefined
     subjFillType:      PolyFillType = undefined
-    clipType:          ClipType = undefined
+    clipType:          ClipType     = undefined
     currentLM:         u64
     activeEdges:       #null *Edge
     sortedEdges:       #null *Edge
@@ -280,8 +280,8 @@ impl Transform
                 if ec == eStart do
                     eStart = nnEdge(ec.next)
                 let er = removeEdge(ec)
-                e          = nnEdge(er.prev)
-                eLoopStop  = e
+                e         = nnEdge(er.prev)
+                eLoopStop = e
                 continue
             }
 
@@ -977,13 +977,13 @@ impl Transform
             .activeEdges = e.nextInLML
         if aelNext do
             aelNext.prevInAEL = e.nextInLML
-        eNew.side      = e.side
-        eNew.windDelta = e.windDelta
-        eNew.windCnt   = e.windCnt
-        eNew.windCnt2  = e.windCnt2
-        eNew.curr      = eNew.bot
-        eNew.prevInAEL = aelPrev
-        eNew.nextInAEL = aelNext
+        eNew.side             = e.side
+        eNew.windDelta        = e.windDelta
+        eNew.windCnt          = e.windCnt
+        eNew.windCnt2         = e.windCnt2
+        eNew.curr             = eNew.bot
+        eNew.prevInAEL        = aelPrev
+        eNew.nextInAEL        = aelNext
         if !isHorizontal(eNew) do
             .insertScanbeam(eNew.top.y)
         return eNew
@@ -1206,7 +1206,7 @@ impl Transform
                 if pp == lastpp do
                     lastpp = nnOutPt(pp.prev)
                 let tmppp = nnOutPt(pp.prev)
-                tmppp.next = pp.next
+                tmppp.next            = pp.next
                 nnOutPt(pp.next).prev = tmppp
                 Memory.delete(pp)
                 pp = tmppp
@@ -1255,7 +1255,7 @@ impl Transform
             {
                 if !lastOK do
                     lastOK = pp
-                pp = ppNext
+                pp         = ppNext
             }
         }
 
@@ -2231,13 +2231,13 @@ impl Transform
                 startEdge = .activeEdges
             var se = notnull startEdge
             while se.nextInAEL and !e2InsertsBeforeE1(nnEdge(se.nextInAEL), edge) do
-                se = nnEdge(se.nextInAEL)
+                se         = nnEdge(se.nextInAEL)
             edge.nextInAEL = se.nextInAEL
             let seNext = se.nextInAEL
             if seNext do
                 seNext.prevInAEL = edge
-            edge.prevInAEL = se
-            se.nextInAEL   = edge
+            edge.prevInAEL       = se
+            se.nextInAEL         = edge
         }
     }
 
@@ -2338,7 +2338,7 @@ impl Transform
                 let ee = nnEdge(e)
                 if ee.windDelta != 0 do
                     edge.windCnt2 = edge.windCnt2 == 0 ? 1 : 0
-                e = nnEdge(ee.nextInAEL)
+                e                 = nnEdge(ee.nextInAEL)
             }
         }
         else
@@ -2448,7 +2448,7 @@ impl Transform
 
     mtd setHoleState(e: *Edge, outrec: *OutRec)
     {
-        var e2    = e.prevInAEL
+        var e2 = e.prevInAEL
         var eTmp: #null *Edge
         while e2
         {
@@ -2506,12 +2506,12 @@ impl Transform
                 return nnOutPt(op.prev)
 
             let newOp = Memory.new'OutPt()
-            newOp.idx  = outRec.idx
-            newOp.pt   = pt
-            newOp.next = op
-            newOp.prev = op.prev
+            newOp.idx                = outRec.idx
+            newOp.pt                 = pt
+            newOp.next               = op
+            newOp.prev               = op.prev
             nnOutPt(newOp.prev).next = newOp
-            op.prev = newOp
+            op.prev                  = newOp
             if toFront do
                 outRec.pts = newOp
             return newOp
@@ -2522,7 +2522,7 @@ impl Transform
     mtd addLocalMinPoly(e1, e2: *Edge, pt: IntPoint)->*OutPt
     {
         var result: *OutPt = undefined
-        var e:      *Edge = undefined
+        var e:      *Edge  = undefined
         var prevE:  #null *Edge
 
         if isHorizontal(e2) or (e1.dx > e2.dx)
@@ -2665,8 +2665,8 @@ impl Transform
     func getBottomPt(pp1: *OutPt)->*OutPt
     {
         var dups: #null *OutPt
-        var pp   = pp1
-        var p    = nnOutPt(pp.next)
+        var pp = pp1
+        var p  = nnOutPt(pp.next)
         while p != pp
         {
             if p.pt.y > pp.pt.y
@@ -3176,14 +3176,14 @@ impl Transform
 
     func disposeOutPts(pts:           #null *OutPt)
     {
-        var pp   = pts
+        var pp = pts
         if !pp do
             return
 
         nnOutPt(pp.prev).next = null
         while pp
         {
-            let tmppp   = pp
+            let tmppp = pp
             pp = pp.next
             Memory.delete(tmppp)
         }

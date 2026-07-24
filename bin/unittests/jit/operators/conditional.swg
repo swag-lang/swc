@@ -179,10 +179,10 @@ struct CondPair
 // A float selection consumed by an int conversion. The join register must be
 // float-classed: an integer join used to bit-reinterpret the branches and to
 // crash the x64 encoder on the conversion (int-int ConvertFloatToInt).
-var g_CondTrue       = true
-var g_Float15: f32   = 1.5
-var g_Float25: f32   = 2.5
-var g_Int42:   s32   = 42
+var g_CondTrue     = true
+var g_Float15: f32 = 1.5
+var g_Float25: f32 = 2.5
+var g_Int42:   s32 = 42
 
 #test
 {
@@ -220,7 +220,7 @@ var g_CondSt: CondSt
     func takeF(x: f32)->f32 { return x }
     func retF(c: bool, i: s32)->f32 { return c ? i : 200 }
 
-    let p = &g_CondSt
+    let p      = &g_CondSt
     let f: f32 = p ? p.col : 200
     @assert(f == 200.0)
 

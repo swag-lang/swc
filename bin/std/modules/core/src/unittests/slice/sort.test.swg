@@ -20,7 +20,7 @@ func assertIntSlice(values: const [..] s32, expected: const [..] s32)->bool
 #test
 {
     let backing: [1] s32 = [42]
-    let empty = @mkslice(@dataof(backing), 0)
+    let empty            = @mkslice(@dataof(backing), 0)
 
     @assert(Slice.isSorted(empty))
     @assert(Slice.isSorted(empty, func(lhs, rhs: s32)->s32 => rhs <=> lhs))

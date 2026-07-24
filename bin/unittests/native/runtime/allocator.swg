@@ -65,7 +65,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     if @jit() do
         return
 
-    let allocator = @getcontext().allocator
+    let allocator  = @getcontext().allocator
     let runtimeItf = cast(const *Swag.Interface) &allocator
     @assert(runtimeItf.obj == defaultAllocator())
 }
@@ -75,9 +75,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     if @jit() do
         return
 
-    let alloc = defaultAllocator()
+    let alloc       = defaultAllocator()
     let beforeCount = alloc.countAlloc
-    let beforeSize = alloc.sizeAlloc
+    let beforeSize  = alloc.sizeAlloc
 
     var req: AllocatorRequest
     req.size = 80
@@ -114,9 +114,9 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     if @jit() do
         return
 
-    let alloc = defaultAllocator()
+    let alloc       = defaultAllocator()
     let beforeCount = alloc.countAlloc
-    let beforeSize = alloc.sizeAlloc
+    let beforeSize  = alloc.sizeAlloc
 
     var reqs: [12] AllocatorRequest
     for [i] in 12
@@ -797,7 +797,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         let first = req.address
         @assert(first != null)
 
-        var done:    s32 = 0
+        var done:    s32                        = 0
         var payload: AllocatorRemoteFreePayload = undefined
         payload.allocator = itf
         payload.address   = notnull first
@@ -831,7 +831,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         let first = req.address
         @assert(first != null)
 
-        var done:    s32 = 0
+        var done:    s32                        = 0
         var payload: AllocatorRemoteFreePayload = undefined
         payload.allocator = itf
         payload.address   = notnull first

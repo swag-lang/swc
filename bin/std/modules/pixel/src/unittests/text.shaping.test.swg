@@ -12,8 +12,8 @@ func makeShapingTestFont()->*Font
 
 #test
 {
-    let font = makeShapingTestFont()
-    let text = "A\u00E9"
+    let font   = makeShapingTestFont()
+    let text   = "A\u00E9"
     var shaped = Painter.shapeRun(text, font)
 
     @assert(shaped.font == font)
@@ -36,15 +36,15 @@ func makeShapingTestFont()->*Font
     @assert(Math.isEqualEpsilon(measured.width, shaped.metrics.width, 0.001))
     @assert(Math.isEqualEpsilon(measured.height, shaped.metrics.height, 0.001))
 
-    let normalABC = Painter.shapeRun("ABC", font)
-    let spacedABC = Painter.shapeRun("ABC", font, 4, 1.5'f32)
+    let normalABC         = Painter.shapeRun("ABC", font)
+    let spacedABC         = Painter.shapeRun("ABC", font, 4, 1.5'f32)
     let measuredSpacedABC = Painter.measureString("ABC", font, 4, 1.5'f32)
     @assert(spacedABC.metrics.width > normalABC.metrics.width + 2.9)
     @assert(Math.isEqualEpsilon(measuredSpacedABC.width, spacedABC.metrics.width, 0.001))
     @assert(spacedABC.letterSpacing == 1.5'f32)
 
     let spaces = Painter.shapeRun("    ", font)
-    let tab = Painter.shapeRun("\t", font)
+    let tab    = Painter.shapeRun("\t", font)
     @assert(tab.glyphs.count == 1)
     @assert(tab.glyphs[0].isTab)
     @assert(!tab.hasInk)
@@ -64,7 +64,7 @@ func makeShapingTestFont()->*Font
     @assert(reshapedTab.tabSize == 8)
     @assert(reshapedTab.glyphs[0].isTab)
 
-    let largeFont = Font.create(font.cache.typeFace, 48, .Bitmap)
+    let largeFont            = Font.create(font.cache.typeFace, 48, .Bitmap)
     var richText: RichString = "<b>A</b>\nA"
     var format:   RichStringFormat
     format.font.regular = font
@@ -107,7 +107,7 @@ func makeShapingTestFont()->*Font
 
     var lineBreaks: RichString = "A\r\nB\rC\nD"
     lineBreaks.compute()
-    var eolCount = 0
+    var eolCount   = 0
     var spaceCount = 0
     for &chunk in lineBreaks.chunks
     {

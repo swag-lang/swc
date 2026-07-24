@@ -10,7 +10,7 @@ for efficient integer operations at varying levels of precision.
 */
 #test
 {
-    let a: s8 = -1      // 8-bit signed integer, range: -128 to 127
+    let a: s8  = -1     // 8-bit signed integer, range: -128 to 127
     let b: s16 = -2     // 16-bit signed integer, range: -32,768 to 32,767
     let c: s32 = -3     // 32-bit signed integer, range: -2^31 to 2^31-1
     let d: s64 = -4     // 64-bit signed integer, range: -2^63 to 2^63-1
@@ -35,7 +35,7 @@ counting, indexing, and other operations where negative numbers are not applicab
 */
 #test
 {
-    let a: u8 = 1      // 8-bit unsigned integer, range: 0 to 255
+    let a: u8  = 1     // 8-bit unsigned integer, range: 0 to 255
     let b: u16 = 2     // 16-bit unsigned integer, range: 0 to 65,535
     let c: u32 = 3     // 32-bit unsigned integer, range: 0 to 2^32-1
     let d: u64 = 4     // 64-bit unsigned integer, range: 0 to 2^64-1
@@ -136,7 +136,7 @@ improving reusability and reducing redundancy.
 */
 #test
 {
-    let a  = 0                  // Type of 'a' inferred as 's32'
+    let a               = 0     // Type of 'a' inferred as 's32'
     let b: #decltype(a) = 1     // 'b' declared with same type as 'a'
 
     @assert(#typeof(a) == #typeof(b))

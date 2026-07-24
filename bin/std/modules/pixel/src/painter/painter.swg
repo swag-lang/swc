@@ -87,10 +87,10 @@ enum BlendingMode
 
 struct PaintState
 {
-    paintParams:       PaintParams = Default
-    paintQuality:      PaintQuality = Normal
+    paintParams:       PaintParams       = Default
+    paintQuality:      PaintQuality      = Normal
     transform:         Transform2
-    blendingMode:      BlendingMode = Alpha
+    blendingMode:      BlendingMode      = Alpha
     interpolationMode: InterpolationMode = .Pixel
     clippingRect:      Math.Rectangle
     stackClipRect:     Array'Math.Rectangle
@@ -152,9 +152,9 @@ struct Command
         {
             boundRect:         Vector4
             textureRect:       Vector4
-            type:              BrushType = undefined
-            hatch:             HatchStyle = undefined
-            uvMode:            UVMode = undefined
+            type:              BrushType         = undefined
+            hatch:             HatchStyle        = undefined
+            uvMode:            UVMode            = undefined
             interpolationMode: InterpolationMode = undefined
             texture:           Texture
             gradientStart:     Vector2
@@ -163,7 +163,7 @@ struct Command
             gradientRadius1:   f32
             gradientAngle0:    f32
             gradientAngle1:    f32
-            gradientSpread:    GradientSpread = undefined
+            gradientSpread:    GradientSpread    = undefined
             gradientStops:     [MaxGradientStops] GradientStop
             gradientStopCount: u8
         }
@@ -405,7 +405,7 @@ impl Painter
                 return last
         }
 
-        let cmd                 = .newCommand(.DrawTriangles)
+        let cmd = .newCommand(.DrawTriangles)
         cmd.drawTriangles.start = cast(u32) .vertexBuffer.count
         cmd.drawTriangles.count = 0
         return cmd

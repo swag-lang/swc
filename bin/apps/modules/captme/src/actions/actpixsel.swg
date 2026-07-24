@@ -81,7 +81,7 @@ impl MainWnd
         var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms, argb: argb}
         undo.newImg.visitPixels(&params)
         {
-            var p = cast(*#decltype(params)) notnull userData
+            var p          = cast(*#decltype(params)) notnull userData
             let boundRects = notnull p.boundRects
             for f, [idx] in dref p.forms
             {
@@ -182,7 +182,7 @@ impl MainWnd
         var params = {capture: capture, infos: infos.buffer, forms: &forms, masks: masks}
         undo.newImg.visitPixels(&params)
         {
-            var p = cast(*#decltype(params)) notnull userData
+            var p     = cast(*#decltype(params)) notnull userData
             let infos = notnull p.infos
             for f, [idx] in dref p.forms
             {

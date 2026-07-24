@@ -176,7 +176,7 @@ func isOrderedUpdate(scenario: const &PrintQueueScenario, update: const &Update)
         var beforeIndex: u32
         var afterIndex:  u32
         let hasBefore = findPageIndex(&beforeIndex, update, rule.before)
-        let hasAfter = findPageIndex(&afterIndex, update, rule.after)
+        let hasAfter  = findPageIndex(&afterIndex, update, rule.after)
 
         if hasBefore and hasAfter and beforeIndex > afterIndex do
             return false
@@ -273,7 +273,7 @@ func auditQueue(result: &QueueAudit, scenario: const &PrintQueueScenario)
 #test
 {
     var update: Update = {count: 3'u32, pages: [75, 47, 61, 0, 0]}
-    let first = update[0]
+    let first          = update[0]
     writePage(&update.pages[1], 53)
 
     var copied: Update

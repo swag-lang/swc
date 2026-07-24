@@ -37,8 +37,8 @@ impl RefCountedBySpecOp
 
 #assert(@countof(CountedBySpecOp{}) == 9)
 
-const ZERO_SIZED_VALUES: [3] ZeroSized       = [{}, {}, {}]
-const ZERO_SIZED_SLICE: const [..] ZeroSized = cast(const [..] ZeroSized) ZERO_SIZED_VALUES
+const ZERO_SIZED_VALUES: [3] ZeroSized        = [{}, {}, {}]
+const ZERO_SIZED_SLICE:  const [..] ZeroSized = cast(const [..] ZeroSized) ZERO_SIZED_VALUES
 #assert(@countof(ZERO_SIZED_SLICE) == 3)
 
 namespace NS {}
@@ -144,14 +144,14 @@ func loopUnsignedRef(value: &u32)->u32
 
 func semaTest005()
 {
-    var text = "hello"
+    var text             = "hello"
     var textRef: &string = &text
     #assert(#typeof(@countof(textRef)) == u64)
     #assert(#typeof(countStringRef(textRef)) == u64)
     #assert(#typeof(loopStringRef(textRef)) == u64)
 
-    var cstrData: [4] u8 = ['a''u8, 'b''u8, 'c''u8, 0]
-    var cstr:     cstring = cast(cstring) &cstrData[0]
+    var cstrData: [4] u8   = ['a''u8, 'b''u8, 'c''u8, 0]
+    var cstr:     cstring  = cast(cstring) &cstrData[0]
     var cstrRef:  &cstring = &cstr
     #assert(#typeof(@countof(cstrRef)) == u64)
     #assert(#typeof(countCStringRef(cstrRef)) == u64)
@@ -161,25 +161,25 @@ func semaTest005()
     var arrayRef: &[2, 3] u8 = &array
     #assert(@countof(arrayRef) == 6)
 
-    var flat: [6] u8
-    let slice = cast([..] u8) flat
+    var flat:     [6] u8
+    let slice                    = cast([..] u8) flat
     var sliceRef: const &[..] u8 = &slice
     #assert(#typeof(@countof(sliceRef)) == u64)
     #assert(#typeof(countSliceRef(sliceRef)) == u64)
     #assert(#typeof(loopSliceRef(sliceRef)) == u64)
 
-    var number:    u32 = 4
+    var number:    u32  = 4
     var numberRef: &u32 = &number
     #assert(#typeof(@countof(numberRef)) == u32)
     #assert(#typeof(countUnsignedRef(numberRef)) == u32)
     #assert(#typeof(loopUnsignedRef(numberRef)) == u32)
 
-    var kind = RefCountKind.B
+    var kind                   = RefCountKind.B
     var kindRef: &RefCountKind = &kind
     #assert(@countof(kindRef) == 4)
     #assert(#typeof(countEnumRef(kindRef)) == u64)
 
-    let spec = RefCountedBySpecOp{count: 11}
+    let spec                               = RefCountedBySpecOp{count: 11}
     let specRef: const &RefCountedBySpecOp = &spec
     #assert(@countof(specRef) == 11)
     #assert(#typeof(countSpecOpRef(specRef)) == u64)

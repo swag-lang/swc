@@ -488,7 +488,7 @@ impl String
     {
         .grow(.length + 2)
         let buffer = notnull .buffer
-        var ptr = cast(*u16) (buffer + .length)
+        var ptr    = cast(*u16) (buffer + .length)
         dref ptr = value
         .length  += 1
     }
@@ -498,13 +498,13 @@ impl String
     {
         Debug.assert(Utf8.isValidRune(value), "invalid rune")
         var tmp: [4] u8
-        let eat  = Utf8.encodeRune(tmp, value)
+        let eat = Utf8.encodeRune(tmp, value)
         .grow(.length + eat + 1)
         let buffer = notnull .buffer
         for [i] in eat do
             buffer[.length + i] = tmp[i]
-        .length         += eat
-        buffer[.length] = 0
+        .length                 += eat
+        buffer[.length]         = 0
     }
 
     // Append a string to the String

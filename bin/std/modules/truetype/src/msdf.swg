@@ -309,8 +309,8 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
         epy = s.y1
     }
 
-    let eqx = epx - px
-    let eqy = epy - py
+    let eqx          = epx - px
+    let eqy          = epy - py
     let endpointDist = Math.sqrt(eqx * eqx + eqy * eqy)
 
     if param > 0 and param < 1

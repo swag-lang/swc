@@ -106,7 +106,7 @@ func mapProbe(m: *StoneMap, key: u64)->u32
     var h = key ^ (key >> 16)
     h *= 0x45D9F3B
     h ^= h >> 16
-    var idx = cast(u32) (h % cast(u64) MapCap)
+    var idx   = cast(u32) (h % cast(u64) MapCap)
     let alive = notnull m.alive
     let keys  = notnull m.keys
     for MapCap
@@ -246,9 +246,9 @@ func mapFromValues(values: u64...)->StoneMap
 func parseInput(text: string)->StoneMap
 {
     var result: retval = mapInit()
-    let bytes = cast(const [..] u8) text
-    var acc: u64
-    var inNum = false
+    let bytes          = cast(const [..] u8) text
+    var acc:    u64
+    var inNum          = false
 
     for @countof(bytes)
     {
@@ -364,7 +364,7 @@ func solve(text: string)->BlinkResult
     @assert(!mapIsEmpty(&m))
 
     var zero: u64 = 0
-    let p = mapLookup(&m, 42) orelse &zero
+    let p         = mapLookup(&m, 42) orelse &zero
     @assert(dref p == 5'u64)
 
     let q = mapLookup(&m, 999) orelse &zero
@@ -397,8 +397,8 @@ func solve(text: string)->BlinkResult
     mapAdd(&m, 20, 3)
 
     var sum: u64 = 0
-    let pSum = &sum
-    let cb: StoneVisitor = func|pSum|(key: u64, count: u64)
+    let pSum     = &sum
+    let cb:  StoneVisitor = func|pSum|(key: u64, count: u64)
     {
         dref pSum += key * count
     }
@@ -433,8 +433,8 @@ func solve(text: string)->BlinkResult
     @assert(mapTotal(&b) == 2'u64)
 
     var zero: u64 = 0
-    let p12 = mapLookup(&b, 12)
-    let p34 = mapLookup(&b, 34)
+    let p12       = mapLookup(&b, 12)
+    let p34       = mapLookup(&b, 34)
     @assert(p12 != null)
     @assert(p34 != null)
     @assert(dref (p12 orelse &zero) == 1'u64)

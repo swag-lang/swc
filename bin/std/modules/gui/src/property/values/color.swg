@@ -15,7 +15,7 @@ impl Properties
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
         let editAlpha = !opaque and !keepAlpha
 
-        var width       = cast(f32) Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
+        var width = cast(f32) Reflection.getAttributeValue(value, .EditSize, "size", .sizeEditValue)
         if !.isGridLike() do
             width = .listContentWidthFromUseful(width)
         const MarginBtn = 4

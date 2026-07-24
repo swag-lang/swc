@@ -98,7 +98,7 @@ using Swag, Core
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 200})
     stack.spacing = 0
     let fixed = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
-    let grow = Wnd.create'Wnd(stack, null, {0, 0, 200, 20})
+    let grow  = Wnd.create'Wnd(stack, null, {0, 0, 200, 20})
     grow.layoutSpec.policyY = SizePolicy.Expand
     grow.layoutSpec.weightY = 1
     stack.computeLayout()

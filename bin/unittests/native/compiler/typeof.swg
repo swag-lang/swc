@@ -41,7 +41,7 @@ const TYPEOF_FUNC = cast(const *Swag.TypeInfoFunc) #typeof(#type func(s32)->bool
 #test
 {
     var local = 1 + 1'u16
-    var ptr = cast(#null *u8) null
+    var ptr   = cast(#null *u8) null
 
     #assert(#typeof(local) == u32)
     #assert(#typeof(ptr) == #null *u8)

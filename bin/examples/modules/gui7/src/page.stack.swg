@@ -49,7 +49,7 @@ func createSliderStack(parent: *Wnd, rect: Math.Rectangle)
     stack.spacing = 12
 
     let width = Math.max(rect.width - 36, 280.0)
-    let row1 = SliderCtrl.create(stack, "Left", {0, 0, width, 32})
+    let row1  = SliderCtrl.create(stack, "Left", {0, 0, width, 32})
     row1.setMinMaxF32(120, 360)
     row1.setValueNoChange(220)
     let row2 = SliderCtrl.create(stack, "Center", {0, 0, width, 32})

@@ -60,7 +60,7 @@
 #test
 {
     var closures: [3] func||()->s32 = undefined
-    var i = 0
+    var i                           = 0
     while i < 3
     {
         let captured = i

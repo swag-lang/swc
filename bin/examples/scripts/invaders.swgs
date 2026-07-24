@@ -26,8 +26,8 @@ var g_DataPath: String
 var g_Painter:  #null *Painter
 
 var g_MoveAlienDirection: f32 = 1
-var g_NumAlienLasers      = 0
-var g_Score               = 0
+var g_NumAlienLasers          = 0
+var g_Score                   = 0
 
 var g_ExtraImg:  Texture
 var g_GreenImg:  Texture
@@ -272,6 +272,7 @@ func startGame()
 func display()
 {
     let painter = notnull g_Painter
+
     // Aliens
     for alien in g_Aliens where !alien.dead do
         painter.drawTexture(alien.x, alien.y, dref alien.type)

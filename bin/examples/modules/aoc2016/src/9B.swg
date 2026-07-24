@@ -28,7 +28,7 @@ func day9B()
     sum.resize(line.length)
     sum.fill(1)
 
-    var r = assume Parser.RegExp.create(#"\((\d+)x(\d+)\)"#)
+    var r            = assume Parser.RegExp.create(#"\((\d+)x(\d+)\)"#)
     var start, total = 0'u64
     while start != @countof(line)
     {

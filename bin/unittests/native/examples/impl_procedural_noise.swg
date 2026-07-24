@@ -149,7 +149,7 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
     var rng: GardenRng
     rng.seed(seed)
 
-    let terrainSeed = cast(s32) seed
+    let terrainSeed  = cast(s32) seed
     let moistureSeed = cast(s32) seed + 911
 
     var result: GardenPlanSummary
@@ -160,15 +160,15 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
 
         for [column] in 4
         {
-            let x = cast(f32) column
-            let jitterX = rng.nextF32(-0.35'f32, 0.35'f32)
-            let jitterY = rng.nextF32(-0.35'f32, 0.35'f32)
+            let x             = cast(f32) column
+            let jitterX       = rng.nextF32(-0.35'f32, 0.35'f32)
+            let jitterY       = rng.nextF32(-0.35'f32, 0.35'f32)
             let terrainHeight = fractalNoise(x + jitterX, y + jitterY, terrainSeed)
             let moistureLevel = fractalNoise(x - jitterY, y + jitterX, moistureSeed)
-            let sunlight = rng.nextF32(0.75'f32, 1.25'f32)
-            let terrainMark = cast(s32) ((terrainHeight + 1.0'f32) * 1000.0'f32)
-            let moistureMark = cast(s32) ((moistureLevel + 1.0'f32) * 1000.0'f32)
-            let sunlightMark = cast(s32) (sunlight * 1000.0'f32)
+            let sunlight      = rng.nextF32(0.75'f32, 1.25'f32)
+            let terrainMark   = cast(s32) ((terrainHeight + 1.0'f32) * 1000.0'f32)
+            let moistureMark  = cast(s32) ((moistureLevel + 1.0'f32) * 1000.0'f32)
+            let sunlightMark  = cast(s32) (sunlight * 1000.0'f32)
             result.layoutSignature += terrainMark * 3 + moistureMark * 5 + sunlightMark * 7 + row * 11 + column * 13
 
             if terrainHeight < -0.30'f32
@@ -223,7 +223,7 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
 {
     let springLayoutA = buildGardenPlan(0x00C0FFEE'u32)
     let springLayoutB = buildGardenPlan(0x00C0FFEE'u32)
-    let autumnLayout = buildGardenPlan(0x0BADF00D'u32)
+    let autumnLayout  = buildGardenPlan(0x0BADF00D'u32)
 
     @assert(sameSummary(springLayoutA, springLayoutB))
     @assert(sameSummary(springLayoutA, autumnLayout) == false)

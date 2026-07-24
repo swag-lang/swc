@@ -410,7 +410,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 // Encode a BGR8 image: alpha is filled opaque.
 #test
 {
-    var src = Image.create(1, 1, .BGR8)
+    var src    = Image.create(1, 1, .BGR8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 10'u8
     srcBuf[1] = 20'u8
@@ -432,7 +432,7 @@ func encodePng(result: *ConcatBuffer, image: Image) throw
 // Encode an RGBA8 image: channels are swapped to BGRA on disk.
 #test
 {
-    var src = Image.create(1, 1, .RGBA8)
+    var src    = Image.create(1, 1, .RGBA8)
     let srcBuf = notnull src.pixels.buffer
     srcBuf[0] = 30'u8     // R
     srcBuf[1] = 20'u8     // G

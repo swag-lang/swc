@@ -258,7 +258,7 @@ impl Undo
                 if !.acceptsType(@kindof(itf)) do
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
-                let save = cast(*BaseForm) notnull Memory.new(mdlType)
+                let save    = cast(*BaseForm) notnull Memory.new(mdlType)
                 itf.copy(save, form)
                 .oldForm.add(save)
             }
@@ -351,7 +351,7 @@ impl Undo
             if srcIdx == dstIdx do
                 return
             let capture = notnull .capture
-            let form = capture.forms[srcIdx]
+            let form    = capture.forms[srcIdx]
             capture.forms.removeAtOrdered(srcIdx)
             capture.forms.insertAt(dstIdx, form)
             capture.selection.remove(srcIdx)
@@ -451,7 +451,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np = .text
+                dref np           = .text
                 dref (notnull sp) = .fontStyle
                 formFontDirty(itf)
             }
@@ -673,7 +673,7 @@ impl Undo
                 let sp = formFontStylePtr(itf)
                 if !np do
                     continue
-                dref np = .oldText[idx]
+                dref np           = .oldText[idx]
                 dref (notnull sp) = cast() .oldU32[idx]
                 formFontDirty(itf)
             }

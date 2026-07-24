@@ -87,9 +87,9 @@ func compactMutationWhile(text: string)->u64
         }
     }
 
-    var last = map.count - #wrap 1
+    var last  = map.count - #wrap 1
     let bound = map.count
-    var i = 0'u64
+    var i     = 0'u64
     while i < bound
     {
         if map[i].what != MutationFreeSpanId

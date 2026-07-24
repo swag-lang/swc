@@ -52,9 +52,9 @@ impl RecursiveAssocTable
         if .table == null do
             return
 
-        let oldTable = .table
+        let oldTable    = .table
         let oldCapacity = .capacity
-        let newTable = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
+        let newTable    = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
         .table = newTable
 
         for [i] in oldCapacity
@@ -92,7 +92,7 @@ impl RecursiveAssocTable
         if reqCapacity <= .capacity do
             return
 
-        let oldTable = .table
+        let oldTable    = .table
         let oldCapacity = .capacity
 
         let newTable = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
@@ -161,7 +161,7 @@ impl RecursiveAssocTable
             return null
 
         let hashVal = recursiveHash(cast(u32) key)
-        var index = hashVal % .capacity
+        var index   = hashVal % .capacity
         while .table[index].hash
         {
             if .table[index].hash == hashVal and .table[index].key == key do

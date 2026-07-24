@@ -12,7 +12,7 @@
 // null assignment and comparison
 #test
 {
-    var v: s32 = 42
+    var v: s32        = 42
     var p: #null *s32 = &v
 
     @assert(p != null)
@@ -68,7 +68,7 @@
 #test
 {
     var a: *s32 = undefined
-    var v: s32 = 99
+    var v: s32  = 99
     a = &v
     @assert(dref a == 99)
 }

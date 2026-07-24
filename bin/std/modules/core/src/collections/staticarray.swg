@@ -191,7 +191,7 @@ impl StaticArray
         }
         else
         {
-            let data = cast([*] T) &.buffer[0]
+            let data         = cast([*] T) &.buffer[0]
             let droppedCount = .count - newCount
             @drop(data + newCount, droppedCount)
             @init(data + newCount, droppedCount)
@@ -598,7 +598,7 @@ impl StaticArray
     {
         Debug.assert(.count > 0, "array is empty")
         var result: retval = undefined
-        let backIndex = .count - 1
+        let backIndex      = .count - 1
         result = #relocate .buffer[backIndex]
         #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {

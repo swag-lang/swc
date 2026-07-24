@@ -45,14 +45,14 @@ struct EditBox
 {
     using wnd: Wnd     // Base window interface
 
-    icon: Icon                                             // Optional icon shown on the left
-    text: String                                           // Current UTF‑8 text content
-    unit: String                                           // Suffix unit (e.g. "kg")
-    form                  = EditBoxForm.Square             // Visual form of the EditBox
-    editBoxFlags          = EditBoxFlags.AutoLoseFocus     // Active behaviour flags
-    inputMode             = EditBoxInputMode.String        // Current input mode
-    maxLength:   s32                                       // Maximum number of runes (0 = unlimited)
-    rightMargin: f32                                       // Extra right margin inside the client rectangle
+    icon:        Icon                             // Optional icon shown on the left
+    text:        String                           // Current UTF‑8 text content
+    unit:        String                           // Suffix unit (e.g. "kg")
+    form         = EditBoxForm.Square             // Visual form of the EditBox
+    editBoxFlags = EditBoxFlags.AutoLoseFocus     // Active behaviour flags
+    inputMode    = EditBoxInputMode.String        // Current input mode
+    maxLength:   s32                              // Maximum number of runes (0 = unlimited)
+    rightMargin: f32                              // Extra right margin inside the client rectangle
 
     sigChanged:       SigArray'func||(*EditBox)                      // Emitted when the text changes
     sigLoseFocus:     SigArray'func||(*EditBox)                      // Emitted when the EditBox loses focus
@@ -604,7 +604,7 @@ private impl EditBox
 
         // Convert rune to UTF‑8.
         var utf8: [5] u8
-        let cpt   = Utf8.fromUnicode(utf8, [r])
+        let cpt = Utf8.fromUnicode(utf8, [r])
         if !cpt do
             return
         utf8[cpt] = 0

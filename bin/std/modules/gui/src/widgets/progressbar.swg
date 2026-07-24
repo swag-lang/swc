@@ -13,7 +13,7 @@ struct ProgressBar
 {
     using wnd: Wnd
 
-    prgBarFlags      = ProgressBarFlags.Zero
+    prgBarFlags = ProgressBarFlags.Zero
     progression: f32
 }
 

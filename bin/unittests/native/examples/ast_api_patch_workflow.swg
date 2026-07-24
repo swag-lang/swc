@@ -75,7 +75,7 @@ func(T) clearPatch(patch: &ApiPatch'T)
     #ast
     {
         var buffer: [4096] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {
@@ -94,7 +94,7 @@ func(T) capturePatch(patch: &ApiPatch'T, value: const &T)
     #ast
     {
         var buffer: [4096] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {
@@ -119,7 +119,7 @@ func(T) patchChangedCount(patch: const &ApiPatch'T)->s32
     #ast
     {
         var buffer: [4096] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {
@@ -138,11 +138,11 @@ func(T) patchChangedCount(patch: const &ApiPatch'T)->s32
 func(T) patchChangedMask(patch: const &ApiPatch'T)->u64
 {
     var mask = 0'u64
-    var bit = 1'u64
+    var bit  = 1'u64
     #ast
     {
         var buffer: [4096] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {
@@ -165,7 +165,7 @@ func(T) applyPatch(patch: const &ApiPatch'T, base: T)->T
     #ast
     {
         var buffer: [4096] u8
-        var len = 0'u64
+        var len        = 0'u64
         let typeStruct = cast(const *Swag.TypeInfoStruct) #typeof(T)
         for field in typeStruct.fields
         {

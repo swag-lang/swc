@@ -33,7 +33,7 @@ func fallbackString()->string
 {
     GNullShortCounter = 0
     var ptr: #null *s32 = null
-    let value = ptr orelse fallbackPointer()
+    let value           = ptr orelse fallbackPointer()
     @assert(value == &GNullShortValue)
     @assert(dref value == 33)
     @assert(GNullShortCounter == 1)
@@ -43,7 +43,7 @@ func fallbackString()->string
 {
     GNullShortCounter = 0
     let value: string = "ok"
-    let resolved = value orelse fallbackString()
+    let resolved      = value orelse fallbackString()
     @assert(resolved == "ok")
     @assert(GNullShortCounter == 0)
 }
@@ -52,7 +52,7 @@ func fallbackString()->string
 {
     GNullShortCounter = 0
     var value: #null string = null
-    let resolved = value orelse fallbackString()
+    let resolved            = value orelse fallbackString()
     @assert(resolved == "fallback")
     @assert(GNullShortCounter == 1)
 }

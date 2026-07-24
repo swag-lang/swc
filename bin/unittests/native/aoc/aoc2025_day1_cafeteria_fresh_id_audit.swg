@@ -89,8 +89,8 @@ func auditFreshIds(rangeLines: const [..] string, availableIds: const [..] u32)-
 
 #test
 {
-    const sampleRanges: [4] string = ["3-5", "10-14", "16-20", "12-18"]
-    const sampleAvailable: [6] u32 = [1, 5, 8, 11, 17, 32]
+    const sampleRanges:    [4] string = ["3-5", "10-14", "16-20", "12-18"]
+    const sampleAvailable: [6] u32    = [1, 5, 8, 11, 17, 32]
 
     let sampleAudit = auditFreshIds(sampleRanges, sampleAvailable)
 
@@ -100,8 +100,8 @@ func auditFreshIds(rangeLines: const [..] string, availableIds: const [..] u32)-
     @assert(sampleAudit.spoiledCount == 3'u32)
     @assert(sampleAudit.overlappingFresh == 1'u32)
 
-    const pantryRanges: [4] string = ["20-25", "30-32", "32-35", "100-110"]
-    const pantryAvailable: [7] u32 = [19, 20, 24, 32, 34, 105, 999]
+    const pantryRanges:    [4] string = ["20-25", "30-32", "32-35", "100-110"]
+    const pantryAvailable: [7] u32    = [19, 20, 24, 32, 34, 105, 999]
 
     let pantryAudit = auditFreshIds(pantryRanges, pantryAvailable)
 

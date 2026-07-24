@@ -68,7 +68,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
 
 #test
 {
-    let text = "A\u20AC\U0001F642"
+    let text              = "A\u20AC\U0001F642"
     let expected: [4] u16 = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [8] u16
@@ -84,7 +84,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
 #test
 {
     let runes:    [3] rune = ['A''rune, '\u20AC''rune, '\U0001F642''rune]
-    let expected: [4] u16 = [0x0041, 0x20AC, 0xD83D, 0xDE42]
+    let expected: [4] u16  = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [8] u16
     let count = Utf16.fromUnicode(dest, runes)
@@ -99,7 +99,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
 #test
 {
     let expected: [6] u16 = [0x0043, 0x0061, 0x0066, 0x00E9, 0xD83D, 0xDE42]
-    let zero = Utf16.toZeroTerminated("Caf\u00E9\U0001F642")
+    let zero              = Utf16.toZeroTerminated("Caf\u00E9\U0001F642")
 
     @assert(zero.count == 7)
     for [i] in @countof(expected) do

@@ -20,7 +20,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
     d.shift(cast(s32) exp - Swag.F64.MantBits)
 
     var digs: DecimalSlice = undefined
-    let shortest = prec < 0
+    let shortest           = prec < 0
     if shortest
     {
         roundShortest(&d, mant, exp)

@@ -107,8 +107,8 @@
 {
     func divInterleavedShift(a: u32, b: u32, c: u32)->u32
     {
-        var q:  u32  = a / b               // DIV: a=24, b=6 → q=4 (RAX); RDX clobbered
-        var s:  u32  = c >> q              // SHL: q→CL;  128 >> 4 = 8
+        var q:  u32 = a / b                // DIV: a=24, b=6 → q=4 (RAX); RDX clobbered
+        var s:  u32 = c >> q               // SHL: q→CL;  128 >> 4 = 8
         var q2: u32 = c / b                // DIV: RAX reused; 128/6=21; RDX clobbered
         var s2: u32 = a << (q - 1'u32)     // SHL: (q-1)→CL=3; 24 << 3 = 192
         return s + q + q2 + s2             // 8 + 4 + 21 + 192 = 225
@@ -151,9 +151,9 @@
 {
     func mulDivChain(a: u32, b: u32, c: u32)->u32
     {
-        var p:  u32  = a * b      // MUL: a=7, b=8 → p=56 (RDX:RAX; high bits zero)
-        var q:  u32  = p / c      // DIV: p=56, c=5 → q=11 (RAX); RDX clobbered
-        var r:  u32  = p % c      // DIV: p=56, c=5 → r=1  (RDX)
+        var p:  u32 = a * b       // MUL: a=7, b=8 → p=56 (RDX:RAX; high bits zero)
+        var q:  u32 = p / c       // DIV: p=56, c=5 → q=11 (RAX); RDX clobbered
+        var r:  u32 = p % c       // DIV: p=56, c=5 → r=1  (RDX)
         var p2: u32 = q * c       // MUL: 11 * 5 = 55 (RAX; q,r live → spill pressure)
         return p + q + r + p2     // 56 + 11 + 1 + 55 = 123
     }

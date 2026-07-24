@@ -143,7 +143,7 @@ struct ShapedRun
     metrics:       StringMetrics
     inkBounds:     Math.Rectangle
     hasInk:        bool
-    tabSize:       u32 = DefaultTextTabSize
+    tabSize:       u32   = DefaultTextTabSize
     letterSpacing: f32
 }
 
@@ -157,17 +157,17 @@ public struct TextDrawInfo
 struct RichStringFormat
 {
     font:          FontFamily
-    fontStyle:     FontFamilyStyle = Regular
-    palette:       [4] Color                              // Color of text between <p?>...<p?> markers
-    colorUrl:      Color = Color.fromArgb(Argb.White)     // Color of text between <url>...<url> markers
-    colorHotUrl:   Color = Color.fromArgb(Argb.Blue)      // Color of text between <url>...<url> markers when mouse is inside
+    fontStyle:     FontFamilyStyle     = Regular
+    palette:       [4] Color                                            // Color of text between <p?>...<p?> markers
+    colorUrl:      Color               = Color.fromArgb(Argb.White)     // Color of text between <url>...<url> markers
+    colorHotUrl:   Color               = Color.fromArgb(Argb.Blue)      // Color of text between <url>...<url> markers when mouse is inside
     brush:         Brush
     horzAlignment: StringHorzAlignment = Left
     vertAlignment: StringVertAlignment = Top
     lineGap:       s32
-    flags:         StringFormatFlags = Default
-    justifyLimit:  f32 = 2
-    tabSize:       u32 = DefaultTextTabSize
+    flags:         StringFormatFlags   = Default
+    justifyLimit:  f32                 = 2
+    tabSize:       u32                 = DefaultTextTabSize
     letterSpacing: f32
     minLineHeight: f32
     paragraphGap:  s32
@@ -180,7 +180,7 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
     glyph.desc       = font.getGlyphDescByIndex(glyphIndex)
     glyph.glyphIndex = glyphIndex
     glyph.cluster    = cluster
-    let desc          = glyph.desc
+    let desc = glyph.desc
     glyph.advanceX = isTab ? customAdvanceX : desc.advanceX
     glyph.advanceY = desc.advanceY
     glyph.isTab    = isTab
@@ -217,8 +217,8 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
 
 private func appendShapedTab(run: *ShapedRun, font: *Font, cluster: u64, tabSize: u32)
 {
-    let spaceGlyphIndex = font.glyphIndex(' ')
-    let spaceDesc       = font.getGlyphDescByIndex(spaceGlyphIndex)
+    let spaceGlyphIndex  = font.glyphIndex(' ')
+    let spaceDesc        = font.getGlyphDescByIndex(spaceGlyphIndex)
     var effectiveTabSize = tabSize
     if !effectiveTabSize do
         effectiveTabSize = 1
@@ -305,11 +305,11 @@ impl Painter
         result.glyphs.clear()
         result.glyphs.reserve(@countof(text))
 
-        var count = @countof(text)
-        var scan = @dataof(text)
-        var byteIdx = 0'u64
+        var count              = @countof(text)
+        var scan               = @dataof(text)
+        var byteIdx            = 0'u64
         var previousGlyphIndex = 0'u32
-        let letterSpacingRef = letterSpacing / font.scale()
+        let letterSpacingRef   = letterSpacing / font.scale()
 
         while count
         {
@@ -360,7 +360,7 @@ impl Painter
         result.glyphs.reserve(run.glyphs.count)
 
         var previousGlyphIndex = 0'u32
-        let letterSpacingRef = run.letterSpacing / font.scale()
+        let letterSpacingRef   = run.letterSpacing / font.scale()
         for glyph in run.glyphs
         {
             if glyph.isTab
@@ -412,8 +412,8 @@ impl Painter
         if !font do
             return result
         let localFont = font
-        let desc = localFont.getGlyphDesc(c)
-        let sc   = localFont.scale()
+        let desc      = localFont.getGlyphDesc(c)
+        let sc        = localFont.scale()
         result.x = desc.advanceX * sc
         result.y = (desc.shiftY + desc.height) * sc
         return result
@@ -549,7 +549,7 @@ impl Painter
         if !brush.hasVisibleAlpha() and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
             return
 
-        let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
+        let info       = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
         let isMsdf     = drawFont.cache.renderMode == .Msdf
@@ -563,7 +563,7 @@ impl Painter
         }
 
         let drawLeft = snapTextPosition(left, snapPixels)
-        let y = snapTextPosition(top + font.ascent * zoom, snapPixels)
+        let y        = snapTextPosition(top + font.ascent * zoom, snapPixels)
 
         switch drawFont.cache.renderMode
         {
@@ -704,8 +704,8 @@ impl Painter
         var lines: Array'OneLine
         var line:  OneLine
 
-        var startLine    = 0
-        var lastWasSpace = false
+        var startLine         = 0
+        var lastWasSpace      = false
         let defaultLineHeight = (notnull format.font.regular).height
         for &resetChunk in text.chunks do
             resetChunk.visible = false
@@ -886,7 +886,7 @@ impl Painter
         text.boundRect.y      = y
         text.boundRect.width  = 0
         text.boundRect.height = totalHeight
-        var boundRight        = Swag.F32.NegInf
+        var boundRight = Swag.F32.NegInf
 
         // Layout
         for &l, [idxLine] in lines

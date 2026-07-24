@@ -185,7 +185,7 @@ func semaTest004()
 func semaTest005()
 {
     var point = semaWithMakePoint()
-    var ptr = &point
+    var ptr   = &point
 
     with ptr
     {

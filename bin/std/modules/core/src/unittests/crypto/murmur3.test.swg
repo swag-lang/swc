@@ -39,7 +39,7 @@ func murmur3Reference(a, b: u32)->u32
 func murmur3Reference(a, b: u64)->u64
 {
     const K = 0x9DDF_EA08_EB38_2D69'u64
-    var na  = (a ^ b) * K
+    var na = (a ^ b) * K
     na ^= (na >> 47)
     var nb = (b ^ na) * K
     nb ^= (nb >> 47)
@@ -52,8 +52,8 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
     const M = 0xC6A4_A793_5BD1_E995'u64
     const R = 47
 
-    var h = seed ^ (len * M)
-    let data = cast(const [*] u64) key
+    var h       = seed ^ (len * M)
+    let data    = cast(const [*] u64) key
     let nblocks = len / 8
 
     for [i] in nblocks

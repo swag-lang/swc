@@ -31,7 +31,7 @@ func mixinCaller(stmt: #code)
 func runMacroValue()->bool
 {
     var reached = false
-    let value = macroValue(true)
+    let value   = macroValue(true)
     reached = true
     return reached and value == 11
 }
@@ -39,7 +39,7 @@ func runMacroValue()->bool
 func runMixinValue()->bool
 {
     var reached = false
-    let value = mixinValue(true)
+    let value   = mixinValue(true)
     reached = true
     return reached and value == 13
 }

@@ -420,7 +420,7 @@ private impl Tab
         .mostRightPos = Math.round(rect.x)
         for [idx] in .firstVisibleIdx until cast(u32) .views.count
         {
-            let v = notnull .views[idx]
+            let v    = notnull .views[idx]
             let left = Math.round(x)
             x += v.width
             let right = Math.round(x)
@@ -441,7 +441,7 @@ private impl Tab
             if !.buttonPopup
             {
                 let btnPopup = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.SortArrowDown), {})
-                .buttonPopup       = btnPopup
+                .buttonPopup        = btnPopup
                 btnPopup.form       = .Round
                 btnPopup.sigPressed += func|tab = me|(btn)
                 {
@@ -570,7 +570,7 @@ impl Tab
         let oldView = (notnull .views[.selectedIdx]).view
         if oldView do
             oldView.wndFlags |= .Hidden
-        .selectedIdx = idx
+        .selectedIdx         = idx
         let newView = (notnull .views[.selectedIdx]).view
         if newView do
             newView.wndFlags &= ~.Hidden

@@ -7,7 +7,7 @@ func aggregateStructArrayDigits(payloadIndex: u64)->s32
         {values: [9, 8, 7], bias: 5},
         ]
 
-    let payload = payloads[payloadIndex]
+    let payload     = payloads[payloadIndex]
     var digits: s32 = 0
     for value in payload.values
     {

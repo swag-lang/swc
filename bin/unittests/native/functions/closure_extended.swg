@@ -211,7 +211,7 @@ func runMePathCapture()->s32
     owner.target = &second
     owner.bias   = 100
 
-    let firstValue = cb()
+    let firstValue  = cb()
     let secondValue = cb()
     @assert(first.value == 13)
     @assert(second.value == 90)
@@ -221,7 +221,7 @@ func runMePathCapture()->s32
 func runInlineClosureCaptureExpr()->s32
 {
     var base = 6
-    let cb = makeInlineCapturedValue(base + 1)
+    let cb   = makeInlineCapturedValue(base + 1)
     base = 100
     return cb()
 }
@@ -320,7 +320,7 @@ func runInlineClosureCaptureRef()->s32
 
 #test
 {
-    var total = 4
+    var total  = 4
     var factor = 3
     let cb: func||(s32)->s32 = func|factor, &total|(value: s32)->s32
     {
@@ -388,7 +388,7 @@ func runInlineClosureCaptureRef()->s32
     let fromFunction = relayUnary(&addOne)
     @assert(fromFunction(4) == 5)
 
-    let offset = 10
+    let offset   = 10
     let captured = relayUnary(func|offset|(value: s32)->s32 { return value + offset })
     @assert(captured(4) == 14)
 }
@@ -432,7 +432,7 @@ func runInlineClosureCaptureRef()->s32
 #test
 {
     var receiver = MethodClosureReceiver{base: 7}
-    let cb = receiver.makeAdder(3)
+    let cb       = receiver.makeAdder(3)
     @assert(cb(&receiver, 5) == 15)
 }
 

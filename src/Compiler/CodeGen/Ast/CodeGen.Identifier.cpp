@@ -775,6 +775,16 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
     }
 
     codeGenIdentifierFromSymbol(codeGen, *symbol);
+
+    // '#late' global read guard: emit the null-read check when sema requested it (a value
+    // read that was not cleared by an assignment target, address-of or '@isset'). The
+    // global's payload is its storage address; the check panics if the value is null.
+    if (symbol->isVariable() && symbol->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
+    {
+        const CodeGenNodePayload* payload = codeGen.safePayload(codeGen.curNodeRef());
+        if (payload && payload->isAddress())
+            SWC_RESULT(CodeGenSafety::emitLateReadCheck(codeGen, codeGen.curNode(), payload->reg, symbol->cast<SymbolVariable>().typeRef()));
+    }
     return Result::Continue;
 }
 

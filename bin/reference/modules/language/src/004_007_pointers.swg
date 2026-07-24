@@ -125,6 +125,47 @@ nothing when the value is null.
 }
 
 /**
+# Deferred Initialization with `#late`
+
+A `#late` qualifier declares a **non-null** field or **global variable** whose storage
+starts unset (zero/null) and receives its value later — typically in a `#run` or `#init`
+block, or during setup. It replaces the `#null ... = null` + `notnull`-at-every-use
+pattern for values that are guaranteed to be set before first use but cannot be
+initialized at their declaration.
+
+The exposed type is non-null, so uses need no `notnull`; every read is guarded (a runtime
+null panic when still unset). `@isset` tests whether the value has been assigned, without
+reading it. `#late` requires a nullable-capable type (pointer, slice, `string`, `cstring`,
+interface, function): it uses the null bit pattern as the 'unset' sentinel. A local or
+parameter uses `= undefined` definite assignment instead.
+*/
+struct LateDocResource
+{
+    weight: s32
+}
+
+var g_lateDocStorage:  LateDocResource
+var g_lateDocResource: #late *LateDocResource     // non-null type, set later
+
+#run
+{
+    g_lateDocStorage.weight = 5
+    g_lateDocResource       = &g_lateDocStorage
+}
+
+#test
+{
+    // The type is non-null: no 'notnull', no null test needed at the use site.
+    #assert(#typeof(g_lateDocResource) == *LateDocResource)
+
+    // '@isset' confirms it was assigned (in the '#run' above).
+    @assert(@isset(g_lateDocResource))
+
+    // Guarded read yields the value directly.
+    @assert(g_lateDocResource.weight == 5)
+}
+
+/**
 # Taking the Address of a Variable
 
 The `&` operator returns the **address** of a variable, producing a pointer to it.

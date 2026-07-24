@@ -7,7 +7,9 @@ using Gui, Core, Pixel
 
 var g_Img:     Image
 var g_Texture: Texture
-var g_Font:    #null *Font
+// '#late': the font is created in the CreateEvent handler, non-null everywhere after.
+// The deferred-init global removes the '#null' + per-read 'notnull' boilerplate.
+var g_Font:    #late *Font
 
 func openImage(surface: #null *Surface)
 {
@@ -69,8 +71,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         const GrayRamp = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[?]?-_+~<>i!lI;:,\"^`\'. "
 
-        let font = notnull g_Font
-        let size = cast(f32) font.size * 0.8
+        let size = cast(f32) g_Font.size * 0.8
 
         for x in g_Img.width
         {
@@ -79,7 +80,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 let col = g_Img.getPixelColor(x, y)
                 let idx = Math.map(cast(f32) col.r, 0, 255, 0, cast(f32) @countof(GrayRamp))
                 let v   = @mkstring(@dataof(GrayRamp) + cast(s32) idx, 1)
-                painter.drawString(x * size, y * size, v, notnull g_Font, Argb.White)
+                painter.drawString(x * size, y * size, v, g_Font, Argb.White)
             }
         }
     }

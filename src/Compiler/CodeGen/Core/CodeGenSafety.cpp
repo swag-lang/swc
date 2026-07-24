@@ -527,15 +527,18 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
 
 // Guard for reading a '#late' struct field: the storage stays null until the
 // first assignment while the declared type is non-null.
-Result CodeGenSafety::emitLateFieldReadCheck(CodeGen& codeGen, const AstNode& node, MicroReg addrReg, TypeRef fieldTypeRef)
+// Guards a read of a '#late' field or global: the storage stays zero (null) until the
+// first assignment while the exposed type is non-null. Loads the value at 'addrReg' and
+// panics when it is still null.
+Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, MicroReg addrReg, TypeRef lateTypeRef)
 {
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Null))
         return Result::Continue;
 
-    TypeRef resolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), fieldTypeRef);
+    TypeRef resolvedTypeRef = codeGen.typeMgr().unwrapAliasEnum(codeGen.ctx(), lateTypeRef);
     if (resolvedTypeRef.isInvalid())
-        resolvedTypeRef = fieldTypeRef;
+        resolvedTypeRef = lateTypeRef;
     const TypeInfo& typeInfo = codeGen.typeMgr().get(resolvedTypeRef);
     if (!typeInfo.isNonNullable())
         return Result::Continue;
@@ -556,7 +559,7 @@ Result CodeGenSafety::emitLateFieldReadCheck(CodeGen& codeGen, const AstNode& no
     SWC_ASSERT(panicIdRef.isValid());
     SymbolFunction* panicFunction = codeGen.compiler().runtimeFunctionSymbol(panicIdRef);
     SWC_ASSERT(panicFunction != nullptr);
-    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "late field read before initialization"));
+    SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "read of a '#late' value before initialization"));
     builder.placeLabel(presentLabel);
     return Result::Continue;
 }

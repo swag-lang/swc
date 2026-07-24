@@ -292,7 +292,7 @@ namespace
         // fault. Consumers that never read (pure store target, address-of,
         // '@isset') cleared the safety payload during sema.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
-            SWC_RESULT(CodeGenSafety::emitLateFieldReadCheck(codeGen, node, payload.reg, memberTypeRef));
+            SWC_RESULT(CodeGenSafety::emitLateReadCheck(codeGen, node, payload.reg, memberTypeRef));
 
         return Result::Continue;
     }

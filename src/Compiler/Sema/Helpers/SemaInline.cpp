@@ -903,13 +903,15 @@ namespace
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
         SmallVector<TokenRef> foreachNames;
-        bool                  isForeachCall = false;
+        bool                  isForeachCall  = false;
+        bool                  foreachIndexOnly = false;
         if (callRef.isValid())
         {
             const auto* foreachStmt = sema.node(callRef).safeCast<AstForeachStmt>();
             if (foreachStmt)
             {
-                isForeachCall = true;
+                isForeachCall    = true;
+                foreachIndexOnly = foreachStmt->hasFlag(AstForeachStmtFlagsE::IndexOnly);
                 sema.ast().appendTokens(foreachNames, foreachStmt->spanNamesRef);
             }
         }
@@ -922,7 +924,8 @@ namespace
         // The declared '#code' parameters are the arity contract.
         const uint32_t slotCount = static_cast<uint32_t>(std::min(declaredParams.size(), outAliasIdentifiers.size()));
 
-        size_t providedCount = foreachNames.size();
+        const size_t foreachSlotOffset = foreachIndexOnly ? 1 : 0;
+        size_t       providedCount     = foreachNames.size() + foreachSlotOffset;
         if (!binderNames.empty())
             providedCount = binderNames.size();
         if (providedCount > slotCount)
@@ -930,6 +933,8 @@ namespace
             SourceCodeRef errorRef;
             if (!binderNames.empty())
                 errorRef = SourceCodeRef{binderNode->srcViewRef(), binderNames[slotCount]};
+            else if (foreachIndexOnly)
+                errorRef = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames.front()};
             else
                 errorRef = SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slotCount]};
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_too_many_aliases, errorRef);
@@ -940,14 +945,14 @@ namespace
         }
 
         for (size_t slot = 0; slot < foreachNames.size(); ++slot)
-            outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
+            outAliasIdentifiers[slot + foreachSlotOffset] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{sema.node(callRef).srcViewRef(), foreachNames[slot]});
 
         for (size_t slot = 0; slot < binderNames.size() && slot < outAliasIdentifiers.size(); ++slot)
             outAliasIdentifiers[slot] = sema.idMgr().addIdentifier(sema.ctx(), SourceCodeRef{binderNode->srcViewRef(), binderNames[slot]});
 
         if (isForeachCall)
         {
-            for (uint32_t slot = static_cast<uint32_t>(foreachNames.size()); slot < slotCount; ++slot)
+            for (uint32_t slot = 0; slot < slotCount; ++slot)
             {
                 if (!outAliasIdentifiers[slot].isValid())
                     outAliasIdentifiers[slot] = SemaHelpers::getUniqueIdentifier(sema, "__foreach_alias");
@@ -1696,7 +1701,14 @@ namespace
             {
                 declPtr->nodeTypeRef = makeInlineMaterializedTypeNode(sema, paramNameRef, paramType.payloadTypeRef());
             }
-            else if (!paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
+            // A narrow-fact materialization is pinned to the PARAMETER type: the binding
+            // exists precisely because its value was proven non-null by flow narrowing at
+            // the call site (inlineBindingDependsOnNarrowFact). Inferring the `let` type
+            // from the un-narrowed argument would relabel it '#null' inside the callee body,
+            // where the parameter is non-null - a false use-site nullability error. Pinning
+            // to the parameter type restores the non-null contract the argument was validated
+            // against, reusing the same proven type-clone/cast mechanism as the cases below.
+            else if (!paramType.isAnyVariadic() && (forceRuntimeSafetyMaterialization || forceNarrowFactMaterialization || isInlineCoercibleLiteralArg(sema.node(binding.exprRef)) || SemaHelpers::canUseContextualBinding(sema, binding.exprRef)))
             {
                 AstNodeRef materializedTypeRef = AstNodeRef::invalid();
                 if (const auto* paramDecl = param->decl()->safeCast<AstSingleVarDecl>())

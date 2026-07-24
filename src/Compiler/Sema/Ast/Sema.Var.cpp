@@ -995,11 +995,16 @@ namespace
         const SymbolMap* fieldOwnerSymMap      = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
         const bool       isStructField         = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
 
-        // '#late' declares a deferred non-null field: null storage until first
-        // assignment, non-null type at every read (guarded under null safety).
+        // '#late' declares a deferred non-null storage: null (zero) storage until the
+        // first assignment, non-null type at every read (guarded under null safety). It
+        // qualifies struct fields and global variables (both have zero-initialized
+        // storage that serves as the 'unset' sentinel); a local or parameter has no such
+        // storage lifetime, so it uses '= undefined' definite assignment instead.
         if (context.flags.has(AstVarDeclFlagsE::Late))
         {
-            if (!isStructField)
+            const SymbolVariable* firstLateVar = !symbols.empty() ? getVariableSymbol(symbols[0]) : nullptr;
+            const bool            isGlobalVar  = firstLateVar && isGlobalStorageVariable(*firstLateVar);
+            if (!isStructField && !isGlobalVar)
                 return SemaError::raise(sema, DiagnosticId::sema_err_late_not_field, finalTypeErrorRef(sema, context));
             if (context.nodeInitRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_late_with_initializer, sema.node(context.nodeInitRef).codeRef());
@@ -1027,7 +1032,10 @@ namespace
         {
             SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, finalTypeRef, context.nodeTypeRef));
             requiresExplicitInit = SymbolStruct::typeRequiresExplicitInitialization(sema, finalTypeRef);
-            if (requiresExplicitInit && !isStructField)
+            // A '#late' declaration (struct field or global) intentionally has no
+            // initializer: its zero (null) storage is the 'unset' sentinel, guarded at
+            // every read. It is exempt from the requires-init rule like a struct field.
+            if (requiresExplicitInit && !isStructField && !context.flags.has(AstVarDeclFlagsE::Late))
                 return reportTypeRequiresInit(sema, context, finalTypeRef);
         }
 

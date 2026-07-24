@@ -375,20 +375,28 @@ namespace
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
     }
 
-    // '@isset(expr.field)' tests whether a '#late' field has received its value.
+    // '@isset(expr.field)' / '@isset(g)' tests whether a '#late' field or global has
+    // received its value.
     Result semaIntrinsicIsSet(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
         const SemaNodeView view   = sema.viewNode(children[0]);
         const AstNode*     opNode = view.node();
 
-        bool isLateFieldAccess = opNode && opNode->is(AstNodeId::MemberAccessExpr);
-        if (isLateFieldAccess)
+        bool isLateAccess = false;
+        if (opNode && opNode->is(AstNodeId::MemberAccessExpr))
         {
             const SemaNodeView rightView = sema.viewSymbol(opNode->cast<AstMemberAccessExpr>().nodeRightRef);
             const Symbol*      sym       = rightView.sym();
-            isLateFieldAccess            = sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
+            isLateAccess                 = sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
         }
-        if (!isLateFieldAccess)
+        else if (opNode && opNode->is(AstNodeId::Identifier))
+        {
+            // A bare '#late' identifier is a global (fields go through member access).
+            const SemaNodeView symView = sema.viewSymbol(children[0]);
+            const Symbol*      sym     = symView.sym();
+            isLateAccess               = sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
+        }
+        if (!isLateAccess)
             return SemaError::raise(sema, DiagnosticId::sema_err_isset_not_late_field, children[0]);
 
         // '@isset' inspects the storage, it never reads the value: cancel the read guard.

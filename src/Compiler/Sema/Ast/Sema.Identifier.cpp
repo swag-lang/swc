@@ -834,6 +834,15 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             diag.report(sema.ctx());
             return Result::Error;
         }
+
+        // A '#late' global read is guarded like a '#late' field: the storage is zero
+        // (null) until the first assignment while the exposed type is non-null. Request
+        // the null-read guard here; a pure assignment target, '&g' or '@isset(g)' clears
+        // it. Struct fields are reached through member access, so a bare identifier
+        // carrying the LateInit flag is always a global - no static cross-function proof
+        // is possible, so the runtime guard always stays.
+        if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
+            SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));
     }
 
     if (sym && requiresExplicitClosureCapture(sema, *sym))

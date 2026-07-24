@@ -303,7 +303,7 @@ func charToNumIdx(ch: u8)->u32
 func codeNumericValue(code: const [..] u8, codeLen: u32)->u64
 {
     var val: u64
-    for i in codeLen
+    for [i] in codeLen
     {
         let ch = code[i]
         if ch >= '0' and ch <= '9'
@@ -319,7 +319,7 @@ func solveCode(code: const [..] u8, codeLen: u32, depth: u32, memo: *Memo)->u64
     var totalCost: u64
     var cur:       u32 = 10     // start at 'A' on numeric pad
 
-    for i in codeLen
+    for [i] in codeLen
     {
         let target = charToNumIdx(code[i])
         totalCost += moveCost(cur, target, depth, true, memo)

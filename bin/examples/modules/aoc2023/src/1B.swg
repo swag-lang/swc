@@ -27,7 +27,7 @@ private func process(line: String)->u64
     var bestEnd   = 0'u64
     var bestStartValue, bestEndValue: u64
 
-    for n, i in N
+    for n, [i] in N
     {
         let start = Utf8.indexOf(line, n)
         if start != Swag.U64.Max and start < bestStart

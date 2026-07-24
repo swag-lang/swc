@@ -3,10 +3,10 @@ using Core, Gui, Pixel
 func addSimpleTreeBranch(tree: *ListCtrl, rootName: string, rootIcon: ThemeIcons24, childCount: s32)->*ListLine
 {
     let root = tree.createLine(rootName, app.theme.getIcon24(rootIcon, 16))
-    for i in childCount
+    for [i] in childCount
     {
         let child = tree.createLine(Format.toString("node %.%", rootName, i + 1), sampleIcon(i), parentLine: root)
-        for j in 3 do
+        for [j] in 3 do
             discard tree.createLine(Format.toString("leaf %.%.%", rootName, i + 1, j + 1), sampleIcon(j + i), parentLine: child)
     }
 
@@ -41,13 +41,13 @@ func createTreesPage(parent: *Wnd)
     table.addColumn("State", 110)
     table.addColumn("Size", 90)
     table.addColumn("Owner", 100)
-    for i in 5
+    for [i] in 5
     {
         let root = table.createLine(Format.toString("folder %", i + 1), sampleIcon(i))
         root.setItem(1, "open")
         root.setItem(2, Format.toString("% KB", 40 + i * 7))
         root.setItem(3, i % 2 == 0 ? "core" : "tools")
-        for j in 4
+        for [j] in 4
         {
             let child = table.createLine(Format.toString("file %.%", i + 1, j + 1), sampleIcon(i + j), parentLine: root)
             child.setItem(1, j % 2 == 0 ? "ready" : "dirty")

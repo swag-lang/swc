@@ -1,4 +1,4 @@
-﻿using Core, Gui, Pixel
+using Core, Gui, Pixel
 using Properties
 
 const W                = 1600
@@ -284,7 +284,7 @@ func rebuildInspector()
         props.setColumnSize(190)
 
     var bases: Array'(*u8)
-    for i in g_CardCount do
+    for [i] in g_CardCount do
         bases.add(cast(*u8) &g_Cards[i])
     props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
@@ -460,7 +460,7 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let avail = Math.max(rect.height - TopReserve - Gap, 1.0)
         let slotH = (avail - cast(f32) (NumCards - 1) * Gap) / cast(f32) NumCards
         var y     = rect.y + TopReserve
-        for i in NumCards
+        for [i] in NumCards
         {
             let slot = Math.Rectangle{rect.x + Gap, y, rect.width - 2 * Gap, slotH}
             drawCard(painter, slot, &g_Cards[i], cast(s32) i < g_CardCount)
@@ -500,7 +500,7 @@ impl IPropertyEditor for RatingEditor
         else do
             line.anchorStyle = .X
 
-        for i in RatingMax
+        for [i] in RatingMax
         {
             let idx = cast(s32) i
             with let btn = IconButton.create(line, {}, {0, 0, RatingPipSize, item.line.position.height})

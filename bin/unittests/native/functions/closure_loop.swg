@@ -5,7 +5,7 @@
 {
     var closures: [5] func||()->s32 = undefined
 
-    for i in 5
+    for [i] in 5
     {
         let idx = cast(s32) i
         closures[i] = func|idx|()->s32 { return idx }
@@ -23,7 +23,7 @@
 {
     var closures: [4] func||()->s32 = undefined
 
-    for i in 4
+    for [i] in 4
     {
         let squared = cast(s32) (i * i)
         closures[i] = func|squared|()->s32 { return squared }
@@ -41,7 +41,7 @@
     var adders:   [3] func||()->s32 = undefined
     var doublers: [3] func||()->s32 = undefined
 
-    for i in 3
+    for [i] in 3
     {
         let val = cast(s32) i
         adders[i]   = func|val|()->s32 { return val + 10 }

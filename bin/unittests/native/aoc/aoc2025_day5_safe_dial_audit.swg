@@ -37,7 +37,7 @@ func parseRotation(text: string)->Rotation
     var result: Rotation
     result.turnLeft = bytes[0] == 'L'
 
-    for i in 1 to cast(u32) @countof(bytes) - 1 do
+    for [i] in 1 to cast(u32) @countof(bytes) - 1 do
         result.clicks = result.clicks * 10 + cast(s32) (bytes[i] - '0')
 
     return result

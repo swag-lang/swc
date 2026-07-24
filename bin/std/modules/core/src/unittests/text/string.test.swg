@@ -17,7 +17,7 @@ func assertString(value: const &String, expected: string)->bool
 func makePatternString(count: u64)->String
 {
     var result: retval
-    for i in count
+    for [i] in count
     {
         let offset = cast(u8) (i % 26)
         result.append('a''u8 + offset)
@@ -28,7 +28,7 @@ func makePatternString(count: u64)->String
 
 func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 {
-    for #reverse byte, index in value
+    for #reverse byte, [index] in value
     {
         if byte < minByte do
             continue
@@ -109,7 +109,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
 
     var sumBytes:   u32
     var sumIndexes: u64
-    for byte, index in value
+    for byte, [index] in value
     {
         sumBytes   += cast(u32) byte
         sumIndexes += index

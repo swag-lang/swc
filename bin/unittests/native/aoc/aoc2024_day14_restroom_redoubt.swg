@@ -165,7 +165,7 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
     let midY = fleet.h / 2
     var quads: [NumQuads] u32
 
-    for i in fleet.count
+    for [i] in fleet.count
     {
         let bot = advanceRobot(fleet.bots[i], cast(s32) steps, fleet.w, fleet.h)
 
@@ -185,7 +185,7 @@ func safetyFactor(fleet: *Fleet, steps: u32)->u64
 
     // Multiply quadrant counts using compound assignment (*=)
     var result: u64 = 1
-    for q in NumQuads
+    for [q] in NumQuads
     {
         result *= cast(u64) quads[q]
     }
@@ -204,7 +204,7 @@ func computeVarianceX(fleet: *Fleet, step: s32)
 {
     var sumX:  s64
     var sumX2: s64
-    for i in fleet.count
+    for [i] in fleet.count
     {
         let bot = advanceRobot(fleet.bots[i], step, fleet.w, fleet.h)
         sumX  += cast(s64) bot.px
@@ -222,7 +222,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
     var bestStep: u32
     var bestVar:  u64 = 0xFFFFFFFFFFFFFFFF
 
-    for s in maxSteps
+    for [s] in maxSteps
     {
         var axisVariance: u64
         computeVarianceX(fleet, cast(s32) s)

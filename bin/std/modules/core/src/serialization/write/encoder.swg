@@ -196,7 +196,7 @@ impl Encoder
                 if !treated
                 {
                     var bufArr = cast(#null const [*] u8) ptrArr.buffer
-                    for i in ptrArr.count
+                    for [i] in ptrArr.count
                     {
                         .writeValue(notnull bufArr, safeValueType)
                         bufArr += safeValueType.sizeof

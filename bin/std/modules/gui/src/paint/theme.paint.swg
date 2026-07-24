@@ -45,7 +45,7 @@ impl Theme
 
         var d = dstRect
         var s = subRect.rect
-        for i in 9
+        for [i] in 9
         {
             switch i
             {

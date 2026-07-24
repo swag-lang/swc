@@ -56,7 +56,7 @@ impl TweakFile
         var refs:          Array'Ref         // Pending references to resolve
         var currentFolder: #null *Folder     // Current folder being parsed
 
-        for oneit, idx in lines
+        for oneit, [idx] in lines
         {
             var one = Tokenize.eatSpaces(oneit)
             if @countof(one) == 0 do

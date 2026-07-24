@@ -133,7 +133,7 @@ func getNeighbors(g: *Grid, r, c: u32)->Neighbors
     var nb: Neighbors
 
     // Cardinals
-    for d in 4
+    for [d] in 4
     {
         let nr = cast(s32) r + DR[d]
         let nc = cast(s32) c + DC[d]
@@ -142,7 +142,7 @@ func getNeighbors(g: *Grid, r, c: u32)->Neighbors
     }
 
     // Diagonals
-    for d in 4
+    for [d] in 4
     {
         let nr = cast(s32) r + DiagDR[d]
         let nc = cast(s32) c + DiagDC[d]
@@ -157,7 +157,7 @@ func getNeighbors(g: *Grid, r, c: u32)->Neighbors
 func perimeterOf(nb: Neighbors)->u32
 {
     var adj: u32
-    for d in 4
+    for [d] in 4
     {
         if nb.card[d] do
             adj += 1
@@ -172,7 +172,7 @@ func perimeterOf(nb: Neighbors)->u32
 func cornersOf(nb: Neighbors)->u32
 {
     var n: u32
-    for k in 4
+    for [k] in 4
     {
         let a1 = nb.card[k]
         let a2 = nb.card[(k + 1) % 4]
@@ -232,7 +232,7 @@ func floodFill(g: *Grid, startR, startC: u32, visited: [*] bool)->Region
         result.sides     += cornersOf(nb)
 
         // Enqueue unvisited same-plant cardinal neighbours
-        for d in 4
+        for [d] in 4
         {
             let nr = cast(s32) r + DR[d]
             let nc = cast(s32) c + DC[d]
@@ -273,9 +273,9 @@ func solveGrid(g: *Grid)->FenceCost
     }
 
     var result: FenceCost
-    for r in g.height
+    for [r] in g.height
     {
-        for c in g.width
+        for [c] in g.width
         {
             if visited[r * MaxDim + c] do
                 continue

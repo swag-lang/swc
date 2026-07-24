@@ -42,7 +42,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     Reflection.registerType(#typeof(TagBinArrayThing))
 
     var holder: TagBinArrayHolder
-    for i in 3
+    for [i] in 3
     {
         let t = Memory.new'TagBinArrayThing()
         t.v = cast(s32) (10 + i)
@@ -63,6 +63,6 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     defer releaseTagBinArrayHolder(loaded)
 
     @assert(loaded.things.count == 3)
-    for it, i in loaded.things do
+    for it, [i] in loaded.things do
         @assert(it.value() == cast(s32) (10 + i))
 }

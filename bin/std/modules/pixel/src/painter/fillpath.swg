@@ -22,7 +22,7 @@ public impl Painter
             return
 
         let argb = color.argb
-        for i in count
+        for [i] in count
         {
             let j      = (i + 1) % count
             let innerA = polygon.getPoint(i, innerOff)
@@ -123,7 +123,7 @@ public impl Painter
             else
             {
                 let center = Vector2{path.bvMin.x + (path.bvMax.x - path.bvMin.x) * 0.5, path.bvMin.y + (path.bvMax.y - path.bvMin.y) * 0.5}
-                for i in count
+                for [i] in count
                 {
                     let v0 = polygon.getPoint(i, so)
                     let v1 = polygon.getPoint((i + 1) % count, so)

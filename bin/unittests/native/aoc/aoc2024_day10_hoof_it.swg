@@ -142,7 +142,7 @@ func dfs(g: const &Grid, row, col: u32, vis: [..] bool, scoreOut: *u32)->u32
 
     var paths: u32
     let nextH = h + 1
-    for dirIdx in 0 until NumDirections
+    for [dirIdx] in 0 until NumDirections
     {
         let dr = Directions[dirIdx][0]
         let dc = Directions[dirIdx][1]
@@ -166,9 +166,9 @@ func findTrails(grid: const &Grid)->TrailResult
     var totalScore:  u32
     var totalRating: u32
 
-    for row in grid.height
+    for [row] in grid.height
     {
-        for col in grid.width
+        for [col] in grid.width
         {
             if cellAt(grid, row, col) != TrailStart do
                 continue
@@ -213,9 +213,9 @@ func analyzeTrails(text: string)->HikingReport
     result.width  = grid.width
     result.height = grid.height
 
-    for row in grid.height
+    for [row] in grid.height
     {
-        for col in grid.width
+        for [col] in grid.width
         {
             if cellAt(&grid, row, col) == 0 do
                 result.trailheads += 1

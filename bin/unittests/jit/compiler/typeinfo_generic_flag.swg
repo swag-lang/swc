@@ -14,7 +14,7 @@ struct(T, N: s32) GenericFlagBox
 func(T, N: s32) genericFlagRepeat(value: T)->[N] T
 {
     var result: [N] T
-    for i in N do
+    for [i] in N do
         result[i] = value
     return result
 }

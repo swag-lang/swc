@@ -136,9 +136,9 @@
     var total = 0
     #scope(Done)
     {
-        for i in 10
+        for [i] in 10
         {
-            for j in 10
+            for [j] in 10
             {
                 total += 1
                 if total == 15 do

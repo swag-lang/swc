@@ -96,7 +96,7 @@ impl LibraryWnd
         // we never delete from the list we are iterating, which would skip entries
         // and desync the selection/indices.
         var toRemove: Array'String
-        for it, i in .view.items
+        for it, [i] in .view.items
         {
             if it.filtered do
                 continue
@@ -114,7 +114,7 @@ impl LibraryWnd
     mtd selectedFiles()->Array'String
     {
         var res: retval
-        for it, i in .view.items
+        for it, [i] in .view.items
         {
             if it.filtered do
                 continue
@@ -223,7 +223,7 @@ impl LibraryWnd
             return
         g_Library.onDeleteFile += func|libWnd = me|(file)
         {
-            for it, i in libWnd.view.items
+            for it, [i] in libWnd.view.items
             {
                 if it.fi.fullname == file
                 {
@@ -394,7 +394,7 @@ impl LibraryWnd
         }
 
         // Add levels root-first.
-        for #reverse idx in fulls.count
+        for #reverse [idx] in fulls.count
         {
             let fp = fulls[idx].toString()
             var nm = Path.getFileName(fp) orelse ""
@@ -429,7 +429,7 @@ impl LibraryWnd
         for d in dirs do
             .menuPaths.add(String.from(d.fullname))
 
-        for d, i in dirs
+        for d, [i] in dirs
         {
             let name = Path.getFileName(d.fullname) orelse d.fullname.toString()
             menu.addItem(name, .menuPaths[i].toString(), checked: d.fullname == currentChild)

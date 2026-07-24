@@ -17,7 +17,7 @@ impl SelModel
 {
     mtd const getSelectedRangeIndex(idx: u32)->u32
     {
-        for &r, i in .selection
+        for &r, [i] in .selection
         {
             if idx >= r.start and idx <= r.end do
                 return cast(u32) i
@@ -43,12 +43,12 @@ impl SelModel
     {
         if start <= end
         {
-            for i in start to end do
+            for [i] in start to end do
                 .select(i, select)
         }
         else
         {
-            for i in end to start do
+            for [i] in end to start do
                 .select(i, select)
         }
     }
@@ -64,7 +64,7 @@ impl SelModel
         if select
         {
             // Prepend/Append to an existing range
-            for &r, i in .selection
+            for &r, [i] in .selection
             {
                 if r.start and idx == r.start - 1
                 {
@@ -107,7 +107,7 @@ impl SelModel
         #scope(Up)
             for &r in .selection
         {
-            for i in r.start to r.end
+            for [i] in r.start to r.end
             {
                 #inject(stmt, item = i, index = @index, break = break to Up)
             }

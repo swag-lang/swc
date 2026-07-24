@@ -66,10 +66,10 @@ private impl FileBrowserCtrl
         .comboPathStr.clear()
 
         let all = Tokenize.split(.curFolder.toString(), '/''rune)
-        for #reverse i in @countof(all)
+        for #reverse [i] in @countof(all)
         {
             var str: String
-            for j in i + 1
+            for [j] in i + 1
             {
                 str += all[j]
                 str += '/''u8
@@ -310,7 +310,7 @@ impl FileBrowserCtrl
             if opt.mode == .SelectFolder do
                 .addItem("Folders")
             else do
-                for f, idx in opt.filters do
+                for f, [idx] in opt.filters do
                     .addItem(f.name, userData0: cast(#null *void) idx)
             .selectItem(0)
             .sigChanged += func|fileBrowser|(c, idx) { fileBrowser.fillFileList() }

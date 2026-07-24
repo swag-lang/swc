@@ -191,7 +191,7 @@ impl PropWnd
 
         let cur = selectedKind(me, type, fieldName)
 
-        for i in @countof(FormShapeKind)
+        for [i] in @countof(FormShapeKind)
         {
             let btn0 = IconButton.create(notnull frame.view, {})
             btn0.userData = enumToUserData(i)

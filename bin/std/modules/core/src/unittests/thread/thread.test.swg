@@ -64,7 +64,7 @@ func waitManyThreads(threads: &[WaitManyThreadCount] Threading.Thread)
     var payloads:  [WaitManyThreadCount] WaitManyPayload = undefined
     var threads:   [WaitManyThreadCount] Threading.Thread
 
-    for i in WaitManyThreadCount
+    for [i] in WaitManyThreadCount
     {
         payloads[i].doneCount = &doneCount
         payloads[i].sleepMs   = i + 1 == WaitManyThreadCount ? WaitManyDelayedSleepMs : 0
@@ -73,7 +73,7 @@ func waitManyThreads(threads: &[WaitManyThreadCount] Threading.Thread)
         @assert(@err == null)
     }
 
-    for i in WaitManyThreadCount
+    for [i] in WaitManyThreadCount
     {
         discard catch threads[i].start()
         @assert(@err == null)

@@ -26,7 +26,7 @@ impl ArrayPtr
         if !.count do
             return
         let buffer = notnull .buffer
-        for i in .count
+        for [i] in .count
         {
             let oldPtr = buffer[i]
             if oldPtr == null
@@ -119,7 +119,7 @@ impl ArrayPtr
         if .count
         {
             let buffer = notnull .buffer
-            for i in .count
+            for [i] in .count
             {
                 if buffer[i] == item do
                     return i
@@ -142,7 +142,7 @@ impl ArrayPtr
         if num
         {
             let buffer = notnull .buffer
-            for i in num do
+            for [i] in num do
                 Memory.delete(buffer[index + i], .allocator)
         }
 

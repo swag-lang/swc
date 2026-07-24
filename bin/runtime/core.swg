@@ -145,7 +145,7 @@ func @typecmp(typeA, typeB: typeinfo, cmpFlags: TypeCmpFlags)->bool
         if fields1 == null or fields2 == null do
             return @countof(fields1) == @countof(fields2)
 
-        for i in @countof(fields1)
+        for [i] in @countof(fields1)
         {
             let field1 = fields1[i]
             let field2 = fields2[i]
@@ -182,7 +182,7 @@ func @tableof(structType, itfType: const *TypeInfoStruct)->#null const *void
     if itfs == null do
         return null
 
-    for i in @countof(itfs)
+    for [i] in @countof(itfs)
     {
         if @stringcmp(itfs[i].name, itfType.fullname) do
             return itfs[i].value
@@ -333,7 +333,7 @@ func __dropGlobalVariables()
     for g in @gvtd
     {
         var ptr = cast([*] u8) g.ptr
-        for x in g.count
+        for [x] in g.count
         {
             g.opDrop(ptr)
             ptr += g.sizeOf

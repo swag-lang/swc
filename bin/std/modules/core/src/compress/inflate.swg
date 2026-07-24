@@ -88,7 +88,7 @@ internal
                 sizes[v] += 1
             sizes[0]     = 0
 
-            for i in 1 to 16
+            for [i] in 1 to 16
             {
                 if cast(u32) sizes[i] > (1'u32 << i) do
                     throw InvalidFormatError{"bad huffman sizes"}
@@ -96,7 +96,7 @@ internal
 
             var k   = 0'u16
             var cde = 0'u32
-            for i in 1 to 15
+            for [i] in 1 to 15
             {
                 nextCode[i]     = cast(u16) cde
                 .firstCode[i]   = cast(u16) cde
@@ -110,7 +110,7 @@ internal
             }
 
             .maxCode[16] = 0x10000
-            for v, ci in codeLengths
+            for v, [ci] in codeLengths
             {
                 if !v do
                     continue
@@ -266,7 +266,7 @@ impl Inflate
                 dest.grow(dest.count + length)
                 let buffer = notnull dest.buffer
                 let start  = dest.count
-                for i in cast(u64) length
+                for [i] in cast(u64) length
                 {
                     buffer[start + i] = buffer[start + i - distance]
                 }
@@ -329,7 +329,7 @@ impl Inflate
                 let hlit  = .stream.readBitsNoRefill(5) + 257
                 let hdist = .stream.readBitsNoRefill(5) + 1
                 let hclen = .stream.readBitsNoRefill(4) + 4
-                for i in hclen
+                for [i] in hclen
                 {
                     let s = cast(u8) .stream.readBits(3)
                     codeLengthSizes[LengthDezigzag[i]] = s

@@ -8,7 +8,7 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
     if values.count != @countof(expected) do
         return false
 
-    for i in values.count
+    for [i] in values.count
     {
         if values.get(i) != expected[i] do
             return false
@@ -20,7 +20,7 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
 #test
 {
     var seed: [32] bool
-    for i in 32 do
+    for [i] in 32 do
         seed[i] = (i & 1) == 0
 
     var values: BitArray
@@ -42,7 +42,7 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
     var visitCount:  u64 = 0
     var lastOrdinal: u64 = 0
     var lastValue = false
-    for value, ordinal in values
+    for value, [ordinal] in values
     {
         visitCount  += 1
         lastOrdinal = ordinal
@@ -61,7 +61,7 @@ func assertBitArray(values: const &BitArray, expected: const [..] bool)->bool
     values.invert()
 
     var expected: [33] bool
-    for i in 33 do
+    for [i] in 33 do
         expected[i] = true
 
     var compare: BitArray

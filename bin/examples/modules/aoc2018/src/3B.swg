@@ -30,9 +30,9 @@ func day3B()
         let height = assume StrConv.toS32(r[5])
 
         var alone = true
-        for x in startX until startX + width
+        for [x] in startX until startX + width
         {
-            for y in startY until startY + height
+            for [y] in startY until startY + height
             {
                 let re: &s32 = &ids.ref2(x, y, 1000)
                 if re

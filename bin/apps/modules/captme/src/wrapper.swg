@@ -22,7 +22,7 @@ const FormRegistry: [?] FormDesc = [
 
 func formDescIndex(type: typeinfo)->u64
 {
-    for i in @countof(FormRegistry)
+    for [i] in @countof(FormRegistry)
     {
         if FormRegistry[i].type == type do
             return i
@@ -33,7 +33,7 @@ func formDescIndex(type: typeinfo)->u64
 
 func formDescIndexOfMode(mode: EditMode)->u64
 {
-    for i in @countof(FormRegistry)
+    for [i] in @countof(FormRegistry)
     {
         if FormRegistry[i].mode == mode do
             return i

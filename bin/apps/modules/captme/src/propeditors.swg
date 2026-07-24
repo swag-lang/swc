@@ -35,7 +35,7 @@ impl IPropertyEditor for AlignEditor
         const Labels = ["L", "C", "R"]
 
         var btns: [3] *IconButton = undefined
-        for i in 3
+        for [i] in 3
         {
             with let btn = IconButton.create(line, {}, {0, 0, BtnW, lineH})
             {
@@ -53,7 +53,7 @@ impl IPropertyEditor for AlignEditor
             btns[i] = btn
         }
 
-        for i in 3
+        for [i] in 3
         {
             btns[i].sigCheckChanged += func|list, item, align, i|(btn)
             {
@@ -72,7 +72,7 @@ impl IPropertyEditor for AlignEditor
 
         item.sigRefresh += func|align, btns|(item)
         {
-            for i in 3
+            for [i] in 3
             {
                 btns[i].isChecked = dref align == Values[i]
                 btns[i].invalidate()

@@ -66,9 +66,9 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) throw
     var dst = bitmapBuffer
     let scale = 127.0 / cast(f64) safeSpread
 
-    for py in rows
+    for [py] in rows
     {
-        for px in width
+        for [px] in width
         {
             let sampleX = left + cast(f64) px + 0.5
             let sampleY = top - (cast(f64) py + 0.5)

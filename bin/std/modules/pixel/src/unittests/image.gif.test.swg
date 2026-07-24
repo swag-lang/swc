@@ -248,7 +248,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 {
     var src = Image.create(17, 17, .RGB8)
     var pix = notnull src.pixels.buffer
-    for i in src.width * src.height
+    for [i] in src.width * src.height
     {
         let x = i % src.width
         let y = i / src.width

@@ -343,7 +343,7 @@ impl Surface
         bodyRect.offset(metrics.surfaceWnd_ShadowOffsetX, metrics.surfaceWnd_ShadowOffsetY)
 
         let baseAlpha = cast(f32) .app.theme.colors.wnd_Shadow.a
-        for i in layers
+        for [i] in layers
         {
             let t          = cast(f32) (layers - i) / cast(f32) layers
             let alphaScale = (1.0 - t) * (1.0 - t)

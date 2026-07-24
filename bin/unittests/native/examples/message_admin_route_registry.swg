@@ -126,7 +126,7 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
         v           /= 10
     }
 
-    for #reverse i in tmpLen
+    for #reverse [i] in tmpLen
     {
         buffer[len] = tmp[i]
         len         += 1
@@ -212,7 +212,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
 
         len = appendAst(&buffer[0], len, route.handlerName)
         len = appendAst(&buffer[0], len, "(")
-        for parameter, index in typeFunc.parameters
+        for parameter, [index] in typeFunc.parameters
         {
             if index != 0 do
                 len = appendAst(&buffer[0], len, ", ")

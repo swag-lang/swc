@@ -15,7 +15,7 @@ impl Visits
         #if back do
             #error("no reverse iteration")
 
-        for idx in @countof(.values)
+        for [idx] in @countof(.values)
         {
             #inject(stmt, item = me.values[idx])
         }

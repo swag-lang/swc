@@ -64,7 +64,7 @@ using Swag
 
 #test
 {
-    for value in 1000
+    for [value] in 1000
     {
         let expectedMs = cast(u32) value
 

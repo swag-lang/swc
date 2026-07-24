@@ -475,7 +475,7 @@ impl IWnd for ListView
                 let startIdx = .list.focusIndex == Swag.U32.Max ? 0 : .list.focusIndex
                 let idx0     = Math.min(startIdx, idx)
                 let idx1     = Math.max(startIdx, idx)
-                for i in idx0 to idx1
+                for [i] in idx0 to idx1
                 {
                     let idxLine = .list.isVirtual ? i : (notnull .list.lines[i]).index
                     .list.selModel.select(idxLine, true)
@@ -529,7 +529,7 @@ impl IWnd for ListView
         if .list.isVirtual
         {
             let sigVirtualFill = notnull .list.sigVirtualFill
-            for i in firstIdx to lastIdx
+            for [i] in firstIdx to lastIdx
             {
                 var line: ListLine
                 sigVirtualFill(notnull .list, &line, i)
@@ -542,7 +542,7 @@ impl IWnd for ListView
         }
         else
         {
-            for i in firstIdx to lastIdx
+            for [i] in firstIdx to lastIdx
             {
                 let line = .list.lines[i]
                 .paintLine(bc, i, notnull line, rect, reserveCheckMargin)
@@ -556,7 +556,7 @@ impl IWnd for ListView
         if @isset(.list.header) and .list.listFlags.has(.VertLines)
         {
             rect = .getClientRectPadding()
-            for idx in 1 until .list.header.items.count
+            for [idx] in 1 until .list.header.items.count
             {
                 var x = .getXPos((notnull .list.header.items[idx]).column)
                 x -= .scrollPos.x
@@ -641,7 +641,7 @@ private impl ListView
         }
 
         var format: RichStringFormat
-        for itemIt, idxItem in line.items
+        for itemIt, [idxItem] in line.items
         {
             let item = notnull itemIt
             var colorFg: Color = undefined
@@ -930,7 +930,7 @@ impl ListCtrl
 
         let idx0 = Math.min(start, end)
         let idx1 = Math.max(start, end)
-        for i in idx0 to idx1
+        for [i] in idx0 to idx1
         {
             if !.isVirtual and (notnull .lines[i]).separator do
                 continue
@@ -1181,7 +1181,7 @@ impl ListCtrl
     private mtd mapIndexes()
     {
         .idxLineToIdxList.clear()
-        for l, idx in .lines do
+        for l, [idx] in .lines do
             .idxLineToIdxList.add((notnull l).index, cast(u32) idx)
     }
 

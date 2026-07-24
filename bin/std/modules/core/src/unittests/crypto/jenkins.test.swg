@@ -46,7 +46,7 @@ func assertJenkins(value: u64)
     @assert(Hash.jenkins(0x1234_5678_9ABC_DEF0'u64) == 0x9629_F58E_8EC5_B906'u64)
     @assert(Hash.jenkins(0xFFFF_FFFF_FFFF_FFFF'u64) == 0xB4D0_55FC_F2CB_BD7B'u64)
 
-    for value in 65536
+    for [value] in 65536
     {
         assertJenkins(cast(u32) value)
         assertJenkins(cast(u64) value)

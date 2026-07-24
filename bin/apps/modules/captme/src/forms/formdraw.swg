@@ -135,7 +135,7 @@ impl IForm for FormDraw
         let z   = cxt.z
         var pl: LinePath
         pl.start(.points[0].x * z, .points[0].y * z)
-        for i in 1 until .points.count do
+        for [i] in 1 until .points.count do
             pl.lineTo(.points[i].x * z, .points[i].y * z)
 
         if .subKind == .PixSel

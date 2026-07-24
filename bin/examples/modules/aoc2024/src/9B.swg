@@ -147,7 +147,7 @@ func day9BB()
 
             if numSpaces
             {
-                for j in 1 to numSpaces
+                for [j] in 1 to numSpaces
                 {
                     let temp = &filesBySize[j]
                     if temp.isEmpty() do

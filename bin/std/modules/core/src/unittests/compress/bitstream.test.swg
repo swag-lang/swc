@@ -44,7 +44,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     // Cross-check varying-width reads (non-byte-aligned) against a manual LSB-first
     // extraction. 64 bytes forces many bulk-refill fast paths at assorted numBits.
     var input: [64] u8
-    for i in 64 do
+    for [i] in 64 do
         input[i] = cast #bit (u8) (i * 173 + 41)
 
     var stream: Compress.BitStream
@@ -60,7 +60,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
         let got = stream.readBits(w)
 
         var exp = 0'u32
-        for b in w
+        for [b] in w
         {
             let byteIdx = (bitPos + b) >> 3
             let bitIdx  = (bitPos + b) & 7

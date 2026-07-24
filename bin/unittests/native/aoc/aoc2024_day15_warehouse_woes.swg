@@ -238,7 +238,7 @@ func dirDelta(ch: u8, dr: *s32, dc: *s32)
 func simulate(p: *Parsed)
 {
     let moves = notnull p.moves
-    for mi in p.nMoves
+    for [mi] in p.nMoves
     {
         var dr: s32
         var dc: s32
@@ -300,9 +300,9 @@ func simulate(p: *Parsed)
 func gpsScore(wh: *Warehouse)->u64
 {
     var total: u64
-    for r in wh.h
+    for [r] in wh.h
     {
-        for c in wh.w
+        for [c] in wh.w
         {
             if warehouseAt(wh, r, c) == Tile.Box do
                 total += cast(u64) r * 100 + cast(u64) c
@@ -332,9 +332,9 @@ func boxRmsFromCentre(wh: *Warehouse)->f64
     var sumSq: f64
     var count: f64
 
-    for r in wh.h
+    for [r] in wh.h
     {
-        for c in wh.w
+        for [c] in wh.w
         {
             if warehouseAt(wh, r, c) == Tile.Box
             {

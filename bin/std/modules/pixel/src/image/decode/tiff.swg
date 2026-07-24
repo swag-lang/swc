@@ -82,7 +82,7 @@ impl Ifd
 {
     mtd find(tag: u32)->#null *Entry
     {
-        for i in .entries.count
+        for [i] in .entries.count
         {
             if .entries[i].tag == tag do
                 return &.entries[i]
@@ -109,7 +109,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
         checkBuffer(p, last, totalBytes)
     }
 
-    for i in e.count
+    for [i] in e.count
     {
         let q = p + cast(u64) i * ts
         switch e.type
@@ -208,7 +208,7 @@ public impl IImageDecoder for Decoder
         var ifd: Ifd
         let numEntries = rd16(base + ifdOffset, le)
         checkBuffer(base + ifdOffset, last, cast(u64) 2 + cast(u64) numEntries * 12)
-        for i in numEntries
+        for [i] in numEntries
         {
             let ep = base + ifdOffset + 2 + cast(u64) i * 12
             var e: Entry = undefined
@@ -289,7 +289,7 @@ public impl IImageDecoder for Decoder
                 throw InvalidFormatError{"missing color map"}
             let cm = try readValues(base, last, le, cast(*Entry) (cmEntry))
             let entries = cm.count / 3
-            for i in entries
+            for [i] in entries
             {
                 let r = cast(u32) (cm[i] >> 8)
                 let g = cast(u32) (cm[entries + i] >> 8)
@@ -316,7 +316,7 @@ public impl IImageDecoder for Decoder
         decoded.resize(rowBytes * cast(u64) totalRows)
 
         var rowStart: u32
-        for s in stripOffsets.count
+        for [s] in stripOffsets.count
         {
             if rowStart >= totalRows do
                 break
@@ -350,13 +350,13 @@ public impl IImageDecoder for Decoder
         result.allocPixels()
 
         // Convert top-down 'decoded' into the bottom-up result buffer
-        for y in cast(s32) height
+        for [y] in cast(s32) height
         {
             let srcRow = (notnull decoded.buffer) + cast(u64) y * rowBytes
             let dstY   = result.height - y - 1
             var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8
 
-            for x in cast(s32) width
+            for [x] in cast(s32) width
             {
                 if samples == 1
                 {

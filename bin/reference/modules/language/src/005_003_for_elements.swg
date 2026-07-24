@@ -21,14 +21,34 @@ providing a streamlined and efficient way to process each item.
 }
 
 /**
-# Naming the Value and Index
-You can explicitly name both the element 'value' and the loop 'index' to improve readability,
-especially in nested loops or with complex data structures.
+# Naming Only the Index
+Put a name in brackets to bind the index without binding the element.
+The same form is used for counted loops: `for [index] in 3`.
 */
 
 #test
 {
-    for value, index in "ABC"
+    var sum = 0'u64
+
+    for [index] in "ABC"
+    {
+        #assert(#typeof(index) == u64)
+        sum += index
+    }
+
+    @assert(sum == 3)
+}
+
+/**
+# Naming the Value and Index
+You can explicitly name both the element 'value' and the loop 'index' to improve readability,
+especially in nested loops or with complex data structures. The value is written normally,
+and the index is written in brackets.
+*/
+
+#test
+{
+    for value, [index] in "ABC"
     {
         let a = index
         switch a
@@ -38,6 +58,34 @@ especially in nested loops or with complex data structures.
         case 2: @assert(value == 'C')
         }
     }
+}
+
+/**
+# Enum-Indexed Arrays
+When an array dimension is an enum, its index binding has that enum type. This keeps
+iteration and indexing type-safe without converting through an integer.
+*/
+
+enum Channel: u8
+{
+    Blue  = 2
+    Red   = 0
+    Green = 1
+}
+
+#test
+{
+    let levels: [Channel] s32 = [10, 20, 30]
+    var sum = 0
+
+    for value, [channel] in levels
+    {
+        #assert(#typeof(channel) == Channel)
+        @assert(value == levels[channel])
+        sum += value
+    }
+
+    @assert(sum == 60)
 }
 
 /**

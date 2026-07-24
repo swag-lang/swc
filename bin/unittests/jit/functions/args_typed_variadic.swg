@@ -283,7 +283,7 @@ alias TypedVariadicAlias = s32
     {
         var acc: s32 = 0
 
-        for v, i in values
+        for v, [i] in values
         {
             acc += v * cast(s32) (i + 1)
         }
@@ -302,7 +302,7 @@ alias TypedVariadicAlias = s32
         if @countof(values) != 6 do
             return false
 
-        for v, i in values
+        for v, [i] in values
         {
             if (i & 1) == 0 and v != TypedVariadicKind.A do
                 return false
@@ -323,7 +323,7 @@ alias TypedVariadicAlias = s32
     {
         var acc: u64 = 0
 
-        for v, i in values
+        for v, [i] in values
         {
             acc += cast(u64) v.arr[0] + cast(u64) v.arr[1] + cast(u64) v.arr[2]
             acc += cast(u64) v.flag + cast(u64) v.tag + i

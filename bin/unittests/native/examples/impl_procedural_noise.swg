@@ -154,11 +154,11 @@ func buildGardenPlan(seed: u32)->GardenPlanSummary
 
     var result: GardenPlanSummary
 
-    for row in 3
+    for [row] in 3
     {
         let y = cast(f32) row
 
-        for column in 4
+        for [column] in 4
         {
             let x = cast(f32) column
             let jitterX = rng.nextF32(-0.35'f32, 0.35'f32)

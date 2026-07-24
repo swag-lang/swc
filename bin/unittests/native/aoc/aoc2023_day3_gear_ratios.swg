@@ -221,7 +221,7 @@ func checkAdjacentSymbol(grid: Grid, entry: NumberEntry)->bool
 {
     let r = cast(s32) entry.row
 
-    for c in cast(s32) entry.col0 to cast(s32) entry.col1
+    for [c] in cast(s32) entry.col0 to cast(s32) entry.col1
     {
         for 8
         {
@@ -265,9 +265,9 @@ func forEachNeighborCell(grid: Grid, entry: NumberEntry, stmt: #code(nr: u32, nc
     let cStart = maxOf's32(0, cast(s32) entry.col0 - 1)
     let cEnd   = minOf's32(cast(s32) grid.width - 1, cast(s32) entry.col1 + 1)
 
-    for r in rStart to rEnd
+    for [r] in rStart to rEnd
     {
-        for c in cStart to cEnd
+        for [c] in cStart to cEnd
         {
             if cast(u32) r == entry.row and cast(u32) c >= entry.col0 and cast(u32) c <= entry.col1 do
                 continue
@@ -296,7 +296,7 @@ func extractNumbers(grid: Grid)->NumberList
 {
     var result: retval
 
-    for row in grid.height
+    for [row] in grid.height
     {
         var col: u32
         while col < grid.width
@@ -335,7 +335,7 @@ func solveClean(grid: Grid)->EngineResult
     let numbers = extractNumbers(grid)
 
     // Part 1: sum part numbers
-    for i in numbers.count
+    for [i] in numbers.count
     {
         let entry = numbers.entries[i]
         if checkAdjacentSymbol(grid, entry)
@@ -346,9 +346,9 @@ func solveClean(grid: Grid)->EngineResult
     }
 
     // Part 2: gear ratios
-    for row in grid.height
+    for [row] in grid.height
     {
-        for col in grid.width
+        for [col] in grid.width
         {
             if !isGear(grid.at(row, col)) do
                 continue
@@ -356,7 +356,7 @@ func solveClean(grid: Grid)->EngineResult
             var adjCount: u32
             var prod:     u64 = 1
 
-            for i in numbers.count
+            for [i] in numbers.count
             {
                 let entry = numbers.entries[i]
                 if isAdjacentToCell(entry, row, col)
@@ -402,7 +402,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let iChecker = cast(IAdjacencyChecker) checker
 
     // Part 1 via interface dispatch
-    for entry, idx in numbers.entries[0 until numbers.count]
+    for entry, [idx] in numbers.entries[0 until numbers.count]
     {
         if iChecker.hasAdjacentSymbol(grid, entry)
         {
@@ -412,7 +412,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     }
 
     // Part 2 via macro iteration
-    for i in numbers.count
+    for [i] in numbers.count
     {
         let entry = numbers.entries[i]
 
@@ -422,7 +422,7 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
             {
                 // Find or create gear entry
                 var found = false
-                for g in gears.count
+                for [g] in gears.count
                 {
                     if gears.entries[g].row == nr and gears.entries[g].col == nc
                     {

@@ -26,7 +26,7 @@ impl Polygon
         if count > 1 and .points[0].distanceToSquared(.points[count - 1]) < 0.5 * 0.5 do
             count -= 1
 
-        for i in count
+        for [i] in count
         {
             let pt = .points[i]
             path.add(Clipper.IntPoint{cast(s64) (pt.x * ClipperScaleCoords), cast(s64) (pt.y * ClipperScaleCoords)})
@@ -152,7 +152,7 @@ impl Polygon
         // (no allocation), and stays exact. The O(n^2) cost is negligible here.
         if count <= 48
         {
-            for i in count
+            for [i] in count
             {
                 let nextI = (i + 1) % count
                 let a0    = .points[i]
@@ -199,7 +199,7 @@ impl Polygon
         var grid: Array'(Array'u32)
         grid.resize(cast(u64) res * cast(u64) res)
 
-        for i in count
+        for [i] in count
         {
             let nextI = (i + 1) % count
             let a0    = .points[i]
@@ -213,9 +213,9 @@ impl Polygon
             let cy1 = Math.clamp(cast(s32) ((Math.max(a0.y, a1.y) - .bvMin.y) * invCh), 0, res - 1)
 
             // Test against edges already registered in #null any cell this edge overlaps.
-            for cy in cy0 to cy1
+            for [cy] in cy0 to cy1
             {
-                for cx in cx0 to cx1
+                for [cx] in cx0 to cx1
                 {
                     for j in grid[cast(u64) (cy * res + cx)]
                     {
@@ -234,9 +234,9 @@ impl Polygon
             }
 
             // Register this edge in every overlapped cell.
-            for cy in cy0 to cy1
+            for [cy] in cy0 to cy1
             {
-                for cx in cx0 to cx1 do
+                for [cx] in cx0 to cx1 do
                     grid[cast(u64) (cy * res + cx)].add(cast(u32) i)
             }
         }
@@ -255,7 +255,7 @@ impl Polygon
         var copy: Array'Vector2
         copy.reserve(.points.count)
 
-        for i in .points.count do
+        for [i] in .points.count do
             copy.add(.getPoint(i, value))
 
         .points = #move copy

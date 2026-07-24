@@ -68,14 +68,14 @@ impl PropFieldValue
 
         .n = prop.instanceCount(item)
         .addrs.reserve(.n)
-        for k in .n do
+        for [k] in .n do
             .addrs.add(prop.instanceAddr(item, k))
 
         if item.type == Core.String
         {
             .isString = true
             .strings.reserve(.n)
-            for k in .n do
+            for [k] in .n do
                 .strings.add(dref notnull cast(#null *String) .addrs[k])
         }
         else
@@ -84,7 +84,7 @@ impl PropFieldValue
             if .sz == 0 do
                 return
             .bytes.resize(.n * .sz)
-            for k in .n do
+            for [k] in .n do
                 Memory.copy(cast(#null [*] void) (.bytes.buffer + k * .sz), cast(#null const [*] void) .addrs[k], .sz)
         }
 
@@ -101,12 +101,12 @@ impl PropFieldValue
 
         if .isString
         {
-            for k in .n do
+            for [k] in .n do
                 dref notnull cast(#null *String) .addrs[k] = .strings[k]
         }
         else
         {
-            for k in .n do
+            for [k] in .n do
                 Memory.copy(cast(#null [*] void) .addrs[k], cast(#null const [*] void) (.bytes.buffer + k * .sz), .sz)
         }
     }
@@ -121,7 +121,7 @@ impl PropFieldValue
 
         if .isString
         {
-            for k in .n
+            for [k] in .n
             {
                 if .strings[k] != o.strings[k] do
                     return false
@@ -134,7 +134,7 @@ impl PropFieldValue
             return false
         if .bytes.count != o.bytes.count do
             return false
-        for i in .bytes.count
+        for [i] in .bytes.count
         {
             if .bytes[i] != o.bytes[i] do
                 return false
@@ -177,7 +177,7 @@ internal impl Properties
     // after the instance addresses are assigned).
     mtd assignUndoSnapshots(fromIdx: u64)
     {
-        for i in fromIdx until .items.count
+        for [i] in fromIdx until .items.count
         {
             let it = notnull .items[i]
             it.undoValue.capture(me, it)

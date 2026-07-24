@@ -201,7 +201,7 @@ using Swag, Core, File
     // Mirror the handler LibraryWnd.fill() installs: drop the matching view item.
     g_Library.onDeleteFile += func|libWnd = lib|(file)
     {
-        for it, i in libWnd.view.items
+        for it, [i] in libWnd.view.items
         {
             if it.fi.fullname == file
             {
@@ -214,7 +214,7 @@ using Swag, Core, File
 
     // Three real capture files, registered in the library and the view.
     var paths: Array'String
-    for idx in 3
+    for [idx] in 3
     {
         let capture = Memory.new'Capture()
         capture.width, capture.widthOrg   = 8
@@ -248,7 +248,7 @@ using Swag, Core, File
     @assert(view.items.count == 3)
     @assert(g_Library.files.count == 3)
 
-    for idx in view.items.count do
+    for [idx] in view.items.count do
         view.selModel.select(cast() idx, true)
 
     lib.removeSelected()

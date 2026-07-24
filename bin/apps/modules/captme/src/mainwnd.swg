@@ -79,7 +79,7 @@ impl IWnd for MainWnd
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
 
-            for idx in @countof(me.monitors)
+            for [idx] in @countof(me.monitors)
             {
                 switch idx
                 {
@@ -568,7 +568,7 @@ impl MainWnd
             // CaptureMode only defines Screen0..Screen3, so never index past the
             // 4 available per-monitor actions even if the machine has more monitors.
             let screenActions = [ActionCapture.Screen0, ActionCapture.Screen1, ActionCapture.Screen2, ActionCapture.Screen3]
-            for m, idx in me.monitors
+            for m, [idx] in me.monitors
             {
                 if idx >= @countof(screenActions) do
                     break

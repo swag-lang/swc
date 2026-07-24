@@ -70,7 +70,7 @@ func removeValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, in
         Memory.copy(arr.buffer + (index * sizeValue), arr.buffer + (index + 1) * sizeValue, countMove * sizeValue)
         if Reflection.hasPostMove(nnType)
         {
-            for i in index until arr.count - 1 do
+            for [i] in index until arr.count - 1 do
                 Memory.postMoveType(arr.buffer + (i * sizeValue), nnType)
         }
     }

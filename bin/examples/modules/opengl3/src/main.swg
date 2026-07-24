@@ -124,12 +124,12 @@ impl Mat4
     func mul(a, b: Mat4)->Mat4
     {
         var r: Mat4
-        for col in 4
+        for [col] in 4
         {
-            for row in 4
+            for [row] in 4
             {
                 var sum = 0'f32
-                for k in 4 do
+                for [k] in 4 do
                     sum            += a.m[k * 4 + row] * b.m[col * 4 + k]
                 r.m[col * 4 + row] = sum
             }

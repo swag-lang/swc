@@ -60,7 +60,7 @@ impl IWnd for LibraryView
 
         // Hit test
         var ht = Swag.U32.Max
-        for it, idx in .items
+        for it, [idx] in .items
         {
             if it.rect.contains(pos)
             {
@@ -162,7 +162,7 @@ impl IWnd for LibraryView
         }
 
         let spos = .scrollWnd.getScrollPos()
-        for it, i in .items
+        for it, [i] in .items
         {
             it.visible = true
             if y + h < spos.y do
@@ -447,7 +447,7 @@ impl LibraryView
         }
 
         .mutexLoaded.lock()
-        for it, i in nitems do
+        for it, [i] in nitems do
             .items[i] = it
         .mutexLoaded.unlock()
     }

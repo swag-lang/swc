@@ -468,7 +468,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
     var third:  s32 = 0
     {
         var outer = DropOnlyTracked{9}
-        for i in 2
+        for [i] in 2
         {
             var pair = AutoDropPair{DropOnlyTracked{cast(s32) (i * 2 + 1)}, DropOnlyTracked{cast(s32) (i * 2 + 2)}}
             first += pair.first.value
@@ -498,7 +498,7 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
             var scopeValue = AutoDropBranch{DropOnlyTracked{3}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}}
             first = outer.first.value + scopeValue.head.value
 
-            for i in 3
+            for [i] in 3
             {
                 var current = AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}
                 second = current.second.value + cast(s32) i
@@ -598,7 +598,7 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
     var third:  s32 = 0
     {
         var outer = CompactDropTracked{9}
-        for i in 2
+        for [i] in 2
         {
             let base = cast(s32) (i * 3 + 1)
             let value: s32 = trycatch intrinsicAutoDropTryCatchLoopStep(base)

@@ -39,7 +39,7 @@ using Swag
     const days365 = [31'u16, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     const days366 = [31'u16, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
-    for i in 12
+    for [i] in 12
     {
         let month = cast(u16) i + 1
         @assert(Time.daysInMonth(2023, month) == days365[i])
@@ -105,7 +105,7 @@ using Swag
 
 #test
 {
-    for monthIdx in 12
+    for [monthIdx] in 12
     {
         let month = cast(u16) monthIdx + 1
         let day   = Time.daysInMonth(2024, month)

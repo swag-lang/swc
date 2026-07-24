@@ -52,7 +52,7 @@ impl Owner
             // Keep the captures live across a loop with calls.
             var acc: [9] u32 = undefined
             var a = 1'u32, b = 2'u32, c = 3'u32, d = 4'u32
-            for i in 9
+            for [i] in 9
             {
                 a      = blend(a, b)
                 b      = blend(b, c)
@@ -61,7 +61,7 @@ impl Owner
                 acc[i] = a ^ b ^ c ^ d ^ flag
             }
             var s = 0'u32
-            for i in 9 do
+            for [i] in 9 do
                 s  ^= acc[i]
             g_sink ^= s
 

@@ -99,7 +99,7 @@ func day4A()
     }
 
     var minCount, min, guard = 0'u64
-    for k, v in total
+    for k, [v] in total
     {
         if v > min
         {
@@ -108,9 +108,9 @@ func day4A()
         }
     }
 
-    for v, i in count
+    for v, [i] in count
     {
-        for k1, v1 in v
+        for k1, [v1] in v
         {
             if k1 == curGuard and v1 > minCount
             {

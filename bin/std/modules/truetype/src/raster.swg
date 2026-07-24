@@ -168,7 +168,7 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     // x varies linearly with y along the segment, so y at a given x is exact.
     let invDx = 1.0 / (xb - xa)
 
-    for cx in cxStart until cxEnd + 1
+    for [cx] in cxStart until cxEnd + 1
     {
         let cxf = cast(f64) cx
         let sx0 = Math.max(xL, cxf)
@@ -234,7 +234,7 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
     let leftF = cast(f64) left
     let topF  = cast(f64) top
 
-    for py in rows
+    for [py] in rows
     {
         Memory.clear(areaBuffer, area.count * #sizeof(f64))
         Memory.clear(coverBuffer, cover.count * #sizeof(f64))
@@ -265,7 +265,7 @@ func renderCurrentOutline(slot: *GlyphSlot) throw
         }
 
         var running: f64 = 0.0
-        for px in width
+        for [px] in width
         {
             let val = running + coverBuffer[px] - areaBuffer[px]
             running += coverBuffer[px]

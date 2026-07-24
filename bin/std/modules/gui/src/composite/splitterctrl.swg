@@ -168,7 +168,7 @@ impl IWnd for SplitterCtrl
         let rects   = .getThemeRects()
         let colors  = .getThemeColors()
 
-        for idx in .items.count - 1
+        for [idx] in .items.count - 1
         {
             let it = notnull .items[idx]
             if !it.visible do
@@ -213,7 +213,7 @@ private impl SplitterCtrl
             // Compute the current total sizes of panes
             var countNotPreserve, countPreserve = 0
             var totalSize = 0'f32
-            for item, idx in .items
+            for item, [idx] in .items
             {
                 let it = notnull item
                 if !it.visible do
@@ -236,7 +236,7 @@ private impl SplitterCtrl
             if countNotPreserve
             {
                 let diff = cast(f32) Math.round(dispatch / countNotPreserve)
-                for item, idx in .items
+                for item, [idx] in .items
                 {
                     let it = notnull item
                     if it.tryPreserveSize do
@@ -261,7 +261,7 @@ private impl SplitterCtrl
             if countPreserve
             {
                 let diff = cast(f32) Math.round(dispatch / countPreserve)
-                for item, idx in .items
+                for item, [idx] in .items
                 {
                     let it = notnull item
                     if !it.tryPreserveSize do
@@ -283,7 +283,7 @@ private impl SplitterCtrl
             }
         }
 
-        for item, idx in .items
+        for item, [idx] in .items
         {
             let it = notnull item
             if !it.visible do
@@ -302,7 +302,7 @@ private impl SplitterCtrl
         var y       = client.y
         let barSize = .getThemeMetrics().splitView_BarSize
 
-        for item, idx in .items
+        for item, [idx] in .items
         {
             let it = notnull item
             if !it.visible do
@@ -334,7 +334,7 @@ private impl SplitterCtrl
         var result: retval = .getClientRectPadding()
 
         let barSize = .getThemeMetrics().splitView_BarSize
-        for i in 0 to idx
+        for [i] in 0 to idx
         {
             if .isVertical()
             {

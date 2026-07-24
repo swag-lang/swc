@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Loop.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -39,6 +40,7 @@ namespace
         MicroReg              baseReg          = MicroReg::invalid();
         MicroReg              countReg         = MicroReg::invalid();
         MicroReg              indexReg         = MicroReg::invalid();
+        TypeRef               indexTypeRef     = TypeRef::invalid();
         uint32_t              aliasSymbolCount = 0;
         const SymbolVariable* stateSym         = nullptr;
         const SymbolVariable* sourceSpillSym   = nullptr;
@@ -343,12 +345,31 @@ namespace
         return Result::Continue;
     }
 
+    void emitForeachIndexBinding(CodeGen& codeGen, const SymbolVariable& indexSym, MicroReg indexReg)
+    {
+        const CodeGenNodePayload indexPayload = resolveForeachVariablePayload(codeGen, indexSym);
+        const TypeInfo&          indexType    = codeGen.typeMgr().get(indexSym.typeRef());
+        const MicroOpBits        indexBits    = CodeGenTypeHelpers::scalarStoreBits(indexType, codeGen.ctx());
+        SWC_ASSERT(indexBits != MicroOpBits::Zero);
+
+        if (indexPayload.isAddress())
+            codeGen.builder().emitLoadMemReg(indexPayload.reg, 0, indexReg, indexBits);
+        else
+            codeGen.builder().emitLoadRegReg(indexPayload.reg, indexReg, indexBits);
+    }
+
     Result emitForeachBindSymbols(CodeGen& codeGen, const AstForeachStmt& node, const ForeachStmtCodeGenPayload& loopState)
     {
         const auto   symbols    = foreachSymbols(codeGen, codeGen.curNodeRef());
         const size_t aliasCount = std::min<size_t>(loopState.aliasSymbolCount, symbols.size());
         if (!aliasCount)
             return Result::Continue;
+
+        if (node.hasFlag(AstForeachStmtFlagsE::IndexOnly))
+        {
+            emitForeachIndexBinding(codeGen, symbols[0]->cast<SymbolVariable>(), loopState.indexReg);
+            return Result::Continue;
+        }
 
         const MicroReg elementAddressReg = emitForeachValueAddress(codeGen, loopState);
         MicroBuilder&  builder           = codeGen.builder();
@@ -389,12 +410,7 @@ namespace
         if (aliasCount < 2)
             return Result::Continue;
 
-        const SymbolVariable&    indexSym     = symbols[1]->cast<SymbolVariable>();
-        const CodeGenNodePayload indexPayload = resolveForeachVariablePayload(codeGen, indexSym);
-        if (indexPayload.isAddress())
-            builder.emitLoadMemReg(indexPayload.reg, 0, loopState.indexReg, MicroOpBits::B64);
-        else
-            builder.emitLoadRegReg(indexPayload.reg, loopState.indexReg, MicroOpBits::B64);
+        emitForeachIndexBinding(codeGen, symbols[1]->cast<SymbolVariable>(), loopState.indexReg);
         return Result::Continue;
     }
 
@@ -550,6 +566,11 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
         loopState.sourceSpillSym   = &symbols[spillIndex]->cast<SymbolVariable>();
     }
 
+    const auto* semaPayload = codeGen.sema().semaPayload<LoopSemaPayload>(codeGen.curNodeRef());
+    SWC_ASSERT(semaPayload != nullptr);
+    loopState.indexTypeRef = semaPayload->indexTypeRef;
+    SWC_ASSERT(loopState.indexTypeRef.isValid());
+
     MicroBuilder& builder     = codeGen.builder();
     loopState.loopLabel       = builder.createLabel();
     loopState.whereFalseLabel = builder.createLabel();
@@ -574,7 +595,7 @@ Result AstForeachStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& c
     frame.setCurrentBreakContent(codeGen.curNodeRef(), CodeGenFrame::BreakContextKind::Loop);
     frame.setCurrentLoopContinueLabel(loopState->continueLabel);
     frame.setCurrentLoopBreakLabel(loopState->doneLabel);
-    frame.setCurrentLoopIndex(loopState->indexReg, codeGen.typeMgr().typeU64());
+    frame.setCurrentLoopIndex(loopState->indexReg, loopState->indexTypeRef);
     codeGen.pushFrame(frame);
     codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     registerForeachAliasImplicitDrops(codeGen, *loopState);

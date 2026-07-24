@@ -48,7 +48,7 @@ impl SmallVec
 
         let newBuf = cast([*] s32) notnull @alloc(newCap * #sizeof(s32))
         let oldPtr = notnull .ptr
-        for i in .count do
+        for [i] in .count do
             newBuf[i] = oldPtr[i]
 
         if !.isInline() do
@@ -100,7 +100,7 @@ impl SmallVec
             // Heap path: allocate a fresh buffer and copy the elements.
             let oldPtr = notnull .ptr
             let newPtr = cast([*] s32) notnull @alloc(.capacity * #sizeof(s32))
-            for i in .count do
+            for [i] in .count do
                 newPtr[i] = oldPtr[i]
             .ptr = newPtr
         }
@@ -153,7 +153,7 @@ impl SmallVec
     var v: SmallVec
     v.init()
 
-    for i in 8'u64 do
+    for [i] in 8'u64 do
         v.push(cast(s32) i * 7)
 
     @assert(v.count == 8)
@@ -199,7 +199,7 @@ impl SmallVec
 {
     var src: SmallVec
     src.init()
-    for i in 6'u64 do
+    for [i] in 6'u64 do
         src.push(cast(s32) i + 100)
 
     @assert(!src.isInline())
@@ -259,7 +259,7 @@ impl SmallVec
 {
     var src: SmallVec
     src.init()
-    for i in 6'u64 do
+    for [i] in 6'u64 do
         src.push(cast(s32) i)
 
     @assert(!src.isInline())
@@ -400,7 +400,7 @@ impl SmallVec
 {
     var dst: SmallVec
     dst.init()
-    for i in 6'u64 do
+    for [i] in 6'u64 do
         dst.push(cast(s32) i)
     @assert(!dst.isInline())
 
@@ -425,7 +425,7 @@ impl SmallVec
 {
     var dst: SmallVec
     dst.init()
-    for i in 8'u64 do
+    for [i] in 8'u64 do
         dst.push(cast(s32) i * 3)
     @assert(!dst.isInline())
 
@@ -460,7 +460,7 @@ struct Pair
 
     p.left.push(1)
     p.left.push(2)
-    for i in 6'u64 do
+    for [i] in 6'u64 do
         p.right.push(cast(s32) i)
 
     @assert(p.left.isInline())

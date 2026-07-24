@@ -80,7 +80,7 @@ func getRootLength(fullname: string)->u32
         if sourceLength < valueLength do
             return false
 
-        for i in valueLength
+        for [i] in valueLength
         {
             if value[i] != source[i] do
                 return false

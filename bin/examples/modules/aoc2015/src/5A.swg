@@ -45,7 +45,7 @@ func day5A0()
             continue
 
         var vowels, dbl = 0
-        for i in @countof(l)
+        for [i] in @countof(l)
         {
             if Utf8.indexOf("aeiou", cast(rune) l[i]) != Swag.U64.Max do
                 vowels += 1

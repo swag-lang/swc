@@ -94,7 +94,7 @@ func(N: s32) maxThrusterSignal(prg: [N] s32)->s32
     for
     {
         var input, phaseIndex = 0
-        for amp in 5
+        for [amp] in 5
         {
             input      = runIntcodeProgram(prg, [phase[phaseIndex], input])
             phaseIndex += 1

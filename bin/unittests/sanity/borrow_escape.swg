@@ -182,7 +182,7 @@ func borrowEscapeLoopBorrow()->#null *s32
 {
     var v: s32
     var p: #null *s32
-    for i in 4 do
+    for [i] in 4 do
         p = &v
     return p     // swc-expected-error {{sanity_err_borrow_escape}}
 }

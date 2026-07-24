@@ -79,7 +79,7 @@ func(T) last(arr: *DynArray'T)->T
 func(T) contains(arr: *DynArray'T, value: T)->bool
 {
     let data = notnull arr.data
-    for i in arr.count
+    for [i] in arr.count
     {
         if data[i] == value do
             return true
@@ -288,7 +288,7 @@ func(T) reverse(arr: *DynArray'T)
     var arr = create'u64()
     defer destroy'u64(&arr)
 
-    for i in 100'u64 do
+    for [i] in 100'u64 do
         push'u64(&arr, i * i)
 
     @assert(arr.count == 100)

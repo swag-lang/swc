@@ -14,7 +14,7 @@ var g_HashTypeFace: HashTable'(String, *TypeFace)
 
 #drop
 {
-    for k, v in g_HashTypeFace do
+    for k, [v] in g_HashTypeFace do
         Memory.delete(v)
     g_HashTypeFace.free()
 }
@@ -198,7 +198,7 @@ public impl TypeFace
 
         if prevIdx != pathList.paths.count
         {
-            for i in prevIdx until pathList.paths.count do
+            for [i] in prevIdx until pathList.paths.count do
                 pathList.paths[i].isClosed = true
         }
 
@@ -228,7 +228,7 @@ public impl TypeFace
 
             if prevIdx != pathList.paths.count
             {
-                for i in prevIdx until pathList.paths.count
+                for [i] in prevIdx until pathList.paths.count
                 {
                     pathList.paths[i].isClosed = true
                     pathList.paths[i].serial   = serial

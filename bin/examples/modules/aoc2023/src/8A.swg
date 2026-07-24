@@ -44,7 +44,7 @@ func day8A()
 
     var startNode, endNode: u64
 
-    for l, i in lines
+    for l, [i] in lines
     {
         if i == 0 do
             instructions = l.toString()
@@ -60,7 +60,7 @@ func day8A()
     }
 
     nodes.resize(lines.count - 2)
-    for l, i in lines
+    for l, [i] in lines
     {
         if i <= 1 do
             continue

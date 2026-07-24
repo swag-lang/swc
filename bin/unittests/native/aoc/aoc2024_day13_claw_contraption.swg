@@ -187,13 +187,13 @@ func solve(text: string)->Result
     var result: Result
 
     // Part 1: solve each machine as-is
-    for i in n
+    for [i] in n
     {
         result.part1 += solveMachine(machines[i])
     }
 
     // Part 2: shift prizes, iterate in reverse to exercise for #reverse
-    for #reverse i in n
+    for #reverse [i] in n
     {
         var m = machines[i]
         m.prize.x    += Part2Offset
@@ -213,7 +213,7 @@ func solve(text: string)->Result
 func countSolvable(machines: [*] Machine, lo: u32, hi: u32)->u32
 {
     var count: u32
-    for i in lo to hi
+    for [i] in lo to hi
     {
         if solveMachine(machines[i]) > 0 do
             count += 1
@@ -374,11 +374,11 @@ func costTier(cost: u64)->u32
 {
     var fwd: s64
     var rev: s64
-    for i in 1 to 10
+    for [i] in 1 to 10
     {
         fwd += cast(s64) i
     }
-    for #reverse i in 1 to 10
+    for #reverse [i] in 1 to 10
     {
         rev += cast(s64) i
     }

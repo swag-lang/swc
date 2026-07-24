@@ -12,7 +12,7 @@ const N = 8
     var dst: [N] s32
 
     let doubler: func||(s32)->s32 = func(x: s32)->s32 { return x * 2 }
-    for i in @countof(src) do
+    for [i] in @countof(src) do
         dst[i] = doubler(src[i])
 
     @assert(dst[0] == 2)
@@ -28,7 +28,7 @@ const N = 8
     var count: u32 = 0
 
     let isEven: func||(s32)->bool = func(x: s32)->bool { return x % 2 == 0 }
-    for i in @countof(src)
+    for [i] in @countof(src)
     {
         if isEven(src[i])
         {
@@ -51,7 +51,7 @@ const N = 8
 
     let add:   func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
     var total: s32 = 0
-    for i in @countof(src) do
+    for [i] in @countof(src) do
         total = add(total, src[i])
 
     @assert(total == 36)
@@ -63,7 +63,7 @@ const N = 8
     var src:     [4] s32 = [2, 3, 4, 5]
     let mul:     func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a * b }
     var product: s32 = 1
-    for i in @countof(src) do
+    for [i] in @countof(src) do
         product = mul(product, src[i])
 
     @assert(product == 120)
@@ -77,7 +77,7 @@ const N = 8
 
     var offset = 5
     let addOffset: func||(s32)->s32 = func|offset|(x: s32)->s32 { return x + offset }
-    for i in @countof(src) do
+    for [i] in @countof(src) do
         dst[i] = addOffset(src[i])
 
     @assert(dst[0] == 15)
@@ -100,7 +100,7 @@ const N = 8
         return x > 5
     }
 
-    for i in @countof(src)
+    for [i] in @countof(src)
     {
         if aboveFive(src[i])
         {
@@ -129,10 +129,10 @@ const N = 8
     let gtTen:  func||(s32)->bool = func(x: s32)->bool { return x > 10 }
     let add:    func||(s32, s32)->s32 = func(a: s32, b: s32)->s32 { return a + b }
 
-    for i in @countof(src) do
+    for [i] in @countof(src) do
         mapped[i] = square(src[i])
 
-    for i in @countof(mapped)
+    for [i] in @countof(mapped)
     {
         if gtTen(mapped[i])
         {
@@ -142,7 +142,7 @@ const N = 8
     }
 
     var result: s32 = 0
-    for i in filteredCount do
+    for [i] in filteredCount do
         result = add(result, filtered[i])
 
     // squares: 1, 4, 9, 16, 25, 36 -> >10: 16, 25, 36 -> sum: 77
@@ -204,7 +204,7 @@ func makeCounter(start: s32)->func||()->s32
     ops[2] = func(x: s32)->s32 { return x * x }
 
     var value: s32 = 3
-    for i in @countof(ops) do
+    for [i] in @countof(ops) do
         value = ops[i](value)
 
     // 3 -> +1=4 -> *2=8 -> ^2=64

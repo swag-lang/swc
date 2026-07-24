@@ -74,7 +74,7 @@ impl Offset
 
         var uniqueCount: s32 = 0
         var lowestIdx:   s32 = 0
-        for i in 1 to highI
+        for [i] in 1 to highI
         {
             let pt      = pathBuf[i]
             let contour = notnull newNode.contour.buffer
@@ -151,7 +151,7 @@ impl Offset
         var a  = 0'f64
         var j  = size - 1
         var pJ = poly[j]
-        for i in size
+        for [i] in size
         {
             let pI = poly[i]
             a  += (cast(f64) pJ.x + pI.x) * (cast(f64) pJ.y - pI.y)
@@ -246,7 +246,7 @@ impl Offset
             .sinVal = -.sinVal
 
         .destPolys.reserve(.polyNodes.childs.count * 2)
-        for node, i in .polyNodes.childs
+        for node, [i] in .polyNodes.childs
         {
             .srcPoly = node.contour
 
@@ -275,7 +275,7 @@ impl Offset
                 {
                     var x = -1.0'f64
                     var y = -1.0'f64
-                    for j in 4
+                    for [j] in 4
                     {
                         let r1 = cround(.srcPoly[0].x + x * delta)
                         let r2 = cround(.srcPoly[0].y + y * delta)
@@ -296,12 +296,12 @@ impl Offset
             // Build normals
             .normals.clear()
             .normals.reserve(cast(u64) len)
-            for j in len - 1 do
+            for [j] in len - 1 do
                 .normals.add(getUnitNormal(.srcPoly[j], .srcPoly[j + 1]))
             .normals.add(getUnitNormal(.srcPoly[len - 1], .srcPoly[0]))
 
             var k = len - 1
-            for j in len do
+            for [j] in len do
                 .offsetPoint(j, &k, node.jointype)
             .destPolys.add(.destPoly)
         }
@@ -411,7 +411,7 @@ impl Offset
 
         var x = kN.x
         var y = kN.y
-        for i in steps
+        for [i] in steps
         {
             let r1 = cround(jP.x + x * .deltaVal)
             let r2 = cround(jP.y + y * .deltaVal)

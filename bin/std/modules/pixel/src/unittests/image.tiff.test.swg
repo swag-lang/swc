@@ -126,7 +126,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
 
     var stripOffs: Array'u32
     var acc = dataStart
-    for i in numStrips
+    for [i] in numStrips
     {
         stripOffs.add(acc)
         acc += stripLens[i]
@@ -166,9 +166,9 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     // External arrays
     if stripArraysExternal
     {
-        for i in numStrips do
+        for [i] in numStrips do
             tw32(&cb, le, stripOffs[i])
-        for i in numStrips do
+        for [i] in numStrips do
             tw32(&cb, le, stripLens[i])
     }
 
@@ -181,7 +181,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if hasPalette
     {
         let pal = notnull palette
-        for i in palCount do
+        for [i] in palCount do
             tw16(&cb, le, pal[i])
     }
 

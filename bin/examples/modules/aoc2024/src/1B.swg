@@ -48,7 +48,7 @@ func day1B()
     arr1.sort()
 
     var total = 0
-    for i in @countof(arr0)
+    for [i] in @countof(arr0)
     {
         var ist = Slice.findLinear(arr1.toSlice(), arr0[i])
         if ist == Swag.U64.Max do

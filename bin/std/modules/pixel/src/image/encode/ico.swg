@@ -59,7 +59,7 @@ public impl IImageEncoder for Encoder
         result.addStruct(dib)
 
         // XOR (color) data, bottom-up BGRA - matches the internal buffer convention
-        for y in height
+        for [y] in height
         {
             var psrc = image.pixels.buffer + cast(u64) y * image.width8
 

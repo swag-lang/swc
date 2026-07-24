@@ -156,7 +156,7 @@ impl GUID64
 
         // Parse hex digits
         var value: u64 = 0
-        for i in Math.min(16, @countof(str) - startIdx)
+        for [i] in Math.min(16, @countof(str) - startIdx)
         {
             let c      = str[startIdx + i]
             var digit: u64 = 0

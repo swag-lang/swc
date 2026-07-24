@@ -94,7 +94,7 @@ impl BreadcrumbCtrl
         let client = .getClientRect()
 
         var x = client.x
-        for i in .items.count
+        for [i] in .items.count
         {
             let it = &.items[i]
 
@@ -166,7 +166,7 @@ impl IWnd for BreadcrumbCtrl
 
         var nh      = Swag.U64.Max
         var nhArrow = false
-        for i in .items.count
+        for [i] in .items.count
         {
             let it = &.items[i]
             if it.hasArrow and it.arrowRect.contains(pos)
@@ -232,7 +232,7 @@ impl IWnd for BreadcrumbCtrl
 
         painter.setParams(.Antialiased)
 
-        for i in .items.count
+        for [i] in .items.count
         {
             let it      = &.items[i]
             let hotBody = i == .hotItem and !.hotArrow

@@ -292,7 +292,7 @@ private impl Properties
     {
         if !item do
             return -1
-        for it, idx in .items
+        for it, [idx] in .items
         {
             if it == item do
                 return cast(s64) idx

@@ -48,7 +48,7 @@ func day7B()
 
     var first: Array'u8
     var last:  u8
-    for k, v in steps
+    for k, [v] in steps
     {
         if v.next.length == 0 do
             last = k
@@ -60,7 +60,7 @@ func day7B()
     var current: Array'u8
     var workers: [5] { val: u8, tick: s32 }
 
-    for cc, i in first
+    for cc, [i] in first
     {
         workers[i].val  = cc
         workers[i].tick = (cc - 'A') + 61
@@ -98,7 +98,7 @@ func day7B()
                 return
             }
 
-            for k, v in steps
+            for k, [v] in steps
             {
                 if result.contains(k) or current.contains(k) do
                     continue

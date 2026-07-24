@@ -63,10 +63,10 @@ func day6A()
         dists.add(assume StrConv.toS32(v))
 
     var total: u64 = 1
-    for t, idx in times
+    for t, [idx] in times
     {
         var cpt = 0
-        for i in t
+        for [i] in t
         {
             let travel = (t - i) * i
             if travel > dists[idx] do

@@ -95,7 +95,7 @@ Once semantic analysis finishes, generate code for all registered functions.
         builderVars.appendFormat("var ext_%: %\n", e.name, typeFunc.name)
         builderVars.appendFormat("public func %(", e.name)
 
-        for p, i in typeFunc.parameters
+        for p, [i] in typeFunc.parameters
         {
             if i != 0 builderVars.appendString(", ")
             builderVars.appendFormat("p%: %", i, p.pointedType.name)
@@ -108,7 +108,7 @@ Once semantic analysis finishes, generate code for all registered functions.
 
         builderVars.appendFormat("\treturn ext_%(", e.name)
 
-        for p, i in typeFunc.parameters
+        for p, [i] in typeFunc.parameters
         {
             if i != 0 builderVars.appendString(", ")
             builderVars.appendFormat("p%", i)

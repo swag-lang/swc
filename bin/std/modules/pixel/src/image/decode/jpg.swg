@@ -237,7 +237,7 @@ impl Decoder
         .bitsLeft = 16
         .getBits1(16)
         .getBits1(16)
-        for i in MaxBlocksPerRow do
+        for [i] in MaxBlocksPerRow do
             .blockMaxZagSet[i] = 64
 
         .locateSofMarker()
@@ -313,7 +313,7 @@ impl Decoder
         {
             var blockMcuOfsX = 0
             var blockMcuOfsY = 0
-            for mcuBlock in .blocksPerMcu
+            for [mcuBlock] in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
 
@@ -364,7 +364,7 @@ impl Decoder
             .blockMcuY[.compList[0]] += 1
         else
         {
-            for componentNum in .compsInScan
+            for [componentNum] in .compsInScan
             {
                 let componentId = .compList[componentNum]
                 .blockMcuY[componentId] += .compSampV[componentId]
@@ -439,7 +439,7 @@ impl Decoder
             if .restartInterval and (.restartsLeft == 0) do
                 .restartProcess()
 
-            for mcuBlock in .blocksPerMcu
+            for [mcuBlock] in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
                 var p           = notnull .blockSeg[rowBlock]
@@ -546,7 +546,7 @@ impl Decoder
         var pdstPtr = buf
         var dataPtr = data
 
-        for #reverse rowctr in 0 to 7
+        for #reverse [rowctr] in 0 to 7
         {
             // Original code:
             // if (dataPtr[1] | dataPtr[2] | dataPtr[3] | dataPtr[4] | dataPtr[5] | dataPtr[6] | dataPtr[7]) == 0
@@ -627,7 +627,7 @@ impl Decoder
 
         dataPtr = data
 
-        for #reverse rowctr in 0 to 7
+        for #reverse [rowctr] in 0 to 7
         {
             if (dataPtr[8 * 1] | dataPtr[8 * 2] | dataPtr[8 * 3] | dataPtr[8 * 4] | dataPtr[8 * 5] | dataPtr[8 * 6] | dataPtr[8 * 7]) == 0
             {
@@ -813,7 +813,7 @@ impl Decoder
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d   = notnull .scanLine0.buffer
         var s   = .safeSampleBuf() + row * 8
-        for #reverse i in 1 to .maxMcusPerRow
+        for #reverse [i] in 1 to .maxMcusPerRow
         {
             d[0] = s[0]
             d[1] = s[1]
@@ -834,9 +834,9 @@ impl Decoder
         let row = .maxMcuSizeY - .mcuLinesLeft
         var d   = notnull .scanLine0.buffer
         var s   = .safeSampleBuf() + row * 8
-        for #reverse i in 1 to .maxMcusPerRow
+        for #reverse [i] in 1 to .maxMcusPerRow
         {
-            for j in 8
+            for [j] in 8
             {
                 let y  = cast(s32) s[j]
                 let cb = s[64 + j]
@@ -865,9 +865,9 @@ impl Decoder
             y = .safeSampleBuf() + 64 * 1 + (row & 7) * 8
 
         var c = .safeSampleBuf() + 64 * 2 + (row >> 1) * 8
-        for #reverse i in 1 to .maxMcusPerRow
+        for #reverse [i] in 1 to .maxMcusPerRow
         {
-            for j in 8
+            for [j] in 8
             {
                 let cb = c[0 + j]
                 let cr = c[64 + j]
@@ -899,11 +899,11 @@ impl Decoder
         var y   = .safeSampleBuf() + row * 8
         var c   = .safeSampleBuf() + 2 * 64 + row * 8
 
-        for #reverse i in 1 to .maxMcusPerRow
+        for #reverse [i] in 1 to .maxMcusPerRow
         {
-            for l in 2
+            for [l] in 2
             {
-                for j in 4
+                for [j] in 4
                 {
                     let cb = c[0]
                     let cr = c[64]
@@ -947,9 +947,9 @@ impl Decoder
             y = .safeSampleBuf() + 64 * 2 + (row & 7) * 8
         var c = .safeSampleBuf() + 64 * 4 + (row >> 1) * 8
 
-        for #reverse i in 1 to .maxMcusPerRow
+        for #reverse [i] in 1 to .maxMcusPerRow
         {
-            for l in 2
+            for [l] in 2
             {
                 for var j = 0; j < 8; j += 2
                 {
@@ -1065,7 +1065,7 @@ impl Decoder
             throw InvalidFormatError{"assertion error"}
 
         .quantBuf.resize(cast(u64) .maxBlocksPerRow * 64 * #sizeof(s16) + 8)
-        for i in .maxBlocksPerRow
+        for [i] in .maxBlocksPerRow
         {
             .blockSeg[i]       = cast([*] s16) (cast([*] u8) (notnull .quantBuf.buffer) + i * 64 * #sizeof(s16))
             .blockMaxZagSet[i] = 64
@@ -1087,7 +1087,7 @@ impl Decoder
         fix[2] = cast(s32) -((0.71414 / 2) * (1 << 16) + 0.5)
         fix[3] = cast(s32) -((0.34414 / 2) * (1 << 16) + 0.5)
 
-        for i in 256
+        for [i] in 256
         {
             let k = cast(s32) i * 2 - 256
             .crr[i] = (fix[0] * k + (1 << (16 - 1))) >> 16
@@ -1145,7 +1145,7 @@ impl Decoder
 
     mtd checkQuantTables() throw
     {
-        for i in .compsInScan
+        for [i] in .compsInScan
         {
             if .quant[.compQuant[.compList[i]]].count == 0 do
                 throw InvalidFormatError{"undefined quant table"}
@@ -1159,7 +1159,7 @@ impl Decoder
 
         var p = 0
         let huffNumBuf = notnull .huffNum[idx].buffer
-        for l in 1 to 16
+        for [l] in 1 to 16
         {
             for var i = 1; i <= huffNumBuf[l]; i += 1
             {
@@ -1248,7 +1248,7 @@ impl Decoder
 
     mtd checkHuffTables() throw
     {
-        for i in .compsInScan
+        for [i] in .compsInScan
         {
             if (.spectralStart == 0) and (.huffNum[.compDcTab[.compList[i]]].count == 0) do
                 throw InvalidFormatError{"undefined huff table"}
@@ -1257,7 +1257,7 @@ impl Decoder
                 throw InvalidFormatError{"undefined huff table"}
         }
 
-        for i in MaxHuffTables
+        for [i] in MaxHuffTables
         {
             if .huffNum[i].count
             {
@@ -1265,7 +1265,7 @@ impl Decoder
             }
         }
 
-        for i in .blocksPerMcu
+        for [i] in .blocksPerMcu
         {
             .dcHuffSeg[i] = &.h[.compDcTab[.mcuOrg[i]]]
             .acHuffSeg[i] = &.h[.compAcTab[.mcuOrg[i]]]
@@ -1278,13 +1278,13 @@ impl Decoder
         var maxSampH = 1
         var maxSampV = 1
 
-        for cid in .compsInFrame
+        for [cid] in .compsInFrame
         {
             maxSampH = Math.max(maxSampH, .compSampH[cid])
             maxSampV = Math.max(maxSampV, .compSampV[cid])
         }
 
-        for cid in .compsInFrame
+        for [cid] in .compsInFrame
         {
             .compBlocksH[cid] = ((((.imageSizeX * .compSampH[cid]) + (maxSampH - 1)) / maxSampH) + 7) / 8
             .compBlocksV[cid] = ((((.imageSizeY * .compSampV[cid]) + (maxSampV - 1)) / maxSampV) + 7) / 8
@@ -1309,7 +1309,7 @@ impl Decoder
         else
         {
             .blocksPerMcu = 0
-            for cNum in .compsInScan
+            for [cNum] in .compsInScan
             {
                 let cid        = .compList[cNum]
                 var num_blocks = .compSampH[cid] * .compSampV[cid]
@@ -1527,7 +1527,7 @@ impl Decoder
                 if .restartInterval and (.restartsLeft == 0) do
                     .restartProcess()
 
-                for mcuBlock in .blocksPerMcu
+                for [mcuBlock] in .blocksPerMcu
                 {
                     let componentId = .mcuOrg[mcuBlock]
                     let blkX = blockMcutX[componentId] + blockMcuOfsX
@@ -1572,7 +1572,7 @@ impl Decoder
                 blockMcutY[.compList[0]] += 1
             else
             {
-                for n in .compsInScan
+                for [n] in .compsInScan
                 {
                     let componentId = .compList[n]
                     blockMcutY[componentId] += .compSampV[componentId]
@@ -1586,7 +1586,7 @@ impl Decoder
         if .compsInFrame == 4 do
             throw UnsupportedFormatError{"unsupported color space"}
 
-        for i in .compsInFrame
+        for [i] in .compsInFrame
         {
             .dcCoeffs[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i], 1, 1)
             .acCoeffs[i] = coeffBufOpen(.maxMcusPerRow * .compSampH[i], .maxMcusPerCol * .compSampV[i], 8, 8)
@@ -1626,7 +1626,7 @@ impl Decoder
         }
 
         .compsInScan = .compsInFrame
-        for i in .compsInFrame do
+        for [i] in .compsInFrame do
             .compList[i] = i
         .calcMcuBlockOrder()
     }
@@ -1842,7 +1842,7 @@ impl Decoder
             var index = .getBits1(8)
             var count = 0
             huffNumt[0] = 0
-            for i in 1 to 16
+            for [i] in 1 to 16
             {
                 huffNumt[i] = cast(u8) .getBits1(8)
                 count       += huffNumt[i]
@@ -1850,7 +1850,7 @@ impl Decoder
 
             if count > 255 do
                 throw InvalidFormatError{"bad dht counts"}
-            for i in count
+            for [i] in count
             {
                 huffValt[i] = cast(u8) .getBits1(8)
             }
@@ -1891,7 +1891,7 @@ impl Decoder
 
             .quant[n].resize(64)
             let qbuf = notnull .quant[n].buffer
-            for i in 64
+            for [i] in 64
             {
                 var temp = .getBits1(8)
                 if prec do
@@ -1935,7 +1935,7 @@ impl Decoder
         if left != (.compsInFrame * 3 + 8) do
             throw InvalidFormatError{"bad sof length"}
 
-        for i in .compsInFrame
+        for [i] in .compsInFrame
         {
             .compIdent[i] = .getBits1(8)
             .compSampH[i] = .getBits1(4)
@@ -1994,7 +1994,7 @@ impl Decoder
         if (left != (n * 2 + 3)) or (n < 1) or (n > MaxCompsInScan) do
             throw InvalidFormatError{"bad sos length"}
 
-        for i in n
+        for [i] in n
         {
             let cc = .getBits1(8)
             let c  = .getBits1(8)

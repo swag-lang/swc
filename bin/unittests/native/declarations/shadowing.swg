@@ -29,7 +29,7 @@
 #test
 {
     var sum = 0
-    for i in 3
+    for [i] in 3
     {
         var sum = i * 10
         @assert(sum == i * 10)

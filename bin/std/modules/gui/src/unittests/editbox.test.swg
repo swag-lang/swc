@@ -215,7 +215,7 @@ func editHeadlessEscape(eb: *EditBox)
 
     // For every caret index, the cached offset must equal the snapped advance to that
     // byte (what the renderer would place the glyph edge at).
-    for idx in 0 to len
+    for [idx] in 0 to len
     {
         edit.setSelection(idx, idx)
         let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR, idx)
@@ -357,7 +357,7 @@ func editHeadlessEscape(eb: *EditBox)
     host.focus(edit)
 
     let len = @countof(edit.getText())
-    for idx in 0 to len
+    for [idx] in 0 to len
     {
         edit.setSelection(idx, idx)
         edit.updateScroll()

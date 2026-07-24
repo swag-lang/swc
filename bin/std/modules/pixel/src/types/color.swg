@@ -614,7 +614,7 @@ impl Color
         const G    = 0.61803398875     // Golden ratio conjugate for low-discrepancy hue sampling
         const LVAR = 0.05              // tiny alternation to separate neighbors
 
-        for i in n
+        for [i] in n
         {
             // Evenly jump around the hue circle with the golden angle
             let h = Math.fract(startHue + cast(f32) i * G)

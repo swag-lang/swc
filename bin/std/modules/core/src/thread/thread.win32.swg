@@ -29,7 +29,7 @@ func wait(threads: *Thread...)
     while total > 0
     {
         let toTreat = Math.min(MAXIMUM_WAIT_OBJECTS, cast(u32) total)
-        for i in toTreat
+        for [i] in toTreat
         {
             let threadIndex = startIndex + cast(u64) i
             Debug.assert(threads[threadIndex].isValid())

@@ -10,7 +10,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    for i in 3
+    for [i] in 3
     {
         var x = i
     }
@@ -26,7 +26,7 @@ func semaTest003()
 
 func semaTest004()
 {
-    for #reverse i in 5
+    for #reverse [i] in 5
     {
         var x = i
     }
@@ -50,7 +50,7 @@ func semaTest006()
 
 func semaTest007()
 {
-    for i in 1 to 5
+    for [i] in 1 to 5
     {
         var x = i
     }
@@ -58,7 +58,7 @@ func semaTest007()
 
 func semaTest008()
 {
-    for i in 1 until 5
+    for [i] in 1 until 5
     {
         var x = i
     }
@@ -66,7 +66,7 @@ func semaTest008()
 
 func semaTest009()
 {
-    for #reverse i in 1 to 5
+    for #reverse [i] in 1 to 5
     {
         var x = i
     }
@@ -74,7 +74,7 @@ func semaTest009()
 
 func semaTest010()
 {
-    for #reverse i in 1 until 5
+    for #reverse [i] in 1 until 5
     {
         var x = i
     }
@@ -82,7 +82,7 @@ func semaTest010()
 
 func semaTest011()
 {
-    for i in 10 where i > 3
+    for [i] in 10 where i > 3
     {
         var x = i
     }
@@ -90,7 +90,7 @@ func semaTest011()
 
 func semaTest012()
 {
-    for i in 0 to 10 where i % 2 == 0
+    for [i] in 0 to 10 where i % 2 == 0
     {
         var x = i
     }
@@ -98,7 +98,7 @@ func semaTest012()
 
 func semaTest013()
 {
-    for i in 0 until 10 where i > 5
+    for [i] in 0 until 10 where i > 5
     {
         var x = i
     }
@@ -106,7 +106,7 @@ func semaTest013()
 
 func semaTest014()
 {
-    for #reverse i in 10 where i < 5
+    for #reverse [i] in 10 where i < 5
     {
         var x = i
     }
@@ -114,9 +114,9 @@ func semaTest014()
 
 func semaTest015()
 {
-    for i in 3
+    for [i] in 3
     {
-        for j in 3
+        for [j] in 3
         {
             var x = i
             var y = j
@@ -135,7 +135,7 @@ func semaTest016()
 
 func semaTest017()
 {
-    for i in 10
+    for [i] in 10
     {
         var x = i
         continue
@@ -167,7 +167,7 @@ func semaTest019()
 func semaTest020()
 {
     var arr: [3]s32 = [1, 2, 3]
-    for i in @countof(arr)
+    for [i] in @countof(arr)
     {
         var x = i
     }
@@ -180,7 +180,7 @@ func semaTest021()
 
 func semaTest022()
 {
-    for i in 0 to 3 {}
+    for [i] in 0 to 3 {}
 }
 
 func semaTest023()
@@ -191,21 +191,21 @@ func semaTest023()
 
 func semaTest024()
 {
-    for i in 3 do
+    for [i] in 3 do
         var x = i
 }
 
 func semaTest025()
 {
-    for i in 1 {}
+    for [i] in 1 {}
 
-    for i in 1 {}
+    for [i] in 1 {}
 }
 
 func semaTest026()
 {
     var i = 5
-    for i in 3
+    for [i] in 3
     {
         var x = i     // shadows outer i
     }
@@ -213,7 +213,7 @@ func semaTest026()
 
 func semaTest027()
 {
-    for i in 5 where i > 0
+    for [i] in 5 where i > 0
     {
         var x = i
     }
@@ -222,11 +222,11 @@ func semaTest027()
 func semaTest028()
 {
     var str: #null string
-    for it in @countof(str) {}
+    for [it] in @countof(str) {}
     var v: u32
-    for it in v {}
+    for [it] in v {}
     var v1: s32 = 4
-    for it in v1
+    for [it] in v1
     {
         #assert(#typeof(it) == s32)
     }
@@ -237,7 +237,7 @@ func semaTest029()
     #[Swag.EnumFlags]
     enum Bits: u32 { A, B, C }
 
-    for idx in @countof(Bits)
+    for [idx] in @countof(Bits)
     {
         #assert(#typeof(idx) == u32)
         var x = idx
@@ -249,7 +249,7 @@ func semaTest030()
     switch
     {
     case true:
-        for x in 1 do
+        for [x] in 1 do
             var y = x
 
     case false:

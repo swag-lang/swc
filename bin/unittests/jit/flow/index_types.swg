@@ -23,7 +23,7 @@
     func rangeIndexType()->s16
     {
         var acc: s16 = 0
-        for i in 1's16 until 4's16
+        for [i] in 1's16 until 4's16
         {
             @assert(#typeof(@index) == s16)
             @assert(@index == i)
@@ -65,12 +65,12 @@
         var str: string = "abcd"
         var acc: u64    = 0
 
-        for i in @countof(arr)
+        for [i] in @countof(arr)
         {
             acc += cast(u64) i
         }
 
-        for i in @countof(str)
+        for [i] in @countof(str)
         {
             @assert(#typeof(i) == u64)
             @assert(#typeof(@index) == u64)

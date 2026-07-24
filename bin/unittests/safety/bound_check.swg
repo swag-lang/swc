@@ -300,7 +300,7 @@ func opaqueIdx(v: u64)->u64
     func loopInvalidSignedRange(low: s32, high: s32)->s32
     {
         var result: s32 = 0
-        for i in low to high do     // swc-expected-error {{safety_err_runtime}}
+        for [i] in low to high do     // swc-expected-error {{safety_err_runtime}}
             result += i
         return result
     }
@@ -315,7 +315,7 @@ func opaqueIdx(v: u64)->u64
     func loopInvalidUnsignedRange(low: u32, high: u32)->u32
     {
         var result: u32 = 0
-        for i in low until high do     // swc-expected-error {{safety_err_runtime}}
+        for [i] in low until high do     // swc-expected-error {{safety_err_runtime}}
             result += i
         return result
     }

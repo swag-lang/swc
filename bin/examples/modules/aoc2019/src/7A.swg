@@ -110,7 +110,7 @@ func day7A()
     for
     {
         var input, cpt = 0
-        for amp in 5
+        for [amp] in 5
         {
             input = run(op, [phase[cpt], input])
             cpt   += 1

@@ -691,7 +691,7 @@ enum VariadicKind: u16
     {
         var acc: s32 = 0
 
-        for v, i in values
+        for v, [i] in values
         {
             if @kindof(v) == s32
             {

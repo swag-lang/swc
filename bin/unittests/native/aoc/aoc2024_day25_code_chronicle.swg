@@ -67,7 +67,7 @@ impl Heights
 {
     mtd const fits(other: Heights)->bool
     {
-        for i in NumCols
+        for [i] in NumCols
         {
             if cast(u32) me.col[i] + cast(u32) other.col[i] > MaxHeight
             {
@@ -79,7 +79,7 @@ impl Heights
 
     mtd eq(other: Heights)->bool
     {
-        for i in NumCols
+        for [i] in NumCols
         {
             if me.col[i] != other.col[i] do return false
         }
@@ -133,9 +133,9 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
 
     // Read 7 rows × 5 cols
     var grid: [GridRows] [NumCols] u8
-    for row in GridRows
+    for [row] in GridRows
     {
-        for col in NumCols
+        for [col] in NumCols
         {
             if pos < @countof(bytes)
             {
@@ -159,10 +159,10 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
     if isLock
     {
         // Count '#' from top down per column (excluding row 0)
-        for col in NumCols
+        for [col] in NumCols
         {
             var count: u8
-            for row in 1 until GridRows
+            for [row] in 1 until GridRows
             {
                 if grid[row][col] == '#' do count += 1
                 else do break
@@ -176,10 +176,10 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
     else
     {
         // Count '#' from bottom up per column (excluding last row)
-        for col in NumCols
+        for [col] in NumCols
         {
             var count: u8
-            for #reverse row in 1 until GridRows
+            for #reverse [row] in 1 until GridRows
             {
                 if grid[row - 1][col] == '#' do count += 1
                 else do break
@@ -220,9 +220,9 @@ func countFittingPairs(r: *ParseResult)->u64
     var count: u64
     let locks = notnull r.locks
     let keys  = notnull r.keys
-    for li in r.lockCount
+    for [li] in r.lockCount
     {
-        for ki in r.keyCount
+        for [ki] in r.keyCount
         {
             if locks[li].fits(keys[ki])
             {

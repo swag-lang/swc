@@ -28,7 +28,7 @@ func findStartColumn(plan: const [..] string)->u32
 {
     let firstRow = cast(const [..] u8) plan[0]
 
-    for column in @countof(firstRow)
+    for [column] in @countof(firstRow)
     {
         if firstRow[column] == 'S' do
             return cast(u32) column
@@ -60,16 +60,16 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
     result.columnCount             = width
     current[findStartColumn(plan)] = true
 
-    for row in 1 to @countof(plan) - 1
+    for [row] in 1 to @countof(plan) - 1
     {
         let bytes = cast(const [..] u8) plan[row]
 
-        for column in width
+        for [column] in width
         {
             next[column] = false
         }
 
-        for column in width
+        for [column] in width
         {
             if current[column] == false do
                 continue
@@ -89,7 +89,7 @@ func auditSplitterRack(plan: const [..] string)->SplitterAudit
             }
         }
 
-        for column in width
+        for [column] in width
         {
             current[column] = next[column]
         }

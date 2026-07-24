@@ -23,15 +23,15 @@ func day2B()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    for a, i in lines
+    for a, [i] in lines
     {
-        for b, j in lines
+        for b, [j] in lines
         {
             if i == j do
                 continue
             var diff    = 0
             var result: String
-            for k in @countof(b)
+            for [k] in @countof(b)
             {
                 if b[k] != a[k] do
                     diff += 1

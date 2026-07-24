@@ -20,7 +20,7 @@ func buildPow10()->[MaxPow] u64
 {
     var result: retval
     result[0] = 1
-    for i in 1 until MaxPow
+    for [i] in 1 until MaxPow
     {
         result[i] = result[i - 1] * 10
     }
@@ -38,7 +38,7 @@ const Pow10 = #run buildPow10()
 
 func digitCount(n: u64)->u32
 {
-    for i in 1 until MaxPow
+    for [i] in 1 until MaxPow
     {
         if n < Pow10[i] do
             return cast(u32) i
@@ -81,7 +81,7 @@ func mapInit()->StoneMap
     result.used   = 0
     let alive  = notnull result.alive
     let counts = notnull result.counts
-    for i in MapCap
+    for [i] in MapCap
     {
         alive[i]  = false
         counts[i] = 0
@@ -164,7 +164,7 @@ func mapTotal(m: *StoneMap)->u64
     var total: u64
     let alive  = notnull m.alive
     let counts = notnull m.counts
-    for i in MapCap
+    for [i] in MapCap
     {
         if alive[i] do
             total += counts[i]
@@ -183,7 +183,7 @@ func forEachStone(m: *StoneMap, cb: StoneVisitor)
     let alive  = notnull m.alive
     let keys   = notnull m.keys
     let counts = notnull m.counts
-    for i in MapCap
+    for [i] in MapCap
     {
         if alive[i] do
             cb(keys[i], counts[i])
@@ -222,7 +222,7 @@ func blinkOnce(src: *StoneMap, dst: *StoneMap)
     let alive  = notnull src.alive
     let keys   = notnull src.keys
     let counts = notnull src.counts
-    for i in MapCap
+    for [i] in MapCap
     {
         if alive[i] do
             blinkStone(keys[i], counts[i], dst)
@@ -295,7 +295,7 @@ func solve(text: string)->BlinkResult
     var b = mapInit()
     var result: retval
 
-    for i in 75
+    for [i] in 75
     {
         let cur = currentMap(&a, &b, cast(u32) i)
         if i == 6  do result.after6  = mapTotal(cur)

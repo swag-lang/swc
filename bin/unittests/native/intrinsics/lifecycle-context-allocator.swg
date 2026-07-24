@@ -70,7 +70,7 @@ func encodeByteTrace(buffer: #null [*] u8, count: u64)->u64
     var result: u64 = 0
     if buffer != null
     {
-        for i in count do
+        for [i] in count do
             result = result * 100 + cast(u64) buffer[i]
     }
     return result * 100 + count
@@ -81,7 +81,7 @@ func encodeTrackedTrace(buffer: #null [*] DropTracked, count: u64)->u64
     var result: u64 = 0
     if buffer != null
     {
-        for i in count do
+        for [i] in count do
             result = result * 100 + cast(u64) buffer[i].value
     }
     return result * 100 + count
@@ -330,7 +330,7 @@ func memoryAllocatorRunDropInfo()->DropRunInfo
     var values: MemoryTrackedBuffer
     values.resize(4, 9)
     let buf = notnull values.buffer
-    for i in 4 do
+    for [i] in 4 do
         buf[i].value = cast(s32) (i + 1)
 
     values.resize(2, 8)

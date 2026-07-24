@@ -66,7 +66,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     let itf = makeAlignmentCaptureAllocator(&alloc, captureStack: true)
 
     var reqs: [6] AllocatorRequest
-    for i in 6
+    for [i] in 6
     {
         reqs[i].size      = 64 + cast(u64) i * 41
         reqs[i].alignment = 128
@@ -75,7 +75,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
         @assert(cast(u64) reqs[i].address % 128 == 0)
     }
 
-    for i in 6
+    for [i] in 6
     {
         itf.free(&reqs[i])
         @assert(reqs[i].address == null)

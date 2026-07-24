@@ -348,7 +348,7 @@ impl Deflate
     func radixSortSyms(numSyms: u32, sym0, sym1: [*] SymFreq)->[*] SymFreq
     {
         var hist: [256 * 2] u32
-        for i in numSyms
+        for [i] in numSyms
         {
             let freq = sym0[i].key
             hist[freq & 0xFF]                += 1
@@ -362,19 +362,19 @@ impl Deflate
         var curSym    = sym0
         var newSym    = sym1
         var passShift = 0'u16
-        for pass in totalPasses
+        for [pass] in totalPasses
         {
             let pHist  = cast([*] u32) &hist[pass << 8]
             var curOfs = 0
 
             var offsets: [256] u32 = undefined
-            for i in 256
+            for [i] in 256
             {
                 offsets[i] = curOfs
                 curOfs     += pHist[i]
             }
 
-            for i in numSyms
+            for [i] in numSyms
             {
                 let offsetIndex = (curSym[i].key >> passShift) & 0xFF'u16
                 var ptr         = &offsets[offsetIndex]
@@ -509,7 +509,7 @@ impl Deflate
             var syms1: [MaxHuffSymbols] SymFreq
 
             var numUsedSyms = 0'u32
-            for i in tableLen where d.huffCount[tableNum, i]
+            for [i] in tableLen where d.huffCount[tableNum, i]
             {
                 syms0[numUsedSyms].key      = cast(u16) d.huffCount[tableNum, i]
                 syms0[numUsedSyms].symIndex = cast(u16) i
@@ -519,7 +519,7 @@ impl Deflate
             let syms = radixSortSyms(numUsedSyms, syms0, syms1)
             calculateMinimumRedundancy(syms, numUsedSyms)
 
-            for i in numUsedSyms
+            for [i] in numUsedSyms
             {
                 numCodes[syms[i].key] += 1
             }
@@ -704,7 +704,7 @@ impl Deflate
         var rleRepeatCount       = 0
 
         Memory.clear(&d.huffCount[2, 0], cast(u64) #sizeof(d.huffCount[2, 0]) * MaxHuffSymbols2)
-        for i in totalCodeSizesToPack
+        for [i] in totalCodeSizesToPack
         {
             let codeSize = codeSizesToPack[i]
             if !codeSize
@@ -764,7 +764,7 @@ impl Deflate
 
         numBitLengths = Math.max(4, numBitLengths + 1)
         .putBits(numBitLengths - 4, 4)
-        for i in numBitLengths
+        for [i] in numBitLengths
         {
             .putBits(cast(u32) d.huffCodeSizes[2, PackedCodeSizeSymsSwizzle[i]], 3)
         }
@@ -892,7 +892,7 @@ impl Deflate
                 d.totalLzBytes ^= 0xFFFF
             }
 
-            for i in d.totalLzBytes
+            for [i] in d.totalLzBytes
             {
                 .putBits(cast(u32) d.dict[(d.lzCodeBufDictPos + i) & LzDictSizeMask], 8)
             }

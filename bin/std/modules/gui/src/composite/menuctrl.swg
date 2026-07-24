@@ -79,7 +79,7 @@ public impl IWnd for MenuCtrl
         var colorText:      Color
         var colorRightText: Color
 
-        for i, idx in .items
+        for i, [idx] in .items
         {
             let it = notnull i
             if it.hidden do
@@ -168,7 +168,7 @@ public impl IWnd for MenuCtrl
         var colorRightText: Color
 
         var lastIsSeparator = true
-        for i, idx in .items
+        for i, [idx] in .items
         {
             let it = notnull i
             if it.hidden do
@@ -669,7 +669,7 @@ impl MenuCtrl
     mtd hitTestBar(surfacePos: Math.Point)->u32
     {
         let pos        = .surfaceToLocal(surfacePos)
-        for iIt, idx in .items
+        for iIt, [idx] in .items
         {
             let i = notnull iIt
             if i.hidden do
@@ -691,7 +691,7 @@ impl MenuCtrl
         let clientRect = .getClientRect()
         let sl         = metrics.menuPopup_SpaceLines
         var lastIsSeparator = true
-        for i, idx in .items
+        for i, [idx] in .items
         {
             let it = notnull i
             if it.hidden do
@@ -725,7 +725,7 @@ impl MenuCtrl
         var rsf:  Pixel.RichStringFormat
         rsf.font = .getFont()
 
-        for i, idx in .items
+        for i, [idx] in .items
         {
             let it = notnull i
             if it.hidden do
@@ -754,7 +754,7 @@ impl MenuCtrl
         rsf.font = .getFont()
 
         var lastIsSeparator = true
-        for i, idx in .items
+        for i, [idx] in .items
         {
             let it = notnull i
             if it.hidden do

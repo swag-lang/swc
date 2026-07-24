@@ -63,7 +63,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
     var robotX: s32
     var robotY: s32
 
-    for _, rowIndex in layout
+    for [rowIndex] in layout
     {
         @assert(lineWidth(layout[rowIndex]) == width)
 

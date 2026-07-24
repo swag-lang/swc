@@ -562,7 +562,7 @@ impl MemoryAllocatorGenericBuffer
         let buffer = notnull .buffer
         @drop(buffer + index, num)
         let shiftCount = .count - (index + num)
-        for i in shiftCount do
+        for [i] in shiftCount do
             buffer[index + i] = #relocate buffer[index + num + i]
 
         .count -= num
@@ -959,7 +959,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
     var third:  s32 = 0
     {
         var outer = DropOnlyTracked{9}
-        for i in 2
+        for [i] in 2
         {
             var pair = AutoDropPair{DropOnlyTracked{cast(s32) (i * 2 + 1)}, DropOnlyTracked{cast(s32) (i * 2 + 2)}}
             first += pair.first.value
@@ -989,7 +989,7 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
             var scopeValue = AutoDropBranch{DropOnlyTracked{3}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}}
             first = outer.first.value + scopeValue.head.value
 
-            for i in 3
+            for [i] in 3
             {
                 var current = AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}
                 second = current.second.value + cast(s32) i
@@ -1089,7 +1089,7 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
     var third:  s32 = 0
     {
         var outer = CompactDropTracked{9}
-        for i in 2
+        for [i] in 2
         {
             let base = cast(s32) (i * 3 + 1)
             let value: s32 = trycatch intrinsicAutoDropTryCatchLoopStep(base)
@@ -1333,7 +1333,7 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
 
     let ptr = cast([*] DropOnlyTracked) notnull req.address
     @init(ptr, 3)
-    for i in 3 do
+    for [i] in 3 do
         ptr[i].value = cast(s32) (i + 1)
 
     @drop(ptr + 1)
@@ -1356,7 +1356,7 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
 
     var values = OwnedDropBuffer{itf, cast(#null [*] DropOnlyTracked) req.address, 3, 3}
     let buffer = notnull values.buffer
-    for i in 3 do
+    for [i] in 3 do
         buffer[i].value = cast(s32) (i + 1)
 
     values.free()
@@ -1370,7 +1370,7 @@ func intrinsicMemoryAllocatorGenericBufferFreeInfo()->IntrinsicInfo
     {
         var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
         values.clear()
         values.free()
@@ -1390,7 +1390,7 @@ func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
     {
         var values: MemoryAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(5)
-        for i in 5 do
+        for [i] in 5 do
             ptr[i].value = cast(s32) (i + 1)
 
         values.remove(1, 3)
@@ -1413,7 +1413,7 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
         let itf = notnull @getcontext().allocator
         var values = ReallocDropBuffer{itf, null, 0, 0}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
 
@@ -1428,7 +1428,7 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
         let itf = notnull @getcontext().allocator
         var values = GenericOwnedBuffer'DropOnlyTracked{itf, null, 0, 0}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
 
@@ -1442,7 +1442,7 @@ func intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()->IntrinsicInfo
     {
         var values = GenericOwnedBuffer'DropOnlyTracked{@getcontext().allocator, null, 0, 0}
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
 
@@ -1456,7 +1456,7 @@ func intrinsicLazyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
     {
         var values: LazyAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
 
@@ -1470,7 +1470,7 @@ func intrinsicHelperAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
     {
         var values: HelperAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
 
@@ -1484,7 +1484,7 @@ func intrinsicPostCopyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
     {
         var values: PostCopyAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
     }
 
@@ -1498,7 +1498,7 @@ func intrinsicPostCopyAllocatorGenericBufferExplicitOpDropInfo()->IntrinsicInfo
     {
         var values: PostCopyAllocatorGenericBuffer'DropOnlyTracked
         let ptr = values.emplaceAddress(3)
-        for i in 3 do
+        for [i] in 3 do
             ptr[i].value = cast(s32) (i + 1)
         values.opDrop()
     }
@@ -1513,7 +1513,7 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
     let itf = notnull @getcontext().allocator
     var values = ReallocDropBuffer{itf, null, 0, 0}
     let ptr = values.emplaceAddress(3)
-    for i in 3 do
+    for [i] in 3 do
         ptr[i].value = cast(s32) (i + 1)
 
     values.free()

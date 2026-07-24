@@ -31,7 +31,7 @@ impl WorkloadForecast
         }
         #else
         {
-            for idx in 5
+            for [idx] in 5
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -57,7 +57,7 @@ impl WorkloadForecast
         #if ptr do
             #error("Address iteration requires a mutable WorkloadForecast receiver.")
 
-        for idx in 5
+        for [idx] in 5
         {
             var visitItem: s32 = undefined
             switch idx
@@ -100,7 +100,7 @@ func totalStops(forecast: WorkloadForecast)->s32
 func adjacentSignature(forecast: WorkloadForecast)->s32
 {
     var signature: s32
-    for #Pairs today, nextDay in forecast do
+    for #Pairs today, [nextDay] in forecast do
         signature = signature * 100 + (nextDay - today + 50)
     return signature
 }
@@ -108,7 +108,7 @@ func adjacentSignature(forecast: WorkloadForecast)->s32
 func maxAdjacentRise(forecast: WorkloadForecast)->s32
 {
     var best = -1000
-    for #Pairs today, nextDay in forecast
+    for #Pairs today, [nextDay] in forecast
     {
         let delta = nextDay - today
         if delta > best do
@@ -133,7 +133,7 @@ func maxAdjacentRise(forecast: WorkloadForecast)->s32
     @assert(adjacentSignature(forecast) == 54544756)
     @assert(maxAdjacentRise(forecast) == 6)
 
-    for &stops, day in forecast
+    for &stops, [day] in forecast
     {
         if day == 2'u64 do
             stops -= 3

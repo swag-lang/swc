@@ -222,7 +222,7 @@ func solve(text: string)->u64
 
     // Find minimum cost to reach end cell in any direction
     var minCost = Infinity
-    for d in 4
+    for [d] in 4
     {
         let c = best[stateIdx(m.er, m.ec, d)]
         if c < minCost do

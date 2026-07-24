@@ -20,7 +20,7 @@ func day6B()
     for
     {
         var best, besti: u64
-        for v, i in blocks
+        for v, [i] in blocks
         {
             if v > best
             {
@@ -38,7 +38,7 @@ func day6B()
         }
 
         var val: String
-        for i in blocks.count do
+        for [i] in blocks.count do
             val += Format.toString("%.", blocks[i])
 
         total += 1

@@ -70,7 +70,7 @@ func drawCapsPage(painter: *Pixel.Painter)
     let rowHeight = body.height / cast(f32) @countof(CapRows)
 
     painter.pushClippingSurfaceRect(body)
-    for i in @countof(CapRows)
+    for [i] in @countof(CapRows)
     {
         let rowRect = Math.Rectangle{body.x, body.y + i * rowHeight, body.width, rowHeight}
         drawCapRow(painter, rowRect, CapRows[i])

@@ -1594,6 +1594,7 @@ enum class AstForeachStmtFlagsE : AstNode::ParserFlags
 {
     Zero      = 0,
     ByAddress = 1 << 0,
+    IndexOnly = 1 << 1,
 };
 
 struct AstForeachStmt : AstNodeT<AstNodeId::ForeachStmt, AstForeachStmtFlagsE>

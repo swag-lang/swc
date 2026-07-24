@@ -27,7 +27,7 @@ func assertReverseIntSetIteration(values: const &HashSet's32)->bool
     if forward.count != reverse.count do
         return false
 
-    for i in forward.count
+    for [i] in forward.count
     {
         if forward[i] != reverse[reverse.count - i - 1] do
             return false

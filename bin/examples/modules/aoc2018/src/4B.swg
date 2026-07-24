@@ -27,14 +27,14 @@ func day4B()
         elif Utf8.contains(l, "falls asleep") do
             startSleep = curMin
         elif Utf8.contains(l, "wakes up") do
-            for i in startSleep until curMin do
+            for [i] in startSleep until curMin do
                 count[i].findOrAdd(curGuard).value += 1
     }
 
     var minCount, min, guard = 0'u64
-    for v, i in count
+    for v, [i] in count
     {
-        for k1, v1 in v
+        for k1, [v1] in v
         {
             if v1 > minCount
             {

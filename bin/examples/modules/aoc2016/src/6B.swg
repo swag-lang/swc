@@ -21,16 +21,16 @@ func day6B()
 
     for l in lines
     {
-        for c, i in l
+        for c, [i] in l
         {
             freq[i, c - 'a'] += 1
         }
     }
 
     var best: [8] u32 = Swag.U32.Max
-    for c0 in 8
+    for [c0] in 8
     {
-        for c1 in 26
+        for [c1] in 26
         {
             let v = freq[c0, c1]
             if v and v < best[c0]

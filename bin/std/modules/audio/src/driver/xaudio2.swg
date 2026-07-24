@@ -356,7 +356,7 @@ public impl Voice
 
         if count
         {
-            for i in count
+            for [i] in count
             {
                 let bus = buses[i]
                 let safeBusHandle = notnull bus.handle

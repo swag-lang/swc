@@ -60,7 +60,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 3
+    for [i] in 3
     {
         var x = i
         sum += cast(s32) i
@@ -73,7 +73,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last = -1
     var sum = 0
-    for #reverse i in 3
+    for #reverse [i] in 3
     {
         var x = i
         if first == -1 do
@@ -100,7 +100,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for #reverse i in 5
+    for #reverse [i] in 5
     {
         var x = i
         sum += cast(s32) i
@@ -133,7 +133,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 1 to 5
+    for [i] in 1 to 5
     {
         var x = i
         sum += cast(s32) i
@@ -144,7 +144,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in cast(ForStrictS32) 1 to cast(ForStrictS32) 5
+    for [i] in cast(ForStrictS32) 1 to cast(ForStrictS32) 5
     {
         #assert(#typeof(i) == ForStrictS32)
         sum += cast(s32) i
@@ -156,7 +156,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var sum = 0
-    for i in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
+    for [i] in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
     {
         #assert(#typeof(i) == ForStrictU8)
         count += 1
@@ -170,7 +170,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var sum = 0
-    for i in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
+    for [i] in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
     {
         let value = forStrictU8RefValue(i)
         count += 1
@@ -184,7 +184,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var sum = 0
-    for #reverse i in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
+    for #reverse [i] in cast(ForStrictU8) 0 to cast(ForStrictU8) 255
     {
         let value = forStrictU8RefValue(i)
         count += 1
@@ -199,7 +199,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var count = 0
     var first:  u64 = 0
     var second: u64 = 0
-    for i in 0xFFFF_FFFF_FFFF_FFFF'u64 to 0xFFFF_FFFF_FFFF_FFFF'u64
+    for [i] in 0xFFFF_FFFF_FFFF_FFFF'u64 to 0xFFFF_FFFF_FFFF_FFFF'u64
     {
         if count == 0 do
             first = i
@@ -222,7 +222,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var first: u64 = 42
-    for i in 0xFFFF_FFFF_FFFF_FFFF'u64
+    for [i] in 0xFFFF_FFFF_FFFF_FFFF'u64
     {
         first = i
         count += 1
@@ -236,7 +236,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 1 until 5
+    for [i] in 1 until 5
     {
         var x = i
         sum += cast(s32) i
@@ -249,7 +249,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last = -1
     var sum = 0
-    for #reverse i in 1 to 5
+    for #reverse [i] in 1 to 5
     {
         var x = i
         if first == -1 do
@@ -267,7 +267,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last = -1
     var sum = 0
-    for #reverse i in 1 until 5
+    for #reverse [i] in 1 until 5
     {
         var x = i
         if first == -1 do
@@ -284,7 +284,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var sum = 0
-    for i in 10 where i > 3
+    for [i] in 10 where i > 3
     {
         var x = i
         count += 1
@@ -320,7 +320,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     for value do
         count += 1
 
-    for i in @countof(value) do
+    for [i] in @countof(value) do
         sum += cast(s32) i
 
     @assert(count == 4)
@@ -331,7 +331,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var sum = 0
-    for i in 0 to 10 where i % 2 == 0
+    for [i] in 0 to 10 where i % 2 == 0
     {
         var x = i
         count += 1
@@ -345,7 +345,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var sum = 0
-    for i in 0 until 10 where i > 5
+    for [i] in 0 until 10 where i > 5
     {
         var x = i
         count += 1
@@ -360,7 +360,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
     var first = -1
     var last = -1
     var count = 0
-    for #reverse i in 10 where i < 5
+    for #reverse [i] in 10 where i < 5
     {
         var x = i
         if first == -1 do
@@ -376,9 +376,9 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    for i in 3
+    for [i] in 3
     {
-        for j in 3
+        for [j] in 3
         {
             var x = i
             var y = j
@@ -392,9 +392,9 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var count = 0
     var last = -1
-    for i in 1
+    for [i] in 1
     {
-        for j in 1
+        for [j] in 1
         {
             var x = j
             last  = cast(s32) x
@@ -420,7 +420,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 10
+    for [i] in 10
     {
         var x = i
         sum += cast(s32) i
@@ -464,7 +464,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var arr: [3]s32 = [1, 2, 3]
     var sum = 0
-    for i in @countof(arr)
+    for [i] in @countof(arr)
     {
         var x = i
         sum += cast(s32) x
@@ -485,7 +485,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 0 to 3
+    for [i] in 0 to 3
     {
         sum += cast(s32) i
     }
@@ -503,7 +503,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 3 do
+    for [i] in 3 do
         sum += cast(s32) i
     @assert(sum == 3)
 }
@@ -511,12 +511,12 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var count = 0
-    for i in 1
+    for [i] in 1
     {
         count += 1
     }
 
-    for i in 1
+    for [i] in 1
     {
         count += 1
     }
@@ -527,7 +527,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var i = 5
     var count = 0
-    for i in 3
+    for [i] in 3
     {
         var x = i     // shadows outer i
         count += 1
@@ -539,7 +539,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 5 where i > 0
+    for [i] in 5 where i > 0
     {
         var x = i
         sum += cast(s32) i
@@ -551,10 +551,10 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var str: #null string
     var count0 = 0
-    for it in @countof(str) { count0 += 1 }
+    for [it] in @countof(str) { count0 += 1 }
     var v: u32
     var count1 = 0
-    for it in v { count1 += 1 }
+    for [it] in v { count1 += 1 }
     var v1: s32
     @assert(count0 == 0)
     @assert(count1 == 0)
@@ -564,7 +564,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var sum = 0
-    for i in 1 to 3
+    for [i] in 1 to 3
     {
         switch i
         {
@@ -585,7 +585,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 
     var count = 0
     var sum = 0
-    for idx in @countof(Bits)
+    for [idx] in @countof(Bits)
     {
         #assert(#typeof(idx) == u32)
         count += 1
@@ -600,7 +600,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 {
     var box = StringRefIndexBox{rows: ["10110", "00100"]}
     var sum = 0
-    for i in @countof(box[0]) do
+    for [i] in @countof(box[0]) do
         sum += cast(s32) i
 
     @assert(sum == 10)
@@ -609,7 +609,7 @@ func forStrictU8RefValue(value: const &ForStrictU8)->ForStrictU8
 #test
 {
     var total: s32 = 0
-    for i in 1 to 5
+    for [i] in 1 to 5
     {
         switch i
         {

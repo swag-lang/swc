@@ -162,7 +162,7 @@ namespace GenericReallocDefaultArgsCodegen
         mtd stableCode()->u64
         {
             var total = .capacity * 10 + .count
-            for _value, index in .toSlice() do
+            for _value, [index] in .toSlice() do
                 total += index + 1
             return total
         }

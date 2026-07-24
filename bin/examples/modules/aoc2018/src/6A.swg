@@ -80,9 +80,9 @@ func day6A()
     count.resize(coords.count)
     borders.resize(coords.count)
 
-    for c, who in coords
+    for c, [who] in coords
     {
-        for i in W * W
+        for [i] in W * W
         {
             let x = i % W
             let y = i / W

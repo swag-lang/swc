@@ -8,7 +8,7 @@ func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool
     if values.count != @countof(expected) do
         return false
 
-    for i in values.count
+    for [i] in values.count
     {
         if values[i] != expected[i] do
             return false
@@ -98,7 +98,7 @@ func assertRuneArray(values: const &Array'rune, expected: const [..] rune)->bool
     var dest: [8] rune
     let count = Unicode.fromUtf8(dest, text)
     @assert(count == 4)
-    for i in count do
+    for [i] in count do
         @assert(dest[i] == expected[i])
 
     let result = Unicode.fromUtf8(text)

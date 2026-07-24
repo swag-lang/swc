@@ -535,7 +535,7 @@ impl Properties
             return
 
         let base0 = cast([*] u8) bases[0]
-        for i in fromIdx until .items.count
+        for [i] in fromIdx until .items.count
         {
             let it = notnull .items[i]
             it.dataInstances.clear()

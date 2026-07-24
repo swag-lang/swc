@@ -83,7 +83,7 @@ impl MainWnd
         {
             var p = cast(*#decltype(params)) notnull userData
             let boundRects = notnull p.boundRects
-            for f, idx in dref p.forms
+            for f, [idx] in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
@@ -135,14 +135,14 @@ impl MainWnd
             }
 
             // Compute colors at the start and at the end of the column, to interpolate
-            for x in undo.newImg.width
+            for [x] in undo.newImg.width
             {
                 var col1, col2: Color
                 var pt = Math.Point{cast(f32) x, 0}
                 var y1 = cast(s32) (br.bottom() - capture.backImagePos.y)
                 y1 = Math.clamp(y1, 0, undo.newImg.height - 1)
                 y1 = undo.newImg.height - y1
-                for i in undo.newImg.height
+                for [i] in undo.newImg.height
                 {
                     pt.y = cast(f32) (capture.backImg.height - y1) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)
@@ -159,7 +159,7 @@ impl MainWnd
                 var y2 = cast(s32) (br.y - capture.backImagePos.y)
                 y2 = undo.newImg.height - y2
                 y2 = Math.clamp(y2, 0, undo.newImg.height - 1)
-                for i in undo.newImg.height
+                for [i] in undo.newImg.height
                 {
                     pt.y = cast(f32) (capture.backImg.height - y2) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)
@@ -184,7 +184,7 @@ impl MainWnd
         {
             var p = cast(*#decltype(params)) notnull userData
             let infos = notnull p.infos
-            for f, idx in dref p.forms
+            for f, [idx] in dref p.forms
             {
                 var pt = Math.Point{cast(f32) x, cast(f32) p.capture.backImg.height - y}
                 pt.x += p.capture.backImagePos.x
@@ -271,7 +271,7 @@ impl MainWnd
         var masks: Array'Image
         .pixSelSmartFill(serial, &masks)
 
-        for f, idx in undo.oldForms
+        for f, [idx] in undo.oldForms
         {
             let nf = cast(*FormImage) f
             nf.backCaptureMask(notnull (masks.buffer + idx))
@@ -281,7 +281,7 @@ impl MainWnd
         capture.pushUndo(undo, serial)
 
         capture.selection.clear()
-        for i in startCount until capture.forms.count do
+        for [i] in startCount until capture.forms.count do
             capture.selection.add(i)
     }
 }

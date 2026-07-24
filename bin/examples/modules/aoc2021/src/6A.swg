@@ -62,9 +62,9 @@ func day6A()
     for v in str do
         values.add(assume StrConv.toS32(v))
 
-    for day in 80
+    for [day] in 80
     {
-        for f in @countof(values)
+        for [f] in @countof(values)
         {
             if values[f] == 0
             {

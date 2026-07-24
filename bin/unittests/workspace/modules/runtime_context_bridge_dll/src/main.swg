@@ -153,7 +153,7 @@ public func ctxSharedMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->
 #[Swag.NoInline]
 public func ctxSharedContains(values: const [..] u8, count: u32, value: u8)->bool
 {
-    for i in count
+    for [i] in count
     {
         if values[i] == value do
             return true
@@ -165,7 +165,7 @@ public func ctxSharedContains(values: const [..] u8, count: u32, value: u8)->boo
 #[Swag.NoInline]
 public func(T) ctxSharedContainsGeneric(values: const [..] T, count: u32, value: T)->bool
 {
-    for i in count
+    for [i] in count
     {
         if values[i] == value do
             return true

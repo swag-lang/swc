@@ -363,7 +363,7 @@ func deferReturnDropInfo()->DeferDropInfo
     func deferForRange()->s64
     {
         resetDeferTrace()
-        for i in 1 to 4
+        for [i] in 1 to 4
         {
             defer appendDeferTrace(cast(s64) i)
 

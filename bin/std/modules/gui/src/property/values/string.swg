@@ -26,7 +26,7 @@ impl Properties
 
         let cur = notnull cast(#null *String) item.data
         var sel = 0'u32
-        for &fnt, idx in g_PropSysFonts
+        for &fnt, [idx] in g_PropSysFonts
         {
             if dref cur == fnt.name do
                 sel = cast(u32) idx + 1

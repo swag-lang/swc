@@ -5,7 +5,7 @@ using Swag
 
 func fillCompressPattern(buffer: [..] u8)
 {
-    for i in @countof(buffer)
+    for [i] in @countof(buffer)
     {
         let repeated = (i / 17) & 0xFF
         buffer[i] = cast(u8) ((i * 31 + repeated + (i >> 3)) & 0xFF)
@@ -74,7 +74,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 #test
 {
     var repeated: [2048] u8
-    for i in @countof(repeated) do
+    for [i] in @countof(repeated) do
         repeated[i] = cast(u8) ((i / 8) & 7)
 
     assertDeflateRoundTrip(repeated, .NoCompression, .Default)

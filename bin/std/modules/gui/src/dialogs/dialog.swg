@@ -26,7 +26,7 @@ impl IWnd for Dialog
             switch evt.key
             {
             case Tab, Right:
-                for btn, idx in .buttons
+                for btn, [idx] in .buttons
                 {
                     if btn.form == .Default
                     {
@@ -40,7 +40,7 @@ impl IWnd for Dialog
                 }
 
             case Left:
-                for btn, idx in .buttons
+                for btn, [idx] in .buttons
                 {
                     if btn.form == .Default
                     {

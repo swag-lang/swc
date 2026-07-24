@@ -182,7 +182,7 @@ impl HashLikeTable
     mtd free()
     {
         let slots = notnull .entries
-        for i in .capacity where slots[i].hash >= 1 do
+        for [i] in .capacity where slots[i].hash >= 1 do
             @drop(&slots[i].value)
         @free(slots)
         .entries  = null

@@ -148,7 +148,7 @@ func parseProgram(text: string, cpu: *Cpu)
 func outputEquals(cpu: *Cpu, expected: [*] u8, len: u32)->bool
 {
     if cpu.outLen != len do return false
-    for i in len
+    for [i] in len
     {
         if cpu.out[i] != expected[i] do return false
     }
@@ -166,7 +166,7 @@ func outputMatchesProgram(cpu: *Cpu)->bool
 
 func findSelfOutputA(cpu: *Cpu, maxSearch: u64)->u64
 {
-    for a in maxSearch
+    for [a] in maxSearch
     {
         cpu.reset(cast(u64) a, 0, 0)
         run(cpu)

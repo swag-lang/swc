@@ -120,7 +120,7 @@ func(T) isSorted(values: const [..] T, cb: func||(T, T)->s32)->bool
     if countof <= 1 do
         return true
 
-    for i in countof - 1
+    for [i] in countof - 1
     {
         if cb(values[i], values[i + 1]) > 0 do
             return false

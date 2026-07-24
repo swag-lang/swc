@@ -14,7 +14,7 @@ namespace ClosureGenericCallbackSupport
         #[Swag.NoInline]
         mtd const contains(value: u8)->bool
         {
-            for i in count
+            for [i] in count
             {
                 if values[i] == value do
                     return true

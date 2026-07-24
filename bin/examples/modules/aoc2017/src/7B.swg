@@ -63,7 +63,7 @@ func day7B()
         var total: u64
         var sums:  Array'ChildTotal
 
-        for v, i in w.childs
+        for v, [i] in w.childs
         {
             let s = sum(set, result, set.find(v).value)
             sums.add({i, s})

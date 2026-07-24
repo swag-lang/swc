@@ -13,7 +13,7 @@ using Swag
         break
     }
 
-    for i in 4 where (#type const [2] u8) do
+    for [i] in 4 where (#type const [2] u8) do
         count += 1
 
     var switchHit = 0

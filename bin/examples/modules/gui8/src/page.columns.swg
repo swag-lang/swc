@@ -18,7 +18,7 @@ func createColumnsPage(parent: *Wnd)
     files.header.getItem(0).minWidth   = 130
     files.header.getItem(0).sizeable   = false
     files.header.getItem(3).iconMargin = true
-    for i in 18
+    for [i] in 18
     {
         let line = files.createLine(Format.toString("asset_%.swg", i + 1), sampleIcon(i))
         line.setItem(1, i % 3 == 0 ? "source" : "resource")
@@ -40,7 +40,7 @@ func createColumnsPage(parent: *Wnd)
     queue.addColumn("State", 110)
     queue.addColumn("Priority", 90, app.theme.getIcon24(.SortArrowDown, 16))
     queue.addColumn("Assignee", 120)
-    for i in 16
+    for [i] in 16
     {
         let prio = 9 - (i % 9)
         let line = queue.createLine(Format.toString("review batch %", i + 1), sampleIcon(i + 3))
@@ -65,7 +65,7 @@ func createColumnsPage(parent: *Wnd)
     wide.addColumn("Notes", 360)
     wide.horizontalExtent = 1020
     wide.listFlags.add(.HorzLines)
-    for i in 12
+    for [i] in 12
     {
         let line = wide.createLine(Format.toString("module.%", i + 1), sampleIcon(i + 5))
         line.setItem(1, Format.toString("1.%.%", i % 5, i % 9))

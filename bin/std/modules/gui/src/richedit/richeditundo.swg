@@ -87,7 +87,7 @@ impl RichEditCtrl
         Debug.assert(.undoCounter != 0)
         .undoCounter -= 1
 
-        for i in .toUndo.count
+        for [i] in .toUndo.count
         {
             let undo = notnull .toUndo[i]
             undo.serial             = .serialUndo

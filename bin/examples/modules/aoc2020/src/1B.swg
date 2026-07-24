@@ -20,9 +20,9 @@ func day1B()
 
     arr.sort()
 
-    for v0, i0 in arr
+    for v0, [i0] in arr
     {
-        for v1, i1 in arr[i0 to]
+        for v1, [i1] in arr[i0 to]
         {
             let v2 = 2020 - (v0 + v1)
             if v2 < 0 do

@@ -174,7 +174,7 @@ impl Allocator
 
     func sizeClass(size: u64)->u32
     {
-        for i in AllocatorClassCount
+        for [i] in AllocatorClassCount
         {
             if size <= classSize(i) do
                 return i
@@ -495,7 +495,7 @@ impl Allocator
         while heap.cachedBytes > .maxCachedBytes
         {
             var released = false
-            for i in AllocatorClassCount
+            for [i] in AllocatorClassCount
             {
                 if heap.classes[i].firstFree
                 {
@@ -512,7 +512,7 @@ impl Allocator
 
     mtd releaseThreadHeap(heap: *AllocatorThreadHeap)
     {
-        for i in AllocatorClassCount
+        for [i] in AllocatorClassCount
         {
             .drainThreadRemote(heap, i)
             while heap.classes[i].firstFree do

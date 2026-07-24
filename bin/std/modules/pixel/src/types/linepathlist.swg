@@ -18,7 +18,7 @@ impl LinePathList
 
     mtd opPostCopy()
     {
-        for p, i in .paths
+        for p, [i] in .paths
         {
             var ptr = Memory.new'LinePath()
             dref ptr  = dref p

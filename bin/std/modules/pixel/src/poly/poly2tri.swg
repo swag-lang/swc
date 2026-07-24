@@ -767,7 +767,7 @@ impl Tessellate
     {
         mtd initEdges(polyline: [..] *Point)
         {
-            for pt, i in polyline
+            for pt, [i] in polyline
             {
                 let nexti = (i + 1) % @countof(polyline)
                 let edge  = newEdge()
@@ -786,7 +786,7 @@ impl Tessellate
         .points.grow(.points.count + poly.points.count)
 
         .startPolyLine()
-        for i in 0 until poly.points.count - 1
+        for [i] in 0 until poly.points.count - 1
         {
             let p  = newPoint()
             let pt = poly.getPoint(i)
@@ -817,7 +817,7 @@ impl Tessellate
 
     mtd sweepPoints()
     {
-        for i in 1 until .points.count
+        for [i] in 1 until .points.count
         {
             let point = .points[i]
             let node  = .pointEvent(point)
@@ -1403,7 +1403,7 @@ impl Tessellate
 
     mtd legalize(t: *Triangle)->bool
     {
-        for i in 3
+        for [i] in 3
         {
             if t.delaunayEdge[i] do
                 continue
@@ -1493,7 +1493,7 @@ impl Tessellate
 
     mtd mapTriangleToNodes(t: *Triangle)
     {
-        for i in 3
+        for [i] in 3
         {
             if !t.neighbors[i]
             {
@@ -1548,7 +1548,7 @@ impl Tessellate
         for i in .triIndices
         {
             let tri = .triangles[i]
-            for e in 3
+            for [e] in 3
             {
                 let neighbor = tri.neighbors[e]
                 if neighbor and !neighbor.interior do

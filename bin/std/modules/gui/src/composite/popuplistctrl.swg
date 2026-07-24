@@ -112,7 +112,7 @@ impl IWnd for PopupListView
     mtd hitAt(pos: Math.Point)->u32
     {
         var y = pos.y + .scrollPos.y
-        for vIt, i in .list.items
+        for vIt, [i] in .list.items
         {
             let v = notnull vIt
             let h = v.isSeparator ? .list.heightSeparator : .list.heightItem
@@ -145,7 +145,7 @@ impl IWnd for PopupListView
         var colorText: Color
 
         var y = 0'f32
-        for i, idx in .list.items
+        for i, [idx] in .list.items
         {
             let it = notnull i
             labelPos.x      = clientRect.x
@@ -268,7 +268,7 @@ private impl PopupListView
     {
         if forward
         {
-            for v, idx in .list.items
+            for v, [idx] in .list.items
             {
                 if !(notnull v).isSeparator
                 {

@@ -44,7 +44,7 @@ func parseAlignedNumber(line: string, firstColumn, lastColumn: u32, value: *u64)
     var foundDigit = false
     var result: u64
 
-    for column in firstColumn to lastColumn
+    for [column] in firstColumn to lastColumn
     {
         let c = bytes[column]
         if c >= '0' and c <= '9'
@@ -66,7 +66,7 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
     let operatorLine = cast(const [..] u8) sheet[@countof(sheet) - 1]
 
     var op: u8
-    for column in firstColumn to lastColumn
+    for [column] in firstColumn to lastColumn
     {
         if operatorLine[column] == '+' or operatorLine[column] == '*'
         {
@@ -80,7 +80,7 @@ func evaluateProblem(sheet: const [..] string, firstColumn, lastColumn: u32)->Pr
     var value:       u64
     var numberCount: u32
 
-    for row in 0 to @countof(sheet) - 1
+    for [row] in 0 to @countof(sheet) - 1
     {
         var parsedValue: u64
         if parseAlignedNumber(sheet[row], firstColumn, lastColumn, &parsedValue)

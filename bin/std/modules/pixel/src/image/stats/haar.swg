@@ -10,9 +10,9 @@ func haarTransform2D(data: [*] f32, size: u32, output: [*] f32)
     var currentSize = size
     while currentSize > 1
     {
-        for row in currentSize do
+        for [row] in currentSize do
             haarTransform1D(output, row * size, currentSize)
-        for col in currentSize do
+        for [col] in currentSize do
             haarTransform1DVertical(output, col, currentSize, size)
         currentSize /= 2
     }
@@ -29,12 +29,12 @@ func haarTransform1D(data: [*] f32, offset: s32, length: s32)
 
     let half = length / 2
 
-    for i in half do
+    for [i] in half do
         temp[i] = (data[offset + i * 2] + data[offset + i * 2 + 1]) * 0.70710678118     // sqrt(2)/2 normalization
-    for i in half do
+    for [i] in half do
         temp[half + i] = (data[offset + i * 2] - data[offset + i * 2 + 1]) * 0.70710678118
 
-    for i in length do
+    for [i] in length do
         data[offset + i] = temp[i]
 }
 
@@ -49,12 +49,12 @@ func haarTransform1DVertical(data: [*] f32, col: s32, length: s32, stride: s32)
 
     let half = length / 2
 
-    for i in half do
+    for [i] in half do
         temp[i] = (data[col + i * 2 * stride] + data[col + (i * 2 + 1) * stride]) * 0.70710678118
-    for i in half do
+    for [i] in half do
         temp[half + i] = (data[col + i * 2 * stride] - data[col + (i * 2 + 1) * stride]) * 0.70710678118
 
-    for i in length do
+    for [i] in length do
         data[col + i * stride] = temp[i]
 }
 
@@ -62,9 +62,9 @@ func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [
 {
     Debug.assert(targetWidth > 0 and targetHeight > 0, "Target dimensions must be positive")
 
-    for y in targetHeight
+    for [y] in targetHeight
     {
-        for x in targetWidth
+        for [x] in targetWidth
         {
             // Bilinear sampling
             let srcX = cast(f32) (x * image.width) / cast(f32) targetWidth
@@ -142,7 +142,7 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     var totalWeight:     f64 = 0.0
     let size             = haar1.size
 
-    for level in haar1.levels
+    for [level] in haar1.levels
     {
         let weight = Math.pow(2.0, cast(f64) (haar1.levels - level))
 
@@ -164,8 +164,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
             let levelSize = size >> level
 
             // LH (horizontal details): top-right
-            for y in 0 until levelSize do
-                for x in levelSize until levelSize * 2
+            for [y] in 0 until levelSize do
+                for [x] in levelSize until levelSize * 2
             {
                 let idx = y * size + x
                 let c1  = cast(f64) haar1.coefficients[idx]
@@ -176,8 +176,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
             }
 
             // HL (vertical details): bottom-left
-            for y in levelSize until levelSize * 2 do
-                for x in 0 until levelSize
+            for [y] in levelSize until levelSize * 2 do
+                for [x] in 0 until levelSize
             {
                 let idx = y * size + x
                 let c1  = cast(f64) haar1.coefficients[idx]
@@ -188,8 +188,8 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
             }
 
             // HH (diagonal details): bottom-right
-            for y in levelSize until levelSize * 2 do
-                for x in levelSize until levelSize * 2
+            for [y] in levelSize until levelSize * 2 do
+                for [x] in levelSize until levelSize * 2
             {
                 let idx = y * size + x
                 let c1  = cast(f64) haar1.coefficients[idx]
@@ -247,10 +247,10 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     let stepX = Math.max(1.0, cast(f32) image.width / cast(f32) windowSize)
     let stepY = Math.max(1.0, cast(f32) image.height / cast(f32) windowSize)
 
-    for y in windowSize
+    for [y] in windowSize
     {
         let srcY = Math.min(cast(s32) (cast(f32) y * stepY), image.height - 1)
-        for x in windowSize
+        for [x] in windowSize
         {
             let srcX  = Math.min(cast(s32) (cast(f32) x * stepX), image.width - 1)
             let color = image.getPixelColor(srcX, srcY)
@@ -272,7 +272,7 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     var norm1, norm2, correlation: f64
     let coeffCount = haar1.coefficients.count
 
-    for i in coeffCount     // Fixed: iterate over indices, not values
+    for [i] in coeffCount     // Fixed: iterate over indices, not values
     {
         let c1 = cast(f64) haar1.coefficients[i]
         let c2 = cast(f64) haar2.coefficients[i]

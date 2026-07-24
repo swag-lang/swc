@@ -7,7 +7,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
 {
     var forwardKeys:   Array's32
     var forwardValues: Array's32
-    for key, value in table
+    for key, [value] in table
     {
         forwardKeys.add(key)
         forwardValues.add(value)
@@ -15,7 +15,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
 
     var reverseKeys:   Array's32
     var reverseValues: Array's32
-    for #reverse key, value in table
+    for #reverse key, [value] in table
     {
         reverseKeys.add(key)
         reverseValues.add(value)
@@ -24,7 +24,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
     if forwardKeys.count != reverseKeys.count do
         return false
 
-    for i in forwardKeys.count
+    for [i] in forwardKeys.count
     {
         let reverseIndex = reverseKeys.count - i - 1
         if forwardKeys[i] != reverseKeys[reverseIndex] do
@@ -83,7 +83,7 @@ func assertReverseIntTableIteration(table: const &HashTable'(s32, s32))->bool
 
     var sumKeys = 0
     var sumValues = 0
-    for key, value in table
+    for key, [value] in table
     {
         #assert(#typeof(key) == s32)
         #assert(#typeof(value) == s32)

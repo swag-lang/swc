@@ -104,7 +104,7 @@ impl FormCallout
     func addArc(path: *LinePath, cx, cy, r, a0Deg, a1Deg: f32)
     {
         const Seg = 8
-        for k in Seg + 1
+        for [k] in Seg + 1
         {
             let ang = Math.toRadians(a0Deg + (a1Deg - a0Deg) * (cast(f32) k / Seg))
             path.lineTo(cx + r * Math.cos(ang), cy + r * Math.sin(ang))

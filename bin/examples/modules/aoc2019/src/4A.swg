@@ -34,12 +34,12 @@ func day4A0()
     //Time.Stopwatch.scopeMeasure()
 
     var total = 0
-    for x in 246515 to 739105
+    for [x] in 246515 to 739105
     {
         let str = Format.toString("%", x)
 
         var ok = false
-        for i in str.length - 1
+        for [i] in str.length - 1
         {
             if str[i] > str[i + 1]
             {
@@ -69,18 +69,18 @@ func day4A1()
     // Time.Stopwatch.scopeMeasure()
 
     var total = 0
-    for x in 246515 to 739105
+    for [x] in 246515 to 739105
     {
         var div  = 100_000
         var str: [6] u8 = undefined
-        for i in 6
+        for [i] in 6
         {
             str[i] = cast(u8) ((x / div) % 10)
             div    /= 10
         }
 
         var ok = false
-        for i in 5
+        for [i] in 5
         {
             if str[i] > str[i + 1]
             {

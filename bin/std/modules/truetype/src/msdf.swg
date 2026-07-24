@@ -124,7 +124,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     let ebuf = notnull elements.buffer
     var pdx  = ebuf[first + count - 1].edx1
     var pdy  = ebuf[first + count - 1].edy1
-    for i in count
+    for [i] in count
     {
         let e = &ebuf[first + i]
         if msdfIsCorner(pdx, pdy, e.sdx0, e.sdy0, crossThreshold) do
@@ -137,7 +137,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     // then matches a plain single-channel SDF, which is correct for such shapes.
     if corners.count == 0
     {
-        for i in count do
+        for [i] in count do
             ebuf[first + i].color = MSDF_WHITE
         return
     }
@@ -148,7 +148,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     {
         var color = MSDF_WHITE
         msdfSwitchColor(&color, seed)
-        for i in count do
+        for [i] in count do
             ebuf[first + i].color = color
         return
     }
@@ -160,7 +160,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
     msdfSwitchColor(&color, seed)
     let initialColor = color
 
-    for i in count
+    for [i] in count
     {
         let index = (start + i) % count
         if spline + 1 < cornerCount and corners[spline + 1] == index
@@ -255,7 +255,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
     contourElemStart.add(cast(u32) elements.count)
 
     var seed = 0'u64
-    for c in contourElemStart.count - 1
+    for [c] in contourElemStart.count - 1
     {
         let first = contourElemStart[c]
         let count = contourElemStart[c + 1] - first
@@ -271,19 +271,19 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
     // Propagate element colors down to their segments.
     for el in elements
     {
-        for i in el.segCount do
+        for [i] in el.segCount do
             sbuf[el.firstSeg + i].color = el.color
     }
 
     // Guarantee every channel is carried by at least one segment, otherwise that
     // channel's distance would be undefined and the median would be meaningless.
     var unionColor = 0'u8
-    for i in segs.count do
+    for [i] in segs.count do
         unionColor |= sbuf[i].color
     let missing = (~unionColor) & MSDF_WHITE
     if missing
     {
-        for i in segs.count do
+        for [i] in segs.count do
             sbuf[i].color |= missing
     }
 }
@@ -385,12 +385,12 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64
     var bestIdx:    [3] s32 = [-1, -1, -1]
     var bestParam:  [3] f64
 
-    for &s, i in segs
+    for &s, [i] in segs
     {
         let (sd, dt, param) = msdfSegSignedDistance(s, px, py)
         let a = Math.abs(sd)
 
-        for ch in 3
+        for [ch] in 3
         {
             if !(s.color & cast(u8) (1 << ch)) do
                 continue
@@ -406,7 +406,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64
     }
 
     var d: [3] f64
-    for ch in 3
+    for [ch] in 3
     {
         d[ch] = bestSigned[ch]
         if bestIdx[ch] >= 0 do
@@ -444,7 +444,7 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
     let sampleY = cast(f64) c.top - (cast(f64) py + 0.5)
 
     var localVote = 0's64
-    for px in c.width
+    for [px] in c.width
     {
         let sampleX = cast(f64) c.left + cast(f64) px + 0.5
             let (r, g, b) = msdfChannelDistances(segsS, sampleX, sampleY)
@@ -553,12 +553,12 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     }
     else
     {
-        for py in rows do
+        for [py] in rows do
             msdfProcessRow(&ctx, cast(u32) py)
     }
 
     var vote = 0's64
-    for i in rows do
+    for [i] in rows do
         vote += rowVotes[i]
 
     let flip: f64 = vote < 0 ? -1 : 1
@@ -566,12 +566,12 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
     let count = cast(u64) width * rows
     faceData.bitmapPixels.resize(count * 4)
     var dst = notnull faceData.bitmapPixels.buffer
-    for i in count
+    for [i] in count
     {
         let src = i * 4
 
         // RGB: multi-channel field, corrected by the global sign vote.
-        for c in 3
+        for [c] in 3
         {
             let value = 128.0'f64 + flip * cast(f64) channelsBuffer[src + c] * scale
             dst[src + c] = cast(u8) Math.max(0.0'f64, Math.min(255.0'f64, Math.round(value)))

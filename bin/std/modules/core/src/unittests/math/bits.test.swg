@@ -7,7 +7,7 @@ func expectedLeadingZeros8(value: u8)->u8
 {
     let input = cast(u16) value
     var mask  = 0x80'u16
-    for i in 8
+    for [i] in 8
     {
         if input & mask do
             return cast(u8) i
@@ -21,7 +21,7 @@ func expectedTrailingZeros8(value: u8)->u8
 {
     let input = cast(u16) value
     var mask  = 1'u16
-    for i in 8
+    for [i] in 8
     {
         if input & mask do
             return cast(u8) i
@@ -82,7 +82,7 @@ func expectedLeadingZeros16(value: u16)->u16
 {
     let input = cast(u32) value
     var mask  = 0x8000'u32
-    for i in 16
+    for [i] in 16
     {
         if input & mask do
             return cast(u16) i
@@ -96,7 +96,7 @@ func expectedTrailingZeros16(value: u16)->u16
 {
     let input = cast(u32) value
     var mask  = 1'u32
-    for i in 16
+    for [i] in 16
     {
         if input & mask do
             return cast(u16) i
@@ -161,7 +161,7 @@ func expectedByteswap16(value: u16)->u16
 
 #test
 {
-    for value in 256
+    for [value] in 256
     {
         let input = cast(u8) value
         @assert(Math.leadingZeros(input) == expectedLeadingZeros8(input))
@@ -169,7 +169,7 @@ func expectedByteswap16(value: u16)->u16
         @assert(Math.countOnes(input) == expectedCountOnes8(input))
         @assert(Math.reverse(input) == expectedReverse8(input))
 
-        for shift in 16
+        for [shift] in 16
         {
             let amount = cast(u8) shift
             @assert(Math.rol(input, amount) == expectedRol8(input, amount))
@@ -180,7 +180,7 @@ func expectedByteswap16(value: u16)->u16
 
 #test
 {
-    for value in 65536
+    for [value] in 65536
     {
         let input = cast(u16) value
         @assert(Math.leadingZeros(input) == expectedLeadingZeros16(input))
@@ -189,7 +189,7 @@ func expectedByteswap16(value: u16)->u16
         @assert(Math.reverse(input) == expectedReverse16(input))
         @assert(Math.byteswap(input) == expectedByteswap16(input))
 
-        for shift in 32
+        for [shift] in 32
         {
             let amount = cast(u8) shift
             @assert(Math.rol(input, amount) == expectedRol16(input, amount))

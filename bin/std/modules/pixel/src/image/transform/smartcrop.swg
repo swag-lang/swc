@@ -53,12 +53,12 @@ public impl Image
         var ii: retval
         ii.resize((w + 1) * (h + 1))
         let pitch = w + 1
-        for y in 1 to h
+        for [y] in 1 to h
         {
             var rowSum  = 0.0
             let baseIn  = (y - 1) * w
             let baseOut = y * pitch
-            for x in 1 to w
+            for [x] in 1 to w
             {
                 rowSum          += src[baseIn + (x - 1)]
                 ii[baseOut + x] = ii[baseOut - pitch + x] + rowSum
@@ -87,11 +87,11 @@ public impl Image
 
         var dst: retval
         dst.resize(w * h)
-        for y in 0 to (h - 1)
+        for [y] in 0 to (h - 1)
         {
             let y0 = Math.max(0, y - radius)
             let y1 = Math.min(h - 1, y + radius)
-            for x in 0 to (w - 1)
+            for [x] in 0 to (w - 1)
             {
                 let x0 = Math.max(0, x - radius)
                 let x1 = Math.min(w - 1, x + radius)
@@ -114,14 +114,14 @@ public impl Image
         let t2: f32 = 2.0 / 3.0
         let sig2 = sigma * sigma
 
-        for x in 0 to (w - 1)
+        for [x] in 0 to (w - 1)
         {
             let fx = cast(f32) x / cast(f32) w
             let dx = Math.min(Math.abs(fx - t1), Math.abs(fx - t2))
             tx[x] = Math.exp(-(dx * dx) / (2.0 * sig2))
         }
 
-        for y in 0 to (h - 1)
+        for [y] in 0 to (h - 1)
         {
             let fy = cast(f32) y / cast(f32) h
             let dy = Math.min(Math.abs(fy - t1), Math.abs(fy - t2))
@@ -130,8 +130,8 @@ public impl Image
 
         var T: retval
         T.resize(w * h)
-        for y in 0 to (h - 1) do
-            for x in 0 to (w - 1) do
+        for [y] in 0 to (h - 1) do
+            for [x] in 0 to (w - 1) do
                 T[y * w + x] = Math.pow(tx[x] * ty[y], 1.5)
         return T
     }
@@ -139,9 +139,9 @@ public impl Image
     // Sobel on (slightly) blurred luminance (shared by saliency and edge-distance)
     internal func sobelMagFromLumBlur(lumBlur: &Array'f32, w, h: s32, outEdge: &Array'f32)
     {
-        for y in 0 to (h - 1)
+        for [y] in 0 to (h - 1)
         {
-            for x in 0 to (w - 1)
+            for [x] in 0 to (w - 1)
             {
                 let i = y * w + x
                 if x == 0 or y == 0 or x == w - 1 or y == h - 1
@@ -201,7 +201,7 @@ public impl Image
         // invert & gently sharpen far-from-edge regions
         var D: retval
         D.resize(w * h)
-        for i in 0 to (w * h - 1)
+        for [i] in 0 to (w * h - 1)
         {
             let e = Math.saturate(B[i])
 
@@ -225,7 +225,7 @@ public impl Image
 
         if N <= K
         {
-            for i in 0 to (N - 1) do
+            for [i] in 0 to (N - 1) do
                 tmp[i] = buf[i]
         }
         else
@@ -268,11 +268,11 @@ public impl Image
         var ii, iiSq: Array'f32
         ii.resize((w + 1) * (h + 1))
         iiSq.resize((w + 1) * (h + 1))
-        for y in 1 to h
+        for [y] in 1 to h
         {
             var rowSum   = 0.0
             var rowSumSq = 0.0
-            for x in 1 to w
+            for [x] in 1 to w
             {
                 let Ld = cast(f32) lum[(y - 1) * w + (x - 1)]
                 rowSum   += Ld
@@ -339,7 +339,7 @@ public impl Image
 
         var S: Array'f32
         S.resize(N)
-        for i in 0 to (N - 1)
+        for [i] in 0 to (N - 1)
         {
             let cn = Math.saturate((contrast[i] - cLo) / cDen)
             let sn = Math.saturate((sat[i] - sLo) / sDen)
@@ -383,7 +383,7 @@ public impl Image
         else
         {
             E.resize(w * h)
-            for i in 0 to (w * h - 1) do
+            for [i] in 0 to (w * h - 1) do
                 E[i] = 1.0
         }
 
@@ -486,9 +486,9 @@ public impl Image
         let rx1 = Math.clamp(bestX + range, 0, maxX)
         let ry1 = Math.clamp(bestY + range, 0, maxY)
 
-        for y0 in ry0 to ry1
+        for [y0] in ry0 to ry1
         {
-            for x0 in rx0 to rx1
+            for [x0] in rx0 to rx1
             {
                 let r = scoreWindow(ctx, x0, y0, bestW, bestH)
                 if r.score > bScore + Math.ConstF32.Epsilon or (Math.abs(r.score - bScore) <= Math.ConstF32.Epsilon and r.d2 < bD2)
@@ -517,7 +517,7 @@ public impl Image
             bScore = r0.score; bD2    = r0.d2
         }
 
-        for i in 0 to 4
+        for [i] in 0 to 4
         {
             if i == 2 do
                 continue
@@ -604,9 +604,9 @@ public impl Image
         let ry0         = Math.clamp(bestY - refineRange, 0, maxY)
         let rx1         = Math.clamp(bestX + refineRange, 0, maxX)
         let ry1         = Math.clamp(bestY + refineRange, 0, maxY)
-        for y0 in ry0 to ry1
+        for [y0] in ry0 to ry1
         {
-            for x0 in rx0 to rx1
+            for [x0] in rx0 to rx1
             {
                 let result = scoreWindow(&ctx, x0, y0, cropW, cropH)
                 if result.score > bestScore + Math.ConstF32.Epsilon
@@ -641,7 +641,7 @@ public impl Image
         var bestScore:    f32 = -1.0e30
         var bestCenterD2: f32 = 1.0e30
 
-        for step in 0 to (steps - 1)
+        for [step] in 0 to (steps - 1)
         {
             let t          = step / cast(f32) (steps - 1)
             let frac       = 1.0 - Math.pow(t, 1.3) * (1.0 - opts.minCoverage)
@@ -755,7 +755,7 @@ public impl Image
 
         if opts.thirdsWeight > 0.01
         {
-            for i in 0 until w * h
+            for [i] in 0 until w * h
             {
                 pack.sblur[i] = pack.sblur[i] + opts.thirdsWeight * pack.T[i]
             }

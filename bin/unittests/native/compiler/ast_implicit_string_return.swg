@@ -29,7 +29,7 @@ impl AstGeneratedBuilder
         if !.buffer do
             return
 
-        for i in .length do
+        for [i] in .length do
             .buffer[i] = 0
         @free(.buffer)
     }

@@ -61,7 +61,7 @@ impl Brush
             if .color.a == 0 do
                 return false
 
-            for i in .gradientStopCount
+            for [i] in .gradientStopCount
             {
                 if .gradientStops[i].color.a do
                     return true
@@ -86,7 +86,7 @@ impl Brush
             if .color.a != 255 do
                 return false
 
-            for i in .gradientStopCount
+            for [i] in .gradientStopCount
             {
                 if .gradientStops[i].color.a != 255 do
                     return false
@@ -102,7 +102,7 @@ impl Brush
 
         let clamped = Math.saturate(offset)
         var insertAt: u8 = .gradientStopCount
-        for i in .gradientStopCount
+        for [i] in .gradientStopCount
         {
             if clamped < .gradientStops[i].offset
             {

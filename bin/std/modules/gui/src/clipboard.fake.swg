@@ -47,7 +47,7 @@ func fakeClear()
 
 func fakeFind(fmt: ValueFormat)->#null *FakeTypedData
 {
-    for i in g_Fake.typed.count
+    for [i] in g_Fake.typed.count
     {
         if g_Fake.typed[i].fmt == fmt do
             return g_Fake.typed.buffer + i

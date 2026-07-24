@@ -53,7 +53,7 @@ func day7A()
 
     var first = Swag.U8.Max
     var last: u8
-    for k, v in steps
+    for k, [v] in steps
     {
         if v.next.length == 0 do
             last = k
@@ -69,7 +69,7 @@ func day7A()
             break
 
         first = Swag.U8.Max
-        for k, v in steps
+        for k, [v] in steps
         {
             if Utf8.contains(result.toSlice(), cast(rune) k) do
                 continue

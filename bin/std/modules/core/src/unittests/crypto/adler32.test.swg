@@ -66,7 +66,7 @@ func fillAdlerPattern(buffer: [..] u8)
     var data: [11121] u8
     fillAdlerPattern(data)
 
-    for length in 65
+    for [length] in 65
     {
         assertAdler32(data[until length])
     }

@@ -15,7 +15,7 @@ impl Image
 
         if .pf == .BGR8 or .pf == .BGRA8
         {
-            for i in 256
+            for [i] in 256
             {
                 convArrR[i] = cast(u8) Math.lerp(cast(f32) i, cast(f32) color.b, factor)
                 convArrG[i] = cast(u8) Math.lerp(cast(f32) i, cast(f32) color.g, factor)
@@ -24,7 +24,7 @@ impl Image
         }
         elif .pf == .RGB8 or .pf == .RGBA8
         {
-            for i in 256
+            for [i] in 256
             {
                 convArrR[i] = cast(u8) Math.lerp(cast(f32) i, cast(f32) color.r, factor)
                 convArrG[i] = cast(u8) Math.lerp(cast(f32) i, cast(f32) color.g, factor)

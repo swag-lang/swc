@@ -3,7 +3,7 @@
 #[Swag.Inline]
 func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
 {
-    for i in count
+    for [i] in count
     {
         if arr[i] > limit do return true
     }
@@ -14,7 +14,7 @@ func hasAnyAbove(arr: [*] u8, count: u32, limit: u8)->bool
 #[Swag.Inline]
 func firstAboveIndex(arr: [*] u8, count: u32, limit: u8)->s32
 {
-    for i in count
+    for [i] in count
     {
         if arr[i] > limit do return cast(s32) i
     }
@@ -27,7 +27,7 @@ func runInlineScanStress(arr: [*] u8, count: u32)->u32
     var limits: [4] u8 = [0, 4, 8, 9]
     var total:  u32
 
-    for i in 4
+    for [i] in 4
     {
         if hasAnyAbove(arr, count, limits[i])
             do total += 1
@@ -73,7 +73,7 @@ func runNestedInlineStress(count: u32)->s32
 {
     var total: s32
 
-    for i in count
+    for [i] in count
     {
         total += bumpThenDouble(cast(s32) i)
     }

@@ -110,18 +110,18 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
     var clusterSizes: [24] u32
     var edgeCount:    u32
 
-    for line, index in pointLines
+    for line, [index] in pointLines
     {
         points[index]  = parsePoint(line)
         parents[index] = cast(u32) index
     }
 
-    for lhs in @countof(pointLines)
+    for [lhs] in @countof(pointLines)
     {
         if cast(u32) lhs + 1 >= @countof(pointLines) do
             continue
 
-        for rhs in cast(u32) lhs + 1 to @countof(pointLines) - 1
+        for [rhs] in cast(u32) lhs + 1 to @countof(pointLines) - 1
         {
             edges[edgeCount].a     = cast(u32) lhs
             edges[edgeCount].b     = cast(u32) rhs
@@ -130,13 +130,13 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
         }
     }
 
-    for edgeIndex in edgeCount
+    for [edgeIndex] in edgeCount
     {
         var bestIndex = edgeIndex
 
         if edgeIndex + 1 < edgeCount
         {
-            for candidate in edgeIndex + 1 to edgeCount - 1
+            for [candidate] in edgeIndex + 1 to edgeCount - 1
             {
                 let best = edges[bestIndex]
                 let test = edges[candidate]
@@ -157,7 +157,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
 
     let requestedLinks = attemptedLinks < edgeCount ? attemptedLinks : edgeCount
 
-    for edgeIndex in requestedLinks
+    for [edgeIndex] in requestedLinks
     {
         let edge = edges[edgeIndex]
         let rootA = findRoot(parents[0 to @countof(pointLines)], edge.a)
@@ -167,7 +167,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
             parents[rootB] = rootA
     }
 
-    for pointIndex in @countof(pointLines)
+    for [pointIndex] in @countof(pointLines)
     {
         let root = findRoot(parents[0 to @countof(pointLines)], cast(u32) pointIndex)
         sizes[root] += 1
@@ -177,7 +177,7 @@ func planCables(pointLines: const [..] string, attemptedLinks: u32)->CablePlan
     result.pointCount     = cast(u32) @countof(pointLines)
     result.attemptedLinks = requestedLinks
 
-    for clusterIndex in @countof(pointLines)
+    for [clusterIndex] in @countof(pointLines)
     {
         clusterSizes[clusterIndex] = sizes[clusterIndex]
         if clusterSizes[clusterIndex] > 0

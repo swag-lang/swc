@@ -109,7 +109,7 @@ func parseBuyers(text: string)->BuyerList
 func solvePart1(buyers: *BuyerList, steps: u32)->u64
 {
     var total: u64
-    for i in buyers.count
+    for [i] in buyers.count
     {
         total += evolveN(buyers.secrets[i], steps)
     }
@@ -160,7 +160,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
     let seen = cast([*] bool) notnull @alloc(cast(u64) SeqCount * #sizeof(bool))
     defer @free(seen)
 
-    for bi in buyers.count
+    for [bi] in buyers.count
     {
         // Clear seen flags
         for SeqCount { seen[@index] = false }
@@ -170,7 +170,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
 
         // Collect changes
         var ch: [4] s32
-        for step in steps
+        for [step] in steps
         {
             s = evolve(s)
             let price = cast(s32) (s % 10)
@@ -178,7 +178,7 @@ func solvePart2(buyers: *BuyerList, steps: u32)->SeqResult
             prevPrice = price
 
             // Slide the window using for #reverse, then insert new change
-            for #reverse i in 1 until 4
+            for #reverse [i] in 1 until 4
             {
                 ch[i] = ch[i - 1]
             }
@@ -292,7 +292,7 @@ func solve(text: string)->SolveResult
 {
     var ch: [4] s32
     ch[0] = 10; ch[1] = 20; ch[2] = 30; ch[3] = 40
-    for #reverse i in 1 until 4 { ch[i] = ch[i - 1] }
+    for #reverse [i] in 1 until 4 { ch[i] = ch[i - 1] }
     ch[0] = 99
     @assert(ch[0] == 99)
     @assert(ch[1] == 10)

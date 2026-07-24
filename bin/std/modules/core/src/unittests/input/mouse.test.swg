@@ -7,7 +7,7 @@ using Swag
 {
     var mouse: Input.Mouse
 
-    for i in @countof(Input.MouseButton)
+    for [i] in @countof(Input.MouseButton)
     {
         let button = cast(Input.MouseButton) i
         @assert(!mouse.isButtonPressed(button))
@@ -26,7 +26,7 @@ using Swag
 {
     var mouse: Input.Mouse
 
-    for i in @countof(Input.MouseButton)
+    for [i] in @countof(Input.MouseButton)
     {
         let button = cast(Input.MouseButton) i
 

@@ -49,7 +49,7 @@ impl CollMutVec
     #[Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
     {
-        for idx in me.count
+        for [idx] in me.count
         {
             #if ptr do
                 #inject(stmt, item = cast(&s32) &me.buffer[idx], index = idx)
@@ -163,7 +163,7 @@ func collMutRemoveThenReturn(target: s32)->bool
     var v: CollMutVec
     v.add(1)
     v.add(2)
-    for x, i in v
+    for x, [i] in v
     {
         if x == target
         {
@@ -179,7 +179,7 @@ func collMutRemoveThenBreak()
 {
     var v: CollMutVec
     v.add(1)
-    for x, i in v
+    for x, [i] in v
     {
         if x == 1
         {

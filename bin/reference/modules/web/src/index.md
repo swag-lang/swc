@@ -77,7 +77,7 @@ struct(T) IsSet
     const PowerOfTwo: [N] s32 = #run
         {
             var arr: [N] s32
-            for i in @countof(arr)
+            for [i] in @countof(arr)
                 arr[i] = 1 << cast(u32) i
             return arr
         }

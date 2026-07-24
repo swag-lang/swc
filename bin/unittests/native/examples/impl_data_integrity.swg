@@ -152,9 +152,9 @@ impl Adler32
 
             while i + NMax <= count
             {
-                for rounds in n
+                for [rounds] in n
                 {
-                    for j in 16'u64
+                    for [j] in 16'u64
                     {
                         s1 += cast(u32) input[i + j]
                         s2 += s1
@@ -171,7 +171,7 @@ impl Adler32
             {
                 while i + 16 <= count
                 {
-                    for j in 16'u64
+                    for [j] in 16'u64
                     {
                         s1 += cast(u32) input[i + j]
                         s2 += s1
@@ -297,7 +297,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     @assert(reverse8(0xA5) == 0xA5)     // 10100101 is a palindrome
 
     // Double-reverse is identity
-    for i in 256
+    for [i] in 256
     {
         let b = cast(u8) i
         @assert(reverse8(reverse8(b)) == b)
@@ -329,7 +329,7 @@ func analyze(data: const [..] u8)->IntegrityReport
     @assert(!isPowerOf2(0xFFFFFFFF'u32))
 
     // All u32 powers of 2
-    for i in 32'u32
+    for [i] in 32'u32
     {
         @assert(isPowerOf2(1'u32 << i))
     }

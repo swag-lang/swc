@@ -32,6 +32,6 @@ func buildPainterCards(_source: const &Image)
 func drawPainterPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel painter transforms", "Page 4 : draw-time rotation, sampling, source-rect zoom and scaled presentation on the same texture.")
-    for i in CardsPerPage do
+    for [i] in CardsPerPage do
         drawCard(painter, getCardRect(i), g_PainterCards[i])
 }

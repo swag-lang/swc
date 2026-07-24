@@ -56,7 +56,7 @@ impl CountedBag
 {
     var arr: [3] s32 = [10, 20, 30]
     var sum = 0
-    for v, i in arr do
+    for v, [i] in arr do
         sum += v + cast(s32) i
     @assert(sum == 60 + 3)
 }
@@ -88,10 +88,10 @@ impl CountedBag
     var arr: [3] s32 = [10, 20, 30]
     var total = 0'u64
 
-    for i in @countof(arr) do
+    for [i] in @countof(arr) do
         total += i
 
-    for i in 0 until @countof(arr) do
+    for [i] in 0 until @countof(arr) do
         total += i
 
     @assert(total == 6)

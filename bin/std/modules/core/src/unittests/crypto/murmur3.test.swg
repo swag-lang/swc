@@ -56,7 +56,7 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
     let data = cast(const [*] u64) key
     let nblocks = len / 8
 
-    for i in nblocks
+    for [i] in nblocks
     {
         var k = data[i]
         k *= M
@@ -138,7 +138,7 @@ func fillMurmur3Pattern(buffer: [..] u8)
 {
     @assert(Hash.murmur3(0x12345678'u32, 0'u32) != Hash.murmur3(0x12345678'u32, 1'u32))
 
-    for value in 65536
+    for [value] in 65536
     {
         let value32 = cast(u32) value
         let value64 = cast(u64) value
@@ -158,7 +158,7 @@ func fillMurmur3Pattern(buffer: [..] u8)
     var data: [33] u8
     fillMurmur3Pattern(data)
 
-    for length in 34
+    for [length] in 34
     {
         let ptr = cast(const [*] u8) @dataof(data)
         @assert(Hash.murmur3(ptr, length, 0) == murmur3Reference(ptr, length, 0))

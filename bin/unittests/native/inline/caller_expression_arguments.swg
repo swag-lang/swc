@@ -3,7 +3,7 @@
 #[Swag.Inline]
 func pickAbove(arr: [*] u8, count: u32, limit: u8)->s32
 {
-    for i in count
+    for [i] in count
     {
         if arr[i] > limit do return cast(s32) i
     }
@@ -16,7 +16,7 @@ func runInlineCaptureBug(arr: [*] u8, count: u32)->s32
     var limits: [3] u8 = [0, 4, 8]
     var total:  s32
 
-    for i in 3
+    for [i] in 3
     {
         total += pickAbove(arr, count, limits[i])
     }

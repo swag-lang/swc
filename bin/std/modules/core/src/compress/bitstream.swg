@@ -144,7 +144,7 @@ impl BitStream
     mtd peekBytes(width: u8, dest: [*] u8)
     {
         // Could be optimized further
-        for i in width
+        for [i] in width
         {
             dest[i] = cast(u8) .peekBits(8)
             .consumeBits(8)

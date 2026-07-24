@@ -215,7 +215,7 @@ func repairUpdate(result: &Update, scenario: const &PrintQueueScenario, source: 
     {
         var found = false
 
-        for candidateIndex in source.count
+        for [candidateIndex] in source.count
         {
             if used[candidateIndex] do
                 continue

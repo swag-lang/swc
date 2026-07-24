@@ -57,7 +57,7 @@ impl AstAfterInvalidCastSignal
                 var sb: AstAfterInvalidCastStringBuilder
                 let ts = #typeof(T)
                 sb.append("fn(")
-                for i in @countof(ts.parameters)
+                for [i] in @countof(ts.parameters)
                 {
                     if i do
                         sb.append(",")

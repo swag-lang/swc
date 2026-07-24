@@ -38,7 +38,7 @@ func testFindItem(prop: *PropWnd, name: string)->#null *PropertiesItem
 
 func testItemIndex(prop: *PropWnd, name: string)->u64
 {
-    for item, idx in prop.grid.items
+    for item, [idx] in prop.grid.items
     {
         if (notnull item).typeValue.name == name do
             return idx

@@ -903,7 +903,7 @@ namespace
         outAliasIdentifiers.fill(IdentifierRef::invalid());
 
         SmallVector<TokenRef> foreachNames;
-        bool                  isForeachCall  = false;
+        bool                  isForeachCall     = false;
         bool                  foreachIndexOnly = false;
         if (callRef.isValid())
         {

@@ -63,7 +63,7 @@ impl Properties
         let defBase  = notnull cast(#null [*] u8) def
         let rootSize = cast(u64) rootType.sizeof
 
-        for i in fromIdx until .items.count
+        for [i] in fromIdx until .items.count
         {
             let it = notnull .items[i]
             it.defaultData = null
@@ -133,7 +133,7 @@ impl Properties
         if item.type == Core.String
         {
             let d = notnull cast(#null *String) item.defaultData
-            for k in n
+            for [k] in n
             {
                 if (dref notnull cast(#null *String) .instanceAddr(item, k)) != dref d do
                     return true
@@ -146,7 +146,7 @@ impl Properties
         if sz == 0 do
             return false
 
-        for k in n
+        for [k] in n
         {
             if Memory.compare(cast(#null const [*] void) .instanceAddr(item, k), cast(#null const [*] void) item.defaultData, sz) != 0 do
                 return true
@@ -180,13 +180,13 @@ impl Properties
         let n = .instanceCount(item)
         if item.type == Core.String
         {
-            for k in n do
+            for [k] in n do
                 dref notnull cast(#null *String) .instanceAddr(item, k) = dref notnull cast(#null *String) item.defaultData
         }
         else
         {
             let sz = .fieldSize(item)
-            for k in n do
+            for [k] in n do
                 Memory.copy(cast(#null [*] void) .instanceAddr(item, k), cast(#null const [*] void) item.defaultData, sz)
         }
 

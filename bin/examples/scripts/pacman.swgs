@@ -1281,10 +1281,10 @@ func drawMap()
     thePainter().drawTexture(0, 0, 224, 248, g_MapTex)
 
     // Content
-    for x in 28
+    for [x] in 28
     {
         thePainter().pushTransform()
-        for y in 31
+        for [y] in 31
         {
             // Determine size of big pills to draw depending on ticks
             let bigPill = cast(s32) Math.floor((g_Ticks % 40) / 20.0)
@@ -1316,7 +1316,7 @@ func drawNumberAsSprite(number: s32)
     thePainter().pushTransform()
 
     let str = Format.toString("%", number)
-    for #reverse i in @countof(str)
+    for #reverse [i] in @countof(str)
     {
         switch str[i]
         {
@@ -1373,7 +1373,7 @@ func drawLives()
     thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(1, 31.5)
-    for i in g_Lives
+    for [i] in g_Lives
     {
         thePainter().drawTexture(0, 0, 14, 14, g_LifeTex)
         translateMapCoords(2, 0)
@@ -1387,7 +1387,7 @@ func drawFruits()
     thePainter().pushTransform()
     translateMapOrigin()
     translateMapCoords(25, 31.5)
-    for i in g_Fruits
+    for [i] in g_Fruits
     {
         thePainter().drawTexture(0, 0, 14, 14, g_FruitsTex[i])
         translateMapCoords(-2, 0)
@@ -1399,7 +1399,7 @@ func drawFruits()
 func drawCharacters()
 {
     g_PacMan.draw()
-    for i in 4 do
+    for [i] in 4 do
         g_Ghosts[i].draw()
 }
 
@@ -1486,13 +1486,13 @@ func display()
 
     case FRUIT:
         drawPlayScreen()
-        for i in 4 do
+        for [i] in 4 do
             g_Ghosts[i].draw()
         g_PacMan.drawFruitScore()
 
     case EAT:
         drawPlayScreen()
-        for i in 4 do
+        for [i] in 4 do
             g_Ghosts[i].drawEaten()
 
     case PAUSE:
@@ -1858,9 +1858,9 @@ func spawnFruit()
  */
 func resetMap()
 {
-    for x in 28
+    for [x] in 28
     {
-        for y in 31
+        for [y] in 31
         {
             switch getTile(x, y)
             {
@@ -1876,9 +1876,9 @@ func resetMap()
  */
 func resetFruit()
 {
-    for x in 28
+    for [x] in 28
     {
-        for y in 31
+        for [y] in 31
         {
             // Fruits only spawn on empty pill tiles, not empty big pill tiles - if it still exists on map reset, reset to pill
             if getTile(x, y) == .F do

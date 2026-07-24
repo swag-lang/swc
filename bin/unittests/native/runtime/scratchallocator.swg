@@ -1,4 +1,4 @@
-﻿#global private     //
+#global private     //
 
 using Swag
 
@@ -149,10 +149,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     let ptr = cast([*] u8) notnull req.address
-    for i in 256 do
+    for [i] in 256 do
         ptr[i] = cast(u8) ((i * 3 + 5) & 0xFF)
 
-    for i in 256 do
+    for [i] in 256 do
         @assert(ptr[i] == cast(u8) ((i * 3 + 5) & 0xFF))
 
     scratch.release()
@@ -166,7 +166,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     let itf = makeScratchAllocator(&scratch, &alloc)
 
     var ptrs: [4] #null *void
-    for i in 4
+    for [i] in 4
     {
         var req: AllocatorRequest
         req.size = 64
@@ -176,7 +176,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     }
 
     // Pointers should be distinct and in increasing order (linear allocator)
-    for i in 1 until 4 do
+    for [i] in 1 until 4 do
         @assert(cast(u64) ptrs[i] > cast(u64) ptrs[i - 1])
 
     scratch.release()
@@ -333,7 +333,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     let ptr = cast([*] u8) notnull req.address
-    for i in 32 do
+    for [i] in 32 do
         ptr[i] = cast(u8) (i + 1)
 
     req.oldSize = 32
@@ -342,7 +342,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(req.address != null)
 
     let newPtr = cast([*] u8) notnull req.address
-    for i in 32 do
+    for [i] in 32 do
         @assert(newPtr[i] == cast(u8) (i + 1))
 
     scratch.release()
@@ -355,7 +355,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     var scratch: ScratchAllocator
     let itf = makeScratchAllocator(&scratch, &alloc)
 
-    for i in 20
+    for [i] in 20
     {
         var req: AllocatorRequest
         req.size = 64
@@ -433,7 +433,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
 
     // Create several leaks
     var leaks: [3] AllocatorRequest
-    for i in 3
+    for [i] in 3
     {
         leaks[i].size = 100
         itf.alloc(&leaks[i])
@@ -443,7 +443,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(scratch.totalLeak >= 300)
 
     // Free leaks one by one
-    for i in 3
+    for [i] in 3
     {
         leaks[i].size = 100
         itf.free(&leaks[i])
@@ -467,10 +467,10 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     itf.alloc(&req)
 
     let vals = cast([*] u32) notnull req.address
-    for i in 10 do
+    for [i] in 10 do
         vals[i] = cast(u32) (i * 777 + 11)
 
-    for i in 10 do
+    for [i] in 10 do
         @assert(vals[i] == cast(u32) (i * 777 + 11))
 
     scratch.release()

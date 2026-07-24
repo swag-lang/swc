@@ -50,17 +50,17 @@ func day8B()
     var antennas:  Array'{ f: u8, x, y: s64 }
     var antinodes: HashSet'{ x, y: u32 }
 
-    for l in @countof(lines)
+    for [l] in @countof(lines)
     {
-        for f, c in lines[l] where f != '.'
+        for f, [c] in lines[l] where f != '.'
         {
             antennas.add({f, c, l})
         }
     }
 
-    for antenna0, a in antennas
+    for antenna0, [a] in antennas
     {
-        for antenna1, b in antennas where a != b and antenna0.f == antenna1.f
+        for antenna1, [b] in antennas where a != b and antenna0.f == antenna1.f
         {
             let dx = antenna1.x - antenna0.x
             let dy = antenna1.y - antenna0.y

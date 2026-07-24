@@ -114,7 +114,7 @@ func day6A0()
         switch instruction.action
         {
         case .TurnOn:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var coord = x0 + (y * DAY6_GRID_SIZE32)
                 for writeCount
@@ -125,7 +125,7 @@ func day6A0()
             }
 
         case .TurnOff:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var coord = x0 + (y * DAY6_GRID_SIZE32)
                 for writeCount
@@ -136,7 +136,7 @@ func day6A0()
             }
 
         case .Toggle:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var coord = x0 + (y * DAY6_GRID_SIZE32)
                 for writeCount
@@ -173,7 +173,7 @@ func day6A1()
         switch instruction.action
         {
         case .TurnOn:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
@@ -184,7 +184,7 @@ func day6A1()
             }
 
         case .TurnOff:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
@@ -195,7 +195,7 @@ func day6A1()
             }
 
         case .Toggle:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
@@ -235,7 +235,7 @@ func day6A2()
         switch instruction.action
         {
         case .TurnOn:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var coord = x0 + (y * DAY6_GRID_SIZE)
                 for writeCount
@@ -246,7 +246,7 @@ func day6A2()
             }
 
         case .TurnOff:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var coord = x0 + (y * DAY6_GRID_SIZE)
                 for writeCount
@@ -257,7 +257,7 @@ func day6A2()
             }
 
         case .Toggle:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var coord = x0 + (y * DAY6_GRID_SIZE)
                 for writeCount

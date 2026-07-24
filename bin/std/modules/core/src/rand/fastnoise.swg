@@ -47,7 +47,7 @@ impl FastNoise
         var amp        = .gain
         var ampFractal = 1.0
 
-        for i in .octaves - 1
+        for [i] in .octaves - 1
         {
             ampFractal += amp
             amp        *= .gain
@@ -71,7 +71,7 @@ impl FastNoise
         var sum = perlin(xi, yi, .seed)
         var amp = 1.0
 
-        for i in .octaves
+        for [i] in .octaves
         {
             xi, yi *= .lacunarity
             amp    *= .gain
@@ -89,7 +89,7 @@ impl FastNoise
         var sum = Math.abs(perlin(xi, yi, .seed)) * 2 - 1
         var amp = 1.0
 
-        for i in .octaves
+        for [i] in .octaves
         {
             xi, yi *= .lacunarity
             amp    *= .gain
@@ -107,7 +107,7 @@ impl FastNoise
         var sum = 1 - Math.abs(perlin(xi, yi, .seed))
         var amp = 1.0
 
-        for i in .octaves
+        for [i] in .octaves
         {
             xi, yi *= .lacunarity
             amp    *= .gain
@@ -125,7 +125,7 @@ impl FastNoise
         var sum = Noise.value(xi, yi, .seed)
         var amp = 1.0
 
-        for i in .octaves
+        for [i] in .octaves
         {
             xi, yi *= .lacunarity
             amp    *= .gain
@@ -143,7 +143,7 @@ impl FastNoise
         var sum = Math.abs(Noise.value(xi, yi, .seed)) * 2 - 1
         var amp = 1.0
 
-        for i in .octaves
+        for [i] in .octaves
         {
             xi, yi *= .lacunarity
             amp    *= .gain
@@ -161,7 +161,7 @@ impl FastNoise
         var sum = 1 - Math.abs(Noise.value(xi, yi, .seed))
         var amp = 1.0
 
-        for i in .octaves
+        for [i] in .octaves
         {
             xi, yi *= .lacunarity
             amp    *= .gain

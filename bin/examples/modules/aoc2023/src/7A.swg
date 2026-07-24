@@ -73,7 +73,7 @@ private func sort()
         if a.value != b.value do
             return a.value <=> b.value
 
-        for i in @countof(a.val)
+        for [i] in @countof(a.val)
         {
             let it0 = map.find(a.val[i])
             let it1 = map.find(b.val[i])
@@ -138,7 +138,7 @@ func day7A()
     sort()
 
     var total: u64
-    for c, idx in cards do
+    for c, [idx] in cards do
         total += (idx + 1) * c.bid
 
     // Console.print("total: ", total)

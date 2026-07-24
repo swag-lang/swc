@@ -126,11 +126,11 @@ private var g_HashGlyphCache: HashTable'(String, *GlyphCache)
 
 #drop
 {
-    for k, v in g_HashFont do
+    for k, [v] in g_HashFont do
         Memory.delete(v)
     g_HashFont.free()
 
-    for k, v in g_HashGlyphCache do
+    for k, [v] in g_HashGlyphCache do
         Memory.delete(v)
     g_HashGlyphCache.free()
 }
@@ -222,11 +222,11 @@ public impl Font
     // Clear private caches
     func clearCaches()
     {
-        for a, b in g_HashFont do
+        for a, [b] in g_HashFont do
             Memory.delete(b)
         g_HashFont.clear()
 
-        for a, b in g_HashGlyphCache do
+        for a, [b] in g_HashGlyphCache do
             Memory.delete(b)
         g_HashGlyphCache.clear()
     }
@@ -353,7 +353,7 @@ public impl GlyphCache
 {
     mtd opDrop()
     {
-        for k, v in .glyphRef do
+        for k, [v] in .glyphRef do
             Memory.delete(v)
         .glyphRef.free()
         .kernRef.free()
@@ -453,7 +453,7 @@ public impl GlyphCache
         var buffer = (notnull ca.datas.buffer) + x + (ca.width * (ca.height - 1))
         buffer -= (y * ca.width)
         var src = bmpRef.buffer
-        for j in bmpRef.rows
+        for [j] in bmpRef.rows
         {
             Memory.copy(buffer, src, cast(u64) rowBytes)
             src    += bmpRef.pitch

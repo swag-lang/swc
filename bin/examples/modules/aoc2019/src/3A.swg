@@ -141,9 +141,9 @@ func day3A1()
     let t1 = trace(lines[1])
 
     var best = Swag.S32.Max
-    for i in t1.count - 1
+    for [i] in t1.count - 1
     {
-        for j in t0.count - 1
+        for [j] in t0.count - 1
         {
             let (yes, pos) = Geometry.segSegIntersect(t1[i], t1[i + 1], t0[j], t0[j + 1])
             if yes and !pos.isZero()

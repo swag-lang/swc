@@ -153,7 +153,7 @@ impl IForm for FormPolygon
 
         let z = cxt.z
         .linePath.start(.points[0].x * z, .points[0].y * z)
-        for i in 1 until .points.count
+        for [i] in 1 until .points.count
         {
             if .bezier do
                 .linePath.curveTo(.points[i].x * z, .points[i].y * z)

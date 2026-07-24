@@ -338,6 +338,14 @@ AstNodeRef Parser::parseForInfinite()
     return nodeRef;
 }
 
+TokenRef Parser::parseForIndexBinding()
+{
+    const TokenRef openRef = expectAndConsume(TokenId::SymLeftBracket, DiagnosticId::parser_err_expected_token_before);
+    const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
+    expectAndConsumeClosing(TokenId::SymRightBracket, openRef);
+    return nameRef;
+}
+
 AstNodeRef Parser::parseForLoop()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ForStmt>(consume());
@@ -348,11 +356,12 @@ AstNodeRef Parser::parseForLoop()
     nodePtr->modifierFlags = parseModifiers();
 
     // The element-iteration forms ('&name', several names, or a specialization) are
-    // resolved at parse time; 'for <name> in <expr>' stays a ForStmt and Sema retypes
-    // it into a ForeachStmt when the expression turns out to be a collection.
+    // resolved at parse time. A single value or index binding stays a ForStmt until
+    // Sema knows whether the expression is a count/range or a collection.
     bool isElementForm = nodePtr->tokSpecializationRef.isValid();
 
     SmallVector<TokenRef> tokNames;
+    bool                  hasValueBinding = false;
 
     if (consumeIf(TokenId::SymAmpersand).isValid())
     {
@@ -360,17 +369,31 @@ AstNodeRef Parser::parseForLoop()
         isElementForm          = true;
         const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
         tokNames.push_back(tokName);
+        hasValueBinding = true;
+    }
+    else if (is(TokenId::SymLeftBracket))
+    {
+        nodePtr->addFlag(AstForeachStmtFlagsE::IndexOnly);
+        tokNames.push_back(parseForIndexBinding());
     }
     else if (is(TokenId::Identifier) && nextIsAny(TokenId::KwdIn, TokenId::SymComma))
     {
         tokNames.push_back(consume());
+        hasValueBinding = true;
     }
 
-    while (consumeIf(TokenId::SymComma).isValid())
+    while (hasValueBinding && consumeIf(TokenId::SymComma).isValid())
     {
-        isElementForm          = true;
-        const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
-        tokNames.push_back(tokName);
+        isElementForm = true;
+        if (isNot(TokenId::SymLeftBracket))
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_for_index_binding_brackets, ref());
+            diag.report(*ctx_);
+            tokNames.push_back(expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before));
+            continue;
+        }
+
+        tokNames.push_back(parseForIndexBinding());
     }
 
     nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());

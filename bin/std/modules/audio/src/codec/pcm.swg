@@ -47,7 +47,7 @@ impl ICodec for CodecPcmToPcm16
             var src = cast([*] u8) srcBuffer
 
             var write, read = 0
-            for i in srcLength / TS
+            for [i] in srcLength / TS
             {
                 if write + #sizeof(s16) > destLength do
                     break

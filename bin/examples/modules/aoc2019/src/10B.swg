@@ -83,22 +83,22 @@ func day10B()
     var arr: Array'Pos
     var tot: Array's32
 
-    for l, y in lines do
-        for c, x in l do
+    for l, [y] in lines do
+        for c, [x] in l do
             if c == '#' do
                 arr.add({{cast(f32) x, cast(f32) y}})
     tot.resize(arr.count)
 
     if arr.count > 1
     {
-        for i in 0 until arr.count - 1
+        for [i] in 0 until arr.count - 1
         {
             let v0 = arr[i].pos
-            for j in i + 1 until arr.count
+            for [j] in i + 1 until arr.count
             {
                 let v1  = arr[j].pos
                 var hit = false
-                for k in arr.count
+                for [k] in arr.count
                 {
                     if k == i or k == j do
                         continue
@@ -170,7 +170,7 @@ func day10B()
     for
     {
         var vaporizedOne = false
-        for gi in groups.count
+        for [gi] in groups.count
         {
             if !groups[gi].asteroids.count do
                 continue

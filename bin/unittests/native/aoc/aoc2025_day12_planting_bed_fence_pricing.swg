@@ -42,7 +42,7 @@ func analyzeFencePricing(layout: const [..] string)->FencePricingReport
     var regionCells: [400] u32
     var result:      FencePricingReport
 
-    for _, rowIndex in layout
+    for [rowIndex] in layout
     {
         @assert(lineWidth(layout[rowIndex]) == width)
     }

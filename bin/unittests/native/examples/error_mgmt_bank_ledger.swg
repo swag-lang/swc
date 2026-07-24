@@ -51,7 +51,7 @@ impl Ledger
 {
     mtd reset()
     {
-        for &a, idx in .accounts
+        for &a, [idx] in .accounts
         {
             a.id      = cast(s32) idx
             a.balance = 0

@@ -40,7 +40,7 @@ func(T, V) findSorted(values: #null const [..] T, value: V)->u64
 // Returns Swag.U64.Max if not found.
 func(T, V) findLinear(values: #null const [..] T, value: V)->u64
 {
-    for v, i in values where v == value do
+    for v, [i] in values where v == value do
         return i
     return Swag.U64.Max
 }
@@ -53,10 +53,10 @@ func(T) findSlice(values: const [..] T, value: const [..] T)->u32
     if @countof(value) > @countof(values) do
         return Swag.U32.Max
 
-    for it0 in 0 to @countof(values) - @countof(value)
+    for [it0] in 0 to @countof(values) - @countof(value)
     {
         var ok = true
-        for c, it1 in value
+        for c, [it1] in value
         {
             if values[it0 + it1] != c
             {
@@ -100,7 +100,7 @@ func(T) equals(dst, src: #null const [..] T)->bool
 
     let dstn = notnull dst
     let srcn = notnull src
-    for i in @countof(dstn) where dstn[i] != srcn[i] do
+    for [i] in @countof(dstn) where dstn[i] != srcn[i] do
         return false
     return true
 }

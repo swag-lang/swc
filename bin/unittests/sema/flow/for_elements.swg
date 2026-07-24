@@ -46,7 +46,7 @@ func semaTest001()
 func semaTest002()
 {
     var arr: ForeachStrictArray = cast(ForeachStrictArray) [4, 5, 6]
-    for v, i in arr
+    for v, [i] in arr
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -76,7 +76,7 @@ func semaTest004()
 func semaTest005()
 {
     var text: string = "AB"
-    for v, i in text
+    for v, [i] in text
     {
         #assert(#typeof(v) == u8)
         #assert(#typeof(i) == u64)
@@ -89,7 +89,7 @@ func semaTest006()
 {
     var arr: [2] s32 = [3, 4]
     var sl = cast([..] s32) arr
-    for v, i in sl
+    for v, [i] in sl
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -103,7 +103,7 @@ func semaTest007()
     var arr: [2] s32 = [5, 6]
     var rawSl = cast([..] s32) arr
     var sl: ForeachStrictSlice = cast(ForeachStrictSlice) rawSl
-    for v, i in sl
+    for v, [i] in sl
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -116,7 +116,7 @@ func semaTest008()
 {
     func foreachVariadicAny(values: ...)
     {
-        for v, i in values
+        for v, [i] in values
         {
             #assert(#typeof(v) == any)
             #assert(#typeof(i) == u64)
@@ -130,7 +130,7 @@ func semaTest009()
 {
     func foreachVariadicTyped(values: s32...)
     {
-        for v, i in values
+        for v, [i] in values
         {
             #assert(#typeof(v) == s32)
             #assert(#typeof(i) == u64)
@@ -149,7 +149,7 @@ func semaTest010()
         High   = 10
     }
 
-    for value, idx in Priority
+    for value, [idx] in Priority
     {
         #assert(#typeof(value) == Priority)
         #assert(#typeof(idx) == u64)
@@ -163,9 +163,45 @@ func semaTest011()
     let text: ForeachAliasBuffer = {data: ['a''u8, 'b''u8, 'c''u8]}
     var freq: [3, 26] u32
 
-    for c, i in text
+    for c, [i] in text
     {
         var cell: &u32 = &freq[i, c - 'a']
         cell += 1'u32
+    }
+}
+
+enum ForeachIndexedSlot: u8
+{
+    Third  = 2
+    First  = 0
+    Second = 1
+}
+
+func semaTest012()
+{
+    var values: [ForeachIndexedSlot] s32 = [10, 20, 30]
+
+    for [slot] in values
+    {
+        #assert(#typeof(slot) == ForeachIndexedSlot)
+        var value = values[slot]
+    }
+
+    for value, [slot] in values
+    {
+        #assert(#typeof(value) == s32)
+        #assert(#typeof(slot) == ForeachIndexedSlot)
+        var sameValue = value == values[slot]
+    }
+}
+
+func semaTest013()
+{
+    let values: ForeachAliasBuffer = {data: ['a''u8, 'b''u8, 'c''u8]}
+
+    for [index] in values
+    {
+        #assert(#typeof(index) == u64)
+        var x = index
     }
 }

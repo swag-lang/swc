@@ -34,7 +34,7 @@ impl Image
         var dstPix = dstImage.pixels.buffer + dstY * dstImage.width8
         dstPix += dstX * .bpp8
 
-        for cy in srcH
+        for [cy] in srcH
         {
             var srcPix = .pixels.buffer + (srcY + cy) * .width8
             srcPix += cast(u64) (srcX * .bpp8)

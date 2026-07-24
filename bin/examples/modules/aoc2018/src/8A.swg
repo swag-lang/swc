@@ -51,7 +51,7 @@ func day8A()
 
         for nc do
             start = read(n, start)
-        for i in nm do
+        for [i] in nm do
             metadataTotal += n[start + i]
         return start + nm
     }

@@ -30,7 +30,7 @@ func day2B()
 
     var total = 0'u64
 
-    for l, gameIdx in lines
+    for l, [gameIdx] in lines
     {
         let first = Tokenize.split(l, ':''u8)
         let sets  = Tokenize.split(first[1], ';''u8)

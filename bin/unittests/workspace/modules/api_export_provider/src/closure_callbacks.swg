@@ -71,7 +71,7 @@ func depMakeSelfBufferSet(a: u8, b: u8, c: u8, d: u8, count: u32)->DepSelfBuffer
 #[Swag.NoInline]
 func depContains(values: const [..] u8, count: u32, value: u8)->bool
 {
-    for i in count
+    for [i] in count
     {
         if values[i] == value do
             return true
@@ -83,7 +83,7 @@ func depContains(values: const [..] u8, count: u32, value: u8)->bool
 #[Swag.NoInline]
 func(T) depContainsGeneric(values: const [..] T, count: u32, value: T)->bool
 {
-    for i in count
+    for [i] in count
     {
         if values[i] == value do
             return true

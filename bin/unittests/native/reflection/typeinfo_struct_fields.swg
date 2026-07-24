@@ -32,7 +32,7 @@ struct Node
     @assert(@countof(info.fields) == 4)
 
     var offsetSum: u32 = 0
-    for i in @countof(info.fields) do
+    for [i] in @countof(info.fields) do
         offsetSum += cast(u32) info.fields[i].offset
 
     // offsets: 0, 1, 2, 3

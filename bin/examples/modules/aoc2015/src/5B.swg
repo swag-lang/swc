@@ -26,7 +26,7 @@ func day5B()
     for l in lines
     {
         var dbl0, dbl1 = 0
-        for i in l.length - 2
+        for [i] in l.length - 2
         {
             if Utf8.indexOf(l[i + 2 to], l[i to i + 1]) != Swag.U64.Max do
                 dbl0 += 1

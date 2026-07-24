@@ -296,7 +296,8 @@ namespace
         SmallVector<TokenRef> tokNames;
         sema.ast().appendTokens(tokNames, node.spanNamesRef);
 
-        const size_t count = std::min<size_t>(tokNames.size(), 2);
+        const bool   indexOnly = node.hasFlag(AstForeachStmtFlagsE::IndexOnly);
+        const size_t count     = std::min<size_t>(tokNames.size(), 2);
         size_t       index = 0;
         for (size_t i = 0; i < count; ++i)
         {
@@ -305,7 +306,8 @@ namespace
                 continue;
 
             auto& symVar = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& { return registerLoopScopeSymbol<SymbolVariable>(sema, node, tokNameRef); });
-            SWC_RESULT(ensureLoopLocalStorage(sema, symVar, index == 0 ? valueTypeRef : indexTypeRef));
+            const TypeRef bindingTypeRef = indexOnly || i == 1 ? indexTypeRef : valueTypeRef;
+            SWC_RESULT(ensureLoopLocalStorage(sema, symVar, bindingTypeRef));
             outSymbols.push_back(&symVar);
             index += 1;
         }
@@ -358,19 +360,35 @@ namespace
             const TypeInfo& sourceType    = sema.typeMgr().get(sourceTypeRef);
 
             if (sourceType.isArray())
+            {
                 valueTypeRef = sourceType.payloadArrayElemTypeRef();
+                indexTypeRef = sourceType.payloadArrayIndexTypeRef();
+                if (indexTypeRef.isInvalid())
+                    indexTypeRef = sema.typeMgr().typeU64();
+            }
             else if (sourceType.isSlice())
+            {
                 valueTypeRef = sourceType.payloadTypeRef();
+                indexTypeRef = sema.typeMgr().typeU64();
+            }
             else if (sourceType.isAnyString())
+            {
                 valueTypeRef = sema.typeMgr().typeU8();
+                indexTypeRef = sema.typeMgr().typeU64();
+            }
             else if (sourceType.isVariadic())
+            {
                 valueTypeRef = sema.typeMgr().typeAny();
+                indexTypeRef = sema.typeMgr().typeU64();
+            }
             else if (sourceType.isTypedVariadic())
+            {
                 valueTypeRef = sourceType.payloadTypeRef();
+                indexTypeRef = sema.typeMgr().typeU64();
+            }
             else
                 return SemaError::raiseTypeNotIndexable(sema, exprView.nodeRef(), exprView.typeRef());
 
-            indexTypeRef  = sema.typeMgr().typeU64();
             sourceIsConst = exprView.type()->isConst() ||
                             sourceType.isConst() ||
                             sourceType.isAnyString() ||
@@ -466,6 +484,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         TypeRef            indexTypeRef = TypeRef::invalid();
         auto&              pl           = ensureLoopSemaPayload(sema, sema.curNodeRef());
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef));
+        pl.indexTypeRef = indexTypeRef;
 
         // Track the iterated storage so a structural mutation of it inside the body is
         // flagged (iterator invalidation). Null for ranges/temporaries with no storage root.
@@ -478,7 +497,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
 
         // A '&it' value alias points into the iterated storage; a struct by-value
         // binding is a const-reference alias into the same storage.
-        if (!symbols.empty() && symbols.front()->isVariable())
+        if (!hasFlag(AstForeachStmtFlagsE::IndexOnly) && !symbols.empty() && symbols.front()->isVariable())
         {
             const auto& valueVar = symbols.front()->cast<SymbolVariable>();
             if (hasFlag(AstForeachStmtFlagsE::ByAddress) || sema.typeMgr().get(valueVar.typeRef()).isReference())
@@ -677,6 +696,14 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
                 payload.lowerBoundRef = rangeExpr.nodeExprDownRef;
                 payload.upperBoundRef = rangeExpr.nodeExprUpRef;
             }
+        }
+
+        if (named && !hasFlag(AstForeachStmtFlagsE::IndexOnly))
+        {
+            const TokenRef tokNameRef = forStmtNameRef(sema, *this);
+            const Diagnostic diag     = SemaError::report(sema, DiagnosticId::sema_err_for_count_binding_brackets, SourceCodeRef{srcViewRef(), tokNameRef});
+            diag.report(sema.ctx());
+            return Result::Error;
         }
 
         if (const auto* payload = sema.semaPayload<LoopSemaPayload>(sema.curNodeRef()))

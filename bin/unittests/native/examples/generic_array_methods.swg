@@ -80,7 +80,7 @@ impl DynArray
     func contains(me, value: T)->bool
     {
         let data = notnull me.data
-        for i in me.count
+        for [i] in me.count
         {
             if data[i] == value do
                 return true
@@ -290,7 +290,7 @@ impl DynArray
     var arr = DynArray'u64.create()
     defer arr.destroy()
 
-    for i in 100'u64 do
+    for [i] in 100'u64 do
         arr.push(i * i)
 
     @assert(arr.count == 100)

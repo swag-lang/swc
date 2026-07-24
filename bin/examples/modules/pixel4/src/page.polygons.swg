@@ -33,7 +33,7 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
     {
         let path = result.newPath()
         path.start(inner[0].x, inner[0].y)
-        for i in 1 to @countof(inner)
+        for [i] in 1 to @countof(inner)
         {
             let idx = @countof(inner) - i
             path.lineTo(inner[idx].x, inner[idx].y)

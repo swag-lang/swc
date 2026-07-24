@@ -43,13 +43,13 @@ func day5B()
             @assert(update.count != 0)
 
             var isOrdered = true
-            for beforeIndex in update.count
+            for [beforeIndex] in update.count
             {
                 let beforePage = update[beforeIndex]
                 if beforeIndex + 1 >= update.count do
                     continue
 
-                for afterIndex in beforeIndex + 1 to update.count - 1
+                for [afterIndex] in beforeIndex + 1 to update.count - 1
                 {
                     let afterPage = update[afterIndex]
                     if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)
@@ -73,7 +73,7 @@ func day5B()
                 {
                     var found = false
 
-                    for candidateIndex in update.count
+                    for [candidateIndex] in update.count
                     {
                         if used[candidateIndex] do
                             continue
@@ -81,7 +81,7 @@ func day5B()
                         let candidatePage = update[candidateIndex]
                         var hasIncoming = false
 
-                        for otherIndex in update.count
+                        for [otherIndex] in update.count
                         {
                             if used[otherIndex] or otherIndex == candidateIndex do
                                 continue

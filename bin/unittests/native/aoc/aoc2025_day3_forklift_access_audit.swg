@@ -22,9 +22,9 @@ func countAdjacentRolls(plan: const [..] string, row, column: u32)->u32
 {
     var neighbors: u32
 
-    for rowOffset in -1 to 1
+    for [rowOffset] in -1 to 1
     {
-        for columnOffset in -1 to 1
+        for [columnOffset] in -1 to 1
         {
             if rowOffset == 0 and columnOffset == 0 do
                 continue
@@ -57,12 +57,12 @@ func auditForkliftAccess(plan: const [..] string)->ForkliftAudit
     result.rowCount    = cast(u32) @countof(plan)
     result.columnCount = cast(u32) @countof(cast(const [..] u8) plan[0])
 
-    for line, row in plan
+    for line, [row] in plan
     {
         let bytes = cast(const [..] u8) line
         @assert(@countof(bytes) == result.columnCount)
 
-        for column in @countof(bytes)
+        for [column] in @countof(bytes)
         {
             var neighbors: u32
 

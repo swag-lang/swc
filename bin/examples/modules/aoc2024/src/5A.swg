@@ -106,13 +106,13 @@ func day5A()
             @assert(update.count != 0)
 
             var isOrdered = true
-            for beforeIndex in update.count
+            for [beforeIndex] in update.count
             {
                 let beforePage = assume StrConv.toS32(update[beforeIndex])
                 if beforeIndex + 1 >= update.count do
                     continue
 
-                for afterIndex in beforeIndex + 1 to update.count - 1
+                for [afterIndex] in beforeIndex + 1 to update.count - 1
                 {
                     let afterPage = assume StrConv.toS32(update[afterIndex])
                     if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)

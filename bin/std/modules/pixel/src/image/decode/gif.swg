@@ -218,7 +218,7 @@ impl Decoder
         .table.bulk     = Math.max(1 << (keySize + 1), 0x100's32)
         .table.nentries = (1 << keySize) + 2
         .table.entries.resize(.table.bulk)
-        for key in 1 << keySize do
+        for [key] in 1 << keySize do
             .table.entries[key] = {1, 0xFFF, cast(u8) key}
     }
 
@@ -345,7 +345,7 @@ impl Decoder
                 keySize += 1
             entry       = (notnull .table.entries.buffer)[key]
             strLen      = entry.length
-            for i in strLen
+            for [i] in strLen
             {
                 let p = frmOff + entry.length - 1
                 let x = p % .fw
@@ -407,9 +407,9 @@ impl Decoder
 
         if pf.hasAlpha()
         {
-            for #reverse j in 0 until .fh
+            for #reverse [j] in 0 until .fh
             {
-                for k in cast(u32) .fw
+                for [k] in cast(u32) .fw
                 {
                     let index = .frame[(.fy + j) * cast(u32) .width + (.fx + k)]
                     let color = cast([*] u8) &palette.colors[index * 3'u32]
@@ -425,9 +425,9 @@ impl Decoder
         }
         else
         {
-            for #reverse j in 0 until .fh
+            for #reverse [j] in 0 until .fh
             {
-                for k in .fw
+                for [k] in .fw
                 {
                     let index = .frame[(.fy + j) * .width + (.fx + k)]
                     let color = cast([*] u8) &palette.colors[index * 3'u32]
@@ -518,7 +518,7 @@ public impl Decoder
             let bgcolor = cast([*] u8) &.palette.colors[.bgIndex * 3'u32]
             if bgcolor[0] or bgcolor[1] or bgcolor[2]
             {
-                for i in size do
+                for [i] in size do
                     Memory.copy(&.canvas[i * 3], bgcolor, 3)
             }
         }

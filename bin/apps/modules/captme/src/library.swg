@@ -115,7 +115,7 @@ impl Library
     // onDeleteFile; it can be brought back from the trash view.
     mtd removeFile(name: String)
     {
-        for fi, idx in .files
+        for fi, [idx] in .files
         {
             if fi.fullname == name
             {

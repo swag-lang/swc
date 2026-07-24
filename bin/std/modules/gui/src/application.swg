@@ -206,7 +206,7 @@ private impl Application
             return
 
         // Detect changes
-        for i in @countof(.mouse.previousState.pressed)
+        for [i] in @countof(.mouse.previousState.pressed)
         {
             let lastP = .mouse.previousState.pressed[i]
             let curP  = .mouse.currentState.pressed[i]
@@ -262,7 +262,7 @@ private impl Application
         let modifiers = .keyb.getPressedModifiers()
 
         // Detect changes
-        for i in @countof(.keyb.previousState.pressed)
+        for [i] in @countof(.keyb.previousState.pressed)
         {
             let lastP = .keyb.previousState.pressed[i]
             let curP  = .keyb.currentState.pressed[i]
@@ -517,7 +517,7 @@ private impl Application
         }
         else
         {
-            for s, idx in .surfaces
+            for s, [idx] in .surfaces
             {
                 if s != surface
                 {

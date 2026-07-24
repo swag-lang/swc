@@ -11,7 +11,7 @@ func crc32Reference(buffer: const [..] u8, seed: u32 = 0)->u32
     for value in buffer
     {
         crc ^= cast(u32) value
-        for bit in 8
+        for [bit] in 8
         {
             if crc & 1 do
                 crc = (crc >> 1) ^ 0xEDB88320'u32
@@ -68,7 +68,7 @@ func fillCrc32Pattern(buffer: [..] u8)
     var data: [257] u8
     fillCrc32Pattern(data)
 
-    for length in 130
+    for [length] in 130
     {
         assertCrc32(data[until length])
     }

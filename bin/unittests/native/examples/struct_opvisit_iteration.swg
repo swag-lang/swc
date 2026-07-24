@@ -36,7 +36,7 @@ impl ShelfBins
         {
             #if back
             {
-                for idx in 4
+                for [idx] in 4
                 {
                     var visitItem: s32 = undefined
                     switch idx
@@ -53,7 +53,7 @@ impl ShelfBins
                 return
             }
 
-            for idx in 4
+            for [idx] in 4
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -77,7 +77,7 @@ impl ShelfBins
 
         #if back
         {
-            for idx in 4
+            for [idx] in 4
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -94,7 +94,7 @@ impl ShelfBins
             return
         }
 
-        for idx in 4
+        for [idx] in 4
         {
             var visitItem: s32 = undefined
             switch idx
@@ -134,7 +134,7 @@ func reverseCode(bins: ShelfBins)->s32
     @assert(countUnits(bins) == 20)
     @assert(reverseCode(bins) == 8642)
 
-    for &writeUnits, slot in bins
+    for &writeUnits, [slot] in bins
     {
         if slot != 1'u64 do
             writeUnits += 3 + cast(s32) slot

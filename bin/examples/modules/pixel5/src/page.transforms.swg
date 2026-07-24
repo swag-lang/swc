@@ -65,6 +65,6 @@ func buildTransformCards(source: const &Image)
 func drawTransformPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel image transforms", "Page 3 : crop, mirror, flip, turn and expand done directly on image buffers.")
-    for i in CardsPerPage do
+    for [i] in CardsPerPage do
         drawCard(painter, getCardRect(i), g_TransformCards[i])
 }

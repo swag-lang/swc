@@ -61,9 +61,9 @@ impl Grid
 
     mtd clear()
     {
-        for r in Dim
+        for [r] in Dim
         {
-            for c in Dim
+            for [c] in Dim
             {
                 me.cells[r][c] = 0
             }
@@ -152,7 +152,7 @@ func parseBytes(text: string)->ByteList
 func applyBytes(g: *Grid, bl: *ByteList, count: u32)
 {
     g.clear()
-    for i in count
+    for [i] in count
     {
         let b = bl.items[i]
         if b.row < g.h and b.col < g.w do
@@ -175,9 +175,9 @@ func bfs(g: *Grid)->s32
         return -1
 
     var dist: [Dim] [Dim] s32
-    for r in Dim
+    for [r] in Dim
     {
-        for c in Dim
+        for [c] in Dim
         {
             dist[r][c] = -1
         }
@@ -203,7 +203,7 @@ func bfs(g: *Grid)->s32
         if cr == er and cc == ec do
             return dist[cr][cc]
 
-        for d in 4
+        for [d] in 4
         {
             let nr = cast(s32) cr + DR[d]
             let nc = cast(s32) cc + DC[d]
@@ -314,7 +314,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
             tmpLen      += 1
             v           /= 10
         }
-        for #reverse i in tmpLen
+        for #reverse [i] in tmpLen
         {
             buf[pos] = tmp[i]
             pos      += 1
@@ -342,7 +342,7 @@ func formatCoord(col: u32, row: u32, buf: [*] u8, bufLen: u32)->u32
             tmpLen      += 1
             v           /= 10
         }
-        for #reverse i in tmpLen
+        for #reverse [i] in tmpLen
         {
             buf[pos] = tmp[i]
             pos      += 1

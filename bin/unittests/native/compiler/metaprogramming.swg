@@ -534,7 +534,7 @@ namespace compiler3325
         func init()->u64
         {
             var sum = 0'u64
-            for i in 3
+            for [i] in 3
             {
                 var T: typeinfo = undefined
                 switch i
@@ -657,7 +657,7 @@ namespace compiler4844
         const PowerOfTwo: [N] s32 = #run
         {
             var arr: [N] s32
-            for i in @countof(arr) do
+            for [i] in @countof(arr) do
                 arr[i] = 1 << cast(u32) i
             return arr
         }

@@ -192,7 +192,7 @@ func renderGdiPlusOutlineImage(text: string, scale: f32)->Image
 
 func loadGdiReferences()
 {
-    for sample, idx in Samples
+    for sample, [idx] in Samples
     {
         let image = renderGdiPlusOutlineImage("Captme", sample.scale)
         g_GdiText[idx] = g_Renderer.addImage(image)
@@ -419,7 +419,7 @@ func drawSampleGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle, title: str
     let body = insetRect(rowRect, 18, 48, 18, 18)
     let gap = 16.0
     let cellW = (body.width - gap * 3) / 4
-    for sample, idx in Samples
+    for sample, [idx] in Samples
     {
         let x = body.x + cast(f32) idx * (cellW + gap)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}
@@ -438,7 +438,7 @@ func drawGdiGrid(painter: *Pixel.Painter, rowRect: Math.Rectangle)
     let body = insetRect(rowRect, 18, 48, 18, 18)
     let gap = 16.0
     let cellW = (body.width - gap * 3) / 4
-    for sample, idx in Samples
+    for sample, [idx] in Samples
     {
         let x = body.x + cast(f32) idx * (cellW + gap)
         let cell = Math.Rectangle{x, body.y, cellW, body.height}

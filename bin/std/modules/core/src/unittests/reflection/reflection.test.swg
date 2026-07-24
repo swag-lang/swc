@@ -92,7 +92,7 @@ var ReflectionRuntimePointerCalls: s32
 func(T, N: s32) makeRepeated(value: T)->[N] T
 {
     var result: [N] T
-    for i in N do
+    for [i] in N do
         result[i] = value
     return result
 }

@@ -5,7 +5,7 @@
     func untilLoopWithFilter()->s32
     {
         var acc: s32 = 0
-        for i in 0 until 7 where i % 2 == 1
+        for [i] in 0 until 7 where i % 2 == 1
         {
             acc = acc * 10 + cast(s32) i
         }
@@ -22,7 +22,7 @@
     func reverseSignedRange()->s32
     {
         var acc: s32 = 0
-        for #reverse i in -2 to 2
+        for #reverse [i] in -2 to 2
         {
             acc = acc * 10 + cast(s32) (i + 3)
         }
@@ -40,7 +40,7 @@
     {
         var arr: [5] s32 = [2, 4, 6, 8, 10]
         var acc: s32     = 0
-        for i in @countof(arr) where arr[i] >= 6
+        for [i] in @countof(arr) where arr[i] >= 6
         {
             acc += arr[i]
         }

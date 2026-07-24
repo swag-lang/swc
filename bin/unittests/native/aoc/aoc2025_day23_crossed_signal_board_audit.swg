@@ -211,7 +211,7 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
     {
         var progress = false
 
-        for gate, gateIndex in gates
+        for gate, [gateIndex] in gates
         {
             if gateResolved[gateIndex] do
                 continue

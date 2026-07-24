@@ -13,6 +13,7 @@ SWC_DIAG_DEF(parser_err_empty_literal_suffix, Error, "empty literal suffix after
 SWC_DIAG_DEF(parser_err_invalid_literal_suffix, Error, "literal suffix '{tok}' is not supported; [help] use a scalar numeric type, 'bool', or 'rune'")
 SWC_DIAG_DEF(parser_err_unexpected_and_or, Error, "C-style boolean operator '{tok}' is not part of Swag; [help] use '{value}' instead")
 SWC_DIAG_DEF(parser_err_foreach_removed, Error, "'foreach' has been replaced by 'for'; [help] bind a name to iterate the values: 'for value in expression'")
+SWC_DIAG_DEF(parser_err_for_index_binding_brackets, Error, "loop index binding '{tok}' needs brackets; [help] write '[{tok}]' to bind the index")
 SWC_DIAG_DEF(parser_err_unexpected_and_or, Error, "C-style boolean operator '{tok}' is not part of Swag; [help] use 'and' or 'or' instead")
 SWC_DIAG_DEF(parser_err_duplicated_modifier, Error, "modifier '{tok}' is already specified; [help] remove the repeated modifier")
 SWC_DIAG_DEF(parser_err_unexpected_do_block, Error, "'{' cannot follow 'do'; [help] use either 'do <statement>' or '{ ... }', but not both")

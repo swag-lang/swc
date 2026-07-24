@@ -269,7 +269,7 @@ impl IWnd for RichEditView
             {
                 let selBeg = edn.getBegSelection()
                 let selEnd = edn.getEndSelection()
-                for caretI in selBeg.lineIndex to selEnd.lineIndex
+                for [caretI] in selBeg.lineIndex to selEnd.lineIndex
                 {
                     var cp = edn.cursorPos
                     cp.lineIndex = caretI
@@ -351,7 +351,7 @@ impl RichEditView
 
         let left = snapPixels ? Math.round(x) : x
         var right = left
-        for glyph, idx in runToDraw.glyphs
+        for glyph, [idx] in runToDraw.glyphs
         {
             let step = Painter.advanceTextX(right, glyph.offsetX, glyph.advanceX, info, idx == 0)
             right = step.rightX

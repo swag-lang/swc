@@ -54,7 +54,7 @@ impl StringRefIndexBox
     func rangeLoopWithControl()->s32
     {
         var acc: s32 = 0
-        for i in 0 to 10
+        for [i] in 0 to 10
         {
             if i == 2 do
                 continue
@@ -93,7 +93,7 @@ impl StringRefIndexBox
     func reverseRangeLoop()->s32
     {
         var acc: s32 = 0
-        for #reverse i in 1 to 4
+        for #reverse [i] in 1 to 4
         {
             acc = acc * 10 + cast(s32) i
         }
@@ -110,7 +110,7 @@ impl StringRefIndexBox
     func loopIndexVisibleThroughSwitch()->s32
     {
         var acc: s32 = 0
-        for i in 1 to 3
+        for [i] in 1 to 3
         {
             switch i
             {
@@ -165,7 +165,7 @@ impl StringRefIndexBox
     {
         let value = FixedCountedLoop{}
         var acc: s32 = 0
-        for i in @countof(value) do
+        for [i] in @countof(value) do
             acc += cast(s32) i
         return acc
     }
@@ -180,7 +180,7 @@ impl StringRefIndexBox
     {
         var box = StringRefIndexBox{rows: ["10110", "00100"]}
         var sum = 0
-        for i in @countof(box[0]) do
+        for [i] in @countof(box[0]) do
             sum += cast(s32) i
         return sum
     }
@@ -194,7 +194,7 @@ impl StringRefIndexBox
     func continueFromSwitchCaseInLoop()->s32
     {
         var total: s32 = 0
-        for i in 1 to 5
+        for [i] in 1 to 5
         {
             switch i
             {

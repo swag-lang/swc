@@ -277,7 +277,7 @@ impl Painter
         }
 
         var v1 = startPos
-        for i in 1 until .sharedRoundTmp.count
+        for [i] in 1 until .sharedRoundTmp.count
         {
             let v2    = .sharedRoundTmp[i].pos
             let prim1 = .pushTriangle(center, v1, v2, pen.brush.color)
@@ -515,7 +515,7 @@ impl Painter
         }
 
         cxt.patternTotalLen = 0
-        for i in cxt.patternCount do
+        for [i] in cxt.patternCount do
             cxt.patternTotalLen += Math.max(cxt.pattern[i], 0.01)
         cxt.patternTotalLen     *= cxt.pen.size
 
@@ -666,7 +666,7 @@ impl Painter
             let startPoint = cxt.path.polygon.getPoint(0, cxt.offsetPath)
             var lastPoint  = startPoint
 
-            for i in 1 until pointCount
+            for [i] in 1 until pointCount
             {
                 let currentPoint = cxt.path.polygon.getPoint(i, cxt.offsetPath)
                 let segmentVec   = currentPoint - lastPoint
@@ -695,7 +695,7 @@ impl Painter
             let endPoint  = cxt.path.polygon.getPoint(pointCount - 1, cxt.offsetPath)
             var lastPoint = endPoint
 
-            for #reverse i in 0 to pointCount - 2
+            for #reverse [i] in 0 to pointCount - 2
             {
                 let currentPoint = cxt.path.polygon.getPoint(i, cxt.offsetPath)
                 let segmentVec   = lastPoint - currentPoint
@@ -803,7 +803,7 @@ impl Painter
                         .drawLine(cxt, nextPoint)
                 }
 
-                for i in (startPointIndex + 1) to endPointIndex
+                for [i] in (startPointIndex + 1) to endPointIndex
                 {
                     if i < cxt.path.polygon.points.count
                     {

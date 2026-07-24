@@ -340,7 +340,7 @@ func simulate(c: *Circuit)
     {
         if !changed do break
         changed = false
-        for gi in c.gateCount
+        for [gi] in c.gateCount
         {
             let g = &c.gates[gi]
             if c.isSet(g.out) do continue
@@ -358,7 +358,7 @@ func simulate(c: *Circuit)
 func readZValue(c: *Circuit)->u64
 {
     var result: u64
-    for bit in c.maxZBit + 1
+    for [bit] in c.maxZBit + 1
     {
         let d0 = cast(u8) (bit / 10) + '0'
         let d1 = cast(u8) (bit % 10) + '0'
@@ -411,7 +411,7 @@ func isXY(ch: u8)->bool
 func addSwapped(result: *SwappedResult, c0: u8, c1: u8, c2: u8)
 {
     // Check for duplicates
-    for i in result.count
+    for [i] in result.count
     {
         if result.names[i][0] == c0 and result.names[i][1] == c1 and result.names[i][2] == c2
         {
@@ -430,7 +430,7 @@ func addSwapped(result: *SwappedResult, c0: u8, c1: u8, c2: u8)
 // Check if any gate uses `wireOut` as an input with the given operation
 func hasDownstream(c: *Circuit, wireOut: u32, op: GateOp)->bool
 {
-    for gi in c.gateCount
+    for [gi] in c.gateCount
     {
         let g = &c.gates[gi]
         if g.op == op and (g.inA == wireOut or g.inB == wireOut)
@@ -445,7 +445,7 @@ func findSwapped(c: *Circuit)->SwappedResult
 {
     var result: SwappedResult
 
-    for gi in c.gateCount
+    for [gi] in c.gateCount
     {
         let g = &c.gates[gi]
 
@@ -504,10 +504,10 @@ func findSwapped(c: *Circuit)->SwappedResult
 func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
 {
     // Bubble sort by name
-    for i in result.count
+    for [i] in result.count
     {
         if i + 1 >= result.count do continue
-        for j in i + 1 until result.count
+        for [j] in i + 1 until result.count
         {
             var swap = false
             if result.names[j][0] < result.names[i][0] do swap = true
@@ -523,7 +523,7 @@ func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
             if swap
             {
                 // Swap entries
-                for k in 3'u32
+                for [k] in 3'u32
                 {
                     let tmp = result.names[i][k]
                     result.names[i][k] = result.names[j][k]
@@ -534,14 +534,14 @@ func formatSwapped(result: *SwappedResult, buf: [*] u8, bufLen: u32)->u32
     }
 
     var pos: u32
-    for i in result.count
+    for [i] in result.count
     {
         if i > 0 and pos < bufLen
         {
             buf[pos] = ','
             pos      += 1
         }
-        for k in 3'u32
+        for [k] in 3'u32
         {
             if pos < bufLen
             {
@@ -884,7 +884,7 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     ops[1] = GateOp.OpOr
     ops[2] = GateOp.OpXor
 
-    for i in 3'u32
+    for [i] in 3'u32
     {
         var expected: GateOp
         if i == 0 do expected = GateOp.OpAnd
@@ -917,9 +917,9 @@ func makeWireInfo(c0: u8, c1: u8, c2: u8)->WireInfo
     // XOR: 0,1,1,0
     expected[2][0] = 0; expected[2][1] = 1; expected[2][2] = 1; expected[2][3] = 0
 
-    for oi in 3'u32
+    for [oi] in 3'u32
     {
-        for ii in 4'u32
+        for [ii] in 4'u32
         {
             let result = evalGate(ops[oi], inputs[ii][0], inputs[ii][1])
             @assert(result == expected[oi][ii])

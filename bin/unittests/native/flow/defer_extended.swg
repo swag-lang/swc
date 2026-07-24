@@ -82,10 +82,10 @@ func deferMultipleSameScope()->s64
 func deferNestedLoops()->s64
 {
     resetTrace()
-    for i in 3
+    for [i] in 3
     {
         defer appendTrace(cast(s64) i + 1)
-        for j in 2
+        for [j] in 2
         {
             defer appendTrace(cast(s64) j + 5)
             if j == 0 do
@@ -208,7 +208,7 @@ func deferTripleNested()->s64
 func deferForContinue()->s64
 {
     resetTrace()
-    for i in 4
+    for [i] in 4
     {
         defer appendTrace(cast(s64) i + 1)
         if i % 2 == 0 do
@@ -228,7 +228,7 @@ func deferForContinue()->s64
 func deferForEarlyBreak()->s64
 {
     resetTrace()
-    for i in 100
+    for [i] in 100
     {
         defer appendTrace(cast(s64) i + 1)
         appendTrace(8)

@@ -147,7 +147,7 @@ func countTrianglesWithT(g: *Graph)->u64
     // Collect actual node indices
     var nodes: [MaxEdges] u32
     var nn:    u32
-    for i in MaxNodes
+    for [i] in MaxNodes
     {
         if g.nodeUsed[i]
         {
@@ -157,16 +157,16 @@ func countTrianglesWithT(g: *Graph)->u64
     }
 
     // Triple loop: find all triangles (i < j < k)
-    for ii in nn
+    for [ii] in nn
     {
         let i = nodes[ii]
         if ii + 1 >= nn do continue
-        for jj in ii + 1 until nn
+        for [jj] in ii + 1 until nn
         {
             let j = nodes[jj]
             if !g.edge(i, j) do continue
             if jj + 1 >= nn do continue
-            for kk in jj + 1 until nn
+            for [kk] in jj + 1 until nn
             {
                 let k = nodes[kk]
                 if !g.edge(i, k) or !g.edge(j, k) do continue
@@ -206,7 +206,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         if state.curSize > state.bestSize
         {
             state.bestSize = state.curSize
-            for i in state.curSize
+            for [i] in state.curSize
             {
                 state.best[i] = state.current[i]
             }
@@ -220,9 +220,9 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
     // Copy candidates for iteration (we modify the set)
     let iterBuf = cast([*] u32) notnull @alloc(cast(u64) candCount * #sizeof(u32))
     defer @free(iterBuf)
-    for i in candCount { iterBuf[i] = candidates[i] }
+    for [i] in candCount { iterBuf[i] = candidates[i] }
 
-    for ci in candCount
+    for [ci] in candCount
     {
         let v = iterBuf[ci]
 
@@ -233,7 +233,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         // New candidates = candidates ∩ neighbors(v)
         let newCand = cast([*] u32) notnull @alloc(cast(u64) candCount * #sizeof(u32))
         var newCandCount: u32
-        for i in candCount
+        for [i] in candCount
         {
             if g.edge(v, candidates[i])
             {
@@ -245,7 +245,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         // New excluded = excluded ∩ neighbors(v)
         let newExcl = cast([*] u32) notnull @alloc(cast(u64) (exclCount + 1) * #sizeof(u32))
         var newExclCount: u32
-        for i in exclCount
+        for [i] in exclCount
         {
             if g.edge(v, excluded[i])
             {
@@ -274,7 +274,7 @@ func findLargestClique(g: *Graph)->CliqueState
     // Build initial candidate list (all nodes)
     var nodes: [MaxEdges] u32
     var nn:    u32
-    for i in MaxNodes
+    for [i] in MaxNodes
     {
         if g.nodeUsed[i]
         {
@@ -292,10 +292,10 @@ func findLargestClique(g: *Graph)->CliqueState
 func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32)->u32
 {
     // Bubble sort the best clique (small, at most ~15 elements)
-    for i in state.bestSize
+    for [i] in state.bestSize
     {
         if i + 1 >= state.bestSize do continue
-        for j in i + 1 until state.bestSize
+        for [j] in i + 1 until state.bestSize
         {
             if state.best[j] < state.best[i]
             {
@@ -307,7 +307,7 @@ func formatClique(state: *CliqueState, buf: [*] u8, bufLen: u32)->u32
     }
 
     var pos: u32
-    for i in state.bestSize
+    for [i] in state.bestSize
     {
         if i > 0 and pos < bufLen
         {
@@ -425,22 +425,22 @@ func solve(text: string)->SolveResult
 
     var nodes: [MaxEdges] u32
     var nn:    u32
-    for i in MaxNodes
+    for [i] in MaxNodes
     {
         if g.nodeUsed[i] { nodes[nn] = i; nn += 1 }
     }
 
     var total: u64
-    for ii in nn
+    for [ii] in nn
     {
         let i = nodes[ii]
         if ii + 1 >= nn do continue
-        for jj in ii + 1 until nn
+        for [jj] in ii + 1 until nn
         {
             let j = nodes[jj]
             if !g.edge(i, j) do continue
             if jj + 1 >= nn do continue
-            for kk in jj + 1 until nn
+            for [kk] in jj + 1 until nn
             {
                 let k = nodes[kk]
                 if g.edge(i, k) and g.edge(j, k)

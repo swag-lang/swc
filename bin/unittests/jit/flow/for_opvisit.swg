@@ -17,7 +17,7 @@ impl JitFieldVisits
 
         #if back
         {
-            for idx in 3
+            for [idx] in 3
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -33,7 +33,7 @@ impl JitFieldVisits
             return
         }
 
-        for idx in 3
+        for [idx] in 3
         {
             var visitItem: s32 = undefined
             switch idx
@@ -62,14 +62,14 @@ impl JitBufferVisits
         {
             #if ptr
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = cast(&s32) &(me.values[2 - idx]), index = @index)
                 }
             }
             #else
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = me.values[2 - idx], index = @index)
                 }
@@ -79,14 +79,14 @@ impl JitBufferVisits
         {
             #if ptr
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
                 }
             }
             #else
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = me.values[idx], index = @index)
                 }
@@ -111,7 +111,7 @@ impl JitReverseVisits
         #if back do
             #error("reverse iteration must use opVisitReverse")
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
         }
@@ -123,7 +123,7 @@ impl JitReverseVisits
         #if ptr do
             #error("JitReverseVisits does not expose pointer iteration.")
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, item = me.values[2 - idx], index = @index)
         }
@@ -168,7 +168,7 @@ impl JitHiddenAliasVisits
         #if back do
             #error("JitHiddenAliasVisits does not expose reverse iteration.")
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
         }
@@ -191,7 +191,7 @@ impl JitFieldPointerVisits
         }
         #else
         {
-            for idx in 3
+            for [idx] in 3
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -217,7 +217,7 @@ impl JitPairVisits
 
         #if back
         {
-            for idx in 3
+            for [idx] in 3
             {
                 #inject(stmt, left = me.values[2 - idx], right = me.values[3 - idx])
             }
@@ -225,7 +225,7 @@ impl JitPairVisits
             return
         }
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
         }
@@ -242,14 +242,14 @@ impl JitConstPointerVisits
 
         #if ptr
         {
-            for idx in 3
+            for [idx] in 3
             {
                 #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
         #else
         {
-            for idx in 3
+            for [idx] in 3
             {
                 #inject(stmt, item = me.values[idx], index = @index)
             }
@@ -270,7 +270,7 @@ impl JitReturnVisits
 
         var remain = @countof(.values)
         #scope(Up)
-            for idx in @countof(.values)
+            for [idx] in @countof(.values)
         {
             #scope(Down)
             {
@@ -289,7 +289,7 @@ func jitForeachVisitForward()->s32
     var values = JitFieldVisits{}
     var acc: s32
 
-    for value, index in values do
+    for value, [index] in values do
         acc += value + cast(s32) index
 
     return acc
@@ -300,7 +300,7 @@ func jitForeachVisitWhere()->s32
     var values = JitBufferVisits{}
     var acc: s32
 
-    for value, ordinal in values where value != 6
+    for value, [ordinal] in values where value != 6
     {
         if ordinal == 0 do
             continue
@@ -316,10 +316,38 @@ func jitForeachVisitByAddress()->s32
 {
     var values = JitBufferVisits{}
 
-    for &value, ordinal in values do
+    for &value, [ordinal] in values do
         value += cast(s32) (ordinal + 1)
 
     return values.values[0] + values.values[1] + values.values[2]
+}
+
+func jitForeachVisitIndexOnly()->u64
+{
+    var values = JitBufferVisits{}
+    var signature: u64
+
+    for [ordinal] in values
+    {
+        #assert(#typeof(ordinal) == u64)
+        signature = signature * 10 + ordinal
+    }
+
+    return signature
+}
+
+func jitForeachVisitSecondOnly()->s32
+{
+    let values = JitPairVisits{}
+    var signature: s32
+
+    for #Pairs [right] in values
+    {
+        #assert(#typeof(right) == s32)
+        signature = signature * 10 + right
+    }
+
+    return signature
 }
 
 func jitForeachVisitReturn()->bool
@@ -351,6 +379,18 @@ func jitForeachVisitReturn()->bool
 {
     const V = #run jitForeachVisitByAddress()
     #assert(V == 24)
+}
+
+#test
+{
+    const V = #run jitForeachVisitIndexOnly()
+    #assert(V == 12)
+}
+
+#test
+{
+    const V = #run jitForeachVisitSecondOnly()
+    #assert(V == 468)
 }
 
 #test

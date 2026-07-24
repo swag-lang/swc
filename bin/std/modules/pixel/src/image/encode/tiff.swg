@@ -51,7 +51,7 @@ public impl IImageEncoder for Encoder
         result.addNative(cast(u32) ifdOffset)     // offset to first IFD
 
         // Pixel data, top-down RGB(A). The internal buffer is bottom-up.
-        for fileY in height
+        for [fileY] in height
         {
             let srcY = height - fileY - 1
             var psrc = image.pixels.buffer + cast(u64) srcY * image.width8

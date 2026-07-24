@@ -33,7 +33,7 @@ alias StrictForeachF32 = f32
     var arr: [2] s32 = [1, 2]
     var sumV = 0
     var sumI = 0
-    for v, i in arr
+    for v, [i] in arr
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -74,7 +74,7 @@ alias StrictForeachF32 = f32
     var text: string = "AB"
     var sumV = 0
     var sumI = 0
-    for v, i in text
+    for v, [i] in text
     {
         #assert(#typeof(v) == u8)
         #assert(#typeof(i) == u64)
@@ -104,7 +104,7 @@ alias StrictForeachF32 = f32
     var text: const cstring = cast(const cstring) @dataof("AZ")
     var sumV = 0
     var sumI: u64
-    for v, i in text
+    for v, [i] in text
     {
         #assert(#typeof(v) == u8)
         #assert(#typeof(i) == u64)
@@ -132,7 +132,7 @@ alias StrictForeachF32 = f32
     var text:  const cstring = cast(const cstring) @dataof("ABC")
     var order: [3] u8
     var pos:   u64
-    for #reverse v, i in text
+    for #reverse v, [i] in text
     {
         order[pos] = v
         pos        += 1
@@ -164,7 +164,7 @@ func foreachCStringRefSum(value: &cstring)->s32
     var sl = cast([..] s32) arr
     var sumV = 0
     var sumI = 0
-    for v, i in sl
+    for v, [i] in sl
     {
         #assert(#typeof(v) == s32)
         #assert(#typeof(i) == u64)
@@ -182,7 +182,7 @@ func foreachCStringRefSum(value: &cstring)->s32
     func foreachVariadicAny(values: ...)->u64
     {
         var count: u64
-        for v, i in values
+        for v, [i] in values
         {
             #assert(#typeof(v) == any)
             #assert(#typeof(i) == u64)
@@ -200,7 +200,7 @@ func foreachCStringRefSum(value: &cstring)->s32
     func foreachVariadicTyped(values: s32...)->u64
     {
         var count: u64
-        for v, i in values
+        for v, [i] in values
         {
             #assert(#typeof(v) == s32)
             #assert(#typeof(i) == u64)
@@ -232,7 +232,7 @@ func foreachCStringRefSum(value: &cstring)->s32
     func foreachVariadicTypedErr(values: s32...)->u64
     {
         var count: u64
-        for v, i in values
+        for v, [i] in values
         {
             count += 1
         }
@@ -252,7 +252,7 @@ func foreachCStringRefSum(value: &cstring)->s32
 
     var sumV: u32
     var sumI: u64
-    for value, idx in Priority
+    for value, [idx] in Priority
     {
         #assert(#typeof(value) == Priority)
         #assert(#typeof(idx) == u64)
@@ -293,7 +293,7 @@ func foreachCStringRefSum(value: &cstring)->s32
 {
     var sumV: u32
     var sumI: u64
-    for value, idx in ForeachPriorityAlias
+    for value, [idx] in ForeachPriorityAlias
     {
         #assert(#typeof(value) == ForeachAliasPriority)
         #assert(#typeof(idx) == u64)
@@ -309,7 +309,7 @@ func foreachCStringRefSum(value: &cstring)->s32
 {
     var sumV: u32
     var sumI: u64
-    for value, idx in StrictForeachPriorityAlias
+    for value, [idx] in StrictForeachPriorityAlias
     {
         #assert(#typeof(value) == ForeachAliasPriority)
         #assert(#typeof(idx) == u64)

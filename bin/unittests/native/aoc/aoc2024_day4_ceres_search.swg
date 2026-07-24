@@ -160,9 +160,9 @@ func countXmasClean(grid: Grid)->u32
 {
     var count: u32
 
-    for row in grid.rowCount
+    for [row] in grid.rowCount
     {
-        for col in grid.colCount
+        for [col] in grid.colCount
         {
             for Directions
             {
@@ -188,9 +188,9 @@ func countCrossClean(grid: Grid)->u32
     if grid.rowCount < 3 or grid.colCount < 3 do
         return 0
 
-    for row in 1 until grid.rowCount - 1
+    for [row] in 1 until grid.rowCount - 1
     {
-        for col in 1 until grid.colCount - 1
+        for [col] in 1 until grid.colCount - 1
         {
             if gridAt(grid, row, col) != 'A''u8 do
                 continue

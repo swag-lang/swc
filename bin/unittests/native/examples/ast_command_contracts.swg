@@ -90,7 +90,7 @@ func appendS32Literal(buffer: [*] u8, start: u64, value: s32)->u64
         v           /= 10
     }
 
-    for #reverse i in tmpLen
+    for #reverse [i] in tmpLen
     {
         buffer[len] = tmp[i]
         len         += 1
@@ -273,7 +273,7 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     len     = appendAst(buffer, len, handlerName)
     len     = appendAst(buffer, len, "(")
 
-    for parameter, index in typeFunc.parameters
+    for parameter, [index] in typeFunc.parameters
     {
         if index != 0 do
             len = appendAst(buffer, len, ", ")

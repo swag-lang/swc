@@ -58,7 +58,7 @@ func day5A0()
     {
         var row0 = 0
         var row1 = 127
-        for c in 7
+        for [c] in 7
         {
             if l[c] == 'F' do
                 row1 = (row1 + row0) / 2
@@ -69,7 +69,7 @@ func day5A0()
         var col0 = 0
 
         var col1 = 7
-        for c in 3
+        for [c] in 3
         {
             if l[7 + c] == 'L' do
                 col1 = (col1 + col0) / 2

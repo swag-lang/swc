@@ -56,15 +56,15 @@ func day8A()
         switch
         {
         case assume re.match(#"rect (\d+)x(\d+)"#, l):
-            for x in assume StrConv.toS32(re[1]) do
-                for y in assume StrConv.toS32(re[2]) do
+            for [x] in assume StrConv.toS32(re[1]) do
+                for [y] in assume StrConv.toS32(re[2]) do
                     screen[x, y] = true
 
         case assume re.match(#"rotate column x=(\d+) by (\d+)"#, l):
             let x = assume StrConv.toS32(re[1])
             for assume StrConv.toS32(re[2])
             {
-                for i in H do
+                for [i] in H do
                     screen[x, (i + 1) % H] = nscreen[x, i]
                 nscreen                    = screen
             }
@@ -73,7 +73,7 @@ func day8A()
             let y = assume StrConv.toS32(re[1])
             for assume StrConv.toS32(re[2])
             {
-                for i in W do
+                for [i] in W do
                     screen[(i + 1) % W, y] = nscreen[i, y]
                 nscreen                    = screen
             }
@@ -81,9 +81,9 @@ func day8A()
     }
 
     var total = 0
-    for y in H
+    for [y] in H
     {
-        for x in W
+        for [x] in W
         {
             total += screen[x, y] ? 1 : 0
 

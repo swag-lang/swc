@@ -178,7 +178,7 @@ func tracePath(g: *Grid)
     {
         if cr == g.er and cc == g.ec do break
         var moved = false
-        for dir in 4
+        for [dir] in 4
         {
             let nr = cast(s32) cr + DR[dir]
             let nc = cast(s32) cc + DC[dir]
@@ -215,9 +215,9 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32)->u64
     defer @free(pathBuf)
 
     // Fill path buffer in distance order
-    for r in g.h
+    for [r] in g.h
     {
-        for c in g.w
+        for [c] in g.w
         {
             let d = g.distAt(r, c)
             if d != Unvisited and d < pathSize
@@ -228,14 +228,14 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32)->u64
     }
 
     // For each pair of path cells
-    for i in pathSize
+    for [i] in pathSize
     {
         let pi = pathBuf[i]
         // Only check cells further along the path that could save time
         let minJ = i + minSaving
         if minJ >= pathSize do continue
 
-        for j in minJ until pathSize
+        for [j] in minJ until pathSize
         {
             let pj = pathBuf[j]
             let md = manhattan(pi, pj)

@@ -39,7 +39,7 @@ func day6B()
         switch instruction.action
         {
         case .TurnOn:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
@@ -50,7 +50,7 @@ func day6B()
             }
 
         case .TurnOff:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount
@@ -62,7 +62,7 @@ func day6B()
             }
 
         case .Toggle:
-            for y in y0 to y1
+            for [y] in y0 to y1
             {
                 var scan = lightsBuf + (y * DAY6_GRID_SIZE) + x0
                 for writeCount

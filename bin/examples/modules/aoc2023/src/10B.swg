@@ -123,9 +123,9 @@ func day10B()
     func mp(x0, y0: s64)->&Dir => (notnull maze.buffer) + ((x0 + 1) + (y0 + 1) * width)
 
     var startX, startY: s64
-    for l, line in lines
+    for l, [line] in lines
     {
-        for #Bytes c, col in l
+        for #Bytes c, [col] in l
         {
             let one: &Dir = &mp(cast(s64) col, cast(s64) line)
             switch c
@@ -200,16 +200,16 @@ func day10B()
     }
 
     var total: u64
-    for l, line in lines
+    for l, [line] in lines
     {
-        for #Bytes c, col in l
+        for #Bytes c, [col] in l
         {
             let one = mp(cast(s64) col, cast(s64) line)
             if one & .Edge do
                 continue
 
             var inside = false
-            for x in col
+            for [x] in col
             {
                 let one1 = mp(cast(s64) x, cast(s64) line)
                 if one1 & .Edge and one1 & .North do

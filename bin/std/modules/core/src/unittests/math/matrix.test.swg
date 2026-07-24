@@ -6,9 +6,9 @@ using Swag
 #test
 {
     var matrix: Math.Matrix3x3 = undefined
-    for y in 3
+    for [y] in 3
     {
-        for x in 3 do
+        for [x] in 3 do
             matrix.m[x, y] = 7
     }
 
@@ -28,9 +28,9 @@ using Swag
 #test
 {
     var matrix: Math.Matrix4x4 = undefined
-    for y in 4
+    for [y] in 4
     {
-        for x in 4 do
+        for [x] in 4 do
             matrix.m[x, y] = 7
     }
 

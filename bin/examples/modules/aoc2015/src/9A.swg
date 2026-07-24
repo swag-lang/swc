@@ -47,14 +47,14 @@ func day9A()
         dist.add(town.find(r[1]).value | town.find(r[2]).value << 32, assume StrConv.toU64(r[3]))
     }
 
-    for i in town.count do
+    for [i] in town.count do
         combi.add(i)
 
     var total = Swag.U64.Max
     for
     {
         var calc = 0'u64
-        for i in cast(s64) combi.count - 1 do
+        for [i] in cast(s64) combi.count - 1 do
             calc += dist.find(combi[i] << 32 | combi[i + 1]).value
         total    = Math.min(total, calc)
         if !Slice.nextPermutation(combi.toSlice()) do

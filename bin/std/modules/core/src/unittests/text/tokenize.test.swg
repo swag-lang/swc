@@ -8,7 +8,7 @@ func assertStringArray(values: const &Array'(string), expected: const [..] strin
     if values.count != @countof(expected) do
         return false
 
-    for i in values.count
+    for [i] in values.count
     {
         if values[i] != expected[i] do
             return false

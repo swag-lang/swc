@@ -8,7 +8,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
     if values.count != @countof(expected) do
         return false
 
-    for i in values.count
+    for [i] in values.count
     {
         if values[i] != expected[i] do
             return false
@@ -74,7 +74,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
     var dest: [8] u16
     let count = Utf16.fromUtf8(dest, text)
     @assert(count == 4)
-    for i in count do
+    for [i] in count do
         @assert(dest[i] == expected[i])
 
     let result = Utf16.fromUtf8(text)
@@ -89,7 +89,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
     var dest: [8] u16
     let count = Utf16.fromUnicode(dest, runes)
     @assert(count == 4)
-    for i in count do
+    for [i] in count do
         @assert(dest[i] == expected[i])
 
     let result = Utf16.fromUnicode(runes)
@@ -102,7 +102,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
     let zero = Utf16.toZeroTerminated("Caf\u00E9\U0001F642")
 
     @assert(zero.count == 7)
-    for i in @countof(expected) do
+    for [i] in @countof(expected) do
         @assert(zero[i] == expected[i])
     @assert(zero[6] == 0)
     @assert(Utf16.lengthZeroTerminated(@dataof(zero)) == 6)

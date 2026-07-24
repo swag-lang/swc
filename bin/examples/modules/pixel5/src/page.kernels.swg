@@ -49,6 +49,6 @@ func buildKernelCards(source: const &Image)
 func drawKernelPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel kernels and grading", "Page 2 : convolution filters and simple color grading, all built from the local source image.")
-    for i in CardsPerPage do
+    for [i] in CardsPerPage do
         drawCard(painter, getCardRect(i), g_KernelCards[i])
 }

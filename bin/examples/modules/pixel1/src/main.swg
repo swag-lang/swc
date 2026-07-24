@@ -47,7 +47,7 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
     var star: Array'Math.Vector2
     let scx = ox + 272
     let scy = 268'f32
-    for i in 10
+    for [i] in 10
     {
         let sr    = ((i & 1) == 0) ? 70'f32 : 28'f32
         let angle = -Math.ConstF32.Pi * 0.5 + cast(f32) i * (Math.ConstF32.Pi * 2 / 10)

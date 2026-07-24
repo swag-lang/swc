@@ -59,7 +59,7 @@ impl GizmoPoints
                 .hotAnchor = Swag.U32.Max
 
                 var rect: Math.Rectangle = undefined
-                for c, i in .anchors
+                for c, [i] in .anchors
                 {
                     rect.x                  = c.x - .anchorSize * 0.5
                     rect.y                  = c.y - .anchorSize * 0.5

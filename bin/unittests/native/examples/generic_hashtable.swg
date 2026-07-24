@@ -31,7 +31,7 @@ func(K, V) allocateStorage(table: *HashTable'(K, V), capacity: u64)
     table.count    = 0
 
     let states = notnull table.states
-    for i in capacity do
+    for [i] in capacity do
         states[i] = SlotEmpty
 }
 
@@ -96,7 +96,7 @@ func(K, V) rehash(table: *HashTable'(K, V), newCapacity: u64)
 
     let entries = notnull oldEntries
     let states  = notnull oldStates
-    for i in oldCapacity
+    for [i] in oldCapacity
     {
         if states[i] == SlotUsed do
             insertAssumeSpace'(K, V)(table, entries[i].key, entries[i].value)
@@ -252,7 +252,7 @@ struct InventoryRow
     var table = create'(u64, u64)(&hashU64, &eqU64)
     defer destroy'(u64, u64)(&table)
 
-    for i in 100'u64 do
+    for [i] in 100'u64 do
         put'(u64, u64)(&table, i, i * i + 3)
 
     @assert(table.count == 100)

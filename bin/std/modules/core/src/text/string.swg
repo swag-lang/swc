@@ -501,7 +501,7 @@ impl String
         let eat  = Utf8.encodeRune(tmp, value)
         .grow(.length + eat + 1)
         let buffer = notnull .buffer
-        for i in eat do
+        for [i] in eat do
             buffer[.length + i] = tmp[i]
         .length         += eat
         buffer[.length] = 0

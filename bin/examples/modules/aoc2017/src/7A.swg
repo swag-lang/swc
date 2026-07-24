@@ -63,7 +63,7 @@ func day7A()
     }
 
     var result: String
-    for k, v in set
+    for k, [v] in set
     {
         if v == 1
         {

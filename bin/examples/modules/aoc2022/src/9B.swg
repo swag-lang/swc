@@ -464,7 +464,7 @@ func day9B()
             rope[0].x += incx
             rope[0].y += incy
 
-            for i in 1 until @countof(rope)
+            for [i] in 1 until @countof(rope)
             {
                 var dx  = rope[i - 1].x - rope[i].x
                 var dy  = rope[i - 1].y - rope[i].y

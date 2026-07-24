@@ -65,7 +65,7 @@ func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
 {
     let bytes = cast(const [..] u8) "01234"
     var seen: u8
-    for i in @countof(bytes)
+    for [i] in @countof(bytes)
     {
         if i == 1'u32
         {
@@ -82,7 +82,7 @@ func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
 {
     let bytes = cast(const [..] u8) "01234"
     var seen: u8
-    for i in @countof(bytes)
+    for [i] in @countof(bytes)
     {
         if i == 1'u32
         {
@@ -98,7 +98,7 @@ func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
 #test
 {
     let bytes = cast(const [..] u8) "2a4b"
-    for i in @countof(bytes)
+    for [i] in @countof(bytes)
     {
         let a = parseForDigit32(bytes, &i), b = parseForDigit32(bytes, &i)
         @assert(a == 2'u32)
@@ -111,7 +111,7 @@ func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
 {
     func solveDigits(bytes: const [..] u8)->u32
     {
-        for i in @countof(bytes)
+        for [i] in @countof(bytes)
         {
             let a = parseForDigit(bytes, &i), b = parseForDigit(bytes, &i)
             return a * 10'u32 + b

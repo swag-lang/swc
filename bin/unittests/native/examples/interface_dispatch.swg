@@ -72,7 +72,7 @@ impl IDiscountRule for FlatDiscount
 func bestDiscount(rules: [..] IDiscountRule, line: &OrderLine)->s32
 {
     var best: s32 = 0
-    for i in @countof(rules)
+    for [i] in @countof(rules)
     {
         let d = rules[i].apply(line)
         if d > best do

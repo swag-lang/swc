@@ -159,7 +159,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func variadicForeachAnyToAny(values: ...)->bool
     {
-        for value, index in values
+        for value, [index] in values
         {
             if index == 0 and !anyIsS32(value) do
                 return false
@@ -244,7 +244,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func variadicForeachSeesBoxedAny(values: ...)->bool
     {
-        for value, index in values
+        for value, [index] in values
         {
             if index == 0 do
                 return anyIsS32(value)

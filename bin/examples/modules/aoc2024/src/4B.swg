@@ -50,9 +50,9 @@ func day4B()
     }
 
     var total = 0
-    for y in 0 until lines.count - 2
+    for [y] in 0 until lines.count - 2
     {
-        for x in 0 until lines[y].length - 2
+        for [x] in 0 until lines[y].length - 2
         {
             if test(lines[y][x], lines[y][x + 2], lines[y + 1][x + 1], lines[y + 2][x], lines[y + 2][x + 2]) do
                 total += 1

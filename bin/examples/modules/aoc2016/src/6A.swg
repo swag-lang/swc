@@ -47,7 +47,7 @@ func day6A0()
 
     for l in lines
     {
-        for c, i in l
+        for c, [i] in l
         {
             var v = freq[i, c - 'a']
             v                += 1
@@ -80,7 +80,7 @@ func day6A1()
 
     for l in lines
     {
-        for c, i in l
+        for c, [i] in l
         {
             var v: &u32 = &freq[i, c - 'a']
             v += 1

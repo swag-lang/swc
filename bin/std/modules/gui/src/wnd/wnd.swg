@@ -410,7 +410,7 @@ impl Wnd
 
     private mtd firstTopMostIndex()->u64
     {
-        for c, i in .childs
+        for c, [i] in .childs
         {
             if c.wndFlags.has(.TopMost) do
                 return i
@@ -1173,7 +1173,7 @@ impl Wnd
             c.setPosition(pos, false)
         }
 
-        for c, i in .childs
+        for c, [i] in .childs
         {
             if !c.isVisible() do
                 continue

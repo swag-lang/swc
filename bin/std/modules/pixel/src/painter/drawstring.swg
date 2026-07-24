@@ -450,7 +450,7 @@ impl Painter
         }
 
         var x = 0.0'f32
-        for glyph, idx in toDraw.glyphs
+        for glyph, [idx] in toDraw.glyphs
         {
             if glyph.cluster >= atByte do
                 break
@@ -474,7 +474,7 @@ impl Painter
         var result: retval
         result.ascent  = Swag.F32.NegInf
         result.descent = Swag.F32.NegInf
-        for refr, i in text
+        for refr, [i] in text
         {
             result.ascent  = Math.max(result.ascent, refr.shiftY)
             result.descent = Math.max(result.descent, refr.height - refr.shiftY)
@@ -497,7 +497,7 @@ impl Painter
     private mtd pushShapedGlyphs(runToDraw: *ShapedRun, drawFont: *Font, info: TextDrawInfo, startLeft, baselineY, dx, dy: f32, snapPixels: bool, color: Color)
     {
         var x = startLeft
-        for glyph, idx in runToDraw.glyphs
+        for glyph, [idx] in runToDraw.glyphs
         {
             let step   = Painter.advanceTextX(x, glyph.offsetX, glyph.advanceX, info, idx == 0)
             let glyphX = step.glyphX
@@ -710,7 +710,7 @@ impl Painter
         for &resetChunk in text.chunks do
             resetChunk.visible = false
 
-        for &c, idx in text.chunks
+        for &c, [idx] in text.chunks
         {
             // Attributes
             let fs = c.hasFontStyle ? c.fontStyle : format.fontStyle
@@ -845,7 +845,7 @@ impl Painter
         if lines.count > 1
         {
             totalHeight = 0
-            for &l, idxLine in lines
+            for &l, [idxLine] in lines
             {
                 totalHeight += l.height
                 if idxLine != lines.count - 1
@@ -889,7 +889,7 @@ impl Painter
         var boundRight        = Swag.F32.NegInf
 
         // Layout
-        for &l, idxLine in lines
+        for &l, [idxLine] in lines
         {
             var x1 = x
             let y1 = y
@@ -903,7 +903,7 @@ impl Painter
 
             if l.end > l.start
             {
-                for idx in l.start until l.end
+                for [idx] in l.start until l.end
                 {
                     let c = &text.chunks[idx]
                     c.visible = true

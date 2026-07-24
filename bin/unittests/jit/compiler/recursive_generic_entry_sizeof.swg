@@ -57,7 +57,7 @@ impl RecursiveAssocTable
         let newTable = cast([*] RecursiveAssocEntry'(K, V)) notnull @alloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))
         .table = newTable
 
-        for i in oldCapacity
+        for [i] in oldCapacity
         {
             newTable[i].hash = oldTable[i].hash
             if oldTable[i].hash < 2 do
@@ -101,13 +101,13 @@ impl RecursiveAssocTable
         .deleted  = 0
         .capacity = reqCapacity
 
-        for i in reqCapacity do
+        for [i] in reqCapacity do
             newTable[i].hash = 0
 
         if oldTable == null do
             return
 
-        for i in oldCapacity
+        for [i] in oldCapacity
         {
             if oldTable[i].hash < 2 do
                 continue

@@ -63,13 +63,13 @@ func expectedAbs8(value: s8)->s8
 
 #test
 {
-    for value in 65536
+    for [value] in 65536
     {
         let input = cast(u16) value
         @assert(Math.hasZeroByte(input) == expectedHasZeroByte16(input))
     }
 
-    for value in 256
+    for [value] in 256
     {
         let byte = cast(u8) value
         @assert(Math.makeRepeat16(byte) == (cast(u16) byte | (cast(u16) byte << 8)))
@@ -84,7 +84,7 @@ func expectedAbs8(value: s8)->s8
         }
     }
 
-    for value in 65536
+    for [value] in 65536
     {
         let input = cast(u16) value
         @assert(Math.hasByte(input, 0x00'u8) == expectedHasByte16(input, 0x00'u8))
@@ -188,7 +188,7 @@ func expectedAbs8(value: s8)->s8
 
 #test
 {
-    for value in 256
+    for [value] in 256
     {
         let input = cast #bit (s8) cast(u8) value
         @assert(Math.sign(input) == expectedSign8(input))
@@ -196,10 +196,10 @@ func expectedAbs8(value: s8)->s8
             @assert(Math.abs(input) == expectedAbs8(input))
     }
 
-    for left in 256
+    for [left] in 256
     {
         let a = cast #bit (s8) cast(u8) left
-        for right in 256
+        for [right] in 256
         {
             let b = cast #bit (s8) cast(u8) right
             @assert(Math.min(a, b) == (a < b ? a : b))
@@ -207,10 +207,10 @@ func expectedAbs8(value: s8)->s8
         }
     }
 
-    for left in 256
+    for [left] in 256
     {
         let a = cast(u8) left
-        for right in 256
+        for [right] in 256
         {
             let b = cast(u8) right
             @assert(Math.min(a, b) == (a < b ? a : b))

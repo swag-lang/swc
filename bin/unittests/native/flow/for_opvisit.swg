@@ -19,7 +19,7 @@ impl FieldVisits
 
         #if back
         {
-            for idx in 3
+            for [idx] in 3
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -35,7 +35,7 @@ impl FieldVisits
             return
         }
 
-        for idx in 3
+        for [idx] in 3
         {
             var visitItem: s32 = undefined
             switch idx
@@ -64,14 +64,14 @@ impl BufferVisits
         {
             #if ptr
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = cast(&s32) &(me.values[2 - idx]), index = @index)
                 }
             }
             #else
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = me.values[2 - idx], index = @index)
                 }
@@ -81,14 +81,14 @@ impl BufferVisits
         {
             #if ptr
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = cast(&s32) &(me.values[idx]), index = @index)
                 }
             }
             #else
             {
-                for idx in 3
+                for [idx] in 3
                 {
                     #inject(stmt, item = me.values[idx], index = @index)
                 }
@@ -113,7 +113,7 @@ impl ReverseVisits
         #if back do
             #error("reverse iteration must use opVisitReverse")
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], index = @index)
         }
@@ -125,7 +125,7 @@ impl ReverseVisits
         #if ptr do
             #error("ReverseVisits does not expose pointer iteration.")
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, item = me.values[2 - idx], index = @index)
         }
@@ -170,7 +170,7 @@ impl HiddenAliasVisits
         #if back do
             #error("HiddenAliasVisits does not expose reverse iteration.")
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, item = me.values[idx], tens = me.values[idx] * 10, index = @index)
         }
@@ -193,7 +193,7 @@ impl FieldPointerVisits
         }
         #else
         {
-            for idx in 3
+            for [idx] in 3
             {
                 var visitItem: s32 = undefined
                 switch idx
@@ -219,7 +219,7 @@ impl PairVisits
 
         #if back
         {
-            for idx in 3
+            for [idx] in 3
             {
                 #inject(stmt, left = me.values[2 - idx], right = me.values[3 - idx])
             }
@@ -227,7 +227,7 @@ impl PairVisits
             return
         }
 
-        for idx in 3
+        for [idx] in 3
         {
             #inject(stmt, left = me.values[idx], right = me.values[idx + 1])
         }
@@ -244,14 +244,14 @@ impl ConstPointerVisits
 
         #if ptr
         {
-            for idx in 3
+            for [idx] in 3
             {
                 #inject(stmt, item = cast(const &s32) &(me.values[idx]), index = @index)
             }
         }
         #else
         {
-            for idx in 3
+            for [idx] in 3
             {
                 #inject(stmt, item = me.values[idx], index = @index)
             }
@@ -272,7 +272,7 @@ impl ReturnVisits
 
         var remain = @countof(.values)
         #scope(Up)
-            for idx in @countof(.values)
+            for [idx] in @countof(.values)
         {
             #scope(Down)
             {
@@ -336,7 +336,7 @@ impl GenericScopedVisits
     var sumValues = 0
     var sumIndexes: u64
 
-    for value, index in values
+    for value, [index] in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == #typeof(@index))
@@ -353,7 +353,7 @@ impl GenericScopedVisits
     var values = BufferVisits{}
     var acc = 0
 
-    for value, ordinal in values where value != 6
+    for value, [ordinal] in values where value != 6
     {
         if ordinal == 0 do
             continue
@@ -369,7 +369,7 @@ impl GenericScopedVisits
 {
     var values = BufferVisits{}
 
-    for &value, ordinal in values do
+    for &value, [ordinal] in values do
         value += cast(s32) (ordinal + 1)
 
     @assert(values.values[0] == 4)
@@ -383,7 +383,7 @@ impl GenericScopedVisits
     var code = 0
     var order: u64
 
-    for #reverse value, index in values
+    for #reverse value, [index] in values
     {
         code  = code * 10 + value
         order += index
@@ -398,7 +398,7 @@ impl GenericScopedVisits
     var values = ReverseVisits{}
     var code = 0
 
-    for #Reverse value, index in values
+    for #Reverse value, [index] in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(index) == #typeof(@index))
@@ -447,7 +447,7 @@ impl GenericScopedVisits
     var values = HiddenAliasVisits{}
     var sum = 0
 
-    for value, scaled in values
+    for value, [scaled] in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(scaled) == s32)
@@ -462,7 +462,7 @@ impl GenericScopedVisits
     var values = FieldPointerVisits{}
     var mutatedSum = 0
 
-    for &value, ordinal in values
+    for &value, [ordinal] in values
     {
         #assert(#typeof(value) == #type &s32)
         value      += cast(s32) (ordinal + 1)
@@ -481,7 +481,7 @@ impl GenericScopedVisits
     var signature = 0
     var order: u64
 
-    for #Pairs left, right in values
+    for #Pairs left, [right] in values
     {
         #assert(#typeof(left) == s32)
         #assert(#typeof(right) == s32)
@@ -498,7 +498,7 @@ impl GenericScopedVisits
     let values = ConstPointerVisits{}
     var sum = 0
 
-    for &value, ordinal in values
+    for &value, [ordinal] in values
     {
         #assert(#typeof(value) == #type const &s32)
         sum += value + cast(s32) ordinal
@@ -518,7 +518,7 @@ impl GenericScopedVisits
     var sum = 0
     var indexes: u64
 
-    for value, ordinal in values
+    for value, [ordinal] in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(ordinal) == #typeof(@index))

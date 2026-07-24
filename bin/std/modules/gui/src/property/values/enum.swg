@@ -69,7 +69,7 @@ impl Properties
             }
 
             var idxSel = 0'u64
-            for v, idx in typeEnum.values
+            for v, [idx] in typeEnum.values
             {
                 switch (notnull typeEnum.rawType).sizeof
                 {
@@ -88,7 +88,7 @@ impl Properties
             // enum value index in userData0, so map the selected enum index to its combo
             // slot. A hidden current value simply shows no selection.
             var idxCombo = Swag.U32.Max
-            for cb, cbIdx in item.comboBox.items
+            for cb, [cbIdx] in item.comboBox.items
             {
                 if cast(u64) (notnull cb).userData0 == idxSel
                 {
@@ -287,7 +287,7 @@ impl Properties
         // An enum value can carry its own display name ('1...2...3...' for Number). The
         // host can hide values (isEnumValueVisible); each combo entry keeps its enum
         // value index in userData0 so refresh/validate stay index-agnostic.
-        for v, idx in typeEnum.values
+        for v, [idx] in typeEnum.values
         {
             if !.isEnumValueShown(item, v) do
                 continue

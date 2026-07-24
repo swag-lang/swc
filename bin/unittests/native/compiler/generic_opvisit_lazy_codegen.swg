@@ -85,7 +85,7 @@ namespace GenericForeachLazyCodegen
         mtd whereIndexSum(skip: T)->u64
         {
             var total = 0'u64
-            for value, index in .values.toSlice() where value != skip do
+            for value, [index] in .values.toSlice() where value != skip do
                 total += index + 1
             return total
         }
@@ -103,7 +103,7 @@ namespace GenericForeachLazyCodegen
         mtd reverseIndexCode()->u64
         {
             var code = 0'u64
-            for #reverse _value, index in .values.toSlice() do
+            for #reverse _value, [index] in .values.toSlice() do
                 code = code * 10 + index + 1
             return code
         }
@@ -112,7 +112,7 @@ namespace GenericForeachLazyCodegen
         mtd nonNullIndexSum()->u64
         {
             var total = 0'u64
-            for &value, index in .values.toSlice() where value != null do
+            for &value, [index] in .values.toSlice() where value != null do
                 total += index + 1
             return total
         }

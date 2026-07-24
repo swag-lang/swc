@@ -29,7 +29,7 @@ impl IWnd for PalettePicker
 
         var x = clientRect.x
         var y = clientRect.y
-        for c, i in .pal
+        for c, [i] in .pal
         {
             if .hotIdx == i do
                 colorBorder = colors.palPicker_HotBorder
@@ -63,7 +63,7 @@ impl IWnd for PalettePicker
 
         // Hit test
         var newHotIdx = Swag.S32.Max
-        for i in @countof(.palPos)
+        for [i] in @countof(.palPos)
         {
             if .palPos[i].contains(pos)
             {
@@ -111,7 +111,7 @@ impl PalettePicker
     // Add a range of changing 'hue'
     mtd addHueColors(numColors: s32, sat, lum: f32)
     {
-        for i in numColors
+        for [i] in numColors
         {
             var c: Color
             c.setHsl(i / cast(f32) numColors, sat, lum)
@@ -127,7 +127,7 @@ impl PalettePicker
     {
         let (h, s, ?) = base.toHsl()
 
-        for i in numColors
+        for [i] in numColors
         {
             var c: Color
             c.setHsl(h, s, i / cast(f32) numColors)
@@ -143,7 +143,7 @@ impl PalettePicker
     {
         let (h, ?, ?) = base.toHsl()
 
-        for i in numColors
+        for [i] in numColors
         {
             var c: Color
             c.setHsl(h, i / cast(f32) numColors, lum)

@@ -58,7 +58,7 @@ func day1A()
     arr1.sort()
 
     var total = 0
-    for i in @countof(arr0)
+    for [i] in @countof(arr0)
     {
         total += @abs(arr1[i] - arr0[i])
     }

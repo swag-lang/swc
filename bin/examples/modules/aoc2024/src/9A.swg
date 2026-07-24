@@ -71,7 +71,7 @@ func day9A()
     }
 
     var last = map.count - #wrap 1
-    for i in @countof(map)
+    for [i] in @countof(map)
     {
         if map[i].what != -1 do
             continue
@@ -101,7 +101,7 @@ func day9A()
     }
 
     var idx, total: u64
-    for v, i in map
+    for v, [i] in map
     {
         if v.what == -1 do
             break

@@ -12,7 +12,7 @@ func exactArrayParamSum(values: [4] s32)->s32
 func exactArrayParamFill(digest: ExactArrayParamDigest, seed: u8)
 {
     #assert(#typeof(digest) == ExactArrayParamDigest)
-    for i in @countof(digest) do
+    for [i] in @countof(digest) do
         digest[i] = seed + cast(u8) i
 }
 

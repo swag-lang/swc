@@ -490,10 +490,10 @@ func __dbgFindSection(base: #null *void)
     var secOff = ntOff + 24 + cast(u64) optSz
 
     let want = ".swagdbg"
-    for s in nSec
+    for [s] in nSec
     {
         var match = true
-        for k in 8
+        for [k] in 8
         {
             if b[secOff + cast(u64) k] != cast(u8) want[k]
             {
@@ -545,7 +545,7 @@ func __symbolize(addr: *void)->__SwagSym
 
     // '__dbgCacheValid' guarantees the section pointer.
     let sec = notnull __dbgCacheSection
-    for i in __dbgCacheCount
+    for [i] in __dbgCacheCount
     {
         let e     = 16 + cast(u64) i * 20
         let erva  = __peU32(sec, e)
@@ -573,7 +573,7 @@ func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation 
 {
     var hasStarted = false
 
-    for i in @countof(wh)
+    for [i] in @countof(wh)
     {
         let info = __symbolize(wh[i])
         if !info.hasLine and !printNoLine do
@@ -595,7 +595,7 @@ func __logStackTrace(wh: [..] *void, startAfter: #null *Swag.SourceCodeLocation 
             var samePath = true
             if afterName != null
             {
-                for it in @countof(info.file)
+                for [it] in @countof(info.file)
                 {
                     if info.file[it] == afterName[it] do
                         continue

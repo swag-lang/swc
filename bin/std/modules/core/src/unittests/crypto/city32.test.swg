@@ -58,7 +58,7 @@ func assertCity32(buffer: const [..] u8, expected: u32)
     var data: [80] u8
     fillCity32Pattern(data)
 
-    for length in @countof(expected)
+    for [length] in @countof(expected)
     {
         assertCity32(data[until length], expected[length])
     }

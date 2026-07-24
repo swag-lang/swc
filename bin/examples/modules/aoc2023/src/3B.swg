@@ -49,7 +49,7 @@ func day3B()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
     let lines    = assume File.readAllLines(dataPath)
 
-    for l, y in lines
+    for l, [y] in lines
     {
         for var x = 0; x < l.length; x += 1
         {

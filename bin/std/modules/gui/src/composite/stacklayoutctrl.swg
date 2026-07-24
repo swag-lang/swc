@@ -195,7 +195,7 @@ private impl StackLayoutCtrl
         var totalMargins = 0'f32
         var totalWeight = 0'f32
         var shrinkPool = 0'f32
-        for c, idx in visible
+        for c, [idx] in visible
         {
             let margin = c.getLayoutMargin()
             let marginMain = .mainMargin(margin)
@@ -238,7 +238,7 @@ private impl StackLayoutCtrl
             cursor = .isHorizontal() ? client.x : client.y
 
         var contentEnd = 0'f32
-        for idxLoop in visible.count
+        for [idxLoop] in visible.count
         {
             let idx = idxLoop
             let c = visible[idx]

@@ -224,7 +224,7 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
 {
     var p = src
     checkBuffer(p, last, pixelCount * pixelBytes)
-    for i in pixelCount
+    for [i] in pixelCount
     {
         writeSourcePixel(result, header, palette, i, p)
         p += pixelBytes

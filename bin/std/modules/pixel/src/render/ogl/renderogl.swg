@@ -108,7 +108,7 @@ private impl RenderOgl
 
     mtd removeHeadlessTexture(handle: TextureHandle)
     {
-        for it, idx in .headlessTextures where it.handle == handle
+        for it, [idx] in .headlessTextures where it.handle == handle
         {
             .headlessTextures.removeAt(idx)
             return
@@ -211,7 +211,7 @@ private impl RenderOgl
         Debug.assert(@countof(datas) <= 8 * 8)
 
         var arr: [64] u32
-        for p, i in datas do
+        for p, [i] in datas do
             arr[i] = p ? 0xFFFFFFFF : 0
 
         var result: GLuint
@@ -1068,7 +1068,7 @@ impl RenderOgl
 
                 var offsets: [MaxGradientStops] f32
                 var colors:  [MaxGradientStops] Vector4
-                for i in params.gradientStopCount
+                for [i] in params.gradientStopCount
                 {
                     offsets[i] = params.gradientStops[i].offset
                     colors[i]  = params.gradientStops[i].color.toVector4()
@@ -1245,11 +1245,11 @@ impl RenderOgl
         .setBlendingMode(BlendingMode.Alpha)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE)
 
-        for i in 4 do
+        for [i] in 4 do
             glEnableVertexAttribArray(cast(GLuint) i)
-        for cmd, cmdIdx in dc.commandBuffer do
+        for cmd, [cmdIdx] in dc.commandBuffer do
             .executeCommand(dc, cmd, cmdIdx, width, height)
-        for i in 4 do
+        for [i] in 4 do
             glDisableVertexAttribArray(cast(GLuint) i)
     }
 
@@ -1275,7 +1275,7 @@ impl RenderOgl
         let w2 = Math.roundUpToPowerOf2(cast(u32) w)
         let h2 = Math.roundUpToPowerOf2(cast(u32) h)
 
-        for rt, i in .stackReleasedRT
+        for rt, [i] in .stackReleasedRT
         {
             let r = notnull rt
             if r.colorBuffer.width == w2 and r.colorBuffer.height == h2
@@ -1285,7 +1285,7 @@ impl RenderOgl
             }
         }
 
-        for rt, i in .stackReleasedRT
+        for rt, [i] in .stackReleasedRT
         {
             let r = notnull rt
             if r.colorBuffer.width >= w2 and r.colorBuffer.height >= h2

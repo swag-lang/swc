@@ -83,7 +83,7 @@ impl HashSet
         Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
         #if Reflection.hasPostCopy(K)
         {
-            for i in .capacity
+            for [i] in .capacity
             {
                 let hashVal = oldTable[i].hash
                 if hashVal < HashSet.HASH_DELETED do
@@ -158,7 +158,7 @@ impl HashSet
         // Need to drop every structs
         #if Reflection.hasDrop(#typeof(K))
         {
-            for i in .capacity
+            for [i] in .capacity
             {
                 if table[i].hash >= HashSet.HASH_DELETED do
                     @drop(&table[i].key)
@@ -205,7 +205,7 @@ impl HashSet
         let oldCapacity = .capacity
         .capacity = reqCapacity
         let oldTablePtr = oldTable orelse cast([*] HashSetEntry'(K)) 1'u64
-        for i in oldCapacity
+        for [i] in oldCapacity
         {
             let h = oldTablePtr[i].hash
             if h >= HashSet.HASH_FIRST
@@ -415,7 +415,7 @@ impl HashSet
         if .count or .deleted
         {
             let table = .tablePtr()
-            for i in .capacity
+            for [i] in .capacity
             {
                 let hashval = table[i].hash
                 if hashval >= HashSet.HASH_DELETED do

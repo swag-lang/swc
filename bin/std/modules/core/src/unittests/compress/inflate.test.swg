@@ -8,7 +8,7 @@ using Swag
 #test
 {
     var original: [4000] u8
-    for i in 4000 do
+    for [i] in 4000 do
         original[i] = cast #bit (u8) (i * 7 + (i >> 2) + (i & 13))
 
     var zl: Compress.ZLib
@@ -21,7 +21,7 @@ using Swag
     @assert(@countof(decompressed) == 4000)
 
     var ok = true
-    for i in 4000 do
+    for [i] in 4000 do
         if decompressed[i] != original[i] do
             ok = false
     @assert(ok)

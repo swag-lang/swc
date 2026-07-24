@@ -116,13 +116,13 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         if !nc
         {
             var sum: u32
-            for i in nm do
+            for [i] in nm do
                 sum += n[start + i]
             return {start + nm, sum}
         }
 
         var childValues: [4] u32
-        for i in nc
+        for [i] in nc
         {
             var sum: u32
                 (start, sum) = read(n, start)
@@ -130,7 +130,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         }
 
         var sum: u32
-        for i in nm
+        for [i] in nm
         {
             let idx = n[start + i]
             if idx and idx - 1 < nc do

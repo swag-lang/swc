@@ -37,10 +37,10 @@ func day3B()
     while idx < lines.count
     {
         var stack: [3] Array's32
-        for ii in 3
+        for [ii] in 3
         {
             let l = lines[idx]
-            for i in @countof(l)
+            for [i] in @countof(l)
             {
                 var s: s32
                 if Latin1.isLower(l[i]) do

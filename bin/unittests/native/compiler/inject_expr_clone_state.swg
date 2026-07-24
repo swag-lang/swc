@@ -60,7 +60,7 @@ namespace InjectExprCloneSupport
     func visitStructBuffer(values: &VisitBuffer)->s32
     {
         var code = 0
-        for value, index in values
+        for value, [index] in values
         {
             if value.value == 12 do
                 continue

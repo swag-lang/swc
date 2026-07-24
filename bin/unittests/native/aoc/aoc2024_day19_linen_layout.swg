@@ -50,7 +50,7 @@ impl Pattern
     {
         if pos + me.len > @countof(design) do
             return false
-        for i in me.len
+        for [i] in me.len
         {
             if me.byteAt(i) != design[pos + i] do
                 return false
@@ -188,9 +188,9 @@ func countWays(design: const [..] u8, designLen: u32, pats: *PatternList)->u64
     var dp: [MaxDesignLen + 1] u64
     dp[0] = 1
 
-    for i in 1 until designLen + 1
+    for [i] in 1 until designLen + 1
     {
-        for p in pats.count
+        for [p] in pats.count
         {
             let pat = &pats.items[p]
             if pat.len > i do continue
@@ -220,7 +220,7 @@ func solve(text: string)->SolveResult
     var input = parseInput(text)
     var result: SolveResult
 
-    for d in input.designs.count
+    for [d] in input.designs.count
     {
         let des = &input.designs.items[d]
         let sl = des.asSlice()

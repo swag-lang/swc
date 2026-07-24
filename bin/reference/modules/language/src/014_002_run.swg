@@ -50,7 +50,7 @@ var G: [5] f32 = undefined
 #run
 {
     var value = 1'f32
-    for i in @countof(G)
+    for [i] in @countof(G)
     {
         G[i]  = value
         value *= 2
@@ -100,7 +100,7 @@ Example: initializing a static array at compile time.
     const PowerOfTwo: [N] s32 = #run
     {
         var arr: [N] s32
-        for i in @countof(arr) do
+        for [i] in @countof(arr) do
             arr[i] = 1 << cast(u32) i
         return arr
     }

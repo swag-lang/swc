@@ -51,10 +51,10 @@ func loadFonts() throw
 func buildFillBrushImage()->Image
 {
     var img = Image.create(96, 96, .RGBA8)
-    for y in img.height
+    for [y] in img.height
     {
         var pix = (notnull img.pixels.buffer) + y * img.width8
-        for x in img.width
+        for [x] in img.width
         {
             if ((x / 12 + y / 12) & 1) == 0
             {
@@ -88,10 +88,10 @@ func buildFillBrushImage()->Image
 func buildTileBrushImage()->Image
 {
     var img = Image.create(48, 48, .RGBA8)
-    for y in img.height
+    for [y] in img.height
     {
         var pix = (notnull img.pixels.buffer) + y * img.width8
-        for x in img.width
+        for [x] in img.width
         {
             if ((x / 8 + y / 8) & 1) == 0
             {
@@ -203,7 +203,7 @@ func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vecto
 {
     var result: retval
     let total = branches * 2
-    for i in total
+    for [i] in total
     {
         var radius = inner
         if (i & 1) == 0 do
@@ -218,7 +218,7 @@ func makeStarPolygon(cx, cy, outer, inner: f32, branches: s32)->Array'Math.Vecto
 func makeHexPolygon(cx, cy, radius: f32)->Array'Math.Vector2
 {
     var result: retval
-    for i in 6
+    for [i] in 6
     {
         let angle = Math.ConstF32.Pi / 6 + cast(f32) i * (Math.ConstF32.TwoPi / 6)
         result.add(Math.Vector2{cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius})

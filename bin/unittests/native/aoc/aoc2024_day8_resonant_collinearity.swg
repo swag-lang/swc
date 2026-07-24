@@ -242,9 +242,9 @@ func computeSimpleAntinodes(grid: &AntinodeGrid, map: const &AntennaMap)
             continue
 
         let group = &map.groups[freq]
-        for a in group.count
+        for [a] in group.count
         {
-            for b in group.count
+            for [b] in group.count
             {
                 if a == b do
                     continue
@@ -269,9 +269,9 @@ func computeHarmonicAntinodes(grid: &AntinodeGrid, map: const &AntennaMap)
             continue
 
         let group = &map.groups[freq]
-        for a in group.count
+        for [a] in group.count
         {
-            for b in group.count
+            for [b] in group.count
             {
                 if a == b do
                     continue

@@ -96,7 +96,7 @@ impl IValue for Tripler
     items[1] = cast(IValue) t
 
     var sum = 0
-    for i in 2 do
+    for [i] in 2 do
         sum += items[i].getValue()
 
     @assert(sum == 25)
@@ -114,7 +114,7 @@ impl IValue for Tripler
     arr[1] = cast(IValue) b
     arr[2] = cast(IValue) c
 
-    for i in 3 do
+    for [i] in 3 do
         arr[i].setValue(arr[i].getValue() * 10)
 
     @assert(a.count == 10)
@@ -141,7 +141,7 @@ impl IValue for Tripler
 func sumValues(items: [*] IValue, count: u32)->s32
 {
     var total: s32 = 0
-    for i in count do
+    for [i] in count do
         total += items[i].getValue()
     return total
 }

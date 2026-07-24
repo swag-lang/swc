@@ -101,7 +101,7 @@ func resetEvents()
 func eventSum()->s32
 {
     var result: s32
-    for i in EventCount do
+    for [i] in EventCount do
         result += Events[i]
     return result
 }

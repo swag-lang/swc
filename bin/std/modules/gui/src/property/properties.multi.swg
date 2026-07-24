@@ -65,7 +65,7 @@ internal impl Properties
         if item.type == Core.String
         {
             let s0 = notnull cast(#null *String) item.dataInstances[0]
-            for i in 1 until n
+            for [i] in 1 until n
             {
                 if (dref notnull cast(#null *String) item.dataInstances[i]) != dref s0 do
                     return true
@@ -79,7 +79,7 @@ internal impl Properties
             return false
 
         let a0 = cast(#null const [*] void) item.dataInstances[0]
-        for i in 1 until n
+        for [i] in 1 until n
         {
             if Memory.compare(a0, cast(#null const [*] void) item.dataInstances[i], sz) != 0 do
                 return true
@@ -97,7 +97,7 @@ internal impl Properties
 
         if item.type == Core.String
         {
-            for i in 1 until n do
+            for [i] in 1 until n do
                 dref notnull cast(#null *String) item.dataInstances[i] = dref notnull cast(#null *String) item.dataInstances[0]
             return
         }
@@ -106,7 +106,7 @@ internal impl Properties
         if sz == 0 do
             return
 
-        for i in 1 until n do
+        for [i] in 1 until n do
             Memory.copy(cast(#null [*] void) item.dataInstances[i], cast(#null const [*] void) item.dataInstances[0], sz)
     }
 
@@ -136,7 +136,7 @@ internal impl Properties
             return false
 
         let a0 = cast(#null const [*] void) (cast(#null [*] u8) item.dataInstances[0] + byteOffset)
-        for i in 1 until n
+        for [i] in 1 until n
         {
             let ai = cast(#null const [*] void) (cast(#null [*] u8) item.dataInstances[i] + byteOffset)
             if Memory.compare(a0, ai, sz) != 0 do
@@ -166,7 +166,7 @@ internal impl Properties
     mtd writeFloatComponent(item: *PropertiesItem, byteOffset: u64, val: f32)
     {
         let n = .instanceCount(item)
-        for k in n do
+        for [k] in n do
             dref notnull cast(#null *f32) (cast(#null [*] u8) .instanceAddr(item, k) + byteOffset) = val
     }
 
@@ -176,7 +176,7 @@ internal impl Properties
     {
         let n  = .instanceCount(item)
         let sz = .fieldSize(item)
-        for k in n
+        for [k] in n
         {
             let addr = .instanceAddr(item, k)
             var v    = readEnumBits(addr, sz)
@@ -199,7 +199,7 @@ internal impl Properties
 
         let sz   = .fieldSize(item)
         let bit0 = readEnumBits(item.dataInstances[0], sz) & mask
-        for i in 1 until n
+        for [i] in 1 until n
         {
             if (readEnumBits(item.dataInstances[i], sz) & mask) != bit0 do
                 return true

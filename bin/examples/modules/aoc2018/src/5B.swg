@@ -31,7 +31,7 @@ func day5B0()
     let read     = assume File.readAllText(dataPath)
 
     var best = Swag.U64.Max
-    for x in 26
+    for [x] in 26
     {
         var line = read
         var idx  = 0
@@ -81,7 +81,7 @@ func day5B1()
         line.replace(cast(rune) Latin1.toUpper(x), "")
 
         var result: String
-        for c, i in line
+        for c, [i] in line
         {
             if i and result.back() ^ c == 32 do
                 result.removeBack()

@@ -373,7 +373,7 @@ func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
     @assert(Math.abs(capture.backImagePos.y - snap.imagePos.y) < 0.01)
     @assert(capture.forms.count == snap.forms.count)
 
-    for it, idx in capture.forms
+    for it, [idx] in capture.forms
     {
         var cur = testUndoFuzzFormOf(it)
         @assert(cur.kind == snap.forms[idx].kind)
@@ -383,7 +383,7 @@ func testUndoFuzzAssertState(capture: *Capture, snap: *UndoFuzzState)
         @assert(Math.abs(cur.rect.height - snap.forms[idx].rect.height) < 0.01)
         @assert(Math.abs(cur.rotate - snap.forms[idx].rotate) < 0.01)
         @assert(cur.points.count == snap.forms[idx].points.count)
-        for pt, pidx in cur.points
+        for pt, [pidx] in cur.points
         {
             @assert(Math.abs(pt.x - snap.forms[idx].points[pidx].x) < 0.01)
             @assert(Math.abs(pt.y - snap.forms[idx].points[pidx].y) < 0.01)
@@ -527,7 +527,7 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Rng, count: u32)
         elif op == 8
         {
             var candidates: Array'u64
-            for it, idx in f.capture.forms
+            for it, [idx] in f.capture.forms
             {
                 let kind = @kindof(it)
                 if kind == FormLine or kind == FormArrow do

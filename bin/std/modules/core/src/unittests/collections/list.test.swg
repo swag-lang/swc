@@ -27,7 +27,7 @@ struct ListStructProbe
 func visitStructList(values: &List'ListStructProbe)->s32
 {
     var code = 0
-    for value, node in values
+    for value, [node] in values
     {
         #assert(#typeof(node) == *ListEntry'ListStructProbe)
         if value.value == 12 do
@@ -44,7 +44,7 @@ func visitStructList(values: &List'ListStructProbe)->s32
 func visitStructListReverse(values: &List'ListStructProbe)->s32
 {
     var code = 0
-    for #reverse value, node in values
+    for #reverse value, [node] in values
     {
         #assert(#typeof(node) == *ListEntry'ListStructProbe)
         code = code * 10 + value.value
@@ -78,7 +78,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.insertBefore(tail, 3)
 
     var code = 0
-    for value, node in values
+    for value, [node] in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(node) == *ListEntry's32)
@@ -98,7 +98,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.insertBefore(tail, 3)
 
     var code = 0
-    for #reverse value, node in values
+    for #reverse value, [node] in values
     {
         #assert(#typeof(value) == s32)
         #assert(#typeof(node) == *ListEntry's32)
@@ -115,7 +115,7 @@ func visitStructListReverse(values: &List'ListStructProbe)->s32
     values.addBack(2)
     values.addBack(3)
 
-    for &value, node in values
+    for &value, [node] in values
     {
         #assert(#typeof(value) == #type &s32)
         #assert(#typeof(node) == *ListEntry's32)

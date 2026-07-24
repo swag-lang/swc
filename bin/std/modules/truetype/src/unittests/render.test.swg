@@ -172,9 +172,9 @@ using Swag, Core
     var hasInsideA     = false
     var hasOutsideA    = false
     let msdfBuf = notnull msdf.buffer
-    for y in msdf.rows
+    for [y] in msdf.rows
     {
-        for x in msdf.width
+        for [x] in msdf.width
         {
             let p = (cast(u64) y * msdf.width + x) * 4
             let r = msdfBuf[p + 0]

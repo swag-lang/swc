@@ -60,7 +60,7 @@ func day8A()
             regs.find(re[1]).value += v0
     }
 
-    for k, v in regs do
+    for k, [v] in regs do
         total = Math.max(total, v)
     @assert(total == 4066)
 }

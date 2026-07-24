@@ -16,7 +16,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 #test
 {
     var prev = 0'u64
-    for i in AllocatorClassCount
+    for [i] in AllocatorClassCount
     {
         let sz = Allocator.classSize(cast(u32) i)
         @assert(sz > prev)
@@ -27,7 +27,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     }
 
     // ...and one byte past a class spills into the next one.
-    for i in AllocatorClassCount - 1
+    for [i] in AllocatorClassCount - 1
     {
         let sz = Allocator.classSize(cast(u32) i)
         @assert(Allocator.sizeClass(sz + 1) == cast(u32) i + 1)
@@ -66,7 +66,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
-    for i in AllocatorClassCount
+    for [i] in AllocatorClassCount
     {
         let expected = Allocator.classSize(cast(u32) i)
 
@@ -129,13 +129,13 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     const Count = 128
     var reqs: [Count] AllocatorRequest
-    for i in Count
+    for [i] in Count
     {
         reqs[i].size = 64
         itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
     }
-    for i in Count
+    for [i] in Count
     {
         reqs[i].size = 64
         itf.free(&reqs[i])
@@ -161,13 +161,13 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
     const Count = 64
     var reqs: [Count] AllocatorRequest
-    for i in Count
+    for [i] in Count
     {
         reqs[i].size = 128
         itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
     }
-    for i in Count
+    for [i] in Count
     {
         reqs[i].size = 128
         itf.free(&reqs[i])
@@ -227,7 +227,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     @assert(req.address != null)
 
     let p = cast([*] u8) notnull req.address
-    for i in 64 do
+    for [i] in 64 do
         p[i] = cast(u8) (i + 1)
 
     req.oldSize   = 64
@@ -238,7 +238,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     @assert(cast(u64) req.address % 128 == 0)
 
     let moved = cast([*] u8) notnull req.address
-    for i in 64 do
+    for [i] in 64 do
         @assert(moved[i] == cast(u8) (i + 1))
 
     req.size = 64
@@ -271,13 +271,13 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     let itf = makeAllocator(&alloc)
 
     var reqs: [16] AllocatorRequest
-    for i in 16
+    for [i] in 16
     {
         reqs[i].size = 48
         itf.alloc(&reqs[i])
         @assert(reqs[i].address != null)
     }
-    for i in 16
+    for [i] in 16
     {
         reqs[i].size = 48
         itf.free(&reqs[i])
@@ -408,7 +408,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     {
         let s   = cast(*StressShared) param
         let itf = notnull s.itf
-        for i in StressCount
+        for [i] in StressCount
         {
             var req: AllocatorRequest
             req.address = s.slots[i]
@@ -446,13 +446,13 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
         shared.alloc = &alloc
 
         var handles: [StressCount] Th.HANDLE = undefined
-        for i in StressCount
+        for [i] in StressCount
         {
             var tid: Th.DWORD
             handles[i] = Th.CreateThread(null, 0, &stressAllocRetireThread, &shared, 0, &tid)
             @assert(handles[i] != null)
         }
-        for i in StressCount
+        for [i] in StressCount
         {
             discard Th.WaitForSingleObject(handles[i], Th.INFINITE)
             Th.CloseHandle(handles[i])

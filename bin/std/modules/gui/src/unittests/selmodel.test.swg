@@ -121,7 +121,7 @@ using Swag, Core
     model.select(4, 5, true)
     model.select(3, true)
 
-    for i in 1 to 5 do
+    for [i] in 1 to 5 do
         @assert(model.isSelected(i))
     @assert(!model.isSelected(0))
     @assert(!model.isSelected(6))

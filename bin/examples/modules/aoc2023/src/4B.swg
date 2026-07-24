@@ -67,9 +67,9 @@ func day4B()
     }
 
     var total = 0'u64
-    for c, i in cards
+    for c, [i] in cards
     {
-        for x in c.win
+        for [x] in c.win
         {
             cards[i + x + 1].num += c.num
         }

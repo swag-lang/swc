@@ -66,7 +66,7 @@ func assertIntValues(values: const &Array's32, expected: const [..] s32)->bool
     if values.count != @countof(expected) do
         return false
 
-    for i in values.count
+    for [i] in values.count
     {
         if values[i] != expected[i] do
             return false
@@ -80,7 +80,7 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
     if values.count != @countof(expected) do
         return false
 
-    for i in values.count
+    for [i] in values.count
     {
         if values[i] != expected[i] do
             return false

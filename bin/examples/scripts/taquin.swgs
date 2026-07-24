@@ -53,18 +53,18 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         // List of tiles to pick from
         var toAdd: Array'Elem
-        for i in NumElems
+        for [i] in NumElems
         {
-            for j in NumElems
+            for [j] in NumElems
             {
                 toAdd.add({i, j})
             }
         }
 
         // Fill with random tiles
-        for i in NumElems
+        for [i] in NumElems
         {
-            for j in NumElems
+            for [j] in NumElems
             {
                 if toAdd.count == 1 do
                     break
@@ -85,9 +85,9 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         g_HotX, g_HotY = -1
         #scope(Big)
-            for i in NumElems
+            for [i] in NumElems
         {
-            for j in NumElems
+            for [j] in NumElems
             {
                 let cur = &g_Matrix[i, j]
                 if cur.empty do
@@ -135,9 +135,9 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         painter.setAntialiased(true)
         wnd.invalidate()
 
-        for i in NumElems
+        for [i] in NumElems
         {
-            for j in NumElems
+            for [j] in NumElems
             {
                 let cur = &g_Matrix[i, j]
                 if cur.empty do

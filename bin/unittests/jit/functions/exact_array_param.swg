@@ -13,7 +13,7 @@ func rotateExactArray(values: [4] s32)
 
 func fillExactDigest(digest: ExactArrayParamJitDigest, seed: u8)
 {
-    for i in @countof(digest) do
+    for [i] in @countof(digest) do
         digest[i] = seed + cast(u8) i
 }
 
@@ -33,7 +33,7 @@ impl ExactArrayParamJitWriter
 {
     mtd write(values: [4] s32)
     {
-        for i in 4 do
+        for [i] in 4 do
             values[i] += .delta + cast(s32) i
     }
 }

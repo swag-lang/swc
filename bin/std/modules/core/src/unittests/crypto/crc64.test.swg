@@ -16,7 +16,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
         for value in buffer
         {
             crc ^= cast(u64) value << 56
-            for bit in 8
+            for [bit] in 8
             {
                 if crc & 0x8000_0000_0000_0000'u64 do
                     crc = (crc << 1) ^ Poly
@@ -33,7 +33,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
         for value in buffer
         {
             crc ^= value
-            for bit in 8
+            for [bit] in 8
             {
                 if crc & 1 do
                     crc = (crc >> 1) ^ Poly
@@ -50,7 +50,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
         for value in buffer
         {
             crc ^= value
-            for bit in 8
+            for [bit] in 8
             {
                 if crc & 1 do
                     crc = (crc >> 1) ^ Poly
@@ -110,7 +110,7 @@ func fillCrc64Pattern(buffer: [..] u8)
     var data: [257] u8
     fillCrc64Pattern(data)
 
-    for length in 130
+    for [length] in 130
     {
         assertCrc64(data[until length])
     }

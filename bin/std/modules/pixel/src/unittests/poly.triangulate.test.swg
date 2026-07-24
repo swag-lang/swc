@@ -30,7 +30,7 @@ func triCount(pts: [..] Vector2)->u64
 func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
 {
     var result: retval
-    for i in count
+    for [i] in count
     {
         let a = (cast(f32) i) * (Math.ConstF32.TwoPi / cast(f32) count)
         result.add(Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
@@ -42,7 +42,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
 // Convex polygons: a simple ring of N vertices yields N-2 triangles.
 #test
 {
-    for n in 3 until 13
+    for [n] in 3 until 13
     {
         let poly = makeNgon(100, 100, 60, n)
         @assert(triCount(poly[to]) == cast(u64) (n - 2))
@@ -88,11 +88,11 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
 // Star polygons (non-convex, many concavities) with 3..10 branches.
 #test
 {
-    for b in 3 until 11
+    for [b] in 3 until 11
     {
         var pts: Array'Vector2
         let total = b * 2
-        for i in total
+        for [i] in total
         {
             var r = 25'f32
             if (i & 1) == 0 do

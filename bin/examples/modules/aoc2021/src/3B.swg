@@ -38,7 +38,7 @@ internal var lines: Array'String
 func calc(a, b: u8)->u64
 {
     var scan = lines
-    for c in @countof(scan[0])
+    for [c] in @countof(scan[0])
     {
         var count = 0
         for l in scan do

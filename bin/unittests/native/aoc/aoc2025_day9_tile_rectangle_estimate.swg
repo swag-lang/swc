@@ -58,19 +58,19 @@ func estimateReplacementArea(pointLines: const [..] string)->RectangleEstimate
     var points: [24] Point2
     var result: RectangleEstimate
 
-    for line, index in pointLines
+    for line, [index] in pointLines
     {
         points[index] = parsePoint(line)
     }
 
     result.pointCount = cast(u32) @countof(pointLines)
 
-    for lhs in @countof(pointLines)
+    for [lhs] in @countof(pointLines)
     {
         if cast(u32) lhs + 1 >= @countof(pointLines) do
             continue
 
-        for rhs in cast(u32) lhs + 1 to @countof(pointLines) - 1
+        for [rhs] in cast(u32) lhs + 1 to @countof(pointLines) - 1
         {
             let a = points[lhs]
             let b = points[rhs]

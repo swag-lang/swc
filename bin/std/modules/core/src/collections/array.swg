@@ -148,7 +148,7 @@ impl Array
             .initNewSlots(0, countof)
             let buffer = notnull .buffer
             let srcPtr = notnull dataof
-            for i in countof do
+            for [i] in countof do
                 buffer[i] = #nodrop srcPtr[i]
         }
         #else
@@ -376,7 +376,7 @@ impl Array
         if !.count do
             return
         let buffer = notnull .buffer
-        for i in .count do
+        for [i] in .count do
             buffer[i] = value
     }
 
@@ -620,7 +620,7 @@ impl Array
             }
 
             let buffer = notnull .buffer
-            for i in shiftCount
+            for [i] in shiftCount
             {
                 buffer[index + i] = #relocate buffer[index + num + i]
             }
@@ -668,7 +668,7 @@ impl Array
 
         #if Reflection.hasDrop(T)
         {
-            for idx in numValues do
+            for [idx] in numValues do
                 @drop(.buffer + index + idx)
         }
 
@@ -804,7 +804,7 @@ impl StrConv.IConvert for Array
         if .count
         {
             let buffer = notnull .buffer
-            for i in .count
+            for [i] in .count
             {
                 if i do
                     buf.addBytes(", ")

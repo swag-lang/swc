@@ -255,8 +255,8 @@ impl Transform
         var eStart = &edges[0]
 
         // 2. Remove duplicate vertices, and (when closed) collinear edges ...
-        var e:         #null *Edge = eStart
-        var eLoopStop: #null *Edge = eStart
+        var e:         *Edge = eStart
+        var eLoopStop: *Edge = eStart
         for
         {
             let ec = notnull e

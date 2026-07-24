@@ -702,7 +702,15 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     if (hasFlag(AstIdentifierFlagsE::PreResolvedSymbol) && storedSymbol)
     {
         if (!hasFlag(AstIdentifierFlagsE::MacroInjectCallerBinding))
+        {
+            // A pre-resolved '#late' global read (e.g. an auto-inlined body clone, which
+            // preserves resolved symbols) takes this early return, so it must request the
+            // null-read guard here - the general guard-setup path further below is skipped.
+            // Without it an inlined read of an unset '#late' global dereferences null.
+            if (storedSymbol->isVariable() && storedSymbol->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));
             return Result::Continue;
+        }
 
         const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, codeRef());
         if (!hasMacroInjectCallerShadowingLocalSymbol(sema, idRef, *storedSymbol))

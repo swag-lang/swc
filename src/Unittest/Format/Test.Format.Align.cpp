@@ -326,6 +326,111 @@ SWC_TEST_BEGIN(FormatAlign_StructFieldsWithTypeQualifiers)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_StructFieldGridMixed)
+{
+    // Mixed typed / untyped / initialized fields line up in two columns: the
+    // type column (after `:`) and the initializer column (`=`).
+    static constexpr std::string_view SOURCE =
+        "struct GameInfo\n"
+        "{\n"
+        "    gameStatus: String\n"
+        "    whiteTurn = true\n"
+        "    castle: bool = true\n"
+        "    priseEnPassant = -1\n"
+        "    possibleMoves: Array\n"
+        "    selectedCell = -1\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct GameInfo\n"
+        "{\n"
+        "    gameStatus:    String\n"
+        "    whiteTurn           = true\n"
+        "    castle:        bool = true\n"
+        "    priseEnPassant      = -1\n"
+        "    possibleMoves: Array\n"
+        "    selectedCell        = -1\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignStructFields            = FormatAlignMode::Consecutive;
+    options.alignStructFieldInitializers = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_StructFieldGridOffKeepsSingleColumn)
+{
+    // Without the grid option, the untyped field still fragments the type
+    // groups: each colon field is a singleton tightened to one space.
+    static constexpr std::string_view SOURCE =
+        "struct S\n"
+        "{\n"
+        "    aaaa: s32\n"
+        "    b = 1\n"
+        "    cc: s32\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct S\n"
+        "{\n"
+        "    aaaa: s32\n"
+        "    b = 1\n"
+        "    cc: s32\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignStructFields = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_DeclarationGridInitializers)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    var x: s32 = 0\n"
+        "    var yyy = 1\n"
+        "    var z: bool = true\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    var x: s32  = 0\n"
+        "    var yyy     = 1\n"
+        "    var z: bool = true\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignConsecutiveDeclarations = FormatAlignMode::Consecutive;
+    options.alignDeclarationInitializers = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatAlign_ConstantGridTypes)
+{
+    // Constants align the value by default; the grid option adds the type
+    // column so `const NAME: Type = value` lines up on both `:` and `=`.
+    static constexpr std::string_view SOURCE =
+        "const A: s32 = 1\n"
+        "const BBB = 22\n"
+        "const C: bool = true\n";
+
+    static constexpr std::string_view EXPECTED =
+        "const A: s32  = 1\n"
+        "const BBB     = 22\n"
+        "const C: bool = true\n";
+
+    FormatOptions options;
+    options.alignConsecutiveConstants = FormatAlignMode::Consecutive;
+    options.alignConstantTypes        = true;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_CaseBodiesConsecutive)
 {
     static constexpr std::string_view SOURCE =

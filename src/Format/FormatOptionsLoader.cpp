@@ -111,6 +111,11 @@ namespace
         schema.addEnum("align-consecutive-constants", &options.alignConsecutiveConstants, alignChoices, "Align values in adjacent `const` declarations");
         schema.addEnum("align-struct-fields", &options.alignStructFields, alignChoices, "Align `:` and types in adjacent struct fields");
         schema.addEnum("align-enum-values", &options.alignEnumValues, alignChoices, "Align `=` in adjacent enum value definitions");
+
+        schema.add("align-declaration-initializers", &options.alignDeclarationInitializers, "Also align the `=` initializer column of adjacent `let`/`var` declarations (two-column grid)");
+        schema.add("align-struct-field-initializers", &options.alignStructFieldInitializers, "Also align the `=` initializer column of adjacent struct fields (two-column grid)");
+        schema.add("align-constant-types", &options.alignConstantTypes, "Also align the type column of adjacent `const` declarations (two-column grid)");
+
         schema.addEnum("align-attributes", &options.alignAttributes, alignChoices, "Align adjacent attribute annotations");
         schema.addEnum("align-fat-arrows", &options.alignFatArrows, alignChoices, "Align `=>` of adjacent short function bodies");
         schema.addEnum("align-case-bodies", &options.alignCaseBodies, alignChoices, "Align the bodies of consecutive one-line `case` arms");

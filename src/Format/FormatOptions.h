@@ -199,6 +199,16 @@ struct FormatOptions
     FormatAlignMode     alignConsecutiveConstants    = FormatAlignMode::Preserve; // Align values of adjacent `const` declarations
     FormatAlignMode     alignStructFields            = FormatAlignMode::Preserve; // Align `:` and types of adjacent struct fields
     FormatAlignMode     alignEnumValues              = FormatAlignMode::Preserve; // Align `=` on enum value definitions
+
+    // Grid ("two-column") extensions of the declaration-family alignment above.
+    // A declaration carries up to two independent columns — the type (after `:`)
+    // and the initializer (`=`). The options above align only one of them; these
+    // add the other, so a run that mixes `name: Type`, `name = value`, and
+    // `name: Type = value` lines up in both columns. Each grid option is gated by
+    // its base mode: it does nothing while the matching `align*` mode is Preserve.
+    std::optional<bool> alignDeclarationInitializers; // Also align the `=` column of `let`/`var` declarations (needs alignConsecutiveDeclarations)
+    std::optional<bool> alignStructFieldInitializers; // Also align the `=` column of struct fields (needs alignStructFields)
+    std::optional<bool> alignConstantTypes;           // Also align the type column of `const` declarations (needs alignConsecutiveConstants)
     FormatAlignMode     alignAttributes              = FormatAlignMode::Preserve; // Align adjacent `#[...]` attributes
     FormatAlignMode     alignFatArrows               = FormatAlignMode::Preserve; // Align `=>` of adjacent short function bodies
     std::optional<bool> alignTrailingComments;                                    // Align `//` trailing comments into a shared column

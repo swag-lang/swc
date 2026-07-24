@@ -229,6 +229,16 @@ align-struct-fields = consecutive
 # Possible values: preserve, none, consecutive, across-blanks, all
 align-enum-values = consecutive
 
+# Two-column ("grid") alignment for the declaration family. A declaration has up
+# to two columns — the type (after `:`) and the initializer (`=`). The options
+# above align only one of them; these add the other, so a run that mixes
+# `name: Type`, `name = value`, and `name: Type = value` lines up in BOTH
+# columns instead of leaving the initializer-only fields ragged. Each option
+# needs its matching `align-*` mode above to be enabled.
+align-declaration-initializers  = true
+align-struct-field-initializers = true
+align-constant-types            = true
+
 # Align adjacent `#[...]` attributes.
 # Possible values: preserve, none, consecutive, across-blanks, all
 align-attributes = consecutive

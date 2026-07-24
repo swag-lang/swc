@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to 'while' Loops
+# The 'while' Loop
 
 A `while` loop repeatedly executes a block of code as long as its condition evaluates to `true`.
 Once the condition becomes `false`, the loop terminates.

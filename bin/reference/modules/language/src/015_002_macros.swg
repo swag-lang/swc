@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to Swag Macros
+# Macros
 Macros in Swag are declared like functions, but with the '#[Swag.Macro]' attribute.
 They are expanded at compile time and can be reused to generate code.
 */

@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'Types as Values in Swag'
+# Types as Values
 
 In Swag, types are treated as first-class values that can be inspected and
 manipulated at both compile time and runtime. This enables powerful
@@ -46,7 +46,8 @@ itself. This is useful for compile-time inspection and validation.
 'Swag' namespace, which is part of the compiler runtime.
 
 > NOTE:
-> You can explore all type descriptors in the runtime documentation on the Swag website.
+> The complete descriptor layouts are part of the compiler runtime API in
+> 'bin/runtime/api.swg'.
 */
 #test
 {
@@ -85,7 +86,7 @@ array, struct, etc. This is essential when handling types generically.
 }
 
 /**
-# '#decltype'
+# The '#decltype' Query
 
 '#decltype' performs the reverse of '#typeof'/'@kindof': it converts a
 'typeinfo' back into a compiler type. Use it to materialize a type determined

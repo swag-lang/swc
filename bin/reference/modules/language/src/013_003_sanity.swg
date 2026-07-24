@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'Sanity Checks in Swag'
+# Static Sanity Checks
 
 Where '#[Swag.Safety]' adds **runtime** guards that panic on invalid operations,
 '#[Swag.Sanity]' controls the **static** checks: analyses that run at compile time
@@ -21,7 +21,7 @@ You can also configure them globally from the build configuration with
 */
 
 /**
-# 'Proven Runtime Faults'
+# Proven Runtime Faults
 
 The compiler proves some runtime faults statically and reports them as errors
 instead of letting the (guaranteed) panic or crash happen at runtime: division by
@@ -45,7 +45,7 @@ in 'release', where the runtime guard is off.
 }
 
 /**
-# 'Returning the Address of a Local'
+# Returning the Address of a Local
 
 The frame dies with the return, so the address of a local is always dangling
 ('.Memory').
@@ -60,7 +60,7 @@ func sanityGlobalAddress()->*s32
 }
 
 /**
-# 'Borrow Escapes'
+# Borrow Escapes
 
 Views that borrow function-local storage — pointers, slices, strings, 'any',
 interfaces, closures capturing by address — must not outlive that storage
@@ -138,7 +138,7 @@ through arbitrarily deep local call chains.
 }
 
 /**
-# 'Stored Arguments'
+# Stored Arguments
 
 A callee that stores its parameter into storage that outlives the call (a global)
 makes any borrowed argument escape, whatever happens to the call result. This
@@ -168,9 +168,9 @@ func sanityStash(p: *s32)
 }
 
 /**
-# 'Use After Free and Double Free'
+# Use After Free and Double Free
 
-Every allocation flows through the [[Swag.IAllocator]] interface, whose methods make
+Every allocation flows through the 'Swag.IAllocator' interface, whose methods make
 the operation structural: the analysis infers which functions FREE what their
 parameters point to (a 'frees' summary, chained through wrappers and across modules
 like the other summaries). Dereferencing a pointer after it was provably freed — or
@@ -207,7 +207,7 @@ again.
 }
 
 /**
-# 'Use of Moved-From Values'
+# Use of Moved-From Values
 
 Reading a local abandoned by '#move' or '#relocate' (and not reset) is a proven
 error at compile time ('.Lifecycle'). At runtime, the '.Lifecycle' **safety** half
@@ -231,7 +231,7 @@ cannot prove still fail deterministically.
 }
 
 /**
-# 'Opting Out'
+# Opting Out
 
 Like safety, sanity can be disabled per scope with the attribute. Disabling
 '.Lifecycle' turns the whole borrow analysis off for that function.
@@ -244,7 +244,7 @@ func sanityOptedOut()->*s32
 }
 
 /**
-# 'The '#sanity' Intrinsic'
+# The '#sanity' Intrinsic
 
 '#sanity(...)' evaluates, at compile time, whether a given static check is active
 at this point — the build-config default combined with the 'Swag.Sanity' overrides

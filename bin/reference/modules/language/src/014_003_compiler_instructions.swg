@@ -1,7 +1,7 @@
 #global private
 
 /**
-# '#assert'
+# The '#assert' Directive
 The '#assert' directive performs a static assertion during compilation.
 If the condition is false, compilation fails with an error message.
 Use it to enforce compile-time invariants and validate assumptions.
@@ -9,7 +9,7 @@ Use it to enforce compile-time invariants and validate assumptions.
 #assert(true)     // Always passes; no error.
 
 /**
-# '#defined(SYMBOL)'
+# The '#defined' Query
 '#defined(SYMBOL)' checks at compile time whether a symbol exists in the
 current context. It returns true if defined, false otherwise. Useful for
 conditional compilation before referencing variables, constants, or functions.
@@ -19,7 +19,7 @@ conditional compilation before referencing variables, constants, or functions.
 var Global = 0                          // Define a global variable 'Global'.
 
 /**
-# '#if'/'#elif'/'#else'
+# Static '#if'/'#elif'/'#else'
 Static conditional compilation. Expressions are evaluated at compile time to
 include or exclude code based on constants or conditions.
 */
@@ -41,7 +41,34 @@ const RELEASE = 0
 }
 
 /**
-# '#error'/'#warning'
+# The '#command' and '#cfg' Values
+
+'#command' reports one of three source-compilation modes:
+
+- 'Swag.CompilerCommand.Test' for 'swc test';
+- 'Swag.CompilerCommand.Format' for 'swc format';
+- 'Swag.CompilerCommand.Build' for 'build', 'run', 'syntax', 'sema', and the
+  compiler-internal 'unittest' path.
+
+'#cfg' is the selected build-configuration name, such as '"fast-debug"' or
+'"release"'. Use these values for genuine source differences, not as a
+replacement for safety and optimization attributes.
+
+```swag
+#if #command == Swag.CompilerCommand.Test
+{
+    // Test-only declarations.
+}
+
+#if #cfg == "release"
+{
+    // Release-specific declarations.
+}
+```
+*/
+
+/**
+# The '#error' and '#warning' Directives
 '#error' raises a compile-time error with a custom message.
 '#warning' emits a compile-time warning without stopping compilation.
 Useful for enforcing checks and surfacing build-time information.
@@ -53,7 +80,7 @@ Useful for enforcing checks and surfacing build-time information.
 }
 
 /**
-# '#global'
+# The '#global' Directive
 Place '#global' at the top of a source file to apply global settings or
 attributes across the entire file. Controls compilation and symbol visibility.
 
@@ -65,16 +92,19 @@ Examples (write these as top-level directives):
   #global private                    // All symbols are private to the module.
   #global namespace Toto              // Place all symbols in namespace 'Toto'.
   #global #if DEBUG == true           // Conditional compilation for the file.
-  #global #[Swag.Safety('', true)]    // Apply an attribute to all declarations.
+  #global #[Swag.Safety(.All, true)]  // Apply an attribute to all declarations.
   #global export                      // Export the full file as-is into the module API output.
 */
 
 /**
-# '#foreignlib'
-Link against an external library during compilation to use its functions,
-variables, or resources. Provide the library name as a string.
+# The '#foreignlib' Directive
+Register an external import library with the native linker. Pass the logical
+library name without a platform extension; the linker selects the appropriate
+file for the active toolchain.
 
 Example:
-  #foreignlib("windows.lib")
-This links the program with "windows.lib" and enables Windows API usage.
+  #foreignlib("kernel32")
+
+This directive only supplies the native link dependency. Declare imported
+symbols separately with '#[Swag.Foreign]'.
 */

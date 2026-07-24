@@ -1,12 +1,13 @@
 #global private
 /**
-# 'Compile-Time Execution in Swag'
+# Compile-Time Execution
 
-One of Swag’s most powerful features is its ability to execute **everything**
-at compile time. This means Swag can function both as a compiled language
-and as a scripting language, with the compiler acting as an interpreter.
+Swag reuses the language for compile-time work. Constant expressions evaluate
+pure computations needed by types and declarations; '#run' executes arbitrary
+compile-time code; directives select or validate source; '#message' observes
+compiler events.
 
-This flexibility allows developers to perform tasks at compile time that
-would otherwise require runtime computation — resulting in more efficient,
-expressive, and versatile programs.
+Compile-time execution can generate runtime declarations, but it is still part
+of the build. Keep it deterministic, report errors at the source that caused
+them, and avoid unnecessary filesystem or environment dependencies.
 */

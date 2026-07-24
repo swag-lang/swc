@@ -1,11 +1,11 @@
 #global private
 
 /**
-# 'User Attributes in Swag'
+# User Attributes
 
 Attributes in Swag let you annotate code elements (functions, structs, etc.)
 with metadata. These annotations, defined with the 'attr' keyword, can power
-code generation, documentation, and reflection. By attaching attributes, you
+code generation and reflection. By attaching attributes, you
 enrich code with extra information usable at compile time and at runtime.
 */
 
@@ -16,7 +16,7 @@ attr AttributeA()
 // Simple attribute without parameters
 
 /**
-# 'Attributes with Parameters'
+# Attributes with Parameters
 
 Attributes can accept parameters, similar to functions. Parameters let you
 customize how the attribute configures the annotated element.
@@ -26,7 +26,7 @@ attr AttributeB(x, y: s32, z: string)
 // Attribute with multiple parameters
 
 /**
-# 'Attributes with Default Values'
+# Attributes with Default Values
 
 Attributes may define default parameter values. When applied, omitted arguments
 fall back to their defaults.
@@ -36,7 +36,7 @@ attr AttributeBA(x: s32, y: string = "string")
 // Attribute with a defaulted parameter
 
 /**
-# 'Restricting Attribute Usage'
+# Restricting Attribute Usage
 
 Use the 'AttrUsage' specifier to control where an attribute may be applied
 (e.g., function-only, struct-only). This improves safety and clarity.
@@ -47,7 +47,7 @@ attr AttributeC()
 // Restricted to function usage
 
 /**
-# 'Applying Attributes'
+# Applying Attributes
 
 Apply attributes with the syntax '#[attribute, attribute...]' placed immediately
 before the code element. Multiple attributes are comma-separated.
@@ -59,7 +59,7 @@ func function1()
 }
 
 /**
-# 'Multiple Usages'
+# Multiple Usages
 
 An attribute can target several element kinds by combining 'AttrUsage' flags
 with a bitwise OR. This enables reuse across contexts (e.g., functions, structs).
@@ -82,7 +82,7 @@ struct struct1
 }
 
 /**
-# 'Retrieving Attributes at Runtime'
+# Retrieving Attributes at Runtime
 
 You can inspect attributes via type reflection at runtime. This enables behavior
 that adapts based on which attributes are present and how they are configured.

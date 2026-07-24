@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to Function Declarations
+# Function Declarations
 
 A function declaration starts with the 'func' keyword, followed by the function name
 and parentheses. If no parameters are needed, the parentheses remain empty.

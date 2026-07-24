@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to 'switch' in Swag
+# The 'switch' Statement
 
 The `switch` statement in Swag behaves similarly to C/C++, with one key difference:
 Swag **does not require `break`** at the end of each case.

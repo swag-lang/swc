@@ -8,7 +8,7 @@ struct MyStruct
 }
 
 /**
-# Introduction to 'opVisit'
+# The 'opVisit' Iteration Hook
 
 'opVisit' is a flexible macro for iterating over elements of a struct or any
 data it owns (dynamic arrays, buffers, object graphs). The '#[Swag.Macro]'

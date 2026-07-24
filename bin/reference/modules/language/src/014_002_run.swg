@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'Force Compile-Time Execution with #run'
+# Forced Compile-Time Execution with '#run'
 
 The '#run' directive allows any function to execute at compile time, even if
 it’s not marked with '#[Swag.ConstExpr]'. This means you can trigger compile-time
@@ -36,7 +36,7 @@ const SumValue = #run sum(1, 2, 3, 4) + 10
 #assert(SumValue == 20)
 
 /**
-# '#run' Block
+# The '#run' Block
 
 '#run' blocks execute arbitrary logic at compile time. They are useful for
 initializing globals or precomputing data before runtime.
@@ -73,7 +73,7 @@ blocks, it behaves like a compile-time script.
 */
 
 /**
-# '#run' Expression
+# The '#run' Expression
 
 '#run' can also be used as an expression block. Its return type is inferred
 from the 'return' statement inside the block.

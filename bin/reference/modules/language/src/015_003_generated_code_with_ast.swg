@@ -1,7 +1,7 @@
 #global private
 
 /**
-# '#ast' Block
+# The '#ast' Block
 
 The '#ast' block lets you dynamically generate and inject Swag code at compile time.
 It produces a string that the compiler treats as if it were written directly in the
@@ -19,7 +19,7 @@ A '#ast' block can return a simple string expression representing Swag code.
 }
 
 /**
-# '#ast' Block with 'return'
+# Returning Source from '#ast'
 A '#ast' block can include logic and must return a string to compile.
 */
 #test
@@ -35,7 +35,7 @@ A '#ast' block can include logic and must return a string to compile.
 }
 
 /**
-# '#ast' for Structs and Enums
+# Generating Structs and Enums
 You can use '#ast' inside struct or enum definitions to generate members dynamically.
 */
 #test
@@ -54,7 +54,7 @@ You can use '#ast' inside struct or enum definitions to generate members dynamic
 }
 
 /**
-# '#ast' with Generics
+# Generating Generic Code
 '#ast' works with generics for flexible and reusable code generation.
 */
 #test
@@ -129,7 +129,7 @@ struct(T) IsSet
         return str.toString()
     }
 }
-````
+```
 
 */
 

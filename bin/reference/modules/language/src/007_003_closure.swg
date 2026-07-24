@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to Closures in Swag
+# Closures
 
 Swag supports limited closures, allowing functions to capture variables from
 their surrounding scope. Up to 64 bytes can be captured without heap allocation.

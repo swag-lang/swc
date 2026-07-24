@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'with' Statement
+# The 'with' Statement
 The 'with' statement reduces repetition by letting you access fields and methods
 of a variable, struct, or namespace within a scoped block. Inside a 'with' block,
 the '.' prefix refers to the selected object, yielding concise, readable code.
@@ -23,7 +23,7 @@ impl Point
 }
 
 /**
-# 'with' with a Namespace
+# 'with' and a Namespace
 You can apply 'with' to a namespace to call functions or access constants
 without fully qualifying names.
 */
@@ -59,7 +59,7 @@ the variable name.
 }
 
 /**
-# 'with' with Function Calls
+# Calling Functions inside 'with'
 Inside a 'with' block, you can invoke methods and access fields directly.
 */
 #test
@@ -78,7 +78,7 @@ Inside a 'with' block, you can invoke methods and access fields directly.
 }
 
 /**
-# 'with' with a Namespace (Usage)
+# Using Names from a 'with' Namespace
 Demonstrates calling namespaced functions via 'with'.
 */
 #test
@@ -91,7 +91,7 @@ Demonstrates calling namespaced functions via 'with'.
 }
 
 /**
-# 'with' with Variable Declaration
+# Declaring a Variable with 'with'
 You can declare a variable directly in the 'with' header and work with it
 immediately inside the block.
 */
@@ -118,7 +118,7 @@ immediately inside the block.
 }
 
 /**
-# 'with' with an Assignment Statement
+# Assignment inside 'with'
 You can also use 'with' on an assignment to modify the freshly assigned value
 immediately.
 */

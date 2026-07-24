@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'defer' Statement
+# The 'defer' Statement
 The 'defer' statement registers an expression that executes automatically
 when the current scope is exited. It runs purely at compile time and ensures
 that cleanup or finalization logic is always performed. This helps maintain
@@ -17,7 +17,7 @@ clarity and safety in resource management.
 }
 
 /**
-# 'Defer in a Block'
+# Deferring a Block
 A 'defer' can also enclose multiple expressions within a block. This allows
 you to group operations that should all run when leaving the scope.
 */
@@ -36,7 +36,7 @@ you to group operations that should all run when leaving the scope.
 }
 
 /**
-# 'Defer with Control Flow'
+# 'defer' and Control Flow
 The deferred expression executes every time a scope exits, even when leaving
 via 'return', 'break', or 'continue'. This guarantees proper cleanup in all
 control flow paths.
@@ -56,7 +56,7 @@ control flow paths.
 }
 
 /**
-# 'Defer Execution Order'
+# Deferred Execution Order
 When multiple 'defer' statements exist, they execute in reverse declaration
 order. The most recent defer runs first when the scope ends.
 */

@@ -1,330 +1,141 @@
 #global private
 /**
-# Special Keywords
+# Language Keyword Index
 
-Special keywords are predefined, reserved identifiers that have specific meanings
-within the Swag compiler. These cannot be used as identifiers in your code, as they
-are integral to the language's structure.
+Keywords are reserved bare words. They cannot be reused as identifiers. This
+page is an index; the surrounding chapters explain each active construct.
 
-```swag
-if
-else
-elif
-while
-switch
-defer
-for
-break
-fallthrough
-return
-case
-continue
-default
-and
-or
-orelse
-unreachable
-to
-until
-where
-in
-as
-is
-do
-
-true
-false
-null
-undefined
-
-using
-with
-cast
-dref
-retval
-try
-trycatch
-catch
-assume
-throw
-discard
-
-public
-private
-internal
-
-enum
-struct
-union
-impl
-interface
-func
-mtd
-namespace
-alias
-attr
-var
-let
-const
-````
-
-*/
-
-/**
-
-# Reserved Keywords
-
-These keywords are reserved by the language and cannot be used by developers,
-even though they may not currently serve an active role in the syntax. They are
-reserved for potential future use or to prevent conflicts with language features.
+# Declarations and Organization
 
 ```swag
-not
+alias  attr  const  enum  func  impl  interface  internal
+let  mtd  namespace  private  public  struct  union  using  var  with
 ```
 
-*/
+'me' names the receiver inside methods.
 
-/**
-
-# Basic Types
-
-These are the fundamental data types provided by the language. They are reserved
-keywords and form the core building blocks for variables, constants, and function
-return types.
+# Control Flow and Expressions
 
 ```swag
-s8
-s16
-s32
-s64
-u8
-u16
-u32
-u64
-f32
-f64
-bool
-string
-rune
-any
-typeinfo
-void
-cstring
-cvarargs
+and  as  break  case  continue  default  defer  do  elif  else
+fallthrough  for  if  in  is  me  or  orelse  return  switch
+to  unreachable  until  verify  where  while
 ```
 
-*/
+'foreach' is no longer part of the language; the compiler recognizes it only to
+produce a migration diagnostic that points to 'for'.
 
-/**
+'verify' is reserved and accepted on function declarations, but the current
+'swc' compiler does not execute verification blocks. Do not use one as a
+runtime precondition or as an overload constraint; use ordinary code or a
+'where' constraint, respectively.
 
-# Compiler Instructions
-
-Compiler instructions are prefixed with '#'. They are reserved for specific operations
-within the Swag compiler and control various aspects of compilation and code generation.
-User-defined identifiers cannot start with '#', ensuring there are no naming conflicts.
+# Values, Errors, and Conversion
 
 ```swag
-#run
-#ast
-#test
-#init
-#drop
-#main
-#premain
-#message
-#dependencies
-
-#global
-#load
-#foreignlib
-#assert
-#print
-#error
-#warning
-#import
-#if
-#else
-#elif
-#inject
-#scope
-
-#defined
-#offsetof
-#alignof
-#sizeof
-#typeof
-#stringof
-#nameof
-#isconstexpr
-#location
-#decltype
-#gettag
-#hastag
-#runes
-#safety
-#include
-
-#cfg
-#os
-#arch
-#cpu
-#module
-#file
-#line
-#me
-#curlocation
-#callerlocation
-#swagversion
-#swagrevision
-#swagbuildnum
-#swagos
-
-#code
-#type
-
-#uniq0
-#uniq1
-#uniq2 // and more generally #uniqN
+assume  cast  catch  discard  dref  false  notnull  null
+retval  throw  true  try  trycatch  undefined
 ```
 
-*/
+'not' is reserved for future use.
 
-/**
+# Contextual Source and Module Names
 
-# Intrinsic Values
+'export', 'generated', 'location', 'link', and 'version' are recognized in
+specific module-setup or generated-source positions. Outside those positions
+the lexer treats them as ordinary identifiers; they are not part of the
+reserved keyword set above.
 
-Intrinsic values begin with '@' and are provided by the compiler for introspection
-or private state access.
+# Built-In Types
 
 ```swag
-@err
-@index
-@args
-@pinfos
-@jit
-@compiler
-@modules
-@gvtd
-@rtflags
+any  bool  cstring  cvarargs  f32  f64  rune
+s8  s16  s32  s64  string  typeinfo
+u8  u16  u32  u64  void
 ```
 
-*/
+# Compiler Directives
 
-/**
-
-# Miscellaneous Intrinsics
-
-Intrinsic functions are prefixed with '@' and provide low-level operations directly
-supported by the compiler or hardware. They can be used at both compile time and runtime.
+Directives introduce compiler-executed blocks, conditional compilation, module
+configuration, source inclusion, diagnostics, and code injection.
 
 ```swag
-@kindof
-@countof
-@dataof
-@mkslice
-@mkstring
-@mkany
-@mkinterface
-@stringcmp
-@typecmp
-@is
-@as
-@getcontext
-@tableof
-
-@assert
-@breakpoint
-@init
-@drop
-@postcopy
-@postmove
-@compilererror
-@compilerwarning
-@panic
-@print
-@setcontext
+#ast  #assert  #code  #dependencies  #elif  #else  #error
+#foreignlib  #global  #if  #import  #include  #inject
+#load  #main  #message  #premain  #print  #run  #scope
+#test  #type  #warning  #init  #drop
 ```
 
-*/
-
-/**
-
-# Intrinsics from 'libc'
-
-These intrinsic functions expose standard 'libc' functionalities, allowing developers
-to perform common mathematical, memory, and string operations. They are also prefixed
-with '@' to prevent conflicts with user-defined identifiers.
+# Compile-Time Introspection
 
 ```swag
-@abs
-@acos
-@asin
-@atan
-@atan2
-@alloc
-@atomadd
-@atomand
-@atomcmpxchg
-@atomor
-@atomxchg
-@atomxor
-@bitcountlz
-@bitcountnz
-@bitcounttz
-@byteswap
-@cvaarg
-@cvaend
-@cvastart
-@ceil
-@cos
-@cosh
-@exp
-@exp2
-@floor
-@free
-@log
-@log10
-@log2
-@max
-@memcmp
-@memcpy
-@memmove
-@memset
-@min
-@muladd
-@pow
-@realloc
-@rol
-@ror
-@round
-@sin
-@sinh
-@sqrt
-@tan
-@tanh
-@trunc
+#alignof  #defined  #decltype  #fullnameof  #gettag  #hastag
+#isconstexpr  #kindof  #location  #nameof  #offsetof  #runes
+#safety  #sanity  #sizeof  #stringof  #typeof
 ```
 
-*/
+# Compiler Context Values
 
-/**
+```swag
+#arch  #callerlocation  #cfg  #command  #cpu  #curlocation
+#file  #line  #module  #os  #scopename  #swcbuildnum
+#swagos  #swcrevision  #swcversion
+```
+
+Collision-free compiler identifiers for mixins and macros:
+
+```swag
+#uniq0  #uniq1  #uniq2  #uniq3  #uniq4
+#uniq5  #uniq6  #uniq7  #uniq8  #uniq9
+```
 
 # Modifiers
 
-Modifiers can be applied to specific keywords or operators to adjust their behavior.
-They give developers finer control over how code is interpreted or executed.
+Modifiers refine the declaration, type, loop, argument, or operation that
+follows them.
 
 ```swag
-#prom
-#wrap
-#nodrop
-#move
-#relocate
-#fwd
-#reverse
-#err
-#noerr
-#null
+#bit  #err  #fwd  #late  #move  #nodrop  #noerr  #null
+#prom  #relocate  #reverse  #unconst  #wrap
 ```
 
+# Runtime and Compiler Intrinsics
+
+Intrinsic values:
+
+```swag
+@args  @compiler  @err  @gvtd  @index  @jit
+@modules  @pinfos  @rtflags
+```
+
+Type, value, lifecycle, and control intrinsics:
+
+```swag
+@as  @assert  @breakpoint  @compilererror  @compilerwarning
+@countof  @dataof  @drop  @getcontext  @init  @is  @isset
+@kindof  @mkany  @mkinterface  @mkslice  @mkstring  @panic
+@postcopy  @postmove  @print  @safetypanic  @setcontext
+@stringcmp  @tableof  @typecmp
+```
+
+Math and bit intrinsics:
+
+```swag
+@abs  @acos  @asin  @atan  @atan2  @bitcountlz  @bitcountnz
+@bitcounttz  @byteswap  @ceil  @cos  @cosh  @exp  @exp2
+@floor  @log  @log10  @log2  @max  @min  @muladd  @pow
+@rol  @ror  @round  @sin  @sinh  @sqrt  @tan  @tanh  @trunc
+```
+
+Memory, atomic, and C variadic intrinsics:
+
+```swag
+@alloc  @atomadd  @atomand  @atomcmpxchg  @atomor  @atomxchg
+@atomxor  @cvaarg  @cvaend  @cvastart  @free  @memcmp
+@memcpy  @memmove  @memset  @realloc
+```
+
+> NOTE:
+> The '#'-prefixed and '@'-prefixed names are reserved separately from bare
+> identifiers. The next section explains why Swag uses both namespaces.
 */

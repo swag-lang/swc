@@ -1,246 +1,158 @@
 #global private
 
 /**
-# The Two Sigils
+# Compiler Names: '#' and '@'
 
-Swag reserves two prefix sigils, '#' and '@', and gives everything else to you.
-This is a deliberate contract, not decoration:
+Swag gives two prefixed name families special syntactic roles. They cannot
+collide with ordinary identifiers:
 
-> Bare identifiers belong to the user. The language only ever takes a bare word
-> for a **frozen, closed set** — the structural keywords ('if', 'func', 'struct',
-> 'const', 'let'...) and the literals ('true', 'false', 'null', 'undefined').
-> **Anything the language can still grow lives behind '#' or '@'.**
+- '#' introduces directives, compile-time queries, type qualifiers, and
+  operation modifiers.
+- '@' introduces intrinsic values and operations implemented by the compiler
+  or runtime.
 
-Because of this, a future release can add '#simd', '@prefetch', or '#pure' without
-breaking a single existing program: the names it needs are already fenced off. You
-never have to rename a variable because a new compiler shipped.
-*/
+The prefix describes the facility's role, not necessarily when it executes.
+An intrinsic such as '@min' works in compile-time code and runtime code;
+'@compiler' is available only at compile time.
 
-/**
-# The Law
+Some extension points also accept a user-defined sharp selector. For example,
+'for #Pairs ...' resolves the custom iteration hook 'opVisitPairs'. Such a
+selector is still part of '#'-syntax; it does not create an ordinary identifier
+named '#Pairs'.
 
-The two sigils are not interchangeable. They mark **which plane** a name lives on:
+# Directives and Static Queries
 
-> **'#X'** addresses the **compiler**. It is a directive, a conditional-compilation
-> switch, a static query, or an annotation that tells the compiler *how to treat*
-> a type or an operation. It leaves **no trace at runtime**: it either steers
-> compilation, or reduces to a literal baked in before the program runs.
->
-> **'@X'** addresses the **machine**. It is a value or an operation **present in the
-> running program**, even when the optimizer can fold it at compile time.
-
-To classify any name, ask a single question:
-
-> *Does it still exist once the compiler is gone?*
-> No -> '#'.  Yes -> '@'.
-*/
-
-/**
-# The Compiler Plane: '#'
-
-Everything under '#' is consumed by the compiler. Four shapes live here:
-
-- **Directives** that steer compilation: '#run', '#test', '#main', '#import', '#load'.
-- **Conditional compilation**: '#if', '#else', '#elif', '#global', '#scope'.
-- **Static queries** that resolve to a compile-time fact: '#sizeof', '#alignof',
-  '#offsetof', '#typeof', '#decltype', '#nameof', '#stringof', '#location'.
-- **Annotations** on a type or an operation: the '#null' / '#late' type qualifiers
-  and the '#wrap' / '#prom' / '#reverse' / '#bit' / '#move' modifiers.
-
-A '#' query is answered before the program exists, so it can only ever see static
-facts.
-*/
-#test
-{
-    const X = 42
-
-    #assert(#sizeof(s32) == 4)      // the size of a type is a static fact
-    #assert(#typeof(X) == s32)      // the type of an expression is a static fact
-    #assert(#stringof(X) == "42")   // rendered by the compiler, not the machine
-}
-
-/**
-# The Machine Plane: '@'
-
-Everything under '@' is a value or an operation that exists while the program runs:
-
-- **Values** carried by the running program: '@err', '@index', '@args'.
-- **Operations** the machine performs: '@memcpy', '@sqrt', '@atomadd', '@alloc'.
-- **Constructors** of runtime values: '@mkslice', '@mkstring', '@mkany'.
-- **Runtime queries** on dynamic values: '@countof', '@dataof', '@kindof'.
-
-A '@' name reads or acts on data that has an address and a lifetime.
-*/
-#test
-{
-    var data: const [..] s32 = [10, 20, 30]
-
-    @assert(@countof(data) == 3)     // the length lives in the slice at runtime
-
-    let addr = @dataof(data)
-    @assert(addr[0] == 10)           // the data has a runtime address
-}
-
-/**
-# One Question Decides It
-
-The single test above already resolves the pairs that look inconsistent at first
-glance. Size and count are the clearest example:
-
-- '#sizeof' is **always** a compile-time constant — the size of a type never varies,
-  so it lives on the compiler plane.
-- '@countof' can read a **runtime** length — a slice carries its element count as
-  data, so the same call gives different answers as the program runs.
-*/
-#test
-{
-    #assert(#sizeof(s32) == 4)       // fixed forever, at compile time
-
-    var view: const [..] s32 = [1, 2, 3, 4]
-    @assert(@countof(view) == 4)
-    view = [1, 2]
-    @assert(@countof(view) == 2)     // same call, a different runtime answer
-
-    // '#typeof' is the static type; '@kindof' inspects the dynamic type of a value.
-    let boxed: any = "text"
-    #assert(#typeof(boxed) == any)
-    @assert(@kindof(boxed) == string)
-}
-
-/**
-# Same Concept, Both Planes, Same Name
-
-When one concept has both a compile-time form and a runtime form, it keeps **the
-same identifier** under each sigle. The sigil, not a different word, tells you which
-plane you are on:
+Directives shape compilation or declare compiler-managed entry points:
 
 ```swag
-#assert   @assert     // check now, at compile time  /  check while running
-#print    @print      // print during compilation    /  print at runtime
-#init     @init       // register an init block       /  run the construction
-#drop     @drop       // register / mark for drop     /  run the destruction
-````
+#if DEBUG
+#run { generateTables() }
+#test { @assert(parse("ok")) }
+```
 
-So the one-character difference between '#assert' and '@assert' is not a trap: it is
-the whole meaning. Never give the two planes of one concept divergent names.
+Static queries produce facts known by semantic analysis:
 */
+
 #test
 {
-    #assert(1 + 1 == 2)     // the compiler proves it; the check is gone at runtime
-    @assert(1 + 1 == 2)     // the machine proves it while running
+    const Answer = 42
+
+    #assert(#sizeof(s32) == 4)
+    #assert(#alignof(s32) == 4)
+    #assert(#typeof(Answer) == s32)
+    #assert(#stringof(Answer) == "42")
 }
 
 /**
-# Values Are Bare, Qualifiers Are '#'
+'#assert' itself runs during compilation. If its condition is not a constant
+'bool', compilation fails.
 
-'null' exists in two roles, and the sigil keeps them apart:
+# Intrinsic Values and Operations
 
-- The **value** is a bare literal, part of the frozen set: 'null', 'true', 'false',
-  'undefined'. It is data the program manipulates.
-- The **type qualifier** is a compiler instruction, so it takes '#': '#null' and
-  '#late'. It does not manipulate data; it tells the compiler how to type storage.
-
-'p = null' assigns a value. 'p: #null *T' annotates a type so that the bare value
-'null' is allowed to inhabit it.
+Intrinsics participate in expressions. Some expose context ('@index', '@args',
+'@err'), some construct runtime-shaped values ('@mkslice', '@mkany'), and some
+perform primitive operations ('@sqrt', '@memcpy', '@atomadd').
 */
+
 #test
 {
-    let flag              = true          // a bare literal: a value
-    let missing: #null *s32 = null        // '#null' qualifies the type; 'null' is the value
+    var values: const [..] s32 = [10, 20, 30]
 
-    @assert(flag == true)
+    @assert(@countof(values) == 3)
+    let data = @dataof(values)
+    @assert(data[1] == 20)
+
+    // The same intrinsic can be evaluated by the compiler in a constant context.
+    const Minimum = @min(7's32, 3's32)
+    #assert(Minimum == 3)
+}
+
+/**
+# Related Names with Different Semantics
+
+Some concepts have both a directive and an intrinsic:
+
+| Compile-time form | Intrinsic form |
+|---|---|
+| '#assert(condition)' rejects the build | '@assert(condition)' checks in its execution context |
+| '#print(...)' writes while compiling | '@print(...)' writes when the containing code executes |
+| '#init { ... }' declares a module hook | '@init(...)' initializes values or memory |
+| '#drop { ... }' declares a module hook | '@drop(...)' drops values or memory |
+
+Inside '#run', an '@' intrinsic executes during compilation because the
+containing code does. In an ordinary function, the same intrinsic becomes
+generated runtime behavior.
+
+# Type Qualifiers
+
+'#null', '#late', and '#unconst' modify a type or declaration. The bare 'null'
+token is a value:
+*/
+
+#test
+{
+    let missing: #null *s32 = null
     @assert(missing == null)
 }
 
 /**
-# Modifiers Are Compiler Instructions
+'#null *T' admits the 'null' value. '#late' defers initialization of a
+nullable-capable field while exposing it as non-null after a guarded write.
+'#unconst' removes a const qualifier only where the language permits that
+explicit escape.
 
-A modifier does not produce a runtime value; it changes the code the compiler emits
-for a single operation (skip the overflow check, iterate backwards, reinterpret bits,
-move instead of copy). That is a compiler instruction, so it wears '#'.
+# Operation Modifiers
 
-> A '#' modifier prefixes the **operation** whose behavior it changes: right after
-> the operator when there is one, otherwise in front of the operand. Never elsewhere.
+Modifiers change one operation rather than producing a value:
 */
+
 #test
 {
-    var x = 255'u8
-    x += #wrap 1                                    // on the '+=' operation
-    @assert(x == 0)
+    var byte = 255'u8
+    byte += #wrap 1'u8
+    @assert(byte == 0)
 
-    #assert(#typeof(255'u8 + #prom 1'u8) == u32)    // widen the operands first
+    #assert(#typeof(255'u8 + #prom 1'u8) == u32)
 
-    let bits = cast #bit (u32) 1.0'f32              // reinterpret, do not convert
+    let bits = cast #bit (u32) 1.0'f32
     @assert(bits == 0x3F800000)
 
-    var seen = 0
-    for #reverse 3                                  // on the loop
+    var expected = 2
+    for #reverse 3
     {
-        @assert(@index == 2 - seen)
-        seen += 1
+        @assert(@index == expected)
+        expected -= 1
     }
 }
 
 /**
-# One Setting, Three Scopes, One Vocabulary
+'#wrap' opts one arithmetic operation into wrapping behavior. Broader runtime
+guard policy uses 'Swag.Safety', and module defaults live in 'BuildCfg':
 
-A behavior toggle appears at three scopes, and they share **one vocabulary** and
-nest as a clean override cascade — global default, overridden per block, overridden
-per operation:
-
-- **'#name'** affects a single operation — '#wrap' on one '+='.
-- **'#[Swag.Safety(.Overflow, false)]'** affects a declaration or a lexical block.
-- **'buildCfg.safetyGuards'** affects a whole module or workspace.
-
-The scope form is uniform: 'Swag.Safety(.Check, enabled)' covers every check
-('.Overflow', '.BoundCheck', '.DynCast', '.Math', ...) with the same shape. Do not
-invent a differently named alias for the same toggle at a different scope.
-*/
+```swag
 #[Swag.Safety(.Overflow, false)]
-#test
 {
-    var x = 255'u8
-    x += 1                    // the block opts out of the overflow check
-    @assert(x == 0)
+    // Overflow guards are disabled only in this lexical scope.
 }
+```
 
-/**
-# Contextual Keywords Versus Intrinsics
+Use the narrowest scope that expresses the intent. A local '#wrap' documents
+one deliberate wrap more clearly than disabling overflow checks for a file.
 
-A few names appear both as a bare contextual keyword and as an '@' intrinsic:
-'as' / 'is' versus '@as' / '@is'. They do not collide because they live in different
-positions:
+# Contextual Keywords Are Different
 
-- The bare 'as' / 'is' are **contextual keywords**, meaningful only inside a
-  'switch' / pattern position — 'case string as text'. They bind or match as the
-  grammar directs.
-- '@as' / '@is' are the **general runtime primitives** for converting or testing a
-  dynamic value anywhere in an expression.
-
-The bare form reads as part of a statement's shape; the '@' form reads as an
-operation you can place in any expression.
+Bare 'as' and 'is' are grammar keywords used by matching constructs. '@as' and
+'@is' are intrinsics and can appear in expressions. The spelling is related,
+but the parser and type checker give the two forms distinct roles.
 */
+
 #test
 {
     let boxed: any = "text"
+
     switch boxed
     {
-    case string as text:                 // 'as' binds inside the case
-        @assert(text == "text")
-    default:
-        @assert(false)
+    case string as text: @assert(text == "text")
+    default:             @assert(false)
     }
 }
-
-/**
-# Forward Compatibility
-
-This is why the two sigils are worth their weight. The frozen bare set never grows,
-so your identifiers are safe forever. Everything the language may still add — new
-queries, new intrinsics, new modifiers — arrives under '#' or '@', already fenced
-off from your names.
-
-> If a feature is extensible, it takes a sigil.
-> If it is a frozen structural keyword or a literal, it stays bare.
-> Nothing else is ever bare.
-*/

@@ -281,7 +281,7 @@ end-of-line from being included.
 }
 
 /**
-# '#stringof' and '#nameof' Intrinsics
+# The '#stringof' and '#nameof' Intrinsics
 
 The '#stringof' intrinsic returns the string representation of a constant
 expression at compile time.

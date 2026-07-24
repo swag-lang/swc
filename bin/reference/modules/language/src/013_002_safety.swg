@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'Safety Checks in Swag'
+# Runtime Safety Checks
 
 Swag provides safety checks that can be enabled at different granularity
 levels — module, function, or even individual instruction — via
@@ -28,7 +28,7 @@ with 'buildCfg.safetyGuards'.
 */
 
 /**
-# 'Overflow Safety'
+# Overflow Safety
 Example:
 #[Swag.Safety(.Overflow, true)]
 When enabled, Swag panics on arithmetic overflow or when bits are lost
@@ -82,7 +82,7 @@ For 8/16-bit operations, use '#prom' to promote to 32-bit and avoid overflow.
 }
 
 /**
-# 'Information Loss During Casting'
+# Information Loss During Casting
 
 Swag checks casts for potential information loss between integer types.
 */
@@ -118,7 +118,7 @@ Same as above: '#[Swag.Safety(.Overflow, false)]' allows overflowing operations.
 }
 
 /**
-# 'Dynamic Cast Type Safety'
+# Dynamic Cast Type Safety
 Example:
 #[Swag.Safety(.DynCast, true)]
 Swag panics if a cast from 'any' to another type is invalid.
@@ -138,7 +138,7 @@ cannot be performed.
 */
 
 /**
-# 'Array Bounds Checking'
+# Array Bounds Checking
 Example:
 #[Swag.Safety(.BoundCheck, true)]
 Swag panics if an index is out of range when dereferencing sized values
@@ -190,7 +190,7 @@ Slice operations are checked for bounds.
 }
 
 /**
-# 'Math Safety'
+# Math Safety
 Example:
 #[Swag.Safety(.Math, true)]
 Swag panics for invalid math, such as division by zero or invalid intrinsic
@@ -222,7 +222,7 @@ Swag validates arguments for several math intrinsics and panics if invalid.
 }
 
 /**
-# 'Switch Safety'
+# Switch Safety
 Example:
 #[Swag.Safety(.Switch, true)]
 With '#[Swag.Complete]', Swag panics if a switch does not cover all cases.
@@ -250,7 +250,7 @@ With '#[Swag.Complete]', Swag panics if a switch does not cover all cases.
 }
 
 /**
-# 'Boolean Safety'
+# Boolean Safety
 Example:
 #[Swag.Safety(.Bool, true)]
 Swag panics if a 'bool' is not 'true' (1) or 'false' (0).
@@ -263,7 +263,7 @@ Swag panics if a 'bool' is not 'true' (1) or 'false' (0).
 }
 
 /**
-# 'NaN Safety'
+# NaN Safety
 Example:
 #[Swag.Safety(.NaN, true)]
 Swag panics if a floating-point 'NaN' participates in an operation,

@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'Namespaces in Swag'
+# Namespaces
 
 Namespaces in Swag provide a structured way to organize symbols such as functions,
 variables, and types within a specific scope. Grouping related symbols under
@@ -20,7 +20,7 @@ namespace A
 }
 
 /**
-# 'Nested Namespaces'
+# Nested Namespaces
 
 Swag supports nested namespaces, allowing hierarchical organization of symbols.
 This enables fine-grained structuring of code, which is especially helpful in
@@ -43,7 +43,7 @@ namespace A.B.C
 }
 
 /**
-# 'Qualified Namespace Access'
+# Qualified Namespace Access
 
 Symbols from a namespace are accessed through their qualified name.
 */
@@ -56,7 +56,7 @@ namespace QualifiedExample
 const B = QualifiedExample.Symbol     // Access via fully qualified name
 
 /**
-# 'Internal' Scopes
+# Internal Scopes
 
 In addition to named namespaces, Swag provides 'internal' scopes. An internal
 scope creates a unique, unnamed namespace restricted to the current file.
@@ -72,7 +72,7 @@ internal
 const D = OtherSymbol     // Accessible within this file only
 
 /**
-# 'Exporting Symbols'
+# Exporting Symbols
 
 By default, all symbols in a Swag file are exported to other files within
 the same module. Using explicit namespaces or internal scopes provides

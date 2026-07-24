@@ -24,16 +24,16 @@ by the compiler.
 /**
 # Compiler Instructions
 
-Some identifiers may begin with '#', indicating a compiler directive or special
-function. These instructions have specific roles within the Swag environment and
-are evaluated at compile time.
+Names beginning with '#' belong to compiler syntax: built-in directives, static
+queries, qualifiers, modifiers, and user-defined selectors at specific
+extension points such as custom iteration.
 
 Examples of compiler instructions:
 ```swag
 #assert
 #run
 #main
-````
+```
 
 */
 
@@ -41,8 +41,10 @@ Examples of compiler instructions:
 
 # Intrinsics
 
-Identifiers that start with '@' represent intrinsic functions. These functions
-are provided by the compiler and are available at both compile time and runtime.
+Names beginning with '@' represent compiler-provided intrinsic values and
+operations. Availability depends on the intrinsic and context: '@compiler' is
+compile-time only, while math and memory intrinsics can also generate runtime
+code.
 
 Examples of intrinsic functions:
 

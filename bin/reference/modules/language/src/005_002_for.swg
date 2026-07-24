@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to 'for'
+# The 'for' Loop
 
 The `for` construct in Swag enables iteration, allowing a block of code to execute repeatedly.
 This guide explores its features: basic usage, indexing, naming, reverse loops, early exits,
@@ -110,7 +110,7 @@ To iterate in reverse order, add the `#reverse` modifier.
 }
 
 /**
-# 'break' and 'continue'
+# Using 'break' and 'continue'
 
 The `break` and `continue` keywords control loop flow.
 `break` exits the loop, while `continue` skips to the next iteration.
@@ -251,7 +251,7 @@ Only iterations meeting the condition are executed.
 }
 
 /**
-# 'where' with Arrays
+# Filtering Arrays with 'where'
 
 Loop over the element count and use `where` to filter which indices run the body.
 */
@@ -300,7 +300,7 @@ The `where` clause supports multiple logical conditions for advanced filtering.
 }
 
 /**
-# 'where' with Ranges
+# Filtering Ranges with 'where'
 
 The `where` clause can also be applied to ranges.
 */

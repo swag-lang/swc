@@ -1,0 +1,37 @@
+#global private
+
+/**
+# Data at a C ABI Boundary
+
+'cstring' represents a zero-terminated byte string. Swag's ordinary 'string'
+stores an explicit byte count and may contain embedded zeroes, so crossing the
+ABI boundary should be an intentional conversion. String-literal storage has a
+trailing zero; take its data pointer before casting that pointer to 'cstring'.
+*/
+
+#test
+{
+    let literal = "Swag"
+    let text    = cast(const cstring) @dataof(literal)
+    @assert(@countof(text) == 4)
+    @assert(text[0] == 'S''u8)
+    @assert(text[3] == 'g''u8)
+}
+
+/**
+For other data:
+
+- Prefer 's8' through 's64' and 'u8' through 'u64' over platform-dependent C
+  spellings.
+- Represent optional C pointers with '#null *T' or '#null const *T'.
+- Match aggregate packing and alignment with '#[Swag.Pack]' and
+  '#[Swag.Align]' only when the external ABI requires it.
+- State who owns returned memory and which function releases it.
+- Treat a returned pointer as borrowed unless the external API explicitly
+  transfers ownership.
+
+'cvarargs' and '@cvastart'/'@cvaarg'/'@cvaend' exist for implementing or
+forwarding C-style variadic boundaries. Prefer a typed Swag wrapper: C default
+argument promotions and format-string contracts are not checked by the foreign
+declaration.
+*/

@@ -47,9 +47,9 @@ Multiple variables of different types can also be declared on one line.
 /**
 # Default Initialization
 
-If a variable is declared without an explicit value, it is automatically
-initialized with a default value. Variables in Swag are **always initialized**
-and never left undefined.
+If a variable is declared without an explicit value, it is initialized with its
+type's default value. The explicit 'undefined' escape below is the only way this
+section deliberately bypasses that default initialization.
 */
 #test
 {

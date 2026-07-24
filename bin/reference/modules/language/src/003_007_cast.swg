@@ -110,7 +110,7 @@ without requiring an explicit 'cast' statement.
 # Disallowed Implicit Casts
 
 Swag forbids implicit casts that may lose data or precision. In such cases, an
-explicit cast is required. The '#wrap' or '#unsafe' cast modes can be used to
+explicit cast is required. The '#wrap' cast mode can be used to
 acknowledge potential data loss.
 */
 #test

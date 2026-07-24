@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to Uniform Function Call Syntax (UFCS)
+# Uniform Function Call Syntax (UFCS)
 *UFCS* (Uniform Function Call Syntax) allows a function to be called in the `param.func()` form
 when the first parameter type of `func()` matches `param`.
 This enables calling standalone functions as if they were instance methods, improving readability.

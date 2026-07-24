@@ -157,7 +157,7 @@ less than, equal to, or greater than the right operand. The result type is 's32'
 A <=> B == -1 if A < B
 A <=> B ==  0 if A == B
 A <=> B ==  1 if A > B
-````
+```
 
 */
 #test

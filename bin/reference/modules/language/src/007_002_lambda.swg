@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to Lambdas in Swag
+# Lambdas
 
 A lambda in Swag is a pointer to a function. This allows functions to be stored in variables,
 passed as arguments, or returned from other functions—enabling functional programming patterns.

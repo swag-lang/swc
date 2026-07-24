@@ -1,113 +1,123 @@
 #global private
 
 /**
-# 'Compile-Time Function Evaluation with #[Swag.ConstExpr]'
+# Constant-Evaluable Functions
 
-The '#[Swag.ConstExpr]' attribute marks a function as evaluable during
-compile time. If all inputs are known at compile time, the compiler can
-resolve the function result immediately, avoiding runtime computation.
+'#[Swag.ConstExpr]' allows a function to participate in a constant expression.
+When the call and everything it depends on are constant, 'swc' executes it
+during compilation. A call with runtime arguments remains an ordinary runtime
+call.
 
-This precomputation improves efficiency and reduces runtime overhead,
-making such functions ideal for constant logic or static initialization.
+Use this attribute for deterministic computation that belongs in array sizes,
+constants, static conditions, or generated declarations. Use '#run' when the
+operation should execute only as a build-time action.
 */
 
-// Simple example: always returns true, resolved at compile time.
 #[Swag.ConstExpr]
-func isThisDebug() => true
-
-// Compile-time conditional block.
-// Since 'isThisDebug()' is true, the code inside will never compile.
-#if isThisDebug() == false
+func constexprSquare(value: s32)->s32
 {
-    #error("this should not be called!")
+    return value * value
+}
+
+const ConstexprSquares = [
+    constexprSquare(1),
+    constexprSquare(2),
+    constexprSquare(3),
+    constexprSquare(4),
+    ]
+
+#assert(ConstexprSquares[0] == 1)
+#assert(ConstexprSquares[1] == 4)
+#assert(ConstexprSquares[2] == 9)
+#assert(ConstexprSquares[3] == 16)
+
+#test
+{
+    var runtimeValue = 5
+    @assert(constexprSquare(runtimeValue) == 25)
 }
 
 /**
-# 'Recursive Compile-Time Evaluation'
+# Branches, Loops, and Recursion
 
-Recursive functions can also be marked 'ConstExpr'. Swag evaluates
-them entirely at compile time, eliminating runtime cost.
+A constant-evaluable function uses ordinary Swag control flow. Recursive
+definitions still need a valid base case and are subject to the compiler's
+execution limits.
 */
+
 #[Swag.ConstExpr]
-func factorial(x: s32)->s32
+func constexprFactorial(value: u32)->u32
 {
-    if x == 1 do
+    if value <= 1 do
         return 1
-    return x * factorial(x - 1)
+    return value * constexprFactorial(value - 1)
 }
 
-#assert(factorial(4) == 24)
+#[Swag.ConstExpr]
+func constexprSum(values: const [..] s32)->s32
+{
+    var result = 0
+    for value in values do
+        result += value
+    return result
+}
+
+#assert(constexprFactorial(5) == 120)
+#assert(constexprSum([1, 2, 3, 4]) == 10)
 
 /**
-# 'Compile-Time Constant Expressions'
+# Constant User-Defined Values
 
-ConstExpr functions can return fixed values that the compiler resolves
-immediately during compilation.
+A struct can opt into constant evaluation when its lifecycle operations are
+valid in that environment. ConstExpr functions may then construct and return
+instances of that type.
 */
+
 #[Swag.ConstExpr]
-func getMagicNumber()->s32
+struct ConstexprPoint
 {
-    return 42
+    x, y: s32
 }
 
-#assert(getMagicNumber() == 42)
+#[Swag.ConstExpr]
+func makeConstexprPoint(x, y: s32)->ConstexprPoint
+{
+    return {x, y}
+}
+
+const ConstexprOrigin = makeConstexprPoint(3, 7)
+#assert(ConstexprOrigin.x == 3)
+#assert(ConstexprOrigin.y == 7)
 
 /**
-# 'Compile-Time Conditional Logic'
+# Static Conditions and Types
 
-Logic such as even/odd checks can be done at compile time.
+The result can drive '#if' or any other context that requires a constant:
 */
+
 #[Swag.ConstExpr]
-func isEven(x: s32)->bool
+func constexprIsPowerOfTwo(value: u32)->bool
 {
-    return x % 2 == 0
+    return value != 0 and (value & (value - 1)) == 0
 }
 
-#if isEven(4) == false
+#if !constexprIsPowerOfTwo(64)
 {
-    #error("4 should be even!")
+    #error("64 must be a power of two")
 }
+
+const TableSize = constexprFactorial(3)
+var ConstexprSizedTable: [TableSize] u8
+#assert(@countof(ConstexprSizedTable) == 6)
 
 /**
-# 'Compile-Time Slice Operations'
+# Failure Is a Compile-Time Diagnostic
 
-ConstExpr functions can iterate and compute over constant arrays.
+If a constant context calls a 'ConstExpr' function with an operation the
+compile-time engine cannot perform, the build fails at that call. The compiler
+does not silently defer a required constant to runtime.
+
+Do not mark a function 'ConstExpr' merely as an optimization hint. The
+attribute is an API promise that callers may rely on in type-level and
+declaration-level expressions.
 */
-#[Swag.ConstExpr]
-func arraySum(arr: const [..] s32)->s32
-{
-    var sum = 0
-    for val in arr do
-        sum += val
-    return sum
-}
-
-#assert(arraySum([1, 2, 3, 4, 5]) == 15)
-
-/**
-# 'Compile-Time Fibonacci Sequence'
-
-Recursive computation of Fibonacci numbers at compile time.
-*/
-#[Swag.ConstExpr]
-func fibonacci(n: s32)->s32
-{
-    if n <= 1 do
-        return n
-    return fibonacci(n - 1) + fibonacci(n - 2)
-}
-
-#assert(fibonacci(5) == 5)
-
-/**
-# 'Compile-Time Bitwise Operations'
-
-Bitwise operations can be resolved at compile time too.
-*/
-#[Swag.ConstExpr]
-func isBitSet(num: s32, bit: s32)->bool
-{
-    return (num & (1 << bit)) != 0
-}
-
-#assert(isBitSet(8, 3) == true)

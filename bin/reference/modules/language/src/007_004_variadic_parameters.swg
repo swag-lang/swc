@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to Variadic Functions
+# Variadic Functions
 Variadic functions accept a variable number of arguments using '...'.
 They allow flexibility in cases where the number of arguments is not known in advance.
 */

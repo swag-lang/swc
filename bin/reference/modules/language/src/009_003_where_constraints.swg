@@ -1,7 +1,7 @@
 #global private
 
 /**
-# 'where' Constraints
+# Generic 'where' Constraints
 The `where` clause constrains generic functions and generic structs. It is
 evaluated at compile time from generic parameters and other constant data.
 

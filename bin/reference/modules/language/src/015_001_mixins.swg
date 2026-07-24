@@ -1,7 +1,7 @@
 #global private
 
 /**
-# Introduction to Swag Mixins
+# Mixins
 A mixin in Swag is declared similarly to a function but with the attribute '#[Swag.Mixin]'.
 Mixins inject code into the caller's scope, manipulate variables, or execute as if written in that scope.
 This file provides a clear set of examples and tests.
@@ -138,9 +138,11 @@ plain declarations there.
 }
 
 /**
-# Unique Variable Names with '#uniq?'
-Mixins can declare special variables named '#uniq?'.
-Each invocation receives a unique symbol, avoiding naming conflicts and allowing multiple calls in the same scope.
+# Unique Variable Names with '#uniq0' through '#uniq9'
+Mixins can declare special variables named '#uniq0' through '#uniq9'.
+Each invocation receives unique symbols, avoiding naming conflicts and allowing
+multiple calls in the same scope. Reusing the same numbered name inside one
+invocation refers to that invocation's generated symbol.
 */
 #test
 {

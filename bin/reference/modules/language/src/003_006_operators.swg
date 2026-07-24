@@ -253,23 +253,31 @@ modifier to promote operands to at least 32 bits before the operation.
 
 # Operator Precedence
 
+Precedence runs from tightest (top) to loosest (bottom). Operators listed on the
+same line share a level.
+
 ```swag
 ~
 * / %
 + -
 >> <<
 &
-|
 ^
-<=>
+|
+<=> < <= > >=
 == !=
-< <= > >=
 and
 or
 ```
 
 When two operators share the same precedence level, expressions are evaluated
 from left to right.
+
+Unlike C, the bitwise operators '& ^ |' all bind **tighter** than the comparison
+operators. This makes 'flags & Mask == 0' parse as '(flags & Mask) == 0', which is
+almost always the intent, so the classic C footgun is avoided by design. Among the
+comparisons, the ordering operators '<=> < <= > >=' bind tighter than the equality
+operators '== !=', so 'a < b == c' parses as '(a < b) == c'.
 */
 #test
 {
@@ -279,4 +287,17 @@ from left to right.
     @assert((false and false or true) == true)
     @assert((10 & 2 << 1) == 0)
     @assert(((10 & 2) << 1) == 4)
+
+    // '^' binds tighter than '|': parses as 1 | (2 ^ 3) == 1 | 1 == 1.
+    @assert((1 | 2 ^ 3) == 1)
+
+    // Bitwise binds tighter than comparison: parses as (2 & 3) == 2.
+    // Under the C ordering this would be 2 & (3 == 2) and would not even compile.
+    @assert(2 & 3 == 2)
+
+    // Ordering comparisons bind tighter than equality: parses as (1 < 2) == true.
+    @assert(1 < 2 == true)
+
+    // The spaceship shares the ordering level, still tighter than equality: (1 <=> 2) == -1.
+    @assert(1 <=> 2 == -1)
 }

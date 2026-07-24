@@ -18,8 +18,8 @@ func inlineSafetyOverflowEnabled()->bool
     return #safety(Swag.SafetyWhat.Overflow)
 }
 
-#[Swag.Inline, Swag.CanOverflow(true)]
-func inlineSafetyOverflowDisabledByCanOverflow()->bool
+#[Swag.Inline, Swag.Safety(.Overflow, false)]
+func inlineSafetyOverflowDisabledBySafetyAttr()->bool
 {
     return #safety(Swag.SafetyWhat.Overflow)
 }
@@ -108,7 +108,7 @@ func opaqueS16(v: s16)->s16
     return v
 }
 
-#[Swag.Inline, Swag.CanOverflow(true)]
+#[Swag.Inline, Swag.Safety(.Overflow, false)]
 func inlineSafetyWrapAdd(value, delta: u8)->u8
 {
     return value + delta
@@ -119,7 +119,7 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
     const BoundCheckOn  = #run inlineSafetyBoundCheckEnabled()
     const BoundCheckOff = #run inlineSafetyBoundCheckDisabled()
     const OverflowOn    = #run inlineSafetyOverflowEnabled()
-    const OverflowOff   = #run inlineSafetyOverflowDisabledByCanOverflow()
+    const OverflowOff   = #run inlineSafetyOverflowDisabledBySafetyAttr()
     const MathOn        = #run inlineSafetyMathEnabled()
     const SwitchOn      = #run inlineSafetySwitchEnabled()
     const DynCastOn     = #run inlineSafetyDynCastEnabled()

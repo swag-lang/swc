@@ -10,7 +10,7 @@
 
 using Swag
 
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
 {
     const mask32 = (1'u64 << 32) - 1
@@ -61,7 +61,7 @@ impl Int128
         return cast(f64) (.lo + .hi * Shift64)
     }
 
-    #[Swag.CanOverflow(true)]
+    #[Swag.Safety(.Overflow, false)]
     func mul(x, y: s64)->Int128
     {
         var lhs = x

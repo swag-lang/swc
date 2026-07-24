@@ -22,7 +22,7 @@ impl MWC
         .z = value2 orelse 362436069
     }
 
-    #[Swag.CanOverflow(true)]
+    #[Swag.Safety(.Overflow, false)]
     mtd nextU32()->u32
     {
         .z = 36969 * (.z & 0xFFFF) + (.z >> 16)

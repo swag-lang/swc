@@ -59,9 +59,9 @@ Use '#wrap' on the operation if overflow is expected and should not panic.
 /**
 ## Global Overflow Safety Control
 
-Disable overflow safety checks in a scope with '#[Swag.CanOverflow(true)]'.
+Disable overflow safety checks in a scope with '#[Swag.Safety(.Overflow, false)]'.
 */
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 #test
 {
     var x = 255'u8
@@ -105,9 +105,9 @@ Swag checks casts for potential information loss between integer types.
 /**
 ## Disabling Overflow Safety Globally
 
-Same as above: '#[Swag.CanOverflow(true)]' allows overflowing operations.
+Same as above: '#[Swag.Safety(.Overflow, false)]' allows overflowing operations.
 */
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 #test
 {
     var x = 255'u8

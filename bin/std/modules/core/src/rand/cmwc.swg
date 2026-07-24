@@ -23,7 +23,7 @@ impl CMWC4096
     }
 
     // Generates the next 32-bit unsigned random number.
-    #[Swag.CanOverflow(true)]
+    #[Swag.Safety(.Overflow, false)]
     mtd nextU32()->u32
     {
         const a = 18782'u64

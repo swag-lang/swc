@@ -29,7 +29,7 @@ impl GardenRng
         .state = seed | 1'u64
     }
 
-    #[Swag.CanOverflow(true)]
+    #[Swag.Safety(.Overflow, false)]
     mtd nextU32()->u32
     {
         .state = (.state * #wrap 6364136223846793005'u64) + #wrap 1442695040888963407'u64
@@ -87,7 +87,7 @@ func lerp(a, b, alpha: f32)->f32
     return a + (b - a) * alpha
 }
 
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 func hashGrid(x, y, seed: s32)->u32
 {
     var hash = cast #wrap(u32) x * #wrap 0x9E3779B9'u32

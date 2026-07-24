@@ -1,5 +1,5 @@
 #global namespace Hash
-#global #[Swag.CanOverflow(true)]
+#global #[Swag.Safety(.Overflow, false)]
 
 // A SHA-1 cryptographic hash function implementation.
 // Provides methods to compute 160-bit SHA-1 hash values from arbitrary data streams.

@@ -16,13 +16,13 @@ func overflowSafetyEnabled()->bool
     return #safety(Swag.SafetyWhat.Overflow)
 }
 
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 func overflowAllowedByAttribute()->bool
 {
     return #safety(Swag.SafetyWhat.Overflow)
 }
 
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 func wrapCompoundU8(value: u8, delta: u8)->u8
 {
     var result = value

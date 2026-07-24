@@ -211,9 +211,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function | AttributeUsage.File), AttrMulti]
     attr Optimize(level: bool)
 
-    #[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
-    attr CanOverflow(value: bool)
-
     // Warning behavior for [[Warning]] attribute
     enum WarningLevel: u8
     {

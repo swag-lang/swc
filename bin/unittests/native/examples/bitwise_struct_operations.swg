@@ -11,7 +11,7 @@ struct ArtifactDigest
     matchesCrc64: bool
 }
 
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 func computeCrc32(bytes: const [..] u8)->u32
 {
     var crc = 0xFFFF_FFFF'u32
@@ -30,7 +30,7 @@ func computeCrc32(bytes: const [..] u8)->u32
     return crc ^ 0xFFFF_FFFF'u32
 }
 
-#[Swag.CanOverflow(true)]
+#[Swag.Safety(.Overflow, false)]
 func computeCrc64(bytes: const [..] u8)->u64
 {
     const Polynomial = 0x42F0_E1EB_A9EA_3693'u64

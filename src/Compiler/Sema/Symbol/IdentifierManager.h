@@ -58,7 +58,6 @@ public:
         Inline,
         NoInline,
         Optimize,
-        CanOverflow,
         PlaceHolder,
         NoPrint,
         Macro,

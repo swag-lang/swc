@@ -205,13 +205,6 @@ If 'what' is null or empty, every option will be affected.
 attr Optimize(what: string, value: bool)
 
 /**
-# Arithmetic Behavior
-*/
-
-#[AttrUsage(AttributeUsage.All | AttributeUsage.File)]
-attr CanOverflow(value: bool)
-
-/**
 # Warning Controls
 */
 

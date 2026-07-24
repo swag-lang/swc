@@ -9,7 +9,7 @@ struct(T) Base
 struct(T) Extended
 {
     using base: Base'T
-    extra: s32
+    extra:      s32
 }
 
 // Deep nesting: 3 levels

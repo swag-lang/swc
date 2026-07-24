@@ -410,16 +410,36 @@ namespace
             const bool isConst     = (flags & static_cast<AstNode::ParserFlags>(AstVarDeclFlagsE::Const)) != 0;
             const bool inAggregate = parentCompound == AstNodeId::AggregateBody;
 
-            if (inAggregate)
-                addRole(span.minPiece, FormatRoleE::FieldDeclStart);
-            else if (isConst)
-                addRole(span.minPiece, FormatRoleE::ConstDeclStart);
-            else
-                addRole(span.minPiece, FormatRoleE::VarDeclStart);
+            const FormatRoleE startRole = inAggregate ? FormatRoleE::FieldDeclStart
+                                        : isConst     ? FormatRoleE::ConstDeclStart
+                                                      : FormatRoleE::VarDeclStart;
+            addRole(span.minPiece, startRole);
 
+            // `using wnd: Wnd` fields start their line on the `using` keyword.
+            if (span.valid())
+            {
+                const uint32_t prev = prevCode(span.minPiece);
+                if (prev != INVALID_PIECE && model_->piece(prev).is(TokenId::KwdUsing))
+                    addRole(prev, startRole);
+            }
+
+            // The type may start with qualifiers (`#late`, `#null`, `*`, ...)
+            // that its span skips over: find the `:` forward from the
+            // declaration start instead of walking back from the type.
             const NodeSpan typeSpan = spanOf(typeRef);
-            if (typeSpan.valid())
-                addRole(prevCodeBeforeOperandIf(typeSpan.minPiece, TokenId::SymColon), FormatRoleE::DeclColon);
+            if (typeSpan.valid() && span.valid())
+            {
+                const uint32_t declDepth = model_->piece(span.minPiece).depth;
+                for (uint32_t p = nextCode(span.minPiece); p != INVALID_PIECE && p <= typeSpan.minPiece; p = nextCode(p))
+                {
+                    const FormatPiece& piece = model_->piece(p);
+                    if (piece.is(TokenId::SymColon) && piece.depth == declDepth)
+                    {
+                        addRole(p, FormatRoleE::DeclColon);
+                        break;
+                    }
+                }
+            }
 
             markInitAssign(initRef, FormatRoleE::InitAssign);
         }

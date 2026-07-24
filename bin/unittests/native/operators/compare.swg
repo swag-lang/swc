@@ -31,7 +31,7 @@ struct CompareIdentityBase
 struct CompareIdentityDerived
 {
     using base: CompareIdentityBase
-    extra: s32
+    extra:      s32
 }
 
 var CompareCounter: s32

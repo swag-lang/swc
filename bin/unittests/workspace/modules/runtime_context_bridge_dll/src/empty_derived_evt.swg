@@ -24,7 +24,7 @@ impl IDepEvt for DepDestroyEvt {}
 struct DepResizeEvt
 {
     using base: DepEvtBase
-    extra: s32
+    extra:      s32
 }
 
 impl IDepEvt for DepResizeEvt {}

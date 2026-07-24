@@ -16,18 +16,18 @@ enum SortMethod
 
 struct LibraryWnd
 {
-    using wnd:                   Wnd
+    using wnd: Wnd
 
-    main:                        #late *MainWnd
-    view:                        #late *LibraryView
-    listCtrl:                    #late *ListCtrl
-    editZoomBar:                 #late *Wnd
-    zoomBtn:                     #late *IconButton
-    sortBtn:                     #late *IconButton
-    filterBtn:                   #late *IconButton
-    trashBtn:                    #late *IconButton
-    searchEdit:                  #late *EditBox
-    breadcrumb:                  #late *BreadcrumbCtrl
+    main:        #late *MainWnd
+    view:        #late *LibraryView
+    listCtrl:    #late *ListCtrl
+    editZoomBar: #late *Wnd
+    zoomBtn:     #late *IconButton
+    sortBtn:     #late *IconButton
+    filterBtn:   #late *IconButton
+    trashBtn:    #late *IconButton
+    searchEdit:  #late *EditBox
+    breadcrumb:  #late *BreadcrumbCtrl
     previewSize: PreviewSize
 
     searchText: String

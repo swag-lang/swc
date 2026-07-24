@@ -1,6 +1,6 @@
 public struct Button
 {
-    using wnd:           Wnd
+    using wnd: Wnd
 
     icon:            Icon
     iconSizeX:       f32

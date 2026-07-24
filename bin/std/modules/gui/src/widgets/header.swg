@@ -31,7 +31,7 @@ enum HeaderFlags
 
 struct Header
 {
-    using wnd:            Wnd
+    using wnd: Wnd
 
     form                  = HeaderForm.Flat
     headerFlags           = HeaderFlags.Clickable

@@ -24,10 +24,10 @@ impl LibraryItem
 
 struct LibraryView
 {
-    using wnd:       Wnd
-    scrollWnd:       #late *ScrollWnd
-    libWnd:          #late *LibraryWnd
-    mainWnd:         #late *MainWnd
+    using wnd:   Wnd
+    scrollWnd:   #late *ScrollWnd
+    libWnd:      #late *LibraryWnd
+    mainWnd:     #late *MainWnd
     allItems:    ArrayPtr'LibraryItem
     items:       Array'*LibraryItem
     mutexLoaded: Sync.Mutex
@@ -38,7 +38,7 @@ struct LibraryView
     filterYear:  u64
     filterMonth: u64
     filterDay:   u64
-    imgSpin:         #late *ImageRect
+    imgSpin:     #late *ImageRect
 }
 
 impl IWnd for LibraryView

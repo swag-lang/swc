@@ -18,9 +18,9 @@ struct BadParameterError
 
 struct SyntaxError
 {
-    using base:     Swag.BaseError
-    line, col: u64
-    seek:      u64
+    using base: Swag.BaseError
+    line, col:  u64
+    seek:       u64
 }
 
 struct OverflowError
@@ -35,20 +35,20 @@ struct ParseIncompleteError
 
 struct SerializationError
 {
-    using base:     Swag.BaseError
-    field: TypeValue = undefined     // Can contain the bad field
+    using base: Swag.BaseError
+    field:      TypeValue = undefined     // Can contain the bad field
 }
 
 struct FileNotFoundError
 {
-    using base:     Swag.BaseError
-    fileName: #null string
+    using base: Swag.BaseError
+    fileName:   #null string
 }
 
 struct InvalidFileNameError
 {
-    using base:     Swag.BaseError
-    fileName: #null string
+    using base: Swag.BaseError
+    fileName:   #null string
 }
 
 struct InvalidVersion

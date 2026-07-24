@@ -35,7 +35,7 @@ impl IGenericUsingCast for GenericUsingPartial
 struct GenericUsingWrapper
 {
     using partial: GenericUsingPartial
-    other: s32
+    other:         s32
 }
 
 // The returned interface borrows the storage it was created from, so the caller

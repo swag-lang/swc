@@ -10,7 +10,7 @@ whether to propagate, catch, dismiss, or assume success.
 struct MyError
 {
     using base: Swag.BaseError
-    code: s32 = 0
+    code:       s32 = 0
 }
 
 func count(name: #null string)->u64 throw

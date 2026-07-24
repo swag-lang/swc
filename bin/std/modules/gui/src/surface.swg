@@ -11,13 +11,13 @@ struct SurfaceState
 
 struct Surface
 {
-    using native:      NativeSurface
-    app:       *Application = undefined
-    wnd:       *SurfaceWnd = undefined
-    painter:   Painter
-    rt:        RenderTarget
-    userData:  #null *void
-    surfaceID: String
+    using native: NativeSurface
+    app:          *Application = undefined
+    wnd:          *SurfaceWnd = undefined
+    painter:      Painter
+    rt:           RenderTarget
+    userData:     #null *void
+    surfaceID:    String
 
     rc:      RenderingContext
     minSize: Math.Point
@@ -32,7 +32,7 @@ struct Surface
     isInitialized: bool
     isDisabled:    bool
     isMinimized:   bool
-        using state:       SurfaceState
+    using state:   SurfaceState
 }
 
 #[Swag.EnumFlags]

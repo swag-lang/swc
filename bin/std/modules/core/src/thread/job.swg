@@ -22,7 +22,7 @@ public struct Job
 
 public struct(T) SliceJob
 {
-    using base:     Job
+    using base:  Job
     buffer:      #null const [..] T
     offset:      u32
     contextData: #null *void
@@ -30,7 +30,7 @@ public struct(T) SliceJob
 
 public struct ForJob
 {
-    using base:     Job
+    using base:  Job
     startIndex:  u32
     endIndex:    u32
     contextData: #null *void

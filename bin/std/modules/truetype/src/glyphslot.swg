@@ -23,7 +23,7 @@ public struct GlyphMetrics
 
 public struct GlyphSlot
 {
-    face:                   #late *Face
+    face:                    #late *Face
     index:                   u32
     metrics:                 GlyphMetrics
     linearHorizontalAdvance: s32

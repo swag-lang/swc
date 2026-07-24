@@ -34,11 +34,11 @@ struct FaceImpl
 {
     face: Face
 
-    fontData:       Array'u8
-    tables:         Array'TableRecord
-    glyphMetrics:   Array'GlyphMetric
-    glyphLocations: Array'u32
-    chosenCMap:          #late const [..] u8
+    fontData:         Array'u8
+    tables:           Array'TableRecord
+    glyphMetrics:     Array'GlyphMetric
+    glyphLocations:   Array'u32
+    chosenCMap:       #late const [..] u8
     cmapFormat:       u16
     unitsPerEm:       u16
     numLongMetrics:   u16

@@ -63,13 +63,13 @@ struct ShaderFont
 
 struct ShaderBlur
 {
-    using base:     ShaderBase
-    radius: ShaderParamHandle
-    axis:   ShaderParamHandle
+    using base: ShaderBase
+    radius:     ShaderParamHandle
+    axis:       ShaderParamHandle
 }
 
 struct ShaderResolve
 {
-    using base:     ShaderBase
-    factor: ShaderParamHandle
+    using base: ShaderBase
+    factor:     ShaderParamHandle
 }

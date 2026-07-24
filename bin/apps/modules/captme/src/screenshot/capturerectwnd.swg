@@ -14,9 +14,9 @@ func easeGrab(current, target: f32)->f32
 
 struct CaptureRectWnd
 {
-    using wnd:         Wnd
+    using wnd: Wnd
 
-    main:              #late *MainWnd
+    main:          #late *MainWnd
     startGrab:     bool
     cancelGrab:    bool
     tryStartGrab:  bool

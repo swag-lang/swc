@@ -296,6 +296,36 @@ SWC_TEST_BEGIN(FormatAlign_SingletonTightensStalePadding)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAlign_StructFieldsWithTypeQualifiers)
+{
+    static constexpr std::string_view SOURCE =
+        "struct Wnd {}\n"
+        "struct EditView\n"
+        "{\n"
+        "    using wnd: Wnd\n"
+        "    main: #late *Wnd\n"
+        "    capture: #null *Wnd\n"
+        "    zoom: f32 = 1\n"
+        "    inPlaceEdit: bool\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct Wnd {}\n"
+        "struct EditView\n"
+        "{\n"
+        "    using wnd:   Wnd\n"
+        "    main:        #late *Wnd\n"
+        "    capture:     #null *Wnd\n"
+        "    zoom:        f32 = 1\n"
+        "    inPlaceEdit: bool\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignStructFields = FormatAlignMode::Consecutive;
+    return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_CaseBodiesConsecutive)
 {
     static constexpr std::string_view SOURCE =

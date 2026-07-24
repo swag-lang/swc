@@ -13,12 +13,12 @@ enum PropertiesCtrlFlags
 
 struct PropertiesCtrl
 {
-    using frameWnd:     FrameWnd
+    using frameWnd: FrameWnd
 
-    splitter:           #late *SplitterCtrl
-    list:               #late *ListCtrl
-    tab:                #late *Tab
-    prop:               #late *Properties
+    splitter:  #late *SplitterCtrl
+    list:      #late *ListCtrl
+    tab:       #late *Tab
+    prop:      #late *Properties
     propFlags: PropertiesCtrlFlags
 }
 

@@ -2,10 +2,10 @@ using Core, Pixel
 
 public struct AboutDlg
 {
-    using dialog:          Dialog
-    labelIcon:             #late *Label
-    labelMessageTitle:     #late *Label
-    labelMessage:          #late *Label
+    using dialog:      Dialog
+    labelIcon:         #late *Label
+    labelMessageTitle: #late *Label
+    labelMessage:      #late *Label
 }
 
 public struct AboutDlgParams

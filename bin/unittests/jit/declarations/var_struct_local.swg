@@ -78,11 +78,11 @@ struct LocalVarKeyEvent
         Released
     }
 
-        using base: LocalVarEventBase
-    kind:      Kind
-    modifiers: s32 = 3
-    key:       s32 = undefined
-    char:      rune
+    using base: LocalVarEventBase
+    kind:       Kind
+    modifiers:  s32 = 3
+    key:        s32 = undefined
+    char:       rune
 }
 
 #test

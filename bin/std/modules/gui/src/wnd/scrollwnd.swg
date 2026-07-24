@@ -12,7 +12,7 @@ public enum ScrollWndFlags
 
 public struct ScrollWnd
 {
-    using frameWnd:           FrameWnd
+    using frameWnd: FrameWnd
 
     scrollIncrementV: f32 = 50
     scrollIncrementH: f32 = 50

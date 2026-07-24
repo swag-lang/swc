@@ -4,7 +4,7 @@ using Core, Pixel
 
 struct ImageRect
 {
-    using wnd:        Wnd
+    using wnd:    Wnd
     movie:        Movie
     textureFrame: Texture
 }

@@ -24,11 +24,11 @@ enum ListFlags
 
 struct ListItem
 {
-    using item:     Item
-    sortKey: String
-    colorBk: Color
-    colorFg: Color
-    column:  u32
+    using item: Item
+    sortKey:    String
+    colorBk:    Color
+    colorFg:    Color
+    column:     u32
     horzAlign       = StringHorzAlignment.Left
 }
 
@@ -56,7 +56,7 @@ struct ListLine
 
 struct ListCtrl
 {
-    using frameWnd:         FrameWnd
+    using frameWnd: FrameWnd
 
     horizontalExtent: f32
     lineHeight:       f32
@@ -85,17 +85,17 @@ struct ListCtrl
     nextLineIndex:    u32
     focusIndex              = Swag.U32.Max
     hotIndex                = Swag.U32.Max
-    scrollWnd:              #late *ScrollWnd
-    listView:               #late *ListView
-    header:                 #late *Header
+    scrollWnd:    #late *ScrollWnd
+    listView:     #late *ListView
+    header:       #late *Header
     virtualCount: u32
     isVirtual:    bool
 }
 
 struct ListView
 {
-    using wnd:               Wnd
-    list:                    #late *ListCtrl
+    using wnd:           Wnd
+    list:                #late *ListCtrl
     discardMouseRelease: bool
 }
 

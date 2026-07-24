@@ -29,9 +29,9 @@ enum FrameWndAnchor
 
 struct FrameWnd
 {
-    using wnd:       Wnd
+    using wnd: Wnd
 
-    view:            #late *Wnd
+    view: #late *Wnd
     frameForm        = FrameWndForm.Transparent
     frameFlags       = FrameWndFlags.Borders
     anchor           = FrameWndAnchor.None

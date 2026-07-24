@@ -253,17 +253,17 @@ const NIF_SHOWTIP  = 0x00000080
 
 struct NOTIFYICONDATAA
 {
-    cbSize:           DWORD
-    hWnd:             HWND
-    uID:              UINT
-    uFlags:           UINT
-    uCallbackMessage: UINT
-    hIcon:            HICON
-    szTip:            [128] CHAR
-    dwState:          DWORD
-    dwStateMask:      DWORD
-    szInfo:           [256] CHAR
-        using DUMMYUNIONNAME: union
+    cbSize:               DWORD
+    hWnd:                 HWND
+    uID:                  UINT
+    uFlags:               UINT
+    uCallbackMessage:     UINT
+    hIcon:                HICON
+    szTip:                [128] CHAR
+    dwState:              DWORD
+    dwStateMask:          DWORD
+    szInfo:               [256] CHAR
+    using DUMMYUNIONNAME: union
     {
         uTimeout: UINT
         uVersion: UINT
@@ -276,17 +276,17 @@ struct NOTIFYICONDATAA
 
 struct NOTIFYICONDATAW
 {
-    cbSize:           DWORD
-    hWnd:             HWND
-    uID:              UINT
-    uFlags:           UINT
-    uCallbackMessage: UINT
-    hIcon:            HICON
-    szTip:            [128] WCHAR
-    dwState:          DWORD
-    dwStateMask:      DWORD
-    szInfo:           [256] WCHAR
-        using DUMMYUNIONNAME: union
+    cbSize:               DWORD
+    hWnd:                 HWND
+    uID:                  UINT
+    uFlags:               UINT
+    uCallbackMessage:     UINT
+    hIcon:                HICON
+    szTip:                [128] WCHAR
+    dwState:              DWORD
+    dwStateMask:          DWORD
+    szInfo:               [256] WCHAR
+    using DUMMYUNIONNAME: union
     {
         uTimeout: UINT
         uVersion: UINT

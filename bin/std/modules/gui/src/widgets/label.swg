@@ -14,7 +14,7 @@ enum LabelFlags
 
 struct Label
 {
-    using wnd:            Wnd
+    using wnd: Wnd
 
     sigUrlClicked: SigArray'func||(*Label, string)
 

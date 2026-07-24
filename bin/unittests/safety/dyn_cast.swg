@@ -128,12 +128,12 @@ struct Base
 struct Mid
 {
     using base: Base
-    midValue: s32 = 20
+    midValue:   s32 = 20
 }
 
 struct Derived
 {
-    using mid: Mid
+    using mid:    Mid
     derivedValue: s32 = 30
 }
 

@@ -1,7 +1,7 @@
 struct EditWnd
 {
-    using scrollWnd:     ScrollWnd
-    editView:            #late *EditView
+    using scrollWnd: ScrollWnd
+    editView:        #late *EditView
 }
 
 impl EditWnd

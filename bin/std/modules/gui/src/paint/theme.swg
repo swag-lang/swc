@@ -64,20 +64,20 @@ private func defaultThemeImages()->*DefaultThemeImages
 
 struct ThemeResources
 {
-    imgWidgets: Texture
-    icons24:                 #late *ImageList
-    icons64:                 #late *ImageList
-    spin:                    #late *ImageList
-    defaultTypeFaceR:        #late *TypeFace
-    defaultTypeFaceB:        #late *TypeFace
-    defaultTypeFaceI:        #late *TypeFace
-    defaultTypeFaceBI:       #late *TypeFace
-    defaultFsTypeFaceR:      #late *TypeFace
-    defaultFsTypeFaceB:      #late *TypeFace
-    defaultFsTypeFaceI:      #late *TypeFace
-    defaultFsTypeFaceBI:     #late *TypeFace
-    fontDefault:   FontFamily
-    fontDefaultFs: FontFamily
+    imgWidgets:          Texture
+    icons24:             #late *ImageList
+    icons64:             #late *ImageList
+    spin:                #late *ImageList
+    defaultTypeFaceR:    #late *TypeFace
+    defaultTypeFaceB:    #late *TypeFace
+    defaultTypeFaceI:    #late *TypeFace
+    defaultTypeFaceBI:   #late *TypeFace
+    defaultFsTypeFaceR:  #late *TypeFace
+    defaultFsTypeFaceB:  #late *TypeFace
+    defaultFsTypeFaceI:  #late *TypeFace
+    defaultFsTypeFaceBI: #late *TypeFace
+    fontDefault:         FontFamily
+    fontDefaultFs:       FontFamily
 }
 
 struct Theme

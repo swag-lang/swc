@@ -50,9 +50,9 @@ public struct Result
 
 public struct Point
 {
-    using v:     Math.Vector2
-    edges:  Array'(*Edge)
-    border: [2] #null *Edge
+    using v: Math.Vector2
+    edges:   Array'(*Edge)
+    border:  [2] #null *Edge
 }
 
 public struct Edge

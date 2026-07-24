@@ -6,13 +6,13 @@ alias FrameCallback = func||(*Application)
 
 struct Application
 {
-    using native:           ApplicationNative
-    sigFrame: SigArray'func||(*Application)
+    using native: ApplicationNative
+    sigFrame:     SigArray'func||(*Application)
 
-    options:  ApplicationOptions
-    appIcon:  Pixel.Image
-    renderer: Pixel.RenderOgl
-    theme:                  #late *Theme
+    options:      ApplicationOptions
+    appIcon:      Pixel.Image
+    renderer:     Pixel.RenderOgl
+    theme:        #late *Theme
     style:        ThemeStyle
     keyb:         Input.Keyboard
     mouse:        Input.Mouse

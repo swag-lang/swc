@@ -85,15 +85,15 @@ struct WAVEFORMAT
 #[Swag.Pack(1)]
 struct PCMWAVEFORMAT
 {
-    using wf:           WAVEFORMAT
+    using wf:       WAVEFORMAT
     wBitsPerSample: u16
 }
 
 #[Swag.Pack(1)]
 struct WAVEFORMATEX
 {
-    using pcmwf:     PCMWAVEFORMAT
-    cbSize: u16     // The count in bytes of the size of extra information (after cbSize)
+    using pcmwf: PCMWAVEFORMAT
+    cbSize:      u16     // The count in bytes of the size of extra information (after cbSize)
 }
 
 #[Swag.Pack(1)]

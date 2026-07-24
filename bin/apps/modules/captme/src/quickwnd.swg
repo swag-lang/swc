@@ -70,9 +70,9 @@ func(T) addStyleForm(qs: *QuickStyle, form: *T)
 
 struct QuickButton
 {
-    using iconBtn:     IconButton
-    formItf: #null IForm
-    quickWnd:          #late *QuickWnd
+    using iconBtn: IconButton
+    formItf:       #null IForm
+    quickWnd:      #late *QuickWnd
 }
 
 struct QuickStylePaintForm
@@ -154,10 +154,10 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
 
 struct QuickWnd
 {
-    using scrollWnd:     ScrollWnd
+    using scrollWnd: ScrollWnd
 
-    layout:              #late *WrapLayoutCtrl
-    main:                #late *MainWnd
+    layout: #late *WrapLayoutCtrl
+    main:   #late *MainWnd
 
     qsArrow:     QuickStyle
     qsShape:     QuickStyle

@@ -11,7 +11,7 @@ enum IconBarFlags
 
 struct IconBar
 {
-    using wnd:           Wnd
+    using wnd: Wnd
 
     iconBarFlags         = IconBarFlags.Zero
     iconSize:    f32

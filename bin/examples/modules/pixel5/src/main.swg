@@ -30,10 +30,10 @@ struct CardOptions
 
 struct TextureCard
 {
-    title:           #late string
-    subtitle:        #late string
-    texture: Texture
-    options: CardOptions
+    title:    #late string
+    subtitle: #late string
+    texture:  Texture
+    options:  CardOptions
 }
 
 var g_Window:   Env.Window

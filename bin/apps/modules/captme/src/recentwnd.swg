@@ -22,13 +22,13 @@ struct RecentInfos
 
 struct RecentView
 {
-    using wnd:     Wnd
+    using wnd: Wnd
 
-    main:          #late *MainWnd
-    recentWnd:     #late *RecentWnd
-    items:    ArrayPtr'RecentItem
-    selected: u64 = Swag.U64.Max
-    hotItem:  u64 = Swag.U64.Max
+    main:      #late *MainWnd
+    recentWnd: #late *RecentWnd
+    items:     ArrayPtr'RecentItem
+    selected:  u64 = Swag.U64.Max
+    hotItem:   u64 = Swag.U64.Max
 }
 
 impl RecentView
@@ -209,9 +209,9 @@ impl IWnd for RecentView
 
 struct RecentWnd
 {
-    using scrollWnd:     ScrollWnd
-    main:                #late *MainWnd
-    recentView:          #late *RecentView
+    using scrollWnd:    ScrollWnd
+    main:               #late *MainWnd
+    recentView:         #late *RecentView
     timer:              #null *Gui.Timer
     loadTimer:          #null *Gui.Timer
     pendingRecentFiles: Array'String

@@ -173,7 +173,7 @@ struct AutoCompactBranch
 struct IntrinsicLifecycleErr
 {
     using base: Swag.BaseError
-    code: s32 = 0
+    code:       s32 = 0
 }
 
 struct ReceiverLifecycleTracked

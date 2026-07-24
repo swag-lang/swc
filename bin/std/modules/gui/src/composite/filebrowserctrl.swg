@@ -12,16 +12,16 @@ using Core, File, Directory
 // are simply ignored here.
 struct FileBrowserCtrl
 {
-    using wnd:        Wnd
+    using wnd: Wnd
 
-    treeCtrl:    #null *ListCtrl
-    treePathStr: Array'String
-    listCtrl:         #late *ListCtrl
-    comboPath:        #late *ComboBox
+    treeCtrl:     #null *ListCtrl
+    treePathStr:  Array'String
+    listCtrl:     #late *ListCtrl
+    comboPath:    #late *ComboBox
     comboPathStr: Array'String
-    editFile:         #late *EditBox
-    comboType:        #late *ComboBox
-    options: FileDlgOptions
+    editFile:     #late *EditBox
+    comboType:    #late *ComboBox
+    options:      FileDlgOptions
 
     curFolder: String
     curList:   Array'FileInfo

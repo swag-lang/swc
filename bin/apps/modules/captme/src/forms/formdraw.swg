@@ -1,6 +1,6 @@
 struct FormDraw
 {
-    using base:     BaseForm
+    using base: BaseForm
     points:     Array'Math.Vector2
     anchorSize: f32 = 12
 }

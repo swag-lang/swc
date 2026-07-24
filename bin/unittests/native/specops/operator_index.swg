@@ -140,7 +140,7 @@ struct RuntimeIndexedNativeState
 struct RuntimeIndexedState
 {
     using native: RuntimeIndexedNativeState
-    values: [@countof(RuntimeIndexedSlot)] bool
+    values:       [@countof(RuntimeIndexedSlot)] bool
 }
 
 struct RuntimeIndexedHolder

@@ -4,13 +4,13 @@ using Core, Pixel
 
 struct PopupListCtrlItem
 {
-    using base:      Item
+    using base:  Item
     isSeparator: bool
 }
 
 struct PopupListCtrl
 {
-    using frameWnd:       FrameWnd
+    using frameWnd:   FrameWnd
     heightItem:       f32 = 30
     heightSeparator:  f32 = 15
     minWidthPopup:    f32 = 100
@@ -21,16 +21,16 @@ struct PopupListCtrl
 
     items: ArrayPtr'PopupListCtrlItem
     selectedIdx           = Swag.U32.Max
-    scrollWnd:            #late *ScrollWnd
+    scrollWnd:   #late *ScrollWnd
     maxIconSize: s32
 }
 
 struct PopupListView
 {
-    using wnd:     Wnd
-    list:          #late *PopupListCtrl
-    hotIdx:  u32 = Swag.U32.Max
-    closing: bool
+    using wnd: Wnd
+    list:      #late *PopupListCtrl
+    hotIdx:    u32 = Swag.U32.Max
+    closing:   bool
 }
 
 impl IWnd for PopupListView

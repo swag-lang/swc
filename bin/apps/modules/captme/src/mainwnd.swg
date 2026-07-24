@@ -20,21 +20,21 @@ enum BottomSize
 // Main structure
 struct MainWnd
 {
-    using wnd:                                    Wnd
-    topBar, editToolBar, recentBar:               #late *Wnd
-    editWnd:                                      #late *EditWnd
-    quickWnd:                                     #late *QuickWnd
-    propWnd:                                      #late *PropWnd
-    libWnd:                                       #late *LibraryWnd
-    recentWnd:                                    #late *RecentWnd
-    recentSizeBar:                                #late *IconBar
-    quickStyleBar:                                #late *SplitterCtrl
-    editZoomBar:                                  #late *StackLayoutCtrl
-    captureBtn, libraryBtn, zoomBtn:              #late *IconButton
-    sizeBtn:                   #null *IconButton
-    embInfoFreeze:             #null *EmbInfoCtrl
-    icons24, icons48, appIcon: ImageList
-    monitors:                  Array'Env.Monitor
+    using wnd:                       Wnd
+    topBar, editToolBar, recentBar:  #late *Wnd
+    editWnd:                         #late *EditWnd
+    quickWnd:                        #late *QuickWnd
+    propWnd:                         #late *PropWnd
+    libWnd:                          #late *LibraryWnd
+    recentWnd:                       #late *RecentWnd
+    recentSizeBar:                   #late *IconBar
+    quickStyleBar:                   #late *SplitterCtrl
+    editZoomBar:                     #late *StackLayoutCtrl
+    captureBtn, libraryBtn, zoomBtn: #late *IconButton
+    sizeBtn:                         #null *IconButton
+    embInfoFreeze:                   #null *EmbInfoCtrl
+    icons24, icons48, appIcon:       ImageList
+    monitors:                        Array'Env.Monitor
 
     // State
     editMode:                                  EditMode = .Shape
@@ -58,7 +58,7 @@ struct MainWnd
     mdlFormCallout: FormCallout
 
     // Set right after construction (create/test fixtures).
-    mdlHighlight, mdlPixSel, mdlFavorite:     #late IForm
+    mdlHighlight, mdlPixSel, mdlFavorite: #late IForm
 
     // One interface per model field above, in FormRegistry order (see wrapper.swg)
     mdlByType: Array'IForm

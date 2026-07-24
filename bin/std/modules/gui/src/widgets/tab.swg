@@ -43,18 +43,18 @@ enum TabBarLayout
 
 struct TabItem
 {
-    using item:     Item
-    pos:       f32
-    width:     f32
-    view:      #null *Wnd
-    aniImg:    BlendColor
-    aniBorder: BlendColor
-    aniText:   BlendColor
+    using item: Item
+    pos:        f32
+    width:      f32
+    view:       #null *Wnd
+    aniImg:     BlendColor
+    aniBorder:  BlendColor
+    aniText:    BlendColor
 }
 
 struct Tab
 {
-    using wnd:                Wnd
+    using wnd: Wnd
 
     barForm                   = TabBarForm.Flat
     itemForm                  = TabItemForm.Flat

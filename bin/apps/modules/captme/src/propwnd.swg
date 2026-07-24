@@ -42,10 +42,10 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 // timeline. The compact x/y and w/h rows are hand-appended at the end of the grid.
 struct PropWnd
 {
-    using frameWnd:     FrameWnd
-    topLayout:          #late *StackLayoutCtrl
-    grid:               #late *Properties
-    main:               #late *MainWnd
+    using frameWnd: FrameWnd
+    topLayout:      #late *StackLayoutCtrl
+    grid:           #late *Properties
+    main:           #late *MainWnd
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
     gridBindType: typeinfo = undefined

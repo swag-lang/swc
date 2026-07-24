@@ -4,7 +4,7 @@ using Core
 
 struct WrapLayoutCtrl
 {
-    using wnd:        Wnd
+    using wnd: Wnd
 
     spacing:      f32 = 5
     wrapWidth:    f32 = 64

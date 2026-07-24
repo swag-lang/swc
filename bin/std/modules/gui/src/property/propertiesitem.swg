@@ -36,8 +36,8 @@ enum ItemFlags
 struct PropertiesItem
 {
     filter: String
-    line:               #late *Wnd
-    data: #null *u8
+    line:   #late *Wnd
+    data:   #null *u8
 
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
@@ -55,10 +55,10 @@ struct PropertiesItem
     // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the
     // current value differs from that default (recomputed on build and after every change);
     // revertButton is the lazily-created revert affordance shown while the row is modified.
-    defaultData: #null *u8
-    isModified:  bool
-    revertButton:       #late *IconButton
-    arrayAddButton:     #late *IconButton
+    defaultData:    #null *u8
+    isModified:     bool
+    revertButton:   #late *IconButton
+    arrayAddButton: #late *IconButton
 
     // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
     // field, kept per row so hasChanged can diff the new value against it and record one undo
@@ -73,20 +73,20 @@ struct PropertiesItem
     userData0: #null *void
     userData1: #null *void
 
-    label:              #late *Label
+    label:       #late *Label
     description: String
-    labelDesc:          #late *Label
+    labelDesc:   #late *Label
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
-    validation:    PropValidation
-    validationMsg: String
-    validationLabel:    #late *Label
+    validation:      PropValidation
+    validationMsg:   String
+    validationLabel: #late *Label
 
-    editBox:            #late *EditBox
-    checkBox:           #late *CheckButton
-    comboBox:           #late *ComboBox
-    sliderBox:          #late *SliderCtrl
+    editBox:   #late *EditBox
+    checkBox:  #late *CheckButton
+    comboBox:  #late *ComboBox
+    sliderBox: #late *SliderCtrl
 
     sigResize:  SigArray'func||(*PropertiesItem)
     sigRefresh: SigArray'func||(*PropertiesItem)

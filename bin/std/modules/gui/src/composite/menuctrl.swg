@@ -16,21 +16,21 @@ public enum MenuCtrlFlags
 
 public struct PopupMenuItem
 {
-    using item:     Item
-    rightName: RichString
-    popup:          #late *MenuCtrl
-    pos:       f32
-    size:      f32
-    rg:        CommandStateEvent.RenderingHint
-    separator: bool
-    disabled:  bool
-    checked:   bool
-    hidden:    bool
+    using item: Item
+    rightName:  RichString
+    popup:      #late *MenuCtrl
+    pos:        f32
+    size:       f32
+    rg:         CommandStateEvent.RenderingHint
+    separator:  bool
+    disabled:   bool
+    checked:    bool
+    hidden:     bool
 }
 
 public struct MenuCtrl
 {
-    using frameWnd:       FrameWnd
+    using frameWnd:   FrameWnd
     onValidateResult: #null func(*MenuCtrl, WndId)
     onComputeItem:    #null func(*MenuCtrl, *PopupMenuItem)
     menuCtrlFlags:    MenuCtrlFlags = Zero

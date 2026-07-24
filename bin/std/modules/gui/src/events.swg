@@ -25,9 +25,9 @@ impl IEvent for Event {}
 
 struct CommandEvent
 {
-    using base:     Event
-    id:     WndId = undefined
-    source: #null *Wnd
+    using base: Event
+    id:         WndId = undefined
+    source:     #null *Wnd
 }
 
 impl IEvent for CommandEvent {}
@@ -62,10 +62,10 @@ struct CommandStateEvent
         ApplyCommandState
     }
 
-        using base:        Event
-    kind:   Kind
-    id:     WndId = undefined
-    source: #null *Wnd
+    using base: Event
+    kind:       Kind
+    id:         WndId = undefined
+    source:     #null *Wnd
 
     icon:          Icon
     name:          String
@@ -83,15 +83,15 @@ impl IEvent for CommandStateEvent {}
 
 struct TimerEvent
 {
-    using base:     Event
-    timer: *Timer = undefined
+    using base: Event
+    timer:      *Timer = undefined
 }
 
 impl IEvent for TimerEvent {}
 
 struct FrameEvent
 {
-    using base:     Event
+    using base: Event
     firstFrame: bool
 }
 
@@ -119,8 +119,8 @@ struct StateEvent
         Disable
     }
 
-        using base:     Event
-    kind: Kind
+    using base: Event
+    kind:       Kind
 }
 
 impl IEvent for StateEvent {}
@@ -141,25 +141,25 @@ struct PaintEvent
         PostPaint
     }
 
-        using base:     Event
-    kind: Kind = .Paint
-    bc:   *PaintContext = undefined
+    using base: Event
+    kind:       Kind = .Paint
+    bc:         *PaintContext = undefined
 }
 
 impl IEvent for PaintEvent {}
 
 struct ResizeEvent
 {
-    using base:     Event
-    oldSize: Math.Point
+    using base: Event
+    oldSize:    Math.Point
 }
 
 impl IEvent for ResizeEvent {}
 
 struct MoveEvent
 {
-    using base:     Event
-    oldPos: Math.Point
+    using base: Event
+    oldPos:     Math.Point
 }
 
 impl IEvent for MoveEvent {}
@@ -173,11 +173,11 @@ struct KeyEvent
         Rune
     }
 
-        using base:     Event
-    kind:      Kind
-    modifiers: Input.KeyModifiers = Zero
-    key:       Input.Key = undefined
-    char:      rune
+    using base: Event
+    kind:       Kind
+    modifiers:  Input.KeyModifiers = Zero
+    key:        Input.Key = undefined
+    char:       rune
 }
 
 impl IEvent for KeyEvent {}
@@ -197,7 +197,7 @@ struct MouseEvent
         MouseSetCursor
     }
 
-        using base:     Event
+    using base: Event
     kind:       Kind
     button:     Input.MouseButton = undefined
     surfacePos: Math.Point
@@ -209,8 +209,8 @@ impl IEvent for MouseEvent {}
 
 struct QuitEvent
 {
-    using base:     Event
-    quitCode: s32
+    using base: Event
+    quitCode:   s32
 }
 
 impl IEvent for QuitEvent {}
@@ -225,9 +225,9 @@ struct FocusEvent
         CanKillFocus
     }
 
-        using base:        Event
-    kind:  Kind
-    other: #null *Wnd
+    using base: Event
+    kind:       Kind
+    other:      #null *Wnd
     canChangeFocus     = true
 }
 
@@ -235,10 +235,10 @@ impl IEvent for FocusEvent {}
 
 struct SysUserEvent
 {
-    using base:     Event
-    userMsg: u64
-    param0:  u64
-    param1:  u64
+    using base: Event
+    userMsg:    u64
+    param0:     u64
+    param1:     u64
 }
 
 impl IEvent for SysUserEvent {}
@@ -254,25 +254,25 @@ struct SysCommandEvent
         User
     }
 
-        using base:     Event
-    kind: Kind
+    using base: Event
+    kind:       Kind
 }
 
 impl IEvent for SysCommandEvent {}
 
 struct ThemeEvent
 {
-    using base:     Event
-    style:  *ThemeStyle = undefined
-    parent: #null *ThemeStyle
+    using base: Event
+    style:      *ThemeStyle = undefined
+    parent:     #null *ThemeStyle
 }
 
 impl IEvent for ThemeEvent {}
 
 struct SerializeStateEvent
 {
-    using base:     Event
-    ser: *Serialization.Serializer = undefined
+    using base: Event
+    ser:        *Serialization.Serializer = undefined
 }
 
 impl IEvent for SerializeStateEvent {}

@@ -37,7 +37,7 @@ struct AnyCastBase
 struct AnyCastDerived
 {
     using base: AnyCastBase
-    extra: s32 = 0
+    extra:      s32 = 0
 }
 
 struct AnyCompareType {}

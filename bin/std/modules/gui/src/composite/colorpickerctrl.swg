@@ -22,7 +22,7 @@ enum ColorPickerFlags
 
 struct ColorPickerCtrl
 {
-    using frameWnd:     FrameWnd
+    using frameWnd: FrameWnd
 
     sigChanged: SigArray'func||(*ColorPickerCtrl)
     oldColor:   Color
@@ -31,21 +31,21 @@ struct ColorPickerCtrl
 
     oldColorDone: bool
     mode                = ColorPickerViewMode.SaturationLightness
-    staticRes:          #late *Wnd
-    pickBox:            #late *ColorPicker
-    pickBar:            #late *ColorPicker
-    pickAlpha:          #late *ColorPicker
-    editA:              #late *EditBox
-    editR:              #late *EditBox
-    editG:              #late *EditBox
-    editB:              #late *EditBox
-    editH:              #late *EditBox
-    radioH:             #late *RadioButton
-    radioL:             #late *RadioButton
-    radioS:             #late *RadioButton
-    radioR:             #late *RadioButton
-    radioG:             #late *RadioButton
-    radioB:             #late *RadioButton
+    staticRes: #late *Wnd
+    pickBox:   #late *ColorPicker
+    pickBar:   #late *ColorPicker
+    pickAlpha: #late *ColorPicker
+    editA:     #late *EditBox
+    editR:     #late *EditBox
+    editG:     #late *EditBox
+    editB:     #late *EditBox
+    editH:     #late *EditBox
+    radioH:    #late *RadioButton
+    radioL:    #late *RadioButton
+    radioS:    #late *RadioButton
+    radioR:    #late *RadioButton
+    radioG:    #late *RadioButton
+    radioB:    #late *RadioButton
 }
 
 impl IWnd for ColorPickerCtrl

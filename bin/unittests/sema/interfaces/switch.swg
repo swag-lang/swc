@@ -8,19 +8,19 @@ struct EventBase
 struct MouseEvent
 {
     using base: EventBase
-    button: s32 = 2
+    button:     s32 = 2
 }
 
 struct MouseWheelEvent
 {
     using mouse: MouseEvent
-    delta: s32 = 3
+    delta:       s32 = 3
 }
 
 struct KeyEvent
 {
     using base: EventBase
-    key: s32 = 7
+    key:        s32 = 7
 }
 
 interface IEvent {}

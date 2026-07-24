@@ -35,9 +35,9 @@ struct FileDlgOptions
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
 struct FileDlg
 {
-    using dialog:     Dialog
-    browser:          #late *FileBrowserCtrl
-    dlgOptions: FileDlgOptions
+    using dialog: Dialog
+    browser:      #late *FileBrowserCtrl
+    dlgOptions:   FileDlgOptions
 }
 
 impl IWnd for FileDlg

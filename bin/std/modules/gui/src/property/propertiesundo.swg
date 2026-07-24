@@ -150,7 +150,7 @@ impl PropFieldValue
 // skips the row refresh (the values still land at the right addresses).
 struct PropUndoCommand
 {
-    prop:           #late *Properties
+    prop:       #late *Properties
     generation: u64
     oldVal:     PropFieldValue
     newVal:     PropFieldValue

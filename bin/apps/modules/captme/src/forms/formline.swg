@@ -1,10 +1,10 @@
 #[Swag.Using(Properties)]
 struct FormLine
 {
-    using base:         BaseForm
-    beginCap: LineCapStyle = .Round
-    endCap:   LineCapStyle = .Round
-    dashCap:  DashCapStyle = .None
+    using base: BaseForm
+    beginCap:   LineCapStyle = .Round
+    endCap:     LineCapStyle = .Round
+    dashCap:    DashCapStyle = .None
     #[Name("Start Size"), SliderMinMax(MinCapSize, MaxCapSize)]
     startSize: f32 = 4
     #[Name("End Size"), SliderMinMax(MinCapSize, MaxCapSize)]

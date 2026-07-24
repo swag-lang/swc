@@ -19,10 +19,10 @@ enum BankErrorKind
 
 struct BankError
 {
-    using base:  Swag.BaseError
-    kind:    BankErrorKind = BankErrorKind.None
-    account: s32           = -1
-    amount:  s64           = 0
+    using base: Swag.BaseError
+    kind:       BankErrorKind = BankErrorKind.None
+    account:    s32           = -1
+    amount:     s64           = 0
 }
 
 struct Account

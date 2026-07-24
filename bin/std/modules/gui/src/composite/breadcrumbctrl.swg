@@ -27,7 +27,7 @@ struct BreadcrumbItem
 // so it works for folders, categories, or any other hierarchy.
 struct BreadcrumbCtrl
 {
-    using wnd:          Wnd
+    using wnd: Wnd
 
     items: Array'BreadcrumbItem
     hotItem             = Swag.U64.Max

@@ -30,7 +30,7 @@ struct RichEditMapping
 
 struct RichEditCtrl
 {
-    using frameWnd:              FrameWnd
+    using frameWnd: FrameWnd
     richEdFlags                  = RichEditFlags.Zero
     lineSpacing:   f32
     overwriteMode: bool
@@ -50,8 +50,8 @@ struct RichEditCtrl
     selBeg:       RichEditCursor
     lines:        ArrayPtr'RichEditLine
     freeLines:    ArrayPtr'RichEditLine
-    scrollWnd:                   #late *ScrollWnd
-    edView:                      #late *RichEditView
+    scrollWnd:    #late *ScrollWnd
+    edView:       #late *RichEditView
     selRectangle: Math.Rectangle
 
     hasSelRect:              bool

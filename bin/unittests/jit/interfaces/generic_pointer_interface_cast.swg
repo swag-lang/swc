@@ -15,7 +15,7 @@ struct GenericPointerCastBase
 struct GenericPointerCastBox
 {
     using base: GenericPointerCastBase
-    value: s32 = 42
+    value:      s32 = 42
 }
 
 impl IGenericPointerCast for GenericPointerCastBase

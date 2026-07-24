@@ -43,7 +43,7 @@ enum EditBoxFlags
 
 struct EditBox
 {
-    using wnd:            Wnd     // Base window interface
+    using wnd: Wnd     // Base window interface
 
     icon: Icon                                             // Optional icon shown on the left
     text: String                                           // Current UTF‑8 text content
@@ -64,8 +64,8 @@ struct EditBox
     {
         originalText: String     // Text captured when focus was gained
 
-            // Numeric bounds used when inputMode is S64/U64/X64/F64.
-            using minMax: union
+        // Numeric bounds used when inputMode is S64/U64/X64/F64.
+        using minMax: union
         {
             minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
             minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}                 // Unsigned integer bounds

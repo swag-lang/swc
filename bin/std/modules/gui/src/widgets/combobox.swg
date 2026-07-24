@@ -19,13 +19,13 @@ enum ComboBoxFlags
 
 struct ComboBoxItem
 {
-    using base:      Item
+    using base:  Item
     isSeparator: bool
 }
 
 struct ComboBox
 {
-    using wnd:          Wnd
+    using wnd: Wnd
 
     kind                = ComboBoxKind.Select
     comboBoxFlags       = ComboBoxFlags.Zero     // Active behaviour flags

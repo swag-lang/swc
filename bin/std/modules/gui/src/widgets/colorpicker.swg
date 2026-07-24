@@ -30,7 +30,7 @@ enum ColorPickerMode
 
 struct ColorPicker
 {
-    using wnd:         Wnd
+    using wnd:     Wnd
     hue, sat, lum: f32
     a, r, g, b:    f32
     mode               = ColorPickerMode.SaturationLightness

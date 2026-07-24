@@ -4,17 +4,17 @@ using Core, Pixel
 
 struct SliderCtrl
 {
-    using frameWnd:     FrameWnd
-    labelSize:    f32 = 60
-    editSize:     f32 = 60
-    gap:          f32 = 8
-    autoEditSize: bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
+    using frameWnd: FrameWnd
+    labelSize:      f32 = 60
+    editSize:       f32 = 60
+    gap:            f32 = 8
+    autoEditSize:   bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
 
     sigChanged: SigArray'func||(*SliderCtrl)
 
-    label:              #late *Label
-    slider:             #late *Slider
-    edit:               #late *EditBox
+    label:  #late *Label
+    slider: #late *Slider
+    edit:   #late *EditBox
 }
 
 impl IWnd for SliderCtrl

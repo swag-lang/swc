@@ -2,10 +2,10 @@ using Core, Pixel
 
 public struct EditDlg
 {
-    using dialog:     Dialog
-    label:            #late *Label
-    edit:     #null *EditBox
-    richEdit: #null *RichEditCtrl
+    using dialog: Dialog
+    label:        #late *Label
+    edit:         #null *EditBox
+    richEdit:     #null *RichEditCtrl
 }
 
 public impl EditDlg

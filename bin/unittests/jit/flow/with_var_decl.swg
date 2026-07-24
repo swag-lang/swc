@@ -20,13 +20,13 @@ struct JitWithDockBase
 struct JitWithDockWidget
 {
     using base: JitWithDockBase
-    value: s32
+    value:      s32
 }
 
 struct JitWithDockOwner
 {
     using base: JitWithDockBase
-    widgetPtr: #null *JitWithDockWidget
+    widgetPtr:  #null *JitWithDockWidget
 }
 
 func jitWithVarMakePoint(x, y: s32)->JitWithVarPoint

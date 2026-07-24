@@ -4,7 +4,7 @@ using Core, Pixel
 
 struct PalettePicker
 {
-    using wnd:         Wnd
+    using wnd:     Wnd
     selectedColor: Color
     pal:           Array'Color
     palPos:        Array'Math.Rectangle

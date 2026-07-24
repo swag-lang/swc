@@ -51,7 +51,7 @@ struct HeadlessTexture
 #[Swag.NoCopy]
 struct RenderOgl
 {
-    using native:        NativeRenderOgl
+    using native:    NativeRenderOgl
     vertexbuffer:    GLuint
     shaderSimple:    ShaderSimple
     shaderAA:        ShaderAA

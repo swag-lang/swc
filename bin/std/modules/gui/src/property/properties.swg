@@ -103,7 +103,7 @@ const PropCondensedControlHeight = 20'f32
 
 struct Properties
 {
-    using frameWnd:     FrameWnd
+    using frameWnd: FrameWnd
 
     kind                = PropertiesKind.List
 
@@ -142,10 +142,10 @@ struct Properties
     fontSection:  FontFamily
     fontCategory: FontFamily
     fontName:     FontFamily
-    scrollWnd:                #late *ScrollWnd
-    edView:                   #late *PropertiesView
-    items:    ArrayPtr'PropertiesItem
-    sections: Array'{ item: #null *PropertiesItem, lvl: s32 }
+    scrollWnd:    #late *ScrollWnd
+    edView:       #late *PropertiesView
+    items:        ArrayPtr'PropertiesItem
+    sections:     Array'{ item: #null *PropertiesItem, lvl: s32 }
 
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).

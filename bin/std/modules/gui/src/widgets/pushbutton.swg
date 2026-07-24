@@ -12,7 +12,7 @@ enum PushButtonForm
 
 struct PushButton
 {
-    using button:     Button
+    using button: Button
 
     form              = PushButtonForm.Normal
 

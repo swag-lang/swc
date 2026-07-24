@@ -29,7 +29,7 @@ struct GridTrack
 
 struct GridLayoutCtrl
 {
-    using wnd:          Wnd
+    using wnd: Wnd
 
     gridLayoutFlags     = GridLayoutCtrlFlags.Zero
     numColumns:  s32

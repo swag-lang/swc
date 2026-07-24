@@ -55,7 +55,7 @@ enum IconButtonCheckedForm
 
 struct IconButton
 {
-    using button:        Button
+    using button: Button
 
     form                 = IconButtonForm.Square
     iconBtnFlags         = IconButtonFlags.Zero

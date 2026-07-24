@@ -19,9 +19,9 @@ func day4B()
 
         struct ForJob
         {
-            using base:     Jobs.Job
-            start:  u64
-            result: u64 = Swag.U64.Max
+            using base: Jobs.Job
+            start:      u64
+            result:     u64 = Swag.U64.Max
         }
 
         var sliceJobs: Array'ForJob

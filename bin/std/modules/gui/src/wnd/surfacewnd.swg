@@ -12,7 +12,7 @@ public enum SizingBorder
 
 public struct SurfaceWnd
 {
-    using base:        FrameWnd
+    using base:    FrameWnd
     icon:          Icon
     minimizeBtn:   #null *IconButton
     maximizeBtn:   #null *IconButton

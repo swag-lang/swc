@@ -14,7 +14,7 @@ struct SwitchAnyBase
 struct SwitchAnyDerived
 {
     using base: SwitchAnyBase
-    extra: s32 = 20
+    extra:      s32 = 20
 }
 
 const SwitchPointerValues = [11, 22, 33]

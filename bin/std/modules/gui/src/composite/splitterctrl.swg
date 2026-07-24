@@ -12,7 +12,7 @@ enum SplitterFlags
 
 struct SplitterItem
 {
-    view:                #late *Wnd
+    view:            #late *Wnd
     size:            f32
     minSize:         f32 = 5
     maxSize:         f32 = 0
@@ -24,7 +24,7 @@ struct SplitterItem
 
 struct SplitterCtrl
 {
-    using frameWnd:      FrameWnd
+    using frameWnd: FrameWnd
     splitterFlags        = SplitterFlags.Zero
     titleSize: f32 = 30
 

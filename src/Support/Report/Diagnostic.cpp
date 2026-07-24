@@ -104,7 +104,7 @@ namespace
         if (!sourceView)
             return false;
 
-        std::vector<SourceCodeRange>       originRanges;
+        std::vector<SourceCodeRange>      originRanges;
         std::unordered_set<SourceViewRef> visitedViews;
         visitedViews.insert(sourceView->ref());
 
@@ -127,7 +127,7 @@ namespace
             return false;
 
         constexpr size_t maxDisplayedOrigins = 4;
-        const size_t sequentialOrigins = originRanges.size() > maxDisplayedOrigins ? maxDisplayedOrigins - 1 : originRanges.size();
+        const size_t     sequentialOrigins   = originRanges.size() > maxDisplayedOrigins ? maxDisplayedOrigins - 1 : originRanges.size();
         for (size_t idx = 0; idx < sequentialOrigins; idx++)
         {
             diagnostic.addNote(DiagnosticId::sema_note_generated_source_origin);
@@ -291,9 +291,9 @@ void Diagnostic::report(TaskContext& ctx) const
     if (silent() || ctx.silentDiagnostic())
         return;
 
-    Diagnostic          contextualDiagnostic = *this;
-    const bool          contextualized        = addGeneratedSourceOrigin(ctx, contextualDiagnostic);
-    const Diagnostic&   reportedDiagnostic    = contextualized ? contextualDiagnostic : *this;
+    Diagnostic        contextualDiagnostic = *this;
+    const bool        contextualized       = addGeneratedSourceOrigin(ctx, contextualDiagnostic);
+    const Diagnostic& reportedDiagnostic   = contextualized ? contextualDiagnostic : *this;
 
     DiagnosticBuilder eng(ctx, reportedDiagnostic);
     const Utf8        msg     = eng.build();

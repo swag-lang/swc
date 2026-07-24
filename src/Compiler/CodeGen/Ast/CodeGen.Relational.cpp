@@ -68,7 +68,7 @@ namespace
 
         const MicroReg referenceSlotReg = ioPayload.reg;
         ioPayload.reg                   = codeGen.nextVirtualIntRegister();
-        MicroBuilder& builder = codeGen.builder();
+        MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugSource debugSource(builder, ioPayload.sourceCodeRef);
         builder.emitLoadRegMem(ioPayload.reg, referenceSlotReg, 0, MicroOpBits::B64);
         ioPayload.setIsAddress();
@@ -227,8 +227,8 @@ namespace
         const TypeInfo& operandType     = codeGen.typeMgr().get(resolvedTypeRef);
         if (operandType.isAny())
         {
-            outReg = codeGen.nextVirtualIntRegister();
-            MicroBuilder& builder = codeGen.builder();
+            outReg                          = codeGen.nextVirtualIntRegister();
+            MicroBuilder&           builder = codeGen.builder();
             const ScopedDebugSource debugSource(builder, payload.sourceCodeRef);
             builder.emitLoadRegMem(outReg, payload.reg, offsetof(Runtime::Any, type), MicroOpBits::B64);
             return;

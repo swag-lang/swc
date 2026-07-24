@@ -204,8 +204,8 @@ public:
     bool                            enteringState() const { return visit_.enteringState(); }
     // Cheap gate for the definite-assignment post-pass: set when this job declares a
     // '= undefined' local, so functions without one skip the analysis entirely.
-    void                            noteExplicitUndefinedLocal() { hasExplicitUndefinedLocals_ = true; }
-    bool                            hasExplicitUndefinedLocals() const { return hasExplicitUndefinedLocals_; }
+    void noteExplicitUndefinedLocal() { hasExplicitUndefinedLocals_ = true; }
+    bool hasExplicitUndefinedLocals() const { return hasExplicitUndefinedLocals_; }
 
     ConstantManager&                               cstMgr();
     const ConstantManager&                         cstMgr() const;
@@ -444,20 +444,20 @@ public:
     void unsetIsValue(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::Value); }
     void unsetIsValue(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::Value); }
 
-    bool isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    bool isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
-    bool isFoldedTypedConstStored(AstNodeRef ref) const;
-    void setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void unsetFoldedTypedConst(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
-    void unsetFoldedTypedConst(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
-    void setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
-    bool isConstAssignBinding(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
-    bool isConstAssignBinding(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::ConstAssignBinding); }
-    bool isConstAssignBindingStored(AstNodeRef ref) const;
+    bool                  isFoldedTypedConst(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    bool                  isFoldedTypedConst(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::FoldedTypedConst); }
+    bool                  isFoldedTypedConstStored(AstNodeRef ref) const;
+    void                  setFoldedTypedConst(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void                  unsetFoldedTypedConst(AstNode& node) { NodePayload::removePayloadFlags(node, NodePayloadFlags::FoldedTypedConst); }
+    void                  unsetFoldedTypedConst(AstNodeRef ref) { NodePayload::removePayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    void                  setFoldedTypedConst(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::FoldedTypedConst); }
+    bool                  isConstAssignBinding(const AstNode& node) const { return NodePayload::hasPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
+    bool                  isConstAssignBinding(AstNodeRef ref) const { return NodePayload::hasPayloadFlags(node(resolvedNodeRef(ref)), NodePayloadFlags::ConstAssignBinding); }
+    bool                  isConstAssignBindingStored(AstNodeRef ref) const;
     const SymbolVariable* constAssignSourceParameter(AstNodeRef ref) const;
-    void setConstAssignBinding(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
-    void setConstAssignBinding(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding); }
-    void setConstAssignBinding(AstNodeRef ref, const SymbolVariable* sourceParam)
+    void                  setConstAssignBinding(AstNode& node) { NodePayload::addPayloadFlags(node, NodePayloadFlags::ConstAssignBinding); }
+    void                  setConstAssignBinding(AstNodeRef ref) { NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding); }
+    void                  setConstAssignBinding(AstNodeRef ref, const SymbolVariable* sourceParam)
     {
         NodePayload::addPayloadFlags(node(ref), NodePayloadFlags::ConstAssignBinding);
         nodePayloadContext().setConstAssignSourceParameter(ref, sourceParam);
@@ -601,10 +601,10 @@ private:
     AstVisit                                                                           visit_;
 
     std::vector<std::unique_ptr<SemaScope>> scopes_;
-    SymbolMap*                              startSymMap_   = nullptr;
-    SemaScope*                              curScope_      = nullptr;
-    bool                                    declPass_                  = false;
-    bool                                    rootVisitDone_             = false;
+    SymbolMap*                              startSymMap_                = nullptr;
+    SemaScope*                              curScope_                   = nullptr;
+    bool                                    declPass_                   = false;
+    bool                                    rootVisitDone_              = false;
     bool                                    hasExplicitUndefinedLocals_ = false;
 
     std::vector<SemaFrame> frames_;

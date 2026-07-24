@@ -895,7 +895,7 @@ namespace
 
     Utf8 makeGenericInstantiationFailureText(const SymbolFunction& fn, const MatchFailure& fail, const TaskContext& ctx)
     {
-        const CastFailure& failure = fail.castFailure;
+        const CastFailure& failure       = fail.castFailure;
         const Utf8*        param         = castFailureUtf8Argument(failure, Diagnostic::ARG_VALUE);
         const Utf8         paramName     = param ? *param : Utf8{"<unknown>"};
         const uint32_t*    previousIndex = castFailureUIntArgument(failure, K_ARG_PREV_INDEX);

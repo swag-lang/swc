@@ -118,14 +118,14 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // File-level whitespace
     // -----------------------------------------------------------------------
-    std::optional<bool> preserveBom;                  // Preserve UTF-8 BOM markers already present in the file
-    std::optional<bool> preserveTrailingWhitespace;   // Keep trailing whitespace on existing lines unchanged
-    std::optional<bool> insertFinalNewline;           // Ensure the file ends with a single newline
-    std::optional<bool> trimTrailingNewlines;         // Collapse multiple trailing newlines to one
-    std::optional<bool> trimLeadingBlankLines;        // Remove blank lines at the very start of the file
-    uint32_t            maxConsecutiveEmptyLines = 2; // Max blank lines in a row (0 = no limit)
-    std::optional<bool> keepEmptyLinesAtStartOfBlock; // Preserve blank lines right after `{`
-    std::optional<bool> keepEmptyLinesAtEndOfBlock;   // Preserve blank lines right before `}`
+    std::optional<bool> preserveBom;                       // Preserve UTF-8 BOM markers already present in the file
+    std::optional<bool> preserveTrailingWhitespace;        // Keep trailing whitespace on existing lines unchanged
+    std::optional<bool> insertFinalNewline;                // Ensure the file ends with a single newline
+    std::optional<bool> trimTrailingNewlines;              // Collapse multiple trailing newlines to one
+    std::optional<bool> trimLeadingBlankLines;             // Remove blank lines at the very start of the file
+    uint32_t            maxConsecutiveEmptyLines = 2;      // Max blank lines in a row (0 = no limit)
+    std::optional<bool> keepEmptyLinesAtStartOfBlock;      // Preserve blank lines right after `{`
+    std::optional<bool> keepEmptyLinesAtEndOfBlock;        // Preserve blank lines right before `}`
     uint32_t            minBlankLinesBetweenFunctions = 0; // Minimum blank lines before a multi-line function definition (0 = preserve)
     uint32_t            minBlankLinesBetweenTypes     = 0; // Minimum blank lines before a multi-line type / impl / namespace definition (0 = preserve)
     uint32_t            minBlankLinesBeforeComments   = 0; // Minimum blank lines before a whole-line comment block that follows code (0 = preserve)
@@ -188,17 +188,17 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Statements
     // -----------------------------------------------------------------------
-    std::optional<bool>   removeRedundantSemicolons;                                         // Drop `;` at end of line (grammar-required ones stay)
-    std::optional<bool>   removeConditionParentheses;                                        // Drop `( ... )` wrapping a whole control condition
+    std::optional<bool> removeRedundantSemicolons;  // Drop `;` at end of line (grammar-required ones stay)
+    std::optional<bool> removeConditionParentheses; // Drop `( ... )` wrapping a whole control condition
 
     // -----------------------------------------------------------------------
     // Alignment
     // -----------------------------------------------------------------------
-    FormatAlignMode     alignConsecutiveAssignments  = FormatAlignMode::Preserve; // Align `=` in adjacent assignments
-    FormatAlignMode     alignConsecutiveDeclarations = FormatAlignMode::Preserve; // Align names/types of adjacent `let`/`var` declarations
-    FormatAlignMode     alignConsecutiveConstants    = FormatAlignMode::Preserve; // Align values of adjacent `const` declarations
-    FormatAlignMode     alignStructFields            = FormatAlignMode::Preserve; // Align `:` and types of adjacent struct fields
-    FormatAlignMode     alignEnumValues              = FormatAlignMode::Preserve; // Align `=` on enum value definitions
+    FormatAlignMode alignConsecutiveAssignments  = FormatAlignMode::Preserve; // Align `=` in adjacent assignments
+    FormatAlignMode alignConsecutiveDeclarations = FormatAlignMode::Preserve; // Align names/types of adjacent `let`/`var` declarations
+    FormatAlignMode alignConsecutiveConstants    = FormatAlignMode::Preserve; // Align values of adjacent `const` declarations
+    FormatAlignMode alignStructFields            = FormatAlignMode::Preserve; // Align `:` and types of adjacent struct fields
+    FormatAlignMode alignEnumValues              = FormatAlignMode::Preserve; // Align `=` on enum value definitions
 
     // Grid ("two-column") extensions of the declaration-family alignment above.
     // A declaration carries up to two independent columns — the type (after `:`)
@@ -206,17 +206,17 @@ struct FormatOptions
     // add the other, so a run that mixes `name: Type`, `name = value`, and
     // `name: Type = value` lines up in both columns. Each grid option is gated by
     // its base mode: it does nothing while the matching `align*` mode is Preserve.
-    std::optional<bool> alignDeclarationInitializers; // Also align the `=` column of `let`/`var` declarations (needs alignConsecutiveDeclarations)
-    std::optional<bool> alignStructFieldInitializers; // Also align the `=` column of struct fields (needs alignStructFields)
-    std::optional<bool> alignConstantTypes;           // Also align the type column of `const` declarations (needs alignConsecutiveConstants)
-    FormatAlignMode     alignAttributes              = FormatAlignMode::Preserve; // Align adjacent `#[...]` attributes
-    FormatAlignMode     alignFatArrows               = FormatAlignMode::Preserve; // Align `=>` of adjacent short function bodies
-    std::optional<bool> alignTrailingComments;                                    // Align `//` trailing comments into a shared column
-    uint32_t            trailingCommentMinSpaces = 5;                             // Minimum spaces before a trailing `//`
-    uint32_t            trailingCommentMaxColumn = 0;                             // 0 = no limit on trailing comment column
-    std::optional<bool> alignOperands;                                            // Align operands of wrapped binary expressions
-    std::optional<bool> alignAfterOpenBracket;                                    // Align wrapped args with the opening `(` / `[`
-    std::optional<bool> alignArrayColumns;                                        // Align the columns of multi-line array-of-struct literals
+    std::optional<bool> alignDeclarationInitializers;                // Also align the `=` column of `let`/`var` declarations (needs alignConsecutiveDeclarations)
+    std::optional<bool> alignStructFieldInitializers;                // Also align the `=` column of struct fields (needs alignStructFields)
+    std::optional<bool> alignConstantTypes;                          // Also align the type column of `const` declarations (needs alignConsecutiveConstants)
+    FormatAlignMode     alignAttributes = FormatAlignMode::Preserve; // Align adjacent `#[...]` attributes
+    FormatAlignMode     alignFatArrows  = FormatAlignMode::Preserve; // Align `=>` of adjacent short function bodies
+    std::optional<bool> alignTrailingComments;                       // Align `//` trailing comments into a shared column
+    uint32_t            trailingCommentMinSpaces = 5;                // Minimum spaces before a trailing `//`
+    uint32_t            trailingCommentMaxColumn = 0;                // 0 = no limit on trailing comment column
+    std::optional<bool> alignOperands;                               // Align operands of wrapped binary expressions
+    std::optional<bool> alignAfterOpenBracket;                       // Align wrapped args with the opening `(` / `[`
+    std::optional<bool> alignArrayColumns;                           // Align the columns of multi-line array-of-struct literals
 
     // -----------------------------------------------------------------------
     // Spacing

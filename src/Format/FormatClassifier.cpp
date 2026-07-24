@@ -411,7 +411,7 @@ namespace
             const bool inAggregate = parentCompound == AstNodeId::AggregateBody;
 
             const FormatRoleE startRole = inAggregate ? FormatRoleE::FieldDeclStart
-                                        : isConst     ? FormatRoleE::ConstDeclStart
+                                          : isConst   ? FormatRoleE::ConstDeclStart
                                                       : FormatRoleE::VarDeclStart;
             addRole(span.minPiece, startRole);
 
@@ -544,7 +544,7 @@ namespace
                     if (open == INVALID_PIECE)
                     {
                         const NodeSpan exprSpan = spanOf(sw.nodeExprRef);
-                        open = findHeaderOpenBrace(exprSpan.valid() ? exprSpan.maxPiece : span.minPiece);
+                        open                    = findHeaderOpenBrace(exprSpan.valid() ? exprSpan.maxPiece : span.minPiece);
                     }
                     registerBlock(open, FormatBlockKind::Switch, span.minPiece);
                     break;
@@ -674,8 +674,8 @@ namespace
 
                     const FormatBlockKind kind = node.is(AstNodeId::InterfaceDecl) ? FormatBlockKind::Interface : FormatBlockKind::Struct;
                     addRole(span.minPiece, FormatRoleE::TypeDeclStart);
-                    const NodeSpan bodySpan    = spanOf(bodyRef);
-                    uint32_t       open        = bodyOpenBrace(bodySpan);
+                    const NodeSpan bodySpan = spanOf(bodyRef);
+                    uint32_t       open     = bodyOpenBrace(bodySpan);
                     if (open == INVALID_PIECE && span.valid())
                         open = findHeaderOpenBrace(span.minPiece);
                     registerBlock(open, kind, span.minPiece);
@@ -685,11 +685,11 @@ namespace
                 case AstNodeId::AnonymousStructDecl:
                 case AstNodeId::AnonymousUnionDecl:
                 {
-                    const AstNodeRef bodyRef = node.is(AstNodeId::AnonymousStructDecl)
-                                                   ? node.cast<AstAnonymousStructDecl>().nodeBodyRef
-                                                   : node.cast<AstAnonymousUnionDecl>().nodeBodyRef;
-                    const NodeSpan bodySpan = spanOf(bodyRef);
-                    uint32_t       open     = bodyOpenBrace(bodySpan);
+                    const AstNodeRef bodyRef  = node.is(AstNodeId::AnonymousStructDecl)
+                                                    ? node.cast<AstAnonymousStructDecl>().nodeBodyRef
+                                                    : node.cast<AstAnonymousUnionDecl>().nodeBodyRef;
+                    const NodeSpan   bodySpan = spanOf(bodyRef);
+                    uint32_t         open     = bodyOpenBrace(bodySpan);
                     if (open == INVALID_PIECE && span.valid())
                         open = findHeaderOpenBrace(span.minPiece);
                     registerBlock(open, FormatBlockKind::Struct, span.minPiece, true);
@@ -887,12 +887,12 @@ namespace
                 case AstNodeId::RelationalExpr:
                 case AstNodeId::LogicalExpr:
                 {
-                    const AstNodeRef leftRef = node.is(AstNodeId::BinaryExpr)
-                                                   ? node.cast<AstBinaryExpr>().nodeLeftRef
-                                               : node.is(AstNodeId::RelationalExpr)
-                                                   ? node.cast<AstRelationalExpr>().nodeLeftRef
-                                                   : node.cast<AstLogicalExpr>().nodeLeftRef;
-                    const NodeSpan leftSpan = spanOf(leftRef);
+                    const AstNodeRef leftRef  = node.is(AstNodeId::BinaryExpr)
+                                                    ? node.cast<AstBinaryExpr>().nodeLeftRef
+                                                : node.is(AstNodeId::RelationalExpr)
+                                                    ? node.cast<AstRelationalExpr>().nodeLeftRef
+                                                    : node.cast<AstLogicalExpr>().nodeLeftRef;
+                    const NodeSpan   leftSpan = spanOf(leftRef);
                     if (leftSpan.valid())
                         addRole(nextCodeAfterOperand(leftSpan.maxPiece), FormatRoleE::BinaryOp);
                     break;
@@ -958,11 +958,11 @@ namespace
                 case AstNodeId::CallExpr:
                 case AstNodeId::IntrinsicCallExpr:
                 {
-                    const AstNodeRef calleeRef = node.is(AstNodeId::CallExpr)
-                                                     ? node.cast<AstCallExpr>().nodeExprRef
-                                                     : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
-                    const NodeSpan calleeSpan = spanOf(calleeRef);
-                    const uint32_t from       = calleeSpan.valid() ? calleeSpan.maxPiece : span.minPiece;
+                    const AstNodeRef calleeRef  = node.is(AstNodeId::CallExpr)
+                                                      ? node.cast<AstCallExpr>().nodeExprRef
+                                                      : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
+                    const NodeSpan   calleeSpan = spanOf(calleeRef);
+                    const uint32_t   from       = calleeSpan.valid() ? calleeSpan.maxPiece : span.minPiece;
                     addRole(nextCodeIf(from, TokenId::SymLeftParen), FormatRoleE::CallOpenParen);
                     break;
                 }

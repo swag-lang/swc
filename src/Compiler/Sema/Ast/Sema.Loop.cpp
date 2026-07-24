@@ -298,14 +298,14 @@ namespace
 
         const bool   indexOnly = node.hasFlag(AstForeachStmtFlagsE::IndexOnly);
         const size_t count     = std::min<size_t>(tokNames.size(), 2);
-        size_t       index = 0;
+        size_t       index     = 0;
         for (size_t i = 0; i < count; ++i)
         {
             const TokenRef tokNameRef = tokNames[i];
             if (tokNameRef.isInvalid())
                 continue;
 
-            auto& symVar = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& { return registerLoopScopeSymbol<SymbolVariable>(sema, node, tokNameRef); });
+            auto&         symVar         = getOrCreateLoopLocalSymbol(payload, index, [&]() -> SymbolVariable& { return registerLoopScopeSymbol<SymbolVariable>(sema, node, tokNameRef); });
             const TypeRef bindingTypeRef = indexOnly || i == 1 ? indexTypeRef : valueTypeRef;
             SWC_RESULT(ensureLoopLocalStorage(sema, symVar, bindingTypeRef));
             outSymbols.push_back(&symVar);
@@ -700,8 +700,8 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
         if (named && !hasFlag(AstForeachStmtFlagsE::IndexOnly))
         {
-            const TokenRef tokNameRef = forStmtNameRef(sema, *this);
-            const Diagnostic diag     = SemaError::report(sema, DiagnosticId::sema_err_for_count_binding_brackets, SourceCodeRef{srcViewRef(), tokNameRef});
+            const TokenRef   tokNameRef = forStmtNameRef(sema, *this);
+            const Diagnostic diag       = SemaError::report(sema, DiagnosticId::sema_err_for_count_binding_brackets, SourceCodeRef{srcViewRef(), tokNameRef});
             diag.report(sema.ctx());
             return Result::Error;
         }

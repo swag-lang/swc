@@ -151,12 +151,11 @@ namespace
         if (sema.ctx().silentDiagnostic())
             return;
 
-        constexpr uint32_t expansionLimit = 4;
-        uint32_t           expansionCount = 0;
+        constexpr uint32_t                           expansionLimit = 4;
+        uint32_t                                     expansionCount = 0;
         std::unordered_set<const SemaInlinePayload*> seenPayloads;
 
-        const auto addPayloadChain = [&](const SemaInlinePayload* payload)
-        {
+        const auto addPayloadChain = [&](const SemaInlinePayload* payload) {
             while (payload && expansionCount < expansionLimit)
             {
                 if (!seenPayloads.insert(payload).second)

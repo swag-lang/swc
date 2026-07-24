@@ -142,8 +142,8 @@ namespace
         }
 
     private:
-        Sema&                 sema_;
-        const SymbolFunction& sym_;
+        Sema&                   sema_;
+        const SymbolFunction&   sym_;
         std::vector<TrackedVar> vars_;
         std::vector<BreakCtx*>  breakables_;
         SmallVector<int32_t, 4> withTargets_; // tracked index or -1, innermost last
@@ -366,9 +366,9 @@ namespace
                     }
                     case AstNodeId::MemberAccessExpr:
                     {
-                        const auto&   member   = node.cast<AstMemberAccessExpr>();
-                        const Symbol* fieldSym = nullptr;
-                        const SemaNodeView view = sema_.viewSymbol(member.nodeRightRef);
+                        const auto&        member   = node.cast<AstMemberAccessExpr>();
+                        const Symbol*      fieldSym = nullptr;
+                        const SemaNodeView view     = sema_.viewSymbol(member.nodeRightRef);
                         if (view.hasSymbol())
                             fieldSym = view.singleSymbol();
                         fieldChain.push_back(fieldSym);
@@ -383,12 +383,12 @@ namespace
                         // when that target is a tracked variable.
                         if (withTargets_.empty() || withTargets_.back() < 0)
                             return false;
-                        out.varIndex                 = withTargets_.back();
+                        out.varIndex                  = withTargets_.back();
                         const auto&        autoMember = node.cast<AstAutoMemberAccessExpr>();
                         const AstNodeRef   identRef   = autoMember.nodeIdentRef.isValid() ? autoMember.nodeIdentRef : ref;
                         const SemaNodeView view       = sema_.viewSymbol(identRef);
-                        const Symbol*      fieldSym = view.hasSymbol() ? view.singleSymbol() : nullptr;
-                        out.fieldIndex              = fieldIndexOf(vars_[out.varIndex], fieldSym);
+                        const Symbol*      fieldSym   = view.hasSymbol() ? view.singleSymbol() : nullptr;
+                        out.fieldIndex                = fieldIndexOf(vars_[out.varIndex], fieldSym);
                         return true;
                     }
                     case AstNodeId::IndexExpr:
@@ -871,7 +871,7 @@ namespace
         {
             if (ref.isInvalid() || depth > 256 || aborted_)
                 return;
-            ref = resolve(ref);
+            ref                 = resolve(ref);
             const AstNode& node = sema_.node(ref);
             if (node.is(AstNodeId::Identifier))
             {
@@ -1253,7 +1253,7 @@ namespace
         {
             SmallVector<AstNodeRef> children;
             collectChildren(node, children);
-            FlowExit exit = FlowExit::Normal;
+            auto exit = FlowExit::Normal;
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isInvalid())
@@ -1272,7 +1272,7 @@ namespace
 
             SmallVector<AstNodeRef> children;
             collectChildren(node, children);
-            FlowExit exit = FlowExit::Normal;
+            auto exit = FlowExit::Normal;
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isInvalid())
@@ -1431,7 +1431,7 @@ namespace
                 // Case match expressions and 'where' run with the dispatch state.
                 SmallVector<AstNodeRef> caseChildren;
                 collectChildren(caseStmt, caseChildren);
-                FlowExit exit = FlowExit::Normal;
+                auto exit = FlowExit::Normal;
                 for (const AstNodeRef caseChildRef : caseChildren)
                 {
                     if (caseChildRef.isInvalid())
@@ -1619,9 +1619,9 @@ namespace
                     calledFn = &sym->cast<SymbolFunction>();
                 if (!calledFn)
                 {
-                    const AstNodeRef calleeRef = node.is(AstNodeId::CallExpr)
-                                                     ? node.cast<AstCallExpr>().nodeExprRef
-                                                     : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
+                    const AstNodeRef   calleeRef  = node.is(AstNodeId::CallExpr)
+                                                        ? node.cast<AstCallExpr>().nodeExprRef
+                                                        : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
                     const SemaNodeView calleeView = sema_.viewSymbol(resolve(calleeRef));
                     Symbol*            calleeSym  = calleeView.hasSymbol() ? calleeView.singleSymbol() : nullptr;
                     if (calleeSym && calleeSym->isFunction())
@@ -1679,9 +1679,9 @@ namespace
 
                 // A method callee reached through a tracked receiver ('v.method()'):
                 // 'me' is passed by address.
-                const AstNodeRef calleeRef = node.is(AstNodeId::CallExpr)
-                                                 ? node.cast<AstCallExpr>().nodeExprRef
-                                                 : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
+                const AstNodeRef calleeRef         = node.is(AstNodeId::CallExpr)
+                                                         ? node.cast<AstCallExpr>().nodeExprRef
+                                                         : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
                 const AstNodeRef resolvedCalleeRef = resolve(calleeRef);
                 if (resolvedCalleeRef.isValid())
                 {
@@ -1743,11 +1743,11 @@ namespace
             case AstNodeId::SingleVarDecl:
             case AstNodeId::MultiVarDecl:
             {
-                const AstNode& declNode = sema.node(ref);
-                const auto*    varBase  = declNode.is(AstNodeId::SingleVarDecl)
-                                              ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
-                                              : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
-                const bool hasInitExpr = varBase->nodeInitRef.isValid();
+                const AstNode& declNode    = sema.node(ref);
+                const auto*    varBase     = declNode.is(AstNodeId::SingleVarDecl)
+                                                 ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
+                                                 : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
+                const bool     hasInitExpr = varBase->nodeInitRef.isValid();
 
                 const SemaNodeView view = sema.viewSymbol(ref);
                 if (!view.hasSymbol())

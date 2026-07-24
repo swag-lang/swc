@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Format/FormatPasses.h"
 #include "Format/FormatPassUtil.h"
+#include "Format/FormatPasses.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -464,7 +464,7 @@ namespace
         std::vector<std::vector<uint32_t>> collectArrayRows(const uint32_t openPiece, const uint32_t closePiece, const uint32_t rowDepth) const
         {
             std::vector<std::vector<uint32_t>> rows;
-            size_t elemCount = SIZE_MAX;
+            size_t                             elemCount = SIZE_MAX;
 
             for (uint32_t p = openPiece + 1; p < closePiece; ++p)
             {

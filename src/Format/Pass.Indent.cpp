@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Format/FormatPasses.h"
 #include "Format/FormatPassUtil.h"
+#include "Format/FormatPasses.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -264,7 +264,7 @@ namespace
 
         void trackBrackets(const uint32_t lineStart)
         {
-            std::vector<FormatPassUtil::PieceColumn> columns;
+            std::vector<PieceColumn> columns;
             FormatPassUtil::computeLineColumns(*model_, lineStart, &columns);
 
             for (const auto& [pieceIndex, column] : columns)
@@ -294,11 +294,11 @@ namespace
         std::vector<StackEntry>  blockStack_;
         std::vector<OpenBracket> parenStack_;
         std::vector<uint32_t>    pendingComments_;
-        size_t                   nextBlock_           = 0;
-        uint32_t                 lastStmtOldCols_     = 0;
-        uint32_t                 lastStmtNewCols_     = 0;
-        uint32_t                 lastCodeCols_        = 0;
-        uint32_t                 lastStmtOperandCol_  = UINT32_MAX;
+        size_t                   nextBlock_            = 0;
+        uint32_t                 lastStmtOldCols_      = 0;
+        uint32_t                 lastStmtNewCols_      = 0;
+        uint32_t                 lastCodeCols_         = 0;
+        uint32_t                 lastStmtOperandCol_   = UINT32_MAX;
         bool                     prevLineEndsBinaryOp_ = false;
     };
 }

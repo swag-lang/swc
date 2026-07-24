@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Format/FormatPasses.h"
 #include "Format/FormatPassUtil.h"
+#include "Format/FormatPasses.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

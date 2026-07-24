@@ -28,7 +28,7 @@ namespace
         const TypeInfo* indexType = &sema.typeMgr().get(outTypeRef);
         if (indexType->isReference())
         {
-            outTypeRef = indexType->payloadTypeRef();
+            outTypeRef                           = indexType->payloadTypeRef();
             const TypeRef referencedAliasTypeRef = sema.typeMgr().get(outTypeRef).unwrap(sema.ctx(), outTypeRef, TypeExpandE::Alias);
             if (referencedAliasTypeRef.isValid())
                 outTypeRef = referencedAliasTypeRef;
@@ -138,8 +138,8 @@ namespace
         return count;
     }
 
-    Result checkIndex(Sema& sema,
-                      AstNodeRef nodeArgRef,
+    Result checkIndex(Sema&               sema,
+                      AstNodeRef          nodeArgRef,
                       const SemaNodeView& nodeArgView,
                       int64_t&            constIndex,
                       bool&               hasConstIndex,
@@ -385,8 +385,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
     if (handled)
         return Result::Continue;
 
-    int64_t constIndex    = 0;
-    bool    hasConstIndex = false;
+    int64_t       constIndex          = 0;
+    bool          hasConstIndex       = false;
     const TypeRef expectedEnumTypeRef = indexedType.isArray() ? indexedType.payloadArrayIndexTypeRef() : TypeRef::invalid();
     SWC_RESULT(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex, expectedEnumTypeRef));
 
@@ -518,8 +518,8 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
             const SemaNodeView nodeArgView = sema.viewTypeConstant(nodeRef);
             const TypeInfo&    currentType = sema.typeMgr().get(currentTypeRef);
 
-            int64_t constIndex    = 0;
-            bool    hasConstIndex = false;
+            int64_t       constIndex          = 0;
+            bool          hasConstIndex       = false;
             const TypeRef expectedEnumTypeRef = currentType.isArray() ? currentType.payloadArrayIndexTypeRef() : TypeRef::invalid();
             SWC_RESULT(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex, expectedEnumTypeRef));
 
@@ -561,7 +561,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 if (arrayDims.size() > 1)
                 {
                     const TypeInfo typeArray = currentType.makeArrayAfterFirstDimension();
-                    currentTypeRef       = sema.typeMgr().addType(typeArray);
+                    currentTypeRef           = sema.typeMgr().addType(typeArray);
                 }
                 else
                 {

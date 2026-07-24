@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Format/FormatPasses.h"
 #include "Format/FormatPassUtil.h"
+#include "Format/FormatPasses.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -125,7 +125,7 @@ namespace
         model.collectLineStarts(lineStarts);
 
         std::vector<UsingStatement> run;
-        size_t line = 0;
+        size_t                      line = 0;
         while (line < lineStarts.size())
         {
             const FormatPiece& piece = model.piece(lineStarts[line]);
@@ -143,9 +143,9 @@ namespace
 
     void applyUsingPass(FormatModel& model)
     {
-        const FormatOptions& options = model.options();
-        const bool sortWanted  = options.sortUsingStatements != FormatSortOrder::Preserve;
-        const bool mergeWanted = options.mergeUsingStatements.value_or(false);
+        const FormatOptions& options     = model.options();
+        const bool           sortWanted  = options.sortUsingStatements != FormatSortOrder::Preserve;
+        const bool           mergeWanted = options.mergeUsingStatements.value_or(false);
         if (!sortWanted && !mergeWanted)
             return;
 

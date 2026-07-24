@@ -305,7 +305,7 @@ void FormatModel::computeBrackets()
                     if (Token::toRelated(openId) == piece.id)
                     {
                         stack.pop_back();
-                        piece.match             = openIndex;
+                        piece.match              = openIndex;
                         pieces_[openIndex].match = i;
                     }
                 }

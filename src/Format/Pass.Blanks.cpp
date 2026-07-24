@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Format/FormatPasses.h"
 #include "Format/FormatPassUtil.h"
+#include "Format/FormatPasses.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -276,11 +276,11 @@ namespace
                     {
                         // Blank when the previous arm or the current one spans
                         // several lines.
-                        const bool prevMulti = model.lineStartOf(prev) != model.lineStartOf(labels[i - 1]);
-                        const uint32_t currEnd = i + 1 < labels.size() ? model.prevPiece(declGroupStart(model, labels[i + 1]))
-                                                                       : model.prevPiece(block.closePiece);
-                        const bool currMulti = currEnd != INVALID_PIECE && model.lineStartOf(currEnd) != model.lineStartOf(labels[i]);
-                        wantBlank            = prevMulti || currMulti;
+                        const bool     prevMulti = model.lineStartOf(prev) != model.lineStartOf(labels[i - 1]);
+                        const uint32_t currEnd   = i + 1 < labels.size() ? model.prevPiece(declGroupStart(model, labels[i + 1]))
+                                                                         : model.prevPiece(block.closePiece);
+                        const bool     currMulti = currEnd != INVALID_PIECE && model.lineStartOf(currEnd) != model.lineStartOf(labels[i]);
+                        wantBlank                = prevMulti || currMulti;
                         break;
                     }
                     case FormatCaseBlankStyle::Preserve:
@@ -310,7 +310,7 @@ namespace
             if (next == INVALID_PIECE || !model.gapHasNewline(next))
                 continue;
 
-            const FormatPiece& nextPiece = model.piece(next);
+            const FormatPiece& nextPiece        = model.piece(next);
             const bool         wholeLineComment = nextPiece.isComment && model.lineStartOf(next) == next;
             if (!wholeLineComment &&
                 !nextPiece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::FieldDeclStart, FormatRoleE::EnumValueStart,

@@ -1271,7 +1271,7 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     SWC_RESULT(waitEnumCompletion(sema, castRequest, srcType));
     SWC_RESULT(waitEnumCompletion(sema, castRequest, dstType));
 
-    const SymbolEnum& enumSym                    = srcType.payloadSymEnum();
+    const SymbolEnum& enumSym = srcType.payloadSymEnum();
     if (castRequest.kind != CastKind::Explicit)
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 

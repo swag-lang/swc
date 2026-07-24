@@ -954,9 +954,9 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
 }
 
 TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims,
-                             TypeRef                         elementTypeRef,
-                             TypeInfoFlags                   flags,
-                             const std::span<const TypeRef>& indexTypeRefs)
+                             TypeRef                          elementTypeRef,
+                             TypeInfoFlags                    flags,
+                             const std::span<const TypeRef>&  indexTypeRefs)
 {
     SWC_ASSERT(indexTypeRefs.empty() || indexTypeRefs.size() == dims.size());
     TypeInfo ti{TypeInfoKind::Array, flags};

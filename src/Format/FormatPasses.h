@@ -9,17 +9,17 @@ class FormatModel;
 // renders the source byte-for-byte.
 namespace FormatPass
 {
-    void sortUsing(FormatModel& model);      // sort-using-statements, merge-using-statements
-    void statements(FormatModel& model);     // remove-redundant-semicolons, remove-condition-parentheses
-    void attributes(FormatModel& model);     // attribute-placement, break-after-attribute, sort-attribute-arguments
-    void braces(FormatModel& model);         // brace-style, compact-empty-braces, break-before-else
-    void shortBlocks(FormatModel& model);    // allow-short-*-on-single-line
-    void blanks(FormatModel& model);         // blank-line-after-using-block
-    void spacing(FormatModel& model);        // all space-* options
-    void indent(FormatModel& model);         // indent-* structural options
-    void wrap(FormatModel& model);           // column-limit and break-* wrapping options
-    void comments(FormatModel& model);       // comment rewriting options
-    void align(FormatModel& model);          // align-* options
+    void sortUsing(FormatModel& model);   // sort-using-statements, merge-using-statements
+    void statements(FormatModel& model);  // remove-redundant-semicolons, remove-condition-parentheses
+    void attributes(FormatModel& model);  // attribute-placement, break-after-attribute, sort-attribute-arguments
+    void braces(FormatModel& model);      // brace-style, compact-empty-braces, break-before-else
+    void shortBlocks(FormatModel& model); // allow-short-*-on-single-line
+    void blanks(FormatModel& model);      // blank-line-after-using-block
+    void spacing(FormatModel& model);     // all space-* options
+    void indent(FormatModel& model);      // indent-* structural options
+    void wrap(FormatModel& model);        // column-limit and break-* wrapping options
+    void comments(FormatModel& model);    // comment rewriting options
+    void align(FormatModel& model);       // align-* options
 
     void runAll(FormatModel& model);
 }

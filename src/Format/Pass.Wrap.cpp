@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Format/FormatPasses.h"
 #include "Format/FormatPassUtil.h"
+#include "Format/FormatPasses.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -158,7 +158,7 @@ namespace
             if (options_->alignAfterOpenBracket.value_or(false))
             {
                 // Align with the innermost bracket left open before the break.
-                uint32_t openColumn = UINT32_MAX;
+                uint32_t              openColumn = UINT32_MAX;
                 std::vector<uint32_t> stack;
                 for (const auto& [pieceIndex, column] : columns)
                 {

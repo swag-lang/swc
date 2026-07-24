@@ -418,7 +418,7 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 
             if (bindingTypeRef.isValid() && sema.typeMgr().get(bindingTypeRef).isNullable())
             {
-                const std::array<const Symbol*, 1> path = {conditionSym};
+                const std::array<const Symbol*, 1> path  = {conditionSym};
                 SemaFrame                          frame = sema.frame();
                 frame.addNullNarrowFact({path.data(), path.size()}, true);
                 sema.pushFramePopOnPostChild(frame, childRef);

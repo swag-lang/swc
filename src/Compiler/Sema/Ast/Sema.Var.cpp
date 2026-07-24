@@ -992,8 +992,8 @@ namespace
 
         SWC_RESULT(validateFinalType(sema, context, finalTypeRef, isConst, isParameter, isUsing));
 
-        const SymbolMap* fieldOwnerSymMap      = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
-        const bool       isStructField         = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
+        const SymbolMap* fieldOwnerSymMap = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
+        const bool       isStructField    = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
 
         // '#late' declares a deferred non-null storage: null (zero) storage until the
         // first assignment, non-null type at every read (guarded under null safety). It
@@ -1022,7 +1022,7 @@ namespace
             }
         }
 
-        const bool       directSelfStructField = explicitTypeRef.isValid() &&
+        const bool directSelfStructField = explicitTypeRef.isValid() &&
                                            explicitType &&
                                            explicitType->isStruct() &&
                                            isStructField &&

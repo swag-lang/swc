@@ -329,9 +329,9 @@ public:
     static TypeInfo makeMoveReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeArray(const std::span<const uint64_t>& dims,
-                              TypeRef                         elementTypeRef,
-                              TypeInfoFlags                   flags         = TypeInfoFlagsE::Zero,
-                              const std::span<const TypeRef>& indexTypeRefs = {});
+                              TypeRef                          elementTypeRef,
+                              TypeInfoFlags                    flags         = TypeInfoFlagsE::Zero,
+                              const std::span<const TypeRef>&  indexTypeRefs = {});
     TypeInfo        makeArrayAfterFirstDimension() const;
     static TypeInfo makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types);
     static TypeInfo makeAggregateArray(const std::span<const TypeRef>& types);

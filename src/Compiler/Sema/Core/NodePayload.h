@@ -141,23 +141,23 @@ protected:
     void                     setSymbolList(AstNodeRef nodeRef, std::span<const Symbol*> symbols);
     void                     setSymbolList(AstNodeRef nodeRef, std::span<Symbol*> symbols);
 
-    void  copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
-    void  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
-    void  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
-    bool  hasLoweringPayload(AstNodeRef nodeRef) const;
-    void  setLoweringPayload(AstNodeRef nodeRef, void* payload);
-    void* getLoweringPayload(AstNodeRef nodeRef) const;
-    bool  hasInlinePayload(AstNodeRef nodeRef) const;
-    void  setInlinePayload(AstNodeRef nodeRef, void* payload);
-    void* getInlinePayload(AstNodeRef nodeRef) const;
-    bool  hasInlineContextOverride(AstNodeRef nodeRef) const;
-    void  setInlineContextOverride(AstNodeRef nodeRef, void* payload);
-    void* getInlineContextOverride(AstNodeRef nodeRef) const;
-    bool  hasSemaPayload(AstNodeRef nodeRef) const;
-    void  setSemaPayload(AstNodeRef nodeRef, void* payload);
-    void* getSemaPayload(AstNodeRef nodeRef) const;
-    void  clearSemaPayload(AstNodeRef nodeRef);
-    void  setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam);
+    void                  copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
+    void                  setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
+    void                  appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+    bool                  hasLoweringPayload(AstNodeRef nodeRef) const;
+    void                  setLoweringPayload(AstNodeRef nodeRef, void* payload);
+    void*                 getLoweringPayload(AstNodeRef nodeRef) const;
+    bool                  hasInlinePayload(AstNodeRef nodeRef) const;
+    void                  setInlinePayload(AstNodeRef nodeRef, void* payload);
+    void*                 getInlinePayload(AstNodeRef nodeRef) const;
+    bool                  hasInlineContextOverride(AstNodeRef nodeRef) const;
+    void                  setInlineContextOverride(AstNodeRef nodeRef, void* payload);
+    void*                 getInlineContextOverride(AstNodeRef nodeRef) const;
+    bool                  hasSemaPayload(AstNodeRef nodeRef) const;
+    void                  setSemaPayload(AstNodeRef nodeRef, void* payload);
+    void*                 getSemaPayload(AstNodeRef nodeRef) const;
+    void                  clearSemaPayload(AstNodeRef nodeRef);
+    void                  setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam);
     const SymbolVariable* getConstAssignSourceParameter(AstNodeRef nodeRef) const;
 
     static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
@@ -204,18 +204,18 @@ private:
 
     struct Shard
     {
-        mutable std::mutex                    storeMutex;
-        mutable std::shared_mutex             loweringPayloadsMutex;
-        mutable std::shared_mutex             inlinePayloadsMutex;
-        mutable std::shared_mutex             inlineContextOverridesMutex;
-        mutable std::shared_mutex             semaPayloadsMutex;
-        mutable std::shared_mutex             constAssignSourceParametersMutex;
-        mutable std::shared_mutex             resolvedCallArgsMutex;
-        PagedStore                            store;
-        std::unordered_map<AstNodeRef, void*>                  loweringPayloads;
-        std::unordered_map<AstNodeRef, void*>                  inlinePayloads;
-        std::unordered_map<AstNodeRef, void*>                  inlineContextOverrides;
-        std::unordered_map<AstNodeRef, void*>                  semaPayloads;
+        mutable std::mutex                                    storeMutex;
+        mutable std::shared_mutex                             loweringPayloadsMutex;
+        mutable std::shared_mutex                             inlinePayloadsMutex;
+        mutable std::shared_mutex                             inlineContextOverridesMutex;
+        mutable std::shared_mutex                             semaPayloadsMutex;
+        mutable std::shared_mutex                             constAssignSourceParametersMutex;
+        mutable std::shared_mutex                             resolvedCallArgsMutex;
+        PagedStore                                            store;
+        std::unordered_map<AstNodeRef, void*>                 loweringPayloads;
+        std::unordered_map<AstNodeRef, void*>                 inlinePayloads;
+        std::unordered_map<AstNodeRef, void*>                 inlineContextOverrides;
+        std::unordered_map<AstNodeRef, void*>                 semaPayloads;
         std::unordered_map<AstNodeRef, const SymbolVariable*> constAssignSourceParameters;
 
         // Resolved call arguments are stored inline (not in `store`) so writing them only

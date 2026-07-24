@@ -91,8 +91,8 @@ SWC_TEST_BEGIN(FormatFile_IndentInsideParensEnforcesContinuation)
         "func bar(a, b: s32) {}\n";
 
     FormatOptions options;
-    options.indentStyle       = FormatIndentStyle::Spaces;
-    options.indentWidth       = 4;
+    options.indentStyle        = FormatIndentStyle::Spaces;
+    options.indentWidth        = 4;
     options.indentInsideParens = true;
     return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
 }

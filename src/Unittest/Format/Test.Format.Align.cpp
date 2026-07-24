@@ -207,7 +207,7 @@ SWC_TEST_BEGIN(FormatAlign_TrailingComments)
         "}\n";
 
     FormatOptions options;
-    options.alignTrailingComments   = true;
+    options.alignTrailingComments    = true;
     options.trailingCommentMinSpaces = 5;
     return checkAlignRewrite(ctx, SOURCE, EXPECTED, options);
 }

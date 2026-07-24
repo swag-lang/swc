@@ -61,8 +61,8 @@ namespace
                 values.push_back(enumValue);
         }
 
-        const TypeRef underlyingTypeRef = symEnum.underlyingType(sema.ctx()).unwrap(sema.ctx(), symEnum.underlyingTypeRef(), TypeExpandE::Alias);
-        const uint64_t count             = values.size();
+        const TypeRef     underlyingTypeRef = symEnum.underlyingType(sema.ctx()).unwrap(sema.ctx(), symEnum.underlyingTypeRef(), TypeExpandE::Alias);
+        const uint64_t    count             = values.size();
         std::vector<bool> seen(count);
         bool              isDense = count != 0 && underlyingTypeRef.isValid() && sema.typeMgr().get(underlyingTypeRef).isInt();
         for (const SymbolEnumValue* value : values)
@@ -642,7 +642,7 @@ Result AstArrayType::semaPostNode(Sema& sema) const
 
     const std::span<const TypeRef> arrayIndexTypeRefs = hasEnumDimension ? indexTypeRefs.span() : std::span<const TypeRef>{};
     const TypeInfo                 ty                 = TypeInfo::makeArray(dims, view.typeRef(), TypeInfoFlagsE::Zero, arrayIndexTypeRefs);
-    const TypeRef  typeRef = sema.typeMgr().addType(ty);
+    const TypeRef                  typeRef            = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;
 }

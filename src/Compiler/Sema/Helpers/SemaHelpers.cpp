@@ -444,7 +444,6 @@ void SemaHelpers::collectNullNarrowGuards(Sema& sema, AstNodeRef condRef, NullNa
 
         default:
             collectNullNarrowGuardFromExpr(sema, resolvedRef, out.whenTrue);
-            return;
     }
 }
 

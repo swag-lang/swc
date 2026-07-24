@@ -796,7 +796,7 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     dstPayload.reg                 = srcPayloadCopy.reg;
     if (srcPayloadCopy.sourceCodeRef.isValid())
         dstPayload.sourceCodeRef = srcPayloadCopy.sourceCodeRef;
-    dstPayload.storageKind         = srcPayloadCopy.storageKind;
+    dstPayload.storageKind = srcPayloadCopy.storageKind;
     if (srcPayloadCopy.hasMaterializedPointerLikeValue())
         dstPayload.markMaterializedPointerLikeValue();
     mergeNodePayloadMetadata(dstPayload, srcPayloadCopy);
@@ -839,8 +839,8 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
         if (leftPayload && leftPayload->sourceCodeRef.isValid())
             nodePayload.sourceCodeRef = leftPayload->sourceCodeRef;
     }
-    nodePayload.typeRef       = typeRef;
-    nodePayload.storageKind   = CodeGenNodePayload::StorageKind::Value;
+    nodePayload.typeRef     = typeRef;
+    nodePayload.storageKind = CodeGenNodePayload::StorageKind::Value;
     nodePayload.clearMaterializedPointerLikeValue();
     mergeLoweringNodePayloadMetadata(nodePayload, nodeRef);
     return nodePayload;

@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Format/FormatPasses.h"
 #include "Format/FormatPassUtil.h"
+#include "Format/FormatPasses.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -70,7 +70,7 @@ namespace
     {
         const FormatOptions& options   = model.options();
         const bool           normalize = options.spaceAfterLineCommentPrefix.value_or(false) ||
-                                         options.commentReflow != FormatCommentReflow::Preserve;
+                               options.commentReflow != FormatCommentReflow::Preserve;
         if (!normalize)
             return;
 
@@ -177,7 +177,7 @@ namespace
                     const size_t wordStart = body.find_first_not_of(" \t");
                     if (wordStart == std::string_view::npos)
                         break;
-                    body                = body.substr(wordStart);
+                    body                 = body.substr(wordStart);
                     const size_t wordEnd = body.find_first_of(" \t");
                     words.push_back(body.substr(0, wordEnd == std::string_view::npos ? body.size() : wordEnd));
                     body = wordEnd == std::string_view::npos ? std::string_view{} : body.substr(wordEnd);
@@ -226,7 +226,7 @@ namespace
 
             // Distribute the rebuilt lines over the existing comment pieces;
             // extra lines are folded into the last piece, extra pieces removed.
-            const Utf8 indent(model.lineIndentOf(paragraph.pieces.front()));
+            const Utf8   indent(model.lineIndentOf(paragraph.pieces.front()));
             const size_t reused = std::min(lines.size(), paragraph.pieces.size());
             for (size_t i = 0; i < reused; ++i)
             {

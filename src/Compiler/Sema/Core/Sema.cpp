@@ -376,7 +376,6 @@ uint32_t Sema::currentScopeDepth() const
     return depth;
 }
 
-
 namespace
 {
     template<typename K, typename H>

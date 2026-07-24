@@ -373,7 +373,7 @@ impl Header
     // Get the header total width
     mtd getTotalItemsWidth()->f32
     {
-        if .items.count == 0 do
+        if .items.isEmpty() do
             return .padding.x
 
         var w = .getItemPosition(cast(u32) .items.count - 1)

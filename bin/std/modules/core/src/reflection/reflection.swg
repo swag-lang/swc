@@ -160,7 +160,7 @@ private func addCrcToTypeAlias(crc: u32, type: #null typeinfo)
 
 private func registerTypeNoLock(type: #null typeinfo)->bool
 {
-    if type == null do
+    if !type do
         return false
 
     if type.crc and g_HashCrcToType.contains(type.crc) do

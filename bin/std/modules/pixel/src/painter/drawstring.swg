@@ -351,7 +351,7 @@ impl Painter
     func shapeRunForFont(run: const *ShapedRun, font: *Font)->ShapedRun
     {
         Debug.assert(font != null, "invalid font")
-        Debug.assert(run.font == null or run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
+        Debug.assert(!run.font or run.font.cache.typeFace == font.cache.typeFace, "cannot reuse glyph indexes with another typeface")
 
         var result: retval
         result.font          = font
@@ -950,7 +950,7 @@ impl Painter
     mtd drawRichString(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, forceCompute = false)
     {
         text.compute()
-        if text.chunks.count == 0 do
+        if text.chunks.isEmpty() do
             return
 
         // Recompute layout if rectangle has changed

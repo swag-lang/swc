@@ -802,7 +802,7 @@ impl Transform
             eMaxPair = getMaximaPair(eLastHorz)
 
         var maxIt, maxRit: u64
-        if .maximaList.count > 0
+        if !.maximaList.isEmpty()
         {
             let maximaBuf = notnull .maximaList.buffer
             if dir == .LeftToRight
@@ -830,7 +830,7 @@ impl Transform
             var e          = getNextInAEL(horzEdge, dir)
             while e
             {
-                if .maximaList.count > 0
+                if !.maximaList.isEmpty()
                 {
                     let maximaBuf = notnull .maximaList.buffer
                     if dir == .LeftToRight
@@ -3077,7 +3077,7 @@ impl Transform
                 continue
 
             // if #null any output polygons share an edge, they'll need joining later ...
-            if op1 and isHorizontal(nnEdge(rb)) and .ghostJoinList.count > 0 and (rb.windDelta != 0)
+            if op1 and isHorizontal(nnEdge(rb)) and !.ghostJoinList.isEmpty() and (rb.windDelta != 0)
             {
                 for [i] in .ghostJoinList.count
                 {
@@ -3177,7 +3177,7 @@ impl Transform
     func disposeOutPts(pts:           #null *OutPt)
     {
         var pp   = pts
-        if pp == null do
+        if !pp do
             return
 
         nnOutPt(pp.prev).next = null

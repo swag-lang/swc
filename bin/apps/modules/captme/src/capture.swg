@@ -1543,14 +1543,14 @@ impl Capture
 
     mtd getSelectedBaseForm()->#null *BaseForm
     {
-        if .selection.count == 0 do
+        if .selection.isEmpty() do
             return null
         return cast(*BaseForm) @dataof(.forms[.selection.back()])
     }
 
     mtd getSelectedFormType()->#null typeinfo
     {
-        if .selection.count == 0 do
+        if .selection.isEmpty() do
             return null
         let i = .forms[.selection.back()]
         return @kindof(i)

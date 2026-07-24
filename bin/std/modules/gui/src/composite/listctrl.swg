@@ -112,7 +112,7 @@ impl ListLine
     #[Swag.Inline]
     mtd canExpand()->bool
     {
-        return .forceExpandMark or .lines.count > 0
+        return .forceExpandMark or !.lines.isEmpty()
     }
 
     // Get an item by index
@@ -1200,7 +1200,7 @@ impl ListCtrl
     {
         func sortFunc(column: u32, descentOrder: bool, a, b: #null *ListLine)->s32
         {
-            if a == null or b == null do
+            if !a or !b do
                 return 0
 
             let it0   = a.getItem(column)
@@ -1215,7 +1215,7 @@ impl ListCtrl
 
         let cb = func|list = me, column, descentOrder|(a, b: #null *ListLine)->s32
         {
-            if a == null or b == null do
+            if !a or !b do
                 return 0
 
             let sigSort = list.sigSort

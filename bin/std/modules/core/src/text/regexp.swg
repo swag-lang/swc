@@ -1306,7 +1306,7 @@ impl RegExp
             for c in .charSet
             {
                 dfaMoveNode(&moveRes, c, state.table)
-                if moveRes.count == 0 do
+                if moveRes.isEmpty() do
                     continue
                 dfaEClosure(&moveRes, &epsilonRes)
 
@@ -1519,7 +1519,7 @@ impl RegExp
         var pz    = @dataof(sl)
         let pzEnd = pz + @countof(sl)
 
-        if .preprocessed.count == 0 do
+        if .preprocessed.isEmpty() do
             throw SyntaxError{"'{' without a previous expression"}
 
         var m = -1

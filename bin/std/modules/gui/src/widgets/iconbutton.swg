@@ -251,7 +251,7 @@ impl IWnd for IconButton
         }
 
         var pos     = .getClientRectPadding()
-        let hasIcon = .icon.isValid() or .sigPaintIcon != null
+        let hasIcon = .icon.isValid() or .sigPaintIcon
 
         if .iconSizeX do
             .icon.sizeX = .iconSizeX

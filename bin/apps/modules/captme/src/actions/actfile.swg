@@ -211,7 +211,7 @@ impl IActionUI for ActionFile
 
             // `Capture.load` is fallible; `trycatch` swallows a failure and yields null,
             // so guard before dereferencing to avoid a null crash and abort the duplication.
-            if newCapture == null
+            if !newCapture
             {
                 MessageDlg.error(notnull main.surface, "Failed to duplicate capture")
                 break

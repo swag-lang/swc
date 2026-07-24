@@ -82,7 +82,7 @@ public impl TextReader
         if .byteSeek == .buffer.count
         {
             .readBuffer()
-            if .buffer.count == 0 do
+            if .buffer.isEmpty() do
                 return false
         }
 
@@ -113,7 +113,7 @@ public impl TextReader
             if ptr == ptrE
             {
                 .readBuffer()
-                if .buffer.count == 0 do
+                if .buffer.isEmpty() do
                     return true
                 continue
             }

@@ -58,7 +58,7 @@ impl Voice
 
     mtd destroyCodec()
     {
-        if .codec == null do
+        if !.codec do
             return
         let decoder = cast(*Codec) (notnull @dataof(.codec))
         if decoder.type.opDrop do

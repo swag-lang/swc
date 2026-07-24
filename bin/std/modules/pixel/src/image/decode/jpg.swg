@@ -1147,7 +1147,7 @@ impl Decoder
     {
         for [i] in .compsInScan
         {
-            if .quant[.compQuant[.compList[i]]].count == 0 do
+            if .quant[.compQuant[.compList[i]]].isEmpty() do
                 throw InvalidFormatError{"undefined quant table"}
         }
     }
@@ -1250,10 +1250,10 @@ impl Decoder
     {
         for [i] in .compsInScan
         {
-            if (.spectralStart == 0) and (.huffNum[.compDcTab[.compList[i]]].count == 0) do
+            if (.spectralStart == 0) and (.huffNum[.compDcTab[.compList[i]]].isEmpty()) do
                 throw InvalidFormatError{"undefined huff table"}
 
-            if (.spectralEnd > 0) and (.huffNum[.compAcTab[.compList[i]]].count == 0) do
+            if (.spectralEnd > 0) and (.huffNum[.compAcTab[.compList[i]]].isEmpty()) do
                 throw InvalidFormatError{"undefined huff table"}
         }
 

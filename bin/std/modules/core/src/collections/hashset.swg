@@ -75,7 +75,7 @@ impl HashSet
         if !.table do
             return
 
-        if .allocator == null do
+        if !.allocator do
             .allocator = @getcontext().allocator
 
         let oldTable = .tablePtr()
@@ -193,7 +193,7 @@ impl HashSet
         .count, .deleted = 0
         let newCapacityBytes = reqCapacity * #sizeof(HashSetEntry'(K))
 
-        if .allocator == null do
+        if !.allocator do
             .allocator = @getcontext().allocator
         .table         = cast([*] HashSetEntry'(K)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()

@@ -207,7 +207,7 @@ impl TagBin
     // Begins a new element inside the current section and records its metadata
     mtd beginElement(val: TypeValue)
     {
-        Debug.assert(.sections.count != 0, "Missing a previous 'beginSection' call")
+        Debug.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If section is raw, then we just have values without versioning
         let sec = notnull .sections.back()
@@ -259,13 +259,13 @@ impl TagBin
         if sec.kind == .Raw do
             return
 
-        Debug.assert(.elemStack.count != 0)
+        Debug.assert(!.elemStack.isEmpty())
         let ctx = .elemStack.popBack()
         if !ctx.compressed do
             return
 
         // We must have a previous buffer to append into
-        Debug.assert(.outStack.count != 0)
+        Debug.assert(!.outStack.isEmpty())
         let parentOut = notnull .outStack.popBack()
 
         // Gather uncompressed bytes

@@ -726,7 +726,7 @@ impl Painter
     // Simplified drawPath method using the optimized approach
     mtd drawPath(cxt: *Context)
     {
-        if cxt.pen.size < 1 or cxt.path.polygon.points.count == 0 do
+        if cxt.pen.size < 1 or cxt.path.polygon.points.isEmpty() do
             return
 
         cxt.penSize    = cxt.pen.size

@@ -285,7 +285,7 @@ impl LibraryView
     // find a capture by any of the names it is known under.
     mtd const matchSearch(it: *LibraryItem, capture: *Capture, search: String)->bool
     {
-        if @countof(search) == 0 do
+        if search.isEmpty() do
             return true
         if Utf8.indexOf(capture.title.toSlice(), search, 0, .Latin1NoCase) != Swag.U64.Max do
             return true

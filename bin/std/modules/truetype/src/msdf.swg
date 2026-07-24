@@ -135,7 +135,7 @@ func msdfColorContour(elements: *Array'MsdfElement, first, count: u32, seed: *u6
 
     // Smooth contour (no corners): a single channel set is enough, the median
     // then matches a plain single-channel SDF, which is correct for such shapes.
-    if corners.count == 0
+    if corners.isEmpty()
     {
         for [i] in count do
             ebuf[first + i].color = MSDF_WHITE
@@ -512,7 +512,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
 
     var segs: Array'MsdfSeg
     buildMsdfSegments(&safeSlot.outline, &segs)
-    if segs.count == 0 do
+    if segs.isEmpty() do
         return
 
     // Authoritative inside/outside test, used only to pick the global field sign.

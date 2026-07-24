@@ -29,7 +29,7 @@ impl ArrayPtr
         for [i] in .count
         {
             let oldPtr = buffer[i]
-            if oldPtr == null
+            if !oldPtr
             {
                 buffer[i] = null
                 continue

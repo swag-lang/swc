@@ -23,7 +23,7 @@ impl List
 {
     mtd opPostCopy()
     {
-        if .head == null do
+        if !.head do
             return
 
         let oldHead = .head

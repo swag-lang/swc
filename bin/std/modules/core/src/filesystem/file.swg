@@ -158,7 +158,7 @@ func getFileInfo(fullName: string)->FileInfo throw
     options.wantDirectories = false
     options.recurse         = false
     let file = Directory.enumerate(Path.getDirectoryName(fullName), options)
-    if file.count == 0 do
+    if file.isEmpty() do
         throw FileNotFoundError{fileName: Errors.mkString(fullName)}
     return file[0]
 }

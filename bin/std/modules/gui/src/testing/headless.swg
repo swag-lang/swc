@@ -463,7 +463,7 @@ impl HeadlessHost
 
     mtd clickModalButton(id: WndId)->bool
     {
-        if .app.modalSurfaces.count == 0 do
+        if .app.modalSurfaces.isEmpty() do
             return false
 
         var wnd: #null *Wnd
@@ -505,7 +505,7 @@ impl HeadlessHost
 
     mtd setModalEditText(label: string, text: string)->bool
     {
-        if .app.modalSurfaces.count == 0 do
+        if .app.modalSurfaces.isEmpty() do
             return false
 
         let ctrl = .findEditCtrlByLabel(.app.modalSurfaces.back().wnd.view, label)
@@ -534,7 +534,7 @@ impl HeadlessHost
 
     mtd setModalFileSelection(folder: string, fileName: string)->bool
     {
-        if .app.modalSurfaces.count == 0 do
+        if .app.modalSurfaces.isEmpty() do
             return false
 
         var browser: #null *FileBrowserCtrl
@@ -643,7 +643,7 @@ impl HeadlessHost
             .fireTimer(timer)
 
         let subMenu = .getCapturedPopupMenu()
-        return subMenu != null and subMenu != menu
+        return subMenu and subMenu != menu
     }
 
     mtd dismissPopupMenu()->bool

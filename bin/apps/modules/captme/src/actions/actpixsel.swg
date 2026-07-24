@@ -66,7 +66,7 @@ impl MainWnd
     mtd pixSelSetPixels(argb: u32)
     {
         var forms = .getPixSels()
-        if forms.count == 0 do
+        if forms.isEmpty() do
             return
 
         let capture = notnull .getCapture()
@@ -105,7 +105,7 @@ impl MainWnd
     mtd pixSelSmartFill(serial: u64 = 0, masks: #null *Array'Image = null)
     {
         var forms = .getPixSels()
-        if forms.count == 0 do
+        if forms.isEmpty() do
             return
 
         let capture = notnull .getCapture()
@@ -234,7 +234,7 @@ impl MainWnd
     mtd pixSelSmartMove()
     {
         let forms = .getPixSels()
-        if forms.count == 0 do
+        if forms.isEmpty() do
             return
 
         let capture = notnull .getCapture()

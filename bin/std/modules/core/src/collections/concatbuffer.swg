@@ -124,7 +124,7 @@ impl ConcatBuffer
         }
 
         // Need to allocate a new bucket
-        if .allocator == null do
+        if !.allocator do
             .allocator = @getcontext().allocator
         let newBucket = Memory.new'ConcatBufferBucket(.allocator)
 

@@ -71,7 +71,7 @@ impl IActionUI for ActionCopyPaste
 
         case CopyAsImage:
             evt.setFlags |= .Disabled | .Name
-            evt.disabled = capture == null
+            evt.disabled = !capture
             evt.name     = "Copy Image to Clipboard"
         }
 

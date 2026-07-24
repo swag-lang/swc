@@ -107,20 +107,16 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
 
     switch paintItf
     {
-    case FormPolygon:
-        let poly = cast(*FormPolygon) @dataof(paintItf)
+    case FormPolygon as poly:
         poly.setDefaultShape()
 
-    case FormDraw:
-        let poly = cast(*FormDraw) @dataof(paintItf)
+    case FormDraw as poly:
         poly.setDefaultShape()
 
-    case FormText:
-        let txt = cast(*FormText) @dataof(paintItf)
+    case FormText as txt:
         txt.text = "A"
 
-    case FormImage:
-        let img = cast(*FormImage) @dataof(paintItf)
+    case FormImage as img:
         switch img.kind
         {
         case Image:    result.title = "image"

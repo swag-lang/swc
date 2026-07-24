@@ -1146,7 +1146,7 @@ impl Tessellate
         }
 
         let nnext = n.next
-        if nnext != null and nnext.next != null
+        if nnext and nnext.next
         {
             let angle = basinAngle(n)
             if angle < Math.ConstF64.ThreePiBy4 do

@@ -109,7 +109,7 @@ impl IWnd for ComboBox
 
         // In flat (cell) mode the background and border are only painted when the
         // control is hot or its popup is open, so at rest it blends into the cell.
-        if !.comboBoxFlags.has(.Flat) or .isHot or .popup != null
+        if !.comboBoxFlags.has(.Flat) or .isHot or .popup
         {
             theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
             theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())

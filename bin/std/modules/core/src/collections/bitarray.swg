@@ -48,7 +48,7 @@ impl BitArray
     // This is a low-level memory operation.
     mtd realloc(newCapacity: u64)
     {
-        if .allocator == null do
+        if !.allocator do
             .allocator = @getcontext().allocator
         .buffer        = cast() Memory.realloc(.buffer, newCapacity, .capacity, .allocator)
     }

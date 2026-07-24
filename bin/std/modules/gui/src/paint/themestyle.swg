@@ -86,10 +86,10 @@ impl ThemeStyle
         // Nothing to override
         if .styleSheetColors.length == 0 and
            .styleSheetMetrics.length == 0 and
-           .font.regular == null and
-           .font.bold == null and
-           .font.italic == null and
-           .font.boldItalic == null and
+           !.font.regular and
+           !.font.bold and
+           !.font.italic and
+           !.font.boldItalic and
            !evt.accepted
         {
             return

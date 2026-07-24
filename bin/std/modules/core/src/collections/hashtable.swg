@@ -76,7 +76,7 @@ impl HashTable
         if !.table do
             return
 
-        if .allocator == null do
+        if !.allocator do
             .allocator = @getcontext().allocator
 
         let oldTable = .tablePtr()
@@ -236,7 +236,7 @@ impl HashTable
         .count, .deleted = 0
         let newCapacityBytes = reqCapacity * #sizeof(HashTableEntry'(K, V))
 
-        if .allocator == null do
+        if !.allocator do
             .allocator = @getcontext().allocator
         .table         = cast([*] HashTableEntry'(K, V)) Memory.alloc(newCapacityBytes, .allocator)
         let table = .tablePtr()

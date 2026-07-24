@@ -391,7 +391,7 @@ impl Bus
 
         if parent
         {
-            if parent.handle == null do
+            if !parent.handle do
                 throw BadParameterError{"parent bus invalid"}
 
             let safeParentHandle = parent.handle

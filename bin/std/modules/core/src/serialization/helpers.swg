@@ -25,7 +25,7 @@ internal func getTypeInfoCrc(type: #null typeinfo)->u32
 // Determin if a type can be serialized by a simple copy
 public func isPodFinal(type: #null typeinfo)->{ raw: bool, sizeof: u64 }
 {
-    if type != null
+    if type
     {
         if Reflection.isInteger(type) or
            Reflection.isFloat(type) or

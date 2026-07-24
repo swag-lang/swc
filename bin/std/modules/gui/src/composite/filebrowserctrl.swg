@@ -213,7 +213,7 @@ private impl FileBrowserCtrl
             }
             .sigSort = func(l1, l2, col, down)
             {
-                if l1 == null or l2 == null do
+                if !l1 or !l2 do
                     return 0
 
                 var fi1 = notnull cast(#null *FileInfo) l1.userData0
@@ -448,7 +448,7 @@ impl FileBrowserCtrl
     mtd getSelectedName()->String
     {
         let sel = .getSelectedNames()
-        if sel.count == 0 do
+        if sel.isEmpty() do
             return String.from("")
         return sel.front()
     }

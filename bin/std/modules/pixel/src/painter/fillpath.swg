@@ -39,7 +39,7 @@ public impl Painter
         .resetTextureFont()
 
         // Triangulation
-        if p.triangles.triIndices.count == 0
+        if p.triangles.triIndices.isEmpty()
         {
             let tess = notnull t
             tess.triangulate()

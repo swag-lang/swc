@@ -208,7 +208,7 @@ private impl SplitterCtrl
         let barSize = .getThemeMetrics().splitView_BarSize
 
         var dispatch: f32
-        if .items.count > 0
+        if !.items.isEmpty()
         {
             // Compute the current total sizes of panes
             var countNotPreserve, countPreserve = 0

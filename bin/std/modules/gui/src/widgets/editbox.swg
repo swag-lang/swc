@@ -610,7 +610,7 @@ private impl EditBox
         utf8[cpt] = 0
 
         // Determine whether we need to validate the content.
-        let mustValidate = .sigCheckContent != null or .inputMode != .String
+        let mustValidate = .sigCheckContent or .inputMode != .String
         if !mustValidate
         {
             .insertUtf8(@mkstring(&utf8[0], cpt))

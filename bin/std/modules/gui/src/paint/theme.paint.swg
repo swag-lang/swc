@@ -11,7 +11,7 @@ impl Theme
 
     func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
-        if subRect == null or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
+        if !subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
             return
 
         let oldInterpol = painter.getInterpolationMode()

@@ -60,15 +60,13 @@ impl PropWnd
     mtd hasRealSelection()->bool
     {
         let capture = .main.getCapture()
-        if !capture or capture.selection.count == 0 do
-            return false
-        return true
+        return capture and !capture.selection.isEmpty()
     }
 
     mtd getSelectedBaseForm()->*BaseForm
     {
         let capture = .main.getCapture()
-        if !capture or capture.selection.count == 0
+        if !capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
             return cast(*BaseForm) @dataof(iform)
@@ -80,7 +78,7 @@ impl PropWnd
     mtd getSelectedFormType()->typeinfo
     {
         let capture = .main.getCapture()
-        if !capture or capture.selection.count == 0
+        if !capture or capture.selection.isEmpty()
         {
             let iform = .main.editModeToModel(.main.editMode)
             return @kindof(iform)

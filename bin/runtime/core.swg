@@ -255,7 +255,7 @@ func @jit()->bool => @getcontext().runtimeFlags & .FromCompiler ? true : false
 func __runtimeAllocator()->IAllocator
 {
     let cxt = @getcontext()
-    if cxt.allocator == null
+    if !cxt.allocator
     {
         // Under the compiler (JIT) the host installs a process-stable runtime allocator into the
         // context. Building a swag @mkinterface allocator here would place its interface table in

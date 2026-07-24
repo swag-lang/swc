@@ -423,7 +423,7 @@ impl TagBin
     // Returns true if the element exists in the stream and should be processed, false to skip it.
     mtd beginElement(val: TypeValue)->bool throw
     {
-        Debug.assert(.sections.count != 0, "Missing a previous 'beginSection' call")
+        Debug.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If this name is in the ignore list, then skip it
         if .ignoreElements.contains(val.name)
@@ -559,13 +559,13 @@ impl TagBin
     {
         .convertNextNative = null
 
-        Debug.assert(.elemStack.count != 0)
+        Debug.assert(!.elemStack.isEmpty())
         let ctx = .elemStack.popBack()
         if !ctx.compressed do
             return
 
         // We must have a previous buffer to append into
-        Debug.assert(.outStack.count != 0)
+        Debug.assert(!.outStack.isEmpty())
             let (parentOut, parentSeek) = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp

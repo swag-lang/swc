@@ -252,11 +252,11 @@ private impl Properties
             return false
         if .itemHasEditor(item) do
             return true
-        if item.data != null and item.type != null do
+        if item.data and item.type do
             return true
         if .isGridLike() and item.numChilds > 0 do
             return true
-        if !item.flags.has(.NoFocus) and .firstEditorIn(item.line) != null do
+        if !item.flags.has(.NoFocus) and .firstEditorIn(item.line) do
             return true
         return false
     }

@@ -30,7 +30,7 @@ impl RichEditCtrl
 
     mtd advanceRuneX(line: #null *RichEditLine, i: u64, x: f32)->f32
     {
-        if line == null do
+        if !line do
             return x
         if line.chars[i] == '\t' do
             return x + .getTabOffset(cast(s32) x)

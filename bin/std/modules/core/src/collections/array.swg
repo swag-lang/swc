@@ -38,7 +38,7 @@ impl Array
     // A new me.buffer is allocated and the content is copied over.
     mtd opPostCopy()
     {
-        if .buffer == null do
+        if !.buffer do
             return
 
         let oldBuffer = .buffer
@@ -221,7 +221,7 @@ impl Array
     // This is a low-level memory operation that handles moving existing elements.
     mtd realloc(newCapacity: u64)
     {
-        if .allocator == null do
+        if !.allocator do
             .allocator = @getcontext().allocator
 
         if newCapacity == 0

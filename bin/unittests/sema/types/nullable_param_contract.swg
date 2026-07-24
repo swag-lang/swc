@@ -1,12 +1,12 @@
 #global private
 
-// A parameter declared '#null' advertises that callers may pass null. Use-site
-// nullability enforcement fronts the old dead-contract analysis: every unguarded
-// dereference of such a parameter (dereference, member access, indexing, call)
-// is rejected AT THE USE SITE, before the whole-function contract verdict can
-// even run. The dead-contract cases below therefore report the use-site error.
-// The return and local contract checks remain reachable and are exercised at
-// the end of this file.
+// A parameter declared '#null' advertises that callers may pass null. Every
+// unguarded dereference of such a parameter (dereference, member access, indexing,
+// call) is rejected AT THE USE SITE: the deref is an error on its own node, so no
+// separate whole-function "dead parameter contract" verdict is needed. The honored
+// patterns below show the sanctioned proofs (null test, 'notnull', delegation,
+// throwing exit, conditional). The return-contract and local-contract checks are
+// independent — a deref cannot subsume them — and are exercised at the end.
 
 struct NpcItem
 {

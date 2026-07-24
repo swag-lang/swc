@@ -122,6 +122,18 @@ enum RuntimeIndexedSlot { First, Second, Third }
 
 enum RuntimeIndexedColumn { Left, Right }
 
+enum ReorderedRuntimeIndexedSlot: u8
+{
+    Third  = 2
+    First  = 0
+    Second = 1
+}
+
+enum SingletonRuntimeIndexedSlot
+{
+    Only
+}
+
 #[Swag.Strict]
 alias StrictRuntimeIndexedSlot = RuntimeIndexedSlot
 
@@ -196,6 +208,19 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 
     var index = RuntimeIndexedSlot.Third
     @assert(values[index] == 2)
+}
+
+#test
+{
+    const reordered: [ReorderedRuntimeIndexedSlot] s32 = [10, 20, 30]
+    #assert(#typeof(reordered) == [ReorderedRuntimeIndexedSlot] s32)
+    @assert(reordered[ReorderedRuntimeIndexedSlot.First] == 10)
+    @assert(reordered[ReorderedRuntimeIndexedSlot.Second] == 20)
+    @assert(reordered[ReorderedRuntimeIndexedSlot.Third] == 30)
+
+    const singleton: [SingletonRuntimeIndexedSlot] s32 = [42]
+    #assert(#typeof(singleton) == [SingletonRuntimeIndexedSlot] s32)
+    @assert(singleton[SingletonRuntimeIndexedSlot.Only] == 42)
 }
 
 #test

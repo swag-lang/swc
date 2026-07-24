@@ -77,6 +77,18 @@ func semaTest003()
 
 enum IndexedSlot { First, Second, Third }
 
+enum ReorderedIndexedSlot: u8
+{
+    Third  = 2
+    First  = 0
+    Second = 1
+}
+
+enum SingletonIndexedSlot
+{
+    Only
+}
+
 func semaTest004()
 {
     const values: [IndexedSlot] s32 = [0, 1, 2]
@@ -87,6 +99,23 @@ func semaTest004()
 
     #assert(#typeof(first) == s32)
     #assert(#typeof(last) == s32)
+}
+
+func semaTestIndexedEnumValues()
+{
+    const reordered: [ReorderedIndexedSlot] s32 = [10, 20, 30]
+    #assert(#typeof(reordered) == [ReorderedIndexedSlot] s32)
+    let first  = reordered[ReorderedIndexedSlot.First]
+    let second = reordered[ReorderedIndexedSlot.Second]
+    let third  = reordered[ReorderedIndexedSlot.Third]
+    #assert(#typeof(first) == s32)
+    #assert(#typeof(second) == s32)
+    #assert(#typeof(third) == s32)
+
+    const singleton: [SingletonIndexedSlot] s32 = [42]
+    #assert(#typeof(singleton) == [SingletonIndexedSlot] s32)
+    let only = singleton[SingletonIndexedSlot.Only]
+    #assert(#typeof(only) == s32)
 }
 
 enum IndexedByte: u8 { Zero, One, Two }

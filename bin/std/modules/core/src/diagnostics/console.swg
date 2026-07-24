@@ -1,7 +1,6 @@
 #global public
 #global namespace Console
 
-#[Swag.EnumIndex]
 enum Color
 {
     Black

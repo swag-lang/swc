@@ -1,7 +1,6 @@
 #global public
 #global namespace Input
 
-#[Swag.EnumIndex]
 enum MouseButton
 {
     Left

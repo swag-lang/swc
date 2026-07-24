@@ -118,13 +118,13 @@ struct RuntimeIndexHolder
     @assert(holder.refs.reads == 1)
 }
 
-#[Swag.EnumIndex]
 enum RuntimeIndexedSlot { First, Second, Third }
+
+enum RuntimeIndexedColumn { Left, Right }
 
 #[Swag.Strict]
 alias StrictRuntimeIndexedSlot = RuntimeIndexedSlot
 
-#[Swag.EnumIndex]
 enum RuntimeWideIndexedSlot
 {
     Low  = 1
@@ -140,7 +140,7 @@ struct RuntimeIndexedNativeState
 struct RuntimeIndexedState
 {
     using native: RuntimeIndexedNativeState
-    values:       [@countof(RuntimeIndexedSlot)] bool
+    values:       [RuntimeIndexedSlot] bool
 }
 
 struct RuntimeIndexedHolder
@@ -169,7 +169,7 @@ impl RuntimeIndexedHolder
 
     mtd readWideSlot(slot: RuntimeWideIndexedSlot)->bool
     {
-        return .wideValues[slot]
+        return .wideValues[cast(u64) slot]
     }
 }
 
@@ -178,19 +178,19 @@ func readRuntimeIndexedSlot(holder: *RuntimeIndexedHolder, slot: RuntimeIndexedS
     return holder.state.values[slot]
 }
 
-func readStrictRuntimeIndexedSlot(values: const &[@countof(RuntimeIndexedSlot)] bool, slot: StrictRuntimeIndexedSlot)->bool
+func readStrictRuntimeIndexedSlot(values: const &[RuntimeIndexedSlot] bool, slot: StrictRuntimeIndexedSlot)->bool
 {
     return values[slot]
 }
 
 func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideIndexedSlot)->bool
 {
-    return values[slot]
+    return values[cast(u64) slot]
 }
 
 #test
 {
-    const values = [0, 1, 2]
+    const values: [RuntimeIndexedSlot] s32 = [0, 1, 2]
     const first  = values[RuntimeIndexedSlot.First]
     @assert(first == 0)
 
@@ -200,10 +200,11 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 
 #test
 {
-    var values: [@countof(RuntimeIndexedSlot)] bool
+    var values: [RuntimeIndexedSlot] bool
 
     values[RuntimeIndexedSlot.Second] = true
     @assert(values[RuntimeIndexedSlot.Second])
+    @assert(values[1])
 
     var index = RuntimeIndexedSlot.Second
     @assert(values[index])
@@ -211,7 +212,19 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 
 #test
 {
-    var values: [@countof(RuntimeIndexedSlot)] bool
+    var values: [RuntimeIndexedSlot, RuntimeIndexedColumn] s32
+
+    values[RuntimeIndexedSlot.Third, RuntimeIndexedColumn.Right] = 42
+    @assert(values[RuntimeIndexedSlot.Third, RuntimeIndexedColumn.Right] == 42)
+
+    let row = values[RuntimeIndexedSlot.Third]
+    #assert(#typeof(row) == [RuntimeIndexedColumn] s32)
+    @assert(row[RuntimeIndexedColumn.Right] == 42)
+}
+
+#test
+{
+    var values: [RuntimeIndexedSlot] bool
 
     values[cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second] = true
     @assert(values[cast(StrictRuntimeIndexedSlot) RuntimeIndexedSlot.Second])
@@ -249,8 +262,8 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 {
     var values: [128] bool
 
-    values[RuntimeWideIndexedSlot.Mid] = true
-    @assert(values[RuntimeWideIndexedSlot.Mid])
+    values[cast(u64) RuntimeWideIndexedSlot.Mid] = true
+    @assert(values[cast(u64) RuntimeWideIndexedSlot.Mid])
     @assert(readRuntimeWideIndexedSlot(&values, RuntimeWideIndexedSlot.Mid))
 
     var index = RuntimeWideIndexedSlot.Mid
@@ -261,8 +274,8 @@ func readRuntimeWideIndexedSlot(values: const &[128] bool, slot: RuntimeWideInde
 {
     var holder: RuntimeIndexedHolder
 
-    holder.wideValues[RuntimeWideIndexedSlot.Mid] = true
-    @assert(holder.wideValues[RuntimeWideIndexedSlot.Mid])
+    holder.wideValues[cast(u64) RuntimeWideIndexedSlot.Mid] = true
+    @assert(holder.wideValues[cast(u64) RuntimeWideIndexedSlot.Mid])
     @assert(holder.readWideSlot(RuntimeWideIndexedSlot.Mid))
 
     var index = RuntimeWideIndexedSlot.Mid

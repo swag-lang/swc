@@ -220,6 +220,9 @@ namespace
                 return failArrayDimMismatch(args, i, srcDims[i], dstDims[i]);
         }
 
+        if (args.srcType->payloadArrayIndexTypeRefs() != args.dstType->payloadArrayIndexTypeRefs() && args.castRequest->kind != CastKind::Explicit)
+            return args.castRequest->fail(DiagnosticId::sema_err_cannot_cast, args.srcTypeRef, args.dstTypeRef);
+
         const TypeRef srcElemTypeRef = args.srcType->payloadArrayElemTypeRef();
         if (srcElemTypeRef == dstElemTypeRef)
             return Result::Continue;
@@ -267,13 +270,8 @@ namespace
             if (srcTypes.size() > dstTopDim)
                 return failArrayTooManyValues(args, srcTypes.size(), dstTopDim);
 
-            SmallVector<uint64_t> subDims;
-            subDims.reserve(dstDims.size() - 1);
-            for (size_t i = 1; i < dstDims.size(); ++i)
-                subDims.push_back(dstDims[i]);
-
             TypeManager&  typeMgr         = args.sema->typeMgr();
-            const TypeRef dstSubArrayType = typeMgr.addType(TypeInfo::makeArray(subDims.span(), dstElemTypeRef, args.dstType->flags()));
+            const TypeRef dstSubArrayType = typeMgr.addType(args.dstType->makeArrayAfterFirstDimension());
             if (srcTypes.size() < dstTopDim && SymbolStruct::typeRequiresExplicitInitialization(*args.sema, dstSubArrayType))
                 return failArrayMissingRequiredValues(args);
 

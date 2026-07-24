@@ -65,7 +65,7 @@ public:
         Mixin,
         Implicit,
         EnumFlags,
-        EnumIndex,
+        ReservedEnumAttribute,
         NoDuplicate,
         Complete,
         Commutative,

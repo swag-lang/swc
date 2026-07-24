@@ -115,9 +115,6 @@ attr Offset(name: string)
 attr EnumFlags()     // Enum represents a set of flags
 
 #[AttrUsage(AttributeUsage.Enum)]
-attr EnumIndex()     // Enum can index arrays without casting
-
-#[AttrUsage(AttributeUsage.Enum)]
 attr NoDuplicate()     // Enum values must be unique
 
 #[AttrUsage(AttributeUsage.Enum)]

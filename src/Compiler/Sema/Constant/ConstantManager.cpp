@@ -441,16 +441,23 @@ namespace
         }
 
         SmallVector<uint64_t> dims;
+        SmallVector<TypeRef>  indexTypeRefs;
         dims.push_back(elemTypes.size());
         if (typeMgr.get(concreteElemTypeRef).isArray())
         {
             const TypeInfo& concreteElemType = typeMgr.get(concreteElemTypeRef);
             const auto&     childDims        = concreteElemType.payloadArrayDims();
             dims.insert(dims.end(), childDims.begin(), childDims.end());
+            if (!concreteElemType.payloadArrayIndexTypeRefs().empty())
+            {
+                indexTypeRefs.push_back(TypeRef::invalid());
+                const auto& childIndexTypeRefs = concreteElemType.payloadArrayIndexTypeRefs();
+                indexTypeRefs.insert(indexTypeRefs.end(), childIndexTypeRefs.begin(), childIndexTypeRefs.end());
+            }
             concreteElemTypeRef = concreteElemType.payloadArrayElemTypeRef();
         }
 
-        return typeMgr.addType(TypeInfo::makeArray(dims.span(), concreteElemTypeRef, type.flags()));
+        return typeMgr.addType(TypeInfo::makeArray(dims.span(), concreteElemTypeRef, type.flags(), indexTypeRefs.span()));
     }
 
     TypeRef normalizeTypeInfoTarget(Sema& sema, TypeRef typeRef)

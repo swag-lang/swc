@@ -252,18 +252,17 @@ struct Range
     stride: u32
 }
 
-struct CaseRange
-{
-    lo, hi: rune
-    delta:  [3] s32
-}
-
-#[Swag.EnumIndex]
 enum WantedCase
 {
     UpperCase
     LowerCase
     TitleCase
+}
+
+struct CaseRange
+{
+    lo, hi: rune
+    delta:  [WantedCase] s32
 }
 
 func isInTable(ranges: const [..] Range, r: rune)->bool

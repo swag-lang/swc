@@ -6,9 +6,9 @@ using Math
 // Represents one mouse state
 struct MouseState
 {
-    pressed:     [@countof(MouseButton)] bool
-    pressedTime: [@countof(MouseButton)] u32
-    pressedPos:  [@countof(MouseButton)] Point
+    pressed:     [MouseButton] bool
+    pressedTime: [MouseButton] u32
+    pressedPos:  [MouseButton] Point
     position:    Point
 }
 

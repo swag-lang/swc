@@ -253,11 +253,7 @@ namespace
 
         if (dims.size() > 1)
         {
-            SmallVector<uint64_t> remainingDims;
-            for (size_t i = 1; i < dims.size(); ++i)
-                remainingDims.push_back(dims[i]);
-
-            const TypeRef nextTypeRef = sema.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), typeInfo.payloadArrayElemTypeRef(), typeInfo.flags()));
+            const TypeRef nextTypeRef = sema.typeMgr().addType(typeInfo.makeArrayAfterFirstDimension());
             SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
             const uint64_t    nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
             const std::span   nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};

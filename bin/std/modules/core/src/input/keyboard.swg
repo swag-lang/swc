@@ -6,8 +6,8 @@ struct Keyboard
 {
     previousState: KeyboardState
     currentState:  KeyboardState
-    pressedRepeat: [@countof(Key)] bool
-    pressedTime:   [@countof(Key)] u32
+    pressedRepeat: [Key] bool
+    pressedTime:   [Key] u32
 
     // Delay, in milliseconds, before a repeated key stroke starts
     pressedRepeatStartTimeMs: u32 = 400
@@ -29,33 +29,33 @@ impl Keyboard
 
         // Repetition
         let now = Time.nowMilliseconds()
-        for i in @countof(Key)
+        for key in Key
         {
-            if !.currentState.isKeyPressed(cast(Key) i)
+            if !.currentState.isKeyPressed(key)
             {
-                .pressedRepeat[i] = false
-                .pressedTime[i]   = 0
+                .pressedRepeat[key] = false
+                .pressedTime[key]   = 0
             }
             elif .canRepeat
             {
                 // First pressed time
-                if !.pressedTime[i] do
-                    .pressedTime[i] = now
+                if !.pressedTime[key] do
+                    .pressedTime[key] = now
 
                 // First repetition
-                if !.pressedRepeat[i]
+                if !.pressedRepeat[key]
                 {
-                    if now - .pressedTime[i] >= .pressedRepeatStartTimeMs
+                    if now - .pressedTime[key] >= .pressedRepeatStartTimeMs
                     {
-                        .pressedRepeat[i]         = true
-                        .pressedTime[i]           = now
-                        .previousState.pressed[i] = false
+                        .pressedRepeat[key]         = true
+                        .pressedTime[key]           = now
+                        .previousState.pressed[key] = false
                     }
                 }
-                elif now - .pressedTime[i] >= .pressedRepeatTimeMs
+                elif now - .pressedTime[key] >= .pressedRepeatTimeMs
                 {
-                    .pressedTime[i]           = now
-                    .previousState.pressed[i] = false
+                    .pressedTime[key]           = now
+                    .previousState.pressed[key] = false
                 }
             }
         }

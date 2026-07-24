@@ -8,7 +8,7 @@ struct Mouse
 {
     previousState: MouseState
     currentState:  MouseState
-    dblClk:        [@countof(MouseButton)] bool
+    dblClk:        [MouseButton] bool
     dblClkTimeMs:  u32 = 300
 }
 

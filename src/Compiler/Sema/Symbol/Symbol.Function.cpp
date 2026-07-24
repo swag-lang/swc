@@ -293,10 +293,19 @@ namespace
                 }
                 else
                 {
-                    for (const uint64_t dim : typeInfo.payloadArrayDims())
+                    for (size_t i = 0; i < typeInfo.payloadArrayDims().size(); ++i)
                     {
-                        const auto dimText = std::to_string(dim);
-                        appendPublicApiSymbolFragment(out, dimText);
+                        const TypeRef indexTypeRef = typeInfo.payloadArrayIndexTypeRef(i);
+                        if (indexTypeRef.isValid())
+                        {
+                            appendPublicApiSymbolFragment(out, "enum_index");
+                            appendPublicApiTypeFragment(out, ctx, indexTypeRef);
+                        }
+                        else
+                        {
+                            const auto dimText = std::to_string(typeInfo.payloadArrayDims()[i]);
+                            appendPublicApiSymbolFragment(out, dimText);
+                        }
                     }
                 }
 

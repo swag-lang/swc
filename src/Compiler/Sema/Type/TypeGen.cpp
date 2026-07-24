@@ -40,12 +40,7 @@ TypeRef TypeGen::resolveArrayPointedTypeRef(TypeManager& tm, const TypeInfo& arr
     if (dims.size() == 1)
         return arrayType.payloadArrayElemTypeRef();
 
-    SmallVector<uint64_t> remainingDims;
-    remainingDims.reserve(dims.size() - 1);
-    for (size_t i = 1; i < dims.size(); ++i)
-        remainingDims.push_back(dims[i]);
-
-    return tm.addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+    return tm.addType(arrayType.makeArrayAfterFirstDimension());
 }
 
 TypeRef TypeGen::resolveArrayFinalTypeRef(const TypeManager& tm, const TaskContext& ctx, const TypeInfo& arrayType)

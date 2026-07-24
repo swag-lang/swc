@@ -970,7 +970,7 @@ namespace
         SmallVector<uint64_t> dims;
         for (const uint64_t dim : resolvedType.payloadArrayDims())
             dims.push_back(dim);
-        return sema.typeMgr().addType(TypeInfo::makeArray(dims, resolvedType.payloadArrayElemTypeRef(), reflectedFlags));
+        return sema.typeMgr().addType(TypeInfo::makeArray(dims, resolvedType.payloadArrayElemTypeRef(), reflectedFlags, resolvedType.payloadArrayIndexTypeRefs()));
     }
 
     TypeRef preserveTopLevelConstForReflectedAggregateLiteral(Sema& sema, TypeRef originalTypeRef, TypeRef resolvedTypeRef)

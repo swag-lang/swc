@@ -173,7 +173,6 @@ namespace
             {.name = IdentifierManager::PredefinedName::Mixin, .flag = RtAttributeFlagsE::Mixin},
             {.name = IdentifierManager::PredefinedName::Implicit, .flag = RtAttributeFlagsE::Implicit},
             {.name = IdentifierManager::PredefinedName::EnumFlags, .flag = RtAttributeFlagsE::EnumFlags},
-            {.name = IdentifierManager::PredefinedName::EnumIndex, .flag = RtAttributeFlagsE::EnumIndex},
             {.name = IdentifierManager::PredefinedName::NoDuplicate, .flag = RtAttributeFlagsE::NoDuplicate},
             {.name = IdentifierManager::PredefinedName::Complete, .flag = RtAttributeFlagsE::Complete},
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},

@@ -41,7 +41,7 @@ namespace
             return normalizedTypeRef;
 
         const TypeInfo& normalizedType = codeGen.typeMgr().get(normalizedTypeRef);
-        if (normalizedType.isEnum() && normalizedType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
+        if (normalizedType.isEnum())
             return normalizedType.payloadSymEnum().underlyingTypeRef();
 
         return normalizedTypeRef;
@@ -260,12 +260,7 @@ namespace
             if (dims.size() <= 1)
                 return typeMgr.get(elementRef).sizeOf(codeGen.ctx());
 
-            SmallVector<uint64_t> remainingDims;
-            remainingDims.reserve(dims.size() - 1);
-            for (size_t i = 1; i < dims.size(); ++i)
-                remainingDims.push_back(dims[i]);
-
-            const TypeRef strideTypeRef = typeMgr.addType(TypeInfo::makeArray(remainingDims.span(), elementRef, indexedType.flags()));
+            const TypeRef strideTypeRef = typeMgr.addType(indexedType.makeArrayAfterFirstDimension());
             return typeMgr.get(strideTypeRef).sizeOf(codeGen.ctx());
         }
 
@@ -288,12 +283,7 @@ namespace
             if (dims.size() <= 1)
                 return indexedType.payloadArrayElemTypeRef();
 
-            SmallVector<uint64_t> remainingDims;
-            remainingDims.reserve(dims.size() - 1);
-            for (size_t i = 1; i < dims.size(); ++i)
-                remainingDims.push_back(dims[i]);
-
-            return typeMgr.addType(TypeInfo::makeArray(remainingDims.span(), indexedType.payloadArrayElemTypeRef(), indexedType.flags()));
+            return typeMgr.addType(indexedType.makeArrayAfterFirstDimension());
         }
 
         if (indexedType.isPointerOrReference() || indexedType.isSlice() || indexedType.isTypedVariadic())

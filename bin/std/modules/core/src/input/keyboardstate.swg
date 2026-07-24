@@ -5,7 +5,7 @@
 struct KeyboardState
 {
     using native: KeyboardStateNative
-    pressed:      [@countof(Key)] bool
+    pressed:      [Key] bool
 }
 
 impl KeyboardState
@@ -14,8 +14,8 @@ impl KeyboardState
     mtd update()
     {
         .updateNative()
-        for i in @countof(Key) do
-            .pressed[i] = .native.isKeyPressed(cast(Key) i)
+        for key in Key do
+            .pressed[key] = .native.isKeyPressed(key)
     }
 
     // Reset keyboard state

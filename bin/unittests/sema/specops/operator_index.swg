@@ -75,12 +75,11 @@ func semaTest003()
     #assert(#typeof(value) == s32)
 }
 
-#[Swag.EnumIndex]
 enum IndexedSlot { First, Second, Third }
 
 func semaTest004()
 {
-    const values = [0, 1, 2]
+    const values: [IndexedSlot] s32 = [0, 1, 2]
     let first = values[IndexedSlot.First]
 
     var index = IndexedSlot.Third
@@ -90,16 +89,13 @@ func semaTest004()
     #assert(#typeof(last) == s32)
 }
 
-#[Swag.EnumIndex]
 enum IndexedByte: u8 { Zero, One, Two }
 
-func semaTest005(flag: bool)
+func semaTest005()
 {
-    var raw: u8 = IndexedByte.Two
-    let selectedByte = flag ? 0'u8 : IndexedByte.One
-    let selectedSlot = flag ? 0's32 : IndexedSlot.Second
+    var values: [IndexedByte] u8
+    values[IndexedByte.Two] = 7
 
-    #assert(#typeof(raw) == u8)
-    #assert(#typeof(selectedByte) == u8)
-    #assert(#typeof(selectedSlot) == s32)
+    #assert(#typeof(values) == [IndexedByte] u8)
+    #assert(#typeof(values[IndexedByte.Two]) == u8)
 }

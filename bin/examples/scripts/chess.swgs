@@ -28,7 +28,6 @@ enum PiecesEnum: u8
     King
 }
 
-#[Swag.EnumIndex]
 enum ContentEnum: u8
 {
     White
@@ -208,8 +207,8 @@ func computeMoves()
 
     // castle special case
     let ki           = g_Game.whiteTurn ? 6's8 : 90's8
-    let littleCastle = g_Game.castle[contentToTreat, 0]
-    let bigCastle    = g_Game.castle[contentToTreat, 1]
+    let littleCastle = g_Game.castle[cast(u64) contentToTreat, 0]
+    let bigCastle    = g_Game.castle[cast(u64) contentToTreat, 1]
 
     if littleCastle and
        moveIsPossible(ki, ki + 1) and
@@ -328,8 +327,8 @@ func doMove(fromP, toP: s8)
 
     // castle update and params
     let ki = content == .White ? 6's8 : 90's8
-    g_Game.castle[content, 0] = g_Game.castle[content, 0] and (fromP != ki) and (fromP != ki + 3)
-    g_Game.castle[content, 1] = g_Game.castle[content, 1] and (fromP != ki) and (fromP != ki - 4)
+    g_Game.castle[cast(u64) content, 0] = g_Game.castle[cast(u64) content, 0] and (fromP != ki) and (fromP != ki + 3)
+    g_Game.castle[cast(u64) content, 1] = g_Game.castle[cast(u64) content, 1] and (fromP != ki) and (fromP != ki - 4)
 
     g_Board[toP].piece     = g_Board[fromP].piece
     g_Board[toP].content   = g_Board[fromP].content

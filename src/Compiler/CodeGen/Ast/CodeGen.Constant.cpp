@@ -53,12 +53,7 @@ namespace
         if (dims.size() == 1)
             return arrayType.payloadArrayElemTypeRef();
 
-        SmallVector<uint64_t> remainingDims;
-        remainingDims.reserve(dims.size() - 1);
-        for (size_t i = 1; i < dims.size(); ++i)
-            remainingDims.push_back(dims[i]);
-
-        return codeGen.typeMgr().addType(TypeInfo::makeArray(remainingDims.span(), arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+        return codeGen.typeMgr().addType(arrayType.makeArrayAfterFirstDimension());
     }
 
     AstNodeRef codeGenErrorNodeRef(CodeGen& codeGen)

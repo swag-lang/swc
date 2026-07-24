@@ -19,6 +19,85 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const SymbolEnum* enumSymbolFromTypeExpr(Sema& sema, const SemaNodeView& view)
+    {
+        if (view.sym() && view.sym()->isEnum())
+            return &view.sym()->cast<SymbolEnum>();
+        if (view.sym() && view.sym()->isAlias())
+        {
+            const SymbolAlias& alias = view.sym()->cast<SymbolAlias>();
+            if (alias.aliasedSymbol() && alias.aliasedSymbol()->isEnum())
+                return &alias.aliasedSymbol()->cast<SymbolEnum>();
+
+            const TypeRef typeRef = alias.underlyingTypeRef();
+            if (typeRef.isValid())
+            {
+                const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias);
+                if (unwrappedTypeRef.isValid())
+                {
+                    const TypeInfo& type = sema.typeMgr().get(unwrappedTypeRef);
+                    if (type.isEnum())
+                        return &type.payloadSymEnum();
+                }
+            }
+        }
+
+        return nullptr;
+    }
+
+    Result resolveEnumArrayDimension(Sema& sema, const SymbolEnum& symEnum, AstNodeRef nodeRef, uint64_t& outCount)
+    {
+        SWC_RESULT(sema.waitSemaCompleted(&symEnum, sema.node(nodeRef).codeRef()));
+
+        std::vector<const Symbol*> symbols;
+        symEnum.getAllSymbols(symbols);
+
+        std::vector<const SymbolEnumValue*> values;
+        values.reserve(symbols.size());
+        for (const Symbol* symbol : symbols)
+        {
+            const auto* enumValue = symbol ? symbol->safeCast<SymbolEnumValue>() : nullptr;
+            if (enumValue)
+                values.push_back(enumValue);
+        }
+
+        const TypeRef underlyingTypeRef = symEnum.underlyingType(sema.ctx()).unwrap(sema.ctx(), symEnum.underlyingTypeRef(), TypeExpandE::Alias);
+        const uint64_t count             = values.size();
+        std::vector<bool> seen(count);
+        bool              isDense = count != 0 && underlyingTypeRef.isValid() && sema.typeMgr().get(underlyingTypeRef).isInt();
+        for (const SymbolEnumValue* value : values)
+        {
+            const ConstantValue& enumCst = sema.cstMgr().get(value->cstRef());
+            const ConstantRef    rawRef  = enumCst.isEnumValue() ? enumCst.getEnumValue() : value->cstRef();
+            const ConstantValue& rawCst  = sema.cstMgr().get(rawRef);
+            if (!rawCst.isInt() || !rawCst.getInt().fits64() || rawCst.getInt().isNegative())
+            {
+                isDense = false;
+                break;
+            }
+
+            const uint64_t rawValue = rawCst.getInt().as64();
+            if (rawValue >= count || seen[rawValue])
+            {
+                isDense = false;
+                break;
+            }
+            seen[rawValue] = true;
+        }
+
+        if (!isDense)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_dim_enum_not_dense, nodeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, symEnum.typeRef());
+            diag.addArgument(Diagnostic::ARG_VALUE, count ? count - 1 : 0);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        outCount = count;
+        return Result::Continue;
+    }
+
     SymbolStruct* resolveGenericRootStructAlias(Symbol* symbol)
     {
         Symbol* current = symbol;
@@ -334,7 +413,7 @@ Result AstQualifiedType::semaPostNode(Sema& sema) const
             SmallVector<uint64_t> dims;
             for (const auto dim : qualifiedType.payloadArrayDims())
                 dims.push_back(dim);
-            typeRef = typeMgr.addType(TypeInfo::makeArray(dims, qualifiedType.payloadArrayElemTypeRef(), typeFlags));
+            typeRef = typeMgr.addType(TypeInfo::makeArray(dims, qualifiedType.payloadArrayElemTypeRef(), typeFlags, qualifiedType.payloadArrayIndexTypeRefs()));
             break;
         }
         case TypeInfoKind::ValuePointer:
@@ -514,8 +593,21 @@ Result AstArrayType::semaPostNode(Sema& sema) const
     sema.ast().appendNodes(out, spanDimensionsRef);
 
     SmallVector<uint64_t> dims;
+    SmallVector<TypeRef>  indexTypeRefs;
+    bool                  hasEnumDimension = false;
     for (const auto& dimRef : out)
     {
+        const SemaNodeView typeView = sema.viewNodeTypeSymbol(dimRef);
+        if (const SymbolEnum* symEnum = enumSymbolFromTypeExpr(sema, typeView))
+        {
+            uint64_t count = 0;
+            SWC_RESULT(resolveEnumArrayDimension(sema, *symEnum, dimRef, count));
+            dims.push_back(count);
+            indexTypeRefs.push_back(symEnum->typeRef());
+            hasEnumDimension = true;
+            continue;
+        }
+
         SemaNodeView dimView = sema.viewTypeConstant(dimRef);
 
         SWC_RESULT(SemaCheck::isValue(sema, dimView.nodeRef()));
@@ -545,9 +637,11 @@ Result AstArrayType::semaPostNode(Sema& sema) const
         if (dim == 0)
             return SemaError::raise(sema, DiagnosticId::sema_err_array_dim_zero, dimView.nodeRef());
         dims.push_back(dim);
+        indexTypeRefs.push_back(TypeRef::invalid());
     }
 
-    const TypeInfo ty      = TypeInfo::makeArray(dims, view.typeRef());
+    const std::span<const TypeRef> arrayIndexTypeRefs = hasEnumDimension ? indexTypeRefs.span() : std::span<const TypeRef>{};
+    const TypeInfo                 ty                 = TypeInfo::makeArray(dims, view.typeRef(), TypeInfoFlagsE::Zero, arrayIndexTypeRefs);
     const TypeRef  typeRef = sema.typeMgr().addType(ty);
     sema.setType(sema.curNodeRef(), typeRef);
     return Result::Continue;

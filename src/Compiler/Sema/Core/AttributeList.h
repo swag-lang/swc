@@ -37,7 +37,6 @@ enum class RtAttributeFlagsE : uint64_t
     Tls            = 1 << 21,
     NoCopy         = 1 << 22,
     Opaque         = 1 << 23,
-    EnumIndex      = 1 << 24,
     NoDuplicate    = 1 << 25,
     NoDoc          = 1 << 26,
     OperatorIgnore = 1 << 27,

@@ -1,5 +1,17 @@
 #global private
 
+enum PlainArrayIndexKind
+{
+    First
+    Second
+}
+
+func indexPlainArrayWithEnum()->s32
+{
+    const values = [1, 2]
+    return values[PlainArrayIndexKind.First]     // swc-expected-error {{sema_err_index_not_int}}
+}
+
 struct VariadicPair
 {
     a: s32

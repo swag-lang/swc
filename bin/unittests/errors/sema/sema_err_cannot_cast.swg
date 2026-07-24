@@ -1,5 +1,13 @@
 #global private
 
+enum EnumArrayNoImplicitCast: u8
+{
+    First
+    Second
+}
+
+var enumArrayRawValue: u8 = EnumArrayNoImplicitCast.Second     // swc-expected-error {{sema_err_cannot_cast}}
+
 const CannotCastSwitchPointerValues = [11, 22]
 const CannotCastSwitchPointerBytes  = ['x''u8, 'y''u8]
 

@@ -4,7 +4,7 @@ using Core, Pixel
 
 struct RichEditLexerSwag
 {
-    #[Swag.Incomplete, Swag.EnumIndex]
+    #[Swag.Incomplete]
     enum Style: RichEditStyleRef
     {
         Default
@@ -24,7 +24,7 @@ struct RichEditLexerSwag
         Error
     }
 
-    #[Swag.Incomplete, Swag.EnumIndex]
+    #[Swag.Incomplete]
     enum State: s32
     {
         Default
@@ -57,8 +57,8 @@ struct RichEditLexerSwag
         Error
     }
 
-    mapStyles: [256] RichEditStyleRef
-    mapWords:  HashTable'(string, s32)
+    mapStyles: [State] Style
+    mapWords:  HashTable'(string, State)
 }
 
 impl IRichEditLexer for RichEditLexerSwag
@@ -371,20 +371,20 @@ impl IRichEditLexer for RichEditLexerSwag
     mtd impl setupTheme(ed: *RichEditCtrl)
     {
         using RichEditLexerSwag.Style
-        ed.styles[Comment].colFg      = 0xFF6A9955
-        ed.styles[Keyword].colFg      = 0xFF569CD6
-        ed.styles[Control].colFg      = 0xFFD8A0DF
-        ed.styles[Intrinsic].colFg    = 0xFFDCDCAA
-        ed.styles[Buildin].colFg      = 0xFFF67F56
-        ed.styles[Function].colFg     = 0xFFFF7411
-        ed.styles[Preprocessor].colFg = 0xFFAAAAAA
-        ed.styles[CharEscape].colFg   = 0xFFD7BA7D
-        ed.styles[Type].colFg         = 0xFFF6CC86
-        ed.styles[Class].colFg        = 0xFF4EC9B0
-        ed.styles[String].colFg       = 0xFFCE9178
-        ed.styles[Character].colFg    = 0xFFCE9178
-        ed.styles[Numeric].colFg      = 0xFFB5CEA8
-        ed.styles[Error].colFg        = 0xFFF44747
+        ed.styles[cast(u64) Comment].colFg      = 0xFF6A9955
+        ed.styles[cast(u64) Keyword].colFg      = 0xFF569CD6
+        ed.styles[cast(u64) Control].colFg      = 0xFFD8A0DF
+        ed.styles[cast(u64) Intrinsic].colFg    = 0xFFDCDCAA
+        ed.styles[cast(u64) Buildin].colFg      = 0xFFF67F56
+        ed.styles[cast(u64) Function].colFg     = 0xFFFF7411
+        ed.styles[cast(u64) Preprocessor].colFg = 0xFFAAAAAA
+        ed.styles[cast(u64) CharEscape].colFg   = 0xFFD7BA7D
+        ed.styles[cast(u64) Type].colFg         = 0xFFF6CC86
+        ed.styles[cast(u64) Class].colFg        = 0xFF4EC9B0
+        ed.styles[cast(u64) String].colFg       = 0xFFCE9178
+        ed.styles[cast(u64) Character].colFg    = 0xFFCE9178
+        ed.styles[cast(u64) Numeric].colFg      = 0xFFB5CEA8
+        ed.styles[cast(u64) Error].colFg        = 0xFFF44747
     }
 
     mtd impl insertRune(ed: *RichEditCtrl, ch: rune)->bool
@@ -422,7 +422,7 @@ impl IRichEditLexer for RichEditLexerSwag
     mtd impl compute(linePrev: #null *RichEditLine, line: *RichEditLine, lineNext: #null *RichEditLine)
     {
         var seek          = 0'u64
-        var currentState  = linePrev ? linePrev.lexerEndingState : State.Default
+        var currentState: State = linePrev ? cast(State) linePrev.lexerEndingState : State.Default
         var currentCptCmt = linePrev ? linePrev.lexerCptCmt : 0
 
         #[Swag.Mixin]
@@ -448,7 +448,7 @@ impl IRichEditLexer for RichEditLexerSwag
         {
             if seek >= line.chars.count do
                 return
-            line.styles[seek] = .mapStyles[currentState]
+            line.styles[seek] = cast(RichEditStyleRef) .mapStyles[currentState]
             seek              += 1
         }
 
@@ -726,9 +726,9 @@ impl IRichEditLexer for RichEditLexerSwag
         if currentState == State.LineComment do
             currentState = State.Default
 
-        if line.lexerEndingState != currentState
+        if line.lexerEndingState != cast(s32) currentState
         {
-            line.lexerEndingState = currentState
+            line.lexerEndingState = cast(s32) currentState
             if lineNext do
                 lineNext.dirtyStyle = true
         }

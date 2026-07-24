@@ -18,19 +18,45 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    Result resolveIndexOperandTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView)
+    Result resolveIndexOperandTypeRef(Sema& sema, TypeRef& outTypeRef, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, TypeRef expectedEnumTypeRef)
     {
         outTypeRef                 = nodeArgView.typeRef();
         const TypeRef aliasTypeRef = nodeArgView.type()->unwrap(sema.ctx(), nodeArgView.typeRef(), TypeExpandE::Alias);
         if (aliasTypeRef.isValid())
             outTypeRef = aliasTypeRef;
 
-        const TypeInfo& indexType = sema.typeMgr().get(outTypeRef);
-        if (indexType.isEnum())
+        const TypeInfo* indexType = &sema.typeMgr().get(outTypeRef);
+        if (indexType->isReference())
         {
-            SWC_RESULT(sema.waitSemaCompleted(&indexType, nodeArgRef));
-            if (indexType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
-                outTypeRef = indexType.payloadSymEnum().underlyingTypeRef();
+            outTypeRef = indexType->payloadTypeRef();
+            const TypeRef referencedAliasTypeRef = sema.typeMgr().get(outTypeRef).unwrap(sema.ctx(), outTypeRef, TypeExpandE::Alias);
+            if (referencedAliasTypeRef.isValid())
+                outTypeRef = referencedAliasTypeRef;
+            indexType = &sema.typeMgr().get(outTypeRef);
+        }
+
+        if (indexType->isEnum())
+        {
+            SWC_RESULT(sema.waitSemaCompleted(indexType, nodeArgRef));
+            if (expectedEnumTypeRef.isInvalid())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_not_int, nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            const TypeInfo& expectedEnumType = sema.typeMgr().get(expectedEnumTypeRef);
+            if (&indexType->payloadSymEnum() != &expectedEnumType.payloadSymEnum())
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_index_enum_mismatch, nodeArgRef);
+                diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, expectedEnumTypeRef);
+                diag.addArgument(Diagnostic::ARG_TYPE, nodeArgView.typeRef());
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            outTypeRef = indexType->payloadSymEnum().underlyingTypeRef();
         }
 
         return Result::Continue;
@@ -112,13 +138,16 @@ namespace
         return count;
     }
 
-    Result checkIndex(Sema& sema, AstNodeRef nodeArgRef, const SemaNodeView& nodeArgView, int64_t& constIndex, bool& hasConstIndex)
+    Result checkIndex(Sema& sema,
+                      AstNodeRef nodeArgRef,
+                      const SemaNodeView& nodeArgView,
+                      int64_t&            constIndex,
+                      bool&               hasConstIndex,
+                      TypeRef             expectedEnumTypeRef = TypeRef::invalid())
     {
         TypeRef indexTypeRef;
-        SWC_RESULT(resolveIndexOperandTypeRef(sema, indexTypeRef, nodeArgRef, nodeArgView));
+        SWC_RESULT(resolveIndexOperandTypeRef(sema, indexTypeRef, nodeArgRef, nodeArgView, expectedEnumTypeRef));
         const TypeInfo* indexType = &sema.typeMgr().get(indexTypeRef);
-        if (indexType->isReference())
-            indexType = &sema.typeMgr().get(indexType->payloadTypeRef());
 
         if (!indexType->isInt())
         {
@@ -358,7 +387,8 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
 
     int64_t constIndex    = 0;
     bool    hasConstIndex = false;
-    SWC_RESULT(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex));
+    const TypeRef expectedEnumTypeRef = indexedType.isArray() ? indexedType.payloadArrayIndexTypeRef() : TypeRef::invalid();
+    SWC_RESULT(checkIndex(sema, nodeArgRef, nodeArgView, constIndex, hasConstIndex, expectedEnumTypeRef));
 
     if (indexedType.isAggregateArray())
     {
@@ -389,10 +419,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         const uint64_t numExpected = arrayDims.size();
         if (numExpected > 1)
         {
-            SmallVector4<uint64_t> dims;
-            for (size_t i = 1; i < numExpected; i++)
-                dims.push_back(arrayDims[i]);
-            const auto typeArray = TypeInfo::makeArray(dims, indexedType.payloadArrayElemTypeRef(), indexedType.flags());
+            const TypeInfo typeArray = indexedType.makeArrayAfterFirstDimension();
             sema.setType(sema.curNodeRef(), sema.typeMgr().addType(typeArray));
         }
         else
@@ -489,12 +516,13 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
         for (const AstNodeRef nodeRef : children)
         {
             const SemaNodeView nodeArgView = sema.viewTypeConstant(nodeRef);
+            const TypeInfo&    currentType = sema.typeMgr().get(currentTypeRef);
 
             int64_t constIndex    = 0;
             bool    hasConstIndex = false;
-            SWC_RESULT(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex));
+            const TypeRef expectedEnumTypeRef = currentType.isArray() ? currentType.payloadArrayIndexTypeRef() : TypeRef::invalid();
+            SWC_RESULT(checkIndex(sema, nodeRef, nodeArgView, constIndex, hasConstIndex, expectedEnumTypeRef));
 
-            const TypeInfo& currentType = sema.typeMgr().get(currentTypeRef);
             if (currentType.isAggregateArray())
             {
                 if (!hasConstIndex)
@@ -532,10 +560,7 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
                 const auto& arrayDims = currentType.payloadArrayDims();
                 if (arrayDims.size() > 1)
                 {
-                    SmallVector4<uint64_t> dims;
-                    for (size_t i = 1; i < arrayDims.size(); i++)
-                        dims.push_back(arrayDims[i]);
-                    const auto typeArray = TypeInfo::makeArray(dims, currentType.payloadArrayElemTypeRef(), currentType.flags());
+                    const TypeInfo typeArray = currentType.makeArrayAfterFirstDimension();
                     currentTypeRef       = sema.typeMgr().addType(typeArray);
                 }
                 else

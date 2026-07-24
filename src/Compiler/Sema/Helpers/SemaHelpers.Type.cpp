@@ -477,6 +477,8 @@ namespace
             return TypeRef::invalid();
         if (!sameArrayDimensions(leftType.payloadArrayDims(), rightType.payloadArrayDims()))
             return TypeRef::invalid();
+        if (leftType.payloadArrayIndexTypeRefs() != rightType.payloadArrayIndexTypeRefs())
+            return TypeRef::invalid();
 
         const std::array elementTypes      = {leftType.payloadArrayElemTypeRef(), rightType.payloadArrayElemTypeRef()};
         const TypeRef    mergedElemTypeRef = deduceConcretizedAggregateArrayElementType(sema, elementTypes, nullptr);
@@ -487,7 +489,7 @@ namespace
         dims.reserve(leftType.payloadArrayDims().size());
         for (const uint64_t dim : leftType.payloadArrayDims())
             dims.push_back(dim);
-        return typeMgr.addType(TypeInfo::makeArray(dims.span(), mergedElemTypeRef));
+        return typeMgr.addType(TypeInfo::makeArray(dims.span(), mergedElemTypeRef, TypeInfoFlagsE::Zero, leftType.payloadArrayIndexTypeRefs()));
     }
 
     TypeRef deduceConcretizedAggregateArrayElementType(Sema& sema, std::span<const TypeRef> elemTypes, const std::vector<ConstantRef>* values)

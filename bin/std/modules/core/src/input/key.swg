@@ -15,7 +15,6 @@ public enum KeyModifiers
 }
 
 // Defines the keys on a keyboard
-#[Swag.EnumIndex]
 public enum Key
 {
     None

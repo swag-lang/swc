@@ -1,6 +1,5 @@
 #global public
 
-#[Swag.EnumIndex]
 enum CursorShape
 {
     Arrow

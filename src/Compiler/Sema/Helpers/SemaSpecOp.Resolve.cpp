@@ -60,10 +60,6 @@ namespace
         if (aliasTypeRef.isValid())
             indexTypeRef = aliasTypeRef;
 
-        const TypeInfo& indexType = sema.typeMgr().get(indexTypeRef);
-        if (indexType.isEnum() && indexType.payloadSymEnum().attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex))
-            indexTypeRef = indexType.payloadSymEnum().underlyingTypeRef();
-
         return indexTypeRef;
     }
 

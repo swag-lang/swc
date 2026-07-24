@@ -9,7 +9,7 @@ public struct NativeCursor
 
 impl NativeCursor
 {
-    var defaultCursors: [@countof(CursorShape)] Cursor
+    var defaultCursors: [CursorShape] Cursor
 }
 
 #init

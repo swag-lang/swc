@@ -5,7 +5,7 @@ using Swag, Win32
 
 impl Keyboard
 {
-    var mapKeyToVKey: [256] u8 = undefined
+    var mapKeyToVKey: [Key] u8 = undefined
     var mapVKeyToKey: [256] u8 = undefined
 
     #[Compiler]

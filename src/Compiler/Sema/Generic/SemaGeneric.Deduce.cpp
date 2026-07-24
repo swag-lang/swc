@@ -427,11 +427,7 @@ namespace
         if (dims.size() <= 1)
             return arrayType.payloadArrayElemTypeRef();
 
-        SmallVector<uint64_t> remainingDims;
-        remainingDims.reserve(dims.size() - 1);
-        for (size_t i = 1; i < dims.size(); ++i)
-            remainingDims.push_back(dims[i]);
-        return typeMgr.addType(TypeInfo::makeArray(remainingDims, arrayType.payloadArrayElemTypeRef(), arrayType.flags()));
+        return typeMgr.addType(arrayType.makeArrayAfterFirstDimension());
     }
 
     bool patternCanDeduceMissingGenericParam(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<const SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef)

@@ -178,6 +178,7 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
 
         case TypeInfoKind::Array:
             std::construct_at(&payloadArray_.dims, other.payloadArray_.dims);
+            std::construct_at(&payloadArray_.indexTypeRefs, other.payloadArray_.indexTypeRefs);
             payloadArray_.typeRef = other.payloadArray_.typeRef;
             break;
         case TypeInfoKind::Function:
@@ -249,6 +250,7 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
 
         case TypeInfoKind::Array:
             std::construct_at(&payloadArray_.dims, std::move(other.payloadArray_.dims));
+            std::construct_at(&payloadArray_.indexTypeRefs, std::move(other.payloadArray_.indexTypeRefs));
             payloadArray_.typeRef = other.payloadArray_.typeRef;
             break;
         case TypeInfoKind::Function:
@@ -284,6 +286,7 @@ TypeInfo::~TypeInfo()
     {
         case TypeInfoKind::Array:
             std::destroy_at(&payloadArray_.dims);
+            std::destroy_at(&payloadArray_.indexTypeRefs);
             break;
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
@@ -362,6 +365,8 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
 
         case TypeInfoKind::Array:
             if (payloadArray_.dims.size() != other.payloadArray_.dims.size())
+                return false;
+            if (payloadArray_.indexTypeRefs != other.payloadArray_.indexTypeRefs)
                 return false;
             if (payloadArray_.typeRef != other.payloadArray_.typeRef)
                 return false;
@@ -481,8 +486,12 @@ uint32_t TypeInfo::hash() const
             return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, payloadArray_.typeRef.get());
-            for (const auto dim : payloadArray_.dims)
-                h = Math::hashCombine(h, static_cast<uint32_t>(dim));
+            for (size_t i = 0; i < payloadArray_.dims.size(); ++i)
+            {
+                h = Math::hashCombine(h, static_cast<uint32_t>(payloadArray_.dims[i]));
+                if (!payloadArray_.indexTypeRefs.empty())
+                    h = Math::hashCombine(h, payloadArray_.indexTypeRefs[i].get());
+            }
             return h;
 
         default:
@@ -685,7 +694,11 @@ namespace
                     {
                         if (i != 0)
                             out += ", ";
-                        out += std::to_string(typeInfo.payloadArrayDims()[i]);
+                        const TypeRef indexTypeRef = typeInfo.payloadArrayIndexTypeRef(i);
+                        if (indexTypeRef.isValid())
+                            out += renderTypeName(ctx.typeMgr().get(indexTypeRef), ctx, mode);
+                        else
+                            out += std::to_string(typeInfo.payloadArrayDims()[i]);
                     }
                     out += "]";
                 }
@@ -940,13 +953,34 @@ TypeInfo TypeInfo::makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags)
     return ti;
 }
 
-TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags)
+TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims,
+                             TypeRef                         elementTypeRef,
+                             TypeInfoFlags                   flags,
+                             const std::span<const TypeRef>& indexTypeRefs)
 {
+    SWC_ASSERT(indexTypeRefs.empty() || indexTypeRefs.size() == dims.size());
     TypeInfo ti{TypeInfoKind::Array, flags};
     std::construct_at(&ti.payloadArray_.dims, dims.begin(), dims.end());
+    if (std::ranges::any_of(indexTypeRefs, [](TypeRef typeRef) { return typeRef.isValid(); }))
+        std::construct_at(&ti.payloadArray_.indexTypeRefs, indexTypeRefs.begin(), indexTypeRefs.end());
+    else
+        std::construct_at(&ti.payloadArray_.indexTypeRefs);
     ti.payloadArray_.typeRef = elementTypeRef;
     // ReSharper disable once CppSomeObjectMembersMightNotBeInitialized
     return ti;
+}
+
+TypeInfo TypeInfo::makeArrayAfterFirstDimension() const
+{
+    SWC_ASSERT(isArray());
+    SWC_ASSERT(payloadArray_.dims.size() > 1);
+
+    const std::span<const uint64_t> remainingDims{payloadArray_.dims.begin() + 1, payloadArray_.dims.end()};
+    if (payloadArray_.indexTypeRefs.empty())
+        return makeArray(remainingDims, payloadArray_.typeRef, flags_);
+
+    const std::span<const TypeRef> remainingIndexTypeRefs{payloadArray_.indexTypeRefs.begin() + 1, payloadArray_.indexTypeRefs.end()};
+    return makeArray(remainingDims, payloadArray_.typeRef, flags_, remainingIndexTypeRefs);
 }
 
 TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types)

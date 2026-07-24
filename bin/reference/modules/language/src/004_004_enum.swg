@@ -221,16 +221,16 @@ const MyError0 = MyErrors.FailedToSave
 }
 
 /**
-# Specific Enum Attributes
+# Enum-indexed Arrays
 
-`#[Swag.EnumIndex]` allows direct indexing with enum values.
+An enum can define the index domain of an array. Its values must be unique integers
+forming the contiguous range from zero to the last value.
 */
 #test
 {
-    #[Swag.EnumIndex]
     enum MyIndex { First, Second, Third }
 
-    const Array = [0, 1, 2]
+    const Array: [MyIndex] s32 = [0, 1, 2]
     const Valu  = Array[MyIndex.First]
     @assert(Valu == 0)
 
@@ -239,6 +239,8 @@ const MyError0 = MyErrors.FailedToSave
 }
 
 /**
+# Specific Enum Attributes
+
 `#[Swag.NoDuplicate]` prevents duplicate values.
 */
 #test

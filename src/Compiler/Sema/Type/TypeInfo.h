@@ -272,6 +272,21 @@ public:
         return payloadArray_.dims;
     }
 
+    const auto& payloadArrayIndexTypeRefs() const noexcept
+    {
+        SWC_ASSERT(isArray());
+        return payloadArray_.indexTypeRefs;
+    }
+
+    TypeRef payloadArrayIndexTypeRef(size_t dimension = 0) const noexcept
+    {
+        SWC_ASSERT(isArray());
+        if (payloadArray_.indexTypeRefs.empty())
+            return TypeRef::invalid();
+        SWC_ASSERT(dimension < payloadArray_.indexTypeRefs.size());
+        return payloadArray_.indexTypeRefs[dimension];
+    }
+
     TypeRef payloadArrayElemTypeRef() const noexcept
     {
         SWC_ASSERT(isArray());
@@ -313,7 +328,11 @@ public:
     static TypeInfo makeReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeMoveReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeArray(const std::span<const uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+    static TypeInfo makeArray(const std::span<const uint64_t>& dims,
+                              TypeRef                         elementTypeRef,
+                              TypeInfoFlags                   flags         = TypeInfoFlagsE::Zero,
+                              const std::span<const TypeRef>& indexTypeRefs = {});
+    TypeInfo        makeArrayAfterFirstDimension() const;
     static TypeInfo makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types);
     static TypeInfo makeAggregateArray(const std::span<const TypeRef>& types);
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
@@ -377,6 +396,7 @@ private:
         struct
         {
             std::vector<uint64_t> dims;
+            std::vector<TypeRef>  indexTypeRefs;
             TypeRef               typeRef;
         } payloadArray_;
 

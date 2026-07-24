@@ -1272,8 +1272,7 @@ Result Cast::castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     SWC_RESULT(waitEnumCompletion(sema, castRequest, dstType));
 
     const SymbolEnum& enumSym                    = srcType.payloadSymEnum();
-    const bool        allowEnumIndexImplicitCast = enumSym.attributes().hasRtFlag(RtAttributeFlagsE::EnumIndex) && dstType.isIntLike();
-    if (castRequest.kind != CastKind::Explicit && !allowEnumIndexImplicitCast)
+    if (castRequest.kind != CastKind::Explicit)
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
     // Only enum flags (or enums already backed by bool) can be cast to bool.

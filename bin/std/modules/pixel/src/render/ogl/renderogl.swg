@@ -63,7 +63,7 @@ struct RenderOgl
     orthoMatrix:     Matrix4x4
     modelMatrix:     Matrix4x4
     whiteTexture:    GLuint
-    hatchTextures:   [@countof(HatchStyle)] GLuint
+    hatchTextures:   [HatchStyle] GLuint
     blendingMode:    BlendingMode = .Alpha
     curRC:           RenderingContext
     stackReleasedRT: Array'#null *RenderTarget

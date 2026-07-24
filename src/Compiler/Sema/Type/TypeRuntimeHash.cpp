@@ -442,8 +442,12 @@ uint32_t TypeRuntimeHash::compute(const TaskContext& ctx, const TypeInfo& typeIn
             return h;
         case TypeInfoKind::Array:
             h = Math::hashCombine(h, stableTypeHash(ctx, typeInfo.payloadArray_.typeRef));
-            for (const uint64_t dim : typeInfo.payloadArray_.dims)
-                h = Math::hashCombine(h, dim);
+            for (size_t i = 0; i < typeInfo.payloadArray_.dims.size(); ++i)
+            {
+                h = Math::hashCombine(h, typeInfo.payloadArray_.dims[i]);
+                if (!typeInfo.payloadArray_.indexTypeRefs.empty() && typeInfo.payloadArray_.indexTypeRefs[i].isValid())
+                    h = Math::hashCombine(h, stableTypeHash(ctx, typeInfo.payloadArray_.indexTypeRefs[i]));
+            }
             return h;
 
         default:

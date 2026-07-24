@@ -25,7 +25,7 @@ using XInput, Win32, Core.Errors
 
 impl GamePadState
 {
-    private var mapButtons: [@countof(GamePadButton)] GamePadButton = undefined
+    private var mapButtons: [16] GamePadButton = undefined
 
     // Compute the current state of the given pad index
     mtd update(padIndex: u32) throw

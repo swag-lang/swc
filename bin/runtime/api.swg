@@ -139,10 +139,6 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Enum)]
     attr EnumFlags()
 
-    // The following enum can be used to index arrays without casting
-    #[AttrUsage(AttributeUsage.Enum)]
-    attr EnumIndex()
-
     // The following enum can't have duplicated values
     #[AttrUsage(AttributeUsage.Enum)]
     attr NoDuplicate()

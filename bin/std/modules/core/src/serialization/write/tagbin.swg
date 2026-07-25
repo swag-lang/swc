@@ -276,9 +276,9 @@ impl TagBin
         .compressor.init(.compressionLevel, .compressionStrategy, .compressionFlags)
 
         var compressBuffer: Array'u8
-        catch .compressor.compress(&compressBuffer, childBytes.toSlice())
+        catch .compressor.compress(&compressBuffer, childBytes.toSlice()) as err
 
-        if compressBuffer.count >= childBytes.length or @err != null
+        if compressBuffer.count >= childBytes.length or err != null
         {
             // No compression, just store input
             parentOut.addNative(childBytes.length)     // uncompressedSize

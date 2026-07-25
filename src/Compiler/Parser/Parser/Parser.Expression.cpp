@@ -1172,8 +1172,23 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
 
 AstNodeRef Parser::parseTryCatchAssume()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(consume());
+    const TokenRef opTokRef = consume();
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(opTokRef);
     nodePtr->nodeExprRef    = parseExpression();
+
+    // 'let x = catch f() as err' captures the caught error into a named local (enclosing scope):
+    // 'x' is the result, 'err' the error. Only 'catch' captures. parseExpression() absorbed the
+    // trailing 'as err' into the operand as an 'AsCastExpr'; unwrap it into operand + bound name.
+    // (A trailing 'as T' on try/expect/orfail stays an ordinary cast of the operand.)
+    if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch &&
+        nodePtr->nodeExprRef.isValid() &&
+        ast_->node(nodePtr->nodeExprRef).is(AstNodeId::AsCastExpr))
+    {
+        const auto& asCast     = ast_->node(nodePtr->nodeExprRef).cast<AstAsCastExpr>();
+        nodePtr->errNameTokRef = ast_->node(asCast.nodeTypeRef).tokRef();
+        nodePtr->nodeExprRef   = asCast.nodeExprRef;
+    }
+
     return nodeRef;
 }
 

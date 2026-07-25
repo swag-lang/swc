@@ -105,8 +105,8 @@ func day4B0()
                     pass |= 4
 
             case "hgt":
-                let val = catch StrConv.parseS32(res1[1])
-                if @err != null do
+                let val = catch StrConv.parseS32(res1[1]) as err
+                if err != null do
                     break
                 if val.eat == @countof(res1[1]) do
                     break
@@ -121,8 +121,8 @@ func day4B0()
             case "hcl":
                 if @countof(res1[1]) != 7 or res1[1][0] != '#' do
                     break
-                discard catch StrConv.parseX64(res1[1][1 to])
-                if @err == null do
+                discard catch StrConv.parseX64(res1[1][1 to]) as err
+                if err == null do
                     pass |= 16
 
             case "ecl":
@@ -130,8 +130,8 @@ func day4B0()
                     pass |= 32
 
             case "pid":
-                discard catch StrConv.toS32(res1[1])
-                if @err == null and @countof(res1[1]) == 9 do
+                discard catch StrConv.toS32(res1[1]) as err
+                if err == null and @countof(res1[1]) == 9 do
                     pass |= 64
             }
         }

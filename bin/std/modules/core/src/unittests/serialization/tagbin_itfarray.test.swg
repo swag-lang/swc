@@ -53,13 +53,13 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
 
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
     var buffer:  ConcatBuffer
-    catch encoder.writeAll(&buffer, holder)
-    @assert(@err == null)
+    catch encoder.writeAll(&buffer, holder) as err
+    @assert(err == null)
 
     buffer.makeLinear()
     var decoder: Serialization.Decoder'Serialization.Read.TagBin
-    let loaded = notnull catch decoder.readAll'TagBinArrayHolder(notnull buffer.toSlice())
-    @assert(@err == null)
+    let loaded = notnull catch decoder.readAll'TagBinArrayHolder(notnull buffer.toSlice()) as err2
+    @assert(err2 == null)
     defer releaseTagBinArrayHolder(loaded)
 
     @assert(loaded.things.count == 3)

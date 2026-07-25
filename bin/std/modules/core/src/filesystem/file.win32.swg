@@ -8,8 +8,8 @@ using Win32
 func delete(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
-    catch DeleteFileW(@dataof(winPath))
-    Errors.transformWinErrors(fullName)
+    catch DeleteFileW(@dataof(winPath)) as err
+    Errors.transformWinErrors(err, fullName)
 }
 
 // Change the file write date/time
@@ -17,8 +17,8 @@ func touch(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
 
-    let hFile = catch CreateFileW(@dataof(winPath), FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null)
-    Errors.transformWinErrors(fullName)
+    let hFile = catch CreateFileW(@dataof(winPath), FILE_WRITE_ATTRIBUTES, 0, null, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, null) as err
+    Errors.transformWinErrors(err, fullName)
     defer CloseHandle(hFile)
 
     var ft: FILETIME   = undefined
@@ -35,8 +35,8 @@ func exists(fullName: string)->bool
         return false
     let safeName   = fullName orelse ""
     let winPath    = Utf16.toZeroTerminated(safeName)
-    let attributes = catch GetFileAttributesW(@dataof(winPath))
-    if @err != null do
+    let attributes = catch GetFileAttributesW(@dataof(winPath)) as err
+    if err != null do
         return false
     if attributes == 0xFFFFFFFF do
         return false
@@ -86,8 +86,8 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
         wShare |= FILE_SHARE_DELETE
 
     let winPath = Utf16.toZeroTerminated(fullName)
-    let hFile   = catch CreateFileW(@dataof(winPath), wAccess, wShare, null, wMode, FILE_ATTRIBUTE_NORMAL, null)
-    Errors.transformWinErrors(fullName)
+    let hFile   = catch CreateFileW(@dataof(winPath), wAccess, wShare, null, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
+    Errors.transformWinErrors(err, fullName)
 
     result.name    = fullName
     result.handle  = cast(FileHandle) hFile
@@ -96,8 +96,8 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     if mode == FileMode.Append
     {
         var high = 0
-        discard SetFilePointer(hFile, 0, &high, FILE_END)
-        Errors.transformWinErrors(fullName)
+        discard catch SetFilePointer(hFile, 0, &high, FILE_END) as err
+        Errors.transformWinErrors(err, fullName)
     }
 
     return result

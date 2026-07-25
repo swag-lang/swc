@@ -5,8 +5,8 @@ using Swag, Core
 func makeShapingTestFont()->*Font
 {
     var face: *TypeFace = undefined
-    catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf"))
-    @assert(@err == null)
+    catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
+    @assert(err == null)
     return Font.create(face, 32, .Bitmap)
 }
 

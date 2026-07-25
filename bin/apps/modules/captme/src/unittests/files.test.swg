@@ -9,8 +9,8 @@ func testPrepareSavedCapture(capture: *Capture)->String
     capture.file    = path
     capture.changed = true
 
-    catch capture.save()
-    @assert(@err == null)
+    catch capture.save() as err
+    @assert(err == null)
     @assert(File.exists(path))
     return path
 }
@@ -40,8 +40,8 @@ func testHasCaptmeFileMetadata(img: Image, captureFile: String)->bool
 
 func testPrepareRecentLibrary(main: *MainWnd)
 {
-    catch Library.init()
-    @assert(@err == null)
+    catch Library.init() as err2
+    @assert(err2 == null)
     g_Library.files.clear()
     g_Library.loaded = true
 
@@ -134,8 +134,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     }
 
     var source = Testing.indexedImage(21, 13)
-    catch source.save(sourcePath)
-    @assert(@err == null)
+    catch source.save(sourcePath) as err3
+    @assert(err3 == null)
 
     f.gui.acceptModalFileDialog(sourcePath)
 
@@ -192,8 +192,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     @assert(File.exists(pngPath))
 
-    let saved = catch Image.load(pngPath)
-    @assert(@err == null)
+    let saved = catch Image.load(pngPath) as err4
+    @assert(err4 == null)
     @assert(saved.isValid())
     @assert(saved.width == 32)
     @assert(saved.height == 20)
@@ -235,8 +235,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.app.surfaces.count == 0)
     @assert(File.exists(pngPath))
 
-    let saved = catch Image.load(pngPath)
-    @assert(@err == null)
+    let saved = catch Image.load(pngPath) as err5
+    @assert(err5 == null)
     @assert(saved.isValid())
     @assert(saved.width == 34)
     @assert(saved.height == 22)
@@ -270,8 +270,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     var oldImage = Image.create(3, 2, .BGRA8)
     oldImage.fill(ColorRed)
-    catch oldImage.save(pngPath)
-    @assert(@err == null)
+    catch oldImage.save(pngPath) as err6
+    @assert(err6 == null)
 
     f.gui.acceptModalFileDialog(pngPath)
     f.gui.thenClickModalButton(Dialog.BtnYes)
@@ -282,8 +282,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.gui.autoHandled)
     @assert(f.gui.app.surfaces.count == 0)
 
-    let saved = catch Image.load(pngPath)
-    @assert(@err == null)
+    let saved = catch Image.load(pngPath) as err7
+    @assert(err7 == null)
     @assert(saved.isValid())
     @assert(saved.width == 40)
     @assert(saved.height == 30)
@@ -322,8 +322,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage == linkedPath)
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = notnull catch Capture.load(capturePath)
-    @assert(@err == null)
+    let loaded = notnull catch Capture.load(capturePath) as err8
+    @assert(err8 == null)
     defer
     {
         Memory.delete(loaded)
@@ -369,8 +369,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(testSamePath(f.capture.linkedImage, linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let loaded = notnull catch Capture.load(capturePath)
-    @assert(@err == null)
+    let loaded = notnull catch Capture.load(capturePath) as err9
+    @assert(err9 == null)
     defer
     {
         Memory.delete(loaded)
@@ -416,15 +416,15 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(File.exists(linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let linked = catch Image.load(linkedPath)
-    @assert(@err == null)
+    let linked = catch Image.load(linkedPath) as err10
+    @assert(err10 == null)
     @assert(linked.isValid())
     @assert(linked.width == 26)
     @assert(linked.height == 16)
     @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
-    let loaded = notnull catch Capture.load(capturePath)
-    @assert(@err == null)
+    let loaded = notnull catch Capture.load(capturePath) as err11
+    @assert(err11 == null)
     defer
     {
         Memory.delete(loaded)
@@ -473,15 +473,15 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(File.exists(linkedPath))
     @assert(f.capture.linkedUpToDate)
 
-    let linked = catch Image.load(linkedPath)
-    @assert(@err == null)
+    let linked = catch Image.load(linkedPath) as err12
+    @assert(err12 == null)
     @assert(linked.isValid())
     @assert(linked.width == 38)
     @assert(linked.height == 26)
     @assert(testHasCaptmeFileMetadata(linked, capturePath))
 
-    let loaded = notnull catch Capture.load(capturePath)
-    @assert(@err == null)
+    let loaded = notnull catch Capture.load(capturePath) as err13
+    @assert(err13 == null)
     defer
     {
         Memory.delete(loaded)
@@ -515,8 +515,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.capture.linkedImage    = linkedPath
     f.capture.linkedUpToDate = true
     f.capture.changed        = true
-    catch f.capture.save()
-    @assert(@err == null)
+    catch f.capture.save() as err14
+    @assert(err14 == null)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
@@ -528,8 +528,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(f.capture.linkedImage.isEmpty())
     @assert(!f.capture.linkedUpToDate)
 
-    let loaded = notnull catch Capture.load(capturePath)
-    @assert(@err == null)
+    let loaded = notnull catch Capture.load(capturePath) as err15
+    @assert(err15 == null)
     defer
     {
         Memory.delete(loaded)
@@ -572,8 +572,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     @assert(!testSamePath(duplicatedPath, originalPath))
     @assert(File.exists(duplicatedPath))
 
-    let duplicated = notnull catch Capture.load(duplicatedPath)
-    @assert(@err == null)
+    let duplicated = notnull catch Capture.load(duplicatedPath) as err16
+    @assert(err16 == null)
     defer
     {
         Memory.delete(duplicated)
@@ -596,8 +596,8 @@ func testPrepareRecentLibrary(main: *MainWnd)
     let capturePath = testPrepareSavedCapture(f.capture)
     g_Library.addFile(capturePath)
 
-    let loaded = catch f.main.recentWnd.addRecent(capturePath, true, true)
-    @assert(@err == null)
+    let loaded = catch f.main.recentWnd.addRecent(capturePath, true, true) as err17
+    @assert(err17 == null)
     Memory.delete(loaded)
     @assert(f.main.recentWnd.recentView.selected == 0)
 

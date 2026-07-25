@@ -413,8 +413,8 @@ impl LibraryWnd
             return
         let folder = bc.items[index].tag.toString()
 
-        let dirs = catch Directory.enumerateDirectories(folder)
-        if @err != null do
+        let dirs = catch Directory.enumerateDirectories(folder) as err
+        if err != null do
             return
 
         // Mark the child that is currently on the path (the level shown to the right).

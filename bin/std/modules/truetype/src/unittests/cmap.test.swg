@@ -4,23 +4,23 @@ using Swag, Core
 
 #test
 {
-    let glyphA = catch lookupCMap4(Cmap4Fixture, 'A''u32)
-    @assert(@err == null)
+    let glyphA = catch lookupCMap4(Cmap4Fixture, 'A''u32) as err
+    @assert(err == null)
     @assert(glyphA == 3)
 
-    let glyphB = catch lookupCMap4(Cmap4Fixture, 'B''u32)
-    @assert(@err == null)
+    let glyphB = catch lookupCMap4(Cmap4Fixture, 'B''u32) as err2
+    @assert(err2 == null)
     @assert(glyphB == 0)
 }
 
 #test
 {
-    let glyph0 = catch lookupCMap12(Cmap12Fixture, 0x00010000)
-    @assert(@err == null)
+    let glyph0 = catch lookupCMap12(Cmap12Fixture, 0x00010000) as err3
+    @assert(err3 == null)
     @assert(glyph0 == 7)
 
-    let glyph1 = catch lookupCMap12(Cmap12Fixture, 0x00010001)
-    @assert(@err == null)
+    let glyph1 = catch lookupCMap12(Cmap12Fixture, 0x00010001) as err4
+    @assert(err4 == null)
     @assert(glyph1 == 0)
 }
 

@@ -163,9 +163,9 @@ impl Application
         let sizeIcon = small ? 16 : 32
 
         // Convert icon to image
-        var img = catch Image.from(hIcon)
+        var img = catch Image.from(hIcon) as err
         defer catch DestroyIcon(hIcon)
-        if @err != null do
+        if err != null do
             return result
         img.resize(sizeIcon, sizeIcon)
 

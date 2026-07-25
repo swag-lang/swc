@@ -1335,8 +1335,23 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
     SWC_ASSERT(runtimePushErr != nullptr);
     if (!runtimePushErr)
         return raiseInternalCodeGenError(codeGen, "missing runtime helper '__pushErr'", nodeRef);
+    SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{}));
 
-    return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{});
+    // 'catch e as err': reset the capture slot to null before the call, so a success leaves 'err'
+    // null; the failure path overwrites it (see emitFallibleWrapperPostNode / __bindErr).
+    const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(nodeRef);
+    if (lowering && lowering->errBindingSym)
+    {
+        const SymbolFunction* clearErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::ClearErr);
+        SWC_ASSERT(clearErr != nullptr);
+        if (!clearErr)
+            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__clearErr'", nodeRef);
+        const MicroReg dstReg  = codeGen.resolveLocalStackPayload(*lowering->errBindingSym).reg;
+        const MicroReg args[1] = {dstReg};
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *clearErr, std::span<const MicroReg>{args, 1}));
+    }
+
+    return Result::Continue;
 }
 
 Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -1385,28 +1400,38 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     // error stays reachable through '@err' inside H (the Catch cleanup retained it); after H
     // runs, dismiss it so it no longer counts as in-flight for '#fail'/'#nofail' defers or a
     // following '@err' check (the old 'trycatch' dismiss semantics).
+    // 'catch e as err': seed the captured local from the still-valid curError (the Catch cleanup
+    // retained it) on the failure path. The fat 'any' copy lives in '__bindErr'; here we only pass
+    // the slot. Works for both the statement and the 'let x = catch f() as err' expression forms.
+    const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(ownerRef);
+    SymbolVariable* const         errSym   = lowering ? lowering->errBindingSym : nullptr;
+    if (errSym)
+    {
+        const SymbolFunction* bindErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::BindErr);
+        SWC_ASSERT(bindErr != nullptr);
+        if (!bindErr)
+            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__bindErr'", nodeRef);
+        const MicroReg dstReg  = codeGen.resolveLocalStackPayload(*errSym).reg;
+        const MicroReg args[1] = {dstReg};
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, std::span<const MicroReg>{args, 1}));
+    }
+
+    // 'catch e else { H }': the anonymous lazy handler runs here (failure path only).
+    bool ranHandler = false;
     if (codeGen.node(ownerRef).is(AstNodeId::TryCatchStmt))
     {
-        const AstTryCatchStmt& tryCatch  = codeGen.node(ownerRef).cast<AstTryCatchStmt>();
-        const AstNodeRef       handlerRef = tryCatch.nodeHandlerRef;
+        const AstNodeRef handlerRef = codeGen.node(ownerRef).cast<AstTryCatchStmt>().nodeHandlerRef;
         if (handlerRef.isValid())
         {
-            // 'catch e as err { H }': seed the named local from the still-valid curError before the
-            // handler runs. The fat 'any' copy lives in '__bindErr'; here we only pass the slot.
-            if (tryCatch.errNameTokRef.isValid())
-            {
-                const SymbolFunction* bindErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::BindErr);
-                SWC_ASSERT(bindErr != nullptr);
-                if (!bindErr)
-                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__bindErr'", nodeRef);
-                const MicroReg dstReg  = codeGen.runtimeStorageAddressReg(handlerRef);
-                const MicroReg args[1] = {dstReg};
-                SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, std::span<const MicroReg>{args, 1}));
-            }
             SWC_RESULT(codeGen.emitNodeNow(handlerRef));
-            SWC_RESULT(emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::EndErr, "missing runtime helper '__endErr'", nodeRef));
+            ranHandler = true;
         }
     }
+
+    // Once the error has been captured or handled, dismiss it so it no longer counts as in-flight
+    // for '#fail'/'#nofail' defers (the caught error now lives in the 'err' local, if any).
+    if (errSym || ranHandler)
+        SWC_RESULT(emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::EndErr, "missing runtime helper '__endErr'", nodeRef));
 
     builder.placeLabel(payload->fallibleDoneLabel);
     clearFallibleWrapperPayload(*payload);

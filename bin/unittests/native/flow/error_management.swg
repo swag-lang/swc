@@ -323,9 +323,9 @@ func catchAggregateSuccess()->AggregateResult
 func inlineCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = catch inlineAlwaysThrowValue(41)
-    result.hasErr = @err != null
-    if @err != null
+    result.value  = catch inlineAlwaysThrowValue(41) as err
+    result.hasErr = err != null
+    if err != null
     {
         let err = cast(ErrValue) @err
         result.code = err.code
@@ -337,9 +337,9 @@ func inlineCatchFailureInfo()->CatchInfo
 func catchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = catch propagateBareFailure()
-    result.hasErr = @err != null
-    if @err != null
+    result.value  = catch propagateBareFailure() as err2
+    result.hasErr = err2 != null
+    if err2 != null
     {
         let err = cast(ErrValue) @err
         result.code = err.code
@@ -351,9 +351,9 @@ func catchFailureInfo()->CatchInfo
 func catchAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
-    result.value  = catch aggregateFailure(71)
-    result.hasErr = @err != null
-    if @err != null
+    result.value  = catch aggregateFailure(71) as err3
+    result.hasErr = err3 != null
+    if err3 != null
     {
         let err = cast(ErrValue) @err
         result.code      = err.code
@@ -366,9 +366,9 @@ func catchAggregateFailureInfo()->AggregateInfo
 func catchTryFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = catch propagateTryFailure()
-    result.hasErr = @err != null
-    if @err != null
+    result.value  = catch propagateTryFailure() as err4
+    result.hasErr = err4 != null
+    if err4 != null
     {
         let err = cast(ErrValue) @err
         result.code = err.code
@@ -379,8 +379,8 @@ func catchTryFailureInfo()->CatchInfo
 
 func catchStrictEnumFailureInfo()->bool
 {
-    let value = catch alwaysThrowStrictEnum(87)
-    return value == cast(ThrowStrictEnumAlias) ThrowStrictEnum.Zero and @err != null and currentErrCode() == 87
+    let value = catch alwaysThrowStrictEnum(87) as err5
+    return value == cast(ThrowStrictEnumAlias) ThrowStrictEnum.Zero and err5 != null and currentErrCode() == 87
 }
 
 func tryCatchAggregateSuccess()->AggregateResult
@@ -475,8 +475,8 @@ func repeatedCatchFailureSum()->s32
     var result: s32 = 0
     for 40
     {
-        catch alwaysThrowVoid(cast(s32) @index + 1)
-        let err = cast(ErrValue) @err
+        catch alwaysThrowVoid(cast(s32) @index + 1) as err6
+        let err = cast(ErrValue) err6
         result += err.code
     }
 
@@ -606,11 +606,11 @@ func aggregateDeferThrowInfo()->AggregateTraceInfo
 func errIsAsFailureInfo()->ErrCastInfo
 {
     var result: ErrCastInfo
-    catch alwaysThrowTypedVoid(86)
+    catch alwaysThrowTypedVoid(86) as err7
 
-    let exactErr = @err as ErrValue
-    let baseErr  = @err as Swag.BaseError
-    let otherErr = @err as OtherErrValue
+    let exactErr = err7 as ErrValue
+    let baseErr  = err7 as Swag.BaseError
+    let otherErr = err7 as OtherErrValue
 
     result.exactType     = @err is ErrValue
     result.baseType      = @err is Swag.BaseError
@@ -628,12 +628,12 @@ func errIsAsFailureInfo()->ErrCastInfo
 func errIsAsNullInfo()->ErrNullCastInfo
 {
     var result: ErrNullCastInfo
-    catch mayThrowVoid()
+    catch mayThrowVoid() as err8
 
-    result.exactType     = @err is ErrValue
-    result.baseType      = @err is Swag.BaseError
-    result.exactCastNull = @err as ErrValue == null
-    result.baseCastNull  = @err as Swag.BaseError == null
+    result.exactType     = err8 is ErrValue
+    result.baseType      = err8 is Swag.BaseError
+    result.exactCastNull = err8 as ErrValue == null
+    result.baseCastNull  = err8 as Swag.BaseError == null
     return result
 }
 
@@ -680,8 +680,8 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    catch propagateTryVoidSuccess()
-    @assert(@err == null)
+    catch propagateTryVoidSuccess() as err9
+    @assert(err9 == null)
 }
 
 #test
@@ -761,17 +761,17 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    catch propagateBareVoidFailure()
-    @assert(@err != null)
-    let err = cast(ErrValue) @err
+    catch propagateBareVoidFailure() as err10
+    @assert(err10 != null)
+    let err = cast(ErrValue) err10
     @assert(err.code == 19)
 }
 
 #test
 {
-    catch propagateTryBlockVoidFailure()
-    @assert(@err != null)
-    let err = cast(ErrValue) @err
+    catch propagateTryBlockVoidFailure() as err11
+    @assert(err11 != null)
+    let err = cast(ErrValue) err11
     @assert(err.code == 21)
 }
 

@@ -72,16 +72,16 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     encoder.serializer.options.saveBlanks = false
 
     var buffer: ConcatBuffer
-    catch encoder.writeAll(&buffer, payload)
-    @assert(@err == null)
+    catch encoder.writeAll(&buffer, payload) as err
+    @assert(err == null)
 
     let json = buffer.toString()
     @assert(json == "{\"id\":7,\"active\":true,\"name\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}")
     @assert(json.indexOf("transient") == Swag.U64.Max)
 
     var decoder: Serialization.Decoder'Serialization.Read.JSon
-    let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice())
-    @assert(@err == null)
+    let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice()) as err2
+    @assert(err2 == null)
     @assert(assertJsonPayload(dref decoded))
     @assert(decoded.transient == 0)
 
@@ -97,8 +97,8 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     encoder.serializer.options.indentLevel = 2
 
     var buffer: ConcatBuffer
-    catch encoder.writeAll(&buffer, payload)
-    @assert(@err == null)
+    catch encoder.writeAll(&buffer, payload) as err3
+    @assert(err3 == null)
 
     let json = buffer.toString()
     @assert(json == "{\n  \"id\": 7,\n  \"active\": true,\n  \"name\": \"core\",\n  \"counts\": [\n    -1,\n    0,\n    4\n  ],\n  \"pair\": {\n    \"x\": 3,\n    \"y\": -2\n  },\n  \"fixed\": [\n    1,\n    2,\n    3\n  ]\n}")
@@ -109,8 +109,8 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     let json: String = "{\n  \"id\": 8,\n  \"active\": false,\n  \"name\": null,\n  \"counts\": [9, 8],\n  \"pair\": {\"x\": -1, \"y\": 2},\n  \"fixed\": [5, 6, 7]\n}"
 
     var decoder: Serialization.Decoder'Serialization.Read.JSon
-    let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice())
-    @assert(@err == null)
+    let decoded = notnull catch decoder.readAll'JsonPayload(json.toSlice()) as err4
+    @assert(err4 == null)
 
     @assert(decoded.id == 8)
     @assert(!decoded.active)
@@ -131,7 +131,7 @@ func assertJsonPayload(value: const &JsonPayload)->bool
     let invalid: String = "{\"id\":7,\"active\":true,\"wrong\":\"core\",\"counts\":[-1,0,4],\"pair\":{\"x\":3,\"y\":-2},\"fixed\":[1,2,3]}"
 
     var decoder: Serialization.Decoder'Serialization.Read.JSon
-    let decoded = catch decoder.readAll'JsonPayload(invalid.toSlice())
+    let decoded = catch decoder.readAll'JsonPayload(invalid.toSlice()) as errjson
     @assert(decoded == null)
-    @assert(@err != null)
+    @assert(errjson != null)
 }

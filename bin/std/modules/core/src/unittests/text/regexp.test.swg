@@ -1023,104 +1023,104 @@ using Swag
 
 #test
 {
-    discard catch Parser.RegExp.create(#"a{2,1}"#)
+    discard catch Parser.RegExp.create(#"a{2,1}"#) as err
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err != null)
+    @assert(err is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"{1}"#)
+    discard catch Parser.RegExp.create(#"{1}"#) as err2
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err2 != null)
+    @assert(err2 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"("#)
+    discard catch Parser.RegExp.create(#"("#) as err3
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err3 != null)
+    @assert(err3 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"[abc"#)
+    discard catch Parser.RegExp.create(#"[abc"#) as err4
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err4 != null)
+    @assert(err4 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"\pQ"#)
+    discard catch Parser.RegExp.create(#"\pQ"#) as err5
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err5 != null)
+    @assert(err5 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"\p{Lx}"#)
+    discard catch Parser.RegExp.create(#"\p{Lx}"#) as err6
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err6 != null)
+    @assert(err6 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create("\\")
+    discard catch Parser.RegExp.create("\\") as err7
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err7 != null)
+    @assert(err7 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"\q"#)
+    discard catch Parser.RegExp.create(#"\q"#) as err8
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err8 != null)
+    @assert(err8 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"[\q]"#)
+    discard catch Parser.RegExp.create(#"[\q]"#) as err9
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err9 != null)
+    @assert(err9 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"\p"#)
+    discard catch Parser.RegExp.create(#"\p"#) as err10
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err10 != null)
+    @assert(err10 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"\p{L"#)
+    discard catch Parser.RegExp.create(#"\p{L"#) as err11
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err11 != null)
+    @assert(err11 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"[[:bogus:]]"#)
+    discard catch Parser.RegExp.create(#"[[:bogus:]]"#) as err12
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err12 != null)
+    @assert(err12 is Errors.SyntaxError)
 }
 
 #test
 {
-    discard catch Parser.RegExp.create(#"[[:digit]]"#)
+    discard catch Parser.RegExp.create(#"[[:digit]]"#) as err13
 
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    @assert(err13 != null)
+    @assert(err13 is Errors.SyntaxError)
 }

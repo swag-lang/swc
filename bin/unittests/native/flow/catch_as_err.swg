@@ -1,10 +1,10 @@
 #global private
 
-// 'catch e as err { H }' is the named form of 'catch e else { H }': it runs the handler H
-// only when the fallible statement 'e' fails, but binds the caught error into a fresh local
-// 'err' (of type '#null any') visible inside H, instead of reading it through '@err'. The
-// binding is scoped to the handler and holds its own copy, so it survives the post-handler
-// dismissal of the in-flight error.
+// 'catch e as err' captures the caught error into a fresh local 'err' (of type '#null any')
+// bound in the ENCLOSING scope: null when the fallible operand succeeds, the caught error when
+// it fails (dismissed afterwards). It replaces the removed '@err' intrinsic — the error is now
+// always obtained by an explicit named capture, never a global. Works as a statement and, in
+// expression position, as 'let x = catch f() as err' (result + captured error together).
 
 struct CatchAsErrError
 {
@@ -18,50 +18,59 @@ func catchAsErrMayFail(ok: bool) fail
         fail CatchAsErrError{base: Swag.BaseError{"boom"}, code: 7}
 }
 
-var g_catchAsErrTrace = 0
+func catchAsErrCount(ok: bool)->s32 fail
+{
+    if !ok do
+        fail CatchAsErrError{base: Swag.BaseError{"boom"}, code: 7}
+    return 42
+}
 
+// Statement form: capture, then branch on the named error.
 func catchAsErrRun(ok: bool)->s32
 {
-    g_catchAsErrTrace = 0
     catch catchAsErrMayFail(ok) as err
-    {
-        g_catchAsErrTrace = 1
-        let e             = cast(CatchAsErrError) err
-        g_catchAsErrTrace = e.code
-    }
-    g_catchAsErrTrace += 1000
-    return g_catchAsErrTrace
+    if err != null do
+        return (cast(CatchAsErrError) err).code
+    return 1000
 }
 
-func catchAsErrEarlyReturn(ok: bool)->s32
+// Expression form: 'x' is the result (default on failure), 'err' the captured error.
+func catchAsErrValue(ok: bool)->s32
 {
-    catch catchAsErrMayFail(ok) as err do
-        return err != null ? -1 : -2
-    return 100
+    let x = catch catchAsErrCount(ok) as err
+    if err != null do
+        return -(cast(CatchAsErrError) err).code
+    return x
 }
 
-// Success skips the handler; failure runs it with 'err' bound to the caught error, then
-// execution continues after the construct.
 #test
 {
     @assert(catchAsErrRun(true) == 1000)
-    @assert(catchAsErrRun(false) == 7 + 1000)
+    @assert(catchAsErrRun(false) == 7)
 }
 
-// The named binding works in a single-statement handler that diverts control flow too.
 #test
 {
-    @assert(catchAsErrEarlyReturn(true) == 100)
-    @assert(catchAsErrEarlyReturn(false) == -1)
+    @assert(catchAsErrValue(true) == 42)
+    @assert(catchAsErrValue(false) == -7)
 }
 
-// After the handler runs, the in-flight error is dismissed (like 'catch..else'), so a
-// following '@err' check sees no error.
+// The captured error is dismissed after the catch, so a following fallible flow starts clean;
+// re-raising is explicit via 'fail err'.
+func catchAsErrReraise(ok: bool)->s32 fail
+{
+    catch catchAsErrMayFail(ok) as err
+    if err != null and ok == false do
+        fail err
+    return 5
+}
+
 #test
 {
-    catch catchAsErrMayFail(false) as err
-    {
-        @assert(err != null)
-    }
-    @assert(@err == null)
+    @assert(catch catchAsErrReraise(true) == 5)
+    var seen = 0
+    discard catch catchAsErrReraise(false) as err
+    if err != null do
+        seen = (cast(CatchAsErrError) err).code
+    @assert(seen == 7)
 }

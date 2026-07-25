@@ -150,11 +150,11 @@ using Swag, Core
 
     f.capture.file    = path
     f.capture.changed = true
-    catch f.capture.save()
-    @assert(@err == null)
+    catch f.capture.save() as err
+    @assert(err == null)
 
-    let loaded = notnull catch Capture.load(path)
-    @assert(@err == null)
+    let loaded = notnull catch Capture.load(path) as err2
+    @assert(err2 == null)
 
     defer
     {

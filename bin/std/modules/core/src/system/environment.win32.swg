@@ -11,8 +11,8 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
     if what == SpecialDirectory.Temp
     {
         var a: [MAX_PATH] u8
-        let len = catch GetTempPathA(MAX_PATH, &a[0])
-        if @err != null or len >= MAX_PATH do
+        let len = catch GetTempPathA(MAX_PATH, &a[0]) as err
+        if err != null or len >= MAX_PATH do
             return ""
 
         var result: retval = cast(string) @mkslice(&a[0], cast(u64) len)
@@ -41,8 +41,8 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
     }
 
     var result: retval
-    catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE)
-    if @err == null
+    catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE) as err
+    if err == null
     {
         result = cast(string) @mkslice(&a[0], @countof(cast(cstring) &a[0]))
         Path.normalize(&result)
@@ -111,8 +111,8 @@ public func locateInExplorer(name: string)->bool
 
     let explorer = Utf16.toZeroTerminated("explorer.exe")
     let params   = Utf16.toZeroTerminated(x)
-    discard catch ShellExecuteW(null, null, @dataof(explorer), @dataof(params), null, SW_SHOW)
-    return @err == null
+    discard catch ShellExecuteW(null, null, @dataof(explorer), @dataof(params), null, SW_SHOW) as err
+    return err == null
 }
 
 // Locate file in the internet explorer

@@ -13,22 +13,22 @@ using Swag, Core
     @assert(glyphA > 0)
     @assert(glyphV > 0)
 
-    discard catch face.setPixelSize(0, 100)
-    @assert(@err == null)
+    discard catch face.setPixelSize(0, 100) as err
+    @assert(err == null)
 
     // 'AV' is a classic negative kerning pair (glyphs tucked closer together).
-    let kern100 = catch face.getKerning(glyphA, glyphV)
-    @assert(@err == null)
+    let kern100 = catch face.getKerning(glyphA, glyphV) as err2
+    @assert(err2 == null)
     @assert(kern100.x < 0)
 
     // Kerning is scaled to the pixel size, so it grows with the size.
     discard catch face.setPixelSize(0, 200)
-    let kern200 = catch face.getKerning(glyphA, glyphV)
-    @assert(@err == null)
+    let kern200 = catch face.getKerning(glyphA, glyphV) as err3
+    @assert(err3 == null)
     @assert(kern200.x < kern100.x)
 
     // A missing glyph yields no kerning.
-    let none = catch face.getKerning(glyphA, 0)
-    @assert(@err == null)
+    let none = catch face.getKerning(glyphA, 0) as err4
+    @assert(err4 == null)
     @assert(none.x == 0)
 }

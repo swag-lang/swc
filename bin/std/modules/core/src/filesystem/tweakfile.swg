@@ -68,8 +68,8 @@ impl TweakFile
             if one[0] == '/'
             {
                 one = Tokenize.eatCount(one, 1)
-                let folderName = catch StrConv.parseIdentifier(one)
-                if @err != null do
+                let folderName = catch StrConv.parseIdentifier(one) as folderErr
+                if folderErr != null do
                     fail SyntaxError{"invalid folder name", line: idx + 1}
 
                 for &folder in .folders
@@ -91,8 +91,8 @@ impl TweakFile
 
             // Value declaration
             one = Tokenize.eatSpaces(one)
-            let id = catch StrConv.parseIdentifier(one)
-            if @err != null do
+            let id = catch StrConv.parseIdentifier(one) as idErr
+            if idErr != null do
                 fail SyntaxError{"invalid value name", line: idx + 1}
 
             // Search value in folder type
@@ -123,8 +123,8 @@ impl TweakFile
 
             // Parse and assign value to field
             let safePointedType         = notnull safeField.pointedType
-            let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + safeField.offset, safePointedType, one)
-            if @err != null do
+            let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + safeField.offset, safePointedType, one) as valueErr
+            if valueErr != null do
                 fail SyntaxError{"invalid value", line: idx + 1}
             one = parsedOne orelse ""
 

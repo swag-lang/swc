@@ -11,8 +11,8 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
 
-    catch Library.init()
-    @assert(@err == null)
+    catch Library.init() as err
+    @assert(err == null)
 
     // A source capture file living in the temp area. Everything this test writes into
     // the (real) recycle bin and library folder is cleaned up in a defer so a failed
@@ -32,8 +32,8 @@ using Swag, Core
     cap.backImg               = Testing.indexedImage(8, 6)
     cap.file                  = src
     cap.changed               = true
-    catch cap.save()
-    @assert(@err == null)
+    catch cap.save() as err2
+    @assert(err2 == null)
     Memory.delete(cap)
 
     let trash = Library.getTrashFolder()
@@ -78,14 +78,14 @@ using Swag, Core
 
     cap.file    = path
     cap.changed = true
-    catch cap.save()
-    @assert(@err == null)
+    catch cap.save() as err3
+    @assert(err3 == null)
     Memory.delete(cap)
 
     f.main.setCaptureTitle(path, "Renamed")
 
-    let loaded = notnull catch Capture.load(path)
-    @assert(@err == null)
+    let loaded = notnull catch Capture.load(path) as err4
+    @assert(err4 == null)
     defer
     {
         Memory.delete(loaded)
@@ -117,8 +117,8 @@ using Swag, Core
 
     cap.file    = path
     cap.changed = true
-    catch cap.save()
-    @assert(@err == null)
+    catch cap.save() as err5
+    @assert(err5 == null)
     Memory.delete(cap)
 
     f.main.copyLibraryImage(path)
@@ -175,8 +175,8 @@ using Swag, Core
     let lib = f.setupLibraryWnd()
     lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd) lib, {0, 0, 600, 32})
 
-    catch Library.init()
-    @assert(@err == null)
+    catch Library.init() as err6
+    @assert(err6 == null)
 
     lib.curFolder = Library.getFolder()
     lib.updateBreadcrumb()
@@ -223,8 +223,8 @@ using Swag, Core
 
     cap.file    = path
     cap.changed = true
-    catch cap.save()
-    @assert(@err == null)
+    catch cap.save() as err7
+    @assert(err7 == null)
     Memory.delete(cap)
 
     let it = view.allItems.addNewPtr()

@@ -50,15 +50,15 @@ struct ArrayOptions
 func parseFailed(args: const [..] string)->bool
 {
     var options: BasicOptions
-    discard catch CommandLine.parse(&options, args)
-    return @err != null
+    discard catch CommandLine.parse(&options, args) as err
+    return err != null
 }
 
 func parseAdvancedFailed(args: const [..] string)->bool
 {
     var options: AdvancedOptions
-    discard catch CommandLine.parse(&options, args)
-    return @err != null
+    discard catch CommandLine.parse(&options, args) as err2
+    return err2 != null
 }
 
 func assertIntValues(values: const &Array's32, expected: const [..] s32)->bool
@@ -148,8 +148,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NameOptions
-    let result = catch CommandLine.parse(&options, ["-n:Alice"])
-    @assert(@err == null)
+    let result = catch CommandLine.parse(&options, ["-n:Alice"]) as err3
+    @assert(err3 == null)
 
     @assert(options.name == "Alice")
     @assert(result.isSet.name)
@@ -158,8 +158,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NameOptions
-    let result = catch CommandLine.parse(&options, ["-n:-Alice"])
-    @assert(@err == null)
+    let result = catch CommandLine.parse(&options, ["-n:-Alice"]) as err4
+    @assert(err4 == null)
 
     @assert(options.name == "-Alice")
     @assert(result.isSet.name)
@@ -168,8 +168,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NumericOptions
-    let result = catch CommandLine.parse(&options, ["-enabled", "false"])
-    @assert(@err == null)
+    let result = catch CommandLine.parse(&options, ["-enabled", "false"]) as err5
+    @assert(err5 == null)
 
     @assert(options.enabled == false)
     @assert(result.isSet.enabled)
@@ -179,8 +179,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var value = 0'f32
-    let rest  = catch StrConv.parseValue(&value, f32, "-0.5")
-    @assert(@err == null)
+    let rest  = catch StrConv.parseValue(&value, f32, "-0.5") as err6
+    @assert(err6 == null)
     @assert(@countof(rest) == 0)
     @assert(value == -0.5)
 }
@@ -188,8 +188,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: NumericOptions
-    let result = catch CommandLine.parse(&options, ["-threshold", "-0.5"])
-    @assert(@err == null)
+    let result = catch CommandLine.parse(&options, ["-threshold", "-0.5"]) as err7
+    @assert(err7 == null)
 
     @assert(options.threshold == -0.5)
     @assert(result.isSet.threshold)
@@ -199,8 +199,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: ArrayOptions
-    let result = catch CommandLine.parse(&options, ["-values:-1", "2", "3"])
-    @assert(@err == null)
+    let result = catch CommandLine.parse(&options, ["-values:-1", "2", "3"]) as err8
+    @assert(err8 == null)
 
     @assert(assertIntValues(options.values, [-1, 2, 3]))
     @assert(!result.isSet.labels)
@@ -210,8 +210,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: ArrayOptions
-    let result = catch CommandLine.parse(&options, ["-labels", "Bob Smith", "Alice"])
-    @assert(@err == null)
+    let result = catch CommandLine.parse(&options, ["-labels", "Bob Smith", "Alice"]) as err9
+    @assert(err9 == null)
 
     @assert(assertStringValues(options.labels, ["Bob Smith", "Alice"]))
     @assert(!result.isSet.values)
@@ -221,8 +221,8 @@ func assertStringValues(values: const &Array'String, expected: const [..] string
 #test
 {
     var options: ArrayOptions
-    let result = catch CommandLine.parse(&options, ["-labels:-Bob", "Alice"])
-    @assert(@err == null)
+    let result = catch CommandLine.parse(&options, ["-labels:-Bob", "Alice"]) as err10
+    @assert(err10 == null)
 
     @assert(assertStringValues(options.labels, ["-Bob", "Alice"]))
     @assert(!result.isSet.values)

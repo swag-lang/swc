@@ -33,15 +33,15 @@ func getShellExecutablePath()->String
             discard catch File.delete(targetOut.toString())
     }
 
-    discard catch File.duplicate(targetExe.toString(), sourceExe.toString())
-    @assert(@err == null)
+    discard catch File.duplicate(targetExe.toString(), sourceExe.toString()) as err
+    @assert(err == null)
     @assert(File.exists(targetExe.toString()))
 
     var outArg = targetOut
     outArg.replace("/", "\\")
     let arguments = Format.toString("-NoProfile -Command \"[System.IO.File]::WriteAllText('%','ok')\"", outArg.toString())
 
-    discard catch Env.doSyncProcess(targetExe.toString(), arguments.toString())
-    @assert(@err == null)
+    discard catch Env.doSyncProcess(targetExe.toString(), arguments.toString()) as err2
+    @assert(err2 == null)
     @assert(File.exists(targetOut.toString()))
 }

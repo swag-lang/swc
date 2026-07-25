@@ -1393,6 +1393,7 @@ struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
 {
     AstNodeRef nodeExprRef;
     AstNodeRef nodeFallbackRef; // 'orfail' lazy fallback value; invalid for try/catch/trycatch/assume/expect
+    TokenRef   errNameTokRef;   // 'let x = catch f() as err': binds the caught error into a named local; invalid otherwise
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeFallbackRef}); }
     static Result semaPreNode(Sema& sema);

@@ -129,8 +129,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 8 do body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 32, 0, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(buf.toSlice())) as err
+    @assert(err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pf == .BGRA8)
@@ -162,8 +162,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 4 do body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(buf.toSlice())) as err2
+    @assert(err2 == null)
     @assert(img.pf == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -195,8 +195,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 8 do body.addNative(0'u8)
 
     let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(buf.toSlice())) as err3
+    @assert(err3 == null)
     @assert(img.pf == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -221,8 +221,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 4 do body.addNative(0'u8)
 
     let buf = buildIco(2, 1, 1, 2, nnBytes(body.toSlice()))
-    var img = catch decodeIco(nnBytes(buf.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(buf.toSlice())) as err4
+    @assert(err4 == null)
     @assert((notnull img.pixels.buffer)[0] == 7'u8)
     @assert((notnull img.pixels.buffer)[1] == 8'u8)
     @assert((notnull img.pixels.buffer)[2] == 9'u8)
@@ -287,8 +287,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     for 12 do cb.addNative(0'u8)     // rest of XOR
     for 8 do cb.addNative(0'u8)      // AND
 
-    var img = catch decodeIco(nnBytes(cb.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as err5
+    @assert(err5 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert((notnull img.pixels.buffer)[0] == 200'u8)
@@ -307,8 +307,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[3] = 255'u8
 
     var png: ConcatBuffer
-    catch encodePng(&png, src)
-    @assert(@err == null)
+    catch encodePng(&png, src) as err6
+    @assert(err6 == null)
     png.makeLinear()
     let pngBytes = nnBytes(png.toSlice())
     let pngLen   = cast(u32) @countof(pngBytes)
@@ -329,8 +329,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     cb.addStruct(e)
     cb.addBytes(pngBytes)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as err7
+    @assert(err7 == null)
     @assert(img.width == 3)
     @assert(img.height == 2)
 }
@@ -345,8 +345,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 
     var opt: DecodeOptions
     opt.decodePixels = false
-    var img = catch decodeIco(nnBytes(buf.toSlice()), opt)
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(buf.toSlice()), opt) as err8
+    @assert(err8 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pf == .BGRA8)
@@ -362,8 +362,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     dir.count = 1
     cb.addStruct(dir)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice()))
-    @assert(@err != null)
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as err9
+    @assert(err9 != null)
 }
 
 // Error: empty directory.
@@ -375,8 +375,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     dir.count = 0
     cb.addStruct(dir)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice()))
-    @assert(@err != null)
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as err10
+    @assert(err10 != null)
 }
 
 // Encode a 2x2 BGRA8 image and round-trip it unchanged.
@@ -392,11 +392,11 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[12] = 200'u8     // last pixel B
 
     var cb: ConcatBuffer
-    catch encodeIco(&cb, src)
-    @assert(@err == null)
+    catch encodeIco(&cb, src) as err11
+    @assert(err11 == null)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as err12
+    @assert(err12 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert(img.pf == .BGRA8)
@@ -417,11 +417,11 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[2] = 30'u8
 
     var cb: ConcatBuffer
-    catch encodeIco(&cb, src)
-    @assert(@err == null)
+    catch encodeIco(&cb, src) as err13
+    @assert(err13 == null)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as err14
+    @assert(err14 == null)
     @assert(img.pf == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -440,11 +440,11 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[3] = 99'u8     // A
 
     var cb: ConcatBuffer
-    catch encodeIco(&cb, src)
-    @assert(@err == null)
+    catch encodeIco(&cb, src) as err15
+    @assert(err15 == null)
 
-    var img = catch decodeIco(nnBytes(cb.toSlice()))
-    @assert(@err == null)
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as err16
+    @assert(err16 == null)
     @assert(img.pf == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)     // B
     @assert((notnull img.pixels.buffer)[1] == 20'u8)     // G
@@ -459,8 +459,8 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     src.clear()
 
     var cb: ConcatBuffer
-    catch encodeIco(&cb, src)
-    @assert(@err != null)
+    catch encodeIco(&cb, src) as err17
+    @assert(err17 != null)
 }
 
 // Full registry round-trip through Image.save / Image.load on a temp file.
@@ -480,11 +480,11 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     srcBuf[2] = 99'u8
     srcBuf[3] = 255'u8
 
-    catch src.save(path.toString())
-    @assert(@err == null)
+    catch src.save(path.toString()) as err18
+    @assert(err18 == null)
 
-    var img = catch Image.load(path.toString())
-    @assert(@err == null)
+    var img = catch Image.load(path.toString()) as err19
+    @assert(err19 == null)
     @assert(img.width == 4)
     @assert(img.height == 4)
     @assert(img.pf == .BGRA8)

@@ -1901,8 +1901,9 @@ AstNodeRef AstDiscardExpr::semaClone(Sema& sema, const CloneContext& cloneContex
 
 AstNodeRef AstTryCatchExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::TryCatchExpr>(tokRef());
-    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    auto [newRef, newPtr]  = sema.ast().makeNode<AstNodeId::TryCatchExpr>(tokRef());
+    newPtr->nodeExprRef    = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->errNameTokRef  = errNameTokRef;
     // Only 'orfail' carries a fallback; the other forms leave it invalid, and cloneAst
     // requires a valid node.
     if (nodeFallbackRef.isValid())

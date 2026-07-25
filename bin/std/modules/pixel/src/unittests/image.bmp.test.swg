@@ -27,8 +27,8 @@ using Swag, Core
 #test
 {
     let path  = getTestDataPath("test.bmp")
-    let bytes = catch File.readAllBytes(path)
-    @assert(@err == null)
+    let bytes = catch File.readAllBytes(path) as err
+    @assert(err == null)
     @assert(bytes.count == 102)
 }
 
@@ -43,11 +43,11 @@ using Swag, Core
 #test
 {
     let path  = getTestDataPath("test.bmp")
-    let bytes = catch File.readAllBytes(path)
-    @assert(@err == null)
+    let bytes = catch File.readAllBytes(path) as err2
+    @assert(err2 == null)
     var img: Image
-    img = catch Image.decode(path, bytes.toSlice(), {})
-    @assert(@err == null)
+    img = catch Image.decode(path, bytes.toSlice(), {}) as err3
+    @assert(err3 == null)
     @assert(img.isValid())
     @assert(img.width == 4)
     @assert(img.height == 4)
@@ -59,8 +59,8 @@ using Swag, Core
 {
     let path = getTestDataPath("test.bmp")
     var img: Image
-    img = catch Image.load(path)
-    @assert(@err == null)
+    img = catch Image.load(path) as err4
+    @assert(err4 == null)
     @assert(img.isValid())
     @assert(img.width == 4)
     @assert(img.height == 4)
@@ -74,8 +74,8 @@ using Swag, Core
 #test
 {
     var rgb: Image
-    rgb = catch Image.load(getTestDataPath("rgb.bmp"))
-    @assert(@err == null)
+    rgb = catch Image.load(getTestDataPath("rgb.bmp")) as err5
+    @assert(err5 == null)
     @assert(rgb.isValid())
     @assert(rgb.width == 660)
     @assert(rgb.height == 441)
@@ -86,8 +86,8 @@ using Swag, Core
     @assert((notnull rgb.pixels.buffer)[2] == 194'u8)
 
     var rgba: Image
-    rgba = catch Image.load(getTestDataPath("rgba.bmp"))
-    @assert(@err == null)
+    rgba = catch Image.load(getTestDataPath("rgba.bmp")) as err6
+    @assert(err6 == null)
     @assert(rgba.isValid())
     @assert(rgba.width == 660)
     @assert(rgba.height == 441)
@@ -177,12 +177,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(70'u8);  cb.addNative(80'u8);  cb.addNative(90'u8);  cb.addNative(128'u8)
     cb.addNative(100'u8); cb.addNative(110'u8); cb.addNative(120'u8); cb.addNative(64'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err7
+    @assert(err7 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err8
+    @assert(err8 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
     @assert(img.pf     == .BGRA8)
@@ -228,12 +228,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     // Rows 1-4 all zeros (4 rows x 16 bytes)
     for 64 do cb.addNative(0'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err9
+    @assert(err9 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err10
+    @assert(err10 == null)
     @assert(img.width  == 5)
     @assert(img.height == 5)
     @assert(img.pf     == .BGR8)
@@ -277,12 +277,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(100'u8); cb.addNative(110'u8); cb.addNative(120'u8)     // row1 pix1
     cb.addNative(0'u8);   cb.addNative(0'u8)                             // row1 pad
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err11
+    @assert(err11 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err12
+    @assert(err12 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
     @assert(img.pf     == .BGR8)
@@ -326,12 +326,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(44'u8); cb.addNative(55'u8); cb.addNative(66'u8)      // row1 pix1
     cb.addNative(0'u8);  cb.addNative(0'u8)                            // row1 pad
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err13
+    @assert(err13 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err14
+    @assert(err14 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
     @assert(img.pf     == .BGR8)
@@ -373,12 +373,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(10'u8); cb.addNative(11'u8); cb.addNative(12'u8)
     cb.addNative(0'u8); cb.addNative(0'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err15
+    @assert(err15 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err16
+    @assert(err16 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
     @assert((notnull img.pixels.buffer)[0] == 7'u8)
@@ -420,12 +420,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     addBmpPaletteColor(&cb, 70, 80, 90)
     cb.addNative(0'u8); cb.addNative(1'u8); cb.addNative(2'u8); cb.addNative(3'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err17
+    @assert(err17 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err18
+    @assert(err18 == null)
     @assert(img.pf == .BGR8)
     @assert((notnull img.pixels.buffer)[3] == 10'u8)
     @assert((notnull img.pixels.buffer)[4] == 20'u8)
@@ -465,12 +465,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(0b10100000'u8)
     cb.addNative(0'u8); cb.addNative(0'u8); cb.addNative(0'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err19
+    @assert(err19 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err20
+    @assert(err20 == null)
     @assert((notnull img.pixels.buffer)[0] == 9'u8)
     @assert((notnull img.pixels.buffer)[1] == 8'u8)
     @assert((notnull img.pixels.buffer)[2] == 7'u8)
@@ -509,12 +509,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(0x12'u8); cb.addNative(0x10'u8)
     cb.addNative(0'u8); cb.addNative(0'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err21
+    @assert(err21 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err22
+    @assert(err22 == null)
     @assert((notnull img.pixels.buffer)[0] == 11'u8)
     @assert((notnull img.pixels.buffer)[1] == 12'u8)
     @assert((notnull img.pixels.buffer)[2] == 13'u8)
@@ -550,12 +550,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(0x7C00'u16)
     cb.addNative(0x03E0'u16)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err23
+    @assert(err23 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err24
+    @assert(err24 == null)
     @assert((notnull img.pixels.buffer)[0] == 0'u8)
     @assert((notnull img.pixels.buffer)[1] == 0'u8)
     @assert((notnull img.pixels.buffer)[2] == 255'u8)
@@ -595,12 +595,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(0x001F'u16)
     cb.addNative(0x07E0'u16)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err25
+    @assert(err25 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err26
+    @assert(err26 == null)
     @assert((notnull img.pixels.buffer)[0] == 255'u8)
     @assert((notnull img.pixels.buffer)[1] == 0'u8)
     @assert((notnull img.pixels.buffer)[2] == 0'u8)
@@ -645,12 +645,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(2'u8); cb.addNative(3'u8); cb.addNative(0'u8); cb.addNative(1'u8)
     cb.addNative(0'u8); cb.addNative(1'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err27
+    @assert(err27 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err28
+    @assert(err28 == null)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[12] == 0'u8)
     @assert((notnull img.pixels.buffer)[13] == 20'u8)
@@ -692,12 +692,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(4'u8); cb.addNative(0x12'u8)
     cb.addNative(0'u8); cb.addNative(1'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err29
+    @assert(err29 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err30
+    @assert(err30 == null)
     @assert((notnull img.pixels.buffer)[0] == 11'u8)
     @assert((notnull img.pixels.buffer)[1] == 12'u8)
     @assert((notnull img.pixels.buffer)[2] == 13'u8)
@@ -710,15 +710,15 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 #test
 {
     let path  = getTestDataPath("test.bmp")
-    let bytes = catch File.readAllBytes(path)
-    @assert(@err == null)
+    let bytes = catch File.readAllBytes(path) as err31
+    @assert(err31 == null)
 
     var opts: DecodeOptions
     opts.decodePixels = false
 
     var img: Image
-    img = catch Image.decode(path, bytes.toSlice(), opts)
-    @assert(@err == null)
+    img = catch Image.decode(path, bytes.toSlice(), opts) as err32
+    @assert(err32 == null)
     @assert(img.width  == 4)
     @assert(img.height == 4)
     @assert(img.pf     == .BGR8)
@@ -750,12 +750,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addStruct(bh)
     for 4 do cb.addNative(0'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err33
+    @assert(err33 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err != null)
+    img = catch Image.load(path.toString()) as err34
+    @assert(err34 != null)
 }
 
 // Error: buffer too small to hold the full DIB header must throw.
@@ -777,12 +777,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addStruct(fh)
     cb.addNative(40'u32)     // biSize only - rest of DIB header missing
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err35
+    @assert(err35 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err != null)
+    img = catch Image.load(path.toString()) as err36
+    @assert(err36 != null)
 }
 
 // Error: unknown compression value (not BI_RGB, BI_RLE8, BI_RLE4, or BI_BITFIELDS) must throw.
@@ -811,12 +811,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addStruct(bh)
     for 4 do cb.addNative(0'u8)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err37
+    @assert(err37 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err != null)
+    img = catch Image.load(path.toString()) as err38
+    @assert(err38 != null)
 }
 
 // Encode / roundtrip tests.
@@ -844,14 +844,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     src.clear()
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err39
+    @assert(err39 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err40
+    @assert(err40 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err41
+    @assert(err41 == null)
     @assert(img.width        == 4)
     @assert(img.height       == 4)
     @assert(img.pf           == .BGR8)
@@ -873,14 +873,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     src.clear()
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err42
+    @assert(err42 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err43
+    @assert(err43 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err44
+    @assert(err44 == null)
     @assert(img.width        == 5)
     @assert(img.height       == 5)
     @assert(img.pf           == .BGR8)
@@ -906,14 +906,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     srcBuf[45] = 33'u8      // last row, pixel 3, B channel
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err45
+    @assert(err45 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err46
+    @assert(err46 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err47
+    @assert(err47 == null)
     @assert((notnull img.pixels.buffer)[0]  == 200'u8)
     @assert((notnull img.pixels.buffer)[1]  == 128'u8)
     @assert((notnull img.pixels.buffer)[2]  == 64'u8)
@@ -933,14 +933,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     src.clear()
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err48
+    @assert(err48 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err49
+    @assert(err49 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err50
+    @assert(err50 == null)
     @assert(img.width        == 2)
     @assert(img.height       == 2)
     @assert(img.pf           == .BGRA8)
@@ -969,14 +969,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     srcBuf[7] = 128'u8     // pixel(1,0) A
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err51
+    @assert(err51 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err52
+    @assert(err52 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err53
+    @assert(err53 == null)
     @assert((notnull img.pixels.buffer)[0]  == 10'u8)
     @assert((notnull img.pixels.buffer)[1]  == 20'u8)
     @assert((notnull img.pixels.buffer)[2]  == 30'u8)
@@ -1003,14 +1003,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     srcBuf[2] = 200'u8     //             B
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err54
+    @assert(err54 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err55
+    @assert(err55 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err56
+    @assert(err56 == null)
     @assert(img.width  == 4)
     @assert(img.height == 4)
     @assert(img.pf     == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
@@ -1039,14 +1039,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     srcBuf[3] = 255'u8     //             A
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err57
+    @assert(err57 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err58
+    @assert(err58 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err59
+    @assert(err59 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
     @assert(img.pf     == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
@@ -1076,8 +1076,8 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     srcBuf[72] = 42'u8     // row4 pixel(0) B
 
     var cb: ConcatBuffer
-    catch encodeBmp(&cb, src)
-    @assert(@err == null)
+    catch encodeBmp(&cb, src) as err60
+    @assert(err60 == null)
 
     // File must contain alignment padding: 5 rows x 16 bytes = 80 bytes pixel data
     @assert(@countof(cb) == 134)     // 14+40+80
@@ -1090,12 +1090,12 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(fh.bfOffBits == 54'u32)
     @assert(bh.biSizeImage == 80'u32)
 
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err61
+    @assert(err61 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err62
+    @assert(err62 == null)
     @assert(img.pixels.count     == 75)
     @assert((notnull img.pixels.buffer)[0]  == 77'u8)
     @assert((notnull img.pixels.buffer)[1]  == 88'u8)

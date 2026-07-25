@@ -226,23 +226,23 @@ impl Decoder
                 if !itf or !itf.readElement(field, cast([*] u8) data + field.offset, idecoder)
                 {
                     let fieldData = cast([*] u8) data + field.offset
-                    let doIt      = catch .serializer.beginElement(field)
+                    let doIt      = catch .serializer.beginElement(field) as beginErr
                     defer #nofail .serializer.endElement(field)
 
-                    if @err != null and !(.flags & .IgnoreStructFieldError) do
-                        fail @err
+                    if beginErr != null and !(.flags & .IgnoreStructFieldError) do
+                        fail beginErr
                     if !doIt do
                         continue
 
-                    catch .readTypedContent(fieldData, fieldType)
-                    if @err != null and (.flags & .IgnoreStructFieldError)
+                    catch .readTypedContent(fieldData, fieldType) as readErr
+                    if readErr != null and (.flags & .IgnoreStructFieldError)
                     {
                         Reflection.reset(fieldData, fieldType)
                         continue
                     }
 
-                    if @err != null and !(.flags & .IgnoreStructFieldError) do
-                        fail @err
+                    if readErr != null and !(.flags & .IgnoreStructFieldError) do
+                        fail readErr
                 }
             }
 

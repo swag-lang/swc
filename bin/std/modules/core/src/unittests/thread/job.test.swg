@@ -39,8 +39,8 @@ func waitJobThread(th: Threading.Thread)
 {
     if Jobs.getNumWorkers() == 0
     {
-        discard catch Jobs.setNumWorkers(1)
-        @assert(@err == null)
+        discard catch Jobs.setNumWorkers(1) as err
+        @assert(err == null)
     }
 
     var jobData: ReusedJobData
@@ -62,10 +62,10 @@ func waitJobThread(th: Threading.Thread)
     var waitData          = WaitJobThreadData{job: &job, waitReturned: &waitReturned}
     var waitThread:   Threading.Thread
 
-    discard catch waitThread.init(&waitJobThread, &waitData)
-    @assert(@err == null)
-    discard catch waitThread.start()
-    @assert(@err == null)
+    discard catch waitThread.init(&waitJobThread, &waitData) as err2
+    @assert(err2 == null)
+    discard catch waitThread.start() as err3
+    @assert(err3 == null)
 
     for 50
     {

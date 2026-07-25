@@ -251,10 +251,10 @@ impl MainWnd
         }
         else
         {
-            let full: #null *Capture = catch Capture.load(file)
-            if @err != null
+            let full: #null *Capture = catch Capture.load(file) as err
+            if err != null
             {
-                MessageDlg.error(notnull .surface, "Failed to rename capture")
+                MessageDlg.error(notnull .surface, "Failed to rename capture", err)
                 return
             }
 
@@ -281,10 +281,10 @@ impl MainWnd
     mtd copyLibraryImage(file: String)
     {
         Cursor.wait()
-        let full: #null *Capture = catch Capture.load(file)
-        if @err != null
+        let full: #null *Capture = catch Capture.load(file) as err
+        if err != null
         {
-            MessageDlg.error(notnull .surface, "Failed to copy image")
+            MessageDlg.error(notnull .surface, "Failed to copy image", err)
             return
         }
 
@@ -301,10 +301,10 @@ impl MainWnd
 
     mtd loadExternalImage(arg: String)
     {
-        let imgToLoad = catch Image.load(arg)
-        if @err != null
+        let imgToLoad = catch Image.load(arg) as err
+        if err != null
         {
-            MessageDlg.error(notnull .surface, Format.toString("Failed to load file: %", arg))
+            MessageDlg.error(notnull .surface, Format.toString("Failed to load file: %", arg), err)
             return
         }
 

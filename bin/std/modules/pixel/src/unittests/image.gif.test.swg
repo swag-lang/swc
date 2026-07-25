@@ -41,15 +41,15 @@ func assertGifHeader(bytes: const [..] u8, width, height: u16)
 func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 {
     var cb: ConcatBuffer
-    catch encodeGif(&cb, src)
-    @assert(@err == null)
+    catch encodeGif(&cb, src) as err
+    @assert(err == null)
 
     let bytes = nnBytes(cb.toSlice())
     assertGifHeader(bytes, cast(u16) src.width, cast(u16) src.height)
 
     var img: Image
-    img = catch Image.decode("encoded.gif", bytes, {})
-    @assert(@err == null)
+    img = catch Image.decode("encoded.gif", bytes, {}) as err2
+    @assert(err2 == null)
     @assert(img.width == src.width)
     @assert(img.height == src.height)
     @assert(img.pf == expectedPf)
@@ -69,8 +69,8 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var rgb: Image
-    rgb = catch Image.load(getTestDataPath("test.gif"))
-    @assert(@err == null)
+    rgb = catch Image.load(getTestDataPath("test.gif")) as err3
+    @assert(err3 == null)
     @assert(rgb.isValid())
     @assert(rgb.width == 439)
     @assert(rgb.height == 341)
@@ -78,8 +78,8 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(rgb, 0, 0, 183'u8, 107'u8, 3'u8, 255'u8)
 
     var rgba: Image
-    rgba = catch Image.load(getTestDataPath("testa.gif"))
-    @assert(@err == null)
+    rgba = catch Image.load(getTestDataPath("testa.gif")) as err4
+    @assert(err4 == null)
     @assert(rgba.isValid())
     @assert(rgba.width == 250)
     @assert(rgba.height == 261)
@@ -90,15 +90,15 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 // Direct decoder exposes frame iteration metadata for animated GIFs.
 #test
 {
-    let bytes = catch File.readAllBytes(getTestDataPath("test.gif"))
-    @assert(@err == null)
+    let bytes = catch File.readAllBytes(getTestDataPath("test.gif")) as err5
+    @assert(err5 == null)
 
     var dec: Gif.Decoder
-    catch dec.init(nnBytes(bytes.toSlice()), true)
-    @assert(@err == null)
+    catch dec.init(nnBytes(bytes.toSlice()), true) as err6
+    @assert(err6 == null)
 
-    let numFrames = catch dec.getNumFrames()
-    @assert(@err == null)
+    let numFrames = catch dec.getNumFrames() as err7
+    @assert(err7 == null)
     @assert(numFrames == 21)
 
     var frame: Image
@@ -110,29 +110,28 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     var count = 0
     for
     {
-        let next = catch dec.nextFrame(&frame)
-        @assert(@err == null)
+        let next = catch dec.nextFrame(&frame) as err8
+        @assert(err8 == null)
         if !next do
             break
         count += 1
     }
 
-    @assert(@err == null)
     @assert(count == 21)
 }
 
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
 #test
 {
-    let bytes = catch File.readAllBytes(getTestDataPath("testa.gif"))
-    @assert(@err == null)
+    let bytes = catch File.readAllBytes(getTestDataPath("testa.gif")) as err9
+    @assert(err9 == null)
 
     var opts: DecodeOptions
     opts.decodePixels = false
 
     var img: Image
-    img = catch Image.decode("meta.gif", bytes.toSlice(), opts)
-    @assert(@err == null)
+    img = catch Image.decode("meta.gif", bytes.toSlice(), opts) as err10
+    @assert(err10 == null)
     @assert(img.width == 250)
     @assert(img.height == 261)
     @assert(img.pf == .RGBA8)
@@ -144,13 +143,13 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 {
     let bad: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var img: Image
-    img = catch Image.decode("bad.gif", @mkslice(&bad[0], @countof(bad)), {})
-    @assert(@err != null)
+    img = catch Image.decode("bad.gif", @mkslice(&bad[0], @countof(bad)), {}) as err11
+    @assert(err11 != null)
 
-    let bytes = catch File.readAllBytes(getTestDataPath("test.gif"))
-    @assert(@err == null)
-    img = catch Image.decode("truncated.gif", @mkslice(bytes.buffer, 32), {})
-    @assert(@err != null)
+    let bytes = catch File.readAllBytes(getTestDataPath("test.gif")) as err12
+    @assert(err12 == null)
+    img = catch Image.decode("truncated.gif", @mkslice(bytes.buffer, 32), {}) as err13
+    @assert(err13 != null)
 }
 
 // Encode RGB8 images with an exact palette and preserve the colors through the decoder.
@@ -172,12 +171,12 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     srcBuf[11] = 120'u8
 
     var cb: ConcatBuffer
-    catch encodeGif(&cb, src)
-    @assert(@err == null)
+    catch encodeGif(&cb, src) as err14
+    @assert(err14 == null)
 
     var img: Image
-    img = catch Image.decode("rgb.gif", nnBytes(cb.toSlice()), {})
-    @assert(@err == null)
+    img = catch Image.decode("rgb.gif", nnBytes(cb.toSlice()), {}) as err15
+    @assert(err15 == null)
     @assert(img.pf == .RGB8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
@@ -199,12 +198,12 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertEncodedGifRoundtrip(src, .RGBA8)
 
     var cb: ConcatBuffer
-    catch encodeGif(&cb, src)
-    @assert(@err == null)
+    catch encodeGif(&cb, src) as err16
+    @assert(err16 == null)
 
     var img: Image
-    img = catch Image.decode("rgba.gif", nnBytes(cb.toSlice()), {})
-    @assert(@err == null)
+    img = catch Image.decode("rgba.gif", nnBytes(cb.toSlice()), {}) as err17
+    @assert(err17 == null)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
     assertGifPixelAt(img, 1, 0, 40'u8, 50'u8, 60'u8, 255'u8)
 }
@@ -219,12 +218,12 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     bgrBuf[2] = 10'u8
 
     var cb: ConcatBuffer
-    catch encodeGif(&cb, bgr)
-    @assert(@err == null)
+    catch encodeGif(&cb, bgr) as err18
+    @assert(err18 == null)
 
     var img: Image
-    img = catch Image.decode("bgr.gif", nnBytes(cb.toSlice()), {})
-    @assert(@err == null)
+    img = catch Image.decode("bgr.gif", nnBytes(cb.toSlice()), {}) as err19
+    @assert(err19 == null)
     assertGifPixelAt(img, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
     var bgra    = Image.create(1, 1, .BGRA8)
@@ -235,11 +234,11 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     bgraBuf[3] = 10'u8
 
     cb.clear()
-    catch encodeGif(&cb, bgra)
-    @assert(@err == null)
+    catch encodeGif(&cb, bgra) as err20
+    @assert(err20 == null)
 
-    img = catch Image.decode("bgra.gif", nnBytes(cb.toSlice()), {})
-    @assert(@err == null)
+    img = catch Image.decode("bgra.gif", nnBytes(cb.toSlice()), {}) as err21
+    @assert(err21 == null)
     assertGifPixelAt(img, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
 }
 
@@ -259,12 +258,12 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     }
 
     var cb: ConcatBuffer
-    catch encodeGif(&cb, src)
-    @assert(@err == null)
+    catch encodeGif(&cb, src) as err22
+    @assert(err22 == null)
 
     var img: Image
-    img = catch Image.decode("quantized.gif", nnBytes(cb.toSlice()), {})
-    @assert(@err == null)
+    img = catch Image.decode("quantized.gif", nnBytes(cb.toSlice()), {}) as err23
+    @assert(err23 == null)
     @assert(img.width == 17)
     @assert(img.height == 17)
     @assert(img.pf == .RGB8)
@@ -287,13 +286,13 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     srcBuf[2] = 56'u8
 
     var cb: ConcatBuffer
-    catch encodeGif(&cb, src)
-    @assert(@err == null)
-    discard catch File.writeAllBytes(path.toString(), cb)
-    @assert(@err == null)
+    catch encodeGif(&cb, src) as err24
+    @assert(err24 == null)
+    discard catch File.writeAllBytes(path.toString(), cb) as err25
+    @assert(err25 == null)
 
     var img: Image
-    img = catch Image.load(path.toString())
-    @assert(@err == null)
+    img = catch Image.load(path.toString()) as err26
+    @assert(err26 == null)
     assertGifPixelAt(img, 0, 0, 12'u8, 34'u8, 56'u8, 255'u8)
 }

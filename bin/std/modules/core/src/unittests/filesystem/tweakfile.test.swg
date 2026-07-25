@@ -24,8 +24,8 @@ struct TweakBeta
     tweak.registerFolder'TweakAlpha(&alpha)
     tweak.registerFolder'TweakBeta(&beta)
 
-    discard catch tweak.parse("/TweakAlpha\nfoo 1\nbar $foo\n/TweakBeta\nbar 2\nfoo $bar\n")
-    @assert(@err == null)
+    discard catch tweak.parse("/TweakAlpha\nfoo 1\nbar $foo\n/TweakBeta\nbar 2\nfoo $bar\n") as err
+    @assert(err == null)
 
     @assert(alpha.foo == 1)
     @assert(alpha.bar == 1)
@@ -46,7 +46,7 @@ struct TweakBeta
 
     tweak.registerFolder'TweakCycle(&cycle)
 
-    discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n")
-    @assert(@err != null)
-    @assert(@err is Errors.SyntaxError)
+    discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as err2
+    @assert(err2 != null)
+    @assert(err2 is Errors.SyntaxError)
 }

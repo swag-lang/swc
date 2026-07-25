@@ -231,21 +231,21 @@ public impl MessageDlg
         return yesNo(from, txt.toString(), "Please confirm", defaultId, options)
     }
 
-    // Message box to show the current raised error.
-    // @err must still contain the raised error.
-    func error(from: *Surface, message: #null string = null, options: MessageDlgOptions = {})
+    // Message box to show a raised error. The caller captures the error ('catch f() as err') and
+    // hands it in; when a SystemError is passed its message is appended to the shown text.
+    func error(from: *Surface, message: #null string = null, err: #null any = null, options: MessageDlgOptions = {})
     {
         var txt: String = String.from(message)
         if !txt.isEmpty() do
             txt += "\n"
 
-        if @err != null
+        if err != null
         {
-            switch @err
+            switch err
             {
             case Swag.SystemError:
-                let err = cast(Swag.SystemError) @err
-                txt += err.message
+                let sysErr = cast(Swag.SystemError) err
+                txt += sysErr.message
             }
         }
 

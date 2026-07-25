@@ -38,20 +38,20 @@ func waitManyThreads(threads: &[WaitManyThreadCount] Threading.Thread)
 #test
 {
     var thread: Threading.Thread
-    discard catch thread.init(&idleThread, null, Threading.ThreadPriority.AboveNormal)
-    @assert(@err == null)
+    discard catch thread.init(&idleThread, null, Threading.ThreadPriority.AboveNormal) as err
+    @assert(err == null)
 
-    let initPriority = catch GetThreadPriority(cast(HANDLE) thread.handle)
-    @assert(@err == null)
+    let initPriority = catch GetThreadPriority(cast(HANDLE) thread.handle) as err2
+    @assert(err2 == null)
 
-    discard catch thread.setPriority(Threading.ThreadPriority.Highest)
-    @assert(@err == null)
+    discard catch thread.setPriority(Threading.ThreadPriority.Highest) as err3
+    @assert(err3 == null)
 
-    let updatedPriority = catch GetThreadPriority(cast(HANDLE) thread.handle)
-    @assert(@err == null)
+    let updatedPriority = catch GetThreadPriority(cast(HANDLE) thread.handle) as err4
+    @assert(err4 == null)
 
-    discard catch thread.start()
-    @assert(@err == null)
+    discard catch thread.start() as err5
+    @assert(err5 == null)
     thread.wait()
 
     @assert(initPriority == THREAD_PRIORITY_ABOVE_NORMAL)
@@ -69,14 +69,14 @@ func waitManyThreads(threads: &[WaitManyThreadCount] Threading.Thread)
         payloads[i].doneCount = &doneCount
         payloads[i].sleepMs   = i + 1 == WaitManyThreadCount ? WaitManyDelayedSleepMs : 0
 
-        discard catch threads[i].init(&waitManyThread, &payloads[i])
-        @assert(@err == null)
+        discard catch threads[i].init(&waitManyThread, &payloads[i]) as err6
+        @assert(err6 == null)
     }
 
     for [i] in WaitManyThreadCount
     {
-        discard catch threads[i].start()
-        @assert(@err == null)
+        discard catch threads[i].start() as err7
+        @assert(err7 == null)
     }
 
     waitManyThreads(&threads)

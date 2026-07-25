@@ -189,8 +189,8 @@ using Swag, Core, File
     var f: HeadlessFixture
     f.setup()
 
-    catch Library.init()
-    @assert(@err == null)
+    catch Library.init() as err
+    @assert(err == null)
     g_Library.files.clear()
     g_Library.loaded = true
     g_Library.onDeleteFile.arr.clear()
@@ -223,8 +223,8 @@ using Swag, Core, File
         let path = testTempCapturePath()
         capture.file    = path
         capture.changed = true
-        catch capture.save()
-        @assert(@err == null)
+        catch capture.save() as err2
+        @assert(err2 == null)
         @assert(File.exists(path))
         Memory.delete(capture)
 

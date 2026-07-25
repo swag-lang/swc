@@ -29,15 +29,15 @@ func assertBytesEqual(actual: const [..] u8, expected: const [..] u8)->bool
 func assertZLibRoundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     var zlib: Compress.ZLib
-    let compressed = catch zlib.compress(input, level)
-    @assert(@err == null)
+    let compressed = catch zlib.compress(input, level) as err
+    @assert(err == null)
     @assert(compressed.count >= 6)
     @assert(compressed[0] == 0x78)
     @assert(compressed[1] == 0x9C)
 
     var reader: Compress.ZLib
-    let decoded = catch reader.decompress(compressed.toSlice(), @countof(input))
-    @assert(@err == null)
+    let decoded = catch reader.decompress(compressed.toSlice(), @countof(input)) as err2
+    @assert(err2 == null)
     @assert(assertBytesEqual(decoded.toSlice(), input))
 }
 
@@ -47,14 +47,14 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     deflater.init(level, strategy)
 
     var compressed: Array'u8
-    catch deflater.compress(&compressed, input)
-    @assert(@err == null)
+    catch deflater.compress(&compressed, input) as err3
+    @assert(err3 == null)
     @assert(compressed.count != 0)
 
     var inflater: Compress.Inflate
     var decoded:  Array'u8
-    catch inflater.decompress(&decoded, compressed.toSlice())
-    @assert(@err == null)
+    catch inflater.decompress(&decoded, compressed.toSlice()) as err4
+    @assert(err4 == null)
     @assert(assertBytesEqual(decoded.toSlice(), input))
 }
 
@@ -87,21 +87,21 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 {
     let tooSmall: [5] u8 = [0x78, 0x9C, 0, 0, 0]
     var reader:   Compress.ZLib
-    let tooSmallResult   = catch reader.decompress(tooSmall)
+    let tooSmallResult   = catch reader.decompress(tooSmall) as errA
     @assert(tooSmallResult.count == 0)
-    @assert(@err is Errors.InvalidFormatError)
+    @assert(errA is Errors.InvalidFormatError)
 
     let badMethod:       [6] u8 = [0x79, 0x9C, 0, 0, 0, 0]
     var badMethodReader: Compress.ZLib
-    let badMethodResult         = catch badMethodReader.decompress(badMethod)
+    let badMethodResult         = catch badMethodReader.decompress(badMethod) as errB
     @assert(badMethodResult.count == 0)
-    @assert(@err is Errors.InvalidFormatError)
+    @assert(errB is Errors.InvalidFormatError)
 
     let dictionary:       [6] u8 = [0x78, 0x20, 0, 0, 0, 0]
     var dictionaryReader: Compress.ZLib
-    let dictionaryResult         = catch dictionaryReader.decompress(dictionary)
+    let dictionaryResult         = catch dictionaryReader.decompress(dictionary) as errC
     @assert(dictionaryResult.count == 0)
-    @assert(@err is Errors.UnsupportedFormatError)
+    @assert(errC is Errors.UnsupportedFormatError)
 }
 
 #test
@@ -110,14 +110,14 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     fillCompressPattern(input)
 
     var zlib: Compress.ZLib
-    var compressed = catch zlib.compress(input)
-    @assert(@err == null)
+    var compressed = catch zlib.compress(input) as err5
+    @assert(err5 == null)
     @assert(compressed.count > 6)
 
     compressed[compressed.count - 1] ^= 0x5A
 
     var reader: Compress.ZLib
-    let decoded = catch reader.decompress(compressed.toSlice())
+    let decoded = catch reader.decompress(compressed.toSlice()) as err6
     @assert(decoded.count == 0)
-    @assert(@err is Errors.InvalidFormatError)
+    @assert(err6 is Errors.InvalidFormatError)
 }

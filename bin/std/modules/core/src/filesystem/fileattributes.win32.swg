@@ -49,7 +49,7 @@ impl FileAttributes
 func getAttributes(fullName: string)->FileAttributes fail
 {
     let winPath    = Utf16.toZeroTerminated(fullName)
-    let attributes = catch GetFileAttributesW(@dataof(winPath))
-    Errors.transformWinErrors()
+    let attributes = catch GetFileAttributesW(@dataof(winPath)) as err
+    Errors.transformWinErrors(err)
     return FileAttributes.fromDWORD(attributes)
 }

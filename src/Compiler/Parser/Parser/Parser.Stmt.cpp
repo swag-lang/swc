@@ -431,24 +431,24 @@ AstNodeRef Parser::parseTryCatch()
     else
         nodePtr->nodeBodyRef = parseExpression();
 
-    // 'catch e as err { H }' is the named handler form: it runs the same failure handler as
-    // 'else' but binds the caught error into a fresh local 'err' (of type '#null any') visible
-    // inside H, so the block reads the value by name instead of through '@err'. The 'as' operator
-    // also spells a cast, so parseExpression() above greedily folded the trailing 'as err' into an
-    // 'AsCastExpr'. In statement position a catch result is discarded, so 'catch e as X' followed
-    // by a block can only be the binding form: unwrap the cast back into operand + bound name.
+    // 'catch e as err' captures the caught error into a fresh local 'err' (of type '#null any')
+    // bound in the ENCLOSING scope: null on success, the error on failure (dismissed). The 'as'
+    // operator also spells a cast, so after a catch a trailing 'as IDENT' is ALWAYS an error
+    // capture, never a cast (to cast a catch result, parenthesize: '(catch f()) as T'). Here the
+    // operand parse folded 'as err' into an 'AsCastExpr'; unwrap it back into operand + bound name.
     if (nodePtr->nodeBodyRef.isValid() &&
-        ast_->node(nodePtr->nodeBodyRef).is(AstNodeId::AsCastExpr) &&
-        isAny(TokenId::SymLeftCurly, TokenId::KwdDo))
+        ast_->node(nodePtr->nodeBodyRef).is(AstNodeId::AsCastExpr))
     {
-        const auto& asCast      = ast_->node(nodePtr->nodeBodyRef).cast<AstAsCastExpr>();
-        nodePtr->errNameTokRef  = ast_->node(asCast.nodeTypeRef).tokRef();
-        nodePtr->nodeBodyRef    = asCast.nodeExprRef;
-        nodePtr->nodeHandlerRef = parseDoCurlyBlock();
+        const auto& asCast     = ast_->node(nodePtr->nodeBodyRef).cast<AstAsCastExpr>();
+        nodePtr->errNameTokRef = ast_->node(asCast.nodeTypeRef).tokRef();
+        nodePtr->nodeBodyRef   = asCast.nodeExprRef;
     }
-    // 'catch e else { H }' / 'catch e else do H': H runs only when 'e' fails. Inside H the
-    // caught error is available through '@err'. The handler is emitted lazily on the failure
-    // path (like 'orfail'), which removes the 'catch e; if @err != null do H' boilerplate.
+    // 'catch { ... } as err': the block-catch form parsed its body as an EmbeddedBlock, so the
+    // trailing 'as err' sits after the '}' and was not folded into a cast; consume it here.
+    else if (consumeIf(TokenId::KwdAs).isValid())
+        nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    // 'catch e else { H }' / 'catch e else do H': the anonymous lazy handler H runs only when 'e'
+    // fails (it cannot inspect the error — use 'as err' for that). Emitted on the failure path only.
     else if (consumeIf(TokenId::KwdElse).isValid())
         nodePtr->nodeHandlerRef = parseDoCurlyBlock();
 

@@ -100,6 +100,13 @@ func __bindErr(dst: *#null any)
     dref dst = @getcontext().curError
 }
 
+// Reset a 'catch e as err' capture slot before the fallible call runs, so a successful
+// call leaves 'err' null (the failure path overwrites it via '__bindErr').
+func __clearErr(dst: *#null any)
+{
+    dref dst = null
+}
+
 func __catchErr()
 {
     let cxt = @getcontext()

@@ -411,8 +411,8 @@ impl Surface
         // Save position and surface state
         if @isset(.wnd.view) and .wnd.view.id != null
         {
-            catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state)
-            if @err == null and ser.isReading()
+            catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as err
+            if err == null and ser.isReading()
             {
                 if .isMaximized
                 {

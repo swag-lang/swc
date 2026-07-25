@@ -8,21 +8,21 @@ using Swag, Core
     scope.init()
     let face = notnull scope.face
 
-    discard catch face.setPixelSize(0, 20)
-    @assert(@err == null)
+    discard catch face.setPixelSize(0, 20) as err
+    @assert(err == null)
 
     let glyphIndex = face.glyphIndex('A')
-    discard catch face.loadGlyph(glyphIndex, .Render)
-    @assert(@err == null)
+    discard catch face.loadGlyph(glyphIndex, .Render) as err2
+    @assert(err2 == null)
     @assert(face.glyph.bitmap.width > 0)
     @assert(face.glyph.bitmap.rows > 0)
     @assert(face.glyph.bitmap.pitch == cast(s32) face.glyph.bitmap.width)
     @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 
-    discard catch face.loadChar(' ', .Default)
-    @assert(@err == null)
-    discard catch face.renderGlyph()
-    @assert(@err == null)
+    discard catch face.loadChar(' ', .Default) as err3
+    @assert(err3 == null)
+    discard catch face.renderGlyph() as err4
+    @assert(err4 == null)
     @assert(countBitmapCoverage(&face.glyph.bitmap) == 0)
 }
 
@@ -32,20 +32,20 @@ using Swag, Core
     scope.init()
     let face = notnull scope.face
 
-    discard catch face.setPixelSize(0, 32)
-    @assert(@err == null)
+    discard catch face.setPixelSize(0, 32) as err5
+    @assert(err5 == null)
 
-    discard catch face.loadChar('A', .Default)
-    @assert(@err == null)
-    discard catch face.renderGlyph()
-    @assert(@err == null)
+    discard catch face.loadChar('A', .Default) as err6
+    @assert(err6 == null)
+    discard catch face.renderGlyph() as err7
+    @assert(err7 == null)
 
     let normal     = face.glyph.bitmap
     let normalLeft = face.glyph.bitmapLeft
     let normalTop  = face.glyph.bitmapTop
 
-    discard catch face.renderGlyphSdf(8)
-    @assert(@err == null)
+    discard catch face.renderGlyphSdf(8) as err8
+    @assert(err8 == null)
 
     let sdf = &face.glyph.bitmap
     @assert(sdf.width > normal.width)
@@ -78,13 +78,13 @@ using Swag, Core
     scope.init()
     let face = notnull scope.face
 
-    discard catch face.setPixelSize(0, 40)
-    @assert(@err == null)
+    discard catch face.setPixelSize(0, 40) as err9
+    @assert(err9 == null)
 
-    discard catch face.loadChar('A', .Default)
-    @assert(@err == null)
-    discard catch face.renderGlyph()
-    @assert(@err == null)
+    discard catch face.loadChar('A', .Default) as err10
+    @assert(err10 == null)
+    discard catch face.renderGlyph() as err11
+    @assert(err11 == null)
 
     let bmp = &face.glyph.bitmap
     @assert(bmp.width > 0)
@@ -116,16 +116,16 @@ using Swag, Core
     scope.init()
     let face = notnull scope.face
 
-    discard catch face.setPixelSize(0, 20)
-    @assert(@err == null)
+    discard catch face.setPixelSize(0, 20) as err12
+    @assert(err12 == null)
 
-    discard catch face.loadChar('A', .Default)
-    @assert(@err == null)
-    discard catch face.renderGlyph(.Mono)
-    @assert(@err != null)
+    discard catch face.loadChar('A', .Default) as err13
+    @assert(err13 == null)
+    discard catch face.renderGlyph(.Mono) as err14
+    @assert(err14 != null)
 
-    discard catch face.loadGlyph(face.glyphCount + 1, .Default)
-    @assert(@err != null)
+    discard catch face.loadGlyph(face.glyphCount + 1, .Default) as err15
+    @assert(err15 != null)
 }
 
 // Multi-channel SDF: 3 bytes per pixel, padded like the single-channel SDF, and the
@@ -136,13 +136,13 @@ using Swag, Core
     scope.init()
     let face = notnull scope.face
 
-    discard catch face.setPixelSize(0, 32)
-    @assert(@err == null)
+    discard catch face.setPixelSize(0, 32) as err16
+    @assert(err16 == null)
 
-    discard catch face.loadChar('A', .Default)
-    @assert(@err == null)
-    discard catch face.renderGlyph()
-    @assert(@err == null)
+    discard catch face.loadChar('A', .Default) as err17
+    @assert(err17 == null)
+    discard catch face.renderGlyph() as err18
+    @assert(err18 == null)
 
     let normalWidth = face.glyph.bitmap.width
     let normalRows  = face.glyph.bitmap.rows
@@ -150,8 +150,8 @@ using Swag, Core
     let normalTop   = face.glyph.bitmapTop
 
     let spread = 8'u32
-    discard catch face.renderGlyphMsdf(spread)
-    @assert(@err == null)
+    discard catch face.renderGlyphMsdf(spread) as err19
+    @assert(err19 == null)
 
     let msdf = &face.glyph.bitmap
     @assert(msdf.width > normalWidth)

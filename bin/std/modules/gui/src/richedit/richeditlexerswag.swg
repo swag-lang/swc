@@ -187,7 +187,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#uniq9", State.Intrinsic)
 
         .mapWords.add("@rtflags", State.Intrinsic)
-        .mapWords.add("@err", State.Intrinsic)
         .mapWords.add("@args", State.Intrinsic)
         .mapWords.add("@pinfos", State.Intrinsic)
         .mapWords.add("@jit", State.Intrinsic)

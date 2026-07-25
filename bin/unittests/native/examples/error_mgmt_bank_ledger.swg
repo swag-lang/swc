@@ -161,8 +161,8 @@ impl Ledger
         var successes: s32 = 0
         for op in ops
         {
-            catch .transfer(op.from, op.dest, op.amount)
-            if @err == null do
+            catch .transfer(op.from, op.dest, op.amount) as err
+            if err == null do
                 successes += 1
         }
         return successes
@@ -175,8 +175,8 @@ impl Ledger
 {
     var ledger: Ledger
     ledger.reset()
-    catch ledger.deposit(0, 1000)
-    @assert(@err == null)
+    catch ledger.deposit(0, 1000) as err2
+    @assert(err2 == null)
     @assert(ledger.accounts[0].balance == 1000)
     @assert(ledger.totalOps == 1)
 }
@@ -185,9 +185,9 @@ impl Ledger
 {
     var ledger: Ledger
     ledger.reset()
-    catch ledger.deposit(99, 10)
-    @assert(@err != null)
-    let err = cast(BankError) @err
+    catch ledger.deposit(99, 10) as err3
+    @assert(err3 != null)
+    let err = cast(BankError) err3
     @assert(err.kind == .UnknownAccount)
     @assert(err.account == 99)
     @assert(err.message == "unknown account")
@@ -197,9 +197,9 @@ impl Ledger
 {
     var ledger: Ledger
     ledger.reset()
-    catch ledger.deposit(0, 0)
-    @assert(@err != null)
-    let err = cast(BankError) @err
+    catch ledger.deposit(0, 0) as err4
+    @assert(err4 != null)
+    let err = cast(BankError) err4
     @assert(err.kind == .InvalidAmount)
 }
 
@@ -207,9 +207,9 @@ impl Ledger
 {
     var ledger: Ledger
     ledger.reset()
-    catch ledger.withdraw(0, 50)
-    @assert(@err != null)
-    let err = cast(BankError) @err
+    catch ledger.withdraw(0, 50) as err5
+    @assert(err5 != null)
+    let err = cast(BankError) err5
     @assert(err.kind == .InsufficientFunds)
     @assert(err.amount == 50)
 }
@@ -219,9 +219,9 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     ledger.accounts[0].frozen = true
-    catch ledger.deposit(0, 100)
-    @assert(@err != null)
-    let err = cast(BankError) @err
+    catch ledger.deposit(0, 100) as err6
+    @assert(err6 != null)
+    let err = cast(BankError) err6
     @assert(err.kind == .FrozenAccount)
     @assert(err.account == 0)
 }
@@ -232,8 +232,8 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     catch ledger.deposit(0, 1000)
-    catch ledger.transfer(0, 1, 300)
-    @assert(@err == null)
+    catch ledger.transfer(0, 1, 300) as err7
+    @assert(err7 == null)
     @assert(ledger.accounts[0].balance == 700)
     @assert(ledger.accounts[1].balance == 300)
     @assert(ledger.committed == 1)
@@ -247,9 +247,9 @@ impl Ledger
     ledger.reset()
     catch ledger.deposit(0, 1000)
     ledger.accounts[1].frozen = true
-    catch ledger.transfer(0, 1, 300)
-    @assert(@err != null)
-    let err = cast(BankError) @err
+    catch ledger.transfer(0, 1, 300) as err8
+    @assert(err8 != null)
+    let err = cast(BankError) err8
     @assert(err.kind == .FrozenAccount)
     @assert(err.account == 1)
     @assert(ledger.accounts[0].balance == 1000)
@@ -264,9 +264,9 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     catch ledger.deposit(0, 100)
-    catch ledger.transfer(0, 1, 500)
-    @assert(@err != null)
-    let err = cast(BankError) @err
+    catch ledger.transfer(0, 1, 500) as err9
+    @assert(err9 != null)
+    let err = cast(BankError) err9
     @assert(err.kind == .InsufficientFunds)
     @assert(ledger.accounts[0].balance == 100)
     @assert(ledger.accounts[1].balance == 0)
@@ -280,11 +280,11 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     catch ledger.deposit(0, 1000)
-    catch ledger.transfer(0, 1, 100)
-    @assert(@err == null)
+    catch ledger.transfer(0, 1, 100) as err10
+    @assert(err10 == null)
     @assert(ledger.committed == 1)
-    catch ledger.transfer(0, 1, 200)
-    @assert(@err == null)
+    catch ledger.transfer(0, 1, 200) as err11
+    @assert(err11 == null)
     @assert(ledger.committed == 2)
 }
 
@@ -334,8 +334,8 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     catch ledger.deposit(0, 100)
-    catch ledger.transfer(0, 1, 500) else {}
-    @assert(@err == null)
+    catch ledger.transfer(0, 1, 500) else {} as err12
+    @assert(err12 == null)
     @assert(ledger.accounts[0].balance == 100)
     @assert(ledger.rolledBack == 0)
 }

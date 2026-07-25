@@ -12,26 +12,26 @@ using Swag, Core
     @assert(glyphIndex > 0)
 
     let faceData                  = getFaceData(face)
-    let glyf: #null const [..] u8 = catch getTableSlice(faceData, TAG_GLYF, 0x10)
-    @assert(@err == null)
+    let glyf: #null const [..] u8 = catch getTableSlice(faceData, TAG_GLYF, 0x10) as err
+    @assert(err == null)
 
     let glyphStart = faceData.glyphLocations[glyphIndex]
     let glyphEnd   = faceData.glyphLocations[glyphIndex + 1]
-    let glyphData  = catch getSlice(glyf, glyphStart, glyphEnd - glyphStart)
-    @assert(@err == null)
-    let contourCount = catch readS16(glyphData, 0)
-    @assert(@err == null)
+    let glyphData  = catch getSlice(glyf, glyphStart, glyphEnd - glyphStart) as err2
+    @assert(err2 == null)
+    let contourCount = catch readS16(glyphData, 0) as err3
+    @assert(err3 == null)
     @assert(contourCount < 0)
 
-    discard catch face.setPixelSize(0, 20)
-    @assert(@err == null)
-    discard catch face.loadChar(0x00E9, .NoBitmap)
-    @assert(@err == null)
+    discard catch face.setPixelSize(0, 20) as err4
+    @assert(err4 == null)
+    discard catch face.loadChar(0x00E9, .NoBitmap) as err5
+    @assert(err5 == null)
     @assert(face.glyph.index == glyphIndex)
     @assert(face.glyph.outline.pointCount > 0)
     @assert(face.glyph.outline.contourCount > 0)
 
-    discard catch face.renderGlyph()
-    @assert(@err == null)
+    discard catch face.renderGlyph() as err6
+    @assert(err6 == null)
     @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 }

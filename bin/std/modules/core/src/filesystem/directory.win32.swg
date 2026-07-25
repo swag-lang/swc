@@ -7,8 +7,8 @@ using Win32
 func create(dirname: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirname)
-    catch CreateDirectoryW(@dataof(winPath), null)
-    Errors.transformWinErrors(dirname)
+    catch CreateDirectoryW(@dataof(winPath), null) as err
+    Errors.transformWinErrors(err, dirname)
 }
 
 // Returns true if the given directory exists
@@ -17,8 +17,8 @@ func exists(dirName: string)->bool
     if @countof(dirName) == 0 do
         return false
     let winPath    = Utf16.toZeroTerminated(dirName)
-    let attributes = catch GetFileAttributesW(@dataof(winPath))
-    if @err != null do
+    let attributes = catch GetFileAttributesW(@dataof(winPath)) as err
+    if err != null do
         return false
     if attributes == 0xFFFFFFFF do
         return false
@@ -142,8 +142,8 @@ func getCurrent()->String fail
 func setCurrent(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
-    catch SetCurrentDirectoryW(@dataof(winPath))
-    Errors.transformWinErrors(dirName)
+    catch SetCurrentDirectoryW(@dataof(winPath)) as err
+    Errors.transformWinErrors(err, dirName)
 }
 
 // Get the list of logical drives
@@ -182,8 +182,8 @@ func getVolumes()->Array'String fail
     for
     {
         var ret: DWORD
-        catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret)
-        if @err == null
+        catch GetVolumePathNamesForVolumeNameA(volName, driveName, MAX_PATH, &ret) as err
+        if err == null
         {
             let len = @countof(cast(cstring) driveName)
             if len

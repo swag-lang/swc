@@ -372,9 +372,9 @@ impl RecentWnd
             return
 
         let idx                     = .pendingRecentIndex
-        let capture: #null *Capture = catch .addRecent(.pendingRecentFiles[idx], front: false)
+        let capture: #null *Capture = catch .addRecent(.pendingRecentFiles[idx], front: false) as err
         defer #fail Memory.delete(capture)
-        if @err == null
+        if err == null
         {
             if idx == 0 and !.main.editWnd.editView.capture
             {

@@ -313,9 +313,9 @@ impl MainWnd
         if dlg.doModal() != Dialog.BtnOk do
             return
 
-        let img = catch Image.load(dlg.getSelectedName())
-        if @err != null do
-            MessageDlg.error(notnull .surface, "Failed to load image")
+        let img = catch Image.load(dlg.getSelectedName()) as err
+        if err != null do
+            MessageDlg.error(notnull .surface, "Failed to load image", err)
         else do
             .newCapture(img, dlg.getSelectedName())
     }

@@ -6,12 +6,12 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
-    let bytes = catch File.readAllBytes(path)
-    @assert(@err == null)
+    let bytes = catch File.readAllBytes(path) as err
+    @assert(err == null)
     @assert(bytes.count == 52)
 
-    let file = catch SoundFile.load(path)
-    @assert(@err == null)
+    let file = catch SoundFile.load(path) as err2
+    @assert(err2 == null)
     @assert(file.encoding == .Pcm16)
     @assert(file.frequency == 44100)
     @assert(file.channelCount == 2)
@@ -35,8 +35,8 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
-    let file = catch SoundFile.load(path, loadDatas: false)
-    @assert(@err == null)
+    let file = catch SoundFile.load(path, loadDatas: false) as err3
+    @assert(err3 == null)
     @assert(file.encoding == .Pcm16)
     @assert(file.dataSize == 8)
     @assert(file.dataSeek == 44)
@@ -48,8 +48,8 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")
 
-    let file = catch SoundFile.load(path, loadDatas: false, loadMetaDatas: true)
-    @assert(@err == null)
+    let file = catch SoundFile.load(path, loadDatas: false, loadMetaDatas: true) as err4
+    @assert(err4 == null)
     @assert(file.encoding == .Pcm16)
     @assert(file.dataSize == 8)
     @assert(file.datas.count == 0)
@@ -61,8 +61,8 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm8_mono_odd.wav")
 
-    let file = catch SoundFile.load(path)
-    @assert(@err == null)
+    let file = catch SoundFile.load(path) as err5
+    @assert(err5 == null)
     @assert(file.encoding == .Pcm8)
     @assert(file.frequency == 8000)
     @assert(file.channelCount == 1)
@@ -78,8 +78,8 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm24_extensible_stereo.wav")
 
-    let file = catch SoundFile.load(path)
-    @assert(@err == null)
+    let file = catch SoundFile.load(path) as err6
+    @assert(err6 == null)
     @assert(file.encoding == .Pcm24)
     @assert(file.frequency == 48000)
     @assert(file.channelCount == 2)
@@ -97,8 +97,8 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("float32_extensible_mono.wav")
 
-    let file = catch SoundFile.load(path)
-    @assert(@err == null)
+    let file = catch SoundFile.load(path) as err7
+    @assert(err7 == null)
     @assert(file.encoding == .Float32)
     @assert(file.frequency == 22050)
     @assert(file.channelCount == 1)
@@ -115,8 +115,8 @@ using Swag, Core
 {
     let path = audioGetTestDataPath("pcm16_with_unknown_chunk.wav")
 
-    let file = catch SoundFile.load(path)
-    @assert(@err == null)
+    let file = catch SoundFile.load(path) as err8
+    @assert(err8 == null)
     @assert(file.encoding == .Pcm16)
     @assert(file.frequency == 44100)
     @assert(file.channelCount == 1)
@@ -129,18 +129,18 @@ using Swag, Core
 
 #test
 {
-    discard catch SoundFile.load("audio.unsupported")
-    @assert(@err is Errors.UnsupportedFormatError)
+    discard catch SoundFile.load("audio.unsupported") as err9
+    @assert(err9 is Errors.UnsupportedFormatError)
 }
 
 #test
 {
-    discard catch SoundFile.load(audioGetTestDataPath("unsupported_adpcm.wav"))
-    @assert(@err is Errors.UnsupportedFormatError)
+    discard catch SoundFile.load(audioGetTestDataPath("unsupported_adpcm.wav")) as err10
+    @assert(err10 is Errors.UnsupportedFormatError)
 
-    discard catch SoundFile.load(audioGetTestDataPath("not_wave.wav"))
-    @assert(@err is Errors.InvalidFormatError)
+    discard catch SoundFile.load(audioGetTestDataPath("not_wave.wav")) as err11
+    @assert(err11 is Errors.InvalidFormatError)
 
-    discard catch SoundFile.load(audioGetTestDataPath("truncated_fmt.wav"))
-    @assert(@err is Errors.InvalidFormatError)
+    discard catch SoundFile.load(audioGetTestDataPath("truncated_fmt.wav")) as err12
+    @assert(err12 is Errors.InvalidFormatError)
 }

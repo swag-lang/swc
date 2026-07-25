@@ -1,6 +1,6 @@
 #global private
 
-// `notnull` asserts a value is not null; `assume` is error management only.
+// `notnull` asserts a value is not null; `expect` is error management only.
 // Each keyword rejects the other's role.
 
 struct NotNullOperandNode { value: s32 }
@@ -15,14 +15,14 @@ func notNullOperandPlain()->s32 { return 42 }
 
 #test
 {
-    // `assume` no longer unwraps nullability: a plain nullable value is not throwable.
+    // `expect` no longer unwraps nullability: a plain nullable value is not fallible.
     var storage: NotNullOperandNode
     var p:       #null *NotNullOperandNode = &storage
-    let q                                  = expect p     // swc-expected-error {{sema_err_error_mgmt_operand_not_throwable}}
+    let q                                  = expect p     // swc-expected-error {{sema_err_error_mgmt_operand_not_fallible}}
 }
 
 #test
 {
-    // `assume` on a call to a non-throwable function stays an error too.
-    let v = expect notNullOperandPlain()     // swc-expected-error {{sema_err_error_mgmt_operand_not_throwable}}
+    // `expect` on a call to a non-fallible function stays an error too.
+    let v = expect notNullOperandPlain()     // swc-expected-error {{sema_err_error_mgmt_operand_not_fallible}}
 }

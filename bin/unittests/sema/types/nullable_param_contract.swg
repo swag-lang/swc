@@ -143,7 +143,7 @@ func npcOkReturnNullable(x: #null *s32)->#null *s32
     return x
 }
 
-// A throwable function is exempt: its 'catch' error path synthesizes null.
+// A fallible function is exempt: its 'catch' error path synthesizes null.
 func npcOkReturnThrowable()->#null *s32 fail
 {
     if g_npcStorage == 0 do

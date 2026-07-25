@@ -7,7 +7,7 @@ func mayThrowValue(v: s32)->s32 fail
 
 func alwaysThrowValue()->s32 fail
 {
-    fail Swag.BaseError{"assume failed"}
+    fail Swag.BaseError{"expect failed"}
 }
 
 #[Swag.Safety(.Expect, false)]

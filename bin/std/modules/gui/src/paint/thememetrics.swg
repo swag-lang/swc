@@ -99,7 +99,7 @@ struct ThemeMetrics
     frameWnd_SquarePadding:            f32 = 5
     frameWnd_RoundPadding:             f32 = 5
     frameWnd_FlatPadding:              f32 = 2
-    frameWnd_SmallShadowSize:          Math.Vector4{5, 5, 15, 15}
+    frameWnd_SmallShadowSize:          Math.Vector4 = {5, 5, 15, 15}
     frameWnd_AnchorWidth:              f32 = 24
     frameWnd_AnchorHeight:             f32 = 10
     frameWnd_AnchorOverlap:            f32 = 2

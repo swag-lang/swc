@@ -10,7 +10,7 @@ impl Painter
         if width == 0 or height == 0 or color.a == 0 do
             return
 
-        let brush: Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
+        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
         .fillRect(x, y, width, height, brush)
     }
 
@@ -24,7 +24,7 @@ impl Painter
         if color.a == 0 do
             return
 
-        let brush: Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
+        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .Fill}
         .fillRect(x, y, cast(f32) texture.width, cast(f32) texture.height, brush)
     }
 
@@ -34,7 +34,7 @@ impl Painter
         if srcRect.isEmpty() or width == 0 or height == 0 or color.a == 0 do
             return
 
-        let brush: Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
+        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
         .fillRect(x, y, width, height, brush)
     }
 
@@ -48,7 +48,7 @@ impl Painter
         if srcRect.isEmpty() or color.a == 0 do
             return
 
-        let brush: Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
+        let brush = Brush{color: color, type: BrushType.Texture, texture: texture, uvMode: .FillSubRect, uvRect: srcRect}
         .fillRect(x, y, srcRect.width, srcRect.height, brush)
     }
 }

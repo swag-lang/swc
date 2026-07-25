@@ -33,6 +33,7 @@ SWC_DIAG_DEF(parser_err_invalid_intrinsic, Error, "unknown intrinsic: '{tok}'; [
 SWC_DIAG_DEF(parser_err_misplaced_global, Error, "misplaced '#global' directive; [help] move it to the beginning of the file, before declarations and using statements")
 SWC_DIAG_DEF(parser_err_empty_var_decl, Error, "expected a type annotation or initializer after declaration name '{tok}'; found {next-tok-fam} '{next-tok}'; [help] add ': <type>' or '= <value>' after the declaration name")
 SWC_DIAG_DEF(parser_err_empty_var_decl, Error, "expected a type annotation or initializer after declaration name '{tok}'; [help] add ': <type>' or '= <value>' after the declaration name")
+SWC_DIAG_DEF(parser_err_var_decl_brace_init, Error, "a declaration initializes with '=', not with '{' placed directly after its type; [help] write 'name = Type{...}', or 'name: Type = {...}' to keep the type annotation")
 SWC_DIAG_DEF(parser_err_inject_instruction_done, Error, "replacement instruction '{sym}' is already defined; [help] each instruction can be replaced at most once")
 SWC_DIAG_DEF(parser_err_inject_instruction_done, Error, "replacement instruction '{tok}' is already defined; [help] each instruction can be replaced at most once")
 SWC_DIAG_DEF(parser_err_inject_invalid_instruction, Error, "'#inject' cannot replace instruction '{tok}'; [help] only 'break' and 'continue' can be replaced")

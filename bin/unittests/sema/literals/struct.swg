@@ -66,10 +66,10 @@ const VEC3F_ALL_DEFAULTS: Vec3FDefault
 #assert(VEC3F_ALL_DEFAULTS.y == 10)
 #assert(VEC3F_ALL_DEFAULTS.z == 10)
 
-const VEC3F_CAST_SYNTAX: Vec3FDefault{1, 2}
-#assert(VEC3F_CAST_SYNTAX.x == 1)
-#assert(VEC3F_CAST_SYNTAX.y == 2)
-#assert(VEC3F_CAST_SYNTAX.z == 10)
+const VEC3F_PARTIAL_INIT = Vec3FDefault{1, 2}
+#assert(VEC3F_PARTIAL_INIT.x == 1)
+#assert(VEC3F_PARTIAL_INIT.y == 2)
+#assert(VEC3F_PARTIAL_INIT.z == 10)
 
 const VEC3F_NAMED_CAST: Vec3FDefault = Vec3FDefault{5, 7}
 #assert(VEC3F_NAMED_CAST.x == 5)

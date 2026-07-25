@@ -12,17 +12,17 @@ struct Vector3
 impl Vector3
 {
     // Common vector constants
-    const Zero:     Vector3{0, 0, 0}                                         // Zero vector (0, 0, 0)
-    const One:      Vector3{1, 1, 1}                                         // Unit vector in all directions (1, 1, 1)
-    const UnitX:    Vector3{1, 0, 0}                                         // Unit vector along X-axis (1, 0, 0)
-    const UnitY:    Vector3{0, 1, 0}                                         // Unit vector along Y-axis (0, 1, 0)
-    const UnitZ:    Vector3{0, 0, 1}                                         // Unit vector along Z-axis (0, 0, 1)
-    const NegUnitX: Vector3{-1, 0, 0}                                        // Negative unit vector along X-axis (-1, 0, 0)
-    const NegUnitY: Vector3{0, -1, 0}                                        // Negative unit vector along Y-axis (0, -1, 0)
-    const NegUnitZ: Vector3{0, 0, -1}                                        // Negative unit vector along Z-axis (0, 0, -1)
-    const Max:      Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}        // Maximum possible vector values
-    const NegMax:   Vector3{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Negative maximum vector values
-    const Min:      Vector3{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}        // Minimum possible vector values
+    const Zero     = Vector3{0, 0, 0}                                         // Zero vector (0, 0, 0)
+    const One      = Vector3{1, 1, 1}                                         // Unit vector in all directions (1, 1, 1)
+    const UnitX    = Vector3{1, 0, 0}                                         // Unit vector along X-axis (1, 0, 0)
+    const UnitY    = Vector3{0, 1, 0}                                         // Unit vector along Y-axis (0, 1, 0)
+    const UnitZ    = Vector3{0, 0, 1}                                         // Unit vector along Z-axis (0, 0, 1)
+    const NegUnitX = Vector3{-1, 0, 0}                                        // Negative unit vector along X-axis (-1, 0, 0)
+    const NegUnitY = Vector3{0, -1, 0}                                        // Negative unit vector along Y-axis (0, -1, 0)
+    const NegUnitZ = Vector3{0, 0, -1}                                        // Negative unit vector along Z-axis (0, 0, -1)
+    const Max      = Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}        // Maximum possible vector values
+    const NegMax   = Vector3{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Negative maximum vector values
+    const Min      = Vector3{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}        // Minimum possible vector values
 
     // Set all components to the same scalar value.
     // This allows assignment like 'vec = 5.0' to set all components to 5.0.

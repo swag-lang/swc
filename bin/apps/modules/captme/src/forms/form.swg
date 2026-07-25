@@ -234,7 +234,7 @@ impl BaseForm
         if !bound.contains(pos.x, pos.y) do
             return false
 
-        var painter: Painter{fake: true}
+        var painter = Painter{fake: true}
         painter.begin()
 
         var cxt: FormPaintContext

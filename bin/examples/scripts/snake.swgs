@@ -141,7 +141,7 @@ func generateApplePos()
 
 func startGame()
 {
-    var initPos: Vector2{g_Rect.width / (2 * ElemSize), g_Rect.height / (2 * ElemSize)}
+    var initPos = Vector2{g_Rect.width / (2 * ElemSize), g_Rect.height / (2 * ElemSize)}
     initPos.round()
     g_Snake.clear()
     g_Snake.add(initPos)

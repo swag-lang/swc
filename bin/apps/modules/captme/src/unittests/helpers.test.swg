@@ -176,7 +176,7 @@ func testTempCapturePath()->String
 
 func testPrimeGizmo(form: IForm, z: f32 = 1)
 {
-    var painter: Painter{fake: true}
+    var painter = Painter{fake: true}
     painter.begin()
     form.paintGizmo(&painter, z, .Selected)
     painter.end()
@@ -186,7 +186,7 @@ func testPrimeCaptureGizmo(capture: *Capture)
 {
     capture.gizmo.rect = {0, 0, capture.width, capture.height}
 
-    var painter: Painter{fake: true}
+    var painter = Painter{fake: true}
     painter.begin()
     capture.gizmo.paint(&painter, false)
     painter.end()

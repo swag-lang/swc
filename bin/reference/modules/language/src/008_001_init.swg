@@ -72,7 +72,7 @@ Reinitialize a struct instance to its declared default field values.
         r = 1, g = 2, b = 3
     }
 
-    var rgb: RGB{10, 20, 30}
+    var rgb = RGB{10, 20, 30}
     @assert(rgb.r == 10)
     @assert(rgb.g == 20)
     @assert(rgb.b == 30)
@@ -94,7 +94,7 @@ Reinitialize a struct instance with custom field values.
         r = 1, g = 2, b = 3
     }
 
-    var rgb: RGB{10, 20, 30}
+    var rgb = RGB{10, 20, 30}
     @assert(rgb.r == 10)
     @assert(rgb.g == 20)
     @assert(rgb.b == 30)

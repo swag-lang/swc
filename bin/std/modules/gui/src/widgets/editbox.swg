@@ -72,8 +72,8 @@ struct EditBox
             minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating‑point bounds
         }
 
-        aniBk:     BlendColor{speed: 4}     // Background colour animation
-        aniBorder: BlendColor{speed: 4}     // Border colour animation
+        aniBk:     BlendColor = {speed: 4}     // Background colour animation
+        aniBorder: BlendColor = {speed: 4}     // Border colour animation
 
         isInvalid:          bool                  // True if current content is invalid
         isHot:              bool                  // True while the mouse is hovering

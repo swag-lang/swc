@@ -18,7 +18,7 @@ struct Transform2
 
 impl Transform2
 {
-    const Identity: Transform2{1, 0, 0, 1, 0, 0}     // Identity transform (no rotation, scale 1, no translation)
+    const Identity = Transform2{1, 0, 0, 1, 0, 0}     // Identity transform (no rotation, scale 1, no translation)
 
     // Set transform to identity
     mtd setIdentity()

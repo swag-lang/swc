@@ -12,15 +12,15 @@ struct Vector2
 impl Vector2
 {
     // Common vector constants
-    const Zero:     Vector2{0, 0}                             // Zero vector (0, 0)
-    const One:      Vector2{1, 1}                             // Unit vector in both directions (1, 1)
-    const UnitX:    Vector2{1, 0}                             // Unit vector along X-axis (1, 0)
-    const UnitY:    Vector2{0, 1}                             // Unit vector along Y-axis (0, 1)
-    const NegUnitX: Vector2{-1, 0}                            // Negative unit vector along X-axis (-1, 0)
-    const NegUnitY: Vector2{0, -1}                            // Negative unit vector along Y-axis (0, -1)
-    const Max:      Vector2{Swag.F32.Max, Swag.F32.Max}       // Maximum possible vector values
-    const NegMax:   Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Negative maximum vector values
-    const Min:      Vector2{Swag.F32.Min, Swag.F32.Min}       // Minimum possible vector values
+    const Zero     = Vector2{0, 0}                             // Zero vector (0, 0)
+    const One      = Vector2{1, 1}                             // Unit vector in both directions (1, 1)
+    const UnitX    = Vector2{1, 0}                             // Unit vector along X-axis (1, 0)
+    const UnitY    = Vector2{0, 1}                             // Unit vector along Y-axis (0, 1)
+    const NegUnitX = Vector2{-1, 0}                            // Negative unit vector along X-axis (-1, 0)
+    const NegUnitY = Vector2{0, -1}                            // Negative unit vector along Y-axis (0, -1)
+    const Max      = Vector2{Swag.F32.Max, Swag.F32.Max}       // Maximum possible vector values
+    const NegMax   = Vector2{-Swag.F32.Max, -Swag.F32.Max}     // Negative maximum vector values
+    const Min      = Vector2{Swag.F32.Min, Swag.F32.Min}       // Minimum possible vector values
 
     // Set both components to the same scalar value.
     // This allows assignment like 'vec = 5.0' to set both components to 5.0.

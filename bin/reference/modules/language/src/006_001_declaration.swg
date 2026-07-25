@@ -107,7 +107,9 @@ providing a convenient way to ensure fields are set to a known state.
 # Struct Initialization
 
 Struct variables can be initialized in multiple ways, providing flexibility
-in how you set up your structs.
+in how you set up your structs. Every form initializes with '=': naming the type
+in the initializer ('MyStruct{...}') or in the annotation ('let v: MyStruct = {...}')
+is a matter of where the type reads best, never of syntax.
 */
 #test
 {
@@ -122,7 +124,7 @@ in how you set up your structs.
     @assert(v0.y == 1)
 
     // Positional initialization
-    let v1: MyStruct{10, 20}
+    let v1 = MyStruct{10, 20}
     @assert(v1.x == 10)
     @assert(v1.y == 20)
 
@@ -151,7 +153,7 @@ at compile time. This ensures immutability throughout program execution.
         y: string = "454"
     }
 
-    const X: MyStruct{50, "value"}
+    const X = MyStruct{50, "value"}
 
     #assert(X.x == 50)     // Compile-time assertion
     #assert(X.y == "value")

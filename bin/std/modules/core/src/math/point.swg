@@ -12,8 +12,8 @@ struct Point
 
 impl Point
 {
-    const Zero: Point{0, 0}     // Point at origin (0, 0)
-    const One:  Point{1, 1}     // Point with both coordinates set to one (1, 1)
+    const Zero = Point{0, 0}     // Point at origin (0, 0)
+    const One  = Point{1, 1}     // Point with both coordinates set to one (1, 1)
 
     // Set both coordinates to the same scalar value.
     // This allows assignment like 'point = 5.0' to set both coordinates to 5.0.

@@ -265,7 +265,7 @@ internal impl Properties
 {
     mtd getItemState(item: *PropertiesItem)->{ visible, enable: bool }
     {
-        var result: retval{true, true}
+        var result: retval = {true, true}
 
         if .hostNtfy
         {
@@ -485,7 +485,7 @@ impl Properties
         // Section
         if section != null
         {
-            let v: Swag.TypeValue{name: section}
+            let v = Swag.TypeValue{name: section}
             item = .addItem(v, null, null)
             item.flags.add(.Section | .NoSeparator | .Expanded | .NoFocus)
             item.label.style.setFont(&.fontSection)

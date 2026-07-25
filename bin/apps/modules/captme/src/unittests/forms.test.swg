@@ -13,7 +13,7 @@ func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextP
 {
     var result: retval
 
-    var painter: Painter{fake: true}
+    var painter = Painter{fake: true}
     painter.begin()
     painter.setAntialiased()
     painter.translateTransform(tx * renderScale, ty * renderScale)

@@ -721,7 +721,7 @@ impl MenuCtrl
 
         var x = clientRect.x
 
-        var fake: Pixel.Painter{fake: true}
+        var fake = Pixel.Painter{fake: true}
         var rsf:  Pixel.RichStringFormat
         rsf.font = .getFont()
 
@@ -749,7 +749,7 @@ impl MenuCtrl
         .position.width  = 0
         .position.height = clientRect.y
 
-        var fake: Pixel.Painter{fake: true}
+        var fake = Pixel.Painter{fake: true}
         var rsf:  Pixel.RichStringFormat
         rsf.font = .getFont()
 

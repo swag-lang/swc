@@ -355,7 +355,7 @@ internal impl Properties
     // call endAppendRows once done. 'name' feeds the notify visibility dispatch and the filter.
     public mtd addSeparator(name: #null string = null, parentItem: #null *PropertiesItem = null)->*PropertiesItem
     {
-        let v: Swag.TypeValue{name: name}
+        let v = Swag.TypeValue{name: name}
         with let item = .addItem(v, null, parentItem, 1, .Zero)
         {
             .flags.add(.NoSeparator | .NoFocus)
@@ -389,7 +389,7 @@ internal impl Properties
             return item
         }
 
-        let v: Swag.TypeValue{name: name}
+        let v = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
         item.label.style.setFont(&.fontCategory)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
@@ -430,7 +430,7 @@ internal impl Properties
     // sibling fields it introduces.
     mtd addHeaderRow(text: #null string, parentItem: #null *PropertiesItem)->*PropertiesItem
     {
-        let v: Swag.TypeValue{name: text}
+        let v = Swag.TypeValue{name: text}
         with let item = .addItem(v, null, parentItem)
         {
             if @isset(.label) do

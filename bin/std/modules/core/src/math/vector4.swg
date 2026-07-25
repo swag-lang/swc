@@ -13,19 +13,19 @@ struct Vector4
 impl Vector4
 {
     // Common vector constants
-    const Zero:     Vector4{0, 0, 0, 0}                                                     // Zero vector (0, 0, 0, 0)
-    const One:      Vector4{1, 1, 1, 1}                                                     // Unit vector in all directions (1, 1, 1, 1)
-    const UnitX:    Vector4{1, 0, 0, 0}                                                     // Unit vector along X-axis (1, 0, 0, 0)
-    const UnitY:    Vector4{0, 1, 0, 0}                                                     // Unit vector along Y-axis (0, 1, 0, 0)
-    const UnitZ:    Vector4{0, 0, 1, 0}                                                     // Unit vector along Z-axis (0, 0, 1, 0)
-    const UnitW:    Vector4{0, 0, 0, 1}                                                     // Unit vector along W-axis (0, 0, 0, 1)
-    const NegUnitX: Vector4{-1, 0, 0, 0}                                                    // Negative unit vector along X-axis (-1, 0, 0, 0)
-    const NegUnitY: Vector4{0, -1, 0, 0}                                                    // Negative unit vector along Y-axis (0, -1, 0, 0)
-    const NegUnitZ: Vector4{0, 0, -1, 0}                                                    // Negative unit vector along Z-axis (0, 0, -1, 0)
-    const NegUnitW: Vector4{0, 0, 0, -1}                                                    // Negative unit vector along W-axis (0, 0, 0, -1)
-    const Max:      Vector4{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}         // Maximum possible vector values
-    const NegMax:   Vector4{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Negative maximum vector values
-    const Min:      Vector4{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}         // Minimum possible vector values
+    const Zero     = Vector4{0, 0, 0, 0}                                                     // Zero vector (0, 0, 0, 0)
+    const One      = Vector4{1, 1, 1, 1}                                                     // Unit vector in all directions (1, 1, 1, 1)
+    const UnitX    = Vector4{1, 0, 0, 0}                                                     // Unit vector along X-axis (1, 0, 0, 0)
+    const UnitY    = Vector4{0, 1, 0, 0}                                                     // Unit vector along Y-axis (0, 1, 0, 0)
+    const UnitZ    = Vector4{0, 0, 1, 0}                                                     // Unit vector along Z-axis (0, 0, 1, 0)
+    const UnitW    = Vector4{0, 0, 0, 1}                                                     // Unit vector along W-axis (0, 0, 0, 1)
+    const NegUnitX = Vector4{-1, 0, 0, 0}                                                    // Negative unit vector along X-axis (-1, 0, 0, 0)
+    const NegUnitY = Vector4{0, -1, 0, 0}                                                    // Negative unit vector along Y-axis (0, -1, 0, 0)
+    const NegUnitZ = Vector4{0, 0, -1, 0}                                                    // Negative unit vector along Z-axis (0, 0, -1, 0)
+    const NegUnitW = Vector4{0, 0, 0, -1}                                                    // Negative unit vector along W-axis (0, 0, 0, -1)
+    const Max      = Vector4{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}         // Maximum possible vector values
+    const NegMax   = Vector4{-Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max, -Swag.F32.Max}     // Negative maximum vector values
+    const Min      = Vector4{Swag.F32.Min, Swag.F32.Min, Swag.F32.Min, Swag.F32.Min}         // Minimum possible vector values
 
     // Set all components to the same scalar value.
     // This allows assignment like 'vec = 5.0' to set all components to 5.0.

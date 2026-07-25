@@ -44,7 +44,7 @@ impl NonNullRequiresInitSetTarget
 }
 
 var NonNullRequiresInitGlobal: *NonNullRequiresInitItem     // swc-expected-error {{sema_err_type_requires_init}}
-var NonNullRequiresInitThrowableItem = NonNullRequiresInitItem{}
+var NonNullRequiresInitFallibleItem = NonNullRequiresInitItem{}
 
 func nonNullRequiresInitRetval()->*NonNullRequiresInitItem
 {
@@ -52,24 +52,24 @@ func nonNullRequiresInitRetval()->*NonNullRequiresInitItem
     return result
 }
 
-func nonNullRequiresInitThrowable()->*NonNullRequiresInitItem fail
+func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 {
-    return &NonNullRequiresInitThrowableItem
+    return &NonNullRequiresInitFallibleItem
 }
 
 #test
 {
-    let value = catch nonNullRequiresInitThrowable()     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = catch nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    let value = catch nonNullRequiresInitThrowable()     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = catch nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test
 {
-    let value = expect nonNullRequiresInitThrowable()     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = expect nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
 }
 
 #test

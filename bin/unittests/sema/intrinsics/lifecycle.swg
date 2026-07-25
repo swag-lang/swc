@@ -581,7 +581,7 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
     return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
-func intrinsicAutoDropTryCatchLoopStep(base: s32)->s32 fail
+func intrinsicAutoDropCatchLoopStep(base: s32)->s32 fail
 {
     var branch = AutoCompactBranch{CompactDropTracked{base}, AutoCompactPair{CompactDropTracked{base + 1}, CompactDropTracked{base + 2}}}
     if base == 1 do
@@ -589,7 +589,7 @@ func intrinsicAutoDropTryCatchLoopStep(base: s32)->s32 fail
     return branch.pair.first.value
 }
 
-func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
+func intrinsicAutoDropCatchLoopInfo()->IntrinsicInfo
 {
     resetLifecycleHooks()
 
@@ -601,7 +601,7 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
         for [i] in 2
         {
             let base       = cast(s32) (i * 3 + 1)
-            let value: s32 = catch intrinsicAutoDropTryCatchLoopStep(base)
+            let value: s32 = catch intrinsicAutoDropCatchLoopStep(base)
             if value == 0
             {
                 second += 1
@@ -959,7 +959,7 @@ func semaTest017()
 
 func semaTest018()
 {
-    const V = #run intrinsicAutoDropTryCatchLoopInfo()
+    const V = #run intrinsicAutoDropCatchLoopInfo()
     #assert(V.first == 5)
     #assert(V.second == 1)
     #assert(V.third == 17)

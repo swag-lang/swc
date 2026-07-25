@@ -42,7 +42,7 @@ func guardedMethod(n: #null *GuardedNode)->bool
     return false
 }
 
-func guardedAssume(n: #null *GuardedNode)->bool
+func guardedNotNull(n: #null *GuardedNode)->bool
 {
     if n
     {
@@ -59,5 +59,5 @@ func semaTest001()
     @assert(!pick())
     @assert(select(&node))
     @assert(guardedMethod(&guardedNode))
-    @assert(guardedAssume(&guardedNode))
+    @assert(guardedNotNull(&guardedNode))
 }

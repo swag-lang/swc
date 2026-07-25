@@ -52,24 +52,24 @@ struct DeferDropInfo
 struct ErrDefer {}
 
 #[Swag.Inline]
-func deferThrowLeaf() fail
+func deferFailLeaf() fail
 {
     defer appendDeferTrace(1)
     fail ErrDefer{}
 }
 
 #[Swag.Inline]
-func deferThrowMid() fail
+func deferFailMid() fail
 {
     defer appendDeferTrace(2)
-    try deferThrowLeaf()
+    try deferFailLeaf()
 }
 
 #[Swag.Inline]
-func deferThrowTop() fail
+func deferFailTop() fail
 {
     defer appendDeferTrace(4)
-    try deferThrowMid()
+    try deferFailMid()
 }
 
 func semaTest001()
@@ -529,26 +529,28 @@ func semaTest018()
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
-            catch deferThrowTop()
+            catch deferFailTop()
         }
 
         return DeferTrace
     }
 
-    func deferConditionalTryCatchTrace()->s64
+    func deferConditionalCatchElseTrace()->s64
     {
         resetDeferTrace()
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
-            catch deferThrowTop() else {}
+            catch deferFailTop() else {}
         }
 
         return DeferTrace
     }
 
     const catchTrace = #run deferConditionalCatchTrace()
-    const tryTrace   = #run deferConditionalTryCatchTrace()
-    #assert(catchTrace == 1241)
-    #assert(tryTrace == 1242)
+    const elseTrace  = #run deferConditionalCatchElseTrace()
+    // 'catch' dismisses the error, so the '#nofail' defer runs on both forms: a plain
+    // catch and a catch-else produce the same trace.
+    #assert(catchTrace == 1242)
+    #assert(elseTrace == 1242)
 }

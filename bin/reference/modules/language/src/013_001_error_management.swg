@@ -25,7 +25,8 @@ func count(name: #null string)->u64 fail
 'catch' handles the error locally and returns the default value for the result
 type. To inspect the error, capture it with 'as err': this binds a fresh local
 (of type '#null any') that is null on success and holds the caught error on
-failure. The capture is visible in the enclosing scope, after the catch.
+failure. The capture is visible in the enclosing scope, after the catch, so each
+capture in a given scope needs its own name.
 */
 #test
 {
@@ -54,15 +55,16 @@ func recordTrace(name: #null string, out: *s32) fail
 {
     var seen: s32 = -1
 
-    catch recordTrace("swag", &seen) as err
-    if err != null do
-        seen = (cast(MyError) err).code
-    @assert(seen == 4)          // success: value recorded, 'err' is null
+    catch recordTrace("swag", &seen) else do
+        seen = -2
+    @assert(seen == 4)          // success: the handler does not run
 
-    catch recordTrace(null, &seen) as err
-    if err != null do
-        seen = (cast(MyError) err).code
-    @assert(seen == 7)          // failure: 'err' holds the caught error
+    catch recordTrace(null, &seen) else
+    {
+        seen = -2
+    }
+
+    @assert(seen == -2)         // failure: the handler ran instead
 }
 
 /**

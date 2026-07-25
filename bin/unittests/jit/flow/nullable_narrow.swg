@@ -153,7 +153,7 @@ func narrowIfLet(o: *NarrowOwner)->s32
 }
 
 // `notnull` on an already non-null value is a tolerated no-op.
-func narrowAssumeTolerant()->s32
+func narrowNotNullTolerant()->s32
 {
     var node           = NarrowNode{value: 9}
     let q: *NarrowNode = &node
@@ -203,5 +203,5 @@ func narrowAssumeTolerant()->s32
     @assert(narrowKillAssign(&node, &node2) == 50)
     @assert(narrowKillAssign(&node, null) == 42)
     @assert(narrowKillAssign(null, &node2) == -1)
-    @assert(narrowAssumeTolerant() == 9)
+    @assert(narrowNotNullTolerant() == 9)
 }

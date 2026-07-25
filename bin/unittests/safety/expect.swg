@@ -1,11 +1,11 @@
 #global private
 
-func mayThrowValue(v: s32)->s32 fail
+func mayFailValue(v: s32)->s32 fail
 {
     return v
 }
 
-func alwaysThrowValue()->s32 fail
+func alwaysFailValue()->s32 fail
 {
     fail Swag.BaseError{"expect failed"}
 }
@@ -46,7 +46,7 @@ func expectSafetyEnabled()->bool
     #[Swag.Safety(.Expect, true)]
     func expectSuccess()->s32
     {
-        return expect mayThrowValue(42)
+        return expect mayFailValue(42)
     }
 
     const value = #run expectSuccess()
@@ -58,7 +58,7 @@ func expectSafetyEnabled()->bool
     #[Swag.Safety(.Expect, true)]
     func expectFailurePanic()->s32
     {
-        return expect alwaysThrowValue()     // swc-expected-error {{sema_err_compiler_panic}}
+        return expect alwaysFailValue()     // swc-expected-error {{sema_err_compiler_panic}}
     }
 
     const value = #run expectFailurePanic()
@@ -82,7 +82,7 @@ func expectSafetyEnabled()->bool
     #[Swag.Safety(.Expect, false)]
     func expectFailureDisabled()->s32
     {
-        return expect alwaysThrowValue()
+        return expect alwaysFailValue()
     }
 
     const value = #run expectFailureDisabled()

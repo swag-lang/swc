@@ -1,6 +1,6 @@
 #global export
 
-// Throw a [[Swag.SystemError]]
+// Fail with a [[Swag.SystemError]]
 func failWinError(errorMessageID: u32) fail
 {
     if errorMessageID == 0 do

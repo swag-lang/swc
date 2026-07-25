@@ -1510,8 +1510,14 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     }
     sema.setType(sema.curNodeRef(), resultTypeRef);
 
+    // Collapsing this node onto the operand's constant makes CodeGen::postNode emit that constant
+    // INSTEAD of calling codeGenPostNode, which drops the whole fallible-wrapper lowering. That is
+    // fine only when nothing has to happen at runtime. Two things do: a `notnull` null check, and
+    // an `as err` capture, whose local is seeded to null by the wrapper (__clearErr) — without the
+    // wrapper the slot stays uninitialized and `err` reads back garbage on the success path.
     const bool requiresNotNullRuntimeCheck = codeGenPayload && codeGenPayload->notNullUnwrap && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
-    if (exprView.cstRef().isValid() && !requiresNotNullRuntimeCheck)
+    const bool requiresRuntimeLowering     = requiresNotNullRuntimeCheck || errNameTokRef.isValid();
+    if (exprView.cstRef().isValid() && !requiresRuntimeLowering)
     {
         // The node's stored payload holds EITHER a type or a constant, and downstream
         // views derive the node's type from a stored constant: a nullable-unwrap must

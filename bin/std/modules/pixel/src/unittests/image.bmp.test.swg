@@ -725,7 +725,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(!img.isValid())
 }
 
-// Error: indexed BMP with no palette must throw.
+// Error: indexed BMP with no palette must fail.
 #test
 {
     let path = makeTempBmpPath()
@@ -758,7 +758,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err34 != null)
 }
 
-// Error: buffer too small to hold the full DIB header must throw.
+// Error: buffer too small to hold the full DIB header must fail.
 #test
 {
     let path = makeTempBmpPath()
@@ -768,7 +768,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     }
 
     // FileHeader (14 bytes) + only 4 bytes of DIB header (biSize = 40, non-CoreHeader path).
-    // The decoder will see size=40 != 12 and then check dataof+sizeof(Header) > last, then throw.
+    // The decoder will see size=40 != 12 and then check dataof+sizeof(Header) > last, then fail.
     var cb: ConcatBuffer
     var fh: BmpFH
     fh.bfType    = 0x4D42'u16
@@ -785,7 +785,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err36 != null)
 }
 
-// Error: unknown compression value (not BI_RGB, BI_RLE8, BI_RLE4, or BI_BITFIELDS) must throw.
+// Error: unknown compression value (not BI_RGB, BI_RLE8, BI_RLE4, or BI_BITFIELDS) must fail.
 #test
 {
     let path = makeTempBmpPath()

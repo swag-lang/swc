@@ -25,7 +25,7 @@ enum FileMode
 {
     Append           // Opens the file if it exists and moves the seek to the end, or creates a new file
     Create           // Creates a new file, overwriting if it already exists
-    CreateNew        // Creates a new file, throws if the file already exists
+    CreateNew        // Creates a new file, fails if the file already exists
     Open             // Opens an existing file
     OpenOrCreate     // Opens the file if it exists, otherwise creates a new one
     Truncate         // Opens an existing file and truncates its content to zero length

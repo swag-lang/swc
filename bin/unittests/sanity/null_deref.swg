@@ -28,7 +28,7 @@ func nullSafetyEnabled()->bool
 // ---------------------------------------------------------------------------
 // Provable null dereferences. Use-site enforcement rejects a raw dereference of a
 // still-nullable value at compile time, so each case goes through 'notnull': the
-// explicit assertion the programmer can get wrong. With the Assume runtime guard
+// explicit assertion the programmer can get wrong. With the Expect runtime guard
 // disabled, the write really reaches the null pointer, the sanitizer proves it,
 // and the function's codegen is aborted. Each is marked `#[Swag.Sanity(.Null,
 // true)]` so the sanitizer runs in every build config, including fast-compile

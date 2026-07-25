@@ -485,34 +485,34 @@ func deferReturnDropInfo()->DeferDropInfo
     struct ErrDefer {}
 
     #[Swag.Inline]
-    func deferThrowLeaf() fail
+    func deferFailLeaf() fail
     {
         defer appendDeferTrace(1)
         fail ErrDefer{}
     }
 
     #[Swag.Inline]
-    func deferThrowMid() fail
+    func deferFailMid() fail
     {
         defer appendDeferTrace(2)
-        try deferThrowLeaf()
+        try deferFailLeaf()
     }
 
     #[Swag.Inline]
-    func deferThrowTop() fail
+    func deferFailTop() fail
     {
         defer appendDeferTrace(4)
-        try deferThrowMid()
+        try deferFailMid()
     }
 
-    func deferThrowTrace()->s64
+    func deferFailTrace()->s64
     {
         resetDeferTrace()
-        catch deferThrowTop()
+        catch deferFailTop()
         return DeferTrace
     }
 
-    const V = #run deferThrowTrace()
+    const V = #run deferFailTrace()
     #assert(V == 124)
 }
 
@@ -536,7 +536,7 @@ func deferReturnDropInfo()->DeferDropInfo
         return result
     }
 
-    func deferConditionalThrowImpl() fail
+    func deferConditionalFailImpl() fail
     {
         resetDeferTrace()
         defer #fail appendDeferTrace(1)
@@ -545,9 +545,9 @@ func deferReturnDropInfo()->DeferDropInfo
         fail ErrConditional{}
     }
 
-    func deferConditionalThrowTrace()->s64
+    func deferConditionalFailTrace()->s64
     {
-        catch deferConditionalThrowImpl()
+        catch deferConditionalFailImpl()
         return DeferTrace
     }
 
@@ -557,31 +557,31 @@ func deferReturnDropInfo()->DeferDropInfo
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
-            catch deferConditionalThrowImpl()
+            catch deferConditionalFailImpl()
         }
 
         return DeferTrace
     }
 
-    func deferConditionalTryCatchTrace()->s64
+    func deferConditionalCatchElseTrace()->s64
     {
         resetDeferTrace()
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
-            catch deferConditionalThrowImpl() else {}
+            catch deferConditionalFailImpl() else {}
         }
 
         return DeferTrace
     }
 
     const returnInfo = #run catch deferConditionalReturnTrace()
-    const throwTrace = #run deferConditionalThrowTrace()
+    const failTrace = #run deferConditionalFailTrace()
     const catchTrace = #run deferConditionalCatchTrace()
-    const tryTrace   = #run deferConditionalTryCatchTrace()
+    const tryTrace   = #run deferConditionalCatchElseTrace()
     #assert(returnInfo.value == 7)
     #assert(returnInfo.trace == 32)
-    #assert(throwTrace == 31)
+    #assert(failTrace == 31)
     // 'catch' now dismisses the error (like 'catch ... else'), so the '#nofail' defer runs on both:
     // a plain catch and a catch-else produce the same trace.
     #assert(catchTrace == 312)

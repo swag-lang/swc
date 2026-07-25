@@ -264,15 +264,15 @@ func(T) encodeTagBin(value: T)->String
 func findTagBinFieldSeek(bytes: const [..] u8, fieldName: string)->u64
 {
     var stream = ByteStream.openRead(bytes)
-    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Root) as err2
+    @assert((catch stream.readNative'u32() as err2) == Serialization.Write.TagBinSignatures.Root)
     @assert(err2 == null)
     discard catch stream.readNative'u32() as err3
     @assert(err3 == null)
-    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Version) as err4
+    @assert((catch stream.readNative'u32() as err4) == Serialization.Write.TagBinSignatures.Version)
     @assert(err4 == null)
     discard catch stream.readNative'u32() as err5
     @assert(err5 == null)
-    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Fat) as err6
+    @assert((catch stream.readNative'u32() as err6) == Serialization.Write.TagBinSignatures.Fat)
     @assert(err6 == null)
 
     let fatSeek  = catch stream.readNative'u64()
@@ -280,7 +280,7 @@ func findTagBinFieldSeek(bytes: const [..] u8, fieldName: string)->u64
     @assert(err7 == null)
 
     stream.setSeek(fatSeek)
-    @assert(catch stream.readNative'u32() == Serialization.Write.TagBinSignatures.Fat) as err8
+    @assert((catch stream.readNative'u32() as err8) == Serialization.Write.TagBinSignatures.Fat)
     @assert(err8 == null)
 
     let fieldCrc = Hash.Crc32.compute(fieldName)

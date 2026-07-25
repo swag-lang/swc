@@ -55,6 +55,43 @@ func catchAsErrValue(ok: bool)->s32
     @assert(catchAsErrValue(false) == -7)
 }
 
+// An 'as err' capture keeps its runtime lowering even when the operand folds to a compile-time
+// constant. An inlined fallible call whose body is a plain 'return value' folds to that value; if
+// the node collapsed onto the constant, codegen would emit the constant INSTEAD of the fallible
+// wrapper and never seed the capture slot, so 'err' would read back uninitialized stack.
+#[Swag.Inline]
+func catchAsErrInlineFoldable(value: s32)->s32 fail
+{
+    return value
+}
+
+#test
+{
+    let x = catch catchAsErrInlineFoldable(63) as err
+    @assert(x == 63)
+    @assert(err == null)
+}
+
+#test
+{
+    // Same through the statement form, where the result is discarded entirely.
+    discard catch catchAsErrInlineFoldable(11) as err
+    @assert(err == null)
+}
+
+#[Swag.Inline]
+func catchAsErrInlineVoid() fail {}
+
+#test
+{
+    // Void inline callee: the statement and block forms of the capture.
+    catch catchAsErrInlineVoid() as err
+    @assert(err == null)
+
+    catch { discard catchAsErrInlineFoldable(9) } as err2
+    @assert(err2 == null)
+}
+
 // The captured error is dismissed after the catch, so a following fallible flow starts clean;
 // re-raising is explicit via 'fail err'.
 func catchAsErrReraise(ok: bool)->s32 fail

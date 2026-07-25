@@ -4,7 +4,7 @@
 // Calling through a function pointer proven to be null (a never-assigned lambda or
 // closure) faults just like dereferencing a null data pointer. Use-site enforcement
 // rejects the raw call at compile time, so each case asserts with 'notnull' (the
-// explicit assertion the programmer can get wrong) and disables the Assume runtime
+// explicit assertion the programmer can get wrong) and disables the Expect runtime
 // guard so the call really reaches the null pointer. Marked
 // `#[Swag.Sanity(.Null, true)]` so the sanitizer runs (and catches it) in every config.
 // ---------------------------------------------------------------------------

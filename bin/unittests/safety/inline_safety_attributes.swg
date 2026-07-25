@@ -43,7 +43,7 @@ func inlineSafetyDynCastEnabled()->bool
 }
 
 #[Swag.Inline, Swag.Safety(.Expect, true)]
-func inlineSafetyAssumeEnabled()->bool
+func inlineSafetyExpectEnabled()->bool
 {
     return #safety(Swag.SafetyWhat.Expect)
 }
@@ -123,7 +123,7 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
     const MathOn        = #run inlineSafetyMathEnabled()
     const SwitchOn      = #run inlineSafetySwitchEnabled()
     const DynCastOn     = #run inlineSafetyDynCastEnabled()
-    const AssumeOn      = #run inlineSafetyAssumeEnabled()
+    const ExpectOn      = #run inlineSafetyExpectEnabled()
     const UnreachableOn = #run inlineSafetyUnreachableEnabled()
 
     #assert(BoundCheckOn == true)
@@ -133,7 +133,7 @@ func inlineSafetyWrapAdd(value, delta: u8)->u8
     #assert(MathOn == true)
     #assert(SwitchOn == true)
     #assert(DynCastOn == true)
-    #assert(AssumeOn == true)
+    #assert(ExpectOn == true)
     #assert(UnreachableOn == true)
 }
 

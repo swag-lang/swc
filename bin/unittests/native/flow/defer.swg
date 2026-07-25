@@ -52,24 +52,24 @@ struct DeferDropInfo
 struct ErrDefer {}
 
 #[Swag.Inline]
-func deferThrowLeaf() fail
+func deferFailLeaf() fail
 {
     defer appendDeferTrace(1)
     fail ErrDefer{}
 }
 
 #[Swag.Inline]
-func deferThrowMid() fail
+func deferFailMid() fail
 {
     defer appendDeferTrace(2)
-    try deferThrowLeaf()
+    try deferFailLeaf()
 }
 
 #[Swag.Inline]
-func deferThrowTop() fail
+func deferFailTop() fail
 {
     defer appendDeferTrace(4)
-    try deferThrowMid()
+    try deferFailMid()
 }
 
 func deferScopeOrder()->s64
@@ -411,10 +411,10 @@ func deferEarlyReturnBeforeRegistration()->s64
     defer appendDeferTrace(2)
 }
 
-func deferThrowTrace()->s64
+func deferFailTrace()->s64
 {
     resetDeferTrace()
-    catch deferThrowTop()
+    catch deferFailTop()
     return DeferTrace
 }
 
@@ -434,7 +434,7 @@ func deferConditionalReturnTrace()->DeferReturnInfo fail
     return result
 }
 
-func deferConditionalThrowImpl() fail
+func deferConditionalFailImpl() fail
 {
     resetDeferTrace()
     defer #fail appendDeferTrace(1)
@@ -443,9 +443,9 @@ func deferConditionalThrowImpl() fail
     fail ErrDefer{}
 }
 
-func deferConditionalThrowTrace()->s64
+func deferConditionalFailTrace()->s64
 {
-    catch deferConditionalThrowImpl()
+    catch deferConditionalFailImpl()
     return DeferTrace
 }
 
@@ -455,19 +455,19 @@ func deferConditionalCatchTrace()->s64
     {
         defer #fail appendDeferTrace(1)
         defer #nofail appendDeferTrace(2)
-        catch deferThrowTop()
+        catch deferFailTop()
     }
 
     return DeferTrace
 }
 
-func deferConditionalTryCatchTrace()->s64
+func deferConditionalCatchElseTrace()->s64
 {
     resetDeferTrace()
     {
         defer #fail appendDeferTrace(1)
         defer #nofail appendDeferTrace(2)
-        catch deferThrowTop() else {}
+        catch deferFailTop() else {}
     }
 
     return DeferTrace
@@ -634,10 +634,10 @@ func deferBreakToScope()->s64
 
 #test
 {
-    @assert(deferConditionalThrowTrace() == 31)
+    @assert(deferConditionalFailTrace() == 31)
     // 'catch' now dismisses the error (like 'catch ... else'), so the '#nofail' defer runs on both.
     @assert(deferConditionalCatchTrace() == 1242)
-    @assert(deferConditionalTryCatchTrace() == 1242)
+    @assert(deferConditionalCatchElseTrace() == 1242)
 }
 
 #test

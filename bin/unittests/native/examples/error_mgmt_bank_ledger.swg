@@ -142,7 +142,7 @@ impl Ledger
         try .withdraw(from, amount)
 
         // Once the withdrawal succeeded, the rollback is registered so any
-        // later throw restores the source balance.
+        // later failure restores the source balance.
         defer #fail
         {
             .accounts[from].balance += amount
@@ -339,7 +339,7 @@ impl Ledger
     @assert(ledger.rolledBack == 0)
 }
 
-// Block-level catch: multiple throwing calls under a single boundary.
+// Block-level catch: multiple failing calls under a single boundary.
 // The block aborts on the first failure; later statements are skipped.
 #test
 {

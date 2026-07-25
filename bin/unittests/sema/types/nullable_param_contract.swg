@@ -5,7 +5,7 @@
 // call) is rejected AT THE USE SITE: the deref is an error on its own node, so no
 // separate whole-function "dead parameter contract" verdict is needed. The honored
 // patterns below show the sanctioned proofs (null test, 'notnull', delegation,
-// throwing exit, conditional). The return-contract and local-contract checks are
+// failing exit, conditional). The return-contract and local-contract checks are
 // independent — a deref cannot subsume them — and are exercised at the end.
 
 struct NpcItem
@@ -94,8 +94,8 @@ func npcOkDelegated(x: #null *s32)->s32
     return dref x
 }
 
-// A throwing exit can leave the function before the dereference.
-func npcOkThrowFirst(x: #null *s32)->s32 fail
+// A failing exit can leave the function before the dereference.
+func npcOkFailFirst(x: #null *s32)->s32 fail
 {
     try npcBoom()
     return dref notnull x
@@ -144,7 +144,7 @@ func npcOkReturnNullable(x: #null *s32)->#null *s32
 }
 
 // A fallible function is exempt: its 'catch' error path synthesizes null.
-func npcOkReturnThrowable()->#null *s32 fail
+func npcOkReturnFallible()->#null *s32 fail
 {
     if g_npcStorage == 0 do
         fail Swag.BaseError{"boom"}

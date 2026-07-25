@@ -34,14 +34,14 @@ struct AggregateInfo
     messageOk: bool
 }
 
-enum ThrowStrictEnum: u32
+enum FailStrictEnum: u32
 {
     Zero = 0,
     One  = 1,
 }
 
 #[Swag.Strict]
-alias ThrowStrictEnumAlias = ThrowStrictEnum
+alias FailStrictEnumAlias = FailStrictEnum
 
 struct NullInfo
 {
@@ -98,29 +98,29 @@ func appendErrorTrace(value: s64)
     ErrorTrace = ErrorTrace * 10 + value
 }
 
-func mayThrowValue(value: s32 = 42)->s32 fail
+func mayFailValue(value: s32 = 42)->s32 fail
 {
     return value
 }
 
-func mayThrowVoid() fail {}
+func mayFailVoid() fail {}
 
-func alwaysThrowValue(code: s32)->s32 fail
+func alwaysFailValue(code: s32)->s32 fail
 {
     fail ErrValue{code: code}
 }
 
-func alwaysThrowVoid(code: s32) fail
+func alwaysFailVoid(code: s32) fail
 {
     fail ErrValue{code: code}
 }
 
-func alwaysThrowTypedVoid(code: s32) fail
+func alwaysFailTypedVoid(code: s32) fail
 {
     fail ErrValue{base: Swag.BaseError{"typed error"}, code: code}
 }
 
-func alwaysThrowStrictEnum(code: s32)->ThrowStrictEnumAlias fail
+func alwaysFailStrictEnum(code: s32)->FailStrictEnumAlias fail
 {
     fail ErrValue{code: code}
 }
@@ -134,52 +134,52 @@ func currentErrCode(err: #null any)->s32
 }
 
 #[Swag.Inline]
-func inlineMayThrowValue(value: s32)->s32 fail
+func inlineMayFailValue(value: s32)->s32 fail
 {
     return value
 }
 
 #[Swag.Inline]
-func inlineAlwaysThrowValue(code: s32)->s32 fail
+func inlineAlwaysFailValue(code: s32)->s32 fail
 {
     fail ErrValue{code: code}
 }
 
 func propagateBareSuccess()->s32 fail
 {
-    return mayThrowValue(42)
+    return mayFailValue(42)
 }
 
 func propagateBareFailure()->s32 fail
 {
-    return alwaysThrowValue(17)
+    return alwaysFailValue(17)
 }
 
 func propagateTrySuccess()->s32 fail
 {
-    return try mayThrowValue(51)
+    return try mayFailValue(51)
 }
 
 func propagateTryFailure()->s32 fail
 {
-    return try alwaysThrowValue(18)
+    return try alwaysFailValue(18)
 }
 
 func propagateTryVoidSuccess() fail
 {
-    try mayThrowVoid()
+    try mayFailVoid()
 }
 
 func propagateBareVoidFailure() fail
 {
-    alwaysThrowVoid(19)
+    alwaysFailVoid(19)
 }
 
 func propagateTryBlockVoidFailure() fail
 {
     try
     {
-        try alwaysThrowVoid(21)
+        try alwaysFailVoid(21)
     }
 }
 
@@ -215,7 +215,7 @@ func nullableSliceFailure(code: s32)->#null [..] s32 fail
 func chainTryLeaf()->s32 fail
 {
     defer appendErrorTrace(1)
-    return try alwaysThrowValue(81)
+    return try alwaysFailValue(81)
 }
 
 func chainTryMid()->s32 fail
@@ -230,7 +230,7 @@ func chainTryTop()->s32 fail
     return try chainTryMid()
 }
 
-func deferThrowAfterReturn()->s32 fail
+func deferFailAfterReturn()->s32 fail
 {
     defer appendErrorTrace(3)
     defer
@@ -256,7 +256,7 @@ func errDeferOverrideFailure()->s32 fail
     fail ErrValue{code: 83}
 }
 
-func aggregateDeferThrow()->AggregateResult fail
+func aggregateDeferFail()->AggregateResult fail
 {
     defer
     {
@@ -276,7 +276,7 @@ func nestedTryHandled()->s32
 {
     catch
     {
-        try alwaysThrowVoid(23)
+        try alwaysFailVoid(23)
     } as err
 
     if err == null do
@@ -286,30 +286,30 @@ func nestedTryHandled()->s32
 }
 
 #[Swag.Inline]
-func traceThrowLeaf() fail
+func traceFailLeaf() fail
 {
     defer appendErrorTrace(1)
     fail ErrValue{code: 31}
 }
 
 #[Swag.Inline]
-func traceThrowMid() fail
+func traceFailMid() fail
 {
     defer appendErrorTrace(2)
-    traceThrowLeaf()
+    traceFailLeaf()
 }
 
 #[Swag.Inline]
-func traceThrowTop() fail
+func traceFailTop() fail
 {
     defer appendErrorTrace(4)
-    traceThrowMid()
+    traceFailMid()
 }
 
-func traceThrowCatch()->s64
+func traceFailCatch()->s64
 {
     resetErrorTrace()
-    catch traceThrowTop()
+    catch traceFailTop()
     return ErrorTrace
 }
 
@@ -321,7 +321,7 @@ func catchAggregateSuccess()->AggregateResult
 func inlineCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = catch inlineAlwaysThrowValue(41) as err
+    result.value  = catch inlineAlwaysFailValue(41) as err
     result.hasErr = err != null
     if err != null
     {
@@ -377,26 +377,26 @@ func catchTryFailureInfo()->CatchInfo
 
 func catchStrictEnumFailureInfo()->bool
 {
-    let value = catch alwaysThrowStrictEnum(87) as err5
-    return value == cast(ThrowStrictEnumAlias) ThrowStrictEnum.Zero and err5 != null and currentErrCode(err5) == 87
+    let value = catch alwaysFailStrictEnum(87) as err5
+    return value == cast(FailStrictEnumAlias) FailStrictEnum.Zero and err5 != null and currentErrCode(err5) == 87
 }
 
-func tryCatchAggregateSuccess()->AggregateResult
+func dismissAggregateSuccess()->AggregateResult
 {
     return catch aggregateSuccess(80)
 }
 
-func inlineTryCatchFailureInfo()->CatchInfo
+func inlineDismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch inlineAlwaysThrowValue(42)
+    result.value  = catch inlineAlwaysFailValue(42)
     result.hasErr = false
     result.code   = 0
     return result
 }
 
-func tryCatchFailureInfo()->CatchInfo
+func dismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
@@ -406,7 +406,7 @@ func tryCatchFailureInfo()->CatchInfo
     return result
 }
 
-func tryCatchAggregateFailureInfo()->AggregateInfo
+func dismissAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
@@ -416,7 +416,7 @@ func tryCatchAggregateFailureInfo()->AggregateInfo
     return result
 }
 
-func recordAssumePanic(message: #null string, loc: SourceCodeLocation)
+func recordExpectPanic(message: #null string, loc: SourceCodeLocation)
 {
     let cxt = @getcontext()
     cxt.user0 += 1
@@ -424,32 +424,32 @@ func recordAssumePanic(message: #null string, loc: SourceCodeLocation)
 }
 
 #[Swag.Safety(.Expect, true)]
-func assumeFailureInfo()->CatchInfo
+func expectFailureInfo()->CatchInfo
 {
     let cxt = @getcontext()
     cxt.user0 = 0
     cxt.user1 = 0
-    cxt.panic = &recordAssumePanic
+    cxt.panic = &recordExpectPanic
     defer cxt.panic = null
 
     var result: CatchInfo
-    result.value  = expect alwaysThrowValue(29)
+    result.value  = expect alwaysFailValue(29)
     result.hasErr = cxt.user0 == 1
     result.code   = cast(s32) cxt.user1
     return result
 }
 
 #[Swag.Safety(.Expect, false)]
-func assumeFailureNoSafety()->CatchInfo
+func expectFailureNoSafety()->CatchInfo
 {
     let cxt = @getcontext()
     cxt.user0 = 0
     cxt.user1 = 0
-    cxt.panic = &recordAssumePanic
+    cxt.panic = &recordExpectPanic
     defer cxt.panic = null
 
     var result: CatchInfo
-    result.value  = expect alwaysThrowValue(30)
+    result.value  = expect alwaysFailValue(30)
     result.hasErr = cxt.user0 == 1
     result.code   = cast(s32) cxt.user1
     return result
@@ -460,7 +460,7 @@ func repeatedCatchFailureSum()->s32
     var result: s32 = 0
     for 40
     {
-        catch alwaysThrowVoid(cast(s32) @index + 1) as err6
+        catch alwaysFailVoid(cast(s32) @index + 1) as err6
         let err = cast(ErrValue) err6
         result += err.code
     }
@@ -498,7 +498,7 @@ func catchNullableSliceFailureInfo()->NullInfo
     return result
 }
 
-func tryCatchNullablePointerFailureInfo()->NullInfo
+func dismissNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
     let value:  #null *s32 = catch nullablePointerFailure(76)
@@ -508,7 +508,7 @@ func tryCatchNullablePointerFailureInfo()->NullInfo
     return result
 }
 
-func tryCatchNullableStringFailureInfo()->NullInfo
+func dismissNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
     let value:  #null string = catch nullableStringFailure(77)
@@ -518,7 +518,7 @@ func tryCatchNullableStringFailureInfo()->NullInfo
     return result
 }
 
-func tryCatchNullableSliceFailureInfo()->NullInfo
+func dismissNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
     let value:  #null [..] s32 = catch nullableSliceFailure(78)
@@ -540,12 +540,12 @@ func chainedTryFailureInfo()->TraceInfo
     return result
 }
 
-func deferThrowAfterReturnInfo()->TraceInfo
+func deferFailAfterReturnInfo()->TraceInfo
 {
     resetErrorTrace()
 
     var result: TraceInfo
-    result.value  = catch deferThrowAfterReturn() as err
+    result.value  = catch deferFailAfterReturn() as err
     result.trace  = ErrorTrace
     result.hasErr = err != null
     result.code   = currentErrCode(err)
@@ -564,7 +564,7 @@ func errDeferOverrideFailureInfo()->TraceInfo
     return result
 }
 
-func tryCatchErrDeferOverrideFailureInfo()->TraceInfo
+func dismissErrDeferOverrideFailureInfo()->TraceInfo
 {
     resetErrorTrace()
 
@@ -576,12 +576,12 @@ func tryCatchErrDeferOverrideFailureInfo()->TraceInfo
     return result
 }
 
-func aggregateDeferThrowInfo()->AggregateTraceInfo
+func aggregateDeferFailInfo()->AggregateTraceInfo
 {
     resetErrorTrace()
 
     var result: AggregateTraceInfo
-    result.value  = catch aggregateDeferThrow() as err
+    result.value  = catch aggregateDeferFail() as err
     result.trace  = ErrorTrace
     result.hasErr = err != null
     result.code   = currentErrCode(err)
@@ -591,7 +591,7 @@ func aggregateDeferThrowInfo()->AggregateTraceInfo
 func errIsAsFailureInfo()->ErrCastInfo
 {
     var result: ErrCastInfo
-    catch alwaysThrowTypedVoid(86) as err7
+    catch alwaysFailTypedVoid(86) as err7
 
     let exactErr = err7 as ErrValue
     let baseErr  = err7 as Swag.BaseError
@@ -613,7 +613,7 @@ func errIsAsFailureInfo()->ErrCastInfo
 func errIsAsNullInfo()->ErrNullCastInfo
 {
     var result: ErrNullCastInfo
-    catch mayThrowVoid() as err8
+    catch mayFailVoid() as err8
 
     result.exactType     = err8 is ErrValue
     result.baseType      = err8 is Swag.BaseError
@@ -622,18 +622,18 @@ func errIsAsNullInfo()->ErrNullCastInfo
     return result
 }
 
-func assumeMaybePtr(p: *s32)->#null *s32 => p
+func notNullMaybePtr(p: *s32)->#null *s32 => p
 
-func assumeNullablePointerSuccess()->s32
+func notNullPointerSuccess()->s32
 {
     var storage: s32        = 91
-    let maybe:   #null *s32 = assumeMaybePtr(&storage)
+    let maybe:   #null *s32 = notNullMaybePtr(&storage)
     let ptr                 = notnull maybe
     #assert(#typeof(ptr) == *s32)
     return dref ptr
 }
 
-func assumeNullableSliceSuccess()->s32
+func notNullSliceSuccess()->s32
 {
     var values: [3] s32        = [4, 5, 6]
     let maybe:  #null [..] s32 = values
@@ -658,7 +658,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let value = catch inlineMayThrowValue(63) as err
+    let value = catch inlineMayFailValue(63) as err
     @assert(value == 63)
     @assert(err == null)
 }
@@ -768,7 +768,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let value = catch inlineMayThrowValue(64) as err
+    let value = catch inlineMayFailValue(64) as err
     @assert(value == 64)
     @assert(err == null)
 }
@@ -785,7 +785,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = tryCatchFailureInfo()
+    let info = dismissFailureInfo()
     @assert(info.value == 0)
     @assert(!info.hasErr)
     @assert(info.code == 0)
@@ -793,7 +793,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = inlineTryCatchFailureInfo()
+    let info = inlineDismissFailureInfo()
     @assert(info.value == 0)
     @assert(!info.hasErr)
     @assert(info.code == 0)
@@ -801,7 +801,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = tryCatchAggregateFailureInfo()
+    let info = dismissAggregateFailureInfo()
     @assert(info.value.first == 0)
     @assert(info.value.second == 0)
     @assert(info.value.payload[0] == 0)
@@ -814,30 +814,30 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let value = expect mayThrowValue(77)
+    let value = expect mayFailValue(77)
     @assert(value == 77)
 }
 
 #test
 {
-    @assert(assumeNullablePointerSuccess() == 91)
+    @assert(notNullPointerSuccess() == 91)
 }
 
 #test
 {
-    @assert(assumeNullableSliceSuccess() == 8)
+    @assert(notNullSliceSuccess() == 8)
 }
 
 #test
 {
-    let info = assumeFailureInfo()
+    let info = expectFailureInfo()
     @assert(info.value == 0)
     @assert(info.hasErr)
 }
 
 #test
 {
-    let info = assumeFailureNoSafety()
+    let info = expectFailureNoSafety()
     @assert(info.value == 0)
     @assert(!info.hasErr)
     @assert(info.code == 0)
@@ -850,7 +850,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    @assert(traceThrowCatch() == 124)
+    @assert(traceFailCatch() == 124)
 }
 
 #test
@@ -879,7 +879,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = tryCatchNullablePointerFailureInfo()
+    let info = dismissNullablePointerFailureInfo()
     @assert(info.isNull)
     @assert(!info.hasErr)
     @assert(info.code == 0)
@@ -887,7 +887,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = tryCatchNullableStringFailureInfo()
+    let info = dismissNullableStringFailureInfo()
     @assert(info.isNull)
     @assert(!info.hasErr)
     @assert(info.code == 0)
@@ -895,7 +895,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = tryCatchNullableSliceFailureInfo()
+    let info = dismissNullableSliceFailureInfo()
     @assert(info.isNull)
     @assert(!info.hasErr)
     @assert(info.code == 0)
@@ -912,7 +912,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = deferThrowAfterReturnInfo()
+    let info = deferFailAfterReturnInfo()
     @assert(info.value == 0)
     @assert(info.hasErr)
     @assert(info.code == 82)
@@ -930,7 +930,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = tryCatchErrDeferOverrideFailureInfo()
+    let info = dismissErrDeferOverrideFailureInfo()
     @assert(info.value == 0)
     @assert(!info.hasErr)
     @assert(info.code == 0)
@@ -939,7 +939,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let info = aggregateDeferThrowInfo()
+    let info = aggregateDeferFailInfo()
     @assert(info.value.first == 0)
     @assert(info.value.second == 0)
     @assert(info.value.payload[0] == 0)

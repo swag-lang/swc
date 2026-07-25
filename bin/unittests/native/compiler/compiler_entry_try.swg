@@ -1,8 +1,8 @@
 #global private
 
-func mayThrowVoid() fail {}
+func mayFailVoid() fail {}
 
-func mayThrowValue(value: s32)->s32 fail
+func mayFailValue(value: s32)->s32 fail
 {
     return value
 }
@@ -11,13 +11,13 @@ var g_State: s32
 
 #init
 {
-    try mayThrowVoid()
+    try mayFailVoid()
     g_State += 1
 }
 
 #premain
 {
-    let value = try mayThrowValue(10)
+    let value = try mayFailValue(10)
     @assert(value == 10)
     g_State += value
 }
@@ -29,6 +29,6 @@ var g_State: s32
 
 #drop
 {
-    try mayThrowVoid()
+    try mayFailVoid()
     @assert(g_State == 11)
 }

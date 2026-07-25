@@ -44,11 +44,11 @@ func mixinParamTrace(value: s64)
 }
 
 #[Swag.Mixin]
-func mixinConditionalDefer(shouldThrow: bool) fail
+func mixinConditionalDefer(shouldFail: bool) fail
 {
     defer #fail appendDeferTrace(1)
     defer #nofail appendDeferTrace(2)
-    if shouldThrow do
+    if shouldFail do
         fail ErrCompilerDefer{}
 }
 
@@ -167,10 +167,10 @@ func runMacroScopeTrace()->s64
 
 #test
 {
-    func runMixinConditionalDefer(shouldThrow: bool)->s64
+    func runMixinConditionalDefer(shouldFail: bool)->s64
     {
         resetDeferTrace()
-        catch mixinConditionalDefer(shouldThrow)
+        catch mixinConditionalDefer(shouldFail)
         return DeferTrace
     }
 

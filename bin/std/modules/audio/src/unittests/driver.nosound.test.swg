@@ -48,14 +48,14 @@ func audioStartNoSoundEngine()
 
     discard catch child.setVolume(1.5) as err7
     @assert(err7 == null)
-    audioAssertFloat(catch child.getVolume(), 1) as err8
+    audioAssertFloat(catch child.getVolume() as err8, 1)
     @assert(err8 == null)
 
     discard catch child.setVolumeDB(-6.0206) as err9
     @assert(err9 == null)
-    audioAssertFloat(catch child.getVolume(), 0.5, 0.0002) as err10
+    audioAssertFloat(catch child.getVolume() as err10, 0.5, 0.0002)
     @assert(err10 == null)
-    audioAssertFloat(catch child.getVolumeDB(), -6.0206, 0.0002) as err11
+    audioAssertFloat(catch child.getVolumeDB() as err11, -6.0206, 0.0002)
     @assert(err11 == null)
 
     var invalidParent: Bus
@@ -85,19 +85,19 @@ func audioStartNoSoundEngine()
 
     discard catch voice.setVolume(1.5) as err17
     @assert(err17 == null)
-    audioAssertFloat(catch voice.getVolume(), 1) as err18
+    audioAssertFloat(catch voice.getVolume() as err18, 1)
     @assert(err18 == null)
 
     discard catch voice.setVolume(-0.25) as err19
     @assert(err19 == null)
-    audioAssertFloat(catch voice.getVolume(), 0) as err20
+    audioAssertFloat(catch voice.getVolume() as err20, 0)
     @assert(err20 == null)
 
     discard catch voice.setVolumeDB(-6.0206) as err21
     @assert(err21 == null)
-    audioAssertFloat(catch voice.getVolume(), 0.5, 0.0002) as err22
+    audioAssertFloat(catch voice.getVolume() as err22, 0.5, 0.0002)
     @assert(err22 == null)
-    audioAssertFloat(catch voice.getVolumeDB(), -6.0206, 0.0002) as err23
+    audioAssertFloat(catch voice.getVolumeDB() as err23, -6.0206, 0.0002)
     @assert(err23 == null)
 
     discard catch voice.setFrequencyRatio(1.75) as err24

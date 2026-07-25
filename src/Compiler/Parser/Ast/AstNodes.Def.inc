@@ -141,7 +141,7 @@ SWC_NODE_DEF(AutoCastExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(AsCastExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IsTypeExpr, AstNodeIdFlagsE::Zero)
 
-SWC_NODE_DEF(TryCatchExpr, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(ErrorManagementExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(FailExpr, AstNodeIdFlagsE::Zero)
 
 // ============================================================================
@@ -216,7 +216,7 @@ SWC_NODE_DEF(SwitchStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(SwitchCaseStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(SwitchCaseBody, AstNodeIdFlagsE::Zero)
 
-SWC_NODE_DEF(TryCatchStmt, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(ErrorManagementStmt, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(ReturnStmt, AstNodeIdFlagsE::Zero)
 

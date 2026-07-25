@@ -102,7 +102,6 @@ public:
         None,
         Try,
         Catch,
-        TryCatch,
         Expect,
     };
 

@@ -836,7 +836,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdCatch:
         case TokenId::KwdExpect:
         case TokenId::KwdNotNull:
-            return parseTryCatchAssume();
+            return parseErrorManagementExpr();
 
         case TokenId::IntrinsicKindOf:
         case TokenId::IntrinsicCountOf:
@@ -1156,16 +1156,16 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseTryCatchAssume()
+AstNodeRef Parser::parseErrorManagementExpr()
 {
     const TokenRef opTokRef = consume();
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(opTokRef);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementExpr>(opTokRef);
     nodePtr->nodeExprRef    = parseExpression();
 
     // 'let x = catch f() as err' captures the caught error into a named local (enclosing scope):
     // 'x' is the result, 'err' the error. Only 'catch' captures. parseExpression() absorbed the
     // trailing 'as err' into the operand as an 'AsCastExpr'; unwrap it into operand + bound name.
-    // (A trailing 'as T' on try/expect/orfail stays an ordinary cast of the operand.)
+    // (A trailing 'as T' on try/expect/notnull stays an ordinary cast of the operand.)
     if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch &&
         nodePtr->nodeExprRef.isValid() &&
         ast_->node(nodePtr->nodeExprRef).is(AstNodeId::AsCastExpr))
@@ -1239,7 +1239,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
     return nodeParent;
 }
 
-AstNodeRef Parser::parseThrow()
+AstNodeRef Parser::parseFail()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FailExpr>(consume());
     nodePtr->nodeExprRef    = parseExpression();

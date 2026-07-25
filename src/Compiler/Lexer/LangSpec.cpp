@@ -28,11 +28,6 @@ void LangSpec::setupKeywords()
 #include "Compiler/Lexer/Tokens.Def.inc"
 
 #undef SWC_TOKEN_DEF
-
-    // Error-handling redesign (palier C): the fallible marker/raise is spelled 'fail' and the
-    // success assertion 'expect' (see the KwdFail/KwdExpect SWC_TOKEN_DEF spellings above). The
-    // historical 'throw'/'assume' aliases have been removed; reflected type names and public-API
-    // fragments render the marker as " fail" to match (TypeInfo/Symbol.Function naming updated).
 }
 
 void LangSpec::setupCharFlags()

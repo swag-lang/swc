@@ -423,9 +423,9 @@ AstNodeRef Parser::parseFor()
     return parseForLoop();
 }
 
-AstNodeRef Parser::parseTryCatch()
+AstNodeRef Parser::parseErrorManagementStmt()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchStmt>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementStmt>(consume());
     if (is(TokenId::SymLeftCurly))
         nodePtr->nodeBodyRef = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
     else
@@ -982,9 +982,9 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdExpect:
         case TokenId::KwdCatch:
         case TokenId::KwdTry:
-            return parseTryCatch();
+            return parseErrorManagementStmt();
         case TokenId::KwdFail:
-            return parseThrow();
+            return parseFail();
 
         case TokenId::KwdDiscard:
             return parseDiscard();

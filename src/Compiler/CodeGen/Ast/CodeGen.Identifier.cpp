@@ -493,7 +493,7 @@ namespace
             return false;
         if (initPayload.runtimeStorageOverridden)
             return true;
-        return payloadNodeRef.isValid() && codeGen.node(payloadNodeRef).is(AstNodeId::TryCatchExpr);
+        return payloadNodeRef.isValid() && codeGen.node(payloadNodeRef).is(AstNodeId::ErrorManagementExpr);
     }
 
     bool varInitNeedsPostCopy(CodeGen& codeGen, AstNodeRef initRef, const CodeGenNodePayload& initPayload)

@@ -244,7 +244,7 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
     else
         nodePtr->nodeReturnTypeRef = AstNodeRef::invalid();
 
-    // Throw
+    // Fallible marker
     if (consumeIf(TokenId::KwdFail).isValid())
         flags.add(AstFunctionFlagsE::Fallible);
     nodePtr->flags() = flags;

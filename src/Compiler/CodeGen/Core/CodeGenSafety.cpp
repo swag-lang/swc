@@ -475,7 +475,7 @@ Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)
     return emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_invalid_argument);
 }
 
-Result CodeGenSafety::emitAssumeCheck(CodeGen& codeGen, const AstNode& node)
+Result CodeGenSafety::emitNotNullCheck(CodeGen& codeGen, const AstNode& node)
 {
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
     if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Expect))
@@ -502,7 +502,7 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
         return Result::Continue;
 
     const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
-    const auto           bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+    const auto     bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
     SWC_ASSERT(bits != MicroOpBits::Zero);
 
     MicroBuilder&  builder     = codeGen.builder();

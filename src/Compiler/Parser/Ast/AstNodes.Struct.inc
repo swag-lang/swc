@@ -1389,13 +1389,13 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 };
 
 // -----------------------------------------------------------------------------
-struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
+// 'try'/'catch'/'expect'/'notnull' applied to an expression.
+struct AstErrorManagementExpr : AstNodeT<AstNodeId::ErrorManagementExpr>
 {
     AstNodeRef nodeExprRef;
-    AstNodeRef nodeFallbackRef; // 'orfail' lazy fallback value; invalid for try/catch/trycatch/assume/expect
-    TokenRef   errNameTokRef;   // 'let x = catch f() as err': binds the caught error into a named local; invalid otherwise
+    TokenRef   errNameTokRef; // 'let x = catch f() as err': binds the caught error into a named local; invalid otherwise
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeFallbackRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema) const;
@@ -1680,7 +1680,8 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 };
 
 // -----------------------------------------------------------------------------
-struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
+// 'try'/'catch'/'expect' applied to a statement or a block.
+struct AstErrorManagementStmt : AstNodeT<AstNodeId::ErrorManagementStmt>
 {
     AstNodeRef nodeBodyRef;
     AstNodeRef nodeHandlerRef; // 'catch e else { H }' failure handler; invalid otherwise

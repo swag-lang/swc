@@ -17,14 +17,14 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool isTransparentAssumeBlock(Sema& sema)
+    bool isTransparentExpectBlock(Sema& sema)
     {
         const AstNodeRef parentRef = sema.visit().parentNodeRef();
         if (parentRef.isInvalid())
             return false;
 
         const AstNode& parentNode = sema.node(parentRef);
-        if (parentNode.isNot(AstNodeId::TryCatchStmt))
+        if (parentNode.isNot(AstNodeId::ErrorManagementStmt))
             return false;
 
         return sema.token(parentNode.codeRef()).id == TokenId::KwdExpect;
@@ -245,7 +245,7 @@ Result AstParenExpr::semaPostNode(Sema& sema)
 Result AstEmbeddedBlock::semaPreNode(Sema& sema)
 {
     const auto& node = sema.curNode().cast<AstEmbeddedBlock>();
-    if (isTransparentAssumeBlock(sema))
+    if (isTransparentExpectBlock(sema))
         return Result::Continue;
 
     // A sema-synthesized '#inject' bindings block behaves like a '#macro' block:

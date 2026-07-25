@@ -188,8 +188,11 @@ private:
     AstNodeRef parseEmbeddedStmt();
     AstNodeRef parseEnumDecl();
     AstNodeRef parseEnumValue();
+    AstNodeRef parseErrorManagementExpr();
+    AstNodeRef parseErrorManagementStmt();
     AstNodeRef parseExpression();
     AstNodeRef parseRangeExpression();
+    AstNodeRef parseFail();
     AstNodeRef parseFallThrough();
     AstNodeRef parseFile();
     AstNodeRef parseFor();
@@ -249,12 +252,9 @@ private:
     AstNodeRef parseSubTypeNoQualifiers();
     AstNodeRef parseSwitch();
     AstNodeRef parseSwitchCaseDefault();
-    AstNodeRef parseThrow();
     AstNodeRef parseTopLevelCall();
     AstNodeRef parseTopLevelDeclOrBlock();
     AstNodeRef parseTopLevelStmt();
-    AstNodeRef parseTryCatch();
-    AstNodeRef parseTryCatchAssume();
     AstNodeRef parseType();
     AstNodeRef parseUnionDecl();
     AstNodeRef parseUnreachable();

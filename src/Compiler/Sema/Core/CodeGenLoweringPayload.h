@@ -17,10 +17,10 @@ struct CodeGenLoweringPayload
     SymbolFunction* runtimeFunctionSymbol              = nullptr;
     ConstantRef     runtimeArrayFillCstRef             = ConstantRef::invalid();
     uint16_t        runtimeSafetyMask                  = 0;
-    AstNodeRef      fallibleWrapperOwnerRef           = AstNodeRef::invalid();
-    TokenId         fallibleWrapperTokenId            = TokenId::Invalid;
+    AstNodeRef      fallibleWrapperOwnerRef            = AstNodeRef::invalid();
+    TokenId         fallibleWrapperTokenId             = TokenId::Invalid;
     bool            ifVarDeclWhereUsesConditionBinding = false;
-    bool            assumeNullable                     = false;
+    bool            notNullUnwrap                      = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {

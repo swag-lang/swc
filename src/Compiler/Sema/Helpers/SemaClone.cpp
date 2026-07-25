@@ -628,7 +628,7 @@ namespace
         if (!clonedPayload.runtimeArrayFillCstRef.isValid() && sourcePayload->runtimeArrayFillCstRef.isValid())
             clonedPayload.runtimeArrayFillCstRef = sourcePayload->runtimeArrayFillCstRef;
         clonedPayload.runtimeSafetyMask |= sourcePayload->runtimeSafetyMask;
-        clonedPayload.assumeNullable |= sourcePayload->assumeNullable;
+        clonedPayload.notNullUnwrap |= sourcePayload->notNullUnwrap;
     }
 
     // Implicit casts (created by Cast::createCast) store part of their semantic
@@ -1575,10 +1575,10 @@ AstNodeRef AstInfiniteLoopStmt::semaClone(Sema& sema, const CloneContext& cloneC
     return newRef;
 }
 
-AstNodeRef AstTryCatchStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstErrorManagementStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::TryCatchStmt>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstTryCatchStmt>();
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ErrorManagementStmt>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstErrorManagementStmt>();
     cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
     if (nodeHandlerRef.isValid())
         cloned.nodeHandlerRef = cloneNodeRef(sema, nodeHandlerRef, cloneContextAsInline(cloneContext));
@@ -1899,15 +1899,11 @@ AstNodeRef AstDiscardExpr::semaClone(Sema& sema, const CloneContext& cloneContex
     return newRef;
 }
 
-AstNodeRef AstTryCatchExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstErrorManagementExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr]  = sema.ast().makeNode<AstNodeId::TryCatchExpr>(tokRef());
-    newPtr->nodeExprRef    = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->errNameTokRef  = errNameTokRef;
-    // Only 'orfail' carries a fallback; the other forms leave it invalid, and cloneAst
-    // requires a valid node.
-    if (nodeFallbackRef.isValid())
-        newPtr->nodeFallbackRef = SemaClone::cloneAst(sema, nodeFallbackRef, cloneContextAsInline(cloneContext));
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ErrorManagementExpr>(tokRef());
+    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->errNameTokRef = errNameTokRef;
     return newRef;
 }
 

@@ -152,7 +152,7 @@ namespace
         uint32_t                blockDepth_   = 0;
         uint32_t                loopDepth_    = 0;
         uint32_t                deferDepth_   = 0;
-        uint32_t                handledDepth_ = 0; // catch/trycatch/expect wrappers
+        uint32_t                handledDepth_ = 0; // catch/expect wrappers
         uint32_t                inlineDepth_  = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
         uint32_t                nodeCount_    = 0;
         uint32_t                errorCount_   = 0;
@@ -212,10 +212,10 @@ namespace
                     return sym && sym->isFunction() && isNonNullPointerLikeTypeRef(sym->cast<SymbolFunction>().returnTypeRef());
                 }
 
-                case AstNodeId::TryCatchExpr:
+                case AstNodeId::ErrorManagementExpr:
                     // 'notnull x' asserts non-null; other wrappers stay conservative.
                     return tokenIdOf(node, TokenId::KwdCatch) == TokenId::KwdNotNull &&
-                           valueShapeIsNonNull(node.cast<AstTryCatchExpr>().nodeExprRef);
+                           valueShapeIsNonNull(node.cast<AstErrorManagementExpr>().nodeExprRef);
 
                 default:
                     return false;
@@ -1137,12 +1137,12 @@ namespace
                     return FlowExit::Jumped;
                 }
 
-                case AstNodeId::TryCatchExpr:
-                case AstNodeId::TryCatchStmt:
+                case AstNodeId::ErrorManagementExpr:
+                case AstNodeId::ErrorManagementStmt:
                 {
-                    const AstNodeRef innerRef = node.is(AstNodeId::TryCatchExpr)
-                                                    ? node.cast<AstTryCatchExpr>().nodeExprRef
-                                                    : node.cast<AstTryCatchStmt>().nodeBodyRef;
+                    const AstNodeRef innerRef = node.is(AstNodeId::ErrorManagementExpr)
+                                                    ? node.cast<AstErrorManagementExpr>().nodeExprRef
+                                                    : node.cast<AstErrorManagementStmt>().nodeBodyRef;
                     const TokenId    tokenId  = tokenIdOf(node, TokenId::KwdCatch);
                     if (tokenId == TokenId::KwdTry)
                     {
@@ -1154,14 +1154,6 @@ namespace
                     }
                     handledDepth_++;
                     const FlowExit exit = walk(innerRef, state);
-                    // 'orfail' evaluates its fallback on the failure path; walk it so its
-                    // own reads are checked for definite initialization.
-                    if (node.is(AstNodeId::TryCatchExpr))
-                    {
-                        const AstNodeRef fallbackRef = node.cast<AstTryCatchExpr>().nodeFallbackRef;
-                        if (fallbackRef.isValid())
-                            walk(fallbackRef, state);
-                    }
                     handledDepth_--;
                     return exit;
                 }

@@ -166,7 +166,7 @@ namespace ModuleApi
     {
         std::vector<ModuleApiFileEntry*> fileEntries;
         fileEntries.reserve(entries.size());
-        for (auto& [srcViewRef, entry] : entries)
+        for (auto& entry : entries | std::views::values)
         {
             if (!entry.pendingSymbols.empty())
                 fileEntries.push_back(&entry);

@@ -67,7 +67,7 @@ SWC_TEST_BEGIN(FormatFile_ReservedIdentifiersAreFormattable)
         "    __internalCall()\n"
         "}\n";
 
-    FormatOptions options;
+    const FormatOptions options;
     return checkFileRewrite(ctx, SOURCE, SOURCE, options);
 }
 SWC_TEST_END()

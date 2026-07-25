@@ -6,8 +6,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using FormatPassUtil::INVALID_PIECE;
-
     bool isSeparatorChar(const char c)
     {
         return c == '-' || c == '=' || c == '#' || c == '*' || c == '~' || c == '_';
@@ -137,16 +135,15 @@ namespace
         std::vector<Paragraph> paragraphs;
         Paragraph              current;
 
-        auto flush = [&]() {
+        auto flush = [&] {
             if (current.pieces.size() > 1)
                 paragraphs.push_back(current);
             current.pieces.clear();
         };
 
-        for (size_t l = 0; l < lineStarts.size(); ++l)
+        for (unsigned int lineStart : lineStarts)
         {
-            const uint32_t     lineStart = lineStarts[l];
-            const FormatPiece& piece     = model.piece(lineStart);
+            const FormatPiece& piece = model.piece(lineStart);
 
             const bool wholeLineComment = piece.is(TokenId::CommentLine) &&
                                           FormatPassUtil::lineEndOf(model, lineStart) == lineStart;

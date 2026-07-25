@@ -309,7 +309,7 @@ void Diagnostic::report(TaskContext& ctx) const
         const SourceFile& file = ctx.compiler().file(fileOwner_);
         dismiss                = file.unitTest().verifyExpected(ctx, reportedDiagnostic);
 
-        std::unordered_set<const SourceFile*> verifiedFiles = {&file};
+        std::unordered_set verifiedFiles = {&file};
         for (const std::shared_ptr<DiagnosticElement>& element : reportedDiagnostic.elements())
         {
             const SourceView* sourceView = element->srcView();

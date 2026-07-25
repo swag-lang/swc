@@ -74,7 +74,7 @@ namespace
         {
         }
 
-        void run()
+        void run() const
         {
             for (uint32_t i = 0; i < model_->numPieces(); ++i)
             {

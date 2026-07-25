@@ -24,19 +24,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using InlineBindingIdentifierSet = std::unordered_set<IdentifierRef>;
-
-    bool scopeUsesRedirectedLookupChain(const SemaScope* scope)
-    {
-        for (const SemaScope* it = scope; it; it = it->parent())
-        {
-            if (it->lookupParent() != it->parent())
-                return true;
-        }
-
-        return false;
-    }
-
     bool lookupCanUsePendingTypeScopeSymbol(Sema& sema, AstNodeRef parentRef)
     {
         if (parentRef.isInvalid())
@@ -92,74 +79,6 @@ namespace
         }
 
         return !outSymbols.empty();
-    }
-
-    InlineBindingIdentifierSet collectInlineBindingIdentifiers(std::span<const SemaClone::ParamBinding> bindings)
-    {
-        InlineBindingIdentifierSet bindingIds;
-        bindingIds.reserve(bindings.size());
-        for (const SemaClone::ParamBinding& binding : bindings)
-            bindingIds.insert(binding.idRef);
-        return bindingIds;
-    }
-
-    bool hasInlineBinding(const SmallVector<SemaClone::ParamBinding>& bindings, const SemaClone::ParamBinding& binding)
-    {
-        for (const SemaClone::ParamBinding& existing : bindings)
-        {
-            if (binding.sourceParam && existing.sourceParam == binding.sourceParam)
-                return true;
-            if (!binding.sourceParam && binding.idRef.isValid() && existing.sourceParam == nullptr && existing.idRef == binding.idRef)
-                return true;
-        }
-
-        return false;
-    }
-
-    void appendInlineBindingChain(SmallVector<SemaClone::ParamBinding>& outBindings, const SemaInlinePayload* inlinePayload)
-    {
-        while (inlinePayload)
-        {
-            for (const SemaClone::ParamBinding& binding : inlinePayload->argMappings)
-            {
-                if (!hasInlineBinding(outBindings, binding))
-                    outBindings.push_back(binding);
-            }
-            inlinePayload = inlinePayload->parentInlinePayload;
-        }
-    }
-
-    bool containsInlineBindingUse(Sema& sema, AstNodeRef nodeRef, const InlineBindingIdentifierSet& bindingIds)
-    {
-        if (nodeRef.isInvalid() || bindingIds.empty())
-            return false;
-
-        SmallVector<AstNodeRef> children;
-        SmallVector<AstNodeRef> stack;
-        stack.push_back(nodeRef);
-
-        while (!stack.empty())
-        {
-            const AstNodeRef currentRef = stack.back();
-            stack.pop_back();
-            if (currentRef.isInvalid())
-                continue;
-
-            const AstNode& node = sema.node(currentRef);
-            if (const auto* ident = node.safeCast<AstIdentifier>())
-            {
-                const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, ident->codeRef());
-                if (bindingIds.contains(idRef))
-                    return true;
-            }
-
-            children.clear();
-            node.collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : std::ranges::reverse_view(children))
-                stack.push_back(childRef);
-        }
-
-        return false;
     }
 
     bool hasMacroInjectCallerShadowingLocalSymbol(Sema& sema, IdentifierRef idRef, const Symbol& preResolvedSymbol)

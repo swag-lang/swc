@@ -6,14 +6,21 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using FormatPassUtil::INVALID_PIECE;
     using FormatPassUtil::PieceColumn;
 
     struct OpenBracket
     {
-        uint32_t piece  = 0;
         uint32_t column = 0;
     };
+
+    bool isStatementLine(const FormatPiece& piece)
+    {
+        // Literal braces (array / struct literals) are NOT statement
+        // starts: their lines keep their relative indentation.
+        return piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::AttrOpen,
+                                   FormatRoleE::ElseKeyword, FormatRoleE::EnumValueStart, FormatRoleE::FieldDeclStart,
+                                   FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::WhereKeyword});
+    }
 
     class IndentPass
     {
@@ -75,15 +82,6 @@ namespace
                 blockStack_.push_back({sortedBlocks_[nextBlock_++], false});
             while (!blockStack_.empty() && blockStack_.back().block.closePiece < lineStart)
                 blockStack_.pop_back();
-        }
-
-        bool isStatementLine(const FormatPiece& piece) const
-        {
-            // Literal braces (array / struct literals) are NOT statement
-            // starts: their lines keep their relative indentation.
-            return piece.roles.hasAny({FormatRoleE::StmtStart, FormatRoleE::CaseLabel, FormatRoleE::AttrOpen,
-                                       FormatRoleE::ElseKeyword, FormatRoleE::EnumValueStart, FormatRoleE::FieldDeclStart,
-                                       FormatRoleE::BlockOpen, FormatRoleE::BlockClose, FormatRoleE::WhereKeyword});
         }
 
         // `where` / `verify` clauses and the braces of their block bodies sit
@@ -272,7 +270,7 @@ namespace
                 const FormatPiece& piece = model_->piece(pieceIndex);
                 if (piece.is(TokenId::SymLeftParen) || piece.is(TokenId::SymLeftBracket))
                 {
-                    parenStack_.push_back({pieceIndex, column});
+                    parenStack_.push_back({column});
                 }
                 else if (piece.is(TokenId::SymRightParen) || piece.is(TokenId::SymRightBracket))
                 {

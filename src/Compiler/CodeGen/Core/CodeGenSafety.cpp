@@ -502,7 +502,7 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
         return Result::Continue;
 
     const uint64_t sizeOf = typeInfo.sizeOf(codeGen.ctx());
-    auto           bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
+    const auto           bits   = sizeOf > sizeof(uint64_t) ? MicroOpBits::B64 : CodeGenTypeHelpers::compareBits(typeInfo, codeGen.ctx());
     SWC_ASSERT(bits != MicroOpBits::Zero);
 
     MicroBuilder&  builder     = codeGen.builder();

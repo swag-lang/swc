@@ -80,7 +80,7 @@ namespace
         {
         }
 
-        void runShortBlocks()
+        void runShortBlocks() const
         {
             for (const FormatBlock& block : model_->blocks())
             {
@@ -120,7 +120,7 @@ namespace
             runShortCases();
         }
 
-        void runBraces()
+        void runBraces() const
         {
             for (const FormatBlock& block : model_->blocks())
             {

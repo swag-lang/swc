@@ -51,6 +51,7 @@ namespace
                 case AstNodeId::MemberAccessExpr:
                 case AstNodeId::AutoMemberAccessExpr:
                     crossedMember = true;
+                    continue;
 
                 case AstNodeId::ParenExpr:
                     continue;

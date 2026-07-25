@@ -92,6 +92,14 @@ func __endErr()
     @getcontext().curError = null
 }
 
+// Seed the 'catch e as err { H }' binding: copy the current error into the caller-provided
+// slot right before the handler runs (curError is still valid at that point, cleared by
+// '__endErr' only after H). All the fat-value copy lives here so codegen just passes the slot.
+func __bindErr(dst: *#null any)
+{
+    dref dst = @getcontext().curError
+}
+
 func __catchErr()
 {
     let cxt = @getcontext()

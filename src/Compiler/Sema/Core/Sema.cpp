@@ -16,7 +16,6 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 

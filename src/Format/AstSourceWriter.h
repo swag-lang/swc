@@ -22,7 +22,7 @@ class AstSourceWriter
 {
 public:
     explicit AstSourceWriter(FormatContext& formatCtx);
-    void write();
+    void write() const;
 
 private:
     FormatContext* formatCtx_ = nullptr;

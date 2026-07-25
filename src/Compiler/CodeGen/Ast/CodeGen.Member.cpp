@@ -447,7 +447,7 @@ Result AstMemberAccessExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     // '?.': test the freshly generated left value and take the enclosing chain's null
     // exit when it is null. The rest of the member access then runs on a proven
     // non-null value.
-    auto* chainState = codeGen.findEnclosingNodePayload<OptionalChainCodeGenPayload>(AstNodeId::OptionalChainExpr);
+    const auto* chainState = codeGen.findEnclosingNodePayload<OptionalChainCodeGenPayload>(AstNodeId::OptionalChainExpr);
     SWC_ASSERT(chainState != nullptr && chainState->falseLabel.isValid());
 
     const CodeGenNodePayload& leftPayload = codeGen.payload(resolvedLeftRef);

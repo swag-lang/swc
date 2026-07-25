@@ -608,27 +608,11 @@ namespace
         // tests and report a pass/fail tally instead of stopping at the first failure.
         uint32_t executedTestCount = 0;
         uint32_t failedTestCount   = 0;
-        // With SWC_PROFILE_TESTS set, print how long each #test took: the first tool
-        // to reach for when a test suite gets slow.
-        const bool profileTests = Os::readEnvironmentVariable("SWC_PROFILE_TESTS").has_value();
         for (const SymbolFunction* function : testFunctions)
         {
-            const auto startTick = std::chrono::steady_clock::now();
             if (!runJitTestFunction(ctx, *function))
                 failedTestCount++;
             executedTestCount++;
-            if (profileTests)
-            {
-                const double      ms   = static_cast<double>(std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - startTick).count()) / 1000.0;
-                const SourceFile* file = ctx.compiler().srcView(function->srcViewRef()).file();
-                uint32_t          line = 0;
-                if (const AstNode* decl = function->decl(); decl && file)
-                {
-                    const SourceView& declView = ctx.compiler().srcView(decl->srcViewRef());
-                    line                       = decl->codeRangeWithChildren(ctx, file->ast(), declView).line + 1;
-                }
-                fprintf(stderr, "[test-profile] %9.1f ms %s:%u\n", ms, file ? file->path().filename().string().c_str() : "?", line);
-            }
         }
 
         if (stage)

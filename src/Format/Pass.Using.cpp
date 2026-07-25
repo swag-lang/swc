@@ -62,7 +62,7 @@ namespace
         return line;
     }
 
-    void sortRun(FormatModel& model, std::vector<UsingStatement>& run)
+    void sortRun(FormatModel& model, const std::vector<UsingStatement>& run)
     {
         if (run.size() < 2)
             return;

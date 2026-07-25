@@ -1,5 +1,6 @@
-﻿#include "pch.h"
-#include "Compiler/Sema/Helpers/SemaUndefined.h"
+﻿#include <ranges>
+
+#include "pch.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
@@ -9,6 +10,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaUndefined.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -475,7 +477,7 @@ namespace
 
         // -------------------------------------------------------------------------
 
-        void markInit(FlowState& state, const AccessPath& path)
+        void markInit(FlowState& state, const AccessPath& path) const
         {
             if (deferDepth_)
                 return;
@@ -490,7 +492,7 @@ namespace
             }
         }
 
-        void markEscaped(FlowState& state, const AccessPath& path)
+        void markEscaped(FlowState& state, const AccessPath& path) const
         {
             // Once the address escapes, the variable is treated as initialized: the
             // callee may fill it (out parameter) and later flow cannot be proven.
@@ -1110,11 +1112,11 @@ namespace
 
                 case AstNodeId::ContinueStmt:
                 {
-                    for (auto it = breakables_.rbegin(); it != breakables_.rend(); ++it)
+                    for (auto& breakable : std::views::reverse(breakables_))
                     {
-                        if ((*it)->acceptsContinue)
+                        if (breakable->acceptsContinue)
                         {
-                            checkDropsOnExit(state, ref, (*it)->blockDepth);
+                            checkDropsOnExit(state, ref, breakable->blockDepth);
                             break;
                         }
                     }

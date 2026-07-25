@@ -3,7 +3,6 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

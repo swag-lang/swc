@@ -117,7 +117,7 @@ namespace
     }
 }
 
-Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef)
 {
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     SWC_ASSERT(resolvedChildRef.isValid());
@@ -242,16 +242,16 @@ namespace
     }
 }
 
-Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef)
 {
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     SWC_ASSERT(resolvedChildRef.isValid());
 
     // Same stored-type rule as the conditional expression above.
-    const TypeRef                 resultTypeRef = codeGen.transparentPayloadTypeRef();
-    const bool                    addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
-    MicroBuilder&                 builder       = codeGen.builder();
-    NullCoalescingCodeGenPayload* state         = nullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
+    const TypeRef                       resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const bool                          addressBacked = usesAddressBackedSelection(codeGen, resultTypeRef);
+    MicroBuilder&                       builder       = codeGen.builder();
+    const NullCoalescingCodeGenPayload* state         = nullCoalescingCodeGenPayload(codeGen, codeGen.curNodeRef());
 
     // Qualification casts can also rewrite either coalescing operand. The first direct
     // callback is the lhs; the presence of lowering state identifies the rhs callback.
@@ -318,7 +318,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     return Result::Continue;
 }
 
-Result AstOptionalChainExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+Result AstOptionalChainExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef)
 {
     SWC_UNUSED(childRef);
 
@@ -330,7 +330,7 @@ Result AstOptionalChainExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNode
     return Result::Continue;
 }
 
-Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef)
 {
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     SWC_ASSERT(resolvedChildRef.isValid());

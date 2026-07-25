@@ -18,7 +18,7 @@ AstSourceWriter::AstSourceWriter(FormatContext& formatCtx) :
     SWC_ASSERT(!formatCtx.ast->root().isInvalid());
 }
 
-void AstSourceWriter::write()
+void AstSourceWriter::write() const
 {
     FormatModel model;
     model.build(*formatCtx_->srcView, *formatCtx_->options);

@@ -208,13 +208,13 @@ struct AstIntrinsicValue : AstNodeT<AstNodeId::IntrinsicValue>
 // -----------------------------------------------------------------------------
 enum class AstFunctionFlagsE : AstNode::ParserFlags
 {
-    Zero      = 0,
-    Method    = 1 << 0,
+    Zero     = 0,
+    Method   = 1 << 0,
     Fallible = 1 << 1,
-    Closure   = 1 << 2,
-    Const     = 1 << 3,
-    Impl      = 1 << 4,
-    Short     = 1 << 5,
+    Closure  = 1 << 2,
+    Const    = 1 << 3,
+    Impl     = 1 << 4,
+    Short    = 1 << 5,
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlagsE>
@@ -661,10 +661,10 @@ struct AstNullCoalescingExpr : AstNodeT<AstNodeId::NullCoalescingExpr>
     AstNodeRef nodeLeftRef;
     AstNodeRef nodeRightRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
-    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     semaPostNode(Sema& sema);
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeLeftRef, nodeRightRef}); }
+    static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
+    Result        semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -674,11 +674,11 @@ struct AstOptionalChainExpr : AstNodeT<AstNodeId::OptionalChainExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
-    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     semaPostNode(Sema& sema);
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    static Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
+    static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
+    Result        semaPostNode(Sema& sema);
+    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 // -----------------------------------------------------------------------------
@@ -689,7 +689,7 @@ struct AstConditionalExpr : AstNodeT<AstNodeId::ConditionalExpr>
     AstNodeRef nodeFalseRef;
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCondRef, nodeTrueRef, nodeFalseRef}); }
-    Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    static Result codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef);
     static Result codeGenPostNode(CodeGen& codeGen);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema);
@@ -1392,7 +1392,7 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
 {
     AstNodeRef nodeExprRef;
-    AstNodeRef nodeFallbackRef;     // 'orfail' lazy fallback value; invalid for try/catch/trycatch/assume/expect
+    AstNodeRef nodeFallbackRef; // 'orfail' lazy fallback value; invalid for try/catch/trycatch/assume/expect
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeFallbackRef}); }
     static Result semaPreNode(Sema& sema);
@@ -1682,7 +1682,8 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
 {
     AstNodeRef nodeBodyRef;
-    AstNodeRef nodeHandlerRef;     // 'catch e else { H }' failure handler; invalid otherwise
+    AstNodeRef nodeHandlerRef; // 'catch e else { H }' failure handler; invalid otherwise
+    TokenRef   errNameTokRef;  // 'catch e as err { H }' binds the caught error into a named local; invalid otherwise
 
     void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef, nodeHandlerRef}); }
     static Result semaPreNode(Sema& sema);

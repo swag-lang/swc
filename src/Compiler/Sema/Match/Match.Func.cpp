@@ -516,7 +516,7 @@ namespace
         f.active      = true;
     }
 
-    DiagnosticElement& primaryDiagnosticElement(Diagnostic& diag)
+    DiagnosticElement& primaryDiagnosticElement(const Diagnostic& diag)
     {
         SWC_ASSERT(!diag.elements().empty());
         return *diag.elements().front();

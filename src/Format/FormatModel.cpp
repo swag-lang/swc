@@ -169,7 +169,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
         piece.isComment = id == TokenId::CommentLine || id == TokenId::CommentBlock;
         if (tokenIndex != FormatPiece::INVALID_INDEX)
             tokenToPiece_[tokenIndex] = static_cast<uint32_t>(pieces_.size());
-        pieces_.push_back(std::move(piece));
+        pieces_.push_back(piece);
     };
 
     auto pushWhitespace = [&](const Token& tok) {

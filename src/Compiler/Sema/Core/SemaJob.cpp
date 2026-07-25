@@ -2,7 +2,6 @@
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Main/Global.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
 #if SWC_HAS_STATS
 #include "Main/Stats.h"

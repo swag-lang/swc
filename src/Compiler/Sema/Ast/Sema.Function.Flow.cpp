@@ -404,6 +404,38 @@ namespace
         return Result::Continue;
     }
 
+    // 'catch e as err { H }': bind the caught error into a fresh local visible only inside the
+    // handler block. Scope it to the handler, back it with storage of type '#null any' (the type
+    // '@err'/context.curError carries), and record the storage on the handler node so codegen can
+    // seed the slot from curError right before running the handler (see __bindErr).
+    Result setupCatchErrBinding(Sema& sema, const AstTryCatchStmt& node, const AstNodeRef& handlerRef)
+    {
+        sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, handlerRef);
+
+        // A fresh lexical local: clear any caller lookup override, exactly like loop locals.
+        const auto savedFrame = sema.frame();
+        auto&      frame      = sema.frame();
+        frame.setLookupScope(nullptr);
+        frame.setLookupScopeOverrideNodes(nullptr);
+        auto& errSym  = SemaHelpers::registerSymbol<SymbolVariable>(sema, node, node.errNameTokRef);
+        sema.frame()  = savedFrame;
+
+        // 'registerSymbol' bound 'err' onto the current node (the TryCatchStmt) as its single
+        // symbol; left as-is, the fallible wrapper's type view would fall back to 'err' (#null any)
+        // and treat the catch statement as producing a 16-byte result. Name lookup for 'err' goes
+        // through the pushed local scope, not this node payload, so clear the node symbol entirely.
+        sema.setSymbolList(sema.curNodeRef(), std::span<Symbol*>{});
+
+        TypeInfo nullableAny = sema.typeMgr().get(sema.typeMgr().typeAny());
+        nullableAny.addFlag(TypeInfoFlagsE::Nullable);
+        const TypeRef errTypeRef = sema.typeMgr().addType(nullableAny);
+
+        SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, errSym, errTypeRef));
+        SemaHelpers::ensureCodeGenLoweringPayload(sema, handlerRef).runtimeStorageSym = &errSym;
+
+        return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::BindErr, node.codeRef());
+    }
+
     Result semaTryCatchPreNodeChildCommon(Sema& sema, AstNodeRef managedChildRef, const AstNodeRef& childRef)
     {
         if (childRef != managedChildRef || childRef.isInvalid())
@@ -1537,6 +1569,8 @@ Result AstTryCatchStmt::semaPreNode(Sema& sema)
 
 Result AstTryCatchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    if (childRef.isValid() && childRef == nodeHandlerRef && errNameTokRef.isValid())
+        SWC_RESULT(setupCatchErrBinding(sema, *this, childRef));
     return semaTryCatchPreNodeChildCommon(sema, nodeBodyRef, childRef);
 }
 

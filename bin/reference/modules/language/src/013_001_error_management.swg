@@ -65,6 +65,25 @@ func recordTrace(name: #null string, out: *s32) fail
 }
 
 /**
+# Binding the Error with 'catch ... as'
+'catch e as err { H }' is the named form of 'catch e else { H }': it runs the same
+failure handler, but binds the caught error into a fresh local 'err' (of type
+'#null any') visible only inside 'H', so the block reads the value by name instead
+of through '@err'. The binding holds its own copy of the error and, like the 'else'
+form, dismisses the in-flight error once 'H' has run.
+*/
+#test
+{
+    var seen: s32 = -1
+    catch recordTrace(null, &seen) as err
+    {
+        seen = (cast(MyError) err).code
+    }
+    @assert(seen == 7)          // failure: handler ran, 'err' bound to the caught error
+    @assert(@err == null)       // ... and the error is dismissed afterwards
+}
+
+/**
 # Dismissing Errors
 To dismiss a failure and continue, hand the fallible call to 'orfail' with a
 fallback value (see below). '@err' is cleared, and the expression yields the

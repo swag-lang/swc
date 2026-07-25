@@ -32,7 +32,7 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
             if (!((freesMask >> i) & 1))
                 continue;
 
-            const SanitizerRegInfo* argInfo = sanitizer.regInfo(state, callConv.intArgRegs[i]);
+            const SanitizerRegInfo* argInfo = Sanitizer::regInfo(state, callConv.intArgRegs[i]);
             if (argInfo && argInfo->hasOriginSlot && state.freedPtrSlots.contains(argInfo->originSlot))
             {
                 sanitizer.report(inst, DiagnosticId::sanity_err_double_free);
@@ -50,7 +50,7 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
     if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
         return;
 
-    const SanitizerRegInfo* baseInfo = sanitizer.regInfo(state, ops[def.memBaseOperandIndex].reg);
+    const SanitizerRegInfo* baseInfo = Sanitizer::regInfo(state, ops[def.memBaseOperandIndex].reg);
     if (baseInfo && baseInfo->hasOriginSlot && state.freedPtrSlots.contains(baseInfo->originSlot))
         sanitizer.report(inst, DiagnosticId::sanity_err_use_after_free);
 }

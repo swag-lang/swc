@@ -119,7 +119,7 @@ namespace
         return byteStart + tok.byteLength <= srcView.stringView().size();
     }
 
-    const SymbolVariable* inlineParameterByBinding(Sema& sema, AstNodeRef nodeRef)
+    const SymbolVariable* inlineParameterByBinding(const Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
             return nullptr;

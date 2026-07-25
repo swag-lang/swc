@@ -23,7 +23,6 @@
 #include "Main/TaskContext.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"

@@ -13,7 +13,6 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Compiler/SourceFile.h"
 
 SWC_BEGIN_NAMESPACE();
 

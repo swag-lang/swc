@@ -975,11 +975,11 @@ TypeInfo TypeInfo::makeArrayAfterFirstDimension() const
     SWC_ASSERT(isArray());
     SWC_ASSERT(payloadArray_.dims.size() > 1);
 
-    const std::span<const uint64_t> remainingDims{payloadArray_.dims.begin() + 1, payloadArray_.dims.end()};
+    const std::span remainingDims{payloadArray_.dims.begin() + 1, payloadArray_.dims.end()};
     if (payloadArray_.indexTypeRefs.empty())
         return makeArray(remainingDims, payloadArray_.typeRef, flags_);
 
-    const std::span<const TypeRef> remainingIndexTypeRefs{payloadArray_.indexTypeRefs.begin() + 1, payloadArray_.indexTypeRefs.end()};
+    const std::span remainingIndexTypeRefs{payloadArray_.indexTypeRefs.begin() + 1, payloadArray_.indexTypeRefs.end()};
     return makeArray(remainingDims, payloadArray_.typeRef, flags_, remainingIndexTypeRefs);
 }
 

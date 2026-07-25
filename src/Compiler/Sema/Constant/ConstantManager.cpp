@@ -193,7 +193,7 @@ namespace
 
         constexpr std::array sentinel{std::byte{}};
         const auto [storage, ref] = segment.addSpan(sentinel);
-        return {std::span<const std::byte>{storage.data(), 0}, ref};
+        return {std::span{storage.data(), 0}, ref};
     }
 
     bool borrowedPayloadHasRelocations(const ConstantManager& manager, const ConstantValue& value)

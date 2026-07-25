@@ -1387,9 +1387,22 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     // following '@err' check (the old 'trycatch' dismiss semantics).
     if (codeGen.node(ownerRef).is(AstNodeId::TryCatchStmt))
     {
-        const AstNodeRef handlerRef = codeGen.node(ownerRef).cast<AstTryCatchStmt>().nodeHandlerRef;
+        const AstTryCatchStmt& tryCatch  = codeGen.node(ownerRef).cast<AstTryCatchStmt>();
+        const AstNodeRef       handlerRef = tryCatch.nodeHandlerRef;
         if (handlerRef.isValid())
         {
+            // 'catch e as err { H }': seed the named local from the still-valid curError before the
+            // handler runs. The fat 'any' copy lives in '__bindErr'; here we only pass the slot.
+            if (tryCatch.errNameTokRef.isValid())
+            {
+                const SymbolFunction* bindErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::BindErr);
+                SWC_ASSERT(bindErr != nullptr);
+                if (!bindErr)
+                    return raiseInternalCodeGenError(codeGen, "missing runtime helper '__bindErr'", nodeRef);
+                const MicroReg dstReg  = codeGen.runtimeStorageAddressReg(handlerRef);
+                const MicroReg args[1] = {dstReg};
+                SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, std::span<const MicroReg>{args, 1}));
+            }
             SWC_RESULT(codeGen.emitNodeNow(handlerRef));
             SWC_RESULT(emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::EndErr, "missing runtime helper '__endErr'", nodeRef));
         }

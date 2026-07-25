@@ -29,7 +29,6 @@
 #include "Support/Core/LookupTable.h"
 #include "Support/Core/Timer.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"

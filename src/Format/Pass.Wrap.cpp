@@ -27,8 +27,8 @@ namespace
             model_->collectLineStarts(lineStarts);
 
             // Newly created lines are processed in turn: work on a queue.
-            std::deque<uint32_t> queue(lineStarts.begin(), lineStarts.end());
-            uint32_t             guard = 0;
+            std::deque queue(lineStarts.begin(), lineStarts.end());
+            uint32_t   guard = 0;
             while (!queue.empty() && guard < 100000)
             {
                 guard++;
@@ -58,7 +58,7 @@ namespace
 
         // Wraps one line; returns the start of the continuation line to
         // process next, or INVALID_PIECE when the line fits.
-        uint32_t wrapLine(const uint32_t lineStart)
+        uint32_t wrapLine(const uint32_t lineStart) const
         {
             std::vector<PieceColumn> columns;
             const uint32_t           width = FormatPassUtil::computeLineColumns(*model_, lineStart, &columns);
@@ -187,7 +187,7 @@ namespace
 
         // One-per-line argument packing: once a call or declaration argument
         // list wraps, every top-level comma of that list breaks.
-        void applyBinPack(const uint32_t openPiece, const FormatBinPackStyle style)
+        void applyBinPack(const uint32_t openPiece, const FormatBinPackStyle style) const
         {
             if (style != FormatBinPackStyle::OnePerLine)
                 return;

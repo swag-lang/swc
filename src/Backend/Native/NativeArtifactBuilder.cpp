@@ -8,7 +8,6 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"

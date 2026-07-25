@@ -84,7 +84,7 @@ struct SemaEscapeInfo
         {
             for (const auto& call : other.deferredCalls)
             {
-                if (std::find(deferredCalls.begin(), deferredCalls.end(), call) == deferredCalls.end())
+                if (std::ranges::find(deferredCalls, call) == deferredCalls.end())
                     deferredCalls.push_back(call);
             }
             return;

@@ -15,7 +15,6 @@
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8Helper.h"
-#include "Support/Memory/Heap.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/LogColor.h"

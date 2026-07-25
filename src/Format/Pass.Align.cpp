@@ -138,7 +138,7 @@ namespace
             return model_->piece(lineStart).isComment && FormatPassUtil::lineEndOf(*model_, lineStart) == lineStart;
         }
 
-        void runCategory(const AlignCategory category, const FormatAlignMode mode)
+        void runCategory(const AlignCategory category, const FormatAlignMode mode) const
         {
             if (mode == FormatAlignMode::Preserve)
                 return;
@@ -146,7 +146,7 @@ namespace
             std::vector<std::pair<uint32_t, uint32_t>> group; // (lineStart, anchor)
             uint32_t                                   groupDepth = 0;
 
-            auto flush = [&]() {
+            auto flush = [&] {
                 if (mode == FormatAlignMode::None)
                     unalignGroup(group);
                 else if (group.size() >= 2)
@@ -253,7 +253,7 @@ namespace
         // fields, align the type column (after `:`) and the initializer column
         // (`=`) independently, so lines that mix `name: Type`, `name = value`,
         // and `name: Type = value` line up in two stable columns.
-        void runDeclarationGrid(const AlignCategory category, const FormatAlignMode mode)
+        void runDeclarationGrid(const AlignCategory category, const FormatAlignMode mode) const
         {
             if (mode == FormatAlignMode::Preserve)
                 return;
@@ -262,7 +262,7 @@ namespace
             std::vector<uint32_t> group;
             uint32_t              groupDepth = 0;
 
-            auto flush = [&]() {
+            auto flush = [&] {
                 alignGridGroup(group, mode == FormatAlignMode::None);
                 group.clear();
             };
@@ -400,7 +400,7 @@ namespace
         // single-line `{ ... }` literals: element k starts at the same column
         // on every row. Rows with comments, ragged element counts, or scalar
         // entries leave the literal untouched.
-        void runArrayColumns()
+        void runArrayColumns() const
         {
             if (!options_->alignArrayColumns.value_or(false))
                 return;
@@ -521,7 +521,7 @@ namespace
             return rows;
         }
 
-        void runTrailingComments()
+        void runTrailingComments() const
         {
             const FormatOptions& options = *options_;
             if (!options.alignTrailingComments)
@@ -532,12 +532,12 @@ namespace
 
             std::vector<std::pair<uint32_t, uint32_t>> group; // (comment piece, code end column)
 
-            auto flush = [&]() {
+            auto flush = [&] {
                 if (group.empty())
                     return;
 
                 uint32_t maxEnd = 0;
-                for (const auto& [comment, endCol] : group)
+                for (const auto& endCol : group | std::views::values)
                     maxEnd = std::max(maxEnd, endCol);
 
                 uint32_t target = maxEnd + minSpaces;

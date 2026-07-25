@@ -86,9 +86,10 @@ Strings can be sliced, but the result must be declared as 'const' since strings 
 }
 
 /**
-# Slicing with the '..' Operator
+# Slicing with a Range
 
-The '..' operator can be used to create slices directly.
+Indexing with a range creates a slice directly. The range uses the same 'to' and 'until'
+keywords as a 'for' loop; '[..]' is the slice **type**, not the range operator.
 */
 #test
 {
@@ -107,6 +108,24 @@ By default, the upper bound in a slice is inclusive. To exclude it, use 'until' 
     let str   = "string"
     let slice = str[1 until 3]
     @assert(slice == "tr")
+}
+
+/**
+# Empty Slices
+
+An 'until' range whose bounds are equal selects nothing and produces an empty slice. Only an
+inverted range, where the lower bound is above the upper bound, is an error.
+*/
+#test
+{
+    let str   = "string"
+    let empty = str[3 until 3]
+    @assert(@countof(empty) == 0)
+    @assert(empty == "")
+
+    let values = [10, 20, 30]
+    @assert(@countof(values[0 until 0]) == 0)
+    @assert(@countof(values[3 until 3]) == 0)
 }
 
 /**

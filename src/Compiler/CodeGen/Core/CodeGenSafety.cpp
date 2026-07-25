@@ -420,7 +420,9 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     return Result::Continue;
 }
 
-Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool inclusive)
+// An exclusive range whose bounds are equal is empty, and the loop lowering already exits
+// before the first iteration, so only an inverted range (lower above upper) panics here.
+Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType)
 {
     const TypeInfo* compareType = &indexType;
     if (indexType.isAlias())
@@ -450,8 +452,7 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef inBoundsRef = builder.createLabel();
     builder.emitCmpRegReg(lowerReg, upperReg, opBits);
-    const auto cpuCond = inclusive ? CodeGenCompareHelpers::lessEqualCond(compareType->isIntUnsigned()) : CodeGenCompareHelpers::lessCond(compareType->isIntUnsigned());
-    builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, inBoundsRef);
+    builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(compareType->isIntUnsigned()), MicroOpBits::B32, inBoundsRef);
     SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
     builder.placeLabel(inBoundsRef);
     return Result::Continue;

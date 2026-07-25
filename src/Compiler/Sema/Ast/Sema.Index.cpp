@@ -292,10 +292,11 @@ namespace
         if (!range.nodeExprUpRef.isValid() && indexedType.isAnyPointer())
             return SemaError::raiseTypeNotIndexable(sema, node.nodeExprRef, nodeExprView.typeRef());
 
+        // An exclusive range whose bounds are equal slices nothing, which is a valid empty
+        // result. Only an inverted range is rejected.
         if (hasConstDown && hasConstUp)
         {
-            const bool ok = range.hasFlag(AstRangeExprFlagsE::Inclusive) ? constDown <= constUp : constDown < constUp;
-            if (!ok)
+            if (constDown > constUp)
             {
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, node.nodeArgRef);
                 diag.addArgument(Diagnostic::ARG_LEFT, nodeDownView.cstRef());

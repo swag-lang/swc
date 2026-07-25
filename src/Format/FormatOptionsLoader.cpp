@@ -57,7 +57,7 @@ namespace
         schema.add("break-after-return-type", &options.breakAfterReturnType, "Break before `->` when a function signature does not fit");
         schema.add("break-before-do", &options.breakBeforeDo, "Move trailing `do` to a new line when its statement wraps");
         schema.add("break-before-else", &options.breakBeforeElse, "Place `else` on its own line in Stroustrup style");
-        schema.add("break-before-where", &options.breakBeforeWhere, "Place `where` / `verify` clauses on their own line");
+        schema.add("break-before-where", &options.breakBeforeWhere, "Place `where` clauses on their own line");
 
         const std::initializer_list<std::pair<const char*, FormatBinPackStyle>> binPackChoices = {
             {"preserve", FormatBinPackStyle::Preserve},

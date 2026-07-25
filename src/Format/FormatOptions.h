@@ -161,7 +161,7 @@ struct FormatOptions
     std::optional<bool>     breakAfterReturnType;                                           // Newline before `->` in `func foo(...)->T`
     std::optional<bool>     breakBeforeDo;                                                  // Break before trailing `do` (`if x do ...`)
     std::optional<bool>     breakBeforeElse;                                                // Place `else` on its own line
-    std::optional<bool>     breakBeforeWhere;                                               // Place `where` / `verify` clauses on their own line
+    std::optional<bool>     breakBeforeWhere;                                               // Place `where` clauses on their own line
     FormatBinPackStyle      binPackArguments  = FormatBinPackStyle::Preserve;               // Call argument layout when wrapping
     FormatBinPackStyle      binPackParameters = FormatBinPackStyle::Preserve;               // Declaration parameter layout when wrapping
 

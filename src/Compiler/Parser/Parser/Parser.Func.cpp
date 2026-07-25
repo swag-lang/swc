@@ -251,7 +251,7 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
 
     // Constraints
     SmallVector<AstNodeRef> whereRefs;
-    while (is(TokenId::KwdWhere) || is(TokenId::KwdVerify))
+    while (is(TokenId::KwdWhere))
     {
         const Token*     loopStartToken = curToken_;
         const AstNodeRef whereRef       = parseConstraint();

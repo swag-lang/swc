@@ -84,7 +84,7 @@ namespace
                 blockStack_.pop_back();
         }
 
-        // `where` / `verify` clauses and the braces of their block bodies sit
+        // `where` clauses and the braces of their block bodies sit
         // one level under the declaration they constrain.
         bool lineBelongsToWhereClause(const uint32_t lineStart, const FormatPiece& piece) const
         {

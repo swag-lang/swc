@@ -257,9 +257,9 @@ Precedence runs from tightest (top) to loosest (bottom). Operators listed on the
 same line share a level.
 
 ```swag
-~
+! ~ - +      (prefix)
 * / %
-+ -
++ - ++
 >> <<
 &
 ^
@@ -268,10 +268,16 @@ same line share a level.
 == !=
 and
 or
+orelse  ? :
 ```
 
+The prefix operators bind tighter than every binary operator, so '!a == b' parses as
+'(!a) == b' and '-a * b' parses as '(-a) * b'. The string concatenation operator '++'
+shares the additive level.
+
 When two operators share the same precedence level, expressions are evaluated
-from left to right.
+from left to right. The loosest level, 'orelse' and the ternary, groups to the right:
+'a orelse b ? c : d' parses as 'a orelse (b ? c : d)'.
 
 Unlike C, the bitwise operators '& ^ |' all bind **tighter** than the comparison
 operators. This makes 'flags & Mask == 0' parse as '(flags & Mask) == 0', which is
@@ -300,4 +306,13 @@ operators '== !=', so 'a < b == c' parses as '(a < b) == c'.
 
     // The spaceship shares the ordering level, still tighter than equality: (1 <=> 2) == -1.
     @assert(1 <=> 2 == -1)
+
+    // Prefix operators bind tighter than any binary operator.
+    @assert((!false == true) == true)
+    @assert(-2 * 3 == -6)
+    @assert(~0'u8 == 255)
+
+    // 'orelse' and the ternary sit at the loosest level and group to the right.
+    let a: #null string = null
+    @assert((a orelse (false ? "x" : "y")) == "y")
 }

@@ -101,8 +101,10 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
         ConstantRef          upCstRef   = rangeComparableConstantRef(sema, nodeUpView.cstRef());
         const ConstantValue& downCst    = sema.cstMgr().get(downCstRef);
         const ConstantValue& upCst      = sema.cstMgr().get(upCstRef);
-        const bool           ok         = hasFlag(AstRangeExprFlagsE::Inclusive) ? downCst.le(upCst) : downCst.lt(upCst);
-        if (!ok)
+
+        // An exclusive range whose bounds are equal is empty, not invalid: it yields zero
+        // iterations and an empty slice. Only an inverted range (lower above upper) is an error.
+        if (!downCst.le(upCst))
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, sema.curNodeRef());
             diag.addArgument(Diagnostic::ARG_LEFT, downCstRef);

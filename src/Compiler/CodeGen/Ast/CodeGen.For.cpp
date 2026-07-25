@@ -337,8 +337,7 @@ namespace
         loopState.unsignedCmp            = compareType.isIntUnsigned();
         loopState.indexReg               = codeGen.nextVirtualIntRegister();
 
-        const bool loopBoundCheckInclusive = semaPayload->isRangeLoop ? loopState.inclusive : true;
-        SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType, loopBoundCheckInclusive));
+        SWC_RESULT(CodeGenSafety::emitLoopBoundCheck(codeGen, exprRef, lowerReg, upperReg, compareType));
 
         if (loopState.reverse)
         {

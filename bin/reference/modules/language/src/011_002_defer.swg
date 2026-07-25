@@ -3,9 +3,10 @@
 /**
 # The 'defer' Statement
 The 'defer' statement registers an expression that executes automatically
-when the current scope is exited. It runs purely at compile time and ensures
-that cleanup or finalization logic is always performed. This helps maintain
-clarity and safety in resource management.
+when the current scope is exited. The registration is resolved at compile time,
+so there is no runtime bookkeeping: the compiler emits the deferred code on every
+exit path. This keeps cleanup and finalization close to the acquisition that needs
+them.
 */
 #test
 {

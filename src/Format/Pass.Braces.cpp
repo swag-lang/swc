@@ -370,7 +370,7 @@ namespace
             }
         }
 
-        // A `where` / `verify` clause moves to its own line, one level under
+        // A `where` clause moves to its own line, one level under
         // the declaration it constrains.
         void applyBreakBeforeWhere() const
         {

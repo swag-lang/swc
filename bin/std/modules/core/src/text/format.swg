@@ -9,7 +9,6 @@ func checkFormat(fct: string, fmt: string, values: ...)
     let cptPercent = countPercent(fmt)
     if cptPercent != @countof(values)
     {
-        #[Match(.Where, false)]
         let str = toString("bad number of arguments to [[%]] ([[%]] requested, [[%]] provided)", fct, cptPercent, @countof(values))
         @compilererror(str, #location(values))
     }
@@ -38,20 +37,12 @@ func countPercent(fmt: string)->u32
 // Format a string in 'dest'.
 // Can be a lot faster than the convenient version which returns a String.
 func replaceString(dest: *String, fmt: string, values: ...)
-    verify
-    {
-        if !#isconstexpr(fmt) or !#isconstexpr(values) do
-            return true
-        checkFormat(#curlocation.funcName, fmt, values)
-        return true
-    }
 {
     var buf: ConcatBuffer
 
     buf.allocator = dest.allocator
     buf.setFirstBucket(@mkslice(dest.buffer, dest.capacity))
 
-    #[Match(.Where, false)]
     append(&buf, fmt, values)
 
     buf.makeLinear()
@@ -74,17 +65,9 @@ func replaceString(dest: *String, fmt: string, values: ...)
 // * See [[ConvertFormatInt.setFormat]] for some valid format options
 // * See [[ConvertFormatFloat.setFormat]] for some valid format options
 func toString(fmt: string, values: ...)->String
-    verify
-    {
-        if !#isconstexpr(fmt) or !#isconstexpr(values) do
-            return true
-        checkFormat(#curlocation.funcName, fmt, values)
-        return true
-    }
 {
     var buf: ConcatBuffer
 
-    #[Match(.Where, false)]
     append(&buf, fmt, values)
 
     return buf.toString()
@@ -92,13 +75,6 @@ func toString(fmt: string, values: ...)->String
 
 // Format a string and put the result in a ConcatBuffer.
 func append(buf: *ConcatBuffer, fmt: string, values: ...)
-    verify
-    {
-        if !#isconstexpr(fmt) or !#isconstexpr(values) do
-            return true
-        checkFormat(#curlocation.funcName, fmt, values)
-        return true
-    }
 {
     let ptr = @dataof(fmt)
     let cpt = @countof(fmt)
@@ -169,12 +145,6 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 // code must resolve in the caller scope; the internal locals use "#uniq?".
 #[Mixin]
 func toInterp(buf: *ConcatBuffer, exp: string)
-    verify
-    {
-        if !#isconstexpr(exp) do
-            @compilererror("expression should be constant", #location(exp))
-        return true
-    }
 {
     #ast
     {
@@ -230,12 +200,6 @@ func toInterp(buf: *ConcatBuffer, exp: string)
 // String interpolation.
 #[Mixin]
 func toInterp(exp: string)->String
-    verify
-    {
-        if !#isconstexpr(exp) do
-            @compilererror("expression should be constant", #location(exp))
-        return true
-    }
 {
     var #uniq0: ConcatBuffer
     toInterp(&#uniq0, exp)

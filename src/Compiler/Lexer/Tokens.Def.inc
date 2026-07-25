@@ -103,7 +103,6 @@ SWC_TOKEN_DEF(KwdDefer, "defer",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 // Removed keyword, kept for the dedicated "replaced by 'for'" diagnostic.
 SWC_TOKEN_DEF(KwdForeach, "foreach",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdWhere, "where",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
-SWC_TOKEN_DEF(KwdVerify, "verify",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdBreak, "break",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdFallThrough, "fallthrough",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdUnreachable, "unreachable",  TokenIdKindE::Keyword | TokenIdKindE::Logic)

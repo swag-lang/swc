@@ -176,7 +176,7 @@ Slice operations are checked for bounds.
 {
     var x: const [..] s32 = [0, 1, 2]
 
-// var slice = x[1..4]   // Would panic: out-of-bounds
+// var slice = x[1 to 4]   // Would panic: out-of-bounds
 // @assert(slice[0] == 1)
 }
 
@@ -185,8 +185,32 @@ Slice operations are checked for bounds.
     var x   = "string"
     var idx = 10
 
-// var slice = x[0..idx] // Would panic: out-of-bounds
+// var slice = x[0 to idx] // Would panic: out-of-bounds
 // @assert(slice[0] == 's')
+}
+
+/**
+## Safety on Loop Ranges
+
+A 'for' range whose bounds are not both constant is checked when the loop starts. Swag panics
+when the lower bound is above the upper bound. An 'until' range whose bounds are equal is
+empty, not inverted, so it runs zero iterations without panicking.
+*/
+#test
+{
+    func sumRange(low, high: s32)->s32
+    {
+        var sum = 0
+        for [i] in low until high do
+            sum += i
+        return sum
+    }
+
+    @assert(sumRange(0, 0) == 0)
+    @assert(sumRange(2, 2) == 0)
+    @assert(sumRange(0, 4) == 0 + 1 + 2 + 3)
+
+// @assert(sumRange(4, 2) == 0)  // Would panic: lower bound above upper bound
 }
 
 /**

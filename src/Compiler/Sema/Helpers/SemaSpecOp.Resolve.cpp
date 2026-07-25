@@ -1246,10 +1246,21 @@ Result SemaSpecOp::tryResolveSlice(Sema& sema, const AstIndexExpr& node, const S
 
     if (hasConstDown && hasConstUp)
     {
-        const bool ok = range.hasFlag(AstRangeExprFlagsE::Inclusive) ? constDown <= constUp : constDown < constUp;
-        if (!ok)
+        if (constDown > constUp)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_invalid_bounds, node.nodeArgRef);
+            diag.addArgument(Diagnostic::ARG_LEFT, nodeDownView.cstRef());
+            diag.addArgument(Diagnostic::ARG_RIGHT, nodeUpView.cstRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        // 'opSlice' takes an inclusive upper bound, so lowering an exclusive range subtracts
+        // one from it. An empty range has no inclusive spelling and would hand the hook a
+        // bound below its lower bound, so it is rejected here instead of at the hook.
+        if (constDown == constUp && !range.hasFlag(AstRangeExprFlagsE::Inclusive))
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_range_empty_op_slice, node.nodeArgRef);
             diag.addArgument(Diagnostic::ARG_LEFT, nodeDownView.cstRef());
             diag.addArgument(Diagnostic::ARG_RIGHT, nodeUpView.cstRef());
             diag.report(sema.ctx());

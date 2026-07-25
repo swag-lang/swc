@@ -164,7 +164,8 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
 `to` defines an inclusive range loop.
 
 > WARNING:
-> The start value must be less than or equal to the end value.
+> The start value must be less than or equal to the end value. An inverted range is a
+> compile-time error when both bounds are constant, and a runtime bound-check error otherwise.
 */
 #test
 {
@@ -195,6 +196,34 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
     }
 
     @assert(cpt == 1 + 2)
+}
+
+/**
+# Empty Ranges
+
+An `until` range whose bounds are equal is **empty**: the loop runs zero times. This makes
+`for [i] in 0 until count` safe when `count` is zero, so a collection-sized loop needs no
+guard of its own. Only an inverted range, where the lower bound is above the upper bound,
+is an error.
+*/
+#test
+{
+    func sumUpTo(count: s32)->s32
+    {
+        var sum = 0
+        for [i] in 0 until count do
+            sum += i
+        return sum
+    }
+
+    @assert(sumUpTo(0) == 0)
+    @assert(sumUpTo(4) == 0 + 1 + 2 + 3)
+
+    // The same holds for a constant empty range, and away from zero.
+    var cpt = 0
+    for [i] in 7 until 7 do
+        cpt += 1
+    @assert(cpt == 0)
 }
 
 /**

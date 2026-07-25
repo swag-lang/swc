@@ -320,8 +320,44 @@ func opaqueIdx(v: u64)->u64
         return result
     }
 
-    const value = #run loopInvalidUnsignedRange(4, 4)
+    const value = #run loopInvalidUnsignedRange(5, 4)
     @assert(value == 0)
+}
+
+// An exclusive range with equal bounds is empty, so the guard must stay silent.
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func loopEmptyUnsignedRange(low: u32, high: u32)->u32
+    {
+        var result: u32 = 0
+        for [i] in low until high do
+            result += i + 1
+        return result
+    }
+
+    const value = #run loopEmptyUnsignedRange(4, 4)
+    @assert(value == 0)
+    @assert(loopEmptyUnsignedRange(4, 4) == 0)
+    @assert(loopEmptyUnsignedRange(0, 0) == 0)
+    @assert(loopEmptyUnsignedRange(0, 3) == 1 + 2 + 3)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func loopEmptySignedRange(low: s32, high: s32)->s32
+    {
+        var result: s32 = 0
+        for [i] in low until high do
+            result += i + 1
+        return result
+    }
+
+    const value = #run loopEmptySignedRange(-2, -2)
+    @assert(value == 0)
+    @assert(loopEmptySignedRange(-2, -2) == 0)
+    @assert(loopEmptySignedRange(0, 0) == 0)
 }
 
 // When bound check is disabled, out-of-bounds access must not call the safety panic

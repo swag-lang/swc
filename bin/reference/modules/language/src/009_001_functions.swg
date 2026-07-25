@@ -87,9 +87,9 @@ func(var T, const Count: s32) genericRepeat(value: T)->[Count] T
 
 /**
 When the role is unambiguous, Swag also accepts the shorter forms 'T' for a
-type parameter and 'N: s32' for a value parameter. The explicit 'var' and
-'const' forms are preferable in public documentation because they state the
-contract immediately.
+type parameter and 'N: s32' for a value parameter. Both spellings mean the same
+thing; this reference uses the explicit 'var' and 'const' forms wherever it
+states a contract, and the short form in introductory examples.
 
 # Specialization Aliases
 

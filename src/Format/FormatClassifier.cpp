@@ -781,7 +781,7 @@ namespace
                 case AstNodeId::ConstraintBlock:
                 case AstNodeId::ConstraintExpr:
                 {
-                    // `where` / `verify` clauses anchor on their keyword.
+                    // `where` clauses anchor on their keyword.
                     addRole(span.minPiece, FormatRoleE::WhereKeyword);
                     if (node.is(AstNodeId::ConstraintBlock))
                     {

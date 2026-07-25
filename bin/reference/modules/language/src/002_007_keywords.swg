@@ -19,16 +19,15 @@ let  mtd  namespace  private  public  struct  union  using  var  with
 ```swag
 and  as  break  case  continue  default  defer  do  elif  else
 fallthrough  for  if  in  is  me  or  orelse  return  switch
-to  unreachable  until  verify  where  while
+to  unreachable  until  where  while
 ```
 
 'foreach' is no longer part of the language; the compiler recognizes it only to
 produce a migration diagnostic that points to 'for'.
 
-'verify' is reserved and accepted on function declarations, but the current
-'swc' compiler does not execute verification blocks. Do not use one as a
-runtime precondition or as an overload constraint; use ordinary code or a
-'where' constraint, respectively.
+'verify' is no longer part of the language either, and is now an ordinary identifier. It
+used to be accepted on function declarations but was never executed. Express a compile-time
+overload contract with a 'where' constraint, and a runtime precondition with ordinary code.
 
 # Values, Errors, and Conversion
 

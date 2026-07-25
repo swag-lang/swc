@@ -355,7 +355,6 @@ namespace
 
                 case TokenId::KwdFail:
                 case TokenId::KwdWhere:
-                case TokenId::KwdVerify:
                 case TokenId::SymEqualGreater:
                 case TokenId::SymLeftCurly:
                 case TokenId::SymSemiColon:

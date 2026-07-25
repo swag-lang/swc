@@ -31,7 +31,7 @@ namespace CodeGenSafety
     Result emitUndefinedInitMarkers(CodeGen& codeGen, MicroReg addrReg, uint64_t sizeInBytes);
 
     Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg);
-    Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType, bool inclusive);
+    Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType);
     Result emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction);
     Result emitOverflowCheck(CodeGen& codeGen, const AstNode& node);
     Result emitOverflowTrapOnFailure(CodeGen& codeGen, const AstNode& node, MicroCond successCond);

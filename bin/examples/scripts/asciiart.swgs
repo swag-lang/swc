@@ -33,9 +33,9 @@ func openImage(surface: #null *Surface)
     if dlg.doModal() != Dialog.BtnOk do
         return
 
-    g_Img = catch Image.load(dlg.getSelectedName())
-    if @err != null do
-        MessageDlg.error(notnull surface, "Failed to load image")
+    g_Img = catch Image.load(dlg.getSelectedName()) as err
+    if err != null do
+        MessageDlg.error(notnull surface, "Failed to load image", err)
 }
 
 func compute(render: *RenderOgl)

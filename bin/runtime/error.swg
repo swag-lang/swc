@@ -83,10 +83,10 @@ func __popErr()
     cxt.errorAllocator.used = cxt.errors[cxt.errorIndex].pushUsedAlloc
 }
 
-// Dismiss the error a 'catch ... else' handler just dealt with: after the handler runs
-// (with the error still visible through '@err'), clear it so it no longer counts as
-// in-flight for '#fail'/'#nofail' defers or a following '@err' check. 'catchErr' already
-// popped the error frame, so only the current-error pointer remains to be cleared.
+// Dismiss the error a 'catch' handler or 'as err' capture just dealt with: after it runs
+// (with the error still in curError), clear it so it no longer counts as in-flight for
+// '#fail'/'#nofail' defers. 'catchErr' already popped the error frame, so only the
+// current-error pointer remains to be cleared.
 func __endErr()
 {
     @getcontext().curError = null
@@ -118,14 +118,6 @@ func __catchErr()
     cxt.hasError            = 0
     if cxt.errorIndex do
         cxt.errorIndex -= 1
-}
-
-// Returns the current raised error, or null if none
-#[Swag.Inline]
-func @err()->#null any
-{
-    let cxt = @getcontext()
-    return cxt.curError
 }
 
 func __failedExpect(loc: SourceCodeLocation)

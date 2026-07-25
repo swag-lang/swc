@@ -476,7 +476,7 @@ namespace Swag
         exceptionLoc:     SourceCodeLocation                               // When an exception is raised, this is the code location
         exceptionParams:  [4] #null const *void                            // When an exception is raised, this are the parameters
         panic:            #null func(#null string, SourceCodeLocation)     // A function to call if there's a panic
-        curError:         #null any                                        // The current raised error returns by @err
+        curError:         #null any                                        // The current raised error
         errorIndex:       u32                                              // Number of errors in the array
         traceIndex:       u32                                              // Number of traces in the array
         hasError:         u32                                              // <> 0 if an error is raised

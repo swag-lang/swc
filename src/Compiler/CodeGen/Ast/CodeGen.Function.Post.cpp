@@ -1396,10 +1396,6 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         }
     }
 
-    // 'catch e else { H }': run the failure handler here (failure path only). The caught
-    // error stays reachable through '@err' inside H (the Catch cleanup retained it); after H
-    // runs, dismiss it so it no longer counts as in-flight for '#fail'/'#nofail' defers or a
-    // following '@err' check (the old 'trycatch' dismiss semantics).
     // 'catch e as err': seed the captured local from the still-valid curError (the Catch cleanup
     // retained it) on the failure path. The fat 'any' copy lives in '__bindErr'; here we only pass
     // the slot. Works for both the statement and the 'let x = catch f() as err' expression forms.

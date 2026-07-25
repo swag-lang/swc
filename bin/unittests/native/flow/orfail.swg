@@ -42,11 +42,9 @@ func orFailSideFallback()->s32
 {
     let a = orFailParse("swag") orfail 0
     @assert(a == 4)
-    @assert(@err == null)
 
     let b = orFailParse("") orfail 0
     @assert(b == 0)
-    @assert(@err == null)
 
     let c = orFailParse("") orfail -7
     @assert(c == -7)

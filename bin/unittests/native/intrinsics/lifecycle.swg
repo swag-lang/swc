@@ -906,10 +906,10 @@ func intrinsicAutoDropErrorInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
-    catch intrinsicAutoDropErrorImpl()
-    if @err != null
+    catch intrinsicAutoDropErrorImpl() as errc
+    if errc != null
     {
-        let err = cast(IntrinsicLifecycleErr) @err
+        let err = cast(IntrinsicLifecycleErr) errc
         result.first  = err.code
         result.second = 1
     }
@@ -1059,10 +1059,10 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
     var third:  s32 = 0
     {
         var outer = AutoCompactPair{CompactDropTracked{8}, CompactDropTracked{9}}
-        catch intrinsicAutoDropCatchResumeImpl(55)
-        if @err != null
+        catch intrinsicAutoDropCatchResumeImpl(55) as errc
+        if errc != null
         {
-            let err = cast(IntrinsicLifecycleErr) @err
+            let err = cast(IntrinsicLifecycleErr) errc
             first  = err.code
             second = outer.second.value
             third  = 1

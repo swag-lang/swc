@@ -135,8 +135,8 @@ func(T) tourClamp(value, lower, upper: T)->T
 # Recoverable Errors
 
 A function marked 'fail' may return an error instead of its normal result.
-'try' propagates that error, while 'catch' handles it locally and exposes the
-error through '@err'.
+'try' propagates that error, while 'catch' handles it locally; capture it
+with 'as err' to inspect it.
 */
 func tourDivide(numerator, denominator: s32)->s32 fail
 {
@@ -149,9 +149,9 @@ func tourDivide(numerator, denominator: s32)->s32 fail
 {
     @assert(try tourDivide(12, 3) == 4)
 
-    let fallback = catch tourDivide(12, 0)
+    let fallback = catch tourDivide(12, 0) as err
     @assert(fallback == 0)
-    @assert(@err != null)
+    @assert(err != null)
 }
 
 /**

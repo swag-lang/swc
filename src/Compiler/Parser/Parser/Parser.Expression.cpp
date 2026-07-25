@@ -876,7 +876,6 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::IntrinsicCompiler:
         case TokenId::IntrinsicRtFlags:
-        case TokenId::IntrinsicErr:
         case TokenId::IntrinsicProcessInfos:
         case TokenId::IntrinsicArgs:
         case TokenId::IntrinsicModules:

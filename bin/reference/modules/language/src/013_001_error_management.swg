@@ -22,26 +22,28 @@ func count(name: #null string)->u64 fail
 
 /**
 # Catching Errors
-'catch' handles the error locally, returns the default value for the result
-type, and exposes the captured error through '@err'.
+'catch' handles the error locally and returns the default value for the result
+type. To inspect the error, capture it with 'as err': this binds a fresh local
+(of type '#null any') that is null on success and holds the caught error on
+failure. The capture is visible in the enclosing scope, after the catch.
 */
 #test
 {
-    let value = catch count(null)
+    let value = catch count(null) as err
     @assert(value == 0)
-    @assert(@err != null)
+    @assert(err != null)
 
-    let err = cast(MyError) @err
-    @assert(err.code == 7)
-    @assert(err.message == "name cannot be null")
+    let e = cast(MyError) err
+    @assert(e.code == 7)
+    @assert(e.message == "name cannot be null")
 }
 
 /**
 # Handling on Failure with 'catch ... else'
-'catch e else { H }' runs the handler 'H' only when 'e' fails, replacing the
-'catch e; if @err != null do H' pattern. Inside 'H' the caught error is available
-through '@err'. 'H' is evaluated lazily — only on the failure path — and may divert
-control flow (e.g. an early 'return').
+'catch e else { H }' runs the anonymous handler 'H' only when 'e' fails. 'H'
+cannot inspect the error (capture it with 'as err' for that); it is evaluated
+lazily — only on the failure path — and may divert control flow (e.g. an early
+'return'). To read the caught error, use the 'as err' capture form instead.
 */
 func recordTrace(name: #null string, out: *s32) fail
 {
@@ -51,43 +53,23 @@ func recordTrace(name: #null string, out: *s32) fail
 #test
 {
     var seen: s32 = -1
-    catch recordTrace("swag", &seen) else
-    {
-        seen = (cast(MyError) @err).code
-    }
-    @assert(seen == 4)          // success: handler skipped, value recorded
 
-    catch recordTrace(null, &seen) else
-    {
-        seen = (cast(MyError) @err).code
-    }
-    @assert(seen == 7)          // failure: handler ran, '@err' readable
-}
-
-/**
-# Binding the Error with 'catch ... as'
-'catch e as err { H }' is the named form of 'catch e else { H }': it runs the same
-failure handler, but binds the caught error into a fresh local 'err' (of type
-'#null any') visible only inside 'H', so the block reads the value by name instead
-of through '@err'. The binding holds its own copy of the error and, like the 'else'
-form, dismisses the in-flight error once 'H' has run.
-*/
-#test
-{
-    var seen: s32 = -1
-    catch recordTrace(null, &seen) as err
-    {
+    catch recordTrace("swag", &seen) as err
+    if err != null do
         seen = (cast(MyError) err).code
-    }
-    @assert(seen == 7)          // failure: handler ran, 'err' bound to the caught error
-    @assert(@err == null)       // ... and the error is dismissed afterwards
+    @assert(seen == 4)          // success: value recorded, 'err' is null
+
+    catch recordTrace(null, &seen) as err
+    if err != null do
+        seen = (cast(MyError) err).code
+    @assert(seen == 7)          // failure: 'err' holds the caught error
 }
 
 /**
 # Dismissing Errors
 To dismiss a failure and continue, hand the fallible call to 'orfail' with a
-fallback value (see below). '@err' is cleared, and the expression yields the
-fallback instead of the error.
+fallback value (see below). The error is dropped, and the expression yields the
+fallback instead.
 */
 func safeCount(name: #null string)->u64
 {
@@ -97,9 +79,7 @@ func safeCount(name: #null string)->u64
 #test
 {
     @assert(safeCount("hello") == 5)
-    @assert(@err == null)
     @assert(safeCount(null) == 0)
-    @assert(@err == null)
 }
 
 /**
@@ -115,8 +95,7 @@ actually fails.
     @assert(a == 4)
 
     let b = count(null) orfail 99
-    @assert(b == 99)
-    @assert(@err == null)     // 'orfail' dismisses the error
+    @assert(b == 99)     // 'orfail' dismisses the error and yields the fallback
 }
 
 /**
@@ -131,19 +110,17 @@ func propagateCount(name: #null string)->u64 fail
 
 #test
 {
-    let value = catch propagateCount("abc")
+    let value = catch propagateCount("abc") as err
     @assert(value == 3)
-    @assert(@err == null)
+    @assert(err == null)
 }
 
 #test
 {
-    let value = catch propagateCount(null)
+    let value = catch propagateCount(null) as err
     @assert(value == 0)
-    @assert(@err != null)
-
-    let err = cast(MyError) @err
-    @assert(err.code == 7)
+    @assert(err != null)
+    @assert((cast(MyError) err).code == 7)
 }
 
 /**
@@ -158,18 +135,16 @@ func implicitTryCount(name: #null string)->u64 fail
 
 #test
 {
-    let value = catch implicitTryCount(null)
+    let value = catch implicitTryCount(null) as err
     @assert(value == 0)
-    @assert(@err != null)
-
-    let err = cast(MyError) @err
-    @assert(err.code == 7)
+    @assert(err != null)
+    @assert((cast(MyError) err).code == 7)
 }
 
 /**
 # Error-Handling Blocks
-'try', 'catch' (optionally with 'else'), and 'expect' can also guard a whole
-block of code.
+'try', 'catch' (optionally with 'as err' or 'else'), and 'expect' can also guard
+a whole block of code.
 */
 func blockTry(name0: #null string, name1: #null string)->u64 fail
 {
@@ -189,13 +164,12 @@ func blockCatchCode()->s32
     {
         discard count("ok")
         discard count(null)
-    }
+    } as err
 
-    if @err == null do
+    if err == null do
         return -1
 
-    let err = cast(MyError) @err
-    return err.code
+    return (cast(MyError) err).code
 }
 
 func blockCatchElse(name: #null string)->u64
@@ -210,11 +184,10 @@ func blockCatchElse(name: #null string)->u64
 
 #test
 {
-    let value = catch blockTry("ab", null)
+    let value = catch blockTry("ab", null) as err
     @assert(value == 0)
-    @assert(@err != null)
-    let err = cast(MyError) @err
-    @assert(err.code == 7)
+    @assert(err != null)
+    @assert((cast(MyError) err).code == 7)
 }
 
 #test
@@ -257,7 +230,8 @@ func deferOnFail(name: #null string)->u64 fail
 #test
 {
     DeferTrace = 0
-    let value = catch deferOnFail(null)
+    let value = catch deferOnFail(null) as err
     @assert(value == 0)
+    @assert(err != null)
     @assert(DeferTrace == 1)
 }

@@ -308,7 +308,6 @@ SWC_TOKEN_DEF(IntrinsicTableOf, "@tableof",  TokenIdKindE::Intrinsic | TokenIdKi
 
 // INTRINSICS - RUNTIME
 
-SWC_TOKEN_DEF(IntrinsicErr, "@err",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicArgs, "@args",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicJit, "@jit",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(IntrinsicIndex, "@index",  TokenIdKindE::Intrinsic | TokenIdKindE::Return)

@@ -4,7 +4,6 @@
 var c = @countof("foo")
 
 var _01 = @getcontext()
-var _05 = @err()
 var _06 = @args()
 var _07 = @jit
 var _08 = @index()

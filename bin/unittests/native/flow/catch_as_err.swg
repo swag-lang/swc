@@ -2,7 +2,7 @@
 
 // 'catch e as err' captures the caught error into a fresh local 'err' (of type '#null any')
 // bound in the ENCLOSING scope: null when the fallible operand succeeds, the caught error when
-// it fails (dismissed afterwards). It replaces the removed '@err' intrinsic — the error is now
+// it fails (dismissed afterwards). It replaces the removed ambient error intrinsic — the error is now
 // always obtained by an explicit named capture, never a global. Works as a statement and, in
 // expression position, as 'let x = catch f() as err' (result + captured error together).
 

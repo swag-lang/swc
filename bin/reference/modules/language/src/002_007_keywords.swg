@@ -104,7 +104,7 @@ follows them.
 Intrinsic values:
 
 ```swag
-@args  @compiler  @err  @gvtd  @index  @jit
+@args  @compiler  @gvtd  @index  @jit
 @modules  @pinfos  @rtflags
 ```
 

@@ -1,10 +1,9 @@
 #global private
 
 // Real-world error management scenario: a mini bank ledger with atomic
-// transfers. Exercises the whole toolbox: typed throw errors carrying
-// context, try-propagation, catch/trycatch at call sites, @err inspection
-// after catch, defer #fail to roll back on failure, defer #nofail to commit
-// on success.
+// transfers. Exercises the whole toolbox: typed fail errors carrying
+// context, try-propagation, catch with 'as err' capture at call sites,
+// defer #fail to roll back on failure, defer #nofail to commit on success.
 
 const MaxAccounts = 8
 
@@ -328,14 +327,14 @@ impl Ledger
     @assert(ledger.accounts[3].balance == 200)
 }
 
-// trycatch silently dismisses the error; @err stays null.
+// 'catch { ... } as err' captures the error (null on success) and dismisses it.
 #test
 {
     var ledger: Ledger
     ledger.reset()
     catch ledger.deposit(0, 100)
-    catch ledger.transfer(0, 1, 500) else {} as err12
-    @assert(err12 == null)
+    catch ledger.transfer(0, 1, 500) as err12
+    @assert(err12 != null)
     @assert(ledger.accounts[0].balance == 100)
     @assert(ledger.rolledBack == 0)
 }
@@ -352,9 +351,9 @@ impl Ledger
         ledger.deposit(0, 200)
         ledger.deposit(1, 300)
         ledger.withdraw(0, 50)
-    }
+    } as errA
 
-    @assert(@err == null)
+    @assert(errA == null)
     @assert(ledger.accounts[0].balance == 150)
     @assert(ledger.accounts[1].balance == 300)
 
@@ -363,11 +362,11 @@ impl Ledger
         ledger.deposit(0, 100)
         ledger.withdraw(5, 999)
         ledger.deposit(1, 100)
-    }
+    } as errB
 
-    @assert(@err != null)
-    let err = cast(BankError) @err
-    @assert(err.kind == .InsufficientFunds)
+    @assert(errB != null)
+    let ev = cast(BankError) errB
+    @assert(ev.kind == .InsufficientFunds)
     @assert(ledger.accounts[0].balance == 250)
     @assert(ledger.accounts[1].balance == 300)
 }

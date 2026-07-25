@@ -50,7 +50,7 @@ Static queries produce facts known by semantic analysis:
 # Intrinsic Values and Operations
 
 Intrinsics participate in expressions. Some expose context ('@index', '@args',
-'@err'), some construct runtime-shaped values ('@mkslice', '@mkany'), and some
+'@getcontext'), some construct runtime-shaped values ('@mkslice', '@mkany'), and some
 perform primitive operations ('@sqrt', '@memcpy', '@atomadd').
 */
 

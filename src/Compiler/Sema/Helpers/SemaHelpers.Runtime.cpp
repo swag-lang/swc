@@ -236,7 +236,10 @@ Result SemaHelpers::requireRuntimeCatchErrDependency(Sema& sema, const SourceCod
 Result SemaHelpers::requireRuntimeCatchScopeDependencies(Sema& sema, const SourceCodeRef& codeRef)
 {
     SWC_RESULT(requireRuntimePushErrDependency(sema, codeRef));
-    return requireRuntimeCatchErrDependency(sema, codeRef);
+    SWC_RESULT(requireRuntimeCatchErrDependency(sema, codeRef));
+    // 'catch ... else' dismisses the handled error after its handler; the plain 'catch' form
+    // does not call it, but the dependency is cheap and keeps the helper available.
+    return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::EndErr, codeRef);
 }
 
 Result SemaHelpers::requireRuntimePopScopeDependencies(Sema& sema, const SourceCodeRef& codeRef)

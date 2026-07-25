@@ -22,12 +22,12 @@ public func addTypedValue(value: *void, type: typeinfo)
 
     var buf:    ConcatBuffer
     var encode: Encoder'Write.TagBin
-    trycatch
+    catch
     {
         encode.start(&buf)
         encode.writeValue(value, type)
         encode.end()
-    }
+    } else {}
 
     buf.makeLinear()
     addTypedData(g_ValueFormat, type, notnull buf.toSlice())
@@ -65,12 +65,12 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
     let data = getTypedData(g_ValueFormat, type)
 
     var decoder: Decoder'Read.TagBin
-    trycatch
+    catch
     {
         decoder.start(data.toSlice())
         decoder.readTypedContent(value, type)
         decoder.end()
-    }
+    } else {}
 
     return true
 }

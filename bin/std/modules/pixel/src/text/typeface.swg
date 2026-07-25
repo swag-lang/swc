@@ -77,7 +77,7 @@ public impl TypeFace
     }
 
     // Get or create a new typeface from a memory buffer
-    func create(fullname: string, bytes: const [..] u8)->*TypeFace throw
+    func create(fullname: string, bytes: const [..] u8)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
@@ -97,7 +97,7 @@ public impl TypeFace
     }
 
     // Get or load a new typeface
-    func load(fullname: string)->*TypeFace throw
+    func load(fullname: string)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
@@ -126,7 +126,7 @@ public impl TypeFace
         return tf
     }
 
-    private mtd transform(size, embolden: u32 = 0, forceBold, forceItalic = false) throw
+    private mtd transform(size, embolden: u32 = 0, forceBold, forceItalic = false) fail
     {
         var emb = .forceBold or forceBold ? Math.max(1, size / .forceBoldDiv) : 0
         emb += embolden
@@ -149,13 +149,13 @@ public impl TypeFace
     }
 
     // Render one glyph (crisp bitmap path): stem darkening + vertical grid-fitting.
-    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
+    mtd renderGlyph(c: rune, size: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
         return try .renderGlyphByIndex(.face.glyphIndex(c), size, forceBold, forceItalic)
     }
 
     // Render one glyph by glyph index (crisp bitmap path): stem darkening + vertical grid-fitting.
-    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap throw
+    mtd renderGlyphByIndex(glyphIndex: u32, size: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
         .face.setPixelSize(0, size)
         .face.loadGlyph(glyphIndex)
@@ -167,13 +167,13 @@ public impl TypeFace
     }
 
     // Render one glyph as a multi-channel signed distance field
-    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
+    mtd renderGlyphMsdf(c: rune, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
         return try .renderGlyphMsdfByIndex(.face.glyphIndex(c), size, spread, forceBold, forceItalic)
     }
 
     // Render one glyph by glyph index as a multi-channel signed distance field
-    mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap throw
+    mtd renderGlyphMsdfByIndex(glyphIndex: u32, size, spread: u32, forceBold, forceItalic = false)->const *Bitmap fail
     {
         .face.setPixelSize(0, size)
         .face.loadGlyph(glyphIndex)
@@ -184,7 +184,7 @@ public impl TypeFace
 
     // Convert a rune to its outline, at a given size
     #[Swag.Discardable]
-    mtd getRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 throw
+    mtd getRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 fail
     {
         pathList.clear()
 
@@ -206,7 +206,7 @@ public impl TypeFace
     }
 
     // Convert a string to its outline, at a given size
-    mtd getStringOutline(pathList: *LinePathList, text: string, size: u32, embolden: u32 = 0) throw
+    mtd getStringOutline(pathList: *LinePathList, text: string, size: u32, embolden: u32 = 0) fail
     {
         pathList.clear()
 

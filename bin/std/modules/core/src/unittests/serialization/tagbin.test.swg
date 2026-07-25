@@ -162,16 +162,16 @@ public struct TagBinHookPayload
 
 public impl Serialization.ISerialize for TagBinHookPayload
 {
-    mtd impl read(_decoder: Serialization.IDecoder)->bool throw  => false
-    mtd impl write(_encoder: Serialization.IEncoder)->bool throw => false
+    mtd impl read(_decoder: Serialization.IDecoder)->bool fail  => false
+    mtd impl write(_encoder: Serialization.IEncoder)->bool fail => false
 
-    mtd impl readElement(type: TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool throw
+    mtd impl readElement(type: TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool fail
     {
         if type.name == "remapped"
         {
             if !decoder.beginField(type) do
                 return true
-            defer #noerr decoder.endField(type)
+            defer #nofail decoder.endField(type)
 
             dref notnull cast(#null *s32) data = decoder.readS32() - 6
             return true
@@ -181,7 +181,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
         {
             if !decoder.beginField(type) do
                 return true
-            defer #noerr decoder.endField(type)
+            defer #nofail decoder.endField(type)
 
             let raw = decoder.readBufferU8(4)
             defer Memory.free(raw, 4)
@@ -197,12 +197,12 @@ public impl Serialization.ISerialize for TagBinHookPayload
         return false
     }
 
-    mtd impl writeElement(type: TypeValue, data: #null const *void, encoder: Serialization.IEncoder)->bool throw
+    mtd impl writeElement(type: TypeValue, data: #null const *void, encoder: Serialization.IEncoder)->bool fail
     {
         if type.name == "remapped"
         {
             encoder.beginField(type)
-            defer #noerr encoder.endField(type)
+            defer #nofail encoder.endField(type)
 
             encoder.writeS32((dref notnull cast(#null const *s32) data) + 10)
             return true
@@ -211,7 +211,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
         if type.name == "bytes"
         {
             encoder.beginField(type)
-            defer #noerr encoder.endField(type)
+            defer #nofail encoder.endField(type)
 
             let values = cast(const *Array'u8) notnull data
             encoder.writeBufferU8(values.buffer, values.count)
@@ -221,7 +221,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
         return false
     }
 
-    mtd impl postRead(data: #null *void, _decoder: Serialization.IDecoder) throw
+    mtd impl postRead(data: #null *void, _decoder: Serialization.IDecoder) fail
     {
         let value = cast(*TagBinHookPayload) notnull data
         value.postReadSeen = true

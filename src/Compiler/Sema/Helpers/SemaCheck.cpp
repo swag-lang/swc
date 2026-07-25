@@ -337,8 +337,8 @@ namespace
         {
             case AstModifierFlagsE::Bit: return TokenId::ModifierBit;
             case AstModifierFlagsE::UnConst: return TokenId::ModifierUnConst;
-            case AstModifierFlagsE::Err: return TokenId::ModifierErr;
-            case AstModifierFlagsE::NoErr: return TokenId::ModifierNoErr;
+            case AstModifierFlagsE::Fail: return TokenId::ModifierFail;
+            case AstModifierFlagsE::NoFail: return TokenId::ModifierNoFail;
             case AstModifierFlagsE::Promote: return TokenId::ModifierPromote;
             case AstModifierFlagsE::Wrap: return TokenId::ModifierWrap;
             case AstModifierFlagsE::NoDrop: return TokenId::ModifierNoDrop;

@@ -50,8 +50,8 @@ using Core
 func day7A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
-    let line     = assume File.readAllText(dataPath)
-    let g        = assume Parser.RegExp.grepAll(#"\l+"#, line)
+    let line     = expect File.readAllText(dataPath)
+    let g        = expect Parser.RegExp.grepAll(#"\l+"#, line)
 
     // Console.print(g)
 

@@ -42,10 +42,10 @@ func inlineSafetyDynCastEnabled()->bool
     return #safety(Swag.SafetyWhat.DynCast)
 }
 
-#[Swag.Inline, Swag.Safety(.Assume, true)]
+#[Swag.Inline, Swag.Safety(.Expect, true)]
 func inlineSafetyAssumeEnabled()->bool
 {
-    return #safety(Swag.SafetyWhat.Assume)
+    return #safety(Swag.SafetyWhat.Expect)
 }
 
 #[Swag.Inline, Swag.Safety(.Unreachable, true)]

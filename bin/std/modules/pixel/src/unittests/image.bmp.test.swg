@@ -131,7 +131,7 @@ func bmpCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeBmp(result: *ConcatBuffer, image: Image) throw
+func encodeBmp(result: *ConcatBuffer, image: Image) fail
 {
     var enc: Bmp.Encoder
     let itf = @mkinterface(&enc, #typeof(Bmp.Encoder), IImageEncoder)

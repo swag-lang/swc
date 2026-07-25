@@ -23,7 +23,7 @@ using Core
 func day9B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "9.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total: s64
 
@@ -33,7 +33,7 @@ func day9B()
 
         var values: Array's64
         for v in vals do
-            values.add(assume StrConv.toS64(v))
+            values.add(expect StrConv.toS64(v))
 
         var column: Array's64
         column.add(values[0])

@@ -5,12 +5,12 @@ struct ErrValue
     using base: Swag.BaseError
 }
 
-func mayThrowValue()->s32 throw
+func mayThrowValue()->s32 fail
 {
     return 42
 }
 
-func mayThrowVoid() throw {}
+func mayThrowVoid() fail {}
 
 func plainValue()->s32
 {
@@ -19,7 +19,7 @@ func plainValue()->s32
 
 func plainVoid() {}
 
-func propagateValue()->s32 throw
+func propagateValue()->s32 fail
 {
     return try mayThrowValue()
 }
@@ -32,35 +32,35 @@ func handleValue()->s32
 
 func dismissValue()->s32
 {
-    let value: s32 = trycatch mayThrowValue()
+    let value: s32 = mayThrowValue() orfail 0
     return value
 }
 
 func assumeValue()->s32
 {
-    let value: s32 = assume mayThrowValue()
+    let value: s32 = expect mayThrowValue()
     return value
 }
 
-func raiseValue() throw
+func raiseValue() fail
 {
-    throw ErrValue{}
+    fail ErrValue{}
 }
 
 func raiseHandled()
 {
     catch
     {
-        throw ErrValue{}
+        fail ErrValue{}
     }
 }
 
-func directPropagateStmt() throw
+func directPropagateStmt() fail
 {
     mayThrowVoid()
 }
 
-func propagateStmt() throw
+func propagateStmt() fail
 {
     try mayThrowVoid()
     try

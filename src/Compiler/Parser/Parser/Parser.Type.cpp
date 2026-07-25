@@ -407,8 +407,8 @@ AstNodeRef Parser::parseLambdaType()
         returnType = parseType();
 
     // Can raise errors
-    if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstFunctionFlagsE::Throwable);
+    if (consumeIf(TokenId::KwdFail).isValid())
+        flags.add(AstFunctionFlagsE::Fallible);
 
     auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::LambdaType>(tokStart);
     nodePtr->flags()           = flags;

@@ -232,8 +232,7 @@ impl MainWnd
 
     mtd saveCapture(capture: *Capture)
     {
-        catch capture.save()
-        if @err != null do
+        catch capture.save() else do
             MessageDlg.error(notnull .surface, Format.toString("Failed to save capture file: %", capture.file))
     }
 
@@ -517,8 +516,7 @@ impl MainWnd
         #[Swag.Mixin]
         mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId)
         {
-            catch .getApp().registerHotKey(mdf, key, wndId, me)
-            if @err != null
+            catch .getApp().registerHotKey(mdf, key, wndId, me) else
             {
                 if !errorReg
                 {
@@ -763,9 +761,9 @@ impl MainWnd
         }
         #else
         {
-            img24  = assume Image.decode(".png", Icons24)
-            img48  = assume Image.decode(".png", Icons48)
-            imgApp = assume Image.decode(".png", AppIcon)
+            img24  = expect Image.decode(".png", Icons24)
+            img48  = expect Image.decode(".png", Icons48)
+            imgApp = expect Image.decode(".png", AppIcon)
         }
 
         let renderer = parent.getApp().getRenderer()

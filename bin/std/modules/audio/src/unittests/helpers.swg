@@ -45,7 +45,7 @@ func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
     return path
 }
 
-func audioDecodePcmToPcm16(srcEncoding: SoundFileEncoding, src: [..] u8, destCapacity: u64)->{ dest: Array'u8, used: { write, read: u64 } } throw
+func audioDecodePcmToPcm16(srcEncoding: SoundFileEncoding, src: [..] u8, destCapacity: u64)->{ dest: Array'u8, used: { write, read: u64 } } fail
 {
     var codec: CodecPcmToPcm16
     codec.srcEncoding = srcEncoding

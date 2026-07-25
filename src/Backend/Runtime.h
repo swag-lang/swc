@@ -382,7 +382,7 @@ namespace Runtime
         Unreachable = 0x0080,
         Null        = 0x0100,
         Memory      = 0x0200,
-        Assume      = 0x0400,
+        Expect      = 0x0400,
         Lifecycle   = 0x0800,
         None        = 0x0000,
         All         = 0xFFFF,

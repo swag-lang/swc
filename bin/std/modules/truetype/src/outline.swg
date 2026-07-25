@@ -55,7 +55,7 @@ public impl Outline
         }
     }
 
-    mtd embolden(strength: s32) throw
+    mtd embolden(strength: s32) fail
     {
         if .pointCount <= 0 or .contourCount <= 0 or !strength do
             return

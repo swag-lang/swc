@@ -25,18 +25,18 @@ using Core
 func day2A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var r: Parser.RegExp
-    assume r.compile(#"(\d+)-(\d+) ([a-z]): ([a-z])+"#)
+    expect r.compile(#"(\d+)-(\d+) ([a-z]): ([a-z])+"#)
 
     var total: u32
     for l in lines
     {
         discard r.match(l)
 
-        let min    = assume StrConv.toS32(r.getCapture(1))
-        let max    = assume StrConv.toS32(r.getCapture(2))
+        let min    = expect StrConv.toS32(r.getCapture(1))
+        let max    = expect StrConv.toS32(r.getCapture(2))
         let letter = r.getCapture(3)[0] - 'a'
         let pwd    = r.getCapture(4)
 

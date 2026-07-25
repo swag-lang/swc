@@ -153,8 +153,8 @@ AstNodeRef Parser::parseLambdaExpression()
         returnType = parseType();
 
     // Can raise errors
-    if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstFunctionFlagsE::Throwable);
+    if (consumeIf(TokenId::KwdFail).isValid())
+        flags.add(AstFunctionFlagsE::Fallible);
 
     // Body
     AstNodeRef body = AstNodeRef::invalid();
@@ -245,8 +245,8 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
         nodePtr->nodeReturnTypeRef = AstNodeRef::invalid();
 
     // Throw
-    if (consumeIf(TokenId::KwdThrow).isValid())
-        flags.add(AstFunctionFlagsE::Throwable);
+    if (consumeIf(TokenId::KwdFail).isValid())
+        flags.add(AstFunctionFlagsE::Fallible);
     nodePtr->flags() = flags;
 
     // Constraints

@@ -41,15 +41,15 @@ func appendNumbers(a, b: u64)->u64
 func day7B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0'u64
     for l in lines
     {
         let split0 = Tokenize.split(l, ":")
-        let res    = assume StrConv.toU64(split0[0])
+        let res    = expect StrConv.toU64(split0[0])
         let split1 = Tokenize.split(split0[1], " ")
-        let vals   = Slice.map(split1.toSlice(), func(x) => assume StrConv.toU64(x))
+        let vals   = Slice.map(split1.toSlice(), func(x) => expect StrConv.toU64(x))
 
         func checkMath(target: u64, resin: u64, operands: [..] u64, operator: u8)->bool
         {

@@ -92,20 +92,20 @@ public impl ByteStream
     }
 
     // Reads a native value of type 'T' from the stream
-    mtd(T) readNative()->T throw
+    mtd(T) readNative()->T fail
     {
         if .seek + #sizeof(T) > .length() do
-            throw OverflowError{"byte stream overflow"}
+            fail OverflowError{"byte stream overflow"}
         let val = dref cast(const *T) (.readData() + .seek)
         .seek += #sizeof(T)
         return val
     }
 
     // Reads 'count' bytes from the stream into 'dest'
-    mtd readBytes(dest: #null *u8, count: u64) throw
+    mtd readBytes(dest: #null *u8, count: u64) fail
     {
         if .seek + count > .length() do
-            throw OverflowError{"byte stream overflow"}
+            fail OverflowError{"byte stream overflow"}
         Memory.copy(dest, .readData() + .seek, count)
         .seek += count
     }

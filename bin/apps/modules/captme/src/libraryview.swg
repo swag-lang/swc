@@ -485,7 +485,7 @@ impl LibraryView
         .invalidate()
     }
 
-    mtd fill() throw
+    mtd fill() fail
     {
         if .thread.isValid()
         {

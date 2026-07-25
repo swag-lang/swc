@@ -31,7 +31,7 @@ namespace Scoped
 var ScopedValue:     Scoped.Box
 var ScopedFunc:      func(Scoped.Box)->Scoped.Box              = undefined
 var ScopedClosure:   func||(Scoped.Box)->Scoped.Box            = undefined
-var ScopedNamedFunc: func(value: Scoped.Box)->Scoped.Box throw = undefined
+var ScopedNamedFunc: func(value: Scoped.Box)->Scoped.Box fail = undefined
 var ScopedVariadic:  func(Scoped.Box...)->Scoped.Box           = undefined
 var ScopedArray:     [2] Scoped.Box
 var ScopedWrapped:   Scoped.Wrapper'(Scoped.Box)
@@ -42,7 +42,7 @@ var ScopedWrapped:   Scoped.Wrapper'(Scoped.Box)
 #assert(#fullnameof(#typeof(ScopedValue)) == "Scoped.Box")
 #assert(#fullnameof(#typeof(ScopedFunc)) == "func(Scoped.Box)->Scoped.Box")
 #assert(#fullnameof(#typeof(ScopedClosure)) == "func||(Scoped.Box)->Scoped.Box")
-#assert(#fullnameof(#typeof(ScopedNamedFunc)) == "func(value: Scoped.Box)->Scoped.Box throw")
+#assert(#fullnameof(#typeof(ScopedNamedFunc)) == "func(value: Scoped.Box)->Scoped.Box fail")
 #assert(#fullnameof(#typeof(ScopedVariadic)) == "func(Scoped.Box...)->Scoped.Box")
 #assert(#fullnameof(#typeof(ScopedArray)) == "[2] Scoped.Box")
 #assert(#fullnameof(Scoped.Wrapper'(Scoped.Box)) == "Scoped.Wrapper'(Scoped.Box)")

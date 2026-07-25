@@ -935,7 +935,7 @@ impl Deflate
         }
     }
 
-    mtd compress() throw
+    mtd compress() fail
     {
         let d          = notnull .state
         var pSrc       = d.inSrc
@@ -1143,13 +1143,13 @@ public impl Deflate
     }
 
     // Compress the source buffer
-    mtd compress(result: *Array'u8, src: const [..] u8) throw
+    mtd compress(result: *Array'u8, src: const [..] u8) fail
     {
         if @countof(src) > Swag.U32.Max
         {
             var err: UnsupportedFormatError
             err.message = "source buffer too big"
-            throw err
+            fail err
         }
 
         Debug.assert(.state != null, "'init' not called")

@@ -45,7 +45,7 @@ using Core
 func day6A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var map:   HashSet'u8
     var total: u64

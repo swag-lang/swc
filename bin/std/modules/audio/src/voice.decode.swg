@@ -2,7 +2,7 @@ using Core, Core.Errors
 
 impl Voice
 {
-    mtd readBuffer()->{ buffer: #null [*] void, size: u64 } throw
+    mtd readBuffer()->{ buffer: #null [*] void, size: u64 } fail
     {
         let file = notnull .file
 
@@ -42,12 +42,12 @@ impl Voice
         closeData(me)
     }
 
-    mtd createCodec() throw
+    mtd createCodec() fail
     {
         let file = notnull .file
         let desc = getCodec(.requestedEncoding, file.encoding)
         if !desc do
-            throw UnsupportedFormatError{"unsupported encoding"}
+            fail UnsupportedFormatError{"unsupported encoding"}
         let decoderData = notnull Memory.new(desc.type)
         let decoder     = cast(*Codec) decoderData
         decoder.srcEncoding = file.encoding
@@ -67,7 +67,7 @@ impl Voice
         .codec = null
     }
 
-    mtd decodeData(destBuffer: [*] void, length: u64)->u64 throw
+    mtd decodeData(destBuffer: [*] void, length: u64)->u64 fail
     {
         let file = notnull .file
 
@@ -84,7 +84,7 @@ impl Voice
         // Otherwise we need a codec
         if !.codec
         {
-            assume .createCodec()
+            expect .createCodec()
             .streamBuffer.reserve(StreamBufferSize)
             let readStart    = .streamCurSeek
             let streamBuffer = notnull .streamBuffer.buffer
@@ -102,7 +102,7 @@ impl Voice
         return used.write
     }
 
-    mtd readData(destBuffer: [*] void, length: u64)->u64 throw
+    mtd readData(destBuffer: [*] void, length: u64)->u64 fail
     {
         let file = notnull .file
 
@@ -137,7 +137,7 @@ impl Voice
         return .stream.read(destBuffer, wantedLength)
     }
 
-    mtd rewindData() throw
+    mtd rewindData() fail
     {
         .streamCurSeek = 0
         if .stream.isOpen()

@@ -83,6 +83,15 @@ func __popErr()
     cxt.errorAllocator.used = cxt.errors[cxt.errorIndex].pushUsedAlloc
 }
 
+// Dismiss the error a 'catch ... else' handler just dealt with: after the handler runs
+// (with the error still visible through '@err'), clear it so it no longer counts as
+// in-flight for '#fail'/'#nofail' defers or a following '@err' check. 'catchErr' already
+// popped the error frame, so only the current-error pointer remains to be cleared.
+func __endErr()
+{
+    @getcontext().curError = null
+}
+
 func __catchErr()
 {
     let cxt = @getcontext()
@@ -104,7 +113,7 @@ func @err()->#null any
     return cxt.curError
 }
 
-func __failedAssume(loc: SourceCodeLocation)
+func __failedExpect(loc: SourceCodeLocation)
 {
     let cxt  = @getcontext()
     let type = @kindof(cxt.errors[cxt.errorIndex].value)

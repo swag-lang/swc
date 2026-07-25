@@ -33,8 +33,8 @@ runtime precondition or as an overload constraint; use ordinary code or a
 # Values, Errors, and Conversion
 
 ```swag
-assume  cast  catch  discard  dref  false  notnull  null
-retval  throw  true  try  trycatch  undefined
+cast  catch  discard  dref  expect  fail  false  notnull
+null  orfail  retval  true  try  undefined
 ```
 
 'not' is reserved for future use.
@@ -95,7 +95,7 @@ Modifiers refine the declaration, type, loop, argument, or operation that
 follows them.
 
 ```swag
-#bit  #err  #fwd  #late  #move  #nodrop  #noerr  #null
+#bit  #fail  #fwd  #late  #move  #nodrop  #nofail  #null
 #prom  #relocate  #reverse  #unconst  #wrap
 ```
 

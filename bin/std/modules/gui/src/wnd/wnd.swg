@@ -1666,7 +1666,7 @@ impl Wnd
     // Serialization
     //////////////////////////////////////////////
 
-    mtd serializeState(ser: *Serialization.Serializer) throw
+    mtd serializeState(ser: *Serialization.Serializer) fail
     {
         var evt: SerializeStateEvent
         evt.accepted = false

@@ -16,7 +16,7 @@ using Core
 func day4B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     for l in lines
     {
@@ -29,7 +29,7 @@ func day4B()
             idx     += 1
         }
 
-        let res = assume StrConv.parseS64(l[idx to])
+        let res = expect StrConv.parseS64(l[idx to])
 
         for [i] in @countof(str) do
             str[i] = cast(u8) ((str[i] + res.value) % 26 + 'a')

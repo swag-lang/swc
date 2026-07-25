@@ -28,38 +28,38 @@ public impl Xml
         return true
     }
 
-    mtd readTag()->string throw
+    mtd readTag()->string fail
     {
         .zapBlanks()
 
         var c = .stream.readU8()
         if c != '<' do
-            throw .getError("malformed tag, missing opening [[<]]")
+            fail .getError("malformed tag, missing opening [[<]]")
 
         let start = .stream.getSeek()
         c = .stream.readU8()
         while c and c != '>' do
             c = .stream.readU8()
         if c != '>' do
-            throw .getError("malformed tag, missing closing [[>]]")
+            fail .getError("malformed tag, missing closing [[>]]")
 
         let end = .stream.getSeek() - 1
         return Latin1.trim(cast(string) (notnull .stream.readBuffer)[start until end])
     }
 
-    mtd readStartTag()->string throw
+    mtd readStartTag()->string fail
     {
         let tag = .readTag()
         .stackTags.add(tag)
         return tag
     }
 
-    mtd readEndTag() throw
+    mtd readEndTag() fail
     {
         let tag   = .readTag()
         let start = .stackTags.popBack()
         if tag[1 to ] != start do
-            throw .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
+            fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
     }
 
     mtd getError(val: string)->SyntaxError
@@ -103,63 +103,63 @@ public impl Xml
         return c != '<'
     }
 
-    mtd beginSection(_kind: SectionKind) throw
+    mtd beginSection(_kind: SectionKind) fail
     {
         discard .readTag()
     }
 
-    mtd endSection() throw
+    mtd endSection() fail
     {
         discard .readTag()
     }
 
-    mtd beginRoot() throw
+    mtd beginRoot() fail
     {
         discard .readStartTag()
     }
 
-    mtd endRoot() throw
+    mtd endRoot() fail
     {
         .readEndTag()
     }
 
-    mtd beginElement(val: TypeValue)->bool throw
+    mtd beginElement(val: TypeValue)->bool fail
     {
         let tag = .readStartTag()
         if tag != val.name do
-            throw .getError("invalid property name")
+            fail .getError("invalid property name")
         return true
     }
 
-    mtd endElement(_val: TypeValue) throw
+    mtd endElement(_val: TypeValue) fail
     {
         .readEndTag()
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
     {
-        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool throw
+        mtd beginStruct(structType: typeinfo, structData: const *u8)->bool fail
         {
             return false
         }
 
-        mtd endStruct() throw {}
+        mtd endStruct() fail {}
 
-        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool throw
+        mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool fail
         {
             return false
         }
 
-        mtd endSequence() throw {}
-        mtd beginValue() throw {}
-        mtd endValue() throw {}
+        mtd endSequence() fail {}
+        mtd beginValue() fail {}
+        mtd endValue() fail {}
     }
 
     /////////////////////////////////
     // VALUES
     /////////////////////////////////
 
-    mtd(NT) readNative()->NT throw
+    mtd(NT) readNative()->NT fail
     {
         .zapBlanks()
         #if NT == bool

@@ -44,10 +44,10 @@ struct DibHeader
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
     if ptr + size > last do
-        throw InvalidFormatError{"invalid source buffer"}
+        fail InvalidFormatError{"invalid source buffer"}
 }
 
 // Width/height of 0 in a directory entry means 256
@@ -91,12 +91,12 @@ func maskBit(andRow: const [*] u8, x: s32)->u32
 }
 
 // Decode the embedded BITMAPINFOHEADER icon image into a BGRA8 result.
-func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) throw
+func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
 {
     if dib.bitCount != 1 and dib.bitCount != 4 and dib.bitCount != 8 and dib.bitCount != 24 and dib.bitCount != 32 do
-        throw UnsupportedFormatError{"unsupported icon bit count"}
+        fail UnsupportedFormatError{"unsupported icon bit count"}
     if dib.compression != 0 do
-        throw UnsupportedFormatError{"unsupported icon compression"}
+        fail UnsupportedFormatError{"unsupported icon compression"}
 
     let width  = result.width
     let height = result.height
@@ -154,7 +154,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) throw
             default:
                 let index = packedIndex(xorRow, dib.bitCount, x)
                 if index >= paletteCount do
-                    throw InvalidFormatError{"invalid palette index"}
+                    fail InvalidFormatError{"invalid palette index"}
                 let entry = palette + cast(u64) index * 4
                 b = entry[0]
                 g = entry[1]
@@ -179,20 +179,20 @@ public impl IImageDecoder for Decoder
         return ext == ".ico" or ext == ".cur"
     }
 
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         let base    = @dataof(buffer)
         let countof = @countof(buffer)
         let last    = base + countof
 
         if countof < #sizeof(IconDir) do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         let dir = dref cast(const *IconDir) base
         if dir.type != 1 and dir.type != 2 do
-            throw InvalidFormatError{"not an icon"}
+            fail InvalidFormatError{"not an icon"}
         if dir.count == 0 do
-            throw InvalidFormatError{"empty icon"}
+            fail InvalidFormatError{"empty icon"}
 
         checkBuffer(base, last, cast(u64) #sizeof(IconDir) + cast(u64) dir.count * #sizeof(IconDirEntry))
 
@@ -214,7 +214,7 @@ public impl IImageDecoder for Decoder
         }
 
         if cast(u64) bestEntry.imageOffset + bestEntry.bytesInRes > countof do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         let imgPtr = base + bestEntry.imageOffset
         let imgLen = cast(u64) bestEntry.bytesInRes
@@ -229,13 +229,13 @@ public impl IImageDecoder for Decoder
 
         // BMP/DIB-encoded entry
         if imgLen < #sizeof(DibHeader) do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         let dib = dref cast(const *DibHeader) imgPtr
         if dib.size < #sizeof(DibHeader) do
-            throw UnsupportedFormatError{"unsupported icon header"}
+            fail UnsupportedFormatError{"unsupported icon header"}
         if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do
-            throw InvalidFormatError{"invalid dimensions"}
+            fail InvalidFormatError{"invalid dimensions"}
 
         var result: retval
         result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)

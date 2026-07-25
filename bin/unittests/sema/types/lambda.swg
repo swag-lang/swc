@@ -6,16 +6,16 @@ var B: func(s32, bool) = undefined
 #assert(#nameof(#typeof(B)) == "func(s32, bool)")
 var C: func(s32, bool)->string = undefined
 #assert(#nameof(#typeof(C)) == "func(s32, bool)->string")
-var D: func(s32, string)->#null *s32 throw = undefined
-#assert(#nameof(#typeof(D)) == "func(s32, string)->#null *s32 throw")
+var D: func(s32, string)->#null *s32 fail = undefined
+#assert(#nameof(#typeof(D)) == "func(s32, string)->#null *s32 fail")
 var E: func||(s32) = undefined
 #assert(#nameof(#typeof(E)) == "func||(s32)")
 var F: func||(s32, bool) = undefined
 #assert(#nameof(#typeof(F)) == "func||(s32, bool)")
 var G: func||(s32, bool)->string = undefined
 #assert(#nameof(#typeof(G)) == "func||(s32, bool)->string")
-var H: func||(s32, string)->#null *s32 throw = undefined
-#assert(#nameof(#typeof(H)) == "func||(s32, string)->#null *s32 throw")
+var H: func||(s32, string)->#null *s32 fail = undefined
+#assert(#nameof(#typeof(H)) == "func||(s32, string)->#null *s32 fail")
 
 struct RecursiveFuncField
 {

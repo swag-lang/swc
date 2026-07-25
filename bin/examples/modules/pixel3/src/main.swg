@@ -34,7 +34,7 @@ func fontPath(fileName: string, loc = #callerlocation)->String
     return Path.combine(Path.combine(srcPath, "data"), fileName)
 }
 
-func loadFonts() throw
+func loadFonts() fail
 {
     g_FontPath = fontPath("segoeui.ttf")
     let path = g_FontPath.toString()

@@ -9,7 +9,7 @@ func gifCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeGif(result: *ConcatBuffer, image: Image) throw
+func encodeGif(result: *ConcatBuffer, image: Image) fail
 {
     var enc: Gif.Encoder
     let itf = @mkinterface(&enc, #typeof(Gif.Encoder), IImageEncoder)

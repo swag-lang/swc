@@ -52,10 +52,10 @@ private func defaultThemeImages()->*DefaultThemeImages
     Sync.scopedLock(&cache.lock)
     if !cache.decoded
     {
-        cache.widgets = assume Image.decode(DefaultImageName, DefaultImage)
-        cache.icons24 = assume Image.decode(DefaultIcons24Name, DefaultIcons24)
-        cache.icons64 = assume Image.decode(DefaultIcons64Name, DefaultIcons64)
-        cache.spin    = assume Image.decode(DefaultSpinName, DefaultSpin)
+        cache.widgets = expect Image.decode(DefaultImageName, DefaultImage)
+        cache.icons24 = expect Image.decode(DefaultIcons24Name, DefaultIcons24)
+        cache.icons64 = expect Image.decode(DefaultIcons64Name, DefaultIcons64)
+        cache.spin    = expect Image.decode(DefaultSpinName, DefaultSpin)
         cache.decoded = true
     }
 

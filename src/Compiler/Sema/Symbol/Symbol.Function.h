@@ -28,7 +28,7 @@ enum class SymbolFunctionFlagsE : uint16_t
     Zero                   = 0,
     Closure                = 1 << 0,
     Method                 = 1 << 1,
-    Throwable              = 1 << 2,
+    Fallible              = 1 << 2,
     Const                  = 1 << 3,
     Empty                  = 1 << 4,
     Attribute              = 1 << 5,
@@ -129,7 +129,7 @@ public:
     void             setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
     bool             isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
     bool             isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
-    bool             isThrowable() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Throwable); }
+    bool             isFallible() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Fallible); }
     bool             isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
     bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
     bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
@@ -213,7 +213,7 @@ private:
 
     static constexpr SymbolFunctionFlags K_SEMANTIC_FLAGS = SymbolFunctionFlagsE::Closure |
                                                             SymbolFunctionFlagsE::Method |
-                                                            SymbolFunctionFlagsE::Throwable |
+                                                            SymbolFunctionFlagsE::Fallible |
                                                             SymbolFunctionFlagsE::Const |
                                                             SymbolFunctionFlagsE::Empty |
                                                             SymbolFunctionFlagsE::Attribute |

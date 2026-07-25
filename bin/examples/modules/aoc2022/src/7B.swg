@@ -21,7 +21,7 @@ using Core
 func day7B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var folder:  String
     var folders: HashTable'(String, s32)
@@ -47,7 +47,7 @@ func day7B()
             break
 
         default:
-            let size = assume StrConv.toS32(cmd[0])
+            let size = expect StrConv.toS32(cmd[0])
             var tmp  = folder
             for
             {

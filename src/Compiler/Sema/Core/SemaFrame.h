@@ -103,7 +103,7 @@ public:
         Try,
         Catch,
         TryCatch,
-        Assume,
+        Expect,
     };
 
     struct BreakContext

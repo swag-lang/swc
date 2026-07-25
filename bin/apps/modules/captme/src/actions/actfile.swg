@@ -205,11 +205,11 @@ impl IActionUI for ActionFile
             main.saveCapture(capture)
 
             let file = Library.newFileName()
-            trycatch File.duplicate(file, capture.file)
+            catch File.duplicate(file, capture.file) else {}
 
-            let newCapture = trycatch Capture.load(file)
+            let newCapture = Capture.load(file) orfail null
 
-            // `Capture.load` is fallible; `trycatch` swallows a failure and yields null,
+            // `Capture.load` is fallible; `orfail null` swallows a failure and yields null,
             // so guard before dereferencing to avoid a null crash and abort the duplication.
             if !newCapture
             {
@@ -221,11 +221,11 @@ impl IActionUI for ActionFile
             loaded.file        = file
             loaded.linkedImage = ""
             loaded.changed     = true
-            trycatch loaded.save()
+            catch loaded.save() else {}
             Memory.delete(loaded)
             g_Library.addFile(file)
 
-            let dupCapture = trycatch main.recentWnd.addRecent(file, true, true)
+            let dupCapture = main.recentWnd.addRecent(file, true, true) orfail null
             Memory.delete(dupCapture)
 
         case RenameCapture:
@@ -343,8 +343,7 @@ impl MainWnd
         md.value = capture.file.toSlice()
         img.metaDatas.add(md)
 
-        catch img.save(nameFile, optImg)
-        if @err != null
+        catch img.save(nameFile, optImg) else
         {
             MessageDlg.error(notnull .surface, "Failed to save file")
             return

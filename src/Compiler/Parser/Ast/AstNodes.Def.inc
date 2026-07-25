@@ -142,7 +142,7 @@ SWC_NODE_DEF(AsCastExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(IsTypeExpr, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(TryCatchExpr, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(ThrowExpr, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(FailExpr, AstNodeIdFlagsE::Zero)
 
 // ============================================================================
 //  Literals

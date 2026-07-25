@@ -197,14 +197,14 @@ func tiffCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeTiff(result: *ConcatBuffer, image: Image) throw
+func encodeTiff(result: *ConcatBuffer, image: Image) fail
 {
     var enc: Tiff.Encoder
     let itf = @mkinterface(&enc, #typeof(Tiff.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
+func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var dec: Tiff.Decoder
     let itf = @mkinterface(&dec, #typeof(Tiff.Decoder), IImageDecoder)

@@ -81,21 +81,21 @@ func icoCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeIco(result: *ConcatBuffer, image: Image) throw
+func encodeIco(result: *ConcatBuffer, image: Image) fail
 {
     var enc: Ico.Encoder
     let itf = @mkinterface(&enc, #typeof(Ico.Encoder), IImageEncoder)
     itf.encode(result, image, null)
 }
 
-func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image throw
+func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     var dec: Ico.Decoder
     let itf = @mkinterface(&dec, #typeof(Ico.Decoder), IImageDecoder)
     return itf.decode(bytes, opt)
 }
 
-func encodePng(result: *ConcatBuffer, image: Image) throw
+func encodePng(result: *ConcatBuffer, image: Image) fail
 {
     var enc: Png.Encoder
     let itf = @mkinterface(&enc, #typeof(Png.Encoder), IImageEncoder)

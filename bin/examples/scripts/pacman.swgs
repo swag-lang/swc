@@ -1040,7 +1040,7 @@ impl Pacman
             {
                 if chomp do
                     chomp.destroy()
-                g_VoiceChomp = assume Audio.Voice.play(&g_SoundChomp)
+                g_VoiceChomp = expect Audio.Voice.play(&g_SoundChomp)
             }
 
             setTile(.getX(), .getY(), e)
@@ -1580,7 +1580,7 @@ func soundState()
         }
 
         if !g_VoiceRetreat do
-            g_VoiceRetreat = assume Audio.Voice.play(&g_SoundRetreat, playFlags: .Loop)
+            g_VoiceRetreat = expect Audio.Voice.play(&g_SoundRetreat, playFlags: .Loop)
 
     case FRIGHTENED:
         if let voice = g_VoiceSiren
@@ -1596,7 +1596,7 @@ func soundState()
         }
 
         if !g_VoiceScared do
-            g_VoiceScared = assume Audio.Voice.play(&g_SoundScared, playFlags: .Loop)
+            g_VoiceScared = expect Audio.Voice.play(&g_SoundScared, playFlags: .Loop)
 
     case SIREN:
         if let voice = g_VoiceScared
@@ -1613,9 +1613,9 @@ func soundState()
 
         if !g_VoiceSiren
         {
-            let siren = notnull assume Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
+            let siren = notnull expect Audio.Voice.play(&g_SoundSiren, playFlags: .Loop)
             g_VoiceSiren = siren
-            assume siren.setVolume(0.4)
+            expect siren.setVolume(0.4)
         }
     }
 }
@@ -1945,7 +1945,7 @@ func gameLoop()
     {
     case STARTLEVEL:
         if !g_VoiceReady do
-            g_VoiceReady = assume Audio.Voice.play(&g_SoundReady)
+            g_VoiceReady = expect Audio.Voice.play(&g_SoundReady)
         let voice = notnull g_VoiceReady
         if !voice.isPlaying()
         {
@@ -2002,7 +2002,7 @@ func gameLoop()
 
     case FRUIT:
         if !g_VoiceEatFruit do
-            g_VoiceEatFruit = assume Audio.Voice.play(&g_SoundEatFruit)
+            g_VoiceEatFruit = expect Audio.Voice.play(&g_SoundEatFruit)
 
         // if g_Ticks == g_TimeStamp + 90
         let voice = notnull g_VoiceEatFruit
@@ -2017,7 +2017,7 @@ func gameLoop()
 
     case EAT:
         if !g_VoiceEatGhost do
-            g_VoiceEatGhost = assume Audio.Voice.play(&g_SoundEatGhost)
+            g_VoiceEatGhost = expect Audio.Voice.play(&g_SoundEatGhost)
 
         // if g_Ticks == g_TimeStamp + 90
         let voice = notnull g_VoiceEatGhost
@@ -2032,7 +2032,7 @@ func gameLoop()
 
     case DEATH:
         if !g_VoiceDeath do
-            g_VoiceDeath = assume Audio.Voice.play(&g_SoundDeath)
+            g_VoiceDeath = expect Audio.Voice.play(&g_SoundDeath)
 
         // if g_Ticks > g_TimeStamp + 180
         let voice = notnull g_VoiceDeath
@@ -2121,7 +2121,7 @@ func loadBindTextures()
 {
     func loadAndBindTexture(name: string)->Texture
     {
-        return assume theWnd().getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
+        return expect theWnd().getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
     }
 
     // Assets are located in the 'datas/pacman' sub folder
@@ -2219,7 +2219,7 @@ func loadBindTextures()
     // Sounds
     func loadSound(name: string, loadDatas = true)->Audio.SoundFile
     {
-        return assume Audio.SoundFile.load(Path.combine(g_DataPath, name), loadDatas)
+        return expect Audio.SoundFile.load(Path.combine(g_DataPath, name), loadDatas)
     }
 
     g_SoundReady    = loadSound("audio/pacman_beginning.wav", false)
@@ -2234,12 +2234,12 @@ func loadBindTextures()
 
 #main
 {
-    assume Audio.createEngine()
+    expect Audio.createEngine()
     defer Audio.destroyEngine()
 
     func muteForTest(app: *Application)
     {
-        if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0)
+        if Env.hasArg("swag.test") do expect Audio.setOutputVolume(0)
     }
 
     Application.runSurface(100, 100, cast(s32) (300 * Scale) - 150, cast(s32) (345 * Scale) - 31, title: "Pacman", hook: &onEvent, init: &muteForTest)

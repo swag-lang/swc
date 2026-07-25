@@ -36,7 +36,7 @@ using Core
 func day9B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     let target = 552655238
     for l, [i] in lines
@@ -46,7 +46,7 @@ func day9B()
         var max = 0
         for l1 in lines[i to]
         {
-            let v1 = assume StrConv.toS32(l1)
+            let v1 = expect StrConv.toS32(l1)
             min = Math.min(min, v1)
             max = Math.max(max, v1)
             sum += v1

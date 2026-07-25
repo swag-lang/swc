@@ -31,11 +31,11 @@ using Core
 func day1A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "1.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
     for l in lines do
-        total += assume StrConv.toS32(l[1 to ]) * (l[0] == '-' ? -1 : 1)
+        total += expect StrConv.toS32(l[1 to ]) * (l[0] == '-' ? -1 : 1)
 
     // Console.print("total: ", total)
     @assert(total == 420)

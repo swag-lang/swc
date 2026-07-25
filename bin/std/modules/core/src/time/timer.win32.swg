@@ -17,7 +17,7 @@ private func timerEntry(param: #null *void, _timerOrWaitFired: BOOL)
 impl Timer
 {
     // Creates a new timer
-    func create(elapsedTimeMs: u32, lambda: func(Timer), periodic = false)->Timer throw
+    func create(elapsedTimeMs: u32, lambda: func(Timer), periodic = false)->Timer fail
     {
         var result: retval
         try result.init(elapsedTimeMs, lambda, periodic)
@@ -25,7 +25,7 @@ impl Timer
     }
 
     // Initialize timer
-    mtd init(elapsedTimeMs: u32, lambda: func(Timer), periodic = false) throw
+    mtd init(elapsedTimeMs: u32, lambda: func(Timer), periodic = false) fail
     {
         Debug.assert(.handle == null)
         Debug.assert(elapsedTimeMs > 0)
@@ -41,11 +41,11 @@ impl Timer
         if !.handle do
             return
 
-        let evt = assume CreateEventA(null, FALSE, FALSE, null)
+        let evt = expect CreateEventA(null, FALSE, FALSE, null)
         defer CloseHandle(evt)
 
         DeleteTimerQueueTimer(null, .handle, evt)
-        assume WaitForSingleObject(evt, INFINITE)
+        expect WaitForSingleObject(evt, INFINITE)
 
         .handle = null
     }

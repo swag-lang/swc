@@ -112,7 +112,7 @@ struct WAVEFORMATEXTENSIBLE
     subFormat:     GUID     // Format identifier GUID
 }
 
-func setEncodingFormat(file: *SoundFile, formatTag: u16) throw
+func setEncodingFormat(file: *SoundFile, formatTag: u16) fail
 {
     switch formatTag
     {
@@ -126,32 +126,32 @@ func setEncodingFormat(file: *SoundFile, formatTag: u16) throw
         elif file.bitsPerSample == 32 do
             file.encoding = .Pcm32
         else do
-            throw UnsupportedFormatError{"unsupported pcm bitPerSample"}
+            fail UnsupportedFormatError{"unsupported pcm bitPerSample"}
 
     case WAVE_FORMAT_IEEE_FLOAT:
         if file.bitsPerSample == 32 do
             file.encoding = .Float32
         else do
-            throw UnsupportedFormatError{"unsupported float bitPerSample"}
+            fail UnsupportedFormatError{"unsupported float bitPerSample"}
 
     case WAVE_FORMAT_EXTENSIBLE:
         break
 
     default:
-        throw UnsupportedFormatError{"unsupported wav format"}
+        fail UnsupportedFormatError{"unsupported wav format"}
     }
 }
 
-func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) throw
+func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fail
 {
     if chunkSize < #sizeof(WAVEFORMAT) do
-        throw InvalidFormatError{"invalid wav"}
+        fail InvalidFormatError{"invalid wav"}
 
     let chunkStart = stream.getPosition()
 
     var wf: WAVEFORMAT
     if !stream.readValue(&wf) do
-        throw InvalidFormatError{"invalid wav"}
+        fail InvalidFormatError{"invalid wav"}
 
     file.frequency     = wf.nSamplesPerSec
     file.channelCount  = wf.nChannels
@@ -170,7 +170,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
         file.validity |= .BitsPerSample
 
         if !stream.readValue(&pcmwf.wBitsPerSample) do
-            throw InvalidFormatError{"invalid wav"}
+            fail InvalidFormatError{"invalid wav"}
         file.bitsPerSample = pcmwf.wBitsPerSample
         file.setEncodingFormat(wf.wFormatTag)
 
@@ -181,7 +181,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
             wfx.pcmwf = pcmwf
 
             if !stream.readValue(&wfx.cbSize) do
-                throw InvalidFormatError{"invalid wav"}
+                fail InvalidFormatError{"invalid wav"}
 
             ////////
             if chunkSize >= #sizeof(WAVEFORMATEXTENSIBLE)
@@ -192,11 +192,11 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
                 file.validity |= .ValidBitsPerSample
 
                 if !stream.readValue(&wfex.samples) do
-                    throw InvalidFormatError{"invalid wav"}
+                    fail InvalidFormatError{"invalid wav"}
                 if !stream.readValue(&wfex.dwChannelMask) do
-                    throw InvalidFormatError{"invalid wav"}
+                    fail InvalidFormatError{"invalid wav"}
                 if !stream.readValue(&wfex.subFormat) do
-                    throw InvalidFormatError{"invalid wav"}
+                    fail InvalidFormatError{"invalid wav"}
 
                 file.validBitsPerSample = wfex.samples.wValidBitsPerSample
                 file.channelMask        = wfex.dwChannelMask
@@ -207,7 +207,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
                     {
                     case Memory.equals(&wfex.subFormat, GUID_PCM):        file.setEncodingFormat(WAVE_FORMAT_PCM)
                     case Memory.equals(&wfex.subFormat, GUID_IEEE_FLOAT): file.setEncodingFormat(WAVE_FORMAT_IEEE_FLOAT)
-                    default:                                              throw UnsupportedFormatError{"unsupported wav format"}
+                    default:                                              fail UnsupportedFormatError{"unsupported wav format"}
                     }
                 }
             }
@@ -215,14 +215,14 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) th
     }
 
     if wf.wFormatTag == WAVE_FORMAT_EXTENSIBLE and chunkSize < #sizeof(WAVEFORMATEXTENSIBLE) do
-        throw InvalidFormatError{"invalid wav"}
+        fail InvalidFormatError{"invalid wav"}
 
     let readSize = stream.getPosition() - chunkStart
     if readSize < chunkSize do
         stream.skipPosition(chunkSize - readSize)
 }
 
-func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) throw
+func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fail
 {
     file.validity |= .Data
     file.dataSeek = stream.getPosition()
@@ -238,7 +238,7 @@ func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) t
 }
 
 // Load a wav file
-public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = true, loadMetaDatas = false) throw
+public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = true, loadMetaDatas = false) fail
 {
     enum Stage
     {
@@ -258,14 +258,14 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
         {
             if file.validity.has(.Data) do
                 return
-            throw InvalidFormatError{"invalid wav"}
+            fail InvalidFormatError{"invalid wav"}
         }
 
         if seek & 1 do
             stream.skipPosition(1)
 
         if !stream.readValue(&header) do
-            throw InvalidFormatError{"invalid wav"}
+            fail InvalidFormatError{"invalid wav"}
 
         switch header.chunkID
         {
@@ -273,9 +273,9 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
             if stage == .FindRiff
             {
                 if !stream.readValue(&header.chunkID) do
-                    throw InvalidFormatError{"invalid riff chunk"}
+                    fail InvalidFormatError{"invalid riff chunk"}
                 if header.chunkID != SND_WAV_FOURCC_WAVE do
-                    throw InvalidFormatError{"not a wav"}
+                    fail InvalidFormatError{"not a wav"}
                 stage = .FindFmt
             }
 
@@ -294,7 +294,7 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
                 {
                     file.datas.resize(header.chunkSize)
                     if stream.read(file.datas.buffer, header.chunkSize) != header.chunkSize do
-                        throw InvalidFormatError{"cannot read datas"}
+                        fail InvalidFormatError{"cannot read datas"}
                 }
                 elif loadMetaDatas
                 {
@@ -330,7 +330,7 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
             if header.chunkSize do
                 stream.skipPosition(header.chunkSize)
             else do
-                throw InvalidFormatError{"invalid wav"}
+                fail InvalidFormatError{"invalid wav"}
         }
     }
 }

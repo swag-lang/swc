@@ -89,7 +89,7 @@ public impl Voice
 
     // Creates a new voice for a given sound file.
     // A voice is what will be actually played. You can have as many voices as you want for one unique [[SoundFile]].
-    func create(file: *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice throw
+    func create(file: *SoundFile, createFlags = VoiceCreateFlags.Default)->#null *Voice fail
     {
         let voice = g_Driver.createVoice()
         voice.file = file
@@ -103,7 +103,7 @@ public impl Voice
     // Creates a voice and plays it.
     // By default, the voice will be destroyed when stopped or finished.
     #[Swag.Discardable]
-    func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice throw
+    func play(file: *SoundFile, createFlags = VoiceCreateFlags.Default, playFlags = VoicePlayFlags.Default)->#null *Voice fail
     {
         let voice = notnull create(file, createFlags)
         voice.play(playFlags)
@@ -113,7 +113,7 @@ public impl Voice
     // Plays a voice.
     // By default, you will have to destroy the voice yourself when no more needed, for example if [[Voice.isPlaying]] returns false. But if you want the voice to be destroyed automatically when done, set the 'DestroyOnStop' flag in 'playFlags'.
     // See [[Voice.create]]
-    mtd play(playFlags = VoicePlayFlags.Zero) throw
+    mtd play(playFlags = VoicePlayFlags.Zero) fail
     {
         if .hasState(.Playing) do
             return
@@ -129,7 +129,7 @@ public impl Voice
     }
 
     // Pause the playing voice
-    mtd pause() throw
+    mtd pause() fail
     {
         if !.hasState(.Playing) do
             return
@@ -138,7 +138,7 @@ public impl Voice
     }
 
     // Stop the playing voice
-    mtd stop() throw
+    mtd stop() fail
     {
         if !.hasState(.Playing) do
             return
@@ -166,13 +166,13 @@ public impl Voice
     }
 
     // Set the playing voice volume
-    mtd setVolumeDB(volumeDB: f32, batchID: u32 = 0) throw
+    mtd setVolumeDB(volumeDB: f32, batchID: u32 = 0) fail
     {
         .setVolume(convertDBToPercent(volumeDB), batchID)
     }
 
     // Returns the actual volume, in DB
-    mtd getVolumeDB()->f32 throw
+    mtd getVolumeDB()->f32 fail
     {
         return convertPercentToDB(.getVolume())
     }

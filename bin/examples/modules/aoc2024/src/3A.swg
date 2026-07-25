@@ -23,9 +23,9 @@ using Core
 func day3A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    let line     = assume File.readAllText(dataPath)
+    let line     = expect File.readAllText(dataPath)
 
-    var r     = assume Parser.RegExp.create(#"mul\(\d+,\d+\)"#)
+    var r     = expect Parser.RegExp.create(#"mul\(\d+,\d+\)"#)
     let d     = r.grepAll(line)
     var total = 0
     for v in d
@@ -34,7 +34,7 @@ func day3A()
         cpy.replace("mul(", "")
         cpy.replace(")", "")
         let split = Tokenize.split(cpy, ",")
-        total += assume StrConv.toS32(split[0]) * assume StrConv.toS32(split[1])
+        total += expect StrConv.toS32(split[0]) * expect StrConv.toS32(split[1])
     }
 
     @assert(total == 196826776)

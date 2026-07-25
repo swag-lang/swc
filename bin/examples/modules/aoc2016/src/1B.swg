@@ -12,7 +12,7 @@ using Core
 func day1B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "1.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     let split = Tokenize.split(lines[0], ',''u8)
     var dx    = 0
@@ -31,7 +31,7 @@ func day1B()
     for it in split
     {
         let v = Latin1.trim(it)
-        let n = assume StrConv.toS32(v[1 to])
+        let n = expect StrConv.toS32(v[1 to])
         switch v[0]
         {
         case 'R':

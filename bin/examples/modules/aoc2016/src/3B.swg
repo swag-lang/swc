@@ -17,7 +17,7 @@ using Core
 
 func day3B()
 {
-    assume
+    expect
     {
         let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
         let lines    = File.readAllLines(dataPath)

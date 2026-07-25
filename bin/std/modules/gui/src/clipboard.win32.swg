@@ -9,7 +9,7 @@ alias ValueFormat = u64
 private var g_PngFormat: UINT
 
 // Register a new format
-func registerFormat(name: string)->ValueFormat throw
+func registerFormat(name: string)->ValueFormat fail
 {
     return try RegisterClipboardFormatA(@dataof(name))
 }
@@ -191,8 +191,7 @@ func addImage(image: Image)
         var opt:    Png.EncodeOptions
 
         opt.compressionLevel = .NoCompression     // We want best speed
-        catch png.IImageEncoder.encode(&buffer, image, opt)
-        if @err != null do
+        catch png.IImageEncoder.encode(&buffer, image, opt) else do
             break
 
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, buffer.count())

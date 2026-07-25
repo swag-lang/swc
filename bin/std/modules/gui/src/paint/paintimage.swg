@@ -50,7 +50,7 @@ impl PaintImage
     // First init the PaintImage instance
     public mtd init(w, h: s32)
     {
-        .surface          = notnull assume .app.createSurface(0, 0, 1, 1, hook: &onEvent)
+        .surface          = notnull expect .app.createSurface(0, 0, 1, 1, hook: &onEvent)
         .surface.userData = me
         .w                = w
         .h                = h

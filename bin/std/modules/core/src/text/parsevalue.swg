@@ -13,7 +13,7 @@ using Swag, Core.Errors
 // 'buf' can contain multiple values separated with blanks if 'type' is:
 // * a static array of the types above
 // * a dynamic 'Core.Array' of the types above
-public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string throw
+public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string fail
 {
     var patch = cast(*u8) addr
     var one   = Tokenize.eatSpaces(buf)
@@ -42,7 +42,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
         while @countof(one) and one[0] != '#'
         {
             if cpt == arrayType.totalCount do
-                throw InvalidFormatError{"too many static array values"}
+                fail InvalidFormatError{"too many static array values"}
             one     = (parseValue(addrVal, arrayType.finalType, one) orelse "")
             one     = Tokenize.eatSpaces(one)
             addrVal += arrayType.finalType.sizeof
@@ -58,7 +58,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
         let enumType = cast(const *TypeInfoEnum) type
         let rawType  = notnull enumType.rawType
         if rawType != string and enumType.sizeof > 8 do
-            throw UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", rawType.name))}
+            fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", rawType.name))}
         let enumFlags = Reflection.hasAttribute(enumType, EnumFlags)
 
         for
@@ -67,7 +67,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
             let id = parseIdentifier(one) orelse ""
             let v  = Reflection.getEnumValue(type, id)
             if !v do
-                throw InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
+                fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
             let enumValue = notnull v.value
 
             if enumType.rawType == string
@@ -106,7 +106,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
                 break
 
             if one[0] != '|' do
-                throw InvalidFormatError{"invalid enum flags format"}
+                fail InvalidFormatError{"invalid enum flags format"}
             one = Tokenize.eatCount(one, 1)
         }
 
@@ -131,70 +131,70 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
         var val: s8 = undefined
             (val, eat, ovf) = parseS8(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*s8) patch = val
 
     case s16:
         var val: s16 = undefined
             (val, eat, ovf) = parseS16(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*s16) patch = val
 
     case s32:
         var val: s32 = undefined
             (val, eat, ovf) = parseS32(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*s32) patch = val
 
     case s64:
         var val: s64 = undefined
             (val, eat, ovf) = parseS64(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*s64) patch = val
 
     case u8:
         var val: u8 = undefined
             (val, eat, ovf) = parseU8(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*u8) patch = val
 
     case u16:
         var val: u16 = undefined
             (val, eat, ovf) = parseU16(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*u16) patch = val
 
     case u32:
         var val: u32 = undefined
             (val, eat, ovf) = parseU32(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*u32) patch = val
 
     case u64:
         var val: u64 = undefined
             (val, eat, ovf) = parseU64(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*u64) patch = val
 
     case f32:
         var val: f32 = undefined
             (val, eat, ovf) = parseF32(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*f32) patch = val
 
     case f64:
         var val: f64 = undefined
             (val, eat, ovf) = parseF64(one)
         if ovf do
-            throw OverflowError{}
+            fail OverflowError{}
         dref cast(*f64) patch = val
 
     case bool:
@@ -211,7 +211,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->#null string t
         eat = parseString(cast(*String) patch, one)
 
     default:
-        throw UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}
+        fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]]", type.name))}
     }
 
     return Tokenize.eatCount(one, cast(u64) eat)

@@ -485,21 +485,21 @@ func deferReturnDropInfo()->DeferDropInfo
     struct ErrDefer {}
 
     #[Swag.Inline]
-    func deferThrowLeaf() throw
+    func deferThrowLeaf() fail
     {
         defer appendDeferTrace(1)
-        throw ErrDefer{}
+        fail ErrDefer{}
     }
 
     #[Swag.Inline]
-    func deferThrowMid() throw
+    func deferThrowMid() fail
     {
         defer appendDeferTrace(2)
         try deferThrowLeaf()
     }
 
     #[Swag.Inline]
-    func deferThrowTop() throw
+    func deferThrowTop() fail
     {
         defer appendDeferTrace(4)
         try deferThrowMid()
@@ -520,7 +520,7 @@ func deferReturnDropInfo()->DeferDropInfo
 {
     struct ErrConditional {}
 
-    func deferConditionalReturnTrace()->DeferReturnInfo throw
+    func deferConditionalReturnTrace()->DeferReturnInfo fail
     {
         resetDeferTrace()
         with var result: retval
@@ -530,19 +530,19 @@ func deferReturnDropInfo()->DeferDropInfo
         }
 
         defer result.trace = DeferTrace
-        defer #err appendDeferTrace(1)
-        defer #noerr appendDeferTrace(2)
+        defer #fail appendDeferTrace(1)
+        defer #nofail appendDeferTrace(2)
         appendDeferTrace(3)
         return result
     }
 
-    func deferConditionalThrowImpl() throw
+    func deferConditionalThrowImpl() fail
     {
         resetDeferTrace()
-        defer #err appendDeferTrace(1)
-        defer #noerr appendDeferTrace(2)
+        defer #fail appendDeferTrace(1)
+        defer #nofail appendDeferTrace(2)
         appendDeferTrace(3)
-        throw ErrConditional{}
+        fail ErrConditional{}
     }
 
     func deferConditionalThrowTrace()->s64
@@ -555,8 +555,8 @@ func deferReturnDropInfo()->DeferDropInfo
     {
         resetDeferTrace()
         {
-            defer #err appendDeferTrace(1)
-            defer #noerr appendDeferTrace(2)
+            defer #fail appendDeferTrace(1)
+            defer #nofail appendDeferTrace(2)
             catch deferConditionalThrowImpl()
         }
 
@@ -567,9 +567,9 @@ func deferReturnDropInfo()->DeferDropInfo
     {
         resetDeferTrace()
         {
-            defer #err appendDeferTrace(1)
-            defer #noerr appendDeferTrace(2)
-            trycatch deferConditionalThrowImpl()
+            defer #fail appendDeferTrace(1)
+            defer #nofail appendDeferTrace(2)
+            catch deferConditionalThrowImpl() else {}
         }
 
         return DeferTrace
@@ -614,18 +614,18 @@ func deferReturnDropInfo()->DeferDropInfo
 {
     struct ErrSticky {}
 
-    func failWithErrDefer() throw
+    func failWithErrDefer() fail
     {
-        defer #err appendDeferTrace(1)
-        defer #noerr appendDeferTrace(2)
+        defer #fail appendDeferTrace(1)
+        defer #nofail appendDeferTrace(2)
         appendDeferTrace(3)
-        throw ErrSticky{}
+        fail ErrSticky{}
     }
 
-    func succeedWithNoErrDefer() throw
+    func succeedWithNoErrDefer() fail
     {
-        defer #err appendDeferTrace(4)
-        defer #noerr appendDeferTrace(5)
+        defer #fail appendDeferTrace(4)
+        defer #nofail appendDeferTrace(5)
         appendDeferTrace(6)
     }
 

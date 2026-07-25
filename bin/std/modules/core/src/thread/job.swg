@@ -133,7 +133,7 @@ public func isSynchrone()->bool => g_numWorkers == 0
 public func getNumWorkers()->u32 => cast(u32) g_numWorkers
 
 // Set the number of worker threads. Must be done once
-public func setNumWorkers(numWorkers: u32 = 0) throw
+public func setNumWorkers(numWorkers: u32 = 0) fail
 {
     Debug.assert(g_numWorkers == 0)
 

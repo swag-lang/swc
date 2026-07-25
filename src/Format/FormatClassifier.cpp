@@ -616,7 +616,7 @@ namespace
                         // Prototype (interface method, foreign function): the
                         // terminating `;` is required by the grammar. It may
                         // sit after closing brackets and suffix keywords such
-                        // as `throw`.
+                        // as `fail`.
                         for (uint32_t p = nextCode(span.maxPiece); p != INVALID_PIECE; p = nextCode(p))
                         {
                             if (model_->gapHasNewline(p))
@@ -856,11 +856,28 @@ namespace
                 case AstNodeId::FallThroughStmt:
                 case AstNodeId::UnreachableStmt:
                 case AstNodeId::TryCatchStmt:
-                case AstNodeId::TryCatchExpr:
-                case AstNodeId::ThrowExpr:
+                case AstNodeId::FailExpr:
                 case AstNodeId::DiscardExpr:
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
                     break;
+
+                case AstNodeId::TryCatchExpr:
+                {
+                    // 'orfail' is a postfix binary operator ('e orfail V'); every other
+                    // form ('try'/'catch'/'trycatch'/'expect') is a leading keyword.
+                    const auto& tc = node.cast<AstTryCatchExpr>();
+                    if (tc.nodeFallbackRef.isValid())
+                    {
+                        const NodeSpan leftSpan = spanOf(tc.nodeExprRef);
+                        if (leftSpan.valid())
+                            addRole(nextCodeAfterOperand(leftSpan.maxPiece), FormatRoleE::BinaryOp);
+                    }
+                    else
+                    {
+                        addRole(span.minPiece, FormatRoleE::ControlKeyword);
+                    }
+                    break;
+                }
 
                 case AstNodeId::UsingDecl:
                 case AstNodeId::UsingNamespaceStmt:

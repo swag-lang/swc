@@ -1,7 +1,7 @@
 #global export
 
 // Throw a [[Swag.SystemError]]
-func throwWinError(errorMessageID: u32) throw
+func failWinError(errorMessageID: u32) fail
 {
     if errorMessageID == 0 do
         return
@@ -33,5 +33,5 @@ func throwWinError(errorMessageID: u32) throw
         }
     }
 
-    throw err
+    fail err
 }

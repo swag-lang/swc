@@ -30,11 +30,11 @@ using Core
 func day1A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "1.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var arr: Array's32
     for v in lines do
-        arr.add(assume StrConv.toS32(v))
+        arr.add(expect StrConv.toS32(v))
 
     arr.sort()
 

@@ -24,7 +24,7 @@ using Core
 func day2B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
     for l in lines
@@ -34,7 +34,7 @@ func day2B()
         #scope(Done)
             for v in Tokenize.splitAny(l, [' ', '\t'])
         {
-            let value = assume StrConv.toS32(Latin1.trim(v))
+            let value = expect StrConv.toS32(Latin1.trim(v))
             for v1 in values
             {
                 if value % v1 == 0

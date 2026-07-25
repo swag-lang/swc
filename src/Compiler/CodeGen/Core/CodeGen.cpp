@@ -90,10 +90,10 @@ namespace
         if (!dst.runtimeArrayFillCstRef.isValid() && src.runtimeArrayFillCstRef.isValid())
             dst.runtimeArrayFillCstRef = src.runtimeArrayFillCstRef;
         dst.runtimeSafetyMask |= src.runtimeSafetyMask;
-        if (!dst.throwableWrapperConsumed && !dst.hasThrowableWrapper() && src.hasThrowableWrapper())
+        if (!dst.fallibleWrapperConsumed && !dst.hasFallibleWrapper() && src.hasFallibleWrapper())
         {
-            dst.throwableWrapperOwnerRef = src.throwableWrapperOwnerRef;
-            dst.throwableWrapperTokenId  = src.throwableWrapperTokenId;
+            dst.fallibleWrapperOwnerRef = src.fallibleWrapperOwnerRef;
+            dst.fallibleWrapperTokenId  = src.fallibleWrapperTokenId;
         }
     }
 
@@ -1149,8 +1149,8 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
             if (action.bodyRef.isInvalid())
                 return Result::Continue;
 
-            const bool needsErr   = action.modifierFlags.has(AstModifierFlagsE::Err);
-            const bool needsNoErr = action.modifierFlags.has(AstModifierFlagsE::NoErr);
+            const bool needsErr   = action.modifierFlags.has(AstModifierFlagsE::Fail);
+            const bool needsNoErr = action.modifierFlags.has(AstModifierFlagsE::NoFail);
             if (!needsErr && !needsNoErr)
                 return emitNodeNow(action.bodyRef);
 

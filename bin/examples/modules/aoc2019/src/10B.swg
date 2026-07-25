@@ -64,7 +64,7 @@ using Core
 func day10B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     struct Pos
     {

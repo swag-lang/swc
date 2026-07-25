@@ -19,7 +19,7 @@ using Core
 func day3B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total: u64 = 1
     for s, [slope] in [{1, 1}, {3, 1}, {5, 1}, {7, 1}, {1, 2}]

@@ -57,10 +57,10 @@ impl SoundFile
     // Load a 'SoundFile' from disk.
     // Will load the sound datas if 'loadDatas' is true.
     // Will load the sound metadatas if 'loadMetaData' is true.
-    func load(fullname: string, loadDatas = true, loadMetaDatas = false)->SoundFile throw
+    func load(fullname: string, loadDatas = true, loadMetaDatas = false)->SoundFile fail
     {
         if Path.getExtensionLowerCase(fullname) != ".wav" do
-            throw UnsupportedFormatError{"unsupported file extension"}
+            fail UnsupportedFormatError{"unsupported file extension"}
 
         var result: retval
         var stream = File.openRead(fullname)

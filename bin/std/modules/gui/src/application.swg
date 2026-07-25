@@ -592,7 +592,7 @@ impl Application
             flags &= ~.Sizeable
         if !borders do
             flags &= ~.Border
-        let surface = notnull (assume app.createSurface(x, y, width, height, flags, view, hook))
+        let surface = notnull (expect app.createSurface(x, y, width, height, flags, view, hook))
         surface.setTitle(title)
         if init do
             init(&app)
@@ -603,7 +603,7 @@ impl Application
     }
 
     // Creates a new surface
-    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: #null *Wnd = null, hook: #null HookEvent = null, surfaceID: #null string = null)->#null *Surface throw
+    mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.OverlappedWindow, view: #null *Wnd = null, hook: #null HookEvent = null, surfaceID: #null string = null)->#null *Surface fail
     {
         let surface = Memory.new'Surface()
         surface.app       = me
@@ -681,7 +681,7 @@ impl Application
             s.wnd.updateTheme()
     }
 
-    private mtd serializeState(ser: *Serializer) throw
+    private mtd serializeState(ser: *Serializer) fail
     {
         ser.beginSection(.Unordered)
         for s in .surfaces do
@@ -690,7 +690,7 @@ impl Application
     }
 
     // Save the application state
-    mtd saveState() throw
+    mtd saveState() fail
     {
         if .configPath.isEmpty() do
             return
@@ -706,7 +706,7 @@ impl Application
     }
 
     // Load the application state
-    mtd loadState() throw
+    mtd loadState() fail
     {
         if .configPath.isEmpty() do
             return
@@ -905,7 +905,7 @@ impl Application
     }
 
     // Register a global os key action
-    mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId, target: *Wnd) throw
+    mtd registerHotKey(mdf: Input.KeyModifiers, key: Input.Key, wndId: WndId, target: *Wnd) fail
     {
         for &c in .hotKeys
         {

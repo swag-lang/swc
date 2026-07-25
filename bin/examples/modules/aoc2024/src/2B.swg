@@ -24,7 +24,7 @@ using Core
 func day2B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
     for l in lines
@@ -39,7 +39,7 @@ func day2B()
             var bad  = false
             for v in first
             {
-                let a = assume StrConv.toS32(v)
+                let a = expect StrConv.toS32(v)
                 if @index
                 {
                     let diff = a - prev

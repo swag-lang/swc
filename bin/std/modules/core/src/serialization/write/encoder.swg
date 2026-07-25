@@ -14,16 +14,16 @@ interface IEncoder
 {
     mtd isTextual()->bool;
 
-    mtd start(result: *ConcatBuffer) throw;
-    mtd end() throw;
+    mtd start(result: *ConcatBuffer) fail;
+    mtd end() fail;
 
-    mtd beginField(val: Swag.TypeValue) throw;
-    mtd endField(val: Swag.TypeValue) throw;
-    mtd beginSection(kind: SectionKind) throw;
-    mtd endSection() throw;
+    mtd beginField(val: Swag.TypeValue) fail;
+    mtd endField(val: Swag.TypeValue) fail;
+    mtd beginSection(kind: SectionKind) fail;
+    mtd endSection() fail;
 
-    mtd write(data: const [*] void, type: typeinfo) throw;
-    mtd writeBufferU8(data: #null const [*] u8, count: u64) throw;
+    mtd write(data: const [*] void, type: typeinfo) fail;
+    mtd writeBufferU8(data: #null const [*] u8, count: u64) fail;
 
     mtd writeBool(value: bool);
     mtd writeS8(value: s8);
@@ -73,40 +73,40 @@ struct(T) Encoder
 impl Encoder
 {
     // Start serialization
-    mtd start(result: *ConcatBuffer) throw
+    mtd start(result: *ConcatBuffer) fail
     {
         .serializer.startWrite(result)
         .serializer.beginRoot()
     }
 
     // End serialization
-    mtd end() throw
+    mtd end() fail
     {
         .serializer.endRoot()
     }
 
     // Write a given Swag.TypeValue.
-    mtd writeTypeValue(typeVal: TypeValue, data: #null const [*] void) throw
+    mtd writeTypeValue(typeVal: TypeValue, data: #null const [*] void) fail
     {
         if !typeVal.pointedType do
-            throw SerializationError{"missing type value pointed type"}
+            fail SerializationError{"missing type value pointed type"}
         if !data do
-            throw SerializationError{"missing data for type value"}
+            fail SerializationError{"missing data for type value"}
         .serializer.beginElement(typeVal)
         .writeValue(data, typeVal.pointedType)
         .serializer.endElement(typeVal)
     }
 
     // Write a given value with a given type.
-    mtd writeValue(data: const [*] void, dataType: #null typeinfo) throw
+    mtd writeValue(data: const [*] void, dataType: #null typeinfo) fail
     {
         if !dataType do
-            throw SerializationError{"missing data type"}
+            fail SerializationError{"missing data type"}
         var type = Reflection.makeConcreteAlias(dataType orelse #typeof(u8))
         type = Reflection.makeConcreteEnum(type)
 
         .serializer.beginValue()
-        defer #noerr .serializer.endValue()
+        defer #nofail .serializer.endValue()
 
         // Native
         if type.kind == .Native
@@ -142,7 +142,7 @@ impl Encoder
             let itf = cast(const *Swag.Interface) data
 
             .serializer.beginSection(.Raw)
-            defer #noerr .serializer.endSection()
+            defer #nofail .serializer.endSection()
 
             var objType, itfType: #null typeinfo
             if itf.itable
@@ -160,7 +160,7 @@ impl Encoder
                 .writeTypeValue(typeVal, &itfType)
                 typeVal.pointedType = objType
                 if !itf.obj do
-                    throw SerializationError{"missing interface object"}
+                    fail SerializationError{"missing interface object"}
                 .writeTypeValue(typeVal, itf.obj)
             }
 
@@ -172,7 +172,7 @@ impl Encoder
             if Reflection.isTuple(type)
             {
                 if .errorIfUnknown do
-                    throw UnsupportedFormatError{"cannot serialize an anonymous struct"}
+                    fail UnsupportedFormatError{"cannot serialize an anonymous struct"}
                 return
             }
 
@@ -217,7 +217,7 @@ impl Encoder
             // Start a fields section
             let structType = cast(const *TypeInfoStruct) type
             let treated    = .serializer.beginStruct(structType, data)
-            defer #noerr .serializer.endStruct()
+            defer #nofail .serializer.endStruct()
             if treated do
                 return
 
@@ -229,7 +229,7 @@ impl Encoder
                 if Reflection.hasAttribute(field.pointedType, NoSerialize) do
                     continue
                 if !field.pointedType do
-                    throw SerializationError{"missing field pointed type"}
+                    fail SerializationError{"missing field pointed type"}
                 let fieldType = field.pointedType
 
                 if !itf or !itf.writeElement(field, cast(#null const [*] u8) data + field.offset, cast(IEncoder) dref &me)
@@ -246,7 +246,7 @@ impl Encoder
         {
             let typeArr = cast(const *TypeInfoArray) type
             if !typeArr.pointedType do
-                throw SerializationError{"missing array pointed type"}
+                fail SerializationError{"missing array pointed type"}
             let elemType = typeArr.pointedType orelse #typeof(u8)
             let treated  = .serializer.beginSequence(elemType, data, typeArr.count)
             defer .serializer.endSequence()
@@ -264,12 +264,12 @@ impl Encoder
         }
 
         if .errorIfUnknown do
-            throw UnsupportedFormatError{Errors.mkString(Format.toString("cannot serialize type [[%]]", type.name))}
+            fail UnsupportedFormatError{Errors.mkString(Format.toString("cannot serialize type [[%]]", type.name))}
     }
 
     // Write a full struct.
     // Will call [[Encoder.start]], [[Encoder.writeValue]] and [[Encoder.end]]
-    mtd writeAll(result: *ConcatBuffer, value: any) throw
+    mtd writeAll(result: *ConcatBuffer, value: any) fail
     {
         Debug.assert(Reflection.isStruct(@kindof(value)))
         start(me, result)
@@ -286,57 +286,57 @@ impl IEncoder for Encoder
     }
 
     // Start serialization
-    mtd impl start(result: *ConcatBuffer) throw
+    mtd impl start(result: *ConcatBuffer) fail
     {
         .serializer.startWrite(result)
         .serializer.beginRoot()
     }
 
     // End serialization
-    mtd impl end() throw
+    mtd impl end() fail
     {
         .serializer.endRoot()
     }
 
-    mtd impl beginField(val: Swag.TypeValue) throw
+    mtd impl beginField(val: Swag.TypeValue) fail
     {
         .serializer.beginElement(val)
         .serializer.beginValue()
     }
 
-    mtd impl endField(val: Swag.TypeValue) throw
+    mtd impl endField(val: Swag.TypeValue) fail
     {
         .serializer.endValue()
         .serializer.endElement(val)
     }
 
-    mtd impl beginSection(kind: SectionKind) throw
+    mtd impl beginSection(kind: SectionKind) fail
     {
         .serializer.beginSection(kind)
     }
 
-    mtd impl endSection() throw
+    mtd impl endSection() fail
     {
         .serializer.endSection()
     }
 
-    mtd impl write(data: const [*] void, type: typeinfo) throw
+    mtd impl write(data: const [*] void, type: typeinfo) fail
     {
         .writeValue(data, type)
     }
 
-    mtd impl writeBufferU8(data: #null const [*] u8, count: u64) throw
+    mtd impl writeBufferU8(data: #null const [*] u8, count: u64) fail
     {
         if !data
         {
             if count do
-                throw SerializationError{"cannot write a null u8 buffer"}
+                fail SerializationError{"cannot write a null u8 buffer"}
             return
         }
 
         let safeData = data
         let treated  = .serializer.beginSequence(u8, safeData, count)
-        defer #noerr .serializer.endSequence()
+        defer #nofail .serializer.endSequence()
 
         if !treated
         {

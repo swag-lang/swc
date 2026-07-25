@@ -4,7 +4,7 @@ using Core, Win32, Gdi32, TrueType
 
 impl TypeFace
 {
-    func getDataFromHFONT(hf: HFONT)->Array'u8 throw
+    func getDataFromHFONT(hf: HFONT)->Array'u8 fail
     {
         var result: retval
 
@@ -22,7 +22,7 @@ impl TypeFace
     }
 
     // Create a new typeface from a HFONT
-    public func createFromHFONT(fullname: string, hf: HFONT)->*TypeFace throw
+    public func createFromHFONT(fullname: string, hf: HFONT)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 

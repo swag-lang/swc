@@ -15,7 +15,7 @@ using Core
     var map: HashTable'(string, string)
     map = [{"AND", "&"}, {"OR", "|"}, {"LSHIFT", "<<"}, {"RSHIFT", ">>"}]
 
-    assume
+    expect
     {
         for &l in File.readAllLines(dataPath)
         {

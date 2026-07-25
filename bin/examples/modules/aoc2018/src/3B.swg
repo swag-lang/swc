@@ -12,9 +12,9 @@ using Core
 func day3B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
-    var r = assume Parser.RegExp.create(#"#(\d+) @ (\d+),(\d+): (\d+)x(\d+)"#)
+    var r = expect Parser.RegExp.create(#"#(\d+) @ (\d+),(\d+): (\d+)x(\d+)"#)
 
     var ids:  Array's32
     var here: HashSet's32
@@ -23,11 +23,11 @@ func day3B()
     for l in lines
     {
         discard r.match(l)
-        let id     = assume StrConv.toS32(r[1])
-        let startX = assume StrConv.toS32(r[2])
-        let startY = assume StrConv.toS32(r[3])
-        let width  = assume StrConv.toS32(r[4])
-        let height = assume StrConv.toS32(r[5])
+        let id     = expect StrConv.toS32(r[1])
+        let startX = expect StrConv.toS32(r[2])
+        let startY = expect StrConv.toS32(r[3])
+        let width  = expect StrConv.toS32(r[4])
+        let height = expect StrConv.toS32(r[5])
 
         var alone = true
         for [x] in startX until startX + width

@@ -98,31 +98,31 @@ func appendErrorTrace(value: s64)
     ErrorTrace = ErrorTrace * 10 + value
 }
 
-func mayThrowValue(value: s32 = 42)->s32 throw
+func mayThrowValue(value: s32 = 42)->s32 fail
 {
     return value
 }
 
-func mayThrowVoid() throw {}
+func mayThrowVoid() fail {}
 
-func alwaysThrowValue(code: s32)->s32 throw
+func alwaysThrowValue(code: s32)->s32 fail
 {
-    throw ErrValue{code: code}
+    fail ErrValue{code: code}
 }
 
-func alwaysThrowVoid(code: s32) throw
+func alwaysThrowVoid(code: s32) fail
 {
-    throw ErrValue{code: code}
+    fail ErrValue{code: code}
 }
 
-func alwaysThrowTypedVoid(code: s32) throw
+func alwaysThrowTypedVoid(code: s32) fail
 {
-    throw ErrValue{base: Swag.BaseError{"typed error"}, code: code}
+    fail ErrValue{base: Swag.BaseError{"typed error"}, code: code}
 }
 
-func alwaysThrowStrictEnum(code: s32)->ThrowStrictEnumAlias throw
+func alwaysThrowStrictEnum(code: s32)->ThrowStrictEnumAlias fail
 {
-    throw ErrValue{code: code}
+    fail ErrValue{code: code}
 }
 
 func currentErrCode()->s32
@@ -135,48 +135,48 @@ func currentErrCode()->s32
 }
 
 #[Swag.Inline]
-func inlineMayThrowValue(value: s32)->s32 throw
+func inlineMayThrowValue(value: s32)->s32 fail
 {
     return value
 }
 
 #[Swag.Inline]
-func inlineAlwaysThrowValue(code: s32)->s32 throw
+func inlineAlwaysThrowValue(code: s32)->s32 fail
 {
-    throw ErrValue{code: code}
+    fail ErrValue{code: code}
 }
 
-func propagateBareSuccess()->s32 throw
+func propagateBareSuccess()->s32 fail
 {
     return mayThrowValue(42)
 }
 
-func propagateBareFailure()->s32 throw
+func propagateBareFailure()->s32 fail
 {
     return alwaysThrowValue(17)
 }
 
-func propagateTrySuccess()->s32 throw
+func propagateTrySuccess()->s32 fail
 {
     return try mayThrowValue(51)
 }
 
-func propagateTryFailure()->s32 throw
+func propagateTryFailure()->s32 fail
 {
     return try alwaysThrowValue(18)
 }
 
-func propagateTryVoidSuccess() throw
+func propagateTryVoidSuccess() fail
 {
     try mayThrowVoid()
 }
 
-func propagateBareVoidFailure() throw
+func propagateBareVoidFailure() fail
 {
     alwaysThrowVoid(19)
 }
 
-func propagateTryBlockVoidFailure() throw
+func propagateTryBlockVoidFailure() fail
 {
     try
     {
@@ -184,7 +184,7 @@ func propagateTryBlockVoidFailure() throw
     }
 }
 
-func aggregateSuccess(seed: s32)->AggregateResult throw
+func aggregateSuccess(seed: s32)->AggregateResult fail
 {
     return AggregateResult{
         first: seed,
@@ -193,76 +193,76 @@ func aggregateSuccess(seed: s32)->AggregateResult throw
         }
 }
 
-func aggregateFailure(code: s32)->AggregateResult throw
+func aggregateFailure(code: s32)->AggregateResult fail
 {
-    throw ErrValue{base: Swag.BaseError{"aggregate failure"}, code: code}
+    fail ErrValue{base: Swag.BaseError{"aggregate failure"}, code: code}
 }
 
-func nullablePointerFailure(code: s32)->#null *s32 throw
+func nullablePointerFailure(code: s32)->#null *s32 fail
 {
-    throw ErrValue{code: code}
+    fail ErrValue{code: code}
 }
 
-func nullableStringFailure(code: s32)->#null string throw
+func nullableStringFailure(code: s32)->#null string fail
 {
-    throw ErrValue{code: code}
+    fail ErrValue{code: code}
 }
 
-func nullableSliceFailure(code: s32)->#null [..] s32 throw
+func nullableSliceFailure(code: s32)->#null [..] s32 fail
 {
-    throw ErrValue{code: code}
+    fail ErrValue{code: code}
 }
 
-func chainTryLeaf()->s32 throw
+func chainTryLeaf()->s32 fail
 {
     defer appendErrorTrace(1)
     return try alwaysThrowValue(81)
 }
 
-func chainTryMid()->s32 throw
+func chainTryMid()->s32 fail
 {
     defer appendErrorTrace(2)
     return try chainTryLeaf()
 }
 
-func chainTryTop()->s32 throw
+func chainTryTop()->s32 fail
 {
     defer appendErrorTrace(4)
     return try chainTryMid()
 }
 
-func deferThrowAfterReturn()->s32 throw
+func deferThrowAfterReturn()->s32 fail
 {
     defer appendErrorTrace(3)
     defer
     {
         appendErrorTrace(2)
-        throw ErrValue{code: 82}
+        fail ErrValue{code: 82}
     }
 
     appendErrorTrace(1)
     return 99
 }
 
-func errDeferOverrideFailure()->s32 throw
+func errDeferOverrideFailure()->s32 fail
 {
     defer appendErrorTrace(3)
-    defer #err
+    defer #fail
     {
         appendErrorTrace(2)
-        throw ErrValue{code: 84}
+        fail ErrValue{code: 84}
     }
 
     appendErrorTrace(1)
-    throw ErrValue{code: 83}
+    fail ErrValue{code: 83}
 }
 
-func aggregateDeferThrow()->AggregateResult throw
+func aggregateDeferThrow()->AggregateResult fail
 {
     defer
     {
         appendErrorTrace(2)
-        throw ErrValue{code: 85}
+        fail ErrValue{code: 85}
     }
 
     appendErrorTrace(1)
@@ -288,21 +288,21 @@ func nestedTryHandled()->s32
 }
 
 #[Swag.Inline]
-func traceThrowLeaf() throw
+func traceThrowLeaf() fail
 {
     defer appendErrorTrace(1)
-    throw ErrValue{code: 31}
+    fail ErrValue{code: 31}
 }
 
 #[Swag.Inline]
-func traceThrowMid() throw
+func traceThrowMid() fail
 {
     defer appendErrorTrace(2)
     traceThrowLeaf()
 }
 
 #[Swag.Inline]
-func traceThrowTop() throw
+func traceThrowTop() fail
 {
     defer appendErrorTrace(4)
     traceThrowMid()
@@ -385,13 +385,13 @@ func catchStrictEnumFailureInfo()->bool
 
 func tryCatchAggregateSuccess()->AggregateResult
 {
-    return trycatch aggregateSuccess(80)
+    return aggregateSuccess(80) orfail AggregateResult{}
 }
 
 func inlineTryCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = trycatch inlineAlwaysThrowValue(42)
+    result.value  = inlineAlwaysThrowValue(42) orfail 0
     result.hasErr = @err != null
     if @err != null
     {
@@ -405,7 +405,7 @@ func inlineTryCatchFailureInfo()->CatchInfo
 func tryCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    result.value  = trycatch propagateBareFailure()
+    result.value  = propagateBareFailure() orfail 0
     result.hasErr = @err != null
     if @err != null
     {
@@ -419,7 +419,7 @@ func tryCatchFailureInfo()->CatchInfo
 func tryCatchAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
-    result.value  = trycatch aggregateFailure(72)
+    result.value  = aggregateFailure(72) orfail AggregateResult{}
     result.hasErr = @err != null
     if @err != null
     {
@@ -438,7 +438,7 @@ func recordAssumePanic(message: #null string, loc: SourceCodeLocation)
     cxt.user1 = cast(u64) loc.lineStart
 }
 
-#[Swag.Safety(.Assume, true)]
+#[Swag.Safety(.Expect, true)]
 func assumeFailureInfo()->CatchInfo
 {
     let cxt = @getcontext()
@@ -448,13 +448,13 @@ func assumeFailureInfo()->CatchInfo
     defer cxt.panic = null
 
     var result: CatchInfo
-    result.value  = assume alwaysThrowValue(29)
+    result.value  = expect alwaysThrowValue(29)
     result.hasErr = cxt.user0 == 1
     result.code   = cast(s32) cxt.user1
     return result
 }
 
-#[Swag.Safety(.Assume, false)]
+#[Swag.Safety(.Expect, false)]
 func assumeFailureNoSafety()->CatchInfo
 {
     let cxt = @getcontext()
@@ -464,7 +464,7 @@ func assumeFailureNoSafety()->CatchInfo
     defer cxt.panic = null
 
     var result: CatchInfo
-    result.value  = assume alwaysThrowValue(30)
+    result.value  = expect alwaysThrowValue(30)
     result.hasErr = cxt.user0 == 1
     result.code   = cast(s32) cxt.user1
     return result
@@ -516,7 +516,7 @@ func catchNullableSliceFailureInfo()->NullInfo
 func tryCatchNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null *s32 = trycatch nullablePointerFailure(76)
+    let value:  #null *s32 = nullablePointerFailure(76) orfail null
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -526,7 +526,7 @@ func tryCatchNullablePointerFailureInfo()->NullInfo
 func tryCatchNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null string = trycatch nullableStringFailure(77)
+    let value:  #null string = nullableStringFailure(77) orfail null
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -536,7 +536,7 @@ func tryCatchNullableStringFailureInfo()->NullInfo
 func tryCatchNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null [..] s32 = trycatch nullableSliceFailure(78)
+    let value:  #null [..] s32 = nullableSliceFailure(78) orfail null
     result.isNull = value == null
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -584,7 +584,7 @@ func tryCatchErrDeferOverrideFailureInfo()->TraceInfo
     resetErrorTrace()
 
     var result: TraceInfo
-    result.value  = trycatch errDeferOverrideFailure()
+    result.value  = errDeferOverrideFailure() orfail 0
     result.trace  = ErrorTrace
     result.hasErr = @err != null
     result.code   = currentErrCode()
@@ -777,21 +777,21 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let value = trycatch propagateTrySuccess()
+    let value = propagateTrySuccess() orfail 0
     @assert(value == 51)
     @assert(@err == null)
 }
 
 #test
 {
-    let value = trycatch inlineMayThrowValue(64)
+    let value = inlineMayThrowValue(64) orfail 0
     @assert(value == 64)
     @assert(@err == null)
 }
 
 #test
 {
-    let value = trycatch aggregateSuccess(80)
+    let value = aggregateSuccess(80) orfail AggregateResult{}
     @assert(value.first == 80)
     @assert(value.second == 81)
     @assert(value.payload[0] == 82)
@@ -831,7 +831,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let value = assume mayThrowValue(77)
+    let value = expect mayThrowValue(77)
     @assert(value == 77)
     @assert(@err == null)
 }

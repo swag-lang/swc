@@ -58,13 +58,13 @@ private impl Movie
             {
                 .frame = .cacheFrames[.frameIndex]
             }
-            elif assume .gif.nextFrame(&.frame) == false
+            elif expect .gif.nextFrame(&.frame) == false
             {
                 if .mustLoop
                 {
                     .gif.rewind()
                     .frameIndex = 0
-                    discard assume .gif.nextFrame(&.frame)
+                    discard expect .gif.nextFrame(&.frame)
                 }
             }
             elif .enableCache
@@ -100,7 +100,7 @@ impl Movie
     }
 
     // Associate a filename
-    mtd set(fileName: string) throw
+    mtd set(fileName: string) fail
     {
         .clear()
         if .gif.IImageDecoder.canDecode(fileName)
@@ -116,7 +116,7 @@ impl Movie
         }
         else
         {
-            throw UnsupportedFormatError{"unsupported format"}
+            fail UnsupportedFormatError{"unsupported format"}
         }
     }
 

@@ -20,7 +20,7 @@ public struct DecodeOptions
 public interface IImageDecoder
 {
     mtd canDecode(filename: string)->bool;
-    mtd decode(buf: const [..] u8, opt: DecodeOptions)->Image throw;
+    mtd decode(buf: const [..] u8, opt: DecodeOptions)->Image fail;
 }
 
 impl Image
@@ -44,7 +44,7 @@ impl Image
     }
 
     // Decode the given image buffer with the given decoder
-    func decode(decoder: *ImageDecoder, bytes: const [..] u8, options: DecodeOptions = {})->Image throw
+    func decode(decoder: *ImageDecoder, bytes: const [..] u8, options: DecodeOptions = {})->Image fail
     {
         // Create a decoder instance
         let ptrDecoder = Memory.new(decoder.type)
@@ -88,22 +88,22 @@ public impl Image
     }
 
     // Decode the given image buffer
-    func decode(fileName: string, bytes: #null const [..] u8, options: DecodeOptions = {})->Image throw
+    func decode(fileName: string, bytes: #null const [..] u8, options: DecodeOptions = {})->Image fail
     {
         if !bytes do
-            throw InvalidFormatError{"invalid image buffer"}
+            fail InvalidFormatError{"invalid image buffer"}
         let found = getDecoder(fileName)
         if !found do
-            throw UnsupportedFormatError{"no matching image decoder"}
+            fail UnsupportedFormatError{"no matching image decoder"}
         return decode(cast(*ImageDecoder) (found), cast(const [..] u8) (bytes), options)
     }
 
     // Load the given image file
-    func load(fileName: string, options: DecodeOptions = {})->Image throw
+    func load(fileName: string, options: DecodeOptions = {})->Image fail
     {
         let found = getDecoder(fileName)
         if !found do
-            throw UnsupportedFormatError{"no matching image decoder"}
+            fail UnsupportedFormatError{"no matching image decoder"}
         var bytes = File.readAllBytes(fileName)
         return decode(fileName, bytes.toSlice(), options)
     }

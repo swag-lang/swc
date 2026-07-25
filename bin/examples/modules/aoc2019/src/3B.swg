@@ -33,7 +33,7 @@ using Core, Core.Math
 func day3B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     func trace(line: string)->Array'Vector2
     {
@@ -42,7 +42,7 @@ func day3B()
         result.add(pos)
         for v in Tokenize.split(line, ',''u8)
         {
-            let val = assume StrConv.toF32(v[1 to])
+            let val = expect StrConv.toF32(v[1 to])
             switch v[0]
             {
             case 'U': pos += {0, -val}

@@ -121,7 +121,7 @@ private var convert: [7] Array'Range
 func day5A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var mode = Mode.Invalid
     for l in lines
@@ -169,15 +169,15 @@ func day5A()
             let tokens = Tokenize.split(l, ':''u8)
             let values = Tokenize.split(tokens[1], ' ''u8)
             for v in values do
-                seeds.add(assume StrConv.toU64(v))
+                seeds.add(expect StrConv.toU64(v))
             continue
         }
 
         let values = Tokenize.split(l, ' ''u8)
         var range: Range
-        range.dst   = assume StrConv.toU64(values[0])
-        range.src   = assume StrConv.toU64(values[1])
-        range.range = assume StrConv.toU64(values[2])
+        range.dst   = expect StrConv.toU64(values[0])
+        range.src   = expect StrConv.toU64(values[1])
+        range.range = expect StrConv.toU64(values[2])
         convert[cast(s32) mode].add(range)
     }
 

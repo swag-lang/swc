@@ -36,7 +36,7 @@ func wait(threads: *Thread...)
             handles[i] = threads[threadIndex].handle
         }
 
-        assume WaitForMultipleObjects(toTreat, &handles[0], TRUE, INFINITE)
+        expect WaitForMultipleObjects(toTreat, &handles[0], TRUE, INFINITE)
         startIndex += cast(u64) toTreat
         total      -= toTreat
     }
@@ -64,7 +64,7 @@ impl Thread
     }
 
     // Initialize a thread in pause state
-    mtd init(lambda: func||(Thread), userParam: #null *void = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) throw
+    mtd init(lambda: func||(Thread), userParam: #null *void = null, priority = ThreadPriority.Normal, tempAllocSize: s32 = -1) fail
     {
         Debug.assert(!.isValid(), "thread already created")
 
@@ -86,14 +86,14 @@ impl Thread
     }
 
     // Resume the given thread, if it was paused
-    mtd start() throw
+    mtd start() fail
     {
         Debug.assert(.isValid())
         try ResumeThread(.handle)
     }
 
     // Set the thread priority
-    mtd setPriority(priority: ThreadPriority) throw
+    mtd setPriority(priority: ThreadPriority) fail
     {
         Debug.assert(.isValid())
 
@@ -121,7 +121,7 @@ impl Thread
     mtd wait()
     {
         Debug.assert(.isValid())
-        assume WaitForSingleObject(.handle, INFINITE)
+        expect WaitForSingleObject(.handle, INFINITE)
         CloseHandle(.handle)
         .handle = null
     }
@@ -130,7 +130,7 @@ impl Thread
     mtd isDone()->bool
     {
         Debug.assert(.isValid())
-        let res = assume WaitForSingleObject(.handle, 0)
+        let res = expect WaitForSingleObject(.handle, 0)
         return res != WAIT_TIMEOUT
     }
 }

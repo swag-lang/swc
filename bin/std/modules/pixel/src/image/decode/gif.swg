@@ -92,38 +92,38 @@ impl Decoder
     mtd safePalette()->*Palette         => cast(*Palette) (notnull .palette)
     mtd safeCanvas()->[*] u8            => cast([*] u8) (notnull .canvas)
 
-    mtd seek(len: u64) throw
+    mtd seek(len: u64) fail
     {
         if len > .streamLen do
-            throw InvalidFormatError{"read error"}
+            fail InvalidFormatError{"read error"}
         .stream    += len
         .streamLen -= len
     }
 
-    mtd read(dest: *u8, len: u64) throw
+    mtd read(dest: *u8, len: u64) fail
     {
         if len > .streamLen do
-            throw InvalidFormatError{"read error"}
+            fail InvalidFormatError{"read error"}
         Memory.copy(dest, .safeStream(), len)
         .stream    += len
         .streamLen -= len
     }
 
     #[Swag.Inline]
-    mtd readU8()->u8 throw
+    mtd readU8()->u8 fail
     {
         if .streamLen < 1 do
-            throw InvalidFormatError{"read error"}
+            fail InvalidFormatError{"read error"}
         let res = .safeStream()[0]
         .stream    += 1
         .streamLen -= 1
         return res
     }
 
-    mtd readU16()->u16 throw
+    mtd readU16()->u16 fail
     {
         if .streamLen < 2 do
-            throw InvalidFormatError{"read error"}
+            fail InvalidFormatError{"read error"}
         let stream = .safeStream()
         let res    = cast(u16) (stream[0] + (cast(u16) stream[1] << 8))
         .stream    += 2
@@ -131,7 +131,7 @@ impl Decoder
         return res
     }
 
-    mtd discardSubBlocks() throw
+    mtd discardSubBlocks() fail
     {
         for
         {
@@ -142,7 +142,7 @@ impl Decoder
         }
     }
 
-    mtd readPlainTextExt() throw
+    mtd readPlainTextExt() fail
     {
         // Discard plain text metadata.
         .seek(13)
@@ -151,7 +151,7 @@ impl Decoder
         .discardSubBlocks()
     }
 
-    mtd readGraphicControlExt() throw
+    mtd readGraphicControlExt() fail
     {
         // Discard block size (always 0x04)
         .seek(1)
@@ -166,12 +166,12 @@ impl Decoder
         .seek(1)
     }
 
-    mtd readCommentExt() throw
+    mtd readCommentExt() fail
     {
         .discardSubBlocks()
     }
 
-    mtd readApplicationExt() throw
+    mtd readApplicationExt() fail
     {
         var app_id:        [8] u8
         var app_auth_code: [3] u8
@@ -200,7 +200,7 @@ impl Decoder
         }
     }
 
-    mtd readExt() throw
+    mtd readExt() fail
     {
         let label = .readU8()
         switch label
@@ -209,7 +209,7 @@ impl Decoder
         case 0xF9: .readGraphicControlExt()
         case 0xFE: .readCommentExt()
         case 0xFF: .readApplicationExt()
-        default:   throw UnsupportedFormatError{Errors.mkString(Format.toString("unknown extension: %", label))}
+        default:   fail UnsupportedFormatError{Errors.mkString(Format.toString("unknown extension: %", label))}
         }
     }
 
@@ -222,7 +222,7 @@ impl Decoder
             .table.entries[key] = {1, 0xFFF, cast(u8) key}
     }
 
-    mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 throw
+    mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 fail
     {
         var key       = 0'u32
         var frag_size = 0
@@ -289,12 +289,12 @@ impl Decoder
         return y * 2 + 1
     }
 
-    mtd readImageData(interlace: u8) throw
+    mtd readImageData(interlace: u8) fail
     {
         var byte    = .readU8()
         var keySize = cast(s32) byte
         if keySize < 2 or keySize > 8 do
-            throw InvalidFormatError{"invalid frame"}
+            fail InvalidFormatError{"invalid frame"}
 
         let start       = cast(u64) (.stream - .streamStart)
         let remainStart = .streamLen
@@ -369,13 +369,13 @@ impl Decoder
         .streamLen = remainEnd
     }
 
-    mtd readImage() throw
+    mtd readImage() fail
     {
         // Image descriptor
         .fx = .readU16()
         .fy = .readU16()
         if .fx >= .width or .fy >= .height do
-            throw InvalidFormatError{"invalid frame size"}
+            fail InvalidFormatError{"invalid frame size"}
 
         .fw = .readU16()
         .fh = .readU16()
@@ -442,7 +442,7 @@ impl Decoder
         }
     }
 
-    mtd getFrame(decodePixels: bool)->s32 throw
+    mtd getFrame(decodePixels: bool)->s32 fail
     {
         var sep = .readU8()
         while sep != ','
@@ -450,7 +450,7 @@ impl Decoder
             if sep == ';' do
                 return 0
             if sep != '!' do
-                throw InvalidFormatError{"invalid format"}
+                fail InvalidFormatError{"invalid format"}
             .readExt()
             sep = .readU8()
         }
@@ -464,7 +464,7 @@ impl Decoder
 public impl Decoder
 {
     // Initialize the decoder
-    mtd init(buffer: const [..] u8, decodePixels: bool) throw
+    mtd init(buffer: const [..] u8, decodePixels: bool) fail
     {
         .initDone             = true
         .streamStart, .stream = @dataof(buffer)
@@ -474,12 +474,12 @@ public impl Decoder
         var sigver: [3] u8
         .read(sigver, 3)
         if Memory.compare(sigver, @dataof("GIF"), 3) != 0 do
-            throw InvalidFormatError{"invalid signature"}
+            fail InvalidFormatError{"invalid signature"}
 
         // Version
         .read(sigver, 3)
         if Memory.compare(sigver, @dataof("89a"), 3) != 0 do
-            throw InvalidFormatError{"invalid version"}
+            fail InvalidFormatError{"invalid version"}
 
         // Width x Height
         .width  = .readU16()
@@ -489,7 +489,7 @@ public impl Decoder
         var fdsz: u8
         .read(&fdsz, 1)
         if !(fdsz & 0x80) do
-            throw UnsupportedFormatError{"no global color table"}
+            fail UnsupportedFormatError{"no global color table"}
 
         // Color space's depth
         .depth = cast() (((fdsz >> 4) & 7) + 1)
@@ -540,7 +540,7 @@ public impl Decoder
     }
 
     // Get the next frame. Returns false if we have reached the end
-    mtd nextFrame(img: *Image)->bool throw
+    mtd nextFrame(img: *Image)->bool fail
     {
         Debug.assert(.initDone)
         if .reachEnd do
@@ -558,7 +558,7 @@ public impl Decoder
 
     // Returns the number of frames
     // As Gif does not store it, we need to go threw all images (!)
-    mtd getNumFrames()->s32 throw
+    mtd getNumFrames()->s32 fail
     {
         Debug.assert(.initDone)
         if .numFrames do
@@ -590,7 +590,7 @@ public impl IImageDecoder for Decoder
         return ext == ".gif"
     }
 
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         .init(buffer, options.decodePixels)
 

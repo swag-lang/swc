@@ -1,8 +1,8 @@
 #global private
 
-func mayThrowVoid() throw {}
+func mayThrowVoid() fail {}
 
-func mayThrowValue(value: s32)->s32 throw
+func mayThrowValue(value: s32)->s32 fail
 {
     return value
 }

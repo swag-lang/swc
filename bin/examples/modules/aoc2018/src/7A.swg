@@ -42,7 +42,7 @@ using Core
 func day7A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var steps: HashTable'(u8, { prev, next: String })
     for l in lines

@@ -483,14 +483,14 @@ const MsdfParallelMinSamples: u64 = 2000
 
 // Render the current glyph outline as a 3-channel (RGB) multi-channel SDF.
 // The output bitmap has 3 bytes per pixel (pitch = width * 3).
-func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) throw
+func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
 {
     let faceData = getSlotImpl(slot)
     let safeSlot = notnull slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
-        fail(0x13)
+        fault(0x13)
     if safeSlot.outline.pointCount <= 0 do
         return
 

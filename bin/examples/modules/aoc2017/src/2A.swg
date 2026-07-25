@@ -22,7 +22,7 @@ using Core
 func day2A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
     for l in lines
@@ -31,7 +31,7 @@ func day2A()
         var min = Swag.S32.Max
         for v in Tokenize.splitAny(l, [' ', '\t'])
         {
-            let val = assume StrConv.toS32(Latin1.trim(v))
+            let val = expect StrConv.toS32(Latin1.trim(v))
             min = Math.min(min, val)
             max = Math.max(max, val)
         }

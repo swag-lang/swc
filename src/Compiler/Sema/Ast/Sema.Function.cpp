@@ -1636,10 +1636,10 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     if (SemaUndefined::wantsCheck(sema, sym))
     {
         // The return contract only binds a signature the function owns: interface
-        // impls conform to the interface, and a throwable function's 'catch' error
+        // impls conform to the interface, and a fallible function's 'catch' error
         // path synthesizes a zero (null) result.
         const auto& declNode            = sema.curNode().cast<AstFunctionDecl>();
-        const bool  checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isThrowable();
+        const bool  checkReturnContract = !declNode.hasFlag(AstFunctionFlagsE::Impl) && !sym.isFallible();
         SWC_RESULT(SemaUndefined::checkFunction(sema, sym, declNode.nodeBodyRef, checkReturnContract));
     }
 

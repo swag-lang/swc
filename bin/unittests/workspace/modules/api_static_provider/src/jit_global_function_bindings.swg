@@ -15,7 +15,7 @@ func verifyGlobalFunctionBindingErrorPath()
     catch raiseGlobalFunctionBindingError(17)
 }
 
-func raiseGlobalFunctionBindingError(code: s32) throw
+func raiseGlobalFunctionBindingError(code: s32) fail
 {
-    throw GlobalFunctionBindingError{code: code}
+    fail GlobalFunctionBindingError{code: code}
 }

@@ -1673,8 +1673,8 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     for (const PostCallTemporaryDrop& drop : postCallDrops)
         SWC_RESULT(codeGen.emitLifecycle(drop.typeRef, CodeGenLifecycleKind::Drop, drop.addressReg));
 
-    if (calledFunction->isThrowable())
-        SWC_RESULT(emitThrowableFailureJumpIfHasError(codeGen));
+    if (calledFunction->isFallible())
+        SWC_RESULT(emitFallibleFailureJumpIfHasError(codeGen));
 
     return Result::Continue;
 }

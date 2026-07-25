@@ -878,7 +878,7 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
     }
 }
 
-func intrinsicAutoDropErrorImpl() throw
+func intrinsicAutoDropErrorImpl() fail
 {
     {
         var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
@@ -886,7 +886,7 @@ func intrinsicAutoDropErrorImpl() throw
         {
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
             if pair.first.value == 1 and nested.tail.value == 8 do
-                throw IntrinsicLifecycleErr{code: 77}
+                fail IntrinsicLifecycleErr{code: 77}
         }
     }
 }
@@ -1043,11 +1043,11 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
     return result
 }
 
-func intrinsicAutoDropCatchResumeImpl(code: s32) throw
+func intrinsicAutoDropCatchResumeImpl(code: s32) fail
 {
     var branch = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
     if branch.head.value == 3 do
-        throw IntrinsicLifecycleErr{code: code}
+        fail IntrinsicLifecycleErr{code: code}
 }
 
 func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
@@ -1072,11 +1072,11 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
     return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
-func intrinsicAutoDropTryCatchLoopStep(base: s32)->s32 throw
+func intrinsicAutoDropTryCatchLoopStep(base: s32)->s32 fail
 {
     var branch = AutoCompactBranch{CompactDropTracked{base}, AutoCompactPair{CompactDropTracked{base + 1}, CompactDropTracked{base + 2}}}
     if base == 1 do
-        throw IntrinsicLifecycleErr{code: 66}
+        fail IntrinsicLifecycleErr{code: 66}
     return branch.pair.first.value
 }
 
@@ -1092,7 +1092,7 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
         for [i] in 2
         {
             let base       = cast(s32) (i * 3 + 1)
-            let value: s32 = trycatch intrinsicAutoDropTryCatchLoopStep(base)
+            let value: s32 = intrinsicAutoDropTryCatchLoopStep(base) orfail 0
             if value == 0
             {
                 second += 1

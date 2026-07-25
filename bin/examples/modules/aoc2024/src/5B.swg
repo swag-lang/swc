@@ -17,7 +17,7 @@ using Core
 func day5B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var order: HashTable'(s32, Array's32)
     var first = true
@@ -35,11 +35,11 @@ func day5B()
         {
             let split = Tokenize.split(f, '|''u8)
             @assert(split.count == 2)
-            order.findOrAdd(assume StrConv.toS32(split[0])).value.add(assume StrConv.toS32(split[1]))
+            order.findOrAdd(expect StrConv.toS32(split[0])).value.add(expect StrConv.toS32(split[1]))
         }
         else
         {
-            var update = Slice.map(Tokenize.split(f, ',''u8).toSlice(), func(x) => assume StrConv.toS32(x))
+            var update = Slice.map(Tokenize.split(f, ',''u8).toSlice(), func(x) => expect StrConv.toS32(x))
             @assert(update.count != 0)
 
             var isOrdered = true

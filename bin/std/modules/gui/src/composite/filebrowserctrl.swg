@@ -437,8 +437,7 @@ impl FileBrowserCtrl
     mtd createFolder(name: string)->bool
     {
         let path = Path.combine(.curFolder, name)
-        catch Directory.create(path)
-        if @err != null do
+        catch Directory.create(path) else do
             return false
         .fillFileList()
         return true

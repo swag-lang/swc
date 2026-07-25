@@ -251,7 +251,7 @@ bool Parser::isClosureCaptureEndPipe() const
 
     const TokenId afterParamListId = (cursor + 1)->id;
     return afterParamListId == TokenId::SymMinusGreater ||
-           afterParamListId == TokenId::KwdThrow ||
+           afterParamListId == TokenId::KwdFail ||
            afterParamListId == TokenId::SymEqualGreater ||
            afterParamListId == TokenId::SymLeftCurly;
 }
@@ -272,11 +272,11 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierUnConst:
                 toSet = AstModifierFlagsE::UnConst;
                 break;
-            case TokenId::ModifierErr:
-                toSet = AstModifierFlagsE::Err;
+            case TokenId::ModifierFail:
+                toSet = AstModifierFlagsE::Fail;
                 break;
-            case TokenId::ModifierNoErr:
-                toSet = AstModifierFlagsE::NoErr;
+            case TokenId::ModifierNoFail:
+                toSet = AstModifierFlagsE::NoFail;
                 break;
             case TokenId::ModifierPromote:
                 toSet = AstModifierFlagsE::Promote;
@@ -429,6 +429,19 @@ AstNodeRef Parser::parseExpression()
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullCoalescingExpr>(tokOp);
         nodePtr->nodeLeftRef          = nodeExpr1;
         nodePtr->nodeRightRef         = nodeExpr2;
+        return nodeRef;
+    }
+
+    // 'e orfail V' catches a failure in the fallible expression 'e' and yields 'V'
+    // instead. It reuses the TryCatchExpr node (behaving like 'trycatch') but carries a
+    // lazily-evaluated fallback value produced only on the failure path.
+    if (is(TokenId::KwdOrFail))
+    {
+        const TokenRef   tokOp        = consume();
+        const AstNodeRef nodeFallback = parseExpression();
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(tokOp);
+        nodePtr->nodeExprRef          = nodeExpr1;
+        nodePtr->nodeFallbackRef      = nodeFallback;
         return nodeRef;
     }
 
@@ -834,8 +847,7 @@ AstNodeRef Parser::parsePrimaryExpression()
 
         case TokenId::KwdTry:
         case TokenId::KwdCatch:
-        case TokenId::KwdTryCatch:
-        case TokenId::KwdAssume:
+        case TokenId::KwdExpect:
         case TokenId::KwdNotNull:
             return parseTryCatchAssume();
 
@@ -1228,7 +1240,7 @@ AstNodeRef Parser::parseArraySlicingIndex(AstNodeRef nodeRef)
 
 AstNodeRef Parser::parseThrow()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ThrowExpr>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::FailExpr>(consume());
     nodePtr->nodeExprRef    = parseExpression();
     return nodeRef;
 }

@@ -26,17 +26,17 @@ using Core
 func day8A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
-    var re = assume Parser.RegExp.create(#"(\w+) (\w+) (-?\d+) if (\w+) ([[:ascii:]]+) (-?\d+)"#)
+    var re = expect Parser.RegExp.create(#"(\w+) (\w+) (-?\d+) if (\w+) ([[:ascii:]]+) (-?\d+)"#)
     var regs:  HashTable'(string, s32)
     var total: s32
 
     for l in lines
     {
         @assert(re.match(l))
-        var v0 = assume StrConv.toS32(re[3])
-        let v1 = assume StrConv.toS32(re[6])
+        var v0 = expect StrConv.toS32(re[3])
+        let v1 = expect StrConv.toS32(re[6])
         if !regs.contains(re[1]) do
             regs.add(re[1], 0)
         if !regs.contains(re[4]) do

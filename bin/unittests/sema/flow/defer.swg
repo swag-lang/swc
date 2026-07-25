@@ -52,21 +52,21 @@ struct DeferDropInfo
 struct ErrDefer {}
 
 #[Swag.Inline]
-func deferThrowLeaf() throw
+func deferThrowLeaf() fail
 {
     defer appendDeferTrace(1)
-    throw ErrDefer{}
+    fail ErrDefer{}
 }
 
 #[Swag.Inline]
-func deferThrowMid() throw
+func deferThrowMid() fail
 {
     defer appendDeferTrace(2)
     try deferThrowLeaf()
 }
 
 #[Swag.Inline]
-func deferThrowTop() throw
+func deferThrowTop() fail
 {
     defer appendDeferTrace(4)
     try deferThrowMid()
@@ -527,8 +527,8 @@ func semaTest018()
     {
         resetDeferTrace()
         {
-            defer #err appendDeferTrace(1)
-            defer #noerr appendDeferTrace(2)
+            defer #fail appendDeferTrace(1)
+            defer #nofail appendDeferTrace(2)
             catch deferThrowTop()
         }
 
@@ -539,9 +539,9 @@ func semaTest018()
     {
         resetDeferTrace()
         {
-            defer #err appendDeferTrace(1)
-            defer #noerr appendDeferTrace(2)
-            trycatch deferThrowTop()
+            defer #fail appendDeferTrace(1)
+            defer #nofail appendDeferTrace(2)
+            catch deferThrowTop() else {}
         }
 
         return DeferTrace

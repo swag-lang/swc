@@ -22,7 +22,7 @@ func day5B()
 func day5B0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var here: [128, 8] bool
 
@@ -78,7 +78,7 @@ func day5B0()
 func day5B1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var seats: Array's32
     for l in lines

@@ -29,7 +29,7 @@ using Core
 func day2A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total2, total3 = 0
     for l in lines

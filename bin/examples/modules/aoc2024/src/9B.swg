@@ -39,7 +39,7 @@ func day9BA()
     @print(x)*/
 
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "9.txt")
-    let line     = assume File.readAllText(dataPath)
+    let line     = expect File.readAllText(dataPath)
 
     var map: Array'{ what, num: s64 }
 
@@ -114,7 +114,7 @@ func day9BB()
     // Time.Stopwatch.scopeMeasure()
 
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "9.txt")
-    var line     = assume File.readAllText(dataPath)
+    var line     = expect File.readAllText(dataPath)
 
     var filesBySize: [10] Array's32
     var moved:       HashTable'(s32, u8)

@@ -21,7 +21,7 @@ using Swag
 
 #test
 {
-    var exact = assume Parser.RegExp.create("abc")
+    var exact = expect Parser.RegExp.create("abc")
 
     @assert(exact.match("abc"))
     @assert(!exact.match("ab"))
@@ -30,7 +30,7 @@ using Swag
 
 #test
 {
-    assume
+    expect
     {
         var boxed = Parser.RegExp.create(#"(\d+)x(\d+)x(\d+)"#)
 
@@ -43,7 +43,7 @@ using Swag
 
 #test
 {
-    assume
+    expect
     {
         var boxed = Parser.RegExp.create(#"(\d+)x(\d+)x(\d+)"#)
 
@@ -59,8 +59,8 @@ using Swag
 
 #test
 {
-    var insensitive = assume Parser.RegExp.create("AbC", true)
-    var sensitive   = assume Parser.RegExp.create("AbC")
+    var insensitive = expect Parser.RegExp.create("AbC", true)
+    var sensitive   = expect Parser.RegExp.create("AbC")
 
     @assert(insensitive.match("abc"))
     @assert(insensitive.match("ABC"))
@@ -69,12 +69,12 @@ using Swag
 
 #test
 {
-    var asciiLetters = assume Parser.RegExp.create(#"[a-z]+"#, true)
-    var middleRange  = assume Parser.RegExp.create(#"[b-d]+"#, true)
-    var literals     = assume Parser.RegExp.create(#"[abc]+"#)
-    var noCaseList   = assume Parser.RegExp.create(#"[ab]+"#, true)
-    var posixHex     = assume Parser.RegExp.create(#"[[:xdigit:]]+"#)
-    var noDigits     = assume Parser.RegExp.create(#"[^[:digit:]]+"#)
+    var asciiLetters = expect Parser.RegExp.create(#"[a-z]+"#, true)
+    var middleRange  = expect Parser.RegExp.create(#"[b-d]+"#, true)
+    var literals     = expect Parser.RegExp.create(#"[abc]+"#)
+    var noCaseList   = expect Parser.RegExp.create(#"[ab]+"#, true)
+    var posixHex     = expect Parser.RegExp.create(#"[[:xdigit:]]+"#)
+    var noDigits     = expect Parser.RegExp.create(#"[^[:digit:]]+"#)
 
     @assert(asciiLetters.match("ABC"))
     @assert(middleRange.match("BCD"))
@@ -90,8 +90,8 @@ using Swag
 
 #test
 {
-    var simpleAlt  = assume Parser.RegExp.create(#"a|bc"#)
-    var groupedAlt = assume Parser.RegExp.create(#"(ab|cd)e"#)
+    var simpleAlt  = expect Parser.RegExp.create(#"a|bc"#)
+    var groupedAlt = expect Parser.RegExp.create(#"(ab|cd)e"#)
 
     @assert(simpleAlt.match("a"))
     @assert(simpleAlt.match("bc"))
@@ -103,16 +103,16 @@ using Swag
 
 #test
 {
-    var wildcard   = assume Parser.RegExp.create(#"a.c"#)
-    var alnum      = assume Parser.RegExp.create(#"[[:alnum:]]+"#)
-    var alpha      = assume Parser.RegExp.create(#"[[:alpha:]]+"#)
-    var asciiOnly  = assume Parser.RegExp.create(#"[[:ascii:]]+"#)
-    var blanks     = assume Parser.RegExp.create(#"[[:blank:]]+"#)
-    var spaces     = assume Parser.RegExp.create(#"[[:space:]]+"#)
-    var words      = assume Parser.RegExp.create(#"[[:word:]]+"#)
-    var notLower   = assume Parser.RegExp.create(#"\L+"#)
-    var notUpper   = assume Parser.RegExp.create(#"\U+"#)
-    var unicodeSym = assume Parser.RegExp.create(#"\pS+"#)
+    var wildcard   = expect Parser.RegExp.create(#"a.c"#)
+    var alnum      = expect Parser.RegExp.create(#"[[:alnum:]]+"#)
+    var alpha      = expect Parser.RegExp.create(#"[[:alpha:]]+"#)
+    var asciiOnly  = expect Parser.RegExp.create(#"[[:ascii:]]+"#)
+    var blanks     = expect Parser.RegExp.create(#"[[:blank:]]+"#)
+    var spaces     = expect Parser.RegExp.create(#"[[:space:]]+"#)
+    var words      = expect Parser.RegExp.create(#"[[:word:]]+"#)
+    var notLower   = expect Parser.RegExp.create(#"\L+"#)
+    var notUpper   = expect Parser.RegExp.create(#"\U+"#)
+    var unicodeSym = expect Parser.RegExp.create(#"\pS+"#)
 
     @assert(wildcard.match("abc"))
     @assert(wildcard.match("a\u00E9c"))
@@ -137,14 +137,14 @@ using Swag
 
 #test
 {
-    var closeBracket = assume Parser.RegExp.create(#"[\]]+"#)
-    var openBracket  = assume Parser.RegExp.create(#"[\[]+"#)
-    var backslash    = assume Parser.RegExp.create(#"[\\]+"#)
-    var backspace    = assume Parser.RegExp.create(#"[\b]+"#)
-    var hyphen       = assume Parser.RegExp.create(#"[\-]+"#)
-    var caret        = assume Parser.RegExp.create(#"[\^]+"#)
-    var digits       = assume Parser.RegExp.create(#"[\dA]+"#)
-    var spaces       = assume Parser.RegExp.create(#"[a\s]+"#)
+    var closeBracket = expect Parser.RegExp.create(#"[\]]+"#)
+    var openBracket  = expect Parser.RegExp.create(#"[\[]+"#)
+    var backslash    = expect Parser.RegExp.create(#"[\\]+"#)
+    var backspace    = expect Parser.RegExp.create(#"[\b]+"#)
+    var hyphen       = expect Parser.RegExp.create(#"[\-]+"#)
+    var caret        = expect Parser.RegExp.create(#"[\^]+"#)
+    var digits       = expect Parser.RegExp.create(#"[\dA]+"#)
+    var spaces       = expect Parser.RegExp.create(#"[a\s]+"#)
 
     @assert(closeBracket.match("]]"))
     @assert(openBracket.match("[["))
@@ -162,31 +162,31 @@ using Swag
 
 #test
 {
-    var literalAlt              = assume Parser.RegExp.create(#"a\|b"#)
-    var literalPipeLeadingAlt   = assume Parser.RegExp.create(#"\||a"#)
-    var literalPipeTrailingAlt  = assume Parser.RegExp.create(#"a|\|"#)
-    var literalPipeMixedAlt     = assume Parser.RegExp.create(#"a\||b"#)
-    var multiLiteralPipeAlt     = assume Parser.RegExp.create(#"\||a|b"#)
-    var parenAlt                = assume Parser.RegExp.create(#"\(|a"#)
-    var closeParenAlt           = assume Parser.RegExp.create(#"\)|a"#)
-    var openBracketAlt          = assume Parser.RegExp.create(#"\[|a"#)
-    var closeBracketAlt         = assume Parser.RegExp.create(#"\]|a"#)
-    var openBraceAlt            = assume Parser.RegExp.create(#"\{|a"#)
-    var closeBraceAlt           = assume Parser.RegExp.create(#"\}|a"#)
-    var captureLiteralPipeAlt   = assume Parser.RegExp.create(#"(\||a)(b)"#)
-    var captureAlt              = assume Parser.RegExp.create(#"(a|b)(c)"#)
-    var captureLeadingEmptyAlt  = assume Parser.RegExp.create(#"(|a)(b)"#)
-    var captureTrailingEmptyAlt = assume Parser.RegExp.create(#"(a|)(b)"#)
-    var plainAlt                = assume Parser.RegExp.create(#"a|b"#)
-    var leadingEmptyAlt         = assume Parser.RegExp.create(#"|a"#)
-    var trailingEmptyAlt        = assume Parser.RegExp.create(#"a|"#)
-    var doubleEmptyAlt          = assume Parser.RegExp.create(#"a||b"#)
-    var onlyEmptyAlt            = assume Parser.RegExp.create(#"||"#)
-    var middleEmptyAlt          = assume Parser.RegExp.create(#"(a|)c"#)
-    var escaped                 = assume Parser.RegExp.create(#"\(\)\[\]\{\}\.\+\*\?"#)
-    var anchors                 = assume Parser.RegExp.create(#"\^\$"#)
-    var slash                   = assume Parser.RegExp.create(#"\/path\\file"#)
-    var controls                = assume Parser.RegExp.create("\\n\\r\\t\\f\\v\\a")
+    var literalAlt              = expect Parser.RegExp.create(#"a\|b"#)
+    var literalPipeLeadingAlt   = expect Parser.RegExp.create(#"\||a"#)
+    var literalPipeTrailingAlt  = expect Parser.RegExp.create(#"a|\|"#)
+    var literalPipeMixedAlt     = expect Parser.RegExp.create(#"a\||b"#)
+    var multiLiteralPipeAlt     = expect Parser.RegExp.create(#"\||a|b"#)
+    var parenAlt                = expect Parser.RegExp.create(#"\(|a"#)
+    var closeParenAlt           = expect Parser.RegExp.create(#"\)|a"#)
+    var openBracketAlt          = expect Parser.RegExp.create(#"\[|a"#)
+    var closeBracketAlt         = expect Parser.RegExp.create(#"\]|a"#)
+    var openBraceAlt            = expect Parser.RegExp.create(#"\{|a"#)
+    var closeBraceAlt           = expect Parser.RegExp.create(#"\}|a"#)
+    var captureLiteralPipeAlt   = expect Parser.RegExp.create(#"(\||a)(b)"#)
+    var captureAlt              = expect Parser.RegExp.create(#"(a|b)(c)"#)
+    var captureLeadingEmptyAlt  = expect Parser.RegExp.create(#"(|a)(b)"#)
+    var captureTrailingEmptyAlt = expect Parser.RegExp.create(#"(a|)(b)"#)
+    var plainAlt                = expect Parser.RegExp.create(#"a|b"#)
+    var leadingEmptyAlt         = expect Parser.RegExp.create(#"|a"#)
+    var trailingEmptyAlt        = expect Parser.RegExp.create(#"a|"#)
+    var doubleEmptyAlt          = expect Parser.RegExp.create(#"a||b"#)
+    var onlyEmptyAlt            = expect Parser.RegExp.create(#"||"#)
+    var middleEmptyAlt          = expect Parser.RegExp.create(#"(a|)c"#)
+    var escaped                 = expect Parser.RegExp.create(#"\(\)\[\]\{\}\.\+\*\?"#)
+    var anchors                 = expect Parser.RegExp.create(#"\^\$"#)
+    var slash                   = expect Parser.RegExp.create(#"\/path\\file"#)
+    var controls                = expect Parser.RegExp.create("\\n\\r\\t\\f\\v\\a")
 
     @assert(literalAlt.match("a|b"))
     @assert(!literalAlt.match("ab"))
@@ -262,7 +262,7 @@ using Swag
 
 #test
 {
-    var captures = assume Parser.RegExp.create(#"(\d+)-(\w+)"#)
+    var captures = expect Parser.RegExp.create(#"(\d+)-(\w+)"#)
 
     @assert(captures.match("42-test"))
     @assert(captures.getCapture(1) == "42")
@@ -278,16 +278,16 @@ using Swag
 {
     var overload: Parser.RegExp
 
-    @assert(assume overload.match(#"(\d+)"#, "123"))
+    @assert(expect overload.match(#"(\d+)"#, "123"))
     @assert(overload.getCapture(1) == "123")
-    @assert(!(assume overload.match(#"(\d+)"#, "abc")))
+    @assert(!(expect overload.match(#"(\d+)"#, "abc")))
     @assert(overload.getCaptures().count == 0)
-    @assert(assume overload.match("AbC", "abc", true))
+    @assert(expect overload.match("AbC", "abc", true))
 }
 
 #test
 {
-    var repeated = assume Parser.RegExp.create(#"([a-z])\1"#)
+    var repeated = expect Parser.RegExp.create(#"([a-z])\1"#)
 
     @assert(repeated.match("ll"))
     @assert(repeated.getCapture(1) == "l")
@@ -296,7 +296,7 @@ using Swag
 
 #test
 {
-    assume
+    expect
     {
         var repeated = Parser.RegExp.create(#"([a-z]+)-\1"#)
 
@@ -314,19 +314,19 @@ using Swag
 
 #test
 {
-    var emptyGroup            = assume Parser.RegExp.create(#"([a-z]*)"#)
-    var explicitEmptyGroup    = assume Parser.RegExp.create(#"()"#)
-    var explicitEmptyRef      = assume Parser.RegExp.create(#"()-\1"#)
-    var explicitEmptyAltGroup = assume Parser.RegExp.create(#"(|)"#)
-    var explicitEmptyAltRef   = assume Parser.RegExp.create(#"(|)-\1"#)
-    var optionalAltRef        = assume Parser.RegExp.create(#"(|a)-\1"#)
-    var countedEmptyGroup     = assume Parser.RegExp.create(#"(){2}(a)"#)
-    var countedEmptyAltGroup  = assume Parser.RegExp.create(#"(|){2}(a)"#)
-    var emptyRef              = assume Parser.RegExp.create(#"([a-z]*)-\1"#)
-    var emptyTail             = assume Parser.RegExp.create(#"([a-z]+)(\d*)"#)
-    var emptyTailSep          = assume Parser.RegExp.create(#"([a-z]+)(\d*)-"#)
-    var nonEmptyTailRef       = assume Parser.RegExp.create(#"([a-z]+)(\d+)-\2"#)
-    var emptyTailRef          = assume Parser.RegExp.create(#"([a-z]+)(\d*)-\2"#)
+    var emptyGroup            = expect Parser.RegExp.create(#"([a-z]*)"#)
+    var explicitEmptyGroup    = expect Parser.RegExp.create(#"()"#)
+    var explicitEmptyRef      = expect Parser.RegExp.create(#"()-\1"#)
+    var explicitEmptyAltGroup = expect Parser.RegExp.create(#"(|)"#)
+    var explicitEmptyAltRef   = expect Parser.RegExp.create(#"(|)-\1"#)
+    var optionalAltRef        = expect Parser.RegExp.create(#"(|a)-\1"#)
+    var countedEmptyGroup     = expect Parser.RegExp.create(#"(){2}(a)"#)
+    var countedEmptyAltGroup  = expect Parser.RegExp.create(#"(|){2}(a)"#)
+    var emptyRef              = expect Parser.RegExp.create(#"([a-z]*)-\1"#)
+    var emptyTail             = expect Parser.RegExp.create(#"([a-z]+)(\d*)"#)
+    var emptyTailSep          = expect Parser.RegExp.create(#"([a-z]+)(\d*)-"#)
+    var nonEmptyTailRef       = expect Parser.RegExp.create(#"([a-z]+)(\d+)-\2"#)
+    var emptyTailRef          = expect Parser.RegExp.create(#"([a-z]+)(\d*)-\2"#)
 
     @assert(emptyGroup.match(""))
     @assert(emptyGroup.getCapture(1) == "")
@@ -372,19 +372,19 @@ using Swag
 
 #test
 {
-    var baseline              = assume Parser.RegExp.create(#"b(c)"#)
-    var optionalGroup         = assume Parser.RegExp.create(#"(a)?b(c)"#)
-    var optionalStar          = assume Parser.RegExp.create(#"(a)*b(c)"#)
-    var optionalRef           = assume Parser.RegExp.create(#"(a)?\1"#)
-    var zeroRef               = assume Parser.RegExp.create(#"(a){0}\1"#)
-    var zeroFirst             = assume Parser.RegExp.create(#"(a){0}(b)"#)
-    var zeroNested            = assume Parser.RegExp.create(#"((a)b){0}(c)"#)
-    var zeroSiblingNested     = assume Parser.RegExp.create(#"((a)(b)){0}(c)"#)
-    var zeroNestedRef1        = assume Parser.RegExp.create(#"((a)b){0}\1"#)
-    var zeroNestedRef2        = assume Parser.RegExp.create(#"((a)b){0}\2"#)
-    var zeroSiblingNestedRef1 = assume Parser.RegExp.create(#"((a)(b)){0}\1"#)
-    var zeroSiblingNestedRef2 = assume Parser.RegExp.create(#"((a)(b)){0}\2"#)
-    var zeroSiblingNestedRef3 = assume Parser.RegExp.create(#"((a)(b)){0}\3"#)
+    var baseline              = expect Parser.RegExp.create(#"b(c)"#)
+    var optionalGroup         = expect Parser.RegExp.create(#"(a)?b(c)"#)
+    var optionalStar          = expect Parser.RegExp.create(#"(a)*b(c)"#)
+    var optionalRef           = expect Parser.RegExp.create(#"(a)?\1"#)
+    var zeroRef               = expect Parser.RegExp.create(#"(a){0}\1"#)
+    var zeroFirst             = expect Parser.RegExp.create(#"(a){0}(b)"#)
+    var zeroNested            = expect Parser.RegExp.create(#"((a)b){0}(c)"#)
+    var zeroSiblingNested     = expect Parser.RegExp.create(#"((a)(b)){0}(c)"#)
+    var zeroNestedRef1        = expect Parser.RegExp.create(#"((a)b){0}\1"#)
+    var zeroNestedRef2        = expect Parser.RegExp.create(#"((a)b){0}\2"#)
+    var zeroSiblingNestedRef1 = expect Parser.RegExp.create(#"((a)(b)){0}\1"#)
+    var zeroSiblingNestedRef2 = expect Parser.RegExp.create(#"((a)(b)){0}\2"#)
+    var zeroSiblingNestedRef3 = expect Parser.RegExp.create(#"((a)(b)){0}\3"#)
 
     @assert(baseline.match("bc"))
     let baselineCount = baseline.getCaptures().count
@@ -429,23 +429,23 @@ using Swag
 
 #test
 {
-    var nested                        = assume Parser.RegExp.create(#"((a)b)(c)"#)
-    var nestedRef                     = assume Parser.RegExp.create(#"((a)b)-\1-\2"#)
-    var nestedCounted                 = assume Parser.RegExp.create(#"((a)b){2}(c)"#)
-    var deepNested                    = assume Parser.RegExp.create(#"(((a)))(b)"#)
-    var nestedSiblings                = assume Parser.RegExp.create(#"((a)(b))(c)"#)
-    var nestedLeadingEmptySibling     = assume Parser.RegExp.create(#"(()(a))(b)"#)
-    var nestedTrailingEmptySibling    = assume Parser.RegExp.create(#"((a)())(b)"#)
-    var nestedLeadingAltSibling       = assume Parser.RegExp.create(#"((|a)(b))(c)"#)
-    var nestedTrailingAltSibling      = assume Parser.RegExp.create(#"((a)(|b))(c)"#)
-    var deepNestedRef                 = assume Parser.RegExp.create(#"(((a)))-\1-\2-\3"#)
-    var nestedSiblingsRef             = assume Parser.RegExp.create(#"((a)(b))-\1-\2-\3"#)
-    var nestedSiblingsCounted         = assume Parser.RegExp.create(#"((a)(b)){2}(c)"#)
-    var nestedLeadingEmptySiblingRef  = assume Parser.RegExp.create(#"(()(a))-\1-\2-\3"#)
-    var nestedTrailingEmptySiblingRef = assume Parser.RegExp.create(#"((a)())-\1-\2-\3"#)
-    var nestedLeadingAltSiblingRef    = assume Parser.RegExp.create(#"((|a)(b))-\1-\2-\3"#)
-    var nestedTrailingAltSiblingRef   = assume Parser.RegExp.create(#"((a)(|b))-\1-\2-\3"#)
-    var nestedSiblingsCountedRef      = assume Parser.RegExp.create(#"((a)(b)){2}\1\2\3"#)
+    var nested                        = expect Parser.RegExp.create(#"((a)b)(c)"#)
+    var nestedRef                     = expect Parser.RegExp.create(#"((a)b)-\1-\2"#)
+    var nestedCounted                 = expect Parser.RegExp.create(#"((a)b){2}(c)"#)
+    var deepNested                    = expect Parser.RegExp.create(#"(((a)))(b)"#)
+    var nestedSiblings                = expect Parser.RegExp.create(#"((a)(b))(c)"#)
+    var nestedLeadingEmptySibling     = expect Parser.RegExp.create(#"(()(a))(b)"#)
+    var nestedTrailingEmptySibling    = expect Parser.RegExp.create(#"((a)())(b)"#)
+    var nestedLeadingAltSibling       = expect Parser.RegExp.create(#"((|a)(b))(c)"#)
+    var nestedTrailingAltSibling      = expect Parser.RegExp.create(#"((a)(|b))(c)"#)
+    var deepNestedRef                 = expect Parser.RegExp.create(#"(((a)))-\1-\2-\3"#)
+    var nestedSiblingsRef             = expect Parser.RegExp.create(#"((a)(b))-\1-\2-\3"#)
+    var nestedSiblingsCounted         = expect Parser.RegExp.create(#"((a)(b)){2}(c)"#)
+    var nestedLeadingEmptySiblingRef  = expect Parser.RegExp.create(#"(()(a))-\1-\2-\3"#)
+    var nestedTrailingEmptySiblingRef = expect Parser.RegExp.create(#"((a)())-\1-\2-\3"#)
+    var nestedLeadingAltSiblingRef    = expect Parser.RegExp.create(#"((|a)(b))-\1-\2-\3"#)
+    var nestedTrailingAltSiblingRef   = expect Parser.RegExp.create(#"((a)(|b))-\1-\2-\3"#)
+    var nestedSiblingsCountedRef      = expect Parser.RegExp.create(#"((a)(b)){2}\1\2\3"#)
 
     @assert(nested.match("abc"))
     @assert(nested.getCapture(1) == "ab")
@@ -536,7 +536,7 @@ using Swag
 
 #test
 {
-    var digits = assume Parser.RegExp.create(#"\d+"#)
+    var digits = expect Parser.RegExp.create(#"\d+"#)
 
     let prefix = digits.partialMatch("123abc")
     @assert(prefix != null)
@@ -546,7 +546,7 @@ using Swag
 
 #test
 {
-    var anchored = assume Parser.RegExp.create(#"^(\d+)"#)
+    var anchored = expect Parser.RegExp.create(#"^(\d+)"#)
 
     let first = anchored.partialMatch("123abc")
     @assert(first != null)
@@ -564,7 +564,7 @@ using Swag
 
 #test
 {
-    assume
+    expect
     {
         var anchored = Parser.RegExp.create(#"^(\d+)"#)
 
@@ -580,7 +580,7 @@ using Swag
 
 #test
 {
-    let all = assume Parser.RegExp.grepAll(#"\d+"#, "a12b345c6")
+    let all = expect Parser.RegExp.grepAll(#"\d+"#, "a12b345c6")
 
     @assert(all.count == 3)
     @assert(all[0] == "12")
@@ -590,9 +590,9 @@ using Swag
 
 #test
 {
-    let first = assume Parser.RegExp.grep(#"\d+"#, "aa12bb34")
-    let none  = assume Parser.RegExp.grepAll(#"\d+"#, null)
-    var part  = assume Parser.RegExp.create(#"\d+"#)
+    let first = expect Parser.RegExp.grep(#"\d+"#, "aa12bb34")
+    let none  = expect Parser.RegExp.grepAll(#"\d+"#, null)
+    var part  = expect Parser.RegExp.create(#"\d+"#)
 
     @assert(first == "12")
     @assert(none.count == 0)
@@ -601,7 +601,7 @@ using Swag
 
 #test
 {
-    assume
+    expect
     {
         var captures = Parser.RegExp.create(#"(\d+)"#)
 
@@ -625,7 +625,7 @@ using Swag
 
 #test
 {
-    var endOfBuffer = assume Parser.RegExp.create(#"$"#)
+    var endOfBuffer = expect Parser.RegExp.create(#"$"#)
 
     let match = endOfBuffer.grep("abc")
     @assert(match != null)
@@ -638,7 +638,7 @@ using Swag
 
 #test
 {
-    var empty = assume Parser.RegExp.create(#"^$"#)
+    var empty = expect Parser.RegExp.create(#"^$"#)
 
     let match = empty.grep("")
     @assert(match != null)
@@ -651,7 +651,7 @@ using Swag
 
 #test
 {
-    var words  = assume Parser.RegExp.create(#"\bcat\b"#)
+    var words  = expect Parser.RegExp.create(#"\bcat\b"#)
     let first  = words.grep("\u00E9 scatter cat")
     let second = words.grep("\u00E9 scatter cat")
 
@@ -664,7 +664,7 @@ using Swag
 
 #test
 {
-    var boundary = assume Parser.RegExp.create(#"\b"#)
+    var boundary = expect Parser.RegExp.create(#"\b"#)
 
     let word = boundary.grep("cat")
     @assert(word != null)
@@ -681,7 +681,7 @@ using Swag
 
 #test
 {
-    let all = assume Parser.RegExp.grepAll(#"\d+"#, "\u00E912\u03B2345")
+    let all = expect Parser.RegExp.grepAll(#"\d+"#, "\u00E912\u03B2345")
 
     @assert(all.count == 2)
     @assert(all[0] == "12")
@@ -690,7 +690,7 @@ using Swag
 
 #test
 {
-    var anchored = assume Parser.RegExp.create(#"^\d+"#)
+    var anchored = expect Parser.RegExp.create(#"^\d+"#)
 
     let atStart = anchored.grep("12 34")
     @assert(atStart != null)
@@ -704,7 +704,7 @@ using Swag
 
 #test
 {
-    var words = assume Parser.RegExp.create(#"\bcat\b"#)
+    var words = expect Parser.RegExp.create(#"\bcat\b"#)
 
     @assert(words.grep("\u00E9cat") == null)
 
@@ -720,8 +720,8 @@ using Swag
 
 #test
 {
-    var anchored = assume Parser.RegExp.create(#"^\bcat\b$"#)
-    var letters  = assume Parser.RegExp.create(#"\pL+"#)
+    var anchored = expect Parser.RegExp.create(#"^\bcat\b$"#)
+    var letters  = expect Parser.RegExp.create(#"\pL+"#)
 
     @assert(anchored.match("cat"))
     @assert(!anchored.match("scatter"))
@@ -731,9 +731,9 @@ using Swag
 
 #test
 {
-    var optional   = assume Parser.RegExp.create(#"colou?r"#)
-    var revRange   = assume Parser.RegExp.create(#"[d-b]+"#)
-    var nonLetters = assume Parser.RegExp.create(#"[^a-z]+"#)
+    var optional   = expect Parser.RegExp.create(#"colou?r"#)
+    var revRange   = expect Parser.RegExp.create(#"[d-b]+"#)
+    var nonLetters = expect Parser.RegExp.create(#"[^a-z]+"#)
 
     @assert(optional.match("color"))
     @assert(optional.match("colour"))
@@ -746,10 +746,10 @@ using Swag
 
 #test
 {
-    var star = assume Parser.RegExp.create(#"ba{0,}c"#)
-    var opt  = assume Parser.RegExp.create(#"ba{0,1}c"#)
-    var plus = assume Parser.RegExp.create(#"ba{1,}c"#)
-    var same = assume Parser.RegExp.create(#"ba{1,1}c"#)
+    var star = expect Parser.RegExp.create(#"ba{0,}c"#)
+    var opt  = expect Parser.RegExp.create(#"ba{0,1}c"#)
+    var plus = expect Parser.RegExp.create(#"ba{1,}c"#)
+    var same = expect Parser.RegExp.create(#"ba{1,1}c"#)
 
     @assert(star.match("bc"))
     @assert(star.match("baaac"))
@@ -765,14 +765,14 @@ using Swag
 
 #test
 {
-    var blanks      = assume Parser.RegExp.create(#"\s+\t\l+"#)
-    var nonDigits   = assume Parser.RegExp.create(#"\D+"#)
-    var nonWords    = assume Parser.RegExp.create(#"\W+"#)
-    var nonSpaces   = assume Parser.RegExp.create(#"\S+"#)
-    var unicodeLow  = assume Parser.RegExp.create(#"\p{Ll}+"#, true)
-    var unicodeUp   = assume Parser.RegExp.create(#"\p{Lu}+"#)
-    var unicodeNum  = assume Parser.RegExp.create(#"\pN+"#)
-    var unicodeMath = assume Parser.RegExp.create(#"\p{Sm}+"#)
+    var blanks      = expect Parser.RegExp.create(#"\s+\t\l+"#)
+    var nonDigits   = expect Parser.RegExp.create(#"\D+"#)
+    var nonWords    = expect Parser.RegExp.create(#"\W+"#)
+    var nonSpaces   = expect Parser.RegExp.create(#"\S+"#)
+    var unicodeLow  = expect Parser.RegExp.create(#"\p{Ll}+"#, true)
+    var unicodeUp   = expect Parser.RegExp.create(#"\p{Lu}+"#)
+    var unicodeNum  = expect Parser.RegExp.create(#"\pN+"#)
+    var unicodeMath = expect Parser.RegExp.create(#"\p{Sm}+"#)
 
     @assert(blanks.match(" \tabc"))
     @assert(nonDigits.match("abc!?"))
@@ -790,20 +790,20 @@ using Swag
 
 #test
 {
-    var counted                           = assume Parser.RegExp.create(#"ab{2,3}c"#)
-    var countedGroup                      = assume Parser.RegExp.create(#"(a){2}(b)"#)
-    var countedAltGroup                   = assume Parser.RegExp.create(#"(a|b){2}(c)"#)
-    var countedEmptyAltRange              = assume Parser.RegExp.create(#"(|a){0,2}(b)"#)
-    var countedRangeGroup                 = assume Parser.RegExp.create(#"(a){0,2}(b)"#)
-    var countedSiblingRange               = assume Parser.RegExp.create(#"((a)(b)){0,2}(c)"#)
-    var countedSiblingRangeRef            = assume Parser.RegExp.create(#"((a)(b)){0,2}\1\2\3"#)
-    var countedLeadingAltSibling          = assume Parser.RegExp.create(#"((|a)(b)){2}(c)"#)
-    var countedTrailingAltSibling         = assume Parser.RegExp.create(#"((a)(|b)){2}(c)"#)
-    var countedLeadingAltSiblingRange     = assume Parser.RegExp.create(#"((|a)(b)){0,2}(c)"#)
-    var countedTrailingAltSiblingRange    = assume Parser.RegExp.create(#"((a)(|b)){0,2}(c)"#)
-    var countedLeadingAltSiblingRangeRef  = assume Parser.RegExp.create(#"((|a)(b)){0,2}\1\2\3"#)
-    var countedTrailingAltSiblingRangeRef = assume Parser.RegExp.create(#"((a)(|b)){0,2}\1\2\3"#)
-    var countedBackRef                    = assume Parser.RegExp.create(#"([ab]){2}\1"#)
+    var counted                           = expect Parser.RegExp.create(#"ab{2,3}c"#)
+    var countedGroup                      = expect Parser.RegExp.create(#"(a){2}(b)"#)
+    var countedAltGroup                   = expect Parser.RegExp.create(#"(a|b){2}(c)"#)
+    var countedEmptyAltRange              = expect Parser.RegExp.create(#"(|a){0,2}(b)"#)
+    var countedRangeGroup                 = expect Parser.RegExp.create(#"(a){0,2}(b)"#)
+    var countedSiblingRange               = expect Parser.RegExp.create(#"((a)(b)){0,2}(c)"#)
+    var countedSiblingRangeRef            = expect Parser.RegExp.create(#"((a)(b)){0,2}\1\2\3"#)
+    var countedLeadingAltSibling          = expect Parser.RegExp.create(#"((|a)(b)){2}(c)"#)
+    var countedTrailingAltSibling         = expect Parser.RegExp.create(#"((a)(|b)){2}(c)"#)
+    var countedLeadingAltSiblingRange     = expect Parser.RegExp.create(#"((|a)(b)){0,2}(c)"#)
+    var countedTrailingAltSiblingRange    = expect Parser.RegExp.create(#"((a)(|b)){0,2}(c)"#)
+    var countedLeadingAltSiblingRangeRef  = expect Parser.RegExp.create(#"((|a)(b)){0,2}\1\2\3"#)
+    var countedTrailingAltSiblingRangeRef = expect Parser.RegExp.create(#"((a)(|b)){0,2}\1\2\3"#)
+    var countedBackRef                    = expect Parser.RegExp.create(#"([ab]){2}\1"#)
 
     @assert(counted.match("abbc"))
     @assert(counted.match("abbbc"))
@@ -932,25 +932,25 @@ using Swag
 
 #test
 {
-    var emptyExactZero   = assume Parser.RegExp.create(#"a{0}"#)
-    var emptyGroupZero   = assume Parser.RegExp.create(#"(ab){0}"#)
-    var emptyDigitZero   = assume Parser.RegExp.create(#"\d{0}"#)
-    var emptyUnicodeZero = assume Parser.RegExp.create(#"\pN{0}"#)
-    var leftEmptyAlt     = assume Parser.RegExp.create(#"a{0}|b"#)
-    var rightEmptyAlt    = assume Parser.RegExp.create(#"a|b{0}"#)
-    var innerEmptyAlt    = assume Parser.RegExp.create(#"(a|b{0})c"#)
-    var exactZero        = assume Parser.RegExp.create(#"a{0}bc"#)
-    var rangeZero        = assume Parser.RegExp.create(#"[ab]{0,0}c"#)
-    var groupedZero      = assume Parser.RegExp.create(#"(ab){0}c"#)
-    var escapedZero      = assume Parser.RegExp.create(#"\({0,2}a"#)
-    var escapedCloseZero = assume Parser.RegExp.create(#"\){0,2}a"#)
-    var escapedPipeZero  = assume Parser.RegExp.create(#"\|{0,2}a"#)
-    var digitUpToTwo     = assume Parser.RegExp.create(#"\d{0,2}a"#)
-    var digitExactZero   = assume Parser.RegExp.create(#"\d{0}a"#)
-    var unicodeUpToTwo   = assume Parser.RegExp.create(#"\pN{0,2}a"#)
-    var anythingUpToTwo  = assume Parser.RegExp.create(#".{0,2}a"#)
-    var upToTwo          = assume Parser.RegExp.create(#"a{0,2}bc"#)
-    var groupUpToTwo     = assume Parser.RegExp.create(#"(ab){0,2}c"#)
+    var emptyExactZero   = expect Parser.RegExp.create(#"a{0}"#)
+    var emptyGroupZero   = expect Parser.RegExp.create(#"(ab){0}"#)
+    var emptyDigitZero   = expect Parser.RegExp.create(#"\d{0}"#)
+    var emptyUnicodeZero = expect Parser.RegExp.create(#"\pN{0}"#)
+    var leftEmptyAlt     = expect Parser.RegExp.create(#"a{0}|b"#)
+    var rightEmptyAlt    = expect Parser.RegExp.create(#"a|b{0}"#)
+    var innerEmptyAlt    = expect Parser.RegExp.create(#"(a|b{0})c"#)
+    var exactZero        = expect Parser.RegExp.create(#"a{0}bc"#)
+    var rangeZero        = expect Parser.RegExp.create(#"[ab]{0,0}c"#)
+    var groupedZero      = expect Parser.RegExp.create(#"(ab){0}c"#)
+    var escapedZero      = expect Parser.RegExp.create(#"\({0,2}a"#)
+    var escapedCloseZero = expect Parser.RegExp.create(#"\){0,2}a"#)
+    var escapedPipeZero  = expect Parser.RegExp.create(#"\|{0,2}a"#)
+    var digitUpToTwo     = expect Parser.RegExp.create(#"\d{0,2}a"#)
+    var digitExactZero   = expect Parser.RegExp.create(#"\d{0}a"#)
+    var unicodeUpToTwo   = expect Parser.RegExp.create(#"\pN{0,2}a"#)
+    var anythingUpToTwo  = expect Parser.RegExp.create(#".{0,2}a"#)
+    var upToTwo          = expect Parser.RegExp.create(#"a{0,2}bc"#)
+    var groupUpToTwo     = expect Parser.RegExp.create(#"(ab){0,2}c"#)
 
     @assert(emptyExactZero.match(""))
     @assert(!emptyExactZero.match("a"))

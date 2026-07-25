@@ -59,8 +59,7 @@ public func getMonitors()->Array'Monitor
     func proc(hMonitor: HMONITOR, _hDC: HDC, _lpRect: *RECT, lParam: LPARAM)->BOOL
     {
         var mi: MONITORINFO
-        catch GetMonitorInfoA(hMonitor, &mi)
-        if @err != null do
+        catch GetMonitorInfoA(hMonitor, &mi) else do
             return TRUE
 
         var m: Monitor
@@ -342,7 +341,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
 }
 
 // Creates a native application window. Platform-specific state stays behind Window.nativeHandle.
-public func createWindow(window: &Window, options: WindowOptions) throw
+public func createWindow(window: &Window, options: WindowOptions) fail
 {
     window.nativeHandle = null
     window.callbacks    = {}
@@ -357,7 +356,7 @@ public func createWindow(window: &Window, options: WindowOptions) throw
 
     let hWnd = CreateWindowExA(options.exStyle, @dataof(options.className), @dataof(options.title), options.style, options.x, options.y, options.width, options.height, null, null, wc.hInstance, &window)
     if !hWnd do
-        throwWinError(GetLastError())
+        failWinError(GetLastError())
 
     window.nativeHandle = hWnd
 }
@@ -392,24 +391,24 @@ public impl Window
 
     mtd requestPaint()
     {
-        assume PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
+        expect PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
     }
 
-    mtd setClientSize(width, height: s32) throw
+    mtd setClientSize(width, height: s32) fail
     {
         var windowRect: RECT
         var clientRect: RECT
         if !GetWindowRect(.nativeHandle, &windowRect) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         if !GetClientRect(.nativeHandle, &clientRect) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
 
         let frameWidth  = (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left)
         let frameHeight = (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top)
         try MoveWindow(.nativeHandle, windowRect.left, windowRect.top, width + frameWidth, height + frameHeight, FALSE)
     }
 
-    mtd show() throw
+    mtd show() fail
     {
         ShowWindow(.nativeHandle, .showCommand)
         try UpdateWindow(.nativeHandle)

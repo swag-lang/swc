@@ -42,7 +42,7 @@ const Samples = [
     TextCase{"125%", 1.25},
     ]
 
-func loadFonts() throw
+func loadFonts() fail
 {
     g_TypeFace  = try TypeFace.load("segoeui.ttf")
     g_TitleFont = Font.create(notnull g_TypeFace, 34, .Bitmap)
@@ -225,7 +225,7 @@ func drawFrame(painter: *Pixel.Painter, rect: Math.Rectangle, title: string)
 func makeOutline(text: string, size: u32, embolden: u32)->LinePathList
 {
     var result: retval
-    assume (notnull g_TypeFace).getStringOutline(&result, text, size, embolden)
+    expect (notnull g_TypeFace).getStringOutline(&result, text, size, embolden)
     result.flatten(.High)
     return result
 }

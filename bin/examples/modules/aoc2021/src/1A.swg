@@ -48,13 +48,13 @@ using Core
 func day1A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "1.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total: u64
     var last = Swag.U64.Max
     for l in lines
     {
-        let cur = assume StrConv.toS32(l)
+        let cur = expect StrConv.toS32(l)
         if cur > last do
             total += 1
         last      = cur

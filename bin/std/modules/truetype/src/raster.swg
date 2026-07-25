@@ -193,14 +193,14 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     }
 }
 
-func renderCurrentOutline(slot: *GlyphSlot) throw
+func renderCurrentOutline(slot: *GlyphSlot) fail
 {
     let faceData = getSlotImpl(slot)
     let safeSlot = notnull slot
     clearBitmap(safeSlot)
 
     if safeSlot.format != .Outline do
-        fail(0x13)
+        fault(0x13)
 
     if safeSlot.outline.pointCount <= 0 do
         return

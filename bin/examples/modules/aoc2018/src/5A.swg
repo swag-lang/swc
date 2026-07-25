@@ -28,7 +28,7 @@ using Core
 func day5A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
-    var line     = assume File.readAllText(dataPath)
+    var line     = expect File.readAllText(dataPath)
 
     var idx = 0
     while idx < line.length - 1

@@ -18,7 +18,7 @@ public struct RenderingContext
 public impl NativeRenderOgl
 {
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd createContext(hWnd: HWND, width, height: s32, mainRC: HGLRC = null)->RenderingContext throw
+    mtd createContext(hWnd: HWND, width, height: s32, mainRC: HGLRC = null)->RenderingContext fail
     {
         var result = try .createContext(GetDC(hWnd), width, height, mainRC)
         result.hWnd   = hWnd
@@ -27,13 +27,13 @@ public impl NativeRenderOgl
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd createContext(window: &Env.Window, width, height: s32, mainRC: HGLRC = null)->RenderingContext throw
+    mtd createContext(window: &Env.Window, width, height: s32, mainRC: HGLRC = null)->RenderingContext fail
     {
         return try .createContext(cast(HWND) window.nativeHandle, width, height, mainRC)
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd createContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->RenderingContext throw
+    mtd createContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->RenderingContext fail
     {
         var result: retval
         result.hDC    = hdc
@@ -76,6 +76,6 @@ public impl NativeRenderOgl
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd swapBuffers(rc: RenderingContext)
     {
-        assume SwapBuffers(rc.hDC)
+        expect SwapBuffers(rc.hDC)
     }
 }

@@ -3,7 +3,7 @@
 // Real-world error management scenario: a mini bank ledger with atomic
 // transfers. Exercises the whole toolbox: typed throw errors carrying
 // context, try-propagation, catch/trycatch at call sites, @err inspection
-// after catch, defer #err to roll back on failure, defer #noerr to commit
+// after catch, defer #fail to roll back on failure, defer #nofail to commit
 // on success.
 
 const MaxAccounts = 8
@@ -62,7 +62,7 @@ impl Ledger
         .totalOps   = 0
     }
 
-    mtd findAccount(id: s32)->*Account throw
+    mtd findAccount(id: s32)->*Account fail
     {
         if id < 0 or id >= cast(s32) MaxAccounts
         {
@@ -70,13 +70,13 @@ impl Ledger
             err.message = "unknown account"
             err.kind    = .UnknownAccount
             err.account = id
-            throw err
+            fail err
         }
 
         return &.accounts[id]
     }
 
-    mtd deposit(id: s32, amount: s64) throw
+    mtd deposit(id: s32, amount: s64) fail
     {
         if amount <= 0
         {
@@ -85,7 +85,7 @@ impl Ledger
             err.kind    = .InvalidAmount
             err.account = id
             err.amount  = amount
-            throw err
+            fail err
         }
 
         let acc = try .findAccount(id)
@@ -95,14 +95,14 @@ impl Ledger
             err.message = "frozen account"
             err.kind    = .FrozenAccount
             err.account = id
-            throw err
+            fail err
         }
 
         acc.balance += amount
         .totalOps   += 1
     }
 
-    mtd withdraw(id: s32, amount: s64) throw
+    mtd withdraw(id: s32, amount: s64) fail
     {
         if amount <= 0
         {
@@ -111,7 +111,7 @@ impl Ledger
             err.kind    = .InvalidAmount
             err.account = id
             err.amount  = amount
-            throw err
+            fail err
         }
 
         let acc = try .findAccount(id)
@@ -121,7 +121,7 @@ impl Ledger
             err.message = "frozen account"
             err.kind    = .FrozenAccount
             err.account = id
-            throw err
+            fail err
         }
 
         if acc.balance < amount
@@ -131,27 +131,27 @@ impl Ledger
             err.kind    = .InsufficientFunds
             err.account = id
             err.amount  = amount
-            throw err
+            fail err
         }
 
         acc.balance -= amount
         .totalOps   += 1
     }
 
-    mtd transfer(from: s32, dest: s32, amount: s64) throw
+    mtd transfer(from: s32, dest: s32, amount: s64) fail
     {
         try .withdraw(from, amount)
 
         // Once the withdrawal succeeded, the rollback is registered so any
         // later throw restores the source balance.
-        defer #err
+        defer #fail
         {
             .accounts[from].balance += amount
             .rolledBack             += 1
         }
 
         // Commit counter only moves when the whole transfer runs to the end.
-        defer #noerr .committed += 1
+        defer #nofail .committed += 1
 
         try .deposit(dest, amount)
     }
@@ -240,7 +240,7 @@ impl Ledger
     @assert(ledger.rolledBack == 0)
 }
 
-// Deposit leg fails: defer #err fires, source balance restored, rolledBack bumps.
+// Deposit leg fails: defer #fail fires, source balance restored, rolledBack bumps.
 #test
 {
     var ledger: Ledger
@@ -334,7 +334,7 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     catch ledger.deposit(0, 100)
-    trycatch ledger.transfer(0, 1, 500)
+    catch ledger.transfer(0, 1, 500) else {}
     @assert(@err == null)
     @assert(ledger.accounts[0].balance == 100)
     @assert(ledger.rolledBack == 0)

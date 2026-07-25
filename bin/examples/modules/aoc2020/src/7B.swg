@@ -39,18 +39,18 @@ func day7B()
 func day7B0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'({ count: u32, name: string }))
 
-    var r = assume Parser.RegExp.create(#"\d+ \w+ \w+"#)
+    var r = expect Parser.RegExp.create(#"\d+ \w+ \w+"#)
     for l in lines
     {
         let split = Tokenize.split(l, " bags contain ")
         for v in r.grepAll(split[1])
         {
             let splitVal = Tokenize.split(v, ' ''u8, 1)
-            let count    = assume StrConv.toU32(splitVal[0])
+            let count    = expect StrConv.toU32(splitVal[0])
             id.findOrAdd(split[0]).value.add({count, splitVal[1]})
         }
     }
@@ -81,18 +81,18 @@ func day7B0()
 func day7B1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'({ count: u32, name: string }))
 
-    var r = assume Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
+    var r = expect Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
     for l in lines
     {
         let split = Tokenize.split(l, " bags contain ")
         for v in r.grepAll(split[1])
         {
             discard r.match(v)
-            let count = assume StrConv.toU32(r.getCapture(1))
+            let count = expect StrConv.toU32(r.getCapture(1))
             id.findOrAdd(split[0]).value.add({count, r.getCapture(2)})
         }
     }

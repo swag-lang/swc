@@ -27,7 +27,7 @@ using Core
 func day8A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var x, y:  s32
     var count: [10] s32

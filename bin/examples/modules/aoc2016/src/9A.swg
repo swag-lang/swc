@@ -22,19 +22,19 @@ using Core
 func day9A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
-    let line     = assume File.readAllText(dataPath)
+    let line     = expect File.readAllText(dataPath)
 
     var decode: String
 
-    var r     = assume Parser.RegExp.create(#"\((\d+)x(\d+)\)"#)
+    var r     = expect Parser.RegExp.create(#"\((\d+)x(\d+)\)"#)
     var start = 0'u64
     while start != @countof(line)
     {
         let res = r.partialMatch(line[start to])
         if res
         {
-            let n = assume StrConv.toS32(r[1])
-            var x = assume StrConv.toS32(r[2])
+            let n = expect StrConv.toS32(r[1])
+            var x = expect StrConv.toS32(r[2])
             start += @countof(res)
 
             while x

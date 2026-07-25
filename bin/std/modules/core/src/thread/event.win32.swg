@@ -35,7 +35,7 @@ impl Event
     mtd init(manual, initState = false)
     {
         Debug.assert(.handle == null)
-        .handle = assume CreateEventA(null, manual ? TRUE : FALSE, initState ? TRUE : FALSE, null)
+        .handle = expect CreateEventA(null, manual ? TRUE : FALSE, initState ? TRUE : FALSE, null)
     }
 
     // Destroy an existing event
@@ -51,20 +51,20 @@ impl Event
     mtd signal()
     {
         Debug.assert(.isValid())
-        assume SetEvent(.handle)
+        expect SetEvent(.handle)
     }
 
     // Reset the event state
     mtd reset()
     {
         Debug.assert(.isValid())
-        assume ResetEvent(.handle)
+        expect ResetEvent(.handle)
     }
 
     // Wait for the event to be signaled
     mtd wait()
     {
         Debug.assert(.isValid())
-        assume WaitForSingleObject(.handle, INFINITE)
+        expect WaitForSingleObject(.handle, INFINITE)
     }
 }

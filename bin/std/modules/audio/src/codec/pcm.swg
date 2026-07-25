@@ -27,12 +27,12 @@ impl ICodec for CodecPcmToPcm16
         return false
     }
 
-    mtd impl init(srcBuffer: [*] void, srcLength: u64)->u64 throw
+    mtd impl init(srcBuffer: [*] void, srcLength: u64)->u64 fail
     {
         return 0
     }
 
-    mtd impl decode(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 } throw
+    mtd impl decode(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 } fail
     {
         if .srcEncoding == .dstEncoding
         {
@@ -95,7 +95,7 @@ impl ICodec for CodecPcmToPcm16
         case Float32: return doIt'(4, Float32)(destBuffer, destLength, srcBuffer, srcLength)
         }
 
-        throw UnsupportedFormatError{"invalid encoding"}
+        fail UnsupportedFormatError{"invalid encoding"}
         return {0, 0}
     }
 }

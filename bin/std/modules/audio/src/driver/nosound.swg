@@ -23,7 +23,7 @@ struct NoSoundDriverNative
 
 impl NoSoundDriverNative
 {
-    mtd createNoSound() throw
+    mtd createNoSound() fail
     {
         .outputVolume = 1
     }
@@ -33,7 +33,7 @@ impl NoSoundDriverNative
         .outputVolume = 1
     }
 
-    mtd setOutputVolumeNoSound(volume: f32) throw
+    mtd setOutputVolumeNoSound(volume: f32) fail
     {
         .outputVolume = volume
     }
@@ -46,13 +46,13 @@ impl NoSoundDriverNative
 
 impl Voice
 {
-    func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
+    func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
         voice.handle = cast(VoiceHandle) Memory.new'NoSoundVoice()
         let file = notnull voice.file
         voice.requestedEncoding = file.encoding
         if !voice.handle do
-            throw BadParameterError{"cannot create no-sound voice"}
+            fail BadParameterError{"cannot create no-sound voice"}
     }
 
     mtd destroyNoSound()
@@ -63,7 +63,7 @@ impl Voice
         .handle = null
     }
 
-    mtd updateNoSound()->bool throw
+    mtd updateNoSound()->bool fail
     {
         let handle = cast(#null *NoSoundVoice) .handle
         if !handle or !handle.isPlaying do
@@ -86,14 +86,14 @@ impl Voice
         return false
     }
 
-    mtd playNoSound(batchID: u32 = 0) throw
+    mtd playNoSound(batchID: u32 = 0) fail
     {
         let handle = cast(#null *NoSoundVoice) .handle
         if handle do
             handle.isPlaying = true
     }
 
-    mtd stopNoSound(batchID: u32 = 0) throw
+    mtd stopNoSound(batchID: u32 = 0) fail
     {
         let handle = cast(#null *NoSoundVoice) .handle
         if handle do
@@ -103,7 +103,7 @@ impl Voice
 
 public impl Voice
 {
-    mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) throw
+    mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) fail
     {
         if !.handle do
             return
@@ -111,7 +111,7 @@ public impl Voice
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
-    mtd getVolumeNoSound()->f32 throw
+    mtd getVolumeNoSound()->f32 fail
     {
         if !.handle do
             return 0
@@ -119,7 +119,7 @@ public impl Voice
         return handle.volume
     }
 
-    mtd setFrequencyRatioNoSound(ratio: f32, batchID: u32 = 0) throw
+    mtd setFrequencyRatioNoSound(ratio: f32, batchID: u32 = 0) fail
     {
         if !.handle do
             return
@@ -127,7 +127,7 @@ public impl Voice
         handle.frequencyRatio = ratio
     }
 
-    mtd setRootingNoSound(buses: const [..] *Bus) throw
+    mtd setRootingNoSound(buses: const [..] *Bus) fail
     {
         if !.handle do
             return
@@ -135,14 +135,14 @@ public impl Voice
         let handle = cast(*NoSoundVoice) .handle
         let count  = @countof(buses)
         if count >= @countof(handle.buses) do
-            throw SystemError{"too many buses", errorID: count}
+            fail SystemError{"too many buses", errorID: count}
 
         handle.busCount = cast(u32) count
         for [i] in count
         {
             let bus = buses[i]
             if !bus or !bus.handle do
-                throw BadParameterError{"bus invalid"}
+                fail BadParameterError{"bus invalid"}
             handle.buses[i] = bus
         }
     }
@@ -150,10 +150,10 @@ public impl Voice
 
 impl Bus
 {
-    func createNoSound(bus: *Bus, numChannels: u32, parent: #null *Bus = null) throw
+    func createNoSound(bus: *Bus, numChannels: u32, parent: #null *Bus = null) fail
     {
         if parent and !parent.handle do
-            throw BadParameterError{"parent bus invalid"}
+            fail BadParameterError{"parent bus invalid"}
 
         let handle = Memory.new'NoSoundBus()
         bus.handle         = cast(BusHandle) handle
@@ -172,7 +172,7 @@ impl Bus
 
 public impl Bus
 {
-    mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) throw
+    mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) fail
     {
         if !.handle do
             return
@@ -180,7 +180,7 @@ public impl Bus
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
-    mtd getVolumeNoSound()->f32 throw
+    mtd getVolumeNoSound()->f32 fail
     {
         if !.handle do
             return 0

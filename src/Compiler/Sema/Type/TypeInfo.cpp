@@ -608,7 +608,7 @@ namespace
                     out += renderTypeName(returnType, ctx, mode);
                 }
 
-                out += function.isThrowable() ? " throw" : "";
+                out += function.isFallible() ? " fail" : "";
                 break;
             }
 

@@ -38,7 +38,7 @@ func jpgCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeJpg(result: *ConcatBuffer, image: Image, options: #null any = null) throw
+func encodeJpg(result: *ConcatBuffer, image: Image, options: #null any = null) fail
 {
     var enc: Jpg.Encoder
     let itf = @mkinterface(&enc, #typeof(Jpg.Encoder), IImageEncoder)

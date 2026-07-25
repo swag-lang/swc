@@ -976,7 +976,7 @@ const GL_TEXTURE_COMPONENTS = GL_TEXTURE_INTERNAL_FORMAT
     func glShadeModel(mode: GLenum);
     func glStencilFunc(fc: GLenum, refr: GLint, mask: GLuint);
     func glStencilMask(mask: GLuint);
-    func glStencilOp(fail: GLenum, zfail: GLenum, zpass: GLenum);
+    func glStencilOp(fault: GLenum, zfail: GLenum, zpass: GLenum);
     func glTexCoord1d(s: GLdouble);
     func glTexCoord1dv(v: #null const *GLdouble);
     func glTexCoord1f(s: GLfloat);

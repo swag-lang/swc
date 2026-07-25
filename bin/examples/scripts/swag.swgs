@@ -60,7 +60,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
     case CreateEvent:
         var pl: LinePathList
-        assume wnd.getTheme().res.defaultTypeFaceR.getStringOutline(&pl, "Swag", 200)
+        expect wnd.getTheme().res.defaultTypeFaceR.getStringOutline(&pl, "Swag", 200)
         for path in pl.paths
         {
             path.flatten()

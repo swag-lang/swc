@@ -210,7 +210,7 @@ enum class AstFunctionFlagsE : AstNode::ParserFlags
 {
     Zero      = 0,
     Method    = 1 << 0,
-    Throwable = 1 << 1,
+    Fallible = 1 << 1,
     Closure   = 1 << 2,
     Const     = 1 << 3,
     Impl      = 1 << 4,
@@ -1392,8 +1392,9 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 struct AstTryCatchExpr : AstNodeT<AstNodeId::TryCatchExpr>
 {
     AstNodeRef nodeExprRef;
+    AstNodeRef nodeFallbackRef;     // 'orfail' lazy fallback value; invalid for try/catch/trycatch/assume/expect
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeFallbackRef}); }
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema) const;
@@ -1681,8 +1682,9 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
 {
     AstNodeRef nodeBodyRef;
+    AstNodeRef nodeHandlerRef;     // 'catch e else { H }' failure handler; invalid otherwise
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef, nodeHandlerRef}); }
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema) const;
@@ -1692,7 +1694,7 @@ struct AstTryCatchStmt : AstNodeT<AstNodeId::TryCatchStmt>
 };
 
 // -----------------------------------------------------------------------------
-struct AstThrowExpr : AstNodeT<AstNodeId::ThrowExpr>
+struct AstFailExpr : AstNodeT<AstNodeId::FailExpr>
 {
     AstNodeRef nodeExprRef;
 

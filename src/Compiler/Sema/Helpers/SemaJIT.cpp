@@ -709,9 +709,9 @@ namespace
 
         if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        // Throwable calls depend on the runtime error context and must preserve
+        // Fallible calls depend on the runtime error context and must preserve
         // their TLS-visible side effects instead of being folded to a plain value.
-        if (calledFn.isThrowable())
+        if (calledFn.isFallible())
             return false;
         if (!calledFn.isPure() && !calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;
@@ -735,7 +735,7 @@ namespace
     {
         if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Macro) || calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Mixin))
             return false;
-        if (calledFn.isThrowable())
+        if (calledFn.isFallible())
             return false;
         if (!calledFn.attributes().hasRtFlag(RtAttributeFlagsE::ConstExpr))
             return false;

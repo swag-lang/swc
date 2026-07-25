@@ -12,10 +12,10 @@ public impl Bus
     // Creates an audio bus.
     // You can then associate a [[Voice]] to that bus with [[Voice.setRooting]]
     // Note that you can have a graph of buses, because a bus can have another bus as 'parent'.
-    func create(numChannels: u32, parent: #null *Bus = null)->#null *Bus throw
+    func create(numChannels: u32, parent: #null *Bus = null)->#null *Bus fail
     {
         let bus = Memory.new'Bus()
-        defer #err Memory.delete(bus)
+        defer #fail Memory.delete(bus)
         createNative(bus, numChannels, parent)
 
         Sync.scopedLock(&g_Driver.mutexBuses)
@@ -24,7 +24,7 @@ public impl Bus
     }
 
     // Destroy the bus (immediatly).
-    mtd destroy() throw
+    mtd destroy() fail
     {
         .destroyNative()
 
@@ -34,13 +34,13 @@ public impl Bus
     }
 
     // Set the playing bus volume in DB.
-    mtd setVolumeDB(volumeDB: f32, batchID: u32 = 0) throw
+    mtd setVolumeDB(volumeDB: f32, batchID: u32 = 0) fail
     {
         .setVolume(convertDBToPercent(volumeDB), batchID)
     }
 
     // Returns the actual volume, in DB.
-    mtd getVolumeDB()->f32 throw
+    mtd getVolumeDB()->f32 fail
     {
         return convertPercentToDB(.getVolume())
     }

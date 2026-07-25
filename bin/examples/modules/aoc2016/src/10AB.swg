@@ -99,20 +99,20 @@ internal func execute(lines: Array'String)
         switch
         {
         case r0.match(l):
-            let bot: &Bot = &getBot(assume StrConv.toS32(r0[2]))
-            bot.add(assume StrConv.toS32(r0[1]))
+            let bot: &Bot = &getBot(expect StrConv.toS32(r0[2]))
+            bot.add(expect StrConv.toS32(r0[1]))
             bot.execute()
 
         case r1.match(l):
-            let bot: &Bot = &getBot(assume StrConv.toS32(r1[1]))
+            let bot: &Bot = &getBot(expect StrConv.toS32(r1[1]))
             if bot.count != 2
             {
                 bot.pending.add(l)
                 break
             }
 
-            let low:  &Bot = &getBot(assume StrConv.toS32(r1[3]))
-            let high: &Bot = &getBot(assume StrConv.toS32(r1[5]))
+            let low:  &Bot = &getBot(expect StrConv.toS32(r1[3]))
+            let high: &Bot = &getBot(expect StrConv.toS32(r1[5]))
 
             if r1[2] == "bot" do
                 low.add(bot.eatLow())
@@ -135,10 +135,10 @@ func day10AB()
     // Time.Stopwatch.scopeMeasure()
 
     let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
-    assume r0.compile(#"value (\d+) goes to bot (\d+)"#)
-    assume r1.compile(#"bot (\d+) gives low to (\w+) (\d+) and high to (\w+) (\d+)"#)
+    expect r0.compile(#"value (\d+) goes to bot (\d+)"#)
+    expect r1.compile(#"bot (\d+) gives low to (\w+) (\d+) and high to (\w+) (\d+)"#)
 
     execute(lines)
 

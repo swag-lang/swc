@@ -59,14 +59,14 @@ internal struct Claim
 func day6A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var coords: Array'{ x, y: s32 }
     for l in lines
     {
         let split = Tokenize.split(l, ',''u8)
-        let vx    = assume StrConv.toS32(Latin1.trim(split[0]))
-        let vy    = assume StrConv.toS32(Latin1.trim(split[1]))
+        let vx    = expect StrConv.toS32(Latin1.trim(split[0]))
+        let vy    = expect StrConv.toS32(Latin1.trim(split[1]))
         coords.add({vx, vy})
     }
 

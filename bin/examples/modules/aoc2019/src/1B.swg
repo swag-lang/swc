@@ -16,12 +16,12 @@ using Core
 func day1B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "1.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
     for l in lines
     {
-        var fuel = assume StrConv.toS32(l)
+        var fuel = expect StrConv.toS32(l)
         for
         {
             fuel = (fuel / 3) - 2

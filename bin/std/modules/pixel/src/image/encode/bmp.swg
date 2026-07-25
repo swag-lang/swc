@@ -11,19 +11,19 @@ public impl IImageEncoder for Encoder
         return Path.getExtensionLowerCase(fileName) == ".bmp"
     }
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) throw
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
-            throw InvalidFormatError{"invalid image"}
+            fail InvalidFormatError{"invalid image"}
         if image.width > Swag.S32.Max / image.bpp8 or image.height > Swag.S32.Max / image.width do
-            throw UnsupportedFormatError{"image is too big"}
+            fail UnsupportedFormatError{"image is too big"}
 
         let rowBytes  = cast(u64) image.width * image.bpp8
         let stride    = rowStride(image.width, image.bpp)
         let imageSize = stride * cast(u64) image.height
         let fileSize  = cast(u64) #sizeof(FileHeader) + #sizeof(Header) + imageSize
         if fileSize > Swag.U32.Max do
-            throw UnsupportedFormatError{"image is too big"}
+            fail UnsupportedFormatError{"image is too big"}
 
         var fileHeader: FileHeader
         fileHeader.bfType    = 0x4D42

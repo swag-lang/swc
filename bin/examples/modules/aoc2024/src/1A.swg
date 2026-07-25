@@ -44,14 +44,14 @@ using Core
 func day1A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "1.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var arr0, arr1: Array's32
     for l in lines
     {
         let first = Tokenize.split(l, ' ''u8)
-        arr0.add(assume StrConv.toS32(first[0]))
-        arr1.add(assume StrConv.toS32(first[1]))
+        arr0.add(expect StrConv.toS32(first[0]))
+        arr1.add(expect StrConv.toS32(first[1]))
     }
 
     arr0.sort()

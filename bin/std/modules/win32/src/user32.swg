@@ -1145,125 +1145,125 @@ internal namespace User32Priv
 
 #[Inline]
 {
-    func RegisterHotKey(hWnd: HWND, id: s32, fsModifiers: UINT, vk: UINT) throw
+    func RegisterHotKey(hWnd: HWND, id: s32, fsModifiers: UINT, vk: UINT) fail
     {
         if !User32Priv.RegisterHotKey(hWnd, id, fsModifiers, vk) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func UnregisterHotKey(hWnd: HWND, id: s32) throw
+    func UnregisterHotKey(hWnd: HWND, id: s32) fail
     {
         if !User32Priv.UnregisterHotKey(hWnd, id) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func PostMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) throw
+    func PostMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) fail
     {
         if !User32Priv.PostMessageA(hWnd, msg, wParam, lParam) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func PostMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) throw
+    func PostMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM) fail
     {
         if !User32Priv.PostMessageW(hWnd, msg, wParam, lParam) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
     #[Discardable]
-    func RegisterClassA(lpWndClass: const *WNDCLASSA)->ATOM throw
+    func RegisterClassA(lpWndClass: const *WNDCLASSA)->ATOM fail
     {
         let res = User32Priv.RegisterClassA(lpWndClass)
         if !res do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return res
     }
 
     #[Discardable]
-    func RegisterClassW(lpWndClass: const *WNDCLASSW)->ATOM throw
+    func RegisterClassW(lpWndClass: const *WNDCLASSW)->ATOM fail
     {
         let res = User32Priv.RegisterClassW(lpWndClass)
         if !res do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return res
     }
 
-    func UpdateWindow(hWnd: HWND) throw
+    func UpdateWindow(hWnd: HWND) fail
     {
         if !User32Priv.UpdateWindow(hWnd) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func DestroyWindow(hWnd: HWND) throw
+    func DestroyWindow(hWnd: HWND) fail
     {
         if !User32Priv.DestroyWindow(hWnd) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func MoveWindow(hWnd: HWND, x, y, nWidth, nHeight: s32, bRepaint: BOOL) throw
+    func MoveWindow(hWnd: HWND, x, y, nWidth, nHeight: s32, bRepaint: BOOL) fail
     {
         if !User32Priv.MoveWindow(hWnd, x, y, nWidth, nHeight, bRepaint) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func SetWindowPos(hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT) throw
+    func SetWindowPos(hWnd, hWndInsertAfter: HWND, x, y, cx, cy: s32, uFlags: UINT) fail
     {
         if !User32Priv.SetWindowPos(hWnd, hWndInsertAfter, x, y, cx, cy, uFlags) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func SetLayeredWindowAttributes(hwnd: HWND, crKey: COLORREF, bAlpha: BYTE, dwFlags: DWORD) throw
+    func SetLayeredWindowAttributes(hwnd: HWND, crKey: COLORREF, bAlpha: BYTE, dwFlags: DWORD) fail
     {
         if !User32Priv.SetLayeredWindowAttributes(hwnd, crKey, bAlpha, dwFlags) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: *MONITORINFO) throw
+    func GetMonitorInfoA(hMonitor: HMONITOR, lpmi: *MONITORINFO) fail
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
         if !User32Priv.GetMonitorInfoA(hMonitor, lpmi) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: *MONITORINFO) throw
+    func GetMonitorInfoW(hMonitor: HMONITOR, lpmi: *MONITORINFO) fail
     {
         lpmi.cbSize = #sizeof(MONITORINFO)
         if !User32Priv.GetMonitorInfoW(hMonitor, lpmi) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func RegisterClipboardFormatA(name: LPCSTR)->UINT throw
+    func RegisterClipboardFormatA(name: LPCSTR)->UINT fail
     {
         let res = User32Priv.RegisterClipboardFormatA(name)
         if !res do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return res
     }
 
-    func RegisterClipboardFormatW(name: LPCWSTR)->UINT throw
+    func RegisterClipboardFormatW(name: LPCWSTR)->UINT fail
     {
         let res = User32Priv.RegisterClipboardFormatW(name)
         if !res do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return res
     }
 
-    func DestroyIcon(hIcon: HICON) throw
+    func DestroyIcon(hIcon: HICON) fail
     {
         if !User32Priv.DestroyIcon(hIcon) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func GetIconInfo(hIcon: HICON, piconinfo: *ICONINFO) throw
+    func GetIconInfo(hIcon: HICON, piconinfo: *ICONINFO) fail
     {
         if !User32Priv.GetIconInfo(hIcon, piconinfo) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func CreateIconIndirect(piconinfo: *ICONINFO)->HICON throw
+    func CreateIconIndirect(piconinfo: *ICONINFO)->HICON fail
     {
         let h = User32Priv.CreateIconIndirect(piconinfo)
         if !h do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return h
     }
 }

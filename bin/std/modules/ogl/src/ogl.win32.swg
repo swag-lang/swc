@@ -25,30 +25,30 @@ internal namespace PrivOgl
 
 #[Inline]
 {
-    func wglCreateContext(hDc: HDC)->HGLRC throw
+    func wglCreateContext(hDc: HDC)->HGLRC fail
     {
         let res = PrivOgl.wglCreateContext(hDc)
         if !res do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return res
     }
 
-    func wglDeleteContext(hRc: HGLRC) throw
+    func wglDeleteContext(hRc: HGLRC) fail
     {
         if !PrivOgl.wglDeleteContext(hRc) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func wglMakeCurrent(hDc: HDC, hRc: HGLRC) throw
+    func wglMakeCurrent(hDc: HDC, hRc: HGLRC) fail
     {
         if !PrivOgl.wglMakeCurrent(hDc, hRc) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func wglShareLists(hRc0, hRc1: HGLRC) throw
+    func wglShareLists(hRc0, hRc1: HGLRC) fail
     {
         if !PrivOgl.wglShareLists(hRc0, hRc1) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 }
 
@@ -61,7 +61,7 @@ namespace Platform.Win32
         window: #null *Env.Window
     }
 
-    public func createContext(window: &Env.Window, colorBits: u8 = 32, makeCurrent = true)->Context throw
+    public func createContext(window: &Env.Window, colorBits: u8 = 32, makeCurrent = true)->Context fail
     {
         var result: retval
         result.window = &window
@@ -87,19 +87,19 @@ namespace Platform.Win32
 
     public impl Context
     {
-        mtd makeCurrent() throw
+        mtd makeCurrent() fail
         {
             try wglMakeCurrent(.hDC, .hRC)
         }
 
-        mtd clearCurrent() throw
+        mtd clearCurrent() fail
         {
             try wglMakeCurrent(null, null)
         }
 
         mtd swapBuffers()
         {
-            assume SwapBuffers(.hDC)
+            expect SwapBuffers(.hDC)
         }
 
         mtd destroy()

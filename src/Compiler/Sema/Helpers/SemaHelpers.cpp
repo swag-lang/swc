@@ -522,7 +522,7 @@ bool SemaHelpers::nullNarrowStopsLocalFlow(Sema& sema, AstNodeRef nodeRef)
         case AstNodeId::ContinueStmt:
         case AstNodeId::FallThroughStmt:
         case AstNodeId::UnreachableStmt:
-        case AstNodeId::ThrowExpr:
+        case AstNodeId::FailExpr:
             return true;
 
         case AstNodeId::IntrinsicCallExpr:

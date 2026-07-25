@@ -95,46 +95,46 @@ impl DateTime
     }
 
     // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
-    internal func parseU8(buf: &string, eat: &u32)->u16 throw
+    internal func parseU8(buf: &string, eat: &u32)->u16 fail
     {
         let view: string = buf
             let (year, eat0, ovf) = StrConv.parseU8(view)
         if ovf do
-            throw SyntaxError{}
+            fail SyntaxError{}
         eat += eat0
         buf = Tokenize.eatCount(buf, cast(u64) eat0)
         return year
     }
 
     // Parses a 16-bit unsigned integer from the buffer and updates the consumed character count
-    internal func parseU16(buf: &string, eat: &u32)->u16 throw
+    internal func parseU16(buf: &string, eat: &u32)->u16 fail
     {
         let view: string = buf
             let (year, eat0, ovf) = StrConv.parseU16(view)
         if ovf do
-            throw SyntaxError{}
+            fail SyntaxError{}
         eat += eat0
         buf = Tokenize.eatCount(buf, cast(u64) eat0)
         return year
     }
 
     // Parses a separator character from the buffer and updates the consumed character count
-    internal func parseSep(buf: &string, sep: u8, eat: &u32) throw
+    internal func parseSep(buf: &string, sep: u8, eat: &u32) fail
     {
         if !@countof(buf) or buf[0] != sep do
-            throw SyntaxError{}
+            fail SyntaxError{}
         buf = Tokenize.eatCount(buf, 1)
         eat += 1
     }
 
     // Converts a string to a DateTime using the expected format
-    func parse(str: string, checkDate = true)->{ value: DateTime, eat: u32 } throw
+    func parse(str: string, checkDate = true)->{ value: DateTime, eat: u32 } fail
     {
         var result: retval
         var buf = str
 
         if !@countof(buf) do
-            throw SyntaxError{}
+            fail SyntaxError{}
 
         if @countof(buf) >= 1 and
            Latin1.isLetter(buf[0])
@@ -156,7 +156,7 @@ impl DateTime
             }
 
             if !done do
-                throw SyntaxError{}
+                fail SyntaxError{}
 
             done = false
             parseSep(&buf, ' ', &result.eat)
@@ -176,7 +176,7 @@ impl DateTime
             }
 
             if !done do
-                throw SyntaxError{}
+                fail SyntaxError{}
 
             parseSep(&buf, ' ', &result.eat)
             result.value.day = parseU8(&buf, &result.eat)
@@ -185,7 +185,7 @@ impl DateTime
 
             // Check day of week
             if checkDate and dayOfWeek != result.value.dayOfWeek() do
-                throw SyntaxError{}
+                fail SyntaxError{}
         }
         elif @countof(buf) >= 10 and
              Latin1.isDigit(buf[0]) and
@@ -207,7 +207,7 @@ impl DateTime
         }
         else
         {
-            throw SyntaxError{}
+            fail SyntaxError{}
         }
 
         if @countof(buf) >= 1 and
@@ -249,7 +249,7 @@ impl DateTime
         }
 
         if checkDate and !result.value.isValid() do
-            throw SyntaxError{}
+            fail SyntaxError{}
 
         return result
     }
@@ -280,7 +280,7 @@ impl DateTime
 impl Serialization.ISerialize for DateTime
 {
     // Reads a DateTime from a textual encoder
-    mtd impl read(decoder: Serialization.IDecoder)->bool throw
+    mtd impl read(decoder: Serialization.IDecoder)->bool fail
     {
         if decoder.isTextual()
         {
@@ -293,7 +293,7 @@ impl Serialization.ISerialize for DateTime
     }
 
     // Writes a DateTime to a textual encoder
-    mtd impl write(encoder: Serialization.IEncoder)->bool throw
+    mtd impl write(encoder: Serialization.IEncoder)->bool fail
     {
         if encoder.isTextual()
         {
@@ -305,17 +305,17 @@ impl Serialization.ISerialize for DateTime
         return false
     }
 
-    mtd impl readElement(type: Swag.TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool throw
+    mtd impl readElement(type: Swag.TypeValue, data: #null *void, decoder: Serialization.IDecoder)->bool fail
     {
         return false
     }
 
-    mtd impl writeElement(type: Swag.TypeValue, data: #null const *void, decoder: Serialization.IEncoder)->bool throw
+    mtd impl writeElement(type: Swag.TypeValue, data: #null const *void, decoder: Serialization.IEncoder)->bool fail
     {
         return false
     }
 
-    mtd impl postRead(data: #null *void, decoder: Serialization.IDecoder) throw {}
+    mtd impl postRead(data: #null *void, decoder: Serialization.IDecoder) fail {}
 }
 
 impl StrConv.IConvert for DateTime

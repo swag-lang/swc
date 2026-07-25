@@ -35,7 +35,7 @@ func fontPath(fileName: string, loc = #callerlocation)->String
     return Path.combine(Path.combine(srcPath, "data"), fileName)
 }
 
-func loadFonts() throw
+func loadFonts() fail
 {
     g_FontPath = fontPath("segoeui.ttf")
     let path = g_FontPath.toString()
@@ -131,7 +131,7 @@ func loadBrushTextures()
 
 func loadTextShowcase()
 {
-    assume (notnull g_TypeFace).getStringOutline(&g_OutlineText, "PIXEL", 84)
+    expect (notnull g_TypeFace).getStringOutline(&g_OutlineText, "PIXEL", 84)
 }
 
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle

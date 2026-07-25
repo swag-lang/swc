@@ -43,7 +43,7 @@ private func hasSymbol(x, y: s32)->bool
 func day3A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     for l, [y] in lines
     {

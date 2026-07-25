@@ -20,7 +20,7 @@ using Core
 func day6B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     let first  = Tokenize.split(lines[0], ':''u8)
     let second = Tokenize.split(lines[1], ':''u8)
@@ -36,8 +36,8 @@ func day6B()
     for v in val1 do
         str1 += v
 
-    times.add(assume StrConv.toU64(str0))
-    dists.add(assume StrConv.toU64(str1))
+    times.add(expect StrConv.toU64(str0))
+    dists.add(expect StrConv.toU64(str1))
 
     var total: u64 = 1
     for t, [idx] in times

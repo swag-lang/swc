@@ -33,10 +33,10 @@ const PHOTO_PALETTE       = 3
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
     if ptr + size > last do
-        throw InvalidFormatError{"invalid source buffer"}
+        fail InvalidFormatError{"invalid source buffer"}
 }
 
 func rd16(p: const [*] u8, le: bool)->u32
@@ -93,13 +93,13 @@ impl Ifd
 }
 
 // Read 'count' scalar values (BYTE/SHORT/LONG) of an entry into an array.
-func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
+func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
 {
     var result: retval
 
     let ts = typeSize(e.type)
     if !ts do
-        throw UnsupportedFormatError{"unsupported field type"}
+        fail UnsupportedFormatError{"unsupported field type"}
 
     let totalBytes      = cast(u64) e.count * ts
     var p: const [*] u8 = e.fieldAt
@@ -123,7 +123,7 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 throw
     return result
 }
 
-func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValue: u32)->u32 throw
+func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValue: u32)->u32 fail
 {
     let e = ifd.find(tag)
     if !e do
@@ -135,14 +135,14 @@ func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValu
 }
 
 // PackBits run-length decoder. Decodes up to 'expected' bytes into 'dst'.
-func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) throw
+func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
 {
     var out: u64
     var p = src
     while out < expected
     {
         if p >= last do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
         let header = cast(s32) cast #bit (s8) p[0]
         p += 1
 
@@ -150,7 +150,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) throw
         {
             let count = cast(u64) (header + 1)
             if out + count > expected do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
             checkBuffer(p, last, count)
             Memory.copy(dst + out, p, count)
             p   += count
@@ -160,7 +160,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) throw
         {
             let count = cast(u64) (1 - header)
             if out + count > expected do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
             checkBuffer(p, last, 1)
             let value = p[0]
             p += 1
@@ -179,14 +179,14 @@ public impl IImageDecoder for Decoder
         return ext == ".tif" or ext == ".tiff"
     }
 
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         let base    = @dataof(buffer)
         let countof = @countof(buffer)
         let last    = base + countof
 
         if countof < 8 do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         // Byte order
         var le: bool
@@ -195,14 +195,14 @@ public impl IImageDecoder for Decoder
         elif base[0] == 0x4D and base[1] == 0x4D do
             le = false
         else do
-            throw InvalidFormatError{"not a tiff"}
+            fail InvalidFormatError{"not a tiff"}
 
         if rd16(base + 2, le) != 42 do
-            throw InvalidFormatError{"not a tiff"}
+            fail InvalidFormatError{"not a tiff"}
 
         let ifdOffset = rd32(base + 4, le)
         if cast(u64) ifdOffset + 2 > countof do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         // Parse the first IFD
         var ifd: Ifd
@@ -223,9 +223,9 @@ public impl IImageDecoder for Decoder
         let width  = readScalar(base, last, le, &ifd, TAG_IMAGE_WIDTH, 0)
         let height = readScalar(base, last, le, &ifd, TAG_IMAGE_LENGTH, 0)
         if width == 0 or height == 0 do
-            throw InvalidFormatError{"invalid dimensions"}
+            fail InvalidFormatError{"invalid dimensions"}
         if width > Swag.S32.Max or height > Swag.S32.Max do
-            throw UnsupportedFormatError{"image is too big"}
+            fail UnsupportedFormatError{"image is too big"}
 
         let compression  = readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
         let photometric  = readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
@@ -234,11 +234,11 @@ public impl IImageDecoder for Decoder
         var rowsPerStrip = readScalar(base, last, le, &ifd, TAG_ROWS_PER_STRIP, height)
 
         if compression != COMPRESSION_NONE and compression != COMPRESSION_PACKBITS do
-            throw UnsupportedFormatError{"unsupported compression"}
+            fail UnsupportedFormatError{"unsupported compression"}
         if planar != 1 do
-            throw UnsupportedFormatError{"unsupported planar configuration"}
+            fail UnsupportedFormatError{"unsupported planar configuration"}
         if samples != 1 and samples != 3 and samples != 4 do
-            throw UnsupportedFormatError{"unsupported samples per pixel"}
+            fail UnsupportedFormatError{"unsupported samples per pixel"}
         if rowsPerStrip == 0 do
             rowsPerStrip = height
 
@@ -250,7 +250,7 @@ public impl IImageDecoder for Decoder
             for b in bps
             {
                 if b != 8 do
-                    throw UnsupportedFormatError{"unsupported bit depth"}
+                    fail UnsupportedFormatError{"unsupported bit depth"}
             }
         }
 
@@ -259,7 +259,7 @@ public impl IImageDecoder for Decoder
         if samples == 1
         {
             if photometric != PHOTO_WHITE_IS_ZERO and photometric != PHOTO_BLACK_IS_ZERO and photometric != PHOTO_PALETTE do
-                throw UnsupportedFormatError{"unsupported photometric"}
+                fail UnsupportedFormatError{"unsupported photometric"}
 
             // Palette images carry real colors (RGB8); grayscale replicates a
             // single channel and is tagged BGR8 like the other decoders.
@@ -286,7 +286,7 @@ public impl IImageDecoder for Decoder
         {
             let cmEntry = ifd.find(TAG_COLOR_MAP)
             if !cmEntry do
-                throw InvalidFormatError{"missing color map"}
+                fail InvalidFormatError{"missing color map"}
             let cm      = try readValues(base, last, le, cast(*Entry) (cmEntry))
             let entries = cm.count / 3
             for [i] in entries
@@ -302,11 +302,11 @@ public impl IImageDecoder for Decoder
         let stripOffEntry = ifd.find(TAG_STRIP_OFFSETS)
         let stripCntEntry = ifd.find(TAG_STRIP_BYTE_COUNTS)
         if !stripOffEntry or !stripCntEntry do
-            throw InvalidFormatError{"missing strip data"}
+            fail InvalidFormatError{"missing strip data"}
         let stripOffsets = try readValues(base, last, le, cast(*Entry) (stripOffEntry))
         let stripCounts  = try readValues(base, last, le, cast(*Entry) (stripCntEntry))
         if stripOffsets.count != stripCounts.count or !stripOffsets.count do
-            throw InvalidFormatError{"invalid strip data"}
+            fail InvalidFormatError{"invalid strip data"}
 
         let rowBytes  = cast(u64) width * samples
         let totalRows = height
@@ -340,7 +340,7 @@ public impl IImageDecoder for Decoder
             else
             {
                 if srcCount < stripBytes do
-                    throw InvalidFormatError{"invalid source buffer"}
+                    fail InvalidFormatError{"invalid source buffer"}
                 Memory.copy(dstPtr, srcPtr, stripBytes)
             }
 
@@ -364,7 +364,7 @@ public impl IImageDecoder for Decoder
                     {
                         let index = cast(u32) srcRow[x]
                         if index >= palette.count do
-                            throw InvalidFormatError{"invalid palette index"}
+                            fail InvalidFormatError{"invalid palette index"}
                         let argb = palette[index]
                         dst[0] = cast(u8) ((argb >> 16) & 0xFF)
                         dst[1] = cast(u8) ((argb >> 8) & 0xFF)

@@ -24,7 +24,7 @@ impl FileStream
     }
 
     // Write to the given file stream, and returns the number of written bytes
-    mtd write(buffer: #null const *void, length: u64)->u64 throw
+    mtd write(buffer: #null const *void, length: u64)->u64 fail
     {
         Debug.assert(.isOpen())
         Debug.assert(.canWrite)
@@ -46,7 +46,7 @@ impl FileStream
     }
 
     // Returns the given file stream length on disk
-    mtd getSize()->u64 throw
+    mtd getSize()->u64 fail
     {
         Debug.assert(.isOpen())
         Debug.assert(.canSeek)
@@ -59,7 +59,7 @@ impl FileStream
     }
 
     // Returns the current seek position of the given file stream
-    mtd getPosition()->u64 throw
+    mtd getPosition()->u64 fail
     {
         Debug.assert(.isOpen())
         Debug.assert(.canSeek)
@@ -72,7 +72,7 @@ impl FileStream
     }
 
     // Set the current seek position of the given file stream
-    mtd setPosition(origin: SeekOrigin, seek: u64) throw
+    mtd setPosition(origin: SeekOrigin, seek: u64) fail
     {
         Debug.assert(.isOpen())
         Debug.assert(.canSeek)
@@ -94,7 +94,7 @@ impl FileStream
     }
 
     // Skip 'bytes' from current position
-    mtd skipPosition(bytes: u64) throw
+    mtd skipPosition(bytes: u64) fail
     {
         .setPosition(.Current, bytes)
     }

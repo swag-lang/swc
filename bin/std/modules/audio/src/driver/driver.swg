@@ -99,7 +99,7 @@ internal func updateThreadProc(th: Threading.Thread)
 
 impl Driver
 {
-    mtd create(kind: DriverKind = .Default) throw
+    mtd create(kind: DriverKind = .Default) fail
     {
         .driverIsClosing = false
 
@@ -205,7 +205,7 @@ impl Driver
         return back orelse Memory.new'Voice()
     }
 
-    mtd setOutputVolume(volume: f32) throw => .native.setOutputVolumeNative(volume)
+    mtd setOutputVolume(volume: f32) fail => .native.setOutputVolumeNative(volume)
 
     mtd getOutputVolume()->f32 => .native.getOutputVolumeNative()
 }

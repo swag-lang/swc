@@ -41,11 +41,11 @@ using Core
 func day5B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var op: Array's32
     for v in Tokenize.split(lines[0], ',''u8) do
-        op.add(assume StrConv.toS32(v))
+        op.add(expect StrConv.toS32(v))
 
     const INPUT = 5
     var ip, output = 0

@@ -57,14 +57,14 @@ func calc(a, b: u8)->u64
             break
     }
 
-        let (val, ?, ?) = assume StrConv.parseB64(scan[0])
+        let (val, ?, ?) = expect StrConv.parseB64(scan[0])
     return val
 }
 
 func day3B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    lines = assume File.readAllLines(dataPath)
+    lines = expect File.readAllLines(dataPath)
 
     let o2  = calc('1', '0')
     let co2 = calc('0', '1')

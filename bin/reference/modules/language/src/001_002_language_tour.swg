@@ -134,14 +134,14 @@ func(T) tourClamp(value, lower, upper: T)->T
 /**
 # Recoverable Errors
 
-A function marked 'throw' may return an error instead of its normal result.
+A function marked 'fail' may return an error instead of its normal result.
 'try' propagates that error, while 'catch' handles it locally and exposes the
 error through '@err'.
 */
-func tourDivide(numerator, denominator: s32)->s32 throw
+func tourDivide(numerator, denominator: s32)->s32 fail
 {
     if denominator == 0 do
-        throw Swag.BaseError{"division by zero"}
+        fail Swag.BaseError{"division by zero"}
     return numerator / denominator
 }
 

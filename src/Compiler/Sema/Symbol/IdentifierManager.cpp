@@ -119,7 +119,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimePushErr, .str = "__pushErr"},
         {.name = PredefinedName::RuntimePopErr, .str = "__popErr"},
         {.name = PredefinedName::RuntimeCatchErr, .str = "__catchErr"},
-        {.name = PredefinedName::RuntimeFailedAssume, .str = "__failedAssume"},
+        {.name = PredefinedName::RuntimeEndErr, .str = "__endErr"},
+        {.name = PredefinedName::RuntimeFailedExpect, .str = "__failedExpect"},
         {.name = PredefinedName::RuntimePanic, .str = "@panic"},
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "@safetypanic"},
         {.name = PredefinedName::RuntimeAs, .str = "@as"},
@@ -149,7 +150,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PushErr)]                = predefined(PredefinedName::RuntimePushErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PopErr)]                 = predefined(PredefinedName::RuntimePopErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CatchErr)]               = predefined(PredefinedName::RuntimeCatchErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedAssume)]           = predefined(PredefinedName::RuntimeFailedAssume);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EndErr)]                 = predefined(PredefinedName::RuntimeEndErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedExpect)]           = predefined(PredefinedName::RuntimeFailedExpect);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]                  = predefined(PredefinedName::RuntimePanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]            = predefined(PredefinedName::RuntimeSafetyPanic);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]                     = predefined(PredefinedName::RuntimeAs);

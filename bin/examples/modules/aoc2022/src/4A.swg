@@ -46,17 +46,17 @@ using Core
 func day4A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total: u64
     var r:     Parser.RegExp
     for l in lines
     {
         discard catch r.match(#"(\d+)-(\d+),(\d+)-(\d+)"#, l)
-        let v0a = assume StrConv.toS32(r.getCapture(1))
-        let v0b = assume StrConv.toS32(r.getCapture(2))
-        let v1a = assume StrConv.toS32(r.getCapture(3))
-        let v1b = assume StrConv.toS32(r.getCapture(4))
+        let v0a = expect StrConv.toS32(r.getCapture(1))
+        let v0b = expect StrConv.toS32(r.getCapture(2))
+        let v1a = expect StrConv.toS32(r.getCapture(3))
+        let v1b = expect StrConv.toS32(r.getCapture(4))
 
         /*let pair  = Tokenize.split(l, ',')
         let pair0 = Tokenize.split(pair[0], '-')

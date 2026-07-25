@@ -25,7 +25,7 @@ namespace SemaUndefined
     // access, indexing, call) can never survive a null argument.
     //
     // When 'checkReturnContract' is set (plain functions only: interface impls have
-    // an imposed signature, and a throwable function synthesizes a zero — hence null
+    // an imposed signature, and a fallible function synthesizes a zero — hence null
     // — result on its 'catch' error path), a '#null' return type that no return
     // path can produce is reported as a dead contract too.
     Result checkFunction(Sema& sema, const SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract = false);

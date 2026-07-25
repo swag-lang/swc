@@ -24,11 +24,11 @@ using Core
 func day2B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var prg: Array's32
     for v in Tokenize.split(lines[0], ',''u8) do
-        prg.add(assume StrConv.toS32(v))
+        prg.add(expect StrConv.toS32(v))
 
     var op   = prg
     var x, y = 0

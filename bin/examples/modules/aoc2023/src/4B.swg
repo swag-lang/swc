@@ -41,7 +41,7 @@ private var cards: Array'Card
 func day4B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     for l in lines
     {
@@ -52,9 +52,9 @@ func day4B()
 
         var v0, v1: Array's32
         for v in val0 do
-            v0.add(assume StrConv.toS32(v))
+            v0.add(expect StrConv.toS32(v))
         for v in val1 do
-            v1.add(assume StrConv.toS32(v))
+            v1.add(expect StrConv.toS32(v))
 
         var score = 0
         for v in v1

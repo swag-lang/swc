@@ -44,7 +44,7 @@ impl Application
         ReleaseCapture()
     }
 
-    func registerHotKey(mdf: Input.KeyModifiers, key: Input.Key) throw
+    func registerHotKey(mdf: Input.KeyModifiers, key: Input.Key) fail
     {
         var mod: u32
         if mdf & .Alt do

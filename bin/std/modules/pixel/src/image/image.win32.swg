@@ -5,7 +5,7 @@ using Swag, Core, Core.Errors, Win32, Gdi32
 
 impl Image
 {
-    func fromBitmapHandle(hbitmap: HBITMAP)->Image throw
+    func fromBitmapHandle(hbitmap: HBITMAP)->Image fail
     {
         var result: retval
 
@@ -16,7 +16,7 @@ impl Image
         {
         case 24: result = create(bitmap.bmWidth, bitmap.bmHeight, PixelFormat.BGR8)
         case 32: result = create(bitmap.bmWidth, bitmap.bmHeight, PixelFormat.BGRA8)
-        default: throw UnsupportedFormatError{"unsupported bit depth"}
+        default: fail UnsupportedFormatError{"unsupported bit depth"}
         }
 
         let dc = GetDC(null)
@@ -35,7 +35,7 @@ impl Image
     }
 
     // Transform an image to a windows icon
-    mtd toHICON()->HICON throw
+    mtd toHICON()->HICON fail
     {
         var bi: BITMAPINFO
         bi.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
@@ -47,7 +47,7 @@ impl Image
 
         var ppvBits: *u8 = undefined
         let hbmp         = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
-        defer #noerr DeleteObject(cast() hbmp)
+        defer #nofail DeleteObject(cast() hbmp)
 
         Memory.copy(ppvBits, .pixels.buffer, cast(u64) .width * .height * .bpp8)
 
@@ -63,7 +63,7 @@ impl Image
     }
 
     // Creates an image from a windows HICON
-    func from(hicon: HICON)->Image throw
+    func from(hicon: HICON)->Image fail
     {
         var result: retval
         var ii:     ICONINFO
@@ -80,7 +80,7 @@ impl Image
     }
 
     // Creates an image from a windows HBITMAP
-    func from(hbitmap: HBITMAP)->Image throw
+    func from(hbitmap: HBITMAP)->Image fail
     {
         return fromBitmapHandle(hbitmap)
     }

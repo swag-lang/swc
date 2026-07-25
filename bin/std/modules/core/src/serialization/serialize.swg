@@ -25,11 +25,11 @@ attr Compress()
 
 interface ISerialize
 {
-    mtd read(decoder: IDecoder)->bool throw;
-    mtd write(encoder: IEncoder)->bool throw;
-    mtd readElement(type: TypeValue, data: #null *void, decoder: IDecoder)->bool throw;
-    mtd writeElement(type: TypeValue, data: #null const *void, encoder: IEncoder)->bool throw;
-    mtd postRead(data: #null *void, decoder: IDecoder) throw;
+    mtd read(decoder: IDecoder)->bool fail;
+    mtd write(encoder: IEncoder)->bool fail;
+    mtd readElement(type: TypeValue, data: #null *void, decoder: IDecoder)->bool fail;
+    mtd writeElement(type: TypeValue, data: #null const *void, encoder: IEncoder)->bool fail;
+    mtd postRead(data: #null *void, decoder: IDecoder) fail;
 }
 
 struct Serializer
@@ -47,7 +47,7 @@ impl Serializer
     mtd isReading() => !.isWrite
 
     // Start encoding
-    mtd startWrite(encoder: IEncoder, output: *ConcatBuffer) throw
+    mtd startWrite(encoder: IEncoder, output: *ConcatBuffer) fail
     {
         .encode  = encoder
         .isWrite = true
@@ -55,7 +55,7 @@ impl Serializer
     }
 
     // Start decoding
-    mtd startRead(decoder: IDecoder, input: const [..] u8) throw
+    mtd startRead(decoder: IDecoder, input: const [..] u8) fail
     {
         .decode  = decoder
         .isWrite = false
@@ -63,7 +63,7 @@ impl Serializer
     }
 
     // End encoding/decoding
-    mtd end() throw
+    mtd end() fail
     {
         if .isWrite
         {
@@ -78,7 +78,7 @@ impl Serializer
     }
 
     // Start a new section
-    mtd beginSection(kind = SectionKind.Unordered) throw
+    mtd beginSection(kind = SectionKind.Unordered) fail
     {
         if .isWrite
         {
@@ -93,7 +93,7 @@ impl Serializer
     }
 
     // End the previous section
-    mtd endSection() throw
+    mtd endSection() fail
     {
         if .isWrite
         {
@@ -109,7 +109,7 @@ impl Serializer
 
     // Serialize one value
     #[Swag.Optimize(false)]
-    mtd(MT) serialize(name: string, crc: u32, res: *MT) throw
+    mtd(MT) serialize(name: string, crc: u32, res: *MT) fail
     {
         var value: Swag.TypeValue
         value.name        = name
@@ -120,7 +120,7 @@ impl Serializer
         {
             let encode = notnull .encode
             encode.beginField(value)
-            defer #noerr encode.endField(value)
+            defer #nofail encode.endField(value)
 
             #if MT == s8 do
                 encode.writeS8(dref res)
@@ -152,7 +152,7 @@ impl Serializer
             let decode = notnull .decode
             if !decode.beginField(value) do
                 return
-            defer #noerr decode.endField(value)
+            defer #nofail decode.endField(value)
 
             #if MT == s8 do
                 dref res = decode.readS8()
@@ -183,7 +183,7 @@ impl Serializer
 
     // Serialize one value
     #[Swag.Mixin]
-    mtd(MT) serialize(name: string, res: *MT) throw
+    mtd(MT) serialize(name: string, res: *MT) fail
     {
         .serialize(name, Hash.Crc32.compute(name), res)
     }

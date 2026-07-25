@@ -458,7 +458,7 @@ namespace
             return Result::Continue;
 
         // The 'any' payload may hold a null value: extracting it into a bare (non-null)
-        // destination is guarded like an implicit 'assume'.
+        // destination is guarded like an implicit 'notnull'.
         const bool hasNullExtractSafety = dstType.isNonNullable() &&
                                           sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Null);
 

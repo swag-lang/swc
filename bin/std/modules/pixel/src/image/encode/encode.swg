@@ -10,7 +10,7 @@ struct ImageEncoder
 public interface IImageEncoder
 {
     mtd canEncode(filename: string)->bool;
-    mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) throw;
+    mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) fail;
 }
 
 public impl Image
@@ -41,7 +41,7 @@ public impl Image
     }
 
     // Save the image to a file
-    mtd save(fileName: string, options: #null any = null) throw
+    mtd save(fileName: string, options: #null any = null) fail
     {
         Debug.assert(.pixels.buffer != null, "image is invalid")
 
@@ -57,7 +57,7 @@ public impl Image
         }
 
         if !found do
-            throw UnsupportedFormatError{"no matching image encoder"}
+            fail UnsupportedFormatError{"no matching image encoder"}
         let safeFound = notnull found
 
         // Create an encoder instance

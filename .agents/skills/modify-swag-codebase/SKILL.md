@@ -44,4 +44,29 @@ For other change types, run the narrowest relevant checks that demonstrate the m
 
 ## Finish Cleanly
 
-Remove temporary files and folders created during investigation or validation. Report the validations run and any checks that could not be completed.
+Remove temporary files and folders created during investigation or validation.
+
+Before returning control, prune noise from the working tree so the modified-file list only
+contains real changes:
+
+- Revert any file you touched that ended up with no intended content change.
+- Revert any file whose ONLY difference is line endings (a CRLF file that became LF-only).
+  Bulk tools run here — `sed -i`, some formatters — silently rewrite CRLF to LF, which shows
+  up as a spurious modification.
+
+Detect the line-ending-only cases and restore them. Note the trap: `git diff` NORMALIZES
+line endings (this repo checks out CRLF via `.gitattributes eol=crlf`), so a file that is
+only CRLF-vs-LF different is INVISIBLE to `git diff` yet still shows in `git status`. Detect
+via `git status`, not `git diff`:
+
+```bash
+# Modified per `git status` MINUS files with a real content diff == line-ending-only.
+# Restore those with checkout (safe: they carry no content change).
+git status --porcelain | grep -E '^ ?M ' | sed 's/^...//' | sort > /tmp/_mod
+git diff --name-only | sort > /tmp/_real
+comm -23 /tmp/_mod /tmp/_real | tr '\n' '\0' | xargs -0 -r git checkout --
+```
+
+Do this in one batched `git checkout` (per-file git calls over a large tree time out).
+
+Then report the validations run and any checks that could not be completed.

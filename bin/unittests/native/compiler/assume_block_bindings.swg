@@ -3,14 +3,14 @@ using Swag
 
 namespace AssumeBlockBindings
 {
-    func valueOrThrow(value: s32)->s32 throw
+    func valueOrThrow(value: s32)->s32 fail
     {
         return value
     }
 
     func parseWithVarBindings()->s32
     {
-        assume
+        expect
         {
             var x0 = valueOrThrow(12)
             var y0 = valueOrThrow(34)
@@ -22,7 +22,7 @@ namespace AssumeBlockBindings
 
     func parseWithLetBindings()->s32
     {
-        assume
+        expect
         {
             let x0 = valueOrThrow(7)
             let y0 = valueOrThrow(8)

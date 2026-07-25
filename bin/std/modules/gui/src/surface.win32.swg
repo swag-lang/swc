@@ -248,7 +248,7 @@ private impl Surface
     }
 
     // Creates a new (invisible) surface
-    func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
+    func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) fail
     {
         // Create class
         #[Swag.Global]

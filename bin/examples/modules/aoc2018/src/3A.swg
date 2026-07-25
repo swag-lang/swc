@@ -54,18 +54,18 @@ func day3A()
 func day3A0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
-    var r = assume Parser.RegExp.create(#"#\d+ @ (\d+),(\d+): (\d+)x(\d+)"#)
+    var r = expect Parser.RegExp.create(#"#\d+ @ (\d+),(\d+): (\d+)x(\d+)"#)
     var count: Array's32
     count.resize(1000 * 1000)
     for l in lines
     {
         discard r.match(l)
-        let startX = assume StrConv.toS32(r[1])
-        let startY = assume StrConv.toS32(r[2])
-        let width  = assume StrConv.toS32(r[3])
-        let height = assume StrConv.toS32(r[4])
+        let startX = expect StrConv.toS32(r[1])
+        let startY = expect StrConv.toS32(r[2])
+        let width  = expect StrConv.toS32(r[3])
+        let height = expect StrConv.toS32(r[4])
 
         for [x] in startX until startX + width do
             for [y] in startY until startY + height do
@@ -86,14 +86,14 @@ func day3A0()
 func day3A1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var count: Array's32
     count.resize(1000 * 1000)
     for l in lines
     {
-        let r = assume Parser.RegExp.grepAll("\\d+", l)
-        let v = Slice.map(r[to], func(x) => assume StrConv.toS32(x))
+        let r = expect Parser.RegExp.grepAll("\\d+", l)
+        let v = Slice.map(r[to], func(x) => expect StrConv.toS32(x))
 
         for [x] in v[1] until v[1] + v[3] do
             for [y] in v[2] until v[2] + v[4] do

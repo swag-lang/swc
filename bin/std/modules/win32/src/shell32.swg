@@ -321,67 +321,67 @@ internal namespace Shell32Priv
 
 #[Inline]
 {
-    func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL) throw
+    func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL) fail
     {
         if !Shell32Priv.SHGetSpecialFolderPathA(hwnd, pszPath, csidl, fCreate) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL) throw
+    func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL) fail
     {
         if !Shell32Priv.SHGetSpecialFolderPathW(hwnd, pszPath, csidl, fCreate) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
     #[Swag.Discardable]
-    func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT throw
+    func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT fail
     {
         let res = Shell32Priv.ExtractIconExA(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
         if res == Swag.U32.Max do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return res
     }
 
     #[Swag.Discardable]
-    func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT throw
+    func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT fail
     {
         let res = Shell32Priv.ExtractIconExW(lpszFile, nIconIndex, phiconLarge, phiconSmall, nIcons)
         if res == Swag.U32.Max do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return res
     }
 
-    func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO) throw
+    func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO) fail
     {
         if Shell32Priv.SHGetStockIconInfo(siid, uFlags, psii) != S_OK do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) throw
+    func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA) fail
     {
         if !Shell32Priv.Shell_NotifyIconA(dwMessage, lpData) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW) throw
+    func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW) fail
     {
         if !Shell32Priv.Shell_NotifyIconW(dwMessage, lpData) do
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
     }
 
-    func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE throw
+    func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteA(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
         if cast(u64) result <= 32 do     // ?!
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return result
     }
 
-    func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE throw
+    func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE fail
     {
         let result = Shell32Priv.ShellExecuteW(hwnd, lpOperation, lpFile, lpParameters, lpDirectory, nShowCmd)
         if cast(u64) result <= 32 do     // ?!
-            throwWinError(GetLastError())
+            failWinError(GetLastError())
         return result
     }
 }

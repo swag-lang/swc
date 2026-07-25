@@ -56,7 +56,7 @@ using Core
 func day5A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var stacks: Array'String
 
@@ -71,9 +71,9 @@ func day5A()
             let res = r.grepAll(l)
             if res.count == 0 do
                 continue
-            var count   = assume StrConv.toU64(res[0])
-            let colFrom = assume StrConv.toS32(res[1]) - 1
-            let colTo   = assume StrConv.toS32(res[2]) - 1
+            var count   = expect StrConv.toU64(res[0])
+            let colFrom = expect StrConv.toS32(res[1]) - 1
+            let colTo   = expect StrConv.toS32(res[2]) - 1
 
             while count
             {

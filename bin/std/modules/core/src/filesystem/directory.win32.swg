@@ -4,7 +4,7 @@
 
 using Win32
 
-func create(dirname: string) throw
+func create(dirname: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirname)
     catch CreateDirectoryW(@dataof(winPath), null)
@@ -28,7 +28,7 @@ func exists(dirName: string)->bool
 }
 
 // Enumerate a directory
-func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.FileInfo) throw
+func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.FileInfo) fail
 {
     using File
     var result: retval
@@ -117,14 +117,14 @@ func enumerate(dirName: #null string, options: EnumerationOptions)->Array'(File.
                 break
         }
 
-        assume FindClose(h)
+        expect FindClose(h)
     }
 
     return result
 }
 
 // Returns the current directory
-func getCurrent()->String throw
+func getCurrent()->String fail
 {
     var result: retval
     let length = GetCurrentDirectoryW(0, null)
@@ -139,7 +139,7 @@ func getCurrent()->String throw
 }
 
 // Set the current directory
-func setCurrent(dirName: string) throw
+func setCurrent(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
     catch SetCurrentDirectoryW(@dataof(winPath))
@@ -147,7 +147,7 @@ func setCurrent(dirName: string) throw
 }
 
 // Get the list of logical drives
-func getDrives()->Array'String throw
+func getDrives()->Array'String fail
 {
     var result:  retval
     var volName: [MAX_PATH] u8
@@ -168,7 +168,7 @@ func getDrives()->Array'String throw
 }
 
 // Get the list of volumes
-func getVolumes()->Array'String throw
+func getVolumes()->Array'String fail
 {
     var result: retval
 

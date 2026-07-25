@@ -55,19 +55,19 @@ using Core, Core.Parser
 func day4A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     Slice.sort(lines[to], func(x, y)->s32
     {
-        let val0 = assume Time.DateTime.parse(x[1 to 16])
-        let val1 = assume Time.DateTime.parse(y[1 to 16])
+        let val0 = expect Time.DateTime.parse(x[1 to 16])
+        let val1 = expect Time.DateTime.parse(y[1 to 16])
         return val0.value <=> val1.value
     })
 
-    var when    = assume RegExp.create("(\\d+)-(\\d+)-(\\d+) (\\d+):(\\d+)")
-    var start   = assume RegExp.create("Guard #(\\d+) begins shift")
-    var asleep  = assume RegExp.create("falls asleep")
-    var wakesup = assume RegExp.create("wakes up")
+    var when    = expect RegExp.create("(\\d+)-(\\d+)-(\\d+) (\\d+):(\\d+)")
+    var start   = expect RegExp.create("Guard #(\\d+) begins shift")
+    var asleep  = expect RegExp.create("falls asleep")
+    var wakesup = expect RegExp.create("wakes up")
 
     var curGuard, startSleep, curMin = 0
     var count: [60] HashTable'(s32, s32)
@@ -76,12 +76,12 @@ func day4A()
     for l in lines
     {
         discard when.grep(l)
-        curMin = assume StrConv.toS32(when[5])
+        curMin = expect StrConv.toS32(when[5])
 
         let s = start.grep(l)
         if s
         {
-            curGuard = assume StrConv.toS32(start[1])
+            curGuard = expect StrConv.toS32(start[1])
         }
         elif asleep.grep(l)
         {

@@ -171,9 +171,9 @@ private func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, render
     cache.spread      = spread
     cache.forceBold   = forceBold
     cache.forceItalic = forceItalic
-    cache.hasKerning  = assume typeFace.face.hasKerning()
+    cache.hasKerning  = expect typeFace.face.hasKerning()
 
-    assume typeFace.face.setPixelSize(0, refSize)
+    expect typeFace.face.setPixelSize(0, refSize)
     let metrics = &typeFace.face.size.metrics
     cache.ascent        = metrics.ascender / 64.0
     cache.descent       = metrics.descender / 64.0
@@ -339,7 +339,7 @@ public impl Font
 
     // Creates a Font with the given filename and size.
     // 'mode' selects the rendering technique; .Auto (default) adapts at draw time.
-    func create(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font throw
+    func create(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
     {
         Debug.assert(@countof(fullname) != 0)
         Debug.assert(size > 0)
@@ -373,8 +373,8 @@ public impl GlyphCache
             return here.value
 
         // 'kern' is scaled to the current pixel size, so query it at the reference size.
-        assume .typeFace.face.setPixelSize(0, .refSize)
-        let kv = assume .typeFace.face.getKerning(leftIndex, rightIndex)
+        expect .typeFace.face.setPixelSize(0, .refSize)
+        let kv = expect .typeFace.face.getKerning(leftIndex, rightIndex)
         let px = kv.x / 64.0
         .kernRef.add(key, px)
         return px
@@ -386,7 +386,7 @@ public impl GlyphCache
         return .getGlyphDescByIndex(.typeFace.face.glyphIndex(c))
     }
 
-    mtd renderGlyphBitmap(glyphIndex: u32) throw
+    mtd renderGlyphBitmap(glyphIndex: u32) fail
     {
         switch .renderMode
         {

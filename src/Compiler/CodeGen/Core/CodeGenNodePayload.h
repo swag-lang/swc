@@ -19,11 +19,11 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
     StorageKind   storageKind                  = StorageKind::Value;
     bool          materializedPointerLikeValue = false;
     bool          runtimeStorageOverridden     = false;
-    bool          throwableWrapperConsumed     = false;
-    MicroLabelRef throwableFailLabel       = MicroLabelRef::invalid();
-    MicroLabelRef throwableDoneLabel       = MicroLabelRef::invalid();
-    MicroLabelRef throwableFunctionFailLabel = MicroLabelRef::invalid();
-    MicroLabelRef throwableFunctionDoneLabel = MicroLabelRef::invalid();
+    bool          fallibleWrapperConsumed     = false;
+    MicroLabelRef fallibleFailLabel       = MicroLabelRef::invalid();
+    MicroLabelRef fallibleDoneLabel       = MicroLabelRef::invalid();
+    MicroLabelRef fallibleFunctionFailLabel = MicroLabelRef::invalid();
+    MicroLabelRef fallibleFunctionDoneLabel = MicroLabelRef::invalid();
 
     void setIsValue() { storageKind = StorageKind::Value; }
     bool isValue() const { return storageKind == StorageKind::Value; }
@@ -54,24 +54,24 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
         return fallbackTypeRef;
     }
 
-    bool hasThrowableFunctionTarget() const
+    bool hasFallibleFunctionTarget() const
     {
-        return throwableFunctionFailLabel.isValid();
+        return fallibleFunctionFailLabel.isValid();
     }
 
-    void clearThrowableWrapper()
+    void clearFallibleWrapper()
     {
-        throwableWrapperOwnerRef = AstNodeRef::invalid();
-        throwableWrapperTokenId  = TokenId::Invalid;
-        throwableFailLabel       = MicroLabelRef::invalid();
-        throwableDoneLabel       = MicroLabelRef::invalid();
-        throwableWrapperConsumed = true;
+        fallibleWrapperOwnerRef = AstNodeRef::invalid();
+        fallibleWrapperTokenId  = TokenId::Invalid;
+        fallibleFailLabel       = MicroLabelRef::invalid();
+        fallibleDoneLabel       = MicroLabelRef::invalid();
+        fallibleWrapperConsumed = true;
     }
 
-    void clearThrowableFunctionTarget()
+    void clearFallibleFunctionTarget()
     {
-        throwableFunctionFailLabel = MicroLabelRef::invalid();
-        throwableFunctionDoneLabel = MicroLabelRef::invalid();
+        fallibleFunctionFailLabel = MicroLabelRef::invalid();
+        fallibleFunctionDoneLabel = MicroLabelRef::invalid();
     }
 };
 

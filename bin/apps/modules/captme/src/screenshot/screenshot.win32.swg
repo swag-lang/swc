@@ -121,7 +121,7 @@ func drawCursorInto(memDC: HDC, offsetX, offsetY: s32)
     DrawIconEx(memDC, x, y, hIcon, 0, 0, 0, null, DI_NORMAL)
 }
 
-func getDesktopImage(drawCursor: bool)->Image throw
+func getDesktopImage(drawCursor: bool)->Image fail
 {
     let x = Env.getMetric(.DesktopX)
     let y = Env.getMetric(.DesktopY)
@@ -133,7 +133,7 @@ func getDesktopImage(drawCursor: bool)->Image throw
 // Grab only the requested rectangle (absolute virtual-desktop coordinates). The
 // BitBlt cost is proportional to the copied area, so a small or single-monitor
 // capture must not pay for the whole multi-monitor desktop.
-func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image throw
+func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
 {
     #if #command == Swag.CompilerCommand.Test
     {
@@ -166,7 +166,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image throw
     var bits: *u8 = undefined
     let memBMP    = CreateDIBSection(hDesktopDC, &bi, cast() DIB_RGB_COLORS, &bits, null, 0)
     if !memBMP or !bits do
-        throw Swag.SystemError{"CreateDIBSection failed"}
+        fail Swag.SystemError{"CreateDIBSection failed"}
     defer catch DeleteObject(cast() memBMP)
 
     // Keep the DC's original bitmap so we can re-select it before deleting memBMP:

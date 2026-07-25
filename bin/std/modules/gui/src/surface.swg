@@ -98,7 +98,7 @@ impl Surface
     }
 
     // Creates the surface
-    func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) throw
+    func create(surface: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) fail
     {
         with surface
         {
@@ -406,7 +406,7 @@ impl Surface
         .wnd.sendResizeEvent()
     }
 
-    private mtd serializeState(ser: *Serializer) throw
+    private mtd serializeState(ser: *Serializer) fail
     {
         // Save position and surface state
         if @isset(.wnd.view) and .wnd.view.id != null

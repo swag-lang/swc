@@ -3,7 +3,7 @@
 
 using Win32
 
-func transformWinErrors(val0: #null string = null) throw
+func transformWinErrors(val0: #null string = null) fail
 {
     if @err == null do
         return
@@ -11,8 +11,8 @@ func transformWinErrors(val0: #null string = null) throw
     let err = cast(const &Swag.SystemError) @err
     switch err.errorID
     {
-    case ERROR_FILE_NOT_FOUND: throw Errors.FileNotFoundError{fileName: Errors.mkString(val0)}
-    case ERROR_INVALID_NAME:   throw Errors.InvalidFileNameError{fileName: Errors.mkString(val0)}
-    default:                   throw @err
+    case ERROR_FILE_NOT_FOUND: fail Errors.FileNotFoundError{fileName: Errors.mkString(val0)}
+    case ERROR_INVALID_NAME:   fail Errors.InvalidFileNameError{fileName: Errors.mkString(val0)}
+    default:                   fail @err
     }
 }

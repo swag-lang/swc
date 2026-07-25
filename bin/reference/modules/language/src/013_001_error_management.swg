@@ -2,9 +2,9 @@
 
 /**
 # Error Management
-Swag models errors as values. A function marked with 'throw' can either return
-its normal result or exit early with 'throw errorValue'. The caller then chooses
-whether to propagate, catch, dismiss, or assume success.
+Swag models errors as values. A function marked with 'fail' can either return
+its normal result or exit early with 'fail errorValue'. The caller then chooses
+whether to propagate, catch, dismiss, or expect success.
 */
 
 struct MyError
@@ -13,10 +13,10 @@ struct MyError
     code:       s32 = 0
 }
 
-func count(name: #null string)->u64 throw
+func count(name: #null string)->u64 fail
 {
     if name == null do
-        throw MyError{base: Swag.BaseError{"name cannot be null"}, code: 7}
+        fail MyError{base: Swag.BaseError{"name cannot be null"}, code: 7}
     return @countof(name)
 }
 
@@ -37,13 +37,42 @@ type, and exposes the captured error through '@err'.
 }
 
 /**
+# Handling on Failure with 'catch ... else'
+'catch e else { H }' runs the handler 'H' only when 'e' fails, replacing the
+'catch e; if @err != null do H' pattern. Inside 'H' the caught error is available
+through '@err'. 'H' is evaluated lazily — only on the failure path — and may divert
+control flow (e.g. an early 'return').
+*/
+func recordTrace(name: #null string, out: *s32) fail
+{
+    dref out = cast(s32) count(name)
+}
+
+#test
+{
+    var seen: s32 = -1
+    catch recordTrace("swag", &seen) else
+    {
+        seen = (cast(MyError) @err).code
+    }
+    @assert(seen == 4)          // success: handler skipped, value recorded
+
+    catch recordTrace(null, &seen) else
+    {
+        seen = (cast(MyError) @err).code
+    }
+    @assert(seen == 7)          // failure: handler ran, '@err' readable
+}
+
+/**
 # Dismissing Errors
-'trycatch' dismisses the error and continues execution. The result becomes the
-default value of the returned type and '@err' is cleared.
+To dismiss a failure and continue, hand the fallible call to 'orfail' with a
+fallback value (see below). '@err' is cleared, and the expression yields the
+fallback instead of the error.
 */
 func safeCount(name: #null string)->u64
 {
-    return trycatch count(name)
+    return count(name) orfail 0
 }
 
 #test
@@ -55,11 +84,28 @@ func safeCount(name: #null string)->u64
 }
 
 /**
+# Fallback Value with 'orfail'
+'e orfail V' catches a failure in the fallible expression 'e' and yields the
+fallback 'V' instead, dismissing the error. The fallback is an explicit value (it
+need not be the type default), and it is evaluated **lazily** — only when 'e'
+actually fails.
+*/
+#test
+{
+    let a = count("swag") orfail 99
+    @assert(a == 4)
+
+    let b = count(null) orfail 99
+    @assert(b == 99)
+    @assert(@err == null)     // 'orfail' dismisses the error
+}
+
+/**
 # Propagating Errors
 'try' propagates the current error to the caller, so it belongs inside a
 function that can itself return an error.
 */
-func propagateCount(name: #null string)->u64 throw
+func propagateCount(name: #null string)->u64 fail
 {
     return try count(name)
 }
@@ -83,10 +129,10 @@ func propagateCount(name: #null string)->u64 throw
 
 /**
 # Implicit try
-Inside a function declared with 'throw', calling another throwing function is
+Inside a function declared with 'fail', calling another fallible function is
 an implicit propagation.
 */
-func implicitTryCount(name: #null string)->u64 throw
+func implicitTryCount(name: #null string)->u64 fail
 {
     return count(name)
 }
@@ -103,9 +149,10 @@ func implicitTryCount(name: #null string)->u64 throw
 
 /**
 # Error-Handling Blocks
-'try', 'catch', 'trycatch', and 'assume' can also guard a whole block of code.
+'try', 'catch' (optionally with 'else'), and 'expect' can also guard a whole
+block of code.
 */
-func blockTry(name0: #null string, name1: #null string)->u64 throw
+func blockTry(name0: #null string, name1: #null string)->u64 fail
 {
     var total: u64 = 0
     try
@@ -132,12 +179,12 @@ func blockCatchCode()->s32
     return err.code
 }
 
-func blockTryCatch(name: #null string)->u64
+func blockCatchElse(name: #null string)->u64
 {
-    trycatch
+    catch
     {
         return count(name)
-    }
+    } else {}
 
     return 99
 }
@@ -154,13 +201,13 @@ func blockTryCatch(name: #null string)->u64
 #test
 {
     @assert(blockCatchCode() == 7)
-    @assert(blockTryCatch("abcd") == 4)
-    @assert(blockTryCatch(null) == 99)
+    @assert(blockCatchElse("abcd") == 4)
+    @assert(blockCatchElse(null) == 99)
 }
 
 /**
-# Assume
-Inside '#test', 'try' is equivalent to 'assume', so both forms keep the
+# Expect
+Inside '#test', 'try' is equivalent to 'expect', so both forms keep the
 success path concise when failure is not expected.
 */
 #test
@@ -171,18 +218,18 @@ success path concise when failure is not expected.
 
 #test
 {
-    let value = assume count("swag")
+    let value = expect count("swag")
     @assert(value == 4)
 }
 
 /**
 # Defer on Error Paths
-A plain 'defer' still runs when a function exits through 'throw', because
-'throw' is an early return carrying an error value.
+A plain 'defer' still runs when a function exits through 'fail', because
+'fail' is an early return carrying an error value.
 */
 var DeferTrace: s32 = 0
 
-func deferOnThrow(name: #null string)->u64 throw
+func deferOnFail(name: #null string)->u64 fail
 {
     defer DeferTrace += 1
     return try count(name)
@@ -191,7 +238,7 @@ func deferOnThrow(name: #null string)->u64 throw
 #test
 {
     DeferTrace = 0
-    let value = catch deferOnThrow(null)
+    let value = catch deferOnFail(null)
     @assert(value == 0)
     @assert(DeferTrace == 1)
 }

@@ -578,7 +578,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     dataPath = Path.combine(dataPath, "datas")
     dataPath = Path.combine(dataPath, "chess")
     dataPath = Path.combine(dataPath, "pieces.png")
-    let img = assume Image.load(dataPath)
+    let img = expect Image.load(dataPath)
 
     let rdr = surface.app.getRenderer()
     var y   = 0

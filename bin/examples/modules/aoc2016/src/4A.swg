@@ -19,7 +19,7 @@ using Core
 
 func day4A()
 {
-    assume
+    expect
     {
         let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
         let lines    = File.readAllLines(dataPath)

@@ -398,7 +398,7 @@ impl Capture
         .hasChanged()
     }
 
-    mtd save() throw
+    mtd save() fail
     {
         if !.changed do
             return
@@ -411,7 +411,7 @@ impl Capture
         File.writeAllBytes(.file, buf)
     }
 
-    func load(file: String, preview = false)->#null *Capture throw
+    func load(file: String, preview = false)->#null *Capture fail
     {
         var res = File.readAllBytes(file)
 

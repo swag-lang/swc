@@ -759,7 +759,7 @@ public impl IImageEncoder for Encoder
         return ext == ".jpg" or ext == ".jpeg"
     }
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) throw
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         var opt: EncodeOptions
         if @dataof(options) != null

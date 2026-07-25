@@ -392,8 +392,8 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
         adapter->addExtraFlag(SymbolFunctionFlagsE::Closure);
     if (isMethod())
         adapter->addExtraFlag(SymbolFunctionFlagsE::Method);
-    if (isThrowable())
-        adapter->addExtraFlag(SymbolFunctionFlagsE::Throwable);
+    if (isFallible())
+        adapter->addExtraFlag(SymbolFunctionFlagsE::Fallible);
     if (isConst())
         adapter->addExtraFlag(SymbolFunctionFlagsE::Const);
     if (hasVariadicParam())

@@ -86,7 +86,7 @@ func nnBytes(bytes: #null [..] u8)->const [..] u8
     return @mkslice(cast([*] u8) (notnull @dataof(bytes)), @countof(bytes))
 }
 
-func loadTestTypeFace(outFace: **TypeFace, fullname: string) throw
+func loadTestTypeFace(outFace: **TypeFace, fullname: string) fail
 {
     dref outFace = try TypeFace.load(fullname)
 }

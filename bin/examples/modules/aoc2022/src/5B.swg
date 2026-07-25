@@ -49,7 +49,7 @@ using Core
 func day5B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var stacks: Array'String
     var r:      Parser.RegExp
@@ -60,9 +60,9 @@ func day5B()
         {
             if !catch r.match(#"move (\d+) from (\d+) to (\d+)"#, l) do
                 continue
-            let count   = assume StrConv.toU64(r.getCapture(1))
-            let colFrom = assume StrConv.toS32(r.getCapture(2)) - 1
-            let colTo   = assume StrConv.toS32(r.getCapture(3)) - 1
+            let count   = expect StrConv.toU64(r.getCapture(1))
+            let colFrom = expect StrConv.toS32(r.getCapture(2)) - 1
+            let colTo   = expect StrConv.toS32(r.getCapture(3)) - 1
 
             let crates = String.from(stacks[colFrom][0 until count])
             stacks[colTo].insert(0, crates.toString())

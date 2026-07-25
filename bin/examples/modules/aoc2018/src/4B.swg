@@ -12,7 +12,7 @@ using Core, Core.Parser
 func day4B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
     Slice.sort(lines[to])
 
     var curGuard, startSleep, curMin = 0
@@ -20,10 +20,10 @@ func day4B()
 
     for l in lines
     {
-        curMin = assume StrConv.parseS32(l[15 to]).value
+        curMin = expect StrConv.parseS32(l[15 to]).value
 
         if Utf8.contains(l, "begins shift") do
-            curGuard = assume StrConv.parseS32(l[26 to]).value
+            curGuard = expect StrConv.parseS32(l[26 to]).value
         elif Utf8.contains(l, "falls asleep") do
             startSleep = curMin
         elif Utf8.contains(l, "wakes up") do

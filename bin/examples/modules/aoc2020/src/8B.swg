@@ -47,7 +47,7 @@ using Core
 func day8B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
-    let all      = assume File.readAllLines(dataPath)
+    let all      = expect File.readAllLines(dataPath)
 
     var fix = 0
     for
@@ -58,7 +58,7 @@ func day8B()
         while ip < lines.count and lines[ip].length
         {
             let lip = ip
-            let v   = assume StrConv.parseS32(lines[ip][4 to]).value
+            let v   = expect StrConv.parseS32(lines[ip][4 to]).value
             switch lines[ip][0 to 2]
             {
             case "nop":

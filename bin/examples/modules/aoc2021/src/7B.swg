@@ -30,14 +30,14 @@ using Core
 func day7B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
     let str      = Tokenize.split(lines[0], ',''u8)
 
     var crabs: Array's32
     var mean:  s32
     for v in str
     {
-        let c = assume StrConv.toS32(v)
+        let c = expect StrConv.toS32(v)
         mean += c
         crabs.add(c)
     }

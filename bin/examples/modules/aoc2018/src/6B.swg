@@ -38,7 +38,7 @@ using Core
 func day6B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     const W = 700
 
@@ -48,8 +48,8 @@ func day6B()
     for l in lines
     {
         let split = Tokenize.split(l, ',''u8)
-        let cx    = assume StrConv.toS32(Latin1.trim(split[0])) + W / 2
-        let cy    = assume StrConv.toS32(Latin1.trim(split[1])) + W / 2
+        let cx    = expect StrConv.toS32(Latin1.trim(split[0])) + W / 2
+        let cy    = expect StrConv.toS32(Latin1.trim(split[1])) + W / 2
 
         for [i] in W * W
         {

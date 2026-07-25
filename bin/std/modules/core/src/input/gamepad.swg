@@ -19,7 +19,7 @@ struct GamePad
 impl GamePad
 {
     // Update the GamePad current state
-    mtd update() throw
+    mtd update() fail
     {
         let newConnected = isConnected(.padIndex)
         if !newConnected
@@ -74,7 +74,7 @@ impl GamePad
     }
 
     // Set the vibration motor speeds
-    mtd setVibration(left, right: f32) throw
+    mtd setVibration(left, right: f32) fail
     {
         try setVibration(.padIndex, left, right)
     }

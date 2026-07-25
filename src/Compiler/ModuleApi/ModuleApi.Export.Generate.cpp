@@ -353,7 +353,7 @@ namespace
                     outInsertOffset = sourceTokenByteStart(srcView, token);
                     return true;
 
-                case TokenId::KwdThrow:
+                case TokenId::KwdFail:
                 case TokenId::KwdWhere:
                 case TokenId::KwdVerify:
                 case TokenId::SymEqualGreater:

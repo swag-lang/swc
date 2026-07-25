@@ -66,7 +66,7 @@ func dataPath(fileName: string, loc = #callerlocation)->String
     return Path.combine(Path.combine(srcPath, "data"), fileName)
 }
 
-func loadFonts() throw
+func loadFonts() fail
 {
     g_FontPath = dataPath("segoeui.ttf")
     let path = g_FontPath.toString()
@@ -111,7 +111,7 @@ func setImageCard(card: *TextureCard, title, subtitle: string, image: const &Ima
     setTextureCard(card, title, subtitle, g_Renderer.addImage(image), options)
 }
 
-func loadShowcase() throw
+func loadShowcase() fail
 {
     let loaded = Image.load(dataPath("joconde.jpg"))
     let source = normalizeShowcaseImage(loaded)

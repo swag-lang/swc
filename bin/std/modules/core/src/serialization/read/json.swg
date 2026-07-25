@@ -60,21 +60,21 @@ public impl JSon
         .stream = ByteStream.openRead(input)
     }
 
-    mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: *u64)->bool throw
+    mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: *u64)->bool fail
     {
         .zapBlanks()
         let c = .stream.readU8()
         if c != '[' do
-            throw .getError("malformed array, missing opening [[[?]]")
+            fail .getError("malformed array, missing opening [[[?]]")
         return false
     }
 
-    mtd endSequence() throw
+    mtd endSequence() fail
     {
         .zapBlanks()
         let c = .stream.readU8()
         if c != ']' do
-            throw .getError("malformed array; missing closing [[?]]]")
+            fail .getError("malformed array; missing closing [[?]]]")
     }
 
     mtd toNextSequenceElement(_countElem: *u64)->bool
@@ -85,44 +85,44 @@ public impl JSon
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd beginRoot() throw {}
+    mtd beginRoot() fail {}
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endRoot() throw {}
+    mtd endRoot() fail {}
 
-    mtd beginSection(_kind: SectionKind) throw
+    mtd beginSection(_kind: SectionKind) fail
     {
         .zapBlanks()
         let c = .stream.readU8()
         if c != '{' do
-            throw .getError("malformed struct, missing opening [[{]]")
+            fail .getError("malformed struct, missing opening [[{]]")
     }
 
-    mtd endSection() throw
+    mtd endSection() fail
     {
         .zapBlanks()
         let c = .stream.readU8()
         if c != '}' do
-            throw .getError("malformed struct, missing closing [[}]]")
+            fail .getError("malformed struct, missing closing [[}]]")
     }
 
-    mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool throw
+    mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool fail
     {
         .beginSection(.Ordered)
         return false
     }
 
-    mtd endStruct() throw
+    mtd endStruct() fail
     {
         .endSection()
     }
 
-    mtd beginElement(val: TypeValue)->bool throw
+    mtd beginElement(val: TypeValue)->bool fail
     {
         .zapBlanks()
         var c = .stream.readU8()
         if c != '"' do
-            throw .getError("malformed property name, missing opening [[\"]]")
+            fail .getError("malformed property name, missing opening [[\"]]")
 
         .propName.clear()
         c = .stream.readU8()
@@ -133,26 +133,26 @@ public impl JSon
         }
 
         if .propName != val.name do
-            throw .getError("invalid property name")
+            fail .getError("invalid property name")
 
         if c != '"' do
-            throw .getError("malformed property name, missing closing [[\"]]")
+            fail .getError("malformed property name, missing closing [[\"]]")
 
         .zapBlanks()
         c = .stream.readU8()
         if c != ':' do
-            throw .getError("malformed property, missing [[:]] after name")
+            fail .getError("malformed property, missing [[:]] after name")
 
         return true
     }
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endElement(_val: TypeValue) throw {}
+    mtd endElement(_val: TypeValue) fail {}
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd beginValue() throw {}
+    mtd beginValue() fail {}
 
-    mtd endValue() throw
+    mtd endValue() fail
     {
         .zapBlanks()
         let c = .stream.peekU8()
@@ -164,7 +164,7 @@ public impl JSon
     // VALUES
     /////////////////////////////////
 
-    mtd(NT) readNative()->NT throw
+    mtd(NT) readNative()->NT fail
     {
         .zapBlanks()
         #if NT == bool
@@ -249,7 +249,7 @@ public impl JSon
                     return result
                 }
 
-                throw .getError("malformed string, missing opening [[\"]]")
+                fail .getError("malformed string, missing opening [[\"]]")
             }
 
             c = .stream.peekU8()
@@ -262,7 +262,7 @@ public impl JSon
 
             c = .stream.readU8()
             if c != '"' do
-                throw .getError("malformed string, missing closing [[\"]]")
+                fail .getError("malformed string, missing closing [[\"]]")
 
             return result
         }

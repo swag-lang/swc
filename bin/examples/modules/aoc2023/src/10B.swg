@@ -110,7 +110,7 @@ private enum Dir
 func day10B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "10.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var width, height: u64
     var maze:          Array'Dir

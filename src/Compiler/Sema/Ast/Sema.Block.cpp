@@ -27,7 +27,7 @@ namespace
         if (parentNode.isNot(AstNodeId::TryCatchStmt))
             return false;
 
-        return sema.token(parentNode.codeRef()).id == TokenId::KwdAssume;
+        return sema.token(parentNode.codeRef()).id == TokenId::KwdExpect;
     }
 
     void addUsingSymMapToScope(SemaScope& scope, SymbolMap* usingSymMap)
@@ -295,10 +295,10 @@ Result AstEmbeddedBlock::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 Result AstDeferStmt::semaPreNode(Sema& sema)
 {
     const auto&                node    = sema.curNode().cast<AstDeferStmt>();
-    constexpr AstModifierFlags allowed = AstModifierFlagsE::Err | AstModifierFlagsE::NoErr;
+    constexpr AstModifierFlags allowed = AstModifierFlagsE::Fail | AstModifierFlagsE::NoFail;
     SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, allowed));
 
-    if (node.modifierFlags.has(AstModifierFlagsE::Err) && node.modifierFlags.has(AstModifierFlagsE::NoErr))
+    if (node.modifierFlags.has(AstModifierFlagsE::Fail) && node.modifierFlags.has(AstModifierFlagsE::NoFail))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
         diag.addArgument(Diagnostic::ARG_WHAT, "#err/#noerr");
@@ -306,7 +306,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
         return Result::Error;
     }
 
-    if (node.modifierFlags.has(AstModifierFlagsE::Err) || node.modifierFlags.has(AstModifierFlagsE::NoErr))
+    if (node.modifierFlags.has(AstModifierFlagsE::Fail) || node.modifierFlags.has(AstModifierFlagsE::NoFail))
         SWC_RESULT(SemaHelpers::requireRuntimeErrorContextDependency(sema, node.codeRef()));
 
     // A defer body runs at scope exit, not here: narrowing facts valid at the declaration

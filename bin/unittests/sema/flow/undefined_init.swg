@@ -39,9 +39,9 @@ enum UndKind
     Second
 }
 
-func undBoom() throw
+func undBoom() fail
 {
-    throw Swag.BaseError{"boom"}
+    fail Swag.BaseError{"boom"}
 }
 
 // -----------------------------------------------------------------------------
@@ -198,7 +198,7 @@ func undErrLoopAssign()
 }
 
 // An error unwind would drop the still-uninitialized droppable.
-func undErrUnwind() throw
+func undErrUnwind() fail
 {
     var v: UndDrop = undefined
     try undBoom()     // swc-expected-error {{sema_err_undefined_drop}}

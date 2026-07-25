@@ -25,11 +25,11 @@ using Core
 func day1A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "1.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
     for l in lines do
-        total += (assume StrConv.toS32(l) / 3) - 2
+        total += (expect StrConv.toS32(l) / 3) - 2
 
     // Console.print("total: ", total)
     @assert(total == 3296560)

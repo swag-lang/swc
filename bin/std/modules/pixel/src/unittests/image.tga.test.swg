@@ -36,7 +36,7 @@ func tgaCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeTga(result: *ConcatBuffer, image: Image) throw
+func encodeTga(result: *ConcatBuffer, image: Image) fail
 {
     var enc: Tga.Encoder
     let itf = @mkinterface(&enc, #typeof(Tga.Encoder), IImageEncoder)

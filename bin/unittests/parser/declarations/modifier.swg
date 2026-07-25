@@ -2,8 +2,8 @@
 
 #assert(cast #bit (s32) 9)
 #assert(cast #unconst (s32) 9)
-#assert(cast #err (s32) 9)
-#assert(cast #noerr (s32) 9)
+#assert(cast #fail (s32) 9)
+#assert(cast #nofail (s32) 9)
 #assert(cast #prom (s32) 9)
 #assert(cast #wrap (s32) 9)
 #assert(cast #nodrop (s32) 9)
@@ -13,4 +13,4 @@
 #assert(cast #null (s32) 9)
 
 #assert(cast #bit #unconst (s32) 9)
-#assert(cast #bit #unconst #err (s32) 9)
+#assert(cast #bit #unconst #fail (s32) 9)

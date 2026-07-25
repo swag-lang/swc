@@ -373,7 +373,7 @@ impl RecentWnd
 
         let idx                     = .pendingRecentIndex
         let capture: #null *Capture = catch .addRecent(.pendingRecentFiles[idx], front: false)
-        defer #err Memory.delete(capture)
+        defer #fail Memory.delete(capture)
         if @err == null
         {
             if idx == 0 and !.main.editWnd.editView.capture
@@ -424,7 +424,7 @@ impl RecentWnd
         g_Library.removeFile(item.file)
     }
 
-    mtd addRecent(file: String, front = true, sel = false)->#null *Capture throw
+    mtd addRecent(file: String, front = true, sel = false)->#null *Capture fail
     {
         let capture = try Capture.load(file)
         let loaded  = notnull capture

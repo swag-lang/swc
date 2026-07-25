@@ -31,7 +31,7 @@ using Core
 func day4B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     func test(a, b, c, d, e: rune)->bool
     {

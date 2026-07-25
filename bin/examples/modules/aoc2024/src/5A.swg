@@ -80,7 +80,7 @@ using Core
 func day5A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var first = true
     var order: HashTable'(s32, Array's32)
@@ -98,7 +98,7 @@ func day5A()
         {
             let split = Tokenize.split(f, '|''u8)
             @assert(split.count == 2)
-            order.findOrAdd(assume StrConv.toS32(split[0])).value.add(assume StrConv.toS32(split[1]))
+            order.findOrAdd(expect StrConv.toS32(split[0])).value.add(expect StrConv.toS32(split[1]))
         }
         else
         {
@@ -108,13 +108,13 @@ func day5A()
             var isOrdered = true
             for [beforeIndex] in update.count
             {
-                let beforePage = assume StrConv.toS32(update[beforeIndex])
+                let beforePage = expect StrConv.toS32(update[beforeIndex])
                 if beforeIndex + 1 >= update.count do
                     continue
 
                 for [afterIndex] in beforeIndex + 1 to update.count - 1
                 {
-                    let afterPage = assume StrConv.toS32(update[afterIndex])
+                    let afterPage = expect StrConv.toS32(update[afterIndex])
                     if let nextPages = order.tryFind(afterPage) where nextPages.value.contains(beforePage)
                     {
                         isOrdered = false
@@ -126,7 +126,7 @@ func day5A()
             if isOrdered
             {
                 @assert(update.count & 1 == 1)
-                total += assume StrConv.toS32(update[update.count / 2])
+                total += expect StrConv.toS32(update[update.count / 2])
             }
         }
     }

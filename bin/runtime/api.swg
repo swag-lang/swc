@@ -197,7 +197,7 @@ namespace Swag
         Unreachable = 0x0080     // Check if unreachable is... reached
         Null        = 0x0100     // Check on dereferencing some null pointers
         Memory      = 0x0200     // Check some memory things (mostly in sanity pass)
-        Assume      = 0x0400     // Check if 'assume' must panic on an unexpected runtime error
+        Expect      = 0x0400     // Check if 'expect' must panic on an unexpected runtime error
         Lifecycle   = 0x0800     // Check use of moved-from values, and poison abandoned/dropped storage
         None        = 0x0000
         All         = 0xFFFF
@@ -444,7 +444,7 @@ namespace Swag
         errorID:    u64
     }
 
-    // Store a 'throw' error information
+    // Store a 'fail' error information
     struct ErrorValue
     {
         value:          #null any     // Error value (or null)
@@ -858,7 +858,7 @@ namespace Swag
         allocatorTrackAllocations = false                   // Keep an exact allocation list for detailed leak reporting
         allocatorElectricMode     = false                   // Never reuse freed blocks
         allocatorFillMemory       = false                   // Fill allocated/freed memory with debug patterns
-        errorStackTrace           = true                    // Add stack trace in case a 'throw' is raised
+        errorStackTrace           = true                    // Add stack trace in case a 'fail' is raised
 
         warnAsErrors:        #null string     // Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."
         warnAsWarning:       #null string     // Override 'warnAsErrors', restoring warnings as warnings

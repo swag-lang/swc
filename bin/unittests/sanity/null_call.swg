@@ -9,7 +9,7 @@
 // `#[Swag.Sanity(.Null, true)]` so the sanitizer runs (and catches it) in every config.
 // ---------------------------------------------------------------------------
 
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var f: #null func()->s32
@@ -19,7 +19,7 @@
 }
 
 // The null value propagates through a copy.
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var f: #null func()->s32

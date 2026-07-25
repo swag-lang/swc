@@ -13,12 +13,12 @@ public impl IImageEncoder for Encoder
 
     // Encode a single image as a 32-bit BGRA DIB icon entry with an empty AND mask.
     // The alpha channel carries transparency; the AND mask is left fully opaque.
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) throw
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
-            throw InvalidFormatError{"invalid image"}
+            fail InvalidFormatError{"invalid image"}
         if image.width > 256 or image.height > 256 do
-            throw UnsupportedFormatError{"icon dimensions must be <= 256"}
+            fail UnsupportedFormatError{"icon dimensions must be <= 256"}
 
         let width  = image.width
         let height = image.height

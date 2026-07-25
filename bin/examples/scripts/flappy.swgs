@@ -82,7 +82,7 @@ The '#main' entry-point hook is usually the entry point of an executable. It's e
 #main
 {
     // Creates audio engine. 'assume' tells Swag that if the creation fails, we should panic.
-    assume Audio.createEngine()
+    expect Audio.createEngine()
 
     // Thanks to 'defer', the audio engine will be destroyed when
     // leaving this scope, i.e. when exiting the '#main' function.
@@ -213,7 +213,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         // 'loadAssets' can raise some errors (we'll see later). So here we 'assume' that
         // everything will be fine. If an error is raised, a 'panic' will occur.
-        assume loadAssets(wnd)
+        expect loadAssets(wnd)
 
         start()
 
@@ -347,7 +347,7 @@ func input(wnd: *Wnd)
     {
         g_Start        = true
         g_Bird.speed.y = -BirdImpulseY
-        assume Audio.Voice.play(&g_SoundFlap)
+        expect Audio.Voice.play(&g_SoundFlap)
     }
 }
 
@@ -394,7 +394,7 @@ func move()
             // Collision with the pipes
             if birdInRect(pipe.rectUp) or birdInRect(pipe.rectDown)
             {
-                assume Audio.Voice.play(&g_SoundHit)
+                expect Audio.Voice.play(&g_SoundHit)
                 g_GameOver = true
             }
 
@@ -402,7 +402,7 @@ func move()
             // Score up.
             if g_Bird.pos.x > pipe.rectUp.right() and !pipe.scored
             {
-                assume Audio.Voice.play(&g_SoundScore)
+                expect Audio.Voice.play(&g_SoundScore)
                 pipe.scored = true
                 g_Score     += 1
             }
@@ -421,12 +421,12 @@ func move()
     if g_Bird.pos.y + g_BirdTexture[0].height > g_Rect.bottom() - GroundHeight
     {
         g_GameOver = true
-        assume Audio.Voice.play(&g_SoundHit)
+        expect Audio.Voice.play(&g_SoundHit)
     }
 
     // Play dying sound
     if g_GameOver do
-        assume Audio.Voice.play(&g_SoundDie)
+        expect Audio.Voice.play(&g_SoundDie)
 }
 
 /**
@@ -475,9 +475,9 @@ func start()
 /**
 Load all assets.
 
-You can notice that the function has 'throw' after its declaration. This indicated that it can return some errors, and that the caller will have to deal with it.
+You can notice that the function has 'fail' after its declaration. This indicated that it can return some errors, and that the caller will have to deal with it.
 */
-func loadAssets(wnd: *Wnd) throw
+func loadAssets(wnd: *Wnd) fail
 {
     let render = &wnd.getApp().renderer
 

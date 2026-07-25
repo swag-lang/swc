@@ -22,21 +22,21 @@ using Core
 func day9B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
-    let line     = assume File.readAllText(dataPath)
+    let line     = expect File.readAllText(dataPath)
 
     var sum: Array'u64
     sum.resize(line.length)
     sum.fill(1)
 
-    var r            = assume Parser.RegExp.create(#"\((\d+)x(\d+)\)"#)
+    var r            = expect Parser.RegExp.create(#"\((\d+)x(\d+)\)"#)
     var start, total = 0'u64
     while start != @countof(line)
     {
         let res = r.partialMatch(line[start to])
         if res
         {
-            let n = assume StrConv.toU64(r[1])
-            let x = assume StrConv.toU64(r[2])
+            let n = expect StrConv.toU64(r[1])
+            let x = expect StrConv.toU64(r[2])
             start += @countof(res)
             for [i] in n do
                 sum[start + i] *= x

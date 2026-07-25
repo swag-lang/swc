@@ -1580,6 +1580,8 @@ AstNodeRef AstTryCatchStmt::semaClone(Sema& sema, const CloneContext& cloneConte
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::TryCatchStmt>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstTryCatchStmt>();
     cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    if (nodeHandlerRef.isValid())
+        cloned.nodeHandlerRef = cloneNodeRef(sema, nodeHandlerRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
@@ -1901,12 +1903,16 @@ AstNodeRef AstTryCatchExpr::semaClone(Sema& sema, const CloneContext& cloneConte
 {
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::TryCatchExpr>(tokRef());
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    // Only 'orfail' carries a fallback; the other forms leave it invalid, and cloneAst
+    // requires a valid node.
+    if (nodeFallbackRef.isValid())
+        newPtr->nodeFallbackRef = SemaClone::cloneAst(sema, nodeFallbackRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 
-AstNodeRef AstThrowExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstFailExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ThrowExpr>(tokRef());
+    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::FailExpr>(tokRef());
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     return newRef;
 }

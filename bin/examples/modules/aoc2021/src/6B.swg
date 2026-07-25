@@ -12,12 +12,12 @@ using Core
 func day6B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
     let str      = Tokenize.split(lines[0], ',''u8)
 
     var state: [9] u64
     for v in str do
-        state[assume StrConv.toS32(v)] += 1
+        state[expect StrConv.toS32(v)] += 1
 
     var total: u64
     for 256

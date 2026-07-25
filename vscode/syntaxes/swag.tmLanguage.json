@@ -80,7 +80,7 @@
       "patterns": [
         {
           "name": "keyword",
-          "match": "\\b(using|with|cast|dref|retval|try|catch|trycatch|assume|notnull|throw|discard)\\b"
+          "match": "\\b(using|with|cast|dref|retval|try|catch|expect|orfail|notnull|fail|discard)\\b"
         }
       ]
     },
@@ -221,7 +221,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|late|err|noerr)\\b"
+          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|late|fail|nofail)\\b"
         }
       ]
     },

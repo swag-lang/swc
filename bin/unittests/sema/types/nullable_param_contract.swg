@@ -20,9 +20,9 @@ interface INpcFace
 
 var g_npcSink: s32
 
-func npcBoom() throw
+func npcBoom() fail
 {
-    throw Swag.BaseError{"boom"}
+    fail Swag.BaseError{"boom"}
 }
 
 func npcCheck(x: #null *s32)->bool => x != null
@@ -95,7 +95,7 @@ func npcOkDelegated(x: #null *s32)->s32
 }
 
 // A throwing exit can leave the function before the dereference.
-func npcOkThrowFirst(x: #null *s32)->s32 throw
+func npcOkThrowFirst(x: #null *s32)->s32 fail
 {
     try npcBoom()
     return dref notnull x
@@ -144,10 +144,10 @@ func npcOkReturnNullable(x: #null *s32)->#null *s32
 }
 
 // A throwable function is exempt: its 'catch' error path synthesizes null.
-func npcOkReturnThrowable()->#null *s32 throw
+func npcOkReturnThrowable()->#null *s32 fail
 {
     if g_npcStorage == 0 do
-        throw Swag.BaseError{"boom"}
+        fail Swag.BaseError{"boom"}
     return &g_npcStorage
 }
 

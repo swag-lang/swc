@@ -501,10 +501,10 @@ namespace
         return currentDeclRef == declRef && activeDeclRef == declRef;
     }
 
-    void clearThrowableFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    void clearFallibleFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (CodeGenNodePayload* payload = codeGen.safePayload(nodeRef))
-            payload->clearThrowableFunctionTarget();
+            payload->clearFallibleFunctionTarget();
     }
 
     Result codeGenFunctionLikePreBody(CodeGen& codeGen, AstNodeRef declRef, AstNodeRef childRef, AstNodeRef bodyRef)
@@ -525,7 +525,7 @@ namespace
 
         codeGen.setCurrentFunctionIndirectReturnReg(MicroReg::invalid());
         codeGen.setCurrentFunctionClosureContextReg(MicroReg::invalid());
-        clearThrowableFunctionPayload(codeGen, declRef);
+        clearFallibleFunctionPayload(codeGen, declRef);
 
         SmallVector<CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos;
         collectFunctionParameterInfos(paramInfos, codeGen, symbolFunc);

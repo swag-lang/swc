@@ -140,7 +140,7 @@ namespace
         h          = Math::hashCombine(h, static_cast<uint32_t>(function.callConvKind()));
         h          = Math::hashCombine(h, function.isClosure());
         h          = Math::hashCombine(h, function.isMethod());
-        h          = Math::hashCombine(h, function.isThrowable());
+        h          = Math::hashCombine(h, function.isFallible());
         h          = Math::hashCombine(h, function.isConst());
         h          = Math::hashCombine(h, function.hasVariadicParam());
         h          = Math::hashCombine(h, static_cast<uint32_t>(function.parameters().size()));
@@ -263,7 +263,7 @@ namespace
         uint32_t              h = Math::hash(static_cast<uint32_t>(function.callConvKind()));
         h                       = Math::hashCombine(h, function.isClosure());
         h                       = Math::hashCombine(h, function.isMethod());
-        h                       = Math::hashCombine(h, function.isThrowable());
+        h                       = Math::hashCombine(h, function.isFallible());
         h                       = Math::hashCombine(h, function.isConst());
         h                       = Math::hashCombine(h, function.hasVariadicParam());
         h                       = Math::hashCombine(h, stableTypeHash(ctx, function.returnTypeRef()));

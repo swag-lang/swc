@@ -36,7 +36,7 @@ using Core
 func day8A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "8.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var instructions: string = ""
     var nodes:        Array'{ left, right: u64 }

@@ -27,7 +27,7 @@ func validateOp(str: string)
             g_Error    = null
         }
 
-        let v = assume StrConv.toS64(str)
+        let v = expect StrConv.toS64(str)
         g_CurValue = (g_CurValue * 10) + v
     }
     else

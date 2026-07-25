@@ -430,6 +430,13 @@ AstNodeRef Parser::parseTryCatch()
         nodePtr->nodeBodyRef = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
     else
         nodePtr->nodeBodyRef = parseExpression();
+
+    // 'catch e else { H }' / 'catch e else do H': H runs only when 'e' fails. Inside H the
+    // caught error is available through '@err'. The handler is emitted lazily on the failure
+    // path (like 'orfail'), which removes the 'catch e; if @err != null do H' boilerplate.
+    if (consumeIf(TokenId::KwdElse).isValid())
+        nodePtr->nodeHandlerRef = parseDoCurlyBlock();
+
     return nodeRef;
 }
 
@@ -957,12 +964,11 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::IntrinsicPostMove:
             return parseIntrinsicPostMove();
 
-        case TokenId::KwdAssume:
+        case TokenId::KwdExpect:
         case TokenId::KwdCatch:
         case TokenId::KwdTry:
-        case TokenId::KwdTryCatch:
             return parseTryCatch();
-        case TokenId::KwdThrow:
+        case TokenId::KwdFail:
             return parseThrow();
 
         case TokenId::KwdDiscard:

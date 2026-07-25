@@ -10,16 +10,16 @@ struct BigOpaque
 
 impl BigOpaque
 {
-    mtd prepare(value: string) throw
+    mtd prepare(value: string) fail
     {
         .matched = true
         .capture = value
     }
 
-    func create(value: string)->BigOpaque throw
+    func create(value: string)->BigOpaque fail
     {
         var result: retval
-        assume
+        expect
         {
             result.prepare(value)
         }
@@ -39,7 +39,7 @@ impl BigOpaque
     }
 }
 
-func captureValue(line: string)->string throw
+func captureValue(line: string)->string fail
 {
     var r = BigOpaque.create("init")
     discard r.match(line)
@@ -49,7 +49,7 @@ func captureValue(line: string)->string throw
 func captureValueInAssumeBlock(line: string)->string
 {
     var result = ""
-    assume
+    expect
     {
         var r = BigOpaque.create("init")
         discard r.match(line)
@@ -61,7 +61,7 @@ func captureValueInAssumeBlock(line: string)->string
 
 #test
 {
-    assume
+    expect
     {
         @assert(captureValue("2x3x4") == "2x3x4")
         @assert(captureValueInAssumeBlock("2x3x4") == "2x3x4")

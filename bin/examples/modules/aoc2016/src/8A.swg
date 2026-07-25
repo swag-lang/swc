@@ -43,7 +43,7 @@ using Core
 func day8A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     const W = 50
     const H = 6
@@ -55,23 +55,23 @@ func day8A()
         nscreen = screen
         switch
         {
-        case assume re.match(#"rect (\d+)x(\d+)"#, l):
-            for [x] in assume StrConv.toS32(re[1]) do
-                for [y] in assume StrConv.toS32(re[2]) do
+        case expect re.match(#"rect (\d+)x(\d+)"#, l):
+            for [x] in expect StrConv.toS32(re[1]) do
+                for [y] in expect StrConv.toS32(re[2]) do
                     screen[x, y] = true
 
-        case assume re.match(#"rotate column x=(\d+) by (\d+)"#, l):
-            let x = assume StrConv.toS32(re[1])
-            for assume StrConv.toS32(re[2])
+        case expect re.match(#"rotate column x=(\d+) by (\d+)"#, l):
+            let x = expect StrConv.toS32(re[1])
+            for expect StrConv.toS32(re[2])
             {
                 for [i] in H do
                     screen[x, (i + 1) % H] = nscreen[x, i]
                 nscreen                    = screen
             }
 
-        case assume re.match(#"rotate row y=(\d+) by (\d+)"#, l):
-            let y = assume StrConv.toS32(re[1])
-            for assume StrConv.toS32(re[2])
+        case expect re.match(#"rotate row y=(\d+) by (\d+)"#, l):
+            let y = expect StrConv.toS32(re[1])
+            for expect StrConv.toS32(re[2])
             {
                 for [i] in W do
                     screen[(i + 1) % W, y] = nscreen[i, y]

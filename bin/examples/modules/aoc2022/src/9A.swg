@@ -245,7 +245,7 @@ using Core
 func day9A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "9.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var set: HashSet'{ x, y: s32 }
 
@@ -259,7 +259,7 @@ func day9A()
     for l in lines
     {
         let cmd = Tokenize.split(l, ' ''u8)
-        let cpt = assume StrConv.toS32(cmd[1])
+        let cpt = expect StrConv.toS32(cmd[1])
 
         var incx, incy = 0
         switch cmd[0]

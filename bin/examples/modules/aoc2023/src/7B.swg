@@ -57,7 +57,7 @@ private func sort()
 func day7B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     map['A''u8] = 12
     map['K''u8] = 11
@@ -107,7 +107,7 @@ func day7B()
         }
 
         card.val = first[0]
-        card.bid = assume StrConv.toU64(first[1])
+        card.bid = expect StrConv.toU64(first[1])
         cards.add(card)
     }
 

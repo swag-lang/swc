@@ -69,12 +69,12 @@ public impl Face
 {
     // Load a face from an in-memory font file. The returned pointer aliases an
     // internal FaceImpl that owns a private copy of the bytes; release it with destroy().
-    func load(bytes: const [..] u8, faceIndex: u32 = 0)->#null *Face throw
+    func load(bytes: const [..] u8, faceIndex: u32 = 0)->#null *Face fail
     {
         if @countof(bytes) == 0 do
-            fail(0x06)
+            fault(0x06)
         if faceIndex != 0 do
-            fail(0x07)
+            fault(0x07)
 
         let faceData = Memory.new'FaceImpl()
         faceData.fontData.resize(@countof(bytes))
@@ -93,11 +93,11 @@ public impl Face
     mtd const isBold()->bool   => .style.has(.Bold)
     mtd const isItalic()->bool => .style.has(.Italic)
 
-    mtd setPixelSize(pixelWidth, pixelHeight: u32) throw
+    mtd setPixelSize(pixelWidth, pixelHeight: u32) fail
     {
         let faceData = getFaceImpl(me)
         if !pixelWidth and !pixelHeight do
-            fail(0x17)
+            fault(0x17)
 
         var width  = pixelWidth
         var height = pixelHeight
@@ -118,14 +118,14 @@ public impl Face
 
     // True if the face carries any (legacy 'kern' format-0) kerning pairs. Lets callers
     // skip per-glyph-pair kerning lookups entirely for the many fonts that have none.
-    mtd hasKerning()->bool throw
+    mtd hasKerning()->bool fail
     {
         return getFaceImpl(me).kernPairs.count != 0
     }
 
     // Horizontal kerning between two glyphs, scaled to the current pixel size.
     // Returns a 26.6 fixed-point value in 'x' (FreeType-style), 0 if no pair.
-    mtd getKerning(leftGlyph, rightGlyph: u32)->Vector throw
+    mtd getKerning(leftGlyph, rightGlyph: u32)->Vector fail
     {
         let faceData = getFaceImpl(me)
         var result: retval
@@ -148,24 +148,24 @@ public impl Face
         return @err != null ? 0 : idx
     }
 
-    mtd loadGlyph(glyphIndex: u32, loadFlags = LoadFlag.Default) throw
+    mtd loadGlyph(glyphIndex: u32, loadFlags = LoadFlag.Default) fail
     {
         loadGlyphInternal(me, glyphIndex)
         if loadFlags & .Render do
             .renderGlyph()
     }
 
-    mtd loadChar(charCode: rune, loadFlags = LoadFlag.Default) throw
+    mtd loadChar(charCode: rune, loadFlags = LoadFlag.Default) fail
     {
         let faceData = getFaceImpl(me)
         let idx      = lookupGlyphIndex(faceData, cast(u32) charCode)
         .loadGlyph(idx, loadFlags)
     }
 
-    mtd renderGlyph(renderMode = RenderMode.Normal) throw
+    mtd renderGlyph(renderMode = RenderMode.Normal) fail
     {
         if renderMode != .Normal do
-            fail(0x07)
+            fault(0x07)
         renderCurrentOutline(&.glyph)
     }
 
@@ -173,7 +173,7 @@ public impl Face
     // of the currently-loaded outline to whole pixels so horizontal stems stay crisp.
     // No-op when the face has no x-height (OS/2 missing). Apply before rendering the
     // bitmap; it must not be used on the size-independent SDF/MSDF atlases.
-    mtd hintVertical() throw
+    mtd hintVertical() fail
     {
         let faceData = getFaceImpl(me)
         let o        = &.glyph.outline
@@ -207,12 +207,12 @@ public impl Face
             points[@index].y = hintMapY(points[@index].y, xh, xhS, ch, chS)
     }
 
-    mtd renderGlyphSdf(spread: u32 = 8) throw
+    mtd renderGlyphSdf(spread: u32 = 8) fail
     {
         renderCurrentOutlineSdf(&.glyph, spread)
     }
 
-    mtd renderGlyphMsdf(spread: u32 = 8) throw
+    mtd renderGlyphMsdf(spread: u32 = 8) fail
     {
         renderCurrentOutlineMsdf(&.glyph, spread)
     }

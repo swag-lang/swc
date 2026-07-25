@@ -41,7 +41,7 @@ var g_App: Application
     let path = Path.combine(Library.getFolder(), "captme.cfg")
     g_App.setConfigPath(path)
 
-    var img = assume Image.decode(".png", Icons48)
+    var img = expect Image.decode(".png", Icons48)
     img.crop(48, 48, 48, 48)
     img.setPixelFormat(.BGRA8)
     g_App.setAppIcon(img)

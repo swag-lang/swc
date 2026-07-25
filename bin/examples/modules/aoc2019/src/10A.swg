@@ -102,7 +102,7 @@ using Core
 func day10A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var arr: Array'Math.Vector2
     var tot: Array's32

@@ -108,7 +108,7 @@ impl ImageRect
     }
 
     // Load and set movie
-    mtd setFile(fileName: string) throw
+    mtd setFile(fileName: string) fail
     {
         .clear()
         try .movie.set(fileName)

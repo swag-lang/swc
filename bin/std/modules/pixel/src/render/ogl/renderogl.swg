@@ -115,7 +115,7 @@ private impl RenderOgl
         }
     }
 
-    func setShaderCompileError(shaderID: GLuint) throw
+    func setShaderCompileError(shaderID: GLuint) fail
     {
         var result:        GLint
         var infoLogLength: s32
@@ -129,21 +129,21 @@ private impl RenderOgl
         {
             infoLog.length = infoLogLength
             Console.print(infoLog)
-            throw Swag.SystemError{"shader error"}
+            fail Swag.SystemError{"shader error"}
         }
     }
 
     mtd createShaders()
     {
         {
-            assume createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
+            expect createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderSimple.handle, @dataof("inTexture0"))
             glUseProgram(cast(GLuint) .shaderSimple.handle)
             glUniform1i(text0, 0)
         }
 
         {
-            assume createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
+            expect createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderAA.handle, @dataof("inTexture1"))
             glUseProgram(cast(GLuint) .shaderAA.handle)
@@ -152,7 +152,7 @@ private impl RenderOgl
         }
 
         {
-            assume createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
+            expect createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("inTexture1"))
             let gamma = glGetUniformLocation(cast(GLuint) .shaderFont.handle, @dataof("fontGamma"))
@@ -163,7 +163,7 @@ private impl RenderOgl
         }
 
         {
-            assume createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
+            expect createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture0"))
             let text1 = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("inTexture1"))
             let gamma = glGetUniformLocation(cast(GLuint) .shaderFontMsdf.handle, @dataof("fontGamma"))
@@ -189,7 +189,7 @@ private impl RenderOgl
         }
 
         {
-            assume createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
+            expect createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderBlur.handle, @dataof("inTexture0"))
             glUseProgram(cast(GLuint) .shaderBlur.handle)
             glUniform1i(text0, 0)
@@ -198,7 +198,7 @@ private impl RenderOgl
         }
 
         {
-            assume createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
+            expect createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
             let text0 = glGetUniformLocation(cast(GLuint) .shaderResolve.handle, @dataof("inTexture0"))
             glUseProgram(cast(GLuint) .shaderResolve.handle)
             glUniform1i(text0, 0)
@@ -651,7 +651,7 @@ impl RenderOgl
     }
 
     // Load and register an image for rendering
-    mtd addImage(fullName: string)->Texture throw
+    mtd addImage(fullName: string)->Texture fail
     {
         return .addImage(Image.load(fullName))
     }
@@ -1309,7 +1309,7 @@ impl RenderOgl
     }
 
     // Create the given shader
-    func createShader(base: *ShaderBase, vertex, pixel: const [..] u8) throw
+    func createShader(base: *ShaderBase, vertex, pixel: const [..] u8) fail
     {
         var buf: String = @mkstring(@dataof(vertex), @countof(vertex))
         buf.replace("#include base", @mkstring(@dataof(BaseVertexShader), @countof(BaseVertexShader)))

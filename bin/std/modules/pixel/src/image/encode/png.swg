@@ -207,7 +207,7 @@ impl Encoder
         .finishChunk()
     }
 
-    mtd writeChunksBeforeIDat() throw
+    mtd writeChunksBeforeIDat() fail
     {
         .writeData(PngSignature, 8)
 
@@ -222,7 +222,7 @@ impl Encoder
         .writeChunk(TypeIHdr, dst, 13)
     }
 
-    mtd writeMetaDatas(image: Image) throw
+    mtd writeMetaDatas(image: Image) fail
     {
         for md in image.metaDatas
         {
@@ -236,22 +236,22 @@ impl Encoder
         }
     }
 
-    mtd calculateScanlineWidth(width: u32)->u32 throw
+    mtd calculateScanlineWidth(width: u32)->u32 fail
     {
         if !width do
-            throw UnsupportedFormatError{"SPNG_EINTERNAL"}
+            fail UnsupportedFormatError{"SPNG_EINTERNAL"}
 
         var res = cast(u64) .numChannels() * .ihdr.bitDepth
         if res > Swag.U64.Max / width do
-            throw UnsupportedFormatError{"SPNG_EOVERFLOW"}
+            fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
         res = res * width
 
         res += 15
         if res < 15 do
-            throw UnsupportedFormatError{"SPNG_EOVERFLOW"}
+            fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
         res /= 8
         if res > Swag.U32.Max do
-            throw UnsupportedFormatError{"SPNG_EOVERFLOW"}
+            fail UnsupportedFormatError{"SPNG_EOVERFLOW"}
 
         return cast(u32) res
     }
@@ -267,7 +267,7 @@ impl Encoder
         return 0
     }
 
-    mtd calculateSubImages() throw
+    mtd calculateSubImages() fail
     {
         if .ihdr.interlaceMethod == 1
         {
@@ -304,7 +304,7 @@ impl Encoder
         }
     }
 
-    mtd finishIDat() throw
+    mtd finishIDat() fail
     {
         var zlib: Compress.ZLib
         let cmp = zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
@@ -316,12 +316,12 @@ impl Encoder
         .finishChunk()
     }
 
-    mtd writeIDatBytes(sl: [*] u8, len: u32) throw
+    mtd writeIDatBytes(sl: [*] u8, len: u32) fail
     {
         .bufferToCompress.add(@mkslice(sl, len))
     }
 
-    mtd encodeRow(row: [*] u8)->bool throw
+    mtd encodeRow(row: [*] u8)->bool fail
     {
         let pass = .rowInfo.pass
 
@@ -519,7 +519,7 @@ impl Encoder
         }
     }
 
-    mtd encodeScanLine(sl: [*] u8)->bool throw
+    mtd encodeScanLine(sl: [*] u8)->bool fail
     {
         let pass = .rowInfo.pass
 
@@ -625,7 +625,7 @@ public impl IImageEncoder for Encoder
         return Path.getExtensionLowerCase(fileName) == ".png"
     }
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) throw
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         if @dataof(options) != null
         {
@@ -635,9 +635,9 @@ public impl IImageEncoder for Encoder
 
         // unsupported pixel format
         if image.pf.channels() < 3 or image.pf.bitDepth() != 8 do
-            throw UnsupportedFormatError{"unsupported pixel format"}
+            fail UnsupportedFormatError{"unsupported pixel format"}
         if image.width == 0 or image.height == 0 do
-            throw UnsupportedFormatError{"unsupported size"}
+            fail UnsupportedFormatError{"unsupported size"}
 
         .swapRB = image.pf == .BGR8 or image.pf == .BGRA8
 

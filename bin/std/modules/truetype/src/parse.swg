@@ -28,7 +28,7 @@ func scoreNameRecord(platformID, encodingID, languageID: u16)->s32
     return score
 }
 
-func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset: u64)->String throw
+func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset: u64)->String fail
 {
     let platformID = readU16(nameTable, recordOffset + 0)
     let length     = readU16(nameTable, recordOffset + 8)
@@ -38,7 +38,7 @@ func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset
     if platformID == 0 or platformID == 3
     {
         if (@countof(raw) & 1) != 0 do
-            fail(0x91)
+            fault(0x91)
 
         var chars: Array'u16
         chars.resize(@countof(raw) / 2)
@@ -50,7 +50,7 @@ func decodeNameRecord(nameTable: #null const [..] u8, stringOffset, recordOffset
     return String.from(cast(#null string) raw)
 }
 
-func parseNames(faceData: *FaceImpl) throw
+func parseNames(faceData: *FaceImpl) fail
 {
     let nameTable    = getTableSlice(faceData, TAG_NAME, 0x91)
     let count        = readU16(nameTable, 2)
@@ -86,12 +86,12 @@ func parseNames(faceData: *FaceImpl) throw
         faceData.face.styleName = "Regular"
 }
 
-func parsePost(faceData: *FaceImpl) throw
+func parsePost(faceData: *FaceImpl) fail
 {
     let postTable = getTableSlice(faceData, TAG_POST, 0x94)
     let format    = readU32(postTable, 0)
     if format != 0x00010000 and format != 0x00020000 and format != 0x00025000 and format != 0x00030000 do
-        fail(0x9A)
+        fault(0x9A)
 
     faceData.face.underlinePosition  = readS16(postTable, 8)
     faceData.face.underlineThickness = readS16(postTable, 10)
@@ -99,7 +99,7 @@ func parsePost(faceData: *FaceImpl) throw
 
 // Parse x-height / cap-height from OS/2 (version >= 2). Missing or older tables
 // leave them at 0, which disables vertical hinting for that face.
-func parseOS2(faceData: *FaceImpl) throw
+func parseOS2(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_OS2)
     if !rec do
@@ -117,7 +117,7 @@ func parseOS2(faceData: *FaceImpl) throw
     }
 }
 
-func parseCMap(faceData: *FaceImpl) throw
+func parseCMap(faceData: *FaceImpl) fail
 {
     let cmapTable = getTableSlice(faceData, TAG_CMAP, 0x92)
     let count     = readU16(cmapTable, 2)
@@ -152,13 +152,13 @@ func parseCMap(faceData: *FaceImpl) throw
     }
 
     if bestFmt != 4 and bestFmt != 12 do
-        fail(0x96)
+        fault(0x96)
 
     faceData.chosenCMap = notnull bestSlice
     faceData.cmapFormat = bestFmt
 }
 
-func buildGlyphMetrics(faceData: *FaceImpl) throw
+func buildGlyphMetrics(faceData: *FaceImpl) fail
 {
     let hmtx = getTableSlice(faceData, TAG_HMTX, 0x93)
     faceData.glyphMetrics.resize(faceData.face.glyphCount)
@@ -185,7 +185,7 @@ func buildGlyphMetrics(faceData: *FaceImpl) throw
     }
 }
 
-func buildGlyphLocations(faceData: *FaceImpl) throw
+func buildGlyphLocations(faceData: *FaceImpl) fail
 {
     let loca = getTableSlice(faceData, TAG_LOCA, 0x90)
     faceData.glyphLocations.resize(faceData.face.glyphCount + 1)
@@ -204,7 +204,7 @@ func buildGlyphLocations(faceData: *FaceImpl) throw
 
 // Parse the legacy 'kern' table, keeping horizontal format-0 subtables only.
 // Missing or unsupported tables simply leave the kerning map empty.
-func parseKern(faceData: *FaceImpl) throw
+func parseKern(faceData: *FaceImpl) fail
 {
     let rec = findTable(faceData, TAG_KERN)
     if !rec do
@@ -271,14 +271,14 @@ func initFaceRecords(faceData: *FaceImpl)
     faceData.face.charMap.encodingID = 1
 }
 
-func parseFace(faceData: *FaceImpl) throw
+func parseFace(faceData: *FaceImpl) fail
 {
     let data = faceData.fontData.toSlice()
     if @countof(data) < 12 do
-        fail(0x02)
+        fault(0x02)
 
     if readU32(data, 0) != 0x00010000 and readU32(data, 0) != imageTag('t''u32, 'r''u32, 'u''u32, 'e''u32) do
-        fail(0x02)
+        fault(0x02)
 
     let numTables = readU16(data, 4)
     faceData.tables.resize(numTables)
@@ -293,7 +293,7 @@ func parseFace(faceData: *FaceImpl) throw
 
     let head = getTableSlice(faceData, TAG_HEAD, 0x8E)
     if @countof(head) < 54 do
-        fail(0xB9)
+        fault(0xB9)
 
     faceData.unitsPerEm       = readU16(head, 18)
     faceData.face.unitsPerEm  = faceData.unitsPerEm
@@ -306,7 +306,7 @@ func parseFace(faceData: *FaceImpl) throw
 
     let hhea = getTableSlice(faceData, TAG_HHEA, 0x8F)
     if @countof(hhea) < 36 do
-        fail(0x8F)
+        fault(0x8F)
 
     faceData.face.ascender        = readS16(hhea, 4)
     faceData.face.descender       = readS16(hhea, 6)
@@ -317,7 +317,7 @@ func parseFace(faceData: *FaceImpl) throw
 
     let maxp = getTableSlice(faceData, TAG_MAXP, 0x8E)
     if @countof(maxp) < 6 do
-        fail(0x8E)
+        fault(0x8E)
 
     faceData.face.glyphCount = readU16(maxp, 4)
 

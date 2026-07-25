@@ -112,11 +112,11 @@ func day7A0()
 func day7A1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'(string))
 
-    var r = assume Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
+    var r = expect Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
     for l in lines
     {
         let split = Tokenize.split(l, " bags contain ")

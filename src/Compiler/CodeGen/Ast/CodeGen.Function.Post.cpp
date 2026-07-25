@@ -109,15 +109,16 @@ namespace
         return &symbol->cast<SymbolFunction>();
     }
 
-    enum class ThrowableHandlerKind : uint8_t
+    enum class FallibleHandlerKind : uint8_t
     {
         None,
         Catch,
         TryCatch,
-        Assume,
+        Expect,
+        OrFail,
     };
 
-    struct ThrowableTarget
+    struct FallibleTarget
     {
         enum class Kind : uint8_t
         {
@@ -130,17 +131,17 @@ namespace
         MicroLabelRef failLabel = MicroLabelRef::invalid();
     };
 
-    bool isThrowableWrapperOwnerNode(AstNodeId nodeId)
+    bool isFallibleWrapperOwnerNode(AstNodeId nodeId)
     {
         return nodeId == AstNodeId::TryCatchExpr || nodeId == AstNodeId::TryCatchStmt;
     }
 
-    bool isThrowableWrapperBreadcrumbNode(AstNodeId nodeId)
+    bool isFallibleWrapperBreadcrumbNode(AstNodeId nodeId)
     {
-        return isThrowableWrapperOwnerNode(nodeId) || nodeId == AstNodeId::CallExpr;
+        return isFallibleWrapperOwnerNode(nodeId) || nodeId == AstNodeId::CallExpr;
     }
 
-    CodeGenNodePayload* throwableWrapperOwnerPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    CodeGenNodePayload* fallibleWrapperOwnerPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid())
             return nullptr;
@@ -149,16 +150,16 @@ namespace
         if (!resolvedNodeRef.isValid())
             return nullptr;
 
-        if (!isThrowableWrapperOwnerNode(codeGen.node(resolvedNodeRef).id()))
+        if (!isFallibleWrapperOwnerNode(codeGen.node(resolvedNodeRef).id()))
             return nullptr;
 
         CodeGenNodePayload* payload = codeGen.safePayload(resolvedNodeRef);
-        if (!payload || !payload->hasThrowableWrapper())
+        if (!payload || !payload->hasFallibleWrapper())
             return nullptr;
         return payload;
     }
 
-    CodeGenNodePayload* throwableWrapperBreadcrumbPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    CodeGenNodePayload* fallibleWrapperBreadcrumbPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         if (!nodeRef.isValid())
             return nullptr;
@@ -167,26 +168,26 @@ namespace
         if (!resolvedNodeRef.isValid())
             return nullptr;
 
-        if (!isThrowableWrapperBreadcrumbNode(codeGen.node(resolvedNodeRef).id()))
+        if (!isFallibleWrapperBreadcrumbNode(codeGen.node(resolvedNodeRef).id()))
             return nullptr;
 
         CodeGenNodePayload* payload = codeGen.safePayload(nodeRef);
-        if (!payload || !payload->hasThrowableWrapper())
+        if (!payload || !payload->hasFallibleWrapper())
             return nullptr;
         return payload;
     }
 
-    void clearThrowableWrapperPayload(CodeGenNodePayload& payload)
+    void clearFallibleWrapperPayload(CodeGenNodePayload& payload)
     {
-        payload.clearThrowableWrapper();
+        payload.clearFallibleWrapper();
     }
 
-    CodeGenNodePayload* throwableFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    CodeGenNodePayload* fallibleFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.safePayload(nodeRef);
     }
 
-    CodeGenNodePayload& ensureThrowableFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
+    CodeGenNodePayload& ensureFallibleFunctionPayload(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         return codeGen.ensureNodePayload<CodeGenNodePayload>(nodeRef);
     }
@@ -200,47 +201,47 @@ namespace
         return codeGen.compiler().runtimeFunctionSymbol(idRef);
     }
 
-    ThrowableHandlerKind throwableHandlerKind(TokenId tokenId)
+    FallibleHandlerKind fallibleHandlerKind(TokenId tokenId)
     {
         switch (tokenId)
         {
             case TokenId::KwdCatch:
-                return ThrowableHandlerKind::Catch;
+                return FallibleHandlerKind::Catch;
 
-            case TokenId::KwdTryCatch:
-                return ThrowableHandlerKind::TryCatch;
+            case TokenId::KwdOrFail:
+                return FallibleHandlerKind::OrFail;
 
-            case TokenId::KwdAssume:
-                return ThrowableHandlerKind::Assume;
+            case TokenId::KwdExpect:
+                return FallibleHandlerKind::Expect;
 
             default:
-                return ThrowableHandlerKind::None;
+                return FallibleHandlerKind::None;
         }
     }
 
-    bool isHandledThrowableContext(TokenId tokenId)
+    bool isHandledFallibleContext(TokenId tokenId)
     {
-        return throwableHandlerKind(tokenId) != ThrowableHandlerKind::None;
+        return fallibleHandlerKind(tokenId) != FallibleHandlerKind::None;
     }
 
-    bool tryResolveThrowableHandlerTarget(CodeGen& codeGen, AstNodeRef candidateRef, ThrowableTarget& outTarget)
+    bool tryResolveFallibleHandlerTarget(CodeGen& codeGen, AstNodeRef candidateRef, FallibleTarget& outTarget)
     {
-        const CodeGenNodePayload* breadcrumbPayload = throwableWrapperBreadcrumbPayload(codeGen, candidateRef);
-        if (!breadcrumbPayload || !isHandledThrowableContext(breadcrumbPayload->throwableWrapperTokenId))
+        const CodeGenNodePayload* breadcrumbPayload = fallibleWrapperBreadcrumbPayload(codeGen, candidateRef);
+        if (!breadcrumbPayload || !isHandledFallibleContext(breadcrumbPayload->fallibleWrapperTokenId))
             return false;
 
-        AstNodeRef ownerRef = breadcrumbPayload->throwableWrapperOwnerRef;
+        AstNodeRef ownerRef = breadcrumbPayload->fallibleWrapperOwnerRef;
         if (!ownerRef.isValid())
             ownerRef = codeGen.viewZero(candidateRef).nodeRef();
 
-        const CodeGenNodePayload* ownerPayload = throwableWrapperOwnerPayload(codeGen, ownerRef);
-        if (!ownerPayload || !ownerPayload->throwableFailLabel.isValid())
+        const CodeGenNodePayload* ownerPayload = fallibleWrapperOwnerPayload(codeGen, ownerRef);
+        if (!ownerPayload || !ownerPayload->fallibleFailLabel.isValid())
             return false;
 
         outTarget = {
-            .kind      = ThrowableTarget::Kind::Handler,
+            .kind      = FallibleTarget::Kind::Handler,
             .scopeRef  = codeGen.viewZero(ownerRef).nodeRef(),
-            .failLabel = ownerPayload->throwableFailLabel,
+            .failLabel = ownerPayload->fallibleFailLabel,
         };
         return true;
     }
@@ -300,7 +301,7 @@ namespace
         return unwrappedTypeRef.isValid() && codeGen.typeMgr().get(unwrappedTypeRef).isEnum();
     }
 
-    bool usesAddressBackedThrowableExprResult(CodeGen& codeGen, TypeRef typeRef)
+    bool usesAddressBackedFallibleExprResult(CodeGen& codeGen, TypeRef typeRef)
     {
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
             return false;
@@ -320,7 +321,7 @@ namespace
             return false;
 
         const auto* payload = codeGen.loweringPayload(resolvedNodeRef);
-        return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
+        return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
     }
 
     bool isNullableAssume(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -375,23 +376,23 @@ namespace
         return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFn, std::span<const MicroReg>{});
     }
 
-    Result emitFailedAssumeRuntimeCall(CodeGen& codeGen, AstNodeRef nodeRef)
+    Result emitFailedExpectRuntimeCall(CodeGen& codeGen, AstNodeRef nodeRef)
     {
-        SymbolFunction* runtimeFailedAssume = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::FailedAssume);
-        SWC_ASSERT(runtimeFailedAssume != nullptr);
-        if (!runtimeFailedAssume)
-            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__failedAssume'", nodeRef);
+        SymbolFunction* runtimeFailedExpect = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::FailedExpect);
+        SWC_ASSERT(runtimeFailedExpect != nullptr);
+        if (!runtimeFailedExpect)
+            return raiseInternalCodeGenError(codeGen, "missing runtime helper '__failedExpect'", nodeRef);
 
         ConstantRef sourceLocCstRef = ConstantRef::invalid();
         SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), sourceLocCstRef, codeGen.node(nodeRef)));
 
         CodeGenNodePayload sourceLocPayload;
-        const TypeRef      sourceLocTypeRef = runtimeFailedAssume->parameters().front()->typeRef();
+        const TypeRef      sourceLocTypeRef = runtimeFailedExpect->parameters().front()->typeRef();
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, sourceLocPayload, sourceLocTypeRef, sourceLocCstRef))
             return raiseInternalCodeGenError(codeGen, "cannot materialize the failed-assume source location payload", nodeRef);
 
         const std::array args = {sourceLocPayload.reg};
-        return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedAssume, args);
+        return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeFailedExpect, args);
     }
 
     MicroReg materializeNullablePresenceReg(CodeGen& codeGen, const CodeGenNodePayload& payload, TypeRef typeRef, MicroOpBits& outBits)
@@ -441,7 +442,7 @@ namespace
 
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef);
 
-    void assignThrowableExprResult(CodeGen& codeGen, const CodeGenNodePayload& dstPayload, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
+    void assignFallibleExprResult(CodeGen& codeGen, const CodeGenNodePayload& dstPayload, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
     {
         MicroBuilder& builder = codeGen.builder();
         if (dstPayload.isAddress())
@@ -513,7 +514,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitZeroThrowableExprResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, TypeRef typeRef)
+    Result emitZeroFallibleExprResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, TypeRef typeRef)
     {
         if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
             return Result::Continue;
@@ -523,9 +524,9 @@ namespace
 
         CodeGenNodePayload zeroPayload;
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, typeRef, zeroCstRef))
-            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized zero throwable result payload");
+            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized zero fallible result payload");
 
-        assignThrowableExprResult(codeGen, resultPayload, zeroPayload, typeRef);
+        assignFallibleExprResult(codeGen, resultPayload, zeroPayload, typeRef);
         return Result::Continue;
     }
 
@@ -557,25 +558,26 @@ namespace
         return Result::Continue;
     }
 
-    Result emitThrowableCleanup(CodeGen& codeGen, ThrowableHandlerKind kind, AstNodeRef nodeRef, bool failurePath)
+    Result emitFallibleCleanup(CodeGen& codeGen, FallibleHandlerKind kind, AstNodeRef nodeRef, bool failurePath)
     {
         switch (kind)
         {
-            case ThrowableHandlerKind::Catch:
+            case FallibleHandlerKind::Catch:
                 return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr, "missing runtime helper '__catchErr'", nodeRef);
 
-            case ThrowableHandlerKind::TryCatch:
+            case FallibleHandlerKind::TryCatch:
+            case FallibleHandlerKind::OrFail:
                 return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr, "missing runtime helper '__popErr'", nodeRef);
 
-            case ThrowableHandlerKind::Assume:
+            case FallibleHandlerKind::Expect:
             {
                 if (failurePath && hasAssumeRuntimeSafety(codeGen, nodeRef))
-                    SWC_RESULT(emitFailedAssumeRuntimeCall(codeGen, nodeRef));
+                    SWC_RESULT(emitFailedExpectRuntimeCall(codeGen, nodeRef));
 
                 return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr, "missing runtime helper '__popErr'", nodeRef);
             }
 
-            case ThrowableHandlerKind::None:
+            case FallibleHandlerKind::None:
                 break;
         }
 
@@ -1083,10 +1085,10 @@ namespace
         return currentDeclRef == declRef && activeDeclRef == declRef;
     }
 
-    ThrowableTarget resolveThrowableTarget(CodeGen& codeGen)
+    FallibleTarget resolveFallibleTarget(CodeGen& codeGen)
     {
-        ThrowableTarget handlerTarget;
-        if (tryResolveThrowableHandlerTarget(codeGen, codeGen.curNodeRef(), handlerTarget))
+        FallibleTarget handlerTarget;
+        if (tryResolveFallibleHandlerTarget(codeGen, codeGen.curNodeRef(), handlerTarget))
             return handlerTarget;
 
         for (size_t parentIndex = 0;; ++parentIndex)
@@ -1095,7 +1097,7 @@ namespace
             if (!parentRef.isValid())
                 break;
 
-            if (tryResolveThrowableHandlerTarget(codeGen, parentRef, handlerTarget))
+            if (tryResolveFallibleHandlerTarget(codeGen, parentRef, handlerTarget))
                 return handlerTarget;
         }
 
@@ -1106,24 +1108,24 @@ namespace
                 continue;
 
             const CodeGenFrame::InlineContext& inlineCtx = frame.currentInlineContext();
-            if (inlineCtx.payload && tryResolveThrowableHandlerTarget(codeGen, inlineCtx.payload->callRef, handlerTarget))
+            if (inlineCtx.payload && tryResolveFallibleHandlerTarget(codeGen, inlineCtx.payload->callRef, handlerTarget))
                 return handlerTarget;
         }
 
         const AstNodeRef functionDeclRef = codeGen.viewZero(codeGen.function().declNodeRef()).nodeRef();
         SWC_ASSERT(functionDeclRef.isValid());
-        CodeGenNodePayload& payload = ensureThrowableFunctionPayload(codeGen, functionDeclRef);
-        if (!payload.throwableFunctionFailLabel.isValid())
+        CodeGenNodePayload& payload = ensureFallibleFunctionPayload(codeGen, functionDeclRef);
+        if (!payload.fallibleFunctionFailLabel.isValid())
         {
             MicroBuilder& builder              = codeGen.builder();
-            payload.throwableFunctionFailLabel = builder.createLabel();
-            payload.throwableFunctionDoneLabel = builder.createLabel();
+            payload.fallibleFunctionFailLabel = builder.createLabel();
+            payload.fallibleFunctionDoneLabel = builder.createLabel();
         }
 
         return {
-            .kind      = ThrowableTarget::Kind::FunctionReturn,
+            .kind      = FallibleTarget::Kind::FunctionReturn,
             .scopeRef  = functionDeclRef,
-            .failLabel = payload.throwableFunctionFailLabel,
+            .failLabel = payload.fallibleFunctionFailLabel,
         };
     }
 
@@ -1220,7 +1222,7 @@ namespace
         return Result::Continue;
     }
 
-    Result emitThrowableFunctionFailureReturn(CodeGen& codeGen)
+    Result emitFallibleFunctionFailureReturn(CodeGen& codeGen)
     {
         const SymbolFunction&                  symbolFunc    = codeGen.function();
         const CallConv&                        callConv      = CallConv::get(symbolFunc.callConvKind());
@@ -1233,15 +1235,15 @@ namespace
 
         CodeGenNodePayload zeroPayload;
         if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, symbolFunc.returnTypeRef(), zeroCstRef))
-            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized throwable error return payload");
+            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized fallible error return payload");
 
         return emitFunctionLikeReturnNoDefers(codeGen, symbolFunc, &zeroPayload);
     }
 
-    Result emitThrowableJump(CodeGen& codeGen)
+    Result emitFallibleJump(CodeGen& codeGen)
     {
-        const ThrowableTarget target = resolveThrowableTarget(codeGen);
-        if (target.kind == ThrowableTarget::Kind::Handler)
+        const FallibleTarget target = resolveFallibleTarget(codeGen);
+        if (target.kind == FallibleTarget::Kind::Handler)
             SWC_RESULT(codeGen.emitDeferredActionsUntilScopeRef(target.scopeRef));
         else
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
@@ -1277,29 +1279,29 @@ namespace
             SWC_RESULT(codeGen.popDeferScope());
         }
 
-        CodeGenNodePayload* payload = throwableFunctionPayload(codeGen, declRef);
-        if (payload && payload->throwableFunctionFailLabel.isValid())
+        CodeGenNodePayload* payload = fallibleFunctionPayload(codeGen, declRef);
+        if (payload && payload->fallibleFunctionFailLabel.isValid())
         {
             MicroBuilder& builder = codeGen.builder();
             if (!codeGen.currentInstructionBlocksFallthrough())
-                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->throwableFunctionDoneLabel);
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->fallibleFunctionDoneLabel);
 
-            builder.placeLabel(payload->throwableFunctionFailLabel);
-            SWC_RESULT(emitThrowableFunctionFailureReturn(codeGen));
-            builder.placeLabel(payload->throwableFunctionDoneLabel);
-            payload->clearThrowableFunctionTarget();
+            builder.placeLabel(payload->fallibleFunctionFailLabel);
+            SWC_RESULT(emitFallibleFunctionFailureReturn(codeGen));
+            builder.placeLabel(payload->fallibleFunctionDoneLabel);
+            payload->clearFallibleFunctionTarget();
         }
 
         return Result::Continue;
     }
 }
 
-Result CodeGenCallHelpers::emitThrowableFailureJump(CodeGen& codeGen)
+Result CodeGenCallHelpers::emitFallibleFailureJump(CodeGen& codeGen)
 {
-    return emitThrowableJump(codeGen);
+    return emitFallibleJump(codeGen);
 }
 
-Result CodeGenCallHelpers::emitThrowableFailureJumpIfHasError(CodeGen& codeGen)
+Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
 {
     const SymbolFunction* runtimeHasErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::HasErr);
     SWC_ASSERT(runtimeHasErr != nullptr);
@@ -1313,20 +1315,20 @@ Result CodeGenCallHelpers::emitThrowableFailureJumpIfHasError(CodeGen& codeGen)
     const MicroLabelRef continueLabel = builder.createLabel();
     builder.emitCmpRegImm(hasErrReg, ApInt(0, 64), MicroOpBits::B8);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, continueLabel);
-    SWC_RESULT(emitThrowableJump(codeGen));
+    SWC_RESULT(emitFallibleJump(codeGen));
     builder.placeLabel(continueLabel);
     return Result::Continue;
 }
 
-Result CodeGenFunctionHelpers::emitThrowableWrapperPreNode(CodeGen& codeGen, AstNodeRef nodeRef)
+Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstNodeRef nodeRef)
 {
-    CodeGenNodePayload* payload = throwableWrapperOwnerPayload(codeGen, nodeRef);
-    if (!payload || !isHandledThrowableContext(payload->throwableWrapperTokenId))
+    CodeGenNodePayload* payload = fallibleWrapperOwnerPayload(codeGen, nodeRef);
+    if (!payload || !isHandledFallibleContext(payload->fallibleWrapperTokenId))
         return Result::Continue;
 
     MicroBuilder& builder       = codeGen.builder();
-    payload->throwableFailLabel = builder.createLabel();
-    payload->throwableDoneLabel = builder.createLabel();
+    payload->fallibleFailLabel = builder.createLabel();
+    payload->fallibleDoneLabel = builder.createLabel();
     codeGen.pushDeferScope(nodeRef);
 
     const SymbolFunction* runtimePushErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::PushErr);
@@ -1337,37 +1339,64 @@ Result CodeGenFunctionHelpers::emitThrowableWrapperPreNode(CodeGen& codeGen, Ast
     return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimePushErr, std::span<const MicroReg>{});
 }
 
-Result CodeGenFunctionHelpers::emitThrowableWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef)
+Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, AstNodeRef nodeRef)
 {
-    CodeGenNodePayload* payload = throwableWrapperOwnerPayload(codeGen, nodeRef);
-    if (!payload || !payload->throwableFailLabel.isValid() || !isHandledThrowableContext(payload->throwableWrapperTokenId))
+    CodeGenNodePayload* payload = fallibleWrapperOwnerPayload(codeGen, nodeRef);
+    if (!payload || !payload->fallibleFailLabel.isValid() || !isHandledFallibleContext(payload->fallibleWrapperTokenId))
         return Result::Continue;
 
-    const ThrowableHandlerKind kind           = throwableHandlerKind(payload->throwableWrapperTokenId);
-    const AstNodeRef           ownerRef       = payload->throwableWrapperOwnerRef.isValid() ? payload->throwableWrapperOwnerRef : nodeRef;
+    const FallibleHandlerKind kind           = fallibleHandlerKind(payload->fallibleWrapperTokenId);
+    const AstNodeRef           ownerRef       = payload->fallibleWrapperOwnerRef.isValid() ? payload->fallibleWrapperOwnerRef : nodeRef;
     const TypeRef              resultType     = codeGen.curViewType().typeRef();
     const bool                 hasResult      = resultType.isValid() && resultType != codeGen.typeMgr().typeVoid();
     const bool                 hasFallthrough = !codeGen.currentInstructionBlocksFallthrough();
     MicroBuilder&              builder        = codeGen.builder();
-    SWC_ASSERT(kind != ThrowableHandlerKind::None);
+    SWC_ASSERT(kind != FallibleHandlerKind::None);
 
     if (hasFallthrough)
-        SWC_RESULT(emitThrowableCleanup(codeGen, kind, ownerRef, false));
+        SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, false));
 
     SWC_RESULT(codeGen.popDeferScope());
     if (hasFallthrough && !codeGen.currentInstructionBlocksFallthrough())
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->throwableDoneLabel);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->fallibleDoneLabel);
 
-    builder.placeLabel(payload->throwableFailLabel);
-    SWC_RESULT(emitThrowableCleanup(codeGen, kind, ownerRef, true));
+    builder.placeLabel(payload->fallibleFailLabel);
+    SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, true));
     if (hasResult)
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
-        SWC_RESULT(emitZeroThrowableExprResult(codeGen, resultPayload, resultType));
+        if (kind == FallibleHandlerKind::OrFail)
+        {
+            // 'orfail': the fallback value is generated HERE, on the failure path only, so
+            // it is truly lazy (never evaluated when the operand succeeds). It writes into
+            // the same result slot the success value inherited, joining both paths.
+            const AstTryCatchExpr& owner = codeGen.node(ownerRef).cast<AstTryCatchExpr>();
+            SWC_RESULT(codeGen.emitNodeNow(owner.nodeFallbackRef));
+            const CodeGenNodePayload& fallbackPayload = codeGen.payload(owner.nodeFallbackRef);
+            assignFallibleExprResult(codeGen, resultPayload, fallbackPayload, resultType);
+        }
+        else
+        {
+            SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
+        }
     }
 
-    builder.placeLabel(payload->throwableDoneLabel);
-    clearThrowableWrapperPayload(*payload);
+    // 'catch e else { H }': run the failure handler here (failure path only). The caught
+    // error stays reachable through '@err' inside H (the Catch cleanup retained it); after H
+    // runs, dismiss it so it no longer counts as in-flight for '#fail'/'#nofail' defers or a
+    // following '@err' check (the old 'trycatch' dismiss semantics).
+    if (codeGen.node(ownerRef).is(AstNodeId::TryCatchStmt))
+    {
+        const AstNodeRef handlerRef = codeGen.node(ownerRef).cast<AstTryCatchStmt>().nodeHandlerRef;
+        if (handlerRef.isValid())
+        {
+            SWC_RESULT(codeGen.emitNodeNow(handlerRef));
+            SWC_RESULT(emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::EndErr, "missing runtime helper '__endErr'", nodeRef));
+        }
+    }
+
+    builder.placeLabel(payload->fallibleDoneLabel);
+    clearFallibleWrapperPayload(*payload);
     return Result::Continue;
 }
 
@@ -1425,10 +1454,15 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstTryCatchExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    // 'orfail' fallback: skip the normal traversal so it is not emitted on the success
+    // (fallthrough) path; it is generated lazily inside the failure block instead.
+    if (nodeFallbackRef.isValid() && childRef == nodeFallbackRef)
+        return Result::SkipChildren;
+
     const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
     const AstNodeRef managedExprRef   = codeGen.viewZero(nodeExprRef).nodeRef();
     if (resolvedChildRef == managedExprRef)
-        SWC_RESULT(CodeGenFunctionHelpers::emitThrowableWrapperPreNode(codeGen, codeGen.curNodeRef()));
+        SWC_RESULT(CodeGenFunctionHelpers::emitFallibleWrapperPreNode(codeGen, codeGen.curNodeRef()));
 
     return Result::Continue;
 }
@@ -1437,33 +1471,38 @@ Result AstTryCatchExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     SWC_RESULT(emitNullableAssumeRuntimeSafety(codeGen, codeGen.curNodeRef(), nodeExprRef));
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
-    return CodeGenFunctionHelpers::emitThrowableWrapperPostNode(codeGen, codeGen.curNodeRef());
+    return CodeGenFunctionHelpers::emitFallibleWrapperPostNode(codeGen, codeGen.curNodeRef());
 }
 
 Result AstTryCatchStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    // 'catch e else { H }': skip the handler in the normal traversal so it is not emitted
+    // on the success path; it is generated lazily inside the failure block instead.
+    if (nodeHandlerRef.isValid() && childRef == nodeHandlerRef)
+        return Result::SkipChildren;
+
     const AstNodeRef resolvedChildRef = codeGen.viewZero(childRef).nodeRef();
     const AstNodeRef managedBodyRef   = codeGen.viewZero(nodeBodyRef).nodeRef();
     if (resolvedChildRef == managedBodyRef)
-        SWC_RESULT(CodeGenFunctionHelpers::emitThrowableWrapperPreNode(codeGen, codeGen.curNodeRef()));
+        SWC_RESULT(CodeGenFunctionHelpers::emitFallibleWrapperPreNode(codeGen, codeGen.curNodeRef()));
 
     return Result::Continue;
 }
 
 Result AstTryCatchStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    return CodeGenFunctionHelpers::emitThrowableWrapperPostNode(codeGen, codeGen.curNodeRef());
+    return CodeGenFunctionHelpers::emitFallibleWrapperPostNode(codeGen, codeGen.curNodeRef());
 }
 
-Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
+Result AstFailExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     const TypeRef resultTypeRef = codeGen.curViewType().typeRef();
     if (resultTypeRef.isValid() && resultTypeRef != codeGen.typeMgr().typeVoid())
     {
-        const CodeGenNodePayload& resultPayload = usesAddressBackedThrowableExprResult(codeGen, resultTypeRef)
+        const CodeGenNodePayload& resultPayload = usesAddressBackedFallibleExprResult(codeGen, resultTypeRef)
                                                       ? codeGen.setPayloadAddressReg(codeGen.curNodeRef(), codeGen.runtimeStorageAddressReg(codeGen.curNodeRef()), resultTypeRef)
                                                       : codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        SWC_RESULT(emitZeroThrowableExprResult(codeGen, resultPayload, resultTypeRef));
+        SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultTypeRef));
     }
 
     const SemaNodeView        exprView    = codeGen.viewType(nodeExprRef);
@@ -1487,7 +1526,7 @@ Result AstThrowExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const std::array args = {storageReg, typeInfoPayload.reg};
     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *runtimeSetErrRaw, args));
-    return CodeGenCallHelpers::emitThrowableFailureJump(codeGen);
+    return CodeGenCallHelpers::emitFallibleFailureJump(codeGen);
 }
 
 SWC_END_NAMESPACE();

@@ -51,13 +51,13 @@ using Core
 func day9A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var sum, val: Array's32
     const N = 25
     for l in lines
     {
-        let v1 = assume StrConv.toS32(l)
+        let v1 = expect StrConv.toS32(l)
         if @index < N
         {
             for v0 in val do

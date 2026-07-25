@@ -15,7 +15,7 @@ func day4B()
             return
 
         // Time.Stopwatch.scopeMeasure()
-        assume Jobs.setNumWorkers()
+        expect Jobs.setNumWorkers()
 
         struct ForJob
         {

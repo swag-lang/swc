@@ -126,11 +126,11 @@ private func run(op: &Array's64, input: s64)->s64
 func day9A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var prg: Array's64
     for v in Tokenize.split(lines[0], ',''u8) do
-        prg.add(assume StrConv.toS64(v))
+        prg.add(expect StrConv.toS64(v))
 
     let total = run(&prg, 1)
 

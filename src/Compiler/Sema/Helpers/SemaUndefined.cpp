@@ -86,7 +86,7 @@ namespace
     enum class FlowExit : uint8_t
     {
         Normal,
-        Jumped, // return / throw / break / continue / unreachable
+        Jumped, // return / fail / break / continue / unreachable
         Fell,   // 'fallthrough' out of a switch case body
     };
 
@@ -150,7 +150,7 @@ namespace
         uint32_t                blockDepth_   = 0;
         uint32_t                loopDepth_    = 0;
         uint32_t                deferDepth_   = 0;
-        uint32_t                handledDepth_ = 0; // catch/trycatch/assume wrappers
+        uint32_t                handledDepth_ = 0; // catch/trycatch/expect wrappers
         uint32_t                inlineDepth_  = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
         uint32_t                nodeCount_    = 0;
         uint32_t                errorCount_   = 0;
@@ -1127,9 +1127,9 @@ namespace
                 case AstNodeId::UnreachableStmt:
                     return FlowExit::Jumped;
 
-                case AstNodeId::ThrowExpr:
+                case AstNodeId::FailExpr:
                 {
-                    walk(node.cast<AstThrowExpr>().nodeExprRef, state);
+                    walk(node.cast<AstFailExpr>().nodeExprRef, state);
                     if (handledDepth_ == 0)
                         checkDropsOnExit(state, ref, 0);
                     return FlowExit::Jumped;
@@ -1152,6 +1152,14 @@ namespace
                     }
                     handledDepth_++;
                     const FlowExit exit = walk(innerRef, state);
+                    // 'orfail' evaluates its fallback on the failure path; walk it so its
+                    // own reads are checked for definite initialization.
+                    if (node.is(AstNodeId::TryCatchExpr))
+                    {
+                        const AstNodeRef fallbackRef = node.cast<AstTryCatchExpr>().nodeFallbackRef;
+                        if (fallbackRef.isValid())
+                            walk(fallbackRef, state);
+                    }
                     handledDepth_--;
                     return exit;
                 }
@@ -1610,7 +1618,7 @@ namespace
             SmallVector<ResolvedCallArgument> args;
             sema_.appendResolvedCallArguments(callRef, args);
 
-            // The resolved callee, for throwable detection and parameter types.
+            // The resolved callee, for fallible detection and parameter types.
             const SymbolFunction* calledFn = nullptr;
             {
                 const SemaNodeView view = sema_.viewSymbol(callRef);
@@ -1701,8 +1709,8 @@ namespace
                 }
             }
 
-            // An unhandled throwable call can unwind out of the function.
-            if (calledFn && calledFn->isThrowable() && handledDepth_ == 0)
+            // An unhandled fallible call can unwind out of the function.
+            if (calledFn && calledFn->isFallible() && handledDepth_ == 0)
                 checkDropsOnExit(state, callRef, 0);
 
             return !args.empty();

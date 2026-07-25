@@ -51,7 +51,7 @@ func day5A()
 func day5A0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total: s32
     for l in lines
@@ -91,13 +91,13 @@ func day5A1()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
 
     var seats: Array'u64
-    for &l in assume File.readAllLines(dataPath)
+    for &l in expect File.readAllLines(dataPath)
     {
         l.replace("F", "0")
         l.replace("B", "1")
         l.replace("L", "0")
         l.replace("R", "1")
-        seats.add(assume StrConv.parseB64(l).value)
+        seats.add(expect StrConv.parseB64(l).value)
     }
 
     seats.sort()

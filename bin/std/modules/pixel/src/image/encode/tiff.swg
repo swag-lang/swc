@@ -22,10 +22,10 @@ public impl IImageEncoder for Encoder
     }
 
     // Encode an uncompressed, little-endian, single-strip baseline RGB(A) TIFF.
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) throw
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
-            throw InvalidFormatError{"invalid image"}
+            fail InvalidFormatError{"invalid image"}
 
         let width    = image.width
         let height   = image.height
@@ -34,7 +34,7 @@ public impl IImageEncoder for Encoder
 
         let dataLen = cast(u64) width * cast(u64) height * samples
         if dataLen > Swag.U32.Max do
-            throw UnsupportedFormatError{"image is too big"}
+            fail UnsupportedFormatError{"image is too big"}
 
         // Layout: header(8) | pixel data | IFD | BitsPerSample array
         let dataPad    = dataLen & 1
@@ -43,7 +43,7 @@ public impl IImageEncoder for Encoder
         let ifdLen     = cast(u64) 2 + cast(u64) numEntries * 12 + 4
         let bpsOffset  = ifdOffset + ifdLen
         if bpsOffset + cast(u64) samples * 2 > Swag.U32.Max do
-            throw UnsupportedFormatError{"image is too big"}
+            fail UnsupportedFormatError{"image is too big"}
 
         // Header
         result.addNative(0x4949'u16)              // "II" little-endian

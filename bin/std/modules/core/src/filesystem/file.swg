@@ -44,7 +44,7 @@ enum FileShare
 }
 
 // Reads the entire content of a file into a UTF-8 string
-func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = false)->String throw
+func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = false)->String fail
 {
     var textReader: TextReader
     textReader.open(fullname, encoding)
@@ -67,7 +67,7 @@ func readAllText(fullname: string, encoding = TextEncoding.Utf8, normalizeEol = 
 }
 
 // Reads all lines from a file into an array of strings
-func readAllLines(fullname: string, encoding = TextEncoding.Utf8)->Array'String throw
+func readAllLines(fullname: string, encoding = TextEncoding.Utf8)->Array'String fail
 {
     var textReader: TextReader
     textReader.open(fullname, encoding)
@@ -82,7 +82,7 @@ func readAllLines(fullname: string, encoding = TextEncoding.Utf8)->Array'String 
 // Executes user code for each line read from a file
 // Block parameter: 'line' is a reference to the current line.
 #[Swag.Macro]
-func readEachLines(fullname: string, encoding = TextEncoding.Utf8, stmt: #code(var line: &String)) throw
+func readEachLines(fullname: string, encoding = TextEncoding.Utf8, stmt: #code(var line: &String)) fail
 {
     var textReader: TextReader
     textReader.open(fullname, encoding)
@@ -95,7 +95,7 @@ func readEachLines(fullname: string, encoding = TextEncoding.Utf8, stmt: #code(v
 }
 
 // Reads the entire content of a file into an array of bytes
-func readAllBytes(fullname: string)->Array'u8 throw
+func readAllBytes(fullname: string)->Array'u8 fail
 {
     var stream = openRead(fullname)
 
@@ -108,7 +108,7 @@ func readAllBytes(fullname: string)->Array'u8 throw
 
 // Writes the content of a byte slice to a file
 #[Swag.Discardable]
-func writeAllBytes(fullname: string, buffer: const [..] u8)->u64 throw
+func writeAllBytes(fullname: string, buffer: const [..] u8)->u64 fail
 {
     var stream = openWrite(fullname)
     return stream.write(@dataof(buffer), @countof(buffer))
@@ -116,7 +116,7 @@ func writeAllBytes(fullname: string, buffer: const [..] u8)->u64 throw
 
 // Writes the content of a ConcatBuffer to a file
 #[Swag.Discardable]
-func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 throw
+func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 fail
 {
     var stream = openWrite(fullname)
 
@@ -129,7 +129,7 @@ func writeAllBytes(fullname: string, buffer: ConcatBuffer)->u64 throw
 
 // Writes an array of strings to a file, one string per line
 #[Swag.Discardable]
-func writeAllLines(fullname: string, lines: Array'(string))->u64 throw
+func writeAllLines(fullname: string, lines: Array'(string))->u64 fail
 {
     var stream = openWrite(fullname)
 
@@ -144,14 +144,14 @@ func writeAllLines(fullname: string, lines: Array'(string))->u64 throw
 }
 
 // Creates a duplicate of an existing file
-func duplicate(newName, oldName: string) throw
+func duplicate(newName, oldName: string) fail
 {
     var res = readAllBytes(oldName)
     writeAllBytes(newName, res.toSlice())
 }
 
 // Retrieves information about a specific file
-func getFileInfo(fullName: string)->FileInfo throw
+func getFileInfo(fullName: string)->FileInfo fail
 {
     var options: Directory.EnumerationOptions
     options.matchFileName   = Path.getFileName(fullName)
@@ -159,6 +159,6 @@ func getFileInfo(fullName: string)->FileInfo throw
     options.recurse         = false
     let file = Directory.enumerate(Path.getDirectoryName(fullName), options)
     if file.isEmpty() do
-        throw FileNotFoundError{fileName: Errors.mkString(fullName)}
+        fail FileNotFoundError{fileName: Errors.mkString(fullName)}
     return file[0]
 }

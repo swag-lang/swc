@@ -18,11 +18,11 @@ func notNullOperandPlain()->s32 { return 42 }
     // `assume` no longer unwraps nullability: a plain nullable value is not throwable.
     var storage: NotNullOperandNode
     var p:       #null *NotNullOperandNode = &storage
-    let q                                  = assume p     // swc-expected-error {{sema_err_error_mgmt_operand_not_throwable}}
+    let q                                  = expect p     // swc-expected-error {{sema_err_error_mgmt_operand_not_throwable}}
 }
 
 #test
 {
     // `assume` on a call to a non-throwable function stays an error too.
-    let v = assume notNullOperandPlain()     // swc-expected-error {{sema_err_error_mgmt_operand_not_throwable}}
+    let v = expect notNullOperandPlain()     // swc-expected-error {{sema_err_error_mgmt_operand_not_throwable}}
 }

@@ -67,10 +67,10 @@ struct Masks
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
     if ptr + size > last do
-        throw InvalidFormatError{"invalid source buffer"}
+        fail InvalidFormatError{"invalid source buffer"}
 }
 
 func rowStride(width: s32, bitCount: u16)->u64
@@ -153,10 +153,10 @@ func writeBgraPixel(dst: [*] u8, b, g, r, a: u8)
     dst[3] = a
 }
 
-func writePalettePixel(dst: [*] u8, palette: const [*] u8, paletteEntrySize: u32, index, paletteCount: u32) throw
+func writePalettePixel(dst: [*] u8, palette: const [*] u8, paletteEntrySize: u32, index, paletteCount: u32) fail
 {
     if index >= paletteCount do
-        throw InvalidFormatError{"invalid palette index"}
+        fail InvalidFormatError{"invalid palette index"}
 
     let entry = palette + cast(u64) index * paletteEntrySize
     writeBgrPixel(dst, entry[0], entry[1], entry[2])
@@ -189,7 +189,7 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
     }
 }
 
-func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32, bitCount: u16, topDown: bool) throw
+func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32, bitCount: u16, topDown: bool) fail
 {
     let stride = rowStride(result.width, bitCount)
     checkBuffer(src, last, stride * cast(u64) result.height)
@@ -207,7 +207,7 @@ func decodePackedPalette(result: *Image, src, last: const [*] u8, palette: const
     }
 }
 
-func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount: u16, topDown: bool) throw
+func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount: u16, topDown: bool) fail
 {
     let stride   = rowStride(result.width, bitCount)
     let rowBytes = cast(u64) result.width * result.bpp8
@@ -220,7 +220,7 @@ func decodeUncompressedDirect(result: *Image, src, last: const [*] u8, bitCount:
     }
 }
 
-func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bool) throw
+func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bool) fail
 {
     let stride = rowStride(result.width, 16)
     checkBuffer(src, last, stride * cast(u64) result.height)
@@ -239,7 +239,7 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
     }
 }
 
-func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) throw
+func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) fail
 {
     var x: s32
     var y: s32
@@ -255,7 +255,7 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
         if count
         {
             if x + count > result.width do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
 
             var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for count
@@ -283,14 +283,14 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             y += p[1]
             p += 2
             if x > result.width or y > result.height do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
 
         default:
             let absoluteCount = cast(u32) value
             let padding       = absoluteCount & 1
             checkBuffer(p, last, absoluteCount + padding)
             if x + absoluteCount > result.width do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
 
             var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for [i] in absoluteCount
@@ -312,7 +312,7 @@ func rle4Index(value: u8, index: u32)->u32
     return cast(u32) ((index & 1) ? (value & 0x0F) : (value >> 4))
 }
 
-func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) throw
+func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) fail
 {
     var x: s32
     var y: s32
@@ -328,7 +328,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
         if count
         {
             if x + count > result.width do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
 
             var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for [i] in count
@@ -356,7 +356,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             y += p[1]
             p += 2
             if x > result.width or y > result.height do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
 
         default:
             let pixelCount = cast(u32) value
@@ -364,7 +364,7 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             let padding    = byteCount & 1
             checkBuffer(p, last, byteCount + padding)
             if x + pixelCount > result.width do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
 
             var dst = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) y * result.width8 + cast(u64) x * 3
             for [i] in pixelCount
@@ -388,14 +388,14 @@ public impl IImageDecoder for Decoder
         return Path.getExtensionLowerCase(fileName) == ".bmp"
     }
 
-    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image throw
+    mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         var dataof  = @dataof(buffer)
         let countof = @countof(buffer)
         let last    = dataof + countof
 
         if countof < 4 do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         // FileHeader
         var hasFileHeader: bool
@@ -409,11 +409,11 @@ public impl IImageDecoder for Decoder
                 dataof        += #sizeof(FileHeader)
                 bfOffBits     = fh.bfOffBits
                 if fh.bfSize and fh.bfSize > countof do
-                    throw InvalidFormatError{"invalid source buffer"}
+                    fail InvalidFormatError{"invalid source buffer"}
                 if fh.bfSize and fh.bfSize < bfOffBits do
-                    throw InvalidFormatError{"invalid source buffer"}
+                    fail InvalidFormatError{"invalid source buffer"}
                 if bfOffBits > countof do
-                    throw InvalidFormatError{"invalid source buffer"}
+                    fail InvalidFormatError{"invalid source buffer"}
             }
         }
 
@@ -421,7 +421,7 @@ public impl IImageDecoder for Decoder
         let headerStart = dataof
         let size        = dref cast(const *u32) dataof
         if size < #sizeof(CoreHeader) do
-            throw UnsupportedFormatError{"unsupported BMP header"}
+            fail UnsupportedFormatError{"unsupported BMP header"}
 
         // DIB header
         var bh: Header
@@ -443,7 +443,7 @@ public impl IImageDecoder for Decoder
         else
         {
             if size < #sizeof(Header) do
-                throw UnsupportedFormatError{"unsupported BMP header"}
+                fail UnsupportedFormatError{"unsupported BMP header"}
             checkBuffer(dataof, last, size)
 
             Memory.copy(&bh, dataof, #sizeof(Header))
@@ -451,9 +451,9 @@ public impl IImageDecoder for Decoder
         }
 
         if bh.biPlanes != 1 do
-            throw UnsupportedFormatError{"unsupported planes"}
+            fail UnsupportedFormatError{"unsupported planes"}
         if bh.biWidth <= 0 or bh.biHeight == 0 or bh.biHeight == Swag.S32.Min do
-            throw InvalidFormatError{"invalid dimensions"}
+            fail InvalidFormatError{"invalid dimensions"}
 
         let topDown = bh.biHeight < 0
         let height  = Math.abs(bh.biHeight)
@@ -479,10 +479,10 @@ public impl IImageDecoder for Decoder
                 dataof  += 12
             }
             else do
-                throw InvalidFormatError{"invalid source buffer"}
+                fail InvalidFormatError{"invalid source buffer"}
 
             if !masks.r.value or !masks.g.value or !masks.b.value do
-                throw InvalidFormatError{"invalid bit masks"}
+                fail InvalidFormatError{"invalid bit masks"}
         }
 
         // Create image
@@ -492,19 +492,19 @@ public impl IImageDecoder for Decoder
         {
         case 1, 4, 8, 16, 24: result.init(bh.biWidth, height, PixelFormat.BGR8)
         case 32:              result.init(bh.biWidth, height, PixelFormat.BGRA8)
-        default:              throw UnsupportedFormatError{"unsupported bit count"}
+        default:              fail UnsupportedFormatError{"unsupported bit count"}
         }
 
         if bh.biCompression == BI_RLE8 and bh.biBitCount != 8 do
-            throw UnsupportedFormatError{"unsupported compression"}
+            fail UnsupportedFormatError{"unsupported compression"}
         if bh.biCompression == BI_RLE4 and bh.biBitCount != 4 do
-            throw UnsupportedFormatError{"unsupported compression"}
+            fail UnsupportedFormatError{"unsupported compression"}
         if bh.biCompression == BI_BITFIELDS and bh.biBitCount != 16 and bh.biBitCount != 24 and bh.biBitCount != 32 do
-            throw UnsupportedFormatError{"unsupported compression"}
+            fail UnsupportedFormatError{"unsupported compression"}
         if bh.biCompression != BI_RGB and bh.biCompression != BI_BITFIELDS and bh.biCompression != BI_RLE8 and bh.biCompression != BI_RLE4 do
-            throw UnsupportedFormatError{"unsupported compression"}
+            fail UnsupportedFormatError{"unsupported compression"}
         if topDown and (bh.biCompression == BI_RLE8 or bh.biCompression == BI_RLE4) do
-            throw UnsupportedFormatError{"unsupported compression"}
+            fail UnsupportedFormatError{"unsupported compression"}
 
         var paletteCount = bh.biClrUsed ? bh.biClrUsed : defaultPaletteCount(bh.biBitCount)
         let palette      = dataof
@@ -516,7 +516,7 @@ public impl IImageDecoder for Decoder
 
         let pixelData = hasFileHeader and bfOffBits ? @dataof(buffer) + bfOffBits : dataof
         if pixelData < dataof do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         if !options.decodePixels do
             return result

@@ -130,8 +130,8 @@ namespace
 
     struct ErrorManagementPayload
     {
-        bool containsThrowable = false;
-        bool isThrowableResult = false;
+        bool containsFallible = false;
+        bool isFallibleResult = false;
     };
 
     ErrorManagementPayload& ensureErrorManagementPayload(Sema& sema, AstNodeRef nodeRef)
@@ -146,41 +146,41 @@ namespace
         return *payload;
     }
 
-    void attachThrowableWrapper(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
+    void attachFallibleWrapper(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
     {
         if (!targetRef.isValid())
             return;
 
         CodeGenLoweringPayload& payload  = SemaHelpers::ensureCodeGenLoweringPayload(sema, targetRef);
-        payload.throwableWrapperOwnerRef = ownerRef;
-        payload.throwableWrapperTokenId  = tokenId;
+        payload.fallibleWrapperOwnerRef = ownerRef;
+        payload.fallibleWrapperTokenId  = tokenId;
     }
 
-    void attachInlineRootThrowableWrapperIfCallLike(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
+    void attachInlineRootFallibleWrapperIfCallLike(Sema& sema, AstNodeRef ownerRef, AstNodeRef targetRef, TokenId tokenId)
     {
         if (!targetRef.isValid())
             return;
 
         const AstNodeId nodeId = sema.node(targetRef).id();
         if (nodeId == AstNodeId::CallExpr)
-            attachThrowableWrapper(sema, ownerRef, targetRef, tokenId);
+            attachFallibleWrapper(sema, ownerRef, targetRef, tokenId);
     }
 
-    void attachThrowableWrapperToManagedChild(Sema& sema, AstNodeRef ownerRef, AstNodeRef managedChildRef, TokenId tokenId)
+    void attachFallibleWrapperToManagedChild(Sema& sema, AstNodeRef ownerRef, AstNodeRef managedChildRef, TokenId tokenId)
     {
         switch (tokenId)
         {
             case TokenId::KwdCatch:
-            case TokenId::KwdTryCatch:
-            case TokenId::KwdAssume:
+            case TokenId::KwdExpect:
+            case TokenId::KwdOrFail:
                 break;
             default:
                 return;
         }
 
-        attachThrowableWrapper(sema, ownerRef, ownerRef, tokenId);
-        attachInlineRootThrowableWrapperIfCallLike(sema, ownerRef, managedChildRef, tokenId);
-        attachInlineRootThrowableWrapperIfCallLike(sema, ownerRef, sema.viewZero(managedChildRef).nodeRef(), tokenId);
+        attachFallibleWrapper(sema, ownerRef, ownerRef, tokenId);
+        attachInlineRootFallibleWrapperIfCallLike(sema, ownerRef, managedChildRef, tokenId);
+        attachInlineRootFallibleWrapperIfCallLike(sema, ownerRef, sema.viewZero(managedChildRef).nodeRef(), tokenId);
     }
 
     SemaFrame::ErrorContextMode errorContextMode(TokenId tokenId)
@@ -191,19 +191,19 @@ namespace
                 return SemaFrame::ErrorContextMode::Try;
             case TokenId::KwdCatch:
                 return SemaFrame::ErrorContextMode::Catch;
-            case TokenId::KwdTryCatch:
+            case TokenId::KwdOrFail:
                 return SemaFrame::ErrorContextMode::TryCatch;
-            case TokenId::KwdAssume:
-                return SemaFrame::ErrorContextMode::Assume;
+            case TokenId::KwdExpect:
+                return SemaFrame::ErrorContextMode::Expect;
             default:
                 return SemaFrame::ErrorContextMode::None;
         }
     }
 
-    bool isThrowableFunctionContext(const Sema& sema)
+    bool isFallibleFunctionContext(const Sema& sema)
     {
         const auto* currentFn = sema.currentFunction();
-        return currentFn && currentFn->isThrowable();
+        return currentFn && currentFn->isFallible();
     }
 
     bool isNativeArtifactCompilerEntryContext(const Sema& sema)
@@ -245,19 +245,19 @@ namespace
     TokenId effectiveErrorManagementTokenId(const Sema& sema, TokenId tokenId)
     {
         if (tokenId == TokenId::KwdTry && isCompilerTestFunctionContext(sema))
-            return TokenId::KwdAssume;
+            return TokenId::KwdExpect;
 
         return tokenId;
     }
 
     bool errorManagementSynthesizesDefaultResult(const TokenId tokenId)
     {
-        return tokenId == TokenId::KwdCatch || tokenId == TokenId::KwdTryCatch || tokenId == TokenId::KwdAssume;
+        return tokenId == TokenId::KwdCatch || tokenId == TokenId::KwdExpect;
     }
 
-    bool canPropagateThrowableResult(const Sema& sema)
+    bool canPropagateFallibleResult(const Sema& sema)
     {
-        return isThrowableFunctionContext(sema) ||
+        return isFallibleFunctionContext(sema) ||
                isNativeArtifactCompilerEntryContext(sema) ||
                sema.frame().currentErrorContextMode() != SemaFrame::ErrorContextMode::None;
     }
@@ -273,27 +273,27 @@ namespace
         diag.last().addSpan(codeRange);
     }
 
-    Result reportTryOutsideThrowableContext(Sema& sema, AstNodeRef errorRef)
+    Result reportTryOutsideFallibleContext(Sema& sema, AstNodeRef errorRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_try_outside_throwable_context, errorRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_try_outside_fallible_context, errorRef);
         if (const auto* currentFn = sema.currentFunction())
             addFunctionDeclaredHereNote(sema, diag, *currentFn);
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result reportThrowOutsideThrowableContext(Sema& sema, AstNodeRef errorRef)
+    Result reportThrowOutsideFallibleContext(Sema& sema, AstNodeRef errorRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_throw_outside_throwable_context, errorRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_fail_outside_fallible_context, errorRef);
         if (const auto* currentFn = sema.currentFunction())
             addFunctionDeclaredHereNote(sema, diag, *currentFn);
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    Result reportThrowableCallRequiresContext(Sema& sema, const SymbolFunction& fn, AstNodeRef errorRef)
+    Result reportFallibleCallRequiresContext(Sema& sema, const SymbolFunction& fn, AstNodeRef errorRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_throwable_call_requires_handler, errorRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_fallible_call_requires_handler, errorRef);
         diag.addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
         addFunctionDeclaredHereNote(sema, diag, fn);
         diag.report(sema.ctx());
@@ -321,26 +321,26 @@ namespace
         return &sym->cast<SymbolFunction>();
     }
 
-    Result reportErrorManagementOperandNotThrowable(Sema& sema, AstNodeRef errorRef, AstNodeRef childRef)
+    Result reportErrorManagementOperandNotFallible(Sema& sema, AstNodeRef errorRef, AstNodeRef childRef)
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_error_mgmt_operand_not_throwable, errorRef);
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_error_mgmt_operand_not_fallible, errorRef);
         diag.addArgument(Diagnostic::ARG_TOK, Diagnostic::tokenErrorString(sema.ctx(), sema.curNode().codeRef()));
 
         const auto* fn = calledFunctionFromNode(sema, childRef);
-        if (fn && !fn->isThrowable())
+        if (fn && !fn->isFallible())
             addFunctionDeclaredHereNote(sema, diag, *fn);
 
         diag.report(sema.ctx());
         return Result::Error;
     }
 
-    void markCurrentErrorScopeThrowable(Sema& sema)
+    void markCurrentErrorScopeFallible(Sema& sema)
     {
         const AstNodeRef errorScopeRef = sema.frame().currentErrorScope();
         if (errorScopeRef.isInvalid())
             return;
 
-        ensureErrorManagementPayload(sema, errorScopeRef).containsThrowable = true;
+        ensureErrorManagementPayload(sema, errorScopeRef).containsFallible = true;
     }
 
     TypeRef preferredThrowResultType(Sema& sema)
@@ -395,7 +395,7 @@ namespace
 
         auto& codeGenPayload          = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
         codeGenPayload.assumeNullable = true;
-        return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Assume, sema.curNode().codeRef());
+        return SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Expect, sema.curNode().codeRef());
     }
 
     Result semaTryCatchPreNodeCommon(Sema& sema)
@@ -412,7 +412,7 @@ namespace
         auto          frame   = sema.frame();
         const TokenId tokenId = effectiveErrorManagementTokenId(sema, sema.token(sema.curNode().codeRef()).id);
 
-        // `notnull` is not an error handler: throwables inside its operand keep the
+        // `notnull` is not an error handler: fallibles inside its operand keep the
         // surrounding error context (`try`/`catch`/... must be spelled explicitly).
         if (tokenId == TokenId::KwdNotNull)
             return Result::Continue;
@@ -428,13 +428,13 @@ namespace
         const Token&  tok     = sema.token(sema.curNode().codeRef());
         const TokenId tokenId = effectiveErrorManagementTokenId(sema, tok.id);
 
-        if (tokenId == TokenId::KwdTry && !canPropagateThrowableResult(sema))
-            return reportTryOutsideThrowableContext(sema, sema.curNodeRef());
+        if (tokenId == TokenId::KwdTry && !canPropagateFallibleResult(sema))
+            return reportTryOutsideFallibleContext(sema, sema.curNodeRef());
 
         // `notnull` asserts a non-nullity invariant: unwrap `#null T` to `T` (panicking
         // under safety when the value IS null). On an operand that is already non-null
         // (flow narrowing, generic instantiations) it is a tolerated pass-through. It
-        // never handles errors: a throwable operand must spell its own `try`/`assume`.
+        // never handles errors: a fallible operand must spell its own `try`/`assume`.
         if (tokenId == TokenId::KwdNotNull)
         {
             if (assumeNullableResultTypeRef(sema, managedChildRef).isValid())
@@ -457,12 +457,12 @@ namespace
             return Result::Error;
         }
 
-        if (!payload.containsThrowable)
-            return reportErrorManagementOperandNotThrowable(sema, sema.curNodeRef(), managedChildRef);
+        if (!payload.containsFallible)
+            return reportErrorManagementOperandNotFallible(sema, sema.curNodeRef(), managedChildRef);
 
-        payload.isThrowableResult = tokenId == TokenId::KwdTry;
-        if (payload.isThrowableResult)
-            markCurrentErrorScopeThrowable(sema);
+        payload.isFallibleResult = tokenId == TokenId::KwdTry;
+        if (payload.isFallibleResult)
+            markCurrentErrorScopeFallible(sema);
 
         switch (tokenId)
         {
@@ -470,17 +470,17 @@ namespace
                 SWC_RESULT(SemaHelpers::requireRuntimeCatchScopeDependencies(sema, sema.curNode().codeRef()));
                 break;
 
-            case TokenId::KwdTryCatch:
+            case TokenId::KwdOrFail:
                 SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
                 break;
 
-            case TokenId::KwdAssume:
+            case TokenId::KwdExpect:
                 SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
-                if (sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Assume))
+                if (sema.frame().currentAttributes().hasRuntimeSafety(sema.buildCfg().safetyGuards, Runtime::SafetyWhat::Expect))
                 {
                     auto& codeGenPayload = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
-                    codeGenPayload.addRuntimeSafety(Runtime::SafetyWhat::Assume);
-                    SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedAssume, sema.curNode().codeRef()));
+                    codeGenPayload.addRuntimeSafety(Runtime::SafetyWhat::Expect);
+                    SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedExpect, sema.curNode().codeRef()));
                 }
                 break;
 
@@ -488,7 +488,7 @@ namespace
                 break;
         }
 
-        attachThrowableWrapperToManagedChild(sema, sema.curNodeRef(), managedChildRef, tokenId);
+        attachFallibleWrapperToManagedChild(sema, sema.curNodeRef(), managedChildRef, tokenId);
         return Result::Continue;
     }
 
@@ -1348,11 +1348,11 @@ namespace
             !isMacroCall)
             currentFn->addCallDependency(&calledFn);
 
-        if (calledFn.isThrowable())
+        if (calledFn.isFallible())
         {
-            markCurrentErrorScopeThrowable(sema);
-            if (!canPropagateThrowableResult(sema))
-                return reportThrowableCallRequiresContext(sema, calledFn, sema.curNodeRef());
+            markCurrentErrorScopeFallible(sema);
+            if (!canPropagateFallibleResult(sema))
+                return reportFallibleCallRequiresContext(sema, calledFn, sema.curNodeRef());
 
             SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, sema.curNode().codeRef()));
         }
@@ -1470,13 +1470,26 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     const auto* codeGenPayload = sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef());
     if (codeGenPayload && codeGenPayload->assumeNullable)
     {
-        // A pass-through `assume` (operand already non-null) keeps the operand's type.
+        // A pass-through `notnull` (operand already non-null) keeps the operand's type.
         const TypeRef narrowedTypeRef = assumeNullableResultTypeRef(sema, nodeExprRef);
         if (narrowedTypeRef.isValid())
             resultTypeRef = narrowedTypeRef;
     }
     sema.setType(sema.curNodeRef(), resultTypeRef);
-    const bool requiresNullableAssumeRuntimeCheck = codeGenPayload && codeGenPayload->assumeNullable && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume);
+
+    // 'orfail' replaces the dismissed error outcome with an explicit fallback value, so
+    // that value must convert to the operand's success type. Unlike 'trycatch', 'orfail'
+    // needs no implicit type-default (the fallback provides one), which lets it cover
+    // types that have no default at all.
+    if (sema.token(codeRef()).id == TokenId::KwdOrFail && nodeFallbackRef.isValid() &&
+        resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid())
+    {
+        SemaNodeView fallbackView = sema.viewNodeTypeConstant(nodeFallbackRef);
+        SWC_RESULT(SemaCheck::isValue(sema, fallbackView.nodeRef()));
+        SWC_RESULT(Cast::cast(sema, fallbackView, resultTypeRef, CastKind::Implicit));
+    }
+
+    const bool requiresNullableAssumeRuntimeCheck = codeGenPayload && codeGenPayload->assumeNullable && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
     if (exprView.cstRef().isValid() && !requiresNullableAssumeRuntimeCheck)
     {
         // The node's stored payload holds EITHER a type or a constant, and downstream
@@ -1498,7 +1511,7 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
     }
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
-    // A nullable `assume` never synthesizes a default result (it checks for null and
+    // A nullable `notnull` never synthesizes a default result (it checks for null and
     // panics); only the error-management forms need an implicit default for the type.
     const bool    isNullableAssume = codeGenPayload && codeGenPayload->assumeNullable;
     const TokenId tokenId          = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
@@ -1532,18 +1545,18 @@ Result AstTryCatchStmt::semaPostNode(Sema& sema) const
     return semaTryCatchPostNodeCommon(sema, nodeBodyRef);
 }
 
-Result AstThrowExpr::semaPostNode(Sema& sema) const
+Result AstFailExpr::semaPostNode(Sema& sema) const
 {
     const SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
     SWC_RESULT(SemaCheck::isValue(sema, exprView.nodeRef()));
 
-    if (!canPropagateThrowableResult(sema))
-        return reportThrowOutsideThrowableContext(sema, sema.curNodeRef());
+    if (!canPropagateFallibleResult(sema))
+        return reportThrowOutsideFallibleContext(sema, sema.curNodeRef());
 
     auto& payload             = ensureErrorManagementPayload(sema, sema.curNodeRef());
-    payload.containsThrowable = true;
-    payload.isThrowableResult = true;
-    markCurrentErrorScopeThrowable(sema);
+    payload.containsFallible = true;
+    payload.isFallibleResult = true;
+    markCurrentErrorScopeFallible(sema);
     SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::SetErrRaw, codeRef()));
     SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, exprView.typeRef(), "__throw_runtime_storage"));
 

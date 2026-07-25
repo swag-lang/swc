@@ -322,14 +322,14 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 func loadBindTextures()
 {
-    func loadAndBindTexture(name: string)->Texture throw => (notnull g_Wnd).getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
-    func loadSound(name: string)->Audio.SoundFile throw  => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
+    func loadAndBindTexture(name: string)->Texture fail => (notnull g_Wnd).getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
+    func loadSound(name: string)->Audio.SoundFile fail  => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
 
     g_DataPath = Path.getDirectoryName(#curlocation.fileName)
     g_DataPath = Path.combine(g_DataPath, "datas")
     g_DataPath = Path.combine(g_DataPath, "invaders")
 
-    assume
+    expect
     {
         g_ExtraImg  = loadAndBindTexture("extra.png")
         g_RedImg    = loadAndBindTexture("red.png")
@@ -348,12 +348,12 @@ func loadBindTextures()
 
 #main
 {
-    assume Audio.createEngine()
+    expect Audio.createEngine()
     defer Audio.destroyEngine()
 
     func muteForTest(app: *Application)
     {
-        if Env.hasArg("swag.test") do assume Audio.setOutputVolume(0)
+        if Env.hasArg("swag.test") do expect Audio.setOutputVolume(0)
     }
 
     Application.runSurface(100, 100, W - 46, H - 31, title: "Space-invaders", hook: &onEvent, init: &muteForTest)

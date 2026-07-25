@@ -60,11 +60,11 @@ using Core
 func day4B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var numbers: Array's32
     for v in Tokenize.split(lines[0], ',''u8) do
-        numbers.add(assume StrConv.toS32(v))
+        numbers.add(expect StrConv.toS32(v))
 
     var bestScore: u64
     var bestCard:  Array'u64
@@ -77,7 +77,7 @@ func day4B()
         {
             for v, [x] in Tokenize.split(lines[y], ' ''u8)
             {
-                let n = assume StrConv.toS32(v)
+                let n = expect StrConv.toS32(v)
                 let i = Slice.findLinear(numbers.toSlice(), n)
                 card.add(i)
 

@@ -23,9 +23,9 @@ using Core
 func day3B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    let line     = assume File.readAllText(dataPath)
+    let line     = expect File.readAllText(dataPath)
 
-    var r      = assume Parser.RegExp.create(#"(mul\(\d+,\d+\))|(do\(\))|(don't\(\))"#)
+    var r      = expect Parser.RegExp.create(#"(mul\(\d+,\d+\))|(do\(\))|(don't\(\))"#)
     let d      = r.grepAll(line)
     var total  = 0
     var enable = true
@@ -42,7 +42,7 @@ func day3B()
             cpy.replace("mul(", "")
             cpy.replace(")", "")
             let split = Tokenize.split(cpy, ",")
-            total += assume StrConv.toS32(split[0]) * assume StrConv.toS32(split[1])
+            total += expect StrConv.toS32(split[0]) * expect StrConv.toS32(split[1])
         }
     }
 

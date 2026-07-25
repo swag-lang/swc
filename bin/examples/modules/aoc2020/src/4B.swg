@@ -79,7 +79,7 @@ func day4B()
 func day4B0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total, pass: u32
     for l in lines

@@ -330,7 +330,7 @@ namespace
             return false;
         if (leftFunc.isMethod() != rightFunc.isMethod())
             return false;
-        if (leftFunc.isThrowable() != rightFunc.isThrowable())
+        if (leftFunc.isFallible() != rightFunc.isFallible())
             return false;
         if (leftFunc.isConst() != rightFunc.isConst())
             return false;
@@ -363,7 +363,7 @@ namespace
             return false;
         if (methodFunc.callConvKind() != func.callConvKind())
             return false;
-        if (methodFunc.isThrowable() != func.isThrowable())
+        if (methodFunc.isFallible() != func.isFallible())
             return false;
         if (methodFunc.hasVariadicParam() != func.hasVariadicParam())
             return false;

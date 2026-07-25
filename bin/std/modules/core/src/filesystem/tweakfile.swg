@@ -27,7 +27,7 @@ impl TweakFile
     }
 
     // Reads and parses a tweak file from disk
-    mtd parseFile(fileName: string) throw
+    mtd parseFile(fileName: string) fail
     {
         var buf   = try File.readAllBytes(fileName)
         let lines = Tokenize.splitLines(cast(string) buf.toSlice())
@@ -35,14 +35,14 @@ impl TweakFile
     }
 
     // Parses tweak content from a string
-    mtd parse(content: string) throw
+    mtd parse(content: string) fail
     {
         let lines = Tokenize.splitLines(content)
         try .parse(lines)
     }
 
     // Parses tweak content from an array of lines
-    mtd parse(lines: Array'(string)) throw
+    mtd parse(lines: Array'(string)) fail
     {
         Debug.assert(!.folders.isEmpty())
 
@@ -70,7 +70,7 @@ impl TweakFile
                 one = Tokenize.eatCount(one, 1)
                 let folderName = catch StrConv.parseIdentifier(one)
                 if @err != null do
-                    throw SyntaxError{"invalid folder name", line: idx + 1}
+                    fail SyntaxError{"invalid folder name", line: idx + 1}
 
                 for &folder in .folders
                 {
@@ -82,7 +82,7 @@ impl TweakFile
                 }
 
                 if !currentFolder do
-                    throw SyntaxError{Errors.mkString(Format.toString("unknown folder [[%]]", folderName)), line: idx + 1}
+                    fail SyntaxError{Errors.mkString(Format.toString("unknown folder [[%]]", folderName)), line: idx + 1}
                 continue
             }
 
@@ -93,17 +93,17 @@ impl TweakFile
             one = Tokenize.eatSpaces(one)
             let id = catch StrConv.parseIdentifier(one)
             if @err != null do
-                throw SyntaxError{"invalid value name", line: idx + 1}
+                fail SyntaxError{"invalid value name", line: idx + 1}
 
             // Search value in folder type
             let field = Reflection.getField(currentFolder.type, id)
             if !field do
-                throw SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
+                fail SyntaxError{Errors.mkString(Format.toString("value [[%]] not found in folder [[%]]", id, currentFolder.type.name)), line: idx + 1}
             let safeField = field
             one = Tokenize.eatCount(one, @countof(id))
             one = Tokenize.eatSpaces(one)
             if !@countof(one) do
-                throw SyntaxError{"missing value", line: idx + 1}
+                fail SyntaxError{"missing value", line: idx + 1}
 
             // Reference to another field using '$' syntax
             if one[0] == '$'
@@ -111,10 +111,10 @@ impl TweakFile
                 one = Tokenize.eatCount(one, 1)
                 let otherField = Reflection.getField(currentFolder.type, one)
                 if !otherField do
-                    throw SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", one, currentFolder.type.name)), line: idx + 1}
+                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] not found in folder [[%]]", one, currentFolder.type.name)), line: idx + 1}
                 let safeOtherField = otherField
                 if safeField.pointedType != safeOtherField.pointedType do
-                    throw SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", one)), line: idx + 1}
+                    fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", one)), line: idx + 1}
                 let folder = currentFolder
                 let refr: Ref{folder, safeOtherField, safeField}
                 refs.add(refr)
@@ -125,15 +125,15 @@ impl TweakFile
             let safePointedType         = notnull safeField.pointedType
             let parsedOne: #null string = catch StrConv.parseValue(cast([*] u8) currentFolder.data + safeField.offset, safePointedType, one)
             if @err != null do
-                throw SyntaxError{"invalid value", line: idx + 1}
+                fail SyntaxError{"invalid value", line: idx + 1}
             one = parsedOne orelse ""
 
             // Ensure nothing invalid follows the value
             if @countof(one) and !Latin1.isSpace(one[0]) and one[0] != '#' do
-                throw SyntaxError{"syntax error in value", line: idx + 1}
+                fail SyntaxError{"syntax error in value", line: idx + 1}
             one = Tokenize.eatSpaces(one)
             if @countof(one) and one[0] != '#' do
-                throw SyntaxError{"invalid characters after value", line: idx + 1}
+                fail SyntaxError{"invalid characters after value", line: idx + 1}
         }
 
         // Resolve references in a second pass
@@ -153,7 +153,7 @@ impl TweakFile
                     if refr.folder == ref1.folder and refr.src == ref1.dst
                     {
                         if j == 0 do
-                            throw SyntaxError{"tweakfile cycle between '$' references !"}
+                            fail SyntaxError{"tweakfile cycle between '$' references !"}
                         toDo    = j
                         refr    = refs[toDo]
                         restart = true

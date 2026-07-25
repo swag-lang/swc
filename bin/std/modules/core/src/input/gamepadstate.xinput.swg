@@ -28,15 +28,15 @@ impl GamePadState
     private var mapButtons: [16] GamePadButton = undefined
 
     // Compute the current state of the given pad index
-    mtd update(padIndex: u32) throw
+    mtd update(padIndex: u32) fail
     {
         var state: XINPUT_STATE = undefined
         let res                 = XInputGetState(padIndex, &state)
         switch res
         {
         case ERROR_SUCCESS:              break
-        case ERROR_DEVICE_NOT_CONNECTED: throw Swag.SystemError{"not connected"}
-        default:                         Win32.throwWinError(res)
+        case ERROR_DEVICE_NOT_CONNECTED: fail Swag.SystemError{"not connected"}
+        default:                         Win32.failWinError(res)
         }
 
         // GamePadButton pressed state

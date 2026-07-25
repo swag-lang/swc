@@ -41,10 +41,10 @@ struct Palette
 
 public struct Decoder {}
 
-func checkBuffer(ptr, last: const [*] u8, size: u64) throw
+func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
     if ptr + size > last do
-        throw InvalidFormatError{"invalid source buffer"}
+        fail InvalidFormatError{"invalid source buffer"}
 }
 
 func isMappedType(imageType: u8)->bool
@@ -67,19 +67,19 @@ func isRleType(imageType: u8)->bool
     return imageType == TYPE_RLE_MAP or imageType == TYPE_RLE_RGB or imageType == TYPE_RLE_MONO
 }
 
-func sourcePixelBytes(header: Header)->u8 throw
+func sourcePixelBytes(header: Header)->u8 fail
 {
     if isMappedType(header.imageTypeCode)
     {
         if header.bpp != 8 and header.bpp != 16 do
-            throw UnsupportedFormatError{"unsupported bit depth"}
+            fail UnsupportedFormatError{"unsupported bit depth"}
         return header.bpp / 8
     }
 
     if isMonoType(header.imageTypeCode)
     {
         if header.bpp != 8 and header.bpp != 16 do
-            throw UnsupportedFormatError{"unsupported bit depth"}
+            fail UnsupportedFormatError{"unsupported bit depth"}
         return header.bpp / 8
     }
 
@@ -89,24 +89,24 @@ func sourcePixelBytes(header: Header)->u8 throw
             return 2
         if header.bpp == 24 or header.bpp == 32 do
             return header.bpp / 8
-        throw UnsupportedFormatError{"unsupported bit depth"}
+        fail UnsupportedFormatError{"unsupported bit depth"}
     }
 
-    throw UnsupportedFormatError{"unsupported type"}
+    fail UnsupportedFormatError{"unsupported type"}
 }
 
-func palettePixelBytes(bpp: u8)->u8 throw
+func palettePixelBytes(bpp: u8)->u8 fail
 {
     switch bpp
     {
     case 15, 16: return 2
     case 24:     return 3
     case 32:     return 4
-    default:     throw UnsupportedFormatError{"unsupported palette bit depth"}
+    default:     fail UnsupportedFormatError{"unsupported palette bit depth"}
     }
 }
 
-func pixelFormat(header: Header, palette: Palette)->PixelFormat throw
+func pixelFormat(header: Header, palette: Palette)->PixelFormat fail
 {
     if isMappedType(header.imageTypeCode)
     {
@@ -114,7 +114,7 @@ func pixelFormat(header: Header, palette: Palette)->PixelFormat throw
             return .BGRA8
         if palette.bpp == 15 or palette.bpp == 24 do
             return .BGR8
-        throw UnsupportedFormatError{"unsupported palette bit depth"}
+        fail UnsupportedFormatError{"unsupported palette bit depth"}
     }
 
     if isMonoType(header.imageTypeCode) do
@@ -124,7 +124,7 @@ func pixelFormat(header: Header, palette: Palette)->PixelFormat throw
         return .BGRA8
     if header.bpp == 15 or header.bpp == 24 do
         return .BGR8
-    throw UnsupportedFormatError{"unsupported bit depth"}
+    fail UnsupportedFormatError{"unsupported bit depth"}
 }
 
 func expand5(value: u32)->u8
@@ -175,10 +175,10 @@ func paletteIndex(src: const [*] u8, bpp: u8)->u32
     return src[0]
 }
 
-func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) throw
+func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) fail
 {
     if index < palette.first or index >= cast(u32) palette.first + palette.count do
-        throw InvalidFormatError{"invalid palette index"}
+        fail InvalidFormatError{"invalid palette index"}
 
     let paletteData = cast(const [*] u8) (notnull palette.data)
     let entry       = paletteData + cast(u64) (index - palette.first) * palette.bpp8
@@ -191,7 +191,7 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) throw
     }
 }
 
-func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelIndex: u64, src: const [*] u8) throw
+func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelIndex: u64, src: const [*] u8) fail
 {
     let dst = dstPixel(result, header, pixelIndex)
 
@@ -220,7 +220,7 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
     }
 }
 
-func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) throw
+func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) fail
 {
     var p = src
     checkBuffer(p, last, pixelCount * pixelBytes)
@@ -231,7 +231,7 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
     }
 }
 
-func decodeRle(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) throw
+func decodeRle(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) fail
 {
     var index: u64
     var p = src
@@ -244,7 +244,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
 
         let count = cast(u64) ((packet & 0x7F) + 1)
         if index + count > pixelCount do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         if packet & 0x80
         {
@@ -277,22 +277,22 @@ public impl IImageDecoder for Decoder
         return Path.getExtensionLowerCase(fileName) == ".tga"
     }
 
-    func impl decode(me, buffer: const [..] u8, options: DecodeOptions)->Image throw
+    func impl decode(me, buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
         var dataof  = @dataof(buffer)
         let countof = @countof(buffer)
         let last    = dataof + countof
 
         if countof < #sizeof(Header) do
-            throw InvalidFormatError{"invalid source buffer"}
+            fail InvalidFormatError{"invalid source buffer"}
 
         let header = dref cast(const *Header) dataof
         dataof += #sizeof(Header)
 
         if header.width == 0 or header.height == 0 do
-            throw InvalidFormatError{"invalid dimensions"}
+            fail InvalidFormatError{"invalid dimensions"}
         if header.colorMapType != 0 and header.colorMapType != 1 do
-            throw UnsupportedFormatError{"unsupported palette"}
+            fail UnsupportedFormatError{"unsupported palette"}
 
         let pixelBytes = sourcePixelBytes(header)
         checkBuffer(dataof, last, header.idLength)
@@ -311,7 +311,7 @@ public impl IImageDecoder for Decoder
         }
 
         if isMappedType(header.imageTypeCode) and !palette.count do
-            throw InvalidFormatError{"missing palette"}
+            fail InvalidFormatError{"missing palette"}
 
         var result: retval
         result.init(header.width, header.height, pixelFormat(header, palette))

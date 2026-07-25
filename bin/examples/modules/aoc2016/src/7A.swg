@@ -18,7 +18,7 @@ using Core
 func day7A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var cpt, total = 0
     var ok         = false

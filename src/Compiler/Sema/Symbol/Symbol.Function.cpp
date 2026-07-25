@@ -340,8 +340,8 @@ namespace
                     appendPublicApiSymbolFragment(out, "const");
                 if (function.hasVariadicParam())
                     appendPublicApiSymbolFragment(out, "variadic");
-                if (function.isThrowable())
-                    appendPublicApiSymbolFragment(out, "throw");
+                if (function.isFallible())
+                    appendPublicApiSymbolFragment(out, "fail");
                 if (function.callConvKind() != CallConvKind::Swag)
                 {
                     appendPublicApiSymbolFragment(out, "cc");
@@ -464,8 +464,8 @@ namespace
             appendPublicApiSymbolFragment(result, "const");
         if (symbol.hasVariadicParam())
             appendPublicApiSymbolFragment(result, "variadic");
-        if (symbol.isThrowable())
-            appendPublicApiSymbolFragment(result, "throw");
+        if (symbol.isFallible())
+            appendPublicApiSymbolFragment(result, "fail");
         if (symbol.callConvKind() != CallConvKind::Swag)
         {
             appendPublicApiSymbolFragment(result, "cc");
@@ -617,7 +617,7 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
         out += returnType.toName(ctx);
     }
 
-    out += hasExtraFlag(SymbolFunctionFlagsE::Throwable) ? " throw" : "";
+    out += hasExtraFlag(SymbolFunctionFlagsE::Fallible) ? " fail" : "";
     return out;
 }
 
@@ -688,7 +688,7 @@ uint32_t SymbolFunction::typeSignatureHash() const noexcept
     h          = Math::hashCombine(h, static_cast<uint32_t>(callConvKind_));
     h          = Math::hashCombine(h, isClosure() ? 1u : 0u);
     h          = Math::hashCombine(h, isMethod() ? 1u : 0u);
-    h          = Math::hashCombine(h, isThrowable() ? 1u : 0u);
+    h          = Math::hashCombine(h, isFallible() ? 1u : 0u);
     h          = Math::hashCombine(h, isConst() ? 1u : 0u);
     h          = Math::hashCombine(h, hasVariadicParam() ? 1u : 0u);
     h          = Math::hashCombine(h, static_cast<uint32_t>(parameters_.size()));
@@ -715,7 +715,7 @@ bool SymbolFunction::sameTypeSignature(const SymbolFunction& otherFunc) const no
         return false;
     if (isMethod() != otherFunc.isMethod())
         return false;
-    if (isThrowable() != otherFunc.isThrowable())
+    if (isFallible() != otherFunc.isFallible())
         return false;
     if (isConst() != otherFunc.isConst())
         return false;
@@ -749,7 +749,7 @@ bool SymbolFunction::sameTypeSignatureIgnoringClosure(const SymbolFunction& othe
         return false;
     if (isMethod() != otherFunc.isMethod())
         return false;
-    if (isThrowable() != otherFunc.isThrowable())
+    if (isFallible() != otherFunc.isFallible())
         return false;
     if (isConst() != otherFunc.isConst())
         return false;
@@ -795,8 +795,8 @@ void SymbolFunction::setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags)
 {
     if (parserFlags.has(AstFunctionFlagsE::Method))
         addExtraFlag(SymbolFunctionFlagsE::Method);
-    if (parserFlags.has(AstFunctionFlagsE::Throwable))
-        addExtraFlag(SymbolFunctionFlagsE::Throwable);
+    if (parserFlags.has(AstFunctionFlagsE::Fallible))
+        addExtraFlag(SymbolFunctionFlagsE::Fallible);
     if (parserFlags.has(AstFunctionFlagsE::Closure))
         addExtraFlag(SymbolFunctionFlagsE::Closure);
     if (parserFlags.has(AstFunctionFlagsE::Const))

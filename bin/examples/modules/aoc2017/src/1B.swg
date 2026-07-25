@@ -19,7 +19,7 @@ using Core
 func day1B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "1.txt")
-    let text     = assume File.readAllText(dataPath)
+    let text     = expect File.readAllText(dataPath)
 
     var total = 0
     for [i] in @countof(text)

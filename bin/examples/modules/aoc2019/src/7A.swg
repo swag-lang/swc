@@ -99,11 +99,11 @@ internal func run(prg: Array's32, input: const [2] s32)->s32
 func day7A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var op: Array's32
     for v in Tokenize.split(lines[0], ',''u8) do
-        op.add(assume StrConv.toS32(v))
+        op.add(expect StrConv.toS32(v))
 
     var phase = [0, 1, 2, 3, 4]
     var total = 0

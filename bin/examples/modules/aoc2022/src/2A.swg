@@ -32,7 +32,7 @@ using Core
 func day2A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     const Score: [3, 3] s32 = [
         [1 + 3, 2 + 6, 3 + 0],

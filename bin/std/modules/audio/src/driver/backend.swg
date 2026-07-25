@@ -23,7 +23,7 @@ struct DriverNative
 
 impl DriverNative
 {
-    mtd createNative(kind: DriverKind = .Default) throw
+    mtd createNative(kind: DriverKind = .Default) fail
     {
         .kind = resolveKind(kind)
 
@@ -38,10 +38,10 @@ impl DriverNative
                 .xAudio2.createXAudio2()
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
-            throw UnsupportedFormatError{"audio driver is not available"}
+            fail UnsupportedFormatError{"audio driver is not available"}
         }
     }
 
@@ -77,7 +77,7 @@ impl DriverNative
         }
     }
 
-    mtd setOutputVolumeNative(volume: f32) throw
+    mtd setOutputVolumeNative(volume: f32) fail
     {
         switch .kind
         {
@@ -90,7 +90,7 @@ impl DriverNative
                 .xAudio2.setOutputVolumeXAudio2(volume)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 
@@ -129,7 +129,7 @@ impl DriverNative
 
 impl Voice
 {
-    func createNative(voice: *Voice, createFlags = VoiceCreateFlags.Default) throw
+    func createNative(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
         switch g_Driver.kind
         {
@@ -142,10 +142,10 @@ impl Voice
                 voice.createXAudio2(createFlags)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
-            throw UnsupportedFormatError{"audio driver is not available"}
+            fail UnsupportedFormatError{"audio driver is not available"}
         }
     }
 
@@ -164,7 +164,7 @@ impl Voice
         }
     }
 
-    mtd updateNative()->bool throw
+    mtd updateNative()->bool fail
     {
         switch g_Driver.kind
         {
@@ -177,13 +177,13 @@ impl Voice
                 return .updateXAudio2()
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
 
         return false
     }
 
-    mtd playNative(batchID: u32 = 0) throw
+    mtd playNative(batchID: u32 = 0) fail
     {
         switch g_Driver.kind
         {
@@ -196,11 +196,11 @@ impl Voice
                 .playXAudio2(batchID)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 
-    mtd stopNative(batchID: u32 = 0) throw
+    mtd stopNative(batchID: u32 = 0) fail
     {
         switch g_Driver.kind
         {
@@ -213,14 +213,14 @@ impl Voice
                 .stopXAudio2(batchID)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 }
 
 public impl Voice
 {
-    mtd setVolume(volume: f32, batchID: u32 = 0) throw
+    mtd setVolume(volume: f32, batchID: u32 = 0) fail
     {
         switch g_Driver.kind
         {
@@ -233,11 +233,11 @@ public impl Voice
                 .setVolumeXAudio2(volume, batchID)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 
-    mtd getVolume()->f32 throw
+    mtd getVolume()->f32 fail
     {
         switch g_Driver.kind
         {
@@ -250,13 +250,13 @@ public impl Voice
                 return .getVolumeXAudio2()
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
 
         return 0
     }
 
-    mtd setFrequencyRatio(ratio: f32, batchID: u32 = 0) throw
+    mtd setFrequencyRatio(ratio: f32, batchID: u32 = 0) fail
     {
         switch g_Driver.kind
         {
@@ -269,11 +269,11 @@ public impl Voice
                 .setFrequencyRatioXAudio2(ratio, batchID)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 
-    mtd setRooting(buses: const [..] *Bus) throw
+    mtd setRooting(buses: const [..] *Bus) fail
     {
         switch g_Driver.kind
         {
@@ -286,14 +286,14 @@ public impl Voice
                 .setRootingXAudio2(buses)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 }
 
 impl Bus
 {
-    func createNative(bus: *Bus, numChannels: u32, parent: #null *Bus = null) throw
+    func createNative(bus: *Bus, numChannels: u32, parent: #null *Bus = null) fail
     {
         switch g_Driver.kind
         {
@@ -306,10 +306,10 @@ impl Bus
                 bus.createXAudio2(numChannels, parent)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
-            throw UnsupportedFormatError{"audio driver is not available"}
+            fail UnsupportedFormatError{"audio driver is not available"}
         }
     }
 
@@ -331,7 +331,7 @@ impl Bus
 
 public impl Bus
 {
-    mtd setVolume(volume: f32, batchID: u32 = 0) throw
+    mtd setVolume(volume: f32, batchID: u32 = 0) fail
     {
         switch g_Driver.kind
         {
@@ -344,11 +344,11 @@ public impl Bus
                 .setVolumeXAudio2(volume, batchID)
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
 
-    mtd getVolume()->f32 throw
+    mtd getVolume()->f32 fail
     {
         switch g_Driver.kind
         {
@@ -361,7 +361,7 @@ public impl Bus
                 return .getVolumeXAudio2()
             }
             #else do
-                throw UnsupportedFormatError{"XAudio2 is not available"}
+                fail UnsupportedFormatError{"XAudio2 is not available"}
         }
 
         return 0

@@ -28,12 +28,12 @@ func macroInject(stmt: #code)
 }
 
 #[Swag.Mixin]
-func mixinConditionalDefer(shouldThrow: bool) throw
+func mixinConditionalDefer(shouldThrow: bool) fail
 {
-    defer #err appendDeferTrace(1)
-    defer #noerr appendDeferTrace(2)
+    defer #fail appendDeferTrace(1)
+    defer #nofail appendDeferTrace(2)
     if shouldThrow do
-        throw ErrCompilerDefer{}
+        fail ErrCompilerDefer{}
 }
 
 func semaTest001()

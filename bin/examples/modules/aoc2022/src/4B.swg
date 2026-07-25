@@ -18,7 +18,7 @@ using Core
 func day4B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total: u64
     for l in lines
@@ -26,10 +26,10 @@ func day4B()
         let pair  = Tokenize.split(l, ',''u8)
         let pair0 = Tokenize.split(pair[0], '-''u8)
         let pair1 = Tokenize.split(pair[1], '-''u8)
-        let v0a   = assume StrConv.toS32(pair0[0])
-        let v0b   = assume StrConv.toS32(pair0[1])
-        let v1a   = assume StrConv.toS32(pair1[0])
-        let v1b   = assume StrConv.toS32(pair1[1])
+        let v0a   = expect StrConv.toS32(pair0[0])
+        let v0b   = expect StrConv.toS32(pair0[1])
+        let v1a   = expect StrConv.toS32(pair1[0])
+        let v1b   = expect StrConv.toS32(pair1[1])
 
         if !(v0b < v1a or v0a > v1b) do
             total += 1

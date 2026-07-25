@@ -50,6 +50,6 @@
     DropCheck = Counter + Seed
     if DropCheck != 10 and DropCheck != 14
     {
-        fail(7)
+        fault(7)
     }
 }

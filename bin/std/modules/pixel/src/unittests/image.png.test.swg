@@ -9,7 +9,7 @@ func pngCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodePng(result: *ConcatBuffer, image: Image, options: #null any = null) throw
+func encodePng(result: *ConcatBuffer, image: Image, options: #null any = null) fail
 {
     var enc: Png.Encoder
     let itf = @mkinterface(&enc, #typeof(Png.Encoder), IImageEncoder)

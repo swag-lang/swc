@@ -214,7 +214,7 @@ impl RegExp
     }
 
     // Creates and return an expression
-    public func create(expr: string, ignoreCase = false)->RegExp throw
+    public func create(expr: string, ignoreCase = false)->RegExp fail
     {
         var result: retval
         result.compile(expr, ignoreCase)
@@ -222,7 +222,7 @@ impl RegExp
     }
 
     // Compile the expression
-    public mtd compile(expr: string, ignoreCase = false) throw
+    public mtd compile(expr: string, ignoreCase = false) fail
     {
         .clear()
         .ignoreCase = ignoreCase
@@ -253,7 +253,7 @@ impl RegExp
     }
 
     // Compile and match the expression.
-    public mtd match(expr: string, str: string, ignoreCase = false)->bool throw
+    public mtd match(expr: string, str: string, ignoreCase = false)->bool fail
     {
         .compile(expr, ignoreCase)
         return .match(str)
@@ -269,7 +269,7 @@ impl RegExp
     }
 
     // Find all the occurences in the string
-    public func grepAll(expr: string, str: #null string)->Array'(string) throw
+    public func grepAll(expr: string, str: #null string)->Array'(string) fail
     {
         var r = create(expr)
         return r.grepAll(str)
@@ -317,7 +317,7 @@ impl RegExp
     }
 
     // Find the first occurence in the string
-    public func grep(expr: string, str: #null string)->#null string throw
+    public func grep(expr: string, str: #null string)->#null string fail
     {
         var r = create(expr)
         return r.grep(str)
@@ -874,10 +874,10 @@ impl RegExp
         h.value.add(toNode)
     }
 
-    mtd nfaPop()->*NfaTable throw
+    mtd nfaPop()->*NfaTable fail
     {
         if .nfaStack.isEmpty() do
-            throw SyntaxError{"nfaPop"}
+            fail SyntaxError{"nfaPop"}
         return .nfaStack.popBack()
     }
 
@@ -924,7 +924,7 @@ impl RegExp
         return false
     }
 
-    mtd unionValidate() throw
+    mtd unionValidate() fail
     {
         if .orOpStack.isEmpty() do
             return
@@ -949,7 +949,7 @@ impl RegExp
         .operatorUnion()
     }
 
-    mtd operatorUnion() throw
+    mtd operatorUnion() fail
     {
         let table2 = .nfaPop()
         let table1 = .nfaPop()
@@ -975,7 +975,7 @@ impl RegExp
         .nfaStack.add(table1)
     }
 
-    mtd operatorConcat(cpt: u64, canGroup = true, logicalRank: u32 = 0) throw
+    mtd operatorConcat(cpt: u64, canGroup = true, logicalRank: u32 = 0) fail
     {
         var count = cpt
         while count >= 2
@@ -1038,7 +1038,7 @@ impl RegExp
         }
     }
 
-    mtd operatorStar() throw
+    mtd operatorStar() fail
     {
         let table = .nfaPop()
         let s1    = table.nodes.front()
@@ -1066,7 +1066,7 @@ impl RegExp
         .nfaStack.add(table)
     }
 
-    mtd operatorPlus() throw
+    mtd operatorPlus() fail
     {
         let table = .nfaPop()
         let s1    = table.nodes.front()
@@ -1075,7 +1075,7 @@ impl RegExp
         .nfaStack.add(table)
     }
 
-    mtd operatorQuestion() throw
+    mtd operatorQuestion() fail
     {
         let table = .nfaPop()
         let s1    = table.nodes.front()
@@ -1108,7 +1108,7 @@ impl RegExp
         return false
     }
 
-    mtd nfaBuild() throw
+    mtd nfaBuild() fail
     {
         if .preprocessed.isEmpty()
         {
@@ -1138,7 +1138,7 @@ impl RegExp
 
             case ')':
                 if .openParen.isEmpty() do
-                    throw SyntaxError{"unexpected right parenthesis"}
+                    fail SyntaxError{"unexpected right parenthesis"}
                 let op = .openParen.popBack()
                 if .nfaStack.count == op do
                     .nfaPushEmpty()
@@ -1204,9 +1204,9 @@ impl RegExp
         // Remaining operators
         .unionValidate()
         if !.orOpStack.isEmpty() do
-            throw SyntaxError{}
+            fail SyntaxError{}
         if !.openParen.isEmpty() do
-            throw SyntaxError{"missing ')'"}
+            fail SyntaxError{"missing ')'"}
 
         // Concat the remaining nodes
         .operatorConcat(.nfaStack.count, true, 0)
@@ -1280,7 +1280,7 @@ impl RegExp
         return true
     }
 
-    mtd dfaBuild() throw
+    mtd dfaBuild() fail
     {
         // One table must remain
         let table = .nfaPop()
@@ -1336,7 +1336,7 @@ impl RegExp
     }
 
     #[Swag.Discardable]
-    mtd preprocessInter(sl: const [..] rune)->const [*] rune throw
+    mtd preprocessInter(sl: const [..] rune)->const [*] rune fail
     {
         var pz      = @dataof(sl)
         let pzStart = pz
@@ -1357,7 +1357,7 @@ impl RegExp
         while pz != pzEnd and pz[0] != ']'
         {
             if pz[0] == 0 do
-                throw SyntaxError{"unterminated '['"}
+                fail SyntaxError{"unterminated '['"}
 
             if !firstExp do
                 .preprocessed.add('|')
@@ -1439,7 +1439,7 @@ impl RegExp
                 }
 
                 if @countof(subSlice) >= 2 and pz[1] == ':' do
-                    throw SyntaxError{"invalid predefined class"}
+                    fail SyntaxError{"invalid predefined class"}
             }
 
             // Specified interval
@@ -1496,10 +1496,10 @@ impl RegExp
         return pz
     }
 
-    func toI32(pz, pzEnd: const [*] rune, val: *s32)->const [*] rune throw
+    func toI32(pz, pzEnd: const [*] rune, val: *s32)->const [*] rune fail
     {
         if !Unicode.isLatin1(pz[0]) or !Latin1.isDigit(cast(u8) pz[0]) do
-            throw SyntaxError{}
+            fail SyntaxError{}
 
         var pzStart = pz
         var n       = 0
@@ -1514,13 +1514,13 @@ impl RegExp
         return pzStart
     }
 
-    mtd preprocessEnum(sl: const [..] rune)->const [*] rune throw
+    mtd preprocessEnum(sl: const [..] rune)->const [*] rune fail
     {
         var pz    = @dataof(sl)
         let pzEnd = pz + @countof(sl)
 
         if .preprocessed.isEmpty() do
-            throw SyntaxError{"'{' without a previous expression"}
+            fail SyntaxError{"'{' without a previous expression"}
 
         var m = -1
         pz += 1
@@ -1543,9 +1543,9 @@ impl RegExp
         }
 
         if pz[0] != '}' do
-            throw SyntaxError{"enum, missing '}'"}
+            fail SyntaxError{"enum, missing '}'"}
         if m != -1 and m < n do
-            throw SyntaxError{"enum m < n in {n,m}"}
+            fail SyntaxError{"enum m < n in {n,m}"}
 
         pz += 1
         let expr      = .previousExpression()
@@ -1603,7 +1603,7 @@ impl RegExp
         return pz
     }
 
-    mtd previousExpression()->Array'rune throw
+    mtd previousExpression()->Array'rune fail
     {
         let pze      = (notnull .preprocessed.buffer) + .preprocessed.count - 1
         var pz1      = pze
@@ -1622,7 +1622,7 @@ impl RegExp
         }
 
         if cptParen do
-            throw SyntaxError{"missing '('"}
+            fail SyntaxError{"missing '('"}
 
         var expr: retval
         while pz1 <= pze
@@ -1692,7 +1692,7 @@ impl RegExp
         return result
     }
 
-    mtd preprocessUnicode(sl: const [..] rune)->const [*] rune throw
+    mtd preprocessUnicode(sl: const [..] rune)->const [*] rune fail
     {
         let pz    = @dataof(sl) + 2
         let pzEnd = @dataof(sl) + @countof(sl)
@@ -1738,17 +1738,17 @@ impl RegExp
             return pz + 1
         }
 
-        throw SyntaxError{"invalid unicode property"}
+        fail SyntaxError{"invalid unicode property"}
     }
 
-    mtd preprocessEscape(sl: const [..] rune, inInter = false)->const [*] rune throw
+    mtd preprocessEscape(sl: const [..] rune, inInter = false)->const [*] rune fail
     {
         var pz = @dataof(sl)
         let c  = dref pz
         if c == '\\'
         {
             if pz[1] == 0 do
-                throw SyntaxError{"unterminated escape"}
+                fail SyntaxError{"unterminated escape"}
 
             if isReservedChar(pz[1])
             {
@@ -1836,7 +1836,7 @@ impl RegExp
                 return pz + 2
             }
 
-            throw SyntaxError{"invalid escape"}
+            fail SyntaxError{"invalid escape"}
         }
 
         if c == '^' and !inInter do
@@ -2004,7 +2004,7 @@ impl RegExp
         }
     }
 
-    mtd preprocess(inStr: string) throw
+    mtd preprocess(inStr: string) fail
     {
         var in32 = Unicode.fromUtf8(inStr)
         addParenthesis(&in32)

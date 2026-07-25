@@ -126,7 +126,7 @@ using Core
 func day10B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "10.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     #[Swag.Mixin]
     func toCheck()
@@ -150,7 +150,7 @@ func day10B()
         toCheck()
         if l != "noop"
         {
-            x += assume StrConv.toS32(l[5 to])
+            x += expect StrConv.toS32(l[5 to])
             toCheck()
         }
     }

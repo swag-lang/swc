@@ -2,10 +2,10 @@ using Swag, Core
 
 var Errors: [0xFF] string = undefined
 
-func fail(code: u8) throw
+func fault(code: u8) fail
 {
     let msg = Errors[code]
-    throw SystemError{msg ? msg : "truetype error"}
+    fail SystemError{msg ? msg : "truetype error"}
 }
 
 #init

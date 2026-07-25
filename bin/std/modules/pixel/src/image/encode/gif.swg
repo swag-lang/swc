@@ -399,14 +399,14 @@ public impl IImageEncoder for Encoder
         return Path.getExtensionLowerCase(fileName) == ".gif"
     }
 
-    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) throw
+    mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
-            throw InvalidFormatError{"invalid image"}
+            fail InvalidFormatError{"invalid image"}
         if image.width > Swag.U16.Max do
-            throw UnsupportedFormatError{"width is too big"}
+            fail UnsupportedFormatError{"width is too big"}
         if image.height > Swag.U16.Max do
-            throw UnsupportedFormatError{"height is too big"}
+            fail UnsupportedFormatError{"height is too big"}
 
         let palette = buildPalette(image)
         let packed  = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)

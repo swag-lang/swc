@@ -16,8 +16,8 @@ struct CodeGenLoweringPayload
     SymbolFunction* runtimeFunctionSymbol              = nullptr;
     ConstantRef     runtimeArrayFillCstRef             = ConstantRef::invalid();
     uint16_t        runtimeSafetyMask                  = 0;
-    AstNodeRef      throwableWrapperOwnerRef           = AstNodeRef::invalid();
-    TokenId         throwableWrapperTokenId            = TokenId::Invalid;
+    AstNodeRef      fallibleWrapperOwnerRef           = AstNodeRef::invalid();
+    TokenId         fallibleWrapperTokenId            = TokenId::Invalid;
     bool            ifVarDeclWhereUsesConditionBinding = false;
     bool            assumeNullable                     = false;
 
@@ -41,9 +41,9 @@ struct CodeGenLoweringPayload
         return runtimeArrayFillTypeRef.isValid() && runtimeArrayFillCstRef.isValid();
     }
 
-    bool hasThrowableWrapper() const
+    bool hasFallibleWrapper() const
     {
-        return throwableWrapperTokenId != TokenId::Invalid;
+        return fallibleWrapperTokenId != TokenId::Invalid;
     }
 };
 

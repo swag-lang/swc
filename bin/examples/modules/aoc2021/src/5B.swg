@@ -28,7 +28,7 @@ using Core
 func day5B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var r: Parser.RegExp
     var m: Array's32
@@ -39,7 +39,7 @@ func day5B()
 
     for l in lines
     {
-        assume
+        expect
         {
             discard r.match(#"(\d+),(\d+) -> (\d+),(\d+)"#, l)
             let x0 = StrConv.toS32(r.getCapture(1))

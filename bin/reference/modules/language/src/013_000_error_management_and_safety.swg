@@ -2,7 +2,7 @@
 /**
 Swag separates three concerns:
 
-- throwable functions propagate error values with 'throw', 'try', and 'catch';
+- fallible functions propagate error values with 'fail', 'try', and 'catch';
 - runtime safety guards detect invalid operations in generated code;
 - static sanity checks reject faults the compiler can prove.
 

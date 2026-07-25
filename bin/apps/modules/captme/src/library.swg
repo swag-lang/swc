@@ -9,7 +9,7 @@ struct Library
 
 impl Library
 {
-    func init() throw
+    func init() fail
     {
         let str = getFolder()
         if !Directory.exists(str) do
@@ -35,7 +35,7 @@ impl Library
         return Path.combine(getFolder(), ".trash")
     }
 
-    func enumerateTrash()->Array'File.FileInfo throw
+    func enumerateTrash()->Array'File.FileInfo fail
     {
         return try Directory.enumerateFiles(getTrashFolder(), ".captme")
     }
@@ -67,12 +67,10 @@ impl Library
     {
         let dst = uniqueName(dstFolder, srcFile)
 
-        catch File.duplicate(dst, srcFile)
-        if @err != null do
+        catch File.duplicate(dst, srcFile) else do
             return ""
 
-        catch File.delete(srcFile)
-        if @err != null
+        catch File.delete(srcFile) else
         {
             discard catch File.delete(dst)
             return ""

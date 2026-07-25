@@ -243,7 +243,7 @@ private impl TagBin
 
 impl TagBin
 {
-    mtd peekStructFieldCrcs(fieldCrcs: *Array'u32)->bool throw
+    mtd peekStructFieldCrcs(fieldCrcs: *Array'u32)->bool fail
     {
         let savedSeek = .stream.getSeek()
         defer .stream.setSeek(savedSeek)
@@ -279,29 +279,29 @@ impl TagBin
 
     // Initialize the deserializer with the given input byte array.
     // Sets up the private byte stream for reading from the provided data buffer.
-    mtd startRead(input: const [..] u8) throw
+    mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
     }
 
     // Begin reading the root container of the serialized data.
     // Validates the root signature to ensure the stream contains valid serialized data.
-    mtd beginRoot() throw
+    mtd beginRoot() fail
     {
         let sig = .stream.readNative'u32()
         if sig != Write.TagBinSignatures.Root do
-            throw SerializationError{"invalid root signature"}
+            fail SerializationError{"invalid root signature"}
         .version = .stream.readNative'u32()
     }
 
     // Finish reading the root container.
     // Currently no cleanup is required, but this maintains the symmetric begin/end API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endRoot() throw {}
+    mtd endRoot() fail {}
 
     // Begin reading a new section with the specified 'kind'.
     // Optionally skips reading the fat table if 'skipFat' is true for performance optimization.
-    mtd beginSection(kind: SectionKind, skipFat = false) throw
+    mtd beginSection(kind: SectionKind, skipFat = false) fail
     {
         let sec = .newSection()
         sec.kind    = kind
@@ -312,7 +312,7 @@ impl TagBin
         // Read fat position and count
         var sig = .stream.readNative'u32()
         if sig != Write.TagBinSignatures.Fat do
-            throw SerializationError{"invalid fat signature"}
+            fail SerializationError{"invalid fat signature"}
         let fatSeek  = .stream.readNative'u64()
         var fatCount = .stream.readNative'u64()
 
@@ -334,7 +334,7 @@ impl TagBin
             .stream.setSeek(fatSeek)
             sig = .stream.readNative'u32()
             if sig != Write.TagBinSignatures.Fat do
-                throw SerializationError{"invalid fat signature"}
+                fail SerializationError{"invalid fat signature"}
 
             while fatCount
             {
@@ -350,7 +350,7 @@ impl TagBin
 
     // Finish reading the current section.
     // Updates the stream position and releases the section back to the pool.
-    mtd endSection() throw
+    mtd endSection() fail
     {
         let sec = notnull .sections.back()
 
@@ -365,7 +365,7 @@ impl TagBin
 
     // Begin reading a struct of the given 'structType'.
     // Returns false for normal struct processing, true for special handling cases.
-    mtd beginStruct(structType: #null typeinfo, _structData: #null [*] u8)->bool throw
+    mtd beginStruct(structType: #null typeinfo, _structData: #null [*] u8)->bool fail
     {
         var sig = .stream.readNative'u32()
         if sig == Write.TagBinSignatures.Raw
@@ -373,7 +373,7 @@ impl TagBin
             // If the stream contains a 'raw' representation of the struct, and the requested
             // type is not a POD, then we can load in place.
             if !Reflection.hasAttribute(structType, Serialization.Final) do
-                throw SerializationError{"cannot convert a type from final to non final"}
+                fail SerializationError{"cannot convert a type from final to non final"}
 
             .beginSection(.Raw)
         }
@@ -385,7 +385,7 @@ impl TagBin
 
             // Read struct version
             if sig != Write.TagBinSignatures.Version do
-                throw SerializationError{"invalid version signature"}
+                fail SerializationError{"invalid version signature"}
             let streamVersion = .stream.readNative'u32()
 
             // Deal with version
@@ -398,7 +398,7 @@ impl TagBin
                 // The stream version is more recent than the code that tries to read it.
                 // Specific error, except if we want to try forward compatibility
                 if !.options.tryForward and curVersion < streamVersion do
-                    throw InvalidVersion{wantedVersion: curVersion, foundVersion: streamVersion}
+                    fail InvalidVersion{wantedVersion: curVersion, foundVersion: streamVersion}
 
                 // If this is the exact same version, then no need to read the fat, because everything
                 // is supposed to be in the correct order
@@ -414,14 +414,14 @@ impl TagBin
 
     // Finish reading the current struct.
     // Closes the current section that was opened by 'beginStruct'.
-    mtd endStruct() throw
+    mtd endStruct() fail
     {
         .endSection()
     }
 
     // Begin reading a field element identified by 'val'.
     // Returns true if the element exists in the stream and should be processed, false to skip it.
-    mtd beginElement(val: TypeValue)->bool throw
+    mtd beginElement(val: TypeValue)->bool fail
     {
         Debug.assert(!.sections.isEmpty(), "Missing a previous 'beginSection' call")
 
@@ -480,7 +480,7 @@ impl TagBin
 
         // We should have a matching crc
         if crcName != reqCrcName do
-            throw SerializationError{"bad field name", field: val}
+            fail SerializationError{"bad field name", field: val}
 
         // Read the type signature.
         let crcType = .stream.readNative'u32()
@@ -532,7 +532,7 @@ impl TagBin
             // The type exists, but we do not have a way to convert it to the requested
             // type.
             if !.canConvertType(val.pointedType, streamType) do
-                throw SerializationError{"cannot convert field type", field: val}
+                fail SerializationError{"cannot convert field type", field: val}
 
             // It's an array in the stream, but now we want a single value.
             // Skip the sequence header
@@ -541,12 +541,12 @@ impl TagBin
                 .convertArrayToVal = false
                 let sig = .stream.readNative'u32()
                 if sig != Write.TagBinSignatures.Sequence do
-                    throw SerializationError{"stream is corrupted", field: val}
+                    fail SerializationError{"stream is corrupted", field: val}
                 discard .stream.readNative'u64()
 
                 let arraySig = .stream.readNative'u32()
                 if arraySig != Write.TagBinSignatures.Raw and arraySig != Write.TagBinSignatures.UnRaw do
-                    throw SerializationError{"stream is corrupted", field: val}
+                    fail SerializationError{"stream is corrupted", field: val}
             }
         }
 
@@ -555,7 +555,7 @@ impl TagBin
 
     // Finish reading the current field element.
     // Clears any pending native type conversion state.
-    mtd endElement(_val: TypeValue) throw
+    mtd endElement(_val: TypeValue) fail
     {
         .convertNextNative = null
 
@@ -577,16 +577,16 @@ impl TagBin
     // Begin reading a value within the current context.
     // Currently no special processing is required, but this maintains the symmetric API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd beginValue() throw {}
+    mtd beginValue() fail {}
 
     // Finish reading a value within the current context.
     // Currently no cleanup is required, but this maintains the symmetric API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endValue() throw {}
+    mtd endValue() fail {}
 
     // Begin reading a sequence (array) of elements of type 'typeElem'.
     // Updates 'countElem' with the actual number of elements and returns true for bulk reading optimization.
-    mtd beginSequence(typeElem: #null typeinfo, data: #null *u8, countElem: *u64)->bool throw
+    mtd beginSequence(typeElem: #null typeinfo, data: #null *u8, countElem: *u64)->bool fail
     {
         let orgCount = dref countElem
         if .convertValToArray
@@ -597,7 +597,7 @@ impl TagBin
         {
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignatures.Sequence do
-                throw SerializationError{"stream is corrupted"}
+                fail SerializationError{"stream is corrupted"}
 
             // 0 for a dynamic array, > 0 for a static array
             dref countElem = .stream.readNative'u64()
@@ -615,7 +615,7 @@ impl TagBin
         {
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignatures.Raw and sig != Write.TagBinSignatures.UnRaw do
-                throw SerializationError{"stream is corrupted"}
+                fail SerializationError{"stream is corrupted"}
 
             return false
         }
@@ -627,7 +627,7 @@ impl TagBin
 
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignatures.Raw and sig != Write.TagBinSignatures.UnRaw do
-                throw SerializationError{"stream is corrupted"}
+                fail SerializationError{"stream is corrupted"}
 
             // The Raw/UnRaw signature records how the writer laid out the elements and is
             // authoritative. Honor it rather than re-deriving from this build's
@@ -642,7 +642,7 @@ impl TagBin
                 // 'Serialization.Final' toggle on a POD type, and fails cleanly rather than
                 // corrupting memory if the type became non-POD.
                 if !Reflection.isPod(valueType) do
-                    throw SerializationError{"cannot load a raw array into a non-pod element type"}
+                    fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
                 let vt       = notnull valueType
                 let elemSize = vt.sizeof
@@ -662,13 +662,13 @@ impl TagBin
 
             let sig = .stream.readNative'u32()
             if sig != Write.TagBinSignatures.Raw and sig != Write.TagBinSignatures.UnRaw do
-                throw SerializationError{"stream is corrupted"}
+                fail SerializationError{"stream is corrupted"}
 
             // Honor the stream's layout signature (see the dynamic-array case above).
             if sig == Write.TagBinSignatures.Raw
             {
                 if !Reflection.isPod(typeElem) do
-                    throw SerializationError{"cannot load a raw array into a non-pod element type"}
+                    fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
                 let te = notnull typeElem
                 .stream.readBytes(data, dref countElem * te.sizeof)
@@ -682,7 +682,7 @@ impl TagBin
     // Finish reading the current sequence.
     // Currently no cleanup is required, but this maintains the symmetric API.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd endSequence() throw {}
+    mtd endSequence() fail {}
 
     // Advance to the next element in the current sequence.
     // Decrements 'countElem' and returns false when no more elements remain.
@@ -719,7 +719,7 @@ impl TagBin
 
     // Read a native type value from the stream with automatic type conversion support.
     // Handles string types specially and performs type conversions when 'convertNextNative' is set.
-    mtd(NT) readNative()->NT throw
+    mtd(NT) readNative()->NT fail
     {
         #if NT == Core.String
         {

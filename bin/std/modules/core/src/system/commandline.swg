@@ -153,17 +153,17 @@ func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 }
 
 // Parse all the arguments and fill the result
-func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result throw
+func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result fail
 {
     #[Swag.Mixin]
-    func checkNext(typeField: typeinfo) throw
+    func checkNext(typeField: typeinfo) fail
     {
         if itp + 1 == maxItp do
-            throw SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
+            fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
 
         let nextArg = allArgs[itp + 1]
         if !nextArg.attachedValue and !isValue(nextArg.value, typeField, options) do
-            throw SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
+            fail SyntaxError{Errors.mkString(Format.toString("missing value for option [[%]]", oneArg))}
     }
 
     var result: retval
@@ -178,14 +178,14 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
     {
         var oneArg = allArgs[itp].value
         if !isOption(oneArg, options) do
-            throw SyntaxError{Errors.mkString(Format.toString("invalid option [[%]]", oneArg))}
+            fail SyntaxError{Errors.mkString(Format.toString("invalid option [[%]]", oneArg))}
 
         oneArg = Tokenize.eatCount(oneArg, 1)
 
         let fieldResult = getField(typeof, oneArg)
         let typeParam   = fieldResult.field
         if !typeParam do
-            throw SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
+            fail SyntaxError{Errors.mkString(Format.toString("unknown option [[%]]", oneArg))}
 
         let field     = typeParam
         let typeField = field.pointedType orelse #typeof(u8)
@@ -213,9 +213,9 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             itp += 1
 
             if @err != null do
-                throw SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
+                fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
             if @countof(rest) do
-                throw SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
+                fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
         }
 
         // Dynamic array of values
@@ -255,11 +255,11 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
             if collect != null do
                 discard catch StrConv.parseValue(addr, typeField, collect.toString())
             if @err != null do
-                throw SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
+                fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", oneArg))}
         }
         else
         {
-            throw UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]] for option [[%]]", typeField.name, oneArg))}
+            fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported type [[%]] for option [[%]]", typeField.name, oneArg))}
         }
 
         // Set the associated 'isSet' boolean to true

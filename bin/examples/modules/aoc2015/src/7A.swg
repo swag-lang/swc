@@ -52,7 +52,7 @@ using Core
     map.add("LSHIFT", "<<")
     map.add("RSHIFT", ">>")
 
-    assume
+    expect
     {
         for &l in File.readAllLines(dataPath)
         {

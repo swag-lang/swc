@@ -478,16 +478,16 @@ Result CodeGenSafety::emitMathCheck(CodeGen& codeGen, const AstNode& node)
 Result CodeGenSafety::emitAssumeCheck(CodeGen& codeGen, const AstNode& node)
 {
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
-    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Assume))
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Expect))
         return Result::Continue;
 
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
     SWC_ASSERT(panicFunction != nullptr);
-    return emitRuntimePanicCall(codeGen, *panicFunction, node, "assume on null value");
+    return emitRuntimePanicCall(codeGen, *panicFunction, node, "notnull on null value");
 }
 
 // A dynamic extraction (from 'any') can carry a null payload into a bare, non-null
-// destination type: guard the produced value like an implicit 'assume'.
+// destination type: guard the produced value like an implicit 'notnull'.
 Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, bool valueIsAddress, TypeRef resultTypeRef)
 {
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());

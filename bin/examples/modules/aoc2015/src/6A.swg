@@ -62,7 +62,7 @@ internal func day6EnsureInstructions()
         return
 
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     day6Instructions.reserve(lines.count)
     for line in lines

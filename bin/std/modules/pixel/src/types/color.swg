@@ -636,45 +636,45 @@ impl Core.StrConv.IPokeValue for Color
 {
     // Parse a Color from a string representation.
     // Supports hex format (0x...), individual ARGB components, or named colors.
-    mtd impl poke(buf: string)->string throw
+    mtd impl poke(buf: string)->string fail
     {
         var eat: u64
         var ovf: bool
 
         var one = Tokenize.eatSpaces(buf)
         if @countof(one) == 0 do
-            throw SyntaxError{}
+            fail SyntaxError{}
 
         if buf[0] == '0' and buf[1] | 32 == 'x'
         {
             (.argb, eat, ovf) = try parseU32(one)
             if ovf do
-                throw OverflowError{}
+                fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
         }
         elif Latin1.isDigit(buf[0])
         {
             (.a, eat, ovf) = try parseU8(one)
             if ovf do
-                throw OverflowError{}
+                fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
             one = Tokenize.eatSpaces(one)
                 (.r, eat, ovf) = try parseU8(one)
             if ovf do
-                throw OverflowError{}
+                fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
             one = Tokenize.eatSpaces(one)
                 (.g, eat, ovf) = try parseU8(one)
             if ovf do
-                throw OverflowError{}
+                fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
             one = Tokenize.eatSpaces(one)
                 (.b, eat, ovf) = try parseU8(one)
             if ovf do
-                throw OverflowError{}
+                fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
         }
         else

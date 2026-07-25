@@ -36,7 +36,7 @@ func nullSafetyEnabled()->bool
 // ---------------------------------------------------------------------------
 
 // Store through a null pointer (first field, offset 0).
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -45,7 +45,7 @@ func nullSafetyEnabled()->bool
 }
 
 // Store into a non-first field (non-zero offset) of a null pointer.
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -54,7 +54,7 @@ func nullSafetyEnabled()->bool
 }
 
 // Store through a null scalar pointer via `dref`.
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *s32 = null
@@ -63,7 +63,7 @@ func nullSafetyEnabled()->bool
 }
 
 // The null value propagates through a copy, then the copy is written through.
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -73,7 +73,7 @@ func nullSafetyEnabled()->bool
 
 // A read whose result is actually used (here in an assert) is not dead, so the
 // load survives and the null dereference is caught.
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null
@@ -83,7 +83,7 @@ func nullSafetyEnabled()->bool
 
 // Path-sensitive: the dereference is inside the branch where the guard proves the
 // pointer is null, so it is still reported.
-#[Swag.Safety(.Assume, false), Swag.Sanity(.Null, true)]
+#[Swag.Safety(.Expect, false), Swag.Sanity(.Null, true)]
 #test
 {
     var p: #null *NullDerefItem = null

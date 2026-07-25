@@ -30,7 +30,7 @@ func day5A()
 func day5A0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
     for l in lines
@@ -66,12 +66,12 @@ func day5A0()
 func day5A1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var total = 0
-    var r0    = assume Parser.RegExp.create("ab|cd|pq|xy")
-    var r1    = assume Parser.RegExp.create("[aeiou]")
-    var r2    = assume Parser.RegExp.create(#"([a-z])\1"#)
+    var r0    = expect Parser.RegExp.create("ab|cd|pq|xy")
+    var r1    = expect Parser.RegExp.create("[aeiou]")
+    var r2    = expect Parser.RegExp.create(#"([a-z])\1"#)
     for l in lines
     {
         if r0.grep(l) do

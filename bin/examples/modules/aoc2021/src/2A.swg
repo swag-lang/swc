@@ -35,13 +35,13 @@ using Core
 func day2A()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     var h, d: u64
     for l in lines
     {
         let cmd = Tokenize.split(l, ' ''u8)
-        let val = assume StrConv.toS32(cmd[1])
+        let val = expect StrConv.toS32(cmd[1])
         switch cmd[0]
         {
         case "forward": h += val

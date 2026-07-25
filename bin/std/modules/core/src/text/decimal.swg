@@ -361,7 +361,7 @@ impl Decimal
         }
     }
 
-    mtd readF64(str: const [..] u8)->u32 throw
+    mtd readF64(str: const [..] u8)->u32 fail
     {
         var cpt     = 0'u32
         let countof = @countof(str)
@@ -377,13 +377,13 @@ impl Decimal
             buffer, cpt += 1
             .neg        = true
             if !Latin1.isDigit(dref buffer) and cpt == countof do
-                throw ParseIncompleteError{}
+                fail ParseIncompleteError{}
         }
         elif c == plusSign
         {
             buffer, cpt += 1
             if !Latin1.isDigit(dref buffer) and cpt == countof do
-                throw ParseIncompleteError{}
+                fail ParseIncompleteError{}
         }
 
         // digits
@@ -437,7 +437,7 @@ impl Decimal
         }
 
         if !sawDigits do
-            throw SyntaxError{}
+            fail SyntaxError{}
         if !sawdot do
             .dp = .nd
 
@@ -447,7 +447,7 @@ impl Decimal
         {
             cpt, buffer += 1
             if cpt >= countof do
-                throw ParseIncompleteError{}
+                fail ParseIncompleteError{}
 
             var esign = 1
             c = dref buffer
@@ -457,18 +457,18 @@ impl Decimal
                 esign       = -1
                 c           = dref buffer
                 if !Latin1.isDigit(c) and cpt >= countof do
-                    throw ParseIncompleteError{}
+                    fail ParseIncompleteError{}
             }
             elif c == plusSign
             {
                 buffer, cpt += 1
                 c           = dref buffer
                 if !Latin1.isDigit(c) and cpt >= countof do
-                    throw ParseIncompleteError{}
+                    fail ParseIncompleteError{}
             }
 
             if cpt >= countof or c < '0' or c > '9' do
-                throw SyntaxError{}
+                fail SyntaxError{}
 
             var e = 0
             while cpt < countof

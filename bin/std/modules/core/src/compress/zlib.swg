@@ -13,7 +13,7 @@ struct ZLib
 impl ZLib
 {
     // Decompress stream
-    mtd compress(buffer: const [..] u8, level = Deflate.CompressionLevel.Default)->Array'u8 throw
+    mtd compress(buffer: const [..] u8, level = Deflate.CompressionLevel.Default)->Array'u8 fail
     {
         var result: retval
 
@@ -32,21 +32,21 @@ impl ZLib
     }
 
     // Decompress stream. hintSize pre-reserves the output buffer to avoid realloc churn.
-    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0)->Array'u8 throw
+    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0)->Array'u8 fail
     {
         var bs = ByteStream.openRead(buffer)
         if bs.length() < 6 do
-            throw InvalidFormatError{"invalid format"}
+            fail InvalidFormatError{"invalid format"}
 
         // Compression mtd (8 is "deflate")
         let cmf = bs.readU8()
         if cmf & 0xF != 8 do
-            throw InvalidFormatError{"invalid compression mtd"}
+            fail InvalidFormatError{"invalid compression mtd"}
 
         // Window size
         let cinfo = (cmf >> 4) & 0xF
         if cinfo > 7 do
-            throw UnsupportedFormatError{"unsupported window size"}
+            fail UnsupportedFormatError{"unsupported window size"}
         let winSize = 1'u32 << (cinfo + 8)
 
         // Check
@@ -55,7 +55,7 @@ impl ZLib
         // Dict
         let fdict = (flg >> 5) & 1
         if fdict do
-            throw UnsupportedFormatError{"unsupported dictionnary"}
+            fail UnsupportedFormatError{"unsupported dictionnary"}
 
         // Compression level
         // var flevel = (flg >> 6) & 3
@@ -72,7 +72,7 @@ impl ZLib
                       .decoder.stream.readBits(8) << 8 |
                       .decoder.stream.readBits(8)
         if adler32 != .decoder.adler.adler do
-            throw InvalidFormatError{"invalid checksum"}
+            fail InvalidFormatError{"invalid checksum"}
 
         return result
     }

@@ -58,7 +58,7 @@ internal var total = Swag.S32.Max
 func day3A0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     func trace(idx: s32, line: string)
     {
@@ -85,7 +85,7 @@ func day3A0()
                 dy = 0
             }
 
-            let val = assume StrConv.toS32(v[1 to])
+            let val = expect StrConv.toS32(v[1 to])
             for val
             {
                 x = x + dx
@@ -113,7 +113,7 @@ func day3A0()
 func day3A1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
-    let lines    = assume File.readAllLines(dataPath)
+    let lines    = expect File.readAllLines(dataPath)
 
     func trace(line: string)->Array'Vector2
     {
@@ -122,7 +122,7 @@ func day3A1()
         result.add(pos)
         for v in Tokenize.split(line, ',''u8)
         {
-            let val = assume StrConv.toF32(v[1 to])
+            let val = expect StrConv.toF32(v[1 to])
             switch v[0]
             {
             case 'U': pos += {0, -val}

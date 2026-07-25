@@ -34,7 +34,7 @@ runtime precondition or as an overload constraint; use ordinary code or a
 
 ```swag
 cast  catch  discard  dref  expect  fail  false  notnull
-null  orfail  retval  true  try  undefined
+null  retval  true  try  undefined
 ```
 
 'not' is reserved for future use.

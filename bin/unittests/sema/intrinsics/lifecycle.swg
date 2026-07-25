@@ -601,7 +601,7 @@ func intrinsicAutoDropTryCatchLoopInfo()->IntrinsicInfo
         for [i] in 2
         {
             let base       = cast(s32) (i * 3 + 1)
-            let value: s32 = intrinsicAutoDropTryCatchLoopStep(base) orfail 0
+            let value: s32 = catch intrinsicAutoDropTryCatchLoopStep(base)
             if value == 0
             {
                 second += 1

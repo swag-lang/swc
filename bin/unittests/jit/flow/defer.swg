@@ -582,7 +582,9 @@ func deferReturnDropInfo()->DeferDropInfo
     #assert(returnInfo.value == 7)
     #assert(returnInfo.trace == 32)
     #assert(throwTrace == 31)
-    #assert(catchTrace == 311)
+    // 'catch' now dismisses the error (like 'catch ... else'), so the '#nofail' defer runs on both:
+    // a plain catch and a catch-else produce the same trace.
+    #assert(catchTrace == 312)
     #assert(tryTrace == 312)
 }
 

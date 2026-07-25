@@ -635,7 +635,8 @@ func deferBreakToScope()->s64
 #test
 {
     @assert(deferConditionalThrowTrace() == 31)
-    @assert(deferConditionalCatchTrace() == 1241)
+    // 'catch' now dismisses the error (like 'catch ... else'), so the '#nofail' defer runs on both.
+    @assert(deferConditionalCatchTrace() == 1242)
     @assert(deferConditionalTryCatchTrace() == 1242)
 }
 

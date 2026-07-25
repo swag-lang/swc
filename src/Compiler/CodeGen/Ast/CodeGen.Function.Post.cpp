@@ -115,7 +115,6 @@ namespace
         Catch,
         TryCatch,
         Expect,
-        OrFail,
     };
 
     struct FallibleTarget
@@ -207,9 +206,6 @@ namespace
         {
             case TokenId::KwdCatch:
                 return FallibleHandlerKind::Catch;
-
-            case TokenId::KwdOrFail:
-                return FallibleHandlerKind::OrFail;
 
             case TokenId::KwdExpect:
                 return FallibleHandlerKind::Expect;
@@ -566,7 +562,6 @@ namespace
                 return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::CatchErr, "missing runtime helper '__catchErr'", nodeRef);
 
             case FallibleHandlerKind::TryCatch:
-            case FallibleHandlerKind::OrFail:
                 return emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::PopErr, "missing runtime helper '__popErr'", nodeRef);
 
             case FallibleHandlerKind::Expect:
@@ -1380,20 +1375,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     if (hasResult)
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
-        if (kind == FallibleHandlerKind::OrFail)
-        {
-            // 'orfail': the fallback value is generated HERE, on the failure path only, so
-            // it is truly lazy (never evaluated when the operand succeeds). It writes into
-            // the same result slot the success value inherited, joining both paths.
-            const AstTryCatchExpr& owner = codeGen.node(ownerRef).cast<AstTryCatchExpr>();
-            SWC_RESULT(codeGen.emitNodeNow(owner.nodeFallbackRef));
-            const CodeGenNodePayload& fallbackPayload = codeGen.payload(owner.nodeFallbackRef);
-            assignFallibleExprResult(codeGen, resultPayload, fallbackPayload, resultType);
-        }
-        else
-        {
-            SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
-        }
+        SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
     }
 
     // 'catch e as err': seed the captured local from the still-valid curError (the Catch cleanup
@@ -1413,20 +1395,18 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     }
 
     // 'catch e else { H }': the anonymous lazy handler runs here (failure path only).
-    bool ranHandler = false;
     if (codeGen.node(ownerRef).is(AstNodeId::TryCatchStmt))
     {
         const AstNodeRef handlerRef = codeGen.node(ownerRef).cast<AstTryCatchStmt>().nodeHandlerRef;
         if (handlerRef.isValid())
-        {
             SWC_RESULT(codeGen.emitNodeNow(handlerRef));
-            ranHandler = true;
-        }
     }
 
-    // Once the error has been captured or handled, dismiss it so it no longer counts as in-flight
-    // for '#fail'/'#nofail' defers (the caught error now lives in the 'err' local, if any).
-    if (errSym || ranHandler)
+    // 'catch' always dismisses the error: it has been handled here, so it must no longer count as
+    // in-flight for '#fail'/'#nofail' defers. The only way to keep the error is to capture its value
+    // with 'as err' (which copied it above, via __bindErr, before this clear). There is no lingering
+    // global error state to observe — the error is gone unless a local holds a copy.
+    if (kind == FallibleHandlerKind::Catch)
         SWC_RESULT(emitRuntimeHelperCallWithNoArgs(codeGen, IdentifierManager::RuntimeFunctionKind::EndErr, "missing runtime helper '__endErr'", nodeRef));
 
     builder.placeLabel(payload->fallibleDoneLabel);

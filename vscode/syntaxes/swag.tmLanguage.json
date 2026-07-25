@@ -80,7 +80,7 @@
       "patterns": [
         {
           "name": "keyword",
-          "match": "\\b(using|with|cast|dref|retval|try|catch|expect|orfail|notnull|fail|discard)\\b"
+          "match": "\\b(using|with|cast|dref|retval|try|catch|expect|notnull|fail|discard)\\b"
         }
       ]
     },

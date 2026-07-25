@@ -432,19 +432,6 @@ AstNodeRef Parser::parseExpression()
         return nodeRef;
     }
 
-    // 'e orfail V' catches a failure in the fallible expression 'e' and yields 'V'
-    // instead. It reuses the TryCatchExpr node (behaving like 'trycatch') but carries a
-    // lazily-evaluated fallback value produced only on the failure path.
-    if (is(TokenId::KwdOrFail))
-    {
-        const TokenRef   tokOp        = consume();
-        const AstNodeRef nodeFallback = parseExpression();
-        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TryCatchExpr>(tokOp);
-        nodePtr->nodeExprRef          = nodeExpr1;
-        nodePtr->nodeFallbackRef      = nodeFallback;
-        return nodeRef;
-    }
-
     if (is(TokenId::SymQuestion))
     {
         const TokenRef   tokOp     = consume();

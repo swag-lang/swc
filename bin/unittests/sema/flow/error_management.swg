@@ -32,7 +32,7 @@ func handleValue()->s32
 
 func dismissValue()->s32
 {
-    let value: s32 = mayThrowValue() orfail 0
+    let value: s32 = catch mayThrowValue()
     return value
 }
 

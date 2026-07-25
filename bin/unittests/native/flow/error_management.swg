@@ -383,14 +383,14 @@ func catchStrictEnumFailureInfo()->bool
 
 func tryCatchAggregateSuccess()->AggregateResult
 {
-    return aggregateSuccess(80) orfail AggregateResult{}
+    return catch aggregateSuccess(80)
 }
 
 func inlineTryCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    // 'orfail' dismisses the error and yields the fallback; there is no error to observe afterwards.
-    result.value  = inlineAlwaysThrowValue(42) orfail 0
+    // 'catch' without a capture dismisses the error; the fallback is the type default.
+    result.value  = catch inlineAlwaysThrowValue(42)
     result.hasErr = false
     result.code   = 0
     return result
@@ -399,8 +399,8 @@ func inlineTryCatchFailureInfo()->CatchInfo
 func tryCatchFailureInfo()->CatchInfo
 {
     var result: CatchInfo
-    // 'orfail' dismisses the error and yields the fallback; there is no error to observe afterwards.
-    result.value  = propagateBareFailure() orfail 0
+    // 'catch' without a capture dismisses the error; the fallback is the type default.
+    result.value  = catch propagateBareFailure()
     result.hasErr = false
     result.code   = 0
     return result
@@ -409,8 +409,8 @@ func tryCatchFailureInfo()->CatchInfo
 func tryCatchAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
-    // 'orfail' dismisses the error and yields the fallback; there is no error to observe afterwards.
-    result.value  = aggregateFailure(72) orfail AggregateResult{}
+    // 'catch' without a capture dismisses the error; the fallback is the type default.
+    result.value  = catch aggregateFailure(72)
     result.hasErr = false
     result.code   = 0
     return result
@@ -501,7 +501,7 @@ func catchNullableSliceFailureInfo()->NullInfo
 func tryCatchNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null *s32 = nullablePointerFailure(76) orfail null
+    let value:  #null *s32 = catch nullablePointerFailure(76)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -511,7 +511,7 @@ func tryCatchNullablePointerFailureInfo()->NullInfo
 func tryCatchNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null string = nullableStringFailure(77) orfail null
+    let value:  #null string = catch nullableStringFailure(77)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -521,7 +521,7 @@ func tryCatchNullableStringFailureInfo()->NullInfo
 func tryCatchNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  #null [..] s32 = nullableSliceFailure(78) orfail null
+    let value:  #null [..] s32 = catch nullableSliceFailure(78)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -569,7 +569,7 @@ func tryCatchErrDeferOverrideFailureInfo()->TraceInfo
     resetErrorTrace()
 
     var result: TraceInfo
-    result.value  = errDeferOverrideFailure() orfail 0
+    result.value  = catch errDeferOverrideFailure()
     result.trace  = ErrorTrace
     result.hasErr = false
     result.code   = 0
@@ -775,7 +775,7 @@ func assumeNullableSliceSuccess()->s32
 
 #test
 {
-    let value = aggregateSuccess(80) orfail AggregateResult{}
+    let value = catch aggregateSuccess(80)
     @assert(value.first == 80)
     @assert(value.second == 81)
     @assert(value.payload[0] == 82)

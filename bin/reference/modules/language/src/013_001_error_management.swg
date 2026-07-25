@@ -67,35 +67,20 @@ func recordTrace(name: #null string, out: *s32) fail
 
 /**
 # Dismissing Errors
-To dismiss a failure and continue, hand the fallible call to 'orfail' with a
-fallback value (see below). The error is dropped, and the expression yields the
-fallback instead.
+To dismiss a failure and continue with the type default, use 'catch' without a
+capture: the error is handled and dropped, and the expression yields the default
+value for the result type. To keep the error, add an 'as err' capture; to use a
+custom fallback, capture and branch ('var x = catch f() as err; if err != null do x = V').
 */
 func safeCount(name: #null string)->u64
 {
-    return count(name) orfail 0
+    return catch count(name)
 }
 
 #test
 {
     @assert(safeCount("hello") == 5)
     @assert(safeCount(null) == 0)
-}
-
-/**
-# Fallback Value with 'orfail'
-'e orfail V' catches a failure in the fallible expression 'e' and yields the
-fallback 'V' instead, dismissing the error. The fallback is an explicit value (it
-need not be the type default), and it is evaluated **lazily** — only when 'e'
-actually fails.
-*/
-#test
-{
-    let a = count("swag") orfail 99
-    @assert(a == 4)
-
-    let b = count(null) orfail 99
-    @assert(b == 99)     // 'orfail' dismisses the error and yields the fallback
 }
 
 /**

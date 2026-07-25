@@ -172,7 +172,6 @@ namespace
         {
             case TokenId::KwdCatch:
             case TokenId::KwdExpect:
-            case TokenId::KwdOrFail:
                 break;
             default:
                 return;
@@ -191,8 +190,6 @@ namespace
                 return SemaFrame::ErrorContextMode::Try;
             case TokenId::KwdCatch:
                 return SemaFrame::ErrorContextMode::Catch;
-            case TokenId::KwdOrFail:
-                return SemaFrame::ErrorContextMode::TryCatch;
             case TokenId::KwdExpect:
                 return SemaFrame::ErrorContextMode::Expect;
             default:
@@ -505,10 +502,6 @@ namespace
         {
             case TokenId::KwdCatch:
                 SWC_RESULT(SemaHelpers::requireRuntimeCatchScopeDependencies(sema, sema.curNode().codeRef()));
-                break;
-
-            case TokenId::KwdOrFail:
-                SWC_RESULT(SemaHelpers::requireRuntimePopScopeDependencies(sema, sema.curNode().codeRef()));
                 break;
 
             case TokenId::KwdExpect:
@@ -1516,18 +1509,6 @@ Result AstTryCatchExpr::semaPostNode(Sema& sema) const
             resultTypeRef = narrowedTypeRef;
     }
     sema.setType(sema.curNodeRef(), resultTypeRef);
-
-    // 'orfail' replaces the dismissed error outcome with an explicit fallback value, so
-    // that value must convert to the operand's success type. Unlike 'trycatch', 'orfail'
-    // needs no implicit type-default (the fallback provides one), which lets it cover
-    // types that have no default at all.
-    if (sema.token(codeRef()).id == TokenId::KwdOrFail && nodeFallbackRef.isValid() &&
-        resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid())
-    {
-        SemaNodeView fallbackView = sema.viewNodeTypeConstant(nodeFallbackRef);
-        SWC_RESULT(SemaCheck::isValue(sema, fallbackView.nodeRef()));
-        SWC_RESULT(Cast::cast(sema, fallbackView, resultTypeRef, CastKind::Implicit));
-    }
 
     const bool requiresNullableAssumeRuntimeCheck = codeGenPayload && codeGenPayload->assumeNullable && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
     if (exprView.cstRef().isValid() && !requiresNullableAssumeRuntimeCheck)

@@ -115,7 +115,6 @@ SWC_TOKEN_DEF(KwdDefault, "default",  TokenIdKindE::Keyword | TokenIdKindE::Logi
 SWC_TOKEN_DEF(KwdAnd, "and",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdOr, "or",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdOrElse, "orelse",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
-SWC_TOKEN_DEF(KwdOrFail, "orfail",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 
 SWC_TOKEN_DEF(KwdTo, "to",  TokenIdKindE::Keyword | TokenIdKindE::Logic)
 SWC_TOKEN_DEF(KwdUntil, "until",  TokenIdKindE::Keyword | TokenIdKindE::Logic)

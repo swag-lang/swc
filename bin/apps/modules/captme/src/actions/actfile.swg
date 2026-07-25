@@ -207,9 +207,9 @@ impl IActionUI for ActionFile
             let file = Library.newFileName()
             catch File.duplicate(file, capture.file) else {}
 
-            let newCapture = Capture.load(file) orfail null
+            let newCapture = catch Capture.load(file)
 
-            // `Capture.load` is fallible; `orfail null` swallows a failure and yields null,
+            // `Capture.load` is fallible; `catch` swallows a failure and yields null,
             // so guard before dereferencing to avoid a null crash and abort the duplication.
             if !newCapture
             {
@@ -225,7 +225,7 @@ impl IActionUI for ActionFile
             Memory.delete(loaded)
             g_Library.addFile(file)
 
-            let dupCapture = main.recentWnd.addRecent(file, true, true) orfail null
+            let dupCapture = catch main.recentWnd.addRecent(file, true, true)
             Memory.delete(dupCapture)
 
         case RenameCapture:

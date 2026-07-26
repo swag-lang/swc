@@ -27,16 +27,16 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    let pair = DestructPair{x: 10, y: 20}
-        let {a, b} = pair
+    let pair   = DestructPair{x: 10, y: 20}
+    let {a, b} = pair
     @assert(a == 10)
     @assert(b == 20)
 }
 
 #test
 {
-    var pair = DestructPair{x: 10, y: 20}
-        var {a, b} = pair
+    var pair   = DestructPair{x: 10, y: 20}
+    var {a, b} = pair
     @assert(a == 10)
     @assert(b == 20)
     a = 100
@@ -82,44 +82,44 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
 #test
 {
-    let t = {x: 1.0, y: 2.0, z: 3.0}
-        let {a, ?} = {x: 10, y: 20}
+    let t      = {x: 1.0, y: 2.0, z: 3.0}
+    let {a, ?} = {x: 10, y: 20}
     @assert(a == 10)
-        let {?, b} = {x: 10, y: 20}
+    let {?, b} = {x: 10, y: 20}
     @assert(b == 20)
 }
 
 #test
 {
-    let t = {a: 1's32, b: 2's32, c: 3's32}
-        let {?, ?, c} = t
+    let t         = {a: 1's32, b: 2's32, c: 3's32}
+    let {?, ?, c} = t
     @assert(c == 3)
-        let {x, ?, ?} = t
+    let {x, ?, ?} = t
     @assert(x == 1)
-        let {?, y, ?} = t
+    let {?, y, ?} = t
     @assert(y == 2)
 }
 
 #test
 {
-    let point = DestructPair{x: 10, y: 20}
-        let {y: second, x: first} = point
+    let point                 = DestructPair{x: 10, y: 20}
+    let {y: second, x: first} = point
     @assert(first == 10)
     @assert(second == 20)
 
-        let {x: onlyX} = point
+    let {x: onlyX} = point
     @assert(onlyX == 10)
 }
 
 #test
 {
-    let namedThenUnnamed = {x: 11's32, 22's32}
-        let {item1: second, x: first} = namedThenUnnamed
+    let namedThenUnnamed          = {x: 11's32, 22's32}
+    let {item1: second, x: first} = namedThenUnnamed
     @assert(first == 11)
     @assert(second == 22)
 
-    let unnamedThenNamed = {33's32, y: 44's32}
-        let {y: fourth, item0: third} = unnamedThenNamed
+    let unnamedThenNamed          = {33's32, y: 44's32}
+    let {y: fourth, item0: third} = unnamedThenNamed
     @assert(third == 33)
     @assert(fourth == 44)
 }
@@ -130,21 +130,21 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
     var first:  s32
     var second: s32
     #[Swag.Safety(.Overflow, false)]
-        {y: second, x: first} = point
+    {y: second, x: first} = point
     @assert(first == 51)
     @assert(second == 52)
 
     first  = 0
     second = 0
     if true do
-        {x: first, y: second} = point
+    {x: first, y: second} = point
     @assert(first == 51)
     @assert(second == 52)
 
     first  = 0
     second = 0
     #static if true do
-        {y: second, x: first} = point
+    {y: second, x: first} = point
     @assert(first == 51)
     @assert(second == 52)
 
@@ -255,8 +255,8 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
 
     func read(n: const [..] u32, s: u32)->{ next, sum: u32 }
     {
-        var start = s
-            let {nc, nm} = {n[start], n[start + 1]}
+        var start    = s
+        let {nc, nm} = {n[start], n[start + 1]}
         start += 2
 
         if !nc
@@ -271,7 +271,7 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
         for [i] in nc
         {
             var sum: u32
-            {start, sum} = read(n, start)
+            {start, sum}   = read(n, start)
             childValues[i] = sum
         }
 
@@ -286,11 +286,11 @@ func jitMakeAssignDestructRet(first, second: u32)->JitAssignDestructRet
         return {start + nm, sum}
     }
 
-        let {nextLeaf, sumLeaf} = read(data[to], 2)
+    let {nextLeaf, sumLeaf} = read(data[to], 2)
     @assert(nextLeaf == 7)
     @assert(sumLeaf == 33)
 
-        let {nextBranch, sumBranch} = read(data[to], 7)
+    let {nextBranch, sumBranch} = read(data[to], 7)
     @assert(nextBranch == 13)
     @assert(sumBranch == 0)
 

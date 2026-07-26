@@ -125,16 +125,16 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         if c == 'x''u8
         {
             let one = Tokenize.eatCount(str, 2)
-                {result.value, result.eat, result.ovf} = try parseX64(one)
-            result.eat += 2
+            {result.value, result.eat, result.ovf} = try parseX64(one)
+            result.eat                             += 2
             return result
         }
 
         if c == 'b''u8
         {
             let one = Tokenize.eatCount(str, 2)
-                {result.value, result.eat, result.ovf} = try parseB64(one)
-            result.eat += 2
+            {result.value, result.eat, result.ovf} = try parseB64(one)
+            result.eat                             += 2
             return result
         }
     }

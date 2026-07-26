@@ -12,17 +12,17 @@ using Swag, Core
     voice.file              = &file
     voice.requestedEncoding = .Pcm16
 
-        let {buffer0, size0} = catch voice.readBuffer() as err2
+    let {buffer0, size0} = catch voice.readBuffer() as err2
     @assert(err2 == null)
     audioAssertBufferBytes(buffer0, size0, [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F])
     @assert(voice.streamCurSeek == file.dataSize)
 
-        let {_, size1} = catch voice.readBuffer() as err3
+    let {_, size1} = catch voice.readBuffer() as err3
     @assert(err3 == null)
     @assert(size1 == 0)
 
     voice.playFlags = .Loop
-        let {buffer2, size2} = catch voice.readBuffer() as err4
+    let {buffer2, size2} = catch voice.readBuffer() as err4
     @assert(err4 == null)
     audioAssertBufferBytes(buffer2, size2, [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F])
     @assert(voice.streamCurSeek == file.dataSize)

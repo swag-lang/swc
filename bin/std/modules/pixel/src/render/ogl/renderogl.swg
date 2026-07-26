@@ -416,7 +416,7 @@ impl RenderOgl
             return
 
         glEnable(GL_SCISSOR_TEST)
-            let {?, h} = .getTargetSize()
+        let {?, h} = .getTargetSize()
         glScissor(cast(GLint) rect.x, cast(GLint) (h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
     }
 
@@ -861,8 +861,8 @@ impl RenderOgl
             .setBlendingMode(params.mode)
 
         case Clear:
-            let params = &cmd.clear
-                let {a, r, g, b} = params.color.toArgbf()
+            let params       = &cmd.clear
+            let {a, r, g, b} = params.color.toArgbf()
             glClearColor(r, g, b, a)
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
@@ -1211,7 +1211,7 @@ impl RenderOgl
             return
         }
 
-            let {width, height} = .getTargetSize()
+        let {width, height} = .getTargetSize()
         if width <= 0 or height <= 0 do
             return
 

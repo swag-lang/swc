@@ -97,8 +97,8 @@ impl DateTime
     // Parses an 8-bit unsigned integer from the buffer and updates the consumed character count
     internal func parseU8(buf: &string, eat: &u32)->u16 fail
     {
-        let view: string = buf
-            let {year, eat0, ovf} = StrConv.parseU8(view)
+        let view: string      = buf
+        let {year, eat0, ovf} = StrConv.parseU8(view)
         if ovf do
             fail SyntaxError{}
         eat += eat0
@@ -109,8 +109,8 @@ impl DateTime
     // Parses a 16-bit unsigned integer from the buffer and updates the consumed character count
     internal func parseU16(buf: &string, eat: &u32)->u16 fail
     {
-        let view: string = buf
-            let {year, eat0, ovf} = StrConv.parseU16(view)
+        let view: string      = buf
+        let {year, eat0, ovf} = StrConv.parseU16(view)
         if ovf do
             fail SyntaxError{}
         eat += eat0

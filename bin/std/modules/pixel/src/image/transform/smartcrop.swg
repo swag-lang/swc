@@ -328,10 +328,10 @@ public impl Image
             }
         }
 
-            // Normalize features, then combine
-            let {cLo, cHi} = estimatePercentiles(&contrast, N, 0.01, 0.99)
-            let {sLo, sHi} = estimatePercentiles(&sat, N, 0.01, 0.99)
-            let {eLo, eHi} = estimatePercentiles(&edgeMag, N, 0.01, 0.99)
+        // Normalize features, then combine
+        let {cLo, cHi} = estimatePercentiles(&contrast, N, 0.01, 0.99)
+        let {sLo, sHi} = estimatePercentiles(&sat, N, 0.01, 0.99)
+        let {eLo, eHi} = estimatePercentiles(&edgeMag, N, 0.01, 0.99)
 
         let cDen = Math.max(1e-6, cHi - cLo)
         let sDen = Math.max(1e-6, sHi - sLo)
@@ -528,7 +528,7 @@ public impl Image
             if cw > ctx.w or ch > ctx.h do
                 continue
 
-                let {fw, fh} = fitAspect(cw, ch, ctx.w, ctx.h, aspect, imgAspect)
+            let {fw, fh} = fitAspect(cw, ch, ctx.w, ctx.h, aspect, imgAspect)
             if fw < 4 or fh < 4 do
                 continue
 

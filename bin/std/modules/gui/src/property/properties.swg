@@ -696,7 +696,9 @@ impl Properties
                 mustShow = true
 
             if mustShow do
-                {mustShow, mustEnable} = .getItemState(item)
+            {
+                mustShow, mustEnable
+            } = .getItemState(item)
         }
 
         item.line.show(mustShow)
@@ -742,7 +744,7 @@ impl Properties
             {
                 scan.line.show()
 
-                    {?, mustEnable} = .getItemState(scan)
+                {?, mustEnable} = .getItemState(scan)
                 scan.line.enable(mustEnable)
 
                 scan = scan.parent

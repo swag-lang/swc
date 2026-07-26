@@ -141,8 +141,8 @@ impl IForm for FormDraw
         if .subKind == .PixSel
         {
             pl.close()
-                {bSize, dash} = .applyPixSelStyle(painter, cxt)
-            .backColor.a = 5
+            {bSize, dash} = .applyPixSelStyle(painter, cxt)
+            .backColor.a  = 5
             painter.fillPath(&pl, .backColor)
         }
 

@@ -93,16 +93,13 @@ impl SliderCtrl
             {
                 switch edit.inputMode
                 {
-                case .U64:
-                    let {val, ?, ?} = catch StrConv.parseU64(edit.text)
+                case .U64: let {val, ?, ?} = catch StrConv.parseU64(edit.text)
                     ctrl.slider.setValue(cast(f32) val)
 
-                case .S64:
-                    let {val, ?, ?} = catch StrConv.parseS64(edit.text)
+                case .S64: let {val, ?, ?} = catch StrConv.parseS64(edit.text)
                     ctrl.slider.setValue(cast(f32) val)
 
-                case .F64:
-                    let {val, ?, ?} = catch StrConv.parseF64(edit.text)
+                case .F64: let {val, ?, ?} = catch StrConv.parseF64(edit.text)
                     ctrl.slider.setValue(cast(f32) val)
                 }
             }

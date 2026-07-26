@@ -604,8 +604,8 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] rune)->u64
     var byteIdx = length
     for
     {
-        let sl = @mkslice(dataof, byteIdx)
-            let {c, eat} = decodeLastRune(sl)
+        let sl       = @mkslice(dataof, byteIdx)
+        let {c, eat} = decodeLastRune(sl)
         if eat == 0 do
             return Swag.U64.Max
 
@@ -700,7 +700,7 @@ func firstRune(src: const [..] u8)->rune
     let dataof = notnull @dataof(src)
     if Latin1.isAscii(dataof[0]) do
         return cast(rune) dataof[0]
-        let {c, ?} = Utf8.decodeRune(@mkslice(dataof, countof))
+    let {c, ?} = Utf8.decodeRune(@mkslice(dataof, countof))
     return c
 }
 
@@ -713,7 +713,7 @@ func lastRune(src: const [..] u8)->rune
     let dataof = notnull @dataof(src)
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune) dataof[countof - 1]
-        let {c, ?} = Utf8.decodeLastRune(@mkslice(dataof, countof))
+    let {c, ?} = Utf8.decodeLastRune(@mkslice(dataof, countof))
     return c
 }
 
@@ -800,8 +800,8 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
     var scan       = @dataof(buffer)
     while count
     {
-        let sl = @mkslice(scan, count)
-            let {curRune, eat} = decodeRune(sl)
+        let sl             = @mkslice(scan, count)
+        let {curRune, eat} = decodeRune(sl)
         if eat == 0 do
             break
 

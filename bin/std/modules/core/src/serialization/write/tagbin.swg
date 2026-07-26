@@ -316,8 +316,8 @@ impl TagBin
         // Just write them in one batch
         if Reflection.isStructArray(typeElem)
         {
-            let valueType = Reflection.getStructArrayType(typeElem)
-                let {raw, sizeof} = isPodFinal(valueType)
+            let valueType     = Reflection.getStructArrayType(typeElem)
+            let {raw, sizeof} = isPodFinal(valueType)
 
             if raw
             {

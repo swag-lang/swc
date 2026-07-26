@@ -119,8 +119,10 @@ private:
 
     AstNodeRef parseCompoundValue(AstNodeId blockNodeId);
     Result     parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId);
+    Result     parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds);
     SpanRef    parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId);
     SpanRef    parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId);
+    SpanRef    parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds);
     AstNodeRef parseGeneratedValue(ParserGeneratedMode mode);
     AstNodeRef parseGeneratedContent(ParserGeneratedMode mode);
 
@@ -140,6 +142,12 @@ private:
     AstNodeRef parseCompilerIfStmt();
     template<AstNodeId ID>
     AstNodeRef parseCompilerIf();
+    template<AstNodeId ID>
+    AstNodeRef parseCompilerIfBody(TokenRef tokRef, TokenId elseIfId, TokenId elseId);
+    template<AstNodeId ID>
+    AstNodeRef parseCompilerStatic();
+    template<AstNodeId ID>
+    AstNodeRef parseCompilerSwitch(TokenRef staticTokRef);
 
     template<AstNodeId ID>
     AstNodeRef parseCompound(TokenId tokenStartId)

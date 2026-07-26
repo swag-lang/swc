@@ -453,6 +453,59 @@ SWC_TEST_BEGIN(FormatBraces_CompilerIfChainAlignsAndBreaks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_StaticControl)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "    #static if X\n"
+        "    {\n"
+        "        return 1\n"
+        "    } elif Y\n"
+        "    {\n"
+        "        return 2\n"
+        "    } else\n"
+        "    {\n"
+        "        return 3\n"
+        "    }\n"
+        "    #static switch 2 {\n"
+        "    case 1: return 1\n"
+        "    case 2: return 2\n"
+        "    default: return 3\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    #static if X\n"
+        "    {\n"
+        "        return 1\n"
+        "    }\n"
+        "    elif Y\n"
+        "    {\n"
+        "        return 2\n"
+        "    }\n"
+        "    else\n"
+        "    {\n"
+        "        return 3\n"
+        "    }\n"
+        "    #static switch 2\n"
+        "    {\n"
+        "    case 1: return 1\n"
+        "    case 2: return 2\n"
+        "    default: return 3\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.braceStyle      = FormatBraceStyle::Allman;
+    options.breakBeforeElse = true;
+    options.caseBodyStyle   = FormatCaseBodyStyle::Uniform;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBraces_CompilerIfSingleLineChainStaysInline)
 {
     static constexpr std::string_view SOURCE =

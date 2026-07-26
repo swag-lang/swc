@@ -451,6 +451,26 @@ namespace
     }
 }
 
+TypeRef SemaSwitch::enumTypeRef(Sema& sema, TypeRef typeRef)
+{
+    return switchEnumTypeRef(sema, typeRef);
+}
+
+TypeRef SemaSwitch::caseCastTypeRef(Sema& sema, TypeRef switchTypeRef)
+{
+    return switchCaseCastTypeRef(sema, switchTypeRef);
+}
+
+Result SemaSwitch::normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView)
+{
+    return normalizeSwitchExprTypeInfoIfNeeded(sema, exprRef, exprView);
+}
+
+Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef)
+{
+    return validateSwitchExprType(sema, exprRef, exprTypeRef);
+}
+
 Result AstSwitchStmt::semaPreNode(Sema& sema) const
 {
     const bool isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);

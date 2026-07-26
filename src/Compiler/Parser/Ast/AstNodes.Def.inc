@@ -182,6 +182,8 @@ SWC_NODE_DEF(CompilerInject, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(CompilerIf, AstNodeIdFlagsE::SemaJob)
 SWC_NODE_DEF(CompilerElse, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(CompilerSwitch, AstNodeIdFlagsE::SemaJob)
+SWC_NODE_DEF(CompilerSwitchCase, AstNodeIdFlagsE::Zero)
 
 // ============================================================================
 //  Intrinsics / Internal Calls

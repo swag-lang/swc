@@ -770,11 +770,53 @@ namespace
                 {
                     const auto& stmt = node.cast<AstCompilerIf>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    if (span.valid() && model_->piece(span.minPiece).is(TokenId::CompilerElseIf))
+                    if (span.valid() && (model_->piece(span.minPiece).is(TokenId::CompilerElseIf) || model_->piece(span.minPiece).is(TokenId::KwdElseIf)))
                         addRole(span.minPiece, FormatRoleE::ElseKeyword);
 
                     markControlBody(stmt.nodeIfBlockRef, span.minPiece);
                     classifyElseBody(stmt.nodeElseBlockRef, span.minPiece);
+                    break;
+                }
+
+                case AstNodeId::CompilerSwitch:
+                {
+                    const auto& sw = node.cast<AstCompilerSwitch>();
+                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
+                    nextParent = node.id();
+
+                    const uint32_t firstCase = firstCompoundChildPiece(sw.spanCasesRef);
+                    uint32_t       open      = INVALID_PIECE;
+                    if (firstCase != INVALID_PIECE)
+                        open = prevCodeIf(firstCase, TokenId::SymLeftCurly);
+                    if (open == INVALID_PIECE)
+                    {
+                        const NodeSpan exprSpan = spanOf(sw.nodeExprRef);
+                        open                    = findHeaderOpenBrace(exprSpan.valid() ? exprSpan.maxPiece : span.minPiece);
+                    }
+                    registerBlock(open, FormatBlockKind::Switch, span.minPiece);
+                    break;
+                }
+
+                case AstNodeId::CompilerSwitchCase:
+                {
+                    addRole(span.minPiece, FormatRoleE::CaseLabel);
+                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
+
+                    const uint32_t depth = model_->piece(span.minPiece).depth;
+                    uint32_t       colon = INVALID_PIECE;
+                    for (uint32_t i = model_->nextPiece(span.minPiece); i != INVALID_PIECE; i = model_->nextPiece(i))
+                    {
+                        const FormatPiece& piece = model_->piece(i);
+                        if (piece.depth < depth ||
+                            (piece.depth == depth && (piece.is(TokenId::KwdCase) || piece.is(TokenId::KwdDefault) || piece.is(TokenId::SymRightCurly))))
+                            break;
+                        if (piece.is(TokenId::SymColon) && piece.depth == depth)
+                        {
+                            colon = i;
+                            break;
+                        }
+                    }
+                    addRole(colon, FormatRoleE::CaseColon);
                     break;
                 }
 

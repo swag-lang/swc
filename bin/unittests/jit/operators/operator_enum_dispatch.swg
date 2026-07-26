@@ -12,53 +12,56 @@ impl Vec
 {
     mtd(op: Swag.Operator) const opBinary(other: Vec)->Vec
     {
-        #if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return Vec{.x + other.x, .y + other.y}
-        #elif op == .Sub do
+        case .Sub:
             return Vec{.x - other.x, .y - other.y}
-        #elif op == .Mul do
+        case .Mul:
             return Vec{.x * other.x, .y * other.y}
-        #elif op == .BitXor do
+        case .BitXor:
             return Vec{.x ^ other.x, .y ^ other.y}
-        #elif op == .Shl do
+        case .Shl:
             return Vec{.x << other.x, .y << other.y}
-        #else do
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Unary '-' arrives as 'Neg' and unary '+' as 'Pos', so neither collides with the
     // binary 'Sub' and 'Add' handled above.
     mtd(op: Swag.Operator) const opUnary()->Vec
     {
-        #if op == .Neg do
+        #static switch op
+        {
+        case .Neg:
             return Vec{-.x, -.y}
-        #elif op == .Pos do
+        case .Pos:
             return Vec{.x, .y}
-        #elif op == .BitNot do
+        case .BitNot:
             return Vec{~.x, ~.y}
-        #else do
+        default:
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     mtd(op: Swag.Operator) opAssign(other: Vec)
     {
-        #if op == .AddAssign
+        #static switch op
         {
+        case .AddAssign:
             .x += other.x
             .y += other.y
-        }
-        #elif op == .SubAssign
-        {
+        case .SubAssign:
             .x -= other.x
             .y -= other.y
-        }
-        #elif op == .ShrAssign
-        {
+        case .ShrAssign:
             .x >>= other.x
             .y >>= other.y
-        }
-        #else do
+        default:
             #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 
@@ -135,14 +138,17 @@ impl Scaled
     #[Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->Scaled
     {
-        #if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return Scaled{.value + scalar}
-        #elif op == .Mul do
+        case .Mul:
             return Scaled{.value * scalar}
-        #elif op == .Sub do
+        case .Sub:
             return Scaled{.value - scalar}
-        #else do
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 

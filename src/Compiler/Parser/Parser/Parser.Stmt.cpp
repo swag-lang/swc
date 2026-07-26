@@ -793,6 +793,8 @@ AstNodeRef Parser::parseTopLevelStmt()
             return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::TopLevelBlock>();
+        case TokenId::CompilerStatic:
+            return parseCompilerStatic<AstNodeId::TopLevelBlock>();
 
         case TokenId::SymRightCurly:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
@@ -858,6 +860,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::EmbeddedBlock>();
+        case TokenId::CompilerStatic:
+            return parseCompilerStatic<AstNodeId::EmbeddedBlock>();
 
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);

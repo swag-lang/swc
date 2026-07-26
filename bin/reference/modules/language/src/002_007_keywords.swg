@@ -62,7 +62,7 @@ configuration, source inclusion, diagnostics, and code injection.
 #ast  #assert  #code  #dependencies  #elif  #else  #error
 #foreignlib  #global  #if  #import  #include  #inject
 #load  #main  #message  #premain  #print  #run  #scope
-#test  #type  #warning  #init  #drop
+#static  #test  #type  #warning  #init  #drop
 ```
 
 # Compile-Time Introspection

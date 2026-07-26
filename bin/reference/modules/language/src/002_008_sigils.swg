@@ -25,7 +25,10 @@ named '#Pairs'.
 Directives shape compilation or declare compiler-managed entry points:
 
 ```swag
-#if DEBUG
+#static if DEBUG
+{
+    // Included only when DEBUG is a compile-time true value.
+}
 #run { generateTables() }
 #test { @assert(parse("ok")) }
 ```

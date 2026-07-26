@@ -1,11 +1,22 @@
 #pragma once
 #include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 #include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
 class SymbolVariable;
+class Sema;
+struct SemaNodeView;
+
+namespace SemaSwitch
+{
+    TypeRef enumTypeRef(Sema& sema, TypeRef typeRef);
+    TypeRef caseCastTypeRef(Sema& sema, TypeRef switchTypeRef);
+    Result  normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView);
+    Result  validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef);
+}
 
 struct SwitchPayload
 {

@@ -18,6 +18,38 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    AstNodeRef compilerSwitchSelectedBody(CodeGen& codeGen, const AstCompilerSwitch& node)
+    {
+        const ConstantRef switchCstRef = codeGen.viewConstant(node.nodeExprRef).cstRef();
+        SWC_ASSERT(switchCstRef.isValid());
+
+        AstNodeRef   defaultBodyRef = AstNodeRef::invalid();
+        const Ast&   ast            = codeGen.ast();
+        const size_t count          = ast.spanSize(node.spanCasesRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const AstNodeRef caseRef  = ast.nthNode(node.spanCasesRef, i);
+            const auto&      caseNode = codeGen.node(caseRef).cast<AstCompilerSwitchCase>();
+            if (caseNode.spanExprRef.isInvalid())
+            {
+                defaultBodyRef = caseNode.nodeBodyRef;
+                continue;
+            }
+
+            const size_t exprCount = ast.spanSize(caseNode.spanExprRef);
+            for (size_t exprIndex = 0; exprIndex < exprCount; ++exprIndex)
+            {
+                const AstNodeRef  exprRef    = ast.nthNode(caseNode.spanExprRef, exprIndex);
+                const ConstantRef caseCstRef = codeGen.viewConstant(exprRef).cstRef();
+                SWC_ASSERT(caseCstRef.isValid());
+                if (caseCstRef == switchCstRef)
+                    return caseNode.nodeBodyRef;
+            }
+        }
+
+        return defaultBodyRef;
+    }
+
 #if SWC_DEV_MODE
     Utf8 formatCompilerIfMissingConstant(CodeGen& codeGen, AstNodeRef nodeConditionRef)
     {
@@ -443,6 +475,11 @@ Result AstCompilerIf::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& ch
         return Result::SkipChildren;
 
     return Result::Continue;
+}
+
+Result AstCompilerSwitch::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+{
+    return childRef == compilerSwitchSelectedBody(codeGen, *this) ? Result::Continue : Result::SkipChildren;
 }
 
 Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)

@@ -19,26 +19,62 @@ conditional compilation before referencing variables, constants, or functions.
 var Global = 0                          // Define a global variable 'Global'.
 
 /**
-# Static '#if'/'#elif'/'#else'
-Static conditional compilation. Expressions are evaluated at compile time to
-include or exclude code based on constants or conditions.
+# Static Control with '#static'
+'#static' applies compile-time semantics to the control statement that follows.
+The condition or selected value is evaluated at compile time, and only the
+selected branch is retained. The ordinary 'elif' and 'else' keywords complete a
+static 'if'; they do not repeat the '#static' prefix.
 */
 
 const DEBUG   = 1
 const RELEASE = 0
 
-#if DEBUG
+#static if DEBUG
 {
 // Compiled because DEBUG == 1.
 }
-#elif RELEASE
+elif RELEASE
 {
 // Would compile if RELEASE were true and DEBUG were false.
 }
-#else
+else
 {
 // Compiled if neither DEBUG nor RELEASE is true.
 }
+
+/**
+'#static switch' selects one section from a compile-time value. Multiple values
+can share a section, and 'default' is optional. Unlike a runtime 'switch', this
+construct does not create runtime control flow and does not use 'break' or
+'fallthrough'.
+*/
+
+enum StaticBuildMode
+{
+    Debug
+    Release
+}
+
+const StaticMode = StaticBuildMode.Release
+
+#static switch StaticMode
+{
+case .Debug:
+    #error("debug mode is not selected")
+
+case .Release:
+    const StaticSelection = 42
+
+default:
+    #error("unknown build mode")
+}
+
+#assert(StaticSelection == 42)
+
+/**
+The earlier '#if'/'#elif'/'#else' spellings remain accepted for compatibility.
+'#static' is the extensible form shared by static control statements.
+*/
 
 /**
 # The '#command' and '#cfg' Values
@@ -55,12 +91,12 @@ const RELEASE = 0
 replacement for safety and optimization attributes.
 
 ```swag
-#if #command == Swag.CompilerCommand.Test
+#static if #command == Swag.CompilerCommand.Test
 {
     // Test-only declarations.
 }
 
-#if #cfg == "release"
+#static if #cfg == "release"
 {
     // Release-specific declarations.
 }
@@ -73,7 +109,7 @@ replacement for safety and optimization attributes.
 '#warning' emits a compile-time warning without stopping compilation.
 Useful for enforcing checks and surfacing build-time information.
 */
-#if false
+#static if false
 {
     #error("this is an error")        // Compile-time error (if reached).
     #warning("this is a warning")     // Compile-time warning (if reached).
@@ -86,6 +122,7 @@ attributes across the entire file. Controls compilation and symbol visibility.
 
 Examples (write these as top-level directives):
   #global #if false                   // Skip file content.
+  #global #static if false            // Extensible spelling of the same file condition.
   #global #if #command == Swag.CompilerCommand.Format // Include this file only when formatting.
   #global #if #command == Swag.CompilerCommand.Test   // Include this file only when running tests.
   #global public                      // All symbols become public.

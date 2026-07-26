@@ -1142,6 +1142,36 @@ struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>
 };
 
 // -----------------------------------------------------------------------------
+struct AstCompilerSwitch : AstNodeT<AstNodeId::CompilerSwitch>
+{
+    AstNodeRef nodeExprRef;
+    SpanRef    spanCasesRef;
+
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    Result     semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPreNodeChild(Sema& sema, AstNodeRef& childRef) const;
+    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+};
+
+// -----------------------------------------------------------------------------
+struct AstCompilerSwitchCase : AstNodeT<AstNodeId::CompilerSwitchCase>
+{
+    SpanRef    spanExprRef;
+    AstNodeRef nodeBodyRef;
+
+    static void collectChildren(const SmallVector<AstNodeRef>& out, const Ast& ast)
+    {
+        SWC_UNUSED(out);
+        SWC_UNUSED(ast);
+    }
+
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+};
+
+// -----------------------------------------------------------------------------
 struct AstAttribute : AstNodeT<AstNodeId::Attribute>
 {
     AstNodeRef nodeCallRef;

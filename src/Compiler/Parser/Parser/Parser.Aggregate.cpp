@@ -50,6 +50,8 @@ AstNodeRef Parser::parseAggregateValue()
             return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::AggregateBody>();
+        case TokenId::CompilerStatic:
+            return parseCompilerStatic<AstNodeId::AggregateBody>();
 
         case TokenId::SymAttrStart:
             return parseAttributeList<AstNodeId::AggregateBody>();
@@ -171,6 +173,8 @@ AstNodeRef Parser::parseInterfaceValue()
             return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::InterfaceBody>();
+        case TokenId::CompilerStatic:
+            return parseCompilerStatic<AstNodeId::InterfaceBody>();
 
         case TokenId::KwdAlias:
             return parseAlias();

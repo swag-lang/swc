@@ -1660,6 +1660,24 @@ AstNodeRef AstCompilerElse::semaClone(Sema& sema, const CloneContext& cloneConte
     return newRef;
 }
 
+AstNodeRef AstCompilerSwitch::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerSwitch>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstCompilerSwitch>();
+    cloned.nodeExprRef      = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    cloned.spanCasesRef     = cloneSpan(sema, spanCasesRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstCompilerSwitchCase::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerSwitchCase>(sema, *this);
+    auto&            cloned = sema.node(newRef).cast<AstCompilerSwitchCase>();
+    cloned.spanExprRef      = cloneSpan(sema, spanExprRef, cloneContextAsInline(cloneContext));
+    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
 AstNodeRef AstCompilerScope::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerScope>(sema, *this);

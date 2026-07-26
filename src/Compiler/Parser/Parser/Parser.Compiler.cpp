@@ -367,7 +367,13 @@ template<AstNodeId ID>
 AstNodeRef Parser::parseCompilerIf()
 {
     SWC_ASSERT(isAny(TokenId::CompilerIf, TokenId::CompilerElseIf));
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(consume());
+    return parseCompilerIfBody<ID>(consume(), TokenId::CompilerElseIf, TokenId::CompilerElse);
+}
+
+template<AstNodeId ID>
+AstNodeRef Parser::parseCompilerIfBody(TokenRef tokRef, TokenId elseIfId, TokenId elseId)
+{
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(tokRef);
 
     // Parse the condition expression
     nodePtr->nodeConditionRef = parseCompilerExpression();
@@ -378,13 +384,101 @@ AstNodeRef Parser::parseCompilerIf()
 
     // Parse optional 'else' or 'elif' block. Else-if is nested in the else slot so
     // compiler-if chains have the same AST shape as regular if chains.
-    if (is(TokenId::CompilerElseIf))
-        nodePtr->nodeElseBlockRef = parseCompilerIf<ID>();
-    else if (consumeIf(TokenId::CompilerElse).isValid())
+    if (is(elseIfId))
+        nodePtr->nodeElseBlockRef = parseCompilerIfBody<ID>(consume(), elseIfId, elseId);
+    else if (consumeIf(elseId).isValid())
         nodePtr->nodeElseBlockRef = parseCompilerIfStmt<ID>();
     else
         nodePtr->nodeElseBlockRef.setInvalid();
 
+    return nodeRef;
+}
+
+template AstNodeRef Parser::parseCompilerStatic<AstNodeId::AggregateBody>();
+template AstNodeRef Parser::parseCompilerStatic<AstNodeId::InterfaceBody>();
+template AstNodeRef Parser::parseCompilerStatic<AstNodeId::EnumBody>();
+template AstNodeRef Parser::parseCompilerStatic<AstNodeId::TopLevelBlock>();
+template AstNodeRef Parser::parseCompilerStatic<AstNodeId::EmbeddedBlock>();
+
+template<AstNodeId ID>
+AstNodeRef Parser::parseCompilerStatic()
+{
+    const TokenRef staticTokRef = consumeAssert(TokenId::CompilerStatic);
+    if (consumeIf(TokenId::KwdIf).isValid())
+        return parseCompilerIfBody<ID>(staticTokRef, TokenId::KwdElseIf, TokenId::KwdElse);
+    if (consumeIf(TokenId::KwdSwitch).isValid())
+        return parseCompilerSwitch<ID>(staticTokRef);
+
+    const Diagnostic diag = reportError(DiagnosticId::parser_err_static_control, ref());
+    diag.report(*ctx_);
+    skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+    return AstNodeRef::invalid();
+}
+
+template<AstNodeId ID>
+AstNodeRef Parser::parseCompilerSwitch(TokenRef staticTokRef)
+{
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerSwitch>(staticTokRef);
+    nodePtr->nodeExprRef          = parseCompilerExpression();
+    if (nodePtr->nodeExprRef.isInvalid())
+        skipTo({TokenId::SymLeftCurly});
+
+    const TokenRef openRef = ref();
+    expectAndConsume(TokenId::SymLeftCurly, DiagnosticId::parser_err_expected_token_before);
+
+    SmallVector<AstNodeRef>    caseRefs;
+    const SmallVector<TokenId> caseEndIds = {TokenId::KwdCase, TokenId::KwdDefault, TokenId::SymRightCurly};
+    while (!atEnd() && isNot(TokenId::SymRightCurly))
+    {
+        if (!isAny(TokenId::KwdCase, TokenId::KwdDefault))
+        {
+            Diagnostic diag = reportError(DiagnosticId::parser_err_switch_expected_case, ref());
+            diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, openRef), DiagnosticId::parser_note_switch_body_starts_here, DiagnosticSeverity::Note);
+            diag.report(*ctx_);
+            skipTo(caseEndIds);
+            if (!isAny(TokenId::KwdCase, TokenId::KwdDefault))
+                break;
+        }
+
+        const TokenRef caseTokRef = consume();
+        const bool     isDefault  = ast_->srcView().token(caseTokRef).id == TokenId::KwdDefault;
+        auto [caseRef, casePtr]   = ast_->makeNode<AstNodeId::CompilerSwitchCase>(caseTokRef);
+
+        if (isDefault)
+        {
+            casePtr->spanExprRef.setInvalid();
+        }
+        else
+        {
+            SmallVector<AstNodeRef> exprRefs;
+            exprRefs.push_back(parseCompilerExpression());
+            while (consumeIf(TokenId::SymComma).isValid())
+                exprRefs.push_back(parseCompilerExpression());
+            casePtr->spanExprRef = ast_->pushSpan(exprRefs.span());
+        }
+
+        expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+
+        auto [bodyRef, bodyPtr]  = ast_->makeNode<ID>(caseTokRef);
+        bodyPtr->spanChildrenRef = parseCompoundContentUntil(ID, caseEndIds.span());
+        casePtr->nodeBodyRef     = bodyRef;
+        caseRefs.push_back(caseRef);
+
+        if (ast_->spanSize(bodyPtr->spanChildrenRef) == 0)
+        {
+            const Diagnostic diag = reportEmptySwitchCase(caseRef, ref(), is(TokenId::SymRightCurly) ? DiagnosticId::parser_note_switch_section_ends_here : DiagnosticId::parser_note_next_switch_section_starts_here);
+            diag.report(*ctx_);
+        }
+    }
+
+    if (caseRefs.empty())
+    {
+        const Diagnostic diag = reportEmptySwitchBody(openRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid());
+        diag.report(*ctx_);
+    }
+
+    nodePtr->spanCasesRef = ast_->pushSpan(caseRefs.span());
+    expectAndConsumeClosing(TokenId::SymRightCurly, openRef);
     return nodeRef;
 }
 
@@ -449,6 +543,13 @@ AstNodeRef Parser::parseCompilerGlobal()
     else if (is(TokenId::CompilerIf))
     {
         nodePtr->mode = AstCompilerGlobal::Mode::CompilerIf;
+        consume();
+        nodePtr->nodeModeRef = parseExpression();
+    }
+    else if (is(TokenId::CompilerStatic) && nextIs(TokenId::KwdIf))
+    {
+        nodePtr->mode = AstCompilerGlobal::Mode::CompilerIf;
+        consume();
         consume();
         nodePtr->nodeModeRef = parseExpression();
     }

@@ -6,6 +6,14 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool containsTokenId(std::span<const TokenId> tokenIds, TokenId tokenId)
+    {
+        return std::ranges::find(tokenIds, tokenId) != tokenIds.end();
+    }
+}
+
 AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 {
     switch (blockNodeId)
@@ -52,7 +60,15 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 
 Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 {
-    SmallVector skipTokens = {TokenId::SymComma, tokenEndId};
+    const std::array tokenEndIds = {tokenEndId};
+    return parseCompoundSeparatorUntil(blockNodeId, tokenEndIds);
+}
+
+Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds)
+{
+    SmallVector<TokenId> skipTokens = {TokenId::SymComma};
+    for (const TokenId tokenEndId : tokenEndIds)
+        skipTokens.push_back(tokenEndId);
     if (depthParen_)
         skipTokens.push_back(TokenId::SymRightParen);
     if (depthBracket_)
@@ -68,7 +84,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             break;
 
         case AstNodeId::EnumBody:
-            if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId) && !tok().startsLine())
+            if (consumeIf(TokenId::SymComma).isInvalid() && !containsTokenId(tokenEndIds, id()) && !tok().startsLine())
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
@@ -77,7 +93,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             break;
 
         case AstNodeId::AggregateBody:
-            if (consumeIf(TokenId::SymComma).isInvalid() && consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
+            if (consumeIf(TokenId::SymComma).isInvalid() && consumeIf(TokenId::SymSemiColon).isInvalid() && !containsTokenId(tokenEndIds, id()) && !tok().startsLine())
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
@@ -86,7 +102,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
             break;
 
         case AstNodeId::InterfaceBody:
-            if (consumeIf(TokenId::SymSemiColon).isInvalid() && !is(tokenEndId) && !tok().startsLine())
+            if (consumeIf(TokenId::SymSemiColon).isInvalid() && !containsTokenId(tokenEndIds, id()) && !tok().startsLine())
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymSemiColon);
                 skipTo(skipTokens);
@@ -103,7 +119,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
         case AstNodeId::FunctionExpr:
         case AstNodeId::LambdaType:
         case AstNodeId::QuotedListExpr:
-            if (consumeIf(TokenId::SymComma).isInvalid() && !is(tokenEndId))
+            if (consumeIf(TokenId::SymComma).isInvalid() && !containsTokenId(tokenEndIds, id()))
             {
                 raiseExpected(DiagnosticId::parser_err_expected_token_before, ref(), TokenId::SymComma);
                 skipTo(skipTokens);
@@ -137,8 +153,18 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
 
 SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openTokRef, TokenId tokenStartId)
 {
-    const TokenId tokenEndId = Token::toRelated(tokenStartId);
+    const TokenId    tokenEndId  = Token::toRelated(tokenStartId);
+    const std::array tokenEndIds = {tokenEndId};
+    const SpanRef    result      = parseCompoundContentUntil(blockNodeId, tokenEndIds);
 
+    if (consumeIf(tokenEndId).isInvalid() && tokenEndId != TokenId::Invalid)
+        raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(tokenStartId));
+
+    return result;
+}
+
+SpanRef Parser::parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds)
+{
     // Only blocks whose elements are declarations/statements can host a function
     // declaration, and thus a '#fwd' dual parse. Other compounds (parameter lists,
     // argument lists…) must not disturb the current '#fwd' pass state.
@@ -148,7 +174,7 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
                                   blockNodeId == AstNodeId::InterfaceBody;
 
     SmallVector<AstNodeRef> childrenRefs;
-    while (!atEnd() && isNot(tokenEndId))
+    while (!atEnd() && !containsTokenId(tokenEndIds, id()))
     {
         const Token* loopStartToken = curToken_;
 
@@ -208,7 +234,7 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
         }
 
         // Separator between statements
-        if (parseCompoundSeparator(blockNodeId, tokenEndId) == Result::Error)
+        if (parseCompoundSeparatorUntil(blockNodeId, tokenEndIds) == Result::Error)
         {
             if (depthParen_ && is(TokenId::SymRightParen))
                 break;
@@ -222,10 +248,6 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
             consume();
     }
 
-    if (consumeIf(tokenEndId).isInvalid() && tokenEndId != TokenId::Invalid)
-        raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(tokenStartId));
-
-    // Store
     return ast_->pushSpan(childrenRefs.span());
 }
 

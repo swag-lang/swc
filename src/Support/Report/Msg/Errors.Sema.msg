@@ -216,6 +216,8 @@ SWC_DIAG_DEF(sema_err_switch_dynamic_case, Error, "dynamic case does not name a 
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "switch case value is not constant; [help] use a compile-time constant case value")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicate constant case value '{value}'; [help] remove the duplicate case, or make one case conditional with 'where'")
 SWC_DIAG_DEF(sema_err_switch_multiple_default, Error, "multiple default cases in the same switch; [help] keep only one unconditional 'default' case")
+SWC_DIAG_DEF(sema_err_static_switch_case_duplicate, Error, "duplicate static case value '{value}'; [help] remove the duplicate case value")
+SWC_DIAG_DEF(sema_err_static_switch_multiple_default, Error, "static switch has more than one 'default' section; [help] keep one 'default' section")
 SWC_DIAG_DEF(sema_err_switch_complete_no_expr, Error, "'Complete' requires a switch expression; [help] write 'switch <expr>' when using 'Complete'")
 SWC_DIAG_DEF(sema_err_switch_complete_enum_not_exhaustive, Error, "switch on enum '{type}' is not exhaustive; [help] add the missing enum cases, or remove the 'Complete' attribute")
 SWC_DIAG_DEF(sema_err_switch_complete_has_default, Error, "'Complete' switch cannot have a default case; [help] remove 'default', or remove the 'Complete' attribute")

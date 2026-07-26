@@ -4,6 +4,7 @@
 #include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Parser/Parser/Parser.h"
+#include "Compiler/Sema/Ast/Sema.Switch.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -40,6 +41,20 @@ namespace
         SemaCompilerIf* elseData = nullptr;
     };
 
+    struct CompilerSwitchCaseSemaData
+    {
+        AstNodeRef      bodyRef = AstNodeRef::invalid();
+        SemaCompilerIf* branch  = nullptr;
+    };
+
+    struct CompilerSwitchSemaPayload
+    {
+        std::unordered_map<ConstantRef, AstNodeRef> seen;
+        SmallVector<CompilerSwitchCaseSemaData>     cases;
+        AstNodeRef                                  selectedBodyRef   = AstNodeRef::invalid();
+        bool                                        selectionResolved = false;
+    };
+
     ScopedBreakSemaPayload& ensureScopedBreakSemaPayload(Sema& sema, AstNodeRef nodeRef)
     {
         if (auto* payload = sema.semaPayload<ScopedBreakSemaPayload>(nodeRef))
@@ -58,6 +73,116 @@ namespace
         auto* payload = sema.compiler().allocate<CompilerIfSemaPayload>();
         sema.setSemaPayload(nodeRef, payload);
         return *payload;
+    }
+
+    CompilerSwitchSemaPayload& ensureCompilerSwitchSemaPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (auto* payload = sema.semaPayload<CompilerSwitchSemaPayload>(nodeRef))
+            return *payload;
+
+        auto* payload = sema.compiler().allocate<CompilerSwitchSemaPayload>();
+        sema.setSemaPayload(nodeRef, payload);
+        return *payload;
+    }
+
+    CompilerSwitchCaseSemaData& ensureCompilerSwitchCaseSemaData(CompilerSwitchSemaPayload& payload, AstNodeRef bodyRef)
+    {
+        for (auto& caseData : payload.cases)
+        {
+            if (caseData.bodyRef == bodyRef)
+                return caseData;
+        }
+
+        payload.cases.push_back({.bodyRef = bodyRef});
+        return payload.cases.back();
+    }
+
+    bool compilerSwitchSpanContains(const Ast& ast, SpanRef spanRef, AstNodeRef childRef)
+    {
+        const size_t count = ast.spanSize(spanRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            if (ast.nthNode(spanRef, i) == childRef)
+                return true;
+        }
+
+        return false;
+    }
+
+    AstNodeRef compilerSwitchCaseRefFromExpression(const Sema& sema, const AstCompilerSwitch& node, AstNodeRef exprRef)
+    {
+        const size_t count = sema.ast().spanSize(node.spanCasesRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
+            const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
+            if (compilerSwitchSpanContains(sema.ast(), caseNode.spanExprRef, exprRef))
+                return caseRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
+    AstNodeRef compilerSwitchCaseRefFromBody(const Sema& sema, const AstCompilerSwitch& node, AstNodeRef bodyRef)
+    {
+        const size_t count = sema.ast().spanSize(node.spanCasesRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
+            const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
+            if (caseNode.nodeBodyRef == bodyRef)
+                return caseRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
+    Result resolveCompilerSwitchSelection(Sema& sema, const AstCompilerSwitch& node, CompilerSwitchSemaPayload& payload)
+    {
+        if (payload.selectionResolved)
+            return Result::Continue;
+
+        payload.selectionResolved      = true;
+        const ConstantRef switchCstRef = sema.viewConstant(node.nodeExprRef).cstRef();
+        SWC_ASSERT(switchCstRef.isValid());
+
+        AstNodeRef   defaultCaseRef = AstNodeRef::invalid();
+        AstNodeRef   defaultBodyRef = AstNodeRef::invalid();
+        const size_t count          = sema.ast().spanSize(node.spanCasesRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
+            const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
+            if (caseNode.spanExprRef.isInvalid())
+            {
+                if (defaultCaseRef.isInvalid())
+                {
+                    defaultCaseRef = caseRef;
+                    defaultBodyRef = caseNode.nodeBodyRef;
+                    continue;
+                }
+
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_multiple_default, caseRef);
+                diag.addNote(DiagnosticId::sema_note_previous_default_case);
+                diag.last().addSpan(sema.node(defaultCaseRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            const size_t exprCount = sema.ast().spanSize(caseNode.spanExprRef);
+            for (size_t exprIndex = 0; exprIndex < exprCount; ++exprIndex)
+            {
+                const AstNodeRef  exprRef    = sema.ast().nthNode(caseNode.spanExprRef, exprIndex);
+                const ConstantRef caseCstRef = sema.viewConstant(exprRef).cstRef();
+                SWC_ASSERT(caseCstRef.isValid());
+                if (payload.selectedBodyRef.isInvalid() && caseCstRef == switchCstRef)
+                    payload.selectedBodyRef = caseNode.nodeBodyRef;
+            }
+        }
+
+        if (payload.selectedBodyRef.isInvalid())
+            payload.selectedBodyRef = defaultBodyRef;
+        return Result::Continue;
     }
 
     bool isDirectFunctionParameterDefault(const Sema& sema, AstNodeRef nodeRef)
@@ -226,6 +351,31 @@ namespace
 
         return Utf8{sema.moduleNamespace().name(sema.ctx())};
     }
+}
+
+void AstCompilerSwitch::collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+{
+    AstNode::collectChildren(out, {nodeExprRef});
+
+    const size_t count = ast.spanSize(spanCasesRef);
+    for (size_t i = 0; i < count; ++i)
+    {
+        const AstNodeRef caseRef  = ast.nthNode(spanCasesRef, i);
+        const auto&      caseNode = ast.node(caseRef).cast<AstCompilerSwitchCase>();
+        AstNode::collectChildren(out, ast, caseNode.spanExprRef);
+    }
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        const AstNodeRef caseRef  = ast.nthNode(spanCasesRef, i);
+        const auto&      caseNode = ast.node(caseRef).cast<AstCompilerSwitchCase>();
+        AstNode::collectChildren(out, {caseNode.nodeBodyRef});
+    }
+
+    // Case nodes carry source labels for tools such as the formatter. Their semantic
+    // children are deliberately flattened above so all case values resolve before any
+    // branch body is selected.
+    AstNode::collectChildren(out, ast, spanCasesRef);
 }
 
 Result AstCompilerScope::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -411,6 +561,130 @@ Result AstCompilerIf::semaPostNode(Sema& sema) const
         for (Symbol* sym : ignoredIfData->symbols)
             if (sym)
                 sym->setIgnored(sema.ctx());
+    }
+
+    return Result::Continue;
+}
+
+Result AstCompilerSwitch::semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    const AstNodeRef caseRef = compilerSwitchCaseRefFromBody(sema, *this, childRef);
+    if (caseRef.isInvalid())
+        return Result::Continue;
+
+    SemaFrame                   frame    = sema.frame();
+    CompilerSwitchSemaPayload&  payload  = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    CompilerSwitchCaseSemaData& caseData = ensureCompilerSwitchCaseSemaData(payload, childRef);
+    if (!caseData.branch)
+    {
+        caseData.branch         = sema.compiler().allocate<SemaCompilerIf>();
+        caseData.branch->parent = frame.currentCompilerIf();
+    }
+
+    frame.setCurrentCompilerIf(caseData.branch);
+    sema.pushFramePopOnPostChild(frame, childRef);
+    return Result::Continue;
+}
+
+Result AstCompilerSwitch::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) const
+{
+    const AstNodeRef caseRef = compilerSwitchCaseRefFromBody(sema, *this, childRef);
+    if (caseRef.isInvalid())
+        return Result::Continue;
+
+    CompilerSwitchSemaPayload& payload = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    SWC_RESULT(resolveCompilerSwitchSelection(sema, *this, payload));
+    if (childRef != payload.selectedBodyRef)
+        return Result::SkipChildren;
+
+    SemaFrame                   frame    = sema.frame();
+    CompilerSwitchCaseSemaData& caseData = ensureCompilerSwitchCaseSemaData(payload, childRef);
+    if (!caseData.branch)
+    {
+        caseData.branch         = sema.compiler().allocate<SemaCompilerIf>();
+        caseData.branch->parent = frame.currentCompilerIf();
+    }
+
+    frame.setCurrentCompilerIf(caseData.branch);
+    sema.pushFramePopOnPostChild(frame, childRef);
+    return Result::Continue;
+}
+
+Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef == nodeExprRef)
+    {
+        SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
+
+        SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
+        SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, exprView));
+        SWC_RESULT(SemaSwitch::normalizeExprTypeInfoIfNeeded(sema, nodeExprRef, exprView));
+        SWC_RESULT(SemaSwitch::validateExprType(sema, nodeExprRef, exprView.typeRef()));
+
+        const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, exprView.typeRef());
+        if (enumTypeRef.isValid())
+        {
+            SemaFrame frame = sema.frame();
+            frame.pushBindingType(enumTypeRef);
+            sema.pushFramePopOnPostNode(frame);
+        }
+
+        return Result::Continue;
+    }
+
+    const AstNodeRef caseRef = compilerSwitchCaseRefFromExpression(sema, *this, childRef);
+    if (caseRef.isInvalid())
+        return Result::Continue;
+
+    SemaNodeView caseView = sema.viewNodeTypeConstant(childRef);
+    SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, caseView));
+    const TypeRef switchTypeRef = sema.viewType(nodeExprRef).typeRef();
+    SWC_RESULT(Cast::cast(sema, caseView, SemaSwitch::caseCastTypeRef(sema, switchTypeRef), CastKind::Implicit));
+    SWC_RESULT(SemaCheck::isConstant(sema, childRef));
+
+    CompilerSwitchSemaPayload& payload    = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    const ConstantRef          caseCstRef = sema.viewConstant(childRef).cstRef();
+    const auto                 it         = payload.seen.find(caseCstRef);
+    if (it == payload.seen.end())
+    {
+        payload.seen.emplace(caseCstRef, childRef);
+        return Result::Continue;
+    }
+
+    auto diag = SemaError::report(sema, DiagnosticId::sema_err_static_switch_case_duplicate, childRef);
+    diag.addArgument(Diagnostic::ARG_VALUE, sema.cstMgr().get(caseCstRef).toString(sema.ctx()));
+    diag.addNote(DiagnosticId::sema_note_previous_case_value);
+    diag.last().addSpan(sema.node(it->second).codeRangeWithChildren(sema.ctx(), sema.ast()));
+    diag.report(sema.ctx());
+    return Result::Error;
+}
+
+Result AstCompilerSwitch::semaPostNode(Sema& sema) const
+{
+    CompilerSwitchSemaPayload& payload = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
+    SWC_RESULT(resolveCompilerSwitchSelection(sema, *this, payload));
+
+    for (const CompilerSwitchCaseSemaData& caseData : payload.cases)
+    {
+        if (!caseData.branch)
+            continue;
+
+        if (caseData.bodyRef == payload.selectedBodyRef)
+        {
+            for (Symbol* sym : caseData.branch->symbols)
+            {
+                if (sym && !sym->isIgnored())
+                    SemaHelpers::ensureCurrentLocalScopeSymbol(sema, sym);
+            }
+        }
+        else
+        {
+            for (Symbol* sym : caseData.branch->symbols)
+            {
+                if (sym)
+                    sym->setIgnored(sema.ctx());
+            }
+        }
     }
 
     return Result::Continue;

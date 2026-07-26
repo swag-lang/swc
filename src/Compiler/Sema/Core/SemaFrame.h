@@ -21,11 +21,11 @@ struct SemaCompilerIf
     SemaCompilerIf*      parent = nullptr;
     std::mutex           symbolsMutex;
 
-    // A SemaCompilerIf lives in the shared AST payload of a `#if` node. The declarations nested
+    // A SemaCompilerIf lives in the shared AST payload of a static-control branch. Declarations
     // inside that block are semantically analyzed by independent SemaJobs running on different
     // worker threads, and each registers itself here via registerCompilerIf(). Without the lock
     // the concurrent push_back() on this shared vector races (relocate/memmove), corrupting the
-    // heap. The matching read happens in AstCompilerIf::semaPostNode, after every child has been
+    // heap. The matching read happens after every child of the static-control node has been
     // processed, so it needs no lock.
     void addSymbolToChain(Symbol* sym)
     {

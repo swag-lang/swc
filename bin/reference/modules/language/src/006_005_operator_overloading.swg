@@ -162,7 +162,15 @@ impl Struct
     // Add, Sub, Mul, Div, Mod, BitOr, BitAnd, BitXor, Shl, Shr
     func(op: Swag.Operator) opBinary(me, other: OneType)->Struct
     {
-        return {1, 2}
+        #static switch op
+        {
+        case .Add:
+            return {1, 2}
+        case .Sub:
+            return {2, 1}
+        default:
+            #error("unsupported binary operation")
+        }
     }
 
     func(op: Swag.Operator) opBinary(me, other: AnotherType)->Struct

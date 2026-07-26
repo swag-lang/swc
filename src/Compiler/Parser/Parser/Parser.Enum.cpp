@@ -20,6 +20,8 @@ AstNodeRef Parser::parseEnumValue()
             return parseCompilerDiagnostic();
         case TokenId::CompilerIf:
             return parseCompilerIf<AstNodeId::EnumBody>();
+        case TokenId::CompilerStatic:
+            return parseCompilerStatic<AstNodeId::EnumBody>();
 
         case TokenId::KwdUsing:
         {

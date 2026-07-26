@@ -30,6 +30,7 @@ SWC_DIAG_DEF(parser_err_invalid_compiler, Error, "unknown compiler instruction: 
 SWC_DIAG_DEF(parser_err_invalid_compiler, Error, "unknown compiler instruction: '{tok}'; [help] check the spelling of the instruction name")
 SWC_DIAG_DEF(parser_err_invalid_intrinsic, Error, "unknown intrinsic: '{tok}'; [help] use '{value}' instead")
 SWC_DIAG_DEF(parser_err_invalid_intrinsic, Error, "unknown intrinsic: '{tok}'; [help] check the spelling of the intrinsic name")
+SWC_DIAG_DEF(parser_err_static_control, Error, "'#static' needs 'if' or 'switch' after it; found {tok-fam} '{tok}'")
 SWC_DIAG_DEF(parser_err_misplaced_global, Error, "misplaced '#global' directive; [help] move it to the beginning of the file, before declarations and using statements")
 SWC_DIAG_DEF(parser_err_empty_var_decl, Error, "expected a type annotation or initializer after declaration name '{tok}'; found {next-tok-fam} '{next-tok}'; [help] add ': <type>' or '= <value>' after the declaration name")
 SWC_DIAG_DEF(parser_err_empty_var_decl, Error, "expected a type annotation or initializer after declaration name '{tok}'; [help] add ': <type>' or '= <value>' after the declaration name")

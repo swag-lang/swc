@@ -1,14 +1,14 @@
 #global private     //
 
-const Eol = #"
-"#
+const Eol = #raw """
+"""
 
 // Raw strings: no escape processing
 #test
 {
-    let a = #"hello"#
-    let b = #"C:\Path\To\File"#
-    let c = #"no \n escape here"#
+    let a = #raw "hello"
+    let b = #raw "C:\Path\To\File"
+    let c = #raw "no \n escape here"
 
     #assert(#typeof(a) == string)
     #assert(#typeof(b) == string)
@@ -21,16 +21,17 @@ const Eol = #"
 // Raw strings preserve backslashes literally
 #test
 {
-    let raw    = #"A\B"#
+    let raw    = #raw "A\B"
     let normal = "A\\B"
     @assert(raw == normal)
 }
 
-// Raw strings with embedded quotes
+// Raw strings with embedded quotes. A raw literal cannot end with a quote, because the
+// quote would run into the closing delimiter.
 #test
 {
-    let a = #"say "hello""#
-    @assert(a == "say \"hello\"")
+    let a = #raw """say "hello" twice"""
+    @assert(a == "say \"hello\" twice")
 }
 
 // Multiline strings
@@ -75,10 +76,10 @@ line3"""
 
 #test
 {
-    let a = #"this is
+    let a = #raw """this is
               a
               string
-              "#
+              """
     @assert(a == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
 }
 
@@ -112,8 +113,8 @@ line3"""
 // Raw vs normal string comparison
 #test
 {
-    @assert(#"hello world"# == "hello world")
-    @assert(#"\n"#          != "\n")
-    @assert(#"\t"#          != "\t")
-    @assert(#"A\\B"#        == "A\\\\B")
+    @assert(#raw "hello world" == "hello world")
+    @assert(#raw "\n"          != "\n")
+    @assert(#raw "\t"          != "\t")
+    @assert(#raw "A\\B"        == "A\\\\B")
 }

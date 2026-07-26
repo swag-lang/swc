@@ -58,6 +58,9 @@ enum class TokenFlagsE : uint16_t
     EolAfter    = 1 << 3,
     EolInside   = 1 << 4,
     Escaped     = 1 << 5,
+    // Set on a string literal introduced by '#raw': the content is taken verbatim, so no
+    // escape sequence is recognized and no end-of-line is folded.
+    Raw         = 1 << 6,
 };
 using TokenFlags = EnumFlags<TokenFlagsE>;
 
@@ -95,6 +98,7 @@ struct Token
 
     bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }
 
+    static bool isTrivia(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Trivia); }
     static bool isLiteral(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Literal); }
     static bool isSymbol(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Symbol); }
     static bool isKeywordLogic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Keyword | TokenIdKindE::Logic); }

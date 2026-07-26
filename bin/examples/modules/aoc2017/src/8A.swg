@@ -28,7 +28,7 @@ func day8A()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var re = expect Parser.RegExp.create(#"(\w+) (\w+) (-?\d+) if (\w+) ([[:ascii:]]+) (-?\d+)"#)
+    var re = expect Parser.RegExp.create(#raw "(\w+) (\w+) (-?\d+) if (\w+) ([[:ascii:]]+) (-?\d+)")
     var regs:  HashTable'(string, s32)
     var total: s32
 

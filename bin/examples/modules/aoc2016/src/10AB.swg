@@ -137,8 +137,8 @@ func day10AB()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    expect r0.compile(#"value (\d+) goes to bot (\d+)"#)
-    expect r1.compile(#"bot (\d+) gives low to (\w+) (\d+) and high to (\w+) (\d+)"#)
+    expect r0.compile(#raw "value (\d+) goes to bot (\d+)")
+    expect r1.compile(#raw "bot (\d+) gives low to (\w+) (\d+) and high to (\w+) (\d+)")
 
     execute(lines)
 

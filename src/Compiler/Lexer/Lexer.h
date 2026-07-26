@@ -32,6 +32,9 @@ public:
 private:
     Token token_     = {};
     Token prevToken_ = {};
+    // Armed by '#raw', consumed by the next string literal: the escape rule decides where the
+    // literal ends, so it has to be known before scanning it.
+    bool pendingRawStringLiteral_ = false;
 
     SourceView*     srcView_          = nullptr;
     const char8_t*  buffer_           = nullptr;

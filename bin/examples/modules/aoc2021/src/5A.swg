@@ -57,7 +57,7 @@ func day5A()
     {
         expect
         {
-            discard r.match(#"(\d+),(\d+) -> (\d+),(\d+)"#, l)
+            discard r.match(#raw "(\d+),(\d+) -> (\d+),(\d+)", l)
             var x0 = StrConv.toS32(r.getCapture(1))
             var y0 = StrConv.toS32(r.getCapture(2))
             var x1 = StrConv.toS32(r.getCapture(3))

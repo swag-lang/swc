@@ -26,7 +26,7 @@ func day9A()
 
     var decode: String
 
-    var r     = expect Parser.RegExp.create(#"\((\d+)x(\d+)\)"#)
+    var r     = expect Parser.RegExp.create(#raw "\((\d+)x(\d+)\)")
     var start = 0'u64
     while start != @countof(line)
     {

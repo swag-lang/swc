@@ -25,7 +25,7 @@ func day3B()
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
     let line     = expect File.readAllText(dataPath)
 
-    var r      = expect Parser.RegExp.create(#"(mul\(\d+,\d+\))|(do\(\))|(don't\(\))"#)
+    var r      = expect Parser.RegExp.create(#raw "(mul\(\d+,\d+\))|(do\(\))|(don't\(\))")
     let d      = r.grepAll(line)
     var total  = 0
     var enable = true

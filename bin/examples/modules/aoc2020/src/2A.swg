@@ -28,7 +28,7 @@ func day2A()
     let lines    = expect File.readAllLines(dataPath)
 
     var r: Parser.RegExp
-    expect r.compile(#"(\d+)-(\d+) ([a-z]): ([a-z])+"#)
+    expect r.compile(#raw "(\d+)-(\d+) ([a-z]): ([a-z])+")
 
     var total: u32
     for l in lines

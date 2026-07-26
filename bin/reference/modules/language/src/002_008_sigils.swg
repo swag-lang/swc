@@ -129,6 +129,14 @@ Modifiers change one operation rather than producing a value:
 }
 
 /**
+'#raw' modifies how the compiler reads the string literal that follows: its content is
+taken verbatim, with no escape sequence recognized.
+
+```swag
+let pattern = #raw "(\d+)x(\d+)"
+let payload = #raw """{"key": "value"}"""
+```
+
 '#wrap' opts one arithmetic operation into wrapping behavior. Broader runtime
 guard policy uses 'Swag.Safety', and module defaults live in 'BuildCfg':
 

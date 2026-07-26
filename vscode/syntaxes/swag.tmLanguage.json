@@ -21,7 +21,6 @@
     { "include": "#keywords-logic" },
     { "include": "#function-call" },
     { "include": "#function-call1" },
-    { "include": "#raw-strings" },
     { "include": "#multi-strings" },
     { "include": "#intrinsics" },
     { "include": "#intrinsics-buildin" },
@@ -221,7 +220,7 @@
       "patterns": [
         {
           "name": "entity.name.function.intrinsic",
-          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|late|fail|nofail)\\b"
+          "match": "\\#(prom|wrap|nodrop|move|relocate|fwd|bit|unconst|reverse|null|late|fail|nofail|raw)\\b"
         }
       ]
     },
@@ -448,17 +447,6 @@
         {
           "name": "constant.numeric.integer",
           "match": "(\\d[\\d_]*)"
-        }
-      ]
-    },
-    "raw-strings": {
-      "name": "string.quoted.double",
-      "begin": "\\#\"",
-      "end": "\"\\#",
-      "patterns": [
-        {
-          "name": "constant.character.escape",
-          "match": ""
         }
       ]
     },

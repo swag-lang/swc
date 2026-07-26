@@ -98,8 +98,8 @@ func getRootLength(fullname: string)->u32
     // Length to the start of the server name "\\"
     let pathLength = @countof(fullname)
 
-    const ExtendedPathPrefix    = #"\\?\"#
-    const UncExtendedPathPrefix = #"\\?\UNC\"#
+    const ExtendedPathPrefix    = #raw "\\?\"
+    const UncExtendedPathPrefix = #raw "\\?\UNC\"
 
     let extendedSyntax    = startsWithOrdinal(fullname, ExtendedPathPrefix)
     let extendedUncSyntax = startsWithOrdinal(fullname, UncExtendedPathPrefix)

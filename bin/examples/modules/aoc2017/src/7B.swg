@@ -37,14 +37,14 @@ func day7B()
     var set:    HashTable'(string, Pile)
     var result: s64
 
-    var r0 = expect Parser.RegExp.create(#"(\l+) \((\d+)\)"#)
+    var r0 = expect Parser.RegExp.create(#raw "(\l+) \((\d+)\)")
     for l in lines
     {
         discard r0.partialMatch(l)
         set.add(r0[1], Pile{expect StrConv.toS32(r0[2])})
     }
 
-    var r1 = expect Parser.RegExp.create(#"\l+"#)
+    var r1 = expect Parser.RegExp.create(#raw "\l+")
     for l in lines
     {
         let n = r1.grepAll(l)

@@ -14,7 +14,7 @@ func day3B()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var r = expect Parser.RegExp.create(#"#(\d+) @ (\d+),(\d+): (\d+)x(\d+)"#)
+    var r = expect Parser.RegExp.create(#raw "#(\d+) @ (\d+),(\d+): (\d+)x(\d+)")
 
     var ids:  Array's32
     var here: HashSet's32

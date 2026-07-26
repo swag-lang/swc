@@ -3,6 +3,24 @@
 
 SWC_BEGIN_NAMESPACE();
 
+// '#raw' only qualifies how the lexer read the literal that follows, so the node is the plain
+// string literal and the modifier leaves no trace in the AST.
+AstNodeRef Parser::parseRawStringLiteral()
+{
+    consume();
+
+    if (isNot(TokenId::StringLine) && isNot(TokenId::StringMultiLine))
+    {
+        // Parse the operand anyway: the modifier is what is wrong, not the expression, so the
+        // rest of the statement must not produce a second error.
+        raiseError(DiagnosticId::parser_err_raw_needs_string, ref());
+        return parsePrimaryExpression();
+    }
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StringLiteral>(consume());
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseLiteral()
 {
     switch (id())
@@ -31,9 +49,14 @@ AstNodeRef Parser::parseLiteral()
             return nodeRef;
         }
 
+        case TokenId::StringRaw:
+            // Still lexed so the whole literal is consumed and the rest of the statement keeps
+            // parsing normally; only the spelling is rejected.
+            raiseError(DiagnosticId::parser_err_raw_string_delimiter, ref());
+            [[fallthrough]];
+
         case TokenId::StringLine:
         case TokenId::StringMultiLine:
-        case TokenId::StringRaw:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StringLiteral>(consume());
             return nodeRef;

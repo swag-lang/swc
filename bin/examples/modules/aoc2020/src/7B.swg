@@ -43,7 +43,7 @@ func day7B0()
 
     var id: HashTable'(string, Array'({ count: u32, name: string }))
 
-    var r = expect Parser.RegExp.create(#"\d+ \w+ \w+"#)
+    var r = expect Parser.RegExp.create(#raw "\d+ \w+ \w+")
     for l in lines
     {
         let split = Tokenize.split(l, " bags contain ")
@@ -85,7 +85,7 @@ func day7B1()
 
     var id: HashTable'(string, Array'({ count: u32, name: string }))
 
-    var r = expect Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
+    var r = expect Parser.RegExp.create(#raw "(\d+) (\w+ \w+)")
     for l in lines
     {
         let split = Tokenize.split(l, " bags contain ")

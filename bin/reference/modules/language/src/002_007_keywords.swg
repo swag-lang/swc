@@ -95,7 +95,7 @@ follows them.
 
 ```swag
 #bit  #fail  #fwd  #late  #move  #nodrop  #nofail  #null
-#prom  #relocate  #reverse  #unconst  #wrap
+#prom  #raw  #relocate  #reverse  #unconst  #wrap
 ```
 
 # Runtime and Compiler Intrinsics

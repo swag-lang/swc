@@ -142,42 +142,42 @@ line3
 // RAW STRINGS
 // ============================================================================
 // --- Valid raw strings ---
-#""#
-#"hello"#
-#"Hello, World!"#
-#"no\nescape"#
-#"backslash\remains"#
-#"quote"stays"#
-#"all\t\n\r\\characters\"literal"#
+#raw ""
+#raw "hello"
+#raw "Hello, World!"
+#raw "no\nescape"
+#raw "backslash\remains"
+#raw """quote"stays"""
+#raw """all\t\n\r\\characters\"literal2"""
 
 // --- Multi-line raw strings ---
-#"line1
+#raw """line1
 line2
-line3"#
+line3"""
 
-#"
+#raw """
 raw
 multi
 line
-"#
+"""
 
 // --- Raw strings with special characters (no escaping needed) ---
-#"C:\path\to\file"#
-#"regex: \d+\.\d+"#
-#"JSON: {"key": "value"}"#
-#"<html>\n\t<body></body>\n</html>"#
+#raw "C:\path\to\file"
+#raw "regex: \d+\.\d+"
+#raw """JSON: {"key": "value"} end"""
+#raw "<html>\n\t<body></body>\n</html>"
 
 // --- Raw strings with embedded quotes ---
-#"This is "quoted" text"#
-#"Multiple """" quotes"#
-#"Mix of ' and " quotes"#
+#raw """This is "quoted" text"""
+#raw "Multiple quotes are limited"
+#raw """Mix of ' and " quotes"""
 
 // --- Edge cases ---
-#""#                // Empty raw string
-#" "#               // Single space
-#"	"#              // Single tab
-#"
-"#                  // Single newline
+#raw ""                // Empty raw string
+#raw " "               // Single space
+#raw "	"              // Single tab
+#raw """
+"""                  // Single newline
 
 // ============================================================================
 // SINGLE-LINE STRINGS
@@ -225,7 +225,7 @@ line
 "hello" "world"
 "test1""test2"
 """multi1""" """multi2"""
-#"raw1"# #"raw2"#
+#raw "raw1" #raw "raw2"
 
 // --- Strings with numbers ---
 "123"
@@ -253,7 +253,7 @@ that spans many lines and contains lots of text
 and keeps going and going and going
 until finally it ends"""
 
-#"this is a very long raw string that contains \n \t \r and other escape sequences that are not interpreted"#
+#raw "this is a very long raw string that contains \n \t \r and other escape sequences that are not interpreted"
 
 // ============================================================================
 // EDGE CASES AND BOUNDARY CONDITIONS

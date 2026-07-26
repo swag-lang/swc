@@ -215,18 +215,20 @@ Escape sequences can represent characters via their ASCII or Unicode values.
 /**
 # Raw Strings
 
-A raw string is one where escape sequences and special characters are not
-processed. This is useful when working with many backslashes or special symbols.
-*/
+A raw string is one where escape sequences are not processed. This is useful when
+working with many backslashes or special symbols.
 
-/**
-A raw string is enclosed within '#' characters. Its content is taken literally.
+The '#raw' modifier applies to the string literal that follows, so a raw string uses
+the ordinary delimiters: '#raw "..."' on one line, and '#raw """..."""' when the text
+itself contains a quote. The delimiter is what ends the literal, so a raw string
+cannot end with a quote: keep the text going past it, or use an ordinary string with
+escapes.
 */
 #test
 {
-    const a = #"\u2F46"#     // Raw string containing a Unicode escape
+    const a = #raw "\u2F46"     // Raw string containing a Unicode escape
     #assert(a != "⽆")
-    #assert(a == #"\u2F46"#)
+    #assert(a == #raw "\u2F46")
 }
 
 /**
@@ -235,22 +237,23 @@ Equivalent strings can be written using escape sequences or raw notation.
 #test
 {
     const a = "\\hello \\world"
-    const b = #"\hello \world"#
+    const b = #raw "\hello \world"
     #assert(a == b)
 }
 
 /**
 # Multiline Raw Strings
 
-Raw strings can span multiple lines. All leading spaces before the closing '"#'
-are removed from each line.
+A raw string spans several lines with the '"""' delimiters. Leading spaces up to the
+opening delimiter column are removed from each line, exactly as for an ordinary
+multiline string: re-indentation is layout, not escaping.
 */
 #test
 {
-    const a = #"this is
+    const a = #raw """this is
                 a
                 string
-                "#
+                """
 }
 
 /**

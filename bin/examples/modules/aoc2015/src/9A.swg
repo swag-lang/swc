@@ -31,7 +31,7 @@ func day9A()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var r = expect Parser.RegExp.create(#"(\w+) to (\w+) = (\d+)"#)
+    var r = expect Parser.RegExp.create(#raw "(\w+) to (\w+) = (\d+)")
     var town:  HashTable'(string, u64)
     var dist:  HashTable'(u64, u64)
     var combi: Array'u64

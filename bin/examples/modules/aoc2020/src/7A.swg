@@ -116,7 +116,7 @@ func day7A1()
 
     var id: HashTable'(string, Array'(string))
 
-    var r = expect Parser.RegExp.create(#"(\d+) (\w+ \w+)"#)
+    var r = expect Parser.RegExp.create(#raw "(\d+) (\w+ \w+)")
     for l in lines
     {
         let split = Tokenize.split(l, " bags contain ")

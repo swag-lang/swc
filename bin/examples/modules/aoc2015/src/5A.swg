@@ -71,7 +71,7 @@ func day5A1()
     var total = 0
     var r0    = expect Parser.RegExp.create("ab|cd|pq|xy")
     var r1    = expect Parser.RegExp.create("[aeiou]")
-    var r2    = expect Parser.RegExp.create(#"([a-z])\1"#)
+    var r2    = expect Parser.RegExp.create(#raw "([a-z])\1")
     for l in lines
     {
         if r0.grep(l) do

@@ -56,7 +56,7 @@ func day3A0()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    var r = expect Parser.RegExp.create(#"#\d+ @ (\d+),(\d+): (\d+)x(\d+)"#)
+    var r = expect Parser.RegExp.create(#raw "#\d+ @ (\d+),(\d+): (\d+)x(\d+)")
     var count: Array's32
     count.resize(1000 * 1000)
     for l in lines

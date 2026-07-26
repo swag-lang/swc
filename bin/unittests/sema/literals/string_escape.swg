@@ -10,7 +10,7 @@
 
 #assert("\n" ++ "\t" == "\n\t")
 #assert("\r" ++ "\n" == "\r\n")
-#assert("A\\B" == #"A\B"#)
+#assert("A\\B" == #raw "A\B")
 #assert("The quote is: \"Hello\"" == "The quote is: \"Hello\"")
 #assert("Line one.\r\nLine two." == "Line one.\r\nLine two.")
 #assert("A" ++ "\n" ++ "B" == "A\nB")
@@ -66,18 +66,20 @@
 #assert("\U0010FFFF" == "\U0010FFFF")
 #assert("\U00000000" == "\0")
 
-#assert(#"Line\nNo\tEscape"# == "Line\\nNo\\tEscape")
-#assert(#"C:\Path\To\File"# == "C:\\Path\\To\\File")
-#assert(#"\n"# == "\\n")
-#assert(#"\""# == "\\\"")
+#assert(#raw "Line\nNo\tEscape" == "Line\\nNo\\tEscape")
+#assert(#raw "C:\Path\To\File" == "C:\\Path\\To\\File")
+#assert(#raw "\n" == "\\n")
+// A quote is literal inside a raw literal. It cannot sit right before the closing
+// delimiter, so the text continues after it.
+#assert(#raw """\"end""" == "\\\"end")
 
 #assert("Path\\" == "Path\\")
 #assert("\\\\" == "\\\\")
 #assert("C:\\\\" == "C:\\\\")
-#assert(#"C:\\"# == "C:\\\\")
+#assert(#raw "C:\\" == "C:\\\\")
 
-const Eol = #"
-"#
+const Eol = #raw """
+"""
 
 const MultiPhysicalEol = """x
                             y
@@ -90,10 +92,10 @@ const MultiAlign = """this is
                      """
 #assert(MultiAlign == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
 
-const RawAlign = #"this is
+const RawAlign = #raw """this is
                   a
                   string
-                  "#
+                  """
 #assert(RawAlign == "this is" ++ Eol ++ "a" ++ Eol ++ "string" ++ Eol)
 
 const MultiKeepShorter = """first

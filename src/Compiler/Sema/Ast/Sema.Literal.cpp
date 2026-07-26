@@ -381,17 +381,21 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     }
 
     const LangSpec&  langSpec = sema.compiler().global().langSpec();
+    const bool       isRaw    = tok.hasFlag(TokenFlagsE::Raw);
     Utf8             normalized;
     std::string_view value = str;
 
     if (tok.isAny({TokenId::StringMultiLine, TokenId::StringRaw}) && tok.hasFlag(TokenFlagsE::EolInside))
     {
+        // Re-indentation is layout, not escaping, so it still applies to a raw literal. Folding
+        // an escaped end-of-line is an escape, so it does not.
         normalized = normalizeMultilineLiteral(str, stringAlignColumn(tok, srcView), langSpec);
-        normalized = foldEscapedEols(normalized);
-        value      = normalized;
+        if (!isRaw)
+            normalized = foldEscapedEols(normalized);
+        value = normalized;
     }
 
-    if (tok.id == TokenId::StringRaw)
+    if (tok.id == TokenId::StringRaw || isRaw)
     {
         auto val = ConstantValue::makeString(ctx, value);
         val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));

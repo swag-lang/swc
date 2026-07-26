@@ -937,6 +937,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::KwdNull:
             return parseLiteral();
 
+        case TokenId::ModifierRaw:
+            return parseRawStringLiteral();
+
         case TokenId::CompilerFile:
         case TokenId::CompilerModule:
         case TokenId::CompilerLine:

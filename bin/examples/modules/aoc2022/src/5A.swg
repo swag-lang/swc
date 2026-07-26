@@ -61,7 +61,7 @@ func day5A()
     var stacks: Array'String
 
     var r: Parser.RegExp
-    catch r.compile(#"\d+"#)
+    catch r.compile(#raw "\d+")
 
     var moveMode = false
     for l in lines

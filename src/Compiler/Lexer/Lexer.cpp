@@ -343,6 +343,13 @@ void Lexer::pushToken()
     // Always update prevToken, even for filtered tokens
     prevToken_ = token_;
 
+    // '#raw' arms the next string literal. Trivia between the modifier and the literal is
+    // transparent, so a comment or a blank does not disarm it.
+    if (tokenId == TokenId::ModifierRaw)
+        pendingRawStringLiteral_ = true;
+    else if (!Token::isTrivia(tokenId))
+        pendingRawStringLiteral_ = false;
+
     // Use switch for better branch prediction and consolidate similar checks
     switch (tokenId)
     {
@@ -468,6 +475,10 @@ void Lexer::lexSingleLineStringLiteral()
 {
     token_.id = TokenId::StringLine;
 
+    const bool raw = pendingRawStringLiteral_;
+    if (raw)
+        token_.flags.add(TokenFlagsE::Raw);
+
     buffer_++;
 
     // Safe lookahead: zeros after endBuffer_ will stop the loop
@@ -481,8 +492,9 @@ void Lexer::lexSingleLineStringLiteral()
             continue;
         }
 
-        // Escaped char
-        if (buffer_[0] == '\\')
+        // Escaped char. A raw literal takes the backslash verbatim, so it never hides the
+        // closing quote.
+        if (buffer_[0] == '\\' && !raw)
         {
             token_.flags.add(TokenFlagsE::Escaped);
             lexEscape(TokenId::StringLine, false);
@@ -515,6 +527,11 @@ void Lexer::lexSingleLineStringLiteral()
 void Lexer::lexMultiLineStringLiteral()
 {
     token_.id = TokenId::StringMultiLine;
+
+    const bool raw = pendingRawStringLiteral_;
+    if (raw)
+        token_.flags.add(TokenFlagsE::Raw);
+
     buffer_ += 3;
 
     while (buffer_ < endBuffer_)
@@ -534,8 +551,8 @@ void Lexer::lexMultiLineStringLiteral()
             continue;
         }
 
-        // Escaped char
-        if (buffer_[0] == '\\')
+        // Escaped char. A raw literal takes the backslash verbatim.
+        if (buffer_[0] == '\\' && !raw)
         {
             token_.flags.add(TokenFlagsE::Escaped);
             lexEscape(TokenId::StringMultiLine, true);

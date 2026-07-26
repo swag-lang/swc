@@ -4,6 +4,15 @@
 A struct in Swag can define operator overloads within the 'impl' block. These hooks are
 predefined and recognized by the compiler, which lets a struct customize operators and
 core interactions.
+
+'opBinary', 'opBinaryRight', 'opUnary', 'opAssign' and 'opIndexAssign' take the operator as
+a compile-time 'Swag.Operator' value, so one hook covers a whole family and a misspelled
+member is a symbol error instead of a comparison that silently never matches. Each spelling
+has its own member: unary '-' arrives as 'Neg', binary '-' as 'Sub'. 'op.symbol()' returns
+the source spelling when generated code or a diagnostic needs it.
+
+A literal suffix stays a string ('opSetLiteral'), because the set of suffixes is open-ended
+and chosen by the user rather than by the language.
 */
 
 struct Struct
@@ -144,55 +153,55 @@ impl Struct
     // Operators (binary, unary, compound assignment)
     // -------------------------------------------------------------------------
 
-    // Binary operation with 'op' representing the operator as a string
-    // Examples: '+', '-', '*', '/', '%', '|', '&', '^', '<<', '>>'
-    func(op: string) opBinary(me, other: OneType)->Struct
+    // Binary operation. 'op' is the 'Swag.Operator' member the compiler asks for:
+    // Add, Sub, Mul, Div, Mod, BitOr, BitAnd, BitXor, Shl, Shr
+    func(op: Swag.Operator) opBinary(me, other: OneType)->Struct
     {
         return {1, 2}
     }
 
-    func(op: string) opBinary(me, other: AnotherType)->Struct
+    func(op: Swag.Operator) opBinary(me, other: AnotherType)->Struct
     {
         return {1, 2}
     }
 
     // Binary operation when this struct is the right operand
     // Examples: OneType + myStruct, AnotherType * myStruct
-    func(op: string) opBinaryRight(me, other: OneType)->Struct
+    func(op: Swag.Operator) opBinaryRight(me, other: OneType)->Struct
     {
         return {1, 2}
     }
 
-    func(op: string) opBinaryRight(me, other: AnotherType)->Struct
+    func(op: Swag.Operator) opBinaryRight(me, other: AnotherType)->Struct
     {
         return {1, 2}
     }
 
     // A commutative opBinary can also be used when the struct is the right operand.
     // Restrict the operators when a generic opBinary also handles non-commutative ones.
-    #[Swag.Commutative("+", "*")]
-    func(op: string) opBinary(me, other: u32)->Struct
+    #[Swag.Commutative(.Add, .Mul)]
+    func(op: Swag.Operator) opBinary(me, other: u32)->Struct
     {
         return {1, 2}
     }
 
-    // Unary operation with 'op' representing the operator as a string
-    // Examples: '!', '-', '~'
-    func(op: string) opUnary(me)->Struct
+    // Unary operation. 'op' is one of Not, Pos, Neg, BitNot.
+    // Unary '-' arrives as 'Neg', so it never collides with the binary 'Sub'.
+    func(op: Swag.Operator) opUnary(me)->Struct
     {
         return {1, 2}
     }
 
-    // Assignment with operator 'op' (compound assignments)
-    // Examples: '+=', '-=', '*=', '/=', '%=', '|=', '&=', '^=', '<<=', '>>='
-    func(op: string) opAssign(me, other: OneType) {}
-    func(op: string) opAssign(me, other: AnotherType) {}
+    // Compound assignment. 'op' is one of AddAssign, SubAssign, MulAssign, DivAssign,
+    // ModAssign, BitOrAssign, BitAndAssign, BitXorAssign, ShlAssign, ShrAssign.
+    func(op: Swag.Operator) opAssign(me, other: OneType) {}
+    func(op: Swag.Operator) opAssign(me, other: AnotherType) {}
 
     // Indexed assignment with operator 'op'. All index parameters must have the same type.
     // When both opIndexAssign and opIndex can write, opIndexAssign is selected.
-    func(op: string) opIndexAssign(me, index: OneType, value: OneType) {}
-    func(op: string) opIndexAssign(me, row: OneType, column: OneType, value: OneType) {}
-    func(op: string) opIndexAssign(me, index: OneType, value: AnotherType) {}
+    func(op: Swag.Operator) opIndexAssign(me, index: OneType, value: OneType) {}
+    func(op: Swag.Operator) opIndexAssign(me, row: OneType, column: OneType, value: OneType) {}
+    func(op: Swag.Operator) opIndexAssign(me, index: OneType, value: AnotherType) {}
 
     // -------------------------------------------------------------------------
     // Iteration ('for' support)

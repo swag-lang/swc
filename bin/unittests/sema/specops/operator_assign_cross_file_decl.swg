@@ -5,11 +5,11 @@ struct CrossFileAssignBox
 
 impl CrossFileAssignBox
 {
-    mtd(op: string) opAssign(rhs: s32)
+    mtd(op: Swag.Operator) opAssign(rhs: s32)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             .value += rhs
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 }

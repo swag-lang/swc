@@ -77,10 +77,10 @@ impl StaticArray
 
     // Handles compound assignment operators (e.g., `+=`, `-=`) for elements.
     #[Inline]
-    mtd(op: string) opIndexAssign(index: u64, value: T)
+    mtd(op: Swag.Operator) opIndexAssign(index: u64, value: T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        #ast "buffer[index] " ++ op ++ " value"
+        #ast "buffer[index] " ++ op.symbol() ++ " value"
     }
 
     // Replaces the content of the array with elements copied from a slice.

@@ -12,20 +12,20 @@ struct(T) GenBitwisePair
 
 impl GenBitwisePair
 {
-    func(op: string) opBinary(const me, other: const &GenBitwisePair'T)->GenBitwisePair'T
+    func(op: Swag.Operator) opBinary(const me, other: const &GenBitwisePair'T)->GenBitwisePair'T
     {
-        #if op == "&" do
+        #if op == .BitAnd do
             return {x: me.x & other.x, y: me.y & other.y}
-        #elif op == "|" do
+        #elif op == .BitOr do
             return {x: me.x | other.x, y: me.y | other.y}
-        #elif op == "^" do
+        #elif op == .BitXor do
             return {x: me.x ^ other.x, y: me.y ^ other.y}
-        #elif op == "<<" do
+        #elif op == .Shl do
             return {x: me.x << other.x, y: me.y << other.y}
-        #elif op == ">>" do
+        #elif op == .Shr do
             return {x: me.x >> other.x, y: me.y >> other.y}
         #else do
-            #error("unsupported bitwise operation [[" ++ op ++ "]]")
+            #error("unsupported bitwise operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

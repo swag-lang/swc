@@ -102,16 +102,16 @@ impl String
         return Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
     }
 
-    mtd(op: string) opIndexAssign(index: u64, value: u8)
+    mtd(op: Swag.Operator) opIndexAssign(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
         let buffer = notnull .buffer
-        #if op == "+=" do
+        #if op == .AddAssign do
             buffer[index] += #wrap value
-        #elif op == "-=" do
+        #elif op == .SubAssign do
             buffer[index] -= #wrap value
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd opIndexSet(index: u64, value: u8)
@@ -121,64 +121,64 @@ impl String
         buffer[index] = value
     }
 
-    mtd(op: string) opAssign(value: const [..] string)
+    mtd(op: Swag.Operator) opAssign(value: const [..] string)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             for v in value do
                 .append(v)
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
-    mtd(op: string) opAssign(value: const [..] string)
+    mtd(op: Swag.Operator) opAssign(value: const [..] string)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             for v in value do
                 .append(v)
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
-    mtd(op: string) opAssign(value: const [..] rune)
+    mtd(op: Swag.Operator) opAssign(value: const [..] rune)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             for v in value do
                 .append(v)
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
-    mtd(op: string) opAssign(value: const [..] u8)
+    mtd(op: Swag.Operator) opAssign(value: const [..] u8)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             for v in value do
                 .append(v)
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
-    mtd(op: string) opAssign(value: #null string)
+    mtd(op: Swag.Operator) opAssign(value: #null string)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             .append(value)
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
-    mtd(op: string) opAssign(value: rune)
+    mtd(op: Swag.Operator) opAssign(value: rune)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             .append(value)
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
-    mtd(op: string) opAssign(value: u8)
+    mtd(op: Swag.Operator) opAssign(value: u8)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             .append(value)
         #else do
-            #error("invalid operator '" ++ op ++ "'")
+            #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd opPostMove()

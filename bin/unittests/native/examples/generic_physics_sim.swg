@@ -16,34 +16,34 @@ struct(T) Vec2
 
 impl Vec2
 {
-    func(op: string) opUnary(const me)->Vec2
+    func(op: Swag.Operator) opUnary(const me)->Vec2
     {
-        #if op == "-" do
+        #if op == .Neg do
             return {x: -me.x, y: -me.y}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, other: const &Vec2)->Vec2
+    func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + other.x, y: me.y + other.y}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - other.x, y: me.y - other.y}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * other.x, y: me.y * other.y}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, scalar: T)->Vec2
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / scalar, y: me.y / scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func dot(a: const &Vec2, b: const &Vec2)->T
@@ -130,22 +130,22 @@ impl AABB
                 hi: Vec2.max(&a.hi, &b.hi)}
     }
 
-    func(op: string) opBinary(const me, offset: const &Vec2)->AABB
+    func(op: Swag.Operator) opBinary(const me, offset: const &Vec2)->AABB
     {
-        #if op == "+" do
+        #if op == .Add do
             return {lo: me.lo + offset, hi: me.hi + offset}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {lo: me.lo - offset, hi: me.hi - offset}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, scalar: T)->AABB
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->AABB
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {lo: me.lo * scalar, hi: me.hi * scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

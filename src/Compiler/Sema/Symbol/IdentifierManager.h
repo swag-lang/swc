@@ -87,6 +87,7 @@ public:
         TargetOs,
         TargetArch,
         CompilerCommand,
+        Operator,
         OpBinary,
         OpBinaryRight,
         OpUnary,

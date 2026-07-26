@@ -18,12 +18,12 @@ impl Rectangle
 
     // Scale the rectangle by a scalar value.
     // Multiplies all components (position and dimensions) by the given 'value'.
-    mtd(op: string) const opBinary(value: f32)->Rectangle
+    mtd(op: Swag.Operator) const opBinary(value: f32)->Rectangle
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {.x * value, .y * value, .width * value, .height * value}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Initialize the rectangle using two corner points.

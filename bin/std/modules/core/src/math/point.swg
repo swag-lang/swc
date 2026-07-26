@@ -25,98 +25,98 @@ impl Point
 
     // Compound assignment operators for point-point operations (+=, -=, *=, /=).
     // Performs component-wise operations with another point.
-    mtd(op: string) opAssign(other: Point)
+    mtd(op: Swag.Operator) opAssign(other: Point)
     {
-        #if op == "+="
+        #if op == .AddAssign
         {
             .x += other.x
             .y += other.y
         }
-        #elif op == "-="
+        #elif op == .SubAssign
         {
             .x -= other.x
             .y -= other.y
         }
-        #elif op == "*="
+        #elif op == .MulAssign
         {
             .x *= other.x
             .y *= other.y
         }
-        #elif op == "/="
+        #elif op == .DivAssign
         {
             .x /= other.x
             .y /= other.y
         }
         #else do
-            #error("unsupported assign operation [[" ++ op ++ "]]")
+            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Compound assignment operators for point-scalar operations (+=, -=, *=, /=).
     // Applies the scalar 'value' to both coordinates of the point.
-    mtd(op: string) opAssign(value: f32)
+    mtd(op: Swag.Operator) opAssign(value: f32)
     {
-        #if op == "+="
+        #if op == .AddAssign
         {
             .x += value
             .y += value
         }
-        #elif op == "-="
+        #elif op == .SubAssign
         {
             .x -= value
             .y -= value
         }
-        #elif op == "*="
+        #elif op == .MulAssign
         {
             .x *= value
             .y *= value
         }
-        #elif op == "/="
+        #elif op == .DivAssign
         {
             .x /= value
             .y /= value
         }
         #else do
-            #error("unsupported assign operation [[" ++ op ++ "]]")
+            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary operators for point-point operations (+, -, *, /).
     // Performs component-wise operations between two points and returns the result.
-    mtd(op: string) const opBinary(other: Point)->Point
+    mtd(op: Swag.Operator) const opBinary(other: Point)->Point
     {
-        #if op == "+" do
+        #if op == .Add do
             return Point{.x + other.x, .y + other.y}
-        #elif op == "-" do
+        #elif op == .Sub do
             return Point{.x - other.x, .y - other.y}
-        #elif op == "*" do
+        #elif op == .Mul do
             return Point{.x * other.x, .y * other.y}
-        #elif op == "/" do
+        #elif op == .Div do
             return Point{.x / other.x, .y / other.y}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary operators for point-scalar operations (+, -, *, /).
     // Applies the scalar 'value' to both coordinates and returns the result.
-    mtd(op: string) const opBinary(value: f32)->Point
+    mtd(op: Swag.Operator) const opBinary(value: f32)->Point
     {
-        #if op == "+" do
+        #if op == .Add do
             return Point{.x + value, .y + value}
-        #elif op == "-" do
+        #elif op == .Sub do
             return Point{.x - value, .y - value}
-        #elif op == "*" do
+        #elif op == .Mul do
             return Point{.x * value, .y * value}
-        #elif op == "/" do
+        #elif op == .Div do
             return Point{.x / value, .y / value}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Apply unary operations to the point.
     // Currently supports negation (-) to return a point with both coordinates negated.
-    mtd(op: string) const opUnary()->Point
+    mtd(op: Swag.Operator) const opUnary()->Point
     {
         var result: retval
-        #if op == "-"
+        #if op == .Neg
         {
             result.x = -.x
             result.y = -.y
@@ -124,7 +124,7 @@ impl Point
         }
         #else
         {
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

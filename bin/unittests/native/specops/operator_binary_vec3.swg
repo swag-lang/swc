@@ -13,32 +13,32 @@ struct(T) GenVec3
 
 impl GenVec3
 {
-    func(op: string) opBinary(const me, other: const &GenVec3'T)->GenVec3'T
+    func(op: Swag.Operator) opBinary(const me, other: const &GenVec3'T)->GenVec3'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + other.x, y: me.y + other.y, z: me.z + other.z}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - other.x, y: me.y - other.y, z: me.z - other.z}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * other.x, y: me.y * other.y, z: me.z * other.z}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / other.x, y: me.y / other.y, z: me.z / other.z}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, scalar: T)->GenVec3'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->GenVec3'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + scalar, y: me.y + scalar, z: me.z + scalar}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - scalar, y: me.y - scalar, z: me.z - scalar}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar, z: me.z * scalar}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / scalar, y: me.y / scalar, z: me.z / scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

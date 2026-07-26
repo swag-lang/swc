@@ -12,47 +12,47 @@ impl Complex
 {
     // Unary +  : identity
     // Unary -  : negate both parts
-    func(op: string) opUnary(const me)->Complex'T
+    func(op: Swag.Operator) opUnary(const me)->Complex'T
     {
-        #if op == "+" do
+        #if op == .Pos do
             return {re: +me.re, im: +me.im}
-        #elif op == "-" do
+        #elif op == .Neg do
             return {re: -me.re, im: -me.im}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary complex op complex
     //   (a+bi) + (c+di) = (a+c) + (b+d)i
     //   (a+bi) - (c+di) = (a-c) + (b-d)i
     //   (a+bi) * (c+di) = (ac-bd) + (ad+bc)i
-    func(op: string) opBinary(const me, other: const &Complex'T)->Complex'T
+    func(op: Swag.Operator) opBinary(const me, other: const &Complex'T)->Complex'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {re: me.re + other.re, im: me.im + other.im}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {re: me.re - other.re, im: me.im - other.im}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {re: me.re * other.re - me.im * other.im,
                 im: me.re * other.im + me.im * other.re}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary complex op scalar  (scalar treated as real-only)
     //   (a+bi) + s = (a+s) + bi
     //   (a+bi) - s = (a-s) + bi
     //   (a+bi) * s = (a*s) + (b*s)i
-    func(op: string) opBinary(const me, scalar: T)->Complex'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Complex'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {re: me.re + scalar, im: me.im}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {re: me.re - scalar, im: me.im}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {re: me.re * scalar, im: me.im * scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Conjugate: (a+bi) -> (a-bi)

@@ -84,10 +84,88 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Complete()
 
+    // The operator an overload hook is being asked to implement.
+    // The compiler passes it as the generic value argument of 'opBinary', 'opBinaryRight',
+    // 'opUnary', 'opAssign' and 'opIndexAssign'. Each spelling has its own member, so a hook
+    // never has to guess: 'Sub' and 'Neg' are distinct even though both are written '-'.
+    // The member order is part of the compiler contract; do not reorder or renumber.
+    enum Operator
+    {
+        // Binary operators: + - * / % & | ^ << >>
+        Add
+        Sub
+        Mul
+        Div
+        Mod
+        BitAnd
+        BitOr
+        BitXor
+        Shl
+        Shr
+
+        // Unary operators: ! + - ~
+        Not
+        Pos
+        Neg
+        BitNot
+
+        // Compound assignments: += -= *= /= %= &= |= ^= <<= >>=
+        AddAssign
+        SubAssign
+        MulAssign
+        DivAssign
+        ModAssign
+        BitAndAssign
+        BitOrAssign
+        BitXorAssign
+        ShlAssign
+        ShrAssign
+    }
+
+    impl Operator
+    {
+        // The source spelling of the operator, for generated code and for diagnostics
+        // that need to name the operator an overload was asked to implement.
+        #[ConstExpr]
+        mtd symbol()->string
+        {
+            #[Complete]
+            switch me
+            {
+            case Add:          return "+"
+            case Sub:          return "-"
+            case Mul:          return "*"
+            case Div:          return "/"
+            case Mod:          return "%"
+            case BitAnd:       return "&"
+            case BitOr:        return "|"
+            case BitXor:       return "^"
+            case Shl:          return "<<"
+            case Shr:          return ">>"
+            case Not:          return "!"
+            case Pos:          return "+"
+            case Neg:          return "-"
+            case BitNot:       return "~"
+            case AddAssign:    return "+="
+            case SubAssign:    return "-="
+            case MulAssign:    return "*="
+            case DivAssign:    return "/="
+            case ModAssign:    return "%="
+            case BitAndAssign: return "&="
+            case BitOrAssign:  return "|="
+            case BitXorAssign: return "^="
+            case ShlAssign:    return "<<="
+            case ShrAssign:    return ">>="
+            }
+
+            unreachable
+        }
+    }
+
     // An opBinary operator overload can also be used when its receiver is the right operand.
-    // Optional string parameters restrict the operators for generic opBinary implementations.
+    // Optional parameters restrict the operators for generic opBinary implementations.
     #[AttrUsage(AttributeUsage.Function)]
-    attr Commutative(operators: string...)
+    attr Commutative(operators: Operator...)
 
     // Generate operator overloads for a struct.
     #[AttrUsage(AttributeUsage.Struct)]

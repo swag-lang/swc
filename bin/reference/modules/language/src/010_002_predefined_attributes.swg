@@ -51,7 +51,7 @@ should not be used for program logic.
 |---|---|
 | 'Operators(operators: string...)' | Generate selected structural operators |
 | 'OperatorIgnore()' | Exclude one field from generated operators |
-| 'Commutative(operators: string...)' | Allow selected binary overloads with the receiver on the right |
+| 'Commutative(operators: Operator...)' | Allow selected binary overloads with the receiver on the right |
 | 'Complete()' | Require exhaustive handling where the construct supports it |
 | 'Incomplete()' | Mark an enum as intentionally open for non-exhaustive switches |
 | 'EnumFlags()' | Define an enum whose values form a bit mask |

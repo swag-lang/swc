@@ -16,42 +16,42 @@ struct(T) Vec2
 
 impl Vec2
 {
-    func(op: string) opUnary(const me)->Vec2'T
+    func(op: Swag.Operator) opUnary(const me)->Vec2'T
     {
-        #if op == "+" do
+        #if op == .Pos do
             return {x: +me.x, y: +me.y}
-        #elif op == "-" do
+        #elif op == .Neg do
             return {x: -me.x, y: -me.y}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, other: const &Vec2'T)->Vec2'T
+    func(op: Swag.Operator) opBinary(const me, other: const &Vec2'T)->Vec2'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + other.x, y: me.y + other.y}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - other.x, y: me.y - other.y}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * other.x, y: me.y * other.y}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / other.x, y: me.y / other.y}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, scalar: T)->Vec2'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + scalar, y: me.y + scalar}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - scalar, y: me.y - scalar}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / scalar, y: me.y / scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func dot(a: const &Vec2'T, b: const &Vec2'T)->T
@@ -73,34 +73,34 @@ struct(T) Rect
 impl Rect
 {
     // Unary -: reflect the rectangle through the origin
-    func(op: string) opUnary(const me)->Rect'T
+    func(op: Swag.Operator) opUnary(const me)->Rect'T
     {
-        #if op == "-" do
+        #if op == .Neg do
             return {min: -me.max, max: -me.min}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Rect + Vec2 = translate,  Rect + Rect = bounding union
-    func(op: string) opBinary(const me, offset: const &Vec2'T)->Rect'T
+    func(op: Swag.Operator) opBinary(const me, offset: const &Vec2'T)->Rect'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {min: me.min + offset, max: me.max + offset}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {min: me.min - offset, max: me.max - offset}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Rect * scalar = scale from origin
-    func(op: string) opBinary(const me, scalar: T)->Rect'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Rect'T
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {min: me.min * scalar, max: me.max * scalar}
-        #elif op == "/" do
+        #elif op == .Div do
             return {min: me.min / scalar, max: me.max / scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func width(const me)->T  => me.max.x - me.min.x
@@ -126,32 +126,32 @@ struct(T) Transform2D
 impl Transform2D
 {
     // Unary -: negate position, keep scale
-    func(op: string) opUnary(const me)->Transform2D'T
+    func(op: Swag.Operator) opUnary(const me)->Transform2D'T
     {
-        #if op == "-" do
+        #if op == .Neg do
             return {pos: -me.pos, scale: me.scale}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Combine two transforms: add positions, multiply scales
-    func(op: string) opBinary(const me, other: const &Transform2D'T)->Transform2D'T
+    func(op: Swag.Operator) opBinary(const me, other: const &Transform2D'T)->Transform2D'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {pos: me.pos + other.pos, scale: me.scale * other.scale}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {pos: me.pos - other.pos, scale: me.scale * other.scale}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Uniform scale: multiply both pos and scale by scalar
-    func(op: string) opBinary(const me, scalar: T)->Transform2D'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Transform2D'T
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {pos: me.pos * scalar, scale: me.scale * scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Apply transform to a point

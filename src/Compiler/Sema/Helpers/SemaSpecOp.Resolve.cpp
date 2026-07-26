@@ -129,6 +129,79 @@ namespace
         return nodeRef;
     }
 
+    std::optional<SpecOperator> binarySpecOperator(TokenId tokId)
+    {
+        switch (tokId)
+        {
+            case TokenId::SymPlus: return SpecOperator::Add;
+            case TokenId::SymMinus: return SpecOperator::Sub;
+            case TokenId::SymAsterisk: return SpecOperator::Mul;
+            case TokenId::SymSlash: return SpecOperator::Div;
+            case TokenId::SymPercent: return SpecOperator::Mod;
+            case TokenId::SymAmpersand: return SpecOperator::BitAnd;
+            case TokenId::SymPipe: return SpecOperator::BitOr;
+            case TokenId::SymCircumflex: return SpecOperator::BitXor;
+            case TokenId::SymLowerLower: return SpecOperator::Shl;
+            case TokenId::SymGreaterGreater: return SpecOperator::Shr;
+            default: return std::nullopt;
+        }
+    }
+
+    std::optional<SpecOperator> unarySpecOperator(TokenId tokId)
+    {
+        switch (tokId)
+        {
+            case TokenId::SymBang: return SpecOperator::Not;
+            case TokenId::SymPlus: return SpecOperator::Pos;
+            case TokenId::SymMinus: return SpecOperator::Neg;
+            case TokenId::SymTilde: return SpecOperator::BitNot;
+            default: return std::nullopt;
+        }
+    }
+
+    std::optional<SpecOperator> assignSpecOperator(TokenId tokId)
+    {
+        switch (tokId)
+        {
+            case TokenId::SymPlusEqual: return SpecOperator::AddAssign;
+            case TokenId::SymMinusEqual: return SpecOperator::SubAssign;
+            case TokenId::SymAsteriskEqual: return SpecOperator::MulAssign;
+            case TokenId::SymSlashEqual: return SpecOperator::DivAssign;
+            case TokenId::SymPercentEqual: return SpecOperator::ModAssign;
+            case TokenId::SymAmpersandEqual: return SpecOperator::BitAndAssign;
+            case TokenId::SymPipeEqual: return SpecOperator::BitOrAssign;
+            case TokenId::SymCircumflexEqual: return SpecOperator::BitXorAssign;
+            case TokenId::SymLowerLowerEqual: return SpecOperator::ShlAssign;
+            case TokenId::SymGreaterGreaterEqual: return SpecOperator::ShrAssign;
+            default: return std::nullopt;
+        }
+    }
+
+    // The operator reaches the hook as a 'Swag.Operator' value, so a misspelled member is a
+    // symbol error instead of a comparison that silently never matches. Resolving the runtime
+    // enum can suspend, hence the Result-returning shape.
+    Result makeSyntheticOperatorArg(AstNodeRef& outNodeRef, Sema& sema, const SourceCodeRef& codeRef, SpecOperator op)
+    {
+        outNodeRef = AstNodeRef::invalid();
+
+        TypeRef typeRef = TypeRef::invalid();
+        SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::Operator, typeRef, codeRef));
+
+        const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::IntegerLiteral>(codeRef.tokRef);
+        nodePtr->setCodeRef(codeRef);
+
+        const TaskContext&  ctx          = sema.ctx();
+        const ConstantRef   valueCstRef  = sema.cstMgr().addS32(ctx, static_cast<int32_t>(op));
+        const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCstRef, typeRef);
+        const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+        sema.setType(nodeRef, typeRef);
+        sema.setConstant(nodeRef, enumValueRef);
+        sema.setIsValue(*nodePtr);
+
+        outNodeRef = nodeRef;
+        return Result::Continue;
+    }
+
     AstNodeRef makeSyntheticBoolConstantArg(Sema& sema, const SourceCodeRef& codeRef, bool value)
     {
         // Same contract as makeSyntheticStringConstantArg: this node is created
@@ -306,14 +379,6 @@ namespace
 
         const IdentifierRef opVisitId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpVisit);
         return waitVisitSpecOpRegistration(sema, ownerStruct, opVisitId, node.codeRef());
-    }
-
-    std::string_view assignGenericOpString(TokenId tokId)
-    {
-        if (tokId == TokenId::SymEqual)
-            return {};
-
-        return Token::toName(tokId);
     }
 
     bool isSupportedAssignSpecOp(TokenId tokId)
@@ -503,9 +568,9 @@ namespace
         AstNodeRef          genericArg     = AstNodeRef::invalid();
         if (!isSimpleAssign)
         {
-            const std::string_view opString = assignGenericOpString(tokId);
-            SWC_ASSERT(!opString.empty());
-            genericArg = makeSyntheticStringConstantArg(sema, codeRef, opString);
+            const std::optional<SpecOperator> op = assignSpecOperator(tokId);
+            SWC_ASSERT(op.has_value());
+            SWC_RESULT(makeSyntheticOperatorArg(genericArg, sema, codeRef, *op));
         }
 
         if (genericArg.isValid())
@@ -603,9 +668,9 @@ namespace
         AstNodeRef          genericArg     = AstNodeRef::invalid();
         if (!isSimpleAssign)
         {
-            const std::string_view opString = assignGenericOpString(tokId);
-            SWC_ASSERT(!opString.empty());
-            genericArg = makeSyntheticStringConstantArg(sema, codeRef, opString);
+            const std::optional<SpecOperator> op = assignSpecOperator(tokId);
+            SWC_ASSERT(op.has_value());
+            SWC_RESULT(makeSyntheticOperatorArg(genericArg, sema, codeRef, *op));
         }
 
         if (genericArg.isValid())
@@ -1638,11 +1703,13 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     const auto& ownerStruct = operandType.payloadSymStruct();
     SWC_RESULT(sema.waitSemaCompleted(&ownerStruct, node.codeRef()));
 
-    const SourceView&      srcView    = sema.compiler().srcView(node.srcViewRef());
-    const std::string_view opString   = tok.string(srcView);
-    const AstNodeRef       genericArg = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
-    const IdentifierRef    opUnaryId  = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpUnary);
-    SmallVector<Symbol*>   candidates;
+    const std::optional<SpecOperator> op = unarySpecOperator(tok.id);
+    SWC_ASSERT(op.has_value());
+    AstNodeRef genericArg = AstNodeRef::invalid();
+    SWC_RESULT(makeSyntheticOperatorArg(genericArg, sema, node.codeRef(), *op));
+
+    const IdentifierRef  opUnaryId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpUnary);
+    SmallVector<Symbol*> candidates;
     SWC_RESULT(collectSpecOpCandidates(sema, ownerStruct, opUnaryId, std::span{&genericArg, 1}, candidates));
     if (candidates.empty())
         return Result::Continue;
@@ -1682,11 +1749,11 @@ namespace
         AstNodeRef          argRef       = AstNodeRef::invalid();
         IdentifierRef       opId         = IdentifierRef::invalid();
         AstNodeRef          genericArg   = AstNodeRef::invalid();
-        std::string_view    opString;
+        SpecOperator        op              = SpecOperator::Add;
         bool                commutativeOnly = false;
     };
 
-    std::optional<bool> commutativeAttributeApplies(Sema& sema, const SymbolFunction& fn, std::string_view opString)
+    std::optional<bool> commutativeAttributeApplies(Sema& sema, const SymbolFunction& fn, SpecOperator op)
     {
         const IdentifierRef commutativeId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Commutative);
         for (const AttributeInstance& attr : fn.attributes().attributes)
@@ -1700,8 +1767,9 @@ namespace
             {
                 SWC_ASSERT(param.valueCstRef.isValid());
                 const ConstantValue& value = sema.cstMgr().get(param.valueCstRef);
-                SWC_ASSERT(value.isString());
-                if (value.getString() == opString)
+                SWC_ASSERT(value.isEnumValue());
+                const ConstantValue& rawValue = sema.cstMgr().get(value.getEnumValue());
+                if (rawValue.getInt().asI64() == static_cast<int64_t>(op))
                     return true;
             }
 
@@ -1711,9 +1779,9 @@ namespace
         return std::nullopt;
     }
 
-    bool isCommutativeForOp(Sema& sema, const SymbolFunction& fn, std::string_view opString)
+    bool isCommutativeForOp(Sema& sema, const SymbolFunction& fn, SpecOperator op)
     {
-        const std::optional<bool> applies = commutativeAttributeApplies(sema, fn, opString);
+        const std::optional<bool> applies = commutativeAttributeApplies(sema, fn, op);
         if (applies.has_value())
             return applies.value();
 
@@ -1721,14 +1789,14 @@ namespace
         if (!root || root == &fn)
             return false;
 
-        const std::optional<bool> rootApplies = commutativeAttributeApplies(sema, *root, opString);
+        const std::optional<bool> rootApplies = commutativeAttributeApplies(sema, *root, op);
         if (rootApplies.has_value())
             return rootApplies.value();
 
         return false;
     }
 
-    void filterCommutativeBinaryCandidates(Sema& sema, SmallVector<Symbol*>& candidates, std::string_view opString)
+    void filterCommutativeBinaryCandidates(Sema& sema, SmallVector<Symbol*>& candidates, SpecOperator op)
     {
         SmallVector<Symbol*> filtered;
         filtered.reserve(candidates.size());
@@ -1736,7 +1804,7 @@ namespace
         {
             if (!candidate || !candidate->isFunction())
                 continue;
-            if (isCommutativeForOp(sema, candidate->cast<SymbolFunction>(), opString))
+            if (isCommutativeForOp(sema, candidate->cast<SymbolFunction>(), op))
                 filtered.push_back(candidate);
         }
 
@@ -1756,7 +1824,7 @@ namespace
         SWC_RESULT(sema.waitSemaCompleted(ownerStruct, node.codeRef()));
         SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, request.opId, std::span{&request.genericArg, 1}, out.candidates, request.commutativeOnly));
         if (request.commutativeOnly)
-            filterCommutativeBinaryCandidates(sema, out.candidates, request.opString);
+            filterCommutativeBinaryCandidates(sema, out.candidates, request.op);
         if (out.candidates.empty())
             return Result::Continue;
 
@@ -1799,21 +1867,23 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
     if (!tok.isAny({TokenId::SymPlus, TokenId::SymMinus, TokenId::SymAsterisk, TokenId::SymSlash, TokenId::SymPercent, TokenId::SymAmpersand, TokenId::SymPipe, TokenId::SymCircumflex, TokenId::SymLowerLower, TokenId::SymGreaterGreater}))
         return Result::Continue;
 
-    const SourceView&      srcView         = sema.compiler().srcView(node.srcViewRef());
-    const std::string_view opString        = tok.string(srcView);
-    const AstNodeRef       genericArg      = makeSyntheticStringConstantArg(sema, node.codeRef(), opString);
-    const IdentifierRef    opBinaryId      = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinary);
-    const IdentifierRef    opBinaryRightId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinaryRight);
+    const std::optional<SpecOperator> op = binarySpecOperator(tok.id);
+    SWC_ASSERT(op.has_value());
+    AstNodeRef genericArg = AstNodeRef::invalid();
+    SWC_RESULT(makeSyntheticOperatorArg(genericArg, sema, node.codeRef(), *op));
+
+    const IdentifierRef opBinaryId      = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinary);
+    const IdentifierRef opBinaryRightId = sema.idMgr().predefined(IdentifierManager::PredefinedName::OpBinaryRight);
 
     BinarySpecOpResolution left;
-    SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &leftView, .receiverRef = node.nodeLeftRef, .argRef = node.nodeRightRef, .opId = opBinaryId, .genericArg = genericArg, .opString = opString}, left));
+    SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &leftView, .receiverRef = node.nodeLeftRef, .argRef = node.nodeRightRef, .opId = opBinaryId, .genericArg = genericArg, .op = *op}, left));
 
     BinarySpecOpResolution rightDirect;
-    SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &rightView, .receiverRef = node.nodeRightRef, .argRef = node.nodeLeftRef, .opId = opBinaryRightId, .genericArg = genericArg, .opString = opString}, rightDirect));
+    SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &rightView, .receiverRef = node.nodeRightRef, .argRef = node.nodeLeftRef, .opId = opBinaryRightId, .genericArg = genericArg, .op = *op}, rightDirect));
 
     BinarySpecOpResolution rightCommutative;
     if (!rightDirect.matched())
-        SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &rightView, .receiverRef = node.nodeRightRef, .argRef = node.nodeLeftRef, .opId = opBinaryId, .genericArg = genericArg, .opString = opString, .commutativeOnly = true}, rightCommutative));
+        SWC_RESULT(probeBinarySpecOp(sema, node, {.receiverView = &rightView, .receiverRef = node.nodeRightRef, .argRef = node.nodeLeftRef, .opId = opBinaryId, .genericArg = genericArg, .op = *op, .commutativeOnly = true}, rightCommutative));
 
     BinarySpecOpResolution* right = &rightDirect;
     if (!rightDirect.matched() && rightCommutative.matched())

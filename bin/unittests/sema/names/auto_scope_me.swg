@@ -45,12 +45,12 @@ struct(T) AutoScopeUnaryBox
 
 impl AutoScopeUnaryBox
 {
-    func(op: string) opUnary(const me)->AutoScopeUnaryBox'T
+    func(op: Swag.Operator) opUnary(const me)->AutoScopeUnaryBox'T
     {
-        #if op == "~" do
+        #if op == .BitNot do
             return {value: ~.value}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

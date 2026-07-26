@@ -1430,16 +1430,29 @@ namespace
             return Result::Continue;
 
         const AstNodeRef argValueRef = Match::resolveCallArgumentValueRef(sema, entry.argRef);
-        const TypeRef    argTy       = sema.viewType(argValueRef).typeRef();
+        TypeRef          argTy       = sema.viewType(argValueRef).typeRef();
         CastFailure      cf{};
+
+        // A typed variadic tail gives every argument the same parameter type, so '.Value'
+        // resolves against it exactly like a fixed parameter would.
+        AutoEnumArgProbe probe;
+        SWC_RESULT(probeAutoEnumArg(sema, entry.argRef, variadicTy, probe, cf));
+        if (probe.matched)
+            argTy = probe.typeRef;
 
         if (argTy.isInvalid())
         {
-            cf.diagId     = DiagnosticId::sema_err_cannot_cast;
-            cf.nodeRef    = argValueRef;
-            cf.srcTypeRef = argTy;
-            cf.dstTypeRef = variadicTy;
-            attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+            // The auto-enum probe reports the precise reason (an unknown member, with the
+            // available values); only fall back to the generic cast failure when it stayed silent.
+            if (cf.diagId == DiagnosticId::None)
+            {
+                cf.diagId     = DiagnosticId::sema_err_cannot_cast;
+                cf.srcTypeRef = argTy;
+                cf.dstTypeRef = variadicTy;
+                attachCallCastFailureArgs(cf, fn, entry.callArgIndex, sema.ctx());
+            }
+
+            cf.nodeRef = argValueRef;
             failBadType(outFail, entry.callArgIndex, variadicParamIndex, cf);
             return Result::Continue;
         }
@@ -2487,6 +2500,22 @@ namespace
                 continue;
             if (argRef.isValid() && !sema.typeMgr().get(paramTy).isCodeBlock())
                 SWC_RESULT(resolveAutoEnumArgFinal(sema, argRef, paramTy));
+        }
+
+        // Arguments in a typed variadic tail all share the element type of the last parameter.
+        if (numParams > 0 && !mapping.variadicArgs.empty())
+        {
+            const TypeRef   variadicParamTypeRef = unwrapAliasEnumOrSelf(sema, params.back()->typeRef());
+            const TypeInfo& variadicParamType    = sema.typeMgr().get(variadicParamTypeRef);
+            if (variadicParamType.isTypedVariadic())
+            {
+                const TypeRef variadicTy = variadicParamType.payloadTypeRef();
+                for (const CallArgEntry& entry : mapping.variadicArgs)
+                {
+                    if (entry.argRef.isValid())
+                        SWC_RESULT(resolveAutoEnumArgFinal(sema, entry.argRef, variadicTy));
+                }
+            }
         }
 
         return Result::Continue;

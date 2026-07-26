@@ -38,30 +38,30 @@ impl Vector4
     // Compound assignment operators for vector-vector operations (+=, -=, *=, /=).
     // Performs component-wise operations with another vector.
     #[Swag.Inline]
-    mtd(op: string) opAssign(other: Vector4)
+    mtd(op: Swag.Operator) opAssign(other: Vector4)
     {
-        #if op == "+="
+        #if op == .AddAssign
         {
             .x += other.x
             .y += other.y
             .z += other.z
             .w += other.w
         }
-        #elif op == "-="
+        #elif op == .SubAssign
         {
             .x -= other.x
             .y -= other.y
             .z -= other.z
             .w -= other.w
         }
-        #elif op == "*="
+        #elif op == .MulAssign
         {
             .x *= other.x
             .y *= other.y
             .z *= other.z
             .w *= other.w
         }
-        #elif op == "/="
+        #elif op == .DivAssign
         {
             .x /= other.x
             .y /= other.y
@@ -69,36 +69,36 @@ impl Vector4
             .w /= other.w
         }
         #else do
-            #error("unsupported assign operation [[" ++ op ++ "]]")
+            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Compound assignment operators for vector-scalar operations (+=, -=, *=, /=).
     // Applies the scalar 'value' to all components of the vector.
     #[Swag.Inline]
-    mtd(op: string) opAssign(value: f32)
+    mtd(op: Swag.Operator) opAssign(value: f32)
     {
-        #if op == "+="
+        #if op == .AddAssign
         {
             .x += value
             .y += value
             .z += value
             .w += value
         }
-        #elif op == "-="
+        #elif op == .SubAssign
         {
             .x -= value
             .y -= value
             .z -= value
             .w -= value
         }
-        #elif op == "*="
+        #elif op == .MulAssign
         {
             .x *= value
             .y *= value
             .z *= value
             .w *= value
         }
-        #elif op == "/="
+        #elif op == .DivAssign
         {
             .x /= value
             .y /= value
@@ -106,52 +106,52 @@ impl Vector4
             .w /= value
         }
         #else do
-            #error("unsupported assign operation [[" ++ op ++ "]]")
+            #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary operators for vector-vector operations (+, -, *, /).
     // Performs component-wise operations between two vectors and returns the result.
     #[Swag.Inline]
-    mtd(op: string) const opBinary(other: const &Vector4)->Vector4
+    mtd(op: Swag.Operator) const opBinary(other: const &Vector4)->Vector4
     {
-        #if op == "+" do
+        #if op == .Add do
             return Vector4{.x + other.x, .y + other.y, .z + other.z, .w + other.w}
-        #elif op == "-" do
+        #elif op == .Sub do
             return Vector4{.x - other.x, .y - other.y, .z - other.z, .w - other.w}
-        #elif op == "*" do
+        #elif op == .Mul do
             return Vector4{.x * other.x, .y * other.y, .z * other.z, .w * other.w}
-        #elif op == "/" do
+        #elif op == .Div do
             return Vector4{.x / other.x, .y / other.y, .z / other.z, .w / other.w}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary operators for vector-scalar operations (+, -, *, /).
     // Applies the scalar 'value' to all components and returns the result.
-    #[Swag.Inline, Swag.Commutative("+", "*")]
-    mtd(op: string) const opBinary(value: f32)->Vector4
+    #[Swag.Inline, Swag.Commutative(.Add, .Mul)]
+    mtd(op: Swag.Operator) const opBinary(value: f32)->Vector4
     {
-        #if op == "+" do
+        #if op == .Add do
             return Vector4{.x + value, .y + value, .z + value, .w + value}
-        #elif op == "-" do
+        #elif op == .Sub do
             return Vector4{.x - value, .y - value, .z - value, .w - value}
-        #elif op == "*" do
+        #elif op == .Mul do
             return Vector4{.x * value, .y * value, .z * value, .w * value}
-        #elif op == "/" do
+        #elif op == .Div do
             return Vector4{.x / value, .y / value, .z / value, .w / value}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Apply unary operations to the vector.
     // Currently supports negation (-) to return a vector with all components negated.
     #[Swag.Inline]
-    mtd(op: string) const opUnary()->Vector4
+    mtd(op: Swag.Operator) const opUnary()->Vector4
     {
-        #if op == "-" do
+        #if op == .Neg do
             return Vector4{-.x, -.y, -.z, -.w}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Set all four components of the vector.

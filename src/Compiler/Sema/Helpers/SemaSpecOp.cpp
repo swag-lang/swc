@@ -43,13 +43,13 @@ namespace
             case SpecOpKind::OpCompare:
                 return "mtd opCompare(value: <type>) -> s32";
             case SpecOpKind::OpBinary:
-                return "mtd(op: string) const opBinary(other: <type>) -> <struct>";
+                return "mtd(op: Swag.Operator) const opBinary(other: <type>) -> <struct>";
             case SpecOpKind::OpBinaryRight:
-                return "mtd(op: string) const opBinaryRight(other: <type>) -> <struct>";
+                return "mtd(op: Swag.Operator) const opBinaryRight(other: <type>) -> <struct>";
             case SpecOpKind::OpUnary:
-                return "mtd(op: string) const opUnary() -> <struct>";
+                return "mtd(op: Swag.Operator) const opUnary() -> <struct>";
             case SpecOpKind::OpAssign:
-                return "mtd(op: string) opAssign(value: <type>) -> void";
+                return "mtd(op: Swag.Operator) opAssign(value: <type>) -> void";
             case SpecOpKind::OpSet:
                 return "mtd opSet(value: <type>) -> void";
             case SpecOpKind::OpSetLiteral:
@@ -59,7 +59,7 @@ namespace
             case SpecOpKind::OpIndex:
                 return "mtd opIndex(index: <type>[, index: <same type>...]) -> <type>";
             case SpecOpKind::OpIndexAssign:
-                return "mtd(op: string) opIndexAssign(index: <type>[, index: <same type>...], value: <type>) -> void";
+                return "mtd(op: Swag.Operator) opIndexAssign(index: <type>[, index: <same type>...], value: <type>) -> void";
             case SpecOpKind::OpIndexSet:
                 return "mtd opIndexSet(index: <type>[, index: <same type>...], value: <type>) -> void";
             case SpecOpKind::OpVisit:
@@ -151,10 +151,20 @@ namespace
         return true;
     }
 
-    std::span<const TokenId> expectedSpecOpGenericValueTypes(SpecOpKind kind)
+    // The generic value parameters a special-op declaration must carry. 'Operator' is the
+    // 'Swag.Operator' enum; the other kinds are builtin types spelled by a single token.
+    enum class SpecOpGenericValue : uint8_t
     {
-        static constexpr TokenId K_STRING[] = {TokenId::TypeString};
-        static constexpr TokenId K_BOOL2[]  = {TokenId::TypeBool, TokenId::TypeBool};
+        String,
+        Bool,
+        Operator,
+    };
+
+    std::span<const SpecOpGenericValue> expectedSpecOpGenericValueTypes(SpecOpKind kind)
+    {
+        static constexpr SpecOpGenericValue K_STRING[]   = {SpecOpGenericValue::String};
+        static constexpr SpecOpGenericValue K_BOOL2[]    = {SpecOpGenericValue::Bool, SpecOpGenericValue::Bool};
+        static constexpr SpecOpGenericValue K_OPERATOR[] = {SpecOpGenericValue::Operator};
 
         switch (kind)
         {
@@ -162,8 +172,11 @@ namespace
             case SpecOpKind::OpBinaryRight:
             case SpecOpKind::OpUnary:
             case SpecOpKind::OpAssign:
-            case SpecOpKind::OpSetLiteral:
             case SpecOpKind::OpIndexAssign:
+                return K_OPERATOR;
+
+            // A literal suffix is an open-ended set of user-chosen spellings, so it stays a string.
+            case SpecOpKind::OpSetLiteral:
                 return K_STRING;
 
             case SpecOpKind::OpVisit:
@@ -180,7 +193,31 @@ namespace
         return root->decl() ? root->decl()->safeCast<AstFunctionDecl>() : nullptr;
     }
 
-    bool hasSpecOpGenericValueType(const Sema& sema, const Ast& ast, AstNodeRef typeRef, TokenId expectedType)
+    // 'Swag.Operator' is a named type, so it cannot be recognized by a token like the builtin
+    // types. Matching the trailing identifier is enough here: this is only the declaration-shape
+    // guard, and a same-named enum from another namespace still fails when the compiler passes
+    // its own 'Swag.Operator' constant to the overload match.
+    bool hasSpecOpOperatorType(const Sema& sema, const Ast& ast, const AstNode& typeNode)
+    {
+        const auto* namedType = typeNode.safeCast<AstNamedType>();
+        if (!namedType || namedType->nodeIdentRef.isInvalid())
+            return false;
+
+        // A qualified name is a left-leaning chain of member accesses, so the type name is the
+        // rightmost identifier of 'Swag.Operator'.
+        AstNodeRef nameRef = namedType->nodeIdentRef;
+        while (const auto* memberAccess = ast.node(nameRef).safeCast<AstMemberAccessExpr>())
+            nameRef = memberAccess->nodeRightRef;
+
+        const AstNode& nameNode = ast.node(nameRef);
+        if (nameNode.isNot(AstNodeId::Identifier))
+            return false;
+
+        const SourceView& srcView = sema.compiler().srcView(nameNode.srcViewRef());
+        return sema.token(nameNode.codeRef()).string(srcView) == "Operator";
+    }
+
+    bool hasSpecOpGenericValueType(const Sema& sema, const Ast& ast, AstNodeRef typeRef, SpecOpGenericValue expectedType)
     {
         if (typeRef.isInvalid())
             return false;
@@ -189,10 +226,14 @@ namespace
         if (const auto* qualifiedType = typeNode->safeCast<AstQualifiedType>())
             typeNode = &ast.node(qualifiedType->nodeTypeRef);
 
+        if (expectedType == SpecOpGenericValue::Operator)
+            return hasSpecOpOperatorType(sema, ast, *typeNode);
+
         if (typeNode->isNot(AstNodeId::BuiltinType))
             return false;
 
-        return sema.token(typeNode->codeRef()).id == expectedType;
+        const TokenId expectedToken = expectedType == SpecOpGenericValue::String ? TokenId::TypeString : TokenId::TypeBool;
+        return sema.token(typeNode->codeRef()).id == expectedToken;
     }
 
     bool hasSpecOpGenericSignature(Sema& sema, const SymbolFunction& sym, SpecOpKind kind)

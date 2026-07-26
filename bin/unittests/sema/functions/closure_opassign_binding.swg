@@ -9,9 +9,9 @@ struct CallbackList
 
 impl CallbackList
 {
-    mtd(op: string) opAssign(fn: OpAssignClosure)
+    mtd(op: Swag.Operator) opAssign(fn: OpAssignClosure)
     {
-        #assert(op == "+=")
+        #assert(op == .AddAssign)
         .cb = fn
     }
 }

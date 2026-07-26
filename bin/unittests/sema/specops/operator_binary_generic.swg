@@ -7,12 +7,12 @@ struct BinaryIntBox
 
 impl BinaryIntBox
 {
-    mtd(op: string) const opBinary(other: const &BinaryIntBox)->BinaryIntBox
+    mtd(op: Swag.Operator) const opBinary(other: const &BinaryIntBox)->BinaryIntBox
     {
         return {value: .value + other.value}
     }
 
-    mtd(op: string) const opBinary(other: u32)->BinaryIntBox
+    mtd(op: Swag.Operator) const opBinary(other: u32)->BinaryIntBox
     {
         return {value: .value << other}
     }
@@ -26,12 +26,12 @@ struct BinaryRightIntBox
 impl BinaryRightIntBox
 {
     #[Swag.Commutative]
-    mtd(op: string) const opBinary(other: u32)->BinaryRightIntBox
+    mtd(op: Swag.Operator) const opBinary(other: u32)->BinaryRightIntBox
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {value: .value * other}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

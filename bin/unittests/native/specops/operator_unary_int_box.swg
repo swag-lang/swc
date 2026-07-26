@@ -11,16 +11,16 @@ struct(T) IntUnaryBox
 
 impl IntUnaryBox
 {
-    func(op: string) opUnary(const me)->IntUnaryBox'T
+    func(op: Swag.Operator) opUnary(const me)->IntUnaryBox'T
     {
-        #if op == "+" do
+        #if op == .Pos do
             return {value: +me.value}
-        #elif op == "-" do
+        #elif op == .Neg do
             return {value: -me.value}
-        #elif op == "~" do
+        #elif op == .BitNot do
             return {value: ~.value}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

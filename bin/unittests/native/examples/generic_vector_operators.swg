@@ -12,58 +12,58 @@ struct(T) Vector3
 impl Vector3
 {
     // Unary operators: +, -, ~
-    func(op: string) opUnary(const me)->Vector3'T
+    func(op: Swag.Operator) opUnary(const me)->Vector3'T
     {
-        #if op == "+" do
+        #if op == .Pos do
             return {x: +me.x, y: +me.y, z: +me.z}
-        #elif op == "-" do
+        #elif op == .Neg do
             return {x: -me.x, y: -me.y, z: -me.z}
-        #elif op == "~" do
+        #elif op == .BitNot do
             return {x: ~me.x, y: ~me.y, z: ~me.z}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary operators: vector op vector
-    func(op: string) opBinary(const me, other: const &Vector3'T)->Vector3'T
+    func(op: Swag.Operator) opBinary(const me, other: const &Vector3'T)->Vector3'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + other.x, y: me.y + other.y, z: me.z + other.z}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - other.x, y: me.y - other.y, z: me.z - other.z}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * other.x, y: me.y * other.y, z: me.z * other.z}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / other.x, y: me.y / other.y, z: me.z / other.z}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary operators: vector op scalar
-    #[Swag.Commutative("+", "*")]
-    func(op: string) opBinary(const me, scalar: T)->Vector3'T
+    #[Swag.Commutative(.Add, .Mul)]
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Vector3'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + scalar, y: me.y + scalar, z: me.z + scalar}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - scalar, y: me.y - scalar, z: me.z - scalar}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar, z: me.z * scalar}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / scalar, y: me.y / scalar, z: me.z / scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Binary operators that need a distinct scalar op vector order
-    func(op: string) opBinaryRight(const me, scalar: T)->Vector3'T
+    func(op: Swag.Operator) opBinaryRight(const me, scalar: T)->Vector3'T
     {
-        #if op == "-" do
+        #if op == .Sub do
             return {x: scalar - me.x, y: scalar - me.y, z: scalar - me.z}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: scalar / me.x, y: scalar / me.y, z: scalar / me.z}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Dot product helper

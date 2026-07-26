@@ -10,9 +10,9 @@ struct(T) SigArray
 
 impl SigArray
 {
-    mtd(op: string) opAssign(fn: T)
+    mtd(op: Swag.Operator) opAssign(fn: T)
     {
-        #assert(op == "+=")
+        #assert(op == .AddAssign)
         .arr.add(fn)
     }
 

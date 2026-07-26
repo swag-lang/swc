@@ -132,28 +132,28 @@ impl DynString
     }
 
     // Append: `s += "world"`
-    mtd(op: string) opAssign(text: string)
+    mtd(op: Swag.Operator) opAssign(text: string)
     {
-        #if op == "+="
+        #if op == .AddAssign
         {
             let len = cast(u64) @countof(text)
             if len > 0 do
                 appendBytes(&me, cast(const [*] u8) @dataof(text), len)
         }
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     // Append: `s += other`
-    mtd(op: string) opAssign(other: const &DynString)
+    mtd(op: Swag.Operator) opAssign(other: const &DynString)
     {
-        #if op == "+="
+        #if op == .AddAssign
         {
             if other.count > 0 do
                 appendBytes(&me, other.data, other.count)
         }
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     // Byte-exact equality: `s == other`

@@ -16,6 +16,7 @@ enum class RuntimeTypeKind : uint32_t
     TargetOs,
     TargetArch,
     CompilerCommand,
+    Operator,
     TypeInfoKind,
     TypeInfoNativeKind,
     TypeInfoFlags,
@@ -133,6 +134,7 @@ public:
     TypeRef enumTargetOs() const { return runtimeType(RuntimeTypeKind::TargetOs); }
     TypeRef enumTargetArch() const { return runtimeType(RuntimeTypeKind::TargetArch); }
     TypeRef enumCompilerCommand() const { return runtimeType(RuntimeTypeKind::CompilerCommand); }
+    TypeRef enumOperator() const { return runtimeType(RuntimeTypeKind::Operator); }
     TypeRef enumTypeInfoKind() const { return runtimeType(RuntimeTypeKind::TypeInfoKind); }
     TypeRef enumTypeInfoNativeKind() const { return runtimeType(RuntimeTypeKind::TypeInfoNativeKind); }
     TypeRef enumTypeInfoFlags() const { return runtimeType(RuntimeTypeKind::TypeInfoFlags); }

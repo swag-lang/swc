@@ -18,32 +18,32 @@ impl RuntimeAssignBox
     }
 
     #[Swag.NoInline]
-    mtd(op: string) opAssign(value: s32)
+    mtd(op: Swag.Operator) opAssign(value: s32)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             .setPair(.a + value, .b + value)
-        #elif op == "*=" do
+        #elif op == .MulAssign do
             .setPair(.a * value, .b * value)
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     #[Swag.NoInline]
-    mtd(op: string) opAssign(value: u32)
+    mtd(op: Swag.Operator) opAssign(value: u32)
     {
-        #if op == "<<=" do
+        #if op == .ShlAssign do
             .setPair(.a << value, .b << value)
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     #[Swag.NoInline]
-    mtd(op: string) opAssign(other: const &RuntimeAssignBox)
+    mtd(op: Swag.Operator) opAssign(other: const &RuntimeAssignBox)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             .setPair(.a + other.a, .b + other.b)
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 

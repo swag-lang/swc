@@ -13,21 +13,21 @@ struct RuntimeArithAssignBox
 impl RuntimeArithAssignBox
 {
     #[Swag.NoInline]
-    mtd(op: string) opAssign(rhs: s32)
+    mtd(op: Swag.Operator) opAssign(rhs: s32)
     {
         .calls += 1
-        #if op == "+=" do
+        #if op == .AddAssign do
             .value += rhs
-        #elif op == "-=" do
+        #elif op == .SubAssign do
             .value -= rhs
-        #elif op == "*=" do
+        #elif op == .MulAssign do
             .value *= rhs
-        #elif op == "/=" do
+        #elif op == .DivAssign do
             .value /= rhs
-        #elif op == "%=" do
+        #elif op == .ModAssign do
             .value %= rhs
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 
@@ -96,21 +96,21 @@ struct RuntimeBitAssignBox
 impl RuntimeBitAssignBox
 {
     #[Swag.NoInline]
-    mtd(op: string) opAssign(rhs: u32)
+    mtd(op: Swag.Operator) opAssign(rhs: u32)
     {
         .calls += 1
-        #if op == "&=" do
+        #if op == .BitAndAssign do
             .value &= rhs
-        #elif op == "|=" do
+        #elif op == .BitOrAssign do
             .value |= rhs
-        #elif op == "^=" do
+        #elif op == .BitXorAssign do
             .value ^= rhs
-        #elif op == "<<=" do
+        #elif op == .ShlAssign do
             .value <<= rhs
-        #elif op == ">>=" do
+        #elif op == .ShrAssign do
             .value >>= rhs
         #else do
-            #error("unsupported opAssign op [[" ++ op ++ "]]")
+            #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 

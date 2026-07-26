@@ -8,31 +8,31 @@ struct IndexAssignBox
 
 impl IndexAssignBox
 {
-    mtd(op: string) opIndexAssign(index: s32, value: s32)
+    mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             if index == 0 do
                 .first += value
         else do
             .second += value
-        #elif op == "*=" do
+        #elif op == .MulAssign do
             if index == 0 do
             .first *= value
         else do
             .second *= value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 
-    mtd(op: string) opIndexAssign(index: s32, value: u32)
+    mtd(op: Swag.Operator) opIndexAssign(index: s32, value: u32)
     {
-        #if op == "<<=" do
+        #if op == .ShlAssign do
             if index == 0 do
                 .first <<= value
         else do
             .second <<= value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 
@@ -44,15 +44,15 @@ struct WriteOnlyIndexAssignBox
 
 impl WriteOnlyIndexAssignBox
 {
-    mtd(op: string) opIndexAssign(index: s32, value: s32)
+    mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
-        #if op == "+=" do
+        #if op == .AddAssign do
             if index == 0 do
                 .first += value
         else do
             .second += value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 

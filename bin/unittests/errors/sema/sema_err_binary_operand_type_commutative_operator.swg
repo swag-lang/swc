@@ -7,15 +7,15 @@ struct RestrictedCommutativeBox
 
 impl RestrictedCommutativeBox
 {
-    #[Swag.Commutative("*")]
-    mtd(op: string) const opBinary(scalar: s32)->RestrictedCommutativeBox
+    #[Swag.Commutative(.Mul)]
+    mtd(op: Swag.Operator) const opBinary(scalar: s32)->RestrictedCommutativeBox
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {value: .value * scalar}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {value: .value - scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

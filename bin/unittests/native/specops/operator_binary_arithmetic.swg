@@ -1,7 +1,7 @@
 #global private
 
 // ============================================================================
-// Generic struct(T) with func(op: string) opBinary -- arithmetic ops
+// Generic struct(T) with func(op: Swag.Operator) opBinary -- arithmetic ops
 // ============================================================================
 
 struct(T) GenBinaryPair
@@ -12,36 +12,36 @@ struct(T) GenBinaryPair
 
 impl GenBinaryPair
 {
-    mtd(op: string) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
+    mtd(op: Swag.Operator) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: .x + other.x, y: .y + other.y}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: .x - other.x, y: .y - other.y}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: .x * other.x, y: .y * other.y}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: .x / other.x, y: .y / other.y}
-        #elif op == "%" do
+        #elif op == .Mod do
             return {x: .x % other.x, y: .y % other.y}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, scalar: T)->GenBinaryPair'T
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->GenBinaryPair'T
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + scalar, y: me.y + scalar}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - scalar, y: me.y - scalar}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar}
-        #elif op == "/" do
+        #elif op == .Div do
             return {x: me.x / scalar, y: me.y / scalar}
-        #elif op == "%" do
+        #elif op == .Mod do
             return {x: me.x % scalar, y: me.y % scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

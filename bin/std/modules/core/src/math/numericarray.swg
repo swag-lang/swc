@@ -27,57 +27,57 @@ impl NumericArray
         return true
     }
 
-    mtd(op: string) const opBinary(other: const &NumericArray)->NumericArray
+    mtd(op: Swag.Operator) const opBinary(other: const &NumericArray)->NumericArray
     {
         var result: retval
         for [i] in N
         {
-            #if op == "+" do
+            #if op == .Add do
                 result.buf[i] = .buf[i] + other.buf[i]
-            #elif op == "-" do
+            #elif op == .Sub do
                 result.buf[i] = .buf[i] - other.buf[i]
-            #elif op == "*" do
+            #elif op == .Mul do
                 result.buf[i] = .buf[i] * other.buf[i]
-            #elif op == "/" do
+            #elif op == .Div do
                 result.buf[i] = .buf[i] / other.buf[i]
             #else do
-                #error("unsupported binary operation [[" ++ op ++ "]]")
+                #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
 
         return result
     }
 
-    mtd(op: string) opAssign(value: T)
+    mtd(op: Swag.Operator) opAssign(value: T)
     {
         for [i] in N
         {
-            #if op == "+=" do
+            #if op == .AddAssign do
                 .buf[i] += value
-            #elif (op == "-=") do
+            #elif (op == .SubAssign) do
                 .buf[i] -= value
-            #elif (op == "*=") do
+            #elif (op == .MulAssign) do
                 .buf[i] *= value
-            #elif (op == "/=") do
+            #elif (op == .DivAssign) do
                 .buf[i] /= value
             #else do
-                #error("unsupported assign operation [[" ++ op ++ "]]")
+                #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
-    func(op: string) opAssign(me, value: NumericArray)
+    func(op: Swag.Operator) opAssign(me, value: NumericArray)
     {
         for [i] in N
         {
-            #if op == "+=" do
+            #if op == .AddAssign do
                 .buf[i] += value.buf[i]
-            #elif (op == "-=") do
+            #elif (op == .SubAssign) do
                 .buf[i] -= value.buf[i]
-            #elif (op == "*=") do
+            #elif (op == .MulAssign) do
                 .buf[i] *= value.buf[i]
-            #elif (op == "/=") do
+            #elif (op == .DivAssign) do
                 .buf[i] /= value.buf[i]
             #else do
-                #error("unsupported assign operation [[" ++ op ++ "]]")
+                #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

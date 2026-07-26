@@ -18,25 +18,25 @@ impl RuntimeIndexAssignBox
     }
 
     #[Swag.NoInline]
-    mtd(op: string) opIndexAssign(index: s32, value: s32)
+    mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
-        #if op == "+=" do
+        #if op == .AddAssign do
             .values[index] += value
-        #elif op == "*=" do
+        #elif op == .MulAssign do
             .values[index] *= value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     #[Swag.NoInline]
-    mtd(op: string) opIndexAssign(index: s32, value: u32)
+    mtd(op: Swag.Operator) opIndexAssign(index: s32, value: u32)
     {
         .shifts += 1
-        #if op == "<<=" do
+        #if op == .ShlAssign do
             .values[index] <<= #wrap value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 
@@ -50,16 +50,16 @@ struct RuntimeWriteOnlyIndexAssignBox
 impl RuntimeWriteOnlyIndexAssignBox
 {
     #[Swag.NoInline]
-    mtd(op: string) opIndexAssign(index: s32, value: s32)
+    mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
-        #if op == "+=" do
+        #if op == .AddAssign do
             if index == 0 do
                 .first += value
         else do
             .second += value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 
@@ -80,13 +80,13 @@ impl RuntimeRefIndexAssignBox
     }
 
     #[Swag.NoInline]
-    mtd(op: string) opIndexAssign(index: s32, value: s32)
+    mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
-        #if op == "+=" do
+        #if op == .AddAssign do
             .values[index] += value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 
@@ -107,13 +107,13 @@ impl RuntimeMultiIndexAssignBox
     }
 
     #[Swag.NoInline]
-    mtd(op: string) opIndexAssign(row: s32, col: s32, value: s32)
+    mtd(op: Swag.Operator) opIndexAssign(row: s32, col: s32, value: s32)
     {
         .writes += 1
-        #if op == "+=" do
+        #if op == .AddAssign do
             .values[row * 2 + col] += value
         #else do
-            #error("unsupported opIndexAssign op [[" ++ op ++ "]]")
+            #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
 

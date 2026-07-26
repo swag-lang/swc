@@ -7,7 +7,7 @@ struct MissingConstUnaryMe
 
 impl MissingConstUnaryMe
 {
-    mtd(op: string) opUnary()->MissingConstUnaryMe { return {}; }     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: Swag.Operator) opUnary()->MissingConstUnaryMe { return {}; }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 struct(T) GenericMissingConstUnaryMe
@@ -17,7 +17,7 @@ struct(T) GenericMissingConstUnaryMe
 
 impl GenericMissingConstUnaryMe
 {
-    mtd(op: string) opUnary()->GenericMissingConstUnaryMe'T { return {}; }     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: Swag.Operator) opUnary()->GenericMissingConstUnaryMe'T { return {}; }     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 struct BadMultiIndexGet {}
@@ -36,7 +36,7 @@ impl BadMultiIndexSet
 
 impl BadMultiIndexAssign
 {
-    mtd(op: string) opIndexAssign(row: s32, col: u32, value: s32) {}     // swc-expected-error {{sema_err_spec_op_signature}}
+    mtd(op: Swag.Operator) opIndexAssign(row: s32, col: u32, value: s32) {}     // swc-expected-error {{sema_err_spec_op_signature}}
 }
 
 #test

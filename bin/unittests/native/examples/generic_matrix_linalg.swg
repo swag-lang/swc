@@ -17,30 +17,30 @@ struct(T) Vec2
 
 impl Vec2
 {
-    func(op: string) opUnary(const me)->Vec2
+    func(op: Swag.Operator) opUnary(const me)->Vec2
     {
-        #if op == "-" do
+        #if op == .Neg do
             return {x: -me.x, y: -me.y}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, other: const &Vec2)->Vec2
+    func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
     {
-        #if op == "+" do
+        #if op == .Add do
             return {x: me.x + other.x, y: me.y + other.y}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {x: me.x - other.x, y: me.y - other.y}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
-    func(op: string) opBinary(const me, scalar: T)->Vec2
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func dot(a: const &Vec2, b: const &Vec2)->T
@@ -120,40 +120,40 @@ impl Mat2
                 y: me.c * v.x + me.d * v.y}
     }
 
-    func(op: string) opUnary(const me)->Mat2
+    func(op: Swag.Operator) opUnary(const me)->Mat2
     {
-        #if op == "-" do
+        #if op == .Neg do
             return {a: -me.a, b: -me.b, c: -me.c, d: -me.d}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Mat2 +/- Mat2, Mat2 * Mat2
-    func(op: string) opBinary(const me, other: const &Mat2)->Mat2
+    func(op: Swag.Operator) opBinary(const me, other: const &Mat2)->Mat2
     {
-        #if op == "+" do
+        #if op == .Add do
             return {a: me.a + other.a, b: me.b + other.b,
                     c: me.c + other.c, d: me.d + other.d}
-        #elif op == "-" do
+        #elif op == .Sub do
             return {a: me.a - other.a, b: me.b - other.b,
                 c: me.c - other.c, d: me.d - other.d}
-        #elif op == "*" do
+        #elif op == .Mul do
             return {a: me.a * other.a + me.b * other.c,
                 b: me.a * other.b + me.b * other.d,
                 c: me.c * other.a + me.d * other.c,
                 d: me.c * other.b + me.d * other.d}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Mat2 * scalar
-    func(op: string) opBinary(const me, scalar: T)->Mat2
+    func(op: Swag.Operator) opBinary(const me, scalar: T)->Mat2
     {
-        #if op == "*" do
+        #if op == .Mul do
             return {a: me.a * scalar, b: me.b * scalar,
                     c: me.c * scalar, d: me.d * scalar}
         #else do
-            #error("unsupported binary operation [[" ++ op ++ "]]")
+            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     // Build from column vectors

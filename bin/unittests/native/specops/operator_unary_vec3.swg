@@ -13,16 +13,16 @@ struct(T) IntUnaryVec3
 
 impl IntUnaryVec3
 {
-    func(op: string) opUnary(const me)->IntUnaryVec3'T
+    func(op: Swag.Operator) opUnary(const me)->IntUnaryVec3'T
     {
-        #if op == "+" do
+        #if op == .Pos do
             return {x: +me.x, y: +me.y, z: +me.z}
-        #elif op == "-" do
+        #elif op == .Neg do
             return {x: -me.x, y: -me.y, z: -me.z}
-        #elif op == "~" do
+        #elif op == .BitNot do
             return {x: ~me.x, y: ~me.y, z: ~me.z}
         #else do
-            #error("unsupported unary operation [[" ++ op ++ "]]")
+            #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 }
 

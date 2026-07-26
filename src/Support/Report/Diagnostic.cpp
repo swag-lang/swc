@@ -290,6 +290,8 @@ void Diagnostic::report(TaskContext& ctx) const
         return;
     if (silent() || ctx.silentDiagnostic())
         return;
+    if (ctx.silencedDiagnosticId() != DiagnosticId::None && elements_.front()->id() == ctx.silencedDiagnosticId())
+        return;
 
     Diagnostic        contextualDiagnostic = *this;
     const bool        contextualized       = addGeneratedSourceOrigin(ctx, contextualDiagnostic);

@@ -22,6 +22,7 @@ TaskContext::TaskContext(const TaskContext& other) :
     cmdLine_(other.cmdLine_),
     compilerInstance_(other.compilerInstance_),
     silentDiagnostic_(other.silentDiagnostic_),
+    silencedDiagnosticId_(other.silencedDiagnosticId_),
     reportToStats_(other.reportToStats_),
     muteOutput_(other.muteOutput_),
     hasError_(other.hasError_),
@@ -38,8 +39,9 @@ TaskContext& TaskContext::operator=(const TaskContext& other)
     global_           = other.global_;
     cmdLine_          = other.cmdLine_;
     compilerInstance_ = other.compilerInstance_;
-    silentDiagnostic_ = other.silentDiagnostic_;
-    reportToStats_    = other.reportToStats_;
+    silentDiagnostic_     = other.silentDiagnostic_;
+    silencedDiagnosticId_ = other.silencedDiagnosticId_;
+    reportToStats_        = other.reportToStats_;
     muteOutput_       = other.muteOutput_;
     hasError_         = other.hasError_;
     hasWarning_       = other.hasWarning_;

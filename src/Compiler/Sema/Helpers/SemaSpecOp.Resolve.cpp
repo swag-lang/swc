@@ -506,15 +506,15 @@ namespace
                     continue;
                 }
 
-                // When specializing overloaded operators, a failed specialization (e.g. an #error
-                // directive for an unsupported operation) means this overload does not handle the
-                // requested operator.  Suppress diagnostics and skip the candidate instead of
-                // aborting the entire resolution.
-                SymbolFunction* specialized = nullptr;
-                const bool      savedSilent = sema.ctx().silentDiagnostic();
-                sema.ctx().setSilentDiagnostic(true);
+                // '#error' in an operator body is the sanctioned way to say "this overload does not
+                // handle that operator", so it is silenced and the candidate is skipped. Every other
+                // failure is a real defect in the body — a misspelled enum member, a bad expression —
+                // and must be reported instead of silently making the operator unavailable.
+                SymbolFunction*    specialized  = nullptr;
+                const DiagnosticId savedSilence = sema.ctx().silencedDiagnosticId();
+                sema.ctx().setSilencedDiagnosticId(DiagnosticId::sema_err_compiler_error);
                 const Result specResult = SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
-                sema.ctx().setSilentDiagnostic(savedSilent);
+                sema.ctx().setSilencedDiagnosticId(savedSilence);
                 if (specResult == Result::Pause)
                     return Result::Pause;
                 if (specResult != Result::Continue)

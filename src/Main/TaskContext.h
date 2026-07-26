@@ -11,6 +11,7 @@ class SourceFile;
 class TypeManager;
 class TypeGen;
 struct CommandLine;
+enum class DiagnosticId;
 
 class TaskContext
 {
@@ -43,6 +44,10 @@ public:
 
     bool                         silentDiagnostic() const { return silentDiagnostic_; }
     void                         setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
+    // Suppresses one diagnostic id instead of every diagnostic. Used where a specific failure
+    // is a sanctioned opt-out and every other failure is a genuine error worth reporting.
+    DiagnosticId                 silencedDiagnosticId() const { return silencedDiagnosticId_; }
+    void                         setSilencedDiagnosticId(DiagnosticId id) { silencedDiagnosticId_ = id; }
     bool                         reportToStats() const { return reportToStats_; }
     void                         setReportToStats(bool reportToStats) { reportToStats_ = reportToStats; }
     bool                         muteOutput() const { return muteOutput_; }
@@ -66,7 +71,8 @@ private:
     const Global*                                 global_           = nullptr;
     const CommandLine*                            cmdLine_          = nullptr;
     CompilerInstance*                             compilerInstance_ = nullptr;
-    bool                                          silentDiagnostic_ = false;
+    bool                                          silentDiagnostic_    = false;
+    DiagnosticId                                  silencedDiagnosticId_{};
     bool                                          reportToStats_    = true;
     bool                                          muteOutput_       = false;
     bool                                          hasError_         = false;

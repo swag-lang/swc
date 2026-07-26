@@ -718,8 +718,8 @@ SWC_TEST_BEGIN(FormatStatements_RemoveRedundantSemicolons)
     static constexpr std::string_view EXPECTED =
         "interface IFoo\n"
         "{\n"
-        "    mtd one();\n"
-        "    mtd two()->bool fail;\n"
+        "    mtd one()\n"
+        "    mtd two()->bool fail\n"
         "}\n"
         "func foo()\n"
         "{\n"

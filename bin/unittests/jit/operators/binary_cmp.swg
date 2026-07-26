@@ -306,7 +306,7 @@ enum CmpEnum: u16
 
 interface ICompareAllocator
 {
-    mtd reserve()->u32;
+    mtd reserve()->u32
 }
 
 struct CompareAllocator

@@ -113,7 +113,7 @@ impl DepOpaqueGenericBox
 
 interface IDepScore
 {
-    mtd score(value: s32)->s32;
+    mtd score(value: s32)->s32
 }
 
 namespace DepTools
@@ -125,7 +125,7 @@ namespace DepTools
 
     interface IHash32
     {
-        mtd const compute()->u32;
+        mtd const compute()->u32
     }
 
     impl IHash32 for DepNamespaced

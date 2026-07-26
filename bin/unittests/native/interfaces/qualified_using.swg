@@ -2,7 +2,7 @@
 
 interface IQualifiedUsing
 {
-    mtd value()->s32;
+    mtd value()->s32
 }
 
 struct QualifiedUsingBase {}

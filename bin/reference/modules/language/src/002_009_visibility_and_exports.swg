@@ -36,7 +36,7 @@ public
         id: u64
     }
 
-    func submit(request: Request);
+    func submit(request: Request)
 }
 ```
 

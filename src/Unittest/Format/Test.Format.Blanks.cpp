@@ -314,8 +314,8 @@ SWC_TEST_BEGIN(FormatBlanks_BetweenFunctionsKeepsShortFormsStacked)
     static constexpr std::string_view SOURCE =
         "interface IFoo\n"
         "{\n"
-        "    mtd one();\n"
-        "    mtd two();\n"
+        "    mtd one()\n"
+        "    mtd two()\n"
         "}\n"
         "func square(x: s32) => x * x\n"
         "func cube(x: s32) => x * x * x\n";

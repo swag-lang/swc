@@ -2,29 +2,29 @@
 #global if #os == Swag.TargetOs.Windows
 
 #[Swag.Foreign("kernel32", "GetCurrentProcessId")]
-func GetPidAlias()->u32;
+func GetPidAlias()->u32
 
 #[Swag.Foreign(module: "kernel32", function: "GetCurrentProcessId", callconv: Swag.CallConv.C)]
-func GetPidExplicitC()->u32;
+func GetPidExplicitC()->u32
 
 #[Swag.Foreign(module: "kernel32", function: "GetCurrentProcessId", callconv: Swag.CallConv.WindowsX64)]
-func GetPidExplicitWin64()->u32;
+func GetPidExplicitWin64()->u32
 
 #[Swag.Foreign("kernel32", "GetCurrentProcess")]
-func GetCurrentProcess()->*void;
+func GetCurrentProcess()->*void
 
 #[Swag.Foreign("kernel32", "GetProcessId")]
-func GetProcessId(process: #null *void)->u32;
+func GetProcessId(process: #null *void)->u32
 
 #[Swag.Foreign("kernel32", "VirtualAlloc")]
-func VirtualAlloc(address: #null *void, bytes: u64, allocType: u32, protect: u32)->*void;
+func VirtualAlloc(address: #null *void, bytes: u64, allocType: u32, protect: u32)->*void
 
 #[Swag.Foreign("kernel32", "VirtualFree")]
-func VirtualFree(address: #null *void, bytes: u64, freeType: u32)->bool;
+func VirtualFree(address: #null *void, bytes: u64, freeType: u32)->bool
 
 #[Swag.Foreign("kernel32")]
 {
-    func GetCurrentProcessId()->u32;
+    func GetCurrentProcessId()->u32
 }
 
 #test
@@ -58,25 +58,25 @@ func VirtualFree(address: #null *void, bytes: u64, freeType: u32)->bool;
 }
 
 #[Swag.Foreign("kernel32", "GetCurrentProcessId")]
-func GetPidMissingArg(dummy: u32)->u32;
+func GetPidMissingArg(dummy: u32)->u32
 
 #[Swag.Foreign("kernel32", "lstrlenA")]
-func LStrLenA(text: const *u8)->s32;
+func LStrLenA(text: const *u8)->s32
 
 #[Swag.Foreign("kernel32", "MulDiv")]
-func MulDiv(number: s32, numerator: s32, denominator: s32)->s32;
+func MulDiv(number: s32, numerator: s32, denominator: s32)->s32
 
 #[Swag.Foreign("kernel32", "GetProcessHeap")]
-func GetProcessHeap()->*void;
+func GetProcessHeap()->*void
 
 #[Swag.Foreign("kernel32", "HeapAlloc")]
-func HeapAlloc(heap: #null *void, flags: u32, bytes: u64)->*void;
+func HeapAlloc(heap: #null *void, flags: u32, bytes: u64)->*void
 
 #[Swag.Foreign("kernel32", "HeapFree")]
-func HeapFree(heap: #null *void, flags: u32, mem: #null *void)->bool;
+func HeapFree(heap: #null *void, flags: u32, mem: #null *void)->bool
 
 #[Swag.Foreign("kernel32", "MultiByteToWideChar")]
-func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: #null *u16, dstCount: s32)->s32;
+func MultiByteToWideChar(codePage: u32, flags: u32, src: const *u8, srcCount: s32, dst: #null *u16, dstCount: s32)->s32
 
 #test
 {

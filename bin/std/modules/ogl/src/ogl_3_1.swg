@@ -2,10 +2,10 @@
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glDrawArraysInstanced(mode: GLenum, first: GLint, count: GLsizei, primcount: GLsizei);
-    func glDrawElementsInstanced(mode: GLenum, count: GLsizei, type: GLenum, indices: #null const *void, primcount: GLsizei);
-    func glPrimitiveRestartIndex(buffer: GLuint);
-    func glTexBuffer(target: GLenum, internalFormat: GLenum, buffer: GLuint);
+    func glDrawArraysInstanced(mode: GLenum, first: GLint, count: GLsizei, primcount: GLsizei)
+    func glDrawElementsInstanced(mode: GLenum, count: GLsizei, type: GLenum, indices: #null const *void, primcount: GLsizei)
+    func glPrimitiveRestartIndex(buffer: GLuint)
+    func glTexBuffer(target: GLenum, internalFormat: GLenum, buffer: GLuint)
 }
 
 const GL_TEXTURE_RECTANGLE                 = 0x84F5

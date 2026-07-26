@@ -6,7 +6,7 @@ alias OrelseStrictHandle = #null const *void
 
 interface IOrelseProbe
 {
-    mtd id()->u32;
+    mtd id()->u32
 }
 
 struct OrelseProbe

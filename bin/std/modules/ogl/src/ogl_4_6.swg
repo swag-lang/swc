@@ -2,9 +2,9 @@
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glMultiDrawArraysIndirectCount(mode: GLenum, indirect: #null const *GLvoid, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei);
-    func glMultiDrawElementsIndirectCount(mode: GLenum, type: GLenum, indirect: #null const *GLvoid, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei);
-    func glSpecializeShader(shader: GLuint, pEntryPoint: #null const *GLchar, numSpecializationConstants: GLuint, pConstantIndex: #null const *GLuint, pConstantValue: #null const *GLuint);
+    func glMultiDrawArraysIndirectCount(mode: GLenum, indirect: #null const *GLvoid, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei)
+    func glMultiDrawElementsIndirectCount(mode: GLenum, type: GLenum, indirect: #null const *GLvoid, drawcount: GLintptr, maxdrawcount: GLsizei, stride: GLsizei)
+    func glSpecializeShader(shader: GLuint, pEntryPoint: #null const *GLchar, numSpecializationConstants: GLuint, pConstantIndex: #null const *GLuint, pConstantValue: #null const *GLuint)
 }
 
 const GL_CONTEXT_FLAG_NO_ERROR_BIT          = 0x00000008

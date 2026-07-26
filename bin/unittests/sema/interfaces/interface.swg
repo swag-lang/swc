@@ -4,7 +4,7 @@ struct A {}
 
 interface I
 {
-    mtd A()->s32;
+    mtd A()->s32
 }
 
 impl I for A

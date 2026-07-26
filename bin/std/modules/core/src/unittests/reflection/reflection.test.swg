@@ -53,7 +53,7 @@ struct CopyProbe
 
 interface IReflectionScore
 {
-    mtd score()->s32;
+    mtd score()->s32
 }
 
 struct InterfaceProbe

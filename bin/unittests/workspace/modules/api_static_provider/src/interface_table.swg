@@ -2,7 +2,7 @@
 
 interface IDepTableScore
 {
-    mtd score()->s32;
+    mtd score()->s32
 }
 
 struct DepTableScore

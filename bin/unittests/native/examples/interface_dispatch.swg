@@ -27,8 +27,8 @@ impl OrderLine
 // Discount rule interface.
 interface IDiscountRule
 {
-    mtd apply(line: &OrderLine)->s32;
-    mtd tag()->string;
+    mtd apply(line: &OrderLine)->s32
+    mtd tag()->string
 }
 
 // Bulk discount: >5 items gets 10% off.

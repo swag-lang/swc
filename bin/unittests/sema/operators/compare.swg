@@ -77,7 +77,7 @@ struct RefCompareStruct
 
 interface ICompareAllocator
 {
-    mtd reserve()->u32;
+    mtd reserve()->u32
 }
 
 struct CompareAllocator

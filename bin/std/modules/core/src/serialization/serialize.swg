@@ -25,11 +25,11 @@ attr Compress()
 
 interface ISerialize
 {
-    mtd read(decoder: IDecoder)->bool fail;
-    mtd write(encoder: IEncoder)->bool fail;
-    mtd readElement(type: TypeValue, data: #null *void, decoder: IDecoder)->bool fail;
-    mtd writeElement(type: TypeValue, data: #null const *void, encoder: IEncoder)->bool fail;
-    mtd postRead(data: #null *void, decoder: IDecoder) fail;
+    mtd read(decoder: IDecoder)->bool fail
+    mtd write(encoder: IEncoder)->bool fail
+    mtd readElement(type: TypeValue, data: #null *void, decoder: IDecoder)->bool fail
+    mtd writeElement(type: TypeValue, data: #null const *void, encoder: IEncoder)->bool fail
+    mtd postRead(data: #null *void, decoder: IDecoder) fail
 }
 
 struct Serializer

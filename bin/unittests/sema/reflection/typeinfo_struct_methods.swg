@@ -58,7 +58,7 @@ impl GenericMethodProbe
 
 interface IExportedMethodScore
 {
-    mtd score(bonus: s32)->s32;
+    mtd score(bonus: s32)->s32
 }
 
 #[Swag.ExportType(.Methods)]

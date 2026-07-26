@@ -2,7 +2,7 @@
 
 interface IGroupScorer
 {
-    mtd score(firstMask, secondMask, thirdMask: u64)->u32;
+    mtd score(firstMask, secondMask, thirdMask: u64)->u32
 }
 
 struct BadgeScorer {}

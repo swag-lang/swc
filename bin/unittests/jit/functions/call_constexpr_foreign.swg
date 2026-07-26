@@ -3,7 +3,7 @@
 
 #[Swag.ConstExpr]
 #[Swag.Foreign(link: "ucrt", function: "abs", module: "ucrtbase")]
-func CAbs(value: s32)->s32;
+func CAbs(value: s32)->s32
 
 func useForeignConstExpr()->s32
 {

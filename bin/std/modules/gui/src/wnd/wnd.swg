@@ -99,29 +99,29 @@ struct KeyShortcut
 
 interface IWnd
 {
-    mtd onEvent(evt: IEvent);
-    mtd onHookEvent(evt: IEvent);
+    mtd onEvent(evt: IEvent)
+    mtd onHookEvent(evt: IEvent)
 
-    mtd onCreateEvent(evt: *CreateEvent);
-    mtd onDestroyEvent(evt: *DestroyEvent);
-    mtd onStateEvent(evt: *StateEvent);
-    mtd onResizeEvent(evt: *ResizeEvent);
-    mtd onPrePaintEvent(evt: *PaintEvent);
-    mtd onPaintEvent(evt: *PaintEvent);
-    mtd onPostPaintEvent(evt: *PaintEvent);
-    mtd onKeyEvent(evt: *KeyEvent);
-    mtd onMouseEvent(evt: *MouseEvent);
-    mtd onSysCommandEvent(evt: *SysCommandEvent);
-    mtd onSysUserEvent(evt: *SysUserEvent);
-    mtd onThemeEvent(evt: *ThemeEvent);
-    mtd onTimerEvent(evt: *TimerEvent);
-    mtd onFocusEvent(evt: *FocusEvent);
-    mtd onCommandEvent(evt: *CommandEvent);
-    mtd onComputeStateEvent(evt: *CommandStateEvent);
-    mtd onApplyStateEvent(evt: *CommandStateEvent);
-    mtd onFrameEvent(evt: *FrameEvent);
-    mtd onSerializeStateEvent(evt: *SerializeStateEvent);
-    mtd onNotifyEvent(evt: *NotifyEvent);
+    mtd onCreateEvent(evt: *CreateEvent)
+    mtd onDestroyEvent(evt: *DestroyEvent)
+    mtd onStateEvent(evt: *StateEvent)
+    mtd onResizeEvent(evt: *ResizeEvent)
+    mtd onPrePaintEvent(evt: *PaintEvent)
+    mtd onPaintEvent(evt: *PaintEvent)
+    mtd onPostPaintEvent(evt: *PaintEvent)
+    mtd onKeyEvent(evt: *KeyEvent)
+    mtd onMouseEvent(evt: *MouseEvent)
+    mtd onSysCommandEvent(evt: *SysCommandEvent)
+    mtd onSysUserEvent(evt: *SysUserEvent)
+    mtd onThemeEvent(evt: *ThemeEvent)
+    mtd onTimerEvent(evt: *TimerEvent)
+    mtd onFocusEvent(evt: *FocusEvent)
+    mtd onCommandEvent(evt: *CommandEvent)
+    mtd onComputeStateEvent(evt: *CommandStateEvent)
+    mtd onApplyStateEvent(evt: *CommandStateEvent)
+    mtd onFrameEvent(evt: *FrameEvent)
+    mtd onSerializeStateEvent(evt: *SerializeStateEvent)
+    mtd onNotifyEvent(evt: *NotifyEvent)
 }
 
 #[Swag.EnumFlags]

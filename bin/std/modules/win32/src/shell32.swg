@@ -301,22 +301,22 @@ internal namespace Shell32Priv
 {
     #[Foreign("shell32")]
     {
-        func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL)->BOOL;
-        func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL)->BOOL;
-        func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT;
-        func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT;
-        func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO)->SHSTDAPI;
-        func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA)->BOOL;
-        func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW)->BOOL;
-        func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE;
-        func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE;
+        func SHGetSpecialFolderPathA(hwnd: HWND, pszPath: LPSTR, csidl: s32, fCreate: BOOL)->BOOL
+        func SHGetSpecialFolderPathW(hwnd: HWND, pszPath: LPWSTR, csidl: s32, fCreate: BOOL)->BOOL
+        func ExtractIconExA(lpszFile: LPCSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT
+        func ExtractIconExW(lpszFile: LPCWSTR, nIconIndex: s32, phiconLarge: #null *HICON, phiconSmall: #null *HICON, nIcons: UINT)->UINT
+        func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: SHSTOCKICONINFO)->SHSTDAPI
+        func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA)->BOOL
+        func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW)->BOOL
+        func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE
+        func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE
     }
 }
 
 #[Foreign("shell32")]
 {
-    func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR;
-    func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR;
+    func SHGetFileInfoA(pszPath: LPCSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOA, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
+    func SHGetFileInfoW(pszPath: LPCWSTR, dwFileAttributes: DWORD, psfi: *SHFILEINFOW, cbFileInfo: UINT, uFlags: UINT)->DWORD_PTR
 }
 
 #[Inline]

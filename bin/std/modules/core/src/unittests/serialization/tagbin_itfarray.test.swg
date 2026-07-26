@@ -9,7 +9,7 @@ using Swag
 
 interface ITagBinArrayThing
 {
-    mtd value()->s32;
+    mtd value()->s32
 }
 
 struct TagBinArrayThing

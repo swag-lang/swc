@@ -5,10 +5,10 @@ var g_Codecs: Array'CodecDesc
 // Interface to describe a codec
 public interface ICodec
 {
-    mtd canEncode(encoding: SoundFileEncoding)->bool;
-    mtd canDecode(encoding: SoundFileEncoding)->bool;
-    mtd init(srcBuffer: [*] void, srcLength: u64)->u64 fail;
-    mtd decode(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 } fail;
+    mtd canEncode(encoding: SoundFileEncoding)->bool
+    mtd canDecode(encoding: SoundFileEncoding)->bool
+    mtd init(srcBuffer: [*] void, srcLength: u64)->u64 fail
+    mtd decode(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 } fail
 }
 
 struct CodecDesc

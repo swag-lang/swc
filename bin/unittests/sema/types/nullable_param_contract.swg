@@ -15,7 +15,7 @@ struct NpcItem
 
 interface INpcFace
 {
-    mtd get()->s32;
+    mtd get()->s32
 }
 
 var g_npcSink: s32

@@ -3,7 +3,7 @@ using Swag
 
 interface INullCoalescingProbe
 {
-    mtd write(value: *u64);
+    mtd write(value: *u64)
 }
 
 struct NullCoalescingProbe

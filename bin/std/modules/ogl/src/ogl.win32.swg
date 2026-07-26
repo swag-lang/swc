@@ -9,17 +9,17 @@ alias getExtensionAddress = wglGetProcAddress
 
 #[Foreign("opengl32")]
 {
-    func wglGetProcAddress(arg1: LPCSTR)->#null const *void;
+    func wglGetProcAddress(arg1: LPCSTR)->#null const *void
 }
 
 internal namespace PrivOgl
 {
     #[Foreign("opengl32")]
     {
-        func wglCreateContext(hDc: HDC)->HGLRC;
-        func wglDeleteContext(hRc: HGLRC)->BOOL;
-        func wglMakeCurrent(hDc: HDC, hRc: HGLRC)->BOOL;
-        func wglShareLists(hRc0, hRc1: HGLRC)->BOOL;
+        func wglCreateContext(hDc: HDC)->HGLRC
+        func wglDeleteContext(hRc: HGLRC)->BOOL
+        func wglMakeCurrent(hDc: HDC, hRc: HGLRC)->BOOL
+        func wglShareLists(hRc0, hRc1: HGLRC)->BOOL
     }
 }
 

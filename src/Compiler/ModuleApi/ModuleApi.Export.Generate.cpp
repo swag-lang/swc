@@ -506,7 +506,6 @@ namespace
             result += buildModuleApiForeignAttribute(ctx, *symbolFunction, eol);
 
         result += prefix;
-        result += ";";
         return result;
     }
 

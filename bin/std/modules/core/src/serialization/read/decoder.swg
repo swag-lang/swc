@@ -5,32 +5,32 @@ using Swag, Core.Errors
 
 interface IDecoder
 {
-    mtd getVersion()->u32;
-    mtd isTextual()->bool;
+    mtd getVersion()->u32
+    mtd isTextual()->bool
 
-    mtd start(input: const [..] u8) fail;
-    mtd end() fail;
+    mtd start(input: const [..] u8) fail
+    mtd end() fail
 
-    mtd beginField(val: Swag.TypeValue)->bool fail;
-    mtd endField(val: Swag.TypeValue) fail;
-    mtd beginSection(kind: SectionKind) fail;
-    mtd endSection() fail;
+    mtd beginField(val: Swag.TypeValue)->bool fail
+    mtd endField(val: Swag.TypeValue) fail
+    mtd beginSection(kind: SectionKind) fail
+    mtd endSection() fail
 
-    mtd read(data: *void, dataType: typeinfo) fail;
-    mtd readBufferU8(count: u64)->#null *u8 fail;
+    mtd read(data: *void, dataType: typeinfo) fail
+    mtd readBufferU8(count: u64)->#null *u8 fail
 
-    mtd readBool()->bool fail;
-    mtd readS8()->s8 fail;
-    mtd readS16()->s16 fail;
-    mtd readS32()->s32 fail;
-    mtd readS64()->s64 fail;
-    mtd readU8()->u8 fail;
-    mtd readU16()->u16 fail;
-    mtd readU32()->u32 fail;
-    mtd readU64()->u64 fail;
-    mtd readF32()->f32 fail;
-    mtd readF64()->f64 fail;
-    mtd readString()->String fail;
+    mtd readBool()->bool fail
+    mtd readS8()->s8 fail
+    mtd readS16()->s16 fail
+    mtd readS32()->s32 fail
+    mtd readS64()->s64 fail
+    mtd readU8()->u8 fail
+    mtd readU16()->u16 fail
+    mtd readU32()->u32 fail
+    mtd readU64()->u64 fail
+    mtd readF32()->f32 fail
+    mtd readF64()->f64 fail
+    mtd readString()->String fail
 }
 
 #[Swag.EnumFlags]

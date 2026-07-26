@@ -21,7 +21,7 @@ impl Tracked
 
 interface IStore
 {
-    mtd set(v: #fwd Tracked);
+    mtd set(v: #fwd Tracked)
 }
 
 struct Store
@@ -59,7 +59,7 @@ impl IStore for Store
 // value: a plain argument is copied into a call-site temporary.
 interface ISink
 {
-    mtd sink(v: #move Tracked);
+    mtd sink(v: #move Tracked)
 }
 
 struct Sink

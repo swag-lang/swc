@@ -35,7 +35,7 @@ impl OptChainNode
 
 interface IOptChain
 {
-    mtd get()->s32;
+    mtd get()->s32
 }
 
 impl IOptChain for OptChainNode

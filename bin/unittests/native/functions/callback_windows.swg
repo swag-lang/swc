@@ -11,9 +11,9 @@ const INFINITE      = 0xFFFFFFFF'u32
 
 #[Swag.Foreign("kernel32")]
 {
-    func CreateThread(lpThreadAttributes: #null *void, dwStackSize: u64, lpStartAddress: ThreadProc, lpParameter: #null *void, dwCreationFlags: DWORD, lpThreadId: #null *DWORD)->HANDLE;
-    func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD;
-    func CloseHandle(handle: HANDLE)->BOOL;
+    func CreateThread(lpThreadAttributes: #null *void, dwStackSize: u64, lpStartAddress: ThreadProc, lpParameter: #null *void, dwCreationFlags: DWORD, lpThreadId: #null *DWORD)->HANDLE
+    func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
+    func CloseHandle(handle: HANDLE)->BOOL
 }
 
 struct CallbackData

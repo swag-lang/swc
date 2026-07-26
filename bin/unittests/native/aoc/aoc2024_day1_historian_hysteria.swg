@@ -41,7 +41,7 @@ struct HistorianReport
 
 interface IHistorianMetric
 {
-    mtd solve(bytes: const [..] u8)->u64;
+    mtd solve(bytes: const [..] u8)->u64
 }
 
 struct DistanceMetric {}

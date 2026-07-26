@@ -2,8 +2,8 @@
 
 interface IGenericUsingCast
 {
-    mtd baseValue()->s32;
-    mtd partialValue()->s32;
+    mtd baseValue()->s32
+    mtd partialValue()->s32
 }
 
 struct GenericUsingBase

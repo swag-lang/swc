@@ -46,7 +46,7 @@ namespace ConvertNs
 {
     interface IConvert
     {
-        mtd convert()->string;
+        mtd convert()->string
     }
 }
 
@@ -54,7 +54,7 @@ namespace HashNs
 {
     interface IHash32
     {
-        mtd hash()->u32;
+        mtd hash()->u32
     }
 }
 

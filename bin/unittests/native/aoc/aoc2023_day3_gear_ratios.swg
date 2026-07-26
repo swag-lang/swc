@@ -204,7 +204,7 @@ struct EngineResult
 
 interface IAdjacencyChecker
 {
-    mtd hasAdjacentSymbol(grid: Grid, entry: NumberEntry)->bool;
+    mtd hasAdjacentSymbol(grid: Grid, entry: NumberEntry)->bool
 }
 
 struct DirectChecker {}

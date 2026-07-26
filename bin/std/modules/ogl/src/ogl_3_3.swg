@@ -2,7 +2,7 @@
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glVertexAttribDivisor(index: GLuint, divisor: GLuint);
+    func glVertexAttribDivisor(index: GLuint, divisor: GLuint)
 }
 
 const GL_VERTEX_ATTRIB_ARRAY_DIVISOR = 0x88FE

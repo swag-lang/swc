@@ -422,58 +422,58 @@ func RGB(r, g, b: s32)->COLORREF
 
 #[Foreign("Gdi32")]
 {
-    func GetPixel(hdc: HDC, x, y: s32)->COLORREF;
-    func GetStockObject(i: s32)->HGDIOBJ;
+    func GetPixel(hdc: HDC, x, y: s32)->COLORREF
+    func GetStockObject(i: s32)->HGDIOBJ
 }
 
 #[Foreign("Gdi32"), Discardable]
 {
-    func GetObjectA(h: HANDLE, c: s32, pv: LPVOID)->s32;
-    func GetObjectW(h: HANDLE, c: s32, pv: LPVOID)->s32;
-    func SelectObject(hdc: HDC, h: HGDIOBJ)->HGDIOBJ;
-    func GetDeviceCaps(hdc: HDC, index: s32)->s32;
-    func GdiFlush()->BOOL;
+    func GetObjectA(h: HANDLE, c: s32, pv: LPVOID)->s32
+    func GetObjectW(h: HANDLE, c: s32, pv: LPVOID)->s32
+    func SelectObject(hdc: HDC, h: HGDIOBJ)->HGDIOBJ
+    func GetDeviceCaps(hdc: HDC, index: s32)->s32
+    func GdiFlush()->BOOL
 
-    func EnumFontFamiliesA(hdc: HDC, lpLogfont: LPCSTR, lpProc: FONTENUMPROCA, lParam: LPARAM)->s32;
-    func EnumFontFamiliesW(hdc: HDC, lpLogfont: LPCWSTR, lpProc: FONTENUMPROCW, lParam: LPARAM)->s32;
-    func EnumFontFamiliesExA(hdc: HDC, lpLogfont: const *LOGFONTA, lpProc: FONTENUMPROCA, lParam: LPARAM, dwFlags: DWORD)->s32;
-    func EnumFontFamiliesExW(hdc: HDC, lpLogfont: const *LOGFONTW, lpProc: FONTENUMPROCW, lParam: LPARAM, dwFlags: DWORD)->s32;
+    func EnumFontFamiliesA(hdc: HDC, lpLogfont: LPCSTR, lpProc: FONTENUMPROCA, lParam: LPARAM)->s32
+    func EnumFontFamiliesW(hdc: HDC, lpLogfont: LPCWSTR, lpProc: FONTENUMPROCW, lParam: LPARAM)->s32
+    func EnumFontFamiliesExA(hdc: HDC, lpLogfont: const *LOGFONTA, lpProc: FONTENUMPROCA, lParam: LPARAM, dwFlags: DWORD)->s32
+    func EnumFontFamiliesExW(hdc: HDC, lpLogfont: const *LOGFONTW, lpProc: FONTENUMPROCW, lParam: LPARAM, dwFlags: DWORD)->s32
 
-    func SetBkMode(hdc: HDC, mode: s32)->s32;
-    func SetBkColor(hdc: HDC, color: COLORREF)->COLORREF;
-    func SetTextColor(hdc: HDC, color: COLORREF)->COLORREF;
+    func SetBkMode(hdc: HDC, mode: s32)->s32
+    func SetBkColor(hdc: HDC, color: COLORREF)->COLORREF
+    func SetTextColor(hdc: HDC, color: COLORREF)->COLORREF
 
-    func TextOutA(hdc: HDC, x: s32, y: s32, lpString: LPCSTR, c: s32)->BOOL;
-    func TextOutW(hdc: HDC, x: s32, y: s32, lpString: LPCWSTR, c: s32)->BOOL;
-    func MoveTo(hdc: HDC, x: s32, y: s32)->BOOL;
-    func LineTo(hdc: HDC, x: s32, y: s32)->BOOL;
-    func Rectangle(hdc: HDC, left, top, right, bottom: s32)->BOOL;
+    func TextOutA(hdc: HDC, x: s32, y: s32, lpString: LPCSTR, c: s32)->BOOL
+    func TextOutW(hdc: HDC, x: s32, y: s32, lpString: LPCWSTR, c: s32)->BOOL
+    func MoveTo(hdc: HDC, x: s32, y: s32)->BOOL
+    func LineTo(hdc: HDC, x: s32, y: s32)->BOOL
+    func Rectangle(hdc: HDC, left, top, right, bottom: s32)->BOOL
 }
 
 internal namespace Gdi32Priv
 {
     #[Foreign("Gdi32")]
     {
-        func ChoosePixelFormat(hdc: HDC, ppfd: const *PIXELFORMATDESCRIPTOR)->s32;
-        func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: const *PIXELFORMATDESCRIPTOR)->BOOL;
-        func SwapBuffers(arg1: HDC)->BOOL;
-        func DescribePixelFormat(hdc: HDC, iPixelFormat: s32, nBytes: UINT, ppfd: *PIXELFORMATDESCRIPTOR)->s32;
-        func CreateCompatibleDC(hdc: HDC)->HDC;
-        func CreateCompatibleBitmap(hdc: HDC, cx, cy: s32)->HBITMAP;
-        func DeleteDC(hdc: HDC)->BOOL;
-        func DeleteObject(ho: HGDIOBJ)->BOOL;
-        func BitBlt(hdc: HDC, x, y, cx, cy: s32, hdcSrc: HDC, x1, y1: s32, rop: DWORD)->BOOL;
-        func GetObjectA(h: HANDLE, c: s32, pv: LPVOID)->s32;
-        func GetObjectW(h: HANDLE, c: s32, pv: LPVOID)->s32;
-        func GetBitmapBits(hbit: HBITMAP, cb: LONG, lpvBits: LPVOID)->LONG;
-        func SetBitmapBits(hbm: HBITMAP, cb: DWORD, pvBits: LPVOID)->LONG;
-        func GetFontData(hdc: HDC, dwTable: DWORD, dwOffset: DWORD, pvBuffer: LPVOID, cjBuffer: DWORD)->DWORD;
-        func CreateFontIndirectA(lplf: const *LOGFONTA)->HFONT;
-        func CreateFontIndirectW(lplf: const *LOGFONTW)->HFONT;
-        func CreateSolidBrush(color: COLORREF)->HBRUSH;
-        func CreatePen(iStyle: s32, cWidth: s32, color: COLORREF)->HPEN;
-        func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP;
-        func GetDIBits(hdc: HDC, hbm: HBITMAP, start: UINT, cLines: UINT, lpvBits: LPVOID, lpbmi: *BITMAPINFO, usage: UINT)->s32;
+        func ChoosePixelFormat(hdc: HDC, ppfd: const *PIXELFORMATDESCRIPTOR)->s32
+        func SetPixelFormat(hdc: HDC, fmt: s32, ppfd: const *PIXELFORMATDESCRIPTOR)->BOOL
+        func SwapBuffers(arg1: HDC)->BOOL
+        func DescribePixelFormat(hdc: HDC, iPixelFormat: s32, nBytes: UINT, ppfd: *PIXELFORMATDESCRIPTOR)->s32
+        func CreateCompatibleDC(hdc: HDC)->HDC
+        func CreateCompatibleBitmap(hdc: HDC, cx, cy: s32)->HBITMAP
+        func DeleteDC(hdc: HDC)->BOOL
+        func DeleteObject(ho: HGDIOBJ)->BOOL
+        func BitBlt(hdc: HDC, x, y, cx, cy: s32, hdcSrc: HDC, x1, y1: s32, rop: DWORD)->BOOL
+        func GetObjectA(h: HANDLE, c: s32, pv: LPVOID)->s32
+        func GetObjectW(h: HANDLE, c: s32, pv: LPVOID)->s32
+        func GetBitmapBits(hbit: HBITMAP, cb: LONG, lpvBits: LPVOID)->LONG
+        func SetBitmapBits(hbm: HBITMAP, cb: DWORD, pvBits: LPVOID)->LONG
+        func GetFontData(hdc: HDC, dwTable: DWORD, dwOffset: DWORD, pvBuffer: LPVOID, cjBuffer: DWORD)->DWORD
+        func CreateFontIndirectA(lplf: const *LOGFONTA)->HFONT
+        func CreateFontIndirectW(lplf: const *LOGFONTW)->HFONT
+        func CreateSolidBrush(color: COLORREF)->HBRUSH
+        func CreatePen(iStyle: s32, cWidth: s32, color: COLORREF)->HPEN
+        func CreateDIBSection(hdc: HDC, pbmi: const *BITMAPINFO, usage: UINT, ppvBits: *#null *void, hSection: HANDLE, offset: DWORD)->HBITMAP
+        func GetDIBits(hdc: HDC, hbm: HBITMAP, start: UINT, cLines: UINT, lpvBits: LPVOID, lpbmi: *BITMAPINFO, usage: UINT)->s32
     }
 }
 

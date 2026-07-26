@@ -6,7 +6,7 @@ public struct ActionContext
 
 public interface IActionUI
 {
-    mtd accept(cxt: ActionContext)->bool;
-    mtd update(cxt: ActionContext, evt: *CommandStateEvent)->bool;
-    mtd execute(cxt: ActionContext)->bool;
+    mtd accept(cxt: ActionContext)->bool
+    mtd update(cxt: ActionContext, evt: *CommandStateEvent)->bool
+    mtd execute(cxt: ActionContext)->bool
 }

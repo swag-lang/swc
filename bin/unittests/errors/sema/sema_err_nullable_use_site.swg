@@ -34,7 +34,7 @@ func nullableUseSiteInterface(itf: #null IsItf)->s32
 
 interface IsItf
 {
-    mtd get()->s32;
+    mtd get()->s32
 }
 
 func nullableUseSiteDeref(p: #null *s32)->s32

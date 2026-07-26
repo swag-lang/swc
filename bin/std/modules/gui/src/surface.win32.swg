@@ -6,7 +6,7 @@ using Core, Win32
 
 #[Swag.Foreign("dwmapi")]
 {
-    func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32;
+    func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32
 }
 
 const DWMWA_WINDOW_CORNER_PREFERENCE = 33'u32

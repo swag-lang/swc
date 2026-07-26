@@ -12,31 +12,31 @@ enum SectionKind
 
 interface IEncoder
 {
-    mtd isTextual()->bool;
+    mtd isTextual()->bool
 
-    mtd start(result: *ConcatBuffer) fail;
-    mtd end() fail;
+    mtd start(result: *ConcatBuffer) fail
+    mtd end() fail
 
-    mtd beginField(val: Swag.TypeValue) fail;
-    mtd endField(val: Swag.TypeValue) fail;
-    mtd beginSection(kind: SectionKind) fail;
-    mtd endSection() fail;
+    mtd beginField(val: Swag.TypeValue) fail
+    mtd endField(val: Swag.TypeValue) fail
+    mtd beginSection(kind: SectionKind) fail
+    mtd endSection() fail
 
-    mtd write(data: const [*] void, type: typeinfo) fail;
-    mtd writeBufferU8(data: #null const [*] u8, count: u64) fail;
+    mtd write(data: const [*] void, type: typeinfo) fail
+    mtd writeBufferU8(data: #null const [*] u8, count: u64) fail
 
-    mtd writeBool(value: bool);
-    mtd writeS8(value: s8);
-    mtd writeS16(value: s16);
-    mtd writeS32(value: s32);
-    mtd writeS64(value: s64);
-    mtd writeU8(value: u8);
-    mtd writeU16(value: u16);
-    mtd writeU32(value: u32);
-    mtd writeU64(value: u64);
-    mtd writeF32(value: f32);
-    mtd writeF64(value: f64);
-    mtd writeString(value: #null string);
+    mtd writeBool(value: bool)
+    mtd writeS8(value: s8)
+    mtd writeS16(value: s16)
+    mtd writeS32(value: s32)
+    mtd writeS64(value: s64)
+    mtd writeU8(value: u8)
+    mtd writeU16(value: u16)
+    mtd writeU32(value: u32)
+    mtd writeU64(value: u64)
+    mtd writeF32(value: f32)
+    mtd writeF64(value: f64)
+    mtd writeString(value: #null string)
 }
 
 /*

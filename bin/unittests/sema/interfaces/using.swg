@@ -2,7 +2,7 @@
 
 interface I
 {
-    mtd foo()->s32;
+    mtd foo()->s32
 }
 
 struct S {}

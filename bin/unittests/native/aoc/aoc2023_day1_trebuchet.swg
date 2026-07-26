@@ -43,8 +43,8 @@ struct CalibrationResult
 
 interface IDigitFinder
 {
-    mtd findFirst(line: const [..] u8)->s32;
-    mtd findLast(line: const [..] u8)->s32;
+    mtd findFirst(line: const [..] u8)->s32
+    mtd findLast(line: const [..] u8)->s32
 }
 
 struct DigitOnlyFinder {}

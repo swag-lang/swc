@@ -34,7 +34,7 @@ namespace N
     @assert(gNAmb1Last == 10)
 }
 
-func DeclAndDef();
+func DeclAndDef()
 func DeclAndDef() { gDeclAndDefCalls += 1 }
 
 #test
@@ -45,5 +45,5 @@ func DeclAndDef() { gDeclAndDefCalls += 1 }
     @assert(gDeclAndDefCalls == 1)
 }
 
-func DeclOnly();
-func DeclOnly(a: s32);
+func DeclOnly()
+func DeclOnly(a: s32)

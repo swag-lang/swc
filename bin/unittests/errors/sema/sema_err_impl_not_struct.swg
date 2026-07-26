@@ -2,7 +2,7 @@
 
 interface I
 {
-    mtd A()->s32;
+    mtd A()->s32
 }
 
 namespace B {}

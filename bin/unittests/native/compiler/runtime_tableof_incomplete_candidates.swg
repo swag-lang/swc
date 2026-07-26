@@ -3,7 +3,7 @@ using Swag
 
 interface ITableProbe
 {
-    mtd score()->s32;
+    mtd score()->s32
 }
 
 struct TableProbe

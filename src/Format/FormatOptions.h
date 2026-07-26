@@ -188,7 +188,7 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Statements
     // -----------------------------------------------------------------------
-    std::optional<bool> removeRedundantSemicolons;  // Drop `;` at end of line (grammar-required ones stay)
+    std::optional<bool> removeRedundantSemicolons;  // Drop `;` at end of line (same-line separators stay)
     std::optional<bool> removeConditionParentheses; // Drop `( ... )` wrapping a whole control condition
 
     // -----------------------------------------------------------------------

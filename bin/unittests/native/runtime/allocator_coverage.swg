@@ -307,9 +307,9 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
 
         #[Swag.Foreign("kernel32")]
         {
-            func CreateThread(lpThreadAttributes: #null *void, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE;
-            func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD;
-            func CloseHandle(handle: HANDLE);
+            func CreateThread(lpThreadAttributes: #null *void, dwStackSize: SIZE_T, lpStartAddress: LPTHREAD_START_ROUTINE, lpParameter: *void, dwCreationFlags: DWORD, lpThreadId: *DWORD)->HANDLE
+            func WaitForSingleObject(hHandle: HANDLE, dwMilliseconds: DWORD)->DWORD
+            func CloseHandle(handle: HANDLE)
         }
     }
 

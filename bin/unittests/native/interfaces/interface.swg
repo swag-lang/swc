@@ -4,7 +4,7 @@ struct A {}
 
 interface I
 {
-    mtd A()->s32;
+    mtd A()->s32
 }
 
 impl I for A
@@ -67,8 +67,8 @@ impl I1 for T
 // Interface declarations require 'mtd'.
 interface IReset
 {
-    mtd set(val: f32);
-    mtd reset();
+    mtd set(val: f32)
+    mtd reset()
 }
 
 #[Swag.Strict]

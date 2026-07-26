@@ -25,32 +25,24 @@ making the code easier to read and maintain.
 }
 
 /**
-# Optional Semicolons
+# Bodyless Declarations
 
-While semicolons are optional, they can still be used if desired. In some cases,
-using semicolons may enhance code clarity or readability, particularly in more
-complex statements or when writing multiple statements on a single line.
+Declarations without a body also terminate at the end of the line. Interface methods
+and foreign functions do not need a special terminator.
 */
 
-#test
+interface Counter
 {
-    // Here, type inference is used, so the types of 'x' and 'y' are not explicitly defined.
-    var x, y = 0
-
-    // Both 'x' and 'y' are initialized to 0, with types inferred automatically.
-
-    // Increment both variables by 1.
-    x, y += 1
-
-// Both 'x' and 'y' now have the value 1.
+    mtd value()->u64
+    mtd reset()
 }
 
 /**
-# Multiple Statements on a Single Line
+# Semicolons
 
-Semicolons are especially useful when writing multiple statements on a single line.
-Although this can make code more compact, it is generally recommended to use it
-sparingly, as it may reduce readability in complex code.
+A trailing semicolon is accepted but redundant. Its useful role is to separate multiple
+statements written on the same line. Use that compact form sparingly because it can make
+control flow harder to scan.
 */
 
 #test

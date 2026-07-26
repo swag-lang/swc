@@ -93,7 +93,7 @@ namespace
         schema.addEnum("case-body-style", &options.caseBodyStyle, {{"preserve", FormatCaseBodyStyle::Preserve}, {"next-line", FormatCaseBodyStyle::NextLine}, {"same-line", FormatCaseBodyStyle::SameLine}, {"uniform", FormatCaseBodyStyle::Uniform}}, "Choose how `case` bodies are laid out");
         schema.addEnum("blank-line-between-cases", &options.blankLineBetweenCases, {{"preserve", FormatCaseBlankStyle::Preserve}, {"never", FormatCaseBlankStyle::Never}, {"always", FormatCaseBlankStyle::Always}, {"multi-line", FormatCaseBlankStyle::MultiLine}}, "Choose the blank lines between `case` arms");
 
-        schema.add("remove-redundant-semicolons", &options.removeRedundantSemicolons, "Drop `;` at end of line when the grammar does not require it");
+        schema.add("remove-redundant-semicolons", &options.removeRedundantSemicolons, "Drop `;` at end of line");
         schema.add("remove-condition-parentheses", &options.removeConditionParentheses, "Drop the parentheses wrapping a whole control-statement condition");
     }
 

@@ -53,5 +53,5 @@ struct IP_ADAPTER_INFO
 
 #[Foreign("iphlpapi")]
 {
-    func GetAdaptersInfo(adapterInfo: *IP_ADAPTER_INFO, sizePointer: *ULONG)->ULONG;
+    func GetAdaptersInfo(adapterInfo: *IP_ADAPTER_INFO, sizePointer: *ULONG)->ULONG
 }

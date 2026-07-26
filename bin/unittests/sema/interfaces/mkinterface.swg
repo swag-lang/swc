@@ -3,8 +3,8 @@
 
 interface IAction
 {
-    mtd accept(id: s32)->bool;
-    mtd execute(id: s32)->s32;
+    mtd accept(id: s32)->bool
+    mtd execute(id: s32)->s32
 }
 
 struct UndoAction {}

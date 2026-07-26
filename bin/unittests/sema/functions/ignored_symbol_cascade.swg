@@ -9,7 +9,7 @@ enum Shape: u8
 
 interface IShapePicker
 {
-    mtd pick(opponent: Shape)->Shape;
+    mtd pick(opponent: Shape)->Shape
 }
 
 struct Picker {}

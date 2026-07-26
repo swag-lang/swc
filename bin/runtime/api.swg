@@ -465,19 +465,19 @@ namespace Swag
     interface IAllocator
     {
         // Allocate a block of memory.
-        mtd alloc(request: *AllocatorRequest);
+        mtd alloc(request: *AllocatorRequest)
 
         // Reallocate a previously allocated block.
-        mtd realloc(request: *AllocatorRequest);
+        mtd realloc(request: *AllocatorRequest)
 
         // Free a previously allocated block.
-        mtd free(request: *AllocatorRequest);
+        mtd free(request: *AllocatorRequest)
 
         // Free all memory allocated with this allocator, if supported.
-        mtd freeAll(request: *AllocatorRequest);
+        mtd freeAll(request: *AllocatorRequest)
 
         // Assert that 'request.address' is currently allocated, if supported.
-        mtd assertAllocated(request: *AllocatorRequest);
+        mtd assertAllocated(request: *AllocatorRequest)
     }
 
     struct ScratchAllocator
@@ -1013,9 +1013,9 @@ namespace Swag
     // The intrinsic '@compiler' will return that interface at compile-time, and 'null' at runtime.
     interface ICompiler
     {
-        mtd getMessage()->#null const *CompilerMessage;     // Returns the compiler message in a '#message' function
-        mtd getBuildCfg()->#null *BuildCfg;                 // Returns the build configuration of the current module
-        mtd compileString(str: string);
+        mtd getMessage()->#null const *CompilerMessage     // Returns the compiler message in a '#message' function
+        mtd getBuildCfg()->#null *BuildCfg                 // Returns the build configuration of the current module
+        mtd compileString(str: string)
     }
 
     // Represent a part of a source code file.
@@ -1038,253 +1038,253 @@ namespace Swag
 }
 
 // Panic if the expression is false. Typically used in tests.
-func @assert(value: bool);
+func @assert(value: bool)
 
 // Stop a bytecode execution, and launch the bytecode debugger.
-func @breakpoint();
+func @breakpoint()
 
 // Get the current thread context.
-func @getcontext()->*Swag.Context;
+func @getcontext()->*Swag.Context
 
 // Replace the current thread context.
-func @setcontext(context: const *Swag.Context);
+func @setcontext(context: const *Swag.Context)
 
 // Get information about the current process.
-func @pinfos()->*Swag.ProcessInfos;
+func @pinfos()->*Swag.ProcessInfos
 
 // Returns the list of all loaded modules.
-func @modules()->#null const [..] Swag.Module;
+func @modules()->#null const [..] Swag.Module
 
 // Returns the list of all global variables.
-func @gvtd()->#null const [..] Swag.Gvtd;
+func @gvtd()->#null const [..] Swag.Gvtd
 
 // Returns an [[ICompiler]] interface to communicate with the compiler.
-func @compiler()->Swag.ICompiler;
+func @compiler()->Swag.ICompiler
 
 // Set all bytes of a given memory block to 'value'
-func @memset(dst: #null [*] void, value: u8, size: u64);
+func @memset(dst: #null [*] void, value: u8, size: u64)
 
 // Copy one memory block to another address.
-func @memcpy(dst: #null [*] void, src: #null const [*] void, size: u64);
+func @memcpy(dst: #null [*] void, src: #null const [*] void, size: u64)
 
 // Move one memory block to another address.
-func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64);
+func @memmove(dst: #null [*] void, src: #null const [*] void, size: u64)
 
 // Compare two memory blocks, and returns -1, 0 if equal, or 1.
-func @memcmp(dst, src: #null const [*] void, size: u64)->s32;
+func @memcmp(dst, src: #null const [*] void, size: u64)->s32
 
 // Atomic operations
 #[Swag.Discardable]
 {
     // Atomic 'add'
-    func @atomadd(addr: *s8, value: s8)->s8;
-    func @atomadd(addr: *s16, value: s16)->s16;
-    func @atomadd(addr: *s32, value: s32)->s32;
-    func @atomadd(addr: *s64, value: s64)->s64;
-    func @atomadd(addr: *u8, value: u8)->u8;
-    func @atomadd(addr: *u16, value: u16)->u16;
-    func @atomadd(addr: *u32, value: u32)->u32;
-    func @atomadd(addr: *u64, value: u64)->u64;
+    func @atomadd(addr: *s8, value: s8)->s8
+    func @atomadd(addr: *s16, value: s16)->s16
+    func @atomadd(addr: *s32, value: s32)->s32
+    func @atomadd(addr: *s64, value: s64)->s64
+    func @atomadd(addr: *u8, value: u8)->u8
+    func @atomadd(addr: *u16, value: u16)->u16
+    func @atomadd(addr: *u32, value: u32)->u32
+    func @atomadd(addr: *u64, value: u64)->u64
 
     // Atomic 'and'
-    func @atomand(addr: *s8, value: s8)->s8;
-    func @atomand(addr: *s16, value: s16)->s16;
-    func @atomand(addr: *s32, value: s32)->s32;
-    func @atomand(addr: *s64, value: s64)->s64;
-    func @atomand(addr: *u8, value: u8)->u8;
-    func @atomand(addr: *u16, value: u16)->u16;
-    func @atomand(addr: *u32, value: u32)->u32;
-    func @atomand(addr: *u64, value: u64)->u64;
+    func @atomand(addr: *s8, value: s8)->s8
+    func @atomand(addr: *s16, value: s16)->s16
+    func @atomand(addr: *s32, value: s32)->s32
+    func @atomand(addr: *s64, value: s64)->s64
+    func @atomand(addr: *u8, value: u8)->u8
+    func @atomand(addr: *u16, value: u16)->u16
+    func @atomand(addr: *u32, value: u32)->u32
+    func @atomand(addr: *u64, value: u64)->u64
 
     // Atomic 'or'
-    func @atomor(addr: *s8, value: s8)->s8;
-    func @atomor(addr: *s16, value: s16)->s16;
-    func @atomor(addr: *s32, value: s32)->s32;
-    func @atomor(addr: *s64, value: s64)->s64;
-    func @atomor(addr: *u8, value: u8)->u8;
-    func @atomor(addr: *u16, value: u16)->u16;
-    func @atomor(addr: *u32, value: u32)->u32;
-    func @atomor(addr: *u64, value: u64)->u64;
+    func @atomor(addr: *s8, value: s8)->s8
+    func @atomor(addr: *s16, value: s16)->s16
+    func @atomor(addr: *s32, value: s32)->s32
+    func @atomor(addr: *s64, value: s64)->s64
+    func @atomor(addr: *u8, value: u8)->u8
+    func @atomor(addr: *u16, value: u16)->u16
+    func @atomor(addr: *u32, value: u32)->u32
+    func @atomor(addr: *u64, value: u64)->u64
 
     // Atomic 'xor'
-    func @atomxor(addr: *s8, value: s8)->s8;
-    func @atomxor(addr: *s16, value: s16)->s16;
-    func @atomxor(addr: *s32, value: s32)->s32;
-    func @atomxor(addr: *s64, value: s64)->s64;
-    func @atomxor(addr: *u8, value: u8)->u8;
-    func @atomxor(addr: *u16, value: u16)->u16;
-    func @atomxor(addr: *u32, value: u32)->u32;
-    func @atomxor(addr: *u64, value: u64)->u64;
+    func @atomxor(addr: *s8, value: s8)->s8
+    func @atomxor(addr: *s16, value: s16)->s16
+    func @atomxor(addr: *s32, value: s32)->s32
+    func @atomxor(addr: *s64, value: s64)->s64
+    func @atomxor(addr: *u8, value: u8)->u8
+    func @atomxor(addr: *u16, value: u16)->u16
+    func @atomxor(addr: *u32, value: u32)->u32
+    func @atomxor(addr: *u64, value: u64)->u64
 
     // Atomic 'exchange'
-    func @atomxchg(addr: *s8, exchangeWith: s8)->s8;
-    func @atomxchg(addr: *s16, exchangeWith: s16)->s16;
-    func @atomxchg(addr: *s32, exchangeWith: s32)->s32;
-    func @atomxchg(addr: *s64, exchangeWith: s64)->s64;
-    func @atomxchg(addr: *u8, exchangeWith: u8)->u8;
-    func @atomxchg(addr: *u16, exchangeWith: u16)->u16;
-    func @atomxchg(addr: *u32, exchangeWith: u32)->u32;
-    func @atomxchg(addr: *u64, exchangeWith: u64)->u64;
+    func @atomxchg(addr: *s8, exchangeWith: s8)->s8
+    func @atomxchg(addr: *s16, exchangeWith: s16)->s16
+    func @atomxchg(addr: *s32, exchangeWith: s32)->s32
+    func @atomxchg(addr: *s64, exchangeWith: s64)->s64
+    func @atomxchg(addr: *u8, exchangeWith: u8)->u8
+    func @atomxchg(addr: *u16, exchangeWith: u16)->u16
+    func @atomxchg(addr: *u32, exchangeWith: u32)->u32
+    func @atomxchg(addr: *u64, exchangeWith: u64)->u64
 
     // Atomic 'compare and exchange'
-    func @atomcmpxchg(addr: *s8, compareTo, exchangeWith: s8)->s8;
-    func @atomcmpxchg(addr: *s16, compareTo, exchangeWith: s16)->s16;
-    func @atomcmpxchg(addr: *s32, compareTo, exchangeWith: s32)->s32;
-    func @atomcmpxchg(addr: *s64, compareTo, exchangeWith: s64)->s64;
-    func @atomcmpxchg(addr: *u8, compareTo, exchangeWith: u8)->u8;
-    func @atomcmpxchg(addr: *u16, compareTo, exchangeWith: u16)->u16;
-    func @atomcmpxchg(addr: *u32, compareTo, exchangeWith: u32)->u32;
-    func @atomcmpxchg(addr: *u64, compareTo, exchangeWith: u64)->u64;
+    func @atomcmpxchg(addr: *s8, compareTo, exchangeWith: s8)->s8
+    func @atomcmpxchg(addr: *s16, compareTo, exchangeWith: s16)->s16
+    func @atomcmpxchg(addr: *s32, compareTo, exchangeWith: s32)->s32
+    func @atomcmpxchg(addr: *s64, compareTo, exchangeWith: s64)->s64
+    func @atomcmpxchg(addr: *u8, compareTo, exchangeWith: u8)->u8
+    func @atomcmpxchg(addr: *u16, compareTo, exchangeWith: u16)->u16
+    func @atomcmpxchg(addr: *u32, compareTo, exchangeWith: u32)->u32
+    func @atomcmpxchg(addr: *u64, compareTo, exchangeWith: u64)->u64
 }
 
 // Constant intrinsics
 #[Swag.ConstExpr]
 {
     // Square root.
-    func @sqrt(value: f32)->f32;
-    func @sqrt(value: f64)->f64;
+    func @sqrt(value: f32)->f32
+    func @sqrt(value: f64)->f64
 
     // Minimum of two values.
-    func @min(value1, value2: s8)->s8;
-    func @min(value1, value2: s16)->s16;
-    func @min(value1, value2: s32)->s32;
-    func @min(value1, value2: s64)->s64;
-    func @min(value1, value2: u8)->u8;
-    func @min(value1, value2: u16)->u16;
-    func @min(value1, value2: u32)->u32;
-    func @min(value1, value2: u64)->u64;
-    func @min(value1, value2: f32)->f32;
-    func @min(value1, value2: f64)->f64;
+    func @min(value1, value2: s8)->s8
+    func @min(value1, value2: s16)->s16
+    func @min(value1, value2: s32)->s32
+    func @min(value1, value2: s64)->s64
+    func @min(value1, value2: u8)->u8
+    func @min(value1, value2: u16)->u16
+    func @min(value1, value2: u32)->u32
+    func @min(value1, value2: u64)->u64
+    func @min(value1, value2: f32)->f32
+    func @min(value1, value2: f64)->f64
 
     // Maximum of two values.
-    func @max(value1, value2: s8)->s8;
-    func @max(value1, value2: s16)->s16;
-    func @max(value1, value2: s32)->s32;
-    func @max(value1, value2: s64)->s64;
-    func @max(value1, value2: u8)->u8;
-    func @max(value1, value2: u16)->u16;
-    func @max(value1, value2: u32)->u32;
-    func @max(value1, value2: u64)->u64;
-    func @max(value1, value2: f32)->f32;
-    func @max(value1, value2: f64)->f64;
+    func @max(value1, value2: s8)->s8
+    func @max(value1, value2: s16)->s16
+    func @max(value1, value2: s32)->s32
+    func @max(value1, value2: s64)->s64
+    func @max(value1, value2: u8)->u8
+    func @max(value1, value2: u16)->u16
+    func @max(value1, value2: u32)->u32
+    func @max(value1, value2: u64)->u64
+    func @max(value1, value2: f32)->f32
+    func @max(value1, value2: f64)->f64
 
     // Absolute value.
-    func @abs(value: s8)->s8;
-    func @abs(value: s16)->s16;
-    func @abs(value: s32)->s32;
-    func @abs(value: s64)->s64;
-    func @abs(value: f32)->f32;
-    func @abs(value: f64)->f64;
+    func @abs(value: s8)->s8
+    func @abs(value: s16)->s16
+    func @abs(value: s32)->s32
+    func @abs(value: s64)->s64
+    func @abs(value: f32)->f32
+    func @abs(value: f64)->f64
 
     // Rotate bits left
-    func @rol(value: u8, num: u8)->u8;
-    func @rol(value: u16, num: u8)->u16;
-    func @rol(value: u32, num: u8)->u32;
-    func @rol(value: u64, num: u8)->u64;
+    func @rol(value: u8, num: u8)->u8
+    func @rol(value: u16, num: u8)->u16
+    func @rol(value: u32, num: u8)->u32
+    func @rol(value: u64, num: u8)->u64
 
     // Rotate bits right
-    func @ror(value: u8, num: u8)->u8;
-    func @ror(value: u16, num: u8)->u16;
-    func @ror(value: u32, num: u8)->u32;
-    func @ror(value: u64, num: u8)->u64;
+    func @ror(value: u8, num: u8)->u8
+    func @ror(value: u16, num: u8)->u16
+    func @ror(value: u32, num: u8)->u32
+    func @ror(value: u64, num: u8)->u64
 
     // Reverses the order of bytes in an integer.
-    func @byteswap(value: u16)->u16;
-    func @byteswap(value: u32)->u32;
-    func @byteswap(value: u64)->u64;
+    func @byteswap(value: u16)->u16
+    func @byteswap(value: u32)->u32
+    func @byteswap(value: u64)->u64
 
     // Count the number of bits set to 1
-    func @bitcountnz(value: u8)->u8;
-    func @bitcountnz(value: u16)->u16;
-    func @bitcountnz(value: u32)->u32;
-    func @bitcountnz(value: u64)->u64;
+    func @bitcountnz(value: u8)->u8
+    func @bitcountnz(value: u16)->u16
+    func @bitcountnz(value: u32)->u32
+    func @bitcountnz(value: u64)->u64
 
     // Returns the index+1 of the first set bit, starting from right (lsb). 0 if all zero.
-    func @bitcounttz(value: u8)->u8;
-    func @bitcounttz(value: u16)->u16;
-    func @bitcounttz(value: u32)->u32;
-    func @bitcounttz(value: u64)->u64;
+    func @bitcounttz(value: u8)->u8
+    func @bitcounttz(value: u16)->u16
+    func @bitcounttz(value: u32)->u32
+    func @bitcounttz(value: u64)->u64
 
     // Returns the index+1 of the first set bit, starting from the left (msb). 0 if all zero.
-    func @bitcountlz(value: u8)->u8;
-    func @bitcountlz(value: u16)->u16;
-    func @bitcountlz(value: u32)->u32;
-    func @bitcountlz(value: u64)->u64;
+    func @bitcountlz(value: u8)->u8
+    func @bitcountlz(value: u16)->u16
+    func @bitcountlz(value: u32)->u32
+    func @bitcountlz(value: u64)->u64
 
     // Returns '(val1 * val2) + val3'
-    func @muladd(val1, val2, val3: f32)->f32;
-    func @muladd(val1, val2, val3: f64)->f64;
+    func @muladd(val1, val2, val3: f32)->f32
+    func @muladd(val1, val2, val3: f64)->f64
 
     // Round toward minus infinity.
-    func @floor(value: f32)->f32;
-    func @floor(value: f64)->f64;
+    func @floor(value: f32)->f32
+    func @floor(value: f64)->f64
 
     // Round toward plus infinity.
-    func @ceil(value: f32)->f32;
-    func @ceil(value: f64)->f64;
+    func @ceil(value: f32)->f32
+    func @ceil(value: f64)->f64
 
     // Round toward zero.
-    func @trunc(value: f32)->f32;
-    func @trunc(value: f64)->f64;
+    func @trunc(value: f32)->f32
+    func @trunc(value: f64)->f64
 
     // Round to nearest, away from zero at .5.
-    func @round(value: f32)->f32;
-    func @round(value: f64)->f64;
+    func @round(value: f32)->f32
+    func @round(value: f64)->f64
 }
 
 // Returns a system allocated memory block of 'size' bytes.
 // Use [[@free]] to release the allocated memory.
-func @alloc(size: u64)->#null [*] void;
+func @alloc(size: u64)->#null [*] void
 
 // Realloc a system memory block allocated with [[@alloc]]
-func @realloc(ptr: #null [*] void, size: u64)->#null [*] void;
+func @realloc(ptr: #null [*] void, size: u64)->#null [*] void
 
 // Free a system memory block allocated with [[@alloc]]
-func @free(ptr: #null [*] void);
+func @free(ptr: #null [*] void)
 
 #[Swag.ConstExpr]
 {
     // Trigonometric functions.
-    func @sin(value: f32)->f32;
-    func @sin(value: f64)->f64;
-    func @cos(value: f32)->f32;
-    func @cos(value: f64)->f64;
-    func @tan(value: f32)->f32;
-    func @tan(value: f64)->f64;
+    func @sin(value: f32)->f32
+    func @sin(value: f64)->f64
+    func @cos(value: f32)->f32
+    func @cos(value: f64)->f64
+    func @tan(value: f32)->f32
+    func @tan(value: f64)->f64
 
     // Hyperbolic trigonometric functions.
-    func @sinh(value: f32)->f32;
-    func @sinh(value: f64)->f64;
-    func @cosh(value: f32)->f32;
-    func @cosh(value: f64)->f64;
-    func @tanh(value: f32)->f32;
-    func @tanh(value: f64)->f64;
+    func @sinh(value: f32)->f32
+    func @sinh(value: f64)->f64
+    func @cosh(value: f32)->f32
+    func @cosh(value: f64)->f64
+    func @tanh(value: f32)->f32
+    func @tanh(value: f64)->f64
 
     // Inverse trigonometric functions.
-    func @asin(value: f32)->f32;
-    func @asin(value: f64)->f64;
-    func @acos(value: f32)->f32;
-    func @acos(value: f64)->f64;
-    func @atan(value: f32)->f32;
-    func @atan(value: f64)->f64;
+    func @asin(value: f32)->f32
+    func @asin(value: f64)->f64
+    func @acos(value: f32)->f32
+    func @acos(value: f64)->f64
+    func @atan(value: f32)->f32
+    func @atan(value: f64)->f64
 
     // Logarithms.
-    func @log(value: f32)->f32;
-    func @log(value: f64)->f64;
-    func @log2(value: f32)->f32;
-    func @log2(value: f64)->f64;
-    func @log10(value: f32)->f32;
-    func @log10(value: f64)->f64;
+    func @log(value: f32)->f32
+    func @log(value: f64)->f64
+    func @log2(value: f32)->f32
+    func @log2(value: f64)->f64
+    func @log10(value: f32)->f32
+    func @log10(value: f64)->f64
 
     // Exponentials and power.
-    func @exp(value: f32)->f32;
-    func @exp(value: f64)->f64;
-    func @exp2(value: f32)->f32;
-    func @exp2(value: f64)->f64;
-    func @pow(value1, value2: f32)->f32;
-    func @pow(value1, value2: f64)->f64;
+    func @exp(value: f32)->f32
+    func @exp(value: f64)->f64
+    func @exp2(value: f32)->f32
+    func @exp2(value: f64)->f64
+    func @pow(value1, value2: f32)->f32
+    func @pow(value1, value2: f64)->f64
 
     // Arctangent of y/x with quadrant selection.
-    func @atan2(value1, value2: f32)->f32;
-    func @atan2(value1, value2: f64)->f64;
+    func @atan2(value1, value2: f32)->f32
+    func @atan2(value1, value2: f64)->f64
 }

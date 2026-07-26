@@ -4,7 +4,7 @@ using Swag
 
 public interface IHash64
 {
-    mtd const compute()->u64;
+    mtd const compute()->u64
 }
 
 // Hash the given value and returns the corresponding u64

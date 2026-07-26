@@ -21,8 +21,8 @@ linker. It does not declare functions by itself.
 
 #[Swag.Foreign(module: "kernel32")]
 {
-    func GetCurrentProcessId()->u32;
-    func Sleep(milliseconds: u32);
+    func GetCurrentProcessId()->u32
+    func Sleep(milliseconds: u32)
 }
 
 #test
@@ -43,7 +43,7 @@ Use 'function' when the local name should differ from the exported symbol. Use
     function: "vendor_open_v2",
     link: "vendor_import",
     callconv: .C)]
-func openVendorHandle(flags: u32)->#null *void;
+func openVendorHandle(flags: u32)->#null *void
 ```
 
 The declaration is an ABI contract, not a conversion layer. A mismatched

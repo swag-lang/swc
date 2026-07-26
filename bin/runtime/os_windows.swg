@@ -34,32 +34,32 @@ namespace __Win32RT
 
     #[Swag.Foreign("kernel32")]
     {
-        func RtlCaptureContext(contextRecord: *void);
-        func RtlRestoreContext(contextRecord: *void, exceptionRecord: #null *void);
-        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT;
-        func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void;
-        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: *#null *void)->BOOL;
-        func GetStdHandle(nStdHandle: u32)->HANDLE;
-        func WriteFile(hFile: HANDLE, lpBuffer: #null const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32;
-        func GetCurrentProcess()->HANDLE;
-        func GetCurrentThreadId()->DWORD;
-        func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: #null *void)->#null *void;
-        func ExitProcess(uExitCode: u32);
-        func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void);
-        func DebugBreak();
-        func LoadLibraryA(name: const *u8)->#null *void;
-        func TlsAlloc()->u32;
-        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void);
-        func TlsGetValue(dwTlsIndex: u32)->#null *void;
-        func AcquireSRWLockExclusive(SRWLock: *SRWLOCK);
-        func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK);
-        func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->#null *void;
-        func VirtualFree(lpAddress: #null *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL;
+        func RtlCaptureContext(contextRecord: *void)
+        func RtlRestoreContext(contextRecord: *void, exceptionRecord: #null *void)
+        func RtlCaptureStackBackTrace(framesToSkip: ULONG, framesToCapture: ULONG, backTrace: **void, backTraceHash: #null *ULONG)->USHORT
+        func GetModuleHandleA(lpModuleName: #null const *u8)->#null *void
+        func GetModuleHandleExA(dwFlags: DWORD, lpModuleName: #null const *u8, phModule: *#null *void)->BOOL
+        func GetStdHandle(nStdHandle: u32)->HANDLE
+        func WriteFile(hFile: HANDLE, lpBuffer: #null const *void, nNumberOfBytesToWrite: u32, lpNumberOfBytesWritten: #null *u32, lpOverlapped: #null *void)->u32
+        func GetCurrentProcess()->HANDLE
+        func GetCurrentThreadId()->DWORD
+        func SetUnhandledExceptionFilter(lpTopLevelExceptionFilter: #null *void)->#null *void
+        func ExitProcess(uExitCode: u32)
+        func RaiseException(dwExceptionCode: u32, dwExceptionFlags: u32, nNumberOfArguments: u32, lpArguments: *const *void)
+        func DebugBreak()
+        func LoadLibraryA(name: const *u8)->#null *void
+        func TlsAlloc()->u32
+        func TlsSetValue(dwTlsIndex: u32, lpTlsValue: #null *void)
+        func TlsGetValue(dwTlsIndex: u32)->#null *void
+        func AcquireSRWLockExclusive(SRWLock: *SRWLOCK)
+        func ReleaseSRWLockExclusive(SRWLock: *SRWLOCK)
+        func VirtualAlloc(lpAddress: #null *void, dwSize: ULONG64, flAllocationType: DWORD, flProtect: DWORD)->#null *void
+        func VirtualFree(lpAddress: #null *void, dwSize: ULONG64, dwFreeType: DWORD)->BOOL
     }
 
     #[Swag.Foreign("user32")]
     {
-        func MessageBoxA(hWnd: #null const *void, lpText: const *void, lpCaption: const *void, uType: u32)->s32;
+        func MessageBoxA(hWnd: #null const *void, lpText: const *void, lpCaption: const *void, uType: u32)->s32
     }
 }
 
@@ -93,58 +93,58 @@ impl MutexRW
 
 #[Swag.Foreign(module: "ucrtbase", link: "ucrt")]
 {
-    func sinf(val: f32)->f32;
-    func cosf(val: f32)->f32;
-    func tanf(val: f32)->f32;
-    func sinhf(val: f32)->f32;
-    func coshf(val: f32)->f32;
-    func tanhf(val: f32)->f32;
-    func asinf(val: f32)->f32;
-    func acosf(val: f32)->f32;
-    func atanf(val: f32)->f32;
-    func logf(val: f32)->f32;
-    func log2f(val: f32)->f32;
-    func log10f(val: f32)->f32;
-    func floorf(val: f32)->f32;
-    func ceilf(val: f32)->f32;
-    func truncf(val: f32)->f32;
-    func roundf(val: f32)->f32;
-    func expf(val: f32)->f32;
-    func exp2f(val: f32)->f32;
-    func sqrtf(val: f32)->f32;
+    func sinf(val: f32)->f32
+    func cosf(val: f32)->f32
+    func tanf(val: f32)->f32
+    func sinhf(val: f32)->f32
+    func coshf(val: f32)->f32
+    func tanhf(val: f32)->f32
+    func asinf(val: f32)->f32
+    func acosf(val: f32)->f32
+    func atanf(val: f32)->f32
+    func logf(val: f32)->f32
+    func log2f(val: f32)->f32
+    func log10f(val: f32)->f32
+    func floorf(val: f32)->f32
+    func ceilf(val: f32)->f32
+    func truncf(val: f32)->f32
+    func roundf(val: f32)->f32
+    func expf(val: f32)->f32
+    func exp2f(val: f32)->f32
+    func sqrtf(val: f32)->f32
 
-    func sin(val: f64)->f64;
-    func cos(val: f64)->f64;
-    func tan(val: f64)->f64;
-    func sinh(val: f64)->f64;
-    func cosh(val: f64)->f64;
-    func tanh(val: f64)->f64;
-    func asin(val: f64)->f64;
-    func acos(val: f64)->f64;
-    func atan(val: f64)->f64;
-    func log(val: f64)->f64;
-    func log2(val: f64)->f64;
-    func log10(val: f64)->f64;
-    func floor(val: f64)->f64;
-    func ceil(val: f64)->f64;
-    func trunc(val: f64)->f64;
-    func round(val: f64)->f64;
-    func exp(val: f64)->f64;
-    func exp2(val: f64)->f64;
-    func sqrt(val: f64)->f64;
+    func sin(val: f64)->f64
+    func cos(val: f64)->f64
+    func tan(val: f64)->f64
+    func sinh(val: f64)->f64
+    func cosh(val: f64)->f64
+    func tanh(val: f64)->f64
+    func asin(val: f64)->f64
+    func acos(val: f64)->f64
+    func atan(val: f64)->f64
+    func log(val: f64)->f64
+    func log2(val: f64)->f64
+    func log10(val: f64)->f64
+    func floor(val: f64)->f64
+    func ceil(val: f64)->f64
+    func trunc(val: f64)->f64
+    func round(val: f64)->f64
+    func exp(val: f64)->f64
+    func exp2(val: f64)->f64
+    func sqrt(val: f64)->f64
 
-    func powf(val1, val2: f32)->f32;
-    func atan2f(val1, val2: f32)->f32;
-    func pow(val1, val2: f64)->f64;
-    func atan2(val1, val2: f64)->f64;
+    func powf(val1, val2: f32)->f32
+    func atan2f(val1, val2: f32)->f32
+    func pow(val1, val2: f64)->f64
+    func atan2(val1, val2: f64)->f64
 
-    func malloc(s: s64)->#null [*] void;
-    func realloc(ptr: #null [*] void, s: s64)->#null [*] void;
-    func free(ptr: #null [*] void);
-    func memcpy(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void;
-    func memmove(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void;
-    func memset(dst: #null [*] void, value: s32, size: s64)->#null [*] void;
-    func memcmp(dst: #null const [*] void, src: #null const [*] void, size: s64)->s32;
+    func malloc(s: s64)->#null [*] void
+    func realloc(ptr: #null [*] void, s: s64)->#null [*] void
+    func free(ptr: #null [*] void)
+    func memcpy(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void
+    func memmove(dst: #null [*] void, src: #null const [*] void, size: s64)->#null [*] void
+    func memset(dst: #null [*] void, value: s32, size: s64)->#null [*] void
+    func memcmp(dst: #null const [*] void, src: #null const [*] void, size: s64)->s32
 }
 
 ////////////////////////////////////////////////////////////

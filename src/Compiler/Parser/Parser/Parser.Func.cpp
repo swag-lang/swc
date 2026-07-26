@@ -267,15 +267,19 @@ AstNodeRef Parser::parseFunctionDecl(const bool isInterfaceDefinition)
         nodePtr->spanConstraintsRef = ast_->pushSpan(whereRefs.span());
 
     // Body
-    if (consumeIf(TokenId::SymSemiColon).isValid())
-        nodePtr->nodeBodyRef = AstNodeRef::invalid();
-    else if (consumeIf(TokenId::SymEqualGreater).isValid())
+    if (consumeIf(TokenId::SymEqualGreater).isValid())
     {
         nodePtr->addFlag(AstFunctionFlagsE::Short);
         nodePtr->nodeBodyRef = parseExpression();
     }
-    else
+    else if (is(TokenId::SymLeftCurly))
+    {
         nodePtr->nodeBodyRef = parseFunctionBody();
+    }
+    else
+    {
+        nodePtr->nodeBodyRef = AstNodeRef::invalid();
+    }
 
     fwdSeenParam_  = savedFwdSeen;
     fwdDeclActive_ = savedFwdActive;

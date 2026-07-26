@@ -128,8 +128,8 @@ struct TagBinTypeInfoPayload
 
 public interface ITagBinScore
 {
-    mtd score()->s32;
-    mtd labelText()->string;
+    mtd score()->s32
+    mtd labelText()->string
 }
 
 public struct TagBinInterfaceProbe

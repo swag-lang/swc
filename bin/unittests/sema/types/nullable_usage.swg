@@ -15,7 +15,7 @@ struct NullableUsageItem
 
 interface INullableUsage
 {
-    mtd get()->s32;
+    mtd get()->s32
 }
 
 var g_nullableUsageStorage: s32

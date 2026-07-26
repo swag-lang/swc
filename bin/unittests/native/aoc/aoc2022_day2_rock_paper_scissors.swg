@@ -59,7 +59,7 @@ struct ScoreSummary
 
 interface IRoundScorer
 {
-    mtd score(opponentToken: u8, codeToken: u8)->u32;
+    mtd score(opponentToken: u8, codeToken: u8)->u32
 }
 
 struct PartOneScorer {}

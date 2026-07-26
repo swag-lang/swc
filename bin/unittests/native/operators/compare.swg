@@ -314,7 +314,7 @@ func compareStrictFloatSpaceship(a, b: CompareStrictF32)->s32
 
 interface ICompareAllocator
 {
-    mtd reserve()->u32;
+    mtd reserve()->u32
 }
 
 struct CompareAllocator

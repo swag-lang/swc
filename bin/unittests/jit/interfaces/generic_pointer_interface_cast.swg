@@ -2,8 +2,8 @@
 
 interface IGenericPointerCast
 {
-    mtd get()->s32;
-    mtd fallback()->s32;
+    mtd get()->s32
+    mtd fallback()->s32
 }
 
 struct GenericPointerCastBase

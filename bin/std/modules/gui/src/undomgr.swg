@@ -22,10 +22,10 @@ using Core
 interface IUndoCommand
 {
     // (Re)apply the change. Called on redo, and once on push when pushCmd's 'apply' is true.
-    mtd redo();
+    mtd redo()
 
     // Revert the change.
-    mtd undo();
+    mtd undo()
 }
 
 // One entry of the undo timeline: the owned command plus the group it belongs to.

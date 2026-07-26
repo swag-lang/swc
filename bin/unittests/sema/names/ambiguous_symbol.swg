@@ -21,7 +21,7 @@ func semaTest002()
     N.Amb(10)
 }
 
-func DeclAndDef();
+func DeclAndDef()
 func DeclAndDef() {}
 
 func semaTest003()
@@ -30,5 +30,5 @@ func semaTest003()
     #assert(#nameof(DeclAndDef) == "DeclAndDef")
 }
 
-func DeclOnly();
-func DeclOnly(a: s32);
+func DeclOnly()
+func DeclOnly(a: s32)

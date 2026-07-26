@@ -6,13 +6,13 @@
 
 interface IName
 {
-    mtd getName()->string;
+    mtd getName()->string
 }
 
 interface IValue
 {
-    mtd getValue()->s32;
-    mtd setValue(v: s32);
+    mtd getValue()->s32
+    mtd setValue(v: s32)
 }
 
 struct Counter

@@ -2,8 +2,8 @@
 
 interface IAction
 {
-    mtd accept(id: s32)->bool;
-    mtd execute(id: s32)->s32;
+    mtd accept(id: s32)->bool
+    mtd execute(id: s32)->s32
 }
 
 struct UndoAction {}
@@ -39,7 +39,7 @@ func runActionRegistry()->bool
 
 interface IDispatch
 {
-    mtd get()->s32;
+    mtd get()->s32
 }
 
 struct Base

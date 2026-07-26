@@ -19,8 +19,8 @@ public struct DecodeOptions
 // Interface to decode a buffer
 public interface IImageDecoder
 {
-    mtd canDecode(filename: string)->bool;
-    mtd decode(buf: const [..] u8, opt: DecodeOptions)->Image fail;
+    mtd canDecode(filename: string)->bool
+    mtd decode(buf: const [..] u8, opt: DecodeOptions)->Image fail
 }
 
 impl Image

@@ -23,21 +23,21 @@ enum FormSubKind
 
 interface IForm
 {
-    mtd paintGizmo(painter: *Painter, z: f32, flags: FormFlags);
-    mtd paint(painter: *Painter, cxt: FormPaintContext);
-    mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool;
-    mtd isInside(pt: Math.Point)->bool;
-    mtd hitTest(pt: Math.Point, z: f32)->bool;
-    mtd boundRect()->Math.Rectangle;
-    mtd moveForm(newPosX, newPosY: s32);
-    mtd moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32);
-    mtd scaleBaseForm(scale: f32);
-    mtd setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32);
-    mtd movePoint(pt: u32, newPosX, newPosY: s32);
-    mtd edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool;
-    mtd setup(capt: #null *Capture);
-    mtd isSame(ptr: *BaseForm)->bool;
-    mtd copy(dst, src: *BaseForm);
+    mtd paintGizmo(painter: *Painter, z: f32, flags: FormFlags)
+    mtd paint(painter: *Painter, cxt: FormPaintContext)
+    mtd mouse(view: *EditView, pos: Math.Point, evt: *MouseEvent)->bool
+    mtd isInside(pt: Math.Point)->bool
+    mtd hitTest(pt: Math.Point, z: f32)->bool
+    mtd boundRect()->Math.Rectangle
+    mtd moveForm(newPosX, newPosY: s32)
+    mtd moveBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
+    mtd scaleBaseForm(scale: f32)
+    mtd setBaseForm(newPosX, newPosY, newSizeX, newSizeY: s32)
+    mtd movePoint(pt: u32, newPosX, newPosY: s32)
+    mtd edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
+    mtd setup(capt: #null *Capture)
+    mtd isSame(ptr: *BaseForm)->bool
+    mtd copy(dst, src: *BaseForm)
 
     mtd mustClipToBound()->bool
     {

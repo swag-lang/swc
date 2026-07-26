@@ -2,7 +2,7 @@
 
 interface IDispatch
 {
-    mtd get()->s32;
+    mtd get()->s32
 }
 
 struct Base

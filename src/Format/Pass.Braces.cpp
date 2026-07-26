@@ -553,8 +553,7 @@ namespace
 
 namespace
 {
-    // `;` before an end of line is a statement separator the grammar does not
-    // need; prototype terminators (marked KeepSemi) stay.
+    // `;` before an end of line is redundant. Same-line separators stay.
     void removeRedundantSemicolons(FormatModel& model)
     {
         if (!model.options().removeRedundantSemicolons.value_or(false))
@@ -564,8 +563,6 @@ namespace
         {
             const FormatPiece& piece = model.piece(i);
             if (piece.removed || piece.frozen || piece.isNot(TokenId::SymSemiColon))
-                continue;
-            if (piece.hasRole(FormatRoleE::KeepSemi))
                 continue;
             if (!FormatPassUtil::canEditGap(model, i))
                 continue;

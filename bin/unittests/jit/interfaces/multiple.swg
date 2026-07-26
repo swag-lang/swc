@@ -2,12 +2,12 @@
 
 interface IFoo
 {
-    mtd foo()->s32;
+    mtd foo()->s32
 }
 
 interface IBar
 {
-    mtd bar()->s32;
+    mtd bar()->s32
 }
 
 struct Multi

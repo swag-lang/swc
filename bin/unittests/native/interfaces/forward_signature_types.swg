@@ -2,7 +2,7 @@
 
 interface IForwardSignature
 {
-    mtd score(flags: ForwardFlags, cxt: ForwardContext)->s32;
+    mtd score(flags: ForwardFlags, cxt: ForwardContext)->s32
 }
 
 #[Swag.EnumFlags]

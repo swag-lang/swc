@@ -2,11 +2,11 @@
 
 #[Extension, Swag.PlaceHolder]
 {
-    func glBlendEquationSeparatei(buf: GLuint, modeRGB: GLenum, modeAlpha: GLenum);
-    func glBlendEquationi(buf: GLuint, mode: GLenum);
-    func glBlendFuncSeparatei(buf: GLuint, srcRGB: GLenum, dstRGB: GLenum, srcAlpha: GLenum, dstAlpha: GLenum);
-    func glBlendFunci(buf: GLuint, src: GLenum, dst: GLenum);
-    func glMinSampleShading(value: GLclampf);
+    func glBlendEquationSeparatei(buf: GLuint, modeRGB: GLenum, modeAlpha: GLenum)
+    func glBlendEquationi(buf: GLuint, mode: GLenum)
+    func glBlendFuncSeparatei(buf: GLuint, srcRGB: GLenum, dstRGB: GLenum, srcAlpha: GLenum, dstAlpha: GLenum)
+    func glBlendFunci(buf: GLuint, src: GLenum, dst: GLenum)
+    func glMinSampleShading(value: GLclampf)
 }
 
 const GL_SAMPLE_SHADING                        = 0x8C36

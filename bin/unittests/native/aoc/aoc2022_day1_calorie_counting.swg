@@ -43,7 +43,7 @@ struct Elf
 
 interface ICalorieSource
 {
-    mtd totalCalories()->u32;
+    mtd totalCalories()->u32
 }
 
 impl ICalorieSource for Elf

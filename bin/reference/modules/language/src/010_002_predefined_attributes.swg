@@ -104,7 +104,7 @@ cannot inspect.
     function: "external_symbol",
     link: "native_import_library",
     callconv: .C)]
-func localName(value: u32)->u32;
+func localName(value: u32)->u32
 ```
 
 'function' defaults to the local declaration name, 'link' defaults to the

@@ -3,12 +3,12 @@ using Swag
 
 interface IHash32
 {
-    mtd const compute()->u32;
+    mtd const compute()->u32
 }
 
 interface IHash64
 {
-    mtd const compute()->u64;
+    mtd const compute()->u64
 }
 
 #[ConstExpr, Safety(.All, false)]

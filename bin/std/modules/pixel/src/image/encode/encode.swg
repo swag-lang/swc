@@ -9,8 +9,8 @@ struct ImageEncoder
 // Interface to decode a buffer
 public interface IImageEncoder
 {
-    mtd canEncode(filename: string)->bool;
-    mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) fail;
+    mtd canEncode(filename: string)->bool
+    mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) fail
 }
 
 public impl Image

@@ -4,7 +4,7 @@ using Swag
 
 public interface IHash32
 {
-    mtd const compute()->u32;
+    mtd const compute()->u32
 }
 
 // Hash the given value and returns the corresponding u32

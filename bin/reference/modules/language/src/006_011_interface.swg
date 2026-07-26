@@ -25,10 +25,10 @@ Declare interface 'IReset' with two functions 'set' and 'reset'.
 interface IReset
 {
     // First parameter must be 'me' when using 'func'
-    mtd set(val: f32);
+    mtd set(val: f32)
 
     // 'mtd' avoids specifying 'me'
-    mtd reset();
+    mtd reset()
 }
 
 /**

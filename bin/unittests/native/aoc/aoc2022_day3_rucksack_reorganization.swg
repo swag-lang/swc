@@ -41,12 +41,12 @@ struct RucksackReport
 
 interface ILineScorer
 {
-    mtd score(line: const [..] u8)->u32;
+    mtd score(line: const [..] u8)->u32
 }
 
 interface IGroupScorer
 {
-    mtd score(firstMask, secondMask, thirdMask: u64)->u32;
+    mtd score(firstMask, secondMask, thirdMask: u64)->u32
 }
 
 struct DuplicateScorer {}

@@ -174,7 +174,7 @@ impl TagBin
     // Begins a new struct, writing versioning and section metadata
     mtd beginStruct(structType: #null typeinfo, _structData: #null const [*] u8)->bool
     {
-        let (pod, ?) = isPodFinal(structType)
+        let {pod, ?} = isPodFinal(structType)
         let output = notnull .output
         if pod
         {
@@ -316,8 +316,8 @@ impl TagBin
         // Just write them in one batch
         if Reflection.isStructArray(typeElem)
         {
-            let valueType = Reflection.getStructArrayType(typeElem)
-                let (raw, sizeof) = isPodFinal(valueType)
+            let valueType     = Reflection.getStructArrayType(typeElem)
+            let {raw, sizeof} = isPodFinal(valueType)
 
             if raw
             {
@@ -337,7 +337,7 @@ impl TagBin
         // Static array of raw serializable types
         else
         {
-            let (raw, sizeof) = isPodFinal(typeElem)
+            let {raw, sizeof} = isPodFinal(typeElem)
             if raw
             {
                 output.addNative(TagBinSignatures.Raw)

@@ -156,4 +156,53 @@ const SymbolVariable* CodeGenStructHelpers::tryResolveSameGenericFamilyFieldSymb
     return runtimeStruct.findFieldByName(fieldSym.idRef());
 }
 
+size_t CodeGenStructHelpers::structLikeFieldIndex(CodeGen& codeGen, TypeRef typeRef, const SourceCodeRef& fieldNameRef)
+{
+    const TypeInfo&     typeInfo = codeGen.typeMgr().get(typeRef);
+    const IdentifierRef idRef    = codeGen.sema().idMgr().addIdentifier(codeGen.ctx(), fieldNameRef);
+
+    size_t     fieldIndex = 0;
+    const bool found      = typeInfo.isStruct()
+                                ? typeInfo.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, idRef)
+                                : typeInfo.tryGetAggregateMemberIndexByName(fieldIndex, codeGen.ctx(), idRef);
+    SWC_ASSERT(found);
+    return fieldIndex;
+}
+
+CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFieldLayout(CodeGen& codeGen, TypeRef typeRef, size_t fieldIndex)
+{
+    const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
+    if (typeInfo.isStruct())
+    {
+        const auto& fields = typeInfo.payloadSymStruct().fields();
+        SWC_ASSERT(fieldIndex < fields.size() && fields[fieldIndex]);
+        return {.typeRef = fields[fieldIndex]->typeRef(), .offset = fields[fieldIndex]->offset()};
+    }
+
+    SWC_ASSERT(typeInfo.isAggregateStruct());
+    const auto& fieldTypes = typeInfo.payloadAggregate().types;
+    SWC_ASSERT(fieldIndex < fieldTypes.size());
+
+    uint64_t offset = 0;
+    for (size_t i = 0; i <= fieldIndex; i++)
+    {
+        const TypeRef   fieldTypeRef = fieldTypes[i];
+        const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);
+        const uint32_t  fieldAlign   = std::max<uint32_t>(fieldType.alignOf(codeGen.ctx()), 1);
+        const uint64_t  fieldSize    = fieldType.sizeOf(codeGen.ctx());
+        if (fieldSize)
+            offset = ((offset + static_cast<uint64_t>(fieldAlign) - 1) / static_cast<uint64_t>(fieldAlign)) * static_cast<uint64_t>(fieldAlign);
+
+        if (i == fieldIndex)
+        {
+            SWC_ASSERT(offset <= std::numeric_limits<uint32_t>::max());
+            return {.typeRef = fieldTypeRef, .offset = static_cast<uint32_t>(offset)};
+        }
+
+        offset += fieldSize;
+    }
+
+    SWC_UNREACHABLE();
+}
+
 SWC_END_NAMESPACE();

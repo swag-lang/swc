@@ -866,6 +866,12 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     SmallVector<TokenRef> tokNames;
     codeGen.ast().appendTokens(tokNames, spanNamesRef);
+    SmallVector<TokenRef> fieldNames;
+    if (hasFlag(AstVarDeclFlagsE::NamedDestructuring))
+    {
+        codeGen.ast().appendTokens(fieldNames, spanFieldNamesRef);
+        SWC_ASSERT(fieldNames.size() == tokNames.size());
+    }
 
     const SemaNodeView       view = codeGen.curViewSymbolList();
     SmallVector<Symbol*>     recoveredSymbols;
@@ -953,34 +959,27 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             MicroReg                  baseAddress = MicroReg::invalid();
             materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
-            const auto& aggregateTypes = initView.type()->payloadAggregate().types;
-            uint64_t    offset         = 0;
-            size_t      symbolIndex    = 0;
+            size_t symbolIndex = 0;
             for (size_t i = 0; i < tokNames.size(); ++i)
             {
-                SWC_ASSERT(i < aggregateTypes.size());
-                const TypeRef  fieldTypeRef = aggregateTypes[i];
-                const auto&    fieldType    = codeGen.typeMgr().get(fieldTypeRef);
-                const uint32_t fieldAlign   = std::max<uint32_t>(fieldType.alignOf(codeGen.ctx()), 1);
-                const uint64_t fieldSize    = fieldType.sizeOf(codeGen.ctx());
-                if (fieldSize)
-                    offset = ((offset + static_cast<uint64_t>(fieldAlign) - 1) / static_cast<uint64_t>(fieldAlign)) * static_cast<uint64_t>(fieldAlign);
+                if (tokNames[i].isInvalid())
+                    continue;
 
-                if (tokNames[i].isValid())
-                {
-                    SWC_ASSERT(symbolIndex < symbols.size());
-                    const SymbolVariable& symVar = symbols[symbolIndex++]->cast<SymbolVariable>();
+                const size_t fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring)
+                                               ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initView.typeRef(), SourceCodeRef{srcViewRef(), fieldNames[i]})
+                                               : i;
+                const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, initView.typeRef(), fieldIndex);
 
-                    CodeGenNodePayload fieldPayload;
-                    fieldPayload.typeRef = fieldTypeRef;
-                    fieldPayload.setIsAddress();
-                    fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, static_cast<uint32_t>(offset));
+                SWC_ASSERT(symbolIndex < symbols.size());
+                const SymbolVariable& symVar = symbols[symbolIndex++]->cast<SymbolVariable>();
 
-                    materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
-                    codeGen.registerImplicitDrop(symVar);
-                }
+                CodeGenNodePayload fieldPayload;
+                fieldPayload.typeRef = fieldLayout.typeRef;
+                fieldPayload.setIsAddress();
+                fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, fieldLayout.offset);
 
-                offset += fieldSize;
+                materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
+                codeGen.registerImplicitDrop(symVar);
             }
         }
 
@@ -991,8 +990,6 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     MicroReg                  baseAddress = MicroReg::invalid();
     materializeAggregateSourceAddress(codeGen, codeGen.curNodeRef(), initView.typeRef(), initPayload, baseAddress);
 
-    const auto& fields = initView.type()->payloadSymStruct().fields();
-
     size_t symbolIndex = 0;
     for (size_t i = 0; i < tokNames.size(); ++i)
     {
@@ -1000,14 +997,16 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             continue;
 
         SWC_ASSERT(symbolIndex < symbols.size());
-        SWC_ASSERT(i < fields.size() && fields[i] != nullptr);
-        const SymbolVariable& field  = *fields[i];
-        const SymbolVariable& symVar = symbols[symbolIndex++]->cast<SymbolVariable>();
+        const size_t          fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring)
+                                                ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initView.typeRef(), SourceCodeRef{srcViewRef(), fieldNames[i]})
+                                                : i;
+        const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, initView.typeRef(), fieldIndex);
+        const SymbolVariable& symVar      = symbols[symbolIndex++]->cast<SymbolVariable>();
 
         CodeGenNodePayload fieldPayload;
-        fieldPayload.typeRef = field.typeRef();
+        fieldPayload.typeRef = fieldLayout.typeRef;
         fieldPayload.setIsAddress();
-        fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, field.offset());
+        fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, fieldLayout.offset);
 
         materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
         codeGen.registerImplicitDrop(symVar);

@@ -566,7 +566,7 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Debug.assert(!.outStack.isEmpty())
-            let (parentOut, parentSeek) = .outStack.popBack()
+        let {parentOut, parentSeek} = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut

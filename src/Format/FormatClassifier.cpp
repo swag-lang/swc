@@ -102,6 +102,13 @@ namespace
             return model_->pieceOfToken(tokRef.get());
         }
 
+        bool isDestructuringAssignList(const AstNodeRef nodeRef) const
+        {
+            return nodeRef.isValid() &&
+                   ast_->node(nodeRef).is(AstNodeId::AssignList) &&
+                   ast_->node(nodeRef).cast<AstAssignList>().hasFlag(AstAssignListFlagsE::Destructuring);
+        }
+
         const NodeSpan& computeSpan(const AstNodeRef nodeRef)
         {
             const auto it = spans_.find(nodeRef.get());
@@ -153,6 +160,24 @@ namespace
                     const uint32_t prev = prevCodeIf(span.minPiece, TokenId::KwdAttr);
                     if (prev != INVALID_PIECE)
                         span.minPiece = prev;
+                }
+                else if (node.is(AstNodeId::VarDeclDestructuring))
+                {
+                    const uint32_t assign = prevCodeBeforeOperandIf(anchorPiece, TokenId::SymEqual);
+                    const uint32_t open   = destructuringPatternOpenBefore(assign);
+                    const uint32_t start  = open == INVALID_PIECE ? INVALID_PIECE : prevCode(open);
+                    if (start != INVALID_PIECE &&
+                        (model_->piece(start).is(TokenId::KwdLet) ||
+                         model_->piece(start).is(TokenId::KwdVar) ||
+                         model_->piece(start).is(TokenId::KwdConst)))
+                        span.minPiece = start;
+                }
+                else if (node.is(AstNodeId::AssignStmt) &&
+                         isDestructuringAssignList(node.cast<AstAssignStmt>().nodeLeftRef))
+                {
+                    const uint32_t open = destructuringPatternOpenBefore(anchorPiece);
+                    if (open != INVALID_PIECE)
+                        span.minPiece = open;
                 }
             }
 
@@ -250,6 +275,34 @@ namespace
             if (i == INVALID_PIECE || model_->piece(i).isNot(id))
                 return INVALID_PIECE;
             return i;
+        }
+
+        uint32_t destructuringPatternOpenBefore(const uint32_t assignPiece) const
+        {
+            if (assignPiece == INVALID_PIECE || model_->piece(assignPiece).isNot(TokenId::SymEqual))
+                return INVALID_PIECE;
+
+            const uint32_t closePiece = prevCode(assignPiece);
+            if (closePiece == INVALID_PIECE)
+                return INVALID_PIECE;
+
+            const FormatPiece& close = model_->piece(closePiece);
+            if (close.isNot(TokenId::SymRightCurly) || close.match == INVALID_PIECE)
+                return INVALID_PIECE;
+            return close.match;
+        }
+
+        void markDestructuringPattern(const uint32_t openPiece) const
+        {
+            if (openPiece == INVALID_PIECE)
+                return;
+
+            const FormatPiece& open = model_->piece(openPiece);
+            if (open.isNot(TokenId::SymLeftCurly) || open.match == INVALID_PIECE)
+                return;
+
+            addRole(openPiece, FormatRoleE::LiteralOpen);
+            addRole(open.match, FormatRoleE::LiteralClose);
         }
 
         void registerBlock(const uint32_t openPiece, const FormatBlockKind kind, const uint32_t headPiece, const bool exprLevel = false) const
@@ -735,6 +788,15 @@ namespace
                     break;
                 }
 
+                case AstNodeId::VarDeclDestructuring:
+                {
+                    const auto&    var  = node.cast<AstVarDeclDestructuring>();
+                    const uint32_t open = span.valid() ? nextCodeIf(span.minPiece, TokenId::SymLeftCurly) : INVALID_PIECE;
+                    classifyVarDecl(node, span, AstNodeRef::invalid(), var.nodeInitRef, parentCompound);
+                    markDestructuringPattern(open);
+                    break;
+                }
+
                 case AstNodeId::AliasDecl:
                 {
                     const auto& alias = node.cast<AstAliasDecl>();
@@ -912,8 +974,11 @@ namespace
 
                 case AstNodeId::AssignStmt:
                 {
-                    const auto& stmt = node.cast<AstAssignStmt>();
+                    const auto& stmt            = node.cast<AstAssignStmt>();
+                    const bool  isDestructuring = isDestructuringAssignList(stmt.nodeLeftRef);
                     addRole(span.minPiece, FormatRoleE::AssignStart);
+                    if (isDestructuring)
+                        markDestructuringPattern(span.minPiece);
 
                     const NodeSpan leftSpan = spanOf(stmt.nodeLeftRef);
                     if (leftSpan.valid())

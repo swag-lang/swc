@@ -291,9 +291,9 @@ impl Color
     {
         var result: retval = undefined
 
-            let (rf, gf, bf) = .toRgbf()
-        let max = Math.max(rf, gf, bf)
-        let min = Math.min(rf, gf, bf)
+        let {rf, gf, bf} = .toRgbf()
+        let max          = Math.max(rf, gf, bf)
+        let min          = Math.min(rf, gf, bf)
         result.l = (max + min) * 0.5
         let delta = max - min
         if delta == 0
@@ -647,32 +647,32 @@ impl Core.StrConv.IPokeValue for Color
 
         if buf[0] == '0' and buf[1] | 32 == 'x'
         {
-            (.argb, eat, ovf) = try parseU32(one)
+            {.argb, eat, ovf} = try parseU32(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
         }
         elif Latin1.isDigit(buf[0])
         {
-            (.a, eat, ovf) = try parseU8(one)
+            {.a, eat, ovf} = try parseU8(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
-            one = Tokenize.eatSpaces(one)
-                (.r, eat, ovf) = try parseU8(one)
+            one            = Tokenize.eatSpaces(one)
+            {.r, eat, ovf} = try parseU8(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
-            one = Tokenize.eatSpaces(one)
-                (.g, eat, ovf) = try parseU8(one)
+            one            = Tokenize.eatSpaces(one)
+            {.g, eat, ovf} = try parseU8(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)
 
-            one = Tokenize.eatSpaces(one)
-                (.b, eat, ovf) = try parseU8(one)
+            one            = Tokenize.eatSpaces(one)
+            {.b, eat, ovf} = try parseU8(one)
             if ovf do
                 fail OverflowError{}
             one = Tokenize.eatCount(one, eat)

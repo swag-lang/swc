@@ -130,6 +130,7 @@ namespace SemaHelpers
     Result                   finalizeDefaultValue(Sema& sema, AstNodeRef defaultValueRef, SymbolVariable& symVar);
     Result                   tryMaterializeAggregateLiteralConstant(Sema& sema, AstNodeRef exprRef, TypeRef typeRef);
     Result                   finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
+    Result                   resolveDestructuringFieldIndices(Sema& sema, SmallVector<size_t>& outIndices, TypeRef sourceTypeRef, SourceViewRef patternSrcViewRef, std::span<const TokenRef> fieldNameRefs);
     TypeRef                  deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
     TypeRef                  deduceConcretizedAggregateLiteralType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
     Result                   resolveStructLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef);

@@ -1037,6 +1037,47 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     return Result::Continue;
 }
 
+Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<size_t>& outIndices, TypeRef sourceTypeRef, SourceViewRef patternSrcViewRef, std::span<const TokenRef> fieldNameRefs)
+{
+    outIndices.clear();
+    outIndices.reserve(fieldNameRefs.size());
+
+    const TypeInfo& sourceType = sema.typeMgr().get(sourceTypeRef);
+    SWC_ASSERT(sourceType.isStruct() || sourceType.isAggregateStruct());
+
+    for (const TokenRef fieldNameRef : fieldNameRefs)
+    {
+        SWC_ASSERT(fieldNameRef.isValid());
+        const SourceCodeRef fieldCodeRef{patternSrcViewRef, fieldNameRef};
+        const IdentifierRef fieldIdRef = sema.idMgr().addIdentifier(sema.ctx(), fieldCodeRef);
+
+        size_t     fieldIndex = 0;
+        const bool found      = sourceType.isStruct()
+                                    ? sourceType.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, fieldIdRef)
+                                    : sourceType.tryGetAggregateMemberIndexByName(fieldIndex, sema.ctx(), fieldIdRef);
+        if (!found)
+        {
+            Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_unknown_field, fieldCodeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, sourceTypeRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(fieldIdRef).name);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (std::ranges::find(outIndices, fieldIndex) != outIndices.end())
+        {
+            Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_duplicate_field, fieldCodeRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(fieldIdRef).name);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        outIndices.push_back(fieldIndex);
+    }
+
+    return Result::Continue;
+}
+
 Result SemaHelpers::resolveStructLikeChildBindingType(Sema& sema, std::span<const AstNodeRef> children, AstNodeRef childRef, TypeRef targetTypeRef, TypeRef& outTypeRef)
 {
     outTypeRef              = TypeRef::invalid();

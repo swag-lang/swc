@@ -57,7 +57,7 @@ func calc(a, b: u8)->u64
             break
     }
 
-        let (val, ?, ?) = expect StrConv.parseB64(scan[0])
+    let {val, ?, ?} = expect StrConv.parseB64(scan[0])
     return val
 }
 

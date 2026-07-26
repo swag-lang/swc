@@ -39,6 +39,39 @@ SWC_TEST_BEGIN(FormatBraces_AllmanMovesBraceToOwnLine)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_DestructuringPatternsStayInlineAndIndentAsStatements)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "        let {a, b} = value\n"
+        "        var {x: left, y: right} = value\n"
+        "        const {x: first} = value\n"
+        "        {a, b} = value\n"
+        "        {x: a, y: b} = value\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    let {a, b} = value\n"
+        "    var {x: left, y: right} = value\n"
+        "    const {x: first} = value\n"
+        "    {a, b} = value\n"
+        "    {x: a, y: b} = value\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle                  = FormatIndentStyle::Spaces;
+    options.indentWidth                  = 4;
+    options.allowShortBlocksOnSingleLine = FormatShortBlockStyle::Never;
+    options.alignConsecutiveAssignments  = FormatAlignMode::None;
+    options.alignConsecutiveDeclarations = FormatAlignMode::None;
+    options.alignConsecutiveConstants    = FormatAlignMode::None;
+    return checkBracesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBraces_AttachJoinsBrace)
 {
     static constexpr std::string_view SOURCE =

@@ -82,11 +82,11 @@ impl Polygon
         let tmp1 = Vector2.toNormalizedSafe(v2 - v1)
         let n1   = tmp1.cross(1)
 
-        let vva1 = v1 + n0
-        let vva0 = v0 + n0
-        let vvb1 = v2 + n1
-        let vvb0 = v1 + n1
-            let (yes, intPos) = Geometry.lineLineIntersect(vva0, vva1, vvb0, vvb1)
+        let vva1          = v1 + n0
+        let vva0          = v0 + n0
+        let vvb1          = v2 + n1
+        let vvb0          = v1 + n1
+        let {yes, intPos} = Geometry.lineLineIntersect(vva0, vva1, vvb0, vvb1)
 
         var result: retval = v1
         if yes

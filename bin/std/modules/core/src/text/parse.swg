@@ -88,7 +88,7 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 // 'ovf' will be true in case of overflow
 func parseU8(str: string)->{ value: u8, eat: u32, ovf: bool } fail
 {
-    let (res, eat, ovf) = try parseU64(str)
+    let {res, eat, ovf} = try parseU64(str)
     if res > Swag.U8.Max do
         return {Swag.U8.Max, eat, true}
     return {cast(u8) res, eat, ovf}
@@ -96,7 +96,7 @@ func parseU8(str: string)->{ value: u8, eat: u32, ovf: bool } fail
 
 func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } fail
 {
-    let (res, eat, ovf) = try parseU64(str)
+    let {res, eat, ovf} = try parseU64(str)
     if res > Swag.U16.Max do
         return {Swag.U16.Max, eat, true}
     return {cast(u16) res, eat, ovf}
@@ -104,7 +104,7 @@ func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } fail
 
 func parseU32(str: string)->{ value: u32, eat: u32, ovf: bool } fail
 {
-    let (res, eat, ovf) = try parseU64(str)
+    let {res, eat, ovf} = try parseU64(str)
     if res > Swag.U32.Max do
         return {Swag.U32.Max, eat, true}
     return {cast(u32) res, eat, ovf}
@@ -125,16 +125,16 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         if c == 'x''u8
         {
             let one = Tokenize.eatCount(str, 2)
-                (result.value, result.eat, result.ovf) = try parseX64(one)
-            result.eat += 2
+            {result.value, result.eat, result.ovf} = try parseX64(one)
+            result.eat                             += 2
             return result
         }
 
         if c == 'b''u8
         {
             let one = Tokenize.eatCount(str, 2)
-                (result.value, result.eat, result.ovf) = try parseB64(one)
-            result.eat += 2
+            {result.value, result.eat, result.ovf} = try parseB64(one)
+            result.eat                             += 2
             return result
         }
     }
@@ -181,7 +181,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 // 'ovf' will be true in case of overflow
 func parseS8(str: string)->{ value: s8, eat: u32, ovf: bool } fail
 {
-    let (res, eat, ovf) = try parseS64(str)
+    let {res, eat, ovf} = try parseS64(str)
     if res < Swag.S8.Min do
         return {Swag.S8.Min, eat, true}
     if res > Swag.S8.Max do
@@ -191,7 +191,7 @@ func parseS8(str: string)->{ value: s8, eat: u32, ovf: bool } fail
 
 func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } fail
 {
-    let (res, eat, ovf) = try parseS64(str)
+    let {res, eat, ovf} = try parseS64(str)
     if res < Swag.S16.Min do
         return {Swag.S16.Min, eat, true}
     if res > Swag.S16.Max do
@@ -201,7 +201,7 @@ func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } fail
 
 func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } fail
 {
-    let (res, eat, ovf) = try parseS64(str)
+    let {res, eat, ovf} = try parseS64(str)
     if res < Swag.S32.Min do
         return {Swag.S32.Min, eat, true}
     if res > Swag.S32.Max do
@@ -291,7 +291,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 // 'ovf' will be true in case of overflow
 func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail
 {
-    let (res, eat, ovf) = try parseF64(str)
+    let {res, eat, ovf} = try parseF64(str)
     var absRes = res
     if absRes < 0 do
         absRes = -absRes
@@ -423,7 +423,7 @@ func parseString(str: string)->{ value: String, eat: u32 } fail
 // Transform a string to an 's8'
 func toS8(str: string)->s8 fail
 {
-    let (v, eat, ovf) = parseS8(str)
+    let {v, eat, ovf} = parseS8(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -434,7 +434,7 @@ func toS8(str: string)->s8 fail
 // Transform a string to an 's16'
 func toS16(str: string)->s16 fail
 {
-    let (v, eat, ovf) = parseS16(str)
+    let {v, eat, ovf} = parseS16(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -445,7 +445,7 @@ func toS16(str: string)->s16 fail
 // Transform a string to an 's32'
 func toS32(str: string)->s32 fail
 {
-    let (v, eat, ovf) = parseS32(str)
+    let {v, eat, ovf} = parseS32(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -456,7 +456,7 @@ func toS32(str: string)->s32 fail
 // Transform a string to an 's64'
 func toS64(str: string)->s64 fail
 {
-    let (v, eat, ovf) = parseS64(str)
+    let {v, eat, ovf} = parseS64(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -467,7 +467,7 @@ func toS64(str: string)->s64 fail
 // Transform a string to an 'u8'
 func toU8(str: string)->u8 fail
 {
-    let (v, eat, ovf) = parseU8(str)
+    let {v, eat, ovf} = parseU8(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -478,7 +478,7 @@ func toU8(str: string)->u8 fail
 // Transform a string to an 'u16'
 func toU16(str: string)->u16 fail
 {
-    let (v, eat, ovf) = parseU16(str)
+    let {v, eat, ovf} = parseU16(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -489,7 +489,7 @@ func toU16(str: string)->u16 fail
 // Transform a string to an 'u32'
 func toU32(str: string)->u32 fail
 {
-    let (v, eat, ovf) = parseU32(str)
+    let {v, eat, ovf} = parseU32(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -500,7 +500,7 @@ func toU32(str: string)->u32 fail
 // Transform a string to an 'u64'
 func toU64(str: string)->u64 fail
 {
-    let (v, eat, ovf) = parseU64(str)
+    let {v, eat, ovf} = parseU64(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -511,7 +511,7 @@ func toU64(str: string)->u64 fail
 // Transform a string to an 'f32'
 func toF32(str: string)->f32 fail
 {
-    let (v, eat, ovf) = parseF32(str)
+    let {v, eat, ovf} = parseF32(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do
@@ -522,7 +522,7 @@ func toF32(str: string)->f32 fail
 // Transform a string to an 'f64'
 func toF64(str: string)->f64 fail
 {
-    let (v, eat, ovf) = parseF64(str)
+    let {v, eat, ovf} = parseF64(str)
     if ovf do
         fail OverflowError{}
     if eat != @countof(str) do

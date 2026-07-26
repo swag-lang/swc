@@ -171,7 +171,7 @@ impl FloatExt
     // but not normalized.
     mtd multiply(g: FloatExt)
     {
-        let (hi, lo) = Math.mulU64(.mant, g.mant)
+        let {hi, lo} = Math.mulU64(.mant, g.mant)
         .mant = hi + (lo >> 63)
         .exp  = .exp + g.exp + 64
     }
@@ -241,7 +241,7 @@ impl FloatExt
     // frexp10Many applies a common shift by a power of ten to a, b, c.
     func frexp10Many(a, b, c: *FloatExt)->s64
     {
-        let (exp10, i) = c.frexp10()
+        let {exp10, i} = c.frexp10()
         a.multiply(powersOfTen[i])
         b.multiply(powersOfTen[i])
         return exp10
@@ -263,7 +263,7 @@ impl FloatExt
         // Multiply by an appropriate power of ten to have a reasonable
         // number to process.
         .normalize()
-            let (exp10, ?) = .frexp10()
+        let {exp10, ?} = .frexp10()
 
         let shift    = cast(u32) -.exp
         var integer  = cast(u32) (.mant >> shift)

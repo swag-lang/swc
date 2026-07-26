@@ -263,14 +263,14 @@ impl PropWnd
                 {
                     pen.begCapStyle = cap
                     pen.endCapStyle = .None
-                        let (?, l0) = Painter.capStyleExtent(cap, CapSize, pen.capBegScaleX)
+                    let {?, l0} = Painter.capStyleExtent(cap, CapSize, pen.capBegScaleX)
                     rect.moveLeft(l0)
                 }
                 else
                 {
                     pen.begCapStyle = .None
                     pen.endCapStyle = cap
-                        let (?, l0) = Painter.capStyleExtent(cap, CapSize, pen.capEndScaleX)
+                    let {?, l0} = Painter.capStyleExtent(cap, CapSize, pen.capEndScaleX)
                     rect.moveRight(-l0)
                 }
 
@@ -506,7 +506,7 @@ impl PropWnd
             var pen = Pen.createSolid(btn.getThemeColors().btnIcon_Icon, CapSize)
             pen.begCapStyle = curSel.beginCap
             pen.endCapStyle = .None
-                let (?, l0) = Painter.capStyleExtent(curSel.beginCap, CapSize, pen.capBegScaleX)
+            let {?, l0} = Painter.capStyleExtent(curSel.beginCap, CapSize, pen.capBegScaleX)
             rect.moveLeft(l0)
 
             bc.painter.setParams(.Antialiased)
@@ -532,7 +532,7 @@ impl PropWnd
             var pen = Pen.createSolid(btn.getThemeColors().btnIcon_Icon, CapSize)
             pen.begCapStyle = .None
             pen.endCapStyle = curSel.endCap
-                let (?, l0) = Painter.capStyleExtent(curSel.endCap, CapSize, pen.capEndScaleX)
+            let {?, l0} = Painter.capStyleExtent(curSel.endCap, CapSize, pen.capEndScaleX)
             rect.moveRight(-l0)
 
             bc.painter.setParams(.Antialiased)
@@ -688,7 +688,7 @@ impl PropWnd
                 edit.edit.setInputU64(1, 10000)
             edit.edit.sigLoseFocus += func|prop, &name|(ed)
             {
-                let (v, ?, ?) = catch StrConv.parseS32(ed.text)
+                let {v, ?, ?} = catch StrConv.parseS32(ed.text)
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
         }

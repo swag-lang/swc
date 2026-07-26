@@ -788,14 +788,14 @@ func eiselLemire64(neg: bool, mantissa: u64, exp10: s64)->{ f: f64, ok: bool }
     var retExp2 = cast(u64) (((217706's64 * exp10) >> 16) + 64 + ExponentBias) - clz
 
     // Multiplication.
-    var v = PowersOfTen[exp10 - PowersOfTenMinExp10, 1]
-        var (xHi, xLo) = Math.mulU64(man, v)
+    var v          = PowersOfTen[exp10 - PowersOfTenMinExp10, 1]
+    var {xHi, xLo} = Math.mulU64(man, v)
 
     // Wider Approximation.
     if xHi & 0x1FF == 0x1FF and xLo + man < man
     {
         v = PowersOfTen[exp10 - PowersOfTenMinExp10, 0]
-            let (yHi, yLo) = Math.mulU64(man, v)
+        let {yHi, yLo} = Math.mulU64(man, v)
 
         var mergedHi = xHi
         let mergedLo = xLo + yHi
@@ -879,7 +879,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 
     // Special values, infinity, nan
     #[Swag.Safety(.NaN, false)]
-        (result.value, result.eat) = special(s)
+    {result.value, result.eat} = special(s)
     if result.eat do
         return result
 
@@ -888,7 +888,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 
     if !read.trunc
     {
-        let (f, ok) = exact(read.neg, read.mantissa, read.exp)
+        let {f, ok} = exact(read.neg, read.mantissa, read.exp)
         if ok
         {
             result.value = f
@@ -896,7 +896,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
         }
     }
 
-        let (f, ok) = eiselLemire64(read.neg, read.mantissa, read.exp)
+    let {f, ok} = eiselLemire64(read.neg, read.mantissa, read.exp)
     if ok
     {
         if !read.trunc
@@ -905,9 +905,9 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
             return result
         }
 
-            // Even if the mantissa was truncated, we may have found the correct result.
-            // Confirm by converting the upper mantissa bound.
-            let (f1, ok1) = eiselLemire64(read.neg, read.mantissa + 1, read.exp)
+        // Even if the mantissa was truncated, we may have found the correct result.
+        // Confirm by converting the upper mantissa bound.
+        let {f1, ok1} = eiselLemire64(read.neg, read.mantissa + 1, read.exp)
         if ok1 and f == f1
         {
             result.value = f
@@ -917,7 +917,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 
     // Slow fallback.
     read.trunc = read.bigtrunc
-        let (b, ovf) = read.floatBits()
+    let {b, ovf} = read.floatBits()
     result.ovf   = ovf
     result.value = cast #bit (f64) b
     return result

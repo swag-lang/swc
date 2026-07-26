@@ -204,7 +204,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
             msdfAddSeg(segs, curX, curY, x, y)
             el.segCount = cast(u32) segs.count - el.firstSeg
 
-                let (dx, dy) = msdfNormDir(x - curX, y - curY)
+            let {dx, dy} = msdfNormDir(x - curX, y - curY)
             el.sdx0, el.edx1 = dx
             el.sdy0, el.edy1 = dy
             elements.add(el)
@@ -239,8 +239,8 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
                 e1y = y - curY
             }
 
-                let (sdx, sdy) = msdfNormDir(s0x, s0y)
-                let (edx, edy) = msdfNormDir(e1x, e1y)
+            let {sdx, sdy} = msdfNormDir(s0x, s0y)
+            let {edx, edy} = msdfNormDir(e1x, e1y)
             el.sdx0 = sdx
             el.sdy0 = sdy
             el.edx1 = edx
@@ -387,7 +387,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64
 
     for &s, [i] in segs
     {
-        let (sd, dt, param) = msdfSegSignedDistance(s, px, py)
+        let {sd, dt, param} = msdfSegSignedDistance(s, px, py)
         let a = Math.abs(sd)
 
         for [ch] in 3
@@ -446,8 +446,8 @@ func msdfProcessRow(c: *MsdfRowCtx, py: u32)
     var localVote = 0's64
     for [px] in c.width
     {
-        let sampleX = cast(f64) c.left + cast(f64) px + 0.5
-            let (r, g, b) = msdfChannelDistances(segsS, sampleX, sampleY)
+        let sampleX   = cast(f64) c.left + cast(f64) px + 0.5
+        let {r, g, b} = msdfChannelDistances(segsS, sampleX, sampleY)
 
         // True signed distance to the nearest contour, stored in a 4th channel
         // (MTSDF). The RGB median keeps sharp corners for the glyph face, but its

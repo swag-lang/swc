@@ -397,8 +397,8 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
     if shortest
     {
         // Try Grisu3 algorithm.
-        var f: FloatExt
-            var (lower, upper) = f.assignComputeBounds(mant, exp, neg)
+        var f:    FloatExt
+        var {lower, upper}     = f.assignComputeBounds(mant, exp, neg)
         var tmp:  [32] u8
         var digs: DecimalSlice = undefined
         digs.d = tmp

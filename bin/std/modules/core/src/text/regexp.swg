@@ -264,7 +264,7 @@ impl RegExp
     public mtd match(str: #null string)->bool
     {
         .resetMatchContext(true)
-            let (ok, ?) = .matchInternal(str orelse "", false)
+        let {ok, ?} = .matchInternal(str orelse "", false)
         return ok
     }
 
@@ -302,7 +302,7 @@ impl RegExp
                 // Empty matches are valid, but a grep-all must still move forward.
                 if newStart == end do
                     break
-                    let (c, eat) = Utf8.decodeRune(@mkslice(newStart, end - newStart))
+                let {c, eat} = Utf8.decodeRune(@mkslice(newStart, end - newStart))
                 previousWasWord = Unicode.isWord(c)
                 newStart        += eat
             }
@@ -362,7 +362,7 @@ impl RegExp
             if beg == last do
                 break
 
-                let (c, eat) = Utf8.decodeRune(@mkslice(beg, last - beg))
+            let {c, eat} = Utf8.decodeRune(@mkslice(beg, last - beg))
             wasWord = Unicode.isWord(c)
             atStart = false
             beg     += eat
@@ -453,10 +453,10 @@ impl RegExp
                     continue
                 }
 
-                let bufStart = .bufStart
-                let ptr      = bufStart + curState.parseIdx
-                    let (cr, eat) = Utf8.decodeRune(@mkslice(ptr, .bufLength - curState.parseIdx))
-                let c = .ignoreCase ? Unicode.toUpper(cr) : cr
+                let bufStart  = .bufStart
+                let ptr       = bufStart + curState.parseIdx
+                let {cr, eat} = Utf8.decodeRune(@mkslice(ptr, .bufLength - curState.parseIdx))
+                let c         = .ignoreCase ? Unicode.toUpper(cr) : cr
 
                 .dfaMatch(pstack2, c, eat, &curState)
             }

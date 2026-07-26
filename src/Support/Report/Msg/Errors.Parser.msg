@@ -51,3 +51,4 @@ SWC_DIAG_DEF(parser_err_too_few_arguments, Error, "construct needs {what} argume
 SWC_DIAG_DEF(parser_err_empty_case, Error, "empty switch section; [help] add a statement after ':', use 'fallthrough', or remove the section")
 SWC_DIAG_DEF(parser_err_switch_expected_case, Error, "statement in switch body has no 'case' or 'default' section; [help] add a section label before the statement")
 SWC_DIAG_DEF(parser_err_switch_missing_case, Error, "switch body has no 'case' or 'default' section; [help] add at least one 'case' or 'default' section")
+SWC_DIAG_DEF(parser_err_mixed_destructuring, Error, "destructuring pattern mixes positional and named bindings; [help] use 'field: binding' for every entry, or remove every field name")

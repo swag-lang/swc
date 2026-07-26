@@ -125,8 +125,8 @@ public func show(owner: *Wnd, surfacePos: Math.Point, str: #null string, delay: 
     edit.margin    = metrics.toolTip_Padding
     edit.dockStyle = .Center
 
-        // Auto size
-        var (w, h) = edit.evaluateSize()
+    // Auto size
+    var {w, h} = edit.evaluateSize()
     w += 2 * metrics.toolTip_Padding
     h += 2 * metrics.toolTip_Padding
     cur.setPosition(Math.Rectangle{pos.x, pos.y, w, h})

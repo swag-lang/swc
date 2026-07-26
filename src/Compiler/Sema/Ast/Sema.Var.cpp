@@ -1387,51 +1387,67 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
     SmallVector<TokenRef> tokNames;
     sema.ast().appendTokens(tokNames, spanNamesRef);
 
-    if (tokNames.size() > fieldCount)
+    SmallVector<size_t> patternFieldIndices;
+    if (hasFlag(AstVarDeclFlagsE::NamedDestructuring))
     {
-        const SourceCodeRef extraNameRef{srcViewRef(), tokNames[fieldCount]};
-        Diagnostic          diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, extraNameRef);
-        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
-        diag.report(sema.ctx());
-        return Result::Error;
+        SmallVector<TokenRef> fieldNames;
+        sema.ast().appendTokens(fieldNames, spanFieldNamesRef);
+        SWC_ASSERT(fieldNames.size() == tokNames.size());
+        SWC_RESULT(SemaHelpers::resolveDestructuringFieldIndices(sema, patternFieldIndices, nodeInitView.typeRef(), srcViewRef(), fieldNames.span()));
     }
-
-    if (tokNames.size() < fieldCount)
+    else
     {
-        Diagnostic diag = tokNames.empty()
-                              ? SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()))
-                              : SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, SourceCodeRef{srcViewRef(), tokNames.back()});
-        diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
-        diag.report(sema.ctx());
-        return Result::Error;
+        if (tokNames.size() > fieldCount)
+        {
+            const SourceCodeRef extraNameRef{srcViewRef(), tokNames[fieldCount]};
+            Diagnostic          diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, extraNameRef);
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (tokNames.size() < fieldCount)
+        {
+            Diagnostic diag = tokNames.empty()
+                                  ? SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, nodeRef(sema.ast()))
+                                  : SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, SourceCodeRef{srcViewRef(), tokNames.back()});
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        patternFieldIndices.reserve(tokNames.size());
+        for (size_t i = 0; i < tokNames.size(); i++)
+            patternFieldIndices.push_back(i);
     }
 
     SmallVector<Symbol*>               symbols;
     SmallVector<const SymbolVariable*> fieldsForSymbols;
-    SmallVector<size_t>                fieldIndices;
+    SmallVector<size_t>                boundFieldIndices;
     for (size_t i = 0; i < tokNames.size(); i++)
     {
         const auto& tokNameRef = tokNames[i];
         if (tokNameRef.isInvalid())
             continue;
 
-        auto& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
+        const size_t fieldIndex = patternFieldIndices[i];
+        auto&        sym        = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
         if (hasFlag(AstVarDeclFlagsE::Let))
             sym.addExtraFlag(SymbolVariableFlagsE::Let);
         sym.setDeclared(sema.ctx());
 
         symbols.push_back(&sym);
-        fieldIndices.push_back(i);
+        boundFieldIndices.push_back(fieldIndex);
 
         if (isStruct)
         {
-            const SymbolVariable* field = (*structFields)[i];
+            const SymbolVariable* field = (*structFields)[fieldIndex];
             sym.setTypeRef(field->typeRef());
             fieldsForSymbols.push_back(field);
         }
         else
         {
-            TypeRef elemTypeRef = (*aggregateTypes)[i];
+            TypeRef elemTypeRef = (*aggregateTypes)[fieldIndex];
 
             // Concretize unresolved literal types using the init constant.
             if (sema.typeMgr().get(elemTypeRef).sizeOf(sema.ctx()) == 0)
@@ -1440,9 +1456,9 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
                 if (initCstView.cstRef().isValid())
                 {
                     const ConstantValue& aggCst = sema.cstMgr().get(initCstView.cstRef());
-                    if (aggCst.isAggregateStruct() && i < aggCst.getAggregateStruct().size())
+                    if (aggCst.isAggregateStruct() && fieldIndex < aggCst.getAggregateStruct().size())
                     {
-                        const ConstantRef    elemCstRef = aggCst.getAggregateStruct()[i];
+                        const ConstantRef    elemCstRef = aggCst.getAggregateStruct()[fieldIndex];
                         const ConstantValue& elemCst    = sema.cstMgr().get(elemCstRef);
                         if (elemCst.isInt())
                             elemTypeRef = sema.typeMgr().typeS32();
@@ -1470,7 +1486,7 @@ Result AstVarDeclDestructuring::semaPostNode(Sema& sema) const
 
     const SemaNodeView refreshedInitView = sema.viewNodeTypeConstant(nodeInitRef);
     SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, refreshedInitView.typeRef(), "__decomp_runtime_storage"));
-    storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), std::span<const size_t>{fieldIndices.data(), fieldIndices.size()}, refreshedInitView.cstRef());
+    storeDestructuringLetConstants(sema, symbols.span(), fieldsForSymbols.span(), std::span<const size_t>{boundFieldIndices.data(), boundFieldIndices.size()}, refreshedInitView.cstRef());
 
     return Result::Continue;
 }

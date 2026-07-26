@@ -188,6 +188,7 @@ private:
     AstNodeRef parseConstraint();
     AstNodeRef parseContinue();
     AstNodeRef parseVarDeclDecomposition();
+    bool       isDestructuringAssignmentAhead() const;
     AstNodeRef parseDefer();
     AstNodeRef parseDiscard();
     AstNodeRef parseDoCurlyBlock();

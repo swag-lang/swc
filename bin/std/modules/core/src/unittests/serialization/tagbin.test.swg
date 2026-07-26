@@ -378,7 +378,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
 {
     var writer: Serialization.Write.TagBin
     var reader: Serialization.Read.TagBin
-        let (raw, sizeof) = Serialization.isPodFinal(#typeof(TagBinFinalPoint))
+    let {raw, sizeof} = Serialization.isPodFinal(#typeof(TagBinFinalPoint))
 
     @assert(!writer.isTextual())
     @assert(!reader.isTextual())

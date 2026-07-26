@@ -4,6 +4,30 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool Parser::isDestructuringAssignmentAhead() const
+{
+    SWC_ASSERT(is(TokenId::SymLeftCurly));
+
+    const Token* cursor = tokPtr();
+    uint32_t     depth  = 0;
+    while (cursor <= lastToken_)
+    {
+        if (cursor->id == TokenId::SymLeftCurly)
+            depth++;
+        else if (cursor->id == TokenId::SymRightCurly)
+        {
+            SWC_ASSERT(depth);
+            depth--;
+            if (depth == 0)
+                return cursor < lastToken_ && (cursor + 1)->id == TokenId::SymEqual;
+        }
+
+        cursor++;
+    }
+
+    return false;
+}
+
 AstNodeRef Parser::parseTopLevelCall()
 {
     auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::CallExpr>(ref());
@@ -649,7 +673,7 @@ AstNodeRef Parser::parseDoCurlyBlock()
 {
     if (consumeIf(TokenId::KwdDo).isValid())
     {
-        if (is(TokenId::SymLeftCurly))
+        if (is(TokenId::SymLeftCurly) && !isDestructuringAssignmentAhead())
         {
             const Diagnostic diag = reportUnexpectedDoBlock(ref().offset(-1));
             diag.report(*ctx_);
@@ -671,8 +695,8 @@ AstNodeRef Parser::parseAssignStmt()
 {
     AstNodeRef nodeLeft;
 
-    // Decomposition
-    if (is(TokenId::SymLeftParen))
+    // Destructuring assignment
+    if (is(TokenId::SymLeftCurly))
     {
         const TokenRef openRef = consume();
 
@@ -680,22 +704,48 @@ AstNodeRef Parser::parseAssignStmt()
         listPtr->addFlag(AstAssignListFlagsE::Destructuring);
 
         SmallVector<AstNodeRef> affects;
+        SmallVector<TokenRef>   fieldNames;
+        bool                    hasNamed      = false;
+        bool                    hasPositional = false;
+        bool                    reportedMixed = false;
         do
         {
-            if (consumeIf(TokenId::SymQuestion).isValid())
+            const TokenRef itemRef      = ref();
+            TokenRef       fieldNameRef = TokenRef::invalid();
+            const bool     isNamed      = is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter);
+            if (isNamed)
             {
-                const auto [ignoreRef, _] = ast_->makeNode<AstNodeId::AssignIgnore>(ref());
-                affects.push_back(ignoreRef);
+                hasNamed     = true;
+                fieldNameRef = consume();
+                consumeAssert(TokenId::SymColon);
             }
             else
+                hasPositional = true;
+
+            fieldNames.push_back(fieldNameRef);
+            const TokenRef ignoreRef = consumeIf(TokenId::SymQuestion);
+            if (ignoreRef.isValid())
             {
+                const auto [ignoreNodeRef, _] = ast_->makeNode<AstNodeId::AssignIgnore>(ignoreRef);
+                affects.push_back(ignoreNodeRef);
+            }
+            else
                 affects.push_back(parseExpression());
+
+            if (hasNamed && hasPositional && !reportedMixed)
+            {
+                const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, itemRef);
+                diag.report(*ctx_);
+                reportedMixed = true;
             }
         } while (consumeIf(TokenId::SymComma).isValid());
 
-        expectAndConsumeClosing(TokenId::SymRightParen, openRef);
-        listPtr->spanChildrenRef = ast_->pushSpan(affects.span());
-        nodeLeft                 = listRef;
+        expectAndConsumeClosing(TokenId::SymRightCurly, openRef);
+        listPtr->spanChildrenRef   = ast_->pushSpan(affects.span());
+        listPtr->spanFieldNamesRef = ast_->pushSpan(fieldNames.span());
+        if (hasNamed && !hasPositional)
+            listPtr->addFlag(AstAssignListFlagsE::NamedDestructuring);
+        nodeLeft = listRef;
     }
     else
     {
@@ -860,6 +910,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseCompilerStatic<AstNodeId::EmbeddedBlock>();
 
         case TokenId::SymLeftCurly:
+            if (isDestructuringAssignmentAhead())
+                return parseAssignStmt();
             return parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
         case TokenId::SymRightCurly:
             raiseError(DiagnosticId::parser_err_unexpected_token, ref());
@@ -911,7 +963,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdLet:
         {
             AstNodeRef nodeRef;
-            if (nextIs(TokenId::SymLeftParen))
+            if (nextIs(TokenId::SymLeftCurly))
                 nodeRef = parseVarDeclDecomposition();
             else
                 nodeRef = parseVarDecl();

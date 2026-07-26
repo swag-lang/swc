@@ -21,9 +21,13 @@ especially when working with complex or generic return types.
 
 /**
 # Optimizing Return Values
-`retval` provides an optimization hint that allows the compiler to use the caller’s memory
-for the return value, reducing unnecessary copies.
+A `retval` local *is* the return value: the compiler gives it the caller’s memory, so filling
+it in costs no copy at the end of the function.
 This is especially beneficial when returning large structs, arrays, or tuples.
+
+Returning an aggregate literal needs no annotation for this — `return RGB{0.5, 0.1, 1.0}` is
+already built in the caller’s memory. Reach for `retval` when the value is filled in step by
+step, or when the return type has no name you could write.
 */
 #test
 {

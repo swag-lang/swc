@@ -1,4 +1,4 @@
-#global #static if WINDOWS
+#global if WINDOWS
 #global namespace Console
 
 using Win32

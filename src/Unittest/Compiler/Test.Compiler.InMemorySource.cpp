@@ -142,7 +142,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_InMemorySourceKeepsFormatCommandGlobalIfDuringFormat)
 {
-    static constexpr std::string_view SOURCE     = R"(#global #static if #command == Swag.CompilerCommand.Format
+    static constexpr std::string_view SOURCE     = R"(#global if #command == Swag.CompilerCommand.Format
 func A() {}
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceKeepsFormatCommandGlobalIfDuringFormat");
@@ -174,7 +174,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsFalseGlobalIf)
 {
-    static constexpr std::string_view SOURCE     = R"(#global #static if false
+    static constexpr std::string_view SOURCE     = R"(#global if false
 #invalid_after_skip
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsFalseGlobalIf");
@@ -199,7 +199,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_InMemorySourceSkipsTestCommandGlobalIfOutsideTests)
 {
-    static constexpr std::string_view SOURCE     = R"(#global #static if #command == Swag.CompilerCommand.Test
+    static constexpr std::string_view SOURCE     = R"(#global if #command == Swag.CompilerCommand.Test
 #invalid_after_skip
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceSkipsTestCommandGlobalIfOutsideTests");
@@ -224,7 +224,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(Compiler_InMemorySourceKeepsTestCommandGlobalIfDuringTests)
 {
-    static constexpr std::string_view SOURCE     = R"(#global #static if #command == Swag.CompilerCommand.Test
+    static constexpr std::string_view SOURCE     = R"(#global if #command == Swag.CompilerCommand.Test
 func A() {}
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InMemorySourceKeepsTestCommandGlobalIfDuringTests");

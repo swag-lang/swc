@@ -1,4 +1,4 @@
-#global #static if WINDOWS
+#global if WINDOWS
 #global public
 #global namespace Sync
 

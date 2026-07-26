@@ -1,5 +1,5 @@
 #global public
-#global #static if #os == Swag.TargetOs.Windows
+#global if #os == Swag.TargetOs.Windows
 
 #foreignlib("dwmapi")
 using Core, Win32

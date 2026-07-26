@@ -1,4 +1,4 @@
-#global #static if 1
+#global if 1
 #global private
 #global namespace GIf
 

@@ -1,4 +1,4 @@
-#global #static if WINDOWS
+#global if WINDOWS
 #global namespace Time
 
 using Win32

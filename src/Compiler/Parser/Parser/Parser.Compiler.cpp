@@ -527,10 +527,9 @@ AstNodeRef Parser::parseCompilerGlobal()
         consume();
         nodePtr->spanNameRef = parseQualifiedName();
     }
-    else if (is(TokenId::CompilerStatic) && nextIs(TokenId::KwdIf))
+    else if (is(TokenId::KwdIf))
     {
         nodePtr->mode = AstCompilerGlobal::Mode::CompilerIf;
-        consume();
         consume();
         nodePtr->nodeModeRef = parseExpression();
     }

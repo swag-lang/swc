@@ -1,4 +1,4 @@
-#global #static if true
+#global if true
 #global private
 
 const UsePrimary = false

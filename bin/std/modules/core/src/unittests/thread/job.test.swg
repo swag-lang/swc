@@ -1,5 +1,5 @@
-#global #static if #command == Swag.CompilerCommand.Test
-#global #static if WINDOWS
+#global if #command == Swag.CompilerCommand.Test
+#global if WINDOWS
 #global private
 
 using Jobs, Win32

@@ -1,4 +1,4 @@
-#global #static if #os == Swag.TargetOs.Windows
+#global if #os == Swag.TargetOs.Windows
 
 using Swag, Core, Core.Errors, Win32, XAudio2
 

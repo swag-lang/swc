@@ -1,3 +1,4 @@
+#global if true
 #global private
 
 /**
@@ -116,13 +117,13 @@ Place '#global' at the top of a source file to apply global settings or
 attributes across the entire file. Controls compilation and symbol visibility.
 
 Examples (write these as top-level directives):
-  #global #static if false            // Skip file content.
-  #global #static if #command == Swag.CompilerCommand.Format // Include this file only when formatting.
-  #global #static if #command == Swag.CompilerCommand.Test   // Include this file only when running tests.
+  #global if false            // Skip file content.
+  #global if #command == Swag.CompilerCommand.Format // Include this file only when formatting.
+  #global if #command == Swag.CompilerCommand.Test   // Include this file only when running tests.
   #global public                      // All symbols become public.
   #global private                    // All symbols are private to the module.
   #global namespace Toto              // Place all symbols in namespace 'Toto'.
-  #global #static if DEBUG == true     // Conditional compilation for the file.
+  #global if DEBUG == true     // Conditional compilation for the file.
   #global #[Swag.Safety(.All, true)]  // Apply an attribute to all declarations.
   #global export                      // Export the full file as-is into the module API output.
 */

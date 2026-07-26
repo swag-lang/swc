@@ -1,5 +1,5 @@
 #global private
-#global #static if #command == Swag.CompilerCommand.Test
+#global if #command == Swag.CompilerCommand.Test
 
 #assert(#typeof(#command) == Swag.CompilerCommand)
 #assert(#command == Swag.CompilerCommand.Test)

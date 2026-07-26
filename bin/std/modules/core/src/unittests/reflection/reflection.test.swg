@@ -1,4 +1,4 @@
-#global #static if #command == Swag.CompilerCommand.Test
+#global if #command == Swag.CompilerCommand.Test
 #global private
 
 attr TypeMeta(label: string, priority: s32 = 0)

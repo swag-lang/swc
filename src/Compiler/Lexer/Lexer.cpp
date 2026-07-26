@@ -156,10 +156,6 @@ namespace
 
     GlobalIfValue evaluateRawGlobalIf(const LangSpec& langSpec, const CommandLine& cmdLine, const char8_t*& cursor)
     {
-        if (readCompilerWordRaw(langSpec, cursor) != "#static")
-            return GlobalIfValue::Unknown;
-
-        skipBlanksRaw(langSpec, cursor);
         if (readIdentifierRaw(langSpec, cursor) != "if")
             return GlobalIfValue::Unknown;
 

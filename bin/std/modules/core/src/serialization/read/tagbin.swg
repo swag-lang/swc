@@ -721,7 +721,7 @@ impl TagBin
     // Handles string types specially and performs type conversions when 'convertNextNative' is set.
     mtd(NT) readNative()->NT fail
     {
-        #if NT == Core.String
+        #static if NT == Core.String
         {
             var result: retval
             let count = cast(u64) .stream.readNative'u32()
@@ -730,7 +730,7 @@ impl TagBin
             result.length = count
             return result
         }
-        #else
+        else
         {
             if .convertNextNative
             {

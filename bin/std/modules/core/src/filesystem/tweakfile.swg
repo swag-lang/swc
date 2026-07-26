@@ -21,7 +21,7 @@ impl TweakFile
     // Registers a new structure to be parsed as a folder
     mtd(T) registerFolder(folder: *T)
     {
-        #if !Reflection.isStruct(T) do
+        #static if !Reflection.isStruct(T) do
             #error("type should be a struct")
         .folders.add({#typeof(T), folder})
     }

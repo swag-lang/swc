@@ -15,9 +15,9 @@ impl Rng
     mtd seedU32(seed: u32)
     {
         .seedDone = true
-        #if #defined(T.seedU32) do
+        #static if #defined(T.seedU32) do
             return .rng.seedU32(seed)
-        #else do
+        else do
             return .rng.seedU64(cast(u64) seed)
     }
 
@@ -26,9 +26,9 @@ impl Rng
     mtd seedU64(seed: u64)
     {
         .seedDone = true
-        #if #defined(T.seedU64) do
+        #static if #defined(T.seedU64) do
             return .rng.seedU64(seed)
-        #else do
+        else do
             return .rng.seedU32(cast #wrap (u32) seed)
     }
 
@@ -39,9 +39,9 @@ impl Rng
         if !.seedDone do
             .seedU32(Time.nowMilliseconds())
 
-        #if #defined(T.nextU32) do
+        #static if #defined(T.nextU32) do
             return .rng.nextU32()
-        #else do
+        else do
             return cast #wrap (u32) .rng.nextU64()
     }
 
@@ -52,9 +52,9 @@ impl Rng
         if !.seedDone do
             .seedU32(Time.nowMilliseconds())
 
-        #if #defined(T.nextU64) do
+        #static if #defined(T.nextU64) do
             return .rng.nextU64()
-        #else do
+        else do
             return (cast(u64) .rng.nextU32() << 32) | .rng.nextU32()
     }
 

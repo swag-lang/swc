@@ -1136,12 +1136,6 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
 };
 
 // -----------------------------------------------------------------------------
-struct AstCompilerElse : AstCompoundT<AstNodeId::CompilerElse>
-{
-    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
 struct AstCompilerSwitch : AstNodeT<AstNodeId::CompilerSwitch>
 {
     AstNodeRef nodeExprRef;

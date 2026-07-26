@@ -2,9 +2,9 @@
 
 enum A
 {
-    #if A do
+    #static if A do
         A = 0
-    #else {
+    else {
         A = 1
     }
 }
@@ -18,9 +18,9 @@ enum A
 
 enum A
 {
-    #if A == 0 do
+    #static if A == 0 do
         A = 0
-    #else {
+    else {
         A = 1
     }
 }

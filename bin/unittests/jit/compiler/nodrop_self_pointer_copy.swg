@@ -249,7 +249,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     @drop(&table.entries[0].value)
 }
 
-#if true
+#static if true
 {
     // Still broken: this warmup on `HashLikeTable'(string, InlineBufferText)` can corrupt the
     // later `HashLikeTable'(s32, InlineBufferText).free()` specialization in the same module.
@@ -301,7 +301,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     @assert(LastInlineBufferTextDropBuffer == expectedDropBuffer)
 }
 
-#if false
+#static if false
 {
     #test
     {
@@ -348,7 +348,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     }
 }
 
-#if true
+#static if true
 {
     // Still order-dependent in the full JIT suite: passes when isolated, but a larger compiler module
     // can make this `string` specialization compare against the wrong drop slot.
@@ -374,7 +374,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
     }
 }
 
-#if false
+#static if false
 {
     #test
     {

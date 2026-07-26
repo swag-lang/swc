@@ -51,9 +51,9 @@ So in our case, we need to import the module 'gui'. This module is used to creat
         // Change something...
         // Here, for example, we force all safety guards to be present in 'debug', and we remove all
         // of them in 'release'.
-        #if #cfg == "debug" do
+        #static if #cfg == "debug" do
             cfg.safetyGuards = Swag.SafetyWhat.All
-        #else do
+        else do
             cfg.safetyGuards = Swag.SafetyWhat.None
     }
 }

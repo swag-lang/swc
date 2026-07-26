@@ -12,7 +12,7 @@ execution of regular, external, or system functions as part of your program.
 func isThisRelease() => true
 
 // Forcing compile-time evaluation with '#run'
-#if #run isThisRelease() == false
+#static if #run isThisRelease() == false
 {
     #error("this should not be called!")
 }

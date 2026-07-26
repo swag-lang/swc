@@ -67,9 +67,9 @@ impl CommutativeBox
     #[Swag.Commutative(.Add, .Muul)]     // swc-expected-error {{sema_err_auto_scope_missing_enum_value}}
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->CommutativeBox
     {
-        #if op == .Add do
+        #static if op == .Add do
             return CommutativeBox{.value + scalar}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }

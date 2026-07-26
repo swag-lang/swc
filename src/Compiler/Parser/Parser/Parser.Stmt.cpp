@@ -791,8 +791,6 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::CompilerWarning:
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
-        case TokenId::CompilerIf:
-            return parseCompilerIf<AstNodeId::TopLevelBlock>();
         case TokenId::CompilerStatic:
             return parseCompilerStatic<AstNodeId::TopLevelBlock>();
 
@@ -858,8 +856,6 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::CompilerWarning:
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
-        case TokenId::CompilerIf:
-            return parseCompilerIf<AstNodeId::EmbeddedBlock>();
         case TokenId::CompilerStatic:
             return parseCompilerStatic<AstNodeId::EmbeddedBlock>();
 

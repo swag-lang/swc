@@ -189,16 +189,16 @@ impl Image
     #[Swag.Inline]
     func(BPP: u8) copyPixelDirect(pixDst, pixSrc: [*] u8)
     {
-        #if BPP == 24
+        #static if BPP == 24
         {
             dref cast(*u16) pixDst = dref cast(*u16) pixSrc
             pixDst[2]              = pixSrc[2]
         }
-        #elif BPP == 32
+        elif BPP == 32
         {
             dref cast(*u32) pixDst = dref cast(*u32) pixSrc
         }
-        #else
+        else
         {
             #assert("invalid pixelCopy BPP")
         }
@@ -208,14 +208,14 @@ impl Image
     // Destination is supped to be in RGBA8 format
     func(PF: PixelFormat) convertToRGBA8(pixDst: [*] u8, r, g, b, a: u8)
     {
-        #if PF == .BGR8
+        #static if PF == .BGR8
         {
             pixDst[0] = b
             pixDst[1] = g
             pixDst[2] = r
         }
 
-        #if PF == .BGRA8
+        #static if PF == .BGRA8
         {
             pixDst[0] = b
             pixDst[1] = g
@@ -223,14 +223,14 @@ impl Image
             pixDst[3] = a
         }
 
-        #if PF == .RGB8
+        #static if PF == .RGB8
         {
             pixDst[0] = r
             pixDst[1] = g
             pixDst[2] = b
         }
 
-        #if PF == .RGBA8
+        #static if PF == .RGBA8
         {
             pixDst[0] = r
             pixDst[1] = g
@@ -248,7 +248,7 @@ impl Image
         var y = Math.clamp(pixY, 0, .height - 1)
         y = .height - y - 1
 
-        #if PF == .RGBA8
+        #static if PF == .RGBA8
         {
             let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
             result.r = pix[0]
@@ -256,7 +256,7 @@ impl Image
             result.b = pix[2]
             result.a = pix[3]
         }
-        #elif PF == .RGB8
+        elif PF == .RGB8
         {
             let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
             result.r = pix[0]
@@ -264,7 +264,7 @@ impl Image
             result.b = pix[2]
             result.a = 255
         }
-        #elif PF == .BGRA8
+        elif PF == .BGRA8
         {
             let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
             result.b = pix[0]
@@ -272,7 +272,7 @@ impl Image
             result.r = pix[2]
             result.a = pix[3]
         }
-        #elif PF == .BGR8
+        elif PF == .BGR8
         {
             let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
             result.b = pix[0]

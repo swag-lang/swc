@@ -45,14 +45,14 @@ impl Array
         .buffer = null
         .realloc(.count)
 
-        #if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T)
         {
             .initNewSlots(0, .count)
             let buffer = notnull .buffer
             for .count do
                 buffer[@index] = #nodrop oldBuffer[@index]
         }
-        #else
+        else
         {
             Memory.copy(.buffer, oldBuffer, #sizeof(T) * .count)
         }
@@ -143,7 +143,7 @@ impl Array
         var dataof = @dataof(arr)
 
         .grow(countof)
-        #if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T)
         {
             .initNewSlots(0, countof)
             let buffer = notnull .buffer
@@ -151,7 +151,7 @@ impl Array
             for [i] in countof do
                 buffer[i] = #nodrop srcPtr[i]
         }
-        #else
+        else
         {
             Memory.copy(.buffer, dataof, #sizeof(T) * countof)
         }
@@ -171,28 +171,28 @@ impl Array
         let buffer = notnull .buffer
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
-        #if back do
+        #static if back do
             var scan = buffer + .count
-        #else do
+        else do
             var scan = buffer - 1
 
         for .count
         {
-            #if back do
+            #static if back do
                 scan -= 1
-            #else do
+            else do
                 scan += 1
 
-            #if back do
+            #static if back do
                 let visitIdx = me.count - @index - 1
-            #else do
+            else do
                 let visitIdx = @index
 
-            #if ptr do
+            #static if ptr do
                 #inject(stmt, item = cast(&T) scan, index = visitIdx)
-            #elif Reflection.isStruct(T) do
+            elif Reflection.isStruct(T) do
                 #inject(stmt, item = cast(const &T) scan, index = visitIdx)
-            #else do
+            else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
     }
@@ -236,7 +236,7 @@ impl Array
 
         // Need to call opPostMove on every existing element if the me.buffer has not been reallocated
         // in place
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             if .buffer and newBuffer != .buffer
             {
@@ -256,7 +256,7 @@ impl Array
             return
 
         // Need to drop every structs
-        #if Reflection.hasDrop(T)
+        #static if Reflection.hasDrop(T)
         {
             @drop(.buffer, .count)
         }
@@ -291,7 +291,7 @@ impl Array
         if !num do
             return
 
-        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
             @init(.buffer + index, num)
         }
@@ -360,7 +360,7 @@ impl Array
     // This calls the destructor for each element if one exists, but does not deallocate memory.
     mtd clear()
     {
-        #if Reflection.hasDrop(T)
+        #static if Reflection.hasDrop(T)
         {
             for .count do
                 @drop(.buffer + @index)
@@ -439,12 +439,12 @@ impl Array
         .initNewSlots(.count - 1, 1)
         let buffer = notnull .buffer
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx > index; idx -= 1 do
                 buffer[idx] = #relocate buffer[idx - 1]
         }
-        #else
+        else
         {
             Memory.copyOver(buffer + index + 1, buffer + index, #sizeof(T) * (.count - 1 - index))
         }
@@ -479,22 +479,22 @@ impl Array
         .initNewSlots(.count - sliceCount, sliceCount)
         let buffer = notnull .buffer
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 buffer[idx] = #relocate buffer[idx - sliceCount]
         }
-        #else
+        else
         {
             Memory.copyOver(buffer + index + sliceCount, buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
                 buffer[index + idx] = #nodrop values[idx]
         }
-        #else
+        else
         {
             Memory.copy(buffer + index, @dataof(values), #sizeof(T) * sliceCount)
         }
@@ -527,22 +527,22 @@ impl Array
         .initNewSlots(.count - sliceCount, sliceCount)
         let buffer = notnull .buffer
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 buffer[idx] = #relocate buffer[idx - sliceCount]
         }
-        #else
+        else
         {
             Memory.copyOver(buffer + index + @countof(values), buffer + index, #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
                 buffer[index + idx] = #nodrop #move values[idx]
         }
-        #else
+        else
         {
             Memory.copy(buffer + index, @dataof(values), #sizeof(T) * sliceCount)
         }
@@ -572,7 +572,7 @@ impl Array
         .initNewSlots(oldCount, sliceCount)
         let buffer = notnull .buffer
 
-        #if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T)
         {
             let vals    = notnull values
             var destPtr = buffer + oldCount
@@ -582,7 +582,7 @@ impl Array
                 destPtr      += 1
             }
         }
-        #else
+        else
         {
             Memory.copy(buffer + oldCount, @dataof(values), sliceCount * #sizeof(T))
         }
@@ -607,14 +607,14 @@ impl Array
         Debug.safetyBoundCheck(index + num <= .count, "index out of range")
         let shiftCount = .count - (index + num)
 
-        #if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
+        #static if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
             Memory.copyOver(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
-        #else
+        else
         {
             // Drop the removed elements, then relocate the survivors into the freed slots.
-            #if Reflection.hasDrop(T)
+            #static if Reflection.hasDrop(T)
             {
                 @drop(.buffer + index, num)
             }
@@ -666,7 +666,7 @@ impl Array
         Debug.safetyBoundCheck(index + numValues <= .count, "index out of range")
         .count -= numValues
 
-        #if Reflection.hasDrop(T)
+        #static if Reflection.hasDrop(T)
         {
             for [idx] in numValues do
                 @drop(.buffer + index + idx)
@@ -675,7 +675,7 @@ impl Array
         if index >= .count do
             return
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             let buffer = notnull .buffer
             var idx    = index
@@ -685,7 +685,7 @@ impl Array
                 idx         += 1
             }
         }
-        #else
+        else
         {
             Memory.copyOver(.buffer + index, .buffer + index + numValues, #sizeof(T) * (.count - index))
         }

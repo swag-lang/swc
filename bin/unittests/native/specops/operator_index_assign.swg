@@ -21,11 +21,11 @@ impl RuntimeIndexAssignBox
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .values[index] += value
-        #elif op == .MulAssign do
+        elif op == .MulAssign do
             .values[index] *= value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 
@@ -33,9 +33,9 @@ impl RuntimeIndexAssignBox
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: u32)
     {
         .shifts += 1
-        #if op == .ShlAssign do
+        #static if op == .ShlAssign do
             .values[index] <<= #wrap value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
@@ -53,12 +53,12 @@ impl RuntimeWriteOnlyIndexAssignBox
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             if index == 0 do
                 .first += value
         else do
             .second += value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
@@ -83,9 +83,9 @@ impl RuntimeRefIndexAssignBox
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .values[index] += value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
@@ -110,9 +110,9 @@ impl RuntimeMultiIndexAssignBox
     mtd(op: Swag.Operator) opIndexAssign(row: s32, col: s32, value: s32)
     {
         .writes += 1
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .values[row * 2 + col] += value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }

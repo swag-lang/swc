@@ -513,31 +513,31 @@ func convertRune(buf: *ConcatBuffer, value: rune)
 #[Swag.Warning("Wrn0006", .Disable)]
 func(T) convert(buf: *ConcatBuffer, value: T, convFmt: ConvertFormat, strFormat: #null string)
 {
-    #if Reflection.isInteger(T)
+    #static if Reflection.isInteger(T)
     {
         var fmt: ConvertFormatInt
         fmt.setFormat(strFormat)
         convertInt(buf, value, fmt)
     }
-    #elif Reflection.isFloat(T)
+    elif Reflection.isFloat(T)
     {
         var fmt: ConvertFormatFloat
         fmt.setFormat(strFormat)
         convertFloat(buf, value, fmt)
     }
-    #elif Reflection.isBool(T)
+    elif Reflection.isBool(T)
     {
         convertBool(buf, value)
     }
-    #elif Reflection.isRune(T)
+    elif Reflection.isRune(T)
     {
         convertRune(buf, value)
     }
-    #elif Reflection.isString(T)
+    elif Reflection.isString(T)
     {
         buf.addBytes(value)
     }
-    #else
+    else
     {
         convertAny(buf, value, convFmt, strFormat)
     }

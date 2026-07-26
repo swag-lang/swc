@@ -59,7 +59,7 @@ impl ConcatBuffer
         let firstBucket = notnull .firstBucket
         let lastBucket  = notnull .lastBucket
 
-        #if back
+        #static if back
         {
             var tail = lastBucket.next
             while tail != firstBucket

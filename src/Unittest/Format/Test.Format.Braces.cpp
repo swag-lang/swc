@@ -415,31 +415,31 @@ SWC_TEST_BEGIN(FormatBraces_CaseUniformExpandsMixedSwitch)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBraces_CompilerIfChainAlignsAndBreaks)
+SWC_TEST_BEGIN(FormatBraces_StaticIfChainAlignsAndBreaks)
 {
     static constexpr std::string_view SOURCE =
-        "#if X\n"
+        "#static if X\n"
         "{\n"
         "    const A = 1\n"
-        "} #elif Y\n"
+        "} elif Y\n"
         "{\n"
         "    const A = 2\n"
         "}\n"
-        "    #else\n"
+        "    else\n"
         "{\n"
         "    const A = 3\n"
         "}\n";
 
     static constexpr std::string_view EXPECTED =
-        "#if X\n"
+        "#static if X\n"
         "{\n"
         "    const A = 1\n"
         "}\n"
-        "#elif Y\n"
+        "elif Y\n"
         "{\n"
         "    const A = 2\n"
         "}\n"
-        "#else\n"
+        "else\n"
         "{\n"
         "    const A = 3\n"
         "}\n";
@@ -506,10 +506,10 @@ SWC_TEST_BEGIN(FormatBraces_StaticControl)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBraces_CompilerIfSingleLineChainStaysInline)
+SWC_TEST_BEGIN(FormatBraces_StaticIfSingleLineChainStaysInline)
 {
     static constexpr std::string_view SOURCE =
-        "#if X { const A = 1 } #elif Y { const A = 2 } #else { const A = 3 }\n";
+        "#static if X { const A = 1 } elif Y { const A = 2 } else { const A = 3 }\n";
 
     FormatOptions options;
     options.braceStyle      = FormatBraceStyle::Allman;
@@ -523,7 +523,7 @@ SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
     static constexpr std::string_view SOURCE =
         "func foo(x: bool)\n"
         "{\n"
-        "    #if SOME { if x do\n"
+        "    #static if SOME { if x do\n"
         "        return\n"
         "    }\n"
         "    if x { a()\n"
@@ -535,7 +535,7 @@ SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
     static constexpr std::string_view EXPECTED =
         "func foo(x: bool)\n"
         "{\n"
-        "    #if SOME\n"
+        "    #static if SOME\n"
         "    {\n"
         "        if x do\n"
         "        return\n"
@@ -555,12 +555,12 @@ SWC_TEST_BEGIN(FormatBraces_MultiLineBlockContentLeavesBraceLines)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(FormatBraces_AllmanOnCompilerIfBlocks)
+SWC_TEST_BEGIN(FormatBraces_AllmanOnStaticIfBlocks)
 {
     static constexpr std::string_view SOURCE =
         "func foo(x: bool)\n"
         "{\n"
-        "    #if SOME {\n"
+        "    #static if SOME {\n"
         "        return\n"
         "    }\n"
         "}\n";
@@ -568,7 +568,7 @@ SWC_TEST_BEGIN(FormatBraces_AllmanOnCompilerIfBlocks)
     static constexpr std::string_view EXPECTED =
         "func foo(x: bool)\n"
         "{\n"
-        "    #if SOME\n"
+        "    #static if SOME\n"
         "    {\n"
         "        return\n"
         "    }\n"

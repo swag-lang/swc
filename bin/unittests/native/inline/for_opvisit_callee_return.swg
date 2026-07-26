@@ -11,14 +11,14 @@ impl InlineBug10VisitBytes
     #[Macro]
     mtd(ptr: bool, back: bool) const opVisitBytes(stmt: #code(item: u8, index: u64))
     {
-        #if ptr do
+        #static if ptr do
             #error("visiting by pointer is not needed for this regression")
 
         for .count
         {
-            #if back do
+            #static if back do
                 let idx = .count - @index - 1
-            #else do
+            else do
                 let idx = @index
 
             #inject(stmt, item = me.values[idx], index = idx)

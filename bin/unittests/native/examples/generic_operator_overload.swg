@@ -14,11 +14,11 @@ impl Complex
     // Unary -  : negate both parts
     func(op: Swag.Operator) opUnary(const me)->Complex'T
     {
-        #if op == .Pos do
+        #static if op == .Pos do
             return {re: +me.re, im: +me.im}
-        #elif op == .Neg do
+        elif op == .Neg do
             return {re: -me.re, im: -me.im}
-        #else do
+        else do
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -28,14 +28,14 @@ impl Complex
     //   (a+bi) * (c+di) = (ac-bd) + (ad+bc)i
     func(op: Swag.Operator) opBinary(const me, other: const &Complex'T)->Complex'T
     {
-        #if op == .Add do
+        #static if op == .Add do
             return {re: me.re + other.re, im: me.im + other.im}
-        #elif op == .Sub do
+        elif op == .Sub do
             return {re: me.re - other.re, im: me.im - other.im}
-        #elif op == .Mul do
+        elif op == .Mul do
             return {re: me.re * other.re - me.im * other.im,
                 im: me.re * other.im + me.im * other.re}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -45,13 +45,13 @@ impl Complex
     //   (a+bi) * s = (a*s) + (b*s)i
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Complex'T
     {
-        #if op == .Add do
+        #static if op == .Add do
             return {re: me.re + scalar, im: me.im}
-        #elif op == .Sub do
+        elif op == .Sub do
             return {re: me.re - scalar, im: me.im}
-        #elif op == .Mul do
+        elif op == .Mul do
             return {re: me.re * scalar, im: me.im * scalar}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 

@@ -167,9 +167,9 @@ impl BitStream
     // Peeks 4 bytes (big-endian) into 'dest', auto-switches based on platform
     mtd peek32Be(dest: [*] u8)
     {
-        #if BIG_ENDIAN do
+        #static if BIG_ENDIAN do
             peek32(dest)     // Already big-endian
-        #else
+        else
         {
             dest[3] = cast(u8) .peekBits(8)
             .consumeBits(8)

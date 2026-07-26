@@ -18,31 +18,31 @@ impl Vec2
 {
     func(op: Swag.Operator) opUnary(const me)->Vec2
     {
-        #if op == .Neg do
+        #static if op == .Neg do
             return {x: -me.x, y: -me.y}
-        #else do
+        else do
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
     {
-        #if op == .Add do
+        #static if op == .Add do
             return {x: me.x + other.x, y: me.y + other.y}
-        #elif op == .Sub do
+        elif op == .Sub do
             return {x: me.x - other.x, y: me.y - other.y}
-        #elif op == .Mul do
+        elif op == .Mul do
             return {x: me.x * other.x, y: me.y * other.y}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2
     {
-        #if op == .Mul do
+        #static if op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar}
-        #elif op == .Div do
+        elif op == .Div do
             return {x: me.x / scalar, y: me.y / scalar}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -132,19 +132,19 @@ impl AABB
 
     func(op: Swag.Operator) opBinary(const me, offset: const &Vec2)->AABB
     {
-        #if op == .Add do
+        #static if op == .Add do
             return {lo: me.lo + offset, hi: me.hi + offset}
-        #elif op == .Sub do
+        elif op == .Sub do
             return {lo: me.lo - offset, hi: me.hi - offset}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->AABB
     {
-        #if op == .Mul do
+        #static if op == .Mul do
             return {lo: me.lo * scalar, hi: me.hi * scalar}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }

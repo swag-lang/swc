@@ -141,9 +141,9 @@ public impl BitArray
     #[Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item: bool, index: u64))
     {
-        #if ptr do
+        #static if ptr do
             #error("visiting by pointer is not supported for BitArray")
-        #if back do
+        #static if back do
             #error("visiting in reverse order is not supported for BitArray")
 
         if !.count do

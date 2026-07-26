@@ -32,10 +32,10 @@ impl MyStruct
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item: s32, index: u64))
     {
-        #if ptr do
+        #static if ptr do
             #error("Visiting by pointer is not supported in this example.")
 
-        #if back do
+        #static if back do
             #error("Reverse visiting is not supported in this example.")
 
         // Visit fields x, y, z in declaration order
@@ -164,14 +164,14 @@ impl SliceStruct
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index: u64))
     {
-        #if back do
+        #static if back do
             #error("Reverse visiting is not supported for this slice example.")
 
         for [idx] in @countof(me.buffer)
         {
-            #if ptr do
+            #static if ptr do
                 #inject(stmt, item = cast(&s32) &me.buffer[idx], index = @index)
-            #else do
+            else do
                 #inject(stmt, item = me.buffer[idx], index = @index)
         }
     }
@@ -229,7 +229,7 @@ impl WindowStruct
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(left: s32, right: s32))
     {
-        #if ptr do
+        #static if ptr do
             #error("WindowStruct does not expose pointer iteration for pair visits.")
 
         for [idx] in 3

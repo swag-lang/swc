@@ -259,7 +259,7 @@ namespace ResizeTools
                 let left  = crow.left
                 let right = crow.right
 
-                #if BPP == 32 do
+                #static if BPP == 32 do
                     var da:     f64
                 var dr, dg, db: f64
                 var pw  = notnull crow.weights.buffer
@@ -270,7 +270,7 @@ namespace ResizeTools
                     db += f * ptr[0]
                     dg += f * ptr[1]
                     dr += f * ptr[2]
-                    #if BPP == 32 do
+                    #static if BPP == 32 do
                         da += f * ptr[3]
                     pw     += 1
                     ptr    += bpp8
@@ -279,7 +279,7 @@ namespace ResizeTools
                 dstRow[0] = cast(u8) Math.round(db)
                 dstRow[1] = cast(u8) Math.round(dg)
                 dstRow[2] = cast(u8) Math.round(dr)
-                #if BPP == 32 do
+                #static if BPP == 32 do
                     dstRow[3] = cast(u8) Math.round(da)
                 dstRow        += bpp8
             }
@@ -312,7 +312,7 @@ namespace ResizeTools
                 let left  = crow.left
                 let right = crow.right
 
-                #if BPP == 32 do
+                #static if BPP == 32 do
                     var da:     f64
                 var dr, dg, db: f64
                 var pw  = notnull crow.weights.buffer
@@ -323,7 +323,7 @@ namespace ResizeTools
                     db += f * ptr[0]
                     dg += f * ptr[1]
                     dr += f * ptr[2]
-                    #if BPP == 32 do
+                    #static if BPP == 32 do
                         da += f * ptr[3]
                     pw     += 1
                     ptr    += cast(u64) w8Src
@@ -332,7 +332,7 @@ namespace ResizeTools
                 dstCol[0] = cast(u8) Math.round(db)
                 dstCol[1] = cast(u8) Math.round(dg)
                 dstCol[2] = cast(u8) Math.round(dr)
-                #if BPP == 32 do
+                #static if BPP == 32 do
                     dstCol[3] = cast(u8) Math.round(da)
                 dstCol        += cast(u64) w8Dst
             }

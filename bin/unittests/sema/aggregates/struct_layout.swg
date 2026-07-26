@@ -11,7 +11,7 @@ struct A
 struct B
 {
     a: u32
-    #if false
+    #static if false
     {
         b: u32
     }
@@ -79,7 +79,7 @@ struct E
 struct F
 {
     a: u32
-    #if false
+    #static if false
     {
         mid: u32
     }

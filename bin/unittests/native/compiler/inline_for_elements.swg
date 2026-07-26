@@ -17,7 +17,7 @@ impl ReturnVisits
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32))
     {
-        #if ptr do
+        #static if ptr do
             #error("ReturnVisits does not expose pointer iteration.")
 
         if !@countof(.values) do

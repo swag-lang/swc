@@ -15,13 +15,13 @@ impl IntUnaryVec3
 {
     func(op: Swag.Operator) opUnary(const me)->IntUnaryVec3'T
     {
-        #if op == .Pos do
+        #static if op == .Pos do
             return {x: +me.x, y: +me.y, z: +me.z}
-        #elif op == .Neg do
+        elif op == .Neg do
             return {x: -me.x, y: -me.y, z: -me.z}
-        #elif op == .BitNot do
+        elif op == .BitNot do
             return {x: ~me.x, y: ~me.y, z: ~me.z}
-        #else do
+        else do
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 }

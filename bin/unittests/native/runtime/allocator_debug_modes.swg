@@ -180,7 +180,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     alloc.releaseAll()
 }
 
-#if #os == Swag.TargetOs.Windows
+#static if #os == Swag.TargetOs.Windows
 {
     #test
     {

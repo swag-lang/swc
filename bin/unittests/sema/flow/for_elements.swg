@@ -16,16 +16,16 @@ impl ForeachAliasBuffer
     #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index: u64))
     {
-        #if back do
+        #static if back do
             #error("reverse visit not supported")
 
         for @countof(.data)
         {
-            #if ptr
+            #static if ptr
             {
                 #inject(stmt, item = &me.data[@index], index = @index)
             }
-            #else
+            else
             {
                 #inject(stmt, item = me.data[@index], index = @index)
             }

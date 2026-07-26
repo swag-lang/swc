@@ -16,9 +16,9 @@ impl ShelfBins
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
-        #if ptr
+        #static if ptr
         {
-            #if back
+            #static if back
             {
                 #inject(stmt, item = cast(&s32) &(me.evening), index = 0'u64)
                 #inject(stmt, item = cast(&s32) &(me.afternoon), index = 1'u64)
@@ -32,9 +32,9 @@ impl ShelfBins
             #inject(stmt, item = cast(&s32) &(me.afternoon), index = 2'u64)
             #inject(stmt, item = cast(&s32) &(me.evening), index = 3'u64)
         }
-        #else
+        else
         {
-            #if back
+            #static if back
             {
                 for [idx] in 4
                 {
@@ -72,10 +72,10 @@ impl ShelfBins
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
     {
-        #if ptr do
+        #static if ptr do
             #error("Address iteration requires a mutable ShelfBins receiver.")
 
-        #if back
+        #static if back
         {
             for [idx] in 4
             {

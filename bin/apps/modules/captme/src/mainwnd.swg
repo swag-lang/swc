@@ -120,7 +120,7 @@ impl IWnd for MainWnd
 
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
-        #if #os == Swag.TargetOs.Windows
+        #static if #os == Swag.TargetOs.Windows
         {
             switch evt.userMsg
             {
@@ -753,13 +753,13 @@ impl MainWnd
         var img24:  Image
         var img48:  Image
         var imgApp: Image
-        #if #command == Swag.CompilerCommand.Test
+        #static if #command == Swag.CompilerCommand.Test
         {
             img24  = Image.create(480, 480, .RGBA8)
             img48  = Image.create(480, 480, .RGBA8)
             imgApp = Image.create(512, 512, .RGBA8)
         }
-        #else
+        else
         {
             img24  = expect Image.decode(".png", Icons24)
             img48  = expect Image.decode(".png", Icons48)

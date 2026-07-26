@@ -18,10 +18,10 @@ impl WorkloadForecast
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
-        #if back do
+        #static if back do
             #error("Reverse iteration is not used in this forecast example.")
 
-        #if ptr
+        #static if ptr
         {
             #inject(stmt, item = cast(&s32) &(me.monday), index = 0'u64)
             #inject(stmt, item = cast(&s32) &(me.tuesday), index = 1'u64)
@@ -29,7 +29,7 @@ impl WorkloadForecast
             #inject(stmt, item = cast(&s32) &(me.thursday), index = 3'u64)
             #inject(stmt, item = cast(&s32) &(me.friday), index = 4'u64)
         }
-        #else
+        else
         {
             for [idx] in 5
             {
@@ -51,10 +51,10 @@ impl WorkloadForecast
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
     {
-        #if back do
+        #static if back do
             #error("Reverse iteration is not used in this forecast example.")
 
-        #if ptr do
+        #static if ptr do
             #error("Address iteration requires a mutable WorkloadForecast receiver.")
 
         for [idx] in 5
@@ -76,10 +76,10 @@ impl WorkloadForecast
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisitPairs(stmt: #code(today: s32, nextDay: s32))
     {
-        #if ptr do
+        #static if ptr do
             #error("Pair visits stay read-only in this example.")
 
-        #if back do
+        #static if back do
             #error("Reverse pair iteration is not used in this forecast example.")
 
         #inject(stmt, today = me.monday, nextDay = me.tuesday)

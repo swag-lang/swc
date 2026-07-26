@@ -514,7 +514,7 @@ public impl Crc32
         {
             for [unrolling] in unroll
             {
-                #if BIG_ENDIAN
+                #static if BIG_ENDIAN
                 {
                     let one   = current[0] ^ Swap(cur)
                     let two   = current[1]
@@ -532,7 +532,7 @@ public impl Crc32
                           LookupTable[12, one & 0xFF] ^ LookupTable[13, (one >> 8) & 0xFF] ^
                           LookupTable[14, (one >> 16) & 0xFF] ^ LookupTable[15, (one >> 24) & 0xFF]
                 }
-                #else
+                else
                 {
                     let one   = current[0] ^ cur
                     let two   = current[1]

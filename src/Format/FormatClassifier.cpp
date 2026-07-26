@@ -355,7 +355,7 @@ namespace
 
             const AstNode& elseNode = ast_->node(elseRef);
             if (elseNode.is(AstNodeId::IfStmt) || elseNode.is(AstNodeId::IfVarDecl) || elseNode.is(AstNodeId::CompilerIf))
-                return; // `elif` / `#elif` chain: the nested if carries the keyword
+                return; // An `elif` chain carries its keyword on the nested if.
 
             const NodeSpan elseSpan = spanOf(elseRef);
             if (!elseSpan.valid())
@@ -367,7 +367,7 @@ namespace
                 addRole(before, FormatRoleE::TrailingDo);
                 before = prevCode(before);
             }
-            if (before != INVALID_PIECE && (model_->piece(before).is(TokenId::KwdElse) || model_->piece(before).is(TokenId::CompilerElse)))
+            if (before != INVALID_PIECE && model_->piece(before).is(TokenId::KwdElse))
                 addRole(before, FormatRoleE::ElseKeyword);
 
             const uint32_t open = bodyOpenBrace(elseSpan);
@@ -770,7 +770,7 @@ namespace
                 {
                     const auto& stmt = node.cast<AstCompilerIf>();
                     addRole(span.minPiece, FormatRoleE::ControlKeyword);
-                    if (span.valid() && (model_->piece(span.minPiece).is(TokenId::CompilerElseIf) || model_->piece(span.minPiece).is(TokenId::KwdElseIf)))
+                    if (span.valid() && model_->piece(span.minPiece).is(TokenId::KwdElseIf))
                         addRole(span.minPiece, FormatRoleE::ElseKeyword);
 
                     markControlBody(stmt.nodeIfBlockRef, span.minPiece);

@@ -59,8 +59,8 @@ Directives introduce compiler-executed blocks, conditional compilation, module
 configuration, source inclusion, diagnostics, and code injection.
 
 ```swag
-#ast  #assert  #code  #dependencies  #elif  #else  #error
-#foreignlib  #global  #if  #import  #include  #inject
+#ast  #assert  #code  #dependencies  #error
+#foreignlib  #global  #import  #include  #inject
 #load  #main  #message  #premain  #print  #run  #scope
 #static  #test  #type  #warning  #init  #drop
 ```

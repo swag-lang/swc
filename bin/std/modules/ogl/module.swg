@@ -1,5 +1,5 @@
 #import("core")
-#if #os == Swag.TargetOs.Windows
+#static if #os == Swag.TargetOs.Windows
 {
     #import("win32")
     #import("gdi32")

@@ -1,6 +1,6 @@
 #global private
 
-#if #os == Swag.TargetOs.Windows
+#static if #os == Swag.TargetOs.Windows
 {
     const A = #os == Swag.TargetOs.Windows
     #assert(A)

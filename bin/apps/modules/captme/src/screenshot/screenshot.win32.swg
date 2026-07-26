@@ -1,4 +1,4 @@
-#global #if #os == Swag.TargetOs.Windows
+#global #static if #os == Swag.TargetOs.Windows
 
 using Core, Win32, Gdi32
 
@@ -135,7 +135,7 @@ func getDesktopImage(drawCursor: bool)->Image fail
 // capture must not pay for the whole multi-monitor desktop.
 func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
 {
-    #if #command == Swag.CompilerCommand.Test
+    #static if #command == Swag.CompilerCommand.Test
     {
         return Image.create(Math.max(w, 1), Math.max(h, 1), .BGRA8)
     }

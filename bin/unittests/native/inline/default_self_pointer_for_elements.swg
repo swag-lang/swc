@@ -15,14 +15,14 @@ impl InlineDefaultSelfCells
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) opVisit(stmt: #code(item, index: u64))
     {
-        #if back do
+        #static if back do
             return
 
-        #if ptr
+        #static if ptr
         {
             #inject(stmt, item = cast(*InlineDefaultSelfCell) &(me.values[0]), index = 0'u64)
         }
-        #else
+        else
         {
             #inject(stmt, item = me.values[0], index = 0'u64)
         }

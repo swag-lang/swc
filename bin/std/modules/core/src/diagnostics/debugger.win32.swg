@@ -1,4 +1,4 @@
-#global #if WINDOWS
+#global #static if WINDOWS
 #global public
 #global namespace Debugger
 

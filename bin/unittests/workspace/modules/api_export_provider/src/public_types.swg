@@ -139,9 +139,9 @@ namespace DepTools
     #[Swag.ConstExpr]
     func(T) hash32WithGeneratedFullName(value: T)->u32
     {
-        #if #defined(T.IHash32) do
+        #static if #defined(T.IHash32) do
             #ast "return " ++ #typeof(T).fullname ++ ".IHash32.compute(value)"
-        #else do
+        else do
             return 0
     }
 

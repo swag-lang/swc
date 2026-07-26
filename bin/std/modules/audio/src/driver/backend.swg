@@ -15,7 +15,7 @@ struct DriverNative
     kind:    DriverKind
     noSound: NoSoundDriverNative
 
-    #if #os == Swag.TargetOs.Windows
+    #static if #os == Swag.TargetOs.Windows
     {
         xAudio2: XAudio2DriverNative
     }
@@ -33,11 +33,11 @@ impl DriverNative
             .noSound.createNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.createXAudio2()
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
@@ -53,7 +53,7 @@ impl DriverNative
             .noSound.destroyNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.destroyXAudio2()
             }
@@ -70,7 +70,7 @@ impl DriverNative
         switch .kind
         {
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.stopEngineXAudio2()
             }
@@ -85,11 +85,11 @@ impl DriverNative
             .noSound.setOutputVolumeNoSound(volume)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.setOutputVolumeXAudio2(volume)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -102,7 +102,7 @@ impl DriverNative
             return .noSound.getOutputVolumeNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 return .xAudio2.getOutputVolumeXAudio2()
             }
@@ -116,11 +116,11 @@ impl DriverNative
         if kind != .Default do
             return kind
 
-        #if #os == Swag.TargetOs.Windows
+        #static if #os == Swag.TargetOs.Windows
         {
             return .XAudio2
         }
-        #else
+        else
         {
             return .NoSound
         }
@@ -137,11 +137,11 @@ impl Voice
             voice.createNoSound(createFlags)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 voice.createXAudio2(createFlags)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
@@ -157,7 +157,7 @@ impl Voice
             .destroyNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .destroyXAudio2()
             }
@@ -172,11 +172,11 @@ impl Voice
             return .updateNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 return .updateXAudio2()
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
 
@@ -191,11 +191,11 @@ impl Voice
             .playNoSound(batchID)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .playXAudio2(batchID)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -208,11 +208,11 @@ impl Voice
             .stopNoSound(batchID)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .stopXAudio2(batchID)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -228,11 +228,11 @@ public impl Voice
             .setVolumeNoSound(volume, batchID)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .setVolumeXAudio2(volume, batchID)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -245,11 +245,11 @@ public impl Voice
             return .getVolumeNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 return .getVolumeXAudio2()
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
 
@@ -264,11 +264,11 @@ public impl Voice
             .setFrequencyRatioNoSound(ratio, batchID)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .setFrequencyRatioXAudio2(ratio, batchID)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -281,11 +281,11 @@ public impl Voice
             .setRootingNoSound(buses)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .setRootingXAudio2(buses)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -301,11 +301,11 @@ impl Bus
             bus.createNoSound(numChannels, parent)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 bus.createXAudio2(numChannels, parent)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
 
         default:
@@ -321,7 +321,7 @@ impl Bus
             .destroyNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .destroyXAudio2()
             }
@@ -339,11 +339,11 @@ public impl Bus
             .setVolumeNoSound(volume, batchID)
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 .setVolumeXAudio2(volume, batchID)
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
     }
@@ -356,11 +356,11 @@ public impl Bus
             return .getVolumeNoSound()
 
         case XAudio2:
-            #if #os == Swag.TargetOs.Windows
+            #static if #os == Swag.TargetOs.Windows
             {
                 return .getVolumeXAudio2()
             }
-            #else do
+            else do
                 fail UnsupportedFormatError{"XAudio2 is not available"}
         }
 

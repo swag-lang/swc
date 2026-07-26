@@ -63,11 +63,11 @@ func defaultPureArg(value: s32 = pureAdd(40, 2))->s32
     return value
 }
 
-#if pureAdd(20, 22) == 42
+#static if pureAdd(20, 22) == 42
 {
     const CompilerIfConstexpr = true
 }
-#else
+else
 {
     const CompilerIfConstexpr = false
 }

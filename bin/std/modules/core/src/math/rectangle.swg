@@ -20,9 +20,9 @@ impl Rectangle
     // Multiplies all components (position and dimensions) by the given 'value'.
     mtd(op: Swag.Operator) const opBinary(value: f32)->Rectangle
     {
-        #if op == .Mul do
+        #static if op == .Mul do
             return {.x * value, .y * value, .width * value, .height * value}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 

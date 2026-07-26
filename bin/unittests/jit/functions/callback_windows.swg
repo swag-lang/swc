@@ -1,5 +1,5 @@
 #global private
-#global #if #os == Swag.TargetOs.Windows
+#global #static if #os == Swag.TargetOs.Windows
 
 alias HANDLE     = const [*] void
 alias DWORD      = u32

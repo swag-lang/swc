@@ -50,9 +50,9 @@ impl InlineForeachMoveValues
     #[Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(item, index))
     {
-        #if ptr do
+        #static if ptr do
             #inject(stmt, item = &me.item, index = 0)
-        #else do
+        else do
             #inject(stmt, item = cast(&InlineForeachMoveTracked) &me.item, index = 0)
     }
 }

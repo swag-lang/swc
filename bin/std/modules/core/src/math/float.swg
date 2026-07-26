@@ -103,9 +103,9 @@ alias ConstF64 = Const'f64
         let originalTo = target
 
         // Clamp maximum change (optional speed limit)
-        #if T == f32 do
+        #static if T == f32 do
             let maxChange = Swag.F32.Max * smoothTimeActual
-        #else do
+        else do
             let maxChange = Swag.F64.Max * smoothTimeActual
         let clampedChange = Math.clamp(change, -maxChange, maxChange)
         let newTarget     = current - clampedChange

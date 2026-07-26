@@ -277,7 +277,7 @@ impl LeakGrid
     }
 }
 
-#if true
+#static if true
 {
     // Reproducer: interleaving `LeakTable` specializations with different key layouts can make the
     // direct `@drop(&.entries[index].value)` path target the wrong address in a later specialization.
@@ -327,7 +327,7 @@ impl LeakGrid
     }
 }
 
-#if true
+#static if true
 {
     // Reproducer: the address leak is not limited to the direct member path.
     // Pointer-return and helper-mediated drops can also target the wrong `value` slot after
@@ -374,7 +374,7 @@ impl LeakGrid
     }
 }
 
-#if true
+#static if true
 {
     // Reproducer: the leak survives one more level of member chaining through another generic
     // owner (`LeakBox.table.entries[index].value`).
@@ -407,7 +407,7 @@ impl LeakGrid
     }
 }
 
-#if true
+#static if true
 {
     // Reproducer: the leak also survives a `tableIndex/entryIndex` access chain.
     #test
@@ -436,7 +436,7 @@ impl LeakGrid
     }
 }
 
-#if true
+#static if true
 {
     // Reproducer: even without extra nesting or helper indirection, dropping all live entries after
     // warming up another specialization can still pick the wrong `value` address.

@@ -32,15 +32,15 @@ impl NumericArray
         var result: retval
         for [i] in N
         {
-            #if op == .Add do
+            #static if op == .Add do
                 result.buf[i] = .buf[i] + other.buf[i]
-            #elif op == .Sub do
+            elif op == .Sub do
                 result.buf[i] = .buf[i] - other.buf[i]
-            #elif op == .Mul do
+            elif op == .Mul do
                 result.buf[i] = .buf[i] * other.buf[i]
-            #elif op == .Div do
+            elif op == .Div do
                 result.buf[i] = .buf[i] / other.buf[i]
-            #else do
+            else do
                 #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
 
@@ -51,15 +51,15 @@ impl NumericArray
     {
         for [i] in N
         {
-            #if op == .AddAssign do
+            #static if op == .AddAssign do
                 .buf[i] += value
-            #elif (op == .SubAssign) do
+            elif (op == .SubAssign) do
                 .buf[i] -= value
-            #elif (op == .MulAssign) do
+            elif (op == .MulAssign) do
                 .buf[i] *= value
-            #elif (op == .DivAssign) do
+            elif (op == .DivAssign) do
                 .buf[i] /= value
-            #else do
+            else do
                 #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }
@@ -68,15 +68,15 @@ impl NumericArray
     {
         for [i] in N
         {
-            #if op == .AddAssign do
+            #static if op == .AddAssign do
                 .buf[i] += value.buf[i]
-            #elif (op == .SubAssign) do
+            elif (op == .SubAssign) do
                 .buf[i] -= value.buf[i]
-            #elif (op == .MulAssign) do
+            elif (op == .MulAssign) do
                 .buf[i] *= value.buf[i]
-            #elif (op == .DivAssign) do
+            elif (op == .DivAssign) do
                 .buf[i] /= value.buf[i]
-            #else do
+            else do
                 #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
         }
     }

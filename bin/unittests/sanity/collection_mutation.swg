@@ -51,9 +51,9 @@ impl CollMutVec
     {
         for [idx] in me.count
         {
-            #if ptr do
+            #static if ptr do
                 #inject(stmt, item = cast(&s32) &me.buffer[idx], index = idx)
-            #else do
+            else do
                 #inject(stmt, item = me.buffer[idx], index = idx)
         }
     }

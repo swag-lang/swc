@@ -125,7 +125,7 @@ impl Decoder
             var typeVal:          TypeValue
             typeVal.pointedType = #typeof(#null typeinfo)
 
-            #if T == Read.TagBin
+            #static if T == Read.TagBin
             {
                 let objCrc = .serializer.readNative'u32()
                 if objCrc == 0 do
@@ -145,7 +145,7 @@ impl Decoder
                 if !objType do
                     fail SerializationError{"unknown interface object type"}
             }
-            #else
+            else
             {
                 .readTypeValue(typeVal, &objType)
                 if objType do

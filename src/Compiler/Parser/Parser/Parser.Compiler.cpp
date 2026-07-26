@@ -336,7 +336,7 @@ AstNodeRef Parser::parseCompilerIfStmt()
 {
     if (consumeIf(TokenId::KwdDo).isValid())
     {
-        // `#if cond do expr` and `#if cond do { ... }` share the same entry point.
+        // `#static if cond do expr` and `#static if cond do { ... }` share the same entry point.
         // A block after `do` is accepted for recovery, but diagnosed because the
         // block form normally omits `do`.
         if (is(TokenId::SymLeftCurly))
@@ -357,21 +357,8 @@ AstNodeRef Parser::parseCompilerIfStmt()
     return AstNodeRef::invalid();
 }
 
-template AstNodeRef Parser::parseCompilerIf<AstNodeId::AggregateBody>();
-template AstNodeRef Parser::parseCompilerIf<AstNodeId::InterfaceBody>();
-template AstNodeRef Parser::parseCompilerIf<AstNodeId::EnumBody>();
-template AstNodeRef Parser::parseCompilerIf<AstNodeId::TopLevelBlock>();
-template AstNodeRef Parser::parseCompilerIf<AstNodeId::EmbeddedBlock>();
-
 template<AstNodeId ID>
-AstNodeRef Parser::parseCompilerIf()
-{
-    SWC_ASSERT(isAny(TokenId::CompilerIf, TokenId::CompilerElseIf));
-    return parseCompilerIfBody<ID>(consume(), TokenId::CompilerElseIf, TokenId::CompilerElse);
-}
-
-template<AstNodeId ID>
-AstNodeRef Parser::parseCompilerIfBody(TokenRef tokRef, TokenId elseIfId, TokenId elseId)
+AstNodeRef Parser::parseCompilerIfBody(TokenRef tokRef)
 {
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerIf>(tokRef);
 
@@ -384,9 +371,9 @@ AstNodeRef Parser::parseCompilerIfBody(TokenRef tokRef, TokenId elseIfId, TokenI
 
     // Parse optional 'else' or 'elif' block. Else-if is nested in the else slot so
     // compiler-if chains have the same AST shape as regular if chains.
-    if (is(elseIfId))
-        nodePtr->nodeElseBlockRef = parseCompilerIfBody<ID>(consume(), elseIfId, elseId);
-    else if (consumeIf(elseId).isValid())
+    if (is(TokenId::KwdElseIf))
+        nodePtr->nodeElseBlockRef = parseCompilerIfBody<ID>(consume());
+    else if (consumeIf(TokenId::KwdElse).isValid())
         nodePtr->nodeElseBlockRef = parseCompilerIfStmt<ID>();
     else
         nodePtr->nodeElseBlockRef.setInvalid();
@@ -405,7 +392,7 @@ AstNodeRef Parser::parseCompilerStatic()
 {
     const TokenRef staticTokRef = consumeAssert(TokenId::CompilerStatic);
     if (consumeIf(TokenId::KwdIf).isValid())
-        return parseCompilerIfBody<ID>(staticTokRef, TokenId::KwdElseIf, TokenId::KwdElse);
+        return parseCompilerIfBody<ID>(staticTokRef);
     if (consumeIf(TokenId::KwdSwitch).isValid())
         return parseCompilerSwitch<ID>(staticTokRef);
 
@@ -539,12 +526,6 @@ AstNodeRef Parser::parseCompilerGlobal()
         nodePtr->mode = AstCompilerGlobal::Mode::Namespace;
         consume();
         nodePtr->spanNameRef = parseQualifiedName();
-    }
-    else if (is(TokenId::CompilerIf))
-    {
-        nodePtr->mode = AstCompilerGlobal::Mode::CompilerIf;
-        consume();
-        nodePtr->nodeModeRef = parseExpression();
     }
     else if (is(TokenId::CompilerStatic) && nextIs(TokenId::KwdIf))
     {

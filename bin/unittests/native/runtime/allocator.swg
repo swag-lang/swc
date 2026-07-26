@@ -18,7 +18,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     return @mkinterface(scratch, #typeof(dref scratch), IAllocator)
 }
 
-#if #os == Swag.TargetOs.Windows
+#static if #os == Swag.TargetOs.Windows
 {
     namespace AllocatorThreadTest
     {
@@ -498,7 +498,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     let header = cast(*AllocatorHeader) (cast([*] u8) (notnull req.address) - #sizeof(AllocatorHeader))
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
-    #if #os == Swag.TargetOs.Windows do
+    #static if #os == Swag.TargetOs.Windows do
         if !@jit() do
             @assert(header.stackCount > 0)
 
@@ -621,7 +621,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     @assert(header.magic == Allocator.MagicAlloc)
     @assert(alloc.footer(header).magic == Allocator.MagicAlloc)
     @assert(header.stackCount <= @countof(header.stack))
-    #if #os == Swag.TargetOs.Windows do
+    #static if #os == Swag.TargetOs.Windows do
         if !@jit() do
             @assert(header.stackCount > 0)
 
@@ -784,7 +784,7 @@ func makeAllocatorScratch(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     alloc.releaseAll()
 }
 
-#if #os == Swag.TargetOs.Windows
+#static if #os == Swag.TargetOs.Windows
 {
     #test
     {

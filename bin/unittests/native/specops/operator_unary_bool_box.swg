@@ -13,9 +13,9 @@ impl BoolUnaryBox
 {
     func(op: Swag.Operator) opUnary(const me)->BoolUnaryBox'T
     {
-        #if op == .Not do
+        #static if op == .Not do
             return {value: !me.value}
-        #else do
+        else do
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 }

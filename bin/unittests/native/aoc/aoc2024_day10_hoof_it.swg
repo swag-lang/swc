@@ -4,7 +4,7 @@
 // each step increases height by exactly 1 from 0 to 9.
 // Part 1 (score): count distinct 9-height cells reachable from each trailhead.
 // Part 2 (rating): count total distinct paths from each trailhead to any 9.
-// Exercises: nested functions, #if/#else, const from func, @min/@max,
+// Exercises: nested functions, #static if/else, const from func, @min/@max,
 // 0 until N range, #[Swag.Discardable], tuple-like struct returns.
 
 const MaxDim     = 64'u32
@@ -35,11 +35,11 @@ const SingleInput = "9"
 const TrailStart: u8 = 0
 const TrailEnd:   u8 = 9
 
-#if TrailEnd > TrailStart
+#static if TrailEnd > TrailStart
 {
     const TrailLength = TrailEnd - TrailStart
 }
-#else
+else
 {
     const TrailLength = 0'u8
 }

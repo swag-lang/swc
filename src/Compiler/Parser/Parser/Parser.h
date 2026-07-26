@@ -141,9 +141,7 @@ private:
     template<AstNodeId ID>
     AstNodeRef parseCompilerIfStmt();
     template<AstNodeId ID>
-    AstNodeRef parseCompilerIf();
-    template<AstNodeId ID>
-    AstNodeRef parseCompilerIfBody(TokenRef tokRef, TokenId elseIfId, TokenId elseId);
+    AstNodeRef parseCompilerIfBody(TokenRef tokRef);
     template<AstNodeId ID>
     AstNodeRef parseCompilerStatic();
     template<AstNodeId ID>

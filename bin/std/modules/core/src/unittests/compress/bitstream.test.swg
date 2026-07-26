@@ -1,4 +1,4 @@
-#global #if #command == Swag.CompilerCommand.Test
+#global #static if #command == Swag.CompilerCommand.Test
 #global private
 
 using Swag
@@ -136,8 +136,8 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     var converted: [4] u8
     bigEndianView.peek32Be(&converted[0])
 
-    #if BIG_ENDIAN do
+    #static if BIG_ENDIAN do
         @assert(assertBytes(converted, expectedDirect))
-    #else do
+    else do
         @assert(assertBytes(converted, [0x40, 0x30, 0x20, 0x10]))
 }

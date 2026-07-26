@@ -294,7 +294,7 @@ func makeAllocator(alloc: *Allocator, electricMode: bool = false, detectLeaks: b
     @assert(alloc.sizeOsFree == alloc.sizeOsAlloc)
 }
 
-#if #os == Swag.TargetOs.Windows
+#static if #os == Swag.TargetOs.Windows
 {
     namespace Th
     {

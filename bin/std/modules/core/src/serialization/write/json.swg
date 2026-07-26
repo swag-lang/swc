@@ -168,25 +168,25 @@ impl JSon
     // Writes a native value (bool, float, int, string) as a JSON value.
     mtd(NT) writeNative(value: NT)
     {
-        #if NT == bool
+        #static if NT == bool
         {
             .output.addBytes(value ? "true" : "false")
         }
-        #elif Reflection.isFloat(NT)
+        elif Reflection.isFloat(NT)
         {
             StrConv.convertFloat(.output, value, .fmtFloat)
         }
-        #elif Reflection.isInteger(NT)
+        elif Reflection.isInteger(NT)
         {
             StrConv.convertInt(.output, value, .fmtInt)
         }
-        #elif Reflection.isString(NT)
+        elif Reflection.isString(NT)
         {
             .output.addNative('"''u8)
             .output.addBytes(value)
             .output.addNative('"''u8)
         }
-        #else
+        else
         {
             #error("invalid type")
         }

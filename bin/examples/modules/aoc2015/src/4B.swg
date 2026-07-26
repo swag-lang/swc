@@ -9,7 +9,7 @@ internal var best: u64 = Swag.U64.Max
 
 func day4B()
 {
-    #if #cfg == "release"
+    #static if #cfg == "release"
     {
         if @jit do
             return

@@ -25,21 +25,21 @@ namespace InjectExprCloneSupport
         #[Macro]
         mtd(ptr: bool, back: bool) opVisit(stmt: #code(item: &InjectExprCloneSupport.VisitProbe, index: u64))
         {
-            #if back do
+            #static if back do
                 var cursor = .count
-            #else do
+            else do
                 var cursor: u64 = 0
 
             #scope(Up)
                 while true
             {
-                #if back
+                #static if back
                 {
                     if !cursor do
                         break
                     cursor -= 1
                 }
-                #else
+                else
                 {
                     if cursor >= .count do
                         break
@@ -50,7 +50,7 @@ namespace InjectExprCloneSupport
                     #inject(stmt, item = cast(&InjectExprCloneSupport.VisitProbe) &.values[cursor], index = cursor, break = break to Up, continue = break to Down)
                 }
 
-                #if !back do
+                #static if !back do
                     cursor += 1
             }
         }

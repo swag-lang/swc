@@ -62,9 +62,9 @@ impl RegressionArray
         {
             scan += 1
 
-            #if ptr do
+            #static if ptr do
                 #inject(stmt, item = scan, index = @index)
-            #else do
+            else do
                 #inject(stmt, item = scan[0], index = @index)
         }
     }

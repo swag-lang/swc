@@ -92,7 +92,7 @@ const ConstexprOrigin = makeConstexprPoint(3, 7)
 /**
 # Static Conditions and Types
 
-The result can drive '#if' or any other context that requires a constant:
+The result can drive '#static if' or any other context that requires a constant:
 */
 
 #[Swag.ConstExpr]
@@ -101,7 +101,7 @@ func constexprIsPowerOfTwo(value: u32)->bool
     return value != 0 and (value & (value - 1)) == 0
 }
 
-#if !constexprIsPowerOfTwo(64)
+#static if !constexprIsPowerOfTwo(64)
 {
     #error("64 must be a power of two")
 }

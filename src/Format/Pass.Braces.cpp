@@ -359,7 +359,7 @@ namespace
                     continue;
 
                 // A chain whose branch body is a one-liner stays inline:
-                // `#if X { a } #else { b }`.
+                // `#static if X { a } else { b }`.
                 if (breakBefore && closesSingleLineBlock(prev))
                     continue;
 

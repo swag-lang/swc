@@ -82,7 +82,7 @@ func(T) foreachSelected(capture: *Capture, selection: Array'u64, stmt: #code(for
     for s in selection
     {
         let f = capture.forms[s]
-        #if T != BaseForm
+        #static if T != BaseForm
         {
             if @kindof(f) != T do
                 continue

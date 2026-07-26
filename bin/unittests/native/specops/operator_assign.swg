@@ -20,29 +20,29 @@ impl RuntimeAssignBox
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(value: s32)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .setPair(.a + value, .b + value)
-        #elif op == .MulAssign do
+        elif op == .MulAssign do
             .setPair(.a * value, .b * value)
-        #else do
+        else do
             #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(value: u32)
     {
-        #if op == .ShlAssign do
+        #static if op == .ShlAssign do
             .setPair(.a << value, .b << value)
-        #else do
+        else do
             #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) opAssign(other: const &RuntimeAssignBox)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .setPair(.a + other.a, .b + other.b)
-        #else do
+        else do
             #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 }

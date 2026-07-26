@@ -7,9 +7,9 @@ impl CrossFileAssignBox
 {
     mtd(op: Swag.Operator) opAssign(rhs: s32)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .value += rhs
-        #else do
+        else do
             #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
     }
 }

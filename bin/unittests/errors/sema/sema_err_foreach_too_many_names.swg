@@ -10,10 +10,10 @@ impl CustomVisitTooManyNames
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item: s32, index: u64))
     {
-        #if ptr do
+        #static if ptr do
             #error("CustomVisitTooManyNames does not expose pointer iteration.")
 
-        #if back do
+        #static if back do
             #error("CustomVisitTooManyNames does not expose reverse iteration.")
 
         for [idx] in 2

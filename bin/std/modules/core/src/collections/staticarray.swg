@@ -108,12 +108,12 @@ impl StaticArray
         Debug.assert(countof <= N, "slice is too big")
         var dataof = @dataof(arr)
 
-        #if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T)
         {
             for [i] in countof do
                 .buffer[i] = #nodrop dataof[i]
         }
-        #else
+        else
         {
             Memory.copy(.buffer, dataof, #sizeof(T) * countof)
         }
@@ -132,28 +132,28 @@ impl StaticArray
             return
 
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
-        #if back do
+        #static if back do
             var scan = cast([*] T) &.buffer[0] + .count
-        #else do
+        else do
             var scan = cast([*] T) &.buffer[0] - 1
 
         for .count
         {
-            #if back do
+            #static if back do
                 scan -= 1
-            #else do
+            else do
                 scan += 1
 
-            #if back do
+            #static if back do
                 let visitIdx = me.count - @index - 1
-            #else do
+            else do
                 let visitIdx = @index
 
-            #if ptr do
+            #static if ptr do
                 #inject(stmt, item = cast(&T) scan, index = visitIdx)
-            #elif Reflection.isStruct(T) do
+            elif Reflection.isStruct(T) do
                 #inject(stmt, item = cast(const &T) scan, index = visitIdx)
-            #else do
+            else do
                 #inject(stmt, item = scan[0], index = visitIdx)
         }
     }
@@ -204,7 +204,7 @@ impl StaticArray
     mtd clear()
     {
         let oldCount = .count
-        #if Reflection.hasDrop(T)
+        #static if Reflection.hasDrop(T)
         {
             for oldCount do
                 @drop(&.buffer[@index])
@@ -267,12 +267,12 @@ impl StaticArray
         Debug.assert(.count != N, "the array is full")
         .count += 1
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx > index; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - 1]
         }
-        #else
+        else
         {
             Memory.copyOver(&.buffer[index + 1], &.buffer[index], #sizeof(T) * (.count - 1 - index))
         }
@@ -303,23 +303,23 @@ impl StaticArray
         Debug.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
         }
-        #else
+        else
         {
             Memory.copyOver(&.buffer[index + sliceCount], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T)
         {
             let vals = notnull values
             for var idx = 0; idx < sliceCount; idx += 1 do
                 .buffer[index + idx] = #nodrop vals[idx]
         }
-        #else
+        else
         {
             Memory.copy(&.buffer[index], @dataof(values), #sizeof(T) * sliceCount)
         }
@@ -348,22 +348,22 @@ impl StaticArray
         Debug.assert(.count + sliceCount <= N, "the array is full")
         .count += sliceCount
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = .count - 1; idx >= index + sliceCount; idx -= 1 do
                 .buffer[idx] = #relocate .buffer[idx - sliceCount]
         }
-        #else
+        else
         {
             Memory.copyOver(&.buffer[index + @countof(values)], &.buffer[index], #sizeof(T) * (.count - sliceCount - index))
         }
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             for var idx = 0; idx < sliceCount; idx += 1 do
                 .buffer[index + idx] = #nodrop #move values[idx]
         }
-        #else
+        else
         {
             Memory.copy(&.buffer[index], @dataof(values), #sizeof(T) * sliceCount)
         }
@@ -390,7 +390,7 @@ impl StaticArray
         var oldCount = .count
         .count += sliceCount
 
-        #if Reflection.hasPostCopy(T)
+        #static if Reflection.hasPostCopy(T)
         {
             let vals    = notnull values
             var destPtr = cast([*] T) &.buffer[oldCount]
@@ -400,7 +400,7 @@ impl StaticArray
                 destPtr      += 1
             }
         }
-        #else
+        else
         {
             Memory.copy(&.buffer[oldCount], @dataof(values), sliceCount * #sizeof(T))
         }
@@ -416,14 +416,14 @@ impl StaticArray
         let oldCount   = .count
         let shiftCount = .count - (index + num)
 
-        #if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
+        #static if !Reflection.hasPostMove(T) and !Reflection.hasDrop(T)
         {
             Memory.copyOver(cast([*] T) &.buffer[0] + index, cast([*] T) &.buffer[0] + index + num, shiftCount * #sizeof(T))
         }
-        #else
+        else
         {
             // Drop the removed elements, then relocate the survivors into the freed slots.
-            #if Reflection.hasDrop(T)
+            #static if Reflection.hasDrop(T)
             {
                 @drop(&.buffer[index], num)
             }
@@ -436,7 +436,7 @@ impl StaticArray
 
         .count -= num
 
-        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
             @init(&.buffer[.count], oldCount - .count)
         }
@@ -469,7 +469,7 @@ impl StaticArray
             .buffer[index] = #relocate .buffer[.count]
         }
 
-        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
             @init(&.buffer[.count], oldCount - .count)
         }
@@ -485,7 +485,7 @@ impl StaticArray
         let oldCount = .count
         .count -= numValues
 
-        #if Reflection.hasDrop(T)
+        #static if Reflection.hasDrop(T)
         {
             for [idx] in numValues do
                 @drop(&.buffer[index + idx])
@@ -493,7 +493,7 @@ impl StaticArray
 
         if index >= .count
         {
-            #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+            #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
             {
                 @init(&.buffer[.count], oldCount - .count)
             }
@@ -501,7 +501,7 @@ impl StaticArray
             return
         }
 
-        #if Reflection.hasPostMove(T)
+        #static if Reflection.hasPostMove(T)
         {
             var idx = index
             for .count - index
@@ -510,12 +510,12 @@ impl StaticArray
                 idx          += 1
             }
         }
-        #else
+        else
         {
             Memory.copyOver(&.buffer[index], &.buffer[index + numValues], #sizeof(T) * (.count - index))
         }
 
-        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
             @init(&.buffer[.count], oldCount - .count)
         }
@@ -600,7 +600,7 @@ impl StaticArray
         var result: retval = undefined
         let backIndex      = .count - 1
         result = #relocate .buffer[backIndex]
-        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
             @init(&.buffer[backIndex], 1)
         }
@@ -616,7 +616,7 @@ impl StaticArray
         Debug.assert(.count > 0, "array is empty")
         let backIndex = .count - 1
         @drop(&.buffer[backIndex])
-        #if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
+        #static if Reflection.hasDrop(T) or Reflection.hasPostCopy(T) or Reflection.hasPostMove(T)
         {
             @init(&.buffer[backIndex], 1)
         }

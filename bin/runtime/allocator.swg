@@ -121,9 +121,9 @@ private func atomicGet(addr: *u64)->u64 => @atomcmpxchg(addr, 0, 0)
 
 private func currentThreadId()->u64
 {
-    #if #os == Swag.TargetOs.Windows do
+    #static if #os == Swag.TargetOs.Windows do
         return __Win32RT.GetCurrentThreadId()
-    #else do
+    else do
         return 1
 }
 
@@ -245,9 +245,9 @@ impl Allocator
 
     mtd osAlloc(size: u64)->#null [*] u8
     {
-        #if #os == Swag.TargetOs.Windows do
+        #static if #os == Swag.TargetOs.Windows do
             return cast(#null [*] u8) __Win32RT.VirtualAlloc(null, size, __Win32RT.MEM_RESERVE | __Win32RT.MEM_COMMIT, __Win32RT.PAGE_READWRITE)
-        #else do
+        else do
             return cast(#null [*] u8) @alloc(size)
     }
 
@@ -256,9 +256,9 @@ impl Allocator
         if !address do
             return
 
-        #if #os == Swag.TargetOs.Windows do
+        #static if #os == Swag.TargetOs.Windows do
             discard __Win32RT.VirtualFree(address, 0, __Win32RT.MEM_RELEASE)
-        #else do
+        else do
             @free(cast(#null [*] void) address)
     }
 

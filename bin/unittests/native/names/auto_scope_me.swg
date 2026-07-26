@@ -51,9 +51,9 @@ impl AutoScopeUnaryBox
 {
     func(op: Swag.Operator) opUnary(const me)->AutoScopeUnaryBox'T
     {
-        #if op == .BitNot do
+        #static if op == .BitNot do
             return {value: ~.value}
-        #else do
+        else do
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 }

@@ -5,28 +5,28 @@
 const ENABLED  = 1
 const DISABLED = 0
 
-#if true {}
-#else
+#static if true {}
+else
 {
     #error("toto")
 }
 
-#if true {}
-#else {}
+#static if true {}
+else {}
 
 #assert(true)
 #assert(ENABLED)
 #assert(!DISABLED)
 
-#if ENABLED
+#static if ENABLED
 {
     const MODE = 1
 }
-#elif DISABLED
+elif DISABLED
 {
     const MODE = 2
 }
-#else
+else
 {
     const MODE = 3
 }

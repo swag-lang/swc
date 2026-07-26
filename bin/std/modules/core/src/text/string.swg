@@ -106,11 +106,11 @@ impl String
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
         let buffer = notnull .buffer
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             buffer[index] += #wrap value
-        #elif op == .SubAssign do
+        elif op == .SubAssign do
             buffer[index] -= #wrap value
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
@@ -123,61 +123,61 @@ impl String
 
     mtd(op: Swag.Operator) opAssign(value: const [..] string)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             for v in value do
                 .append(v)
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd(op: Swag.Operator) opAssign(value: const [..] string)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             for v in value do
                 .append(v)
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd(op: Swag.Operator) opAssign(value: const [..] rune)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             for v in value do
                 .append(v)
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd(op: Swag.Operator) opAssign(value: const [..] u8)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             for v in value do
                 .append(v)
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd(op: Swag.Operator) opAssign(value: #null string)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .append(value)
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd(op: Swag.Operator) opAssign(value: rune)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .append(value)
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
     mtd(op: Swag.Operator) opAssign(value: u8)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             .append(value)
-        #else do
+        else do
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
@@ -227,9 +227,9 @@ impl String
     #[Macro, Swag.CalleeReturn]
     mtd(ptr: bool, back: bool) const opVisitRunes(stmt: #code(c: rune, charIdx: u64, byteIdx: u64))
     {
-        #if ptr do
+        #static if ptr do
             #error("visiting runes by pointer is not supported")
-        #if back do
+        #static if back do
             #error("visiting runes in reverse order is not supported")
         Utf8.visitRunes(.toSlice(), stmt)
     }
@@ -245,26 +245,26 @@ impl String
         // Little trick to avoid labels. That way a 'continue' in the user code will work correctly
         let buffer = notnull .buffer
 
-        #if back do
+        #static if back do
             var scan = buffer + .length
-        #else do
+        else do
             var scan = buffer - 1
 
         for .length
         {
-            #if back do
+            #static if back do
                 scan -= 1
-            #else do
+            else do
                 scan += 1
 
-            #if back do
+            #static if back do
                 let visitIdx = me.length - @index - 1
-            #else do
+            else do
                 let visitIdx = @index
 
-            #if ptr do
+            #static if ptr do
                 #inject(stmt, item = cast(&u8) scan, index = visitIdx)
-            #else do
+            else do
                 #inject(stmt, item = dref scan, index = visitIdx)
         }
     }

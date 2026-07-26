@@ -1,4 +1,4 @@
 #global private
-#global #if 0
+#global #static if 0
 
 #assert(false)

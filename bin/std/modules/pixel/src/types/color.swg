@@ -7,13 +7,13 @@ using Swag, Core, Core.Errors, Core.StrConv
 #[ConstExpr, Core.Serialization.Final]
 struct Color
 {
-    #if Core.BIG_ENDIAN
+    #static if Core.BIG_ENDIAN
     {
         a, r, g, b: u8     // Alpha, red, green, blue components (0-255)
         #[Offset("a")]
         argb: u32     // 32-bit ARGB representation
     }
-    #else
+    else
     {
         b, g, r, a: u8     // Blue, green, red, alpha components (0-255)
         #[Offset("b")]

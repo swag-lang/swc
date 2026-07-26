@@ -14,17 +14,17 @@ impl GenBitwisePair
 {
     func(op: Swag.Operator) opBinary(const me, other: const &GenBitwisePair'T)->GenBitwisePair'T
     {
-        #if op == .BitAnd do
+        #static if op == .BitAnd do
             return {x: me.x & other.x, y: me.y & other.y}
-        #elif op == .BitOr do
+        elif op == .BitOr do
             return {x: me.x | other.x, y: me.y | other.y}
-        #elif op == .BitXor do
+        elif op == .BitXor do
             return {x: me.x ^ other.x, y: me.y ^ other.y}
-        #elif op == .Shl do
+        elif op == .Shl do
             return {x: me.x << other.x, y: me.y << other.y}
-        #elif op == .Shr do
+        elif op == .Shr do
             return {x: me.x >> other.x, y: me.y >> other.y}
-        #else do
+        else do
             #error("unsupported bitwise operation [[" ++ op.symbol() ++ "]]")
     }
 }

@@ -12,9 +12,9 @@ impl AutoScopeOpBox
 {
     mtd(op: Swag.Operator) const opBinary(other: AutoScopeOpBox)->AutoScopeOpBox
     {
-        #if op == .Addd do     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
+        #static if op == .Addd do     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
             return AutoScopeOpBox{.value + other.value}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }

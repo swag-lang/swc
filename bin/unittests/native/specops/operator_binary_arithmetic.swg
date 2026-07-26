@@ -14,33 +14,33 @@ impl GenBinaryPair
 {
     mtd(op: Swag.Operator) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
     {
-        #if op == .Add do
+        #static if op == .Add do
             return {x: .x + other.x, y: .y + other.y}
-        #elif op == .Sub do
+        elif op == .Sub do
             return {x: .x - other.x, y: .y - other.y}
-        #elif op == .Mul do
+        elif op == .Mul do
             return {x: .x * other.x, y: .y * other.y}
-        #elif op == .Div do
+        elif op == .Div do
             return {x: .x / other.x, y: .y / other.y}
-        #elif op == .Mod do
+        elif op == .Mod do
             return {x: .x % other.x, y: .y % other.y}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->GenBinaryPair'T
     {
-        #if op == .Add do
+        #static if op == .Add do
             return {x: me.x + scalar, y: me.y + scalar}
-        #elif op == .Sub do
+        elif op == .Sub do
             return {x: me.x - scalar, y: me.y - scalar}
-        #elif op == .Mul do
+        elif op == .Mul do
             return {x: me.x * scalar, y: me.y * scalar}
-        #elif op == .Div do
+        elif op == .Div do
             return {x: me.x / scalar, y: me.y / scalar}
-        #elif op == .Mod do
+        elif op == .Mod do
             return {x: me.x % scalar, y: me.y % scalar}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 }

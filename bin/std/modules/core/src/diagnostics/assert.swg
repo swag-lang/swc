@@ -4,7 +4,7 @@
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
 func assert(expr: #code->bool, message: #null string = null, loc = #callerlocation)
 {
-    #if ASSERT
+    #static if ASSERT
     {
         if !#inject(expr) do
             @panic(message, loc)
@@ -14,7 +14,7 @@ func assert(expr: #code->bool, message: #null string = null, loc = #callerlocati
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
 func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: #null string = null, loc = #callerlocation)
 {
-    #if #safety(what)
+    #static if #safety(what)
     {
         if !#inject(expr) do
             @panic(message, loc)

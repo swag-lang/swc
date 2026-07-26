@@ -27,27 +27,27 @@ impl Point
     // Performs component-wise operations with another point.
     mtd(op: Swag.Operator) opAssign(other: Point)
     {
-        #if op == .AddAssign
+        #static if op == .AddAssign
         {
             .x += other.x
             .y += other.y
         }
-        #elif op == .SubAssign
+        elif op == .SubAssign
         {
             .x -= other.x
             .y -= other.y
         }
-        #elif op == .MulAssign
+        elif op == .MulAssign
         {
             .x *= other.x
             .y *= other.y
         }
-        #elif op == .DivAssign
+        elif op == .DivAssign
         {
             .x /= other.x
             .y /= other.y
         }
-        #else do
+        else do
             #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -55,27 +55,27 @@ impl Point
     // Applies the scalar 'value' to both coordinates of the point.
     mtd(op: Swag.Operator) opAssign(value: f32)
     {
-        #if op == .AddAssign
+        #static if op == .AddAssign
         {
             .x += value
             .y += value
         }
-        #elif op == .SubAssign
+        elif op == .SubAssign
         {
             .x -= value
             .y -= value
         }
-        #elif op == .MulAssign
+        elif op == .MulAssign
         {
             .x *= value
             .y *= value
         }
-        #elif op == .DivAssign
+        elif op == .DivAssign
         {
             .x /= value
             .y /= value
         }
-        #else do
+        else do
             #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -83,15 +83,15 @@ impl Point
     // Performs component-wise operations between two points and returns the result.
     mtd(op: Swag.Operator) const opBinary(other: Point)->Point
     {
-        #if op == .Add do
+        #static if op == .Add do
             return Point{.x + other.x, .y + other.y}
-        #elif op == .Sub do
+        elif op == .Sub do
             return Point{.x - other.x, .y - other.y}
-        #elif op == .Mul do
+        elif op == .Mul do
             return Point{.x * other.x, .y * other.y}
-        #elif op == .Div do
+        elif op == .Div do
             return Point{.x / other.x, .y / other.y}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -99,15 +99,15 @@ impl Point
     // Applies the scalar 'value' to both coordinates and returns the result.
     mtd(op: Swag.Operator) const opBinary(value: f32)->Point
     {
-        #if op == .Add do
+        #static if op == .Add do
             return Point{.x + value, .y + value}
-        #elif op == .Sub do
+        elif op == .Sub do
             return Point{.x - value, .y - value}
-        #elif op == .Mul do
+        elif op == .Mul do
             return Point{.x * value, .y * value}
-        #elif op == .Div do
+        elif op == .Div do
             return Point{.x / value, .y / value}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -116,13 +116,13 @@ impl Point
     mtd(op: Swag.Operator) const opUnary()->Point
     {
         var result: retval
-        #if op == .Neg
+        #static if op == .Neg
         {
             result.x = -.x
             result.y = -.y
             return result
         }
-        #else
+        else
         {
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
         }

@@ -1,4 +1,4 @@
-#global #if #os == Swag.TargetOs.Windows
+#global #static if #os == Swag.TargetOs.Windows
 
 using Core, Win32, Gdi32, TrueType
 

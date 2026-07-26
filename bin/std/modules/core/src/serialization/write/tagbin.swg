@@ -367,12 +367,12 @@ impl TagBin
     mtd(NT) writeNative(value: NT)
     {
         let output = notnull .output
-        #if Reflection.isString(NT)
+        #static if Reflection.isString(NT)
         {
             output.addNative(cast(u32) @countof(value))
             output.addBytes(value)
         }
-        #else
+        else
         {
             output.addNative(value)
         }

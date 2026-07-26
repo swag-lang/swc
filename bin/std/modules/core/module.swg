@@ -2,7 +2,7 @@
 // It is the base of all other modules of the standard 'Std' workspace.
 //
 // You will find collections like [[Array]] or [[HashTable]], a dynamic [[String]] and so on.
-#if #os == Swag.TargetOs.Windows
+#static if #os == Swag.TargetOs.Windows
 {
     #import("win32")
     #import("xinput")

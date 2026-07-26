@@ -40,35 +40,35 @@ impl Vector4
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(other: Vector4)
     {
-        #if op == .AddAssign
+        #static if op == .AddAssign
         {
             .x += other.x
             .y += other.y
             .z += other.z
             .w += other.w
         }
-        #elif op == .SubAssign
+        elif op == .SubAssign
         {
             .x -= other.x
             .y -= other.y
             .z -= other.z
             .w -= other.w
         }
-        #elif op == .MulAssign
+        elif op == .MulAssign
         {
             .x *= other.x
             .y *= other.y
             .z *= other.z
             .w *= other.w
         }
-        #elif op == .DivAssign
+        elif op == .DivAssign
         {
             .x /= other.x
             .y /= other.y
             .z /= other.z
             .w /= other.w
         }
-        #else do
+        else do
             #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -77,35 +77,35 @@ impl Vector4
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(value: f32)
     {
-        #if op == .AddAssign
+        #static if op == .AddAssign
         {
             .x += value
             .y += value
             .z += value
             .w += value
         }
-        #elif op == .SubAssign
+        elif op == .SubAssign
         {
             .x -= value
             .y -= value
             .z -= value
             .w -= value
         }
-        #elif op == .MulAssign
+        elif op == .MulAssign
         {
             .x *= value
             .y *= value
             .z *= value
             .w *= value
         }
-        #elif op == .DivAssign
+        elif op == .DivAssign
         {
             .x /= value
             .y /= value
             .z /= value
             .w /= value
         }
-        #else do
+        else do
             #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -114,15 +114,15 @@ impl Vector4
     #[Swag.Inline]
     mtd(op: Swag.Operator) const opBinary(other: const &Vector4)->Vector4
     {
-        #if op == .Add do
+        #static if op == .Add do
             return Vector4{.x + other.x, .y + other.y, .z + other.z, .w + other.w}
-        #elif op == .Sub do
+        elif op == .Sub do
             return Vector4{.x - other.x, .y - other.y, .z - other.z, .w - other.w}
-        #elif op == .Mul do
+        elif op == .Mul do
             return Vector4{.x * other.x, .y * other.y, .z * other.z, .w * other.w}
-        #elif op == .Div do
+        elif op == .Div do
             return Vector4{.x / other.x, .y / other.y, .z / other.z, .w / other.w}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -131,15 +131,15 @@ impl Vector4
     #[Swag.Inline, Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(value: f32)->Vector4
     {
-        #if op == .Add do
+        #static if op == .Add do
             return Vector4{.x + value, .y + value, .z + value, .w + value}
-        #elif op == .Sub do
+        elif op == .Sub do
             return Vector4{.x - value, .y - value, .z - value, .w - value}
-        #elif op == .Mul do
+        elif op == .Mul do
             return Vector4{.x * value, .y * value, .z * value, .w * value}
-        #elif op == .Div do
+        elif op == .Div do
             return Vector4{.x / value, .y / value, .z / value, .w / value}
-        #else do
+        else do
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
     }
 
@@ -148,9 +148,9 @@ impl Vector4
     #[Swag.Inline]
     mtd(op: Swag.Operator) const opUnary()->Vector4
     {
-        #if op == .Neg do
+        #static if op == .Neg do
             return Vector4{-.x, -.y, -.z, -.w}
-        #else do
+        else do
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
     }
 

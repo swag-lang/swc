@@ -10,28 +10,28 @@ impl IndexAssignBox
 {
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             if index == 0 do
                 .first += value
         else do
             .second += value
-        #elif op == .MulAssign do
+        elif op == .MulAssign do
             if index == 0 do
             .first *= value
         else do
             .second *= value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: u32)
     {
-        #if op == .ShlAssign do
+        #static if op == .ShlAssign do
             if index == 0 do
                 .first <<= value
         else do
             .second <<= value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }
@@ -46,12 +46,12 @@ impl WriteOnlyIndexAssignBox
 {
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
-        #if op == .AddAssign do
+        #static if op == .AddAssign do
             if index == 0 do
                 .first += value
         else do
             .second += value
-        #else do
+        else do
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
     }
 }

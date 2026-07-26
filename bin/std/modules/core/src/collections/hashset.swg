@@ -81,7 +81,7 @@ impl HashSet
         let oldTable = .tablePtr()
         let newTable = cast([*] HashSetEntry'(K)) Memory.alloc(.capacity * #sizeof(HashSetEntry'(K)), .allocator)
         Memory.clear(newTable, .capacity * #sizeof(HashSetEntry'(K)))
-        #if Reflection.hasPostCopy(K)
+        #static if Reflection.hasPostCopy(K)
         {
             for [i] in .capacity
             {
@@ -93,7 +93,7 @@ impl HashSet
                 newTable[i].key  = #nodrop oldTable[i].key
             }
         }
-        #else
+        else
         {
             Memory.copy(newTable, oldTable, .capacity * #sizeof(HashSetEntry'(K)))
         }
@@ -115,9 +115,9 @@ impl HashSet
         #scope(Up)
             for .capacity
         {
-            #if back do
+            #static if back do
                 let tableIndex = .capacity - @index - 1
-            #else do
+            else do
                 let tableIndex = @index
 
             if table[tableIndex].hash < HashSet.HASH_FIRST do
@@ -125,11 +125,11 @@ impl HashSet
 
             #scope(Down)
             {
-                #if ptr do
+                #static if ptr do
                     #inject(stmt, key = cast(&K) &table[tableIndex].key, break = break to Up, continue = break to Down)
-                #elif Reflection.isStruct(K) do
+                elif Reflection.isStruct(K) do
                     #inject(stmt, key = cast(const &K) &table[tableIndex].key, break = break to Up, continue = break to Down)
-                #else do
+                else do
                     #inject(stmt, key = table[tableIndex].key, break = break to Up, continue = break to Down)
             }
 
@@ -156,7 +156,7 @@ impl HashSet
         let table = .tablePtr()
 
         // Need to drop every structs
-        #if Reflection.hasDrop(#typeof(K))
+        #static if Reflection.hasDrop(#typeof(K))
         {
             for [i] in .capacity
             {

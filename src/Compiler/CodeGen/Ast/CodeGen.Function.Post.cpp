@@ -637,6 +637,12 @@ namespace
             payloadExprRef = exprRef;
 
         const CodeGenNodePayload& exprPayload = codeGen.payload(payloadExprRef);
+        // The value was built straight in the result local, so storing it there would copy the
+        // local onto itself. As in the return-slot case, the storage symbol is what proves the
+        // aliasing: both sides derive their own register from the same local.
+        if (exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultVar)
+            return Result::Continue;
+
         return emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef);
     }
 
@@ -858,6 +864,17 @@ namespace
         return false;
     }
 
+    // The value was built straight in the caller's return slot, so copying it there again
+    // would copy the slot onto itself. Register identity is not enough to detect this: the
+    // expression and the epilogue each materialize their own virtual register from the
+    // hidden return pointer, so the storage symbol is what actually proves they alias.
+    bool returnValueAlreadyInCallerStorage(CodeGen& codeGen, const CodeGenNodePayload& exprPayload)
+    {
+        return exprPayload.isAddress() &&
+               exprPayload.runtimeStorageSym != nullptr &&
+               CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *exprPayload.runtimeStorageSym);
+    }
+
     void emitIndirectReturnValuePayload(CodeGen& codeGen, MicroReg outputStorageReg, MicroReg valueReg, uint32_t copySize)
     {
         SWC_ASSERT(copySize > 0);
@@ -906,6 +923,7 @@ namespace
 
         const CodeGenNodePayload& exprPayload                = codeGen.payload(exprRef);
         const bool                delayReturnMaterialization = shouldDelayReturnMaterializationForDeferredActions(codeGen, exprRef, exprPayload);
+        const bool                returnValueIsInPlace       = returnValueAlreadyInCallerStorage(codeGen, exprPayload);
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
@@ -916,7 +934,7 @@ namespace
             }
             else if (!delayReturnMaterialization && exprPayload.isAddress())
             {
-                if (exprPayload.reg != outputStorageReg)
+                if (exprPayload.reg != outputStorageReg && !returnValueIsInPlace)
                 {
                     CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
                     SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));
@@ -931,7 +949,7 @@ namespace
             SWC_RESULT(codeGen.emitDeferredActionsForReturn());
             if (delayReturnMaterialization && needsPersistentCompilerReturn)
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-            else if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg)
+            else if (delayReturnMaterialization && exprPayload.isAddress() && exprPayload.reg != outputStorageReg && !returnValueIsInPlace)
             {
                 CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, exprPayload.reg, normalizedRet.indirectSize);
                 SWC_RESULT(emitPostCopyAfterIndirectReturnCopy(codeGen, returnTypeRef, exprPayload, outputStorageReg));

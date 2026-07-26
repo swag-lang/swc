@@ -656,6 +656,12 @@ namespace
 
             if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
             {
+                // Another named 'retval' local denotes this same slot, so the callee could be
+                // reading it through an argument while writing its result into it. Fall back to
+                // a temporary: the callee is allowed to build its return value in place.
+                if (SemaHelpers::functionExposesReturnSlot(codeGen.function(), &symVar))
+                    return false;
+
                 const CodeGenNodePayload storagePayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
                 SWC_ASSERT(storagePayload.isAddress());
                 outStorageReg = storagePayload.reg;

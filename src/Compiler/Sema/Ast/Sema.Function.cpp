@@ -826,6 +826,91 @@ namespace
         return Result::Continue;
     }
 
+    // Aggregate literals are the only return expressions that build the whole value from
+    // scratch, so they are the only ones that can be told to build it in the caller's slot.
+    // An lvalue return ('return someLocal', 'return me.field') still owes a copy, and the
+    // scratch storages other nodes request (the member-access spill slot is a bare 8-byte
+    // array, not the return type) must never be redirected onto the return slot.
+    bool returnExprBuildsWholeValueInPlace(const Sema& sema, AstNodeRef exprRef)
+    {
+        if (exprRef.isInvalid())
+            return false;
+
+        // 'T{...}' parses to StructInitializerList, the bare '{...}' form to StructLiteral.
+        const AstNode& exprNode = sema.node(exprRef);
+        return exprNode.is(AstNodeId::StructInitializerList) ||
+               exprNode.is(AstNodeId::StructLiteral) ||
+               exprNode.is(AstNodeId::ArrayLiteral);
+    }
+
+    // An inlined body does not return through the ABI: 'emitInlineResultStore' copies the value
+    // into the '__inline_result' local the expansion created in the caller. Building the literal
+    // straight into that local removes the same copy. This is the safer half of the two: the
+    // result local is freshly synthesized per call site, so unlike the return slot it can never
+    // alias anything the inlined body reads.
+    Result bindInlineResultRuntimeStorage(SemaFrame& frame, Sema& sema, AstNodeRef exprRef, const SemaInlinePayload& inlinePayload)
+    {
+        // '#[Swag.CalleeReturn]' returns to the caller's own return path, not to a result local.
+        if (inlinePayload.returnsToCallerSite() || !inlinePayload.resultVar)
+            return Result::Continue;
+        if (!inlinePayload.returnTypeRef.isValid() || inlinePayload.returnTypeRef == sema.typeMgr().typeVoid())
+            return Result::Continue;
+        if (SemaHelpers::typeHasLifecycle(sema.ctx(), inlinePayload.returnTypeRef))
+            return Result::Continue;
+
+        frame.setCurrentRuntimeStorage(exprRef, inlinePayload.resultVar);
+        return Result::Continue;
+    }
+
+    // Return-value optimization. Binding a storage symbol as the frame's runtime storage makes
+    // every node that materializes into runtime storage
+    // (SemaHelpers::getOrCreateRuntimeStorageSymbol) pick that destination instead of a fresh
+    // local, which is exactly the mechanism an explicit 'var x: retval' uses. CodeGen then sees
+    // the value already sitting where it belongs and drops the copy.
+    Result bindReturnSlotRuntimeStorage(SemaFrame& frame, Sema& sema, AstNodeRef exprRef)
+    {
+        if (!returnExprBuildsWholeValueInPlace(sema, exprRef))
+            return Result::Continue;
+        if (sema.isGlobalScope() || !sema.isCurrentFunction())
+            return Result::Continue;
+        if (const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema))
+            return bindInlineResultRuntimeStorage(frame, sema, exprRef, *inlinePayload);
+        // '#run' and '#ast' returns are re-read out of the local frame and persisted into
+        // the compiler segment, so their value must stay where that path expects it.
+        if (returnValueIsCompilerMaterialized(sema))
+            return Result::Continue;
+
+        bool usesIndirectReturnStorage = false;
+        SWC_RESULT(SemaHelpers::currentFunctionUsesIndirectReturnStorage(usesIndirectReturnStorage, sema));
+        if (!usesIndirectReturnStorage)
+            return Result::Continue;
+        // An explicit 'retval' local makes the slot readable, so it can no longer be used as
+        // an in-place destination for a value that might read it.
+        if (SemaHelpers::functionExposesReturnSlot(*sema.currentFunction()))
+            return Result::Continue;
+
+        const TypeRef storageTypeRef = SemaHelpers::indirectReturnRuntimeStorageTypeRef(sema, *sema.currentFunction());
+        if (storageTypeRef.isInvalid())
+            return Result::Continue;
+        // The return copy carries the 'opPostCopy' that transfers ownership to the caller.
+        if (SemaHelpers::typeHasLifecycle(sema.ctx(), storageTypeRef))
+            return Result::Continue;
+
+        // Memoized on the return statement so a sema pause/resume reuses the same symbol
+        // instead of registering a second local on every re-entry.
+        auto& payload = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+        if (payload.runtimeStorageSym == nullptr)
+        {
+            auto& storageSym = SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, sema.curNode(), "__retval_runtime_storage");
+            storageSym.addExtraFlag(SymbolVariableFlagsE::RetVal);
+            payload.runtimeStorageSym = &storageSym;
+        }
+
+        SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *payload.runtimeStorageSym, storageTypeRef));
+        frame.setCurrentRuntimeStorage(exprRef, payload.runtimeStorageSym);
+        return Result::Continue;
+    }
+
     Result validateReturnStatementValue(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef)
     {
         SWC_ASSERT(returnTypeRef.isValid());
@@ -1754,6 +1839,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
 
     auto frame = sema.frame();
     frame.pushBindingType(returnTypeRef);
+    SWC_RESULT(bindReturnSlotRuntimeStorage(frame, sema, childRef));
     sema.pushFramePopOnPostChild(frame, childRef);
     return Result::Continue;
 }

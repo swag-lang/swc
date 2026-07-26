@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Support/Report/Assert.h"
 
@@ -566,6 +567,45 @@ bool SemaHelpers::usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction
 {
     return symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) &&
            functionUsesIndirectReturnStorage(ctx, function);
+}
+
+// A returned value that owns resources cannot skip its return copy. The copy is not just a
+// move of bytes: it is followed by 'opPostCopy', which is what gives the caller its own
+// ownership of whatever the fields point at. Dropping the copy also drops that hook, and the
+// caller then shares an allocation with the value the literal was built from — a double free
+// at the second drop. Types with a lifecycle keep the copy.
+bool SemaHelpers::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef)
+{
+    if (!typeRef.isValid())
+        return false;
+
+    // Asking the struct for its 'effective' lifecycle functions is not usable here: those
+    // resolve through the generated wrappers, which are still being declared and completed
+    // while a caller's body is analysed, so the answer flips with job scheduling. The TypeGen
+    // flags answer from the directly registered operators plus a field walk, which is stable.
+    const TypeGen::LifecycleFlags flags = TypeGen::lifecycleFlagsOfTypeRef(ctx, typeRef);
+    return flags.hasDrop || flags.hasPostCopy || flags.hasPostMove;
+}
+
+// Building a value directly in the caller's return slot assumes nothing the value reads can
+// live in that slot. The slot is private to the function unless an explicit 'var x: retval'
+// gives it a name: from then on an expression can read it, and a second in-place
+// construction would read storage it has already zeroed and overwritten. So once such a
+// local exists, the return slot stops being a legal in-place destination.
+//
+// Compiler-made storages ('__retval_runtime_storage') carry the same 'RetVal' flag but no
+// name, so they cannot be read and never expose the slot.
+bool SemaHelpers::functionExposesReturnSlot(const SymbolFunction& function, const SymbolVariable* ignoreSym)
+{
+    for (const SymbolVariable* local : function.localVariables())
+    {
+        if (!local || local == ignoreSym)
+            continue;
+        if (local->hasExtraFlag(SymbolVariableFlagsE::RetVal) && !local->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage))
+            return true;
+    }
+
+    return false;
 }
 
 SWC_END_NAMESPACE();

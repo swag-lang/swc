@@ -99,6 +99,8 @@ namespace SemaHelpers
     bool                     functionUsesIndirectReturnStorage(TaskContext& ctx, const SymbolFunction& function);
     Result                   currentFunctionUsesIndirectReturnStorage(bool& outUsesIndirectReturnStorage, Sema& sema);
     bool                     usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction& function, const SymbolVariable& symVar);
+    bool                     functionExposesReturnSlot(const SymbolFunction& function, const SymbolVariable* ignoreSym = nullptr);
+    bool                     typeHasLifecycle(TaskContext& ctx, TypeRef typeRef);
     const SemaInlinePayload* effectiveInlinePayload(const Sema& sema);
     const SymbolFunction*    currentLocationFunction(const Sema& sema);
     AstNodeRef               defaultArgumentExprRef(const SymbolVariable& param);

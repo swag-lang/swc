@@ -21,12 +21,17 @@ impl RuntimeIndexAssignBox
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
         .writes += 1
-        #static if op == .AddAssign do
+        #static switch op
+        {
+        case .AddAssign:
             .values[index] += value
-        elif op == .MulAssign do
+
+        case .MulAssign:
             .values[index] *= value
-        else do
+
+        default:
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     #[Swag.NoInline]

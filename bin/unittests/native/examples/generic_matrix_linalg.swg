@@ -27,12 +27,17 @@ impl Vec2
 
     func(op: Swag.Operator) opBinary(const me, other: const &Vec2)->Vec2
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {x: me.x + other.x, y: me.y + other.y}
-        elif op == .Sub do
+
+        case .Sub:
             return {x: me.x - other.x, y: me.y - other.y}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2
@@ -131,19 +136,25 @@ impl Mat2
     // Mat2 +/- Mat2, Mat2 * Mat2
     func(op: Swag.Operator) opBinary(const me, other: const &Mat2)->Mat2
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {a: me.a + other.a, b: me.b + other.b,
                     c: me.c + other.c, d: me.d + other.d}
-        elif op == .Sub do
+
+        case .Sub:
             return {a: me.a - other.a, b: me.b - other.b,
                 c: me.c - other.c, d: me.d - other.d}
-        elif op == .Mul do
+
+        case .Mul:
             return {a: me.a * other.a + me.b * other.c,
                 b: me.a * other.b + me.b * other.d,
                 c: me.c * other.a + me.d * other.c,
                 d: me.c * other.b + me.d * other.d}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Mat2 * scalar

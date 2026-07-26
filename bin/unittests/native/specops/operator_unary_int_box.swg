@@ -13,14 +13,20 @@ impl IntUnaryBox
 {
     func(op: Swag.Operator) opUnary(const me)->IntUnaryBox'T
     {
-        #static if op == .Pos do
+        #static switch op
+        {
+        case .Pos:
             return {value: +me.value}
-        elif op == .Neg do
+
+        case .Neg:
             return {value: -me.value}
-        elif op == .BitNot do
+
+        case .BitNot:
             return {value: ~.value}
-        else do
+
+        default:
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 

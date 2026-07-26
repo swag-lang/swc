@@ -449,6 +449,8 @@ Result AstCompilerCodeExpr::semaPostNode(Sema& sema) const
 
 Result AstCompilerExpression::semaPostNode(Sema& sema)
 {
+    SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
+    SemaHelpers::normalizeTypeOperandToConstant(sema, exprView);
     SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
     sema.inheritPayload(*this, nodeExprRef);
     return Result::Continue;
@@ -614,12 +616,12 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 {
     if (childRef == nodeExprRef)
     {
-        SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
-
         SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
+        SemaHelpers::normalizeTypeOperandToConstant(sema, exprView);
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, exprView));
         SWC_RESULT(SemaSwitch::normalizeExprTypeInfoIfNeeded(sema, nodeExprRef, exprView));
         SWC_RESULT(SemaSwitch::validateExprType(sema, nodeExprRef, exprView.typeRef()));
+        SWC_RESULT(SemaCheck::isConstant(sema, nodeExprRef));
 
         const TypeRef enumTypeRef = SemaSwitch::enumTypeRef(sema, exprView.typeRef());
         if (enumTypeRef.isValid())
@@ -637,6 +639,7 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
         return Result::Continue;
 
     SemaNodeView caseView = sema.viewNodeTypeConstant(childRef);
+    SemaHelpers::normalizeTypeOperandToConstant(sema, caseView);
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, caseView));
     const TypeRef switchTypeRef = sema.viewType(nodeExprRef).typeRef();
     SWC_RESULT(Cast::cast(sema, caseView, SemaSwitch::caseCastTypeRef(sema, switchTypeRef), CastKind::Implicit));

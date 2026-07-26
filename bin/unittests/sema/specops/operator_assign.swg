@@ -16,12 +16,17 @@ impl AssignBox
 
     mtd(op: Swag.Operator) opAssign(value: s32)
     {
-        #static if op == .AddAssign do
+        #static switch op
+        {
+        case .AddAssign:
             .setPair(.a + value, .b + value)
-        elif op == .MulAssign do
+
+        case .MulAssign:
             .setPair(.a * value, .b * value)
-        else do
+
+        default:
             #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     mtd(op: Swag.Operator) opAssign(value: u32)

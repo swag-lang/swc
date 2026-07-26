@@ -18,6 +18,32 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    bool isTypeSyntaxNode(const AstNode& node)
+    {
+        switch (node.id())
+        {
+            case AstNodeId::BuiltinType:
+            case AstNodeId::NamedType:
+            case AstNodeId::QualifiedType:
+            case AstNodeId::ArrayType:
+            case AstNodeId::SliceType:
+            case AstNodeId::ReferenceType:
+            case AstNodeId::MoveRefType:
+            case AstNodeId::ValuePointerType:
+            case AstNodeId::BlockPointerType:
+            case AstNodeId::VariadicType:
+            case AstNodeId::TypedVariadicType:
+            case AstNodeId::CodeType:
+            case AstNodeId::RetValType:
+            case AstNodeId::LambdaType:
+            case AstNodeId::CompilerTypeExpr:
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     bool intLikeConstantFitsType(const ConstantValue& cst, const TypeInfo& targetType)
     {
         SWC_ASSERT(targetType.isIntLike());
@@ -632,6 +658,42 @@ TypeRef SemaHelpers::resolveRepresentedTypeRef(Sema& sema, const SemaNodeView& v
         return TypeRef::invalid();
 
     return sema.cstMgr().makeTypeValue(sema, view.cstRef());
+}
+
+void SemaHelpers::normalizeTypeOperandToConstant(Sema& sema, SemaNodeView& view)
+{
+    if (!view.typeRef().isValid() || view.cstRef().isValid())
+        return;
+
+    const AstNodeRef targetRef = view.nodeRef();
+    if (targetRef.isInvalid())
+        return;
+
+    const AstNode& targetNode = sema.node(targetRef);
+    bool           isTypeExpr = isTypeSyntaxNode(targetNode);
+    if (!isTypeExpr)
+    {
+        if (const auto* ident = targetNode.safeCast<AstIdentifier>())
+            if (ident->hasFlag(AstIdentifierFlagsE::GenericTypeBinding))
+                isTypeExpr = true;
+
+        if (!isTypeExpr)
+        {
+            const SemaNodeView symbolView = sema.viewNodeTypeSymbol(targetRef);
+            isTypeExpr                    = symbolView.sym() && symbolView.sym()->isType();
+        }
+    }
+
+    if (!isTypeExpr)
+        return;
+
+    TypeRef typeValueRef = view.typeRef();
+    if (view.type() && view.type()->isTypeValue())
+        typeValueRef = view.type()->payloadTypeRef();
+
+    const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeValueRef));
+    sema.setConstant(targetRef, cstRef);
+    view.recompute(sema, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
 }
 
 TypeRef SemaHelpers::normalizeTypeLikeValueTypeRef(Sema& sema, TypeRef typeRef, ConstantRef cstRef, AstNodeRef ownerNodeRef)

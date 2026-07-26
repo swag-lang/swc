@@ -10,7 +10,7 @@ const Cfg = #run dref notnull @compiler.getBuildCfg()
 #assert(#typeof(Cfg.allocatorTrackAllocations) == bool)
 #assert(#typeof(Cfg.allocatorElectricMode) == bool)
 #assert(#typeof(Cfg.allocatorFillMemory) == bool)
-#assert(Cfg.registeredConfigs == "fast-compile|debug|fast-debug|release")
+#assert(Cfg.registeredConfigs == "debug|fast-debug|release")
 #assert(Cfg.backendKind == Swag.BuildCfgBackendKind.Executable or
 Cfg.backendKind == Swag.BuildCfgBackendKind.SharedLibrary or
 Cfg.backendKind == Swag.BuildCfgBackendKind.StaticLibrary)
@@ -20,7 +20,7 @@ Cfg.backendSubKind == Swag.BuildCfgBackendSubKind.Console)
 // BuildCfg fields are valid at runtime
 #test
 {
-    @assert(Cfg.registeredConfigs == "fast-compile|debug|fast-debug|release")
+    @assert(Cfg.registeredConfigs == "debug|fast-debug|release")
     @assert(Cfg.backendKind != Swag.BuildCfgBackendKind.None)
     @assert(Cfg.moduleVersion >= 0'u32)
     @assert(Cfg.moduleRevision >= 0'u32)

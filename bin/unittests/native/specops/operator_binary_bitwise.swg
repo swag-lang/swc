@@ -14,18 +14,26 @@ impl GenBitwisePair
 {
     func(op: Swag.Operator) opBinary(const me, other: const &GenBitwisePair'T)->GenBitwisePair'T
     {
-        #static if op == .BitAnd do
+        #static switch op
+        {
+        case .BitAnd:
             return {x: me.x & other.x, y: me.y & other.y}
-        elif op == .BitOr do
+
+        case .BitOr:
             return {x: me.x | other.x, y: me.y | other.y}
-        elif op == .BitXor do
+
+        case .BitXor:
             return {x: me.x ^ other.x, y: me.y ^ other.y}
-        elif op == .Shl do
+
+        case .Shl:
             return {x: me.x << other.x, y: me.y << other.y}
-        elif op == .Shr do
+
+        case .Shr:
             return {x: me.x >> other.x, y: me.y >> other.y}
-        else do
+
+        default:
             #error("unsupported bitwise operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 

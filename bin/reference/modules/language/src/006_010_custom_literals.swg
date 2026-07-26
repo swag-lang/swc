@@ -31,16 +31,23 @@ impl Duration
     #[Swag.ConstExpr, Swag.Implicit, Swag.Inline]
     mtd(suffix: string) opSetLiteral(value: s32)
     {
-        #static if suffix == "s" do
+        #static switch suffix
+        {
+        case "s":
             me.timeInSeconds = value
-        elif suffix == "ms" do
+
+        case "ms":
             me.timeInSeconds = value / 1000.0
-        elif suffix == "min" do
+
+        case "min":
             me.timeInSeconds = value * 60.0
-        elif suffix == "h" do
+
+        case "h":
             me.timeInSeconds = value * 3600.0
-        else do
+
+        default:
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
+        }
     }
 }
 

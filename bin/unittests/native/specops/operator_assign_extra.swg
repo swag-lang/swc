@@ -16,18 +16,26 @@ impl RuntimeArithAssignBox
     mtd(op: Swag.Operator) opAssign(rhs: s32)
     {
         .calls += 1
-        #static if op == .AddAssign do
+        #static switch op
+        {
+        case .AddAssign:
             .value += rhs
-        elif op == .SubAssign do
+
+        case .SubAssign:
             .value -= rhs
-        elif op == .MulAssign do
+
+        case .MulAssign:
             .value *= rhs
-        elif op == .DivAssign do
+
+        case .DivAssign:
             .value /= rhs
-        elif op == .ModAssign do
+
+        case .ModAssign:
             .value %= rhs
-        else do
+
+        default:
             #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 
@@ -99,18 +107,26 @@ impl RuntimeBitAssignBox
     mtd(op: Swag.Operator) opAssign(rhs: u32)
     {
         .calls += 1
-        #static if op == .BitAndAssign do
+        #static switch op
+        {
+        case .BitAndAssign:
             .value &= rhs
-        elif op == .BitOrAssign do
+
+        case .BitOrAssign:
             .value |= rhs
-        elif op == .BitXorAssign do
+
+        case .BitXorAssign:
             .value ^= rhs
-        elif op == .ShlAssign do
+
+        case .ShlAssign:
             .value <<= rhs
-        elif op == .ShrAssign do
+
+        case .ShrAssign:
             .value >>= rhs
-        else do
+
+        default:
             #error("unsupported opAssign op [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 

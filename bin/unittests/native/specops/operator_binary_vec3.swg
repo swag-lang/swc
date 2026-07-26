@@ -15,30 +15,44 @@ impl GenVec3
 {
     func(op: Swag.Operator) opBinary(const me, other: const &GenVec3'T)->GenVec3'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {x: me.x + other.x, y: me.y + other.y, z: me.z + other.z}
-        elif op == .Sub do
+
+        case .Sub:
             return {x: me.x - other.x, y: me.y - other.y, z: me.z - other.z}
-        elif op == .Mul do
+
+        case .Mul:
             return {x: me.x * other.x, y: me.y * other.y, z: me.z * other.z}
-        elif op == .Div do
+
+        case .Div:
             return {x: me.x / other.x, y: me.y / other.y, z: me.z / other.z}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->GenVec3'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {x: me.x + scalar, y: me.y + scalar, z: me.z + scalar}
-        elif op == .Sub do
+
+        case .Sub:
             return {x: me.x - scalar, y: me.y - scalar, z: me.z - scalar}
-        elif op == .Mul do
+
+        case .Mul:
             return {x: me.x * scalar, y: me.y * scalar, z: me.z * scalar}
-        elif op == .Div do
+
+        case .Div:
             return {x: me.x / scalar, y: me.y / scalar, z: me.z / scalar}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 

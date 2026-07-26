@@ -18,40 +18,59 @@ impl Vec2
 {
     func(op: Swag.Operator) opUnary(const me)->Vec2'T
     {
-        #static if op == .Pos do
+        #static switch op
+        {
+        case .Pos:
             return {x: +me.x, y: +me.y}
-        elif op == .Neg do
+
+        case .Neg:
             return {x: -me.x, y: -me.y}
-        else do
+
+        default:
             #error("unsupported unary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     func(op: Swag.Operator) opBinary(const me, other: const &Vec2'T)->Vec2'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {x: me.x + other.x, y: me.y + other.y}
-        elif op == .Sub do
+
+        case .Sub:
             return {x: me.x - other.x, y: me.y - other.y}
-        elif op == .Mul do
+
+        case .Mul:
             return {x: me.x * other.x, y: me.y * other.y}
-        elif op == .Div do
+
+        case .Div:
             return {x: me.x / other.x, y: me.y / other.y}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Vec2'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {x: me.x + scalar, y: me.y + scalar}
-        elif op == .Sub do
+
+        case .Sub:
             return {x: me.x - scalar, y: me.y - scalar}
-        elif op == .Mul do
+
+        case .Mul:
             return {x: me.x * scalar, y: me.y * scalar}
-        elif op == .Div do
+
+        case .Div:
             return {x: me.x / scalar, y: me.y / scalar}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     func dot(a: const &Vec2'T, b: const &Vec2'T)->T
@@ -84,23 +103,33 @@ impl Rect
     // Rect + Vec2 = translate,  Rect + Rect = bounding union
     func(op: Swag.Operator) opBinary(const me, offset: const &Vec2'T)->Rect'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {min: me.min + offset, max: me.max + offset}
-        elif op == .Sub do
+
+        case .Sub:
             return {min: me.min - offset, max: me.max - offset}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Rect * scalar = scale from origin
     func(op: Swag.Operator) opBinary(const me, scalar: T)->Rect'T
     {
-        #static if op == .Mul do
+        #static switch op
+        {
+        case .Mul:
             return {min: me.min * scalar, max: me.max * scalar}
-        elif op == .Div do
+
+        case .Div:
             return {min: me.min / scalar, max: me.max / scalar}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     func width(const me)->T  => me.max.x - me.min.x
@@ -137,12 +166,17 @@ impl Transform2D
     // Combine two transforms: add positions, multiply scales
     func(op: Swag.Operator) opBinary(const me, other: const &Transform2D'T)->Transform2D'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {pos: me.pos + other.pos, scale: me.scale * other.scale}
-        elif op == .Sub do
+
+        case .Sub:
             return {pos: me.pos - other.pos, scale: me.scale * other.scale}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Uniform scale: multiply both pos and scale by scalar

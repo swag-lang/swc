@@ -167,74 +167,64 @@ public impl JSon
     mtd(NT) readNative()->NT fail
     {
         .zapBlanks()
-        #static if NT == bool
+        #static switch NT
         {
+        case bool:
             let val = StrConv.parseBool(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == f32
-        {
+
+        case f32:
             let val = StrConv.parseF32(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == f64
-        {
+
+        case f64:
             let val = StrConv.parseF64(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == s8
-        {
+
+        case s8:
             let val = StrConv.parseS8(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == s16
-        {
+
+        case s16:
             let val = StrConv.parseS16(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == s32
-        {
+
+        case s32:
             let val = StrConv.parseS32(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == s64
-        {
+
+        case s64:
             let val = StrConv.parseS64(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == u8
-        {
+
+        case u8:
             let val = StrConv.parseU8(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == u16
-        {
+
+        case u16:
             let val = StrConv.parseU16(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == u32
-        {
+
+        case u32:
             let val = StrConv.parseU32(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == u64
-        {
+
+        case u64:
             let val = StrConv.parseU64(.stream.remainReadToString())
             .stream.moveSeek(val.eat)
             return val.value
-        }
-        elif NT == Core.String
-        {
+
+        case Core.String:
             var result: retval
 
             .zapBlanks()
@@ -265,9 +255,8 @@ public impl JSon
                 fail .getError("malformed string, missing closing [[\"]]")
 
             return result
-        }
-        else
-        {
+
+        default:
             #error("invalid type")
         }
     }

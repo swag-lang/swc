@@ -120,6 +120,7 @@ namespace SemaHelpers
     Result                   intrinsicCountOf(Sema& sema, AstNodeRef targetRef, AstNodeRef exprRef);
     bool                     isTypeLikeTypeRef(const TaskContext& ctx, TypeRef typeRef);
     TypeRef                  resolveRepresentedTypeRef(Sema& sema, const SemaNodeView& view);
+    void                     normalizeTypeOperandToConstant(Sema& sema, SemaNodeView& view);
     TypeRef                  normalizeTypeLikeValueTypeRef(Sema& sema, TypeRef typeRef, ConstantRef cstRef, AstNodeRef ownerNodeRef);
     TypeRef                  preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRef, ConstantRef valueCstRef, AstNodeRef ownerNodeRef);
     Result                   normalizeTypeInfoConstantRef(Sema& sema, ConstantRef& ioCstRef, AstNodeRef ownerNodeRef);

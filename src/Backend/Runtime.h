@@ -490,8 +490,8 @@ namespace Runtime
     };
 
     inline constexpr String DEFAULT_REGISTERED_BUILD_CFGS = {
-        .ptr    = "fast-compile|debug|fast-debug|release",
-        .length = 37,
+        .ptr    = "debug|fast-debug|release",
+        .length = 24,
     };
 
     struct BuildCfg

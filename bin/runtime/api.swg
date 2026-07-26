@@ -244,8 +244,7 @@ namespace Swag
     // Enable/Disable one or more STATIC (compile-time) sanity checks: the borrow
     // analysis, and the proven-fault sanitizer (use-after-move, stack escapes, proven
     // null dereferences, ...). Reuses the [[SafetyWhat]] flags. Unlike [[Safety]], these
-    // checks add no runtime cost and are enabled by default in every build configuration
-    // except 'fast-compile'.
+    // checks add no runtime cost and are enabled by default in every build configuration.
     #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
     attr Sanity(what: SafetyWhat, value: bool)
 
@@ -960,7 +959,7 @@ namespace Swag
         resAppCompany:     #null string                                         // For an executable, the associated company name
         resAppCopyright:   #null string                                         // For an executable, the associated copyright notice
         genDoc:            BuildCfgGenDoc                                       // Parameters for document generation
-        registeredConfigs: string = "fast-compile|debug|fast-debug|release"     // Registered build configuration names used by --build-cfg and #cfg
+        registeredConfigs: string = "debug|fast-debug|release"                  // Registered build configuration names used by --build-cfg and #cfg
     }
 
     // #########################################################

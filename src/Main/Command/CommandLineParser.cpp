@@ -206,21 +206,7 @@ namespace
 
     bool applyBuildCfgPreset(Runtime::BuildCfg& buildCfg, const std::string_view cfgName)
     {
-        if (cfgName == "fast-compile")
-        {
-            buildCfg.safetyGuards              = Runtime::SafetyWhat::None;
-            buildCfg.sanityGuards              = Runtime::SafetyWhat::None;
-            buildCfg.allocatorCaptureStack     = false;
-            buildCfg.allocatorLeaks            = false;
-            buildCfg.allocatorTrackAllocations = false;
-            buildCfg.allocatorElectricMode     = false;
-            buildCfg.allocatorFillMemory       = false;
-            buildCfg.errorStackTrace           = false;
-            buildCfg.backend.optimize          = false;
-            buildCfg.backend.debugInfo         = false;
-            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Never;
-        }
-        else if (cfgName == "debug")
+        if (cfgName == "debug")
         {
             buildCfg.safetyGuards              = Runtime::SafetyWhat::All;
             buildCfg.sanityGuards              = Runtime::SafetyWhat::All;

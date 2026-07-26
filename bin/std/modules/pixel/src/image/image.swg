@@ -189,17 +189,16 @@ impl Image
     #[Swag.Inline]
     func(BPP: u8) copyPixelDirect(pixDst, pixSrc: [*] u8)
     {
-        #static if BPP == 24
+        #static switch BPP
         {
+        case 24:
             dref cast(*u16) pixDst = dref cast(*u16) pixSrc
             pixDst[2]              = pixSrc[2]
-        }
-        elif BPP == 32
-        {
+
+        case 32:
             dref cast(*u32) pixDst = dref cast(*u32) pixSrc
-        }
-        else
-        {
+
+        default:
             #assert("invalid pixelCopy BPP")
         }
     }
@@ -248,32 +247,30 @@ impl Image
         var y = Math.clamp(pixY, 0, .height - 1)
         y = .height - y - 1
 
-        #static if PF == .RGBA8
+        #static switch PF
         {
+        case .RGBA8:
             let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
             result.a = pix[3]
-        }
-        elif PF == .RGB8
-        {
+
+        case .RGB8:
             let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
             result.r = pix[0]
             result.g = pix[1]
             result.b = pix[2]
             result.a = 255
-        }
-        elif PF == .BGRA8
-        {
+
+        case .BGRA8:
             let pix = (notnull .pixels.buffer) + (x * 4) + (y * .width * 4)
             result.b = pix[0]
             result.g = pix[1]
             result.r = pix[2]
             result.a = pix[3]
-        }
-        elif PF == .BGR8
-        {
+
+        case .BGR8:
             let pix = (notnull .pixels.buffer) + (x * 3) + (y * .width * 3)
             result.b = pix[0]
             result.g = pix[1]

@@ -10,8 +10,8 @@ using Swag
 // ---------------------------------------------------------------------------
 
 // The lifecycle analysis is per-function: the helpers must force it too so their
-// FREES summaries exist even in build configs where sanity is globally disabled
-// (fast-compile), keeping the expected errors config-independent.
+// FREES summaries exist even when sanity is disabled around them, keeping the
+// expected errors independent of the surrounding configuration.
 #[Swag.Sanity(.Lifecycle, true)]
 func myAlloc(size: u64)->*void
 {

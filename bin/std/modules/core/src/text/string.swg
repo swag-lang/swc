@@ -106,12 +106,17 @@ impl String
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
         let buffer = notnull .buffer
-        #static if op == .AddAssign do
+        #static switch op
+        {
+        case .AddAssign:
             buffer[index] += #wrap value
-        elif op == .SubAssign do
+
+        case .SubAssign:
             buffer[index] -= #wrap value
-        else do
+
+        default:
             #error("invalid operator '" ++ op.symbol() ++ "'")
+        }
     }
 
     mtd opIndexSet(index: u64, value: u8)

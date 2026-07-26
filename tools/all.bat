@@ -20,7 +20,7 @@ shift
 goto parse_args
 
 :run
-for %%C in (release debug fast-debug fast-compile) do (
+for %%C in (release debug fast-debug) do (
     call :build_config "%%C" || exit /b 1
 )
 

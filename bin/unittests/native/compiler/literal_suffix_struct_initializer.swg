@@ -23,12 +23,17 @@ impl LiteralAngle
     #[Swag.ConstExpr, Swag.Implicit]
     mtd(suffix: string) opSetLiteral(value: f32)
     {
-        #static if suffix == "deg" do
+        #static switch suffix
+        {
+        case "deg":
             .radians = value * DegreesToRadians
-        elif suffix == "rad" do
+
+        case "rad":
             .radians = value
-        else do
+
+        default:
             #error("invalid angle suffix '" ++ suffix ++ "'")
+        }
     }
 }
 

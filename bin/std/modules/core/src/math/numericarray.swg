@@ -32,16 +32,23 @@ impl NumericArray
         var result: retval
         for [i] in N
         {
-            #static if op == .Add do
+            #static switch op
+            {
+            case .Add:
                 result.buf[i] = .buf[i] + other.buf[i]
-            elif op == .Sub do
+
+            case .Sub:
                 result.buf[i] = .buf[i] - other.buf[i]
-            elif op == .Mul do
+
+            case .Mul:
                 result.buf[i] = .buf[i] * other.buf[i]
-            elif op == .Div do
+
+            case .Div:
                 result.buf[i] = .buf[i] / other.buf[i]
-            else do
+
+            default:
                 #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+            }
         }
 
         return result
@@ -51,16 +58,23 @@ impl NumericArray
     {
         for [i] in N
         {
-            #static if op == .AddAssign do
+            #static switch op
+            {
+            case .AddAssign:
                 .buf[i] += value
-            elif (op == .SubAssign) do
+
+            case .SubAssign:
                 .buf[i] -= value
-            elif (op == .MulAssign) do
+
+            case .MulAssign:
                 .buf[i] *= value
-            elif (op == .DivAssign) do
+
+            case .DivAssign:
                 .buf[i] /= value
-            else do
+
+            default:
                 #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
+            }
         }
     }
 
@@ -68,16 +82,23 @@ impl NumericArray
     {
         for [i] in N
         {
-            #static if op == .AddAssign do
+            #static switch op
+            {
+            case .AddAssign:
                 .buf[i] += value.buf[i]
-            elif (op == .SubAssign) do
+
+            case .SubAssign:
                 .buf[i] -= value.buf[i]
-            elif (op == .MulAssign) do
+
+            case .MulAssign:
                 .buf[i] *= value.buf[i]
-            elif (op == .DivAssign) do
+
+            case .DivAssign:
                 .buf[i] /= value.buf[i]
-            else do
+
+            default:
                 #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
+            }
         }
     }
 

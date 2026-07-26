@@ -40,36 +40,35 @@ impl Vector4
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(other: Vector4)
     {
-        #static if op == .AddAssign
+        #static switch op
         {
+        case .AddAssign:
             .x += other.x
             .y += other.y
             .z += other.z
             .w += other.w
-        }
-        elif op == .SubAssign
-        {
+
+        case .SubAssign:
             .x -= other.x
             .y -= other.y
             .z -= other.z
             .w -= other.w
-        }
-        elif op == .MulAssign
-        {
+
+        case .MulAssign:
             .x *= other.x
             .y *= other.y
             .z *= other.z
             .w *= other.w
-        }
-        elif op == .DivAssign
-        {
+
+        case .DivAssign:
             .x /= other.x
             .y /= other.y
             .z /= other.z
             .w /= other.w
-        }
-        else do
+
+        default:
             #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Compound assignment operators for vector-scalar operations (+=, -=, *=, /=).
@@ -77,36 +76,35 @@ impl Vector4
     #[Swag.Inline]
     mtd(op: Swag.Operator) opAssign(value: f32)
     {
-        #static if op == .AddAssign
+        #static switch op
         {
+        case .AddAssign:
             .x += value
             .y += value
             .z += value
             .w += value
-        }
-        elif op == .SubAssign
-        {
+
+        case .SubAssign:
             .x -= value
             .y -= value
             .z -= value
             .w -= value
-        }
-        elif op == .MulAssign
-        {
+
+        case .MulAssign:
             .x *= value
             .y *= value
             .z *= value
             .w *= value
-        }
-        elif op == .DivAssign
-        {
+
+        case .DivAssign:
             .x /= value
             .y /= value
             .z /= value
             .w /= value
-        }
-        else do
+
+        default:
             #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Binary operators for vector-vector operations (+, -, *, /).
@@ -114,16 +112,23 @@ impl Vector4
     #[Swag.Inline]
     mtd(op: Swag.Operator) const opBinary(other: const &Vector4)->Vector4
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return Vector4{.x + other.x, .y + other.y, .z + other.z, .w + other.w}
-        elif op == .Sub do
+
+        case .Sub:
             return Vector4{.x - other.x, .y - other.y, .z - other.z, .w - other.w}
-        elif op == .Mul do
+
+        case .Mul:
             return Vector4{.x * other.x, .y * other.y, .z * other.z, .w * other.w}
-        elif op == .Div do
+
+        case .Div:
             return Vector4{.x / other.x, .y / other.y, .z / other.z, .w / other.w}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Binary operators for vector-scalar operations (+, -, *, /).
@@ -131,16 +136,23 @@ impl Vector4
     #[Swag.Inline, Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(value: f32)->Vector4
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return Vector4{.x + value, .y + value, .z + value, .w + value}
-        elif op == .Sub do
+
+        case .Sub:
             return Vector4{.x - value, .y - value, .z - value, .w - value}
-        elif op == .Mul do
+
+        case .Mul:
             return Vector4{.x * value, .y * value, .z * value, .w * value}
-        elif op == .Div do
+
+        case .Div:
             return Vector4{.x / value, .y / value, .z / value, .w / value}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     // Apply unary operations to the vector.

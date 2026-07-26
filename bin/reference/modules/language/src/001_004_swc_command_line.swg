@@ -52,7 +52,6 @@ and file input modes. '--workspace-module' is meaningful only with
 
 | Value | Intended use |
 |---|---|
-| 'fast-compile' | No optimization, safety, sanity, stack traces, or allocation tracking |
 | 'debug' | Full safety/sanity, allocation diagnostics, no optimization |
 | 'fast-debug' | Default: full safety/sanity with optimized code and lighter allocation tracking |
 | 'release' | Optimized code, static sanity on, runtime safety and tracking off |

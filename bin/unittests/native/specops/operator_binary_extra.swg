@@ -14,12 +14,17 @@ impl RuntimeCommBox
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinary(other: const &RuntimeCommBox)->RuntimeCommBox
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {value: .value + other.value}
-        elif op == .Mul do
+
+        case .Mul:
             return {value: .value * other.value}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     #[Swag.NoInline]
@@ -102,35 +107,51 @@ impl RuntimeFullArithBox
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinary(other: const &RuntimeFullArithBox)->RuntimeFullArithBox
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {a: .a + other.a, b: .b + other.b}
-        elif op == .Sub do
+
+        case .Sub:
             return {a: .a - other.a, b: .b - other.b}
-        elif op == .Mul do
+
+        case .Mul:
             return {a: .a * other.a, b: .b * other.b}
-        elif op == .Div do
+
+        case .Div:
             return {a: .a / other.a, b: .b / other.b}
-        elif op == .Mod do
+
+        case .Mod:
             return {a: .a % other.a, b: .b % other.b}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->RuntimeFullArithBox
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {a: .a + scalar, b: .b + scalar}
-        elif op == .Sub do
+
+        case .Sub:
             return {a: .a - scalar, b: .b - scalar}
-        elif op == .Mul do
+
+        case .Mul:
             return {a: .a * scalar, b: .b * scalar}
-        elif op == .Div do
+
+        case .Div:
             return {a: .a / scalar, b: .b / scalar}
-        elif op == .Mod do
+
+        case .Mod:
             return {a: .a % scalar, b: .b % scalar}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 
@@ -223,23 +244,33 @@ impl RuntimeRightArithBox
     #[Swag.NoInline, Swag.Commutative(.Add, .Mul)]
     mtd(op: Swag.Operator) const opBinary(scalar: s32)->RuntimeRightArithBox
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {a: .a + scalar, b: .b + scalar}
-        elif op == .Mul do
+
+        case .Mul:
             return {a: .a * scalar, b: .b * scalar}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     #[Swag.NoInline]
     mtd(op: Swag.Operator) const opBinaryRight(scalar: s32)->RuntimeRightArithBox
     {
-        #static if op == .Sub do
+        #static switch op
+        {
+        case .Sub:
             return {a: scalar - .a, b: scalar - .b}
-        elif op == .Div do
+
+        case .Div:
             return {a: scalar / .a, b: scalar / .b}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 

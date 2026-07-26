@@ -122,30 +122,44 @@ impl Serializer
             encode.beginField(value)
             defer #nofail encode.endField(value)
 
-            #static if MT == s8 do
+            #static switch MT
+            {
+            case s8:
                 encode.writeS8(dref res)
-            elif MT == s16 do
+
+            case s16:
                 encode.writeS16(dref res)
-            elif MT == s32 do
+
+            case s32:
                 encode.writeS32(dref res)
-            elif MT == s64 do
+
+            case s64:
                 encode.writeS64(dref res)
-            elif MT == u8 do
+
+            case u8:
                 encode.writeU8(dref res)
-            elif MT == u16 do
+
+            case u16:
                 encode.writeU16(dref res)
-            elif MT == u32 or MT == rune do
+
+            case u32, rune:
                 encode.writeU32(dref res)
-            elif MT == u64 do
+
+            case u64:
                 encode.writeU64(dref res)
-            elif MT == bool do
+
+            case bool:
                 encode.writeBool(dref res)
-            elif MT == f32 do
+
+            case f32:
                 encode.writeF32(dref res)
-            elif MT == f64 do
+
+            case f64:
                 encode.writeF64(dref res)
-            else do
+
+            default:
                 encode.write(res, #typeof(MT))
+            }
         }
         else
         {
@@ -154,30 +168,44 @@ impl Serializer
                 return
             defer #nofail decode.endField(value)
 
-            #static if MT == s8 do
+            #static switch MT
+            {
+            case s8:
                 dref res = decode.readS8()
-            elif MT == s16 do
+
+            case s16:
                 dref res = decode.readS16()
-            elif MT == s32 do
+
+            case s32:
                 dref res = decode.readS32()
-            elif MT == s64 do
+
+            case s64:
                 dref res = decode.readS64()
-            elif MT == u8 do
+
+            case u8:
                 dref res = decode.readU8()
-            elif MT == u16 do
+
+            case u16:
                 dref res = decode.readU16()
-            elif MT == u32 or MT == rune do
+
+            case u32, rune:
                 dref res = decode.readU32()
-            elif MT == u64 do
+
+            case u64:
                 dref res = decode.readU64()
-            elif MT == bool do
+
+            case bool:
                 dref res = decode.readBool()
-            elif MT == f32 do
+
+            case f32:
                 dref res = decode.readF32()
-            elif MT == f64 do
+
+            case f64:
                 dref res = decode.readF64()
-            else do
+
+            default:
                 decode.read(res, #typeof(MT))
+            }
         }
     }
 

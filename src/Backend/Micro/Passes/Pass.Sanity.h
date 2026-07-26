@@ -7,7 +7,7 @@ SWC_BEGIN_NAMESPACE();
 // Static "sanity" analysis pass over the pre-RA Micro IR.
 //
 // A thin driver: it self-gates on the build configuration safety mask
-// (`SafetyWhat::Null` — ON for debug/fast-debug, OFF for release/fast-compile) and
+// (the `#[Swag.Sanity]` mask, which a module or function can turn off) and
 // then runs the sanitizer's `NullDerefAnalysis` (Backend/Sanitizer) which catches
 // provable null-pointer dereferences. The analysis is read-only; on a finding this
 // pass returns `Result::Error` to abort codegen so the faulty function is never run.

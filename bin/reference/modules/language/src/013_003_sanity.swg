@@ -15,9 +15,9 @@ You can also configure them globally from the build configuration with
 
 /**
 > NOTE:
-> Sanity checks are enabled by default in every build configuration except
-> 'fast-compile'. This differs from runtime safety, which is disabled in 'release'
-> for performance: the static checks stay on in 'release' since they are free.
+> Sanity checks are enabled by default in every build configuration. This differs
+> from runtime safety, which is disabled in 'release' for performance: the static
+> checks stay on in 'release' since they are free.
 */
 
 /**

@@ -31,8 +31,7 @@ func nullSafetyEnabled()->bool
 // explicit assertion the programmer can get wrong. With the Expect runtime guard
 // disabled, the write really reaches the null pointer, the sanitizer proves it,
 // and the function's codegen is aborted. Each is marked `#[Swag.Sanity(.Null,
-// true)]` so the sanitizer runs in every build config, including fast-compile
-// where the sanity checks are off by default.
+// true)]` so the sanitizer runs whatever the surrounding configuration says.
 // ---------------------------------------------------------------------------
 
 // Store through a null pointer (first field, offset 0).

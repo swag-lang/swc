@@ -16,10 +16,9 @@ with 'buildCfg.safetyGuards'.
 
 /**
 > NOTE:
-> Swag offers four predefined build configurations: 'debug', 'fast-debug',
-> 'fast-compile', and 'release'. Safety checks are enabled by default in
-> 'debug' and 'fast-debug', and disabled in 'fast-compile' and 'release'
-> for performance.
+> Swag offers three predefined build configurations: 'debug', 'fast-debug',
+> and 'release'. Safety checks are enabled by default in 'debug' and
+> 'fast-debug', and disabled in 'release' for performance.
 
 > NOTE:
 > Safety covers the RUNTIME guards. Their static, compile-time counterparts are

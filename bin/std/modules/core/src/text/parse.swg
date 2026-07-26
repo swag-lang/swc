@@ -533,27 +533,40 @@ func toF64(str: string)->f64 fail
 // Transform a string to an integer or float
 func(T) toNum(str: string)->T fail
 {
-    #static if T == u8 do
+    #static switch T
+    {
+    case u8:
         return toU8(str)
-    elif T == u16 do
+
+    case u16:
         return toU16(str)
-    elif T == u32 do
+
+    case u32:
         return toU32(str)
-    elif T == u64 do
+
+    case u64:
         return toU64(str)
-    elif T == s8 do
+
+    case s8:
         return toS8(str)
-    elif T == s16 do
+
+    case s16:
         return toS16(str)
-    elif T == s32 do
+
+    case s32:
         return toS32(str)
-    elif T == s64 do
+
+    case s64:
         return toS64(str)
-    elif T == f32 do
+
+    case f32:
         return toF32(str)
-    elif T == f64 do
+
+    case f64:
         return toF64(str)
-    else do
+
+    default:
         #error("invalid type")
+    }
     return 0
 }

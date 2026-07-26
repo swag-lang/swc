@@ -14,34 +14,50 @@ impl GenBinaryPair
 {
     mtd(op: Swag.Operator) const opBinary(other: const &GenBinaryPair'T)->GenBinaryPair'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {x: .x + other.x, y: .y + other.y}
-        elif op == .Sub do
+
+        case .Sub:
             return {x: .x - other.x, y: .y - other.y}
-        elif op == .Mul do
+
+        case .Mul:
             return {x: .x * other.x, y: .y * other.y}
-        elif op == .Div do
+
+        case .Div:
             return {x: .x / other.x, y: .y / other.y}
-        elif op == .Mod do
+
+        case .Mod:
             return {x: .x % other.x, y: .y % other.y}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     func(op: Swag.Operator) opBinary(const me, scalar: T)->GenBinaryPair'T
     {
-        #static if op == .Add do
+        #static switch op
+        {
+        case .Add:
             return {x: me.x + scalar, y: me.y + scalar}
-        elif op == .Sub do
+
+        case .Sub:
             return {x: me.x - scalar, y: me.y - scalar}
-        elif op == .Mul do
+
+        case .Mul:
             return {x: me.x * scalar, y: me.y * scalar}
-        elif op == .Div do
+
+        case .Div:
             return {x: me.x / scalar, y: me.y / scalar}
-        elif op == .Mod do
+
+        case .Mod:
             return {x: me.x % scalar, y: me.y % scalar}
-        else do
+
+        default:
             #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        }
     }
 }
 

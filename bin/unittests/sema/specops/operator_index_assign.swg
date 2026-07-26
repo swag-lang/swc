@@ -10,18 +10,23 @@ impl IndexAssignBox
 {
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: s32)
     {
-        #static if op == .AddAssign do
+        #static switch op
+        {
+        case .AddAssign:
             if index == 0 do
                 .first += value
-        else do
+            else do
             .second += value
-        elif op == .MulAssign do
+
+        case .MulAssign:
             if index == 0 do
             .first *= value
-        else do
+            else do
             .second *= value
-        else do
+
+        default:
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")
+        }
     }
 
     mtd(op: Swag.Operator) opIndexAssign(index: s32, value: u32)

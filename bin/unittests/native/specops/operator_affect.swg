@@ -161,16 +161,23 @@ impl RuntimeLiteralSetTarget
     {
         .calls += 1
 
-        #static if suffix == "s" do
+        #static switch suffix
+        {
+        case "s":
             .timeInSeconds = value
-        elif suffix == "ms" do
+
+        case "ms":
             .timeInSeconds = value / 1000.0
-        elif suffix == "min" do
+
+        case "min":
             .timeInSeconds = value * 60.0
-        elif suffix == "h" do
+
+        case "h":
             .timeInSeconds = value * 3600.0
-        else do
+
+        default:
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
+        }
     }
 }
 
@@ -190,16 +197,23 @@ impl RuntimeLiteralOverloadTarget
         .tag   = 10
         .calls += 1
 
-        #static if suffix == "s" do
+        #static switch suffix
+        {
+        case "s":
             .timeInSeconds = value
-        elif suffix == "ms" do
+
+        case "ms":
             .timeInSeconds = value / 1000.0
-        elif suffix == "min" do
+
+        case "min":
             .timeInSeconds = value * 60.0
-        elif suffix == "h" do
+
+        case "h":
             .timeInSeconds = value * 3600.0
-        else do
+
+        default:
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
+        }
     }
 
     #[Swag.Implicit, Swag.NoInline]
@@ -208,16 +222,23 @@ impl RuntimeLiteralOverloadTarget
         .tag   = 20
         .calls += 1
 
-        #static if suffix == "s" do
+        #static switch suffix
+        {
+        case "s":
             .timeInSeconds = value
-        elif suffix == "ms" do
+
+        case "ms":
             .timeInSeconds = value / 1000.0
-        elif suffix == "min" do
+
+        case "min":
             .timeInSeconds = value * 60.0
-        elif suffix == "h" do
+
+        case "h":
             .timeInSeconds = value * 3600.0
-        else do
+
+        default:
             #error("invalid duration literal suffix '" ++ suffix ++ "'")
+        }
     }
 }
 

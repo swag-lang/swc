@@ -91,6 +91,18 @@ func selectedFromMultipleCases()->s32
     }
 }
 
+func(T) selectedFromType()->s32
+{
+    #static switch T
+    {
+    case s32:
+        return 42
+
+    default:
+        #error("unreachable generic type default")
+    }
+}
+
 #test
 {
     let value = StaticFields{2}
@@ -98,4 +110,5 @@ func selectedFromMultipleCases()->s32
     @assert(StaticValues.Value0 != StaticValues.Value1)
     @assert(selectedInFunction() == 42)
     @assert(selectedFromMultipleCases() == 42)
+    @assert(selectedFromType's32() == 42)
 }

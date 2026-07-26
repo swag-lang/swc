@@ -480,8 +480,8 @@ void MicroPassManager::configureDefaultPipeline(const bool optimize)
 
     // Static null-dereference sanity analysis (read-only). Runs once, before the
     // pre-RA optimization loop, on the unoptimized IR (no dead-code elimination or
-    // offset folding has hidden a dereference yet). It self-gates on the build-config
-    // safety mask, so it is a no-op in release and fast-compile.
+    // offset folding has hidden a dereference yet). It self-gates on the per-function
+    // sanity mask, so it is a no-op where the checks are turned off.
     addPreRaAnalysisPass(*sanityPass_);
 
     // Phase 3 - Register allocation loop.

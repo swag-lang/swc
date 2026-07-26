@@ -25,12 +25,17 @@ impl Angle
     #[ConstExpr, Implicit, Inline]
     mtd(suffix: string) opSetLiteral(value: f32)
     {
-        #static if suffix == "rad" do
+        #static switch suffix
+        {
+        case "rad":
             .rad = value
-        elif suffix == "deg" do
+
+        case "deg":
             .rad = toRadians(value)
-        else do
+
+        default:
             #error("invalid angle literal suffix [[" ++ suffix ++ "]]")
+        }
     }
 
     // Convert the angle from radians to degrees.

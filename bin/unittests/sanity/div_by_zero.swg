@@ -2,8 +2,8 @@
 
 // ---------------------------------------------------------------------------
 // Provable integer division / modulo by zero. Each is marked
-// `#[Swag.Sanity(.Math, true)]` so the sanitizer runs (and catches it) in every build
-// config, including fast-compile where the sanity checks are off by default.
+// `#[Swag.Sanity(.Math, true)]` so the sanitizer runs (and catches it) whatever the
+// surrounding configuration says.
 // ---------------------------------------------------------------------------
 
 // Division by a variable proven to be zero.

@@ -98,7 +98,7 @@ impl DateTime
     internal func parseU8(buf: &string, eat: &u32)->u16 fail
     {
         let view: string = buf
-            let (year, eat0, ovf) = StrConv.parseU8(view)
+            let {year, eat0, ovf} = StrConv.parseU8(view)
         if ovf do
             fail SyntaxError{}
         eat += eat0
@@ -110,7 +110,7 @@ impl DateTime
     internal func parseU16(buf: &string, eat: &u32)->u16 fail
     {
         let view: string = buf
-            let (year, eat0, ovf) = StrConv.parseU16(view)
+            let {year, eat0, ovf} = StrConv.parseU16(view)
         if ovf do
             fail SyntaxError{}
         eat += eat0

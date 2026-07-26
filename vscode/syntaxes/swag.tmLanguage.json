@@ -4,6 +4,7 @@
   "patterns": [
     { "include": "#one-line-comment" },
     { "include": "#multi-line-comment" },
+    { "include": "#destructuring-pattern" },
     { "include": "#attributes" },
     { "include": "#compiler-functions" },
     { "include": "#compiler-global" },
@@ -47,6 +48,37 @@
     { "include": "#code" }
   ],
   "repository": {
+    "destructuring-pattern": {
+      "name": "meta.destructuring.swag",
+      "begin": "(?:(\\b(?:let|var|const)\\b)\\s*)?(\\{)(?=[^}]*\\}\\s*=)",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration"
+        },
+        "2": {
+          "name": "punctuation.section.braces.begin"
+        }
+      },
+      "end": "(\\})(?=\\s*=)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.braces.end"
+        }
+      },
+      "patterns": [
+        {
+          "name": "variable.other.member",
+          "match": "\\b[A-Za-z_]\\w*(?=\\s*:)"
+        },
+        {
+          "name": "constant.language.ignore",
+          "match": "\\?"
+        },
+        {
+          "include": "$self"
+        }
+      ]
+    },
     "one-line-comment": {
       "patterns": [
         {

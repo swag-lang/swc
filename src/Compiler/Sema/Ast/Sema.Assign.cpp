@@ -329,7 +329,9 @@ namespace
 
         SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
 
-        if (!nodeRightView.type()->isStruct())
+        const bool isStruct    = nodeRightView.type()->isStruct();
+        const bool isAggregate = nodeRightView.type()->isAggregateStruct();
+        if (!isStruct && !isAggregate)
         {
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeRightView.nodeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef());
@@ -339,25 +341,41 @@ namespace
 
         SWC_RESULT(sema.waitSemaCompleted(nodeRightView.type(), nodeRightView.nodeRef()));
 
-        const SymbolStruct& symStruct = nodeRightView.type()->payloadSymStruct();
-        const auto&         fields    = symStruct.fields();
+        const auto*  structFields   = isStruct ? &nodeRightView.type()->payloadSymStruct().fields() : nullptr;
+        const auto*  aggregateTypes = isAggregate ? &nodeRightView.type()->payloadAggregate().types : nullptr;
+        const size_t fieldCount     = isStruct ? structFields->size() : aggregateTypes->size();
 
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), sema.node(sema.curNodeRef()), nodeRightView.typeRef(), "__assign_decomp_runtime_storage"));
 
-        if (leftRefs.size() > fields.size())
+        SmallVector<size_t> patternFieldIndices;
+        if (assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring))
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, leftRefs[fields.size()]);
-            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
-            diag.report(sema.ctx());
-            return Result::Error;
+            SmallVector<TokenRef> fieldNames;
+            sema.ast().appendTokens(fieldNames, assignList.spanFieldNamesRef);
+            SWC_ASSERT(fieldNames.size() == leftRefs.size());
+            SWC_RESULT(SemaHelpers::resolveDestructuringFieldIndices(sema, patternFieldIndices, nodeRightView.typeRef(), assignList.srcViewRef(), fieldNames.span()));
         }
-
-        if (leftRefs.size() < fields.size())
+        else
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, leftRefs.empty() ? sema.curNodeRef() : leftRefs.back());
-            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fields.size()));
-            diag.report(sema.ctx());
-            return Result::Error;
+            if (leftRefs.size() > fieldCount)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, leftRefs[fieldCount]);
+                diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            if (leftRefs.size() < fieldCount)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, leftRefs.empty() ? sema.curNodeRef() : leftRefs.back());
+                diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            patternFieldIndices.reserve(leftRefs.size());
+            for (size_t i = 0; i < leftRefs.size(); i++)
+                patternFieldIndices.push_back(i);
         }
 
         for (size_t i = 0; i < leftRefs.size(); i++)
@@ -373,7 +391,9 @@ namespace
             markAssignmentTargetAddressableStorage(leftView);
             SemaHelpers::clearLateFieldReadGuard(sema, leftRef);
 
-            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fields[i]->typeRef()));
+            const size_t  fieldIndex   = patternFieldIndices[i];
+            const TypeRef fieldTypeRef = isStruct ? (*structFields)[fieldIndex]->typeRef() : (*aggregateTypes)[fieldIndex];
+            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fieldTypeRef));
         }
 
         return Result::Continue;

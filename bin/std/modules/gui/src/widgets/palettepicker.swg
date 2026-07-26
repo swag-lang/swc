@@ -125,7 +125,7 @@ impl PalettePicker
     // Add a range of changing 'luminance'
     mtd addLumColors(numColors: s32, base: Color)
     {
-        let (h, s, ?) = base.toHsl()
+        let {h, s, ?} = base.toHsl()
 
         for [i] in numColors
         {
@@ -141,7 +141,7 @@ impl PalettePicker
     // Add a range of changing 'saturation'
     mtd addSatColors(numColors: s32, base: Color, lum: f32 = 0.5)
     {
-        let (h, ?, ?) = base.toHsl()
+        let {h, ?, ?} = base.toHsl()
 
         for [i] in numColors
         {

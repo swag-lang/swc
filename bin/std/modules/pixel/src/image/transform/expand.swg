@@ -46,7 +46,7 @@ impl Image
     // Crop image
     public mtd expand(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))
     {
-        let (cw, ch) = .getWH(l, t, r, b)
+        let {cw, ch} = .getWH(l, t, r, b)
         .allocWorkingBuffer(cw, ch, .pf)
         .doExpand(.safeWorkingBuffer(), l, t, r, b, color)
         .applyWorkingBuffer()
@@ -55,7 +55,7 @@ impl Image
     // Crop image
     public mtd const toExpand(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))->Image
     {
-        let (cw, ch) = .getWH(l, t, r, b)
+        let {cw, ch} = .getWH(l, t, r, b)
         var result: retval = create(cw, ch, .pf)
         .doExpand(&result, l, t, r, b, color)
         return result

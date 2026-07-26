@@ -5,7 +5,7 @@ using Swag
 
 func expectDate(ticks: Time.Ticks, year, month, day: u16)
 {
-    let (actualYear, actualMonth, actualDay) = Time.ticksToDate(ticks)
+    let {actualYear, actualMonth, actualDay} = Time.ticksToDate(ticks)
     @assert(actualYear == year)
     @assert(actualMonth == month)
     @assert(actualDay == day)
@@ -13,7 +13,7 @@ func expectDate(ticks: Time.Ticks, year, month, day: u16)
 
 func expectTime(ticks: Time.Ticks, hour, minute, second, millisecond: u16)
 {
-    let (actualHour, actualMinute, actualSecond, actualMillisecond) = Time.ticksToTime(ticks)
+    let {actualHour, actualMinute, actualSecond, actualMillisecond} = Time.ticksToTime(ticks)
     @assert(actualHour == hour)
     @assert(actualMinute == minute)
     @assert(actualSecond == second)

@@ -174,7 +174,7 @@ AstNodeRef Parser::parseAttributeList()
         return AstNodeRef::invalid();
 
     AstAttributeList* nodePtr = ast_->node<AstNodeId::AttributeList>(nodeRef);
-    if (is(TokenId::SymLeftCurly))
+    if (is(TokenId::SymLeftCurly) && !(ID == AstNodeId::EmbeddedBlock && isDestructuringAssignmentAhead()))
         nodePtr->nodeBodyRef = parseCompound<ID>(TokenId::SymLeftCurly);
     else
         nodePtr->nodeBodyRef = parseCompoundValue(ID);

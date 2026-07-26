@@ -6,8 +6,11 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMoveElision.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
+#include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -539,17 +542,33 @@ namespace
         return storageReg;
     }
 
-    Result emitAssignDestructuringList(CodeGen& codeGen, const AstAssignList& assignList, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, TokenId assignOp)
+    Result emitAssignDestructuringList(CodeGen& codeGen, const AstAssignList& assignList, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, ConstantRef rightCstRef, TokenId assignOp)
     {
         SmallVector<AstNodeRef> leftRefs;
         codeGen.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
 
         SWC_ASSERT(assignOp == TokenId::SymEqual);
         const TypeInfo& rightType = codeGen.typeMgr().get(rightTypeRef);
-        SWC_ASSERT(rightType.isStruct());
+        SWC_ASSERT(rightType.isStruct() || rightType.isAggregateStruct());
 
-        const MicroReg sourceReg = materializeDestructuringSourceCopy(codeGen, rightPayload, rightTypeRef);
-        const auto&    fields    = rightType.payloadSymStruct().fields();
+        SmallVector<TokenRef> fieldNames;
+        if (assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring))
+        {
+            codeGen.ast().appendTokens(fieldNames, assignList.spanFieldNamesRef);
+            SWC_ASSERT(fieldNames.size() == leftRefs.size());
+        }
+
+        const ConstantValue* aggregateCst = nullptr;
+        if (rightType.isAggregateStruct() && rightCstRef.isValid())
+        {
+            const ConstantValue& cst = codeGen.cstMgr().get(rightCstRef);
+            if (cst.isAggregateStruct())
+                aggregateCst = &cst;
+        }
+
+        MicroReg sourceReg = MicroReg::invalid();
+        if (!aggregateCst)
+            sourceReg = materializeDestructuringSourceCopy(codeGen, rightPayload, rightTypeRef);
 
         for (size_t i = 0; i < leftRefs.size(); i++)
         {
@@ -559,15 +578,26 @@ namespace
             if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
                 continue;
 
-            SWC_ASSERT(i < fields.size() && fields[i]);
-            const SymbolVariable& field = *fields[i];
+            const size_t fieldIndex  = assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring)
+                                           ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, rightTypeRef, SourceCodeRef{assignList.srcViewRef(), fieldNames[i]})
+                                           : i;
+            const auto   fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, rightTypeRef, fieldIndex);
 
             CodeGenNodePayload fieldPayload;
-            fieldPayload.typeRef = field.typeRef();
-            fieldPayload.setIsAddress();
-            fieldPayload.reg = field.offset() ? codeGen.offsetAddressReg(sourceReg, field.offset()) : sourceReg;
+            if (aggregateCst)
+            {
+                const auto& values = aggregateCst->getAggregateStruct();
+                SWC_ASSERT(fieldIndex < values.size());
+                SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, fieldPayload, fieldLayout.typeRef, values[fieldIndex]));
+            }
+            else
+            {
+                fieldPayload.typeRef = fieldLayout.typeRef;
+                fieldPayload.setIsAddress();
+                fieldPayload.reg = fieldLayout.offset ? codeGen.offsetAddressReg(sourceReg, fieldLayout.offset) : sourceReg;
+            }
 
-            SWC_RESULT(emitAssign(codeGen, leftRef, fieldPayload, field.typeRef(), assignOp));
+            SWC_RESULT(emitAssign(codeGen, leftRef, fieldPayload, fieldLayout.typeRef, assignOp));
         }
 
         return Result::Continue;
@@ -593,7 +623,7 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     const SourceCodeRef       leftSourceCodeRef = leftPayload && leftPayload->sourceCodeRef.isValid() ? leftPayload->sourceCodeRef : codeGen.node(nodeLeftRef).codeRef();
     const ScopedDebugSource   debugSource(codeGen.builder(), leftSourceCodeRef);
     CodeGenNodePayload        rightPayload         = codeGen.payload(nodeRightRef);
-    const SemaNodeView        rightView            = codeGen.viewType(nodeRightRef);
+    const SemaNodeView        rightView            = codeGen.viewTypeConstant(nodeRightRef);
     const TypeRef             originalRightTypeRef = rightView.typeRef();
     TypeRef                   rightTypeRef         = originalRightTypeRef;
     rightPayload                                   = normalizeMoveAssignPayload(codeGen, rightPayload, rightTypeRef, modifierFlags);
@@ -603,7 +633,7 @@ Result AstAssignStmt::codeGenPostNode(CodeGen& codeGen) const
     {
         const auto& assignList = codeGen.node(leftRef).cast<AstAssignList>();
         if (assignList.hasFlag(AstAssignListFlagsE::Destructuring))
-            return emitAssignDestructuringList(codeGen, assignList, rightPayload, rightTypeRef, tok.id);
+            return emitAssignDestructuringList(codeGen, assignList, rightPayload, rightTypeRef, rightView.cstRef(), tok.id);
         return emitAssignList(codeGen, assignList, rightPayload, rightTypeRef, tok.id);
     }
 

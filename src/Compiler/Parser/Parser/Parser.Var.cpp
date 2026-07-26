@@ -66,26 +66,49 @@ AstNodeRef Parser::parseVarDeclDecomposition()
         flags.add(AstVarDeclFlagsE::Let);
     }
 
-    const TokenRef openRef = consumeAssert(TokenId::SymLeftParen);
+    const TokenRef openRef = consumeAssert(TokenId::SymLeftCurly);
 
-    // All names
     SmallVector<TokenRef> tokNames;
-    while (!is(TokenId::SymRightParen) && !atEnd())
+    SmallVector<TokenRef> fieldNames;
+    bool                  hasNamed      = false;
+    bool                  hasPositional = false;
+    bool                  reportedMixed = false;
+    while (!is(TokenId::SymRightCurly) && !atEnd())
     {
+        const TokenRef itemRef      = ref();
+        TokenRef       fieldNameRef = TokenRef::invalid();
+        const bool     isNamed      = is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter);
+        if (isNamed)
+        {
+            hasNamed     = true;
+            fieldNameRef = consume();
+            consumeAssert(TokenId::SymColon);
+        }
+        else
+            hasPositional = true;
+
+        fieldNames.push_back(fieldNameRef);
         if (consumeIf(TokenId::SymQuestion).isValid())
             tokNames.push_back(TokenRef::invalid());
         else
         {
             const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
             if (tokName.isInvalid())
-                skipTo({TokenId::SymRightParen, TokenId::SymComma});
+                skipTo({TokenId::SymRightCurly, TokenId::SymComma});
             tokNames.push_back(tokName);
+        }
+
+        if (hasNamed && hasPositional && !reportedMixed)
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, itemRef);
+            diag.report(*ctx_);
+            reportedMixed = true;
         }
 
         if (consumeIf(TokenId::SymComma).isInvalid())
             break;
 
-        if (is(TokenId::SymRightParen))
+        if (is(TokenId::SymRightCurly))
         {
             Diagnostic diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
             setReportExpected(diag, TokenId::Identifier);
@@ -93,13 +116,16 @@ AstNodeRef Parser::parseVarDeclDecomposition()
         }
     }
 
-    expectAndConsumeClosing(TokenId::SymRightParen, openRef, {TokenId::SymEqual});
+    expectAndConsumeClosing(TokenId::SymRightCurly, openRef, {TokenId::SymEqual});
     expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDestructuring>(ref());
     nodePtr->flags()        = flags;
-    nodePtr->nodeInitRef    = parseInitializerExpression();
-    nodePtr->spanNamesRef   = ast_->pushSpan(tokNames.span());
+    if (hasNamed && !hasPositional)
+        nodePtr->addFlag(AstVarDeclFlagsE::NamedDestructuring);
+    nodePtr->nodeInitRef       = parseInitializerExpression();
+    nodePtr->spanNamesRef      = ast_->pushSpan(tokNames.span());
+    nodePtr->spanFieldNamesRef = ast_->pushSpan(fieldNames.span());
 
     return nodeRef;
 }

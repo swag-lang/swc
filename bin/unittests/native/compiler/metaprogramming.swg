@@ -454,7 +454,7 @@ namespace compiler3029
     //#[Swag.PrintBc]
     #test
     {
-        let (x1, y1) = #run toto(2, 2)
+        let {x1, y1} = #run toto(2, 2)
         @assert(x1 == 4)
         @assert(y1 == 8)
     }

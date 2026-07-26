@@ -90,6 +90,8 @@ SWC_DIAG_DEF(sema_err_using_module_namespace, Error, "'using' cannot import the 
 SWC_DIAG_DEF(sema_err_decomposition_not_struct, Error, "cannot decompose value of type '{type}' because it is not a struct; [help] decompose a struct value instead")
 SWC_DIAG_DEF(sema_err_decomposition_too_many_names, Error, "too many bindings in decomposition; struct has {count} fields; [help] remove the extra binding names")
 SWC_DIAG_DEF(sema_err_decomposition_not_enough_names, Error, "not enough bindings in decomposition; struct has {count} fields; [help] add the missing binding names")
+SWC_DIAG_DEF(sema_err_decomposition_unknown_field, Error, "struct type '{type}' has no field '{value}' for named decomposition; [help] use a field provided by the source type")
+SWC_DIAG_DEF(sema_err_decomposition_duplicate_field, Error, "named decomposition binds field '{value}' more than once; [help] remove the duplicate field binding")
 SWC_DIAG_DEF(sema_err_foreach_too_many_names, Error, "too many bindings in 'for' loop: expected at most 2, found {value}")
 SWC_DIAG_DEF(sema_err_for_count_binding_brackets, Error, "counted loop index binding '{tok}' needs brackets; [help] write 'for [{tok}] in ...' to bind the index")
 SWC_DIAG_DEF(sema_err_type_not_visitable, Error, "type '{type}' cannot be iterated with 'for'; [help] use an iterable type, or define 'opVisit' for this type")

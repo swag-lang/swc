@@ -125,7 +125,7 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->#null *C
 
 func captureRect(main: *MainWnd)->#null *Capture fail
 {
-    let (img, sf) = try performScreenCapture(main)
+    let {img, sf} = try performScreenCapture(main)
     if !sf do
         return null
     return try performInPlaceEdit(img, sf, main)

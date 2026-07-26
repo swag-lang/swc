@@ -268,7 +268,7 @@ impl Painter
         params.boundRect.z = bvMax.x
         params.boundRect.w = bvMax.y
 
-            let (wt, ht) = getTextureSize(brush)
+            let {wt, ht} = getTextureSize(brush)
         if brush.uvMode == .FillSubRect
         {
             params.textureRect.x = brush.uvRect.x / wt

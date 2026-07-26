@@ -145,7 +145,7 @@ impl IForm for FormPolygon
 
         if .subKind == .PixSel
         {
-            (bSize, dash) = .applyPixSelStyle(painter, cxt)
+            {bSize, dash} = .applyPixSelStyle(painter, cxt)
             bk.a = 5
         }
 

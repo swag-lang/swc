@@ -339,7 +339,7 @@ AstNodeRef Parser::parseCompilerIfStmt()
         // `#static if cond do expr` and `#static if cond do { ... }` share the same entry point.
         // A block after `do` is accepted for recovery, but diagnosed because the
         // block form normally omits `do`.
-        if (is(TokenId::SymLeftCurly))
+        if (is(TokenId::SymLeftCurly) && !(ID == AstNodeId::EmbeddedBlock && isDestructuringAssignmentAhead()))
         {
             const Diagnostic diag = reportUnexpectedDoBlock(ref().offset(-1));
             diag.report(*ctx_);

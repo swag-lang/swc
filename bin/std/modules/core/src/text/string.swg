@@ -628,7 +628,7 @@ impl String
         for
         {
             let sl = @mkslice(ptr, .length)
-                let (c, eat) = Utf8.decodeRune(sl)
+                let {c, eat} = Utf8.decodeRune(sl)
             if !Unicode.isSpace(c) do
                 break
             .length -= eat
@@ -649,7 +649,7 @@ impl String
         for
         {
             let sl = @mkslice(buffer, .length)
-                let (c, eat) = Utf8.decodeLastRune(sl)
+                let {c, eat} = Utf8.decodeLastRune(sl)
             if !Unicode.isSpace(c) do
                 break
             .length -= eat

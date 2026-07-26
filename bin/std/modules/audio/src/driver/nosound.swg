@@ -71,13 +71,13 @@ impl Voice
 
         if .playFlags.has(.Loop)
         {
-            let (_, sizeBuffer) = .readBuffer()
+            let {_, sizeBuffer} = .readBuffer()
             return sizeBuffer != 0
         }
 
         for
         {
-            let (_, sizeBuffer) = .readBuffer()
+            let {_, sizeBuffer} = .readBuffer()
             if !sizeBuffer do
                 break
         }

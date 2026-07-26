@@ -938,7 +938,7 @@ private impl EditBox
         if !sel do
             return sel
         let str = @mkstring(.text.buffer, sel)
-            let (?, eat) = Utf8.decodeLastRune(str)
+            let {?, eat} = Utf8.decodeLastRune(str)
         return sel - eat
     }
 
@@ -948,7 +948,7 @@ private impl EditBox
         if sel == .text.length do
             return sel
         let str = @mkstring(.text.buffer + sel, .text.length - sel)
-            let (?, eat) = Utf8.decodeRune(str)
+            let {?, eat} = Utf8.decodeRune(str)
         return sel + eat
     }
 

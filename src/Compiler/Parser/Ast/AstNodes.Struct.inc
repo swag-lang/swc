@@ -1329,14 +1329,15 @@ struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 // -----------------------------------------------------------------------------
 enum class AstVarDeclFlagsE : AstNode::ParserFlags
 {
-    Zero      = 0,
-    Var       = 1 << 0,
-    Const     = 1 << 1,
-    Let       = 1 << 2,
-    Parameter = 1 << 3,
-    Using     = 1 << 4,
-    FwdCopy   = 1 << 5, // copy variant of a '#fwd' parameter: requires a copyable type at match time
-    Late      = 1 << 6, // '#late' struct field: non-null type, null storage until first assignment
+    Zero               = 0,
+    Var                = 1 << 0,
+    Const              = 1 << 1,
+    Let                = 1 << 2,
+    Parameter          = 1 << 3,
+    Using              = 1 << 4,
+    FwdCopy            = 1 << 5, // copy variant of a '#fwd' parameter: requires a copyable type at match time
+    Late               = 1 << 6, // '#late' struct field: non-null type, null storage until first assignment
+    NamedDestructuring = 1 << 7,
 };
 
 struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
@@ -1380,6 +1381,7 @@ struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, As
 struct AstVarDeclDestructuring : AstNodeT<AstNodeId::VarDeclDestructuring, AstVarDeclFlagsE>
 {
     SpanRef    spanNamesRef;
+    SpanRef    spanFieldNamesRef;
     AstNodeRef nodeInitRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
@@ -1864,12 +1866,14 @@ struct AstAssignStmt : AstNodeT<AstNodeId::AssignStmt>
 // -----------------------------------------------------------------------------
 enum class AstAssignListFlagsE : AstNode::ParserFlags
 {
-    Zero          = 0,
-    Destructuring = 1 << 0,
+    Zero               = 0,
+    Destructuring      = 1 << 0,
+    NamedDestructuring = 1 << 1,
 };
 
 struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>
 {
+    SpanRef       spanFieldNamesRef;
     static Result semaPreNode(Sema&) { return Result::Continue; }
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };

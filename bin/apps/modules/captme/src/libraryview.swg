@@ -154,7 +154,7 @@ impl IWnd for LibraryView
         var x = clientRect.x
         var y = clientRect.y
 
-            let (w, h) = .getPreviewSize()
+            let {w, h} = .getPreviewSize()
         if g_DirtyList
         {
             g_DirtyList = false
@@ -235,7 +235,7 @@ impl LibraryView
 {
     mtd const numImagesPerLine()->u32
     {
-        let (w, ?) = .getPreviewSize()
+        let {w, ?} = .getPreviewSize()
         let clientRect = .getClientRectPadding()
         let n          = clientRect.width / (w + ItemMargin)
         return cast(u32) n

@@ -7,9 +7,14 @@ core interactions.
 
 'opBinary', 'opBinaryRight', 'opUnary', 'opAssign' and 'opIndexAssign' take the operator as
 a compile-time 'Swag.Operator' value, so one hook covers a whole family and a misspelled
-member is a symbol error instead of a comparison that silently never matches. Each spelling
+member is reported instead of being a comparison that silently never matches. Each spelling
 has its own member: unary '-' arrives as 'Neg', binary '-' as 'Sub'. 'op.symbol()' returns
 the source spelling when generated code or a diagnostic needs it.
+
+An operator body is compiled for the requested operator with diagnostics on, with a single
+exception: '#error' is the sanctioned way to say "this overload does not handle that
+operator", so it is silenced and the overload is simply skipped. Every other failure in the
+body is reported where it occurs.
 
 A literal suffix stays a string ('opSetLiteral'), because the set of suffixes is open-ended
 and chosen by the user rather than by the language.

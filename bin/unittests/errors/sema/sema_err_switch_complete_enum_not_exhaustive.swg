@@ -17,3 +17,16 @@ enum FileLevelAttrEnum
     //    break
     }
 }
+
+// '#static switch #complete' requires the same coverage.
+const StaticEnumValue = FileLevelAttrEnum.A
+
+#[Swag.Compiler]
+func staticSwitchNotExhaustive()->s32
+{
+    #static switch #complete StaticEnumValue     // swc-expected-error {{sema_err_switch_complete_enum_not_exhaustive}}
+    {
+    case FileLevelAttrEnum.A:
+        return 1
+    }
+}

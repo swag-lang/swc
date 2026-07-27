@@ -49,10 +49,10 @@ namespace
 
     struct CompilerSwitchSemaPayload
     {
-        std::unordered_map<ConstantRef, AstNodeRef> seen;
-        SmallVector<CompilerSwitchCaseSemaData>     cases;
-        AstNodeRef                                  selectedBodyRef   = AstNodeRef::invalid();
-        bool                                        selectionResolved = false;
+        SwitchSeenCases                         seen;
+        SmallVector<CompilerSwitchCaseSemaData> cases;
+        AstNodeRef                              selectedBodyRef   = AstNodeRef::invalid();
+        bool                                    selectionResolved = false;
     };
 
     ScopedBreakSemaPayload& ensureScopedBreakSemaPayload(Sema& sema, AstNodeRef nodeRef)
@@ -131,6 +131,19 @@ namespace
             const AstNodeRef caseRef  = sema.ast().nthNode(node.spanCasesRef, i);
             const auto&      caseNode = sema.node(caseRef).cast<AstCompilerSwitchCase>();
             if (caseNode.nodeBodyRef == bodyRef)
+                return caseRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
+    AstNodeRef compilerSwitchDefaultCaseRef(const Sema& sema, const AstCompilerSwitch& node)
+    {
+        const size_t count = sema.ast().spanSize(node.spanCasesRef);
+        for (size_t i = 0; i < count; ++i)
+        {
+            const AstNodeRef caseRef = sema.ast().nthNode(node.spanCasesRef, i);
+            if (sema.node(caseRef).cast<AstCompilerSwitchCase>().spanExprRef.isInvalid())
                 return caseRef;
         }
 
@@ -664,8 +677,24 @@ Result AstCompilerSwitch::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
 Result AstCompilerSwitch::semaPostNode(Sema& sema) const
 {
+    constexpr AstModifierFlags allowed = AstModifierFlagsE::Complete;
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
+
     CompilerSwitchSemaPayload& payload = ensureCompilerSwitchSemaPayload(sema, sema.curNodeRef());
     SWC_RESULT(resolveCompilerSwitchSelection(sema, *this, payload));
+
+    // '#complete' means the declared enum values are the whole domain, so a 'default' has
+    // nothing left to catch and a missing value is a compile-time error, exactly as for a
+    // runtime switch.
+    if (modifierFlags.has(AstModifierFlagsE::Complete))
+    {
+        const AstNodeRef defaultCaseRef = compilerSwitchDefaultCaseRef(sema, *this);
+        if (defaultCaseRef.isValid())
+            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_has_default, defaultCaseRef);
+
+        const TypeRef exprTypeRef = sema.viewType(nodeExprRef).typeRef();
+        SWC_RESULT(SemaSwitch::checkEnumExhaustive(sema, payload.seen, exprTypeRef, sema.curNodeRef()));
+    }
 
     for (const CompilerSwitchCaseSemaData& caseData : payload.cases)
     {

@@ -10,18 +10,23 @@ class SymbolVariable;
 class Sema;
 struct SemaNodeView;
 
+// Case constant -> the node that introduced it. Shared by the runtime 'switch' and the
+// compile-time '#static switch', which both check exhaustiveness the same way.
+using SwitchSeenCases = std::unordered_map<ConstantRef, AstNodeRef>;
+
 namespace SemaSwitch
 {
     TypeRef enumTypeRef(Sema& sema, TypeRef typeRef);
     TypeRef caseCastTypeRef(Sema& sema, TypeRef switchTypeRef);
     Result  normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView);
     Result  validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef);
+    Result  checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef);
 }
 
 struct SwitchPayload
 {
-    std::unordered_map<ConstantRef, AstNodeRef> seen;
-    std::unordered_map<TypeRef, AstNodeRef>     seenDynamicTypes;
+    SwitchSeenCases                         seen;
+    std::unordered_map<TypeRef, AstNodeRef> seenDynamicTypes;
 
     TypeRef         exprTypeRef            = TypeRef::invalid();
     AstNodeRef      firstDefaultRef        = AstNodeRef::invalid();

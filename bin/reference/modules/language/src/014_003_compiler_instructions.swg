@@ -73,6 +73,25 @@ default:
 #assert(StaticSelection == 42)
 
 /**
+Add '#complete' to require the sections to cover every declared value of an
+enum. As for a runtime 'switch', a missing value is an error and a 'default' is
+then rejected, because there is nothing left for it to catch.
+*/
+
+const StaticExhaustive = StaticBuildMode.Debug
+
+#static switch #complete StaticExhaustive
+{
+case .Debug:
+    const StaticExhaustiveSelection = 1
+
+case .Release:
+    const StaticExhaustiveSelection = 2
+}
+
+#assert(StaticExhaustiveSelection == 1)
+
+/**
 # The '#command' and '#cfg' Values
 
 '#command' reports one of three source-compilation modes:

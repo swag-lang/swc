@@ -210,6 +210,15 @@ A modifier is always written **immediately after the keyword it modifies**, neve
 after the operand: 'switch #complete value', not 'switch value #complete'. The
 same holds for 'cast', 'for', 'defer', and an assignment operator.
 
+A directive is the opposite: it comes **first**, because it introduces the
+construct instead of refining one. '#static switch' is not a 'switch' carrying a
+flag; it is a distinct compile-time construct that happens to reuse the 'switch'
+spelling. That is why '#static' leads and '#complete' follows:
+
+```swag
+#static switch #complete value
+```
+
 Several modifiers on the same construct form a **set**, so their order carries no
 meaning and a repeat is rejected:
 
@@ -225,9 +234,6 @@ the modifiers, because the selector names which iteration hook is resolved.
 for #Pairs #reverse [right] in values     // accepted
 for #reverse #Pairs [right] in values     // rejected
 ```
-
-'#static if' and '#static switch' accept no modifier at all: they choose a branch
-while compiling, so there is no runtime construct left to modify.
 */
 
 #test

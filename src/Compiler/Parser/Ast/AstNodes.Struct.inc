@@ -1138,8 +1138,9 @@ struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
 // -----------------------------------------------------------------------------
 struct AstCompilerSwitch : AstNodeT<AstNodeId::CompilerSwitch>
 {
-    AstNodeRef nodeExprRef;
-    SpanRef    spanCasesRef;
+    AstModifierFlags modifierFlags;
+    AstNodeRef       nodeExprRef;
+    SpanRef          spanCasesRef;
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;

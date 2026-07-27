@@ -406,6 +406,7 @@ template<AstNodeId ID>
 AstNodeRef Parser::parseCompilerSwitch(TokenRef staticTokRef)
 {
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerSwitch>(staticTokRef);
+    nodePtr->modifierFlags        = parseModifiers();
     nodePtr->nodeExprRef          = parseCompilerExpression();
     if (nodePtr->nodeExprRef.isInvalid())
         skipTo({TokenId::SymLeftCurly});

@@ -504,10 +504,18 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
     if (payload->escapeBranchPushed)
         sema.popEscapeBranch(true);
 
-    if (!payload->isComplete || payload->exprTypeRef.isInvalid())
+    if (!payload->isComplete)
         return Result::Continue;
 
-    const TypeRef enumTypeRef = switchEnumTypeRef(sema, payload->exprTypeRef);
+    return SemaSwitch::checkEnumExhaustive(sema, payload->seen, payload->exprTypeRef, sema.curNodeRef());
+}
+
+Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef)
+{
+    if (exprTypeRef.isInvalid())
+        return Result::Continue;
+
+    const TypeRef enumTypeRef = switchEnumTypeRef(sema, exprTypeRef);
     if (enumTypeRef.isInvalid())
         return Result::Continue;
 
@@ -528,9 +536,9 @@ Result AstSwitchStmt::semaPostNode(Sema& sema)
         if (cstRef.isInvalid())
             continue;
 
-        if (!payload->seen.contains(cstRef))
+        if (!seen.contains(cstRef))
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_complete_enum_not_exhaustive, sema.curNodeRef());
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_complete_enum_not_exhaustive, errorRef);
             diag.addArgument(Diagnostic::ARG_TYPE, enumTypeRef);
 
             diag.addNote(DiagnosticId::sema_note_switch_missing_enum_value);

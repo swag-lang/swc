@@ -161,6 +161,9 @@ declared enum value must have a `case`, and the switch cannot have a `default`.
 `#complete` is a modifier and not an attribute because it selects a variant of **this one
 statement**: a statement carries no symbol, so there is nothing for an attribute to
 annotate or for reflection to report.
+
+`#static switch` accepts it too, with the same meaning and the same two rules: every
+declared enum value needs a `case`, and a `default` is rejected.
 */
 
 #test

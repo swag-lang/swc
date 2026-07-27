@@ -21,7 +21,7 @@ impl GizmoPoints
     {
         switch evt.kind
         {
-        case MousePressed:
+        case .MousePressed:
             if .moving do
                 return true
             if evt.button != .Left or .hotAnchor == Swag.U32.Max do
@@ -31,7 +31,7 @@ impl GizmoPoints
             view.captureMouse()
             return true
 
-        case MouseReleased:
+        case .MouseReleased:
             if .moving
             {
                 if evt.button == .Left
@@ -44,7 +44,7 @@ impl GizmoPoints
                 return true
             }
 
-        case MouseMove:
+        case .MouseMove:
             if .moving
             {
                 let diff = pos - .movingStart

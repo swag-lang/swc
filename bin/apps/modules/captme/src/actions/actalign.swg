@@ -40,25 +40,25 @@ impl IActionUI for ActionAlign
 
         switch cxt.id
         {
-        case SendToFront:
+        case .SendToFront:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Send To Front"
             evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
             evt.icon     = main.getTheme().getIcon24(.BringToFront)
 
-        case SendToBack:
+        case .SendToBack:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Send To Back"
             evt.disabled = !hasSel or (notnull capture).selection.contains(0)
             evt.icon     = main.getTheme().getIcon24(.SendToBack)
 
-        case MoveForward:
+        case .MoveForward:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Move Forward"
             evt.disabled = !hasSel or (notnull capture).selection.contains((notnull capture).forms.count - 1)
             evt.icon     = main.getTheme().getIcon24(.BringForward)
 
-        case MoveBackward:
+        case .MoveBackward:
             evt.setFlags |= .Disabled | .Icon | .Name
             evt.name     = "Move Backward"
             evt.disabled = !hasSel or (notnull capture).selection.contains(0)
@@ -76,16 +76,16 @@ impl IActionUI for ActionAlign
         var undo: *Undo = undefined
         switch cxt.id
         {
-        case AlignLeft:    undo = capture.newUndo(.AlignLeft)
-        case AlignCenter:  undo = capture.newUndo(.AlignCenter)
-        case AlignRight:   undo = capture.newUndo(.AlignRight)
-        case AlignTop:     undo = capture.newUndo(.AlignTop)
-        case AlignMiddle:  undo = capture.newUndo(.AlignMiddle)
-        case AlignBottom:  undo = capture.newUndo(.AlignBottom)
-        case SendToFront:  undo = capture.newUndo(.MoveToFront)
-        case SendToBack:   undo = capture.newUndo(.MoveToBack)
-        case MoveForward:  undo = capture.newUndo(.MoveForward)
-        case MoveBackward: undo = capture.newUndo(.MoveBackward)
+        case .AlignLeft:    undo = capture.newUndo(.AlignLeft)
+        case .AlignCenter:  undo = capture.newUndo(.AlignCenter)
+        case .AlignRight:   undo = capture.newUndo(.AlignRight)
+        case .AlignTop:     undo = capture.newUndo(.AlignTop)
+        case .AlignMiddle:  undo = capture.newUndo(.AlignMiddle)
+        case .AlignBottom:  undo = capture.newUndo(.AlignBottom)
+        case .SendToFront:  undo = capture.newUndo(.MoveToFront)
+        case .SendToBack:   undo = capture.newUndo(.MoveToBack)
+        case .MoveForward:  undo = capture.newUndo(.MoveForward)
+        case .MoveBackward: undo = capture.newUndo(.MoveBackward)
         default:           return false
         }
 

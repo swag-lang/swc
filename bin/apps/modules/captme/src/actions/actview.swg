@@ -17,7 +17,7 @@ impl IActionUI for ActionView
         let capture = main.getCapture()
         switch cxt.id
         {
-        case Clip:
+        case .Clip:
             evt.setFlags |= .Name | .Disabled | .Checked
             evt.name     = "Hide Outside Box"
             evt.checked  = main.editorOptions.clipToSelection
@@ -35,7 +35,7 @@ impl IActionUI for ActionView
         let main = cast(*MainWnd) notnull cxt.wnd
         switch cxt.id
         {
-        case Clip: main.editorOptions.clipToSelection = !main.editorOptions.clipToSelection
+        case .Clip: main.editorOptions.clipToSelection = !main.editorOptions.clipToSelection
         }
 
         return true

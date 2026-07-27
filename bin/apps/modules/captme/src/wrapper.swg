@@ -166,9 +166,9 @@ impl MainWnd
     {
         switch mode
         {
-        case Favorites, Selection: return notnull .mdlFavorite
-        case Highlight:            return notnull .mdlHighlight
-        case PixSel:               return notnull .mdlPixSel
+        case .Favorites, .Selection: return notnull .mdlFavorite
+        case .Highlight:            return notnull .mdlHighlight
+        case .PixSel:               return notnull .mdlPixSel
         }
 
         return .modelFor(FormRegistry[formDescIndexOfMode(mode)].type)

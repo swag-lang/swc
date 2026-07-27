@@ -19,13 +19,13 @@ impl IActionUI for ActionUndo
 
         switch cxt.id
         {
-        case DoUndo:
+        case .DoUndo:
             evt.setFlags |= .Disabled | .Name | .Icon
             evt.name     = "Undo"
             evt.disabled = !capture or !capture.canUndo()
             evt.icon     = main.getTheme().getIcon24(.Undo)
 
-        case DoRedo:
+        case .DoRedo:
             evt.setFlags |= .Disabled | .Name | .Icon
             evt.name     = "Redo"
             evt.disabled = !capture or !capture.canRedo()
@@ -42,8 +42,8 @@ impl IActionUI for ActionUndo
 
         switch cxt.id
         {
-        case DoUndo: capture.undo()
-        case DoRedo: capture.redo()
+        case .DoUndo: capture.undo()
+        case .DoRedo: capture.redo()
         }
 
         capture.selectionHasChanged()

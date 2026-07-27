@@ -53,18 +53,18 @@ impl IWnd for CaptureRectWnd
     {
         switch evt.kind
         {
-        case MousePressed where evt.button == .Right:
+        case .MousePressed where evt.button == .Right:
             .startGrab    = false
             .tryStartGrab = false
             .cancelGrab   = true
             .autoGrab     = true     // Return to auto grab mode
 
-        case MousePressed where evt.button == .Left:
+        case .MousePressed where evt.button == .Left:
             .tryStartGrab    = true
             .clickStartPos.x = evt.surfacePos.x
             .clickStartPos.y = evt.surfacePos.y
 
-        case MouseReleased where evt.button == .Left:
+        case .MouseReleased where evt.button == .Left:
             if .cancelGrab
             {
                 .cancelGrab = false
@@ -85,7 +85,7 @@ impl IWnd for CaptureRectWnd
                 g_Exit     = true
             }
 
-        case MouseMove where .tryStartGrab:
+        case .MouseMove where .tryStartGrab:
             g_EndGrabX = evt.surfacePos.x
             g_EndGrabY = evt.surfacePos.y
 
@@ -103,12 +103,12 @@ impl IWnd for CaptureRectWnd
                 g_StartGrabY = .clickStartPos.y
             }
 
-        case MouseMove where .startGrab:
+        case .MouseMove where .startGrab:
             g_EndGrabX = evt.surfacePos.x
             g_EndGrabY = evt.surfacePos.y
             .invalidate()
 
-        case MouseMove:
+        case .MouseMove:
 
             // Auto grab is always active when not dragging
             if !.startGrab

@@ -289,7 +289,7 @@ impl IForm for FormImage
 
             switch .kind
             {
-            case Image:
+            case .Image:
                 if (!.texture.isValid() or .textureKind != .kind or .dirty) and .image.isValid()
                 {
                     .dirty       = false
@@ -302,14 +302,14 @@ impl IForm for FormImage
                         .freePos.height = .image.height
                 }
 
-            case Capture:
+            case .Capture:
                 if !.texture.isValid() or
                    .textureKind != .kind
                 {
                     .backCapture()
                 }
 
-            case Blur, Pixelate:
+            case .Blur, .Pixelate:
                 if !.texture.isValid() or
                    .xc != .x or .yc != .y or .wc != .w or .hc != .h or
                    .textureKind != .kind or
@@ -338,7 +338,7 @@ impl IForm for FormImage
                     }
                 }
 
-            case Zoom:
+            case .Zoom:
                 if !.texture.isValid() or
                    .xc != .x or .yc != .y or .wc != .w or .hc != .h or
                    .textureKind != .kind or
@@ -384,20 +384,20 @@ impl IForm for FormImage
                 var icon: Icon
                 switch .kind
                 {
-                case Image:
+                case .Image:
                     painter.fillRect(pp, .backColor)
                     icon = Icon.from(&(notnull g_Main).icons48, 13)
 
-                case Blur:
+                case .Blur:
                     icon = Icon.from(&(notnull g_Main).icons48, 14)
 
-                case Pixelate:
+                case .Pixelate:
                     icon = Icon.from(&(notnull g_Main).icons48, 15)
 
-                case Zoom:
+                case .Zoom:
                     icon = Icon.from(&(notnull g_Main).icons48, 16)
 
-                case Capture:
+                case .Capture:
                     icon = Icon.from(&(notnull g_Main).icons48, 18)
                 }
 
@@ -423,10 +423,10 @@ impl IForm for FormImage
                 painter.fillRect(pp, .backColor)
                 switch .place
                 {
-                case Frame:
+                case .Frame:
                     painter.drawTexture(pp, .texture)
 
-                case Center:
+                case .Center:
                     var pp1 = pp
                     pp1.x      = pp.horzCenter() - (.texture.width / 2) * z
                     pp1.y      = pp.vertCenter() - (.texture.height / 2) * z
@@ -434,7 +434,7 @@ impl IForm for FormImage
                     pp1.height = .texture.height * z
                     painter.drawTexture(pp1, .texture)
 
-                case Free:
+                case .Free:
                     var pp1 = pp
                     pp1.offset(.freePos.x * z, .freePos.y * z)
                     pp1.width  = .freePos.width * z

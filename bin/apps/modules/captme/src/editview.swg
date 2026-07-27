@@ -30,7 +30,7 @@ impl IWnd for EditView
 
         switch evt.kind
         {
-        case MouseWheel:
+        case .MouseWheel:
             if evt.modifiers & .Control
             {
                 evt.accepted = true

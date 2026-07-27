@@ -20,22 +20,22 @@ impl IActionUI for ActionGlobal
 
         switch cxt.id
         {
-        case ShowEditor:
+        case .ShowEditor:
             evt.setFlags |= .Name
             evt.name     = "Show Editor"
 
-        case ShowLibrary:
+        case .ShowLibrary:
             evt.setFlags |= .Name | .ToolTip | .Checked
             evt.name     = "Library"
             evt.toolTip  = "Display captures library"
             evt.checked  = main.libraryMode
 
-        case Exit:
+        case .Exit:
             evt.setFlags |= .Name | .Icon
             evt.name     = "Quit"
             evt.icon     = main.getTheme().getIcon24(.Quit)
 
-        case Minimize:
+        case .Minimize:
             evt.setFlags |= .Name | .Icon
             evt.name     = "Minimize"
             evt.icon     = main.getTheme().getIcon24(.Minimize)
@@ -50,21 +50,21 @@ impl IActionUI for ActionGlobal
 
         switch cxt.id
         {
-        case ShowEditor:
+        case .ShowEditor:
             let srf = notnull main.surface
             srf.show()
             srf.bringToTop()
 
-        case ShowLibrary:
+        case .ShowLibrary:
             main.swapLibraryMode()
 
-        case Exit:
+        case .Exit:
             main.saveAppState()
             if @isset(main.libWnd) do
                 main.libWnd.requestClose()
             main.postQuitEvent()
 
-        case Minimize:
+        case .Minimize:
             main.saveAppState()
             main.surface?.hide()
         }

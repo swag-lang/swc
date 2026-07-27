@@ -17,7 +17,7 @@ impl IActionUI for ActionOptions
 
         switch cxt.id
         {
-        case Options:
+        case .Options:
             evt.setFlags |= .Name | .Icon
             evt.name     = "Options..."
             evt.icon     = main.getTheme().getIcon24(.Options)

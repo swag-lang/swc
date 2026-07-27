@@ -30,77 +30,77 @@ impl IActionUI for ActionToolMode
 
         switch cxt.id
         {
-        case Shape:
+        case .Shape:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 0)
             evt.name     = "Shape"
             evt.toolTip  = "Add circles and rectangle to the capture"
             evt.checked  = main.editMode == EditMode.Shape
 
-        case Arrow:
+        case .Arrow:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 3)
             evt.name     = "Arrow"
             evt.toolTip  = "Add arrows to the capture"
             evt.checked  = main.editMode == EditMode.Arrow
 
-        case Line:
+        case .Line:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 1)
             evt.name     = "Line"
             evt.toolTip  = "Add lines to the capture"
             evt.checked  = main.editMode == EditMode.Line
 
-        case Poly:
+        case .Poly:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 2)
             evt.name     = "Polygon"
             evt.toolTip  = "Add polygons to the capture"
             evt.checked  = main.editMode == EditMode.Polygon
 
-        case Text:
+        case .Text:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 4)
             evt.name     = "Text"
             evt.toolTip  = "Add some text to the capture"
             evt.checked  = main.editMode == EditMode.Text
 
-        case Draw:
+        case .Draw:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 7)
             evt.name     = "Draw"
             evt.toolTip  = "Add some free hand paint to the capture"
             evt.checked  = main.editMode == EditMode.Draw
 
-        case Highlight:
+        case .Highlight:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 9)
             evt.name     = "Highlight"
             evt.toolTip  = "Highlight some parts of the capture"
             evt.checked  = main.editMode == EditMode.Highlight
 
-        case Step:
+        case .Step:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 12)
             evt.name     = "Step"
             evt.toolTip  = "Add some steps"
             evt.checked  = main.editMode == EditMode.Step
 
-        case Img:
+        case .Img:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 13)
             evt.name     = "Image"
             evt.toolTip  = "Add some images/effects"
             evt.checked  = main.editMode == EditMode.Image
 
-        case PixSel:
+        case .PixSel:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 17)
             evt.name     = "PixSel"
             evt.toolTip  = "Pixel selection"
             evt.checked  = main.editMode == EditMode.PixSel
 
-        case Callout:
+        case .Callout:
 
             // No sprite for this tool: the toolbar button draws its own bubble glyph
             // via sigPaintIcon, so this state intentionally does not manage the icon.
@@ -109,14 +109,14 @@ impl IActionUI for ActionToolMode
             evt.toolTip  = "Add speech-bubble callouts to the capture"
             evt.checked  = main.editMode == EditMode.Callout
 
-        case Favorites:
+        case .Favorites:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 5)
             evt.name     = "Favorites"
             evt.toolTip  = "Save multiple quick styles in one single location"
             evt.checked  = main.editMode == EditMode.Favorites
 
-        case Selection:
+        case .Selection:
             evt.setFlags |= .Icon | .Checked | .Name | .ToolTip
             evt.icon     = Icon.from(&main.icons48, 10)
             evt.name     = "Select"
@@ -132,19 +132,19 @@ impl IActionUI for ActionToolMode
         let main = cast(*MainWnd) notnull cxt.wnd
         switch cxt.id
         {
-        case Shape:     main.editMode = EditMode.Shape
-        case Arrow:     main.editMode = EditMode.Arrow
-        case Line:      main.editMode = EditMode.Line
-        case Poly:      main.editMode = EditMode.Polygon
-        case Text:      main.editMode = EditMode.Text
-        case Draw:      main.editMode = EditMode.Draw
-        case Highlight: main.editMode = EditMode.Highlight
-        case Step:      main.editMode = EditMode.Step
-        case Img:       main.editMode = EditMode.Image
-        case PixSel:    main.editMode = EditMode.PixSel
-        case Callout:   main.editMode = EditMode.Callout
-        case Favorites: main.editMode = EditMode.Favorites
-        case Selection: main.editMode = EditMode.Selection
+        case .Shape:     main.editMode = EditMode.Shape
+        case .Arrow:     main.editMode = EditMode.Arrow
+        case .Line:      main.editMode = EditMode.Line
+        case .Poly:      main.editMode = EditMode.Polygon
+        case .Text:      main.editMode = EditMode.Text
+        case .Draw:      main.editMode = EditMode.Draw
+        case .Highlight: main.editMode = EditMode.Highlight
+        case .Step:      main.editMode = EditMode.Step
+        case .Img:       main.editMode = EditMode.Image
+        case .PixSel:    main.editMode = EditMode.PixSel
+        case .Callout:   main.editMode = EditMode.Callout
+        case .Favorites: main.editMode = EditMode.Favorites
+        case .Selection: main.editMode = EditMode.Selection
         }
 
         main.updateState()

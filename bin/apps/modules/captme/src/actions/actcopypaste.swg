@@ -23,19 +23,19 @@ impl IActionUI for ActionCopyPaste
 
         switch cxt.id
         {
-        case Copy:
+        case .Copy:
             evt.setFlags |= .Disabled | .Name | .Icon
             evt.disabled = !hasSel
             evt.name     = "Copy"
             evt.icon     = main.getTheme().getIcon24(.Copy)
 
-        case Cut:
+        case .Cut:
             evt.setFlags |= .Disabled | .Name | .Icon
             evt.disabled = !hasSel
             evt.name     = "Cut"
             evt.icon     = main.getTheme().getIcon24(.Cut)
 
-        case Paste:
+        case .Paste:
             evt.setFlags |= .Disabled | .Name | .Icon
             if !capture do
                 evt.disabled = true
@@ -44,7 +44,7 @@ impl IActionUI for ActionCopyPaste
             evt.name         = "Paste"
             evt.icon         = main.getTheme().getIcon24(.Paste)
 
-        case PasteImageInside:
+        case .PasteImageInside:
             evt.setFlags             |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
             evt.name                 = "Paste Inside Image"
@@ -69,7 +69,7 @@ impl IActionUI for ActionCopyPaste
                 }
             }
 
-        case CopyAsImage:
+        case .CopyAsImage:
             evt.setFlags |= .Disabled | .Name
             evt.disabled = !capture
             evt.name     = "Copy Image to Clipboard"
@@ -85,11 +85,11 @@ impl IActionUI for ActionCopyPaste
 
         switch cxt.id
         {
-        case Copy:             capture.copy()
-        case Cut:              capture.cut()
-        case Paste:            capture.paste()
-        case PasteImageInside: capture.pasteImageInside()
-        case CopyAsImage:      capture.copyAll()
+        case .Copy:             capture.copy()
+        case .Cut:              capture.cut()
+        case .Paste:            capture.paste()
+        case .PasteImageInside: capture.pasteImageInside()
+        case .CopyAsImage:      capture.copyAll()
         }
 
         return true

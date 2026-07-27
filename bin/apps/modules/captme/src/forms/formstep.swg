@@ -151,16 +151,16 @@ impl IForm for FormStep
 
             switch #complete .typeIndex
             {
-            case Number:
+            case .Number:
                 t = Format.toString("%", curIndex)
 
-            case LetterUp:
+            case .LetterUp:
 
                 // Wrap with modulo 26 so indices past 26 cycle back through A..Z
                 // instead of spilling past 'Z' into punctuation glyphs.
                 t = Format.toString("%", cast(rune) ('A''rune + (curIndex - 1) % 26))
 
-            case LetterDown:
+            case .LetterDown:
                 t = Format.toString("%", cast(rune) ('a''rune + (curIndex - 1) % 26))
             }
 
@@ -178,19 +178,19 @@ impl IForm for FormStep
 
         switch #complete .kind
         {
-        case Ellipse:
+        case .Ellipse:
             let sizeX = pp.width * 0.5
             let sizeY = pp.height * 0.5
             if cxt.quickMode and .alpha != 100 do
                 painter.fillEllipse(pp.x + sizeX, pp.y + sizeY, sizeX, sizeY, backBrush)
             painter.fillEllipse(pp.x + sizeX, pp.y + sizeY, sizeX, sizeY, .backColor)
 
-        case Rectangle:
+        case .Rectangle:
             if cxt.quickMode and .alpha != 100 do
                 painter.fillRect(pp, backBrush)
             painter.fillRect(pp, bk)
 
-        case RoundRectangle:
+        case .RoundRectangle:
             var round = cast(f32) Math.min(.w, .h)
             round /= 3
             if cxt.quickMode and .alpha != 100 do

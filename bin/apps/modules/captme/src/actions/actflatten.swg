@@ -27,8 +27,8 @@ impl IActionUI for ActionFlatten
         var undo: *Undo = undefined
         switch cxt.id
         {
-        case Flatten:    undo = capture.newUndo(.Flatten)
-        case FlattenAll: undo = capture.newUndo(.FlattenAll)
+        case .Flatten:    undo = capture.newUndo(.Flatten)
+        case .FlattenAll: undo = capture.newUndo(.FlattenAll)
         default:         return false
         }
 

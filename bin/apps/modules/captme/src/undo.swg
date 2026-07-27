@@ -177,29 +177,29 @@ impl Undo
         let capture = notnull .capture
         switch .kind
         {
-        case RestoreOrg:
+        case .RestoreOrg:
             .oldImagePos = capture.backImagePos
             .oldImg      = capture.backImg
             .oldForms    = capture.forms
             .oldS32.add(capture.width)
             .oldS32.add(capture.height)
 
-        case Flatten:
+        case .Flatten:
             .selection   = capture.selection
             .oldImg      = capture.backImg
             .oldImagePos = capture.backImagePos
             .oldForms    = capture.forms
 
-        case FlattenAll:
+        case .FlattenAll:
             .oldImg      = capture.backImg
             .oldImagePos = capture.backImagePos
             .oldForms    = capture.forms
 
-        case SetImage:
+        case .SetImage:
             .oldImg      = capture.backImg
             .oldImagePos = capture.backImagePos
 
-        case SetImageInside:
+        case .SetImageInside:
             .selection = capture.selection
             foreachSelected'FormImage(capture, .selection)
             {
@@ -208,18 +208,18 @@ impl Undo
                 .oldImage.add(form.image)
             }
 
-        case Group:
+        case .Group:
             .selection = capture.selection
             .groupId   = capture.newGroupId()
 
-        case Ungroup:
+        case .Ungroup:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
                 .oldGroups.add(form.groups.isEmpty() ? 0'u64 : form.groups[0])
             }
 
-        case SetText:
+        case .SetText:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
@@ -229,7 +229,7 @@ impl Undo
                 .oldText.add(dref t)
             }
 
-        case SetFont:
+        case .SetFont:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
@@ -241,7 +241,7 @@ impl Undo
                 .oldU32.add(cast(u32) dref (notnull sp))
             }
 
-        case SetFontStyle:
+        case .SetFontStyle:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
@@ -251,7 +251,7 @@ impl Undo
                 .oldU32.add(cast(u32) dref sp)
             }
 
-        case SetFormFromModel:
+        case .SetFormFromModel:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
@@ -263,7 +263,7 @@ impl Undo
                 .oldForm.add(save)
             }
 
-        case AlignLeft, AlignCenter, AlignRight, AlignTop, AlignMiddle, AlignBottom:
+        case .AlignLeft, .AlignCenter, .AlignRight, .AlignTop, .AlignMiddle, .AlignBottom:
             let horz = .kind == .AlignLeft or .kind == .AlignCenter or .kind == .AlignRight
             .selection = capture.selection
             .minP      = Swag.S32.Max
@@ -290,10 +290,10 @@ impl Undo
                 .maxP = Math.max(.maxP, pos + size)
             }
 
-        case OffsetSelection:
+        case .OffsetSelection:
             .selection = capture.selection
 
-        case SetTypedValue:
+        case .SetTypedValue:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
@@ -304,7 +304,7 @@ impl Undo
                 .oldU32.add(val)
             }
 
-        case ResetRotation:
+        case .ResetRotation:
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
@@ -313,12 +313,12 @@ impl Undo
                 .oldU32.add(cast #bit (u32) form.rotate)
             }
 
-        case MoveToFront, MoveToBack, MoveBackward, MoveForward:
+        case .MoveToFront, .MoveToBack, .MoveBackward, .MoveForward:
             .selection = capture.selection
             .oldForms  = capture.forms
             .selection.sort()
 
-        case DeleteSelection:
+        case .DeleteSelection:
             .selection = capture.selection
             .oldForms  = capture.forms
         }
@@ -362,7 +362,7 @@ impl Undo
 
         switch #complete .kind
         {
-        case RestoreOrg:
+        case .RestoreOrg:
             with capture
             {
                 me.toFreeForms = .forms
@@ -376,7 +376,7 @@ impl Undo
                 .selectionHasChanged()
             }
 
-        case Flatten:
+        case .Flatten:
             with capture
             {
                 // On redo, undo has cleared capture.selection, so bake from the command's
@@ -390,7 +390,7 @@ impl Undo
 
             .removeSelection()
 
-        case FlattenAll:
+        case .FlattenAll:
             with capture
             {
                 .backImg = capture.toImage()
@@ -402,12 +402,12 @@ impl Undo
                 .selectionHasChanged()
             }
 
-        case SetImage:
+        case .SetImage:
             capture.backImg      = .newImg
             capture.backImagePos = .newImagePos
             capture.dirtyBackImg = true
 
-        case SetImageInside:
+        case .SetImageInside:
             foreachSelected'FormImage(capture, .selection)
             {
                 if form.kind != .Image do
@@ -416,7 +416,7 @@ impl Undo
                 form.dirty = true
             }
 
-        case Group:
+        case .Group:
             foreachSelected'BaseForm(capture, .selection)
             {
                 form.groups.insertAt(0, .groupId)
@@ -424,7 +424,7 @@ impl Undo
 
             capture.selectionHasChanged()
 
-        case Ungroup:
+        case .Ungroup:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !form.groups.isEmpty() do
@@ -433,7 +433,7 @@ impl Undo
 
             capture.selectionHasChanged()
 
-        case SetText:
+        case .SetText:
             foreachSelected'BaseForm(capture, .selection)
             {
                 let t = formEditableText(itf)
@@ -443,7 +443,7 @@ impl Undo
                 formEditableTextDirty(itf)
             }
 
-        case SetFont:
+        case .SetFont:
             foreachSelected'BaseForm(capture, .selection)
             {
                 let np = formFontNamePtr(itf)
@@ -455,7 +455,7 @@ impl Undo
                 formFontDirty(itf)
             }
 
-        case SetFontStyle:
+        case .SetFontStyle:
             foreachSelected'BaseForm(capture, .selection)
             {
                 let sp = formFontStylePtr(itf)
@@ -465,7 +465,7 @@ impl Undo
                 formFontDirty(itf)
             }
 
-        case SetFormFromModel:
+        case .SetFormFromModel:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
@@ -475,7 +475,7 @@ impl Undo
                 itf.copy(form, notnull .mdlValue)
             }
 
-        case SetTypedValue:
+        case .SetTypedValue:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
@@ -485,7 +485,7 @@ impl Undo
 
             capture.updateModelFromSelection()
 
-        case ResetRotation:
+        case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !itf.canRotate() do
@@ -495,7 +495,7 @@ impl Undo
 
             capture.updateModelFromSelection()
 
-        case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
+        case .AlignLeft, .AlignRight, .AlignCenter, .AlignTop, .AlignBottom, .AlignMiddle:
             foreachSelected'BaseForm(capture, .selection)
             {
                 let r = itf.boundRect()
@@ -518,15 +518,15 @@ impl Undo
                     itf.moveBaseForm(0, delta - cast(s32) r.y, 0, 0)
             }
 
-        case MovePoint:
+        case .MovePoint:
             let baseForm = notnull .baseForm
             baseForm.movePoint(.pointIdx, .newPosX, .newPosY)
 
-        case MoveBaseForm:
+        case .MoveBaseForm:
             let baseForm = notnull .baseForm
             baseForm.moveBaseForm(.newPosX, .newPosY, .newSizeX, .newSizeY)
 
-        case MoveCapture:
+        case .MoveCapture:
             capture.backImagePos.x += .newPosX
             capture.backImagePos.y += .newPosY
             for f in capture.forms do
@@ -536,13 +536,13 @@ impl Undo
             capture.width  = Math.clamp(capture.width, Capture.MinSize, Capture.MaxSize)
             capture.height = Math.clamp(capture.height, Capture.MinSize, Capture.MaxSize)
 
-        case OffsetSelection:
+        case .OffsetSelection:
             foreachSelected'BaseForm(capture, .selection)
             {
                 itf.moveForm(.newPosX, .newPosY)
             }
 
-        case MoveToFront:
+        case .MoveToFront:
             capture.hotForm = Swag.U64.Max
             var dstIdx = capture.forms.count - 1
             for #reverse [i] in @countof(.selection)
@@ -551,7 +551,7 @@ impl Undo
                 dstIdx -= 1
             }
 
-        case MoveToBack:
+        case .MoveToBack:
             capture.hotForm = Swag.U64.Max
             var dstIdx = 0'u64
             for [i] in @countof(.selection)
@@ -560,7 +560,7 @@ impl Undo
                 dstIdx += 1
             }
 
-        case MoveForward:
+        case .MoveForward:
             capture.hotForm = Swag.U64.Max
             for #reverse [i] in @countof(.selection)
             {
@@ -569,7 +569,7 @@ impl Undo
                     .reorderForm(srcIdx, srcIdx + 1)
             }
 
-        case MoveBackward:
+        case .MoveBackward:
             capture.hotForm = Swag.U64.Max
             for [i] in @countof(.selection)
             {
@@ -578,10 +578,10 @@ impl Undo
                     .reorderForm(srcIdx, srcIdx - 1)
             }
 
-        case DeleteSelection:
+        case .DeleteSelection:
             .removeSelection()
 
-        case CreateForm:
+        case .CreateForm:
             .toFreeForms.clear()
             for f in .oldForms do
                 capture.forms.add(f)
@@ -596,7 +596,7 @@ impl Undo
 
         switch #complete .kind
         {
-        case RestoreOrg:
+        case .RestoreOrg:
             with capture
             {
                 me.toFreeForms.clear()
@@ -610,7 +610,7 @@ impl Undo
                 .selectionHasChanged()
             }
 
-        case Flatten, FlattenAll:
+        case .Flatten, .FlattenAll:
             with capture
             {
                 me.toFreeForms.clear()
@@ -622,12 +622,12 @@ impl Undo
                 .selectionHasChanged()
             }
 
-        case SetImage:
+        case .SetImage:
             capture.backImg      = .oldImg
             capture.backImagePos = .oldImagePos
             capture.dirtyBackImg = true
 
-        case SetImageInside:
+        case .SetImageInside:
             foreachSelected'FormImage(capture, .selection)
             {
                 if form.kind != .Image do
@@ -636,7 +636,7 @@ impl Undo
                 form.dirty = true
             }
 
-        case Group:
+        case .Group:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !form.groups.isEmpty() and form.groups[0] == .groupId do
@@ -645,7 +645,7 @@ impl Undo
 
             capture.selectionHasChanged()
 
-        case Ungroup:
+        case .Ungroup:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if .oldGroups[idx] != 0 do
@@ -654,7 +654,7 @@ impl Undo
 
             capture.selectionHasChanged()
 
-        case SetText:
+        case .SetText:
             foreachSelected'BaseForm(capture, .selection)
             {
                 let t = formEditableText(itf)
@@ -664,7 +664,7 @@ impl Undo
                 formEditableTextDirty(itf)
             }
 
-        case SetFont:
+        case .SetFont:
             foreachSelected'BaseForm(capture, .selection)
             {
                 let np = formFontNamePtr(itf)
@@ -676,7 +676,7 @@ impl Undo
                 formFontDirty(itf)
             }
 
-        case SetFontStyle:
+        case .SetFontStyle:
             foreachSelected'BaseForm(capture, .selection)
             {
                 let sp = formFontStylePtr(itf)
@@ -686,7 +686,7 @@ impl Undo
                 formFontDirty(itf)
             }
 
-        case SetFormFromModel:
+        case .SetFormFromModel:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
@@ -695,7 +695,7 @@ impl Undo
                     itf.copy(form, .oldForm[idx])
             }
 
-        case SetTypedValue:
+        case .SetTypedValue:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !.acceptsType(@kindof(itf)) do
@@ -706,7 +706,7 @@ impl Undo
 
             capture.updateModelFromSelection()
 
-        case ResetRotation:
+        case .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)
             {
                 if !itf.canRotate() do
@@ -716,7 +716,7 @@ impl Undo
 
             capture.updateModelFromSelection()
 
-        case AlignLeft, AlignRight, AlignCenter, AlignTop, AlignBottom, AlignMiddle:
+        case .AlignLeft, .AlignRight, .AlignCenter, .AlignTop, .AlignBottom, .AlignMiddle:
 
             // Restore through moveBaseForm: writing BaseForm.x/y directly would be a
             // no-op for the point-based forms (line, polygon, draw) whose geometry
@@ -731,15 +731,15 @@ impl Undo
                     itf.moveBaseForm(0, .oldS32[idx] - cast(s32) r.y, 0, 0)
             }
 
-        case MovePoint:
+        case .MovePoint:
             let baseForm = notnull .baseForm
             baseForm.movePoint(.pointIdx, -.newPosX, -.newPosY)
 
-        case MoveBaseForm:
+        case .MoveBaseForm:
             let baseForm = notnull .baseForm
             baseForm.moveBaseForm(-.newPosX, -.newPosY, -.newSizeX, -.newSizeY)
 
-        case MoveCapture:
+        case .MoveCapture:
             capture.backImagePos.x -= .newPosX
             capture.backImagePos.y -= .newPosY
             for f in capture.forms do
@@ -747,19 +747,19 @@ impl Undo
             capture.width  -= .newSizeX
             capture.height -= .newSizeY
 
-        case OffsetSelection:
+        case .OffsetSelection:
             foreachSelected'BaseForm(capture, .selection)
             {
                 itf.moveForm(-.newPosX, -.newPosY)
             }
 
-        case MoveToFront, MoveToBack, MoveForward, MoveBackward, DeleteSelection:
+        case .MoveToFront, .MoveToBack, .MoveForward, .MoveBackward, .DeleteSelection:
             .toFreeForms.clear()
             capture.selection = .selection
             capture.forms     = .oldForms
             capture.selectionHasChanged()
 
-        case CreateForm:
+        case .CreateForm:
             .toFreeForms = .oldForms
             for .oldForms
             {

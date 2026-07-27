@@ -23,8 +23,8 @@ impl IActionUI for ActionLibSel
 
         switch cxt.id
         {
-        case Left, Up, Right, Down,
-             Home, End:
+        case .Left, .Up, .Right, .Down,
+             .Home, .End:
             evt.setFlags |= .Disabled
             evt.disabled = !hasSel
         }
@@ -38,12 +38,12 @@ impl IActionUI for ActionLibSel
 
         switch cxt.id
         {
-        case Left:  libWnd.moveSelLeft()
-        case Up:    libWnd.moveSelTop()
-        case Right: libWnd.moveSelRight()
-        case Down:  libWnd.moveSelBottom()
-        case Home:  libWnd.moveSelHome()
-        case End:   libWnd.moveSelEnd()
+        case .Left:  libWnd.moveSelLeft()
+        case .Up:    libWnd.moveSelTop()
+        case .Right: libWnd.moveSelRight()
+        case .Down:  libWnd.moveSelBottom()
+        case .Home:  libWnd.moveSelHome()
+        case .End:   libWnd.moveSelEnd()
         }
 
         return true

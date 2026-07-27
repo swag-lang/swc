@@ -31,44 +31,44 @@ impl IActionUI for ActionFile
 
         switch cxt.id
         {
-        case NewImage:
+        case .NewImage:
             evt.setFlags |= .Name
             evt.name     = "New Image"
 
-        case NewFromClipboard:
+        case .NewFromClipboard:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "New From Clipboard"
             evt.disabled = !Clipboard.hasImage()
 
-        case SaveAsImage:
+        case .SaveAsImage:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Save As Image..."
             evt.disabled = !capture
             evt.icon     = main.getTheme().getIcon24(.SaveAs)
 
-        case SaveAsLinkedImage:
+        case .SaveAsLinkedImage:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Save As Linked Image..."
             evt.disabled = !capture
             evt.icon     = main.getTheme().getIcon24(.Export)
 
-        case OpenImage:
+        case .OpenImage:
             evt.setFlags |= .Name | .Icon
             evt.name     = "Open Image..."
             evt.icon     = main.getTheme().getIcon24(.OpenFile)
 
-        case UpdateLinkedImage:
+        case .UpdateLinkedImage:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Update Linked Image"
             evt.disabled = !capture
             evt.icon     = main.getTheme().getIcon24(.Update)
 
-        case UnlinkImage:
+        case .UnlinkImage:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "Unlink Image"
             evt.disabled = !capture or capture.linkedImage.length == 0
 
-        case DeleteCapture:
+        case .DeleteCapture:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Delete"
             if main.libraryMode do
@@ -77,36 +77,36 @@ impl IActionUI for ActionFile
                 evt.disabled = !capture
             evt.icon         = main.getTheme().getIcon24(.Remove)
 
-        case DupCapture:
+        case .DupCapture:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Duplicate"
             evt.disabled = !capture
             evt.icon     = main.getTheme().getIcon24(.Duplicate)
 
-        case RenameCapture:
+        case .RenameCapture:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "Rename..."
             evt.disabled = !capture
 
-        case CopyImage:
+        case .CopyImage:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Copy Image to Clipboard"
             evt.disabled = !capture
             evt.icon     = main.getTheme().getIcon24(.Copy)
 
-        case CaptureFileLocation:
+        case .CaptureFileLocation:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Locate Capture File"
             evt.disabled = !capture
             evt.icon     = main.getTheme().getIcon24(.OpenFile)
 
-        case LinkedFileLocation:
+        case .LinkedFileLocation:
             evt.setFlags |= .Name | .Disabled | .Icon
             evt.name     = "Locate Linked Image"
             evt.disabled = !capture or capture.linkedImage.isEmpty()
             evt.icon     = main.getTheme().getIcon24(.Link)
 
-        case FileDetails:
+        case .FileDetails:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "File Details"
             if main.libraryMode do
@@ -125,22 +125,22 @@ impl IActionUI for ActionFile
 
         switch cxt.id
         {
-        case NewImage:
+        case .NewImage:
             main.newImage()
 
-        case NewFromClipboard:
+        case .NewFromClipboard:
             main.newCapture(Clipboard.getImage())
 
-        case SaveAsImage:
+        case .SaveAsImage:
             main.saveAsImage()
 
-        case SaveAsLinkedImage:
+        case .SaveAsLinkedImage:
             main.saveAsImage(linked: true)
 
-        case OpenImage:
+        case .OpenImage:
             main.openImage()
 
-        case UnlinkImage:
+        case .UnlinkImage:
             let res = MessageDlg.confirm(notnull main.surface, "This will remove the image association.")
             if res == MessageDlg.BtnYes
             {
@@ -151,7 +151,7 @@ impl IActionUI for ActionFile
                 main.recentWnd.updateRecent()
             }
 
-        case UpdateLinkedImage:
+        case .UpdateLinkedImage:
             if capture.linkedImage.length == 0
             {
                 main.saveAsImage(linked: true)
@@ -190,7 +190,7 @@ impl IActionUI for ActionFile
             var img = capture.toImage()
             main.doSaveImage(capture, &img, capture.linkedImage)
 
-        case DeleteCapture:
+        case .DeleteCapture:
             let res = MessageDlg.confirm(notnull main.surface, "This will delete the capture file(s).")
             if res == MessageDlg.BtnYes
             {
@@ -200,7 +200,7 @@ impl IActionUI for ActionFile
                     main.recentWnd.removeRecent()
             }
 
-        case DupCapture:
+        case .DupCapture:
             Cursor.wait()
             main.saveCapture(capture)
 
@@ -228,7 +228,7 @@ impl IActionUI for ActionFile
             let dupCapture = catch main.recentWnd.addRecent(file, true, true)
             Memory.delete(dupCapture)
 
-        case RenameCapture:
+        case .RenameCapture:
 
             // Snapshot the values now: 'capture' may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
@@ -244,21 +244,21 @@ impl IActionUI for ActionFile
             if dlg.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dlg.getText())
 
-        case CopyImage:
+        case .CopyImage:
             if main.libraryMode do
                 main.copyLibraryImage(capture.file)
             else do
                 capture.copyAll()
 
-        case CaptureFileLocation:
+        case .CaptureFileLocation:
             if !Env.locateInExplorer(capture.file) do
                 MessageDlg.error(notnull main.surface, "Failed to locate capture file")
 
-        case LinkedFileLocation:
+        case .LinkedFileLocation:
             if !Env.locateInExplorer(capture.linkedImage) do
                 MessageDlg.error(notnull main.surface, "Failed to locate linked image")
 
-        case FileDetails:
+        case .FileDetails:
 
             func addLine(lt: *Wnd, title, val: String)
             {

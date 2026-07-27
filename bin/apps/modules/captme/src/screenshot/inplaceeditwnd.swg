@@ -292,38 +292,38 @@ impl InPlaceEditWnd
         {
             switch me.editMode
             {
-            case Draw:
+            case .Draw:
                 .editMode                = .Draw
                 .mdlFormDraw.borderSize  = BORDER_SIZE
                 .mdlFormDraw.borderColor = me.editColor
 
-            case Line:
+            case .Line:
                 .editMode                = .Line
                 .mdlFormLine.borderSize  = BORDER_SIZE
                 .mdlFormLine.borderColor = me.editColor
 
-            case Circle:
+            case .Circle:
                 .editMode                 = .Shape
                 .mdlFormShape.kind        = .Ellipse
                 .mdlFormShape.borderSize  = BORDER_SIZE
                 .mdlFormShape.borderColor = me.editColor
                 .mdlFormShape.backColor   = 0
 
-            case Rect:
+            case .Rect:
                 .editMode                 = .Shape
                 .mdlFormShape.kind        = .RoundRectangle
                 .mdlFormShape.borderSize  = BORDER_SIZE
                 .mdlFormShape.borderColor = me.editColor
                 .mdlFormShape.backColor   = 0
 
-            case Arrow:
+            case .Arrow:
                 .editMode                 = .Arrow
                 .mdlFormArrow.borderSize  = BORDER_SIZE
                 .mdlFormArrow.endSize     = ARROW_END_SIZE
                 .mdlFormArrow.endCap      = .ArrowAnchor
                 .mdlFormArrow.borderColor = me.editColor
 
-            case Text:
+            case .Text:
                 .editMode               = .Text
                 .mdlFormText.fontSize   = TEXT_SIZE
                 .mdlFormText.borderSize = 3
@@ -331,7 +331,7 @@ impl InPlaceEditWnd
                 .mdlFormText.boldSize   = TEXT_BOLD
                 .mdlFormText.backColor  = me.editColor
 
-            case Marker:
+            case .Marker:
                 .editMode                = .Draw
                 .mdlFormDraw.borderSize  = MARKER_SIZE
                 .mdlFormDraw.borderColor = me.editColorHilight.withAlpha(160)

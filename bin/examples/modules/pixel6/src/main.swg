@@ -241,7 +241,7 @@ func drawOutlineCore(painter: *Pixel.Painter, outline: *LinePathList, x, y, scal
 
     switch mode
     {
-    case OffsetFill:
+    case .OffsetFill:
         if outlineColor.a
         {
             var borderOutline = dref outline
@@ -249,7 +249,7 @@ func drawOutlineCore(painter: *Pixel.Painter, outline: *LinePathList, x, y, scal
             painter.fillPath(&borderOutline, outlineColor)
         }
 
-    case PathStroke:
+    case .PathStroke:
         if outlineColor.a
         {
             var pen = Pen.createSolid(outlineColor, border * 2)

@@ -26,40 +26,40 @@ impl IActionUI for ActionSelection
 
         switch cxt.id
         {
-        case SelectAll:
+        case .SelectAll:
             evt.setFlags |= .Disabled | .Name
             evt.disabled = !capture or !capture.forms.count or isLib
             evt.name     = "Select All Objects"
 
-        case SelectSameAll:
+        case .SelectSameAll:
             evt.setFlags |= .Disabled | .Name
             evt.disabled = !capture or !capture.forms.count or !hasSel or isLib
             evt.name     = "Select Similar Objects"
 
-        case DeSelectAll:
+        case .DeSelectAll:
             evt.setFlags |= .Disabled | .Name
             evt.disabled = !capture or !hasSel or isLib
             evt.name     = "Deselect All Objects"
 
-        case InvertSelection:
+        case .InvertSelection:
             evt.setFlags |= .Disabled | .Name
 
             // Nothing to invert when there are no forms (matches SelectAll).
             evt.disabled = !capture or !capture.forms.count or isLib
             evt.name     = "Invert Selection"
 
-        case DeleteSelection:
+        case .DeleteSelection:
             evt.setFlags |= .Disabled | .Name | .Icon
             evt.disabled = !hasSel
             evt.name     = "Delete"
             evt.icon     = main.getTheme().getIcon24(.Remove)
 
-        case Snap:
+        case .Snap:
             evt.setFlags |= .Name | .Checked
             evt.name     = "Snap To Forms"
             evt.checked  = main.snap
 
-        case Freeze:
+        case .Freeze:
             evt.setFlags |= .Name | .Checked | .Disabled
             evt.name     = "Freeze Selection"
             evt.checked  = main.freezeSel
@@ -76,13 +76,13 @@ impl IActionUI for ActionSelection
 
         switch cxt.id
         {
-        case SelectAll:
+        case .SelectAll:
             capture.selection.clear()
             for [i] in @countof(capture.forms) do
                 capture.selection.add(i)
             capture.selectionHasChanged()
 
-        case SelectSameAll:
+        case .SelectSameAll:
             let firstType = capture.getSelectedFormType()
             capture.selection.clear()
             for form, [i] in capture.forms
@@ -93,24 +93,24 @@ impl IActionUI for ActionSelection
 
             capture.selectionHasChanged()
 
-        case DeSelectAll:
+        case .DeSelectAll:
             capture.selection.clear()
             capture.selectionHasChanged()
 
-        case InvertSelection:
+        case .InvertSelection:
             var newSel: Array'u64
             for [i] in @countof(capture.forms) where !capture.selection.contains(i) do
                 newSel.add(i)
             capture.selection = newSel
             capture.selectionHasChanged()
 
-        case DeleteSelection:
+        case .DeleteSelection:
             capture.pushUndo(capture.newUndo(.DeleteSelection))
 
-        case Snap:
+        case .Snap:
             main.snap = !main.snap
 
-        case Freeze:
+        case .Freeze:
             main.freezeSelection(!main.freezeSel)
         }
 

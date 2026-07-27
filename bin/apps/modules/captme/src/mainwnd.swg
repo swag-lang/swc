@@ -168,7 +168,7 @@ impl IWnd for MainWnd
     {
         switch evt.kind
         {
-        case Init:
+        case .Init:
 
             // Runs while the window is still hidden, so restoring the persisted
             // size/position and loading content happens before the surface is
@@ -179,10 +179,10 @@ impl IWnd for MainWnd
             .recentWnd.scheduleLoadRecent()
             evt.accepted = true
 
-        case Show:
+        case .Show:
             evt.accepted = true
 
-        case Hide:
+        case .Hide:
             .saveAppState()
         }
     }
@@ -340,7 +340,7 @@ impl MainWnd
     {
         switch .editMode
         {
-        case Selection:
+        case .Selection:
             .editMode = .Shape
             let capture = .getCapture()
             if capture do
@@ -349,13 +349,13 @@ impl MainWnd
             .editMode = .Selection
             return edMode
 
-        case Favorites:
+        case .Favorites:
             return formToEditMode(notnull .mdlFavorite)
 
-        case Highlight:
+        case .Highlight:
             return formToEditMode(notnull .mdlHighlight)
 
-        case PixSel:
+        case .PixSel:
             return formToEditMode(notnull .mdlPixSel)
         }
 

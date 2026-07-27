@@ -22,37 +22,37 @@ impl IActionUI for ActionRecentSize
 
         switch cxt.id
         {
-        case RecentSmall:
+        case .RecentSmall:
             evt.setFlags |= .Name | .ToolTip | .Checked | .Icon
             evt.toolTip  = "Small recent view"
             evt.checked  = main.bottomSize == .Small
             evt.icon     = Icon.from(&main.icons24, 0)
 
-        case RecentMedium:
+        case .RecentMedium:
             evt.setFlags |= .Name | .ToolTip | .Checked | .Icon
             evt.toolTip  = "Medium recent view"
             evt.checked  = main.bottomSize == .Medium
             evt.icon     = Icon.from(&main.icons24, 1)
 
-        case RecentBig:
+        case .RecentBig:
             evt.setFlags |= .Name | .ToolTip | .Checked | .Icon
             evt.toolTip  = "Big recent view"
             evt.checked  = main.bottomSize == .Big
             evt.icon     = Icon.from(&main.icons24, 2)
 
-        case LibSmall:
+        case .LibSmall:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Small view"
             evt.checked       = main.libWnd.previewSize == PreviewSize.Small
 
-        case LibMedium:
+        case .LibMedium:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Medium view"
             evt.checked       = main.libWnd.previewSize == PreviewSize.Medium
 
-        case LibBig:
+        case .LibBig:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Big view"
@@ -68,12 +68,12 @@ impl IActionUI for ActionRecentSize
 
         switch cxt.id
         {
-        case RecentSmall:  main.setBottomSize(.Small)
-        case RecentMedium: main.setBottomSize(.Medium)
-        case RecentBig:    main.setBottomSize(.Big)
-        case LibSmall:     main.libWnd.setPreviewSize(PreviewSize.Small)
-        case LibMedium:    main.libWnd.setPreviewSize(PreviewSize.Medium)
-        case LibBig:       main.libWnd.setPreviewSize(PreviewSize.Big)
+        case .RecentSmall:  main.setBottomSize(.Small)
+        case .RecentMedium: main.setBottomSize(.Medium)
+        case .RecentBig:    main.setBottomSize(.Big)
+        case .LibSmall:     main.libWnd.setPreviewSize(PreviewSize.Small)
+        case .LibMedium:    main.libWnd.setPreviewSize(PreviewSize.Medium)
+        case .LibBig:       main.libWnd.setPreviewSize(PreviewSize.Big)
         }
 
         return true
@@ -87,9 +87,9 @@ impl MainWnd
         .bottomSize = bottomSize
         switch .bottomSize
         {
-        case Small:  .recentBar.resize(0, 80)
-        case Medium: .recentBar.resize(0, 128)
-        case Big:    .recentBar.resize(0, 224)
+        case .Small:  .recentBar.resize(0, 80)
+        case .Medium: .recentBar.resize(0, 128)
+        case .Big:    .recentBar.resize(0, 224)
         }
 
         .applyLayout({.position.width, .position.height})

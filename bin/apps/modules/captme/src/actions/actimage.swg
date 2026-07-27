@@ -41,7 +41,7 @@ impl IActionUI for ActionImage
 
         switch cxt.id
         {
-        case RestoreOrg:
+        case .RestoreOrg:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "Restore to Original"
             evt.disabled = !capture or !capture.backImgOriginal.isValid()
@@ -61,31 +61,31 @@ impl IActionUI for ActionImage
 
         switch cxt.id
         {
-        case ResizeImage:
+        case .ResizeImage:
             main.resizeImage()
 
-        case ExpandImage:
+        case .ExpandImage:
             main.expandImage()
 
-        case FlipImage:
+        case .FlipImage:
             main.doProcessImage(FlipImage)
 
-        case MirrorImage:
+        case .MirrorImage:
             main.doProcessImage(MirrorImage)
 
-        case RotateImageRight:
+        case .RotateImageRight:
             main.doProcessImage(RotateImageRight)
 
-        case RotateImageLeft:
+        case .RotateImageLeft:
             main.doProcessImage(RotateImageLeft)
 
-        case ExpandCapture:
+        case .ExpandCapture:
             main.expandCapture()
 
-        case TrimCapture:
+        case .TrimCapture:
             main.trimCapture()
 
-        case RestoreOrg:
+        case .RestoreOrg:
             let undo = capture.newUndo(.RestoreOrg)
             capture.pushUndo(undo)
             main.invalidate()

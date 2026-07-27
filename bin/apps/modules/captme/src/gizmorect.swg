@@ -47,7 +47,7 @@ impl GizmoRect
 
         switch evt.kind
         {
-        case MousePressed:
+        case .MousePressed:
             if .moving or .rotating do
                 return true
             if evt.button != .Left do
@@ -85,7 +85,7 @@ impl GizmoRect
             view.captureMouse()
             return true
 
-        case MouseReleased:
+        case .MouseReleased:
             if .rotating
             {
                 if evt.button == .Left
@@ -123,14 +123,14 @@ impl GizmoRect
                 return true
             }
 
-        case MouseLeave:
+        case .MouseLeave:
             if .hotAnchor != Swag.U32.Max
             {
                 .hotAnchor = Swag.U32.Max
                 return true
             }
 
-        case MouseMove:
+        case .MouseMove:
             if .rotating
             {
                 var deg = .rotateStartValue + (.computeRotate(pos) - .rotateStartAngle)

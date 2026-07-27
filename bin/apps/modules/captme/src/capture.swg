@@ -179,52 +179,52 @@ impl CaptureClipboardForm
 
         switch .kind
         {
-        case Arrow:
+        case .Arrow:
             let form = Memory.new'FormArrow()
             dref form = .arrow
             result    = cast(IForm) form
 
-        case Draw:
+        case .Draw:
             let form = Memory.new'FormDraw()
             dref form = .draw
             result    = cast(IForm) form
 
-        case Image:
+        case .Image:
             let form = Memory.new'FormImage()
             dref form = .image
             result    = cast(IForm) form
 
-        case Line:
+        case .Line:
             let form = Memory.new'FormLine()
             dref form = .line
             result    = cast(IForm) form
 
-        case Polygon:
+        case .Polygon:
             let form = Memory.new'FormPolygon()
             dref form = .polygon
             result    = cast(IForm) form
 
-        case Shape:
+        case .Shape:
             let form = Memory.new'FormShape()
             dref form = .shape
             result    = cast(IForm) form
 
-        case Step:
+        case .Step:
             let form = Memory.new'FormStep()
             dref form = .step
             result    = cast(IForm) form
 
-        case Text:
+        case .Text:
             let form = Memory.new'FormText()
             dref form = .text
             result    = cast(IForm) form
 
-        case Callout:
+        case .Callout:
             let form = Memory.new'FormCallout()
             dref form = .callout
             result    = cast(IForm) form
 
-        case None:
+        case .None:
             return result
         }
 
@@ -1369,7 +1369,7 @@ impl Capture
         ///////////////////////
         switch .mouseMode
         {
-        case Selecting:
+        case .Selecting:
             var r: Math.Rectangle
 
             .movingEnd = localPos
@@ -1415,7 +1415,7 @@ impl Capture
 
             return true
 
-        case Moving:
+        case .Moving:
             let newPosX = cast(s32) ((localPos.x - .movingStart.x) / view.zoom)
             let newPosY = cast(s32) ((localPos.y - .movingStart.y) / view.zoom)
 
@@ -1461,7 +1461,7 @@ impl Capture
             view.invalidate()
             return true
 
-        case Creating:
+        case .Creating:
             let newPosX = cast(s32) ((localPos.x - .movingStart.x) / view.zoom)
             let newPosY = cast(s32) ((localPos.y - .movingStart.y) / view.zoom)
 

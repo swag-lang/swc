@@ -21,21 +21,21 @@ impl IActionUI for ActionLibTrash
 
         switch cxt.id
         {
-        case Toggle:
+        case .Toggle:
             evt.setFlags |= .Name | .Checked
             evt.name     = "Recycle Bin"
             evt.checked  = libWnd.trashMode
 
-        case Empty:
+        case .Empty:
             evt.setFlags |= .Name
             evt.name     = "Empty Recycle Bin"
 
-        case Restore:
+        case .Restore:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "Restore"
             evt.disabled = !hasSel
 
-        case DeleteForever:
+        case .DeleteForever:
             evt.setFlags |= .Name | .Disabled
             evt.name     = "Delete Permanently"
             evt.disabled = !hasSel
@@ -50,10 +50,10 @@ impl IActionUI for ActionLibTrash
 
         switch cxt.id
         {
-        case Toggle:
+        case .Toggle:
             libWnd.setTrashMode(!libWnd.trashMode)
 
-        case Empty:
+        case .Empty:
             let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase every capture in the recycle bin.")
             if res == MessageDlg.BtnYes
             {
@@ -63,10 +63,10 @@ impl IActionUI for ActionLibTrash
                 libWnd.invalidate()
             }
 
-        case Restore:
+        case .Restore:
             libWnd.restoreSelected()
 
-        case DeleteForever:
+        case .DeleteForever:
             let res = MessageDlg.confirm(notnull libWnd.main.surface, "This will permanently erase the selected capture(s).")
             if res == MessageDlg.BtnYes do
                 libWnd.deleteForeverSelected()

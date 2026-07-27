@@ -22,14 +22,14 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 
     switch #complete kind
     {
-    case Ellipse:
+    case .Ellipse:
         let radius = rect.width * 0.5
         painter.drawEllipse(pos.horzCenter(), pos.vertCenter(), radius, radius, color, 5)
 
-    case Rectangle:
+    case .Rectangle:
         painter.drawRect(rect, color, 5)
 
-    case RoundRectangle:
+    case .RoundRectangle:
         painter.drawRoundRect(rect, 5, 5, color, 5)
     }
 }

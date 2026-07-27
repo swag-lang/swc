@@ -120,11 +120,11 @@ func quickStyleNewPaintForm(srcItf: IForm)->QuickStylePaintForm
     case FormImage as img:
         switch img.kind
         {
-        case Image:    result.title = "image"
-        case Blur:     result.title = "blur"
-        case Pixelate: result.title = "pixelate"
-        case Zoom:     result.title = "zoom"
-        case Capture:  result.title = "capture"
+        case .Image:    result.title = "image"
+        case .Blur:     result.title = "blur"
+        case .Pixelate: result.title = "pixelate"
+        case .Zoom:     result.title = "zoom"
+        case .Capture:  result.title = "capture"
         }
     }
 
@@ -682,19 +682,19 @@ impl QuickWnd
         // the freed forms, so a full rebuild is mandatory (see updateQuickStyles).
         switch #complete .main.editMode
         {
-        case Arrow:     .defaultQuickStyleArrow()
-        case Shape:     .defaultQuickStyleShape()
-        case Image:     .defaultQuickStyleImage()
-        case Step:      .defaultQuickStyleStep()
-        case Line:      .defaultQuickStyleLine()
-        case Polygon:   .defaultQuickStylePolygon()
-        case Text:      .defaultQuickStyleText()
-        case Draw:      .defaultQuickStyleDraw()
-        case Highlight: .defaultQuickStyleHighlight()
-        case PixSel:    .defaultQuickStylePixSel()
-        case Callout:   .defaultQuickStyleCallout()
-        case Favorites: break
-        case Selection: break
+        case .Arrow:     .defaultQuickStyleArrow()
+        case .Shape:     .defaultQuickStyleShape()
+        case .Image:     .defaultQuickStyleImage()
+        case .Step:      .defaultQuickStyleStep()
+        case .Line:      .defaultQuickStyleLine()
+        case .Polygon:   .defaultQuickStylePolygon()
+        case .Text:      .defaultQuickStyleText()
+        case .Draw:      .defaultQuickStyleDraw()
+        case .Highlight: .defaultQuickStyleHighlight()
+        case .PixSel:    .defaultQuickStylePixSel()
+        case .Callout:   .defaultQuickStyleCallout()
+        case .Favorites: break
+        case .Selection: break
         }
 
         .updateQuickStyles(forceRebuild: true)
@@ -722,19 +722,19 @@ impl QuickWnd
         let prevStyle = .currentStyle
         switch #complete edMode
         {
-        case Arrow:     .currentStyle = &.qsArrow
-        case Shape:     .currentStyle = &.qsShape
-        case Image:     .currentStyle = &.qsImage
-        case Step:      .currentStyle = &.qsStep
-        case Line:      .currentStyle = &.qsLine
-        case Polygon:   .currentStyle = &.qsPolygon
-        case Text:      .currentStyle = &.qsText
-        case Favorites: .currentStyle = &.qsFavorites
-        case Draw:      .currentStyle = &.qsDraw
-        case Highlight: .currentStyle = &.qsHighlight
-        case PixSel:    .currentStyle = &.qsPixSel
-        case Callout:   .currentStyle = &.qsCallout
-        case Selection: return
+        case .Arrow:     .currentStyle = &.qsArrow
+        case .Shape:     .currentStyle = &.qsShape
+        case .Image:     .currentStyle = &.qsImage
+        case .Step:      .currentStyle = &.qsStep
+        case .Line:      .currentStyle = &.qsLine
+        case .Polygon:   .currentStyle = &.qsPolygon
+        case .Text:      .currentStyle = &.qsText
+        case .Favorites: .currentStyle = &.qsFavorites
+        case .Draw:      .currentStyle = &.qsDraw
+        case .Highlight: .currentStyle = &.qsHighlight
+        case .PixSel:    .currentStyle = &.qsPixSel
+        case .Callout:   .currentStyle = &.qsCallout
+        case .Selection: return
         }
 
         if !.currentStyle do

@@ -20,25 +20,25 @@ impl IActionUI for ActionLibSort
 
         switch cxt.id
         {
-        case Recent:
+        case .Recent:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Write Time"
             evt.checked       = libWnd.sortMethod == .Recent
 
-        case FileSize:
+        case .FileSize:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "File Size"
             evt.checked       = libWnd.sortMethod == .FileSize
 
-        case Similar:
+        case .Similar:
             evt.setFlags      |= .Name | .Checked | .RenderingHint
             evt.renderingHint = .ExclusiveGroup
             evt.name          = "Similarity"
             evt.checked       = libWnd.sortMethod == .Similar
 
-        case Invert:
+        case .Invert:
             evt.setFlags |= .Name | .Checked
             if libWnd.sortMethod == .Recent do
                 evt.name = "Oldest First"
@@ -63,10 +63,10 @@ impl IActionUI for ActionLibSort
 
         switch cxt.id
         {
-        case Recent:   libWnd.setSortMethod(.Recent)
-        case FileSize: libWnd.setSortMethod(.FileSize)
-        case Similar:  libWnd.setSortMethod(.Similar)
-        case Invert:   libWnd.setSortOrder(!libWnd.invertSort)
+        case .Recent:   libWnd.setSortMethod(.Recent)
+        case .FileSize: libWnd.setSortMethod(.FileSize)
+        case .Similar:  libWnd.setSortMethod(.Similar)
+        case .Invert:   libWnd.setSortOrder(!libWnd.invertSort)
         }
 
         return true

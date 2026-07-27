@@ -132,7 +132,7 @@ impl IForm for FormShape
     {
         switch .kind
         {
-        case Ellipse:
+        case .Ellipse:
             let br  = .boundRect()
             let pos = Math.Vector2{pt.x, pt.y}
             let cen = Math.Vector2{br.horzCenter(), br.vertCenter()}
@@ -173,7 +173,7 @@ impl IForm for FormShape
 
         switch #complete .kind
         {
-        case Ellipse:
+        case .Ellipse:
             let sizeX = pp.width * 0.5
             let sizeY = pp.height * 0.5
             if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do
@@ -181,7 +181,7 @@ impl IForm for FormShape
             painter.fillEllipse(pp.x + sizeX, pp.y + sizeY, sizeX, sizeY, bk)
             painter.drawEllipse(pp.x + sizeX, pp.y + sizeY, sizeX, sizeY, pen)
 
-        case Rectangle:
+        case .Rectangle:
 
             // Both axes must use the same operator so degenerate rects render consistently.
             if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize) do
@@ -194,7 +194,7 @@ impl IForm for FormShape
                 painter.drawRect(pp, pen)
             }
 
-        case RoundRectangle:
+        case .RoundRectangle:
             var pp1 = pp
             pp1.inflate(-bSize * 0.5)
             if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do

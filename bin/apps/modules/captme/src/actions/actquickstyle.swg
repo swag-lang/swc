@@ -15,7 +15,7 @@ impl IActionUI for ActionQuickStyle
     {
         switch cxt.id
         {
-        case Reset:
+        case .Reset:
             evt.setFlags |= .Name
             evt.name     = "Restore Default Styles"
         }
@@ -29,7 +29,7 @@ impl IActionUI for ActionQuickStyle
 
         switch cxt.id
         {
-        case Reset: main.quickWnd.resetQuickStyles()
+        case .Reset: main.quickWnd.resetQuickStyles()
         }
 
         return true

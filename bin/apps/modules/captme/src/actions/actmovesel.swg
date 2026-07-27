@@ -27,11 +27,11 @@ impl IActionUI for ActionMoveSel
 
         switch cxt.id
         {
-        case Left, Top, Right, Bottom:
+        case .Left, .Top, .Right, .Bottom:
             evt.setFlags |= .Disabled
             evt.disabled = !hasSel
 
-        case Left1, Top1, Right1, Bottom1:
+        case .Left1, .Top1, .Right1, .Bottom1:
             evt.setFlags |= .Disabled
             evt.disabled = !hasSel
         }
@@ -47,35 +47,35 @@ impl IActionUI for ActionMoveSel
         var undo: *Undo = undefined
         switch cxt.id
         {
-        case Left1:
+        case .Left1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = -1
 
-        case Top1:
+        case .Top1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = -1
 
-        case Right1:
+        case .Right1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = 1
 
-        case Bottom1:
+        case .Bottom1:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = 1
 
-        case Left:
+        case .Left:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = -5
 
-        case Top:
+        case .Top:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = -5
 
-        case Right:
+        case .Right:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosX = 5
 
-        case Bottom:
+        case .Bottom:
             undo         = capture.newUndo(.OffsetSelection)
             undo.newPosY = 5
 

@@ -3,7 +3,7 @@
 #[Swag.Inline]
 func inlineZeroLiteralOrelseReturn(value: u8)->u8
 {
-    return 0 orelse value
+    return 0'u8 != 0 ? 0'u8 : value
 }
 
 #test

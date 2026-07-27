@@ -24,7 +24,7 @@ func fallbackString()->string
 #test
 {
     GNullShortCounter = 0
-    let value = 12'u32 orelse fallbackU32()
+    let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
     @assert(value == 12'u32)
     @assert(GNullShortCounter == 0)
 }

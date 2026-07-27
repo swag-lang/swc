@@ -20,7 +20,7 @@ func getRootName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    let path = fullname orelse ""
+    let path = fullname
     Debug.assert(isValidPathName(path))
     let rootLength = getRootLength(path)
     if !rootLength do
@@ -34,7 +34,7 @@ func isRooted(fullname: #null string)->bool
 {
     if fullname == null do
         return false
-    let path = fullname orelse ""
+    let path = fullname
     Debug.assert(isValidPathName(path))
     let countof = @countof(path)
     if countof >= 1 and isDirectorySeparator(path[0]) do
@@ -50,7 +50,7 @@ func getDirectoryName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    let path = fullname orelse ""
+    let path = fullname
     Debug.assert(isValidPathName(path))
 
     let countof = @countof(path)
@@ -78,7 +78,7 @@ func getFileName(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    let path = fullname orelse ""
+    let path = fullname
     Debug.assert(isValidPathName(path))
 
     let countof = @countof(path)
@@ -104,7 +104,7 @@ func getFileNameWithoutExtension(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    let path = fullname orelse ""
+    let path = fullname
     Debug.assert(isValidPathName(path))
 
     let countof = @countof(path)
@@ -136,7 +136,7 @@ func getExtension(fullname: #null string)->#null string
 {
     if fullname == null do
         return null
-    let path = fullname orelse ""
+    let path = fullname
     Debug.assert(isValidPathName(path))
 
     var cpt = @countof(path)
@@ -172,7 +172,7 @@ func hasExtension(fullname: #null string)->bool
 {
     if fullname == null do
         return false
-    let path = fullname orelse ""
+    let path = fullname
     Debug.assert(isValidPathName(path))
 
     var cpt = @countof(path)

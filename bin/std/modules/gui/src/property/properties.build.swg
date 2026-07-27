@@ -31,10 +31,10 @@ internal impl Properties
         var line: #null *Wnd
 
         if .isGridLike() do
-            line = Wnd.create'Wnd(.edView, {0, 0, .position.width, height orelse .gridLineHeight})
+            line = Wnd.create'Wnd(.edView, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
         else
         {
-            let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height orelse .gridLineHeight})
+            let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
             stk.fitToContent = true
             line             = stk
         }
@@ -74,7 +74,7 @@ internal impl Properties
             .parent          = parentItem
             .level           = parentItem ? parentItem.level + 1 : 0
             .section         = parentItem ? parentItem.section : 0
-            .valueCellHeight = height orelse .gridLineHeight
+            .valueCellHeight = height != 0 ? height : .gridLineHeight
 
             // The focus/hot rectangle extends into the inter-row gap: half the line
             // margin, so two adjacent rows never overlap (Panel rows use the same

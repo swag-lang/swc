@@ -12,14 +12,14 @@ impl MWC
 {
     mtd seedU32(value: u32)
     {
-        .w = value orelse 521288629
+        .w = value != 0 ? value : 521288629
         .z = 362436069
     }
 
     mtd seedU32(value1, value2: u32)
     {
-        .w = value1 orelse 521288629
-        .z = value2 orelse 362436069
+        .w = value1 != 0 ? value1 : 521288629
+        .z = value2 != 0 ? value2 : 362436069
     }
 
     #[Swag.Safety(.Overflow, false)]

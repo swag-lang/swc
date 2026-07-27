@@ -26,8 +26,8 @@ impl Icon
     func from(imageList: *ImageList, index: s32, sizeX, sizeY: f32 = 0)->Icon
     {
         var result: retval
-        let sx = sizeX orelse cast(f32) imageList.frameSizeX
-        let sy = sizeY orelse cast(f32) imageList.frameSizeY
+        let sx = sizeX != 0 ? sizeX : cast(f32) imageList.frameSizeX
+        let sy = sizeY != 0 ? sizeY : cast(f32) imageList.frameSizeY
         result.set(imageList, index, sx, sy)
         return result
     }
@@ -37,8 +37,8 @@ impl Icon
     {
         .imageList = imageList
         .index     = index
-        let sx = sizeX orelse cast(f32) (notnull imageList).frameSizeX
-        let sy = sizeY orelse cast(f32) (notnull imageList).frameSizeY
+        let sx = sizeX != 0 ? sizeX : cast(f32) (notnull imageList).frameSizeX
+        let sy = sizeY != 0 ? sizeY : cast(f32) (notnull imageList).frameSizeY
         .sizeX = sx
         .sizeY = sy
     }

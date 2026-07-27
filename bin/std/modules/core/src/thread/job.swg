@@ -144,7 +144,7 @@ public func setNumWorkers(numWorkers: u32 = 0) fail
     g_eventPendingJobs.init()
     g_eventDone.init(true, true)
 
-    g_numWorkers = numWorkers orelse Hardware.getProcessorCount()
+    g_numWorkers = numWorkers != 0 ? numWorkers : Hardware.getProcessorCount()
     g_workers.resize(cast(u64) g_numWorkers)
     for &th in g_workers do
         try th.init(&workerEntry)

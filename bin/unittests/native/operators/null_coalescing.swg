@@ -1,9 +1,5 @@
 #global private
 
-const A = true
-const B = A orelse false
-#assert(B)
-
 const C: #null string = null
 const D               = C orelse "d"
 #assert(D == "d")
@@ -12,13 +8,7 @@ const E: string = "e"
 const F         = E orelse "f"
 #assert(F == "e")
 
-const G: s32 = 0
-const H      = G orelse 42
-#assert(H == 42)
 
-const I: s32 = 7
-const J      = I orelse 42
-#assert(J == 7)
 
 const S0: #null const [..] u8 = null
 const S1                      = S0 orelse "abc"
@@ -53,9 +43,9 @@ func fallbackString()->string
 #test
 {
     var a: s32
-    @assert((a orelse 11) == 11)
+    @assert((a != 0 ? a : 11) == 11)
     a = 5
-    @assert((a orelse 11) == 5)
+    @assert((a != 0 ? a : 11) == 5)
 }
 
 // Out-of-line so `p` is not flow-narrowed at the `orelse` site: a proven non-null left
@@ -82,7 +72,7 @@ func nullCoalescingNullFallback(p: #null *s32)->#null *s32 => p orelse null
 #test
 {
     NullCoercCounter = 0
-    let value = 12'u32 orelse fallbackU32()
+    let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
 
     @assert(value == 12'u32)
     @assert(NullCoercCounter == 0)

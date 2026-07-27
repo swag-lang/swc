@@ -1,8 +1,7 @@
 #global private
 
-const A = true
-const B = A orelse false
-#assert(B)
+// 'orelse' substitutes a MISSING value. Its left operand must be of a type that can carry
+// null; a type that never can is rejected, and a zero test is written with a ternary.
 
 const C: #null string = null
 const D               = C orelse "d"
@@ -12,22 +11,6 @@ const E: string = "e"
 const F         = E orelse "f"
 #assert(F == "e")
 
-const G: s32 = 0
-const H      = G orelse 42
-#assert(H == 42)
-
-const I: s32 = 7
-const J      = I orelse 42
-#assert(J == 7)
-
-const K: f32 = 0.0
-const L      = K orelse 4.5'f32
-#assert(L == 4.5'f32)
-
-const M: f64 = 2.25
-const N      = M orelse 4.5'f64
-#assert(N == 2.25'f64)
-
 const S0: #null const [..] u8 = null
 const S1                      = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)
@@ -35,15 +18,8 @@ const S1                      = S0 orelse "abc"
 #assert(S1[1] == 'b')
 #assert(S1[2] != 'd')
 
-enum NullCEnum { A, B }
-
-func semaTest001()
-{
-    var a: s32
-    @assert((a orelse 11) == 11)
-    a = 5
-    @assert((a orelse 11) == 5)
-}
+// The result is guaranteed present, so it drops '#null'.
+#assert(#typeof(C orelse "d") == string)
 
 // Out-of-line so `p` is not flow-narrowed at the `orelse` site: a proven non-null left
 // side would make the `null` fallback uncastable (and pointless).
@@ -64,4 +40,13 @@ func semaTest003()
     @assert((s orelse "fallback") == "fallback")
     s = "ok"
     @assert((s orelse "fallback") == "ok")
+}
+
+// Substituting a zero is a different question, and the ternary answers it.
+func semaTest004()
+{
+    var a: s32
+    @assert((a != 0 ? a : 11) == 11)
+    a = 5
+    @assert((a != 0 ? a : 11) == 5)
 }

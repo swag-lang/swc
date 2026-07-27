@@ -23,10 +23,11 @@ func fallbackString()->string
 
 #test
 {
+    // The ternary short-circuits the same way 'orelse' does.
     func intSkipsFallback()->s32
     {
         GNullCoercCounter = 0
-        let value = 12'u32 orelse fallbackU32()
+        let value = 12'u32 != 0 ? 12'u32 : fallbackU32()
         return cast(s32) value + GNullCoercCounter * 100
     }
 

@@ -11,12 +11,6 @@ func inlineJitNullCoalescingSliceFallback()->bool
 }
 
 #[Swag.Inline]
-func inlineJitNullCoalescingBoolFallback(value: bool)->bool
-{
-    return value orelse true
-}
-
-#[Swag.Inline]
 func inlineJitNullCoalescingStringFallback()->bool
 {
     var value: #null string = null
@@ -41,4 +35,18 @@ func inlineJitNonNullCoalescingSliceWins()->bool
     const ok = #run inlineJitNullCoalescingSliceFallback() and
                inlineJitNonNullCoalescingSliceWins()
     #assert(ok)
+}
+
+// 'orelse' substitutes a MISSING value, not a zero one: an empty (but present) operand
+// flows through untouched, and only a null one reaches the fallback.
+#test
+{
+    var empty = ""
+    @assert((empty orelse "fallback") == "")
+
+    var missing: #null string = null
+    @assert((missing orelse "fallback") == "fallback")
+
+    // The result drops '#null': it is guaranteed present.
+    #assert(#typeof(missing orelse "fallback") == string)
 }

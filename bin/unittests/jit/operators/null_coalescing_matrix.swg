@@ -33,7 +33,7 @@ func probeITable(itf: INullCoalescingProbe)->#null const *void
 
 func falseBoolFallback(value: bool)->bool
 {
-    return value orelse true
+    return value ? value : true
 }
 
 func nullStringFallback()->bool

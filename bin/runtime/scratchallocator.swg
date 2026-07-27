@@ -12,7 +12,7 @@ impl ScratchAllocator
     // Adapt the value depending on the requested alignment
     func align(value: u64, alignment: u32)->u64
     {
-        let toAlign = alignment orelse #sizeof(*void)
+        let toAlign = alignment != 0 ? alignment : #sizeof(*void)
         var result  = value & ~(toAlign - 1)
         if result < value do
             result += toAlign

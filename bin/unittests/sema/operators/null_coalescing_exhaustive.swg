@@ -30,10 +30,6 @@ const TypeInfoResolved                 = NullableTypeInfo orelse TypeInfoFallbac
 #assert(#typeof(TypeInfoResolved) == typeinfo)
 #assert(TypeInfoResolved == s32)
 
-const BoolResolved = false orelse true
-#assert(#typeof(BoolResolved) == bool)
-#assert(BoolResolved)
-
 const AnyNullValue: #null any = null
 #assert(AnyNullValue == null)
 
@@ -72,14 +68,11 @@ func semaTest003()
     @assert(resolved.id() == 7)
 }
 
+// A zero substitution is not 'orelse' business: the ternary carries it, and the result
+// type resolves the same way.
 func semaTest005(value: u8)->u8
 {
-    let resolved = value orelse 0
+    let resolved = value != 0 ? value : 0'u8
     #assert(#typeof(resolved) == u8)
     return resolved
-}
-
-func semaTest006(value: u8)->u8
-{
-    return 0 orelse value
 }

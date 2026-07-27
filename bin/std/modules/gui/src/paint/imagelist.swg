@@ -22,8 +22,8 @@ impl ImageList
     mtd set(texture: Texture, fsx, fsy: s32 = 0, cpt: s32 = 0)
     {
         .texture     = texture
-        .frameSizeX  = fsx orelse texture.width
-        .frameSizeY  = fsy orelse texture.height
-        .totalFrames = cpt orelse (.texture.width / .frameSizeX) * (.texture.height / .frameSizeY)
+        .frameSizeX  = fsx != 0 ? fsx : texture.width
+        .frameSizeY  = fsy != 0 ? fsy : texture.height
+        .totalFrames = cpt != 0 ? cpt : (.texture.width / .frameSizeX) * (.texture.height / .frameSizeY)
     }
 }

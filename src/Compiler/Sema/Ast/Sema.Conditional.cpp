@@ -209,6 +209,28 @@ namespace
         const TypeRef unwrappedRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), nodeLeftView.typeRef());
         return unwrappedRef.isValid() && !sema.typeMgr().get(unwrappedRef).isNullable();
     }
+
+    // 'orelse' substitutes a MISSING value, never a zero one, so its left operand has to be
+    // of a type that can carry null at all. Substituting a zero is a different question, and
+    // the ternary already answers it.
+    //
+    // The test is on the type's CAPABILITY, not on what flow analysis currently knows: a
+    // narrowed operand, or a generic instantiated with a non-null argument, keeps compiling.
+    // A dead fallback is a code-quality matter, not a broken contract.
+    Result checkNullCoalescingOperand(Sema& sema, const SemaNodeView& nodeLeftView)
+    {
+        const TypeRef leftTypeRef = nodeLeftView.typeRef();
+        if (!leftTypeRef.isValid())
+            return Result::Continue;
+
+        const TypeInfo& rawLeftType  = sema.typeMgr().get(leftTypeRef);
+        const TypeRef   concreteRef  = rawLeftType.unwrap(sema.ctx(), leftTypeRef, TypeExpandE::Alias);
+        const TypeInfo& concreteType = sema.typeMgr().get(concreteRef);
+        if (concreteType.isSupportsNullableQualifier())
+            return Result::Continue;
+
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_orelse_not_nullable_type, nodeLeftView.nodeRef(), leftTypeRef);
+    }
 }
 
 Result AstConditionalExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -303,8 +325,7 @@ Result AstNullCoalescingExpr::semaPostNode(Sema& sema)
         return Result::Continue;
     }
 
-    if (!nodeLeftView.type()->isConvertibleToBoolAliasAware(sema.ctx()))
-        return SemaError::raiseBinaryOperandType(sema, sema.curNodeRef(), nodeLeftRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
+    SWC_RESULT(checkNullCoalescingOperand(sema, nodeLeftView));
 
     const TypeRef resultTypeRef = resolveNullCoalescingResultType(sema, nodeLeftView.typeRef(), nodeRightView.typeRef());
     SWC_RESULT(Cast::cast(sema, nodeRightView, resultTypeRef, CastKind::Implicit));

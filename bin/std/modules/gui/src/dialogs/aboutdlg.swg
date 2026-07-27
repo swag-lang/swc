@@ -26,8 +26,8 @@ public impl AboutDlg
     func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg
     {
         let dlg = Wnd.create'AboutDlg()
-        let w   = cast(s32) width orelse 500
-        let h   = cast(s32) height orelse 300
+        let w   = width != 0 ? cast(s32) width : 500
+        let h   = height != 0 ? cast(s32) height : 300
         let srf = dlg.createSurface(from, 0, 0, w, h, .CloseBtn)
         srf.setTitle(params.dlgTitle)
 

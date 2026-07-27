@@ -188,8 +188,9 @@ A <=> B ==  1 if A > B
 
 # Null-Coalescing Operator
 
-The 'orelse' operator returns the left-hand expression if it is not null;
-otherwise, it returns the right-hand expression.
+The 'orelse' operator returns the left-hand expression when it is present, and
+the right-hand one when it is null. It substitutes a **missing** value, never a
+zero one, so the result is non-null even when the operand was not.
 */
 #test
 {
@@ -198,6 +199,7 @@ otherwise, it returns the right-hand expression.
 
     var c = a orelse b
     @assert(c == "string1")
+    #assert(#typeof(c) == string)     // the result drops '#null'
 
     a = null
     c = a orelse b
@@ -205,14 +207,37 @@ otherwise, it returns the right-hand expression.
 }
 
 /**
-The 'orelse' operator also works with numeric and basic types.
+The left operand must therefore be of a type that can carry null: a pointer,
+'string', 'cstring', a slice, an interface, or a function. A type that can never
+be null is rejected, because 'orelse' would have nothing to substitute:
+
+```swag
+let count = 0
+let n = count orelse 10     // error: 's32' can never be null
+```
+
+To substitute a **zero**, ask that question explicitly. It is a different test,
+and the ternary already expresses it:
 */
 #test
 {
-    let a = 0
-    let b = 1
-    let c = a orelse b
-    @assert(c == b)
+    let count = 0
+    let n     = count != 0 ? count : 10
+    @assert(n == 10)
+}
+
+/**
+> NOTE:
+> For a pointer-like operand the test is on the POINTER, not on emptiness. An
+> empty 'string' is present, so it is returned as-is; only a null one falls back.
+*/
+#test
+{
+    var empty = ""
+    @assert((empty orelse "fallback") == "")
+
+    var missing: #null string = null
+    @assert((missing orelse "fallback") == "fallback")
 }
 
 /**

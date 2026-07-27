@@ -2,11 +2,13 @@
 
 var GNullCoerc: s32 = 56
 
+// 'orelse' only substitutes a MISSING value, so a zero substitution is written with the
+// ternary. These keep the coverage of the zero-defaulting shapes at each scalar width.
 #test
 {
     func zeroFallbackU32(x: u32)->u32
     {
-        return x orelse 7'u32
+        return x != 0 ? x : 7'u32
     }
 
     const V0 = #run zeroFallbackU32(0'u32)
@@ -19,7 +21,7 @@ var GNullCoerc: s32 = 56
 {
     func zeroFallbackRune(x: rune)->rune
     {
-        return x orelse 'A''rune
+        return x != cast(rune) 0'u32 ? x : 'A''rune
     }
 
     const V0 = #run zeroFallbackRune(cast(rune) 0'u32)
@@ -32,7 +34,7 @@ var GNullCoerc: s32 = 56
 {
     func zeroFallbackF32(x: f32)->f32
     {
-        return x orelse 3.5'f32
+        return x != 0.0'f32 ? x : 3.5'f32
     }
 
     const V0 = #run zeroFallbackF32(0.0'f32)

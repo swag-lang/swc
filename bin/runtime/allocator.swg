@@ -185,7 +185,7 @@ impl Allocator
 
     func memAlign(value: u64, alignment: u32)->u64
     {
-        let toAlign = cast(u64) (alignment orelse cast(u32) #sizeof(*void)) - 1
+        let toAlign = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void)) - 1
         return (value + toAlign) & ~toAlign
     }
 
@@ -264,7 +264,7 @@ impl Allocator
 
     mtd rawAlloc(size: u64, alignment: u32 = 0)->#null [*] u8
     {
-        let align = cast(u64) (alignment orelse cast(u32) #sizeof(*void))
+        let align = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void))
         let bytes = size + align - 1 + #sizeof(AllocatorRawBlock)
         let raw   = .osAlloc(bytes)
         if !raw do
@@ -755,7 +755,7 @@ impl Allocator
 
     mtd allocateBlock(request: *AllocatorRequest, blockSize: u64, classIndex: u32)->#null *AllocatorHeader
     {
-        let alignment  = request.alignment orelse cast(u32) #sizeof(*void)
+        let alignment  = request.alignment != 0 ? request.alignment : cast(u32) #sizeof(*void)
         let toAddAlign = memAlign(#sizeof(AllocatorHeader), alignment)
 
         let allocSize = toAddAlign + blockSize + #sizeof(AllocatorFooter)

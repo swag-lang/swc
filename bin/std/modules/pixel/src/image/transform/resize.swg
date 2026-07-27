@@ -19,8 +19,8 @@ public impl Image
     mtd resize(newWidth, newHeight: s32, mode = ResizeMode.Raw)
     {
         Debug.assert(newWidth > 0 or newHeight > 0)
-        let nw = newWidth orelse cast(s32) (newHeight * (.width / cast(f32) .height))
-        let nh = newHeight orelse cast(s32) (newWidth * (.height / cast(f32) .width))
+        let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
+        let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
         if nw == .width and nh == .height do
             return
         .allocWorkingBuffer(nw, nh, .pf)
@@ -33,8 +33,8 @@ public impl Image
     mtd const toResize(newWidth, newHeight: s32, mode = ResizeMode.Raw)->Image
     {
         Debug.assert(newWidth > 0 or newHeight > 0)
-        let nw = newWidth orelse cast(s32) (newHeight * (.width / cast(f32) .height))
-        let nh = newHeight orelse cast(s32) (newWidth * (.height / cast(f32) .width))
+        let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
+        let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
         if nw == .width and nh == .height
         {
             var result: retval = me

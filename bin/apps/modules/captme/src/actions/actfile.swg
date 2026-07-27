@@ -421,7 +421,7 @@ impl MainWnd
 
         let {w, ?, ?} = catch StrConv.parseS32(edit0.edit.text)
         let {h, ?, ?} = catch StrConv.parseS32(edit1.edit.text)
-        var img       = Image.create(w orelse 512, h orelse 512, .RGB8)
+        var img       = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         img.fill(Argb.White)
         .newCapture(img)
     }

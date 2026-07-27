@@ -63,7 +63,7 @@ func fillSolidImage(img: *Image, b, g, r, a: u8)
     {
         switch img.pf
         {
-        case BGR8:
+        case .BGR8:
             pix[0] = b
             pix[1] = g
             pix[2] = r

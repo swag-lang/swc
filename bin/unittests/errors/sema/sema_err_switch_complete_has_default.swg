@@ -2,8 +2,7 @@
 
 #test
 {
-    #[Swag.Complete]
-    switch 1
+    switch #complete 1
     {
     case 1:
         break

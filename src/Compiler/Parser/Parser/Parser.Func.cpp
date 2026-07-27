@@ -102,8 +102,9 @@ AstNodeRef Parser::parseLambdaParam(bool isType)
     nodePtr->flags()        = flags;
     nodePtr->nodeTypeRef    = nodeType;
 
-    if (consumeIf(TokenId::SymEqual).isValid())
-        nodePtr->nodeDefaultValueRef = parseInitializerExpression();
+    const TokenRef tokAssign = consumeIf(TokenId::SymEqual);
+    if (tokAssign.isValid())
+        nodePtr->nodeDefaultValueRef = parseInitializerExpression(tokAssign);
     else
         nodePtr->nodeDefaultValueRef = AstNodeRef::invalid();
 

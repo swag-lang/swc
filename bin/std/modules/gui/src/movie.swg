@@ -44,8 +44,7 @@ private impl Movie
         else do
             .frameIndex += 1
 
-        #[Swag.Complete]
-        switch .source
+        switch #complete .source
         {
         case None:
             break
@@ -123,8 +122,7 @@ impl Movie
     // Returns true if the movie has valid content
     mtd isValid()->bool
     {
-        #[Swag.Complete]
-        switch .source
+        switch #complete .source
         {
         case None:        return false
         case SpriteSheet: return .imgList.texture.valid
@@ -141,8 +139,7 @@ impl Movie
             return
         .frameIndex = Math.min(idx, .numFrames)
 
-        #[Swag.Complete]
-        switch .source
+        switch #complete .source
         {
         case None:
             break

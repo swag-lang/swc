@@ -125,9 +125,9 @@ nothing when the value is null.
 }
 
 /**
-# Deferred Initialization with `#late`
+# Deferred Initialization with `Swag.Late`
 
-A `#late` qualifier declares a **non-null** field or **global variable** whose storage
+The `Swag.Late` attribute declares a **non-null** field or **global variable** whose storage
 starts unset (zero/null) and receives its value later — typically in a `#run` or `#init`
 block, or during setup. It replaces the `#null ... = null` + `notnull`-at-every-use
 pattern for values that are guaranteed to be set before first use but cannot be
@@ -135,7 +135,7 @@ initialized at their declaration.
 
 The exposed type is non-null, so uses need no `notnull`; every read is guarded (a runtime
 null panic when still unset). `@isset` tests whether the value has been assigned, without
-reading it. `#late` requires a nullable-capable type (pointer, slice, `string`, `cstring`,
+reading it. `Swag.Late` needs a nullable-capable type (pointer, slice, `string`, `cstring`,
 interface, function): it uses the null bit pattern as the 'unset' sentinel. A local or
 parameter uses `= undefined` definite assignment instead.
 */
@@ -144,8 +144,10 @@ struct LateDocResource
     weight: s32
 }
 
-var g_lateDocStorage:  LateDocResource
-var g_lateDocResource: #late *LateDocResource     // non-null type, set later
+var g_lateDocStorage: LateDocResource
+
+#[Swag.Late]
+var g_lateDocResource: *LateDocResource     // non-null type, set later
 
 #run
 {

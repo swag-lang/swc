@@ -1,5 +1,4 @@
 #global private
-#global #[Swag.Complete]
 
 enum FileLevelAttrEnum
 {
@@ -10,7 +9,7 @@ enum FileLevelAttrEnum
 #test
 {
     var v = FileLevelAttrEnum.A
-    switch v     // swc-expected-error {{sema_err_switch_complete_enum_not_exhaustive}}
+    switch #complete v     // swc-expected-error {{sema_err_switch_complete_enum_not_exhaustive}}
     {
     case FileLevelAttrEnum.A:
         break

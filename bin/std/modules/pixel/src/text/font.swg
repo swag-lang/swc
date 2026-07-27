@@ -118,7 +118,8 @@ public struct Font
     // string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
     // size of 0 is never resolved, so it doubles as the "empty" sentinel.
     drawResolvePx:   s32
-    drawResolveFont: #late *Font
+    #[Swag.Late]
+    drawResolveFont: *Font
 }
 
 private var g_HashFont:       HashTable'(String, *Font)

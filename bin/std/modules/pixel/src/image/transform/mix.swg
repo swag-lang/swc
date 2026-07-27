@@ -41,8 +41,7 @@ impl Image
                     var pixSrc = (notnull srcImage.pixels.buffer) + x1 * srcImage.bpp8
                     pixSrc += cast(u64) (y1 * (srcImage.width * srcImage.bpp8))
 
-                    #[Swag.Complete]
-                    switch params.mode
+                    switch #complete params.mode
                     {
                     case Copy:
                         copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)

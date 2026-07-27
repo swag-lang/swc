@@ -16,11 +16,15 @@ struct FileBrowserCtrl
 
     treeCtrl:     #null *ListCtrl
     treePathStr:  Array'String
-    listCtrl:     #late *ListCtrl
-    comboPath:    #late *ComboBox
+    #[Swag.Late]
+    listCtrl:     *ListCtrl
+    #[Swag.Late]
+    comboPath:    *ComboBox
     comboPathStr: Array'String
-    editFile:     #late *EditBox
-    comboType:    #late *ComboBox
+    #[Swag.Late]
+    editFile:     *EditBox
+    #[Swag.Late]
+    comboType:    *ComboBox
     options:      FileDlgOptions
 
     curFolder: String

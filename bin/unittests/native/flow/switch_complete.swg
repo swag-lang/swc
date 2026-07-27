@@ -11,8 +11,7 @@ enum Color
 {
     var c   = Color.Green
     var hit = 0
-    #[Swag.Complete]
-    switch (c)
+    switch #complete (c)
     {
     case Color.Red:
         hit = 1
@@ -31,8 +30,7 @@ enum Color
 {
     var c   = Color.Red
     var hit = 0
-    #[Swag.Complete]
-    switch (c)
+    switch #complete (c)
     {
     case Color.Blue:
         hit = 1

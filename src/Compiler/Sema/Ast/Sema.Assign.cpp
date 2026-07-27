@@ -530,7 +530,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
     if (tok.id == TokenId::SymEqual)
     {
         SWC_RESULT(SemaEscape::applyAssignment(sema, nodeLeftRef, nodeRightView.nodeRef()));
-        // A pure store never reads the target: a '#late' field as assignment
+        // A pure store never reads the target: a 'Swag.Late' field as assignment
         // target is its initialization, not a guarded read.
         SemaHelpers::clearLateFieldReadGuard(sema, nodeLeftRef);
     }

@@ -8,8 +8,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
 {
     var crc: u64
 
-    #[Swag.Complete]
-    switch kind
+    switch #complete kind
     {
     case Hash.Crc64Kind.ECMA182:
         const Poly = 0x42F0_E1EB_A9EA_3693'u64

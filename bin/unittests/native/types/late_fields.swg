@@ -7,8 +7,10 @@ struct NativeLateItem
 
 struct NativeLateBox
 {
-    item:  #late *NativeLateItem
-    name:  #late string
+    #[Swag.Late]
+    item:  *NativeLateItem
+    #[Swag.Late]
+    name:  string
     count: s32
 }
 

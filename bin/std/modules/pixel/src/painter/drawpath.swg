@@ -192,8 +192,7 @@ impl Painter
 
     mtd drawLineCap(capStyle: LineCapStyle, p, d: Math.Vector2, sens: f32, pen: Pen, start: bool)
     {
-        #[Swag.Complete]
-        switch capStyle
+        switch #complete capStyle
         {
         case None:         return
         case Triangle:     .drawCapTriangle(p, d, sens, pen)
@@ -211,8 +210,7 @@ impl Painter
         if cxt.penSize < 3 do
             return
 
-        #[Swag.Complete]
-        switch capStyle
+        switch #complete capStyle
         {
         case None:     break
         case Triangle: .drawCapTriangle(p, d, sens, dref cxt.pen)
@@ -367,8 +365,7 @@ impl Painter
 
     mtd drawJoin(cxt: *Context, p, d1, d2: Math.Vector2)
     {
-        #[Swag.Complete]
-        switch cxt.pen.joinStyle
+        switch #complete cxt.pen.joinStyle
         {
         case None:       break
         case Bevel:      .drawJoinBevel(p, d1, d2, dref cxt.pen)
@@ -483,8 +480,7 @@ impl Painter
 
     func preparePattern(cxt: *Context)
     {
-        #[Swag.Complete]
-        switch cxt.pen.dashStyle
+        switch #complete cxt.pen.dashStyle
         {
         case None:
             return
@@ -927,8 +923,7 @@ public impl Painter
     // Returns the width and the length.
     func capStyleExtent(capStyle: LineCapStyle, lineSize, capScale: f32)->{ w: f32, l: f32 }
     {
-        #[Swag.Complete]
-        switch capStyle
+        switch #complete capStyle
         {
         case None:         return {lineSize * 0.5, 0}
         case Triangle:     return {lineSize * 0.5, lineSize * 0.5}

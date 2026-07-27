@@ -3,8 +3,10 @@ using Core, Pixel
 public struct MessageDlg
 {
     using dialog: Dialog
-    labelIcon:    #late *Label
-    label:        #late *Label
+    #[Swag.Late]
+    labelIcon:    *Label
+    #[Swag.Late]
+    label:        *Label
     extension:    #null *Wnd
 }
 

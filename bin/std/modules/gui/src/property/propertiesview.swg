@@ -4,7 +4,8 @@ using Core, Pixel
 public struct PropertiesView
 {
     using stackWnd: StackLayoutCtrl
-    ed:             #late *Properties
+    #[Swag.Late]
+    ed:             *Properties
 }
 
 impl IWnd for PropertiesView

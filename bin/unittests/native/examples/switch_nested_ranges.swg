@@ -84,12 +84,10 @@ func routeQueue(ticket: SupportTicket)->string
 
 func computeResponseTargetMinutes(ticket: SupportTicket)->s32
 {
-    #[Swag.Complete]
-    switch ticket.plan
+    switch #complete ticket.plan
     {
     case .Trial:
-        #[Swag.Complete]
-        switch ticket.priority
+        switch #complete ticket.priority
         {
         case .Low:
             return 1440
@@ -102,8 +100,7 @@ func computeResponseTargetMinutes(ticket: SupportTicket)->s32
         }
 
     case .Standard:
-        #[Swag.Complete]
-        switch ticket.priority
+        switch #complete ticket.priority
         {
         case .Low:
             return 480
@@ -116,8 +113,7 @@ func computeResponseTargetMinutes(ticket: SupportTicket)->s32
         }
 
     case .Business:
-        #[Swag.Complete]
-        switch ticket.priority
+        switch #complete ticket.priority
         {
         case .Low:
             return 240
@@ -130,8 +126,7 @@ func computeResponseTargetMinutes(ticket: SupportTicket)->s32
         }
 
     case .Enterprise:
-        #[Swag.Complete]
-        switch ticket.priority
+        switch #complete ticket.priority
         {
         case .Low:
             return 120
@@ -173,8 +168,7 @@ func computeEscalationLevel(ticket: SupportTicket)->s32
 {
     var level = 0
 
-    #[Swag.Complete]
-    switch ticket.priority
+    switch #complete ticket.priority
     {
     case .Low:
         level = 0
@@ -250,8 +244,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     result.responseTargetMinutes = computeResponseTargetMinutes(ticket)
     result.escalationLevel       = computeEscalationLevel(ticket)
 
-    #[Swag.Complete]
-    switch ticket.priority
+    switch #complete ticket.priority
     {
     case .Critical:
         result.pageOnCall = true

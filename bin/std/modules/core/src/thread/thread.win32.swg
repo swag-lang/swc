@@ -103,8 +103,7 @@ impl Thread
         .priority = newPrio
 
         var wprio = 0
-        #[Swag.Complete]
-        switch newPrio
+        switch #complete newPrio
         {
         case Lowest:      wprio = THREAD_PRIORITY_LOWEST
         case BelowNormal: wprio = THREAD_PRIORITY_BELOW_NORMAL

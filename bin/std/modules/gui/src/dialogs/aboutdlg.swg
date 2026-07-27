@@ -3,9 +3,12 @@ using Core, Pixel
 public struct AboutDlg
 {
     using dialog:      Dialog
-    labelIcon:         #late *Label
-    labelMessageTitle: #late *Label
-    labelMessage:      #late *Label
+    #[Swag.Late]
+    {
+        labelIcon:         *Label
+        labelMessageTitle: *Label
+        labelMessage:      *Label
+    }
 }
 
 public struct AboutDlgParams

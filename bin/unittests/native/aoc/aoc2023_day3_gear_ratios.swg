@@ -6,7 +6,7 @@
 // (products of exactly two numbers adjacent to a '*').
 // Exercises: enum, impl/mtd with arrow syntax, generics, interfaces,
 // macros, mixins, #run compile-time, retval, defer, element iteration,
-// bitwise operators, #[Swag.Complete], function overloading.
+// bitwise operators, 'switch #complete', function overloading.
 
 const MaxDim     = 142'u32
 const MaxNumbers = 1024'u32
@@ -52,8 +52,7 @@ const DirDC: [8] s32 = [0, 1, 1, 1, 0, -1, -1, -1]
 
 func dirName(d: Dir)->string
 {
-    #[Swag.Complete]
-    switch d
+    switch #complete d
     {
     case Dir.N:  return "N"
     case Dir.NE: return "NE"

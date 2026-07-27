@@ -5,7 +5,8 @@ public struct PaintImage
 {
     app:     Application
     painter: Painter
-    surface: #late *Surface
+    #[Swag.Late]
+    surface: *Surface
     image:   Image
     w, h:    s32
     paint:   #null func||(app: *Application, painter: *Painter)

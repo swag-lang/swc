@@ -42,8 +42,7 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         let capture = main.getCapture()
 
         var disabled = false
-        #[Swag.Complete]
-        switch d.need
+        switch #complete d.need
         {
         case Nothing:   break
         case Capture:   disabled = !capture

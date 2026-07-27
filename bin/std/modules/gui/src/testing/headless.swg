@@ -34,7 +34,8 @@ struct HeadlessHost
     surface:      Surface
     surfaceWnd:   SurfaceWnd
     root:         Wnd
-    theme:        #late *Theme
+    #[Swag.Late]
+    theme:        *Theme
     mousePos:     Math.Point
     closed:       bool
     commandCount: u32

@@ -622,10 +622,10 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
     {
         if (!hasFlag(AstIdentifierFlagsE::MacroInjectCallerBinding))
         {
-            // A pre-resolved '#late' global read (e.g. an auto-inlined body clone, which
+            // A pre-resolved 'Swag.Late' global read (e.g. an auto-inlined body clone, which
             // preserves resolved symbols) takes this early return, so it must request the
             // null-read guard here - the general guard-setup path further below is skipped.
-            // Without it an inlined read of an unset '#late' global dereferences null.
+            // Without it an inlined read of an unset 'Swag.Late' global dereferences null.
             if (storedSymbol->isVariable() && storedSymbol->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
                 SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));
             return Result::Continue;
@@ -762,7 +762,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             return Result::Error;
         }
 
-        // A '#late' global read is guarded like a '#late' field: the storage is zero
+        // A 'Swag.Late' global read is guarded like a 'Swag.Late' field: the storage is zero
         // (null) until the first assignment while the exposed type is non-null. Request
         // the null-read guard here; a pure assignment target, '&g' or '@isset(g)' clears
         // it. Struct fields are reached through member access, so a bare identifier

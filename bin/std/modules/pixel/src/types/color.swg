@@ -27,21 +27,21 @@ impl Color
     mtd const opCompare(other: Color)->s32 => .argb <=> other.argb
 
     // Assignment operator for u32 ARGB value.
-    #[Complete, Inline, ConstExpr]
+    #[FullInit, Inline, ConstExpr]
     func opSet(me, argb: u32)
     {
         .argb = argb
     }
 
     // Assignment operator for 'Argb' enum value.
-    #[Complete, Inline, Implicit, ConstExpr]
+    #[FullInit, Inline, Implicit, ConstExpr]
     func opSet(me, argb: Argb)
     {
         .argb = cast(u32) argb
     }
 
     // Assignment operator for color name string.
-    #[Complete, Inline, ConstExpr]
+    #[FullInit, Inline, ConstExpr]
     func opSet(me, name: string)
     {
         .argb = cast(u32) Argb.fromName(name)

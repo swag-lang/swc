@@ -4,7 +4,8 @@ using Core, Pixel
 
 struct ThemeStyleRef
 {
-    theme: #late *Theme
+    #[Swag.Late]
+    theme: *Theme
     count: u32
 }
 

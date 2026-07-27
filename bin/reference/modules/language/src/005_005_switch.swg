@@ -153,9 +153,14 @@ A `case` cannot be left empty. Use `break` explicitly when no action is required
 }
 
 /**
-# The 'Swag.Complete' Attribute
+# The '#complete' Modifier
 
-Annotate a `switch` with `#[Swag.Complete]` when matching enums to enforce exhaustive case handling.
+Write `switch #complete` when matching enums to enforce exhaustive case handling. Every
+declared enum value must have a `case`, and the switch cannot have a `default`.
+
+`#complete` is a modifier and not an attribute because it selects a variant of **this one
+statement**: a statement carries no symbol, so there is nothing for an attribute to
+annotate or for reflection to report.
 */
 
 #test
@@ -163,8 +168,7 @@ Annotate a `switch` with `#[Swag.Complete]` when matching enums to enforce exhau
     enum Color { Red, Green, Blue }
     let color = Color.Red
 
-    #[Swag.Complete]
-    switch color
+    switch #complete color
     {
     case Color.Red:   break
     case Color.Green: @assert(false)

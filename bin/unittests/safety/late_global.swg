@@ -1,6 +1,6 @@
 #global private
 
-// Reading a '#late' global before its first assignment panics under Null safety: no
+// Reading a 'Swag.Late' global before its first assignment panics under Null safety: no
 // static cross-function proof is possible, so the guard always runs at runtime. Driven
 // through '#run' so the guard executes at compile time and the panic is observed.
 
@@ -9,7 +9,8 @@ struct LateGlobalSafetyItem
     value: s32
 }
 
-var g_lateSafetyUnset: #late *LateGlobalSafetyItem
+#[Swag.Late]
+var g_lateSafetyUnset: *LateGlobalSafetyItem
 
 #[Swag.Safety(.Null, true)]
 func lateSafetyReadUnset()->s32
@@ -25,7 +26,8 @@ func lateSafetyReadUnset()->s32
 
 // The same read after assignment is fine.
 var g_lateSafetyStorage: LateGlobalSafetyItem
-var g_lateSafetySet:     #late *LateGlobalSafetyItem
+#[Swag.Late]
+var g_lateSafetySet:     *LateGlobalSafetyItem
 
 #[Swag.Safety(.Null, true)]
 func lateSafetyReadSet()->s32

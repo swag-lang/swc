@@ -51,8 +51,7 @@ impl Brush
 {
     mtd const hasVisibleAlpha()->bool
     {
-        #[Swag.Complete]
-        switch .type
+        switch #complete .type
         {
         case SolidColor, Texture, Hatch:
             return .color.a != 0
@@ -73,8 +72,7 @@ impl Brush
 
     mtd const isOpaque()->bool
     {
-        #[Swag.Complete]
-        switch .type
+        switch #complete .type
         {
         case SolidColor, Hatch:
             return .color.a == 255

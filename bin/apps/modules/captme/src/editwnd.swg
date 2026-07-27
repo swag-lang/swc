@@ -1,7 +1,8 @@
 struct EditWnd
 {
     using scrollWnd: ScrollWnd
-    editView:        #late *EditView
+    #[Swag.Late]
+    editView:        *EditView
 }
 
 impl EditWnd

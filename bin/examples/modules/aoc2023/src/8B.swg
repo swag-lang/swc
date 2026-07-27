@@ -38,13 +38,23 @@ using Core
 // For the record, i've cheated for this one !!
 // ********************************************
 
+// An inline anonymous struct cannot carry a per-field attribute, so the node shape is
+// named: 'name' is filled once the whole map has been read.
+struct Node
+{
+    #[Swag.Late]
+    name:  string
+    left:  u64
+    right: u64
+}
+
 func day8B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var instructions: string = ""
-    var nodes:        Array'{ name: #late string, left, right: u64 }
+    var nodes:        Array'Node
     var nameToNode:   HashTable'(string, u64)
 
     var startNode: Array'u64

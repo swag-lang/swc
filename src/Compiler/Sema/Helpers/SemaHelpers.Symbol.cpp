@@ -1244,7 +1244,7 @@ namespace
             const TypeInfo&       fieldRealType = unwrappedRef.isValid() ? sema.typeMgr().get(unwrappedRef) : fieldType;
             if (fieldRealType.isFunction())
                 canExtractConstantMember = false;
-            // A '#late' field's value only exists at runtime: extracting the
+            // A 'Swag.Late' field's value only exists at runtime: extracting the
             // constant would leak the null 'unset' state into a non-null type
             // and bypass both the read guard and '@isset'.
             if (fieldVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
@@ -1261,7 +1261,7 @@ namespace
         if (throughPointerOrRef || sema.isLValue(node.nodeLeftRef))
             sema.setIsLValue(node);
 
-        // Reading a '#late' field is guarded: its storage stays null until the first
+        // Reading a 'Swag.Late' field is guarded: its storage stays null until the first
         // assignment while its type is non-null. Request the null-safety payload;
         // consumers that never read the value (pure assignment target, address-of,
         // '@isset') clear it back.

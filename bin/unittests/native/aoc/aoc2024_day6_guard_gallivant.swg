@@ -124,8 +124,7 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
 
 func turnRight(dir: Direction)->Direction
 {
-    #[Swag.Complete]
-    switch dir
+    switch #complete dir
     {
     case Direction.Up:    return Direction.Right
     case Direction.Right: return Direction.Down
@@ -138,8 +137,7 @@ func turnRight(dir: Direction)->Direction
 
 func directionDelta(outDx: *s32, outDy: *s32, dir: Direction)
 {
-    #[Swag.Complete]
-    switch dir
+    switch #complete dir
     {
     case Direction.Up:
         dref outDx = 0

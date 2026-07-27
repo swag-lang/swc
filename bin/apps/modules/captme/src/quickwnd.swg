@@ -72,7 +72,8 @@ struct QuickButton
 {
     using iconBtn: IconButton
     formItf:       #null IForm
-    quickWnd:      #late *QuickWnd
+    #[Swag.Late]
+    quickWnd:      *QuickWnd
 }
 
 struct QuickStylePaintForm
@@ -152,8 +153,10 @@ struct QuickWnd
 {
     using scrollWnd: ScrollWnd
 
-    layout: #late *WrapLayoutCtrl
-    main:   #late *MainWnd
+    #[Swag.Late]
+    layout: *WrapLayoutCtrl
+    #[Swag.Late]
+    main:   *MainWnd
 
     qsArrow:     QuickStyle
     qsShape:     QuickStyle
@@ -677,8 +680,7 @@ impl QuickWnd
 
         // The style set was recreated in place: the existing buttons hold pointers to
         // the freed forms, so a full rebuild is mandatory (see updateQuickStyles).
-        #[Swag.Complete]
-        switch .main.editMode
+        switch #complete .main.editMode
         {
         case Arrow:     .defaultQuickStyleArrow()
         case Shape:     .defaultQuickStyleShape()
@@ -718,8 +720,7 @@ impl QuickWnd
 
         let edMode    = .main.editMode == .Selection ? .main.getEditMode() : .main.editMode
         let prevStyle = .currentStyle
-        #[Swag.Complete]
-        switch edMode
+        switch #complete edMode
         {
         case Arrow:     .currentStyle = &.qsArrow
         case Shape:     .currentStyle = &.qsShape

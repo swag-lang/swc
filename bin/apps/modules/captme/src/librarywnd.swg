@@ -18,16 +18,19 @@ struct LibraryWnd
 {
     using wnd: Wnd
 
-    main:        #late *MainWnd
-    view:        #late *LibraryView
-    listCtrl:    #late *ListCtrl
-    editZoomBar: #late *Wnd
-    zoomBtn:     #late *IconButton
-    sortBtn:     #late *IconButton
-    filterBtn:   #late *IconButton
-    trashBtn:    #late *IconButton
-    searchEdit:  #late *EditBox
-    breadcrumb:  #late *BreadcrumbCtrl
+    #[Swag.Late]
+    {
+        main:        *MainWnd
+        view:        *LibraryView
+        listCtrl:    *ListCtrl
+        editZoomBar: *Wnd
+        zoomBtn:     *IconButton
+        sortBtn:     *IconButton
+        filterBtn:   *IconButton
+        trashBtn:    *IconButton
+        searchEdit:  *EditBox
+        breadcrumb:  *BreadcrumbCtrl
+    }
     previewSize: PreviewSize
 
     searchText: String

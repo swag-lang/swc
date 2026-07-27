@@ -23,7 +23,8 @@ public struct GlyphMetrics
 
 public struct GlyphSlot
 {
-    face:                    #late *Face
+    #[Swag.Late]
+    face:                    *Face
     index:                   u32
     metrics:                 GlyphMetrics
     linearHorizontalAdvance: s32

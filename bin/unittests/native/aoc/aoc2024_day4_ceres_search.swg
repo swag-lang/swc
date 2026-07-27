@@ -75,8 +75,7 @@ const Directions: [8] Direction =
 
 func directionVector(dir: Direction)->Vec2
 {
-    #[Swag.Complete]
-    switch dir
+    switch #complete dir
     {
     case Direction.Right:     return {dx: 1,  dy: 0}
     case Direction.Down:      return {dx: 0,  dy: 1}
@@ -218,7 +217,7 @@ func solveClean(grid: Grid)->SearchResult
 
 // ---------------------------------------------------------------------------
 // Language-features approach: impl methods, inline, retval,
-// #[Swag.Complete], arrow expressions
+// 'switch #complete', arrow expressions
 // ---------------------------------------------------------------------------
 
 impl Grid

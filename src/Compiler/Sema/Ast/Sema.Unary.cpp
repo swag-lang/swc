@@ -601,7 +601,7 @@ Result AstUnaryExpr::semaPostNode(Sema& sema)
                 SemaHelpers::killNullNarrowPathAfterStatement(sema, nodeExprRef, false);
                 view.recompute(sema);
             }
-            // '&x.field' consumes the address, never the value: no '#late' read guard.
+            // '&x.field' consumes the address, never the value: no 'Swag.Late' read guard.
             SemaHelpers::clearLateFieldReadGuard(sema, nodeExprRef);
             return semaTakeAddress(sema, *this, view);
         case TokenId::SymBang:

@@ -399,7 +399,7 @@ Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& sym
     return Result::Continue;
 }
 
-// A '#late' field access requests a null-safety read guard when it resolves
+// A 'Swag.Late' field access requests a null-safety read guard when it resolves
 // (memberStruct). Consumers that never read the field value — pure assignment
 // target, address-of, '@isset' — call this to cancel the guard.
 void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
@@ -407,8 +407,8 @@ void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
     if (nodeRef.isInvalid())
         return;
     const SemaNodeView view = sema.viewNode(nodeRef);
-    // A '#late' read guard sits on a field member access or on a bare identifier (a
-    // '#late' global). Both are cleared by a non-reading consumer (assignment target,
+    // A 'Swag.Late' read guard sits on a field member access or on a bare identifier (a
+    // 'Swag.Late' global). Both are cleared by a non-reading consumer (assignment target,
     // address-of, '@isset').
     if (!view.node() || (view.node()->isNot(AstNodeId::MemberAccessExpr) && view.node()->isNot(AstNodeId::Identifier)))
         return;

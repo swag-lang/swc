@@ -1,6 +1,6 @@
 #global private
 
-// '#late' global: accepted without an initializer (unlike a bare non-null global),
+// 'Swag.Late' global: accepted without an initializer (unlike a bare non-null global),
 // exposed as a non-null type, guarded at every read, and inspectable with '@isset'.
 
 struct LateGlobalSemaItem
@@ -9,8 +9,10 @@ struct LateGlobalSemaItem
 }
 
 var g_lateSemaStorage: LateGlobalSemaItem
-var g_lateSemaItem:    #late *LateGlobalSemaItem
-var g_lateSemaName:    #late string
+#[Swag.Late]
+var g_lateSemaItem:    *LateGlobalSemaItem
+#[Swag.Late]
+var g_lateSemaName:    string
 
 // The exposed type is non-null.
 #assert(#typeof(g_lateSemaItem) == *LateGlobalSemaItem)

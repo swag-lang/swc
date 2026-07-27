@@ -50,8 +50,10 @@ struct RichEditCtrl
     selBeg:       RichEditCursor
     lines:        ArrayPtr'RichEditLine
     freeLines:    ArrayPtr'RichEditLine
-    scrollWnd:    #late *ScrollWnd
-    edView:       #late *RichEditView
+    #[Swag.Late]
+    scrollWnd:    *ScrollWnd
+    #[Swag.Late]
+    edView:       *RichEditView
     selRectangle: Math.Rectangle
 
     hasSelRect:              bool

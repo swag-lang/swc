@@ -1,6 +1,6 @@
 #global private
 
-// A '#late' field defers its initialization: the storage starts null while the
+// A 'Swag.Late' field defers its initialization: the storage starts null while the
 // declared type stays NON-null. Reads are guarded under null safety, '@isset'
 // observes the transition, and the struct remains default-initializable.
 
@@ -11,8 +11,10 @@ struct SemaLateItem
 
 struct SemaLateBox
 {
-    item:  #late *SemaLateItem
-    name:  #late string
+    #[Swag.Late]
+    item:  *SemaLateItem
+    #[Swag.Late]
+    name:  string
     count: s32
 }
 
@@ -54,29 +56,33 @@ func semaLateIsSet(it: *SemaLateItem)->bool
 // Rejected shapes.
 // -----------------------------------------------------------------------------
 
-// '#late' only qualifies struct fields.
+// 'Swag.Late' only qualifies struct fields.
 func semaLateErrLocal()
 {
-    var x: #late *s32     // swc-expected-error {{sema_err_late_not_field}}
+    #[Swag.Late]
+    var x: *s32     // swc-expected-error {{sema_err_late_not_field}}
     @print(x)
 }
 
 // A late field cannot carry an initializer.
 struct SemaLateErrInit
 {
-    name: #late string = "x"     // swc-expected-error {{sema_err_late_with_initializer}}
+    #[Swag.Late]
+    name: string = "x"     // swc-expected-error {{sema_err_late_with_initializer}}
 }
 
 // The type must have a null state to borrow as the 'unset' sentinel.
 struct SemaLateErrType
 {
-    v: #late s32     // swc-expected-error {{sema_err_late_bad_type}}
+    #[Swag.Late]
+    v: s32     // swc-expected-error {{sema_err_late_bad_type}}
 }
 
-// '#late #null' is a contradiction: late fields are non-null by construction.
+// 'Swag.Late' with '#null' is a contradiction: late fields are non-null by construction.
 struct SemaLateErrNullable
 {
-    p: #late #null *s32     // swc-expected-error {{sema_err_late_bad_type}}
+    #[Swag.Late]
+    p: #null *s32     // swc-expected-error {{sema_err_late_bad_type}}
 }
 
 // A read proven never-assigned on every path is a compile-time fault.

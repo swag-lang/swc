@@ -290,6 +290,9 @@ AstModifierFlags Parser::parseModifiers()
             case TokenId::ModifierReverse:
                 toSet = AstModifierFlagsE::Reverse;
                 break;
+            case TokenId::ModifierComplete:
+                toSet = AstModifierFlagsE::Complete;
+                break;
             case TokenId::ModifierMove:
                 toSet = AstModifierFlagsE::Move;
                 break;
@@ -591,7 +594,7 @@ AstNodeRef Parser::parseQuotedIdentifier()
     return idRef;
 }
 
-AstNodeRef Parser::parseInitializerExpression()
+AstNodeRef Parser::parseInitializerExpression(TokenRef tokAssign)
 {
     if (is(TokenId::KwdUndefined))
     {
@@ -603,7 +606,10 @@ AstNodeRef Parser::parseInitializerExpression()
     if (modifierFlags == AstModifierFlagsE::Zero)
         return parseExpression();
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitializerExpr>(ref());
+    // Anchor the node on its '=', not on the expression that follows: like every other
+    // modifier holder ('cast', '+=', 'for', ...) the anchor sits to the LEFT of the
+    // modifiers, which is what the diagnostics naming a modifier search from.
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::InitializerExpr>(tokAssign);
     nodePtr->modifierFlags        = modifierFlags;
     nodePtr->nodeExprRef          = parseExpression();
     return nodeRef;

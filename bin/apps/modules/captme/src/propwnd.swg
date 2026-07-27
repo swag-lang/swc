@@ -20,8 +20,7 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
     rect.x     = rect.horzCenter() - rect.height * 0.5
     rect.width = rect.height
 
-    #[Swag.Complete]
-    switch kind
+    switch #complete kind
     {
     case Ellipse:
         let radius = rect.width * 0.5
@@ -43,9 +42,12 @@ func drawShapeGlyph(painter: *Painter, kind: FormShapeKind, pos: Math.Rectangle,
 struct PropWnd
 {
     using frameWnd: FrameWnd
-    topLayout:      #late *StackLayoutCtrl
-    grid:           #late *Properties
-    main:           #late *MainWnd
+    #[Swag.Late]
+    {
+        topLayout:      *StackLayoutCtrl
+        grid:           *Properties
+        main:           *MainWnd
+    }
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
     gridBindType: typeinfo = undefined

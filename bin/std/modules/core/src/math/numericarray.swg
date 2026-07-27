@@ -102,14 +102,14 @@ impl NumericArray
         }
     }
 
-    #[Safety(.BoundCheck, false), Complete]
+    #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: T)
     {
         for [i] in N do
             .buf[i] = what
     }
 
-    #[Safety(.BoundCheck, false), Complete]
+    #[Safety(.BoundCheck, false), FullInit]
     mtd opSet(what: const [..] T)
     {
         Debug.assert(@countof(what) == N)

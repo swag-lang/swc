@@ -1,8 +1,10 @@
 struct EditView
 {
     using wnd:   Wnd
-    main:        #late *MainWnd
-    scroll:      #late *ScrollWnd
+    #[Swag.Late]
+    main:        *MainWnd
+    #[Swag.Late]
+    scroll:      *ScrollWnd
     capture:     #null *Capture
     zoom:        f32 = 1
     viewMargin:  f32 = 32

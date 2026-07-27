@@ -174,13 +174,13 @@ namespace
             {.name = IdentifierManager::PredefinedName::Implicit, .flag = RtAttributeFlagsE::Implicit},
             {.name = IdentifierManager::PredefinedName::EnumFlags, .flag = RtAttributeFlagsE::EnumFlags},
             {.name = IdentifierManager::PredefinedName::NoDuplicate, .flag = RtAttributeFlagsE::NoDuplicate},
-            {.name = IdentifierManager::PredefinedName::Complete, .flag = RtAttributeFlagsE::Complete},
+            {.name = IdentifierManager::PredefinedName::FullInit, .flag = RtAttributeFlagsE::FullInit},
+            {.name = IdentifierManager::PredefinedName::Late, .flag = RtAttributeFlagsE::Late},
             {.name = IdentifierManager::PredefinedName::CalleeReturn, .flag = RtAttributeFlagsE::CalleeReturn},
             {.name = IdentifierManager::PredefinedName::Discardable, .flag = RtAttributeFlagsE::Discardable},
             {.name = IdentifierManager::PredefinedName::Tls, .flag = RtAttributeFlagsE::Tls},
             {.name = IdentifierManager::PredefinedName::NoCopy, .flag = RtAttributeFlagsE::NoCopy},
             {.name = IdentifierManager::PredefinedName::Opaque, .flag = RtAttributeFlagsE::Opaque},
-            {.name = IdentifierManager::PredefinedName::Incomplete, .flag = RtAttributeFlagsE::Incomplete},
             {.name = IdentifierManager::PredefinedName::NoDoc, .flag = RtAttributeFlagsE::NoDoc},
             {.name = IdentifierManager::PredefinedName::Strict, .flag = RtAttributeFlagsE::Strict},
             {.name = IdentifierManager::PredefinedName::Global, .flag = RtAttributeFlagsE::Global},
@@ -505,6 +505,166 @@ namespace
         return Result::Continue;
     }
 
+    using AttributeUsageFlags = EnumFlags<Runtime::AttributeUsage>;
+
+    // An enum-typed attribute argument is stored as an 'EnumValue' constant that points at
+    // the underlying integer, so reading the raw bits needs one indirection.
+    bool attributeParamIntValue(const Sema& sema, ConstantRef cstRef, uint64_t& outValue)
+    {
+        if (!cstRef.isValid())
+            return false;
+
+        const ConstantValue& cst = sema.ctx().cstMgr().get(cstRef);
+        if (cst.isEnumValue())
+            return attributeParamIntValue(sema, cst.getEnumValue(), outValue);
+        if (!cst.isInt())
+            return false;
+
+        outValue = static_cast<uint64_t>(cst.getInt().as64());
+        return true;
+    }
+
+    // The usage an attribute restricts itself to with 'Swag.AttrUsage'. Empty means the
+    // attribute declared no restriction, so it is accepted everywhere.
+    AttributeUsageFlags declaredAttributeUsage(const Sema& sema, const SymbolFunction& attrSym)
+    {
+        const IdentifierRef attrUsageIdRef = sema.idMgr().predefined(IdentifierManager::PredefinedName::AttrUsage);
+
+        AttributeUsageFlags usage;
+        for (const AttributeInstance& attribute : attrSym.attributes().attributes)
+        {
+            if (!attribute.symbol || attribute.symbol->idRef() != attrUsageIdRef || !attribute.symbol->inSwagNamespace(sema.ctx()))
+                continue;
+
+            for (const AttributeParamInstance& param : attribute.params)
+            {
+                uint64_t bits = 0;
+                if (attributeParamIntValue(sema, param.valueCstRef, bits))
+                    usage.add(static_cast<Runtime::AttributeUsage>(bits));
+            }
+        }
+
+        return usage;
+    }
+
+    bool hasVarDeclFlag(const AstNode& varNode, AstVarDeclFlagsE flag)
+    {
+        if (varNode.is(AstNodeId::SingleVarDecl))
+            return varNode.cast<AstSingleVarDecl>().hasFlag(flag);
+        return varNode.cast<AstMultiVarDecl>().hasFlag(flag);
+    }
+
+    AttributeUsageFlags variableTargetUsage(const Sema& sema, const AstNode& varNode)
+    {
+        // 'Variable' means "any variable", so a parameter, a struct field and a global all
+        // answer to it on top of their own, narrower kind.
+        if (hasVarDeclFlag(varNode, AstVarDeclFlagsE::Parameter))
+            return Runtime::AttributeUsage::FunctionParameter | Runtime::AttributeUsage::Variable;
+        if (hasVarDeclFlag(varNode, AstVarDeclFlagsE::Const))
+            return Runtime::AttributeUsage::Constant;
+
+        const SemaScope& scope = sema.curScope();
+        if (scope.isType())
+            return Runtime::AttributeUsage::StructVariable | Runtime::AttributeUsage::Variable;
+        if (scope.isLocal())
+            return Runtime::AttributeUsage::Variable;
+        return Runtime::AttributeUsage::GlobalVariable | Runtime::AttributeUsage::Variable;
+    }
+
+    // What the attribute list is written on. An empty result means the target is not a kind
+    // 'AttrUsage' can name, so nothing is checked. A block is one of those on purpose:
+    // attributes on a block are broadcast to the declarations inside, and each of those
+    // declarations carries its own list and is checked there.
+    AttributeUsageFlags attributeTargetUsage(const Sema& sema, const AstNode& bodyNode)
+    {
+        switch (bodyNode.id())
+        {
+            case AstNodeId::FunctionDecl:
+                return Runtime::AttributeUsage::Function;
+            case AstNodeId::StructDecl:
+            case AstNodeId::UnionDecl:
+            case AstNodeId::AnonymousStructDecl:
+            case AstNodeId::AnonymousUnionDecl:
+                return Runtime::AttributeUsage::Struct;
+            case AstNodeId::EnumDecl:
+                return Runtime::AttributeUsage::Enum;
+            case AstNodeId::EnumValue:
+                return Runtime::AttributeUsage::EnumValue;
+            case AstNodeId::AliasDecl:
+                return Runtime::AttributeUsage::Alias;
+            case AstNodeId::SingleVarDecl:
+            case AstNodeId::MultiVarDecl:
+                return variableTargetUsage(sema, bodyNode);
+            default:
+                return {};
+        }
+    }
+
+    std::string_view attributeTargetName(AttributeUsageFlags target)
+    {
+        if (target.has(Runtime::AttributeUsage::Function))
+            return "a function";
+        if (target.has(Runtime::AttributeUsage::Struct))
+            return "a struct";
+        if (target.has(Runtime::AttributeUsage::Enum))
+            return "an enum";
+        if (target.has(Runtime::AttributeUsage::EnumValue))
+            return "an enum value";
+        if (target.has(Runtime::AttributeUsage::Alias))
+            return "an alias";
+        if (target.has(Runtime::AttributeUsage::FunctionParameter))
+            return "a function parameter";
+        if (target.has(Runtime::AttributeUsage::Constant))
+            return "a constant";
+        if (target.has(Runtime::AttributeUsage::StructVariable))
+            return "a struct field";
+        if (target.has(Runtime::AttributeUsage::GlobalVariable))
+            return "a global variable";
+        return "a local variable";
+    }
+
+    Result checkAttributeUsage(Sema& sema, AstNodeRef attrRef, AttributeUsageFlags target)
+    {
+        const AstNode& attrNode = sema.node(attrRef);
+        if (!attrNode.is(AstNodeId::Attribute))
+            return Result::Continue;
+
+        const Symbol* sym = sema.viewSymbol(attrNode.cast<AstAttribute>().nodeCallRef).sym();
+        if (!sym || !sym->isAttribute())
+            return Result::Continue;
+
+        const AttributeUsageFlags declared = declaredAttributeUsage(sema, sym->cast<SymbolFunction>());
+        if (declared.none() || declared.has(Runtime::AttributeUsage::All) || declared.hasAny(target))
+            return Result::Continue;
+
+        // Predefined attributes are written qualified, so name them the way they are used.
+        Utf8 displayName;
+        if (sym->inSwagNamespace(sema.ctx()))
+            displayName.append("Swag.");
+        displayName.append(sym->name(sema.ctx()));
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_attribute_usage, attrRef);
+        diag.addArgument(Diagnostic::ARG_SYM, displayName);
+        diag.addArgument(Diagnostic::ARG_WHAT, attributeTargetName(target));
+        diag.addNote(DiagnosticId::sema_note_attribute_declared_usage);
+        diag.last().addSpan(sym->codeRange(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    Result checkAttributeUsages(Sema& sema, const AstAttributeList& list)
+    {
+        const AttributeUsageFlags target = attributeTargetUsage(sema, sema.node(list.nodeBodyRef));
+        if (target.none())
+            return Result::Continue;
+
+        const size_t count = sema.ast().spanSize(list.spanChildrenRef);
+        for (size_t i = 0; i < count; ++i)
+            SWC_RESULT(checkAttributeUsage(sema, sema.ast().nthNode(list.spanChildrenRef, i), target));
+
+        return Result::Continue;
+    }
+
 }
 
 Result AstAccessModifier::semaPreDecl(Sema& sema) const
@@ -622,6 +782,8 @@ Result AstAttributeList::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
     if (nodeBodyRef.isInvalid())
         return Result::Continue;
+
+    SWC_RESULT(checkAttributeUsages(sema, *this));
 
     const AttributeList& attributes = sema.frame().currentAttributes();
     if (!attributes.hasRtFlag(RtAttributeFlagsE::PrintAst))

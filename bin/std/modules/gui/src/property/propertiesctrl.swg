@@ -15,10 +15,13 @@ struct PropertiesCtrl
 {
     using frameWnd: FrameWnd
 
-    splitter:  #late *SplitterCtrl
-    list:      #late *ListCtrl
-    tab:       #late *Tab
-    prop:      #late *Properties
+    #[Swag.Late]
+    {
+        splitter:  *SplitterCtrl
+        list:      *ListCtrl
+        tab:       *Tab
+        prop:      *Properties
+    }
     propFlags: PropertiesCtrlFlags
 }
 

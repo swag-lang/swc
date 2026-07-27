@@ -521,6 +521,8 @@ AstNodeRef Parser::parseSwitch()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SwitchStmt>(consume());
 
+    nodePtr->modifierFlags = parseModifiers();
+
     if (isNot(TokenId::SymLeftCurly))
         nodePtr->nodeExprRef = parseExpression();
     else

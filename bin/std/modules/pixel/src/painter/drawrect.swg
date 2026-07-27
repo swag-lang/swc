@@ -29,8 +29,7 @@ impl Painter
         var w = Math.round(width)
         var h = Math.round(height)
 
-        #[Swag.Complete]
-        switch pen.borderPos
+        switch #complete pen.borderPos
         {
         case None:
             let o = 0.5
@@ -138,8 +137,7 @@ impl Painter
         var w = Math.round(width)
         var h = Math.round(height)
 
-        #[Swag.Complete]
-        switch pen.borderPos
+        switch #complete pen.borderPos
         {
         case None:
             let o = 0.5

@@ -622,7 +622,7 @@ namespace
         const auto* payload = sema.semaPayload<VarInitSpecOpPayload>(sema.curNodeRef());
         if (payload &&
             payload->calledFn &&
-            !payload->calledFn->attributes().hasRtFlag(RtAttributeFlagsE::Complete))
+            !payload->calledFn->attributes().hasRtFlag(RtAttributeFlagsE::FullInit))
         {
             SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
             if (SymbolStruct::typeRequiresExplicitInitialization(sema, explicitTypeRef))
@@ -995,15 +995,16 @@ namespace
         const SymbolMap* fieldOwnerSymMap = !symbols.empty() && symbols[0] ? symbols[0]->ownerSymMap() : nullptr;
         const bool       isStructField    = fieldOwnerSymMap && fieldOwnerSymMap->isStruct();
 
-        // '#late' declares a deferred non-null storage: null (zero) storage until the
+        // 'Swag.Late' declares a deferred non-null storage: null (zero) storage until the
         // first assignment, non-null type at every read (guarded under null safety). It
         // qualifies struct fields and global variables (both have zero-initialized
         // storage that serves as the 'unset' sentinel); a local or parameter has no such
         // storage lifetime, so it uses '= undefined' definite assignment instead.
-        if (context.flags.has(AstVarDeclFlagsE::Late))
+        const SymbolVariable* firstLateVar = !symbols.empty() ? getVariableSymbol(symbols[0]) : nullptr;
+        const bool            isLate       = firstLateVar && firstLateVar->attributes().hasRtFlag(RtAttributeFlagsE::Late);
+        if (isLate)
         {
-            const SymbolVariable* firstLateVar = !symbols.empty() ? getVariableSymbol(symbols[0]) : nullptr;
-            const bool            isGlobalVar  = firstLateVar && isGlobalStorageVariable(*firstLateVar);
+            const bool isGlobalVar = isGlobalStorageVariable(*firstLateVar);
             if (!isStructField && !isGlobalVar)
                 return SemaError::raise(sema, DiagnosticId::sema_err_late_not_field, finalTypeErrorRef(sema, context));
             if (context.nodeInitRef.isValid())
@@ -1032,10 +1033,10 @@ namespace
         {
             SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, finalTypeRef, context.nodeTypeRef));
             requiresExplicitInit = SymbolStruct::typeRequiresExplicitInitialization(sema, finalTypeRef);
-            // A '#late' declaration (struct field or global) intentionally has no
+            // A 'Swag.Late' declaration (struct field or global) intentionally has no
             // initializer: its zero (null) storage is the 'unset' sentinel, guarded at
             // every read. It is exempt from the requires-init rule like a struct field.
-            if (requiresExplicitInit && !isStructField && !context.flags.has(AstVarDeclFlagsE::Late))
+            if (requiresExplicitInit && !isStructField && !isLate)
                 return reportTypeRequiresInit(sema, context, finalTypeRef);
         }
 

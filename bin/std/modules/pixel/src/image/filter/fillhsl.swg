@@ -27,8 +27,7 @@ impl Image
         let hsl    = color.toHsl()
         var swapRB = .pf == .RGB8 or .pf == .RGBA8
 
-        #[Swag.Complete]
-        switch fillType
+        switch #complete fillType
         {
         case HueVert:
             .visitPixels(&swapRB)

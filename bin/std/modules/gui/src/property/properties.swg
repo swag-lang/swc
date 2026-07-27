@@ -142,8 +142,10 @@ struct Properties
     fontSection:  FontFamily
     fontCategory: FontFamily
     fontName:     FontFamily
-    scrollWnd:    #late *ScrollWnd
-    edView:       #late *PropertiesView
+    #[Swag.Late]
+    scrollWnd:    *ScrollWnd
+    #[Swag.Late]
+    edView:       *PropertiesView
     items:        ArrayPtr'PropertiesItem
     sections:     Array'{ item: #null *PropertiesItem, lvl: s32 }
 

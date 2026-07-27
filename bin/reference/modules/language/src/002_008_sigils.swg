@@ -6,8 +6,7 @@
 Swag gives two prefixed name families special syntactic roles. They cannot
 collide with ordinary identifiers:
 
-- '#' introduces directives, compile-time queries, type qualifiers, and
-  operation modifiers.
+- '#' introduces directives, compile-time queries, and modifiers.
 - '@' introduces intrinsic values and operations implemented by the compiler
   or runtime.
 
@@ -19,6 +18,35 @@ Some extension points also accept a user-defined sharp selector. For example,
 'for #Pairs ...' resolves the custom iteration hook 'opVisitPairs'. Such a
 selector is still part of '#'-syntax; it does not create an ordinary identifier
 named '#Pairs'.
+
+# Modifier or Attribute
+
+A modifier and an attribute both annotate code, so one rule decides which is
+which:
+
+> An attribute annotates something that has a **symbol**. A modifier annotates
+> something that does not.
+
+An attribute is a named, parameterized annotation attached to a declaration, so
+it can be reflected ('TypeInfoStruct.attributes'), declared by user code with
+'attr', and inherited by everything a block contains. A type, an operand, a
+conversion, a literal, or a statement carries no symbol: reflection could never
+report an annotation there, so those take a modifier instead.
+
+The rule fixes the properties of each family:
+
+| | Modifier | Attribute |
+|---|---|---|
+| Set | closed, compiler-defined | open, 'attr' declares more |
+| Target | type, operand, cast, literal, statement | declaration, lexical scope |
+| Parameters | never | yes |
+| Reflection | never | yes |
+| Inherited by a scope | never | yes |
+
+'Swag.AttrUsage' names the declaration kinds an attribute accepts, and the
+compiler rejects the attribute anywhere else. A block is the exception: it
+broadcasts to the declarations it contains, and each of those is checked on its
+own.
 
 # Directives and Static Queries
 
@@ -86,10 +114,15 @@ Inside '#run', an '@' intrinsic executes during compilation because the
 containing code does. In an ordinary function, the same intrinsic becomes
 generated runtime behavior.
 
+# The Four Modifier Families
+
+The modifiers are not one list. Each one belongs to exactly one of four
+families, and the family says what it annotates.
+
 # Type Qualifiers
 
-'#null', '#late', and '#unconst' modify a type or declaration. The bare 'null'
-token is a value:
+'#null' is part of the type itself and takes part in conversions. The bare
+'null' token is a value:
 */
 
 #test
@@ -99,14 +132,19 @@ token is a value:
 }
 
 /**
-'#null *T' admits the 'null' value. '#late' defers initialization of a
-nullable-capable field while exposing it as non-null after a guarded write.
-'#unconst' removes a const qualifier only where the language permits that
-explicit escape.
+# Passing Modes
+
+'#move' and '#fwd' in a parameter position are part of the signature: they
+select how an argument reaches the callee. They belong to the type, so they
+cannot be attributes.
+
+```swag
+func take(value: #move Buffer) { ... }
+```
 
 # Operation Modifiers
 
-Modifiers change one operation rather than producing a value:
+These change one operation rather than producing a value:
 */
 
 #test
@@ -119,26 +157,57 @@ Modifiers change one operation rather than producing a value:
 
     let bits = cast #bit (u32) 1.0'f32
     @assert(bits == 0x3F800000)
-
-    var expected = 2
-    for #reverse 3
-    {
-        @assert(@index == expected)
-        expected -= 1
-    }
 }
 
 /**
-'#raw' modifies how the compiler reads the string literal that follows: its content is
-taken verbatim, with no escape sequence recognized.
+'#bit' and '#unconst' select a variant of the 'cast' they sit in; neither is a
+type qualifier, and neither can be written in a type position. '#unconst'
+removes a const qualifier only where the language permits that explicit escape.
+
+'#nodrop', '#move', and '#relocate' modify one assignment or one initializer.
+
+'#raw' modifies how the compiler reads the string literal that follows: its
+content is taken verbatim, with no escape sequence recognized.
 
 ```swag
 let pattern = #raw "(\d+)x(\d+)"
 let payload = #raw """{"key": "value"}"""
 ```
 
+# Statement Selectors
+
+These choose a variant of the statement they follow. A statement has no symbol,
+so a selector is the only form available — and this is the family a user
+extends with a custom sharp selector such as 'for #Pairs'.
+*/
+
+#test
+{
+    var expected = 2
+    for #reverse 3
+    {
+        @assert(@index == expected)
+        expected -= 1
+    }
+
+    enum Direction { Up, Down }
+    let direction = Direction.Up
+
+    switch #complete direction
+    {
+    case Direction.Up:   @assert(true)
+    case Direction.Down: @assert(false)
+    }
+}
+
+/**
+'defer #fail' and 'defer #nofail' select which exit path runs the deferred
+statement.
+
+# Choosing the Narrowest Scope
+
 '#wrap' opts one arithmetic operation into wrapping behavior. Broader runtime
-guard policy uses 'Swag.Safety', and module defaults live in 'BuildCfg':
+guard policy uses 'Swag.Safety' on a scope, and module defaults live in 'BuildCfg':
 
 ```swag
 #[Swag.Safety(.Overflow, false)]
@@ -147,8 +216,10 @@ guard policy uses 'Swag.Safety', and module defaults live in 'BuildCfg':
 }
 ```
 
-Use the narrowest scope that expresses the intent. A local '#wrap' documents
-one deliberate wrap more clearly than disabling overflow checks for a file.
+Both spellings are legitimate, and the rule above says which is which: '#wrap'
+annotates one operation, 'Swag.Safety' annotates a scope. Use the narrowest one
+that expresses the intent. A local '#wrap' documents one deliberate wrap more
+clearly than disabling overflow checks for a file.
 
 # Contextual Keywords Are Different
 

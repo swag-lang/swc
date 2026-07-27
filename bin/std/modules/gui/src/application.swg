@@ -12,7 +12,8 @@ struct Application
     options:      ApplicationOptions
     appIcon:      Pixel.Image
     renderer:     Pixel.RenderOgl
-    theme:        #late *Theme
+    #[Swag.Late]
+    theme:        *Theme
     style:        ThemeStyle
     keyb:         Input.Keyboard
     mouse:        Input.Mouse

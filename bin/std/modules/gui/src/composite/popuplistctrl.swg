@@ -21,14 +21,16 @@ struct PopupListCtrl
 
     items:       ArrayPtr'PopupListCtrlItem
     selectedIdx = Swag.U32.Max
-    scrollWnd:   #late *ScrollWnd
+    #[Swag.Late]
+    scrollWnd:   *ScrollWnd
     maxIconSize: s32
 }
 
 struct PopupListView
 {
     using wnd: Wnd
-    list:      #late *PopupListCtrl
+    #[Swag.Late]
+    list:      *PopupListCtrl
     hotIdx:    u32 = Swag.U32.Max
     closing:   bool
 }

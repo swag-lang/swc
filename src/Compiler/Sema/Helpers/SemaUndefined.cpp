@@ -36,11 +36,11 @@ namespace
         uint32_t              fieldCount  = 0;       // 0 => single slot
         uint64_t              fullMask    = 1;
         uint64_t              dropMask    = 0; // bits of fields with a drop lifecycle
-        uint64_t              lateMask    = 0; // bits of '#late' fields ('lateOnly' tracking)
+        uint64_t              lateMask    = 0; // bits of 'Swag.Late' fields ('lateOnly' tracking)
         bool                  typeHasDrop = false;
         bool                  isRetVal    = false;
         bool                  isArray     = false; // static array: passed by address, filled element-wise
-        bool                  lateOnly    = false; // tracked only for its '#late' fields: zero-init var, no undefined content
+        bool                  lateOnly    = false; // tracked only for its 'Swag.Late' fields: zero-init var, no undefined content
         bool                  errored     = false; // one report per variable
         uint32_t              blockDepth  = 0;
         uint32_t              loopDepth   = 0;
@@ -486,7 +486,7 @@ namespace
                 state.add(path.varIndex, 1ull << path.fieldIndex);
             else
             {
-                // Whole assignment: the source's '#late' fields may legally be
+                // Whole assignment: the source's 'Swag.Late' fields may legally be
                 // unset, so the copy proves nothing for them.
                 state.set(path.varIndex, var.fullMask & ~var.lateMask, var.fullMask);
             }
@@ -496,7 +496,7 @@ namespace
         {
             // Once the address escapes, the variable is treated as initialized: the
             // callee may fill it (out parameter) and later flow cannot be proven.
-            // '#late' fields only gain 'may': the callee filling them is possible,
+            // 'Swag.Late' fields only gain 'may': the callee filling them is possible,
             // never proven (the runtime read guard stays).
             const TrackedVar& var = vars_[path.varIndex];
             if (path.fieldIndex >= 0)
@@ -567,7 +567,7 @@ namespace
                 return;
             TrackedVar& var = vars_[path.varIndex];
 
-            // '#late' field read: proven set on EVERY path elides the runtime read
+            // 'Swag.Late' field read: proven set on EVERY path elides the runtime read
             // guard; proven never set on ANY path is a compile-time fault; anything
             // in between is the runtime guard's business. Indexed and nested
             // accesses dereference the late field the same way.
@@ -749,7 +749,7 @@ namespace
                             }
                             else
                             {
-                                // Zero-initialized struct with '#late' fields: track
+                                // Zero-initialized struct with 'Swag.Late' fields: track
                                 // only their set-state (error on proven never-set
                                 // reads, elide the guard on proven-set ones).
                                 uint64_t lateMask = 0;
@@ -1164,7 +1164,7 @@ namespace
 
                 case AstNodeId::IntrinsicCall:
                 {
-                    // '@isset(x.f)' inspects a '#late' field's storage: neither a
+                    // '@isset(x.f)' inspects a 'Swag.Late' field's storage: neither a
                     // read of the value nor an escape of the variable.
                     if (tokenIdOf(node, TokenId::IntrinsicKindOf) == TokenId::IntrinsicIsSet)
                         return FlowExit::Normal;
@@ -1524,7 +1524,7 @@ namespace
             if (leftNode.is(AstNodeId::IndexExpr))
                 walk(leftNode.cast<AstIndexExpr>().nodeArgRef, state);
 
-            // Writing THROUGH a '#late' field ('b.item.value = x', 'b.name[i] = c')
+            // Writing THROUGH a 'Swag.Late' field ('b.item.value = x', 'b.name[i] = c')
             // dereferences the field: a read, never an initialization.
             if (path.fieldIndex >= 0 && (path.nestedField || path.indexed) &&
                 (vars_[path.varIndex].lateMask & (1ull << path.fieldIndex)))

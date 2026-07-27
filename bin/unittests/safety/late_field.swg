@@ -7,11 +7,12 @@ struct LateItem
 
 struct LateBox
 {
-    item: #late *LateItem
+    #[Swag.Late]
+    item: *LateItem
 }
 
 // =============================================
-// Reading a '#late' field before initialization panics under null safety.
+// Reading a 'Swag.Late' field before initialization panics under null safety.
 // The conditional assignment keeps the fault a runtime matter: a read proven
 // never-set on every path is a compile-time error instead (see the sema tests).
 // =============================================

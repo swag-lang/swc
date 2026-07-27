@@ -12,6 +12,8 @@ namespace Swag
         FunctionParameter = 0x00000080     // Attribute can be used on a struct parameter
         File              = 0x00000100     // Attribute can be used with '#global'
         Constant          = 0x00000200     // Attribute can be used on a constant
+        Alias             = 0x00000400     // Attribute can be used on an alias
+        Scope             = 0x00000800     // Attribute acts on a lexical scope instead of a declaration
 
         Multi = 0x01000000     // Attribute can be used more than once
         Gen   = 0x02000000
@@ -80,9 +82,10 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Function)]
     attr Implicit()
 
-    // The following switch must be complete
+    // The following 'opSet' or 'opCast' initializes the whole destination, so the caller
+    // does not have to default-initialize it first.
     #[AttrUsage(AttributeUsage.Function)]
-    attr Complete()
+    attr FullInit()
 
     // The operator an overload hook is being asked to implement.
     // The compiler passes it as the generic value argument of 'opBinary', 'opBinaryRight',
@@ -129,8 +132,7 @@ namespace Swag
         #[ConstExpr]
         mtd symbol()->string
         {
-            #[Complete]
-            switch me
+            switch #complete me
             {
             case Add:          return "+"
             case Sub:          return "-"
@@ -213,6 +215,13 @@ namespace Swag
     #[AttrUsage(AttributeUsage.StructVariable)]
     attr Offset(name: string)
 
+    // The following struct field or global variable is initialized after construction: the
+    // type stays non-null, the storage starts null, and a read is only accepted once the
+    // declaration is provably set. A local has no such storage lifetime and is rejected with
+    // its own diagnostic, so the usage stays at the coarse 'any variable' level here.
+    #[AttrUsage(AttributeUsage.Variable)]
+    attr Late()
+
     // The following enum is a set of flags
     #[AttrUsage(AttributeUsage.Enum)]
     attr EnumFlags()
@@ -221,7 +230,8 @@ namespace Swag
     #[AttrUsage(AttributeUsage.Enum)]
     attr NoDuplicate()
 
-    // The following switch is incomplete
+    // The declared values of the following enum are not the full set: a value outside them
+    // is expected at runtime, so a switch on it is not meant to be exhaustive.
     #[AttrUsage(AttributeUsage.Enum)]
     attr Incomplete()
 
@@ -245,7 +255,7 @@ namespace Swag
     // analysis, and the proven-fault sanitizer (use-after-move, stack escapes, proven
     // null dereferences, ...). Reuses the [[SafetyWhat]] flags. Unlike [[Safety]], these
     // checks add no runtime cost and are enabled by default in every build configuration.
-    #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
+    #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Sanity(what: SafetyWhat, value: bool)
 
     // Computed borrow summary of a function, consumed by the static borrow analysis.
@@ -281,11 +291,11 @@ namespace Swag
     }
 
     // Enable/Disable one or more safety checks.
-    #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
+    #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Safety(what: SafetyWhat, value: bool)
 
     // Set optimized code generation on/off.
-    #[AttrUsage(AttributeUsage.Function | AttributeUsage.File), AttrMulti]
+    #[AttrUsage(AttributeUsage.Function | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Optimize(level: bool)
 
     // Warning behavior for [[Warning]] attribute
@@ -304,7 +314,7 @@ namespace Swag
     // #global #[Swag.Warning("Wrn0005", Swag.WarningLevel.Enable)]
     // ```
     // You can also change the warning behaviors for the whole module in your [[BuildCfg]]
-    #[AttrUsage(AttributeUsage.All | AttributeUsage.File), AttrMulti]
+    #[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]
     attr Warning(what: string, level: WarningLevel)
 
     #[Swag.EnumFlags]
@@ -319,8 +329,16 @@ namespace Swag
     #[AttrUsage(AttributeUsage.All)]
     attr Match(what: MatchWhat, value: bool)
 
+    // Keep the following alias distinct from its target for implicit conversions
+    #[AttrUsage(AttributeUsage.Alias)]
     attr Strict()
+
+    // Give the following local declaration static storage
+    #[AttrUsage(AttributeUsage.Variable)]
     attr Global()
+
+    // Alignment of the following struct or struct field
+    #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
     attr Align(value: u8)
 
     // #########################################################
@@ -677,7 +695,7 @@ namespace Swag
         Zero = 0
         AutoName
         HasUsing
-        LateInit     // '#late' field: starts null, receives its value later
+        LateInit     // 'Swag.Late' field: starts null, receives its value later
     }
 
     // Represents a value, like a function parameter or an enum value

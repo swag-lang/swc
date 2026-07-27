@@ -626,7 +626,7 @@ namespace
     Result computeStructSetReceiverInit(Sema& sema, TypeRef dstTypeRef, const SymbolFunction& calledFn, ConstantRef& outInitCstRef)
     {
         outInitCstRef = ConstantRef::invalid();
-        if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::Complete))
+        if (calledFn.attributes().hasRtFlag(RtAttributeFlagsE::FullInit))
             return Result::Continue;
 
         const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);

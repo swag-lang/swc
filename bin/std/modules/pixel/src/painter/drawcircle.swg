@@ -80,8 +80,7 @@ impl Painter
         var rX = radiusX
         var rY = radiusY
 
-        #[Swag.Complete]
-        switch pen.borderPos
+        switch #complete pen.borderPos
         {
         case None:
             break

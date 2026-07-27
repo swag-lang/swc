@@ -21,8 +21,7 @@ impl Crc64
     // Initialize the hashing sequence
     mtd init(kind: Crc64Kind)
     {
-        #[Swag.Complete]
-        switch kind
+        switch #complete kind
         {
         case ECMA182, ISO, ISOXZ: .crc = 0
         }
@@ -39,8 +38,7 @@ impl Crc64
         let bytes = notnull cast(#null const [*] u8) @dataof(data)
         var cur   = .crc
         var i     = 0'u64
-        #[Swag.Complete]
-        switch kind
+        switch #complete kind
         {
         case ECMA182:
             const POLY: u64 = 0x42F0_E1EB_A9EA_3693

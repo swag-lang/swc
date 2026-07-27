@@ -23,8 +23,7 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
     var a: [MAX_PATH] u8
     var v: s32
 
-    #[Swag.Complete]
-    switch what
+    switch #complete what
     {
     case Temp:           unreachable
     case Font:           v = CSIDL_FONTS
@@ -124,8 +123,7 @@ public func locateUrl(name: string)
 // Return system metrics
 public func getMetric(what: Metrics)->s32
 {
-    #[Swag.Complete]
-    switch what
+    switch #complete what
     {
     case DesktopX:      return GetSystemMetrics(SM_XVIRTUALSCREEN)
     case DesktopY:      return GetSystemMetrics(SM_YVIRTUALSCREEN)

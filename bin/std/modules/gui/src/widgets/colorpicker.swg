@@ -52,8 +52,7 @@ impl IWnd for ColorPicker
     {
         let clientRect = .getClientRect()
 
-        #[Swag.Complete]
-        switch .mode
+        switch #complete .mode
         {
         case SaturationLightness:
             .xCur = cast() (.sat * clientRect.width)
@@ -318,8 +317,7 @@ impl IWnd for ColorPicker
         let metrics    = .getThemeMetrics()
         let colors     = .getThemeColors()
 
-        #[Swag.Complete]
-        switch .mode
+        switch #complete .mode
         {
         case SaturationLightness, HueSaturation, HueLightness, GreenBlue, RedBlue, RedGreen:
             let size = metrics.colorPicker_RoundPick
@@ -362,8 +360,7 @@ impl IWnd for ColorPicker
                 let x = Math.clamp(pos.x / clientRect.width, 0, 1)
                 let y = Math.clamp(pos.y / clientRect.height, 0, 1)
 
-                #[Swag.Complete]
-                switch .mode
+                switch #complete .mode
                 {
                 case SaturationLightness:
                     .sat = Math.clamp(x, 0, 1)

@@ -149,8 +149,7 @@ impl IForm for FormStep
             var t: String
             let curIndex = cxt.quickMode ? 1 : .index
 
-            #[Swag.Complete]
-            switch .typeIndex
+            switch #complete .typeIndex
             {
             case Number:
                 t = Format.toString("%", curIndex)
@@ -177,8 +176,7 @@ impl IForm for FormStep
 
         let pp = .boundRect() * z
 
-        #[Swag.Complete]
-        switch .kind
+        switch #complete .kind
         {
         case Ellipse:
             let sizeX = pp.width * 0.5

@@ -343,6 +343,7 @@ namespace
             case AstModifierFlagsE::Wrap: return TokenId::ModifierWrap;
             case AstModifierFlagsE::NoDrop: return TokenId::ModifierNoDrop;
             case AstModifierFlagsE::Reverse: return TokenId::ModifierReverse;
+            case AstModifierFlagsE::Complete: return TokenId::ModifierComplete;
             case AstModifierFlagsE::Move: return TokenId::ModifierMove;
             case AstModifierFlagsE::Relocate: return TokenId::ModifierRelocate;
             case AstModifierFlagsE::Nullable: return TokenId::ModifierNullable;
@@ -358,8 +359,13 @@ namespace
         const TokenRef    mdfRef  = srcView.findRightFrom(node.tokRef(), {tokId});
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
-        diag.addArgument(Diagnostic::ARG_WHAT, srcView.tokenString(mdfRef));
-        diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), mdfRef), "");
+        diag.addArgument(Diagnostic::ARG_WHAT, Token::toName(tokId));
+
+        // Generated or injected code can carry a modifier flag with no token of its own to
+        // point at, so the extra span is only added when the spelling is really in source.
+        if (mdfRef.isValid())
+            diag.last().addSpan(srcView.tokenCodeRange(sema.ctx(), mdfRef), "");
+
         diag.report(sema.ctx());
     }
 }

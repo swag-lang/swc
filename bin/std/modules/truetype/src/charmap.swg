@@ -2,7 +2,8 @@ using Swag, Core
 
 public struct CharMap
 {
-    face:       #late *Face
+    #[Swag.Late]
+    face:       *Face
     encoding:   u32
     platformID: u16
     encodingID: u16

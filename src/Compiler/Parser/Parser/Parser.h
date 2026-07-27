@@ -217,7 +217,7 @@ private:
     AstNodeRef parseIdentifierType();
     AstNodeRef parseIf();
     AstNodeRef parseImpl();
-    AstNodeRef parseInitializerExpression();
+    AstNodeRef parseInitializerExpression(TokenRef tokAssign);
     AstNodeRef parseInterfaceDecl();
     AstNodeRef parseInterfaceValue();
     AstNodeRef parseIntrinsicCall(uint32_t numParams);

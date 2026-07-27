@@ -274,8 +274,7 @@ private impl RenderOgl
     {
         .blendingMode = bm
 
-        #[Swag.Complete]
-        switch bm
+        switch #complete bm
         {
         case Copy:
             glDisable(GL_BLEND)
@@ -687,8 +686,7 @@ impl RenderOgl
         var fmt: GLenum = 0
         var tinternal   = GL_RGB
 
-        #[Swag.Complete]
-        switch image.pf
+        switch #complete image.pf
         {
         case BGR8:
             fmt = GL_BGR
@@ -722,8 +720,7 @@ impl RenderOgl
 
     func pixelFormatToNative(pf: PixelFormat)->GLenum
     {
-        #[Swag.Complete]
-        switch pf
+        switch #complete pf
         {
         case BGR8:  return GL_BGR
         case BGRA8: return GL_BGRA
@@ -1040,8 +1037,7 @@ impl RenderOgl
             glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) params.type)
             glActiveTexture(GL_TEXTURE0)
 
-            #[Swag.Complete]
-            switch params.type
+            switch #complete params.type
             {
             case SolidColor:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
@@ -1078,8 +1074,7 @@ impl RenderOgl
                 glUniform4fv(cast(GLint) curShader.gradientColors, cast(GLsizei) params.gradientStopCount, &colors[0].x)
             }
 
-            #[Swag.Complete]
-            switch params.uvMode
+            switch #complete params.uvMode
             {
             case Fill, FillSubRect:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
@@ -1090,8 +1085,7 @@ impl RenderOgl
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
             }
 
-            #[Swag.Complete]
-            switch params.interpolationMode
+            switch #complete params.interpolationMode
             {
             case Pixel:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)

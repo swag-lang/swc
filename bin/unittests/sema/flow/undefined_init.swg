@@ -63,8 +63,7 @@ func undOkIfElse(c: bool)->s32
 func undOkCompleteSwitch(kind: UndKind)->s32
 {
     var x: s32 = undefined
-    #[Swag.Complete]
-    switch kind
+    switch #complete kind
     {
     case First:
         x = 1

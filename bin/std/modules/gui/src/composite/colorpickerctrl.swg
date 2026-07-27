@@ -31,21 +31,24 @@ struct ColorPickerCtrl
 
     oldColorDone: bool
     mode = ColorPickerViewMode.SaturationLightness
-    staticRes:    #late *Wnd
-    pickBox:      #late *ColorPicker
-    pickBar:      #late *ColorPicker
-    pickAlpha:    #late *ColorPicker
-    editA:        #late *EditBox
-    editR:        #late *EditBox
-    editG:        #late *EditBox
-    editB:        #late *EditBox
-    editH:        #late *EditBox
-    radioH:       #late *RadioButton
-    radioL:       #late *RadioButton
-    radioS:       #late *RadioButton
-    radioR:       #late *RadioButton
-    radioG:       #late *RadioButton
-    radioB:       #late *RadioButton
+    #[Swag.Late]
+    {
+        staticRes:    *Wnd
+        pickBox:      *ColorPicker
+        pickBar:      *ColorPicker
+        pickAlpha:    *ColorPicker
+        editA:        *EditBox
+        editR:        *EditBox
+        editG:        *EditBox
+        editB:        *EditBox
+        editH:        *EditBox
+        radioH:       *RadioButton
+        radioL:       *RadioButton
+        radioS:       *RadioButton
+        radioR:       *RadioButton
+        radioG:       *RadioButton
+        radioB:       *RadioButton
+    }
 }
 
 impl IWnd for ColorPickerCtrl

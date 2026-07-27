@@ -21,16 +21,19 @@ enum BottomSize
 struct MainWnd
 {
     using wnd:                       Wnd
-    topBar, editToolBar, recentBar:  #late *Wnd
-    editWnd:                         #late *EditWnd
-    quickWnd:                        #late *QuickWnd
-    propWnd:                         #late *PropWnd
-    libWnd:                          #late *LibraryWnd
-    recentWnd:                       #late *RecentWnd
-    recentSizeBar:                   #late *IconBar
-    quickStyleBar:                   #late *SplitterCtrl
-    editZoomBar:                     #late *StackLayoutCtrl
-    captureBtn, libraryBtn, zoomBtn: #late *IconButton
+    #[Swag.Late]
+    {
+        topBar, editToolBar, recentBar:  *Wnd
+        editWnd:                         *EditWnd
+        quickWnd:                        *QuickWnd
+        propWnd:                         *PropWnd
+        libWnd:                          *LibraryWnd
+        recentWnd:                       *RecentWnd
+        recentSizeBar:                   *IconBar
+        quickStyleBar:                   *SplitterCtrl
+        editZoomBar:                     *StackLayoutCtrl
+        captureBtn, libraryBtn, zoomBtn: *IconButton
+    }
     sizeBtn:                         #null *IconButton
     embInfoFreeze:                   #null *EmbInfoCtrl
     icons24, icons48, appIcon:       ImageList
@@ -58,7 +61,8 @@ struct MainWnd
     mdlFormCallout: FormCallout
 
     // Set right after construction (create/test fixtures).
-    mdlHighlight, mdlPixSel, mdlFavorite: #late IForm
+    #[Swag.Late]
+    mdlHighlight, mdlPixSel, mdlFavorite: IForm
 
     // One interface per model field above, in FormRegistry order (see wrapper.swg)
     mdlByType: Array'IForm

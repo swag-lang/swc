@@ -730,8 +730,7 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 {
     using ComparisonType
 
-    #[Swag.Complete]
-    switch comparisonType
+    switch #complete comparisonType
     {
     case Latin1:
         return Core.Latin1.compare(src, dst)     // bytes compare

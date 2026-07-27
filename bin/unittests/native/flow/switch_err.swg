@@ -137,8 +137,7 @@
 #test
 {
     var hit = 0
-    #[Swag.Complete]
-    switch 1
+    switch #complete 1
     {
     case 1:
         hit = 1
@@ -150,8 +149,7 @@
 #test
 {
     var hit = 0
-    #[Swag.Complete]
-    switch 1
+    switch #complete 1
     {
     case 1:
         hit = 1

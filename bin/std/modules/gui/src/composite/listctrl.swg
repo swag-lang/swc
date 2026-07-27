@@ -85,9 +85,12 @@ struct ListCtrl
     nextLineIndex:    u32
     focusIndex = Swag.U32.Max
     hotIndex   = Swag.U32.Max
-    scrollWnd:        #late *ScrollWnd
-    listView:         #late *ListView
-    header:           #late *Header
+    #[Swag.Late]
+    {
+        scrollWnd:        *ScrollWnd
+        listView:         *ListView
+        header:           *Header
+    }
     virtualCount:     u32
     isVirtual:        bool
 }
@@ -95,7 +98,8 @@ struct ListCtrl
 struct ListView
 {
     using wnd:           Wnd
-    list:                #late *ListCtrl
+    #[Swag.Late]
+    list:                *ListCtrl
     discardMouseRelease: bool
 }
 

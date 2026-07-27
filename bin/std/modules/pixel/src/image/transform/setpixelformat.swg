@@ -6,8 +6,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        #[Swag.Complete]
-        switch .pf
+        switch #complete .pf
         {
         case RGB8:
             break
@@ -38,8 +37,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        #[Swag.Complete]
-        switch .pf
+        switch #complete .pf
         {
         case RGBA8:
             break
@@ -83,8 +81,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        #[Swag.Complete]
-        switch .pf
+        switch #complete .pf
         {
         case BGR8:
             break
@@ -115,8 +112,7 @@ impl Image
     {
         let mec = cast #unconst (*Image) me
 
-        #[Swag.Complete]
-        switch .pf
+        switch #complete .pf
         {
         case BGRA8:
             break
@@ -158,8 +154,7 @@ impl Image
 
     mtd const doChangePf(dstImage: *Image)
     {
-        #[Swag.Complete]
-        switch dstImage.pf
+        switch #complete dstImage.pf
         {
         case RGB8:  .doRGB8(dstImage)
         case RGBA8: .doRGBA8(dstImage)

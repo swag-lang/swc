@@ -21,8 +21,10 @@ enum EmbInfoCtrlFlags
 struct EmbInfoCtrl
 {
     using frameWnd: FrameWnd
-    label:          #late *Label
-    iconBtn:        #late *IconButton
+    #[Swag.Late]
+    label:          *Label
+    #[Swag.Late]
+    iconBtn:        *IconButton
     ctrlFlags:      EmbInfoCtrlFlags = .Zero
     sigOnClose:     SigArray'func||(*EmbInfoCtrl)
     timer:          #null *Timer

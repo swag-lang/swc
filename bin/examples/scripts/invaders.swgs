@@ -45,7 +45,8 @@ var g_Font: #null *Font
 struct Alien
 {
     x, y: f32
-    type: #late *Texture
+    #[Swag.Late]
+    type: *Texture
     dead: bool
 }
 

@@ -15,7 +15,13 @@ change everyday program behavior.
 | 'AttrMulti()' | Allow the same attribute to appear more than once |
 
 'Swag.AttributeUsage' is a flag enum. Combine values such as '.Function',
-'.Struct', '.Enum', and '.Variable' with '|'.
+'.Struct', '.Enum', '.Alias', and '.Variable' with '|'. '.Scope' marks an
+attribute that acts on a lexical scope instead of a declaration, and '.File'
+one that can be written with '#global'.
+
+The compiler enforces the declared usage: writing an attribute directly on
+another kind of declaration is an error. An attribute with no 'AttrUsage' is
+unrestricted.
 
 # Compile-Time Execution and Code Generation
 
@@ -52,11 +58,14 @@ should not be used for program logic.
 | 'Operators(operators: string...)' | Generate selected structural operators |
 | 'OperatorIgnore()' | Exclude one field from generated operators |
 | 'Commutative(operators: Operator...)' | Allow selected binary overloads with the receiver on the right |
-| 'Complete()' | Require exhaustive handling where the construct supports it |
-| 'Incomplete()' | Mark an enum as intentionally open for non-exhaustive switches |
+| 'FullInit()' | Declare that an 'opSet' or 'opCast' initializes the whole destination |
+| 'Incomplete()' | Document that an enum's declared values are not the full set |
 | 'EnumFlags()' | Define an enum whose values form a bit mask |
 | 'NoDuplicate()' | Reject duplicate enum values |
 | 'Match(what: MatchWhat, value: bool)' | Adjust compiler overload-matching rules |
+
+Exhaustive matching is not an attribute: a 'switch' carries no symbol, so it is
+requested with the 'switch #complete' modifier.
 
 'Swag.Match' is a low-level compiler contract. Application code should normally
 express overload selection with types and 'where' constraints.
@@ -73,6 +82,7 @@ express overload selection with types and 'where' constraints.
 | 'ExportType(what: ExportWhat)' | Export selected runtime reflection data |
 | 'Tls()' | Give each thread its own instance of a global |
 | 'Global()' | Give a local declaration static storage |
+| 'Late()' | Defer the initialization of a non-null field or global |
 | 'Strict()' | Keep an alias distinct for implicit-conversion purposes |
 
 'Swag.ExportWhat' currently provides '.Methods' and '.NoZero' flags, plus

@@ -10,8 +10,7 @@ enum Color
 func semaTest001()
 {
     var c = Color.Green
-    #[Swag.Complete]
-    switch (c)
+    switch #complete (c)
     {
     case Color.Red:
         break
@@ -25,8 +24,7 @@ func semaTest001()
 func semaTest002()
 {
     var c = Color.Red
-    #[Swag.Complete]
-    switch (c)
+    switch #complete (c)
     {
     case Color.Blue:
         break

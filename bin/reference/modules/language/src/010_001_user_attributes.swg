@@ -39,12 +39,27 @@ attr AttributeBA(x: s32, y: string = "string")
 # Restricting Attribute Usage
 
 Use the 'AttrUsage' specifier to control where an attribute may be applied
-(e.g., function-only, struct-only). This improves safety and clarity.
+(e.g., function-only, struct-only). The compiler rejects the attribute on any
+other declaration kind. An attribute that declares no 'AttrUsage' is accepted
+everywhere.
 */
 #[AttrUsage(AttributeUsage.Function)]
 attr AttributeC()
 
 // Restricted to function usage
+
+/**
+# Scopes and Broadcasting
+
+An attribute written on a block applies to every declaration the block
+contains, and each of those declarations is checked against 'AttrUsage'
+separately. A declaration the attribute does not accept simply does not receive
+it, so one block can carry an attribute meant for only some of its members.
+
+'AttributeUsage.Scope' marks an attribute that acts on the lexical scope itself
+instead of on a declaration; 'Swag.Safety', 'Swag.Sanity', 'Swag.Warning', and
+'Swag.Optimize' are the predefined ones.
+*/
 
 /**
 # Applying Attributes

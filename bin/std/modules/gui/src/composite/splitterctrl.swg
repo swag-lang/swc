@@ -12,7 +12,8 @@ enum SplitterFlags
 
 struct SplitterItem
 {
-    view:            #late *Wnd
+    #[Swag.Late]
+    view:            *Wnd
     size:            f32
     minSize:         f32 = 5
     maxSize:         f32 = 0

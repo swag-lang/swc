@@ -8,8 +8,10 @@ struct ComboCtrl
     labelSize:      f32 = 60
     comboSize:      f32 = 60     // 0 to fit to parent size
 
-    label: #late *Label
-    combo: #late *ComboBox
+    #[Swag.Late]
+    label: *Label
+    #[Swag.Late]
+    combo: *ComboBox
 }
 
 impl IWnd for ComboCtrl

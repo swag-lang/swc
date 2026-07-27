@@ -65,17 +65,20 @@ private func defaultThemeImages()->*DefaultThemeImages
 struct ThemeResources
 {
     imgWidgets:          Texture
-    icons24:             #late *ImageList
-    icons64:             #late *ImageList
-    spin:                #late *ImageList
-    defaultTypeFaceR:    #late *TypeFace
-    defaultTypeFaceB:    #late *TypeFace
-    defaultTypeFaceI:    #late *TypeFace
-    defaultTypeFaceBI:   #late *TypeFace
-    defaultFsTypeFaceR:  #late *TypeFace
-    defaultFsTypeFaceB:  #late *TypeFace
-    defaultFsTypeFaceI:  #late *TypeFace
-    defaultFsTypeFaceBI: #late *TypeFace
+    #[Swag.Late]
+    {
+        icons24:             *ImageList
+        icons64:             *ImageList
+        spin:                *ImageList
+        defaultTypeFaceR:    *TypeFace
+        defaultTypeFaceB:    *TypeFace
+        defaultTypeFaceI:    *TypeFace
+        defaultTypeFaceBI:   *TypeFace
+        defaultFsTypeFaceR:  *TypeFace
+        defaultFsTypeFaceB:  *TypeFace
+        defaultFsTypeFaceI:  *TypeFace
+        defaultFsTypeFaceBI: *TypeFace
+    }
     fontDefault:         FontFamily
     fontDefaultFs:       FontFamily
 }
@@ -171,8 +174,7 @@ impl Theme
     // Create a default font with the given size
     mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->*Font
     {
-        #[Swag.Complete]
-        switch style
+        switch #complete style
         {
         case Regular:    return Font.create(.res.defaultTypeFaceR, size)
         case Bold:       return Font.create(.res.defaultTypeFaceB, size)
@@ -186,8 +188,7 @@ impl Theme
     // Create a default font (fixed size) with the given size
     mtd createDefaultFontFS(size: u32, style = FontFamilyStyle.Regular)->*Font
     {
-        #[Swag.Complete]
-        switch style
+        switch #complete style
         {
         case Regular:    return Font.create(.res.defaultFsTypeFaceR, size)
         case Bold:       return Font.create(.res.defaultFsTypeFaceB, size)

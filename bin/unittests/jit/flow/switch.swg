@@ -411,3 +411,30 @@ const SwitchPointerValues = [11, 22, 33]
         }
     }
 }
+
+// 'switch #complete' requires every declared enum value to have a case, and no 'default'.
+#test
+{
+    enum SwitchCompleteKind
+    {
+        First
+        Second
+        Third
+    }
+
+    func nameOf(kind: SwitchCompleteKind)->string
+    {
+        switch #complete kind
+        {
+        case SwitchCompleteKind.First:  return "first"
+        case SwitchCompleteKind.Second: return "second"
+        case SwitchCompleteKind.Third:  return "third"
+        }
+
+        unreachable
+    }
+
+    @assert(nameOf(SwitchCompleteKind.First) == "first")
+    @assert(nameOf(SwitchCompleteKind.Second) == "second")
+    @assert(nameOf(SwitchCompleteKind.Third) == "third")
+}

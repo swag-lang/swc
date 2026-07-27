@@ -179,8 +179,7 @@ impl FastNoise
         let xi = x * .frequency
         let yi = y * .frequency
 
-        #[Swag.Complete]
-        switch .kind
+        switch #complete .kind
         {
         case Perlin:                  result = Noise.perlin(xi, yi, .seed)
         case PerlinFractalFBM:        result = .perlinFractalFBM(xi, yi)

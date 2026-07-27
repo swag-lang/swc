@@ -99,8 +99,7 @@ impl IWnd for Tab
         var colorText:     Color
         var colorBorder:   Color
 
-        #[Swag.Complete]
-        switch .itemForm
+        switch #complete .itemForm
         {
         case Flat:
             if idx == .selectedIdx
@@ -499,8 +498,7 @@ impl Tab
     // Set the tab form
     mtd setForm(tabForm: TabForm)
     {
-        #[Swag.Complete]
-        switch tabForm
+        switch #complete tabForm
         {
         case Flat:
             .barForm   = .Flat

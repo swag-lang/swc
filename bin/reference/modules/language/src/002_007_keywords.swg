@@ -90,11 +90,12 @@ Collision-free compiler identifiers for mixins and macros:
 
 # Modifiers
 
-Modifiers refine the declaration, type, loop, argument, or operation that
-follows them.
+Modifiers refine the type, operand, conversion, literal, or statement that
+follows them. They annotate what carries no symbol; a declaration takes an
+attribute instead.
 
 ```swag
-#bit  #fail  #fwd  #late  #move  #nodrop  #nofail  #null
+#bit  #complete  #fail  #fwd  #move  #nodrop  #nofail  #null
 #prom  #raw  #relocate  #reverse  #unconst  #wrap
 ```
 

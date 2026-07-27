@@ -373,7 +373,7 @@ namespace
         return SemaHelpers::intrinsicCountOf(sema, sema.curNodeRef(), children[0]);
     }
 
-    // '@isset(expr.field)' / '@isset(g)' tests whether a '#late' field or global has
+    // '@isset(expr.field)' / '@isset(g)' tests whether a 'Swag.Late' field or global has
     // received its value.
     Result semaIntrinsicIsSet(Sema& sema, AstIntrinsicCall& node, const SmallVector<AstNodeRef>& children)
     {
@@ -389,7 +389,7 @@ namespace
         }
         else if (opNode && opNode->is(AstNodeId::Identifier))
         {
-            // A bare '#late' identifier is a global (fields go through member access).
+            // A bare 'Swag.Late' identifier is a global (fields go through member access).
             const SemaNodeView symView = sema.viewSymbol(children[0]);
             const Symbol*      sym     = symView.sym();
             isLateAccess               = sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);

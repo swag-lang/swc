@@ -99,8 +99,7 @@ func semaTest007()
 func semaTest008()
 {
     var v = 2
-    #[Swag.Complete]
-    switch v
+    switch #complete v
     {
     case 1 to 3:
         break
@@ -110,8 +109,7 @@ func semaTest008()
 func toto()->s32 => 1
 func semaTest009()
 {
-    #[Swag.Complete]
-    switch toto()
+    switch #complete toto()
     {
     case 1 to 3:
         break

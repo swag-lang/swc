@@ -8,9 +8,10 @@ using Gui, Core, Pixel
 var g_Img:     Image
 var g_Texture: Texture
 
-// '#late': the font is created in the CreateEvent handler, non-null everywhere after.
+// 'Swag.Late': the font is created in the CreateEvent handler, non-null everywhere after.
 // The deferred-init global removes the '#null' + per-read 'notnull' boilerplate.
-var g_Font: #late *Font
+#[Swag.Late]
+var g_Font: *Font
 
 func openImage(surface: #null *Surface)
 {

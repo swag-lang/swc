@@ -336,8 +336,7 @@ public impl LinePath
         {
             let pos = elem.position
 
-            #[Swag.Complete]
-            switch elem.type
+            switch #complete elem.type
             {
             case Line:    .flattenLine(pos)
             case Bezier1: .flattenBezier(pos, elem.p1, quality)

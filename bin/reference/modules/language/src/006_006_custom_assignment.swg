@@ -43,15 +43,15 @@ impl Struct
 }
 
 /**
-# Optimizing Initialization with 'Swag.Complete'
+# Optimizing Initialization with 'Swag.FullInit'
 
-When 'opSet' completely initializes the struct, mark it with '#[Swag.Complete]'.
+When 'opSet' completely initializes the struct, mark it with '#[Swag.FullInit]'.
 This avoids default initialization before assignment for better performance.
 */
 
 impl Struct
 {
-    #[Swag.Complete]
+    #[Swag.FullInit]
     mtd opSet(value: u64)
     {
         me.x, me.y, me.z = cast(s32) value

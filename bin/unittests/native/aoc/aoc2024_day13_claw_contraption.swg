@@ -5,7 +5,7 @@
 // moves the claw by a fixed delta. Solve the 2×2 linear system for each
 // machine; only non-negative integer solutions are valid.
 // Part 2 shifts every prize coordinate by 10 000 000 000 000.
-// Exercises: switch with fallthrough, #[Swag.Complete], for #reverse,
+// Exercises: switch with fallthrough, 'switch #complete', for #reverse,
 // 0 to N inclusive range, ternary operator, @abs, while..do,
 // #[Swag.NoInline], struct literal arguments.
 
@@ -120,8 +120,7 @@ func parseMachines(text: string, out: [*] Machine)->u32
         let v2 = parseNum(bytes, &pos)
 
         // Switch with fallthrough to advance state machine
-        #[Swag.Complete]
-        switch state
+        switch #complete state
         {
         case ParseState.WantA:
             out[count].a = {x: v1, y: v2}

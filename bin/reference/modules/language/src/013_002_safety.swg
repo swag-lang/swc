@@ -248,7 +248,7 @@ Swag validates arguments for several math intrinsics and panics if invalid.
 # Switch Safety
 Example:
 #[Swag.Safety(.Switch, true)]
-With '#[Swag.Complete]', Swag panics if a switch does not cover all cases.
+Without 'switch #complete', an unmatched value reaches no case and Swag panics.
 */
 #test
 {
@@ -261,7 +261,7 @@ With '#[Swag.Complete]', Swag panics if a switch does not cover all cases.
 
     func colorToString(color: Color)->string
     {
-        // #[Swag.Complete]
+        // 'switch #complete' here would reject the missing 'Blue' case at compile time.
         switch color
         {
         case Color.Red:   return "Red"

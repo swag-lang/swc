@@ -171,8 +171,7 @@ impl IForm for FormShape
         if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do
             bk.a = .highlightAlpha()
 
-        #[Swag.Complete]
-        switch .kind
+        switch #complete .kind
         {
         case Ellipse:
             let sizeX = pp.width * 0.5

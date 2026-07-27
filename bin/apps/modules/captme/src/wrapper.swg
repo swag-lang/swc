@@ -81,8 +81,7 @@ impl MainWnd
     // template used to create the next form of that type
     mtd copyFormToModel(f: IForm)
     {
-        #[Swag.Complete]
-        switch f
+        switch #complete f
         {
         case FormShape as b:
             .mdlFormShape = dref b

@@ -17,8 +17,7 @@ impl PixelFormat
     #[ConstExpr]
     func bpp(me)->u8
     {
-        #[Complete]
-        switch me
+        switch #complete me
         {
         case BGR8:  return 24
         case BGRA8: return 32
@@ -33,8 +32,7 @@ impl PixelFormat
     #[ConstExpr]
     func channels(me)->u8
     {
-        #[Complete]
-        switch me
+        switch #complete me
         {
         case BGR8:  return 3
         case BGRA8: return 4
@@ -49,8 +47,7 @@ impl PixelFormat
     #[ConstExpr]
     func bitDepth(me)->u8
     {
-        #[Complete]
-        switch me
+        switch #complete me
         {
         case BGR8:  return 8
         case BGRA8: return 8
@@ -65,8 +62,7 @@ impl PixelFormat
     #[ConstExpr]
     func hasAlpha(me)->bool
     {
-        #[Complete]
-        switch me
+        switch #complete me
         {
         case BGR8:  return false
         case BGRA8: return true

@@ -257,8 +257,7 @@ impl DateTime
     // Converts the DateTime to a string using the given format
     mtd const toString(fmt = DateTimeFormat.DateTime)->String
     {
-        #[Swag.Complete]
-        switch fmt
+        switch #complete fmt
         {
         case DateIso:       return Format.toString("%-%{02}-%{02}", .year, .month, .day)
         case TimeIso:       return Format.toString("%{02}:%{02}:%{02}", .hour, .minute, .second)

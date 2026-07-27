@@ -127,7 +127,7 @@ struct SemaNonNullCompleteSet
 
 impl SemaNonNullCompleteSet
 {
-    #[Swag.Complete]
+    #[Swag.FullInit]
     mtd opSet(value: *SemaNonNullItem)
     {
         .required = value

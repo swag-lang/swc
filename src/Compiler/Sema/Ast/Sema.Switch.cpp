@@ -473,21 +473,14 @@ Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef expr
 
 Result AstSwitchStmt::semaPreNode(Sema& sema) const
 {
-    const bool isComplete = sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Complete);
+    constexpr AstModifierFlags allowed = AstModifierFlagsE::Complete;
+    SWC_RESULT(SemaCheck::modifiers(sema, *this, modifierFlags, allowed));
 
-    // A switch can be marked with the 'Complete' attribute, except if it does not have an expression.
-    if (isComplete)
-    {
-        if (!nodeExprRef.isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
-    }
-
-    // A switch can be marked with the 'Incomplete' attribute, except if it does not have an expression.
-    if (sema.frame().currentAttributes().hasRtFlag(RtAttributeFlagsE::Incomplete))
-    {
-        if (!nodeExprRef.isValid())
-            return SemaError::raise(sema, DiagnosticId::sema_err_switch_incomplete_no_expr, sema.curNodeRef());
-    }
+    // Exhaustiveness is decided per switch, so '#complete' is a modifier of this statement
+    // and not an attribute: there is no symbol to hang an attribute on.
+    const bool isComplete = modifierFlags.has(AstModifierFlagsE::Complete);
+    if (isComplete && !nodeExprRef.isValid())
+        return SemaError::raise(sema, DiagnosticId::sema_err_switch_complete_no_expr, sema.curNodeRef());
 
     // Register switch
     SemaFrame frame = sema.frame();

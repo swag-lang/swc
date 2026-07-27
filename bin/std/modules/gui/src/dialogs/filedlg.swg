@@ -36,7 +36,8 @@ struct FileDlgOptions
 struct FileDlg
 {
     using dialog: Dialog
-    browser:      #late *FileBrowserCtrl
+    #[Swag.Late]
+    browser:      *FileBrowserCtrl
     dlgOptions:   FileDlgOptions
 }
 
@@ -129,8 +130,7 @@ impl FileDlg
                 .setTitle(opt.title)
             else
             {
-                #[Swag.Complete]
-                switch opt.mode
+                switch #complete opt.mode
                 {
                 case CreateFile:       .setTitle("Create File")
                 case SelectOneFile:    .setTitle("Select File")

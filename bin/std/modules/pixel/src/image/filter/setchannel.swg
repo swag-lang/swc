@@ -52,8 +52,7 @@ impl Image
             let mode   = params.rmode
 
             var channelValue: u8 = undefined
-            #[Swag.Complete]
-            switch params.value
+            switch #complete params.value
             {
             case Color:   channelValue = params.color
             case MinRGB:  channelValue = Math.min(pix[0], pix[1], pix[2])

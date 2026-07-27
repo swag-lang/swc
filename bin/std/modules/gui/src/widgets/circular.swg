@@ -337,8 +337,7 @@ private impl Circular
     // Main marker drawing dispatcher
     mtd drawValueMarker(painter: *Painter, color: Color, value: f32)
     {
-        #[Swag.Complete]
-        switch .markerForm
+        switch #complete .markerForm
         {
         case .None:   return
         case .Circle: .drawCircleMarker(painter, color, value)
@@ -387,8 +386,7 @@ private impl Circular
     // Main step drawing dispatcher
     mtd drawSteps(painter: *Painter, color: Color)
     {
-        #[Swag.Complete]
-        switch .stepForm
+        switch #complete .stepForm
         {
         case .None: return
         case .Dot:  .drawStepDots(painter, color)

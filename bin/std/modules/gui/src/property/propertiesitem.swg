@@ -36,7 +36,8 @@ enum ItemFlags
 struct PropertiesItem
 {
     filter: String
-    line:   #late *Wnd
+    #[Swag.Late]
+    line:   *Wnd
     data:   #null *u8
 
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
@@ -57,8 +58,10 @@ struct PropertiesItem
     // revertButton is the lazily-created revert affordance shown while the row is modified.
     defaultData:    #null *u8
     isModified:     bool
-    revertButton:   #late *IconButton
-    arrayAddButton: #late *IconButton
+    #[Swag.Late]
+    revertButton:   *IconButton
+    #[Swag.Late]
+    arrayAddButton: *IconButton
 
     // Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this
     // field, kept per row so hasChanged can diff the new value against it and record one undo
@@ -73,20 +76,26 @@ struct PropertiesItem
     userData0: #null *void
     userData1: #null *void
 
-    label:       #late *Label
+    #[Swag.Late]
+    label:       *Label
     description: String
-    labelDesc:   #late *Label
+    #[Swag.Late]
+    labelDesc:   *Label
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
     validation:      PropValidation
     validationMsg:   String
-    validationLabel: #late *Label
+    #[Swag.Late]
+    validationLabel: *Label
 
-    editBox:   #late *EditBox
-    checkBox:  #late *CheckButton
-    comboBox:  #late *ComboBox
-    sliderBox: #late *SliderCtrl
+    #[Swag.Late]
+    {
+        editBox:   *EditBox
+        checkBox:  *CheckButton
+        comboBox:  *ComboBox
+        sliderBox: *SliderCtrl
+    }
 
     sigResize:  SigArray'func||(*PropertiesItem)
     sigRefresh: SigArray'func||(*PropertiesItem)

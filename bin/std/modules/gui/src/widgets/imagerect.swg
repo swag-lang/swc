@@ -30,8 +30,7 @@ impl IWnd for ImageRect
 
         let color = .getThemeColors().imageRect_Fg
 
-        #[Swag.Complete]
-        switch .movie.source
+        switch #complete .movie.source
         {
         case None:
             break

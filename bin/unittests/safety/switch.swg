@@ -36,8 +36,7 @@ func switchSafetyEnabled()->bool
     #[Swag.Safety(.Switch, true)]
     func completeScalarSwitchPanic(v: s32)->s32
     {
-        #[Swag.Complete]
-        switch v     // swc-expected-error {{safety_err_runtime}}
+        switch #complete v     // swc-expected-error {{safety_err_runtime}}
         {
         case 1 to 3:
             return 10
@@ -55,8 +54,7 @@ func switchSafetyEnabled()->bool
     #[Swag.Safety(.Switch, true)]
     func completeWhereSwitchPanic(v: s32)->s32
     {
-        #[Swag.Complete]
-        switch v     // swc-expected-error {{safety_err_runtime}}
+        switch #complete v     // swc-expected-error {{safety_err_runtime}}
         {
         case 1 where false:
             return 10
@@ -74,8 +72,7 @@ func switchSafetyEnabled()->bool
     #[Swag.Safety(.Switch, false)]
     func completeScalarSwitchDisabled(v: s32)->s32
     {
-        #[Swag.Complete]
-        switch v
+        switch #complete v
         {
         case 1 to 3:
             return 10
@@ -94,8 +91,7 @@ func switchSafetyEnabled()->bool
     #[Swag.Safety(.Switch, true)]
     func completeScalarSwitchValid(v: s32)->s32
     {
-        #[Swag.Complete]
-        switch v
+        switch #complete v
         {
         case 1:
             return 10

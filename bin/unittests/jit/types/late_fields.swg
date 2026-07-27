@@ -7,8 +7,10 @@ struct JitLateItem
 
 struct JitLateBox
 {
-    item:  #late *JitLateItem
-    name:  #late string
+    #[Swag.Late]
+    item:  *JitLateItem
+    #[Swag.Late]
+    name:  string
     count: s32
 }
 
@@ -61,7 +63,7 @@ func jitLateLiteral()->bool
 }
 
 // Regression: a struct with non-zero field defaults initializes through the
-// partial per-field path. A '#late' field is typed non-null, so the generic
+// partial per-field path. A 'Swag.Late' field is typed non-null, so the generic
 // implicit-default emitter used to SKIP it ("requires explicit init"), leaving
 // whatever garbage the allocation carried: '@isset' then read true on a fresh
 // object (seen as 0xD0 mimalloc poison on the heap). Late storage must be
@@ -69,7 +71,8 @@ func jitLateLiteral()->bool
 struct JitLateDirty
 {
     tag:   s32 = 5
-    item:  #late *JitLateItem
+    #[Swag.Late]
+    item:  *JitLateItem
     ratio: f32 = 1.5
 }
 

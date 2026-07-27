@@ -24,7 +24,7 @@ impl Vector2
 
     // Set both components to the same scalar value.
     // This allows assignment like 'vec = 5.0' to set both components to 5.0.
-    #[Swag.Complete, Swag.Inline]
+    #[Swag.FullInit, Swag.Inline]
     mtd opSet(value: f32)
     {
         .x, .y = value

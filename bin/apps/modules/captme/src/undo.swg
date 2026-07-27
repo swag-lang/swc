@@ -360,8 +360,7 @@ impl Undo
 
         let capture = notnull .capture
 
-        #[Swag.Complete]
-        switch .kind
+        switch #complete .kind
         {
         case RestoreOrg:
             with capture
@@ -595,8 +594,7 @@ impl Undo
     {
         let capture = notnull .capture
 
-        #[Swag.Complete]
-        switch .kind
+        switch #complete .kind
         {
         case RestoreOrg:
             with capture

@@ -265,8 +265,7 @@ impl IWnd for IconButton
             var nw, nh = 0'f32
             marginArrow = 0
 
-            #[Swag.Complete]
-            switch .arrowPos
+            switch #complete .arrowPos
             {
             case Left, Right, RightUp, RightDown: nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
             case Top, Bottom:                     nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
@@ -280,8 +279,7 @@ impl IWnd for IconButton
 
             if hasIcon
             {
-                #[Swag.Complete]
-                switch .textPos
+                switch #complete .textPos
                 {
                 case Left, Right:
                     nw += metrics.btnIcon_SpacingTextH

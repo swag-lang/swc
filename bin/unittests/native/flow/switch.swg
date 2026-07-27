@@ -377,8 +377,7 @@ enum SwitchEnumRangeMode
 {
     var v   = 2
     var hit = 0
-    #[Swag.Complete]
-    switch v
+    switch #complete v
     {
     case 1 to 3:
         hit = 1
@@ -391,8 +390,7 @@ func toto()->s32 => 1
 #test
 {
     var hit = 0
-    #[Swag.Complete]
-    switch toto()
+    switch #complete toto()
     {
     case 1 to 3:
         hit = 1

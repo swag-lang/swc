@@ -12,9 +12,12 @@ struct SliderCtrl
 
     sigChanged: SigArray'func||(*SliderCtrl)
 
-    label:  #late *Label
-    slider: #late *Slider
-    edit:   #late *EditBox
+    #[Swag.Late]
+    {
+        label:  *Label
+        slider: *Slider
+        edit:   *EditBox
+    }
 }
 
 impl IWnd for SliderCtrl

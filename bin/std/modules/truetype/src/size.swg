@@ -14,6 +14,7 @@ public struct SizeMetrics
 
 public struct Size
 {
-    face:    #late *Face
+    #[Swag.Late]
+    face:    *Face
     metrics: SizeMetrics
 }

@@ -117,13 +117,13 @@ AstNodeRef Parser::parseVarDeclDecomposition()
     }
 
     expectAndConsumeClosing(TokenId::SymRightCurly, openRef, {TokenId::SymEqual});
-    expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
+    const TokenRef tokAssign = expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDestructuring>(ref());
     nodePtr->flags()        = flags;
     if (hasNamed && !hasPositional)
         nodePtr->addFlag(AstVarDeclFlagsE::NamedDestructuring);
-    nodePtr->nodeInitRef       = parseInitializerExpression();
+    nodePtr->nodeInitRef       = parseInitializerExpression(tokAssign);
     nodePtr->spanNamesRef      = ast_->pushSpan(tokNames.span());
     nodePtr->spanFieldNamesRef = ast_->pushSpan(fieldNames.span());
 
@@ -170,13 +170,8 @@ AstNodeRef Parser::parseVarDecl()
         // Type
         AstNodeRef nodeType     = AstNodeRef::invalid();
         bool       fwdCopyParam = false;
-        bool       lateField    = false;
         if (consumeIf(TokenId::SymColon).isValid())
         {
-            // '#late' is a storage policy of the declaration (struct fields only,
-            // validated in sema), not a type qualifier: the type stays non-null.
-            lateField = consumeIf(TokenId::ModifierLate).isValid();
-
             const PushContextFlags scopedContext{this, ParserContextFlagsE::InVarDeclType};
             const bool             prevFwdSeen = fwdSeenParam_;
             nodeType                           = parseType();
@@ -184,9 +179,10 @@ AstNodeRef Parser::parseVarDecl()
         }
 
         // Initialization
-        AstNodeRef nodeInit = AstNodeRef::invalid();
-        if (consumeIf(TokenId::SymEqual).isValid())
-            nodeInit = parseInitializerExpression();
+        AstNodeRef     nodeInit  = AstNodeRef::invalid();
+        const TokenRef tokAssign = consumeIf(TokenId::SymEqual);
+        if (tokAssign.isValid())
+            nodeInit = parseInitializerExpression(tokAssign);
         else if (nodeType.isValid() && is(TokenId::SymLeftCurly) && !tok().hasFlag(TokenFlagsE::BlankBefore))
         {
             // 'name: Type{...}' used to be a second spelling of an initialized declaration. It
@@ -205,8 +201,6 @@ AstNodeRef Parser::parseVarDecl()
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
                 nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
-            if (lateField)
-                nodePtr->addFlag(AstVarDeclFlagsE::Late);
             nodePtr->tokNameRef  = tokNames[0];
             nodePtr->nodeTypeRef = nodeType;
             nodePtr->nodeInitRef = nodeInit;
@@ -220,8 +214,6 @@ AstNodeRef Parser::parseVarDecl()
                 nodePtr->addFlag(AstVarDeclFlagsE::Parameter);
             if (fwdCopyParam)
                 nodePtr->addFlag(AstVarDeclFlagsE::FwdCopy);
-            if (lateField)
-                nodePtr->addFlag(AstVarDeclFlagsE::Late);
             nodePtr->spanNamesRef = ast_->pushSpan(tokNames.span());
             nodePtr->nodeTypeRef  = nodeType;
             nodePtr->nodeInitRef  = nodeInit;

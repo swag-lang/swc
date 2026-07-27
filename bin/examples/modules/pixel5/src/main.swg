@@ -30,8 +30,10 @@ struct CardOptions
 
 struct TextureCard
 {
-    title:    #late string
-    subtitle: #late string
+    #[Swag.Late]
+    title:    string
+    #[Swag.Late]
+    subtitle: string
     texture:  Texture
     options:  CardOptions
 }

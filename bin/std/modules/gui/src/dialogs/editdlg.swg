@@ -3,7 +3,8 @@ using Core, Pixel
 public struct EditDlg
 {
     using dialog: Dialog
-    label:        #late *Label
+    #[Swag.Late]
+    label:        *Label
     edit:         #null *EditBox
     richEdit:     #null *RichEditCtrl
 }

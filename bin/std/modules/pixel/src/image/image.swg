@@ -284,8 +284,7 @@ impl Image
     // Returns the color at the given coordinate
     mtd const getPixelColor(pixX, pixY: s32)->Color
     {
-        #[Swag.Complete]
-        switch .pf
+        switch #complete .pf
         {
         case RGBA8: return .getPixelColorDirect'RGBA8(pixX, pixY)
         case RGB8:  return .getPixelColorDirect'RGB8(pixX, pixY)

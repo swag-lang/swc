@@ -701,8 +701,7 @@ private impl EditBox
     // Returns the padding vector for the current visual form.
     mtd getFormPadding()->Math.Vector4
     {
-        #[Swag.Complete]
-        switch .form
+        switch #complete .form
         {
         case Square:      return .getThemeMetrics().editBox_SquarePadding
         case Round:       return .getThemeMetrics().editBox_RoundPadding
@@ -1167,8 +1166,7 @@ impl EditBox
     {
         .form = form
 
-        #[Swag.Complete]
-        switch .form
+        switch #complete .form
         {
         case Square:      .setAllPaddings(.getThemeMetrics().editBox_SquarePadding)
         case Round:       .setAllPaddings(.getThemeMetrics().editBox_RoundPadding)

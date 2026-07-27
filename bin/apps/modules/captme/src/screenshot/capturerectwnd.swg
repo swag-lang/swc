@@ -16,7 +16,8 @@ struct CaptureRectWnd
 {
     using wnd: Wnd
 
-    main:          #late *MainWnd
+    #[Swag.Late]
+    main:          *MainWnd
     startGrab:     bool
     cancelGrab:    bool
     tryStartGrab:  bool

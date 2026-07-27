@@ -18,7 +18,8 @@ public struct PopupMenuItem
 {
     using item: Item
     rightName:  RichString
-    popup:      #late *MenuCtrl
+    #[Swag.Late]
+    popup:      *MenuCtrl
     pos:        f32
     size:       f32
     rg:         CommandStateEvent.RenderingHint

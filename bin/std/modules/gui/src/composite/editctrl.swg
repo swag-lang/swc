@@ -8,8 +8,10 @@ struct EditCtrl
     labelSize:      f32 = 60
     editSize:       f32 = 60     // 0 to fit to parent size
 
-    label: #late *Label
-    edit:  #late *EditBox
+    #[Swag.Late]
+    label: *Label
+    #[Swag.Late]
+    edit:  *EditBox
 }
 
 impl IWnd for EditCtrl

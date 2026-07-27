@@ -363,7 +363,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#fwd", State.Modifier)
         .mapWords.add("#reverse", State.Modifier)
         .mapWords.add("#null", State.Modifier)
-        .mapWords.add("#late", State.Modifier)
+        .mapWords.add("#complete", State.Modifier)
     }
 
     mtd impl setupTheme(ed: *RichEditCtrl)

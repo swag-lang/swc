@@ -31,7 +31,8 @@ struct FrameWnd
 {
     using wnd: Wnd
 
-    view:        #late *Wnd
+    #[Swag.Late]
+    view:        *Wnd
     frameForm  = FrameWndForm.Transparent
     frameFlags = FrameWndFlags.Borders
     anchor     = FrameWndAnchor.None
@@ -247,8 +248,7 @@ impl FrameWnd
             return
         .frameForm = form
 
-        #[Swag.Complete]
-        switch .frameForm
+        switch #complete .frameForm
         {
         case Square:
             .wndFlags.add(.PostChildsPaint)

@@ -16,10 +16,10 @@ func secondRune(text: const [..] rune)->rune
 {
     #assert(#typeof(Token) == const [..] rune)
     @assert(@countof(Token) == 3)
-    @assert(Token[0] == 'A''rune)
-    @assert(Token[1] == '😀''rune)
-    @assert(Token[2] == 'B''rune)
+    @assert(Token[0] == 'A'rune)
+    @assert(Token[1] == '😀'rune)
+    @assert(Token[2] == 'B'rune)
 
     @assert(runeCount(#runes("hé")) == 2)
-    @assert(secondRune(#runes("hé")) == 'é''rune)
+    @assert(secondRune(#runes("hé")) == 'é'rune)
 }

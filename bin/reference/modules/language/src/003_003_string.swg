@@ -116,8 +116,8 @@ not just ASCII.
 /**
 # Default Type of Character Literals
 
-A character literal is a 32-bit integer by default. It can be assigned to any
-integer type or a 'rune' if the value fits within the target type.
+A character literal initially has an adaptable character-literal type. Its context
+can select any integer type or 'rune' when the value fits the target type.
 */
 #test
 {
@@ -140,27 +140,29 @@ integer type or a 'rune' if the value fits within the target type.
 /**
 # Specifying Character Literal Types
 
-You can specify a character literal’s type using a suffix to control its storage size.
+Character literals remain adaptable until their context selects a concrete type. To
+select one explicitly, place an unsigned integer type or 'rune' directly after the
+closing quote. The closing quote also separates the literal from its type suffix.
 */
 #test
 {
-    let a = '0''u8
+    let a = '0'u8
     @assert(a == 48)
     @assert(#typeof(a) == u8)
 
-    let b = '1''u16
+    let b = '1'u16
     @assert(b == 49)
     @assert(#typeof(b) == u16)
 
-    let c = '2''u32
+    let c = '2'u32
     @assert(c == 50)
     @assert(#typeof(c) == u32)
 
-    let d = '3''u64
+    let d = '3'u64
     @assert(d == 51)
     @assert(#typeof(d) == u64)
 
-    let e = '4''rune
+    let e = '4'rune
     @assert(e == 52)
     @assert(#typeof(e) == rune)
 }

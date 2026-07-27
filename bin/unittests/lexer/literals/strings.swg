@@ -15,6 +15,13 @@
 '&'
 '*'
 
+// --- Explicit character literal types ---
+'A'u8
+'é'u16
+'☃'u32
+'😀'u64
+'\n'rune
+
 // --- Valid escape sequences ---
 '\n'
 '\r'

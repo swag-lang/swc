@@ -507,6 +507,17 @@
     "characters": {
       "patterns": [
         {
+          "match": "('(?:\\\\.|[^'\\\\])')((?:u8|u16|u32|u64|rune)\\b)",
+          "captures": {
+            "1": {
+              "name": "string.quoted.single"
+            },
+            "2": {
+              "name": "storage.type"
+            }
+          }
+        },
+        {
           "name": "string.quoted.single",
           "match": "'(\\\\)?(\\w+)'"
         },

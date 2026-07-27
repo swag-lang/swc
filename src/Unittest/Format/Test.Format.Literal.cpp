@@ -34,6 +34,17 @@ SWC_TEST_BEGIN(FormatLiteral_PreserveLeavesNumericLiteralsUntouched)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatLiteral_PreserveCharacterTypeSuffix)
+{
+    static constexpr std::string_view SOURCE =
+        "#assert('A'u8 == 65)\n"
+        "#assert(#typeof('\\n'rune) == rune)\n";
+
+    const FormatOptions options;
+    return checkLiteralRewrite(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatLiteral_HexDigitCaseUpperAndLower)
 {
     static constexpr std::string_view SOURCE =

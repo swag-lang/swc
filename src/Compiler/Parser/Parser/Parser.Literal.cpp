@@ -3,6 +3,18 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    bool isCharacterLiteralTypeSuffix(const TokenId id)
+    {
+        return id == TokenId::TypeU8 ||
+               id == TokenId::TypeU16 ||
+               id == TokenId::TypeU32 ||
+               id == TokenId::TypeU64 ||
+               id == TokenId::TypeRune;
+    }
+}
+
 // '#raw' only qualifies how the lexer read the literal that follows, so the node is the plain
 // string literal and the modifier leaves no trace in the AST.
 AstNodeRef Parser::parseRawStringLiteral()
@@ -118,11 +130,26 @@ AstNodeRef Parser::parseLiteralExpression()
     if (literal.isInvalid())
         return AstNodeRef::invalid();
 
-    const TokenRef quoteTknRef = ref();
-    if (isNot(TokenId::SymSingleQuote))
+    TokenRef suffixTknRef = TokenRef::invalid();
+    TokenRef quoteTknRef  = TokenRef::invalid();
+    if (is(TokenId::SymSingleQuote))
+    {
+        quoteTknRef  = ref();
+        suffixTknRef = consume();
+    }
+    else if (ast_->node(literal).is(AstNodeId::CharacterLiteral) && isCharacterLiteralTypeSuffix(id()))
+    {
+        // The closing delimiter doubles as the suffix separator, but trivia must break adjacency.
+        const auto literalRange = ast_->srcView().tokenCodeRange(*ctx_, ast_->node(literal).tokRef());
+        const auto suffixRange  = ast_->srcView().tokenCodeRange(*ctx_, ref());
+        if (literalRange.offset + literalRange.len == suffixRange.offset)
+            suffixTknRef = ref();
+    }
+
+    if (suffixTknRef.isInvalid())
         return literal;
 
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(consume());
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(suffixTknRef);
     nodePtr->nodeLiteralRef       = literal;
     nodePtr->nodeSuffixRef.setInvalid();
 
@@ -158,6 +185,7 @@ AstNodeRef Parser::parseLiteralExpression()
             return nodeRef;
 
         default:
+            SWC_ASSERT(quoteTknRef.isValid());
             raiseError(DiagnosticId::parser_err_empty_literal_suffix, quoteTknRef);
             return nodeRef;
     }

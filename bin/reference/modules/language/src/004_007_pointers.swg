@@ -194,35 +194,33 @@ Dereferencing retrieves the data located at the memory address referenced by the
 }
 
 /**
-# Const Pointers
+# Pointers to Const Data
 
-A `const` pointer is one whose **target address cannot change** once assigned.
-However, the data at that address may still be modified (unless declared const itself).
-Const pointers help guarantee that a pointer always refers to the same memory location.
+`const` qualifies the **pointed-to data**, never the pointer itself. Written just before
+a `*`, it makes whatever that `*` points to read-only, so `const *u8` is a pointer to a
+read-only `u8` and assigning through `dref` is rejected. The pointer variable stays free
+to point somewhere else; `let` is what makes a pointer itself immutable.
 */
 #test
 {
     let str            = "string"
     let ptr: const *u8 = @dataof(str)
-    @assert(dref ptr == 's')     // Access the first byte of the string
+    @assert(dref ptr == 's')     // Reading through the pointer is fine,
+                                 // but assigning to 'dref ptr' would be rejected
 }
 
 /**
 # Combining `const` with Pointers
 
-Swag allows fine-grained control over constness in pointer declarations.
-You can define:
-- a **pointer to const data**,
-- a **const pointer**, or
-- a **const pointer to const data**.
-
-This provides strong control over both pointer immutability and data mutability.
+Every `*` in a type carries its own `const`, so read-only access is chosen level by
+level. Read the type from left to right: each `const` applies to the pointee of the `*`
+that follows it, exactly one level down.
 */
 #test
 {
-    var ptr:  #null *#null const *u8           // Pointer to a const pointer
-    var ptr1: #null const *#null const *u8     // Const pointer to a const pointer
-    var ptr2: #null const *#null *u8           // Const pointer to a mutable pointer
+    var ptr:  #null *#null const *u8           // The 'u8' is read-only, the inner pointer is writable
+    var ptr1: #null const *#null const *u8     // Both the inner pointer and the 'u8' are read-only
+    var ptr2: #null const *#null *u8           // The inner pointer is read-only, the 'u8' is writable
 }
 
 /**

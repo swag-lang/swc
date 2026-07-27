@@ -106,9 +106,19 @@ Some concepts have both a directive and an intrinsic:
 | Compile-time form | Intrinsic form |
 |---|---|
 | '#assert(condition)' rejects the build | '@assert(condition)' checks in its execution context |
-| '#print(...)' writes while compiling | '@print(...)' writes when the containing code executes |
+| '#print(text)' writes while compiling | '@print(...)' writes when the containing code executes |
 | '#init { ... }' declares a module hook | '@init(...)' initializes values or memory |
 | '#drop { ... }' declares a module hook | '@drop(...)' drops values or memory |
+
+The pairs are related, not symmetrical. The compile-time diagnostics '#print',
+'#assert', '#error' and '#warning' each take exactly **one** compile-time
+expression, so several parts are joined with the '++' concatenation operator.
+Their intrinsic counterparts follow ordinary call rules, and '@print' is variadic:
+
+```swag
+#print("kind: " ++ #nameof(#typeof(value)))     // one expression, joined with '++'
+@print("kind: ", name, "\n")                    // variadic at runtime
+```
 
 Inside '#run', an '@' intrinsic executes during compilation because the
 containing code does. In an ordinary function, the same intrinsic becomes

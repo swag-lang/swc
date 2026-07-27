@@ -23,6 +23,29 @@ The compiler enforces the declared usage: writing an attribute directly on
 another kind of declaration is an error. An attribute with no 'AttrUsage' is
 unrestricted.
 
+# Name Resolution
+
+| Attribute | Purpose |
+|---|---|
+| 'Using(what: typeinfo...)' | Bring the named scopes into the annotated declaration's scope |
+
+'Swag.Using' is the attribute form of the 'using' statement: it opens the named
+namespaces or types inside the declaration it annotates, so their members resolve
+unqualified there. Annotating a struct with it is the usual way to let field
+attributes be written unqualified:
+
+```swag
+#[Swag.Using(Properties)]
+struct CaptureOptions
+{
+    #[Description("Show a large cross at the mouse position")]
+    drawCross = true
+}
+```
+
+This one is declared in 'bin/runtime/core.swg' rather than 'api.swg', because it
+needs 'typeinfo' and cannot exist in the bootstrap.
+
 # Compile-Time Execution and Code Generation
 
 | Attribute | Purpose |

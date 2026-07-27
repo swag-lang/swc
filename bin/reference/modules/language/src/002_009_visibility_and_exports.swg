@@ -50,4 +50,18 @@ module API:
 
 Visibility is independent of namespaces. A symbol can be public and qualified,
 or private and placed in a namespace for organization.
+
+# Exporting a File's API
+
+'#global export' is a fourth form. It sets the same access as '#global public', and
+additionally marks the file as one whose declarations belong to the generated module
+API. Only the file's first '#global' directive is read for that marking, so it belongs
+on the very first line. The standard modules open their public source files with it:
+
+```swag
+#global export
+```
+
+Use '#global public' when a file is public inside the workspace, and '#global export'
+when its declarations are the module's published surface.
 */

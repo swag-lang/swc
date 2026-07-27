@@ -166,6 +166,15 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
 > WARNING:
 > The start value must be less than or equal to the end value. An inverted range is a
 > compile-time error when both bounds are constant, and a runtime bound-check error otherwise.
+
+> WARNING:
+> Because `to` is inclusive, do not write a collection-sized loop as
+> `for [i] in 0 to count - 1`. When `count` is zero that range is inverted, and on an
+> unsigned `count` the subtraction wraps to a huge bound instead. Write
+> `for [i] in 0 until count`, which is empty for a zero count. The inverted-range
+> report is a **runtime safety guard**, so it is raised in `debug` and `fast-debug`
+> but not in `release`, where the loop simply runs zero times: the wrong spelling
+> fails only in the configurations that check for it.
 */
 #test
 {

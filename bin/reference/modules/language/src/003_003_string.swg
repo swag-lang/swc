@@ -66,6 +66,14 @@ the underlying UTF-8 encoding.
 
 Swag allows compile-time concatenation of strings and other values using the
 '++' operator.
+
+> WARNING:
+> '++' is a **compile-time** operator: every operand must be a constant expression.
+> The 'let' bindings below hold a value the compiler already folded, not a runtime
+> concatenation. Two runtime strings cannot be joined by an operator at all — '+'
+> is not defined on 'string', and '++' reports that the expression needs a
+> compile-time value. Build runtime text with 'Std.Core' ('String', 'ConcatBuffer',
+> 'Format') instead.
 */
 #test
 {
@@ -104,7 +112,15 @@ not just ASCII.
 
 > NOTE:
 > A character literal's quote must follow a symbol or space to avoid confusion
-> with a type suffix.
+> with a type suffix. The lexer decides from what precedes the quote: right after
+> an identifier or a literal it opens a type suffix, anywhere else it opens a
+> character literal. Whitespace therefore matters here, and nowhere else in the
+> language.
+
+```swag
+let suffixed = 5's32      // a suffixed number
+let broken   = 5 's32     // error: the quote opens an unclosed character literal
+```
 */
 #test
 {
@@ -143,6 +159,17 @@ can select any integer type or 'rune' when the value fits the target type.
 Character literals remain adaptable until their context selects a concrete type. To
 select one explicitly, place an unsigned integer type or 'rune' directly after the
 closing quote. The closing quote also separates the literal from its type suffix.
+
+Both spellings are accepted. The closing quote can double as the separator, or the
+separating quote can be written explicitly. The explicit form is the one used
+throughout the standard modules, because it stays readable when the literal is
+itself a quote or a space.
+
+```swag
+let a = '0'u8      // the closing quote doubles as the separator
+let b = '0''u8     // the separating quote is written out
+let c = ' ''u32    // a space literal, only readable in the explicit form
+```
 */
 #test
 {

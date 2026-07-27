@@ -43,6 +43,9 @@ func day7A()
 /*
 Disabled in the examples workspace: compiler bug on array literal indexing.
 
+The body below also predates a language change and would not compile as written even once
+that bug is fixed: 'assume' was removed, and this call wants 'expect' like 'day7A1' does.
+
 func day7A0()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")

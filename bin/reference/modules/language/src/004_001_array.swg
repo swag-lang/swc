@@ -124,8 +124,14 @@ them immutable after declaration.
 /**
 # Type Inference from Array Literals
 
-If no explicit type is specified, Swag infers the array’s type from the first
-element. All other elements are promoted to match that type.
+If no explicit type is specified, Swag infers one element type that fits every
+element, following the usual promotion rules. It is not simply the type of the
+first element: a later element widens the result, and an explicit suffix on the
+first one does not pin it down.
+
+```swag
+let widened = [1's32, 2.75, 3]     // a '[3] f32', not a '[3] s32'
+```
 */
 #test
 {
@@ -151,10 +157,15 @@ each number represents a dimension.
 }
 
 /**
-# C/C++ Style Multi-Dimensional Arrays
+# C/C++ Style Nested Arrays
 
-You can also declare multi-dimensional arrays using nested array syntax,
-similar to C/C++.
+Nested array syntax is also accepted, similar to C/C++, and '[i, j]' indexing
+works on it just as well.
+
+> WARNING:
+> The two spellings are **not** the same type. '[2, 2] s32' is one array with two
+> dimensions, while '[2][2] s32' is a one-dimensional array of '[2] s32'. They do
+> not convert to each other, so pick one spelling per API and keep it.
 */
 #test
 {
@@ -164,6 +175,7 @@ similar to C/C++.
     array[1, 0] = 3
     array[1, 1] = 4
 
+    // A different type from 'array', even though it indexes the same way.
     var array1: [2][2] s32
     array1[0, 0] = 1
     array1[0, 1] = 2

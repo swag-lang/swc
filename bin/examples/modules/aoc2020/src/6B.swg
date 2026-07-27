@@ -39,7 +39,7 @@ func day6B()
 {
     day6B0()
 
-// day6B1() disabled: compiler bug on '~0' typing for unsigned values
+// day6B1() disabled: it no longer compiles as written, see the note below
 }
 
 /////////////////////////////////////////////////////////////////
@@ -76,7 +76,13 @@ func day6B0()
 /////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////
 /*
-Disabled in the examples workspace: compiler bug on '~0' typing for unsigned values.
+Disabled in the examples workspace. Two things must be fixed before re-enabling it:
+
+- The two "u32 = ~0" initializations are rejected, and this is the language rule, not a
+  bug: a decimal literal is 's32', so '~0' is '-1' and cannot convert to 'u32'. Suffix
+  the literal to fix it. (A hexadecimal literal such as '0xFFFFFFFF' is already 'u32'.)
+- 'assume' was removed from the language, so the read here should use 'expect' like
+  'day6B0' does.
 
 func day6B1()
 {

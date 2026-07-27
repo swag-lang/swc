@@ -153,6 +153,10 @@ func day4B0()
 /*
 Disabled in the examples workspace: compiler bug with HashTable payload on anonymous structs.
 
+The body below also predates a language change and would not compile as written even once
+that bug is fixed: 'assume' was removed, in both its prefix and its block form, so the
+reads here should use 'expect' like 'day4B0' does.
+
 func day4B1()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")

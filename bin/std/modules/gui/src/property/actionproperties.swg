@@ -27,7 +27,7 @@ impl IActionUI for ActionProperties
     {
         switch cxt.id
         {
-        case Copy, Paste, ResetDefault, MoveUp, MoveDown, Remove, RemoveAll: return true
+        case .Copy, .Paste, .ResetDefault, .MoveUp, .MoveDown, .Remove, .RemoveAll: return true
         }
 
         return false
@@ -47,30 +47,30 @@ impl IActionUI for ActionProperties
 
         switch cxt.id
         {
-        case Copy:
+        case .Copy:
             evt.setFlags |= .Name | .Icon
             evt.name     = "Copy"
             evt.icon     = theme.getIcon24(.Copy)
 
-        case Paste:
+        case .Paste:
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Paste"
             evt.icon     = theme.getIcon24(.Paste)
             evt.disabled = !prop.canChangeItem(notnull item) or !Clipboard.hasTypedValue(notnull item.type)
 
-        case ResetDefault:
+        case .ResetDefault:
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Reset to default"
             evt.icon     = theme.getIcon24(.Undo)
             evt.disabled = !item.isModified
 
-        case MoveUp:
+        case .MoveUp:
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Move Up"
             evt.icon     = theme.getIcon24(.SortArrowUp)
             evt.disabled = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem) or prop.arrayElementIndex(notnull arr.arrElem) == 0
 
-        case MoveDown:
+        case .MoveDown:
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Move Down"
             evt.icon     = theme.getIcon24(.SortArrowDown)
@@ -83,13 +83,13 @@ impl IActionUI for ActionProperties
 
             evt.disabled = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem) or atEnd
 
-        case Remove:
+        case .Remove:
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Remove"
             evt.icon     = theme.getIcon24(.Remove)
             evt.disabled = !arr.arrElem or !prop.canChangeItem(notnull arr.arrItem)
 
-        case RemoveAll:
+        case .RemoveAll:
             evt.setFlags |= .Name | .Icon | .Disabled
             evt.name     = "Remove All"
             evt.icon     = theme.getIcon24(.RemoveAll)
@@ -117,35 +117,35 @@ impl IActionUI for ActionProperties
 
         switch cxt.id
         {
-        case Copy:
+        case .Copy:
             Clipboard.addTypedValue(notnull item.data, notnull item.type)
 
-        case Paste:
+        case .Paste:
             if Clipboard.getTypedValue(notnull item.data, notnull item.type)
             {
                 prop.refreshItem(item)
                 prop.hasChanged(item)
             }
 
-        case ResetDefault:
+        case .ResetDefault:
             prop.resetItemDefault(item)
 
-        case MoveUp:
+        case .MoveUp:
             if arr.arrElem do
                 prop.moveArrayValue(arr.arrElem, -1)
 
-        case MoveDown:
+        case .MoveDown:
             if arr.arrElem do
                 prop.moveArrayValue(arr.arrElem, 1)
 
-        case Remove:
+        case .Remove:
             if !arr.arrElem do
                 break
             if MessageDlg.confirm(notnull prop.wnd.surface, "This will remove the element") != Dialog.BtnYes do
                 break
             prop.removeArrayValue(arr.arrElem)
 
-        case RemoveAll:
+        case .RemoveAll:
             if !arr.arrItem do
                 break
             if MessageDlg.confirm(notnull prop.wnd.surface, "This will remove all elements") != Dialog.BtnYes do

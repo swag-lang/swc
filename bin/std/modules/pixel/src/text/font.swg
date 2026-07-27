@@ -146,8 +146,8 @@ private func renderModeName(mode: FontRenderMode)->string
 {
     switch mode
     {
-    case Auto: return "auto"
-    case Msdf: return "msdf"
+    case .Auto: return "auto"
+    case .Msdf: return "msdf"
     }
 
     return "bitmap"
@@ -285,12 +285,12 @@ public impl Font
     {
         switch mode
         {
-        case Bitmap:
+        case .Bitmap:
 
             // Classic grayscale bitmap, rasterized at the exact pixel size.
             return createView(typeFace, size, size, 0, .Bitmap, .Bitmap, forceBold, forceItalic)
 
-        case Msdf:
+        case .Msdf:
 
             // Multi-channel SDF, size-independent reference atlas.
             return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Msdf, forceBold, forceItalic)
@@ -391,7 +391,7 @@ public impl GlyphCache
     {
         switch .renderMode
         {
-        case Msdf: discard try .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
+        case .Msdf: discard try .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
         default:   discard try .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic)
         }
     }

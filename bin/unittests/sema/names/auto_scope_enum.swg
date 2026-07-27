@@ -64,8 +64,8 @@ func reverseDirection(dir: BindingDirectionAlias)->BindingDirection
 {
     switch dir
     {
-    case North: return South
-    case South: return North
+    case .North: return South
+    case .South: return North
     }
 }
 

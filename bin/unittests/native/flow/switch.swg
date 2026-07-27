@@ -122,6 +122,27 @@ alias StrictSwitchF32 = f32
 
 #test
 {
+    enum E: s32
+    {
+        A = 1,
+        B = 2,
+    }
+
+    const expected = E.A
+    var value: E   = .A
+    var hit        = false
+    switch value
+    {
+    case expected:
+        hit = true
+    case .B:
+        break
+    }
+    @assert(hit)
+}
+
+#test
+{
     var v   = cast(StrictSwitchAliasEnum) SwitchStrictAliasEnum.B
     var hit = 0
     switch v

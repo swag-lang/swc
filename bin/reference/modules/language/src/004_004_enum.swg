@@ -266,7 +266,9 @@ Swag infers enum types automatically in assignments and expressions.
 /**
 # Type Inference in `switch`
 
-Enum types are inferred inside `switch` statements.
+Enum types are inferred inside `switch` statements. A case value uses the same
+auto-scope syntax as any other inferred enum value: keep the leading dot.
+The bare form `case A` does not implicitly enter the enum scope.
 */
 #test
 {
@@ -275,8 +277,8 @@ Enum types are inferred inside `switch` statements.
 
     switch x
     {
-    case A: break
-    case B: break
+    case .A: break
+    case .B: break
     }
 }
 
@@ -340,9 +342,9 @@ Binding a name offers a structured way to iterate and handle specific values.
     {
         switch val
         {
-        case R:  break
-        case G:  break
-        case B:  break
+        case .R:  break
+        case .G:  break
+        case .B:  break
         default: @assert(false)
         }
     }

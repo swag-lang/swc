@@ -32,14 +32,14 @@ impl IWnd for ImageRect
 
         switch #complete .movie.source
         {
-        case None:
+        case .None:
             break
 
-        case SpriteSheet:
+        case .SpriteSheet:
             let icon = Icon.from(&.movie.imgList, .movie.frameIndex, rect.width, rect.height)
             icon.paint(painter, rect.x, rect.y, color)
 
-        case Gif:
+        case .Gif:
             painter.drawTexture(rect, .textureFrame, color)
         }
 

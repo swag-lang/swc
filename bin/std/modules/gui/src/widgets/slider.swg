@@ -203,15 +203,15 @@ impl IWnd for Slider
 
         switch evt.kind
         {
-        case MouseWheel:
+        case .MouseWheel:
             evt.accepted = false
             return
 
-        case MouseLeave:
+        case .MouseLeave:
             .isHot1, .isHot2 = false
             .invalidate()
 
-        case MouseMove:
+        case .MouseMove:
             if !.isMoving
             {
                 .hitTest(evt.surfacePos)
@@ -237,7 +237,7 @@ impl IWnd for Slider
                 .setValue2(f)
             .invalidate()
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Left
             {
                 .isMoving = true
@@ -309,7 +309,7 @@ impl IWnd for Slider
                 .invalidate()
             }
 
-        case MouseReleased:
+        case .MouseReleased:
             if .isMoving and evt.button == .Left
             {
                 .releaseMouse()
@@ -335,12 +335,12 @@ impl IWnd for Slider
 
         switch evt.key
         {
-        case Left, Down: .stepBy(-1)
-        case Right, Up:  .stepBy(1)
-        case PageDown:   .stepValue1(-bigBy)
-        case PageUp:     .stepValue1(bigBy)
-        case Home:       .stepValue1To(0)
-        case End:        .stepValue1To(1)
+        case .Left, .Down: .stepBy(-1)
+        case .Right, .Up:  .stepBy(1)
+        case .PageDown:   .stepValue1(-bigBy)
+        case .PageUp:     .stepValue1(bigBy)
+        case .Home:       .stepValue1To(0)
+        case .End:        .stepValue1To(1)
         default:         return
         }
 

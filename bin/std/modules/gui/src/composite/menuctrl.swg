@@ -929,11 +929,11 @@ public impl MenuCtrl
 
         switch pos
         {
-        case AnchorTopCenter:
+        case .AnchorTopCenter:
             .paintByFrame = true
             .padding.y    += 4
 
-        case AnchorBottomCenter:
+        case .AnchorBottomCenter:
             .paintByFrame = true
             .padding.w    += 4
 
@@ -948,11 +948,11 @@ public impl MenuCtrl
 
         switch pos
         {
-        case TopLeft:
+        case .TopLeft:
             pt -= .getThemeMetrics().menuPopup_ShadowSize
             .setPosition({pt.x, pt.y, .position.width, .position.height})
 
-        case AnchorTopCenter:
+        case .AnchorTopCenter:
             pt.y += .getThemeMetrics().menuPopup_ShadowSize
             .setPosition({pt.x - .position.width * 0.5, pt.y, .position.width, .position.height})
             .anchor    = .Top
@@ -962,7 +962,7 @@ public impl MenuCtrl
             .padding.y  += 14
             .paddingSel = 0
 
-        case AnchorBottomCenter:
+        case .AnchorBottomCenter:
             pt.y -= .getThemeMetrics().menuPopup_ShadowSize
             .setPosition({pt.x - .position.width * 0.5, pt.y - .position.height, .position.width, .position.height})
             .anchor    = .Bottom

@@ -195,7 +195,7 @@ impl IWnd for ListView
 
         switch evt.key
         {
-        case Space where focusLine:
+        case .Space where focusLine:
             if (notnull focusLine).canCheck
             {
                 for l in .list.selModel
@@ -218,7 +218,7 @@ impl IWnd for ListView
                 .list.toggleExpand(notnull focusLine)
             }
 
-        case Enter where focusLine:
+        case .Enter where focusLine:
             if (notnull focusLine).canCheck
             {
                 for l in .list.selModel
@@ -240,7 +240,7 @@ impl IWnd for ListView
                 .list.toggleExpand(notnull focusLine)
             }
 
-        case A:
+        case .A:
             if !ctrl or .list.selectionMode == .Single do
                 break
             shift = true
@@ -249,24 +249,24 @@ impl IWnd for ListView
             startSelIdx = .list.getLineCount() - 1
             selChanged  = true
 
-        case Home:
+        case .Home:
             startSelIdx = .list.focusIndex
             endSelIdx   = 0
             selChanged  = true
 
-        case End:
+        case .End:
             startSelIdx = .list.focusIndex
             endSelIdx   = lineCount - 1
             selChanged  = true
 
-        case Up:
+        case .Up:
             if .list.focusIndex == 0 do
                 startSelIdx, endSelIdx = 0
             else do
                 startSelIdx, endSelIdx = .list.focusIndex - 1
             selChanged                 = true
 
-        case Down:
+        case .Down:
             if .list.focusIndex == lineCount - 1 do
                 startSelIdx, endSelIdx = lineCount - 1
             elif .list.focusIndex == Swag.U32.Max do
@@ -275,13 +275,13 @@ impl IWnd for ListView
                 startSelIdx, endSelIdx = .list.focusIndex + 1
             selChanged                 = true
 
-        case Left where focusLine:
+        case .Left where focusLine:
             .list.collapse(notnull focusLine)
 
-        case Right where focusLine:
+        case .Right where focusLine:
             .list.expand(notnull focusLine)
 
-        case PageDown:
+        case .PageDown:
             let first = .list.getFirstVisibleLineIndex()
             let last  = .list.getLastVisibleLineIndex()
             startSelIdx, endSelIdx = .list.focusIndex + (last - first)
@@ -289,7 +289,7 @@ impl IWnd for ListView
             endSelIdx              = Math.min(endSelIdx, lineCount - 1)
             selChanged             = true
 
-        case PageUp:
+        case .PageUp:
             let first  = .list.getFirstVisibleLineIndex()
             let last   = .list.getLastVisibleLineIndex()
             let offset = last - first
@@ -824,15 +824,15 @@ impl ListCtrl
                 return false
             switch list.frameForm
             {
-            case Round:
+            case .Round:
                 header.form   = .Round
                 header.margin = -wnd.getThemeMetrics().frameWnd_RoundPadding
 
-            case Square:
+            case .Square:
                 header.form   = .Flat
                 header.margin = -wnd.getThemeMetrics().frameWnd_SquarePadding
 
-            case Transparent:
+            case .Transparent:
                 header.form   = .Flat
                 header.margin = -wnd.getThemeMetrics().frameWnd_FlatPadding
             }

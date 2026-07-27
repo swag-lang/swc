@@ -153,9 +153,9 @@ impl IWnd for IconButton
 
         switch .form
         {
-        case Square:      subRectBk = &rects.btnIcon_SquareBk
-        case Round:       subRectBk = &rects.btnIcon_RoundBk
-        case RoundSquare: subRectBk = &rects.btnIcon_RoundSquareBk
+        case .Square:      subRectBk = &rects.btnIcon_SquareBk
+        case .Round:       subRectBk = &rects.btnIcon_RoundBk
+        case .RoundSquare: subRectBk = &rects.btnIcon_RoundSquareBk
         }
 
         var paintFlags: PaintItemFlags = .Zero
@@ -226,19 +226,19 @@ impl IWnd for IconButton
         {
             switch .checkedForm
             {
-            case Bottom:
+            case .Bottom:
                 subRectBk = &rects.btnIcon_CheckedBottom
 
-            case Top:
+            case .Top:
                 subRectBk = &rects.btnIcon_CheckedTop
 
-            case Left:
+            case .Left:
                 subRectBk = &rects.btnIcon_CheckedLeft
 
-            case Right:
+            case .Right:
                 subRectBk = &rects.btnIcon_CheckedRight
 
-            case Full:
+            case .Full:
                 if .form == .Square do
                     subRectBk = &rects.btnIcon_CheckedSquare
                 elif .form == .Round do
@@ -267,9 +267,9 @@ impl IWnd for IconButton
 
             switch #complete .arrowPos
             {
-            case Left, Right, RightUp, RightDown: nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
-            case Top, Bottom:                     nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
-            case None:                            break
+            case .Left, .Right, .RightUp, .RightDown: nw += metrics.btnIcon_WidthArrow + metrics.btnIcon_SpacingArrowH
+            case .Top, .Bottom:                     nh += metrics.btnIcon_HeightArrow + metrics.btnIcon_SpacingArrowV
+            case .None:                            break
             }
 
             let fontR = nnFont(.getFont().regular)
@@ -281,11 +281,11 @@ impl IWnd for IconButton
             {
                 switch #complete .textPos
                 {
-                case Left, Right:
+                case .Left, .Right:
                     nw += metrics.btnIcon_SpacingTextH
                     nw += .icon.sizeX
 
-                case Top, Bottom:
+                case .Top, .Bottom:
                     nh += metrics.btnIcon_SpacingTextV
                     nh += .icon.sizeY
                 }
@@ -306,7 +306,7 @@ impl IWnd for IconButton
 
             switch .arrowPos
             {
-            case Left:
+            case .Left:
                 subRectBk       = &rects.btnIcon_ArrowLeft
                 posArrow.width  = h
                 posArrow.height = w
@@ -315,7 +315,7 @@ impl IWnd for IconButton
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.moveLeft(marginArrow + w + metrics.btnIcon_SpacingArrowH)
 
-            case Top:
+            case .Top:
                 subRectBk       = &rects.btnIcon_ArrowUp
                 posArrow.width  = w
                 posArrow.height = h
@@ -324,7 +324,7 @@ impl IWnd for IconButton
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.moveTop(marginArrow + h + metrics.btnIcon_SpacingArrowV)
 
-            case Right:
+            case .Right:
                 subRectBk       = &rects.btnIcon_ArrowRight
                 posArrow.width  = h
                 posArrow.height = w
@@ -333,7 +333,7 @@ impl IWnd for IconButton
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
 
-            case RightUp:
+            case .RightUp:
                 subRectBk       = &rects.btnIcon_ArrowUp
                 posArrow.width  = w
                 posArrow.height = h
@@ -342,7 +342,7 @@ impl IWnd for IconButton
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
 
-            case RightDown:
+            case .RightDown:
                 subRectBk       = &rects.btnIcon_ArrowDown
                 posArrow.width  = w
                 posArrow.height = h
@@ -351,7 +351,7 @@ impl IWnd for IconButton
                 theme.drawSubRect(bc.painter, posArrow, subRectBk, colorIcon)
                 pos.setRight(posArrow.x - metrics.btnIcon_SpacingArrowH)
 
-            case Bottom:
+            case .Bottom:
                 subRectBk       = &rects.btnIcon_ArrowDown
                 posArrow.width  = w
                 posArrow.height = h
@@ -373,7 +373,7 @@ impl IWnd for IconButton
             sf.flags         = .DontAdaptSingleLineHeight
             switch .textPos
             {
-            case Left:
+            case .Left:
                 sf.horzAlignment = .Left
                 if !hasIcon and (.arrowPos == .Top or .arrowPos == .Bottom) do
                     sf.horzAlignment = .Center
@@ -394,7 +394,7 @@ impl IWnd for IconButton
                     pos.width = .icon.sizeX
                 }
 
-            case Right:
+            case .Right:
                 sf.horzAlignment = .Right
                 if !hasIcon and (.arrowPos == .Top or .arrowPos == .Bottom) do
                     sf.horzAlignment = .Center
@@ -414,7 +414,7 @@ impl IWnd for IconButton
                     pos.width = .icon.sizeX
                 }
 
-            case Top:
+            case .Top:
                 sf.vertAlignment = .Top
                 bc.painter.drawRichString(pos, &.name, sf)
                 pos.moveTop((notnull sf.font.regular).height + metrics.btnIcon_SpacingTextV)
@@ -433,7 +433,7 @@ impl IWnd for IconButton
                     pos.height = .icon.sizeY
                 }
 
-            case Bottom:
+            case .Bottom:
                 sf.vertAlignment = .Bottom
                 bc.painter.drawRichString(pos, &.name, sf)
 
@@ -466,21 +466,21 @@ impl IWnd for IconButton
         {
             switch .textPos
             {
-            case Left:
+            case .Left:
                 pos.x = pos.right() - .icon.sizeX
                 pos.y = pos.vertCenter() - .icon.sizeY * 0.5
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
 
-            case Right:
+            case .Right:
                 pos.y = pos.vertCenter() - .icon.sizeY * 0.5
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
 
-            case Top:
+            case .Top:
                 pos.x = pos.horzCenter() - .icon.sizeX * 0.5
                 pos.y = pos.bottom() - .icon.sizeY
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
 
-            case Bottom:
+            case .Bottom:
                 pos.x = pos.horzCenter() - .icon.sizeX * 0.5
                 .icon.paint(bc.painter, pos.x, pos.y, colorIcon)
             }
@@ -518,9 +518,9 @@ impl IWnd for IconButton
         let m = Math.min(r.width, r.height)
         switch .form
         {
-        case Round:       return m * 0.5
-        case RoundSquare: return Math.min(m * 0.28, 8.0)
-        case Square:      return 3
+        case .Round:       return m * 0.5
+        case .RoundSquare: return Math.min(m * 0.28, 8.0)
+        case .Square:      return 3
         }
 
         return 4

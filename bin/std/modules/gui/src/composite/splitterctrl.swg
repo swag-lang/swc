@@ -45,14 +45,14 @@ impl IWnd for SplitterCtrl
 
         switch evt.kind
         {
-        case MouseLeave:
+        case .MouseLeave:
             if .hotIdx != Swag.U32.Max
             {
                 .hotIdx = Swag.U32.Max
                 .invalidate()
             }
 
-        case MouseMove:
+        case .MouseMove:
             if .moving
             {
                 let rect = .getBarRect(.hotIdx)
@@ -77,7 +77,7 @@ impl IWnd for SplitterCtrl
                 .hotIdx = newHot
             }
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Left and .hotIdx != Swag.U32.Max
             {
                 let rect = .getBarRect(.hotIdx)
@@ -90,7 +90,7 @@ impl IWnd for SplitterCtrl
                     .correctMoving = local.x - rect.x
             }
 
-        case MouseReleased:
+        case .MouseReleased:
             if .moving
             {
                 .moving = false

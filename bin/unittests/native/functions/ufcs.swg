@@ -73,10 +73,10 @@ impl Direction
         using Direction
         switch me
         {
-        case North: return South
-        case South: return North
-        case East:  return West
-        case West:  return East
+        case .North: return South
+        case .South: return North
+        case .East:  return West
+        case .West:  return East
         }
     }
 

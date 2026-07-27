@@ -67,19 +67,19 @@ impl EmbInfoCtrl
             .backgroundStyle = .Window
             switch me.kind
             {
-            case Critical:
+            case .Critical:
                 .icon = theme.getIcon64(.Critical, 28)
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_CriticalBk.argb))
                 .iconColor = Argb.White
                 .textColor = colors.embInfo_CriticalText.argb
 
-            case Information:
+            case .Information:
                 .icon = theme.getIcon64(.Information, 28)
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_InformationBk.argb))
                 .iconColor = Argb.White
                 .textColor = colors.embInfo_InformationText.argb
 
-            case Message:
+            case .Message:
                 .icon = theme.getIcon64(.Information, 28)
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_MessageBk.argb))
                 .iconColor = Argb.White

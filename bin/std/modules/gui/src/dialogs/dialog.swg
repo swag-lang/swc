@@ -25,7 +25,7 @@ impl IWnd for Dialog
             // Pressing enter validates the default button
             switch evt.key
             {
-            case Tab, Right:
+            case .Tab, .Right:
                 for btn, [idx] in .buttons
                 {
                     if btn.form == .Default
@@ -39,7 +39,7 @@ impl IWnd for Dialog
                     }
                 }
 
-            case Left:
+            case .Left:
                 for btn, [idx] in .buttons
                 {
                     if btn.form == .Default
@@ -53,7 +53,7 @@ impl IWnd for Dialog
                     }
                 }
 
-            case Enter:
+            case .Enter:
                 for btn in .buttons
                 {
                     if btn.form == .Default
@@ -63,7 +63,7 @@ impl IWnd for Dialog
                     }
                 }
 
-            case Escape:
+            case .Escape:
                 if (notnull .surface).flags.has(.CloseBtn)
                 {
                     .validateId(BtnCancel)

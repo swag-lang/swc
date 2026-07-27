@@ -601,10 +601,10 @@ impl Wnd
         let theme = .getTheme()
         switch .backgroundStyle
         {
-        case Window:    painter.fillRect(.position, theme.colors.wnd_Bk)
-        case Dialog:    painter.fillRect(.position, theme.colors.dlg_Bk)
-        case View:      painter.fillRect(.position, theme.colors.view_Bk)
-        case DialogBar: theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
+        case .Window:    painter.fillRect(.position, theme.colors.wnd_Bk)
+        case .Dialog:    painter.fillRect(.position, theme.colors.dlg_Bk)
+        case .View:      painter.fillRect(.position, theme.colors.view_Bk)
+        case .DialogBar: theme.drawSubRect(bc.painter, .position, &theme.rects.dlg_BtnBar, theme.colors.dlg_BtnBarBk)
         }
 
         painter.translateTransform(.position.x, .position.y)
@@ -1104,7 +1104,7 @@ impl Wnd
                 continue
             switch c.dockStyle
             {
-            case Left:
+            case .Left:
                 var pos = c.position
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.y + c.margin.y
@@ -1116,7 +1116,7 @@ impl Wnd
                 clientRect.width -= diff
                 clientRect.x     += diff
 
-            case Right:
+            case .Right:
                 var pos = c.position
                 pos.x = clientRect.right() - pos.width - c.margin.z
                 pos.y = clientRect.y + c.margin.y
@@ -1127,7 +1127,7 @@ impl Wnd
                 let diff = c.margin.x + pos.width + c.margin.z
                 clientRect.width -= diff
 
-            case Top:
+            case .Top:
                 var pos = c.position
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.y + c.margin.y
@@ -1139,7 +1139,7 @@ impl Wnd
                 clientRect.y      += diff
                 clientRect.height -= diff
 
-            case Bottom:
+            case .Bottom:
                 var pos = c.position
                 pos.x = clientRect.x + c.margin.x
                 pos.y = clientRect.bottom() - c.margin.w - pos.height
@@ -1150,7 +1150,7 @@ impl Wnd
                 let diff = c.margin.w + pos.height + c.margin.y
                 clientRect.height -= diff
 
-            case Center, CenterKeepSizeVert:
+            case .Center, .CenterKeepSizeVert:
                 centerLayout.add(c)
             }
         }

@@ -28,7 +28,7 @@ impl IWnd for SurfaceWnd
         let srfn = notnull .surface
         switch evt.kind
         {
-        case MousePressed:
+        case .MousePressed:
             if evt.button != .Left do
                 break
             srfn.bringToTop()
@@ -43,10 +43,10 @@ impl IWnd for SurfaceWnd
             .captureMouse()
             .movingSurface = true
 
-        case MouseLeave:
+        case .MouseLeave:
             .sizingBorder = .Zero
 
-        case MouseReleased:
+        case .MouseReleased:
             if evt.button != .Left do
                 break
 
@@ -55,7 +55,7 @@ impl IWnd for SurfaceWnd
             .sizingBorder  = .Zero
             fallthrough
 
-        case MouseMove:
+        case .MouseMove:
             if srfn.isMaximized do
                 break
             if .getApp().mouseEnterWnd != me do
@@ -70,8 +70,8 @@ impl IWnd for SurfaceWnd
 
             switch .sizingBorder
             {
-            case Left, Right:                srfn.app.setFrameCursor(Cursor.from(.SizeWE))
-            case Top, Bottom:                srfn.app.setFrameCursor(Cursor.from(.SizeNS))
+            case .Left, .Right:                srfn.app.setFrameCursor(Cursor.from(.SizeWE))
+            case .Top, .Bottom:                srfn.app.setFrameCursor(Cursor.from(.SizeNS))
             case Right | Bottom, Left | Top: srfn.app.setFrameCursor(Cursor.from(.SizeNWSE))
             case Right | Top, Left | Bottom: srfn.app.setFrameCursor(Cursor.from(.SizeNESW))
             }
@@ -133,10 +133,10 @@ impl IWnd for SurfaceWnd
         let srfn = notnull .surface
         switch evt.kind
         {
-        case Maximize: srfn.showMaximized()
-        case Minimize: srfn.showMinimized()
-        case Restore:  srfn.showNormal()
-        case Close:    srfn.destroy()
+        case .Maximize: srfn.showMaximized()
+        case .Minimize: srfn.showMinimized()
+        case .Restore:  srfn.showNormal()
+        case .Close:    srfn.destroy()
         }
     }
 

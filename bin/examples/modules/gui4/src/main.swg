@@ -243,9 +243,9 @@ func displayModeIndex(kind: PropertiesKind)->u32
 {
     switch kind
     {
-    case Grid:      return 0
-    case Condensed: return 1
-    case List:      return 2
+    case .Grid:      return 0
+    case .Condensed: return 1
+    case .List:      return 2
     }
 
     return 0
@@ -386,9 +386,9 @@ func cardRadius(card: *SceneCard, h: f32)->f32
 {
     switch card.shape
     {
-    case Card:   return card.radius
-    case Banner: return Math.min(card.radius, 12)
-    case Pill:   return h * 0.5
+    case .Card:   return card.radius
+    case .Banner: return Math.min(card.radius, 12)
+    case .Pill:   return h * 0.5
     }
 
     return card.radius

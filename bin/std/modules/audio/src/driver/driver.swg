@@ -65,11 +65,11 @@ internal func updateThreadProc(th: Threading.Thread)
 
             switch cmd.command
             {
-            case Register:
+            case .Register:
                 voice.idxInList = cast() driver.activeVoices.count
                 driver.activeVoices.add(voice)
 
-            case Destroy:
+            case .Destroy:
                 voice.setState(.PendingDestroy)
                 catch voice.stopNative()
                 voice.destroyNative()
@@ -80,7 +80,7 @@ internal func updateThreadProc(th: Threading.Thread)
                     driver.activeVoices[idx].idxInList = idx
                 driver.pendingRecycleVoices.add(voice)
 
-            case UpdateBuffers:
+            case .UpdateBuffers:
 
                 // Update buffer of voice, and stop it if nothing has been updated (end reached)
                 if catch voice.updateNative() == false

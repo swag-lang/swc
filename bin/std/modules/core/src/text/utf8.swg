@@ -732,16 +732,16 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
 
     switch #complete comparisonType
     {
-    case Latin1:
+    case .Latin1:
         return Core.Latin1.compare(src, dst)     // bytes compare
 
-    case Latin1NoCase:
+    case .Latin1NoCase:
         return Core.Latin1.compare(src, dst, ignoreCase: true)
 
-    case Unicode:
+    case .Unicode:
         return Core.Latin1.compare(src, dst)     // bytes compare
 
-    case UnicodeNoCase:
+    case .UnicodeNoCase:
         var length      = @countof(src)
         var otherLength = @countof(dst)
         var data        = @dataof(src)

@@ -1783,22 +1783,22 @@ impl Decoder
             let c = .nextMarker()
             switch c
             {
-            case M_SOF0, M_SOF1, M_SOF2, M_SOF3, M_SOF5, M_SOF6, M_SOF7, M_SOF9, M_SOF10, M_SOF11, M_SOF13, M_SOF14, M_SOF15, M_SOI, M_EOI, M_SOS:
+            case .M_SOF0, .M_SOF1, .M_SOF2, .M_SOF3, .M_SOF5, .M_SOF6, .M_SOF7, .M_SOF9, .M_SOF10, .M_SOF11, .M_SOF13, .M_SOF14, .M_SOF15, .M_SOI, .M_EOI, .M_SOS:
                 return c
 
-            case M_JPG, M_RST0, M_RST1, M_RST2, M_RST3, M_RST4, M_RST5, M_RST6, M_RST7, M_TEM:
+            case .M_JPG, .M_RST0, .M_RST1, .M_RST2, .M_RST3, .M_RST4, .M_RST5, .M_RST6, .M_RST7, .M_TEM:
                 fail InvalidFormatError{"unexpected marker"}
 
-            case M_DAC:
+            case .M_DAC:
                 fail UnsupportedFormatError{"no arithmetic support"}
 
-            case M_DHT:
+            case .M_DHT:
                 .readDhtMarker()
 
-            case M_DQT:
+            case .M_DQT:
                 .readDqtMarker()
 
-            case M_DRI:
+            case .M_DRI:
                 .readDriMarker()
 
             default:
@@ -2075,14 +2075,14 @@ impl Decoder
         let c = .processMarkers()
         switch c
         {
-        case M_SOF2:
+        case .M_SOF2:
             .progressiveFlag = true
             try .readSofMarker()
 
-        case M_SOF0, M_SOF1:
+        case .M_SOF0, .M_SOF1:
             .readSofMarker()
 
-        case M_SOF9:
+        case .M_SOF9:
             fail UnsupportedFormatError{"no arithmetic support"}
 
         default:

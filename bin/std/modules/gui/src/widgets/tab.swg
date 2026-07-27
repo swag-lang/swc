@@ -101,7 +101,7 @@ impl IWnd for Tab
 
         switch #complete .itemForm
         {
-        case Flat:
+        case .Flat:
             if idx == .selectedIdx
             {
                 subRect   = &rects.tabItem_FlatSelected
@@ -119,7 +119,7 @@ impl IWnd for Tab
                 colorText = colors.tabItem_Text
             }
 
-        case Round:
+        case .Round:
             if idx == .selectedIdx
             {
                 subRect   = &rects.tabItem_RoundSelected
@@ -137,7 +137,7 @@ impl IWnd for Tab
                 colorText = colors.tabItem_Text
             }
 
-        case Button:
+        case .Button:
             if idx == .selectedIdx
             {
                 subRect   = &rects.tabItem_ButtonSelected
@@ -155,7 +155,7 @@ impl IWnd for Tab
                 colorText = colors.tabItem_Text
             }
 
-        case PushButton:
+        case .PushButton:
             if idx == .selectedIdx
             {
                 subRect       = &rects.tabItem_PushButtonSelected
@@ -181,7 +181,7 @@ impl IWnd for Tab
                 colorBorder   = colors.tabItem_PushButtonBorder
             }
 
-        case Transparent:
+        case .Transparent:
             break
         }
 
@@ -217,9 +217,9 @@ impl IWnd for Tab
             clientRect.height = .barHeight
             switch .barForm
             {
-            case Flat:      painter.fillRect(clientRect, colors.tabBar_FlatBk)
-            case FlatRound: theme.drawSubRect(painter, clientRect, &rects.tabBar_FlatRoundBk, colors.tabBar_FlatBk)
-            case Round:     theme.drawSubRect(painter, clientRect, &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
+            case .Flat:      painter.fillRect(clientRect, colors.tabBar_FlatBk)
+            case .FlatRound: theme.drawSubRect(painter, clientRect, &rects.tabBar_FlatRoundBk, colors.tabBar_FlatBk)
+            case .Round:     theme.drawSubRect(painter, clientRect, &rects.tabBar_RoundBk, colors.tabBar_RoundBk)
             }
         }
 
@@ -231,11 +231,11 @@ impl IWnd for Tab
         clientRect.moveTop(.barHeight)
         switch .viewForm
         {
-        case Flat:
+        case .Flat:
             subRect = &rects.tabView_FlatBk
             colorBk = colors.tabView_FlatBk
 
-        case Round:
+        case .Round:
             subRect = &rects.tabView_RoundBk
             colorBk = colors.tabView_RoundBk
         }
@@ -375,7 +375,7 @@ private impl Tab
         .mostRightPos = rect.x
         switch .barLayout
         {
-        case Divide:
+        case .Divide:
             var w = cast(f32) (rect.width / .views.count)
             w = Math.max(w, .itemMinWidth)
             for vIt in .views
@@ -385,7 +385,7 @@ private impl Tab
                 .mostRightPos += w
             }
 
-        case Fixed:
+        case .Fixed:
             let w = Math.max(.itemFixedLayoutWidth, .itemMinWidth)
             for vIt in .views
             {
@@ -394,7 +394,7 @@ private impl Tab
                 .mostRightPos += w
             }
 
-        case Auto:
+        case .Auto:
             let font = nnFont(.getFont().regular)
             for vIt in .views
             {
@@ -500,28 +500,28 @@ impl Tab
     {
         switch #complete tabForm
         {
-        case Flat:
+        case .Flat:
             .barForm   = .Flat
             .itemForm  = .Flat
             .viewForm  = .Flat
             .barLayout = .Divide
             .barHeight = .getThemeMetrics().tabBar_FlatHeight
 
-        case Round:
+        case .Round:
             .barForm   = .Transparent
             .itemForm  = .Round
             .viewForm  = .Round
             .barLayout = .Fixed
             .barHeight = .getThemeMetrics().tabBar_RoundHeight
 
-        case Button:
+        case .Button:
             .viewForm  = .None
             .barForm   = .Round
             .itemForm  = .Button
             .barLayout = .Auto
             .barHeight = .getThemeMetrics().tabBar_ButtonHeight
 
-        case PushButton:
+        case .PushButton:
             .viewForm  = .None
             .barForm   = .Transparent
             .itemForm  = .PushButton

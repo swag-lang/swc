@@ -373,10 +373,10 @@ impl Decoder
             var destOff = dest + destOffset
             switch filter
             {
-            case None:
+            case .None:
                 Memory.copy(destOff, src, rowStrideIn)
 
-            case Sub:
+            case .Sub:
                 var i = 0'u64
                 while i < filterOffset
                 {
@@ -394,7 +394,7 @@ impl Decoder
                     k            += 1
                 }
 
-            case Up:
+            case .Up:
                 var k = 0'u64
                 while k < rowStrideIn
                 {
@@ -402,7 +402,7 @@ impl Decoder
                     k          += 1
                 }
 
-            case Average:
+            case .Average:
                 var i = 0'u64
                 while i < filterOffset
                 {
@@ -422,7 +422,7 @@ impl Decoder
                     k            += 1
                 }
 
-            case Paeth:
+            case .Paeth:
                 var i = 0'u64
                 while i < filterOffset
                 {
@@ -558,25 +558,25 @@ impl Decoder
 
             switch ch.type
             {
-            case IHDR:
+            case .IHDR:
                 if !firstChunk do
                     fail InvalidFormatError{"invalid first chunk"}
                 .readHeader(ch)
 
-            case TRNS:
+            case .TRNS:
                 .seenTRSN    = true
                 .outChannels += 1     // transparency mask, add an alpha channel
                 .chunkTRNS   = .readChunk(ch)
 
-            case BKGD:
+            case .BKGD:
                 .seenBKGD = true
                 discard .readChunk(ch)
 
-            case IEND:
+            case .IEND:
                 seenIEND = true
                 discard .readChunk(ch)
 
-            case IDAT:
+            case .IDAT:
                 if seenIDAT do
                     fail InvalidFormatError{"invalid IDAT chunk"}
                 while ch.type == IDAT
@@ -591,7 +591,7 @@ impl Decoder
 
                 chIsHere, seenIDAT = true
 
-            case PLTE:
+            case .PLTE:
                 if seenIDAT do
                     fail InvalidFormatError{"invalid PLTE chunk"}
                 let chunk = .readChunk(ch)
@@ -607,7 +607,7 @@ impl Decoder
 
                 .paletteCount = cast(u32) (len / 3)
 
-            case TEXt:
+            case .TEXt:
                 let chunk = .readChunk(ch)
                 if .decOptions.decodeMetaDatas
                 {

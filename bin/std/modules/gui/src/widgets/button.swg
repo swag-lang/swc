@@ -64,18 +64,18 @@ impl Button
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
         {
-        case MouseWheel:
+        case .MouseWheel:
             evt.accepted = false
 
-        case MouseEnter:
+        case .MouseEnter:
             .isHot, .isIn = true
             .invalidate()
 
-        case MouseLeave:
+        case .MouseLeave:
             .isHot, .isIn = false
             .invalidate()
 
-        case MouseMove:
+        case .MouseMove:
             if !.isPressing do
                 break
             let rect = .getClientRect()
@@ -94,7 +94,7 @@ impl Button
                 }
             }
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Left
             {
                 .isPressed, .isPressing = true
@@ -107,7 +107,7 @@ impl Button
                     .sigRightPressed.call(me)
             }
 
-        case MouseReleased:
+        case .MouseReleased:
             if evt.button == .Left
             {
                 let notifyPressed = .isPressed and .isIn

@@ -153,6 +153,26 @@ A `case` cannot be left empty. Use `break` explicitly when no action is required
 }
 
 /**
+# Enum Case Values
+
+When the switch expression is an enum, write inferred enum values with a leading
+dot, such as `case .Ready`. The bare form `case Ready` is not auto-scoped.
+Ordinary constants and other case expressions remain valid.
+*/
+
+#test
+{
+    enum State { Idle, Ready }
+    let state = State.Ready
+
+    switch state
+    {
+    case .Idle:  @assert(false)
+    case .Ready: break
+    }
+}
+
+/**
 # The '#complete' Modifier
 
 Write `switch #complete` when matching enums to enforce exhaustive case handling. Every
@@ -173,9 +193,9 @@ declared enum value needs a `case`, and a `default` is rejected.
 
     switch #complete color
     {
-    case Color.Red:   break
-    case Color.Green: @assert(false)
-    case Color.Blue:  @assert(false)
+    case .Red:   break
+    case .Green: @assert(false)
+    case .Blue:  @assert(false)
     }
 }
 

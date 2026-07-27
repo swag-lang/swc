@@ -136,7 +136,7 @@ func roundOutcome(mine: Shape, opponent: Shape)->Outcome
 
     switch mine
     {
-    case Rock:
+    case .Rock:
         return opponent == Shape.Scissors ? Outcome.Win : Outcome.Lose
 
     case .Paper:
@@ -157,7 +157,7 @@ func chooseShape(opponent: Shape, desired: Outcome)->Shape
 
     switch opponent
     {
-    case Rock:
+    case .Rock:
         return desired == Outcome.Win ? Shape.Paper : Shape.Scissors
 
     case .Paper:

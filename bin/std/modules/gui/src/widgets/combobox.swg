@@ -149,11 +149,11 @@ impl IWnd for ComboBox
     {
         switch evt.kind
         {
-        case MouseWheel:
+        case .MouseWheel:
             evt.accepted = false
             return
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button != .Left do
                 break
             if .popup do
@@ -161,11 +161,11 @@ impl IWnd for ComboBox
             else do
                 .showPopup()
 
-        case MouseEnter:
+        case .MouseEnter:
             .isHot = true
             .invalidate()
 
-        case MouseLeave:
+        case .MouseLeave:
             .isHot = false
             .invalidate()
         }
@@ -187,12 +187,12 @@ impl IWnd for ComboBox
         {
             switch evt.key
             {
-            case Up:            .popup.keyMove(-1)
-            case Down:          .popup.keyMove(1)
-            case Home:          .popup.keyHome()
-            case End:           .popup.keyEnd()
-            case Return, Space: .popup.keyCommit()
-            case Escape:        .popup.keyCancel()
+            case .Up:            .popup.keyMove(-1)
+            case .Down:          .popup.keyMove(1)
+            case .Home:          .popup.keyHome()
+            case .End:           .popup.keyEnd()
+            case .Return, .Space: .popup.keyCommit()
+            case .Escape:        .popup.keyCancel()
             default:            return
             }
 
@@ -202,12 +202,12 @@ impl IWnd for ComboBox
 
         switch evt.key
         {
-        case Down where alt: .showPopup()
-        case Return, Space:  .showPopup()
-        case Up, Left:       .selectRelative(-1)
-        case Down, Right:    .selectRelative(1)
-        case Home:           .selectEdge(forward: true)
-        case End:            .selectEdge(forward: false)
+        case .Down where alt: .showPopup()
+        case .Return, .Space:  .showPopup()
+        case .Up, .Left:       .selectRelative(-1)
+        case .Down, .Right:    .selectRelative(1)
+        case .Home:           .selectEdge(forward: true)
+        case .End:            .selectEdge(forward: false)
         default:             return
         }
 

@@ -141,12 +141,12 @@ impl IWnd for RichEditView
     {
         switch evt.kind
         {
-        case SetFocus:
+        case .SetFocus:
             .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
             .visibleCaret = true
             .invalidate()
 
-        case KillFocus:
+        case .KillFocus:
             let srf = notnull .surface
             srf.app.deleteTimer(notnull .timerCaret)
             .timerCaret   = null

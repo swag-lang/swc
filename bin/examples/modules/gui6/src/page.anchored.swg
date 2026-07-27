@@ -20,8 +20,8 @@ func showAnchorMenu(btn: *Button, pos: PopupPos)
     var pt: Math.Point
     switch pos
     {
-    case AnchorTopCenter:    pt = {rect.horzCenter(), rect.bottom()}
-    case AnchorBottomCenter: pt = {rect.horzCenter(), rect.y}
+    case .AnchorTopCenter:    pt = {rect.horzCenter(), rect.bottom()}
+    case .AnchorBottomCenter: pt = {rect.horzCenter(), rect.y}
     default:                 pt = {rect.x, rect.bottom()}
     }
 

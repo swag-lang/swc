@@ -82,17 +82,17 @@ public impl IWnd for ScrollWnd
 
         switch evt.kind
         {
-        case MouseWheel:
+        case .MouseWheel:
             if evt.modifiers & .Shift or !.showBarV do
                 .setScrollPos(.view.scrollPos.x - (evt.move.y * .scrollIncrementH), .view.scrollPos.y)
             else do
                 .setScrollPos(.view.scrollPos.x, .view.scrollPos.y - (evt.move.y * .scrollIncrementV))
 
-        case MouseLeave:
+        case .MouseLeave:
             .isHotV, .isHotH, .isHotBarV, .isHotBarH = false
             .invalidate()
 
-        case MouseMove:
+        case .MouseMove:
             if .isGrabbing
             {
                 let move   = evt.surfacePos - .grabbingPos
@@ -127,7 +127,7 @@ public impl IWnd for ScrollWnd
 
             .invalidate()
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Middle
             {
                 .scrollSmoothPos = .view.scrollPos
@@ -172,7 +172,7 @@ public impl IWnd for ScrollWnd
                 .invalidate()
             }
 
-        case MouseReleased:
+        case .MouseReleased:
             if .isGrabbing and evt.button == .Middle
             {
                 .releaseMouse()

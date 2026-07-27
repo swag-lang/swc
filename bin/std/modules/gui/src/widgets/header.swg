@@ -122,9 +122,9 @@ impl IWnd for Header
         clientRect.offset(.scrollPos)
         switch .form
         {
-        case Flat:        theme.drawSubRect(painter, clientRect, &rects.header_FlatBk, colors.header_Bk)
-        case Round:       theme.drawSubRect(painter, clientRect, &rects.header_RoundBk, colors.header_Bk)
-        case Transparent: painter.drawLine(clientRect.x, clientRect.bottom() - 1, clientRect.right(), clientRect.bottom() - 1, colors.headerItem_Separator, 1)
+        case .Flat:        theme.drawSubRect(painter, clientRect, &rects.header_FlatBk, colors.header_Bk)
+        case .Round:       theme.drawSubRect(painter, clientRect, &rects.header_RoundBk, colors.header_Bk)
+        case .Transparent: painter.drawLine(clientRect.x, clientRect.bottom() - 1, clientRect.right(), clientRect.bottom() - 1, colors.headerItem_Separator, 1)
         }
 
         // Clipping, take care of padding
@@ -209,7 +209,7 @@ impl IWnd for Header
 
         switch evt.kind
         {
-        case MouseMove:
+        case .MouseMove:
             if .moving
             {
                 var pos = .surfaceToLocal(evt.surfacePos)
@@ -219,14 +219,14 @@ impl IWnd for Header
                 .setItemWidth(.hotIdx, move)
             }
 
-        case MouseLeave:
+        case .MouseLeave:
             if .hotIdx != Swag.U32.Max
             {
                 .hotIdx = Swag.U32.Max
                 .invalidate()
             }
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Left and .hotIdx != Swag.U32.Max
             {
                 if .hotSeparator

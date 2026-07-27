@@ -301,15 +301,15 @@ impl Ghost
         // Reset starting direction and movement type based on colour
         switch .colour
         {
-        case RED:
+        case .RED:
             .dir = .LEFT
             .ai  = g_Wave
 
-        case PINK:
+        case .PINK:
             .dir = .DOWN
             .ai  = .LEAVE     // PINK starts in LEAVE mode, leaving the SPAWN pen straight away
 
-        case BLUE, YELLOW:
+        case .BLUE, .YELLOW:
 
             // YELLOW and BLUE both start facing UP, trapped within the SPAWN
             .dir = .UP
@@ -426,8 +426,8 @@ impl Ghost
             // Switch direction upon hitting a WALL
             switch .dir
             {
-            case UP:   .dir = DOWN
-            case DOWN: .dir = UP
+            case .UP:   .dir = DOWN
+            case .DOWN: .dir = UP
             }
         }
     }
@@ -482,10 +482,10 @@ impl Ghost
         // Each colour selects a unique corner to target
         switch .colour
         {
-        case RED:    target = {25, 33}
-        case PINK:   target = {2, 33}
-        case BLUE:   target = {27, -2}
-        case YELLOW: target = {0, -2}
+        case .RED:    target = {25, 33}
+        case .PINK:   target = {2, 33}
+        case .BLUE:   target = {27, -2}
+        case .YELLOW: target = {0, -2}
         }
 
         // Set direction at junction to head towards SCATTER point
@@ -506,10 +506,10 @@ impl Ghost
         // Apply offset to correct coordinate based on Pacman's direction
         switch g_PacMan.dir
         {
-        case UP:    offset.y += offsetSize
-        case RIGHT: offset.x += offsetSize
-        case DOWN:  offset.y -= offsetSize
-        case LEFT:  offset.x -= offsetSize
+        case .UP:    offset.y += offsetSize
+        case .RIGHT: offset.x += offsetSize
+        case .DOWN:  offset.y -= offsetSize
+        case .LEFT:  offset.x -= offsetSize
         }
 
         return offset
@@ -537,12 +537,12 @@ impl Ghost
         // Determine ghost chasing behaviour based on their colour
         switch .colour
         {
-        case PINK:
+        case .PINK:
 
             // Update target to reflect offset in Pac-Man's direction of movement
             target = targetPacmanOffsetBy(4)
 
-        case BLUE:
+        case .BLUE:
 
             // Start by finding the point 2 tiles ahead of Pac-Man in his direction of movement
             target = targetPacmanOffsetBy(2)
@@ -552,7 +552,7 @@ impl Ghost
             // BLUE's target is then twice the change in X and Y from RED's position
             target = {redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy}
 
-        case YELLOW:
+        case .YELLOW:
             if distanceBetween(currentPos, target) <= 8 do
                 target = {0, -2}
         }
@@ -689,10 +689,10 @@ impl Ghost
     {
         switch .dir
         {
-        case UP:    .dir = DOWN
-        case RIGHT: .dir = LEFT
-        case DOWN:  .dir = UP
-        case LEFT:  .dir = RIGHT
+        case .UP:    .dir = DOWN
+        case .RIGHT: .dir = LEFT
+        case .DOWN:  .dir = UP
+        case .LEFT:  .dir = RIGHT
         }
 
         .reverse = false
@@ -794,10 +794,10 @@ impl Ghost
         // Return next tile in given direction
         switch d
         {
-        case UP:    return getTile(.getX(), .getY() + 1)
-        case RIGHT: return getTile(.getX() + 1, .getY())
-        case DOWN:  return getTile(.getX(), .getY() - 1)
-        case LEFT:  return getTile(.getX() - 1, .getY())
+        case .UP:    return getTile(.getX(), .getY() + 1)
+        case .RIGHT: return getTile(.getX() + 1, .getY())
+        case .DOWN:  return getTile(.getX(), .getY() - 1)
+        case .LEFT:  return getTile(.getX() - 1, .getY())
         default:    return getTile(.getX(), .getY())
         }
     }
@@ -849,10 +849,10 @@ impl Ghost
         {
             switch .ai
             {
-            case SCATTER:    .aiScatter()
-            case CHASE:      .aiChase(redGhost)
-            case FRIGHTENED: .aiFrightened()
-            case DEAD:       .aiDead()
+            case .SCATTER:    .aiScatter()
+            case .CHASE:      .aiChase(redGhost)
+            case .FRIGHTENED: .aiFrightened()
+            case .DEAD:       .aiDead()
             }
         }
 
@@ -864,22 +864,22 @@ impl Ghost
         // Round the unchanging position coordinate, preventing directional query mishaps
         switch .dir
         {
-        case LEFT:
+        case .LEFT:
             .x -= .dPos
             if .ai != .LEAVE do
                 .y = Math.round(.y)
 
-        case RIGHT:
+        case .RIGHT:
             .x += .dPos
             if .ai != .LEAVE do
                 .y = Math.round(.y)
 
-        case UP:
+        case .UP:
             .y += .dPos
             if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
                 .x = Math.round(.x)
 
-        case DOWN:
+        case .DOWN:
             .y -= .dPos
             if .ai != .SPAWN and .ai != .LEAVE and .ai != .DEAD do
                 .x = Math.round(.x)
@@ -940,10 +940,10 @@ impl Ghost
             // If not in FRIGHTENED or DEAD AI, draw the ghost according to colour
             switch .colour
             {
-            case RED:    ghostTex = g_GhostTexR[ghostAlt]
-            case PINK:   ghostTex = g_GhostTexP[ghostAlt]
-            case BLUE:   ghostTex = g_GhostTexB[ghostAlt]
-            case YELLOW: ghostTex = g_GhostTexY[ghostAlt]
+            case .RED:    ghostTex = g_GhostTexR[ghostAlt]
+            case .PINK:   ghostTex = g_GhostTexP[ghostAlt]
+            case .BLUE:   ghostTex = g_GhostTexB[ghostAlt]
+            case .YELLOW: ghostTex = g_GhostTexY[ghostAlt]
             }
         }
 
@@ -958,10 +958,10 @@ impl Ghost
             var eyesTex: Texture
             switch .dir
             {
-            case LEFT:  eyesTex = g_EyeTexL
-            case RIGHT: eyesTex = g_EyeTexR
-            case UP:    eyesTex = g_EyeTexD
-            case DOWN:  eyesTex = g_EyeTexU
+            case .LEFT:  eyesTex = g_EyeTexL
+            case .RIGHT: eyesTex = g_EyeTexR
+            case .UP:    eyesTex = g_EyeTexD
+            case .DOWN:  eyesTex = g_EyeTexU
             }
 
             // Draw direction-based eyes sprite atop ghost body
@@ -1034,7 +1034,7 @@ impl Pacman
 
         switch getTile(.getX(), .getY())
         {
-        case o:
+        case .o:
             let chomp = g_VoiceChomp
             if !chomp or !chomp.isPlaying()
             {
@@ -1047,19 +1047,19 @@ impl Pacman
             g_PillsLeft -= 1
             return 10
 
-        case O:
+        case .O:
             setTile(.getX(), .getY(), E)
             g_PillsLeft -= 1
             return 50
 
-        case P:
+        case .P:
             if .dir == .RIGHT do
                 .x = 1
             else do
                 .x = 26
             return 0
 
-        case F:
+        case .F:
             setTile(.getX(), .getY(), .e)
             g_FruitSpawned = false
             g_Fruits       += 1
@@ -1097,10 +1097,10 @@ impl Pacman
     {
         switch d
         {
-        case UP:    return getTile(.getX(), .getY() + 1)
-        case RIGHT: return getTile(.getX() + 1, .getY())
-        case DOWN:  return getTile(.getX(), .getY() - 1)
-        case LEFT:  return getTile(.getX() - 1, .getY())
+        case .UP:    return getTile(.getX(), .getY() + 1)
+        case .RIGHT: return getTile(.getX() + 1, .getY())
+        case .DOWN:  return getTile(.getX(), .getY() - 1)
+        case .LEFT:  return getTile(.getX() - 1, .getY())
         default:    return getTile(.getX(), .getY())
         }
     }
@@ -1132,19 +1132,19 @@ impl Pacman
         // While moving, round the unchanging position coordinate, preventing directional query mishaps
         switch .dir
         {
-        case LEFT:
+        case .LEFT:
             .x -= 0.1
             .y = Math.round(.y)
 
-        case RIGHT:
+        case .RIGHT:
             .x += 0.1
             .y = Math.round(.y)
 
-        case UP:
+        case .UP:
             .y += 0.1
             .x = Math.round(.x)
 
-        case DOWN:
+        case .DOWN:
             .y -= 0.1
             .x = Math.round(.x)
 
@@ -1232,10 +1232,10 @@ impl Pacman
         // Determine rotation angle of sprite based on direction
         switch .dir
         {
-        case UP:    .angle = 270.0
-        case RIGHT: .angle = 180.0
-        case DOWN:  .angle = 90.0
-        case LEFT:  .angle = 0.0
+        case .UP:    .angle = 270.0
+        case .RIGHT: .angle = 180.0
+        case .DOWN:  .angle = 90.0
+        case .LEFT:  .angle = 0.0
         }
 
         thePainter().rotateTransformInPlace(Math.toRadians(.angle))
@@ -1291,9 +1291,9 @@ func drawMap()
 
             switch getTile(x, y)
             {
-            case o: thePainter().drawTexture(0, 0, 8, 8, g_PillTex)
-            case O: thePainter().drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
-            case F: drawFruit(x, y)
+            case .o: thePainter().drawTexture(0, 0, 8, 8, g_PillTex)
+            case .O: thePainter().drawTexture(0, 0, 8, 8, g_BigPillTex[bigPill])
+            case .F: drawFruit(x, y)
             }
 
             translateMapCoords(0, 1)
@@ -1475,27 +1475,27 @@ func display()
 
     switch g_Mode
     {
-    case STARTLEVEL, READY:
+    case .STARTLEVEL, .READY:
         drawPlayScreen()
         drawCharacters()
         drawReady()
 
-    case PLAY:
+    case .PLAY:
         drawPlayScreen()
         drawCharacters()
 
-    case FRUIT:
+    case .FRUIT:
         drawPlayScreen()
         for [i] in 4 do
             g_Ghosts[i].draw()
         g_PacMan.drawFruitScore()
 
-    case EAT:
+    case .EAT:
         drawPlayScreen()
         for [i] in 4 do
             g_Ghosts[i].drawEaten()
 
-    case PAUSE:
+    case .PAUSE:
         drawPause(g_TempMode == GAMEOVER)
         drawLevel()
         drawScore()
@@ -1503,11 +1503,11 @@ func display()
         drawFruits()
         drawQuit()
 
-    case DEATH:
+    case .DEATH:
         drawPlayScreen()
         g_PacMan.drawDead()
 
-    case GAMEOVER:
+    case .GAMEOVER:
         drawPlayScreen()
         drawGameOver()
     }
@@ -1566,7 +1566,7 @@ func soundState()
 
     switch soundState
     {
-    case DEATH:
+    case .DEATH:
         if let voice = g_VoiceSiren
         {
             voice.destroy()
@@ -1582,7 +1582,7 @@ func soundState()
         if !g_VoiceRetreat do
             g_VoiceRetreat = expect Audio.Voice.play(&g_SoundRetreat, playFlags: .Loop)
 
-    case FRIGHTENED:
+    case .FRIGHTENED:
         if let voice = g_VoiceSiren
         {
             voice.destroy()
@@ -1598,7 +1598,7 @@ func soundState()
         if !g_VoiceScared do
             g_VoiceScared = expect Audio.Voice.play(&g_SoundScared, playFlags: .Loop)
 
-    case SIREN:
+    case .SIREN:
         if let voice = g_VoiceScared
         {
             voice.destroy()
@@ -1864,8 +1864,8 @@ func resetMap()
         {
             switch getTile(x, y)
             {
-            case F, e: setTile(x, y, .o)
-            case E:    setTile(x, y, .O)
+            case .F, .e: setTile(x, y, .o)
+            case .E:    setTile(x, y, .O)
             }
         }
     }
@@ -1943,7 +1943,7 @@ func gameLoop()
 
     switch g_Mode
     {
-    case STARTLEVEL:
+    case .STARTLEVEL:
         if !g_VoiceReady do
             g_VoiceReady = expect Audio.Voice.play(&g_SoundReady)
         let voice = notnull g_VoiceReady
@@ -1954,13 +1954,13 @@ func gameLoop()
             g_Mode       = READY
         }
 
-    case READY:
+    case .READY:
         if g_Ticks > 120
         {
             g_Mode = PLAY
         }
 
-    case PLAY:
+    case .PLAY:
         if g_TimeStamp == -1
         {
             checkCollisions()
@@ -2000,7 +2000,7 @@ func gameLoop()
             }
         }
 
-    case FRUIT:
+    case .FRUIT:
         if !g_VoiceEatFruit do
             g_VoiceEatFruit = expect Audio.Voice.play(&g_SoundEatFruit)
 
@@ -2015,7 +2015,7 @@ func gameLoop()
             g_Mode = .PLAY
         }
 
-    case EAT:
+    case .EAT:
         if !g_VoiceEatGhost do
             g_VoiceEatGhost = expect Audio.Voice.play(&g_SoundEatGhost)
 
@@ -2030,7 +2030,7 @@ func gameLoop()
             g_Mode = .PLAY
         }
 
-    case DEATH:
+    case .DEATH:
         if !g_VoiceDeath do
             g_VoiceDeath = expect Audio.Voice.play(&g_SoundDeath)
 
@@ -2080,7 +2080,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case KeyEvent as keyEvt where keyEvt.kind == .KeyPressed:
         switch keyEvt.key
         {
-        case Escape:
+        case .Escape:
             if g_Mode != .PAUSE
             {
                 g_TempMode = g_Mode
@@ -2091,16 +2091,16 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 theWnd().postQuitEvent()
             }
 
-        case Left:
+        case .Left:
             g_PacMan.tempDir = .LEFT
 
-        case Right:
+        case .Right:
             g_PacMan.tempDir = .RIGHT
 
-        case Down:
+        case .Down:
             g_PacMan.tempDir = .UP
 
-        case Up:
+        case .Up:
             g_PacMan.tempDir = .DOWN
 
         default:

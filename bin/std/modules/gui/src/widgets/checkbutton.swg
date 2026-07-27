@@ -80,16 +80,16 @@ impl IWnd for CheckButton
 
         switch .checked
         {
-        case UnChecked:
+        case .UnChecked:
             subRectBk     = &rects.btnCheck_Normal
             subRectBorder = &rects.btnCheck_NormalBorder
 
-        case Checked:
+        case .Checked:
             subRectBk     = &rects.btnCheck_Checked
             subRectBorder = &rects.btnCheck_CheckedBorder
             subRectMark   = &rects.btnCheck_CheckedMark
 
-        case Undefined:
+        case .Undefined:
             subRectBk     = &rects.btnCheck_Undefined
             subRectBorder = &rects.btnCheck_UndefinedBorder
             subRectMark   = &rects.btnCheck_UndefinedMark
@@ -139,7 +139,7 @@ impl IWnd for CheckButton
 
         switch evt.key
         {
-        case Space, Return:
+        case .Space, .Return:
             .toggle()
             evt.accepted = true
         }

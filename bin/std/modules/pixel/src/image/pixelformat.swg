@@ -19,10 +19,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case BGR8:  return 24
-        case BGRA8: return 32
-        case RGB8:  return 24
-        case RGBA8: return 32
+        case .BGR8:  return 24
+        case .BGRA8: return 32
+        case .RGB8:  return 24
+        case .RGBA8: return 32
         }
 
         return 0
@@ -34,10 +34,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case BGR8:  return 3
-        case BGRA8: return 4
-        case RGB8:  return 3
-        case RGBA8: return 4
+        case .BGR8:  return 3
+        case .BGRA8: return 4
+        case .RGB8:  return 3
+        case .RGBA8: return 4
         }
 
         return 0
@@ -49,10 +49,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case BGR8:  return 8
-        case BGRA8: return 8
-        case RGB8:  return 8
-        case RGBA8: return 8
+        case .BGR8:  return 8
+        case .BGRA8: return 8
+        case .RGB8:  return 8
+        case .RGBA8: return 8
         }
 
         return 0
@@ -64,10 +64,10 @@ impl PixelFormat
     {
         switch #complete me
         {
-        case BGR8:  return false
-        case BGRA8: return true
-        case RGB8:  return false
-        case RGBA8: return true
+        case .BGR8:  return false
+        case .BGRA8: return true
+        case .RGB8:  return false
+        case .RGBA8: return true
         }
 
         return false

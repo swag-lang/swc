@@ -24,23 +24,23 @@ impl FontFamily
     {
         switch style
         {
-        case Regular:
+        case .Regular:
             if .regular do
                 return .regular
 
-        case Bold:
+        case .Bold:
             if .bold do
                 return .bold
             if .regular do
                 return .regular
 
-        case Italic:
+        case .Italic:
             if .italic do
                 return .italic
             if .regular do
                 return .regular
 
-        case BoldItalic:
+        case .BoldItalic:
             if .boldItalic do
                 return .boldItalic
             if .italic do
@@ -59,10 +59,10 @@ impl FontFamily
     {
         switch style
         {
-        case Regular:    .regular = fnt
-        case Bold:       .bold = fnt
-        case Italic:     .italic = fnt
-        case BoldItalic: .boldItalic = fnt
+        case .Regular:    .regular = fnt
+        case .Bold:       .bold = fnt
+        case .Italic:     .italic = fnt
+        case .BoldItalic: .boldItalic = fnt
         }
     }
 }

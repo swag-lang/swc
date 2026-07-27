@@ -348,17 +348,17 @@ impl Offset
         {
             switch jointype
             {
-            case Miter:
+            case .Miter:
                 let r = 1 + (jN.x * kN.x + jN.y * kN.y)
                 if r >= .miterLim do
                     .doMiter(j, k, r)
                 else do
                     .doSquare(j, k)
 
-            case Square:
+            case .Square:
                 .doSquare(j, k)
 
-            case Round:
+            case .Round:
                 .doRound(j, k)
             }
         }

@@ -449,6 +449,24 @@ namespace
         diag.report(sema.ctx());
         return Result::Error;
     }
+
+    Result validateEnumSwitchCaseSyntax(Sema& sema, AstNodeRef caseExprRef, TypeRef enumTypeRef)
+    {
+        const auto* identifier = sema.node(caseExprRef).safeCast<AstIdentifier>();
+        if (!identifier)
+            return Result::Continue;
+
+        const IdentifierRef idRef      = SemaHelpers::resolveIdentifier(sema, identifier->codeRef());
+        const TypeInfo&     enumType   = sema.typeMgr().get(enumTypeRef);
+        const Symbol*       enumMember = enumType.payloadSymEnum().findFirstSymbol(idRef);
+        if (!enumMember || !enumMember->isEnumValue())
+            return Result::Continue;
+
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_switch_case_enum_value_requires_dot, caseExprRef);
+        diag.addArgument(Diagnostic::ARG_SYM, idRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
 }
 
 TypeRef SemaSwitch::enumTypeRef(Sema& sema, TypeRef typeRef)
@@ -645,18 +663,9 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) con
     if (isDynamicStructSwitchCase(sema, switchRef) && sema.node(childRef).is(AstNodeId::AsCastExpr))
         markDynamicStructSwitchAsCaseExpr(sema, childRef);
 
-    // If the switch is on an enum, allow shorthand by rewriting it to an
-    // auto-member-access expression (equivalent to `.Value`), which will resolve in the
-    // enum scope provided by the binding type pushed from the parent switch.
     const TypeRef enumTypeRef = switchEnumTypeRef(sema, switchTypeRef);
-    if (enumTypeRef.isValid() && sema.node(childRef).is(AstNodeId::Identifier))
-    {
-        const AstNodeRef originalChildRef = childRef;
-        auto [nodeRef, nodePtr]           = sema.ast().makeNode<AstNodeId::AutoMemberAccessExpr>(sema.node(childRef).tokRef());
-        nodePtr->nodeIdentRef             = originalChildRef;
-        sema.setSubstitute(originalChildRef, nodeRef);
-        childRef = nodeRef;
-    }
+    if (enumTypeRef.isValid())
+        SWC_RESULT(validateEnumSwitchCaseSyntax(sema, childRef, enumTypeRef));
 
     return Result::Continue;
 }

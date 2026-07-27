@@ -39,17 +39,17 @@ impl IWnd for Label
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
         {
-        case MouseWheel:
+        case .MouseWheel:
             evt.accepted = false
             return
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Left and .hotChunk do
                 .sigUrlClicked.call(me, .hotChunk.slice)
             else do
                 evt.accepted = false
 
-        case MouseMove:
+        case .MouseMove:
             let chunk = .name.getUrlChunkAt(pos)
             if chunk != .hotChunk
             {
@@ -67,7 +67,7 @@ impl IWnd for Label
                 .hotChunk = chunk
             }
 
-        case MouseLeave:
+        case .MouseLeave:
             if .hotChunk
             {
                 .hotChunk.isHotUrl = false
@@ -95,14 +95,14 @@ impl IWnd for Label
 
             switch .horzAlignmentIcon
             {
-            case Right:  posIcon.x = posIcon.right() - .icon.sizeX
-            case Center: posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
+            case .Right:  posIcon.x = posIcon.right() - .icon.sizeX
+            case .Center: posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
             }
 
             switch .vertAlignmentIcon
             {
-            case Bottom: posIcon.y = posIcon.bottom() - .icon.sizeY
-            case Center: posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
+            case .Bottom: posIcon.y = posIcon.bottom() - .icon.sizeY
+            case .Center: posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
             }
 
             // Icon

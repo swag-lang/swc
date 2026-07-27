@@ -78,13 +78,13 @@ namespace ResizeTools
     {
         switch rmode
         {
-        case Bilinear:  return 1
-        case Hermite:   return 1
-        case Hamming:   return 1
-        case Quadratic: return 1.5
-        case Bicubic:   return 2
-        case Catrom:    return 2
-        case Gaussian:  return 3
+        case .Bilinear:  return 1
+        case .Hermite:   return 1
+        case .Hamming:   return 1
+        case .Quadratic: return 1.5
+        case .Bicubic:   return 2
+        case .Catrom:    return 2
+        case .Gaussian:  return 3
         }
 
         return 0
@@ -94,11 +94,11 @@ namespace ResizeTools
     {
         switch rmode
         {
-        case Bilinear:
+        case .Bilinear:
             let res = Math.abs(resf)
             return res < 1 ? 1 - res : 0
 
-        case Bicubic:
+        case .Bicubic:
             if resf < -2.0 do
                 return 0
             if resf < -1.0 do
@@ -111,12 +111,12 @@ namespace ResizeTools
                 return ((2.0 - resf) * (2.0 - resf) * (2.0 - resf) / 6.0)
             return 0
 
-        case Gaussian:
+        case .Gaussian:
             if Math.abs(resf) > 3.0 do
                 return 0
             return Math.exp(-resf * resf * 0.5) / 0.79788456080287
 
-        case Hermite:
+        case .Hermite:
             if resf < -1.0 do
                 return 0
             if resf < 0.0 do
@@ -125,7 +125,7 @@ namespace ResizeTools
                 return (2.0 * resf - 3.0) * resf * resf + 1.0
             return 0
 
-        case Hamming:
+        case .Hamming:
             if resf < -1.0 do
                 return 0.0
             if resf < 0.0 do
@@ -134,7 +134,7 @@ namespace ResizeTools
                 return 0.92 * (2.0 * resf - 3.0) * resf * resf + 1.0
             return 0
 
-        case Catrom:
+        case .Catrom:
             if resf < -2.0 do
                 return 0
             if resf < -1.0 do
@@ -147,7 +147,7 @@ namespace ResizeTools
                 return (0.5 * (4.0 + resf * (-8.0 + resf * (5.0 - resf))))
             return 0
 
-        case Quadratic:
+        case .Quadratic:
             if resf < -1.5 do
                 return 0.0
             if resf < -0.5 do
@@ -416,7 +416,7 @@ namespace ResizeTools
     {
         switch mode
         {
-        case Raw: doResizeRaw(dstImage, srcImage)
+        case .Raw: doResizeRaw(dstImage, srcImage)
         default:  doResizeFilter(dstImage, srcImage, mode)
         }
     }

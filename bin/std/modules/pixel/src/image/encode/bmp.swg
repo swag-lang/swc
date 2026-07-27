@@ -46,11 +46,11 @@ public impl IImageEncoder for Encoder
         {
             switch image.pf
             {
-            case BGR8, BGRA8:
+            case .BGR8, .BGRA8:
                 result.addBytes(@mkslice(psrc, rowBytes))
                 psrc += rowBytes
 
-            case RGB8:
+            case .RGB8:
                 for image.width
                 {
                     result.addNative(psrc[2])
@@ -59,7 +59,7 @@ public impl IImageEncoder for Encoder
                     psrc += 3
                 }
 
-            case RGBA8:
+            case .RGBA8:
                 for image.width
                 {
                     result.addNative(psrc[2])

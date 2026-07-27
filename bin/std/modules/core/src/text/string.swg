@@ -705,10 +705,10 @@ impl String
         let sl = @mkslice(.buffer, .length)
         switch set
         {
-        case Latin1:
+        case .Latin1:
             Core.Latin1.makeUpper(sl)
 
-        case Unicode:
+        case .Unicode:
             var uni32 = Core.Unicode.fromUtf8(.toString())
             Core.Unicode.makeUpper(uni32.toSlice())
             .reserve(uni32.count * 4)
@@ -722,10 +722,10 @@ impl String
         let sl = @mkslice(.buffer, .length)
         switch set
         {
-        case Latin1:
+        case .Latin1:
             Core.Latin1.makeLower(sl)
 
-        case Unicode:
+        case .Unicode:
             var uni32 = Core.Unicode.fromUtf8(.toString())
             Core.Unicode.makeLower(uni32.toSlice())
             .reserve(uni32.count * 4)

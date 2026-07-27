@@ -43,10 +43,10 @@ impl Image
 
                     switch #complete params.mode
                     {
-                    case Copy:
+                    case .Copy:
                         copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
 
-                    case AlphaBlend:
+                    case .AlphaBlend:
                         if BPP != 32 do
                             copyPixelDirect'BPP(notnull pixDst, notnull pixSrc)
                         else

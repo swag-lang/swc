@@ -178,9 +178,9 @@ func currentModeName()->string
 {
     switch g_Mode
     {
-    case Compact:  return "compact"
-    case Detailed: return "detailed"
-    case Columns:  return "columns"
+    case .Compact:  return "compact"
+    case .Detailed: return "detailed"
+    case .Columns:  return "columns"
     }
 
     unreachable

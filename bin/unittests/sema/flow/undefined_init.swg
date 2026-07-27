@@ -65,9 +65,9 @@ func undOkCompleteSwitch(kind: UndKind)->s32
     var x: s32 = undefined
     switch #complete kind
     {
-    case First:
+    case .First:
         x = 1
-    case Second:
+    case .Second:
         x = 2
     }
     return x

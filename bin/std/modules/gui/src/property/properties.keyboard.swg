@@ -57,7 +57,7 @@ internal impl Properties
             let shift = cast(bool) (evt.modifiers & .Shift)
             switch evt.key
             {
-            case Z:
+            case .Z:
                 if shift do
                     .redo()
                 else do
@@ -65,7 +65,7 @@ internal impl Properties
                 evt.accepted = true
                 return
 
-            case Y:
+            case .Y:
                 .redo()
                 evt.accepted = true
                 return
@@ -79,12 +79,12 @@ internal impl Properties
             let popup = .selItem.comboBox.popup
             switch evt.key
             {
-            case Up:            popup.keyMove(-1)
-            case Down:          popup.keyMove(1)
-            case Home:          popup.keyHome()
-            case End:           popup.keyEnd()
-            case Return, Space: popup.keyCommit()
-            case Escape:        popup.keyCancel()
+            case .Up:            popup.keyMove(-1)
+            case .Down:          popup.keyMove(1)
+            case .Home:          popup.keyHome()
+            case .End:           popup.keyEnd()
+            case .Return, .Space: popup.keyCommit()
+            case .Escape:        popup.keyCancel()
             default:            return
             }
 
@@ -97,34 +97,34 @@ internal impl Properties
 
         switch evt.key
         {
-        case Up:
+        case .Up:
             .moveSel(-1)
 
-        case Down:
+        case .Down:
             .moveSel(1)
 
-        case Home:
+        case .Home:
             .setSelItem(.firstNavigable(forward: true))
 
-        case End:
+        case .End:
             .setSelItem(.firstNavigable(forward: false))
 
-        case PageUp:
+        case .PageUp:
             .pageMove(-1)
 
-        case PageDown:
+        case .PageDown:
             .pageMove(1)
 
-        case Return, F2:
+        case .Return, .F2:
             .activateSel()
 
-        case Space:
+        case .Space:
             if .selItem and @isset(.selItem.checkBox) do
                 .selItem.checkBox.toggle()
             else do
                 .activateSel()
 
-        case Right:
+        case .Right:
 
             // A slider steps right away (and stays focused for further steps), so
             // the very first press already changes the value.
@@ -141,7 +141,7 @@ internal impl Properties
             else do
                 .activateSel()
 
-        case Left:
+        case .Left:
             if .selItem and @isset(.selItem.sliderBox)
             {
                 .selItem.sliderBox.slider.setFocus()
@@ -173,21 +173,21 @@ internal impl Properties
         switch evt.key
         {
         // Alt+Up/Down are left to the editor (e.g. Alt+Down opens a combo popup).
-        case Up where !alt:
+        case .Up where !alt:
             .commitEdit()
             .moveSel(-1)
             return true
 
-        case Down where !alt:
+        case .Down where !alt:
             .commitEdit()
             .moveSel(1)
             return true
 
-        case Return, Escape:
+        case .Return, .Escape:
             .commitEdit()
             return true
 
-        case Tab:
+        case .Tab:
             .commitEdit()
             .moveSel(shift ? -1 : 1)
             .activateSel()

@@ -31,10 +31,10 @@ public impl IImageEncoder for Encoder
         var psrc = image.pixels.buffer
         switch image.pf
         {
-        case BGR8, BGRA8:
+        case .BGR8, .BGRA8:
             result.addBytes(image.pixels.toSlice())
 
-        case RGB8:
+        case .RGB8:
             for image.width * image.height
             {
                 result.addNative(psrc[2])
@@ -43,7 +43,7 @@ public impl IImageEncoder for Encoder
                 psrc += 3
             }
 
-        case RGBA8:
+        case .RGBA8:
             for image.width * image.height
             {
                 result.addNative(psrc[2])

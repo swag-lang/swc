@@ -24,9 +24,9 @@ impl SwClassifier
     {
         switch k
         {
-        case A:
+        case .A:
             return .bias + 10
-        case B:
+        case .B:
             return .bias + 20
         default:
             return .bias + 30

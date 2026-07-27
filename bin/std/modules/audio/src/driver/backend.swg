@@ -29,10 +29,10 @@ impl DriverNative
 
         switch .kind
         {
-        case NoSound:
+        case .NoSound:
             .noSound.createNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.createXAudio2()
@@ -49,10 +49,10 @@ impl DriverNative
     {
         switch .kind
         {
-        case NoSound:
+        case .NoSound:
             .noSound.destroyNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.destroyXAudio2()
@@ -69,7 +69,7 @@ impl DriverNative
     {
         switch .kind
         {
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.stopEngineXAudio2()
@@ -81,10 +81,10 @@ impl DriverNative
     {
         switch .kind
         {
-        case NoSound:
+        case .NoSound:
             .noSound.setOutputVolumeNoSound(volume)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .xAudio2.setOutputVolumeXAudio2(volume)
@@ -98,10 +98,10 @@ impl DriverNative
     {
         switch .kind
         {
-        case NoSound:
+        case .NoSound:
             return .noSound.getOutputVolumeNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 return .xAudio2.getOutputVolumeXAudio2()
@@ -133,10 +133,10 @@ impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             voice.createNoSound(createFlags)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 voice.createXAudio2(createFlags)
@@ -153,10 +153,10 @@ impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .destroyNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .destroyXAudio2()
@@ -168,10 +168,10 @@ impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             return .updateNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 return .updateXAudio2()
@@ -187,10 +187,10 @@ impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .playNoSound(batchID)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .playXAudio2(batchID)
@@ -204,10 +204,10 @@ impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .stopNoSound(batchID)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .stopXAudio2(batchID)
@@ -224,10 +224,10 @@ public impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .setVolumeNoSound(volume, batchID)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .setVolumeXAudio2(volume, batchID)
@@ -241,10 +241,10 @@ public impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             return .getVolumeNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 return .getVolumeXAudio2()
@@ -260,10 +260,10 @@ public impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .setFrequencyRatioNoSound(ratio, batchID)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .setFrequencyRatioXAudio2(ratio, batchID)
@@ -277,10 +277,10 @@ public impl Voice
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .setRootingNoSound(buses)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .setRootingXAudio2(buses)
@@ -297,10 +297,10 @@ impl Bus
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             bus.createNoSound(numChannels, parent)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 bus.createXAudio2(numChannels, parent)
@@ -317,10 +317,10 @@ impl Bus
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .destroyNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .destroyXAudio2()
@@ -335,10 +335,10 @@ public impl Bus
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             .setVolumeNoSound(volume, batchID)
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 .setVolumeXAudio2(volume, batchID)
@@ -352,10 +352,10 @@ public impl Bus
     {
         switch g_Driver.kind
         {
-        case NoSound:
+        case .NoSound:
             return .getVolumeNoSound()
 
-        case XAudio2:
+        case .XAudio2:
             #static if #os == Swag.TargetOs.Windows
             {
                 return .getVolumeXAudio2()

@@ -132,10 +132,10 @@ impl FileDlg
             {
                 switch #complete opt.mode
                 {
-                case CreateFile:       .setTitle("Create File")
-                case SelectOneFile:    .setTitle("Select File")
-                case SelectMultiFiles: .setTitle("Select Files")
-                case SelectFolder:     .setTitle("Select Folder")
+                case .CreateFile:       .setTitle("Create File")
+                case .SelectOneFile:    .setTitle("Select File")
+                case .SelectMultiFiles: .setTitle("Select Files")
+                case .SelectFolder:     .setTitle("Select Folder")
                 }
             }
         }

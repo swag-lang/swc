@@ -17,16 +17,16 @@ impl Properties
             item.sliderBox.invalidate()
             switch typeNative.nativeKind
             {
-            case U8:  setEd'u8()
-            case U16: setEd'u16()
-            case U32: setEd'u32()
-            case U64: setEd'u64()
-            case S8:  setEd's8()
-            case S16: setEd's16()
-            case S32: setEd's32()
-            case S64: setEd's64()
-            case F32: setEd'f32()
-            case F64: setEd'f64()
+            case .U8:  setEd'u8()
+            case .U16: setEd'u16()
+            case .U32: setEd'u32()
+            case .U64: setEd'u64()
+            case .S8:  setEd's8()
+            case .S16: setEd's16()
+            case .S32: setEd's32()
+            case .S64: setEd's64()
+            case .F32: setEd'f32()
+            case .F64: setEd'f64()
             }
 
             .setEditMixed(item, item.sliderBox.edit)
@@ -43,16 +43,16 @@ impl Properties
             item.editBox.invalidate()
             switch typeNative.nativeKind
             {
-            case U8:  setEd'u8()
-            case U16: setEd'u16()
-            case U32: setEd'u32()
-            case U64: setEd'u64()
-            case S8:  setEd's8()
-            case S16: setEd's16()
-            case S32: setEd's32()
-            case S64: setEd's64()
-            case F32: setEd'f32()
-            case F64: setEd'f64()
+            case .U8:  setEd'u8()
+            case .U16: setEd'u16()
+            case .U32: setEd'u32()
+            case .U64: setEd'u64()
+            case .S8:  setEd's8()
+            case .S16: setEd's16()
+            case .S32: setEd's32()
+            case .S64: setEd's64()
+            case .F32: setEd'f32()
+            case .F64: setEd'f64()
             }
 
             .setEditMixed(item, item.editBox)
@@ -75,16 +75,16 @@ impl Properties
 
             switch typeNative.nativeKind
             {
-            case U8:  setEd'u8()
-            case U16: setEd'u16()
-            case U32: setEd'u32()
-            case U64: setEd'u64()
-            case S8:  setEd's8()
-            case S16: setEd's16()
-            case S32: setEd's32()
-            case S64: setEd's64()
-            case F32: setEd'f32()
-            case F64: setEd'f64()
+            case .U8:  setEd'u8()
+            case .U16: setEd'u16()
+            case .U32: setEd'u32()
+            case .U64: setEd'u64()
+            case .S8:  setEd's8()
+            case .S16: setEd's16()
+            case .S32: setEd's32()
+            case .S64: setEd's64()
+            case .F32: setEd'f32()
+            case .F64: setEd'f64()
             }
         }
         elif @isset(item.editBox)
@@ -99,16 +99,16 @@ impl Properties
             let txt = item.editBox.getText()
             switch typeNative.nativeKind
             {
-            case U8:  setEd'u8()
-            case U16: setEd'u16()
-            case U32: setEd'u32()
-            case U64: setEd'u64()
-            case S8:  setEd's8()
-            case S16: setEd's16()
-            case S32: setEd's32()
-            case S64: setEd's64()
-            case F32: setEd'f32()
-            case F64: setEd'f64()
+            case .U8:  setEd'u8()
+            case .U16: setEd'u16()
+            case .U32: setEd'u32()
+            case .U64: setEd'u64()
+            case .S8:  setEd's8()
+            case .S16: setEd's16()
+            case .S32: setEd's32()
+            case .S64: setEd's64()
+            case .F32: setEd'f32()
+            case .F64: setEd'f64()
             }
         }
 
@@ -147,13 +147,13 @@ impl Properties
 
             switch typeNative.nativeKind
             {
-            case U8, U16, U32, U64:
+            case .U8, .U16, .U32, .U64:
                 slider.setMinMaxU64(cast() minV, cast() maxV)
 
-            case S8, S16, S32, S64:
+            case .S8, .S16, .S32, .S64:
                 slider.setMinMaxS64(cast() minV, cast() maxV)
 
-            case F32, F64:
+            case .F32, .F64:
                 if whole do
                     slider.setMinMaxS64(cast() minV, cast() maxV)
                 else do
@@ -186,19 +186,19 @@ impl Properties
 
         switch typeNative.nativeKind
         {
-        case U8, U16, U32, U64:
+        case .U8, .U16, .U32, .U64:
             if !hasMinMax do
                 ctrl.edit.setInputU64()
             else do
                 ctrl.edit.setInputU64(cast() minV, cast() maxV)
 
-        case S8, S16, S32, S64:
+        case .S8, .S16, .S32, .S64:
             if !hasMinMax do
                 ctrl.edit.setInputS64()
             else do
                 ctrl.edit.setInputS64(cast() minV, cast() maxV)
 
-        case F32, F64:
+        case .F32, .F64:
             if !hasMinMax do
                 ctrl.edit.setInputF64()
             else do
@@ -244,9 +244,9 @@ impl Properties
 
             switch typeNative.nativeKind
             {
-            case U8, U16, U32, U64: slider.setMinMaxU64(cast() minV, cast() maxV)
-            case S8, S16, S32, S64: slider.setMinMaxS64(cast() minV, cast() maxV)
-            case F32, F64:          slider.setMinMaxF32(minV, maxV)
+            case .U8, .U16, .U32, .U64: slider.setMinMaxU64(cast() minV, cast() maxV)
+            case .S8, .S16, .S32, .S64: slider.setMinMaxS64(cast() minV, cast() maxV)
+            case .F32, .F64:          slider.setMinMaxF32(minV, maxV)
             }
         }
         else
@@ -282,55 +282,55 @@ impl Properties
             item.editBox = ed
             switch typeNative.nativeKind
             {
-            case U8:
+            case .U8:
                 if !hasMinMax do
                     ed.setInputU64(Swag.U8.Min, Swag.U8.Max)
                 else do
                     ed.setInputU64(cast() minV, cast() maxV)
 
-            case U16:
+            case .U16:
                 if !hasMinMax do
                     ed.setInputU64(Swag.U16.Min, Swag.U16.Max)
                 else do
                     ed.setInputU64(cast() minV, cast() maxV)
 
-            case U32:
+            case .U32:
                 if !hasMinMax do
                     ed.setInputU64(Swag.U32.Min, Swag.U32.Max)
                 else do
                     ed.setInputU64(cast() minV, cast() maxV)
 
-            case U64:
+            case .U64:
                 if !hasMinMax do
                     ed.setInputU64(Swag.U64.Min, Swag.U64.Max)
                 else do
                     ed.setInputU64(cast() minV, cast() maxV)
 
-            case S8:
+            case .S8:
                 if !hasMinMax do
                     ed.setInputS64(Swag.S8.Min, Swag.S8.Max)
                 else do
                     ed.setInputS64(cast() minV, cast() maxV)
 
-            case S16:
+            case .S16:
                 if !hasMinMax do
                     ed.setInputS64(Swag.S16.Min, Swag.S16.Max)
                 else do
                     ed.setInputS64(cast() minV, cast() maxV)
 
-            case S32:
+            case .S32:
                 if !hasMinMax do
                     ed.setInputS64(Swag.S32.Min, Swag.S32.Max)
                 else do
                     ed.setInputS64(cast() minV, cast() maxV)
 
-            case S64:
+            case .S64:
                 if !hasMinMax do
                     ed.setInputS64(Swag.S64.Min, Swag.S64.Max)
                 else do
                     ed.setInputS64(cast() minV, cast() maxV)
 
-            case F32, F64:
+            case .F32, .F64:
                 if !hasMinMax do
                     ed.setInputF64()
                 else do

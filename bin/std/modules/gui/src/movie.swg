@@ -46,13 +46,13 @@ private impl Movie
 
         switch #complete .source
         {
-        case None:
+        case .None:
             break
 
-        case SpriteSheet:
+        case .SpriteSheet:
             break
 
-        case Gif:
+        case .Gif:
             if .frameIndex < .cacheFrames.count
             {
                 .frame = .cacheFrames[.frameIndex]
@@ -124,9 +124,9 @@ impl Movie
     {
         switch #complete .source
         {
-        case None:        return false
-        case SpriteSheet: return .imgList.texture.valid
-        case Gif:         return .frame.pixels.buffer != null
+        case .None:        return false
+        case .SpriteSheet: return .imgList.texture.valid
+        case .Gif:         return .frame.pixels.buffer != null
         }
 
         return false
@@ -141,10 +141,10 @@ impl Movie
 
         switch #complete .source
         {
-        case None:
+        case .None:
             break
 
-        case Gif:
+        case .Gif:
             .frameIndex = Math.min(idx, .numFrames)
             if .frameIndex < .cacheFrames.count
             {
@@ -152,7 +152,7 @@ impl Movie
                 .dirtyFrame = true
             }
 
-        case SpriteSheet:
+        case .SpriteSheet:
             break
         }
 

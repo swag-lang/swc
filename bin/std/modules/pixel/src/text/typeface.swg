@@ -29,19 +29,19 @@ impl TypeFace
         {
             switch cmd.kind
             {
-            case MoveTo:
+            case .MoveTo:
                 let path = pathList.newPath()
                 path.start(cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
 
-            case LineTo:
+            case .LineTo:
                 let path = pathList.paths[pathList.paths.count - 1]
                 path.lineTo(cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
 
-            case ConicTo:
+            case .ConicTo:
                 let path = pathList.paths[pathList.paths.count - 1]
                 path.bezierTo(cmd.p1.x / 64.0, -cmd.p1.y / 64.0, cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
 
-            case CubicTo:
+            case .CubicTo:
                 let path = pathList.paths[pathList.paths.count - 1]
                 path.bezierTo(cmd.p2.x / 64.0, -cmd.p2.y / 64.0, cmd.p0.x / 64.0, -cmd.p0.y / 64.0, cmd.p1.x / 64.0, -cmd.p1.y / 64.0)
             }

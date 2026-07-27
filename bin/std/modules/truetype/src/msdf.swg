@@ -190,12 +190,12 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
     {
         switch cmd.kind
         {
-        case MoveTo:
+        case .MoveTo:
             contourElemStart.add(cast(u32) elements.count)
             curX = cmd.p0.x / 64.0'f64
             curY = cmd.p0.y / 64.0'f64
 
-        case LineTo:
+        case .LineTo:
             let x = cmd.p0.x / 64.0'f64
             let y = cmd.p0.y / 64.0'f64
 
@@ -212,7 +212,7 @@ func buildMsdfSegments(outline: const *Outline, segs: *Array'MsdfSeg)
             curX = x
             curY = y
 
-        case ConicTo:
+        case .ConicTo:
             let cx = cmd.p0.x / 64.0'f64
             let cy = cmd.p0.y / 64.0'f64
             let x  = cmd.p1.x / 64.0'f64

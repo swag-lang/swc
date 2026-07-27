@@ -23,7 +23,7 @@ impl Crc64
     {
         switch #complete kind
         {
-        case ECMA182, ISO, ISOXZ: .crc = 0
+        case .ECMA182, .ISO, .ISOXZ: .crc = 0
         }
     }
 
@@ -40,7 +40,7 @@ impl Crc64
         var i     = 0'u64
         switch #complete kind
         {
-        case ECMA182:
+        case .ECMA182:
             const POLY: u64 = 0x42F0_E1EB_A9EA_3693
             while i < length
             {
@@ -58,7 +58,7 @@ impl Crc64
 
             .crc = cur
 
-        case ISO:
+        case .ISO:
             const POLY: u64 = 0xD800_0000_0000_0000
             cur = ~cur
             while i < length
@@ -77,7 +77,7 @@ impl Crc64
 
             .crc = ~cur
 
-        case ISOXZ:
+        case .ISOXZ:
             const POLY: u64 = 0xC96C_5795_D787_0F42
             cur = ~cur
             while i < length

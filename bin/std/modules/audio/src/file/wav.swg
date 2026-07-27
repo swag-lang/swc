@@ -269,7 +269,7 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
 
         switch header.chunkID
         {
-        case SND_WAV_FOURCC_RIFF:
+        case .SND_WAV_FOURCC_RIFF:
             if stage == .FindRiff
             {
                 if !stream.readValue(&header.chunkID) do
@@ -279,14 +279,14 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
                 stage = .FindFmt
             }
 
-        case SND_WAV_FOURCC_fmt:
+        case .SND_WAV_FOURCC_fmt:
             if stage == .FindFmt
             {
                 file.readChunkFmt(stream, header.chunkSize)
                 stage = .FindData
             }
 
-        case SND_WAV_FOURCC_data:
+        case .SND_WAV_FOURCC_data:
             if stage == .FindData
             {
                 readChunkData(file, stream, header.chunkSize)
@@ -305,25 +305,25 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
                     return
             }
 
-        case SND_WAV_FOURCC_fact:
+        case .SND_WAV_FOURCC_fact:
             stream.skipPosition(header.chunkSize)
 
-        case SND_WAV_FOURCC_cue:
+        case .SND_WAV_FOURCC_cue:
             stream.skipPosition(header.chunkSize)
 
-        case SND_WAV_FOURCC_LIST:
+        case .SND_WAV_FOURCC_LIST:
             stream.skipPosition(header.chunkSize)
 
-        case SND_WAV_FOURCC_labl:
+        case .SND_WAV_FOURCC_labl:
             stream.skipPosition(header.chunkSize)
 
-        case SND_WAV_FOURCC_note:
+        case .SND_WAV_FOURCC_note:
             stream.skipPosition(header.chunkSize)
 
-        case SND_WAV_FOURCC_ltxt:
+        case .SND_WAV_FOURCC_ltxt:
             stream.skipPosition(header.chunkSize)
 
-        case SND_WAV_FOURCC_bext:
+        case .SND_WAV_FOURCC_bext:
             stream.skipPosition(header.chunkSize)
 
         default:

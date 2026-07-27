@@ -22,10 +22,10 @@ impl Image
 
         switch .pf
         {
-        case BGR8:  .fillFirstLine'BGR8()
-        case BGRA8: .fillFirstLine'BGRA8()
-        case RGB8:  .fillFirstLine'RGB8()
-        case RGBA8: .fillFirstLine'RGBA8()
+        case .BGR8:  .fillFirstLine'BGR8()
+        case .BGRA8: .fillFirstLine'BGRA8()
+        case .RGB8:  .fillFirstLine'RGB8()
+        case .RGBA8: .fillFirstLine'RGBA8()
         default:    Debug.assert(false)
         }
 

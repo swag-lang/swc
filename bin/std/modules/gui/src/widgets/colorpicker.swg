@@ -54,7 +54,7 @@ impl IWnd for ColorPicker
 
         switch #complete .mode
         {
-        case SaturationLightness:
+        case .SaturationLightness:
             .xCur = cast() (.sat * clientRect.width)
             let l1 = Math.lerp(1, 0.5, .sat)
             var l2 = 1 - (.lum / l1)
@@ -70,66 +70,66 @@ impl IWnd for ColorPicker
                 .yCur = cast() (l2 * clientRect.height)
             }
 
-        case HueSaturation:
+        case .HueSaturation:
             .xCur = cast() (.hue * clientRect.width)
             .yCur = cast() ((1 - .sat) * clientRect.height)
 
-        case HueLightness:
+        case .HueLightness:
             .xCur = cast() (.hue * clientRect.width)
             .yCur = cast() ((1 - .lum) * clientRect.height)
 
-        case GreenBlue:
+        case .GreenBlue:
             .xCur = cast() (.g * clientRect.width)
             .yCur = cast() (.b * clientRect.height)
 
-        case RedBlue:
+        case .RedBlue:
             .xCur = cast() (.r * clientRect.width)
             .yCur = cast() (.b * clientRect.height)
 
-        case RedGreen:
+        case .RedGreen:
             .xCur = cast() (.r * clientRect.width)
             .yCur = cast() (.g * clientRect.height)
 
-        case HueVert:
+        case .HueVert:
             .yCur = cast() (.hue * clientRect.height)
 
-        case HueHorz:
+        case .HueHorz:
             .xCur = cast() (.hue * clientRect.width)
 
-        case LightnessVert:
+        case .LightnessVert:
             .yCur = cast() (.lum * clientRect.height)
 
-        case LightnessHorz:
+        case .LightnessHorz:
             .xCur = cast() (.lum * clientRect.width)
 
-        case SaturationVert:
+        case .SaturationVert:
             .yCur = cast() (.sat * clientRect.height)
 
-        case SaturationHorz:
+        case .SaturationHorz:
             .xCur = cast() (.sat * clientRect.width)
 
-        case AlphaHorz:
+        case .AlphaHorz:
             .xCur = cast() (.a * clientRect.width)
 
-        case AlphaVert:
+        case .AlphaVert:
             .yCur = cast() (.a * clientRect.height)
 
-        case RedHorz:
+        case .RedHorz:
             .xCur = cast() (.r * clientRect.width)
 
-        case RedVert:
+        case .RedVert:
             .yCur = cast() (.r * clientRect.height)
 
-        case GreenHorz:
+        case .GreenHorz:
             .xCur = cast() (.g * clientRect.width)
 
-        case GreenVert:
+        case .GreenVert:
             .yCur = cast() (.g * clientRect.height)
 
-        case BlueHorz:
+        case .BlueHorz:
             .xCur = cast() (.b * clientRect.width)
 
-        case BlueVert:
+        case .BlueVert:
             .yCur = cast() (.b * clientRect.height)
         }
     }
@@ -228,40 +228,40 @@ impl IWnd for ColorPicker
             {
                 switch .mode
                 {
-                case SaturationLightness:
+                case .SaturationLightness:
                     modeFill = .SaturationLightness
 
-                case HueSaturation:
+                case .HueSaturation:
                     modeFill = .HueSaturation
 
-                case HueLightness:
+                case .HueLightness:
                     modeFill = .HueLightness
 
-                case GreenBlue:
+                case .GreenBlue:
                     modeFill = .GreenBlue
 
-                case RedBlue:
+                case .RedBlue:
                     modeFill = .RedBlue
 
-                case RedGreen:
+                case .RedGreen:
                     modeFill = .RedGreen
 
-                case HueVert:
+                case .HueVert:
                     modeFill = .HueVert
 
-                case HueHorz:
+                case .HueHorz:
                     modeFill = .HueHorz
 
-                case LightnessVert:
+                case .LightnessVert:
                     modeFill = .LightnessVert
 
-                case LightnessHorz:
+                case .LightnessHorz:
                     modeFill = .LightnessHorz
 
-                case SaturationVert:
+                case .SaturationVert:
                     modeFill = .SaturationVert
 
-                case SaturationHorz:
+                case .SaturationHorz:
                     modeFill = .SaturationHorz
 
                 default:
@@ -319,17 +319,17 @@ impl IWnd for ColorPicker
 
         switch #complete .mode
         {
-        case SaturationLightness, HueSaturation, HueLightness, GreenBlue, RedBlue, RedGreen:
+        case .SaturationLightness, .HueSaturation, .HueLightness, .GreenBlue, .RedBlue, .RedGreen:
             let size = metrics.colorPicker_RoundPick
             let rect = Math.Rectangle{.xCur - size, .yCur - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_RoundPick, colors.colorPicker_Mark)
 
-        case RedVert, GreenVert, BlueVert, AlphaVert, HueVert, LightnessVert, SaturationVert:
+        case .RedVert, .GreenVert, .BlueVert, .AlphaVert, .HueVert, .LightnessVert, .SaturationVert:
             let size = metrics.colorPicker_SquarePick
             let rect = Math.Rectangle{clientRect.horzCenter() - size, .yCur - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_SquarePick, colors.colorPicker_Mark)
 
-        case RedHorz, GreenHorz, BlueHorz, AlphaHorz, HueHorz, LightnessHorz, SaturationHorz:
+        case .RedHorz, .GreenHorz, .BlueHorz, .AlphaHorz, .HueHorz, .LightnessHorz, .SaturationHorz:
             let size = metrics.colorPicker_SquarePick
             let rect = Math.Rectangle{.xCur - size, clientRect.vertCenter() - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_SquarePick, colors.colorPicker_Mark)
@@ -345,7 +345,7 @@ impl IWnd for ColorPicker
 
         switch evt.kind
         {
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Left
             {
                 .isMoving = true
@@ -354,7 +354,7 @@ impl IWnd for ColorPicker
                 fallthrough
             }
 
-        case MouseMove:
+        case .MouseMove:
             if .isMoving
             {
                 let x = Math.clamp(pos.x / clientRect.width, 0, 1)
@@ -362,87 +362,87 @@ impl IWnd for ColorPicker
 
                 switch #complete .mode
                 {
-                case SaturationLightness:
+                case .SaturationLightness:
                     .sat = Math.clamp(x, 0, 1)
                     let l1 = Math.lerp(1, 0.5, .sat)
                     .lum = Math.lerp(l1, 0, y)
 
-                case HueSaturation:
+                case .HueSaturation:
                     .hue = x
                     .sat = 1 - y
                     .computeRGB()
 
-                case HueLightness:
+                case .HueLightness:
                     .hue = x
                     .lum = 1 - y
                     .computeRGB()
 
-                case GreenBlue:
+                case .GreenBlue:
                     .g = x
                     .b = y
                     .computeHsl()
 
-                case RedBlue:
+                case .RedBlue:
                     .r = x
                     .b = y
                     .computeHsl()
 
-                case RedGreen:
+                case .RedGreen:
                     .r = x
                     .g = y
                     .computeHsl()
 
-                case HueHorz:
+                case .HueHorz:
                     .hue = x
                     .computeRGB()
 
-                case HueVert:
+                case .HueVert:
                     .hue = y
                     .computeRGB()
 
-                case LightnessHorz:
+                case .LightnessHorz:
                     .lum = x
                     .computeRGB()
 
-                case LightnessVert:
+                case .LightnessVert:
                     .lum = y
                     .computeRGB()
 
-                case SaturationHorz:
+                case .SaturationHorz:
                     .sat = x
                     .computeRGB()
 
-                case SaturationVert:
+                case .SaturationVert:
                     .sat = y
                     .computeRGB()
 
-                case AlphaHorz:
+                case .AlphaHorz:
                     .a = x
 
-                case AlphaVert:
+                case .AlphaVert:
                     .a = y
 
-                case RedHorz:
+                case .RedHorz:
                     .r = x
                     .computeHsl()
 
-                case RedVert:
+                case .RedVert:
                     .r = y
                     .computeHsl()
 
-                case GreenHorz:
+                case .GreenHorz:
                     .g = x
                     .computeHsl()
 
-                case GreenVert:
+                case .GreenVert:
                     .g = y
                     .computeHsl()
 
-                case BlueHorz:
+                case .BlueHorz:
                     .b = x
                     .computeHsl()
 
-                case BlueVert:
+                case .BlueVert:
                     .b = y
                     .computeHsl()
                 }
@@ -452,7 +452,7 @@ impl IWnd for ColorPicker
                 .invalidate()
             }
 
-        case MouseReleased:
+        case .MouseReleased:
             if evt.button == .Left and .isMoving
             {
                 .isMoving = false

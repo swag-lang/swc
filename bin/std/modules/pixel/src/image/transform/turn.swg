@@ -18,7 +18,7 @@ impl Image
             var f = {img: me}
             switch angle
             {
-            case T90:
+            case .T90:
                 dstImage.visitPixels(&f)
                 {
                     let data     = cast(*#decltype(f)) (notnull userData)
@@ -29,7 +29,7 @@ impl Image
                     copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
                 }
 
-            case T180:
+            case .T180:
                 dstImage.visitPixels(&f)
                 {
                     let data     = cast(*#decltype(f)) (notnull userData)
@@ -40,7 +40,7 @@ impl Image
                     copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
                 }
 
-            case T270:
+            case .T270:
                 dstImage.visitPixels(&f)
                 {
                     let data     = cast(*#decltype(f)) (notnull userData)

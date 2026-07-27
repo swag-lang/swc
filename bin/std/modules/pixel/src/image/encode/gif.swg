@@ -125,16 +125,16 @@ impl Encoder
 
         switch image.pf
         {
-        case BGR8:
+        case .BGR8:
             result.setArgb(255, pix[2], pix[1], pix[0])
 
-        case BGRA8:
+        case .BGRA8:
             result.setArgb(pix[3], pix[2], pix[1], pix[0])
 
-        case RGB8:
+        case .RGB8:
             result.setArgb(255, pix[0], pix[1], pix[2])
 
-        case RGBA8:
+        case .RGBA8:
             result.setArgb(pix[3], pix[0], pix[1], pix[2])
 
         default:

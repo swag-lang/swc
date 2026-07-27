@@ -84,9 +84,9 @@ impl FileStream
         var seekMode: DWORD
         switch origin
         {
-        case Begin:   seekMode = FILE_BEGIN
-        case Current: seekMode = FILE_CURRENT
-        case End:     seekMode = FILE_END
+        case .Begin:   seekMode = FILE_BEGIN
+        case .Current: seekMode = FILE_CURRENT
+        case .End:     seekMode = FILE_END
         }
 
         discard catch SetFilePointer(hFile, low, &high, seekMode) as err

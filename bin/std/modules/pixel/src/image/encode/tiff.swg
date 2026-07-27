@@ -58,7 +58,7 @@ public impl IImageEncoder for Encoder
 
             switch image.pf
             {
-            case RGB8:
+            case .RGB8:
                 for width
                 {
                     result.addNative(psrc[0])
@@ -67,7 +67,7 @@ public impl IImageEncoder for Encoder
                     psrc += 3
                 }
 
-            case BGR8:
+            case .BGR8:
                 for width
                 {
                     result.addNative(psrc[2])
@@ -76,7 +76,7 @@ public impl IImageEncoder for Encoder
                     psrc += 3
                 }
 
-            case RGBA8:
+            case .RGBA8:
                 for width
                 {
                     result.addNative(psrc[0])
@@ -86,7 +86,7 @@ public impl IImageEncoder for Encoder
                     psrc += 4
                 }
 
-            case BGRA8:
+            case .BGRA8:
                 for width
                 {
                     result.addNative(psrc[2])

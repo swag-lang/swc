@@ -260,8 +260,8 @@ impl Encoder
     {
         switch .ihdr.colorType
         {
-        case Color:      return 3
-        case AlphaColor: return 4
+        case .Color:      return 3
+        case .AlphaColor: return 4
         }
 
         return 0
@@ -454,20 +454,20 @@ impl Encoder
 
             switch filter
             {
-            case None:
+            case .None:
                 break
 
-            case Sub:
+            case .Sub:
                 x = x - a
 
-            case Up:
+            case .Up:
                 x = x - b
 
-            case Average:
+            case .Average:
                 let avg = (a + b) / 2
                 x = x - avg
 
-            case Paeth:
+            case .Paeth:
                 x = x - paeth(a, b, c)
             }
 
@@ -501,17 +501,17 @@ impl Encoder
 
             switch filter
             {
-            case Sub:
+            case .Sub:
                 x = x - a
 
-            case Up:
+            case .Up:
                 x = x - b
 
-            case Average:
+            case .Average:
                 let avg = (a + b) / 2
                 x = x - avg
 
-            case Paeth:
+            case .Paeth:
                 x = x - paeth(a, b, c)
             }
 

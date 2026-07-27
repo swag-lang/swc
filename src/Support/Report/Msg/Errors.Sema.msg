@@ -217,6 +217,7 @@ SWC_DIAG_DEF(sema_err_unknown_scope_name, Error, "cannot find an enclosing '#sco
 SWC_DIAG_DEF(sema_err_index_outside_loop, Error, "'@index' is used outside a loop statement; [help] use '@index' inside the loop that defines it")
 SWC_DIAG_DEF(sema_err_switch_invalid_type, Error, "cannot switch on values of type '{type}'; [help] use integer, float, bool, string, pointer, typeinfo, any, or interface values")
 SWC_DIAG_DEF(sema_err_switch_dynamic_case, Error, "dynamic case does not name a struct type; [help] use a struct type, optionally followed by 'as <identifier>'")
+SWC_DIAG_DEF(sema_err_switch_case_enum_value_requires_dot, Error, "enum value '{sym}' needs a leading '.' in a switch case; [help] write '.{sym}'")
 SWC_DIAG_DEF(sema_err_switch_case_not_const, Error, "switch case value is not constant; [help] use a compile-time constant case value")
 SWC_DIAG_DEF(sema_err_switch_case_duplicate, Error, "duplicate constant case value '{value}'; [help] remove the duplicate case, or make one case conditional with 'where'")
 SWC_DIAG_DEF(sema_err_switch_multiple_default, Error, "multiple default cases in the same switch; [help] keep only one unconditional 'default' case")

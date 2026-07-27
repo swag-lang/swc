@@ -243,7 +243,7 @@ impl Encoder
             let line = pdst + nrline * xDiv8
             switch image.pf
             {
-            case BGR8:
+            case .BGR8:
                 for [column] in .imageX
                 {
                     line[column].b = pref[0]
@@ -252,7 +252,7 @@ impl Encoder
                     pref           += 3
                 }
 
-            case RGB8:
+            case .RGB8:
                 for [column] in .imageX
                 {
                     line[column].b = pref[2]
@@ -261,7 +261,7 @@ impl Encoder
                     pref           += 3
                 }
 
-            case BGRA8:
+            case .BGRA8:
                 for [column] in .imageX
                 {
                     line[column].b = pref[0]
@@ -270,7 +270,7 @@ impl Encoder
                     pref           += 4
                 }
 
-            case RGBA8:
+            case .RGBA8:
                 for [column] in .imageX
                 {
                     line[column].b = pref[2]

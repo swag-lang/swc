@@ -97,14 +97,14 @@ impl IWnd for EditBox
     {
         switch evt.kind
         {
-        case SetFocus:
+        case .SetFocus:
             .originalText = .text
             .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
             .visibleCaret = true
             .computeCaretPos()
             .invalidate()
 
-        case KillFocus:
+        case .KillFocus:
             .sigLoseFocus.call(me)
             let srf = notnull .surface
             srf.app.deleteTimer(notnull .timerCaret)
@@ -136,15 +136,15 @@ impl IWnd for EditBox
 
         switch .form
         {
-        case Square, Transparent:
+        case .Square, .Transparent:
             subRectBk     = &rects.edit_SquareBk
             subRectBorder = &rects.edit_SquareBorder
 
-        case Round:
+        case .Round:
             subRectBk     = &rects.edit_RoundBk
             subRectBorder = &rects.edit_RoundBorder
 
-        case Flat:
+        case .Flat:
             subRectBk     = &rects.edit_FlatBk
             subRectBorder = &rects.edit_FlatBorder
         }
@@ -284,18 +284,18 @@ impl IWnd for EditBox
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
         {
-        case MouseWheel:
+        case .MouseWheel:
             evt.accepted = false
             return
 
-        case MouseDoubleClick:
+        case .MouseDoubleClick:
             if evt.button != .Left do
                 break
             let x = .moveCaretLeftStartWord(.selBeg)
             let y = .moveCaretRightEndWord(.selEnd)
             .setSelection(x, y)
 
-        case MousePressed:
+        case .MousePressed:
             if evt.button != .Left do
                 break
             let x = .getByteIndexAtPos(pos.x)
@@ -305,7 +305,7 @@ impl IWnd for EditBox
             .isDragging  = true
             .captureMouse()
 
-        case MouseReleased:
+        case .MouseReleased:
             if evt.button != .Left do
                 break
             if .isDragging do
@@ -313,18 +313,18 @@ impl IWnd for EditBox
             .isDragging  = false
             evt.accepted = true
 
-        case MouseMove:
+        case .MouseMove:
             if !.isDragging do
                 break
             evt.accepted = true
             let x = .getByteIndexAtPos(pos.x)
             .setSelection(.selBeg, x)
 
-        case MouseEnter:
+        case .MouseEnter:
             .isHot = true
             .invalidate()
 
-        case MouseLeave:
+        case .MouseLeave:
             .isHot = false
             .invalidate()
         }
@@ -405,14 +405,14 @@ private impl EditBox
 
         switch key
         {
-        case A:
+        case .A:
             if ctrl and !shift
             {
                 .setSelection(0, .text.length)
                 return true
             }
 
-        case Insert:
+        case .Insert:
             if ctrl and !shift and .selBeg != .selEnd
             {
                 Clipboard.addString(@mkstring(.text.buffer + .getSelBeg(), .getSelEnd() - .getSelBeg()))
@@ -425,14 +425,14 @@ private impl EditBox
                 return true
             }
 
-        case C:
+        case .C:
             if ctrl and .selBeg != .selEnd
             {
                 Clipboard.addString(@mkstring(.text.buffer + .getSelBeg(), .getSelEnd() - .getSelBeg()))
                 return true
             }
 
-        case X:
+        case .X:
             if ctrl and .selBeg != .selEnd
             {
                 Clipboard.addString(@mkstring(.text.buffer + .getSelBeg(), .getSelEnd() - .getSelBeg()))
@@ -440,7 +440,7 @@ private impl EditBox
                 return true
             }
 
-        case V:
+        case .V:
             if ctrl
             {
                 let str = Clipboard.getString()
@@ -448,19 +448,19 @@ private impl EditBox
                 return true
             }
 
-        case Return:
+        case .Return:
             .sigEnterPressed.call(me)
             if .editBoxFlags.has(.AutoLoseFocus) do
                 .getTopView().setFocus()
             return true
 
-        case Escape:
+        case .Escape:
             .sigEscapePressed.call(me)
             if .editBoxFlags.has(.AutoLoseFocus) do
                 .getTopView().setFocus()
             return true
 
-        case Left:
+        case .Left:
             if ctrl do
                 .selEnd = .moveCaretLeftStartWord(.selEnd)
             else do
@@ -471,7 +471,7 @@ private impl EditBox
                 .setSelection(.selEnd, .selEnd)
             return true
 
-        case Right:
+        case .Right:
             if ctrl do
                 .selEnd = .moveCaretRightEndWord(.selEnd)
             else do
@@ -482,21 +482,21 @@ private impl EditBox
                 .setSelection(.selEnd, .selEnd)
             return true
 
-        case Home:
+        case .Home:
             if shift do
                 .setSelection(.selBeg, 0)
             else do
                 .setSelection(0, 0)
             return true
 
-        case End:
+        case .End:
             if shift do
                 .setSelection(.selBeg, .text.length)
             else do
                 .setSelection(.text.length, .text.length)
             return true
 
-        case Back:
+        case .Back:
             if .selBeg == .selEnd
             {
                 if !.selBeg do
@@ -507,7 +507,7 @@ private impl EditBox
             .deleteSelection()
             return true
 
-        case Delete:
+        case .Delete:
             if .selBeg == .selEnd
             {
                 .selEnd = .moveCaretRight(.selBeg)
@@ -553,28 +553,28 @@ private impl EditBox
             var parseErr: #null any
             switch .inputMode
             {
-            case S64:
+            case .S64:
                 let val  = catch StrConv.parseS64(.text) as err
                 parseErr = err
                 eat      = val.eat
                 if err == null and eat == .text.length and (val.value < .minMaxS64.min or val.value > .minMaxS64.max) do
                     res = .InvalidShow
 
-            case U64:
+            case .U64:
                 let val  = catch StrConv.parseU64(.text) as err
                 parseErr = err
                 eat      = val.eat
                 if err == null and eat == .text.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidShow
 
-            case X64:
+            case .X64:
                 let val  = catch StrConv.parseX64(.text) as err
                 parseErr = err
                 eat      = val.eat
                 if err == null and eat == .text.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidShow
 
-            case F64:
+            case .F64:
                 let val  = catch StrConv.parseF64(.text) as err
                 parseErr = err
                 eat      = val.eat
@@ -703,10 +703,10 @@ private impl EditBox
     {
         switch #complete .form
         {
-        case Square:      return .getThemeMetrics().editBox_SquarePadding
-        case Round:       return .getThemeMetrics().editBox_RoundPadding
-        case Flat:        return .getThemeMetrics().editBox_FlatPadding
-        case Transparent: break
+        case .Square:      return .getThemeMetrics().editBox_SquarePadding
+        case .Round:       return .getThemeMetrics().editBox_RoundPadding
+        case .Flat:        return .getThemeMetrics().editBox_FlatPadding
+        case .Transparent: break
         }
 
         return {}
@@ -725,15 +725,15 @@ private impl EditBox
         var lo, hi: String
         switch .inputMode
         {
-        case U64:
+        case .U64:
             lo = Format.toString("%", .minMaxU64.min)
             hi = Format.toString("%", .minMaxU64.max)
 
-        case S64:
+        case .S64:
             lo = Format.toString("%", .minMaxS64.min)
             hi = Format.toString("%", .minMaxS64.max)
 
-        case F64:
+        case .F64:
             lo = Format.toString("%{f2}", .minMaxF64.min)
             hi = Format.toString("%{f2}", .minMaxF64.max)
 
@@ -1168,10 +1168,10 @@ impl EditBox
 
         switch #complete .form
         {
-        case Square:      .setAllPaddings(.getThemeMetrics().editBox_SquarePadding)
-        case Round:       .setAllPaddings(.getThemeMetrics().editBox_RoundPadding)
-        case Flat:        .setAllPaddings(.getThemeMetrics().editBox_FlatPadding)
-        case Transparent: .setAllPaddings(0)
+        case .Square:      .setAllPaddings(.getThemeMetrics().editBox_SquarePadding)
+        case .Round:       .setAllPaddings(.getThemeMetrics().editBox_RoundPadding)
+        case .Flat:        .setAllPaddings(.getThemeMetrics().editBox_FlatPadding)
+        case .Transparent: .setAllPaddings(0)
         }
 
         .invalidate()

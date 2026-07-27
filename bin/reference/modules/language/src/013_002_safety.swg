@@ -264,8 +264,8 @@ Without 'switch #complete', an unmatched value reaches no case and Swag panics.
         // 'switch #complete' here would reject the missing 'Blue' case at compile time.
         switch color
         {
-        case Color.Red:   return "Red"
-        case Color.Green: return "Green"
+        case .Red:   return "Red"
+        case .Green: return "Green"
         }
 
         return ""

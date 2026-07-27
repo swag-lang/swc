@@ -100,17 +100,17 @@ func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(cons
     let safeType = type
     switch safeType.kind
     {
-    case Func:
+    case .Func:
         let typeFunc = cast(const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
-    case Struct:
+    case .Struct:
         let typeStruct = cast(const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
 
-    case Enum:
+    case .Enum:
         let typeEnum = cast(const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             result.add(it)
@@ -129,17 +129,17 @@ func getAttribute(type: #null typeinfo, attribute: #null typeinfo)->#null const 
     let safeType = type
     switch safeType.kind
     {
-    case Func:
+    case .Func:
         let typeFunc = cast(const *TypeInfoFunc) safeType
         for &it in typeFunc.attributes where sameAttributeType(attribute, it.type) do
             return it
 
-    case Struct:
+    case .Struct:
         let typeStruct = cast(const *TypeInfoStruct) safeType
         for &it in typeStruct.attributes where sameAttributeType(attribute, it.type) do
             return it
 
-    case Enum:
+    case .Enum:
         let typeEnum = cast(const *TypeInfoEnum) safeType
         for &it in typeEnum.attributes where sameAttributeType(attribute, it.type) do
             return it

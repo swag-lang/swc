@@ -29,7 +29,7 @@ impl Image
 
         switch #complete fillType
         {
-        case HueVert:
+        case .HueVert:
             .visitPixels(&swapRB)
             {
                 let swapRB  = dref cast(*bool) (notnull userData)
@@ -52,7 +52,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case HueHorz:
+        case .HueHorz:
             var pix = notnull .pixels.buffer
             for [x] in .width
             {
@@ -81,7 +81,7 @@ impl Image
                 Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
             }
 
-        case SaturationVert:
+        case .SaturationVert:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
@@ -106,7 +106,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case SaturationHorz:
+        case .SaturationHorz:
             var pix = notnull .pixels.buffer
             for [x] in .width
             {
@@ -135,7 +135,7 @@ impl Image
                 Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
             }
 
-        case LightnessVert:
+        case .LightnessVert:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
@@ -160,7 +160,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case LightnessHorz:
+        case .LightnessHorz:
             var pix = notnull .pixels.buffer
             for [x] in .width
             {
@@ -189,7 +189,7 @@ impl Image
                 Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
             }
 
-        case HueSaturation:
+        case .HueSaturation:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
@@ -214,7 +214,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case HueLightness:
+        case .HueLightness:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
@@ -239,7 +239,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case SaturationLightness:
+        case .SaturationLightness:
             var pms = {hsl: hsl, swapRB: swapRB}
             .visitPixels(&pms)
             {
@@ -266,7 +266,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case GreenBlue:
+        case .GreenBlue:
             var pms = {fixedRed: color.r / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
@@ -291,7 +291,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case RedBlue:
+        case .RedBlue:
             var pms = {fixedGreen: color.g / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {
@@ -316,7 +316,7 @@ impl Image
                     pix[3] = 255
             }
 
-        case RedGreen:
+        case .RedGreen:
             var pms = {fixedBlue: color.b / 255.0, swapRB: swapRB}
             .visitPixels(&pms)
             {

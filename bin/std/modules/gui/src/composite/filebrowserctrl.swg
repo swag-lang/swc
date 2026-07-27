@@ -154,10 +154,10 @@ private impl FileBrowserCtrl
             {
                 switch evt.key
                 {
-                case Back:
+                case .Back:
                     fileBrowser.folderUp()
 
-                case Enter:
+                case .Enter:
                     let l = list.getFocusLine()
                     if !l do
                         break

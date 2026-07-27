@@ -307,7 +307,7 @@ impl RichEditCtrl
 
         switch .form
         {
-        case RichEditCtrl:
+        case .RichEditCtrl:
             .style.setFont((notnull .parent).getTheme().res.fontDefaultFs)
 
             var mdlBk = .bkColorModel
@@ -326,7 +326,7 @@ impl RichEditCtrl
             .stylesSelect[1].colFg = colors.richEdit_SelTextNoFocus
             .stylesSelect[1].colBk = colors.richEdit_SelBkNoFocus
 
-        case Edit:
+        case .Edit:
             .style.clearFont()
 
             var mdlBk = .bkColorModel

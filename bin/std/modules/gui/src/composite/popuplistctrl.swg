@@ -41,7 +41,7 @@ impl IWnd for PopupListView
     {
         switch evt.kind
         {
-        case KillFocus:
+        case .KillFocus:
 
             // The focus left the popup (clicked elsewhere, another window, ...):
             // dismiss it.
@@ -61,12 +61,12 @@ impl IWnd for PopupListView
 
         switch evt.key
         {
-        case Up:            .moveHot(-1)
-        case Down:          .moveHot(1)
-        case Home:          .moveHotEdge(forward: true)
-        case End:           .moveHotEdge(forward: false)
-        case Return, Space: .close(.hotIdx)
-        case Escape:        .close(Swag.U32.Max)
+        case .Up:            .moveHot(-1)
+        case .Down:          .moveHot(1)
+        case .Home:          .moveHotEdge(forward: true)
+        case .End:           .moveHotEdge(forward: false)
+        case .Return, .Space: .close(.hotIdx)
+        case .Escape:        .close(Swag.U32.Max)
         default:            return
         }
 

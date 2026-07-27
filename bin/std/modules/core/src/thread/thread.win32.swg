@@ -105,11 +105,11 @@ impl Thread
         var wprio = 0
         switch #complete newPrio
         {
-        case Lowest:      wprio = THREAD_PRIORITY_LOWEST
-        case BelowNormal: wprio = THREAD_PRIORITY_BELOW_NORMAL
-        case Normal:      wprio = THREAD_PRIORITY_NORMAL
-        case AboveNormal: wprio = THREAD_PRIORITY_ABOVE_NORMAL
-        case Highest:     wprio = THREAD_PRIORITY_HIGHEST
+        case .Lowest:      wprio = THREAD_PRIORITY_LOWEST
+        case .BelowNormal: wprio = THREAD_PRIORITY_BELOW_NORMAL
+        case .Normal:      wprio = THREAD_PRIORITY_NORMAL
+        case .AboveNormal: wprio = THREAD_PRIORITY_ABOVE_NORMAL
+        case .Highest:     wprio = THREAD_PRIORITY_HIGHEST
         }
 
         try SetThreadPriority(.handle, wprio)

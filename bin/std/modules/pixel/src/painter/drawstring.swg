@@ -567,7 +567,7 @@ impl Painter
 
         switch drawFont.cache.renderMode
         {
-        case Msdf: .startMsdfFont()
+        case .Msdf: .startMsdfFont()
         default:   .startFont()
         }
 
@@ -606,11 +606,11 @@ impl Painter
             .canSetTexture0 = false
             switch under
             {
-            case Strikeout:
+            case .Strikeout:
                 let yUnder = y - (shaped.metrics.ascent * zoom / 2)
                 .drawLine(drawLeft, yUnder, drawLeft + shaped.metrics.width * zoom, yUnder, pen)
 
-            case Underline:
+            case .Underline:
                 let yUnder = y - font.underlinePos
                 .drawLine(drawLeft, yUnder, drawLeft + shaped.metrics.width * zoom, yUnder, pen)
             }
@@ -874,8 +874,8 @@ impl Painter
 
         switch format.vertAlignment
         {
-        case Bottom: y = pos.bottom() - totalHeight
-        case Center: y = pos.vertCenter() - (totalHeight * 0.5)
+        case .Bottom: y = pos.bottom() - totalHeight
+        case .Center: y = pos.vertCenter() - (totalHeight * 0.5)
         }
 
         // Y correction if single line
@@ -896,9 +896,9 @@ impl Painter
 
             switch format.horzAlignment
             {
-            case Left:   break
-            case Right:  x1 = pos.right() - l.measure.width
-            case Center: x1 = pos.horzCenter() - l.measure.width * 0.5
+            case .Left:   break
+            case .Right:  x1 = pos.right() - l.measure.width
+            case .Center: x1 = pos.horzCenter() - l.measure.width * 0.5
             }
 
             if l.end > l.start

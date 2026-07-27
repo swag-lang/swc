@@ -198,11 +198,11 @@ impl Voice
 
         switch file.encoding
         {
-        case Pcm8, Pcm16, Pcm24, Pcm32:
+        case .Pcm8, .Pcm16, .Pcm24, .Pcm32:
             wfx.subFormat           = Wav.GUID_PCM
             voice.requestedEncoding = file.encoding
 
-        case Float32:
+        case .Float32:
             wfx.subFormat           = Wav.GUID_IEEE_FLOAT
             voice.requestedEncoding = file.encoding
 

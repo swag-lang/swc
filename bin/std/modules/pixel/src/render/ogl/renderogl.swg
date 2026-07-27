@@ -276,35 +276,35 @@ private impl RenderOgl
 
         switch #complete bm
         {
-        case Copy:
+        case .Copy:
             glDisable(GL_BLEND)
 
-        case Alpha:
+        case .Alpha:
             glEnable(GL_BLEND)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
             glBlendEquation(GL_FUNC_ADD)
 
-        case Add:
+        case .Add:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_FUNC_ADD)
 
-        case Sub:
+        case .Sub:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_FUNC_SUBTRACT)
 
-        case SubDst:
+        case .SubDst:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_FUNC_REVERSE_SUBTRACT)
 
-        case Min:
+        case .Min:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_MIN)
 
-        case Max:
+        case .Max:
             glEnable(GL_BLEND)
             glBlendFunc(GL_ONE, GL_ONE)
             glBlendEquation(GL_MAX)
@@ -688,17 +688,17 @@ impl RenderOgl
 
         switch #complete image.pf
         {
-        case BGR8:
+        case .BGR8:
             fmt = GL_BGR
 
-        case BGRA8:
+        case .BGRA8:
             fmt       = GL_BGRA
             tinternal = GL_RGBA
 
-        case RGB8:
+        case .RGB8:
             fmt = GL_RGB
 
-        case RGBA8:
+        case .RGBA8:
             fmt       = GL_RGBA
             tinternal = GL_RGBA
         }
@@ -722,10 +722,10 @@ impl RenderOgl
     {
         switch #complete pf
         {
-        case BGR8:  return GL_BGR
-        case BGRA8: return GL_BGRA
-        case RGB8:  return GL_RGB
-        case RGBA8: return GL_RGBA
+        case .BGR8:  return GL_BGR
+        case .BGRA8: return GL_BGRA
+        case .RGB8:  return GL_RGB
+        case .RGBA8: return GL_RGBA
         }
 
         return GL_RGBA
@@ -853,61 +853,61 @@ impl RenderOgl
     {
         switch cmd.id
         {
-        case SetBlendingMode:
+        case .SetBlendingMode:
             let params = &cmd.blendingMode
             .setBlendingMode(params.mode)
 
-        case Clear:
+        case .Clear:
             let params       = &cmd.clear
             let {a, r, g, b} = params.color.toArgbf()
             glClearColor(r, g, b, a)
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)
 
-        case ColorMask:
+        case .ColorMask:
             let params = &cmd.colorMask
             glColorMask(params.r ? GL_TRUE : GL_FALSE, params.g ? GL_TRUE : GL_FALSE, params.b ? GL_TRUE : GL_FALSE, params.a ? GL_TRUE : GL_FALSE)
 
-        case Transform:
+        case .Transform:
             let params = &cmd.transform
             .buildModelMatrix(params.tr)
             let curShader = notnull .curShader
             glUniformMatrix4fv(cast(GLint) curShader.mdl, 1, GL_FALSE, &.modelMatrix.m[0, 0])
 
-        case StartClippingRegion:
+        case .StartClippingRegion:
             glEnable(GL_STENCIL_TEST)
             glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE)
             glStencilFunc(GL_ALWAYS, 1, 0xFF)
             fallthrough
 
-        case SetClippingRegionMode:
+        case .SetClippingRegionMode:
             let params = &cmd.clippingRegion
             let mode   = params.mode == .Set ? GL_REPLACE : cast(GLenum) GL_ZERO
             glStencilOp(mode, mode, mode)
 
-        case EndClippingRegion:
+        case .EndClippingRegion:
             glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE)
             glStencilFunc(GL_EQUAL, 1, 0xFF)
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
-        case ResetClippingRegion:
+        case .ResetClippingRegion:
             glDisable(GL_STENCIL_TEST)
 
-        case SetClippingRect:
+        case .SetClippingRect:
             let params = &cmd.clippingRect
             glEnable(GL_SCISSOR_TEST)
             glScissor(cast(GLint) params.rect.x, cast(GLint) (height - params.rect.y - params.rect.height), cast(GLint) params.rect.width, cast(GLint) params.rect.height)
 
-        case ResetClippingRect:
+        case .ResetClippingRect:
             glDisable(GL_SCISSOR_TEST)
 
-        case StartNoOverlap:
+        case .StartNoOverlap:
             .overlapMode = true
 
-        case StopNoOverlap:
+        case .StopNoOverlap:
             .overlapMode = false
             .setBlendingMode(.blendingMode)
 
-        case DrawTriangles:
+        case .DrawTriangles:
             let params = &cmd.drawTriangles
             if !.overlapMode
             {
@@ -938,16 +938,16 @@ impl RenderOgl
                 glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE)
             }
 
-        case StartFont:
+        case .StartFont:
             .setShader(&.shaderFont)
 
-        case StartMsdfFont:
+        case .StartMsdfFont:
             .setShader(&.shaderFontMsdf)
 
-        case EndFont:
+        case .EndFont:
             .setShader(&.shaderAA)
 
-        case BindTextureFont:
+        case .BindTextureFont:
             let params = &cmd.textureFont
             let cache  = params.font.cache
 
@@ -964,11 +964,11 @@ impl RenderOgl
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magF)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minF)
 
-        case ResetTextureFont:
+        case .ResetTextureFont:
             glActiveTexture(GL_TEXTURE1)
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
-        case UpdateFont:
+        case .UpdateFont:
             let cache = cmd.font.fontRef.cache
 
             // Mipmapped trilinear minification for distance-field atlases (see BindTextureFont).
@@ -1017,7 +1017,7 @@ impl RenderOgl
                     glGenerateMipmap(GL_TEXTURE_2D)
             }
 
-        case ResetTexture0:
+        case .ResetTexture0:
             let curShader = notnull .curShader
             glUniform1f(cast(GLint) curShader.paintType, cast(GLfloat) cast(u32) BrushType.SolidColor)
             glUniform1f(cast(GLint) curShader.uvMode, cast(GLfloat) cast(u32) UVMode.Fill)
@@ -1026,7 +1026,7 @@ impl RenderOgl
             glActiveTexture(GL_TEXTURE0)
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
-        case BindTexture0:
+        case .BindTexture0:
             let params    = &cmd.texture0
             let curShader = notnull .curShader
             glUniform4fv(cast(GLint) curShader.boundRect, 1, &params.boundRect.x)
@@ -1039,21 +1039,21 @@ impl RenderOgl
 
             switch #complete params.type
             {
-            case SolidColor:
+            case .SolidColor:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
                 glUniform1i(cast(GLint) curShader.gradientCount, 0)
 
-            case Texture:
+            case .Texture:
                 glBindTexture(GL_TEXTURE_2D, cast(GLuint) params.texture.handle)
                 glUniform1f(cast(GLint) curShader.textureW, cast(GLfloat) params.texture.width)
                 glUniform1f(cast(GLint) curShader.textureH, cast(GLfloat) params.texture.height)
                 glUniform1i(cast(GLint) curShader.gradientCount, 0)
 
-            case Hatch:
+            case .Hatch:
                 glBindTexture(GL_TEXTURE_2D, .hatchTextures[params.hatch])
                 glUniform1i(cast(GLint) curShader.gradientCount, 0)
 
-            case LinearGradient, RadialGradient, SweepGradient:
+            case .LinearGradient, .RadialGradient, .SweepGradient:
                 glBindTexture(GL_TEXTURE_2D, .whiteTexture)
                 glUniform1f(cast(GLint) curShader.gradientSpread, cast(GLfloat) cast(u32) params.gradientSpread)
                 glUniform2f(cast(GLint) curShader.gradientStart, cast(GLfloat) params.gradientStart.x, cast(GLfloat) params.gradientStart.y)
@@ -1076,27 +1076,27 @@ impl RenderOgl
 
             switch #complete params.uvMode
             {
-            case Fill, FillSubRect:
+            case .Fill, .FillSubRect:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
 
-            case Tile:
+            case .Tile:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
             }
 
             switch #complete params.interpolationMode
             {
-            case Pixel:
+            case .Pixel:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
 
-            case Linear:
+            case .Linear:
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
             }
 
-        case BindRenderTarget:
+        case .BindRenderTarget:
             .bindRenderTarget(cmd.renderTgt.tgt)
             let curRT = notnull .curRT
             curRT.paintAlpha    = cmd.renderTgt.paintAlpha
@@ -1104,7 +1104,7 @@ impl RenderOgl
             let curShader = notnull .curShader
             .computeMatrices(curShader.mvp, curShader.mdl)
 
-        case UnbindRenderTarget:
+        case .UnbindRenderTarget:
             Debug.assert(.curRT != null)
 
             let curRT = notnull .curRT
@@ -1122,7 +1122,7 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case Transform, StartFont, StartMsdfFont, EndFont, ResetTexture0, BindTexture0, ResetTextureFont, BindTextureFont, SetFontEffect, DrawTriangles: .executeCommand(dc, cmd1, cast(u64) i, width, height)
+                    case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64) i, width, height)
                     }
                 }
             }
@@ -1131,14 +1131,14 @@ impl RenderOgl
             let curShader = notnull .curShader
             .computeMatrices(curShader.mvp, curShader.mdl)
 
-        case ReleaseRenderTarget:
+        case .ReleaseRenderTarget:
             .releaseRenderTarget(cmd.renderTgt.tgt)
 
-        case SetShader:
+        case .SetShader:
             let params = &cmd.shader
             .setShader(params.shader)
 
-        case SetShaderParam:
+        case .SetShaderParam:
             let params = &cmd.shaderParam
             switch params.type
             {
@@ -1147,7 +1147,7 @@ impl RenderOgl
             default:  Debug.assert(false)
             }
 
-        case SetFontEffect:
+        case .SetFontEffect:
 
             // Always emitted right after StartMsdfFont, so the MSDF font program is
             // the active one and these uniforms land on it.
@@ -1178,11 +1178,11 @@ impl RenderOgl
             {
                 switch cmd.id
                 {
-                case Clear:
+                case .Clear:
                     if .curRT do
                         .clearHeadlessTexture(.curRT.colorBuffer, cmd.clear.color)
 
-                case BindRenderTarget:
+                case .BindRenderTarget:
                     .bindRenderTarget(cmd.renderTgt.tgt)
                     if .curRT
                     {
@@ -1190,11 +1190,11 @@ impl RenderOgl
                         .curRT.paintAlphaIdx = 0
                     }
 
-                case UnbindRenderTarget:
+                case .UnbindRenderTarget:
                     if .curRT do
                         .unbindRenderTarget()
 
-                case ReleaseRenderTarget:
+                case .ReleaseRenderTarget:
                     .releaseRenderTarget(cmd.renderTgt.tgt)
 
                 default:

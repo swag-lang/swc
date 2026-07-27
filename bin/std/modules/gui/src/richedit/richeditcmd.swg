@@ -141,21 +141,21 @@ impl RichEditCtrl
     {
         switch cmd
         {
-        case CursorLeft:
+        case .CursorLeft:
             if .isSelectionEmpty() do
                 .moveCursorLeft(&.cursorPos)
             else do
                 .setCursorPos(.getBegSelection())
             .clearSelection()
 
-        case CursorRight:
+        case .CursorRight:
             if .isSelectionEmpty() do
                 .moveCursorRight(&.cursorPos)
             else do
                 .setCursorPos(.getEndSelection())
             .clearSelection()
 
-        case CursorUp:
+        case .CursorUp:
             if !.isSelectionEmpty()
             {
                 let pt = .getCursorDisplayPos(.cursorPos)
@@ -166,7 +166,7 @@ impl RichEditCtrl
                 .moveCursorUp(&.cursorPos)
             .clearSelection()
 
-        case CursorDown:
+        case .CursorDown:
             if !.isSelectionEmpty()
             {
                 let pt = .getCursorDisplayPos(.cursorPos)
@@ -177,98 +177,98 @@ impl RichEditCtrl
                 .moveCursorDown(&.cursorPos)
             .clearSelection()
 
-        case CursorStartLine:
+        case .CursorStartLine:
             .moveCursorStartLine(&.cursorPos)
             .clearSelection()
 
-        case CursorEndLine:
+        case .CursorEndLine:
             .moveCursorEndLine(&.cursorPos)
             .clearSelection()
 
-        case CursorStartFile:
+        case .CursorStartFile:
             .moveCursorStartFile(&.cursorPos)
             .clearSelection()
 
-        case CursorEndFile:
+        case .CursorEndFile:
             .moveCursorEndFile(&.cursorPos)
             .clearSelection()
 
-        case CursorWordLeft:
+        case .CursorWordLeft:
             .moveCursorWordLeft(&.cursorPos)
             .clearSelection()
 
-        case CursorWordRight:
+        case .CursorWordRight:
             .moveCursorWordRight(&.cursorPos, true)
             .clearSelection()
 
-        case CursorPageUp:
+        case .CursorPageUp:
             .moveCursorPageUp(&.cursorPos)
             .clearSelection()
 
-        case CursorPageDown:
+        case .CursorPageDown:
             .moveCursorPageDown(&.cursorPos)
             .clearSelection()
 
-        case ScrollLineUp:
+        case .ScrollLineUp:
             .scrollLineUp()
 
-        case ScrollLineDown:
+        case .ScrollLineDown:
             .scrollLineDown()
 
-        case SelectRuneLeft:
+        case .SelectRuneLeft:
             .moveCursorLeft(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectRuneRight:
+        case .SelectRuneRight:
             .moveCursorRight(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectRuneUp:
+        case .SelectRuneUp:
             .moveCursorUp(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectRuneDown:
+        case .SelectRuneDown:
             .moveCursorDown(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectStartLine:
+        case .SelectStartLine:
             .moveCursorStartLine(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectEndLine:
+        case .SelectEndLine:
             .moveCursorEndLine(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectStartFile:
+        case .SelectStartFile:
             .moveCursorStartFile(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectEndFile:
+        case .SelectEndFile:
             .moveCursorEndFile(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectAllFile:
+        case .SelectAllFile:
             .moveCursorStartFile(&.selBeg)
             .moveCursorEndFile(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectWordLeft:
+        case .SelectWordLeft:
             .moveCursorWordLeft(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectWordRight:
+        case .SelectWordRight:
             .moveCursorWordRight(&.cursorPos, false)
             .setRectangularSelection(false)
 
-        case SelectPageUp:
+        case .SelectPageUp:
             .moveCursorPageUp(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectPageDown:
+        case .SelectPageDown:
             .moveCursorPageDown(&.cursorPos)
             .setRectangularSelection(false)
 
-        case SelectRectLeft:
+        case .SelectRectLeft:
             var cp = .cursorPos
             .moveCursorLeft(&cp)
             if cp.lineIndex == .cursorPos.lineIndex
@@ -277,7 +277,7 @@ impl RichEditCtrl
                 .setRectangularSelection(true)
             }
 
-        case SelectRectRight:
+        case .SelectRectRight:
             var cp = .cursorPos
             .moveCursorRight(&cp)
             if cp.lineIndex == .cursorPos.lineIndex
@@ -286,7 +286,7 @@ impl RichEditCtrl
                 .setRectangularSelection(true)
             }
 
-        case SelectRectUp:
+        case .SelectRectUp:
             var cp = .cursorPos
             .moveCursorUp(&cp)
             if cp.charPosInLine == .cursorPos.charPosInLine
@@ -295,7 +295,7 @@ impl RichEditCtrl
                 .setRectangularSelection(true)
             }
 
-        case SelectRectDown:
+        case .SelectRectDown:
             var cp = .cursorPos
             .moveCursorDown(&cp)
             if cp.charPosInLine == .cursorPos.charPosInLine
@@ -304,32 +304,32 @@ impl RichEditCtrl
                 .setRectangularSelection(true)
             }
 
-        case DeleteLeft:
+        case .DeleteLeft:
             if .isReadOnly() do
                 return
             .deleteLeft()
 
-        case DeleteRight:
+        case .DeleteRight:
             if .isReadOnly() do
                 return
             .deleteRight()
 
-        case DeleteWordLeft:
+        case .DeleteWordLeft:
             if .isReadOnly() do
                 return
             .deleteWordLeft()
 
-        case DeleteWordRight:
+        case .DeleteWordRight:
             if .isReadOnly() do
                 return
             .deleteWordRight()
 
-        case DeleteLine:
+        case .DeleteLine:
             if .isReadOnly() do
                 return
             .deleteLine()
 
-        case EditTabulation:
+        case .EditTabulation:
             if .isReadOnly() do
                 return
             if .getBegSelection().lineIndex == .getEndSelection().lineIndex
@@ -342,34 +342,34 @@ impl RichEditCtrl
             else do
                 .insertBegLine("\t")
 
-        case EditBackTabulation:
+        case .EditBackTabulation:
             if .isReadOnly() do
                 return
             .deleteBegLine("\t", false)
 
-        case Undo:
+        case .Undo:
             if .isReadOnly() do
                 return
             .undo()
 
-        case Redo:
+        case .Redo:
             if .isReadOnly() do
                 return
             .redo()
 
-        case ToggleOverwrite:
+        case .ToggleOverwrite:
             .overwriteMode = !.overwriteMode
             .invalidate()
 
-        case ClipboardCopy:
+        case .ClipboardCopy:
             .copyToClipboard()
 
-        case ClipboardPaste:
+        case .ClipboardPaste:
             if .isReadOnly() do
                 return
             .pasteFromClipboard()
 
-        case ClipboardCut:
+        case .ClipboardCut:
             if .isReadOnly() do
                 return
             .copyToClipboard()

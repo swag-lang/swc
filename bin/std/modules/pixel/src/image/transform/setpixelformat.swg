@@ -8,10 +8,10 @@ impl Image
 
         switch #complete .pf
         {
-        case RGB8:
+        case .RGB8:
             break
 
-        case RGBA8:
+        case .RGBA8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -21,7 +21,7 @@ impl Image
                 pixDst[2] = pix[2]
             }
 
-        case BGR8, BGRA8:
+        case .BGR8, .BGRA8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -39,10 +39,10 @@ impl Image
 
         switch #complete .pf
         {
-        case RGBA8:
+        case .RGBA8:
             break
 
-        case BGRA8:
+        case .BGRA8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -53,7 +53,7 @@ impl Image
                 pixDst[3] = pix[3]
             }
 
-        case RGB8:
+        case .RGB8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -64,7 +64,7 @@ impl Image
                 pixDst[3] = 255
             }
 
-        case BGR8:
+        case .BGR8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -83,10 +83,10 @@ impl Image
 
         switch #complete .pf
         {
-        case BGR8:
+        case .BGR8:
             break
 
-        case BGRA8:
+        case .BGRA8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -96,7 +96,7 @@ impl Image
                 pixDst[2] = pix[2]
             }
 
-        case RGB8, RGBA8:
+        case .RGB8, .RGBA8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -114,10 +114,10 @@ impl Image
 
         switch #complete .pf
         {
-        case BGRA8:
+        case .BGRA8:
             break
 
-        case BGR8:
+        case .BGR8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -128,7 +128,7 @@ impl Image
                 pixDst[3] = 255
             }
 
-        case RGB8:
+        case .RGB8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -139,7 +139,7 @@ impl Image
                 pixDst[3] = 255
             }
 
-        case RGBA8:
+        case .RGBA8:
             mec.visitPixels(dstImage)
             {
                 let dstImage = cast(*Image) (notnull userData)
@@ -156,10 +156,10 @@ impl Image
     {
         switch #complete dstImage.pf
         {
-        case RGB8:  .doRGB8(dstImage)
-        case RGBA8: .doRGBA8(dstImage)
-        case BGR8:  .doBGR8(dstImage)
-        case BGRA8: .doBGRA8(dstImage)
+        case .RGB8:  .doRGB8(dstImage)
+        case .RGBA8: .doRGBA8(dstImage)
+        case .BGR8:  .doBGR8(dstImage)
+        case .BGRA8: .doBGRA8(dstImage)
         }
     }
 

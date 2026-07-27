@@ -195,8 +195,8 @@ extends with a custom sharp selector such as 'for #Pairs'.
 
     switch #complete direction
     {
-    case Direction.Up:   @assert(true)
-    case Direction.Down: @assert(false)
+    case .Up:   @assert(true)
+    case .Down: @assert(false)
     }
 }
 

@@ -80,7 +80,7 @@ impl IWnd for PalettePicker
 
         switch evt.kind
         {
-        case MousePressed:
+        case .MousePressed:
             if evt.button == .Left and .hotIdx != Swag.S32.Max
             {
                 .selectedColor = .pal[.hotIdx]
@@ -88,7 +88,7 @@ impl IWnd for PalettePicker
                 evt.accepted = true
             }
 
-        case MouseLeave:
+        case .MouseLeave:
             if .hotIdx != Swag.S32.Max
             {
                 .hotIdx = Swag.S32.Max

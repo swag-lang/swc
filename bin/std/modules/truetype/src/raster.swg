@@ -67,12 +67,12 @@ func buildEdges(outline: const *Outline)->Array'Edge
     {
         switch cmd.kind
         {
-        case MoveTo:
+        case .MoveTo:
             currentX = cmd.p0.x / 64.0
             currentY = cmd.p0.y / 64.0
             havePos  = true
 
-        case LineTo:
+        case .LineTo:
             if havePos
             {
                 let x = cmd.p0.x / 64.0
@@ -82,7 +82,7 @@ func buildEdges(outline: const *Outline)->Array'Edge
                 currentY = y
             }
 
-        case ConicTo:
+        case .ConicTo:
             if havePos
             {
                 let cx = cmd.p0.x / 64.0

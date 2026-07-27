@@ -75,8 +75,8 @@ impl IWnd for FrameWnd
 
         switch .frameForm
         {
-        case Square: subRectBk = &rects.frameWnd_SquareBk
-        case Round:  subRectBk = &rects.frameWnd_RoundBk
+        case .Square: subRectBk = &rects.frameWnd_SquareBk
+        case .Round:  subRectBk = &rects.frameWnd_RoundBk
         }
 
         // Display focus borders when the focus wnd is a child of me
@@ -119,8 +119,8 @@ impl IWnd for FrameWnd
 
         switch .frameForm
         {
-        case Square: subRectBorder = &rects.frameWnd_SquareBorder
-        case Round:  subRectBorder = &rects.frameWnd_RoundBorder
+        case .Square: subRectBorder = &rects.frameWnd_SquareBorder
+        case .Round:  subRectBorder = &rects.frameWnd_RoundBorder
         }
 
         // Display focus borders when the focus wnd is a child of me
@@ -149,13 +149,13 @@ impl IWnd for FrameWnd
             var marginA: f32
             switch .frameForm
             {
-            case Square: marginA = metrics.frameWnd_AnchorSquareBorderMargin
-            case Round:  marginA = metrics.frameWnd_AnchorRoundBorderMargin
+            case .Square: marginA = metrics.frameWnd_AnchorSquareBorderMargin
+            case .Round:  marginA = metrics.frameWnd_AnchorRoundBorderMargin
             }
 
             switch .anchor
             {
-            case Top:
+            case .Top:
                 posA              = Math.clamp(posA, marginA, clientRect.width - marginA)
                 clientRect.x      = clientRect.x + posA - metrics.frameWnd_AnchorWidth * 0.5
                 clientRect.y      -= metrics.frameWnd_AnchorHeight
@@ -164,7 +164,7 @@ impl IWnd for FrameWnd
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorTopBk, .usedColorBk)
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorTop, colorBorder, false)
 
-            case Bottom:
+            case .Bottom:
                 posA              = Math.clamp(posA, marginA, clientRect.width - marginA)
                 clientRect.x      = clientRect.x + posA - metrics.frameWnd_AnchorWidth * 0.5
                 clientRect.y      = clientRect.bottom() - metrics.frameWnd_AnchorOverlap
@@ -173,7 +173,7 @@ impl IWnd for FrameWnd
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorBottomBk, .usedColorBk)
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorBottom, colorBorder, false)
 
-            case Left:
+            case .Left:
                 posA              = Math.clamp(posA, marginA, clientRect.height - marginA)
                 clientRect.x      -= metrics.frameWnd_AnchorHeight
                 clientRect.y      = clientRect.y + posA - metrics.frameWnd_AnchorHeight * 0.5
@@ -182,7 +182,7 @@ impl IWnd for FrameWnd
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorLeftBk, .usedColorBk)
                 theme.drawSubRect(painter, clientRect, &rects.frameWnd_AnchorLeft, colorBorder, false)
 
-            case Right:
+            case .Right:
                 posA              = Math.clamp(posA, marginA, clientRect.height - marginA)
                 clientRect.x      = clientRect.right() - metrics.frameWnd_AnchorOverlap
                 clientRect.y      = clientRect.y + posA - metrics.frameWnd_AnchorHeight * 0.5
@@ -250,15 +250,15 @@ impl FrameWnd
 
         switch #complete .frameForm
         {
-        case Square:
+        case .Square:
             .wndFlags.add(.PostChildsPaint)
             .setAllPaddings(.getThemeMetrics().frameWnd_SquarePadding)
 
-        case Round:
+        case .Round:
             .wndFlags.add(.PostChildsPaint)
             .setAllPaddings(.getThemeMetrics().frameWnd_RoundPadding)
 
-        case Transparent:
+        case .Transparent:
             .wndFlags.remove(.PostChildsPaint)
             .setAllPaddings(0)
         }

@@ -11,7 +11,7 @@ impl ICodec for CodecPcmToPcm16
     {
         switch encoding
         {
-        case Pcm16: return true
+        case .Pcm16: return true
         }
 
         return false
@@ -21,7 +21,7 @@ impl ICodec for CodecPcmToPcm16
     {
         switch encoding
         {
-        case Pcm8, Pcm16, Pcm24, Pcm32, Float32: return true
+        case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32: return true
         }
 
         return false
@@ -88,10 +88,10 @@ impl ICodec for CodecPcmToPcm16
 
         switch .srcEncoding
         {
-        case Pcm8:    return doIt'(1, Pcm8)(destBuffer, destLength, srcBuffer, srcLength)
-        case Pcm24:   return doIt'(3, Pcm24)(destBuffer, destLength, srcBuffer, srcLength)
-        case Pcm32:   return doIt'(4, Pcm32)(destBuffer, destLength, srcBuffer, srcLength)
-        case Float32: return doIt'(4, Float32)(destBuffer, destLength, srcBuffer, srcLength)
+        case .Pcm8:    return doIt'(1, Pcm8)(destBuffer, destLength, srcBuffer, srcLength)
+        case .Pcm24:   return doIt'(3, Pcm24)(destBuffer, destLength, srcBuffer, srcLength)
+        case .Pcm32:   return doIt'(4, Pcm32)(destBuffer, destLength, srcBuffer, srcLength)
+        case .Float32: return doIt'(4, Float32)(destBuffer, destLength, srcBuffer, srcLength)
         }
 
         fail UnsupportedFormatError{"invalid encoding"}

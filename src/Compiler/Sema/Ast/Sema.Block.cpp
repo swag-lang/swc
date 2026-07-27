@@ -299,12 +299,7 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
     SWC_RESULT(SemaCheck::modifiers(sema, node, node.modifierFlags, allowed));
 
     if (node.modifierFlags.has(AstModifierFlagsE::Fail) && node.modifierFlags.has(AstModifierFlagsE::NoFail))
-    {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_modifier_unsupported, node.codeRef());
-        diag.addArgument(Diagnostic::ARG_WHAT, "#err/#noerr");
-        diag.report(sema.ctx());
-        return Result::Error;
-    }
+        return SemaError::raise(sema, DiagnosticId::sema_err_defer_fail_conflict, sema.curNodeRef());
 
     if (node.modifierFlags.has(AstModifierFlagsE::Fail) || node.modifierFlags.has(AstModifierFlagsE::NoFail))
         SWC_RESULT(SemaHelpers::requireRuntimeErrorContextDependency(sema, node.codeRef()));

@@ -202,8 +202,44 @@ extends with a custom sharp selector such as 'for #Pairs'.
 
 /**
 'defer #fail' and 'defer #nofail' select which exit path runs the deferred
-statement.
+statement. They are opposite exit paths and cannot be combined.
 
+# Where Modifiers Go
+
+A modifier is always written **immediately after the keyword it modifies**, never
+after the operand: 'switch #complete value', not 'switch value #complete'. The
+same holds for 'cast', 'for', 'defer', and an assignment operator.
+
+Several modifiers on the same construct form a **set**, so their order carries no
+meaning and a repeat is rejected:
+
+```swag
+a = #nodrop #move b     // same as '#move #nodrop'
+let bits = cast #bit #unconst (*s32) p
+```
+
+One ordering rule does exist: on 'for', a custom sharp selector comes **before**
+the modifiers, because the selector names which iteration hook is resolved.
+
+```swag
+for #Pairs #reverse [right] in values     // accepted
+for #reverse #Pairs [right] in values     // rejected
+```
+
+'#static if' and '#static switch' accept no modifier at all: they choose a branch
+while compiling, so there is no runtime construct left to modify.
+*/
+
+#test
+{
+    var a = 250'u8
+
+    // Order between modifiers carries no meaning.
+    #assert(#typeof(a + #wrap #prom 1'u8) == u32)
+    #assert(#typeof(a + #prom #wrap 1'u8) == u32)
+}
+
+/**
 # Choosing the Narrowest Scope
 
 '#wrap' opts one arithmetic operation into wrapping behavior. Broader runtime

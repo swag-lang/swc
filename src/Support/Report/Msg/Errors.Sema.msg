@@ -79,6 +79,7 @@ SWC_DIAG_DEF(sema_err_move_arg_not_copyable, Error, "cannot copy a value of non-
 SWC_DIAG_DEF(sema_err_cannot_copy_nocopy, Error, "cannot copy a value of non-copyable type '{type}'; [help] transfer ownership with '#move', or remove '#[Swag.NoCopy]' from the type")
 SWC_DIAG_DEF(sema_err_move_source_no_default, Error, "cannot consume a value of type '{type}' with '#move' because its moved-from source has 'opDrop' and requires explicit initialization; [help] give every required field a valid default, or avoid this ownership transfer")
 SWC_DIAG_DEF(sema_err_relocate_modifier_conflict, Error, "'#relocate' cannot be combined with '#move' or '#nodrop'; [help] '#relocate' already implies an uninitialized target and an abandoned source")
+SWC_DIAG_DEF(sema_err_defer_fail_conflict, Error, "'#fail' and '#nofail' select opposite exit paths and cannot be combined; [help] keep '#fail' to run the statement only when the scope fails, '#nofail' only when it does not, or neither to always run it")
 SWC_DIAG_DEF(sema_err_move_arg_macro, Error, "a '#move' parameter of a macro or mixin requires an explicit '#move' argument; [help] pass the value with '#move'")
 SWC_DIAG_DEF(sema_err_move_arg_macro_value, Error, "a '#move' argument to a macro or mixin requires a '#move' parameter; [help] remove '#move' from the argument, or declare the parameter type with '#move'")
 SWC_DIAG_DEF(sema_err_move_arg_param_not_move, Error, "cannot pass a '#move' argument to a reference or pointer parameter; [help] remove '#move' from the argument, or declare the parameter type with '#move'")

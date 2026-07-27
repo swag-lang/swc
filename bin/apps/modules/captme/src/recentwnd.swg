@@ -25,7 +25,7 @@ struct RecentView
     using wnd: Wnd
 
     #[Swag.Late]
-    main:      *MainWnd
+    main: *MainWnd
     #[Swag.Late]
     recentWnd: *RecentWnd
     items:     ArrayPtr'RecentItem
@@ -215,9 +215,9 @@ impl IWnd for RecentView
 
 struct RecentWnd
 {
-    using scrollWnd:    ScrollWnd
+    using scrollWnd: ScrollWnd
     #[Swag.Late]
-    main:               *MainWnd
+    main: *MainWnd
     #[Swag.Late]
     recentView:         *RecentView
     timer:              #null *Gui.Timer

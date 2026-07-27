@@ -246,7 +246,7 @@ impl Properties
             {
             case .U8, .U16, .U32, .U64: slider.setMinMaxU64(cast() minV, cast() maxV)
             case .S8, .S16, .S32, .S64: slider.setMinMaxS64(cast() minV, cast() maxV)
-            case .F32, .F64:          slider.setMinMaxF32(minV, maxV)
+            case .F32, .F64:            slider.setMinMaxF32(minV, maxV)
             }
         }
         else

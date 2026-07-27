@@ -320,3 +320,34 @@ func foreachCStringRefSum(value: &cstring)->s32
     @assert(sumV == 16)
     @assert(sumI == 3)
 }
+
+// A '&name' binding stays mutable when the iterated storage is mutable. The immutable
+// counterpart is rejected at compile time, see 'sema_err_for_struct_binding_const'.
+
+#test
+{
+    var values = [1, 2, 3]
+    for &v in values do
+        v = 9
+    @assert(values[0] == 9 and values[1] == 9 and values[2] == 9)
+}
+
+#test
+{
+    // 'let' freezes a slice handle, never the storage it designates.
+    var backing     = [1, 2, 3]
+    let view: [..] s32 = backing
+    for &v in view do
+        v = 7
+    @assert(backing[0] == 7 and backing[1] == 7 and backing[2] == 7)
+}
+
+#test
+{
+    // An immutable array still iterates by value.
+    let values = [1, 2, 3]
+    var sum    = 0
+    for v in values do
+        sum += v
+    @assert(sum == 6)
+}

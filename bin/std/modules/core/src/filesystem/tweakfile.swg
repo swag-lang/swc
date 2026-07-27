@@ -116,7 +116,7 @@ impl TweakFile
                 if safeField.pointedType != safeOtherField.pointedType do
                     fail SyntaxError{Errors.mkString(Format.toString("reference [[%]] type mismatch", one)), line: idx + 1}
                 let folder = currentFolder
-                let refr = Ref{folder, safeOtherField, safeField}
+                let refr   = Ref{folder, safeOtherField, safeField}
                 refs.add(refr)
                 continue
             }

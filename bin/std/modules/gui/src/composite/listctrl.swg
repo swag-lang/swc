@@ -87,17 +87,18 @@ struct ListCtrl
     hotIndex   = Swag.U32.Max
     #[Swag.Late]
     {
-        scrollWnd:        *ScrollWnd
-        listView:         *ListView
-        header:           *Header
+        scrollWnd: *ScrollWnd
+        listView:  *ListView
+        header:    *Header
     }
-    virtualCount:     u32
-    isVirtual:        bool
+
+    virtualCount: u32
+    isVirtual:    bool
 }
 
 struct ListView
 {
-    using wnd:           Wnd
+    using wnd: Wnd
     #[Swag.Late]
     list:                *ListCtrl
     discardMouseRelease: bool

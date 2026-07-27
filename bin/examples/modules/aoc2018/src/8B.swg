@@ -22,7 +22,6 @@ using Core
 internal var rootNodeTotal = 0
 
 //#[Swag.Sanity(Swag.SafetyWhat.All, false)]
-//#[Swag.PrintGenBc]
 func day8B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")

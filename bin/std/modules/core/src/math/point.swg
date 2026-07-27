@@ -83,20 +83,11 @@ impl Point
     {
         #static switch op
         {
-        case .Add:
-            return Point{.x + other.x, .y + other.y}
-
-        case .Sub:
-            return Point{.x - other.x, .y - other.y}
-
-        case .Mul:
-            return Point{.x * other.x, .y * other.y}
-
-        case .Div:
-            return Point{.x / other.x, .y / other.y}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Point{.x + other.x, .y + other.y}
+        case .Sub: return Point{.x - other.x, .y - other.y}
+        case .Mul: return Point{.x * other.x, .y * other.y}
+        case .Div: return Point{.x / other.x, .y / other.y}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -106,20 +97,11 @@ impl Point
     {
         #static switch op
         {
-        case .Add:
-            return Point{.x + value, .y + value}
-
-        case .Sub:
-            return Point{.x - value, .y - value}
-
-        case .Mul:
-            return Point{.x * value, .y * value}
-
-        case .Div:
-            return Point{.x / value, .y / value}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Point{.x + value, .y + value}
+        case .Sub: return Point{.x - value, .y - value}
+        case .Mul: return Point{.x * value, .y * value}
+        case .Div: return Point{.x / value, .y / value}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

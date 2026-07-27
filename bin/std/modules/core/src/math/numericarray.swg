@@ -34,20 +34,11 @@ impl NumericArray
         {
             #static switch op
             {
-            case .Add:
-                result.buf[i] = .buf[i] + other.buf[i]
-
-            case .Sub:
-                result.buf[i] = .buf[i] - other.buf[i]
-
-            case .Mul:
-                result.buf[i] = .buf[i] * other.buf[i]
-
-            case .Div:
-                result.buf[i] = .buf[i] / other.buf[i]
-
-            default:
-                #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+            case .Add: result.buf[i] = .buf[i] + other.buf[i]
+            case .Sub: result.buf[i] = .buf[i] - other.buf[i]
+            case .Mul: result.buf[i] = .buf[i] * other.buf[i]
+            case .Div: result.buf[i] = .buf[i] / other.buf[i]
+            default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
             }
         }
 
@@ -60,20 +51,11 @@ impl NumericArray
         {
             #static switch op
             {
-            case .AddAssign:
-                .buf[i] += value
-
-            case .SubAssign:
-                .buf[i] -= value
-
-            case .MulAssign:
-                .buf[i] *= value
-
-            case .DivAssign:
-                .buf[i] /= value
-
-            default:
-                #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
+            case .AddAssign: .buf[i] += value
+            case .SubAssign: .buf[i] -= value
+            case .MulAssign: .buf[i] *= value
+            case .DivAssign: .buf[i] /= value
+            default:         #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
             }
         }
     }
@@ -84,20 +66,11 @@ impl NumericArray
         {
             #static switch op
             {
-            case .AddAssign:
-                .buf[i] += value.buf[i]
-
-            case .SubAssign:
-                .buf[i] -= value.buf[i]
-
-            case .MulAssign:
-                .buf[i] *= value.buf[i]
-
-            case .DivAssign:
-                .buf[i] /= value.buf[i]
-
-            default:
-                #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
+            case .AddAssign: .buf[i] += value.buf[i]
+            case .SubAssign: .buf[i] -= value.buf[i]
+            case .MulAssign: .buf[i] *= value.buf[i]
+            case .DivAssign: .buf[i] /= value.buf[i]
+            default:         #error("unsupported assign operation [[" ++ op.symbol() ++ "]]")
             }
         }
     }

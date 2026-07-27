@@ -6,7 +6,6 @@ using Swag
 namespace compiler1387
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var count = 0
@@ -51,7 +50,6 @@ namespace compiler213
 namespace compiler216
 {
     //
-    //#[PrintBc]
     func main()->bool
     {
         if false
@@ -77,7 +75,6 @@ namespace compiler216
 namespace compiler230
 {
     //
-    //#[PrintBc]
     func main()->s32
     {
         var a = 10
@@ -125,7 +122,6 @@ namespace compiler241
 namespace compiler242
 {
     //
-    //#[PrintBc]
     func main()->s32
     {
         var a = 0
@@ -154,7 +150,6 @@ namespace compiler242
 namespace compiler243
 {
     //
-    //#[PrintBc]
     func toto()->s32
     {
         var a = 0
@@ -197,7 +192,6 @@ namespace compiler256
 namespace compiler260
 {
     //
-    //#[PrintBc]
     func fact(v: s32)->s32
     {
         if v == 1 do
@@ -249,7 +243,6 @@ namespace compiler265
         return v * test1(v - 1)
     }
 
-    //#[Swag.PrintBc]
     func test1(v: s32)->s32
     {
         if (v == 1) do
@@ -290,14 +283,12 @@ namespace compiler303
     	return true;
     }*/
 
-    //#[Swag.PrintBc]
     func compare(str: string)
     {
         let count = @countof(str)
         @assert(count == 4)
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         compare("toto")
@@ -335,7 +326,6 @@ namespace compiler304
     	return true;
     }*/
 
-    //#[Swag.PrintBc]
     #test
     {
         @assert(g == true)

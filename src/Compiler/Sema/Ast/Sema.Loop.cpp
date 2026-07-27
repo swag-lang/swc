@@ -393,6 +393,13 @@ namespace
                             sourceType.isConst() ||
                             sourceType.isAnyString() ||
                             SemaCheck::isConstAssignmentTarget(sema, exprView.nodeRef(), exprView);
+
+            // An array is stored in its binding, so an immutable binding reaches its
+            // elements: '&name' over a 'let' array must not hand out a mutable reference
+            // the assignment would silently drop. A slice or a pointer only holds a handle
+            // to storage living elsewhere, which 'let' does not freeze.
+            if (!sourceIsConst && sourceType.isArray())
+                sourceIsConst = SemaCheck::isImmutableBinding(sema, exprView.nodeRef());
         }
 
         if (node.hasFlag(AstForeachStmtFlagsE::ByAddress))

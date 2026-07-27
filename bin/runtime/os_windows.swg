@@ -263,7 +263,7 @@ func __raiseException666(message: #null string, loc: Swag.SourceCodeLocation, ki
             {
             case .Assert: msg = "assertion does not hold"
             case .Safety: msg = "runtime safety contract does not hold"
-            default:     msg = "runtime error"
+            default:      msg = "runtime error"
             }
         }
 

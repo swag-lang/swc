@@ -27,7 +27,7 @@ func lateSafetyReadUnset()->s32
 // The same read after assignment is fine.
 var g_lateSafetyStorage: LateGlobalSafetyItem
 #[Swag.Late]
-var g_lateSafetySet:     *LateGlobalSafetyItem
+var g_lateSafetySet: *LateGlobalSafetyItem
 
 #[Swag.Safety(.Null, true)]
 func lateSafetyReadSet()->s32

@@ -4,10 +4,10 @@ public struct MessageDlg
 {
     using dialog: Dialog
     #[Swag.Late]
-    labelIcon:    *Label
+    labelIcon: *Label
     #[Swag.Late]
-    label:        *Label
-    extension:    #null *Wnd
+    label:     *Label
+    extension: #null *Wnd
 }
 
 public struct MessageDlgOptions
@@ -68,7 +68,7 @@ public impl MessageDlg
 
         // Evaluate size of text
         var fake = Painter{fake: true}
-        var rsf:  RichStringFormat
+        var rsf: RichStringFormat
         rsf.font          = .getFont()
         rsf.flags         |= .WordWrap
         rsf.horzAlignment = .label.horzAlignmentText

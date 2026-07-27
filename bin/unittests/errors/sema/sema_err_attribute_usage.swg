@@ -7,16 +7,10 @@
 attr StructOnly()
 
 #[StructOnly]     // swc-expected-error {{sema_err_attribute_usage}}
-func attrOnWrongKind()
-{
-}
+func attrOnWrongKind() {}
 
 #[Swag.EnumFlags]     // swc-expected-error {{sema_err_attribute_usage}}
-func predefinedOnWrongKind()
-{
-}
+func predefinedOnWrongKind() {}
 
 #[Swag.Late]     // swc-expected-error {{sema_err_attribute_usage}}
-func lateOnFunction()
-{
-}
+func lateOnFunction() {}

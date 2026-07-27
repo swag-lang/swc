@@ -713,6 +713,19 @@ bool SemaCheck::isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, cons
     return isConstAssignmentTargetImpl(sema, leftExprRef, leftView);
 }
 
+bool SemaCheck::isImmutableBinding(Sema& sema, AstNodeRef nodeRef)
+{
+    const AstNodeRef resolvedRef = resolveNodeRefForCheck(sema, nodeRef);
+    if (resolvedRef.isInvalid())
+        return false;
+
+    const SemaNodeView symbolView = sema.viewSymbol(resolvedRef);
+    if (!symbolView.hasSymbol() || !symbolView.sym())
+        return false;
+
+    return symbolView.sym()->isLetVariable() || symbolView.sym()->isConstant();
+}
+
 bool SemaCheck::isReadOnlyParameterPath(Sema& sema, AstNodeRef nodeRef)
 {
     return readOnlyAggregateParameterPath(sema, nodeRef) != nullptr;

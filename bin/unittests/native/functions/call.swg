@@ -92,7 +92,6 @@ namespace compiler1637
 namespace compiler1638
 {
     //
-    //#global testerror
 
     struct A
     {
@@ -112,7 +111,6 @@ namespace compiler1638
 namespace compiler1640
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var c: #null [*] u8 = null
@@ -127,7 +125,6 @@ namespace compiler1640
 namespace compiler1648
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var x = 0xFFFFFFFF'u64
@@ -143,7 +140,6 @@ namespace compiler1648
 namespace compiler1651
 {
     //
-    //#[Swag.PrintBc]
     func toto1(x: any)->s32
     {
         let v = cast(s32) x
@@ -176,7 +172,6 @@ namespace compiler1653
 namespace compiler1659
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         let precision: u32 = 5
@@ -194,7 +189,6 @@ namespace compiler1661
         value: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         var addr:  [1] *#null *TT = undefined
@@ -218,7 +212,6 @@ namespace compiler1662
         value: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         var value: s64             = 666
@@ -240,7 +233,6 @@ namespace compiler1663
         value: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         var value: TT
@@ -263,7 +255,6 @@ namespace compiler1664
         value: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         var value: TT
@@ -287,7 +278,6 @@ namespace compiler1666
         value2: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     func C(x: ...)
     {
         let ptr1 = cast(TT) x[0]
@@ -363,9 +353,7 @@ namespace compiler1671
 {
     //
     //
-    //#global testerror
 
-    //#[Swag.PrintBc]
     func toto(x: ...)->typeinfo
     {
         @assert(@kindof(x[0]) == s32)
@@ -420,7 +408,6 @@ namespace compiler1678
         return x.value
     }
 
-    //#[Swag.PrintBc]
     func C(x: any)->s64
     {
         return D(cast(TT) x)
@@ -446,13 +433,11 @@ namespace compiler1679
         value4: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     func D(x: ...)->s64
     {
         return E(x[0])
     }
 
-    //#[Swag.PrintBc]
     func E(x: any)->s64
     {
         let ptr = cast(TT) x
@@ -460,7 +445,6 @@ namespace compiler1679
         return C(ptr)
     }
 
-    //#[Swag.PrintBc]
     func C(x: TT)->s64
     {
         // @print(cast(s64) x.value)
@@ -488,19 +472,16 @@ namespace compiler1680
         value4: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     func D(x: ...)->s64
     {
         return E(x[0])
     }
 
-    //#[Swag.PrintBc]
     func E(x: any)->s64
     {
         return C(cast(TT) x)
     }
 
-    //#[Swag.PrintBc]
     func C(x: TT)->s64
     {
         // @print(cast(s64) x.value)
@@ -530,7 +511,6 @@ namespace compiler1681
 
     alias myStruct = TT
 
-    //#[Swag.PrintBc]
     func C(x: myStruct)->s64
     {
         // @print(cast(s64) x.value)
@@ -560,7 +540,6 @@ namespace compiler1682
 
     alias myStruct = TT
 
-    //#[Swag.PrintBc]
     func C(x: any)->s64
     {
         // @print(cast(s64) x.value)
@@ -580,14 +559,12 @@ namespace compiler1682
 namespace compiler1788
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         G += 1
         @assert(G == 1)
     }
 
-    //#[Swag.PrintBc]
     #init
     {
     // @assert(G == 1)
@@ -690,7 +667,6 @@ namespace compiler223
     //
     var v = 50
 
-    //#[PrintBc]
     func main()
     {
         @assert(v == 50)
@@ -714,7 +690,6 @@ namespace compiler224
     var b3: u32  = 3
     var b4: u64  = 4
 
-    //#[PrintBc]
     func main()
     {
         @assert(b0 == true)
@@ -740,7 +715,6 @@ namespace compiler225
     var b1: u64  = 666
     var b2: f32  = 1.5
 
-    //#[PrintBc]
     func main()
     {
         @assert(b0 == true)
@@ -777,7 +751,6 @@ namespace compiler227
         return a + b
     }
 
-    //#[PrintBc]
     func main1()->s32
     {
         return main()
@@ -793,7 +766,6 @@ namespace compiler227
 namespace compiler228
 {
     //
-    //#[PrintBc]
     func main()->s32
     {
         var a: s32
@@ -815,7 +787,6 @@ namespace compiler228
 namespace compiler229
 {
     //
-    //#[PrintBc]
     func main()->s64
     {
         let a: s32 = 666
@@ -835,7 +806,6 @@ namespace compiler229
 namespace compiler231
 {
     //
-    //#[PrintBc]
     func main()->f64
     {
         var a = 10
@@ -871,7 +841,6 @@ namespace compiler234
 namespace compiler235
 {
     //
-    //#[PrintBc]
     func main()->s32
     {
         var a = 0xFFFFFF45
@@ -911,7 +880,6 @@ namespace compiler236
 namespace compiler238
 {
     //
-    //#[PrintBc]
     func main()->s32
     {
         var a = 1
@@ -931,14 +899,12 @@ namespace compiler238
 namespace compiler246
 {
     //
-    //#[PrintBc]
     func main(a: s32 = 6)->s32
     {
         @assert(a == 6)
         return a
     }
 
-    //#[PrintBc]
     func main1()->s32
     {
         return main()
@@ -962,7 +928,6 @@ namespace compiler249
         return a
     }
 
-    //#[PrintBc]
     func main1()
     {
         @assert(main() == 55)
@@ -979,7 +944,6 @@ namespace compiler249
 namespace compiler287
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var a: bool = true
@@ -1003,7 +967,6 @@ namespace compiler310
     //
     var g = false
 
-    //#[Swag.PrintBc]
     #test
     {
         g = false; @assert(g == false)
@@ -1016,7 +979,6 @@ namespace compiler310
 namespace compiler322
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var a: s32  = 666
@@ -1034,7 +996,6 @@ namespace compiler322
 namespace compiler323
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var a: s32 = 1
@@ -1063,7 +1024,6 @@ namespace compiler324
 namespace compiler332
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var a: [2] s32 = [50, 60]
@@ -1080,7 +1040,6 @@ namespace compiler333
     //
     var a: [2] s32 = [50, 60]
 
-    //#[Swag.PrintBc]
     #test
     {
         @assert(a[0] == 50)
@@ -1153,7 +1112,6 @@ namespace compiler342
 namespace compiler343
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         let a: #null *s32 = null

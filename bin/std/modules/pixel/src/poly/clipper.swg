@@ -2391,16 +2391,16 @@ impl Transform
             switch pft2
             {
             case .EvenOdd, .NonZero: return edge.windCnt2 != 0
-            case .Positive:         return edge.windCnt2 > 0
-            default:               return edge.windCnt2 < 0
+            case .Positive:          return edge.windCnt2 > 0
+            default:                 return edge.windCnt2 < 0
             }
 
         case .Union:
             switch pft2
             {
             case .EvenOdd, .NonZero: return edge.windCnt2 == 0
-            case .Positive:         return edge.windCnt2 <= 0
-            default:               return edge.windCnt2 >= 0
+            case .Positive:          return edge.windCnt2 <= 0
+            default:                 return edge.windCnt2 >= 0
             }
 
         case .Difference:
@@ -2409,8 +2409,8 @@ impl Transform
                 switch pft2
                 {
                 case .EvenOdd, .NonZero: return edge.windCnt2 == 0
-                case .Positive:         return edge.windCnt2 <= 0
-                default:               return edge.windCnt2 >= 0
+                case .Positive:          return edge.windCnt2 <= 0
+                default:                 return edge.windCnt2 >= 0
                 }
             }
             else
@@ -2418,8 +2418,8 @@ impl Transform
                 switch pft2
                 {
                 case .EvenOdd, .NonZero: return edge.windCnt2 != 0
-                case .Positive:         return edge.windCnt2 > 0
-                default:               return edge.windCnt2 < 0
+                case .Positive:          return edge.windCnt2 > 0
+                default:                 return edge.windCnt2 < 0
                 }
             }
 
@@ -2429,8 +2429,8 @@ impl Transform
                 switch pft2
                 {
                 case .EvenOdd, .NonZero: return edge.windCnt2 == 0
-                case .Positive:         return edge.windCnt2 <= 0
-                default:               return edge.windCnt2 >= 0
+                case .Positive:          return edge.windCnt2 <= 0
+                default:                 return edge.windCnt2 >= 0
                 }
             }
         }
@@ -2935,14 +2935,14 @@ impl Transform
         {
         case .Positive: e1Wc = e1.windCnt
         case .Negative: e1Wc = -e1.windCnt
-        default:       e1Wc = Math.abs(e1.windCnt)
+        default:        e1Wc = Math.abs(e1.windCnt)
         }
 
         switch e2FillType
         {
         case .Positive: e2Wc = e2.windCnt
         case .Negative: e2Wc = -e2.windCnt
-        default:       e2Wc = Math.abs(e2.windCnt)
+        default:        e2Wc = Math.abs(e2.windCnt)
         }
 
         if e1Contributing and e2Contributing
@@ -2984,14 +2984,14 @@ impl Transform
             {
             case .Positive: e1Wc2 = e1.windCnt2
             case .Negative: e1Wc2 = -e1.windCnt2
-            default:       e1Wc2 = Math.abs(e1.windCnt2)
+            default:        e1Wc2 = Math.abs(e1.windCnt2)
             }
 
             switch e2FillType2
             {
             case .Positive: e2Wc2 = e2.windCnt2
             case .Negative: e2Wc2 = -e2.windCnt2
-            default:       e2Wc2 = Math.abs(e2.windCnt2)
+            default:        e2Wc2 = Math.abs(e2.windCnt2)
             }
 
             if e1.polyType != e2.polyType

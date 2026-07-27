@@ -73,7 +73,7 @@ struct QuickButton
     using iconBtn: IconButton
     formItf:       #null IForm
     #[Swag.Late]
-    quickWnd:      *QuickWnd
+    quickWnd: *QuickWnd
 }
 
 struct QuickStylePaintForm
@@ -156,7 +156,7 @@ struct QuickWnd
     #[Swag.Late]
     layout: *WrapLayoutCtrl
     #[Swag.Late]
-    main:   *MainWnd
+    main: *MainWnd
 
     qsArrow:     QuickStyle
     qsShape:     QuickStyle

@@ -79,13 +79,13 @@ internal impl Properties
             let popup = .selItem.comboBox.popup
             switch evt.key
             {
-            case .Up:            popup.keyMove(-1)
-            case .Down:          popup.keyMove(1)
-            case .Home:          popup.keyHome()
-            case .End:           popup.keyEnd()
+            case .Up:             popup.keyMove(-1)
+            case .Down:           popup.keyMove(1)
+            case .Home:           popup.keyHome()
+            case .End:            popup.keyEnd()
             case .Return, .Space: popup.keyCommit()
-            case .Escape:        popup.keyCancel()
-            default:            return
+            case .Escape:         popup.keyCancel()
+            default:              return
             }
 
             evt.accepted = true

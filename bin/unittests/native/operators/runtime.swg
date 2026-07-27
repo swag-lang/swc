@@ -33,7 +33,6 @@ namespace compiler150
 namespace compiler1647
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var arr: [12] u8
@@ -63,7 +62,6 @@ namespace compiler165
 namespace compiler1675
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         let s   = 1
@@ -83,7 +81,6 @@ namespace compiler1675
 namespace compiler1676
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         let s   = 1
@@ -115,7 +112,6 @@ namespace compiler168
 namespace compiler210
 {
     //
-    //#[PrintBc]
     func main(a: s32)->s32
     {
         return a + 1
@@ -148,13 +144,11 @@ namespace compiler211
 namespace compiler217
 {
     //
-    //#[PrintBc]
     func main(a: s32)->s32
     {
         return a + 1
     }
 
-    //#[PrintBc]
     func main1()
     {
         @assert(main(6) == 7)
@@ -172,7 +166,6 @@ namespace compiler217
 namespace compiler226
 {
     //
-    //#[PrintBc]
     func main()->bool
     {
         var a: s32
@@ -186,7 +179,6 @@ namespace compiler226
         return true
     }
 
-    //#[PrintBc]
     func main1()->bool
     {
         return main()
@@ -248,7 +240,6 @@ namespace compiler259
 namespace compiler284
 {
     //
-    //#[Swag.PrintBc]
     func main()->bool
     {
         var v:  bool = false

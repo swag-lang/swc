@@ -342,9 +342,9 @@ Binding a name offers a structured way to iterate and handle specific values.
     {
         switch val
         {
-        case .R:  break
-        case .G:  break
-        case .B:  break
+        case .R: break
+        case .G: break
+        case .B: break
         default: @assert(false)
         }
     }

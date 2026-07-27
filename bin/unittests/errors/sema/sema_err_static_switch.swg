@@ -17,7 +17,7 @@ func duplicateCase()
     {
     case 1:
         return
-    case 1:                         // swc-expected-error {{sema_err_static_switch_case_duplicate}}
+    case 1:     // swc-expected-error {{sema_err_static_switch_case_duplicate}}
         return
     }
 }
@@ -28,7 +28,7 @@ func duplicateDefault()
     {
     default:
         return
-    default:                        // swc-expected-error {{sema_err_static_switch_multiple_default}}
+    default:     // swc-expected-error {{sema_err_static_switch_multiple_default}}
         return
     }
 }

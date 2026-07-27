@@ -19,12 +19,12 @@ struct Pair
 // Implicit 'itemN' names only address fields that have no explicit name.
 #test
 {
-    let value = {x: 1, 2}
+    let value          = {x: 1, 2}
     let {item0: first} = value     // swc-expected-error {{sema_err_decomposition_unknown_field}}
 }
 
 #test
 {
-    let value = {1, y: 2}
+    let value           = {1, y: 2}
     let {item1: second} = value     // swc-expected-error {{sema_err_decomposition_unknown_field}}
 }

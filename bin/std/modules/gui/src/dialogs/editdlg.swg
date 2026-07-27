@@ -4,9 +4,9 @@ public struct EditDlg
 {
     using dialog: Dialog
     #[Swag.Late]
-    label:        *Label
-    edit:         #null *EditBox
-    richEdit:     #null *RichEditCtrl
+    label:    *Label
+    edit:     #null *EditBox
+    richEdit: #null *RichEditCtrl
 }
 
 public impl EditDlg

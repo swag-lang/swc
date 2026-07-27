@@ -14,18 +14,18 @@ struct FileBrowserCtrl
 {
     using wnd: Wnd
 
-    treeCtrl:     #null *ListCtrl
-    treePathStr:  Array'String
+    treeCtrl:    #null *ListCtrl
+    treePathStr: Array'String
     #[Swag.Late]
-    listCtrl:     *ListCtrl
+    listCtrl: *ListCtrl
     #[Swag.Late]
     comboPath:    *ComboBox
     comboPathStr: Array'String
     #[Swag.Late]
-    editFile:     *EditBox
+    editFile: *EditBox
     #[Swag.Late]
-    comboType:    *ComboBox
-    options:      FileDlgOptions
+    comboType: *ComboBox
+    options:   FileDlgOptions
 
     curFolder: String
     curList:   Array'FileInfo

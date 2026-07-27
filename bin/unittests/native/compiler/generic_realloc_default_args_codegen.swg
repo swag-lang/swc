@@ -212,10 +212,10 @@ namespace GenericReallocDefaultArgsCodegen
 
         let count = cast(u64) N
         let ok    = values.count == count and
-                 @countof(values.toSlice()) == count and
-                 values.capacity == expectedCapacity(2, count) and
-                 values.stableCode() == expectedStableCode(count, expectedCapacity(2, count)) and
-                 trackerMatches(count > 2 ? 2 : 1)
+                    @countof(values.toSlice()) == count and
+                    values.capacity == expectedCapacity(2, count) and
+                    values.stableCode() == expectedStableCode(count, expectedCapacity(2, count)) and
+                    trackerMatches(count > 2 ? 2 : 1)
 
         values.free()
         return ok
@@ -231,10 +231,10 @@ namespace GenericReallocDefaultArgsCodegen
 
         let count = cast(u64) N
         let ok    = values.count == count and
-                 @countof(values.toSlice()) == count and
-                 values.capacity == expectedCapacity(3, count) and
-                 values.stableCode() == expectedStableCode(count, expectedCapacity(3, count)) and
-                 trackerMatches(count > 3 ? 2 : 1)
+                    @countof(values.toSlice()) == count and
+                    values.capacity == expectedCapacity(3, count) and
+                    values.stableCode() == expectedStableCode(count, expectedCapacity(3, count)) and
+                    trackerMatches(count > 3 ? 2 : 1)
 
         values.free()
         return ok

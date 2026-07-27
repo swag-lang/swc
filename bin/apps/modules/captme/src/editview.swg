@@ -1,8 +1,8 @@
 struct EditView
 {
-    using wnd:   Wnd
+    using wnd: Wnd
     #[Swag.Late]
-    main:        *MainWnd
+    main: *MainWnd
     #[Swag.Late]
     scroll:      *ScrollWnd
     capture:     #null *Capture

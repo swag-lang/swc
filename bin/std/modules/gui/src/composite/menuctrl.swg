@@ -19,14 +19,14 @@ public struct PopupMenuItem
     using item: Item
     rightName:  RichString
     #[Swag.Late]
-    popup:      *MenuCtrl
-    pos:        f32
-    size:       f32
-    rg:         CommandStateEvent.RenderingHint
-    separator:  bool
-    disabled:   bool
-    checked:    bool
-    hidden:     bool
+    popup:     *MenuCtrl
+    pos:       f32
+    size:      f32
+    rg:        CommandStateEvent.RenderingHint
+    separator: bool
+    disabled:  bool
+    checked:   bool
+    hidden:    bool
 }
 
 public struct MenuCtrl
@@ -723,7 +723,7 @@ impl MenuCtrl
         var x = clientRect.x
 
         var fake = Pixel.Painter{fake: true}
-        var rsf:  Pixel.RichStringFormat
+        var rsf: Pixel.RichStringFormat
         rsf.font = .getFont()
 
         for i, [idx] in .items
@@ -751,7 +751,7 @@ impl MenuCtrl
         .position.height = clientRect.y
 
         var fake = Pixel.Painter{fake: true}
-        var rsf:  Pixel.RichStringFormat
+        var rsf: Pixel.RichStringFormat
         rsf.font = .getFont()
 
         var lastIsSeparator = true

@@ -34,7 +34,6 @@ What is the size of the region containing all locations which have a total dista
 
 using Core
 
-//#[Swag.PrintBc]
 func day6B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")

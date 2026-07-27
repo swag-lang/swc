@@ -388,7 +388,7 @@ func msdfChannelDistances(segs: const [..] MsdfSeg, px, py: f64)->{ r, g, b: f64
     for &s, [i] in segs
     {
         let {sd, dt, param} = msdfSegSignedDistance(s, px, py)
-        let a = Math.abs(sd)
+        let a               = Math.abs(sd)
 
         for [ch] in 3
         {

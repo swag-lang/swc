@@ -64,7 +64,7 @@ private func defaultThemeImages()->*DefaultThemeImages
 
 struct ThemeResources
 {
-    imgWidgets:          Texture
+    imgWidgets: Texture
     #[Swag.Late]
     {
         icons24:             *ImageList
@@ -79,8 +79,9 @@ struct ThemeResources
         defaultFsTypeFaceI:  *TypeFace
         defaultFsTypeFaceBI: *TypeFace
     }
-    fontDefault:         FontFamily
-    fontDefaultFs:       FontFamily
+
+    fontDefault:   FontFamily
+    fontDefaultFs: FontFamily
 }
 
 struct Theme

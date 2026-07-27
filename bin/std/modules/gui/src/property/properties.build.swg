@@ -389,7 +389,7 @@ internal impl Properties
             return item
         }
 
-        let v = Swag.TypeValue{name: name}
+        let v    = Swag.TypeValue{name: name}
         let item = .addItem(v, null, parentForCateg)
         item.label.style.setFont(&.fontCategory)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)

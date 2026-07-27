@@ -129,8 +129,8 @@ alias StrictSwitchF32 = f32
     }
 
     const expected = E.A
-    var value: E   = .A
-    var hit        = false
+    var value: E = .A
+    var hit      = false
     switch value
     {
     case expected:

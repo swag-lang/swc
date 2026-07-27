@@ -6,7 +6,6 @@ using Swag
 namespace compiler1064
 {
     //#[Swag.ConstExpr]
-    //#[Swag.PrintBc]
     func fibonacci(num: s32)->s32
     {
         if num < 2 do
@@ -58,7 +57,6 @@ namespace compiler1504
         X = 6
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         #run set()
@@ -76,7 +74,6 @@ namespace compiler1505
     // @print(x)
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         #run
@@ -97,7 +94,6 @@ namespace compiler1506
     // @print(x)
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         #run
@@ -130,14 +126,12 @@ namespace compiler1665
 {
     //
     //
-    //#global testerror
 
     struct TT
     {
         x, y, z: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     func C(x: ...)
     {
         var ptr1 = cast(const & TT) x[0]
@@ -167,14 +161,12 @@ namespace compiler1667
 {
     //
     //
-    //#global testerror
 
     struct TT
     {
         value: s64 = 456
     }
 
-    //#[Swag.PrintBc]
     func C(x: ...)
     {
     // @print(#typeof(x[0]).name)
@@ -196,9 +188,7 @@ namespace compiler1672
 {
     //
     //
-    //#global testerror
 
-    //#[Swag.PrintBc]
     func toto(x: ...)->typeinfo
     {
         return #typeof(x[0])
@@ -214,13 +204,11 @@ namespace compiler1672
 // _compiler1888.swg
 namespace compiler1888
 {
-    //#[Swag.PrintBc]
     func toto(x: s64)
     {
         @assert(x == 666)
     }
 
-    //#[Swag.PrintBc]
     func titi()
     {
         const x = 666's64
@@ -231,13 +219,11 @@ namespace compiler1888
 // _compiler1893.swg
 namespace compiler1893
 {
-    //#[Swag.PrintBc]
     func toto(x: s64)
     {
         @assert(x == 666)
     }
 
-    //#[Swag.PrintBc]
     func titi(x: bool)
     {
         #run
@@ -319,7 +305,6 @@ namespace compiler250
         return a
     }
 
-    //#[PrintBc]
     func main1()
     {
         @assert(main() == 55)
@@ -451,7 +436,6 @@ namespace compiler3029
         return result
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         let {x1, y1} = #run toto(2, 2)
@@ -465,7 +449,6 @@ namespace compiler3100
 {
     //#global if false
 
-    //#global testerror
 
     func msg() => "msg"
 
@@ -509,7 +492,6 @@ namespace compiler3121
 namespace compiler3324
 {
     //#global if false
-    //#global testerror
     #test
     {
         let a = #run
@@ -527,7 +509,6 @@ namespace compiler3324
 // _compiler3325.swg
 namespace compiler3325
 {
-    //#global testerror
     #test
     {
         #[Swag.Compiler]
@@ -562,7 +543,6 @@ namespace compiler3325
 namespace compiler334
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var a: [2, 2] s32
@@ -588,7 +568,6 @@ namespace compiler3374
 namespace compiler345
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var a: s32  = undefined
@@ -601,7 +580,6 @@ namespace compiler345
 // _compiler350.swg
 namespace compiler350
 {
-    //#[Swag.PrintBc]
     #test
     {
         const a = 666
@@ -687,7 +665,6 @@ namespace compiler4845
 // _compiler4847.swg
 namespace compiler4847
 {
-    //#global testerror "Err0023"
     #test
     {
         const PowerOfTwo: [4] s32 = #run
@@ -705,7 +682,6 @@ namespace compiler4847
 // _compiler4848.swg
 namespace compiler4848
 {
-    //#global testerror "Err0023"
     struct RGB { a, b, c: s32 }
 
     // #run returns a struct literal

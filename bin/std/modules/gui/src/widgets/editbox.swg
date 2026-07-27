@@ -549,33 +549,33 @@ private impl EditBox
         }
         else
         {
-            var eat            = 0'u32
+            var eat = 0'u32
             var parseErr: #null any
             switch .inputMode
             {
             case .S64:
-                let val  = catch StrConv.parseS64(.text) as err
+                let val = catch StrConv.parseS64(.text) as err
                 parseErr = err
                 eat      = val.eat
                 if err == null and eat == .text.length and (val.value < .minMaxS64.min or val.value > .minMaxS64.max) do
                     res = .InvalidShow
 
             case .U64:
-                let val  = catch StrConv.parseU64(.text) as err
+                let val = catch StrConv.parseU64(.text) as err
                 parseErr = err
                 eat      = val.eat
                 if err == null and eat == .text.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidShow
 
             case .X64:
-                let val  = catch StrConv.parseX64(.text) as err
+                let val = catch StrConv.parseX64(.text) as err
                 parseErr = err
                 eat      = val.eat
                 if err == null and eat == .text.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidShow
 
             case .F64:
-                let val  = catch StrConv.parseF64(.text) as err
+                let val = catch StrConv.parseF64(.text) as err
                 parseErr = err
                 eat      = val.eat
                 if err == null and eat == .text.length and (val.value < .minMaxF64.min or val.value > .minMaxF64.max) do

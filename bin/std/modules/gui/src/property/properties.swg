@@ -143,11 +143,11 @@ struct Properties
     fontCategory: FontFamily
     fontName:     FontFamily
     #[Swag.Late]
-    scrollWnd:    *ScrollWnd
+    scrollWnd: *ScrollWnd
     #[Swag.Late]
-    edView:       *PropertiesView
-    items:        ArrayPtr'PropertiesItem
-    sections:     Array'{ item: #null *PropertiesItem, lvl: s32 }
+    edView:   *PropertiesView
+    items:    ArrayPtr'PropertiesItem
+    sections: Array'{ item: #null *PropertiesItem, lvl: s32 }
 
     // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
     // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).

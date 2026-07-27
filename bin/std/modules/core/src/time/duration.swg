@@ -22,20 +22,11 @@ impl Duration
     {
         #static switch suffix
         {
-        case "s":
-            .timeInSeconds = value
-
-        case "ms":
-            .timeInSeconds = value / 1000.0
-
-        case "min":
-            .timeInSeconds = value * 60.0
-
-        case "h":
-            .timeInSeconds = value * 3600.0
-
-        default:
-            #error("invalid duration literal suffix '" ++ suffix ++ "'")
+        case "s":   .timeInSeconds = value
+        case "ms":  .timeInSeconds = value / 1000.0
+        case "min": .timeInSeconds = value * 60.0
+        case "h":   .timeInSeconds = value * 3600.0
+        default:    #error("invalid duration literal suffix '" ++ suffix ++ "'")
         }
     }
 

@@ -148,10 +148,10 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 case Right | Top:    return HTTOPRIGHT
                 case Left | Bottom:  return HTBOTTOMLEFT
                 case Right | Bottom: return HTBOTTOMRIGHT
-                case .Left:           return HTLEFT
-                case .Right:          return HTRIGHT
-                case .Top:            return HTTOP
-                case .Bottom:         return HTBOTTOM
+                case .Left:          return HTLEFT
+                case .Right:         return HTRIGHT
+                case .Top:           return HTTOP
+                case .Bottom:        return HTBOTTOM
                 }
             }
 

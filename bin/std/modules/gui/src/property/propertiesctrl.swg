@@ -17,11 +17,12 @@ struct PropertiesCtrl
 
     #[Swag.Late]
     {
-        splitter:  *SplitterCtrl
-        list:      *ListCtrl
-        tab:       *Tab
-        prop:      *Properties
+        splitter: *SplitterCtrl
+        list:     *ListCtrl
+        tab:      *Tab
+        prop:     *Properties
     }
+
     propFlags: PropertiesCtrlFlags
 }
 

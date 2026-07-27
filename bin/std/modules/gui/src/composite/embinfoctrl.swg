@@ -22,13 +22,13 @@ struct EmbInfoCtrl
 {
     using frameWnd: FrameWnd
     #[Swag.Late]
-    label:          *Label
+    label: *Label
     #[Swag.Late]
-    iconBtn:        *IconButton
-    ctrlFlags:      EmbInfoCtrlFlags = .Zero
-    sigOnClose:     SigArray'func||(*EmbInfoCtrl)
-    timer:          #null *Timer
-    kind:           EmbInfoCtrlKind
+    iconBtn:    *IconButton
+    ctrlFlags:  EmbInfoCtrlFlags = .Zero
+    sigOnClose: SigArray'func||(*EmbInfoCtrl)
+    timer:      #null *Timer
+    kind:       EmbInfoCtrlKind
 }
 
 impl IWnd for EmbInfoCtrl

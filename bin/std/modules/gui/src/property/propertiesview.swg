@@ -5,7 +5,7 @@ public struct PropertiesView
 {
     using stackWnd: StackLayoutCtrl
     #[Swag.Late]
-    ed:             *Properties
+    ed: *Properties
 }
 
 impl IWnd for PropertiesView

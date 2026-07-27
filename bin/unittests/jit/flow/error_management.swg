@@ -276,7 +276,7 @@ func catchFailureInfo()->CatchInfo
     if err != null
     {
         let errv = cast(ErrValue) err
-        result.code      = errv.code
+        result.code = errv.code
     }
 
     return result
@@ -290,7 +290,7 @@ func inlineCatchFailureInfo()->CatchInfo
     if err2 != null
     {
         let errv = cast(ErrValue) err2
-        result.code      = errv.code
+        result.code = errv.code
     }
 
     return result
@@ -304,7 +304,7 @@ func catchTryFailureInfo()->CatchInfo
     if err3 != null
     {
         let errv = cast(ErrValue) err3
-        result.code      = errv.code
+        result.code = errv.code
     }
 
     return result

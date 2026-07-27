@@ -34,10 +34,10 @@ struct FaceImpl
 {
     face: Face
 
-    fontData:         Array'u8
-    tables:           Array'TableRecord
-    glyphMetrics:     Array'GlyphMetric
-    glyphLocations:   Array'u32
+    fontData:       Array'u8
+    tables:         Array'TableRecord
+    glyphMetrics:   Array'GlyphMetric
+    glyphLocations: Array'u32
     #[Swag.Late]
     chosenCMap:       const [..] u8
     cmapFormat:       u16

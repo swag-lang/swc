@@ -798,7 +798,7 @@ impl Ghost
         case .RIGHT: return getTile(.getX() + 1, .getY())
         case .DOWN:  return getTile(.getX(), .getY() - 1)
         case .LEFT:  return getTile(.getX() - 1, .getY())
-        default:    return getTile(.getX(), .getY())
+        default:     return getTile(.getX(), .getY())
         }
     }
 
@@ -1101,7 +1101,7 @@ impl Pacman
         case .RIGHT: return getTile(.getX() + 1, .getY())
         case .DOWN:  return getTile(.getX(), .getY() - 1)
         case .LEFT:  return getTile(.getX() - 1, .getY())
-        default:    return getTile(.getX(), .getY())
+        default:     return getTile(.getX(), .getY())
         }
     }
 
@@ -1865,7 +1865,7 @@ func resetMap()
             switch getTile(x, y)
             {
             case .F, .e: setTile(x, y, .o)
-            case .E:    setTile(x, y, .O)
+            case .E:     setTile(x, y, .O)
             }
         }
     }

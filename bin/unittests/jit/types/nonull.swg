@@ -188,9 +188,9 @@ func jitNonNullConstruction()->bool
     if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
 
-    let holder     = JitNonNullHolder{required: direct}
-    var moveSource = JitNonNullHolder{required: &first}
-    let moveTarget = #move moveSource
+    let holder                           = JitNonNullHolder{required: direct}
+    var moveSource                       = JitNonNullHolder{required: &first}
+    let moveTarget                       = #move moveSource
     let blockHolder                      = JitNonNullBlockHolder{required: block}
     let contextual: JitNonNullHolder     = {required: &second, count: 9}
     let nested                           = JitNonNullNested{holder: {required: &first}}
@@ -204,8 +204,8 @@ func jitNonNullConstruction()->bool
     let aliasedHolder:   JitNonNullHolderAlias                  = {required: &first}
     let pointerDefault                                          = JitNonNullPointerDefault{}
     var moveDefaultSource                                       = JitNonNullMoveDefault{required: "explicit"}
-    let moveDefaultTarget = #move moveDefaultSource
-    let families = JitNonNullFamilies{
+    let moveDefaultTarget                                       = #move moveDefaultSource
+    let families                                                = JitNonNullFamilies{
         valuePointer:  direct,
         blockPointer:  block,
         slice:         slice,

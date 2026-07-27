@@ -70,8 +70,8 @@ impl IWnd for SurfaceWnd
 
             switch .sizingBorder
             {
-            case .Left, .Right:                srfn.app.setFrameCursor(Cursor.from(.SizeWE))
-            case .Top, .Bottom:                srfn.app.setFrameCursor(Cursor.from(.SizeNS))
+            case .Left, .Right:              srfn.app.setFrameCursor(Cursor.from(.SizeWE))
+            case .Top, .Bottom:              srfn.app.setFrameCursor(Cursor.from(.SizeNS))
             case Right | Bottom, Left | Top: srfn.app.setFrameCursor(Cursor.from(.SizeNWSE))
             case Right | Top, Left | Bottom: srfn.app.setFrameCursor(Cursor.from(.SizeNESW))
             }

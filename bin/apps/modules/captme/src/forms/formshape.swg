@@ -159,7 +159,7 @@ impl IForm for FormShape
         if .subKind == .PixSel
         {
             {bSize, dash} = .applyPixSelStyle(painter, cxt)
-            bk.a = 5
+            bk.a          = 5
         }
 
         let z   = cxt.z

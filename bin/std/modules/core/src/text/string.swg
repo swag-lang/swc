@@ -108,14 +108,9 @@ impl String
         let buffer = notnull .buffer
         #static switch op
         {
-        case .AddAssign:
-            buffer[index] += #wrap value
-
-        case .SubAssign:
-            buffer[index] -= #wrap value
-
-        default:
-            #error("invalid operator '" ++ op.symbol() ++ "'")
+        case .AddAssign: buffer[index] += #wrap value
+        case .SubAssign: buffer[index] -= #wrap value
+        default:         #error("invalid operator '" ++ op.symbol() ++ "'")
         }
     }
 

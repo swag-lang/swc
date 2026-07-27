@@ -175,7 +175,7 @@ impl TagBin
     mtd beginStruct(structType: #null typeinfo, _structData: #null const [*] u8)->bool
     {
         let {pod, ?} = isPodFinal(structType)
-        let output = notnull .output
+        let output   = notnull .output
         if pod
         {
             output.addNative(TagBinSignatures.Raw)

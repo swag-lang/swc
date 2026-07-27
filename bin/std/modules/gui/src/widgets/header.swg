@@ -172,7 +172,7 @@ impl IWnd for Header
         if !.moving and !.clicked
         {
             let {hitr, sep} = .hitTest(evt.surfacePos)
-            var hit = hitr
+            var hit         = hitr
 
             // Hot, if not a separator, is disabled if item is not clickable
             if hit != Swag.U32.Max

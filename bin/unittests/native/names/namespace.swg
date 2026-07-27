@@ -30,7 +30,6 @@ namespace compiler1650
         struct B {}
     }
 
-    //#[Swag.PrintBc]
     #test
     {
         let x = #typeof(aa1650.B)

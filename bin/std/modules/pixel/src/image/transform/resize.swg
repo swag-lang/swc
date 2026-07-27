@@ -417,7 +417,7 @@ namespace ResizeTools
         switch mode
         {
         case .Raw: doResizeRaw(dstImage, srcImage)
-        default:  doResizeFilter(dstImage, srcImage, mode)
+        default:   doResizeFilter(dstImage, srcImage, mode)
         }
     }
 }

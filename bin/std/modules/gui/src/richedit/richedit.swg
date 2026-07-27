@@ -51,7 +51,7 @@ struct RichEditCtrl
     lines:        ArrayPtr'RichEditLine
     freeLines:    ArrayPtr'RichEditLine
     #[Swag.Late]
-    scrollWnd:    *ScrollWnd
+    scrollWnd: *ScrollWnd
     #[Swag.Late]
     edView:       *RichEditView
     selRectangle: Math.Rectangle

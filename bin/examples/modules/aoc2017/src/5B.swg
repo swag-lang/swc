@@ -9,7 +9,6 @@ How many steps does it now take to reach the exit?
 
 using Core
 
-//#[Swag.PrintBc]
 func day5B()
 {
     // Time.Stopwatch.scopeMeasure()

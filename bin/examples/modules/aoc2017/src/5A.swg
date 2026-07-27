@@ -14,7 +14,6 @@ The system's full passphrase list is available as your puzzle input. How many pa
 
 using Core
 
-//#[Swag.PrintBc]
 func day5A()
 {
     // Time.Stopwatch.scopeMeasure()

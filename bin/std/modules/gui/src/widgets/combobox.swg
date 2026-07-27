@@ -187,13 +187,13 @@ impl IWnd for ComboBox
         {
             switch evt.key
             {
-            case .Up:            .popup.keyMove(-1)
-            case .Down:          .popup.keyMove(1)
-            case .Home:          .popup.keyHome()
-            case .End:           .popup.keyEnd()
+            case .Up:             .popup.keyMove(-1)
+            case .Down:           .popup.keyMove(1)
+            case .Home:           .popup.keyHome()
+            case .End:            .popup.keyEnd()
             case .Return, .Space: .popup.keyCommit()
-            case .Escape:        .popup.keyCancel()
-            default:            return
+            case .Escape:         .popup.keyCancel()
+            default:              return
             }
 
             evt.accepted = true
@@ -203,12 +203,12 @@ impl IWnd for ComboBox
         switch evt.key
         {
         case .Down where alt: .showPopup()
-        case .Return, .Space:  .showPopup()
-        case .Up, .Left:       .selectRelative(-1)
-        case .Down, .Right:    .selectRelative(1)
+        case .Return, .Space: .showPopup()
+        case .Up, .Left:      .selectRelative(-1)
+        case .Down, .Right:   .selectRelative(1)
         case .Home:           .selectEdge(forward: true)
         case .End:            .selectEdge(forward: false)
-        default:             return
+        default:              return
         }
 
         evt.accepted = true

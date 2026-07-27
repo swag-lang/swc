@@ -19,6 +19,7 @@ namespace SemaCheck
     Result castToBool(Sema& sema, SemaNodeView& view);
     Result isConstant(Sema& sema, AstNodeRef nodeRef);
     bool   isReadOnlyParameterPath(Sema& sema, AstNodeRef nodeRef);
+    bool   isImmutableBinding(Sema& sema, AstNodeRef nodeRef);
     bool   isConstAssignmentTarget(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView);
     Result isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNodeView& leftView, bool allowLetReferenceWriteThrough = false);
     Result isValidSignature(Sema& sema, const std::vector<SymbolVariable*>& parameters, bool attribute);

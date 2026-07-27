@@ -103,8 +103,8 @@ private impl GridLayoutCtrl
         var result: retval
         switch track.kind
         {
-        case .Fixed:          result = track.value
-        case .Content:        result = content
+        case .Fixed:           result = track.value
+        case .Content:         result = content
         case .Fraction, .Fill: result = track.min
         }
 

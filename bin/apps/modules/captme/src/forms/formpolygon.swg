@@ -146,7 +146,7 @@ impl IForm for FormPolygon
         if .subKind == .PixSel
         {
             {bSize, dash} = .applyPixSelStyle(painter, cxt)
-            bk.a = 5
+            bk.a          = 5
         }
 
         var pen = Pen.createDash(dash, .borderColor, bSize)

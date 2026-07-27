@@ -117,7 +117,7 @@ public struct Font
     // pixel size that was resolved and the concrete bitmap view it produced. Avoids a
     // string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
     // size of 0 is never resolved, so it doubles as the "empty" sentinel.
-    drawResolvePx:   s32
+    drawResolvePx: s32
     #[Swag.Late]
     drawResolveFont: *Font
 }
@@ -392,7 +392,7 @@ public impl GlyphCache
         switch .renderMode
         {
         case .Msdf: discard try .typeFace.renderGlyphMsdfByIndex(glyphIndex, .refSize, .spread, .forceBold, .forceItalic)
-        default:   discard try .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic)
+        default:    discard try .typeFace.renderGlyphByIndex(glyphIndex, .refSize, .forceBold, .forceItalic)
         }
     }
 

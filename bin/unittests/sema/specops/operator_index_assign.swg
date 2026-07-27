@@ -16,13 +16,13 @@ impl IndexAssignBox
             if index == 0 do
                 .first += value
             else do
-            .second += value
+                .second += value
 
         case .MulAssign:
             if index == 0 do
-            .first *= value
+                .first *= value
             else do
-            .second *= value
+                .second *= value
 
         default:
             #error("unsupported opIndexAssign op [[" ++ op.symbol() ++ "]]")

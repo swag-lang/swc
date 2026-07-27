@@ -20,7 +20,7 @@ enum BottomSize
 // Main structure
 struct MainWnd
 {
-    using wnd:                       Wnd
+    using wnd: Wnd
     #[Swag.Late]
     {
         topBar, editToolBar, recentBar:  *Wnd
@@ -34,10 +34,11 @@ struct MainWnd
         editZoomBar:                     *StackLayoutCtrl
         captureBtn, libraryBtn, zoomBtn: *IconButton
     }
-    sizeBtn:                         #null *IconButton
-    embInfoFreeze:                   #null *EmbInfoCtrl
-    icons24, icons48, appIcon:       ImageList
-    monitors:                        Array'Env.Monitor
+
+    sizeBtn:                   #null *IconButton
+    embInfoFreeze:             #null *EmbInfoCtrl
+    icons24, icons48, appIcon: ImageList
+    monitors:                  Array'Env.Monitor
 
     // State
     editMode:                                  EditMode   = .Shape

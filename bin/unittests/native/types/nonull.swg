@@ -188,9 +188,9 @@ func nativeNonNullConstruction()->bool
     if genericDefaultType.opInit == null or genericDefaultType.flags & Swag.TypeInfoFlags.RequiresExplicitInit do
         return false
 
-    let holder     = NativeNonNullHolder{required: direct}
-    var moveSource = NativeNonNullHolder{required: &first}
-    let moveTarget = #move moveSource
+    let holder                              = NativeNonNullHolder{required: direct}
+    var moveSource                          = NativeNonNullHolder{required: &first}
+    let moveTarget                          = #move moveSource
     let blockHolder                         = NativeNonNullBlockHolder{required: block}
     let contextual: NativeNonNullHolder     = {required: &second, count: 9}
     let nested                              = NativeNonNullNested{holder: {required: &first}}
@@ -204,8 +204,8 @@ func nativeNonNullConstruction()->bool
     let aliasedHolder:   NativeNonNullHolderAlias                     = {required: &first}
     let pointerDefault                                                = NativeNonNullPointerDefault{}
     var moveDefaultSource                                             = NativeNonNullMoveDefault{required: "explicit"}
-    let moveDefaultTarget = #move moveDefaultSource
-    let families = NativeNonNullFamilies{
+    let moveDefaultTarget                                             = #move moveDefaultSource
+    let families                                                      = NativeNonNullFamilies{
         valuePointer:  direct,
         blockPointer:  block,
         slice:         slice,

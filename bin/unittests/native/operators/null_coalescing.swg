@@ -8,8 +8,6 @@ const E: string = "e"
 const F         = E orelse "f"
 #assert(F == "e")
 
-
-
 const S0: #null const [..] u8 = null
 const S1                      = S0 orelse "abc"
 #assert(#typeof(S1) == const [..] u8)

@@ -26,7 +26,7 @@ func catchElseRun(ok: bool)->s32
     if err != null
     {
         g_catchElseTrace = 1
-        let e            = cast(CatchElseError) err
+        let e = cast(CatchElseError) err
         g_catchElseTrace = e.code
     }
     g_catchElseTrace += 1000

@@ -96,15 +96,15 @@ struct ThemeMetrics
     btnIcon_SpacingTextH:  f32 = 8
     btnIcon_SpacingTextV:  f32 = 0
 
-    frameWnd_SquarePadding:            f32 = 5
-    frameWnd_RoundPadding:             f32 = 5
-    frameWnd_FlatPadding:              f32 = 2
+    frameWnd_SquarePadding:            f32          = 5
+    frameWnd_RoundPadding:             f32          = 5
+    frameWnd_FlatPadding:              f32          = 2
     frameWnd_SmallShadowSize:          Math.Vector4 = {5, 5, 15, 15}
-    frameWnd_AnchorWidth:              f32 = 24
-    frameWnd_AnchorHeight:             f32 = 10
-    frameWnd_AnchorOverlap:            f32 = 2
-    frameWnd_AnchorRoundBorderMargin:  f32 = 16
-    frameWnd_AnchorSquareBorderMargin: f32 = 8
+    frameWnd_AnchorWidth:              f32          = 24
+    frameWnd_AnchorHeight:             f32          = 10
+    frameWnd_AnchorOverlap:            f32          = 2
+    frameWnd_AnchorRoundBorderMargin:  f32          = 16
+    frameWnd_AnchorSquareBorderMargin: f32          = 8
 
     list_Padding:    f32 = 5
     list_ExpandSize: f32 = 22

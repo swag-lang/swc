@@ -2,7 +2,7 @@ struct EditWnd
 {
     using scrollWnd: ScrollWnd
     #[Swag.Late]
-    editView:        *EditView
+    editView: *EditView
 }
 
 impl EditWnd

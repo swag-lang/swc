@@ -37,8 +37,8 @@ struct PropertiesItem
 {
     filter: String
     #[Swag.Late]
-    line:   *Wnd
-    data:   #null *u8
+    line: *Wnd
+    data: #null *u8
 
     // Field address in every edited instance (multi-selection). [0] aliases `data`.
     // Empty or a single entry means a plain single-instance edit. Items under a dynamic
@@ -56,10 +56,10 @@ struct PropertiesItem
     // (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the
     // current value differs from that default (recomputed on build and after every change);
     // revertButton is the lazily-created revert affordance shown while the row is modified.
-    defaultData:    #null *u8
-    isModified:     bool
+    defaultData: #null *u8
+    isModified:  bool
     #[Swag.Late]
-    revertButton:   *IconButton
+    revertButton: *IconButton
     #[Swag.Late]
     arrayAddButton: *IconButton
 
@@ -80,12 +80,12 @@ struct PropertiesItem
     label:       *Label
     description: String
     #[Swag.Late]
-    labelDesc:   *Label
+    labelDesc: *Label
 
     // Per-item validation (info/warning/error) shown as an inline colored message bar
     // stacked under the row.
-    validation:      PropValidation
-    validationMsg:   String
+    validation:    PropValidation
+    validationMsg: String
     #[Swag.Late]
     validationLabel: *Label
 

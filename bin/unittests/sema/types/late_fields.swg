@@ -12,7 +12,7 @@ struct SemaLateItem
 struct SemaLateBox
 {
     #[Swag.Late]
-    item:  *SemaLateItem
+    item: *SemaLateItem
     #[Swag.Late]
     name:  string
     count: s32

@@ -12,9 +12,9 @@ struct LateGlobalItem
 
 var g_lateGlobalStorage: LateGlobalItem
 #[Swag.Late]
-var g_lateGlobalItem:    *LateGlobalItem
+var g_lateGlobalItem: *LateGlobalItem
 #[Swag.Late]
-var g_lateGlobalName:    string
+var g_lateGlobalName: string
 
 // Full life: unset, assigned, read (guarded), written through.
 func lateGlobalLifecycle()->bool

@@ -114,20 +114,11 @@ impl Vector4
     {
         #static switch op
         {
-        case .Add:
-            return Vector4{.x + other.x, .y + other.y, .z + other.z, .w + other.w}
-
-        case .Sub:
-            return Vector4{.x - other.x, .y - other.y, .z - other.z, .w - other.w}
-
-        case .Mul:
-            return Vector4{.x * other.x, .y * other.y, .z * other.z, .w * other.w}
-
-        case .Div:
-            return Vector4{.x / other.x, .y / other.y, .z / other.z, .w / other.w}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Vector4{.x + other.x, .y + other.y, .z + other.z, .w + other.w}
+        case .Sub: return Vector4{.x - other.x, .y - other.y, .z - other.z, .w - other.w}
+        case .Mul: return Vector4{.x * other.x, .y * other.y, .z * other.z, .w * other.w}
+        case .Div: return Vector4{.x / other.x, .y / other.y, .z / other.z, .w / other.w}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -138,20 +129,11 @@ impl Vector4
     {
         #static switch op
         {
-        case .Add:
-            return Vector4{.x + value, .y + value, .z + value, .w + value}
-
-        case .Sub:
-            return Vector4{.x - value, .y - value, .z - value, .w - value}
-
-        case .Mul:
-            return Vector4{.x * value, .y * value, .z * value, .w * value}
-
-        case .Div:
-            return Vector4{.x / value, .y / value, .z / value, .w / value}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Vector4{.x + value, .y + value, .z + value, .w + value}
+        case .Sub: return Vector4{.x - value, .y - value, .z - value, .w - value}
+        case .Mul: return Vector4{.x * value, .y * value, .z * value, .w * value}
+        case .Div: return Vector4{.x / value, .y / value, .z / value, .w / value}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

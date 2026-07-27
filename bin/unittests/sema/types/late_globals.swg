@@ -10,9 +10,9 @@ struct LateGlobalSemaItem
 
 var g_lateSemaStorage: LateGlobalSemaItem
 #[Swag.Late]
-var g_lateSemaItem:    *LateGlobalSemaItem
+var g_lateSemaItem: *LateGlobalSemaItem
 #[Swag.Late]
-var g_lateSemaName:    string
+var g_lateSemaName: string
 
 // The exposed type is non-null.
 #assert(#typeof(g_lateSemaItem) == *LateGlobalSemaItem)

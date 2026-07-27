@@ -19,7 +19,7 @@ struct PopupListCtrl
 
     sigSelected: #null func||(*PopupListCtrl, u32)
 
-    items:       ArrayPtr'PopupListCtrlItem
+    items: ArrayPtr'PopupListCtrlItem
     selectedIdx = Swag.U32.Max
     #[Swag.Late]
     scrollWnd:   *ScrollWnd
@@ -30,9 +30,9 @@ struct PopupListView
 {
     using wnd: Wnd
     #[Swag.Late]
-    list:      *PopupListCtrl
-    hotIdx:    u32 = Swag.U32.Max
-    closing:   bool
+    list:    *PopupListCtrl
+    hotIdx:  u32 = Swag.U32.Max
+    closing: bool
 }
 
 impl IWnd for PopupListView
@@ -61,13 +61,13 @@ impl IWnd for PopupListView
 
         switch evt.key
         {
-        case .Up:            .moveHot(-1)
-        case .Down:          .moveHot(1)
-        case .Home:          .moveHotEdge(forward: true)
-        case .End:           .moveHotEdge(forward: false)
+        case .Up:             .moveHot(-1)
+        case .Down:           .moveHot(1)
+        case .Home:           .moveHotEdge(forward: true)
+        case .End:            .moveHotEdge(forward: false)
         case .Return, .Space: .close(.hotIdx)
-        case .Escape:        .close(Swag.U32.Max)
-        default:            return
+        case .Escape:         .close(Swag.U32.Max)
+        default:              return
         }
 
         evt.accepted = true

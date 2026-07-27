@@ -568,7 +568,7 @@ impl Painter
         switch drawFont.cache.renderMode
         {
         case .Msdf: .startMsdfFont()
-        default:   .startFont()
+        default:    .startFont()
         }
 
         .updateFont(drawFont)

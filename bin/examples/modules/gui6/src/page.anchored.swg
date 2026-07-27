@@ -22,7 +22,7 @@ func showAnchorMenu(btn: *Button, pos: PopupPos)
     {
     case .AnchorTopCenter:    pt = {rect.horzCenter(), rect.bottom()}
     case .AnchorBottomCenter: pt = {rect.horzCenter(), rect.y}
-    default:                 pt = {rect.x, rect.bottom()}
+    default:                  pt = {rect.x, rect.bottom()}
     }
 
     discard menu.doModal(pt, pos, autoDestroy: true)

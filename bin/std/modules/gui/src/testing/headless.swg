@@ -30,10 +30,10 @@ struct AutoStage
 
 struct HeadlessHost
 {
-    app:          Application
-    surface:      Surface
-    surfaceWnd:   SurfaceWnd
-    root:         Wnd
+    app:        Application
+    surface:    Surface
+    surfaceWnd: SurfaceWnd
+    root:       Wnd
     #[Swag.Late]
     theme:        *Theme
     mousePos:     Math.Point

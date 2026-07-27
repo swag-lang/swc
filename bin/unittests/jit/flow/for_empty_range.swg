@@ -121,7 +121,7 @@ func countElements(values: const [..] s32)->s32
 
 #test
 {
-    var storage = [10, 20, 30]
+    var storage                = [10, 20, 30]
     let empty:  const [..] s32 = @mkslice(&storage[0], 0)
     let filled: const [..] s32 = storage
 

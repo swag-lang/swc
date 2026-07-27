@@ -119,7 +119,7 @@ impl Application
             return null
         }
 
-        let pt = POINT{cast(s32) x, cast(s32) y}
+        let pt   = POINT{cast(s32) x, cast(s32) y}
         let hWnd = WindowFromPoint(pt)
         if hWnd == null do
             return null

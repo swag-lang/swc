@@ -164,12 +164,9 @@ impl Struct
     {
         #static switch op
         {
-        case .Add:
-            return {1, 2}
-        case .Sub:
-            return {2, 1}
-        default:
-            #error("unsupported binary operation")
+        case .Add: return {1, 2}
+        case .Sub: return {2, 1}
+        default:   #error("unsupported binary operation")
         }
     }
 

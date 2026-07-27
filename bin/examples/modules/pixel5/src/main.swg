@@ -31,7 +31,7 @@ struct CardOptions
 struct TextureCard
 {
     #[Swag.Late]
-    title:    string
+    title: string
     #[Swag.Late]
     subtitle: string
     texture:  Texture

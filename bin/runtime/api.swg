@@ -970,14 +970,14 @@ namespace Swag
 
         backend: BuildCfgBackend     // Backend options
 
-        repoPath:          #null string                                         // Repository access path to the module
-        resAppIcoFileName: #null string                                         // For an executable, the associated icon file name
-        resAppName:        #null string                                         // For an executable, the associated application name
-        resAppDescription: #null string                                         // For an executable, the associated application description
-        resAppCompany:     #null string                                         // For an executable, the associated company name
-        resAppCopyright:   #null string                                         // For an executable, the associated copyright notice
-        genDoc:            BuildCfgGenDoc                                       // Parameters for document generation
-        registeredConfigs: string = "debug|fast-debug|release"                  // Registered build configuration names used by --build-cfg and #cfg
+        repoPath:          #null string                            // Repository access path to the module
+        resAppIcoFileName: #null string                            // For an executable, the associated icon file name
+        resAppName:        #null string                            // For an executable, the associated application name
+        resAppDescription: #null string                            // For an executable, the associated application description
+        resAppCompany:     #null string                            // For an executable, the associated company name
+        resAppCopyright:   #null string                            // For an executable, the associated copyright notice
+        genDoc:            BuildCfgGenDoc                          // Parameters for document generation
+        registeredConfigs: string = "debug|fast-debug|release"     // Registered build configuration names used by --build-cfg and #cfg
     }
 
     // #########################################################

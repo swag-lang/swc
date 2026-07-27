@@ -2,7 +2,7 @@ using Core, Pixel
 
 public struct AboutDlg
 {
-    using dialog:      Dialog
+    using dialog: Dialog
     #[Swag.Late]
     {
         labelIcon:         *Label

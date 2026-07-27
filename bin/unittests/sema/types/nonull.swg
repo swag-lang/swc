@@ -190,9 +190,9 @@ func semaNonNullConstruction()
     #assert(#typeof(genericRequired.value) == *SemaNonNullItem)
     #assert(#typeof(genericDefault.value) == SemaNonNullStringDefault)
 
-    let holder     = SemaNonNullHolder{required: &first}
-    var moveSource = SemaNonNullHolder{required: &first}
-    let moveTarget = #move moveSource
+    let holder                            = SemaNonNullHolder{required: &first}
+    var moveSource                        = SemaNonNullHolder{required: &first}
+    let moveTarget                        = #move moveSource
     let blockHolder                       = SemaNonNullBlockHolder{required: block}
     let contextual: SemaNonNullHolder     = {required: &second, count: 9}
     let nested                            = SemaNonNullNested{holder: {required: &first}}
@@ -204,8 +204,8 @@ func semaNonNullConstruction()
     let aliasedHolder: SemaNonNullHolderAlias = {required: &first}
     let pointerDefault                        = SemaNonNullPointerDefault{}
     var moveDefaultSource                     = SemaNonNullMoveDefault{required: "explicit"}
-    let moveDefaultTarget = #move moveDefaultSource
-    let families = SemaNonNullFamilies{
+    let moveDefaultTarget                     = #move moveDefaultSource
+    let families                              = SemaNonNullFamilies{
         valuePointer:  direct,
         blockPointer:  block,
         slice:         slice,

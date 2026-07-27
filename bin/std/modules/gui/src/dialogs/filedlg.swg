@@ -37,8 +37,8 @@ struct FileDlg
 {
     using dialog: Dialog
     #[Swag.Late]
-    browser:      *FileBrowserCtrl
-    dlgOptions:   FileDlgOptions
+    browser:    *FileBrowserCtrl
+    dlgOptions: FileDlgOptions
 }
 
 impl IWnd for FileDlg

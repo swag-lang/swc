@@ -86,7 +86,7 @@ impl IActionUI for ActionAlign
         case .SendToBack:   undo = capture.newUndo(.MoveToBack)
         case .MoveForward:  undo = capture.newUndo(.MoveForward)
         case .MoveBackward: undo = capture.newUndo(.MoveBackward)
-        default:           return false
+        default:            return false
         }
 
         Debug.assert(undo != null)

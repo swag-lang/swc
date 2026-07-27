@@ -33,21 +33,21 @@ struct ColorPickerCtrl
     mode = ColorPickerViewMode.SaturationLightness
     #[Swag.Late]
     {
-        staticRes:    *Wnd
-        pickBox:      *ColorPicker
-        pickBar:      *ColorPicker
-        pickAlpha:    *ColorPicker
-        editA:        *EditBox
-        editR:        *EditBox
-        editG:        *EditBox
-        editB:        *EditBox
-        editH:        *EditBox
-        radioH:       *RadioButton
-        radioL:       *RadioButton
-        radioS:       *RadioButton
-        radioR:       *RadioButton
-        radioG:       *RadioButton
-        radioB:       *RadioButton
+        staticRes: *Wnd
+        pickBox:   *ColorPicker
+        pickBar:   *ColorPicker
+        pickAlpha: *ColorPicker
+        editA:     *EditBox
+        editR:     *EditBox
+        editG:     *EditBox
+        editB:     *EditBox
+        editH:     *EditBox
+        radioH:    *RadioButton
+        radioL:    *RadioButton
+        radioS:    *RadioButton
+        radioR:    *RadioButton
+        radioG:    *RadioButton
+        radioB:    *RadioButton
     }
 }
 

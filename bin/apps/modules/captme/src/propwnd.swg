@@ -44,9 +44,9 @@ struct PropWnd
     using frameWnd: FrameWnd
     #[Swag.Late]
     {
-        topLayout:      *StackLayoutCtrl
-        grid:           *Properties
-        main:           *MainWnd
+        topLayout: *StackLayoutCtrl
+        grid:      *Properties
+        main:      *MainWnd
     }
 
     // Concrete type bound to the grid (BaseForm for an heterogeneous selection)
@@ -697,7 +697,7 @@ impl PropWnd
 
         func addRow(prop: *PropWnd, name: String)->*Wnd
         {
-            let v = Swag.TypeValue{name: name}
+            let v    = Swag.TypeValue{name: name}
             let item = prop.grid.addItem(v, null, null, 40, .Zero)
 
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable

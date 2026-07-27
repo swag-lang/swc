@@ -103,20 +103,11 @@ impl Vector3
     {
         #static switch op
         {
-        case .Add:
-            return Vector3{.x + other.x, .y + other.y, .z + other.z}
-
-        case .Sub:
-            return Vector3{.x - other.x, .y - other.y, .z - other.z}
-
-        case .Mul:
-            return Vector3{.x * other.x, .y * other.y, .z * other.z}
-
-        case .Div:
-            return Vector3{.x / other.x, .y / other.y, .z / other.z}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Vector3{.x + other.x, .y + other.y, .z + other.z}
+        case .Sub: return Vector3{.x - other.x, .y - other.y, .z - other.z}
+        case .Mul: return Vector3{.x * other.x, .y * other.y, .z * other.z}
+        case .Div: return Vector3{.x / other.x, .y / other.y, .z / other.z}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -127,20 +118,11 @@ impl Vector3
     {
         #static switch op
         {
-        case .Add:
-            return Vector3{.x + value, .y + value, .z + value}
-
-        case .Sub:
-            return Vector3{.x - value, .y - value, .z - value}
-
-        case .Mul:
-            return Vector3{.x * value, .y * value, .z * value}
-
-        case .Div:
-            return Vector3{.x / value, .y / value, .z / value}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Vector3{.x + value, .y + value, .z + value}
+        case .Sub: return Vector3{.x - value, .y - value, .z - value}
+        case .Mul: return Vector3{.x * value, .y * value, .z * value}
+        case .Div: return Vector3{.x / value, .y / value, .z / value}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

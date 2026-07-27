@@ -9,9 +9,9 @@ struct Application
     using native: ApplicationNative
     sigFrame:     SigArray'func||(*Application)
 
-    options:      ApplicationOptions
-    appIcon:      Pixel.Image
-    renderer:     Pixel.RenderOgl
+    options:  ApplicationOptions
+    appIcon:  Pixel.Image
+    renderer: Pixel.RenderOgl
     #[Swag.Late]
     theme:        *Theme
     style:        ThemeStyle

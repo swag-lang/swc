@@ -39,7 +39,6 @@ Calculate the impact of the signal using this updated model. How many unique loc
 
 using Core
 
-//#[Swag.PrintBc]
 func day8B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "8.txt")

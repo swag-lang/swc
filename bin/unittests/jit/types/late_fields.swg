@@ -8,7 +8,7 @@ struct JitLateItem
 struct JitLateBox
 {
     #[Swag.Late]
-    item:  *JitLateItem
+    item: *JitLateItem
     #[Swag.Late]
     name:  string
     count: s32
@@ -70,7 +70,7 @@ func jitLateLiteral()->bool
 // zeroed on every construction path.
 struct JitLateDirty
 {
-    tag:   s32 = 5
+    tag: s32 = 5
     #[Swag.Late]
     item:  *JitLateItem
     ratio: f32 = 1.5

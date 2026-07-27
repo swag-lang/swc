@@ -27,14 +27,9 @@ impl Angle
     {
         #static switch suffix
         {
-        case "rad":
-            .rad = value
-
-        case "deg":
-            .rad = toRadians(value)
-
-        default:
-            #error("invalid angle literal suffix [[" ++ suffix ++ "]]")
+        case "rad": .rad = value
+        case "deg": .rad = toRadians(value)
+        default:    #error("invalid angle literal suffix [[" ++ suffix ++ "]]")
         }
     }
 

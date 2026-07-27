@@ -78,8 +78,8 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
 
 #test
 {
-    var storage: [4] s32 = [1, 2, 3, 4]
-    let values: const [..] s32 = storage
+    var storage: [4] s32        = [1, 2, 3, 4]
+    let values:  const [..] s32 = storage
 
     @assert(sliceCount(values, 0, 0) == 0)
     @assert(sliceCount(values, 2, 2) == 0)
@@ -92,10 +92,10 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
 {
     func sliceOfEmptySlice()->s32
     {
-        var storage: [3] s32 = [7, 8, 9]
-        let values: const [..] s32 = storage
-        let empty = values[1 until 1]
-        let again = empty[0 until 0]
+        var storage: [3] s32        = [7, 8, 9]
+        let values:  const [..] s32 = storage
+        let empty                   = values[1 until 1]
+        let again                   = empty[0 until 0]
 
         var acc: s32 = 0
         for v in again do
@@ -115,9 +115,9 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
 {
     func emptySliceLeavesSourceIntact()->s32
     {
-        var storage: [3] s32 = [4, 5, 6]
-        let values: const [..] s32 = storage
-        let empty = values[1 until 1]
+        var storage: [3] s32        = [4, 5, 6]
+        let values:  const [..] s32 = storage
+        let empty                   = values[1 until 1]
         @assert(@countof(empty) == 0)
         return storage[0] + storage[1] + storage[2]
     }

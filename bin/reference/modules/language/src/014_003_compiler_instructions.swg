@@ -60,14 +60,9 @@ const StaticMode = StaticBuildMode.Release
 
 #static switch StaticMode
 {
-case .Debug:
-    #error("debug mode is not selected")
-
-case .Release:
-    const StaticSelection = 42
-
-default:
-    #error("unknown build mode")
+case .Debug:   #error("debug mode is not selected")
+case .Release: const StaticSelection = 42
+default:       #error("unknown build mode")
 }
 
 #assert(StaticSelection == 42)
@@ -82,11 +77,8 @@ const StaticExhaustive = StaticBuildMode.Debug
 
 #static switch #complete StaticExhaustive
 {
-case .Debug:
-    const StaticExhaustiveSelection = 1
-
-case .Release:
-    const StaticExhaustiveSelection = 2
+case .Debug:   const StaticExhaustiveSelection = 1
+case .Release: const StaticExhaustiveSelection = 2
 }
 
 #assert(StaticExhaustiveSelection == 1)

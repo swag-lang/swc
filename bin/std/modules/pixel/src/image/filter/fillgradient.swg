@@ -38,7 +38,7 @@ impl Image
         case .BGRA8: .doIt'BGRA8()
         case .RGB8:  .doIt'RGB8()
         case .RGBA8: .doIt'RGBA8()
-        default:    Debug.assert(false)
+        default:     Debug.assert(false)
         }
 
         .visitPixels(stride: .width)
@@ -77,7 +77,7 @@ impl Image
         case .BGRA8: .doIt'BGRA8()
         case .RGB8:  .doIt'RGB8()
         case .RGBA8: .doIt'RGBA8()
-        default:    Debug.assert(false)
+        default:     Debug.assert(false)
         }
     }
 }

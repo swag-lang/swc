@@ -93,20 +93,11 @@ impl Vector2
     {
         #static switch op
         {
-        case .Add:
-            return Vector2{.x + other.x, .y + other.y}
-
-        case .Sub:
-            return Vector2{.x - other.x, .y - other.y}
-
-        case .Mul:
-            return Vector2{.x * other.x, .y * other.y}
-
-        case .Div:
-            return Vector2{.x / other.x, .y / other.y}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Vector2{.x + other.x, .y + other.y}
+        case .Sub: return Vector2{.x - other.x, .y - other.y}
+        case .Mul: return Vector2{.x * other.x, .y * other.y}
+        case .Div: return Vector2{.x / other.x, .y / other.y}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 
@@ -117,20 +108,11 @@ impl Vector2
     {
         #static switch op
         {
-        case .Add:
-            return Vector2{.x + value, .y + value}
-
-        case .Sub:
-            return Vector2{.x - value, .y - value}
-
-        case .Mul:
-            return Vector2{.x * value, .y * value}
-
-        case .Div:
-            return Vector2{.x / value, .y / value}
-
-        default:
-            #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
+        case .Add: return Vector2{.x + value, .y + value}
+        case .Sub: return Vector2{.x - value, .y - value}
+        case .Mul: return Vector2{.x * value, .y * value}
+        case .Div: return Vector2{.x / value, .y / value}
+        default:   #error("unsupported binary operation [[" ++ op.symbol() ++ "]]")
         }
     }
 

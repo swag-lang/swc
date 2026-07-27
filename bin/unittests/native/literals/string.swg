@@ -6,7 +6,6 @@ using Swag
 namespace compiler1643
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         const tbl = "0123456789ABCDEF"
@@ -21,7 +20,6 @@ namespace compiler1643
 namespace compiler1644
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         const tbl = "0123456789ABCDEF"
@@ -35,7 +33,6 @@ namespace compiler1644
 namespace compiler1654
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         let s   = "%%"
@@ -49,9 +46,7 @@ namespace compiler1673
 {
     //
     //
-    //#global testerror
 
-    //#[Swag.PrintBc]
     func toto(x: ...)->typeinfo
     {
         @assert(@kindof(x[0]).fullname == "s32")
@@ -86,7 +81,6 @@ namespace compiler169
 namespace compiler247
 {
     //
-    //#[PrintBc]
     func main(a: s32 = 6)->s32
     {
         // @print("1");
@@ -117,7 +111,6 @@ namespace compiler247
 namespace compiler291
 {
     //
-    //#[PrintBc]
     func test2(v: string, v1: string)->bool
     {
         // @print(v);
@@ -125,7 +118,6 @@ namespace compiler291
         return v == "toto" and v1 == "titi"
     }
 
-    //#[PrintBc]
     #test
     {
         @assert(test2("toto", "titi"))
@@ -136,7 +128,6 @@ namespace compiler291
 namespace compiler292
 {
     //
-    //#[PrintBc]
     #test
     {
         let b = "abcd"
@@ -167,7 +158,6 @@ namespace cstring_index_runtime
 namespace compiler293
 {
     //
-    //#[PrintBc]
     #test
     {
         let b = "XYZ"
@@ -179,7 +169,6 @@ namespace compiler293
 namespace compiler297
 {
     //
-    //#[Swag.PrintBc]
     func test1()->string
     {
         return "toto1"
@@ -196,13 +185,11 @@ namespace compiler297
 namespace compiler298
 {
     //
-    //#[PrintBc]
     func test2()->string
     {
         return "toto1"
     }
 
-    //#[PrintBc]
     #test
     {
         var res = test2()
@@ -219,7 +206,6 @@ namespace compiler298
 namespace compiler299
 {
     //
-    //#[PrintBc]
     #test
     {
         @assert(@countof("toto") == 4)
@@ -231,7 +217,6 @@ namespace compiler299
 namespace compiler301
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         var str = "toto"
@@ -246,7 +231,6 @@ namespace compiler301
 namespace compiler302
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         let str             = "ABCD"
@@ -264,7 +248,6 @@ namespace compiler308
     //
     var g = "toto"
 
-    //#[Swag.PrintBc]
     #test
     {
         let c = @countof(g)
@@ -276,7 +259,6 @@ namespace compiler308
 namespace compiler309
 {
     //
-    //#[Swag.PrintBc]
     #test
     {
         let c = "toto"
@@ -291,7 +273,6 @@ namespace compiler311
     //
     var g: string = ""
 
-    //#[Swag.PrintBc]
     #test
     {
         g = "toto"; @assert(g == "toto")

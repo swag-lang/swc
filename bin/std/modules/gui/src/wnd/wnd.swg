@@ -140,7 +140,7 @@ enum WndFlags
 struct Wnd
 {
     #[Swag.Late]
-    itf:      IWnd
+    itf: IWnd
     #[Swag.Late]
     type:     typeinfo
     surface:  #null *Surface

@@ -41,7 +41,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 
 #test
 {
-    let pair = Pair{a: 81, b: true}
+    let pair                  = Pair{a: 81, b: true}
     let {b: second, a: first} = pair
     @assert(first == 81)
     @assert(second)

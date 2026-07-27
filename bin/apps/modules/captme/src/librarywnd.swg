@@ -31,6 +31,7 @@ struct LibraryWnd
         searchEdit:  *EditBox
         breadcrumb:  *BreadcrumbCtrl
     }
+
     previewSize: PreviewSize
 
     searchText: String

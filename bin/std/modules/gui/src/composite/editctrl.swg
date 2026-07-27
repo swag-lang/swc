@@ -11,7 +11,7 @@ struct EditCtrl
     #[Swag.Late]
     label: *Label
     #[Swag.Late]
-    edit:  *EditBox
+    edit: *EditBox
 }
 
 impl IWnd for EditCtrl

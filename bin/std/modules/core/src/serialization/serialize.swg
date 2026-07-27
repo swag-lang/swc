@@ -124,41 +124,18 @@ impl Serializer
 
             #static switch MT
             {
-            case s8:
-                encode.writeS8(dref res)
-
-            case s16:
-                encode.writeS16(dref res)
-
-            case s32:
-                encode.writeS32(dref res)
-
-            case s64:
-                encode.writeS64(dref res)
-
-            case u8:
-                encode.writeU8(dref res)
-
-            case u16:
-                encode.writeU16(dref res)
-
-            case u32, rune:
-                encode.writeU32(dref res)
-
-            case u64:
-                encode.writeU64(dref res)
-
-            case bool:
-                encode.writeBool(dref res)
-
-            case f32:
-                encode.writeF32(dref res)
-
-            case f64:
-                encode.writeF64(dref res)
-
-            default:
-                encode.write(res, #typeof(MT))
+            case s8:        encode.writeS8(dref res)
+            case s16:       encode.writeS16(dref res)
+            case s32:       encode.writeS32(dref res)
+            case s64:       encode.writeS64(dref res)
+            case u8:        encode.writeU8(dref res)
+            case u16:       encode.writeU16(dref res)
+            case u32, rune: encode.writeU32(dref res)
+            case u64:       encode.writeU64(dref res)
+            case bool:      encode.writeBool(dref res)
+            case f32:       encode.writeF32(dref res)
+            case f64:       encode.writeF64(dref res)
+            default:        encode.write(res, #typeof(MT))
             }
         }
         else
@@ -170,41 +147,18 @@ impl Serializer
 
             #static switch MT
             {
-            case s8:
-                dref res = decode.readS8()
-
-            case s16:
-                dref res = decode.readS16()
-
-            case s32:
-                dref res = decode.readS32()
-
-            case s64:
-                dref res = decode.readS64()
-
-            case u8:
-                dref res = decode.readU8()
-
-            case u16:
-                dref res = decode.readU16()
-
-            case u32, rune:
-                dref res = decode.readU32()
-
-            case u64:
-                dref res = decode.readU64()
-
-            case bool:
-                dref res = decode.readBool()
-
-            case f32:
-                dref res = decode.readF32()
-
-            case f64:
-                dref res = decode.readF64()
-
-            default:
-                decode.read(res, #typeof(MT))
+            case s8:        dref res = decode.readS8()
+            case s16:       dref res = decode.readS16()
+            case s32:       dref res = decode.readS32()
+            case s64:       dref res = decode.readS64()
+            case u8:        dref res = decode.readU8()
+            case u16:       dref res = decode.readU16()
+            case u32, rune: dref res = decode.readU32()
+            case u64:       dref res = decode.readU64()
+            case bool:      dref res = decode.readBool()
+            case f32:       dref res = decode.readF32()
+            case f64:       dref res = decode.readF64()
+            default:        decode.read(res, #typeof(MT))
             }
         }
     }

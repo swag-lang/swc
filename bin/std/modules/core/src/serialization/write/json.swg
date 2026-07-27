@@ -14,13 +14,13 @@ struct JSonOptions
 // A JSON writer.
 struct JSon
 {
-    options:        JSonOptions                                 // Formatting options.
-    output:         *ConcatBuffer = undefined                   // Output buffer for generated JSON.
-    indent:         u32                                         // Current indentation level.
-    containerDepth: u32                                         // Current logical nesting depth for arrays/objects.
-    fmtInt:         StrConv.ConvertFormatInt                    // Format used for converting integers.
+    options:        JSonOptions                                    // Formatting options.
+    output:         *ConcatBuffer              = undefined         // Output buffer for generated JSON.
+    indent:         u32                                            // Current indentation level.
+    containerDepth: u32                                            // Current logical nesting depth for arrays/objects.
+    fmtInt:         StrConv.ConvertFormatInt                       // Format used for converting integers.
     fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g''u8}     // Format used for converting floating-point numbers.
-    lastSeekValue:  ConcatBufferSeek                            // Seek position used for rollback of trailing commas.
+    lastSeekValue:  ConcatBufferSeek                               // Seek position used for rollback of trailing commas.
 }
 
 impl JSon

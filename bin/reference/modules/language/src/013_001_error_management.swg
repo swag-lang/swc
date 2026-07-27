@@ -57,14 +57,14 @@ func recordTrace(name: #null string, out: *s32) fail
 
     catch recordTrace("swag", &seen) else do
         seen = -2
-    @assert(seen == 4)          // success: the handler does not run
+    @assert(seen == 4)     // success: the handler does not run
 
     catch recordTrace(null, &seen) else
     {
         seen = -2
     }
 
-    @assert(seen == -2)         // failure: the handler ran instead
+    @assert(seen == -2)     // failure: the handler ran instead
 }
 
 /**

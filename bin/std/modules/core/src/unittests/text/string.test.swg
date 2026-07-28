@@ -350,7 +350,7 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(assertString(joinedWithoutSeparator, "abc"))
 
     var value: String = "123456789"
-    @assert(Hash.hash32(value) == Hash.Crc32.compute(value.toSlice()))
+    @assert(Hash.hash32(value) == Hash.hashBytes32(value.toSlice()))
 }
 
 #test

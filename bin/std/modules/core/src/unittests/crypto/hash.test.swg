@@ -83,7 +83,7 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     let onlyHash64 = HashTestTypes.OnlyHash64{value: 5}
     let bothHash   = HashTestTypes.BothHash{value: 7}
 
-    @assert(Hash.hash32(TEXT) == Hash.Crc32.compute(TEXT))
+    @assert(Hash.hash32(TEXT) == Hash.hashBytes32(TEXT))
     @assert(Hash.hash64(TEXT) == Hash.murmur3(@dataof(TEXT), @countof(TEXT), 0))
 
     @assert(Hash.hash32(onlyHash32) == EXPECTED_ONLY_HASH32_32)
@@ -94,4 +94,58 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 
     @assert(Hash.hash32(bothHash) == EXPECTED_BOTH_HASH32)
     @assert(Hash.hash64(bothHash) == EXPECTED_BOTH_HASH64)
+}
+
+#assert(Hash.hashBytes32("abc") == Hash.hashBytes32("abc"))
+#assert(Hash.hashBytes32("abc") != Hash.hashBytes32("abd"))
+#assert(Hash.hashBytes32("") != Hash.hashBytes32("a"))
+
+// 'hashBytes32' reads 8 bytes at a time and overlaps the tail rather than stepping
+// through it. Cover every length branch, and prove the overlap never reaches past
+// the range it was given.
+#test
+{
+    const Lengths = [0'u64, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64]
+
+    var source: [80] u8 = undefined
+    for [i] in 80'u64 do
+        source[i] = cast(u8)((i * 7 + 13) & 0xFF)
+
+    var seen: [@countof(Lengths)] u32 = undefined
+
+    for [slot] in @countof(Lengths)
+    {
+        let length = Lengths[slot]
+        let view   = @mkslice(&source[0], length)
+        let hashed = Hash.hashBytes32(view)
+
+        // Same bytes, same hash
+        @assert(Hash.hashBytes32(view) == hashed)
+
+        // Bytes beyond 'length' must not take part: same prefix in a differently
+        // filled buffer has to produce the same value
+        var padded: [80] u8 = undefined
+        Memory.set(&padded[0], 0xAA'u8, 80)
+        Memory.copy(&padded[0], &source[0], length)
+        @assert(Hash.hashBytes32(@mkslice(&padded[0], length)) == hashed)
+
+        // Flipping the last byte has to change the hash
+        if length
+        {
+            padded[length - 1] ^= 0xFF
+            @assert(Hash.hashBytes32(@mkslice(&padded[0], length)) != hashed)
+        }
+
+        seen[slot] = hashed
+    }
+
+    // Distinct prefixes give distinct hashes
+    for [i] in @countof(Lengths)
+    {
+        for [j] in @countof(Lengths)
+        {
+            if j > i do
+                @assert(seen[i] != seen[j])
+        }
+    }
 }

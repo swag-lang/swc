@@ -18,7 +18,6 @@ struct(K, V) HashTable
     const HASH_FREE    = 0'u32     // The slot is empty and has never been used.
     const HASH_DELETED = 1'u32     // The slot was previously occupied but has been me.deleted.
     const HASH_FIRST   = 2'u32     // The first possible valid hash value.
-    const HASH_MASK    = 2'u32     // A mask to ensure that valid hashes are >= HASH_FIRST.
 
     allocator: #null IAllocator             // The me.allocator used for memory operations.
     table:     #null [*] HashTableEntry     // Pointer to the contiguous memory block for the hash me.table.
@@ -133,11 +132,7 @@ impl HashTable
     // Assigns a value to a key, updating it if it exists or adding it if it doesn't.
     mtd opIndexSet(key: K, val: V)
     {
-        let it = .tryFind(key)
-        if it do
-            it.value = val
-        else do
-            .add(key, val)
+        .add(key, val)
     }
 
     // Provides a way to iterate over each key-value pair in the me.table.
@@ -184,10 +179,15 @@ impl HashTable
 
     // Computes the hash for a given key.
     // Ensures the resulting hash is not one of the reserved values (FREE, me.deleted).
+    //
+    // Only the two reserved values are lifted, never a whole bit: forcing a bit on
+    // would make every starting probe index share it, so half of the slots could
+    // only ever be reached by probing.
     #[Inline]
     func hashKey(key: K)->u32
     {
-        return Hash.hash32(key) | HashTable.HASH_MASK
+        let hashVal = Hash.hash32(key)
+        return hashVal < HashTable.HASH_FIRST ? HashTable.HASH_FIRST : hashVal
     }
 
     // Frees the hash me.table's memory and resets its state.
@@ -214,11 +214,12 @@ impl HashTable
     }
 
     // Checks if the me.table needs to be resized and triggers it if necessary.
-    // Growth happens when the load factor (including me.deleted slots) exceeds 75%.
+    // Growth happens when the load factor (including me.deleted slots) exceeds 50%.
     mtd grow()
     {
-        // We need to trigger the growing of the me.table is there's not enough room
-        if .capacity != 0 and .capacity - (.count + .deleted) > .capacity / 4 do
+        // Linear probing degrades sharply past half full: a failed lookup averages
+        // 2.5 probes at a 50% load factor, but 8.5 probes at 75%
+        if .capacity != 0 and .capacity - (.count + .deleted) > .capacity / 2 do
             return
 
         let newCapacity = .capacity * 2
@@ -512,13 +513,37 @@ impl HashTable
 
     // Finds the entry for a key, or adds a new entry with a default-initialized value if not found.
     // Returns a pointer to the existing or new entry.
+    // The key is hashed and probed once, whether it is found or inserted, instead of
+    // paying a full lookup and then a full insert on every miss.
     mtd findOrAdd(key: K)->*HashTableEntry
+        where Reflection.canCopy(#typeof(K))
     {
-        let it = .tryFind(key)
-        if it do
-            return it
+        .grow()
+
+        let hashVal = hashKey(key)
+        var index   = cast(u64) hashVal & (.capacity - 1)
+        let table   = .tablePtr()
+
+        index = .getNewIndex(key, index, hashVal)
+        if table[index].hash >= HashTable.HASH_FIRST do
+            return table + index
+
         var val: V
-        return .add(key, val)
+        if table[index].hash == HashTable.HASH_FREE
+        {
+            table[index].key   = #nodrop key
+            table[index].value = #nodrop val
+        }
+        else
+        {
+            .deleted           -= 1
+            table[index].key   = key
+            table[index].value = val
+        }
+
+        table[index].hash = hashVal
+        .count            += 1
+        return table + index
     }
 
     // Removes all elements from the me.table without deallocating the me.table memory.

@@ -17,7 +17,6 @@ struct(K) HashSet
     const HASH_FREE    = 0'u32     // The slot is empty and has never been used.
     const HASH_DELETED = 1'u32     // The slot was previously occupied but has been me.deleted.
     const HASH_FIRST   = 2'u32     // The first possible valid hash value.
-    const HASH_MASK    = 2'u32     // A mask to ensure that valid hashes are >= HASH_FIRST.
 
     allocator: #null IAllocator           // The me.allocator used for memory operations.
     table:     #null [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
@@ -141,10 +140,15 @@ impl HashSet
 
     // Computes the hash for a given key.
     // Ensures the resulting hash is not one of the reserved values (FREE, me.deleted).
+    //
+    // Only the two reserved values are lifted, never a whole bit: forcing a bit on
+    // would make every starting probe index share it, so half of the slots could
+    // only ever be reached by probing.
     #[Inline]
     func hashKey(key: K)->u32
     {
-        return Hash.hash32(key) | HashSet.HASH_MASK
+        let hashVal = Hash.hash32(key)
+        return hashVal < HashSet.HASH_FIRST ? HashSet.HASH_FIRST : hashVal
     }
 
     // Frees the hash set's memory and resets its state.
@@ -171,11 +175,12 @@ impl HashSet
     }
 
     // Checks if the me.table needs to be resized and triggers it if necessary.
-    // Growth happens when the load factor (including me.deleted slots) exceeds 75%.
+    // Growth happens when the load factor (including me.deleted slots) exceeds 50%.
     mtd grow()
     {
-        // We need to trigger the growing of the me.table is there's not enough room
-        if .capacity != 0 and .capacity - (.count + .deleted) > .capacity / 4 do
+        // Linear probing degrades sharply past half full: a failed lookup averages
+        // 2.5 probes at a 50% load factor, but 8.5 probes at 75%
+        if .capacity != 0 and .capacity - (.count + .deleted) > .capacity / 2 do
             return
 
         let newCapacity = .capacity * 2

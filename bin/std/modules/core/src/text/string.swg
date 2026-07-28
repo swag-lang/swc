@@ -780,6 +780,8 @@ impl Hash.IHash32 for String
 {
     func impl compute(const me)->u32
     {
-        return Hash.Crc32.compute(@mkslice(.buffer, .length))
+        // Same function as the one used for 'string', so a 'String' and the text it
+        // holds always hash alike
+        return Hash.hashBytes32(@mkslice(.buffer, .length))
     }
 }

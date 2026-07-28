@@ -1,9 +1,23 @@
 using Core, Pixel, Win32
 
-const W          = 1260
-const H          = 820
-const CardCount  = 8
-const TestFrames = 30
+const W                 = 1260
+const H                 = 860
+const GalleryCols       = 2
+const GalleryRows       = 2
+const CardsPerPage      = GalleryCols * GalleryRows
+const PageCount         = 8
+const TestFramesPerPage = 10
+const CardHeaderHeight  = 78.0
+const MaxSourceSide     = 192.0
+
+const PageBmp  = 0
+const PageTga  = 1
+const PageJpg  = 2
+const PagePng  = 3
+const PageGif  = 4
+const PageTiff = 5
+const PageIco  = 6
+const PageWebp = 7
 
 const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
 
@@ -16,25 +30,25 @@ struct SceneLayout
 struct DecoderCard
 {
     #[Swag.Late]
-    format: string
-    #[Swag.Late]
-    fileName: string
-    texture:  Texture
-    width:    s32
-    height:   s32
+    title:   string
+    details: String
+    texture: Texture
 }
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
 var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
+var g_Keyboard: Input.Keyboard
 
 var g_TypeFace:  #null *Pixel.TypeFace
 var g_TitleFont: #null *Pixel.Font
 var g_LabelFont: #null *Pixel.Font
 var g_HelpFont:  #null *Pixel.Font
 
-var g_Cards: [CardCount] DecoderCard
+var g_Page:      s32
+var g_TestFrame: s32
+var g_Cards:     [PageCount][CardsPerPage] DecoderCard
 
 func dataPath(fileName: string, loc = #callerlocation)->String
 {
@@ -50,26 +64,149 @@ func loadFonts() fail
     g_HelpFont  = Font.create(notnull g_TypeFace, 14)
 }
 
-func loadCard(card: *DecoderCard, format, fileName: string) fail
+func normalizeSource(image: const &Image)->Image
 {
-    let image = Image.load(dataPath(fileName))
-    card.format   = format
-    card.fileName = fileName
-    card.width    = image.width
-    card.height   = image.height
-    card.texture  = g_Renderer.addImage(image)
+    let maxSide = cast(f32) Math.max(image.width, image.height)
+    if maxSide <= MaxSourceSide do
+        return Image.create(image.width, image.height, image.pf, image.pixels.toSlice())
+
+    let scale     = MaxSourceSide / maxSide
+    let newWidth  = Math.max(cast(s32) Math.round(cast(f32) image.width * scale), 1)
+    let newHeight = Math.max(cast(s32) Math.round(cast(f32) image.height * scale), 1)
+    return image.toResize(newWidth, newHeight, .Quadratic)
 }
 
-func loadCards() fail
+func loadSource(fileName: string)->Image fail
 {
-    try loadCard(&g_Cards[0], "BMP", "rocket.bmp")
-    try loadCard(&g_Cards[1], "TGA", "sailboat.tga")
-    try loadCard(&g_Cards[2], "JPEG", "fox.jpg")
-    try loadCard(&g_Cards[3], "PNG", "succulent.png")
-    try loadCard(&g_Cards[4], "GIF", "jellyfish.gif")
-    try loadCard(&g_Cards[5], "TIFF", "mountain.tiff")
-    try loadCard(&g_Cards[6], "ICO", "controller.ico")
-    try loadCard(&g_Cards[7], "WebP", "robot.webp")
+    let image = Image.load(dataPath(fileName))
+    return normalizeSource(image)
+}
+
+func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaPattern = false)->Image
+{
+    let converted = source.toSetPixelFormat(pixelFormat)
+    var result    = Image.create(converted.width, converted.height, converted.pf, converted.pixels.toSlice())
+    if !withAlphaPattern do
+        return result
+
+    Debug.assert(pixelFormat.hasAlpha())
+    var pixel = notnull result.pixels.buffer
+    for [y] in result.height
+    {
+        for [x] in result.width
+        {
+            pixel[3] = cast(u8) (72 + ((x * 5 + y * 3) % 184))
+            pixel   += 4
+        }
+    }
+
+    return result
+}
+
+func paletteVariant(source: const &Image, withAlpha: bool)->Image
+{
+    var result = sourceVariant(source, withAlpha ? .RGBA8 : .RGB8)
+    var pixel  = notnull result.pixels.buffer
+    for [y] in result.height
+    {
+        for [x] in result.width
+        {
+            pixel[0] = (pixel[0] >> 6) * 85
+            pixel[1] = (pixel[1] >> 6) * 85
+            pixel[2] = (pixel[2] >> 6) * 85
+            if withAlpha do
+                pixel[3] = ((x / 24 + y / 24) & 3) == 0 ? 0'u8 : 255'u8
+            pixel += result.bpp8
+        }
+    }
+
+    return result
+}
+
+func nonNullBytes(bytes: #null [..] u8)->const [..] u8
+{
+    Debug.assert(bytes != null)
+    return @mkslice(cast([*] u8) (notnull @dataof(bytes)), @countof(bytes))
+}
+
+func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedSize: u64)
+{
+    card.title   = title
+    card.details = Format.toString("% | % x % | % bytes", encoding, image.width, image.height, encodedSize)
+    card.texture = g_Renderer.addImage(image)
+}
+
+func(T) encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: Image, options: #null any = null) fail
+{
+    var encoder: T
+    let itf = @mkinterface(&encoder, #typeof(T), IImageEncoder)
+
+    var encoded: ConcatBuffer
+    itf.encode(&encoded, source, options)
+    encoded.makeLinear()
+
+    let bytes   = nonNullBytes(encoded.toSlice())
+    let decoded = Image.decode(fileName, bytes)
+    setCard(card, title, encoding, decoded, @countof(bytes))
+}
+
+func buildPages() fail
+{
+    buildBmpPage()
+    buildTgaPage()
+    buildJpgPage()
+    buildPngPage()
+    buildGifPage()
+    buildTiffPage()
+    buildIcoPage()
+    buildWebpPage()
+}
+
+func pageTitle(page: s32)->string
+{
+    switch page
+    {
+    case PageBmp:  return "BMP encoder and decoder"
+    case PageTga:  return "TGA encoder and decoder"
+    case PageJpg:  return "JPEG encoder and decoder"
+    case PagePng:  return "PNG encoder and decoder"
+    case PageGif:  return "GIF encoder and decoder"
+    case PageTiff: return "TIFF encoder and decoder"
+    case PageIco:  return "ICO encoder and decoder"
+    case PageWebp: return "WebP encoder and decoder"
+    default:       unreachable
+    }
+
+    return ""
+}
+
+func pageDescription(page: s32)->string
+{
+    switch page
+    {
+    case PageBmp:  return "The bundled BMP is decoded, converted to four pixel layouts, encoded by Swag, then decoded again."
+    case PageTga:  return "The bundled TGA is regenerated as 24-bit and 32-bit true-color images from RGB and BGR layouts."
+    case PageJpg:  return "The bundled JPEG is regenerated at four quality levels and each encoded buffer is decoded for display."
+    case PagePng:  return "The bundled PNG is regenerated with filtered, unfiltered, stored and alpha-bearing encodings."
+    case PageGif:  return "The bundled GIF is regenerated with exact, transparent and quantized palettes before LZW decoding."
+    case PageTiff: return "The bundled TIFF is regenerated as uncompressed RGB and RGBA data from four pixel layouts."
+    case PageIco:  return "The bundled icon is regenerated as four 32-bit DIB entries with different sizes and alpha layouts."
+    case PageWebp: return "The bundled WebP is regenerated as lossless VP8L data from RGB, BGR and alpha-bearing layouts."
+    default:       unreachable
+    }
+
+    return ""
+}
+
+func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string, font: *Pixel.Font, color: Color)
+{
+    var richText: RichString = text
+    var format:   RichStringFormat
+    format.font.regular = font
+    format.palette[0]   = color
+    format.lineGap      = 0
+    format.flags        = .WordWrap | .Clip
+    painter.drawRichString(rect, &richText, format)
 }
 
 func computeSceneLayout(width, height: s32)->SceneLayout
@@ -92,16 +229,13 @@ func computeSceneLayout(width, height: s32)->SceneLayout
 
 func getCardRect(index: s32)->Math.Rectangle
 {
-    const Cols = 4
-    const Rows = 2
-
-    let gap        = 18.0
-    let top        = 112.0
-    let bottom     = 42.0
-    let cardWidth  = (W - 56.0 - (Cols - 1) * gap) / cast(f32) Cols
-    let cardHeight = (H - top - bottom - (Rows - 1) * gap) / cast(f32) Rows
-    let col        = index % Cols
-    let row        = index / Cols
+    let gap         = 18.0
+    let top         = 118.0
+    let bottomInset = 42.0
+    let cardWidth   = (W - 56.0 - (GalleryCols - 1) * gap) / cast(f32) GalleryCols
+    let cardHeight  = (H - top - bottomInset - (GalleryRows - 1) * gap) / cast(f32) GalleryRows
+    let col         = index % GalleryCols
+    let row         = index / GalleryCols
     return {28 + col * (cardWidth + gap), top + row * (cardHeight + gap), cardWidth, cardHeight}
 }
 
@@ -115,17 +249,17 @@ func fitTextureRect(bounds: Math.Rectangle, texture: Texture)->Math.Rectangle
 
 func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: const &DecoderCard)
 {
-    let headerRect  = Math.Rectangle{rect.x, rect.y, rect.width, 58}
-    let previewRect = Math.Rectangle{rect.x + 14, rect.y + 72, rect.width - 28, rect.height - 86}
-    let details     = Format.toString("% - % x %", card.fileName, card.width, card.height)
+    let headerRect  = Math.Rectangle{rect.x, rect.y, rect.width, CardHeaderHeight}
+    let detailsRect = Math.Rectangle{rect.x + 14, rect.y + 38, rect.width - 28, CardHeaderHeight - 42}
+    let previewRect = Math.Rectangle{rect.x + 14, rect.y + CardHeaderHeight + 14, rect.width - 28, rect.height - CardHeaderHeight - 28}
 
     painter.fillRoundRect(rect, 18, 18, Argb.White)
     painter.drawRoundRect(rect, 18, 18, Color.fromArgb(72, Argb.SlateGray), 2)
     painter.fillRoundRect(headerRect, 18, 18, Color.fromArgb(22, Argb.MidnightBlue))
     painter.fillRoundRect(previewRect, 14, 14, Color.fromArgb(255, 239, 242, 247))
 
-    painter.drawString(rect.x + 14, rect.y + 10, card.format, notnull g_LabelFont, Argb.DarkSlateBlue)
-    painter.drawString(rect.x + 14, rect.y + 36, details, notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(rect.x + 14, rect.y + 11, card.title, notnull g_LabelFont, Argb.DarkSlateBlue)
+    drawWrappedText(painter, detailsRect, card.details, notnull g_HelpFont, Argb.DimGray)
 
     painter.pushClippingRect(previewRect)
     painter.drawTexture(fitTextureRect(previewRect, card.texture), card.texture)
@@ -136,13 +270,14 @@ func drawScene(painter: *Pixel.Painter)
 {
     painter.clear(Color.fromArgb(255, 245, 246, 249))
     painter.setParams(.Antialiased)
-    painter.drawString(28, 22, "Pixel image decoders", notnull g_TitleFont, Argb.MidnightBlue)
-    painter.drawString(30, 70, "Eight distinct files loaded through Image.load, one for each registered decoder.", notnull g_HelpFont, Argb.DimGray)
+    painter.drawString(28, 22, pageTitle(g_Page), notnull g_TitleFont, Argb.MidnightBlue)
+    drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), notnull g_HelpFont, Argb.DimGray)
 
-    for [i] in CardCount do
-        drawCard(painter, getCardRect(i), g_Cards[i])
+    for [i] in CardsPerPage do
+        drawCard(painter, getCardRect(i), g_Cards[g_Page][i])
 
-    painter.drawString(28, H - 22, "BMP, TGA, JPEG, PNG, GIF, TIFF, ICO and WebP", notnull g_HelpFont, Argb.DimGray)
+    let footer = Format.toString("F1 : next codec (%/%). BMP, TGA, JPEG, PNG, GIF, TIFF, ICO and WebP.", g_Page + 1, PageCount)
+    painter.drawString(28, H - 22, footer, notnull g_HelpFont, Argb.DimGray)
 }
 
 func display()
@@ -169,26 +304,57 @@ func onResize(_window: *Env.Window, width, height: s32)
     g_RC.height = height
 }
 
+func nextPage()
+{
+    g_Page = (g_Page + 1) % PageCount
+}
+
+func updateShortcuts()
+{
+    g_Keyboard.update()
+    if g_Keyboard.isKeyJustPressed(Input.Key.F1) do
+        nextPage()
+}
+
+func updateTestMode()
+{
+    if !Env.hasArg("swag.test") do
+        return
+
+    g_TestFrame += 1
+    if g_TestFrame < TestFramesPerPage do
+        return
+
+    g_TestFrame = 0
+    if g_Page + 1 >= PageCount do
+        Env.exit(0)
+
+    nextPage()
+}
+
 #main
 {
-    try Env.createWindow(&g_Window, {className: "PIXEL7_CLASS_NAME", title: "Pixel example - image decoders", width: W, height: H, style: FixedWindowStyle})
+    try Env.createWindow(&g_Window, {className: "PIXEL7_CLASS_NAME", title: "Pixel image codec showcase", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
     g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
 
+    try Jobs.setNumWorkers()
     try loadFonts()
-    try loadCards()
+    try buildPages()
 
     g_Window.callbacks.onResize = &onResize
     try g_Window.show()
 
     var loop: Env.WindowLoop
     if Env.hasArg("swag.test") do
-        loop.maxTestFrames = TestFrames
+        loop.maxTestFrames = cast(u32) PageCount * cast(u32) TestFramesPerPage
     while loop.next()
     {
+        updateShortcuts()
         display()
+        updateTestMode()
     }
 
     g_Renderer.native.dropContext(g_RC)

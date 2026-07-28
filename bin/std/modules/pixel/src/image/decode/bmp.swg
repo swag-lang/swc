@@ -138,17 +138,6 @@ func makeDefaultMasks(bitCount: u16, compression: u32)->Masks
     return result
 }
 
-
-
-
-
-
-
-
-
-
-
-
 public impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool

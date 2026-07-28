@@ -143,4 +143,3 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
         }
     }
 }
-

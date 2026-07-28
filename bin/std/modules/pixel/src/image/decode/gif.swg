@@ -91,24 +91,6 @@ impl Decoder
     mtd safeStreamStart()->const [*] u8 => cast(const [*] u8) (notnull .streamStart)
     mtd safePalette()->*Palette         => cast(*Palette) (notnull .palette)
     mtd safeCanvas()->[*] u8            => cast([*] u8) (notnull .canvas)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 public impl Decoder

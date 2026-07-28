@@ -102,4 +102,3 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
         }
     }
 }
-

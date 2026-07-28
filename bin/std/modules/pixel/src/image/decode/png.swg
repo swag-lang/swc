@@ -201,13 +201,7 @@ impl Decoder
         }
     }
 
-
     // Expand 1, 2, 4 bits to 8 bits
-
-
-
-
-
 
     mtd doIt(buffer: const [..] u8)->Image fail
     {
@@ -367,7 +361,6 @@ impl Decoder
         .convert(&result)
         return result
     }
-
 }
 
 public impl IImageDecoder for Decoder

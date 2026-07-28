@@ -494,4 +494,3 @@ impl Decoder
         memset16(.safeInBufOfs() + .inBufLeft, 0xD9FF, 64)
     }
 }
-

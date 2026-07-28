@@ -240,4 +240,3 @@ impl Encoder
         return false
     }
 }
-

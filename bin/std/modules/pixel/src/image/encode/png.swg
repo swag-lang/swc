@@ -235,18 +235,6 @@ impl Encoder
             .finishChunk()
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 public struct EncodeOptions

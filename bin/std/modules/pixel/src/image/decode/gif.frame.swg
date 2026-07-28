@@ -99,4 +99,3 @@ impl Decoder
         return 1
     }
 }
-

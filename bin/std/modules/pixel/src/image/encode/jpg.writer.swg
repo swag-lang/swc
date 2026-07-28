@@ -124,4 +124,3 @@ impl Encoder
         .writeByte(SOSinfo.bf)
     }
 }
-

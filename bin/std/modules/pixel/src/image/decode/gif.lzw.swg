@@ -164,4 +164,3 @@ impl Decoder
         .streamLen = remainEnd
     }
 }
-

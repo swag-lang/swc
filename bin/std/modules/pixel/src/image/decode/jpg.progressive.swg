@@ -312,4 +312,3 @@ impl Decoder
         .calcMcuBlockOrder()
     }
 }
-

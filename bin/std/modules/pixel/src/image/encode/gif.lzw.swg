@@ -108,4 +108,3 @@ impl Encoder
         result.addNative(0'u8)
     }
 }
-

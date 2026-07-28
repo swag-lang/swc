@@ -635,13 +635,6 @@ impl Decoder
         }
     }
 
-
-
-
-
-
-
-
     mtd initSequential() fail
     {
         let res = .initScan()

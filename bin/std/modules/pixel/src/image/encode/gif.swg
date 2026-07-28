@@ -20,11 +20,7 @@ private
         transparentIndex: s32 = -1
         indexes:          Array'u8
     }
-
-
 }
-
-
 
 public struct Encoder {}
 
@@ -35,23 +31,6 @@ impl Encoder
         result.addNative(cast(u8) (value & 0xFF))
         result.addNative(cast(u8) (value >> 8))
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
 
 public impl IImageEncoder for Encoder

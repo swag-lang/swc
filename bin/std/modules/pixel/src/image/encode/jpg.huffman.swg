@@ -123,4 +123,3 @@ impl Encoder
         }
     }
 }
-

@@ -309,25 +309,6 @@ impl Encoder
         .imageY = cast(u16) yDiv8
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     mtd encoder()
     {
         var dcy:  s16 = 0

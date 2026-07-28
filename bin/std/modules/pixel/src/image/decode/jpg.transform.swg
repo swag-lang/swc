@@ -399,4 +399,3 @@ impl Decoder
         }
     }
 }
-

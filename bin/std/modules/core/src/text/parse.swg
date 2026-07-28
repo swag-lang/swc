@@ -395,7 +395,7 @@ func parseString(result: *String, str: string)->u32 fail
             {
             case 't'u8: dref result += '\t'u8
             case 'n'u8: dref result += '\n'u8
-            default:     dref result += str[cpt]
+            default:    dref result += str[cpt]
             }
         }
         else do

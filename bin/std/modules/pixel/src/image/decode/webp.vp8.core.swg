@@ -7,12 +7,12 @@ using Core, Core.Errors
     See webp.LICENSE for the original BSD license.
 */
 
-const VP8_UNIFORM_PROB = 128'u8
-const VP8_SEGMENTS     = 4
-const VP8_TOKEN_PLANES = 4
-const VP8_TOKEN_BANDS  = 8
-const VP8_TOKEN_CONTEXTS = 3
-const VP8_TOKEN_PROBS    = 11
+const VP8_UNIFORM_PROB     = 128'u8
+const VP8_SEGMENTS         = 4
+const VP8_TOKEN_PLANES     = 4
+const VP8_TOKEN_BANDS      = 8
+const VP8_TOKEN_CONTEXTS   = 3
+const VP8_TOKEN_PROBS      = 11
 const VP8_TOKEN_PROB_COUNT = VP8_TOKEN_PLANES * VP8_TOKEN_BANDS * VP8_TOKEN_CONTEXTS * VP8_TOKEN_PROBS
 
 const VP8_LUT_SHIFT: [127] u8 = [
@@ -24,7 +24,7 @@ const VP8_LUT_SHIFT: [127] u8 = [
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-]
+    ]
 
 const VP8_LUT_RANGE_MINUS_ONE: [127] u8 = [
     127,
@@ -38,7 +38,7 @@ const VP8_LUT_RANGE_MINUS_ONE: [127] u8 = [
     159, 161, 163, 165, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185, 187, 189,
     191, 193, 195, 197, 199, 201, 203, 205, 207, 209, 211, 213, 215, 217, 219, 221,
     223, 225, 227, 229, 231, 233, 235, 237, 239, 241, 243, 245, 247, 249, 251, 253,
-]
+    ]
 
 const VP8_DEQUANT_DC: [128] u16 = [
     4, 5, 6, 7, 8, 9, 10, 10, 11, 12, 13, 14, 15, 16, 17, 17,
@@ -49,7 +49,7 @@ const VP8_DEQUANT_DC: [128] u16 = [
     75, 76, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
     91, 93, 95, 96, 98, 100, 101, 102, 104, 106, 108, 110, 112, 114, 116, 118,
     122, 124, 126, 128, 130, 132, 134, 136, 138, 140, 143, 145, 148, 151, 154, 157,
-]
+    ]
 
 const VP8_DEQUANT_AC: [128] u16 = [
     4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
@@ -60,16 +60,16 @@ const VP8_DEQUANT_AC: [128] u16 = [
     110, 112, 114, 116, 119, 122, 125, 128, 131, 134, 137, 140, 143, 146, 149, 152,
     155, 158, 161, 164, 167, 170, 173, 177, 181, 185, 189, 193, 197, 201, 205, 209,
     213, 217, 221, 225, 229, 234, 239, 245, 249, 254, 259, 264, 269, 274, 279, 284,
-]
+    ]
 
 struct Vp8Partition
 {
-    data:       #null const [*] u8
-    size:       u32
-    offset:     u32
-    rangeM1:    u32
-    bits:       u32
-    bitCount:   u8
+    data:          #null const [*] u8
+    size:          u32
+    offset:        u32
+    rangeM1:       u32
+    bits:          u32
+    bitCount:      u8
     unexpectedEnd: bool
 }
 
@@ -96,7 +96,7 @@ impl Vp8Partition
                 return false
             }
 
-            .bits |= cast(u32) (notnull .data)[.offset] << (8 - .bitCount)
+            .bits     |= cast(u32) (notnull .data)[.offset] << (8 - .bitCount)
             .offset   += 1
             .bitCount += 8
         }
@@ -117,9 +117,10 @@ impl Vp8Partition
         {
             let shift = VP8_LUT_SHIFT[.rangeM1]
             .rangeM1  = VP8_LUT_RANGE_MINUS_ONE[.rangeM1]
-            .bits   <<= shift
+            .bits     <<= shift
             .bitCount -= shift
         }
+
         return bit
     }
 
@@ -133,6 +134,7 @@ impl Vp8Partition
             if .readBit(probability) do
                 result |= 1 << remaining
         }
+
         return result
     }
 
@@ -170,12 +172,12 @@ struct Vp8SegmentHeader
 
 struct Vp8FilterHeader
 {
-    simple:          bool
-    level:           s8
-    sharpness:       u8
-    useDelta:        bool
-    referenceDelta:  [4] s8
-    modeDelta:       [4] s8
+    simple:         bool
+    level:          s8
+    sharpness:      u8
+    useDelta:       bool
+    referenceDelta: [4] s8
+    modeDelta:      [4] s8
 }
 
 struct Vp8Macroblock
@@ -202,21 +204,21 @@ struct Vp8FilterParam
 
 struct Vp8Decoder
 {
-    source: const [*] u8
-    size:   u32
-    header: Vp8FrameHeader
+    source:   const [*] u8
+    size:     u32
+    header:   Vp8FrameHeader
     mbWidth:  s32
     mbHeight: s32
 
-    segmentHeader: Vp8SegmentHeader
-    filterHeader:  Vp8FilterHeader
-    firstPart:     Vp8Partition
-    otherParts:    [8] Vp8Partition
+    segmentHeader:  Vp8SegmentHeader
+    filterHeader:   Vp8FilterHeader
+    firstPart:      Vp8Partition
+    otherParts:     [8] Vp8Partition
     otherPartCount: s32
-    quant:         [VP8_SEGMENTS] Vp8Quant
-    tokenProb:     [VP8_TOKEN_PROB_COUNT] u8
-    useSkipProb:   bool
-    skipProb:      u8
+    quant:          [VP8_SEGMENTS] Vp8Quant
+    tokenProb:      [VP8_TOKEN_PROB_COUNT] u8
+    useSkipProb:    bool
+    skipProb:       u8
 
     filterParams:      [VP8_SEGMENTS][2] Vp8FilterParam
     perMbFilterParams: Array'Vp8FilterParam
@@ -224,18 +226,18 @@ struct Vp8Decoder
     leftMb:            Vp8Macroblock
     upMb:              Array'Vp8Macroblock
 
-    nzDcMask: u32
-    nzAcMask: u32
+    nzDcMask:   u32
+    nzAcMask:   u32
     usePredY16: bool
-    predY16: u8
-    predC8:  u8
-    predY4:  [4][4] u8
+    predY16:    u8
+    predC8:     u8
+    predY4:     [4][4] u8
 
-    coeff: [400] s16
-    ybr:   [26][32] u8
-    y:     Array'u8
-    cb:    Array'u8
-    cr:    Array'u8
+    coeff:   [400] s16
+    ybr:     [26][32] u8
+    y:       Array'u8
+    cb:      Array'u8
+    cr:      Array'u8
     yStride: s32
     cStride: s32
 }
@@ -257,7 +259,7 @@ func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
 
     decoder.source = @dataof(source)
     decoder.size   = cast(u32) @countof(source)
-    let data       = decoder.source
+    let data = decoder.source
     if data[0] & 1 do
         fail UnsupportedFormatError{"WebP still image contains a non-key VP8 frame"}
 
@@ -275,10 +277,10 @@ func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
     if decoder.header.firstPartSize > decoder.size - 10 do
         fail InvalidFormatError{"WebP data ends inside the first VP8 partition"}
 
-    decoder.mbWidth  = (decoder.header.width + 15) >> 4
-    decoder.mbHeight = (decoder.header.height + 15) >> 4
+    decoder.mbWidth                   = (decoder.header.width + 15) >> 4
+    decoder.mbHeight                  = (decoder.header.height + 15) >> 4
     decoder.segmentHeader.probability = [0xFF, 0xFF, 0xFF]
-    decoder.segment = 0
+    decoder.segment                   = 0
     for [i] in VP8_TOKEN_PROB_COUNT do
         decoder.tokenProb[i] = VP8_DEFAULT_TOKEN_PROB[i]
 }
@@ -308,8 +310,8 @@ func vp8ParseSegmentHeader(decoder: *Vp8Decoder)
     for [i] in 3
     {
         decoder.segmentHeader.probability[i] = part.readBit(VP8_UNIFORM_PROB)
-            ? cast(u8) part.readUint(VP8_UNIFORM_PROB, 8)
-            : 0xFF
+                                               ? cast(u8) part.readUint(VP8_UNIFORM_PROB, 8)
+                                               : 0xFF
     }
 }
 
@@ -337,7 +339,7 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
         fail InvalidFormatError{"WebP data ends inside the VP8 partition table"}
 
     var lengths: [8] u32
-    var remaining = decoder.size - offset - lengthBytes
+    var remaining  = decoder.size - offset - lengthBytes
     let lengthData = decoder.source + offset
     for [i] in decoder.otherPartCount - 1
     {
@@ -345,8 +347,9 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
         if length > remaining do
             fail InvalidFormatError{"WebP VP8 partition length exceeds the image data"}
         lengths[i] = length
-        remaining -= length
+        remaining  -= length
     }
+
     lengths[decoder.otherPartCount - 1] = remaining
     if remaining >= 1 << 24 do
         fail UnsupportedFormatError{"WebP VP8 coefficient partition is too large"}
@@ -361,13 +364,13 @@ func vp8ParseOtherPartitions(decoder: *Vp8Decoder, offset: u32) fail
 
 func vp8ParseQuant(decoder: *Vp8Decoder)
 {
-    let part    = &decoder.firstPart
-    let baseQ0  = cast(s32) part.readUint(VP8_UNIFORM_PROB, 7)
-    let dY1Dc   = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
-    let dY2Dc   = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
-    let dY2Ac   = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
-    let dUvDc   = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
-    let dUvAc   = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
+    let part   = &decoder.firstPart
+    let baseQ0 = cast(s32) part.readUint(VP8_UNIFORM_PROB, 7)
+    let dY1Dc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
+    let dY2Dc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
+    let dY2Ac  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
+    let dUvDc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
+    let dUvAc  = part.readOptionalInt(VP8_UNIFORM_PROB, 4)
 
     for [i] in VP8_SEGMENTS
     {

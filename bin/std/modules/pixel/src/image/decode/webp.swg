@@ -24,10 +24,10 @@ struct Chunk
 
 struct Container
 {
-    image:       Chunk
-    alpha:       Chunk
-    canvasWidth: s32
-    canvasHeight: s32
+    image:             Chunk
+    alpha:             Chunk
+    canvasWidth:       s32
+    canvasHeight:      s32
     hasExtendedHeader: bool
     expectsAlpha:      bool
 }
@@ -67,9 +67,9 @@ func parseContainer(buffer: const [..] u8)->Container fail
         if cursor + 8 > riffEnd do
             fail InvalidFormatError{"WebP data ends inside a chunk header"}
 
-        let kind      = readU32(cursor)
-        let chunkSize = readU32(cursor + 4)
-        let chunkData = cursor + 8
+        let kind       = readU32(cursor)
+        let chunkSize  = readU32(cursor + 4)
+        let chunkData  = cursor + 8
         let paddedSize = cast(u64) chunkSize + (chunkSize & 1)
         if chunkData + paddedSize > riffEnd do
             fail InvalidFormatError{"WebP data ends before the declared chunk size"}
@@ -146,8 +146,8 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData = @mkslice(cast(const [*] u8) notnull container.image.data, container.image.size)
-    var reader: LosslessBitReader = undefined
+    let imageData                        = @mkslice(cast(const [*] u8) notnull container.image.data, container.image.size)
+    var reader:        LosslessBitReader = undefined
     var width, height: s32
     losslessDecodeHeader(&reader, imageData, &width, &height)
 
@@ -204,7 +204,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         compressed[4] = losslessWrap8(cast(s32) (heightMinusOne >> 10))
         Memory.copy(cast([*] u8) notnull compressed.buffer + 5, source + 1, container.alpha.size - 1)
 
-        var rgba: Array'u8
+        var rgba:                        Array'u8
         var decodedWidth, decodedHeight: s32
         losslessDecode(compressed.toSlice(), &rgba, &decodedWidth, &decodedHeight)
         if decodedWidth != width or decodedHeight != height do
@@ -219,7 +219,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         fail UnsupportedFormatError{"WebP ALPH chunk uses an unsupported compression method"}
     }
 
-    let data = cast([*] u8) notnull alpha.buffer
+    let data   = cast([*] u8) notnull alpha.buffer
     let filter = (control >> 2) & 3
     if filter == 0 do
         return
@@ -243,7 +243,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         while i < pixelCount
         {
             data[i] = losslessWrap8(data[i] + data[i - width])
-            i += 1
+            i       += 1
         }
     }
     else
@@ -254,7 +254,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
             data[row] = losslessWrap8(data[row] + data[row - width])
             for [x] in width - 1
             {
-                let offset = row + x + 1
+                let offset     = row + x + 1
                 let prediction = vp8Clip(cast(s32) data[offset - 1] + data[offset - width] - data[offset - width - 1], 0, 255)
                 data[offset] = losslessWrap8(data[offset] + prediction)
             }
@@ -275,28 +275,28 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 
     for [y] in height
     {
-        let sourceRow      = y * decoder.yStride
-        let chromaRow      = (y >> 1) * decoder.cStride
-        var destination    = cast(u64) (height - y - 1) * width * 4
-        let alphaRow       = cast(u64) y * width
+        let sourceRow   = y * decoder.yStride
+        let chromaRow   = (y >> 1) * decoder.cStride
+        var destination = cast(u64) (height - y - 1) * width * 4
+        let alphaRow    = cast(u64) y * width
         for [x] in width
         {
-            let luma = cast(s32) yData[sourceRow + x]
-            let cb   = cast(s32) cbData[chromaRow + (x >> 1)] - 128
-            let cr   = cast(s32) crData[chromaRow + (x >> 1)] - 128
+            let luma       = cast(s32) yData[sourceRow + x]
+            let cb         = cast(s32) cbData[chromaRow + (x >> 1)] - 128
+            let cr         = cast(s32) crData[chromaRow + (x >> 1)] - 128
             let scaledLuma = luma * 0x10101
             outData[destination + 0] = vp8Clip8((scaledLuma + 91881 * cr) >> 16)
             outData[destination + 1] = vp8Clip8((scaledLuma - 22554 * cb - 46802 * cr) >> 16)
             outData[destination + 2] = vp8Clip8((scaledLuma + 116130 * cb) >> 16)
             outData[destination + 3] = aData ? aData[alphaRow + x] : 0xFF
-            destination += 4
+            destination              += 4
         }
     }
 }
 
 func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData = @mkslice(cast(const [*] u8) notnull container.image.data, container.image.size)
+    let imageData           = @mkslice(cast(const [*] u8) notnull container.image.data, container.image.size)
     var decoder: Vp8Decoder = {source: @dataof(imageData)}
     vp8DecodeFrameHeader(&decoder, imageData)
 
@@ -318,9 +318,9 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
         decoder.leftMb = {}
         for [mbX] in decoder.mbWidth
         {
-            let skip = vp8Reconstruct(&decoder, mbX, mbY)
+            let skip      = vp8Reconstruct(&decoder, mbX, mbY)
             var parameter = decoder.filterParams[decoder.segment][decoder.usePredY16 ? 0 : 1]
-            parameter.inner = parameter.inner or !skip
+            parameter.inner                                        = parameter.inner or !skip
             decoder.perMbFilterParams[decoder.mbWidth * mbY + mbX] = parameter
         }
     }

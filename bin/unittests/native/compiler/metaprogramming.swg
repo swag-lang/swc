@@ -449,7 +449,6 @@ namespace compiler3100
 {
     //#global if false
 
-
     func msg() => "msg"
 
     // #static if false skips #error with #run

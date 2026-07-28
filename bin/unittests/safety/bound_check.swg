@@ -334,7 +334,7 @@ func opaqueIdx(v: u64)->u64
     #[Swag.Safety(.BoundCheck, true)]
     func sliceInvertedRange(low: u64, high: u64)->u64
     {
-        var storage: [4] s32       = [10, 20, 30, 40]
+        var storage: [4] s32        = [10, 20, 30, 40]
         let values:  const [..] s32 = storage
         return @countof(values[low to high])     // swc-expected-error {{safety_err_runtime}}
     }
@@ -348,7 +348,7 @@ func opaqueIdx(v: u64)->u64
     #[Swag.Safety(.BoundCheck, true)]
     func sliceUpperOutOfSource(low: u64, high: u64)->u64
     {
-        var storage: [4] s32       = [10, 20, 30, 40]
+        var storage: [4] s32        = [10, 20, 30, 40]
         let values:  const [..] s32 = storage
         return @countof(values[low to high])     // swc-expected-error {{safety_err_runtime}}
     }

@@ -2,13 +2,13 @@
 
 using Core, Core.Errors
 
-const WEBP_ENCODE_MAX_DIMENSION = 16384
-const WEBP_ENCODE_GREEN_SHORT_SYMBOLS = 232'u32
+const WEBP_ENCODE_MAX_DIMENSION        = 16384
+const WEBP_ENCODE_GREEN_SHORT_SYMBOLS  = 232'u32
 const WEBP_ENCODE_GREEN_LONG_CODE_BASE = 464'u32
 
 const WEBP_ENCODE_CODE_LENGTH_ORDER: [19] u8 = [
     17, 18, 0, 1, 2, 3, 4, 5, 16, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-]
+    ]
 
 struct EncodeBitWriter
 {
@@ -23,14 +23,14 @@ impl EncodeBitWriter
     {
         Debug.assert(count <= 32)
         let mask = count == 32 ? 0xFFFFFFFF'u64 : ((1'u64 << count) - 1)
-        .bits    |= (cast(u64) value & mask) << .bitCount
+        .bits     |= (cast(u64) value & mask) << .bitCount
         .bitCount += count
 
         while .bitCount >= 8
         {
             .bytes.add(cast(u8) (.bits & 0xFF))
             .bits     >>= 8
-            .bitCount  -= 8
+            .bitCount -= 8
         }
     }
 
@@ -69,6 +69,7 @@ impl EncodeChannel
             .count     = 1
             return
         }
+
         if value == .values[0] or (.count == 2 and value == .values[1]) do
             return
         if .count == 1
@@ -77,6 +78,7 @@ impl EncodeChannel
             .count     = 2
             return
         }
+
         .count = 3
     }
 }
@@ -148,8 +150,8 @@ impl Encoder
                 channels.blue.add(blue)
                 channels.alpha.add(alpha)
                 hasAlpha = hasAlpha or alpha != 0xFF
-                output += 1
-                pixel  += image.bpp8
+                output   += 1
+                pixel    += image.bpp8
             }
         }
 
@@ -167,6 +169,7 @@ impl Encoder
             let length = symbol == 8 or (includeNine and symbol == 9) ? 1'u32 : 0'u32
             writer.writeBits(length, 3)
         }
+
         writer.writeBits(0, 1)
     }
 
@@ -234,6 +237,7 @@ impl Encoder
             writer.writeHuffman(value == channel.values[1] ? 1 : 0, 1)
             return
         }
+
         writer.writeHuffman(value, 8)
     }
 
@@ -242,7 +246,7 @@ impl Encoder
         Debug.assert(length >= 1 and length <= 4096)
         for [symbol] in LOSSLESS_LENGTH_CODES
         {
-            var base: u32
+            var base:      u32
             var extraBits: u32
             if symbol < 4
             {
@@ -252,7 +256,7 @@ impl Encoder
             {
                 extraBits = (cast(u32) symbol - 2) >> 1
                 base      = (2 + (cast(u32) symbol & 1)) << extraBits
-                base     += 1
+                base      += 1
             }
 
             let last = base + (extraBits ? (1'u32 << extraBits) - 1 : 0)
@@ -299,7 +303,7 @@ impl Encoder
 
     func encodeLossless(image: Image)->Array'u8
     {
-        var pixels: Array'u32
+        var pixels:   Array'u32
         var channels: EncodeChannels
         let hasAlpha = collectPixels(image, &pixels, &channels)
 
@@ -342,7 +346,7 @@ public impl IImageEncoder for Encoder
         if image.pixels.count < expectedBytes do
             fail InvalidFormatError{"WebP image pixel buffer ends before its declared dimensions"}
 
-        let payload = Encoder.encodeLossless(image)
+        let payload    = Encoder.encodeLossless(image)
         let paddedSize = payload.count + (payload.count & 1)
         if paddedSize > Swag.U32.Max - 12 do
             fail UnsupportedFormatError{"WebP encoded data does not fit in a RIFF chunk"}

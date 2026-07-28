@@ -35,24 +35,24 @@ func vp8Average3(a, b, c: s32)->u8
 
 func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
 {
-    let a = cast(s32) decoder.ybr[y - 1][x - 1]
-    let b = cast(s32) decoder.ybr[y - 1][x + 0]
-    let c = cast(s32) decoder.ybr[y - 1][x + 1]
-    let d = cast(s32) decoder.ybr[y - 1][x + 2]
-    let e = cast(s32) decoder.ybr[y - 1][x + 3]
-    let f = cast(s32) decoder.ybr[y - 1][x + 4]
-    let g = cast(s32) decoder.ybr[y - 1][x + 5]
-    let h = cast(s32) decoder.ybr[y - 1][x + 6]
+    let a    = cast(s32) decoder.ybr[y - 1][x - 1]
+    let b    = cast(s32) decoder.ybr[y - 1][x + 0]
+    let c    = cast(s32) decoder.ybr[y - 1][x + 1]
+    let d    = cast(s32) decoder.ybr[y - 1][x + 2]
+    let e    = cast(s32) decoder.ybr[y - 1][x + 3]
+    let f    = cast(s32) decoder.ybr[y - 1][x + 4]
+    let g    = cast(s32) decoder.ybr[y - 1][x + 5]
+    let h    = cast(s32) decoder.ybr[y - 1][x + 6]
     let top7 = cast(s32) decoder.ybr[y - 1][x + 7]
-    let p = cast(s32) decoder.ybr[y + 0][x - 1]
-    let q = cast(s32) decoder.ybr[y + 1][x - 1]
-    let r = cast(s32) decoder.ybr[y + 2][x - 1]
-    let s = cast(s32) decoder.ybr[y + 3][x - 1]
+    let p    = cast(s32) decoder.ybr[y + 0][x - 1]
+    let q    = cast(s32) decoder.ybr[y + 1][x - 1]
+    let r    = cast(s32) decoder.ybr[y + 2][x - 1]
+    let s    = cast(s32) decoder.ybr[y + 3][x - 1]
 
     switch predictor
     {
     case VP8_PRED_DC:
-        var sum = 4 + b + c + d + e + p + q + r + s
+        var sum   = 4 + b + c + d + e + p + q + r + s
         let value = cast(u8) (sum / 8)
         for [j] in 4 do
             for [i] in 4 do
@@ -324,6 +324,7 @@ func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
         decoder.upMb[mbX].predictor[i] = predictor
         decoder.leftMb.predictor[i]    = predictor
     }
+
     decoder.predY16 = predictor
 }
 
@@ -371,9 +372,10 @@ func vp8ParsePredY4(decoder: *Vp8Decoder, mbX: s32)
             else do
                 predictor = VP8_PRED_HU
 
-            decoder.predY4[j][i] = predictor
+            decoder.predY4[j][i]           = predictor
             decoder.upMb[mbX].predictor[i] = predictor
         }
+
         decoder.leftMb.predictor[j] = predictor
     }
 }

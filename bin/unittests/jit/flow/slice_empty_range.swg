@@ -158,8 +158,8 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
     #[Swag.Safety(.BoundCheck, false)]
     func invertedUnguarded(low, high: u64)->u64
     {
-        var storage: [4] s32 = [10, 20, 30, 40]
-        let values: const [..] s32 = storage
+        var storage: [4] s32        = [10, 20, 30, 40]
+        let values:  const [..] s32 = storage
         return @countof(values[low to high])
     }
 

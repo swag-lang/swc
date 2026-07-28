@@ -206,7 +206,7 @@ to point somewhere else; `let` is what makes a pointer itself immutable.
     let str            = "string"
     let ptr: const *u8 = @dataof(str)
     @assert(dref ptr == 's')     // Reading through the pointer is fine,
-                                 // but assigning to 'dref ptr' would be rejected
+// but assigning to 'dref ptr' would be rejected
 }
 
 /**

@@ -19,9 +19,9 @@ struct DecoderCard
     format: string
     #[Swag.Late]
     fileName: string
-    texture: Texture
-    width:   s32
-    height:  s32
+    texture:  Texture
+    width:    s32
+    height:   s32
 }
 
 var g_Window:   Env.Window
@@ -52,12 +52,12 @@ func loadFonts() fail
 
 func loadCard(card: *DecoderCard, format, fileName: string) fail
 {
-    let image    = Image.load(dataPath(fileName))
-    card.format  = format
+    let image = Image.load(dataPath(fileName))
+    card.format   = format
     card.fileName = fileName
-    card.width   = image.width
-    card.height  = image.height
-    card.texture = g_Renderer.addImage(image)
+    card.width    = image.width
+    card.height   = image.height
+    card.texture  = g_Renderer.addImage(image)
 }
 
 func loadCards() fail

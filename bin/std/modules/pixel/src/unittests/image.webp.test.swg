@@ -22,14 +22,14 @@ func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
     @assert(golden.height == height)
     for [y] in height do
         for [x] in width
-        {
-            let got  = decoded.getPixelColor(x, y)
-            let want = golden.getPixelColor(x, y)
-            @assert(got.r == want.r)
-            @assert(got.g == want.g)
-            @assert(got.b == want.b)
-            @assert(got.a == want.a)
-        }
+    {
+        let got  = decoded.getPixelColor(x, y)
+        let want = golden.getPixelColor(x, y)
+        @assert(got.r == want.r)
+        @assert(got.g == want.g)
+        @assert(got.b == want.b)
+        @assert(got.a == want.a)
+    }
 }
 
 func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha: bool)
@@ -52,15 +52,15 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     {
         for [x] in width
         {
-            let luma = cast(s32) golden.getPixelColor(x, y).r
-            let cb   = cast(s32) golden.getPixelColor(x / 2, height + y / 2).r - 128
-            let cr   = cast(s32) golden.getPixelColor(halfWidth + x / 2, height + y / 2).r - 128
+            let luma       = cast(s32) golden.getPixelColor(x, y).r
+            let cb         = cast(s32) golden.getPixelColor(x / 2, height + y / 2).r - 128
+            let cr         = cast(s32) golden.getPixelColor(halfWidth + x / 2, height + y / 2).r - 128
             let scaledLuma = luma * 0x10101
             let expectedR  = webpExpectedChannel((scaledLuma + 91881 * cr) >> 16)
             let expectedG  = webpExpectedChannel((scaledLuma - 22554 * cb - 46802 * cr) >> 16)
             let expectedB  = webpExpectedChannel((scaledLuma + 116130 * cb) >> 16)
             let expectedA  = withAlpha ? golden.getPixelColor(x, height + halfHeight + y).r : 0xFF
-            let got = decoded.getPixelColor(x, y)
+            let got        = decoded.getPixelColor(x, y)
             @assert(got.r == expectedR)
             @assert(got.g == expectedG)
             @assert(got.b == expectedB)
@@ -105,14 +105,14 @@ func assertEncodedWebpRoundtrip(source: Image)
     @assert(decoded.pf == .RGBA8)
     for [y] in source.height do
         for [x] in source.width
-        {
-            let got  = decoded.getPixelColor(x, y)
-            let want = source.getPixelColor(x, y)
-            @assert(got.r == want.r)
-            @assert(got.g == want.g)
-            @assert(got.b == want.b)
-            @assert(got.a == want.a)
-        }
+    {
+        let got  = decoded.getPixelColor(x, y)
+        let want = source.getPixelColor(x, y)
+        @assert(got.r == want.r)
+        @assert(got.g == want.g)
+        @assert(got.b == want.b)
+        @assert(got.a == want.a)
+    }
 }
 
 // The decoder and encoder registries recognise WebP files.
@@ -132,7 +132,7 @@ func assertEncodedWebpRoundtrip(source: Image)
         11'u8, 22'u8, 33'u8, 44'u8,      55'u8, 66'u8, 77'u8, 88'u8,
         91'u8, 102'u8, 113'u8, 124'u8,   135'u8, 146'u8, 157'u8, 168'u8,
         179'u8, 190'u8, 201'u8, 212'u8,  223'u8, 234'u8, 245'u8, 17'u8,
-    ]
+        ]
     let rgba = makeImage(3, 2, .RGBA8, pixels)
     assertEncodedWebpRoundtrip(rgba)
     assertEncodedWebpRoundtrip(rgba.toSetPixelFormat(.BGRA8))
@@ -190,7 +190,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     let bad: [12] u8 = [
         'R', 'I', 'F', 'F', 4, 0, 0, 0, 'N', 'O', 'P', 'E',
-    ]
+        ]
     var decoded: Image
     decoded = catch Image.decode("bad.webp", @mkslice(&bad[0], @countof(bad)), {}) as err5
     @assert(err5 != null)
@@ -252,7 +252,7 @@ func assertEncodedWebpRoundtrip(source: Image)
         'R', 'I', 'F', 'F', 22, 0, 0, 0, 'W', 'E', 'B', 'P',
         'V', 'P', '8', 'X', 10, 0, 0, 0,
         2, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ]
+        ]
     var decoded: Image
     decoded = catch Image.decode("animated.webp", @mkslice(&animated[0], @countof(animated)), {}) as decodeError
     @assert(decodeError != null)

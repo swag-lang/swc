@@ -335,7 +335,7 @@ func foreachCStringRefSum(value: &cstring)->s32
 #test
 {
     // 'let' freezes a slice handle, never the storage it designates.
-    var backing     = [1, 2, 3]
+    var backing        = [1, 2, 3]
     let view: [..] s32 = backing
     for &v in view do
         v = 7

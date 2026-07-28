@@ -32,6 +32,7 @@ func vp8Filter2(pixels: [*] u8, level, index, iStep, jStep: s32)
             pixels[offset - jStep] = vp8Clip8(p0 + a2)
             pixels[offset]         = vp8Clip8(q0 - a1)
         }
+
         offset += iStep
     }
 }
@@ -89,6 +90,7 @@ func vp8Filter246(pixels: [*] u8, count, level, iLevel, hLevel, index, iStep, jS
             pixels[offset + jStep]     = vp8Clip8(q1 - a2)
             pixels[offset + 2 * jStep] = vp8Clip8(q2 - a3)
         }
+
         offset += iStep
     }
 }
@@ -122,6 +124,7 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
                 parameter.level = 0
                 continue
             }
+
             level = Math.min(level, 63)
             var iLevel = level
             if decoder.filterHeader.sharpness
@@ -129,7 +132,8 @@ func vp8ComputeFilterParams(decoder: *Vp8Decoder)
                 iLevel >>= decoder.filterHeader.sharpness > 4 ? 2 : 1
                 iLevel = Math.min(iLevel, 9 - decoder.filterHeader.sharpness)
             }
-            iLevel = Math.max(iLevel, 1)
+
+            iLevel           = Math.max(iLevel, 1)
             parameter.iLevel = cast(u8) iLevel
             parameter.level  = cast(u8) (2 * level + iLevel)
             parameter.hLevel = level < 15 ? 0 : (level < 40 ? 1 : 2)
@@ -157,6 +161,7 @@ func vp8SimpleFilter(decoder: *Vp8Decoder)
                 vp8Filter2(yData, level, offset + 8, decoder.yStride, 1)
                 vp8Filter2(yData, level, offset + 12, decoder.yStride, 1)
             }
+
             if mbY do
                 vp8Filter2(yData, level + 4, offset, 1, decoder.yStride)
             if parameter.inner
@@ -192,6 +197,7 @@ func vp8NormalFilter(decoder: *Vp8Decoder)
                 vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
                 vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, decoder.cStride, 1, false)
             }
+
             if parameter.inner
             {
                 vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 4, decoder.yStride, 1, true)
@@ -200,12 +206,14 @@ func vp8NormalFilter(decoder: *Vp8Decoder)
                 vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
                 vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
             }
+
             if mbY
             {
                 vp8Filter246(yData, 16, level + 4, iLevel, hLevel, yOffset, 1, decoder.yStride, false)
                 vp8Filter246(cbData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
                 vp8Filter246(crData, 8, level + 4, iLevel, hLevel, cOffset, 1, decoder.cStride, false)
             }
+
             if parameter.inner
             {
                 vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 4 * decoder.yStride, 1, decoder.yStride, true)

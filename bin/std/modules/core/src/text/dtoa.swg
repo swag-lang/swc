@@ -32,7 +32,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         switch fmt
         {
         case 'e'u8, 'E'u8: prec = digs.nd - 1
-        case 'f'u8:         prec = Math.max(digs.nd - digs.dp, 0)
+        case 'f'u8:        prec = Math.max(digs.nd - digs.dp, 0)
         case 'g'u8, 'G'u8: prec = digs.nd
         }
     }
@@ -42,7 +42,7 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         switch fmt
         {
         case 'e'u8, 'E'u8: d.round(prec + 1)
-        case 'f'u8:         d.round(d.dp + prec)
+        case 'f'u8:        d.round(d.dp + prec)
         case 'g'u8, 'G'u8: d.round(prec == 0 ? 1 : prec)
         }
 
@@ -410,7 +410,7 @@ public func parse(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSi
             switch fmt
             {
             case 'e'u8, 'E'u8: prec = Math.max(digs.nd - 1, 0)
-            case 'f'u8:         prec = Math.max(digs.nd - digs.dp, 0)
+            case 'f'u8:        prec = Math.max(digs.nd - digs.dp, 0)
             case 'g'u8, 'G'u8: prec = digs.nd
             }
 

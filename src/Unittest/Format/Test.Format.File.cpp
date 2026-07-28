@@ -348,6 +348,35 @@ SWC_TEST_BEGIN(FormatFile_ReindentFixesBadIndent)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatFile_ElseBeforeNestedIfAligns)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo(a: s32)\n"
+        "{\n"
+        "    if a == 1 do\n"
+        "        bar()\n"
+        "        else do\n"
+        "        if a == 2 do\n"
+        "            bar()\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "func foo(a: s32)\n"
+        "{\n"
+        "    if a == 1 do\n"
+        "        bar()\n"
+        "    else do\n"
+        "        if a == 2 do\n"
+        "            bar()\n"
+        "}\n";
+
+    FormatOptions options;
+    options.indentStyle = FormatIndentStyle::Spaces;
+    options.indentWidth = 4;
+    return checkFileRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatFile_IndentNamespaceBodyOff)
 {
     static constexpr std::string_view SOURCE =

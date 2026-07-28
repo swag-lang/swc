@@ -406,13 +406,11 @@ namespace
             if (!shouldVisit(elseRef))
                 return;
 
-            const AstNode& elseNode = ast_->node(elseRef);
-            if (elseNode.is(AstNodeId::IfStmt) || elseNode.is(AstNodeId::IfVarDecl) || elseNode.is(AstNodeId::CompilerIf))
-                return; // An `elif` chain carries its keyword on the nested if.
-
             const NodeSpan elseSpan = spanOf(elseRef);
             if (!elseSpan.valid())
                 return;
+            if (model_->piece(elseSpan.minPiece).is(TokenId::KwdElseIf))
+                return; // An `elif` chain carries its keyword on the nested if.
 
             uint32_t before = prevCode(elseSpan.minPiece);
             if (before != INVALID_PIECE && model_->piece(before).is(TokenId::KwdDo))

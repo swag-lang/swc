@@ -123,13 +123,17 @@ namespace
 
             uint32_t   newCols     = 0;
             const bool isStatement = isStatementLine(piece);
+            const bool updatesStatementAnchor = isStatement && piece.isNot(TokenId::KwdElse);
             if (isStatement)
             {
                 newCols = statementColumns(lineStart, piece);
                 if (piece.hasRole(FormatRoleE::AttrOpen) && !options_->indentAttributes.value_or(true))
                     newCols = oldCols;
-                lastStmtOldCols_ = oldCols;
-                lastStmtNewCols_ = newCols;
+                if (updatesStatementAnchor)
+                {
+                    lastStmtOldCols_ = oldCols;
+                    lastStmtNewCols_ = newCols;
+                }
             }
             else
             {
@@ -142,7 +146,7 @@ namespace
             if (editable && newCols != oldCols)
                 setLineIndent(lineStart, newCols);
 
-            if (isStatement)
+            if (updatesStatementAnchor)
                 lastStmtOperandCol_ = operandAnchorColumn(lineStart);
             const uint32_t lineEnd = FormatPassUtil::lineEndOf(*model_, lineStart);
             prevLineEndsBinaryOp_  = model_->piece(lineEnd).roles.hasAny({FormatRoleE::BinaryOp, FormatRoleE::TernaryOp});

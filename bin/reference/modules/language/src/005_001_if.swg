@@ -38,7 +38,7 @@ They can be used for clarity or grouping, but they are not required.
     // 'elif' functions like 'else if' in other languages.
     if a == 1 do
         a += 1
-        else do
+    else do
         if a == 2 do
             @assert(false)
     elif a == 3 do

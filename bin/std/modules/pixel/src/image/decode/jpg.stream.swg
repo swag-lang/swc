@@ -317,37 +317,49 @@ impl Decoder
             fail InvalidFormatError{"Bad app marker"}
         left -= 2
 
-        if !.decOptions.decodeMetaDatas
+        var prefix:      [12] u8
+        var prefixCount: u32
+        var inValue      = false
+        var meta:        ImageMetaData
+        meta.sig = cast(u32) marker - cast(u32) Marker.M_APP0
+
+        while left
         {
-            while left
+            let c = cast(u8) .getBits1(8)
+            left -= 1
+
+            if prefixCount < @countof(prefix)
             {
-                .getBits1(8)
-                left -= 1
+                prefix[prefixCount] = c
+                prefixCount += 1
+            }
+
+            if .decOptions.decodeMetaDatas
+            {
+                if !inValue and c == 0 do
+                    inValue = true
+                elif inValue do
+                    meta.value.add(c)
+                else do
+                    meta.tag.add(c)
             }
         }
-        else
+
+        if marker == .M_APP0 and prefixCount >= 5 and
+           prefix[0] == 'J' and prefix[1] == 'F' and prefix[2] == 'I' and prefix[3] == 'F' and prefix[4] == 0
         {
-            var meta: ImageMetaData
-            meta.sig = cast(u32) marker - cast(u32) Marker.M_APP0
+            .hasJfifMarker = true
+        }
 
-            while left
-            {
-                let c = cast(u8) .getBits1(8)
-                left -= 1
-                if c == 0 do
-                    break
-                meta.tag.add(c)
-            }
+        if cast(u32) marker == cast(u32) Marker.M_APP0 + 14 and prefixCount == @countof(prefix) and
+           prefix[0] == 'A' and prefix[1] == 'd' and prefix[2] == 'o' and prefix[3] == 'b' and prefix[4] == 'e'
+        {
+            .hasAdobeMarker = true
+            .adobeTransform = prefix[11]
+        }
 
-            while left
-            {
-                let c = cast(u8) .getBits1(8)
-                meta.value.add(c)
-                left -= 1
-            }
-
+        if .decOptions.decodeMetaDatas do
             .metaDatas.add(meta)
-        }
     }
 
     mtd readSosMarker() fail

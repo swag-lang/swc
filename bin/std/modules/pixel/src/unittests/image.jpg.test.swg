@@ -56,6 +56,27 @@ func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
     @assert(false)
 }
 
+func addAdobeRgbMarker(encoded: const [..] u8)->Array'u8
+{
+    @assert(@countof(encoded) >= 2)
+    @assert(encoded[0] == 0xFF and encoded[1] == 0xD8)
+
+    const app14: [16] u8 = [
+        0xFF, 0xEE, 0, 14,
+        'A', 'd', 'o', 'b', 'e',
+        0, 100,
+        0, 0,
+        0, 0,
+        0,
+        ]
+
+    var result: ConcatBuffer
+    result.addBytes(encoded[until 2])
+    result.addBytes(app14)
+    result.addBytes(encoded[2 to])
+    return cbToArray(&result)
+}
+
 func fillSolidImage(img: *Image, b, g, r, a: u8)
 {
     var pix = notnull img.pixels.buffer
@@ -232,4 +253,24 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     var src = Image.create(5, 7, .BGR8)
     fillSolidImage(&src, 120'u8, 30'u8, 200'u8, 255'u8)
     assertEncodedJpgRoundtrip(src, 120'u8, 30'u8, 200'u8, 8'u8, 95'u8)
+}
+
+// Adobe APP14 transform 0 marks three equally sampled components as direct RGB.
+#test
+{
+    var src = Image.create(8, 8, .RGB8)
+    fillSolidImage(&src, 0, 0, 255, 255)
+
+    var options: Jpg.EncodeOptions
+    options.quality = 100
+    var encoded: ConcatBuffer
+    catch encodeJpg(&encoded, src, options) as encodeError
+    @assert(encodeError == null)
+
+    let adobeRgb = addAdobeRgbMarker(nnBytes(encoded.toSlice()))
+    let decoded  = catch Image.decode("adobe-rgb.jpg", nnBytes(adobeRgb.toSlice()), {}) as decodeError
+    @assert(decodeError == null)
+    @assert(decoded.width == 8 and decoded.height == 8)
+    // The source encoder's Y, Cb and Cr component samples become direct R, G and B.
+    assertJpgPixelNear(decoded, 255, 85, 76, 4)
 }

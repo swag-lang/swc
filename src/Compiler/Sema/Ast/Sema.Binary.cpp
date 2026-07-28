@@ -178,11 +178,15 @@ namespace
         const bool promote         = node.modifierFlags.has(AstModifierFlagsE::Promote);
         const bool hasAliasOperand = (nodeLeftView.type() && nodeLeftView.type()->isAlias()) ||
                                      (nodeRightView.type() && nodeRightView.type()->isAlias());
+        // A shift keeps the left operand's type, and its sign is restored a few lines below, so
+        // the promotion here only widens the operands. Its result is not the expression's type
+        // and must not be range-checked as one.
+        const bool isShift = op == TokenId::SymLowerLower || op == TokenId::SymGreaterGreater;
         if (!keepEnumRes && !hasAliasOperand)
         {
             if (!leftType.isScalarNumeric() || !rightType.isScalarNumeric())
                 return Result::Continue;
-            SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote));
+            SWC_RESULT(Cast::promoteConstants(sema, nodeLeftView, nodeRightView, leftCstRef, rightCstRef, promote, isShift));
         }
 
         const ConstantValue& leftCst     = sema.cstMgr().get(leftCstRef);

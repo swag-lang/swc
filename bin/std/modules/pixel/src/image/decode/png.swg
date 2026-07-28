@@ -153,6 +153,8 @@ impl Decoder
 
         var vcrc: u32
         .stream.peek32Be(cast([*] u8) &vcrc)
+        if .stream.eof do
+            fail InvalidFormatError{"PNG data ends before the chunk checksum"}
         if vcrc != crc.crc do
             fail InvalidFormatError{"invalid checksum"}
 
@@ -161,6 +163,9 @@ impl Decoder
 
     mtd readHeader(ch: ChunkHeader) fail
     {
+        if ch.length != 13 do
+            fail InvalidFormatError{"PNG IHDR chunk size is not 13 bytes"}
+
         let chunk = .readChunk(ch)
         .header        = dref cast(const *Header) @dataof(Decoder.safeDatas(chunk))
         .header.width  = Math.bigEndianToNative(.header.width)
@@ -170,6 +175,8 @@ impl Decoder
         {
             if .width == 0 or .height == 0 do
                 fail InvalidFormatError{"invalid dimensions"}
+            if cast(u64) .width * .height > 0x1FFFFFFF do
+                fail UnsupportedFormatError{"PNG image needs more than 2 GiB of decoded pixel memory"}
             if .compressionMethod != 0 do
                 fail InvalidFormatError{"invalid compression mtd"}
             if .filterMethod != 0 do
@@ -213,6 +220,9 @@ impl Decoder
                 me.outChannels += 1
             }
 
+            let inputBytesPerPixel = cast(u64) me.inChannels * (.bitDepth == 16 ? 2 : 1)
+            if cast(u64) .width * .height * inputBytesPerPixel > 0x7FFFFFFF do
+                fail UnsupportedFormatError{"PNG image needs more than 2 GiB of decoded pixel memory"}
         }
     }
 
@@ -251,24 +261,45 @@ impl Decoder
             chIsHere = false
             if .stream.eof do
                 fail InvalidFormatError{"invalid chunk"}
+            if firstChunk and ch.type != .IHDR do
+                fail InvalidFormatError{"PNG data does not start with an IHDR chunk"}
 
             switch ch.type
             {
             case .IHDR:
                 if !firstChunk do
-                    fail InvalidFormatError{"invalid first chunk"}
+                    fail InvalidFormatError{"PNG data contains more than one IHDR chunk"}
                 .readHeader(ch)
 
             case .TRNS:
+                if .seenTRSN do
+                    fail InvalidFormatError{"PNG data contains more than one tRNS chunk"}
+                if seenIDAT do
+                    fail InvalidFormatError{"PNG tRNS chunk appears after image data"}
+                if .header.colorType & .Paletted and !.seenPLTE do
+                    fail InvalidFormatError{"PNG indexed-color tRNS chunk appears before PLTE"}
+                if .header.colorType & .Alpha do
+                    fail InvalidFormatError{"PNG image with alpha contains a tRNS chunk"}
+
                 .seenTRSN    = true
                 .outChannels += 1     // transparency mask, add an alpha channel
                 .chunkTRNS   = .readChunk(ch)
+
+                let transparencySize = @countof(.safeTRNSData())
+                if cast(u8) .header.colorType == 0 and transparencySize != 2 do
+                    fail InvalidFormatError{"PNG grayscale tRNS chunk size is not 2 bytes"}
+                if cast(u8) .header.colorType == 2 and transparencySize != 6 do
+                    fail InvalidFormatError{"PNG true-color tRNS chunk size is not 6 bytes"}
+                if .header.colorType & .Paletted and (transparencySize == 0 or transparencySize > .paletteCount) do
+                    fail InvalidFormatError{"PNG indexed-color tRNS chunk exceeds the palette"}
 
             case .BKGD:
                 .seenBKGD = true
                 discard .readChunk(ch)
 
             case .IEND:
+                if ch.length do
+                    fail InvalidFormatError{"PNG IEND chunk is not empty"}
                 seenIEND = true
                 discard .readChunk(ch)
 
@@ -288,12 +319,20 @@ impl Decoder
                 chIsHere, seenIDAT = true
 
             case .PLTE:
+                if .seenPLTE do
+                    fail InvalidFormatError{"PNG data contains more than one PLTE chunk"}
                 if seenIDAT do
-                    fail InvalidFormatError{"invalid PLTE chunk"}
+                    fail InvalidFormatError{"PNG PLTE chunk appears after image data"}
+                if .seenTRSN do
+                    fail InvalidFormatError{"PNG PLTE chunk appears after tRNS"}
+                if cast(u8) .header.colorType == 0 or cast(u8) .header.colorType == 4 do
+                    fail InvalidFormatError{"PNG grayscale image contains a PLTE chunk"}
                 let chunk = .readChunk(ch)
                 let len   = @countof(Decoder.safeDatas(chunk))
-                if len % 3 != 0 or len > 768 do
-                    fail InvalidFormatError{"invalid PLTE chunk"}
+                if len == 0 or len % 3 != 0 or len > 768 do
+                    fail InvalidFormatError{"PNG PLTE chunk has no complete palette entries"}
+                if .header.colorType & .Paletted and len / 3 > 1 << .header.bitDepth do
+                    fail InvalidFormatError{"PNG palette has more entries than its bit depth can address"}
                 .seenPLTE = true
                 for var i = 0; i < len; i += 3
                 {
@@ -323,6 +362,9 @@ impl Decoder
                 }
 
             default:
+                let typeBytes = cast(const [*] u8) &ch.type
+                if typeBytes[0] & 0x20 == 0 do
+                    fail UnsupportedFormatError{"PNG decoder does not support an unknown critical chunk"}
                 discard .readChunk(ch)
             }
 
@@ -333,17 +375,6 @@ impl Decoder
             fail InvalidFormatError{"missing IDAT chunk"}
         if .header.colorType & .Paletted and !.seenPLTE do
             fail InvalidFormatError{"missing PLTE chunk"}
-        if .seenTRSN
-        {
-            let transparencySize = @countof(.safeTRNSData())
-            if cast(u8) .header.colorType == 0 and transparencySize != 2 do
-                fail InvalidFormatError{"invalid tRNS chunk"}
-            if cast(u8) .header.colorType == 2 and transparencySize != 6 do
-                fail InvalidFormatError{"invalid tRNS chunk"}
-            if .header.colorType & .Alpha do
-                fail InvalidFormatError{"invalid tRNS chunk"}
-        }
-
         // Initialize image depending on number of wanted channels. init() resets
         // the whole Image payload, so keep metadata parsed from pre-IDAT chunks.
         var metaDatas = #move result.metaDatas

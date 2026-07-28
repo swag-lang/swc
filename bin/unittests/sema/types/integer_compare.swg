@@ -101,10 +101,14 @@
 #assert(40000'u16 == 40000's32)
 #assert(200'u8 == 200's16)
 
-#assert(-1's8 != 0'u8)
-#assert(-1's16 != 0'u16)
-#assert(-1's32 != 0'u32)
-#assert(-1's64 != 0'u64)
+// A negative value has no place in the promoted unsigned type, so the comparison is
+// rejected rather than answered on the wrapped value. It used to compare '255 < 0' and
+// report false; see 'sema_err_signed_unsigned'. Cast explicitly to state which reading
+// is meant.
+#assert(cast(s16) -1's8 != cast(s16) 0'u8)
+#assert(cast(s32) -1's16 != cast(s32) 0'u16)
+#assert(cast(s64) -1's32 != cast(s64) 0'u32)
+#assert(-1's64 != cast(s64) 0'u32)
 
 #assert(-128's8 < -127's8)
 #assert(-32768's16 < -32767's16)
@@ -112,7 +116,7 @@
 #assert(0'u16 == 0's16)
 #assert(0'u32 == 0's32)
 #assert(0'u64 == 0's64)
-#assert(-1's8 != 1'u8)
+#assert(cast(s16) -1's8 != cast(s16) 1'u8)
 #assert((1's8 <=> -1's8) == 1)
 #assert((-1's8 <=> 1's8) == -1)
 #assert((0's8 <=> 0's8) == 0)

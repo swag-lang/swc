@@ -140,6 +140,41 @@ func addPngChunk(result: *ConcatBuffer, chunkType: string, data: const [..] u8)
     addPngU32Be(result, crc.crc)
 }
 
+func addPngSignature(result: *ConcatBuffer)
+{
+    const signature: [8] u8 = [137, 80, 78, 71, 13, 10, 26, 10]
+    result.addBytes(signature)
+}
+
+func addPngHeader(result: *ConcatBuffer, width, height: u32, bitDepth, colorType: u8)
+{
+    var ihdr: ConcatBuffer
+    addPngU32Be(&ihdr, width)
+    addPngU32Be(&ihdr, height)
+    ihdr.addNative(bitDepth)
+    ihdr.addNative(colorType)
+    ihdr.addNative(0'u8)
+    ihdr.addNative(0'u8)
+    ihdr.addNative(0'u8)
+    addPngChunk(result, "IHDR", nnBytes(ihdr.toSlice()))
+}
+
+func addPngImageData(result: *ConcatBuffer, raw: const [..] u8)
+{
+    var zlib: Compress.ZLib
+    let compressed = catch zlib.compress(raw, .Default) as compressionError
+    @assert(compressionError == null)
+    addPngChunk(result, "IDAT", nnBytes(compressed.toSlice()))
+}
+
+func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
+{
+    let bytes = cbToArray(encoded)
+    var image: Image
+    image = catch Image.decode(fileName, nnBytes(bytes.toSlice()), {}) as decodeError
+    @assert(decodeError != null)
+}
+
 func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: const [..] u16, transparency: #null const [..] u16 = null)->Array'u8
 {
     var channels: s32
@@ -198,8 +233,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     @assert(compressionError == null)
 
     var result: ConcatBuffer
-    let signature: [8] u8 = [137, 80, 78, 71, 13, 10, 26, 10]
-    result.addBytes(signature)
+    addPngSignature(&result)
 
     var ihdr: ConcatBuffer
     addPngU32Be(&ihdr, cast(u32) width)
@@ -222,6 +256,79 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     addPngChunk(&result, "IDAT", nnBytes(compressed.toSlice()))
     addPngChunk(&result, "IEND", "")
     return cbToArray(&result)
+}
+
+// Reject structural errors before reading pixels or indexing palette data.
+#test
+{
+    const trueColorRow: [4] u8 = [0, 10, 20, 30]
+    const indexedRow:   [2] u8 = [0, 0]
+    const palette:      [3] u8 = [10, 20, 30]
+    const alpha:        [1] u8 = [127]
+
+    var shortHeader: ConcatBuffer
+    addPngSignature(&shortHeader)
+    var shortIHDR: [12] u8
+    addPngChunk(&shortHeader, "IHDR", shortIHDR)
+    addPngChunk(&shortHeader, "IEND", "")
+    assertPngDecodeFails("short-ihdr.png", &shortHeader)
+
+    var truncatedChecksum: ConcatBuffer
+    addPngSignature(&truncatedChecksum)
+    addPngHeader(&truncatedChecksum, 1, 1, 8, 2)
+    addPngU32Be(&truncatedChecksum, 1)
+    truncatedChecksum.addBytes("IDAT")
+    truncatedChecksum.addNative(0'u8)
+    assertPngDecodeFails("truncated-checksum.png", &truncatedChecksum)
+
+    var hugeImage: ConcatBuffer
+    addPngSignature(&hugeImage)
+    addPngHeader(&hugeImage, 0xFFFFFFFF, 1, 8, 2)
+    addPngImageData(&hugeImage, trueColorRow)
+    addPngChunk(&hugeImage, "IEND", "")
+    assertPngDecodeFails("huge.png", &hugeImage)
+
+    var unknownCritical: ConcatBuffer
+    addPngSignature(&unknownCritical)
+    addPngHeader(&unknownCritical, 1, 1, 8, 2)
+    addPngChunk(&unknownCritical, "ABCD", "")
+    addPngImageData(&unknownCritical, trueColorRow)
+    addPngChunk(&unknownCritical, "IEND", "")
+    assertPngDecodeFails("unknown-critical.png", &unknownCritical)
+
+    var transparencyBeforePalette: ConcatBuffer
+    addPngSignature(&transparencyBeforePalette)
+    addPngHeader(&transparencyBeforePalette, 1, 1, 1, 3)
+    addPngChunk(&transparencyBeforePalette, "tRNS", alpha)
+    addPngChunk(&transparencyBeforePalette, "PLTE", palette)
+    addPngImageData(&transparencyBeforePalette, indexedRow)
+    addPngChunk(&transparencyBeforePalette, "IEND", "")
+    assertPngDecodeFails("trns-before-plte.png", &transparencyBeforePalette)
+
+    var duplicateTransparency: ConcatBuffer
+    addPngSignature(&duplicateTransparency)
+    addPngHeader(&duplicateTransparency, 1, 1, 1, 3)
+    addPngChunk(&duplicateTransparency, "PLTE", palette)
+    addPngChunk(&duplicateTransparency, "tRNS", alpha)
+    addPngChunk(&duplicateTransparency, "tRNS", alpha)
+    addPngImageData(&duplicateTransparency, indexedRow)
+    addPngChunk(&duplicateTransparency, "IEND", "")
+    assertPngDecodeFails("duplicate-trns.png", &duplicateTransparency)
+
+    var emptyPalette: ConcatBuffer
+    addPngSignature(&emptyPalette)
+    addPngHeader(&emptyPalette, 1, 1, 1, 3)
+    addPngChunk(&emptyPalette, "PLTE", "")
+    addPngImageData(&emptyPalette, indexedRow)
+    addPngChunk(&emptyPalette, "IEND", "")
+    assertPngDecodeFails("empty-plte.png", &emptyPalette)
+
+    var nonEmptyEnd: ConcatBuffer
+    addPngSignature(&nonEmptyEnd)
+    addPngHeader(&nonEmptyEnd, 1, 1, 8, 2)
+    addPngImageData(&nonEmptyEnd, trueColorRow)
+    addPngChunk(&nonEmptyEnd, "IEND", alpha)
+    assertPngDecodeFails("non-empty-iend.png", &nonEmptyEnd)
 }
 
 // Decoder and encoder registries recognise PNG files.

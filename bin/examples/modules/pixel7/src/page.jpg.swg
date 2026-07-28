@@ -17,4 +17,3 @@ func buildJpgPage() fail
     addJpgCard(&g_Cards[PageJpg][2], source, 60)
     addJpgCard(&g_Cards[PageJpg][3], source, 30)
 }
-

@@ -260,8 +260,11 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
         // LiteralSuffix cast, not FromExplicitNode.) This only surfaces in const folding once the
         // operand is constant — e.g. a runtime `cast(u32) r` whose `r` becomes a negative constant
         // after the function is inlined at a constant call site.
+        // Promotion is not exempt: the same conversion made on values the compiler cannot fold
+        // raises an overflow panic, so folding it to the wrapped value would make a program
+        // behave differently for no reason other than the operand being known.
         const bool explicitWrap = castRequest.flags.has(CastFlagsE::FromExplicitNode);
-        if (!value.isUnsigned() && value.isNegative() && !castRequest.flags.has(CastFlagsE::NoOverflow) && !explicitWrap && targetBits != 0 && castRequest.kind != CastKind::Promotion)
+        if (!value.isUnsigned() && value.isNegative() && !castRequest.flags.has(CastFlagsE::NoOverflow) && !explicitWrap && targetBits != 0)
         {
             castRequest.fail(DiagnosticId::sema_err_signed_unsigned, srcTypeRef, dstTypeRef, value.toString(), DiagnosticId::sema_note_signed_unsigned);
             return false;
@@ -515,7 +518,7 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, T
     return castConstant(sema, result, castRequest, cstRef, targetTypeRef);
 }
 
-Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts)
+Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts, bool signUnificationOnly)
 {
     TypeRef leftTypeRef  = nodeLeftView.typeRef();
     TypeRef rightTypeRef = nodeRightView.typeRef();
@@ -561,8 +564,23 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
     }
 
     const TypeRef promotedTypeRef = sema.typeMgr().promote(leftTypeRef, rightTypeRef, force32BitInts);
-    SWC_RESULT(castConstant(sema, leftCstRef, leftCstRef, promotedTypeRef, nodeLeftView.nodeRef(), CastKind::Promotion));
-    SWC_RESULT(castConstant(sema, rightCstRef, rightCstRef, promotedTypeRef, nodeRightView.nodeRef(), CastKind::Promotion));
+
+    // A shift only borrows the promoted type to widen its operands: its result keeps the left
+    // operand's own type, and the caller restores that sign right after. Range-checking this
+    // intermediate step would reject a negative left operand shifted by an unsigned count,
+    // which the language accepts and folds correctly.
+    CastRequest leftRequest(CastKind::Promotion);
+    leftRequest.errorNodeRef = nodeLeftView.nodeRef();
+    CastRequest rightRequest(CastKind::Promotion);
+    rightRequest.errorNodeRef = nodeRightView.nodeRef();
+    if (signUnificationOnly)
+    {
+        leftRequest.flags.add(CastFlagsE::NoOverflow);
+        rightRequest.flags.add(CastFlagsE::NoOverflow);
+    }
+
+    SWC_RESULT(castConstant(sema, leftCstRef, leftRequest, leftCstRef, promotedTypeRef));
+    SWC_RESULT(castConstant(sema, rightCstRef, rightRequest, rightCstRef, promotedTypeRef));
 
     return Result::Continue;
 }

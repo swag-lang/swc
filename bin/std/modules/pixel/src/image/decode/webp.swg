@@ -15,6 +15,29 @@ const WEBP_FEATURE_ANIMATION = 0x02'u8
 const WEBP_FEATURE_ALPHA     = 0x10'u8
 const WEBP_RESERVED_FEATURES = 0xC1'u8
 
+const WEBP_YUV_FIX = 6
+
+func vp8MultiplyHigh(value, coefficient: s32)->s32
+{
+    return (value * coefficient) >> 8
+}
+
+func vp8YuvToR(y, v: s32)->u8
+{
+    return vp8Clip8((vp8MultiplyHigh(y, 19077) + vp8MultiplyHigh(v, 26149) - 14234) >> WEBP_YUV_FIX)
+}
+
+func vp8YuvToG(y, u, v: s32)->u8
+{
+    return vp8Clip8((vp8MultiplyHigh(y, 19077) - vp8MultiplyHigh(u, 6419) -
+                     vp8MultiplyHigh(v, 13320) + 8708) >> WEBP_YUV_FIX)
+}
+
+func vp8YuvToB(y, u: s32)->u8
+{
+    return vp8Clip8((vp8MultiplyHigh(y, 19077) + vp8MultiplyHigh(u, 33050) - 17685) >> WEBP_YUV_FIX)
+}
+
 struct Chunk
 {
     kind: u32
@@ -277,17 +300,16 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
     {
         let sourceRow   = y * decoder.yStride
         let chromaRow   = (y >> 1) * decoder.cStride
-        var destination = cast(u64) (height - y - 1) * width * 4
+        var destination = cast(u64) y * width * 4
         let alphaRow    = cast(u64) y * width
         for [x] in width
         {
-            let luma       = cast(s32) yData[sourceRow + x]
-            let cb         = cast(s32) cbData[chromaRow + (x >> 1)] - 128
-            let cr         = cast(s32) crData[chromaRow + (x >> 1)] - 128
-            let scaledLuma = luma * 0x10101
-            outData[destination + 0] = vp8Clip8((scaledLuma + 91881 * cr) >> 16)
-            outData[destination + 1] = vp8Clip8((scaledLuma - 22554 * cb - 46802 * cr) >> 16)
-            outData[destination + 2] = vp8Clip8((scaledLuma + 116130 * cb) >> 16)
+            let luma = cast(s32) yData[sourceRow + x]
+            let cb   = cast(s32) cbData[chromaRow + (x >> 1)]
+            let cr   = cast(s32) crData[chromaRow + (x >> 1)]
+            outData[destination + 0] = vp8YuvToR(luma, cr)
+            outData[destination + 1] = vp8YuvToG(luma, cb, cr)
+            outData[destination + 2] = vp8YuvToB(luma, cb)
             outData[destination + 3] = aData ? aData[alphaRow + x] : 0xFF
             destination              += 4
         }

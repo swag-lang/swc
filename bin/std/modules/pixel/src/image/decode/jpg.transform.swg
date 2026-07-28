@@ -258,6 +258,25 @@ impl Decoder
         }
     }
 
+    mtd convertRgbH1V1()
+    {
+        let row = .maxMcuSizeY - .mcuLinesLeft
+        var d   = notnull .scanLine0.buffer
+        var s   = .safeSampleBuf() + row * 8
+        for #reverse [i] in 1 to .maxMcusPerRow
+        {
+            for [j] in 8
+            {
+                d[2] = s[j]
+                d[1] = s[64 + j]
+                d[0] = s[128 + j]
+                d    += 3
+            }
+
+            s += 64 * 3
+        }
+    }
+
     mtd convertH1V2()
     {
         let row = .maxMcuSizeY - .mcuLinesLeft

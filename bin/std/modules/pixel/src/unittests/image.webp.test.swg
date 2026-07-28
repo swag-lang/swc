@@ -7,6 +7,20 @@ func webpExpectedChannel(value: s32)->u8
     return cast(u8) Math.clamp(value, 0, 255)
 }
 
+func webpMultiplyHigh(value, coefficient: s32)->s32
+{
+    return (value * coefficient) >> 8
+}
+
+func assertWebpPixelFromTop(image: Image, x, y, r, g, b, a: u8)
+{
+    let color = image.getPixelColor(x, image.height - y - 1)
+    @assert(color.r == r)
+    @assert(color.g == g)
+    @assert(color.b == b)
+    @assert(color.a == a)
+}
+
 func checkWebpAgainstPng(fileName, goldenName: string, width, height: s32)
 {
     let decoded = catch Image.load(getTestDataPath(fileName)) as decodeError
@@ -52,14 +66,15 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     {
         for [x] in width
         {
-            let luma       = cast(s32) golden.getPixelColor(x, y).r
-            let cb         = cast(s32) golden.getPixelColor(x / 2, height + y / 2).r - 128
-            let cr         = cast(s32) golden.getPixelColor(halfWidth + x / 2, height + y / 2).r - 128
-            let scaledLuma = luma * 0x10101
-            let expectedR  = webpExpectedChannel((scaledLuma + 91881 * cr) >> 16)
-            let expectedG  = webpExpectedChannel((scaledLuma - 22554 * cb - 46802 * cr) >> 16)
-            let expectedB  = webpExpectedChannel((scaledLuma + 116130 * cb) >> 16)
-            let expectedA  = withAlpha ? golden.getPixelColor(x, height + halfHeight + y).r : 0xFF
+            let sourceY    = height - y - 1
+            let luma       = cast(s32) golden.getPixelColor(x, sourceY).r
+            let cb         = cast(s32) golden.getPixelColor(x / 2, height + sourceY / 2).r
+            let cr         = cast(s32) golden.getPixelColor(halfWidth + x / 2, height + sourceY / 2).r
+            let expectedR  = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cr, 26149) - 14234) >> 6)
+            let expectedG  = webpExpectedChannel((webpMultiplyHigh(luma, 19077) - webpMultiplyHigh(cb, 6419) -
+                                                  webpMultiplyHigh(cr, 13320) + 8708) >> 6)
+            let expectedB  = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cb, 33050) - 17685) >> 6)
+            let expectedA  = withAlpha ? golden.getPixelColor(x, height + halfHeight + sourceY).r : 0xFF
             let got        = decoded.getPixelColor(x, y)
             @assert(got.r == expectedR)
             @assert(got.g == expectedG)
@@ -205,12 +220,28 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     checkLossyWebp("blue-purple-pink.lossy.webp", "blue-purple-pink.lossy.webp.ycbcr.png", 150, 100, false)
+
+    let decoded = catch Image.load(getTestDataPath("blue-purple-pink.lossy.webp")) as decodeError
+    @assert(decodeError == null)
+    // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
+    assertWebpPixelFromTop(decoded, 0, 0, 16, 19, 15, 255)
+    assertWebpPixelFromTop(decoded, 112, 58, 232, 107, 160, 255)
+    assertWebpPixelFromTop(decoded, 32, 41, 38, 70, 151, 255)
+    assertWebpPixelFromTop(decoded, 79, 36, 255, 219, 255, 255)
 }
 
 // Decode VP8 with a compressed ALPH chunk and verify color and alpha planes.
 #test
 {
     checkLossyWebp("yellow_rose.lossy-with-alpha.webp", "yellow_rose.lossy-with-alpha.webp.nycbcra.png", 400, 301, true)
+
+    let decoded = catch Image.load(getTestDataPath("yellow_rose.lossy-with-alpha.webp")) as decodeError
+    @assert(decodeError == null)
+    // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
+    assertWebpPixelFromTop(decoded, 106, 81, 241, 146, 3, 255)
+    assertWebpPixelFromTop(decoded, 128, 47, 255, 90, 151, 255)
+    assertWebpPixelFromTop(decoded, 160, 40, 255, 212, 232, 255)
+    assertWebpPixelFromTop(decoded, 78, 0, 255, 221, 165, 0)
 }
 
 // Exercise no, simple and normal VP8 loop filters against official golden planes.

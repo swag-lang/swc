@@ -293,6 +293,10 @@ impl Decoder
             .convertH1V1()
             dref scanLineOfs = .scanLine0.buffer
 
+        case RGBH1V1:
+            .convertRgbH1V1()
+            dref scanLineOfs = .scanLine0.buffer
+
         case GrayScale:
             .convertGrayscale()
             dref scanLineOfs = .scanLine0.buffer
@@ -316,39 +320,58 @@ impl Decoder
         }
         elif .compsInFrame == 3
         {
-            if (.compSampH[1] != 1) or (.compSampV[1] != 1) or (.compSampH[2] != 1) or (.compSampV[2] != 1) do
-                fail InvalidFormatError{"invalid samp factors"}
-
-            if (.compSampH[0] == 1) and (.compSampV[0] == 1)
+            let directRgb = (.hasAdobeMarker and .adobeTransform == 0) or
+                            (!.hasAdobeMarker and !.hasJfifMarker and
+                             .compIdent[0] == 'R' and .compIdent[1] == 'G' and .compIdent[2] == 'B')
+            if directRgb
             {
-                .scanType        = YH1V1
+                for [i] in 3
+                {
+                    if .compSampH[i] != 1 or .compSampV[i] != 1 do
+                        fail UnsupportedFormatError{"JPEG direct RGB only supports 1x1 component sampling"}
+                }
+
+                .scanType        = RGBH1V1
                 .maxBlocksPerMcu = 3
                 .maxMcuSizeX     = 8
                 .maxMcuSizeY     = 8
             }
-            elif (.compSampH[0] == 2) and (.compSampV[0] == 1)
+            else
             {
-                .scanType        = YH2V1
-                .maxBlocksPerMcu = 4
-                .maxMcuSizeX     = 16
-                .maxMcuSizeY     = 8
+                if (.compSampH[1] != 1) or (.compSampV[1] != 1) or (.compSampH[2] != 1) or (.compSampV[2] != 1) do
+                    fail InvalidFormatError{"invalid samp factors"}
+
+                if (.compSampH[0] == 1) and (.compSampV[0] == 1)
+                {
+                    .scanType        = YH1V1
+                    .maxBlocksPerMcu = 3
+                    .maxMcuSizeX     = 8
+                    .maxMcuSizeY     = 8
+                }
+                elif (.compSampH[0] == 2) and (.compSampV[0] == 1)
+                {
+                    .scanType        = YH2V1
+                    .maxBlocksPerMcu = 4
+                    .maxMcuSizeX     = 16
+                    .maxMcuSizeY     = 8
+                }
+                elif (.compSampH[0] == 1) and (.compSampV[0] == 2)
+                {
+                    .scanType        = YH1V2
+                    .maxBlocksPerMcu = 4
+                    .maxMcuSizeX     = 8
+                    .maxMcuSizeY     = 16
+                }
+                elif (.compSampH[0] == 2) and (.compSampV[0] == 2)
+                {
+                    .scanType        = YH2V2
+                    .maxBlocksPerMcu = 6
+                    .maxMcuSizeX     = 16
+                    .maxMcuSizeY     = 16
+                }
+                else do
+                    fail InvalidFormatError{"invalid samp factors"}
             }
-            elif (.compSampH[0] == 1) and (.compSampV[0] == 2)
-            {
-                .scanType        = YH1V2
-                .maxBlocksPerMcu = 4
-                .maxMcuSizeX     = 8
-                .maxMcuSizeY     = 16
-            }
-            elif (.compSampH[0] == 2) and (.compSampV[0] == 2)
-            {
-                .scanType        = YH2V2
-                .maxBlocksPerMcu = 6
-                .maxMcuSizeX     = 16
-                .maxMcuSizeY     = 16
-            }
-            else do
-                fail InvalidFormatError{"invalid samp factors"}
         }
         else do
             fail UnsupportedFormatError{"unsupported color space"}

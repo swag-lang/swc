@@ -18,6 +18,7 @@ private
     const YH2V1           = 2
     const YH1V2           = 3
     const YH2V2           = 4
+    const RGBH1V1         = 5
     const Failed          = -1
     const Done            = 1
     const Okay            = 0
@@ -182,6 +183,9 @@ public struct Decoder
 
     acceptMetaDatas: bool
     progressiveFlag: bool
+    hasAdobeMarker:  bool
+    hasJfifMarker:   bool
+    adobeTransform:  u8
 
     inBuf:          [InBufSize + 128] u8
     compSampH:      [MaxComponents] s32

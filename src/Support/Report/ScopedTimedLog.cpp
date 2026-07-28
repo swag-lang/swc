@@ -18,10 +18,13 @@ using StatsSnapshot = ScopedTimedLog::StatsSnapshot;
 
 namespace
 {
-    struct LineGlyph
+    // Everything the compiler prints on its own behalf starts with these three columns:
+    // a two-space margin, an outcome glyph, and a label naming the work.
+    struct LinePrefix
     {
-        LogColor  color  = LogColor::Gray;
-        LogSymbol symbol = LogSymbol::DotCenter;
+        LogColor  glyphColor = LogColor::Gray;
+        LogSymbol glyph      = LogSymbol::DotCenter;
+        LogColor  labelColor = LogColor::Gray;
     };
 
     Utf8 colorize(const TaskContext& ctx, const LogColor color, const std::string_view text)
@@ -40,60 +43,70 @@ namespace
         return Utf8{singular} + "s";
     }
 
-    std::string_view stageLabel(const Stage stage)
+    // A stage names itself with a verb: what it is doing while it runs, what it has done once it
+    // is over. The two scope stages are the exception, because they report a whole workspace or
+    // module rather than one kind of work.
+    std::string_view stageActiveLabel(const Stage stage)
     {
         switch (stage)
         {
-            case Stage::Workspace: return "Workspace";
-            case Stage::Module: return "Module";
-            case Stage::Format: return "Format";
-            case Stage::Syntax: return "Syntax";
-            case Stage::Sema: return "Sema";
-            case Stage::JIT: return "JIT";
-            case Stage::Micro: return "Micro";
-            case Stage::Build: return "Build";
-            case Stage::Run: return "Run";
-            case Stage::Test: return "Test";
-            case Stage::Verify: return "Verify";
-            case Stage::Unittest: return "Unittest";
+            case Stage::Workspace: return "workspace";
+            case Stage::Module: return "module";
+            case Stage::Format: return "formatting";
+            case Stage::Syntax: return "reading";
+            case Stage::Sema: return "checking";
+            case Stage::JIT: return "executing";
+            case Stage::Micro: return "tuning";
+            case Stage::Build: return "forging";
+            case Stage::Run: return "running";
+            case Stage::Test: return "testing";
+            case Stage::Verify: return "verifying";
+            case Stage::Unittest: return "testing";
         }
         SWC_UNREACHABLE();
     }
 
-    LineGlyph commandLineGlyph(const CommandKind command)
+    std::string_view stageDoneLabel(const Stage stage)
     {
-        switch (command)
+        switch (stage)
         {
-            case CommandKind::Build:
-                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandBuild};
-            case CommandKind::Run:
-                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandRun};
-            case CommandKind::Test:
-                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandTest};
-            case CommandKind::Format:
-                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandFormat};
-            case CommandKind::Syntax:
-                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandSyntax};
-            case CommandKind::Sema:
-                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandSema};
-            case CommandKind::Unittest:
-                return {.color = LogColor::BrightBlue, .symbol = LogSymbol::CommandUnittest};
-            case CommandKind::Invalid:
-                return {};
+            case Stage::Workspace: return "workspace";
+            case Stage::Module: return "module";
+            case Stage::Format: return "formatted";
+            case Stage::Syntax: return "read";
+            case Stage::Sema: return "checked";
+            case Stage::JIT: return "executed";
+            case Stage::Micro: return "tuned";
+            case Stage::Build: return "forged";
+            case Stage::Run: return "ran";
+            case Stage::Test: return "tested";
+            case Stage::Verify: return "verified";
+            case Stage::Unittest: return "tested";
         }
-
         SWC_UNREACHABLE();
     }
 
-    LineGlyph stageOutcomeGlyph(const ScopedTimedLog::StageOutcome outcome, const bool upToDate)
+    // The last word of a run. It says how the command ended, not what it produced.
+    std::string_view commandOutcomeLabel(const ScopedTimedLog::StageOutcome outcome)
+    {
+        switch (outcome)
+        {
+            case ScopedTimedLog::StageOutcome::Success: return "clean";
+            case ScopedTimedLog::StageOutcome::Warning: return "passed";
+            case ScopedTimedLog::StageOutcome::Error: return "stopped";
+        }
+        SWC_UNREACHABLE();
+    }
+
+    LinePrefix stageOutcomePrefix(const ScopedTimedLog::StageOutcome outcome, const bool upToDate)
     {
         if (outcome == ScopedTimedLog::StageOutcome::Error)
-            return {.color = LogColor::BrightRed, .symbol = LogSymbol::Error};
+            return {.glyphColor = LogColor::BrightRed, .glyph = LogSymbol::Error};
         if (outcome == ScopedTimedLog::StageOutcome::Warning)
-            return {.color = LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning), .symbol = LogSymbol::Warning};
+            return {.glyphColor = LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning), .glyph = LogSymbol::Warning};
         if (upToDate)
-            return {.color = LogColor::BrightBlue, .symbol = LogSymbol::UpToDate};
-        return {.color = LogColor::BrightGreen, .symbol = LogSymbol::Check};
+            return {.glyphColor = LogColor::BrightBlue, .glyph = LogSymbol::UpToDate};
+        return {.glyphColor = LogColor::BrightGreen, .glyph = LogSymbol::Check};
     }
 
     // What the command operates on: workspace / module / directory name.
@@ -123,8 +136,8 @@ namespace
         return "sources";
     }
 
-    // The one and only line printer: <indent><glyph>  <label> part • part • part
-    void printLine(const TaskContext& ctx, const size_t indent, const LogColor glyphColor, const LogSymbol glyph, const std::string_view label, const std::vector<Utf8>& parts)
+    // The one and only line printer: <margin><glyph>  <label> part • part • part
+    void printLine(const TaskContext& ctx, const LinePrefix& prefix, const std::string_view label, const std::vector<Utf8>& parts)
     {
         if (ctx.cmdLine().silent)
             return;
@@ -132,11 +145,11 @@ namespace
         const Logger::ScopedLock lock(ctx.global().logger());
 
         Utf8 line;
-        line.append(2 + indent * 2, ' ');
-        line += colorize(ctx, glyphColor, LogSymbolHelper::toString(ctx, glyph));
+        line.append(2, ' ');
+        line += colorize(ctx, prefix.glyphColor, LogSymbolHelper::toString(ctx, prefix.glyph));
         line += "  ";
         if (!label.empty())
-            line += colorize(ctx, LogColor::Gray, std::format("{:<10}", label));
+            line += colorize(ctx, prefix.labelColor, std::format("{:<10}", label));
 
         const Utf8 bullet = colorize(ctx, LogColor::Gray, LogSymbolHelper::toString(ctx, LogSymbol::DotList));
         bool       first  = true;
@@ -222,22 +235,6 @@ bool ScopedTimedLog::isOutputEnabled(const TaskContext& ctx, const Stage stage)
     return !moduleLog || stage == Stage::Module;
 }
 
-void ScopedTimedLog::printCommandHeader(const TaskContext& ctx)
-{
-    if (ctx.global().logger().stageOutputMuted())
-        return;
-
-    const CommandLine& cmd = ctx.cmdLine();
-
-    std::vector<Utf8> parts;
-    parts.emplace_back(colorize(ctx, LogColor::Yellow, scopeName(cmd)));
-    if (cmd.command == CommandKind::Build || cmd.command == CommandKind::Run || cmd.command == CommandKind::Test)
-        parts.push_back(colorize(ctx, LogColor::Gray, cmd.buildCfg));
-
-    const LineGlyph glyph = commandLineGlyph(cmd.command);
-    printLine(ctx, 0, glyph.color, glyph.symbol, commandName(cmd.command), parts);
-}
-
 ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 detail) :
     ctx_(&ctx),
     stage_(stage),
@@ -270,8 +267,6 @@ ScopedTimedLog::~ScopedTimedLog()
     if (forcedOutcome_ && static_cast<int>(*forcedOutcome_) > static_cast<int>(outcome))
         outcome = *forcedOutcome_;
 
-    const LineGlyph glyph = stageOutcomeGlyph(outcome, upToDate_);
-
     const uint64_t durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - startTick_).count();
     const Utf8     time       = colorize(*ctx_, LogColor::Gray, Utf8Helper::toNiceTime(Timer::toSeconds(durationNs)));
 
@@ -286,7 +281,10 @@ ScopedTimedLog::~ScopedTimedLog()
         testStat = joinStatItems(*ctx_, parts);
     }
 
-    printLine(*ctx_, 0, glyph.color, glyph.symbol, stageLabel(stage_), {detail_, stat_, testStat, time});
+    // A stage that failed did not do what its past tense claims: it names the work it was busy
+    // with instead, so the line reads as the point where the run stopped.
+    const std::string_view label = outcome == StageOutcome::Error ? stageActiveLabel(stage_) : stageDoneLabel(stage_);
+    printLine(*ctx_, stageOutcomePrefix(outcome, upToDate_), label, {detail_, stat_, testStat, time});
 }
 
 StatsSnapshot ScopedTimedLog::delta() const
@@ -317,6 +315,52 @@ void ScopedTimedLog::markUpToDate()
 void ScopedTimedLog::setStat(Utf8 stat)
 {
     stat_ = std::move(stat);
+}
+
+ScopedCommandLog::ScopedCommandLog(const TaskContext& ctx) :
+    ctx_(&ctx),
+    startTick_(ScopedTimedLog::Clock::now())
+{
+    if (ctx.global().logger().stageOutputMuted())
+        return;
+
+    const CommandLine& cmd = ctx.cmdLine();
+
+    std::vector<Utf8> parts;
+    parts.emplace_back(colorize(ctx, LogColor::White, commandName(cmd.command)));
+    parts.emplace_back(colorize(ctx, LogColor::Yellow, scopeName(cmd)));
+    if (cmd.command == CommandKind::Build || cmd.command == CommandKind::Run || cmd.command == CommandKind::Test)
+        parts.push_back(colorize(ctx, LogColor::Gray, cmd.buildCfg));
+
+    const LinePrefix prefix{.glyphColor = LogColor::BrightBlue, .glyph = LogSymbol::CommandMark, .labelColor = LogColor::BrightBlue};
+    printLine(ctx, prefix, "swag", parts);
+}
+
+ScopedCommandLog::~ScopedCommandLog()
+{
+    if (ctx_->global().logger().stageOutputMuted())
+        return;
+
+    const Stats& stats       = Stats::get();
+    const size_t numErrors   = stats.numErrors.load(std::memory_order_relaxed);
+    const size_t numWarnings = stats.numWarnings.load(std::memory_order_relaxed);
+
+    auto outcome = ScopedTimedLog::StageOutcome::Success;
+    if (numErrors)
+        outcome = ScopedTimedLog::StageOutcome::Error;
+    else if (numWarnings)
+        outcome = ScopedTimedLog::StageOutcome::Warning;
+
+    std::vector<Utf8> parts;
+    if (numErrors)
+        parts.push_back(colorize(*ctx_, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(numErrors) + " " + plural(numErrors, "error", nullptr)));
+    if (numWarnings)
+        parts.push_back(colorize(*ctx_, LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning), Utf8Helper::toNiceBigNumber(numWarnings) + " " + plural(numWarnings, "warning", nullptr)));
+
+    const uint64_t durationNs = std::chrono::duration_cast<std::chrono::nanoseconds>(ScopedTimedLog::Clock::now() - startTick_).count();
+    parts.push_back(colorize(*ctx_, LogColor::Gray, Utf8Helper::toNiceTime(Timer::toSeconds(durationNs))));
+
+    printLine(*ctx_, stageOutcomePrefix(outcome, false), commandOutcomeLabel(outcome), parts);
 }
 
 SWC_END_NAMESPACE();

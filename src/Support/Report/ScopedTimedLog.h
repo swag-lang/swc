@@ -67,7 +67,6 @@ public:
     static Utf8 formatStatName(const TaskContext& ctx, std::string_view name);
     static Utf8 joinStatItems(const TaskContext& ctx, const std::vector<Utf8>& items);
     static bool isOutputEnabled(const TaskContext& ctx, Stage stage);
-    static void printCommandHeader(const TaskContext& ctx);
 
 private:
     const TaskContext*          ctx_ = nullptr;
@@ -79,6 +78,22 @@ private:
     Utf8                        stat_;
     bool                        printEnabled_ = true;
     bool                        upToDate_     = false;
+};
+
+// Brackets a whole command: the opening line names what is about to run, and the closing line
+// signs the run off with its outcome and the wall time of the process.
+class ScopedCommandLog
+{
+public:
+    explicit ScopedCommandLog(const TaskContext& ctx);
+    ~ScopedCommandLog();
+
+    ScopedCommandLog(const ScopedCommandLog&)            = delete;
+    ScopedCommandLog& operator=(const ScopedCommandLog&) = delete;
+
+private:
+    const TaskContext*                ctx_ = nullptr;
+    ScopedTimedLog::Clock::time_point startTick_{};
 };
 
 SWC_END_NAMESPACE();

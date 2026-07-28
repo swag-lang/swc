@@ -115,7 +115,7 @@ func setImageCard(card: *TextureCard, title, subtitle: string, image: const &Ima
 
 func loadShowcase() fail
 {
-    let loaded = Image.load(dataPath("joconde.jpg"))
+    let loaded = Image.load(dataPath("balloon.jpg"))
     let source = normalizeShowcaseImage(loaded)
 
     g_SourceTexture = g_Renderer.addImage(source)

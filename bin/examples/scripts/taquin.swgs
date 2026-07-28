@@ -47,7 +47,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         dataPath = Path.combine(dataPath, "datas")
         dataPath = Path.combine(dataPath, "taquin")
 
-        g_Image   = expect Image.load(Path.combine(dataPath, "joconde.jpg"))
+        g_Image   = expect Image.load(Path.combine(dataPath, "lighthouse.jpg"))
         g_Texture = wnd.getApp().getRenderer().addImage(g_Image)
         g_Rect    = wnd.getClientRect()
 
@@ -208,5 +208,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 554, 769, "Taquin", hook: &onEvent)
+    Application.runSurface(100, 100, 702, 769, "Taquin", hook: &onEvent)
 }

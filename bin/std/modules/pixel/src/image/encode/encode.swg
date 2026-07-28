@@ -87,4 +87,5 @@ public impl Image
     Image.addEncoder'(Gif.Encoder)()
     Image.addEncoder'(Tiff.Encoder)()
     Image.addEncoder'(Ico.Encoder)()
+    Image.addEncoder'(Webp.Encoder)()
 }

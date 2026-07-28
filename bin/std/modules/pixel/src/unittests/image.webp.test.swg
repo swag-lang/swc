@@ -69,11 +69,97 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     }
 }
 
-// The decoder registry recognises WebP files.
+func webpCanEncode(fileName: string)->bool
+{
+    var encoder: Webp.Encoder
+    let itf = @mkinterface(&encoder, #typeof(Webp.Encoder), IImageEncoder)
+    return itf.canEncode(fileName)
+}
+
+func encodeWebp(result: *ConcatBuffer, image: Image) fail
+{
+    var encoder: Webp.Encoder
+    let itf = @mkinterface(&encoder, #typeof(Webp.Encoder), IImageEncoder)
+    itf.encode(result, image, null)
+}
+
+func assertEncodedWebpRoundtrip(source: Image)
+{
+    var buffer: ConcatBuffer
+    catch encodeWebp(&buffer, source) as encodeError
+    @assert(encodeError == null)
+
+    let bytes = nnBytes(buffer.toSlice())
+    @assert(@countof(bytes) >= 21)
+    @assert(bytes[0] == 'R' and bytes[1] == 'I' and bytes[2] == 'F' and bytes[3] == 'F')
+    @assert(bytes[8] == 'W' and bytes[9] == 'E' and bytes[10] == 'B' and bytes[11] == 'P')
+    @assert(bytes[12] == 'V' and bytes[13] == 'P' and bytes[14] == '8' and bytes[15] == 'L')
+    let riffSize = cast(u32) bytes[4] | (cast(u32) bytes[5] << 8) |
+                   (cast(u32) bytes[6] << 16) | (cast(u32) bytes[7] << 24)
+    @assert(cast(u64) riffSize + 8 == @countof(bytes))
+
+    let decoded = catch Image.decode("encoded.webp", bytes, {}) as decodeError
+    @assert(decodeError == null)
+    @assert(decoded.width == source.width)
+    @assert(decoded.height == source.height)
+    @assert(decoded.pf == .RGBA8)
+    for [y] in source.height do
+        for [x] in source.width
+        {
+            let got  = decoded.getPixelColor(x, y)
+            let want = source.getPixelColor(x, y)
+            @assert(got.r == want.r)
+            @assert(got.g == want.g)
+            @assert(got.b == want.b)
+            @assert(got.a == want.a)
+        }
+}
+
+// The decoder and encoder registries recognise WebP files.
 #test
 {
     @assert(Image.canLoad("image.webp"))
     @assert(!Image.canLoad("image.webm"))
+    @assert(Image.canSave("image.webp"))
+    @assert(webpCanEncode("image.webp"))
+    @assert(!webpCanEncode("image.png"))
+}
+
+// Lossless encoding preserves every channel and the image row orientation.
+#test
+{
+    const pixels = [
+        11'u8, 22'u8, 33'u8, 44'u8,      55'u8, 66'u8, 77'u8, 88'u8,
+        91'u8, 102'u8, 113'u8, 124'u8,   135'u8, 146'u8, 157'u8, 168'u8,
+        179'u8, 190'u8, 201'u8, 212'u8,  223'u8, 234'u8, 245'u8, 17'u8,
+    ]
+    let rgba = makeImage(3, 2, .RGBA8, pixels)
+    assertEncodedWebpRoundtrip(rgba)
+    assertEncodedWebpRoundtrip(rgba.toSetPixelFormat(.BGRA8))
+    assertEncodedWebpRoundtrip(rgba.toSetPixelFormat(.RGB8))
+    assertEncodedWebpRoundtrip(rgba.toSetPixelFormat(.BGR8))
+}
+
+// Backward-distance runs can span the VP8L maximum length and start a new run.
+#test
+{
+    var source = Image.create(5000, 1, .RGBA8)
+    source.fill(Color.fromArgb(37'u8, 19'u8, 73'u8, 211'u8))
+
+    var buffer: ConcatBuffer
+    catch encodeWebp(&buffer, source) as encodeError
+    @assert(encodeError == null)
+    @assert(buffer.count() < 128)
+    assertEncodedWebpRoundtrip(source)
+}
+
+// Empty images are rejected before a VP8L payload is created.
+#test
+{
+    var source: Image
+    var buffer: ConcatBuffer
+    catch encodeWebp(&buffer, source) as encodeError
+    @assert(encodeError != null)
 }
 
 // Decode an official VP8L fixture and compare every pixel with its PNG golden image.

@@ -217,22 +217,15 @@ namespace
         return sema.typeMgr().get(typeRef).isInt();
     }
 
-    bool hasDynamicLoopBound(Sema& sema, AstNodeRef boundRef)
-    {
-        if (boundRef.isInvalid())
-            return false;
-        return !sema.viewNodeTypeConstant(boundRef).hasConstant();
-    }
-
     Result setupForLoopBoundCheck(Sema& sema, const AstForStmt& node, const LoopSemaPayload& payload)
     {
+        // A range loop asks a predicate, and an inverted range answers it immediately: the
+        // loop lowering already emits the entry test that skips the body, so the iteration is
+        // empty rather than undefined. Only constant bounds are rejected, in Sema.Range, where
+        // the inversion is certain instead of merely possible. Slicing keeps its check, because
+        // it asks for a length rather than a predicate.
         if (payload.isRangeLoop)
-        {
-            if (!hasDynamicLoopBound(sema, payload.lowerBoundRef) && !hasDynamicLoopBound(sema, payload.upperBoundRef))
-                return Result::Continue;
-
-            return SemaHelpers::setupRuntimeSafetyPanic(sema, node.nodeExprRef, Runtime::SafetyWhat::BoundCheck, sema.node(node.nodeExprRef).codeRef());
-        }
+            return Result::Continue;
 
         const TypeRef countTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), payload.indexTypeRef);
         if (!countTypeRef.isValid())

@@ -1,7 +1,9 @@
 #global private
 
-// An exclusive range whose bounds are equal is empty: it runs zero iterations instead of
-// raising a bound-check error. Only an inverted range (lower above upper) stays an error.
+// A range loop asks a predicate, so a range that selects nothing runs zero iterations
+// instead of raising an error. That covers an exclusive range whose bounds are equal and an
+// inverted range alike, with or without runtime guards. Only constant bounds are rejected,
+// at compile time, where the inversion is certain rather than merely possible.
 
 //
 // Constant empty exclusive ranges
@@ -205,7 +207,7 @@ func reverseLoopUntil(low, high: s32)->s32
 }
 
 //
-// An inverted range remains an error, statically and at runtime
+// An inverted range selects nothing, whether guards are on or off
 //
 
 #[Swag.Safety(.BoundCheck, true)]
@@ -215,13 +217,14 @@ func reverseLoopUntil(low, high: s32)->s32
     func invertedExclusive(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in low until high do     // swc-expected-error {{safety_err_runtime}}
-            acc += i
+        for [i] in low until high do
+            acc += i + 1
         return acc
     }
 
     const V = #run invertedExclusive(5, 4)
-    @assert(V == 0)
+    #assert(V == 0)
+    @assert(invertedExclusive(5, 4) == 0)
 }
 
 #[Swag.Safety(.BoundCheck, true)]
@@ -231,11 +234,59 @@ func reverseLoopUntil(low, high: s32)->s32
     func invertedInclusive(low, high: s32)->s32
     {
         var acc: s32 = 0
-        for [i] in low to high do     // swc-expected-error {{safety_err_runtime}}
-            acc += i
+        for [i] in low to high do
+            acc += i + 1
         return acc
     }
 
     const V = #run invertedInclusive(5, 4)
-    @assert(V == 0)
+    #assert(V == 0)
+    @assert(invertedInclusive(5, 4) == 0)
+}
+
+#[Swag.Safety(.BoundCheck, false)]
+#test
+{
+    #[Swag.Safety(.BoundCheck, false)]
+    func invertedUnguarded(low, high: s32)->s32
+    {
+        var acc: s32 = 0
+        for [i] in low to high do
+            acc += i + 1
+        return acc
+    }
+
+    @assert(invertedUnguarded(5, 4) == 0)
+}
+
+// The collection-sized idiom on a signed counter: an empty collection makes the range
+// inverted, which is exactly when the loop must not run.
+#[Swag.Safety(.BoundCheck, true)]
+#test
+{
+    func sumUpToLast(count: s32)->s32
+    {
+        var acc: s32 = 0
+        for [i] in 0 to count - 1 do
+            acc += i + 1
+        return acc
+    }
+
+    @assert(sumUpToLast(0) == 0)
+    @assert(sumUpToLast(3) == 1 + 2 + 3)
+}
+
+// '#reverse' walks the same range backwards and is empty on the same input.
+#[Swag.Safety(.BoundCheck, true)]
+#test
+{
+    func invertedReverse(low, high: s32)->s32
+    {
+        var acc: s32 = 0
+        for #reverse [i] in low to high do
+            acc += i + 1
+        return acc
+    }
+
+    @assert(invertedReverse(5, 4) == 0)
 }

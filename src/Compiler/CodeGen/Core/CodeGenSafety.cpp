@@ -458,6 +458,44 @@ Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, M
     return Result::Continue;
 }
 
+Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowReg, MicroReg endExclusiveReg, MicroReg sourceCountReg)
+{
+    nodeRef = codeGen.resolvedNodeRef(nodeRef);
+    if (nodeRef.isInvalid())
+        return Result::Continue;
+
+    const auto* nodePayload = codeGen.loweringPayload(nodeRef);
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::BoundCheck))
+        return Result::Continue;
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
+    SWC_ASSERT(panicFunction != nullptr);
+
+    // A slice describes a window, so its bounds have to stay in order and inside the source.
+    // Both are compared as counts, which are unsigned. A pointer source has no count of its
+    // own, so only the ordering can be checked there.
+    MicroBuilder&       builder    = codeGen.builder();
+    const MicroLabelRef inRangeRef = builder.createLabel();
+    const MicroLabelRef panicRef   = builder.createLabel();
+
+    builder.emitCmpRegReg(lowReg, endExclusiveReg, MicroOpBits::B64);
+    if (!sourceCountReg.isValid())
+    {
+        builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, inRangeRef);
+    }
+    else
+    {
+        builder.emitJumpToLabel(CodeGenCompareHelpers::greaterCond(true), MicroOpBits::B32, panicRef);
+        builder.emitCmpRegReg(endExclusiveReg, sourceCountReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, inRangeRef);
+    }
+
+    builder.placeLabel(panicRef);
+    SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, codeGen.node(nodeRef), DiagnosticId::safety_err_bound_check));
+    builder.placeLabel(inRangeRef);
+    return Result::Continue;
+}
+
 Result CodeGenSafety::emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction)
 {
     SymbolFunction* resolvedPanicFunction = panicFunction ? panicFunction : runtimeSafetyPanicFunction(codeGen);

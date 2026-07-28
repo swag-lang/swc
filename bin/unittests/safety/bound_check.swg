@@ -294,33 +294,66 @@ func opaqueIdx(v: u64)->u64
     @assert(value == 0)
 }
 
+// An inverted range selects nothing, so a loop over it runs zero times and the guard stays
+// silent. Slicing keeps its check, because it asks for a length instead of a predicate.
 #test
 {
     #[Swag.Safety(.BoundCheck, true)]
-    func loopInvalidSignedRange(low: s32, high: s32)->s32
+    func loopInvertedSignedRange(low: s32, high: s32)->s32
     {
         var result: s32 = 0
-        for [i] in low to high do     // swc-expected-error {{safety_err_runtime}}
-            result += i
+        for [i] in low to high do
+            result += i + 1
         return result
     }
 
-    const value = #run loopInvalidSignedRange(5, 4)
+    const value = #run loopInvertedSignedRange(5, 4)
+    #assert(value == 0)
+    @assert(loopInvertedSignedRange(5, 4) == 0)
+}
+
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func loopInvertedUnsignedRange(low: u32, high: u32)->u32
+    {
+        var result: u32 = 0
+        for [i] in low until high do
+            result += i + 1
+        return result
+    }
+
+    const value = #run loopInvertedUnsignedRange(5, 4)
+    #assert(value == 0)
+    @assert(loopInvertedUnsignedRange(5, 4) == 0)
+}
+
+// The guard that did move to slicing: bounds out of order, and an upper bound past the source.
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func sliceInvertedRange(low: u64, high: u64)->u64
+    {
+        var storage: [4] s32       = [10, 20, 30, 40]
+        let values:  const [..] s32 = storage
+        return @countof(values[low to high])     // swc-expected-error {{safety_err_runtime}}
+    }
+
+    const value = #run sliceInvertedRange(3, 1)
     @assert(value == 0)
 }
 
 #test
 {
     #[Swag.Safety(.BoundCheck, true)]
-    func loopInvalidUnsignedRange(low: u32, high: u32)->u32
+    func sliceUpperOutOfSource(low: u64, high: u64)->u64
     {
-        var result: u32 = 0
-        for [i] in low until high do     // swc-expected-error {{safety_err_runtime}}
-            result += i
-        return result
+        var storage: [4] s32       = [10, 20, 30, 40]
+        let values:  const [..] s32 = storage
+        return @countof(values[low to high])     // swc-expected-error {{safety_err_runtime}}
     }
 
-    const value = #run loopInvalidUnsignedRange(5, 4)
+    const value = #run sliceUpperOutOfSource(0, 10)
     @assert(value == 0)
 }
 

@@ -306,6 +306,13 @@ namespace
             }
         }
 
+        // A slice asks for a length, so both bounds have to stay in order and inside the source.
+        // Element indexing arms the same guard further down; this path returns early and used to
+        // hand out a view built from an unchecked subtraction. Arming it can suspend the node on
+        // the panic dependency, so it comes before the payload below: a resumed node replays this
+        // branch, and setting the payload twice trips an assertion.
+        SWC_RESULT(setupIndexBoundCheck(sema, sema.curNodeRef(), indexedType, node.codeRef()));
+
         auto* slicePayload          = sema.compiler().allocate<SliceIndexSemaPayload>();
         slicePayload->lowerBoundRef = range.nodeExprDownRef;
         slicePayload->upperBoundRef = range.nodeExprUpRef;
@@ -314,6 +321,7 @@ namespace
 
         sema.setType(sema.curNodeRef(), resultTypeRef);
         sema.setIsValue(sema.node(sema.curNodeRef()));
+
         SWC_RESULT(completeIndexedValueRuntimeStorage(sema, node.nodeExprRef, nodeExprView));
         SWC_RESULT(completeSliceRuntimeStorage(sema, sliceRuntimeStorageTypeRef(sema, resultTypeRef, ConstantRef::invalid())));
         return Result::Continue;

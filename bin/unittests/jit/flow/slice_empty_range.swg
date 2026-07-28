@@ -2,6 +2,11 @@
 
 // Slicing with an exclusive range whose bounds are equal produces an empty slice rather
 // than a compile-time error.
+//
+// Unlike a loop, a slice asks for a length rather than a predicate, so its bounds have to
+// stay in order and inside the source. Both are reported when 'BoundCheck' is on. Without
+// guards the count is clamped to zero instead of wrapping, so an inverted range can never
+// describe a view over the whole address space.
 
 //
 // Constant empty exclusive ranges
@@ -125,4 +130,39 @@ func sliceCount(values: const [..] s32, low, high: u64)->u64
     const V = #run emptySliceLeavesSourceIntact()
     #assert(V == 15)
     @assert(emptySliceLeavesSourceIntact() == 15)
+}
+
+//
+// Bounds are checked: in order, and inside the source
+//
+
+#[Swag.Safety(.BoundCheck, true)]
+#test
+{
+    func windowOf(values: const [..] s32, low, high: u64)->u64
+    {
+        return @countof(values[low to high])
+    }
+
+    var storage: [4] s32 = [10, 20, 30, 40]
+
+    @assert(windowOf(storage, 1, 2) == 2)
+    @assert(windowOf(storage, 0, 3) == 4)
+    @assert(windowOf(storage, 2, 2) == 1)
+}
+
+// Without guards an inverted range yields an empty view, never a wrapped count.
+#[Swag.Safety(.BoundCheck, false)]
+#test
+{
+    #[Swag.Safety(.BoundCheck, false)]
+    func invertedUnguarded(low, high: u64)->u64
+    {
+        var storage: [4] s32 = [10, 20, 30, 40]
+        let values: const [..] s32 = storage
+        return @countof(values[low to high])
+    }
+
+    @assert(invertedUnguarded(3, 1) == 0)
+    @assert(invertedUnguarded(1, 2) == 2)
 }

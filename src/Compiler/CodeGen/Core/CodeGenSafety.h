@@ -32,6 +32,7 @@ namespace CodeGenSafety
 
     Result emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg indexReg);
     Result emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType);
+    Result emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowReg, MicroReg endExclusiveReg, MicroReg sourceCountReg);
     Result emitSwitchCheck(CodeGen& codeGen, const AstNode& node, SymbolFunction* panicFunction);
     Result emitOverflowCheck(CodeGen& codeGen, const AstNode& node);
     Result emitOverflowTrapOnFailure(CodeGen& codeGen, const AstNode& node, MicroCond successCond);

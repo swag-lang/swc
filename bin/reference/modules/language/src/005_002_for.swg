@@ -163,18 +163,20 @@ The `for` loop supports signed integer ranges, offering flexible intervals.
 
 `to` defines an inclusive range loop.
 
-> WARNING:
-> The start value must be less than or equal to the end value. An inverted range is a
-> compile-time error when both bounds are constant, and a runtime bound-check error otherwise.
+> NOTE:
+> An inverted range, whose start is above its end, selects nothing and the loop runs zero
+> times. A loop asks whether the index is still within the range, and an inverted range
+> answers no immediately, so this holds in every build configuration. Writing constant
+> inverted bounds is still a compile-time error, because there the inversion is a certainty
+> rather than an empty interval that happened to come out of a computation.
 
 > WARNING:
-> Because `to` is inclusive, do not write a collection-sized loop as
-> `for [i] in 0 to count - 1`. When `count` is zero that range is inverted, and on an
-> unsigned `count` the subtraction wraps to a huge bound instead. Write
-> `for [i] in 0 until count`, which is empty for a zero count. The inverted-range
-> report is a **runtime safety guard**, so it is raised in `debug` and `fast-debug`
-> but not in `release`, where the loop simply runs zero times: the wrong spelling
-> fails only in the configurations that check for it.
+> On an **unsigned** counter, do not write a collection-sized loop as
+> `for [i] in 0 to count - 1`. This has nothing to do with inverted ranges: when `count` is
+> zero, `count - 1` wraps to the largest value of the type, and the resulting range is valid
+> and ascending, so no range rule can catch it. Only the overflow guard reports it, and it is
+> off in `release`. Write `for [i] in 0 until count`, which needs no subtraction and is empty
+> for a zero count.
 */
 #test
 {

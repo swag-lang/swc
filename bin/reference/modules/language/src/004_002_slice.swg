@@ -113,8 +113,14 @@ By default, the upper bound in a slice is inclusive. To exclude it, use 'until' 
 /**
 # Empty Slices
 
-An 'until' range whose bounds are equal selects nothing and produces an empty slice. Only an
-inverted range, where the lower bound is above the upper bound, is an error.
+An 'until' range whose bounds are equal selects nothing and produces an empty slice.
+
+Slicing differs from looping here. A loop asks whether an index is still within a range, so
+an inverted range simply runs zero times. A slice asks for a **length**, and an inverted range
+has none, so it is reported: constant bounds at compile time, computed ones by the
+'Swag.Safety(.BoundCheck)' guard, which also checks that the upper bound stays inside the
+source. Where that guard is off, the count is clamped to zero rather than wrapping, so a slice
+never describes more memory than its source holds.
 */
 #test
 {

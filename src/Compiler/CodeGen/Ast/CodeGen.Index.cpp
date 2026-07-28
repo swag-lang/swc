@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Runtime.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
@@ -79,6 +80,53 @@ namespace
         builder.emitOpBinaryRegImm(countReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
         builder.placeLabel(doneLabel);
+    }
+
+    // Element count of the value being sliced. A pointer has none: it is a bare address, and
+    // the range is what gives it a length, so there is nothing to compare an upper bound to.
+    bool emitSliceSourceCountReg(CodeGen& codeGen, MicroReg countReg, const TypeInfo& indexedType, const CodeGenNodePayload& indexedPayload, MicroReg baseReg)
+    {
+        MicroBuilder& builder = codeGen.builder();
+        if (indexedType.isArray())
+        {
+            const uint64_t count = indexedType.payloadArrayDims().empty() ? 0 : indexedType.payloadArrayDims()[0];
+            builder.emitLoadRegImm(countReg, ApInt(count, 64), MicroOpBits::B64);
+            return true;
+        }
+
+        if (indexedType.isString())
+        {
+            builder.emitLoadRegMem(countReg, indexedPayload.reg, offsetof(Runtime::String, length), MicroOpBits::B64);
+            return true;
+        }
+
+        if (indexedType.isCString())
+        {
+            emitCStringCountReg(codeGen, countReg, baseReg);
+            return true;
+        }
+
+        if (indexedType.isSlice())
+        {
+            builder.emitLoadRegMem(countReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
+            return true;
+        }
+
+        return false;
+    }
+
+    // 'end - low', or zero when the range is inverted. The bare subtraction would wrap and
+    // describe a view over the whole address space.
+    void emitSliceCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg lowReg, MicroReg endExclusiveReg)
+    {
+        MicroBuilder&       builder   = codeGen.builder();
+        const MicroLabelRef emptyRef  = builder.createLabel();
+        builder.emitLoadRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitCmpRegReg(endExclusiveReg, lowReg, MicroOpBits::B64);
+        builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, emptyRef);
+        builder.emitLoadRegReg(countReg, endExclusiveReg, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(countReg, lowReg, MicroOp::Subtract, MicroOpBits::B64);
+        builder.placeLabel(emptyRef);
     }
 
     void normalizeIndexReferenceOperand(CodeGen& codeGen, CodeGenNodePayload& ioPayload, TypeRef& ioTypeRef)
@@ -427,6 +475,10 @@ namespace
             builder.emitLoadRegImm(lowReg, ApInt(0, 64), MicroOpBits::B64);
         }
 
+        MicroReg sourceCountReg = codeGen.nextVirtualIntRegister();
+        if (!emitSliceSourceCountReg(codeGen, sourceCountReg, indexedType, indexedPayload, baseReg))
+            sourceCountReg = MicroReg::invalid();
+
         const MicroReg endExclusiveReg = codeGen.nextVirtualIntRegister();
         if (slicePayload->upperBoundRef.isValid())
         {
@@ -436,35 +488,23 @@ namespace
             if (slicePayload->inclusive)
                 builder.emitOpBinaryRegImm(endExclusiveReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         }
-        else if (indexedType.isArray())
-        {
-            const uint64_t count = indexedType.payloadArrayDims().empty() ? 0 : indexedType.payloadArrayDims()[0];
-            builder.emitLoadRegImm(endExclusiveReg, ApInt(count, 64), MicroOpBits::B64);
-        }
-        else if (indexedType.isString())
-        {
-            builder.emitLoadRegMem(endExclusiveReg, indexedPayload.reg, offsetof(Runtime::String, length), MicroOpBits::B64);
-        }
-        else if (indexedType.isCString())
-        {
-            emitCStringCountReg(codeGen, endExclusiveReg, baseReg);
-        }
-        else if (indexedType.isSlice())
-        {
-            builder.emitLoadRegMem(endExclusiveReg, indexedPayload.reg, offsetof(Runtime::Slice<std::byte>, count), MicroOpBits::B64);
-        }
         else
         {
-            SWC_UNREACHABLE();
+            // Sema rejects a pointer sliced without an upper bound, so a count exists here.
+            SWC_ASSERT(sourceCountReg.isValid());
+            builder.emitLoadRegReg(endExclusiveReg, sourceCountReg, MicroOpBits::B64);
         }
+
+        SWC_RESULT(CodeGenSafety::emitSliceRangeCheck(codeGen, codeGen.curNodeRef(), lowReg, endExclusiveReg, sourceCountReg));
 
         const uint64_t strideSize = resolveIndexStrideSize(codeGen, indexedType);
         const MicroReg dataReg    = codeGen.nextVirtualIntRegister();
         builder.emitLoadAddressAmcRegMem(dataReg, MicroOpBits::B64, baseReg, lowReg, strideSize, 0, MicroOpBits::B64);
 
+        // Without the guard the subtraction below would wrap on an inverted range and hand out
+        // a slice covering the whole address space. An empty view is the defined outcome.
         const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        builder.emitLoadRegReg(countReg, endExclusiveReg, MicroOpBits::B64);
-        builder.emitOpBinaryRegReg(countReg, lowReg, MicroOp::Subtract, MicroOpBits::B64);
+        emitSliceCountReg(codeGen, countReg, lowReg, endExclusiveReg);
 
         const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, ptr), dataReg, MicroOpBits::B64);

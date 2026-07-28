@@ -64,7 +64,7 @@ impl IOrelseProbe for OrelseProbe
 {
     func cstringFallback()->bool
     {
-        var data: [3] u8 = ['o''u8, 'k''u8, 0]
+        var data: [3] u8 = ['o'u8, 'k'u8, 0]
         let resolved     = cast(#null cstring) null orelse cast(cstring) &data[0]
         return resolved != null and @countof(resolved) == 2
     }

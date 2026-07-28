@@ -121,8 +121,8 @@ func passNestedArray(value: AbiNested, array0: [2] AbiPair)->s32
     @assert(passString("abi-string") == "abi-string")
     @assert(passString("abi-string-2") == "abi-string-2")
     @assert(passStringAt("abi-string", 1) == 98'u8)
-    @assert(passStringAt("abi-string", 2) == 'i''u8)
-    @assert(passStringAt("abi-string", 9) == 'g''u8)
+    @assert(passStringAt("abi-string", 2) == 'i'u8)
+    @assert(passStringAt("abi-string", 9) == 'g'u8)
 
     let array0 = passArray([11, 22, 33, 44])
     let array1 = passArray([101, 202, 303, 404])

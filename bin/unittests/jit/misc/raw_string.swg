@@ -71,7 +71,7 @@ b"""
     var acc = 0
     for c in pattern
     {
-        if c == '\\''u8 do
+        if c == '\\'u8 do
             acc += 1
     }
 

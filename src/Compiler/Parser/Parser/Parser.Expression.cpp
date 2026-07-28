@@ -500,7 +500,7 @@ AstNodeRef Parser::parseQuotedSingleSuffixValue()
             continue;
         }
 
-        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
             const TokenRef tokQuote = consume();
             markCallCalleeNode(*ast_, nodeRef);
@@ -572,7 +572,7 @@ AstNodeRef Parser::parseQuotedIdentifier()
     if (idRef.isInvalid())
         return AstNodeRef::invalid();
 
-    if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
+    if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
     {
         const TokenRef tokQuote = consume();
         markCallCalleeNode(*ast_, idRef);
@@ -738,7 +738,7 @@ AstNodeRef Parser::parsePostFixExpression()
         }
 
         // Quote
-        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::BlankBefore))
+        if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
             const TokenRef tokQuote = consume();
             markCallCalleeNode(*ast_, nodeRef);

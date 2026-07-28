@@ -63,7 +63,7 @@ func day4B()
     let lines    = expect File.readAllLines(dataPath)
 
     var numbers: Array's32
-    for v in Tokenize.split(lines[0], ',''u8) do
+    for v in Tokenize.split(lines[0], ','u8) do
         numbers.add(expect StrConv.toS32(v))
 
     var bestScore: u64
@@ -75,7 +75,7 @@ func day4B()
 
         for [y] in line to line + 4
         {
-            for v, [x] in Tokenize.split(lines[y], ' ''u8)
+            for v, [x] in Tokenize.split(lines[y], ' 'u8)
             {
                 let n = expect StrConv.toS32(v)
                 let i = Slice.findLinear(numbers.toSlice(), n)

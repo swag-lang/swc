@@ -30,19 +30,19 @@ func firstNonAsciiRune(text: string)->rune
 {
     var bytes: [4] u8
 
-    @assert(Utf8.encodeRune(bytes, 'A''rune) == 1)
+    @assert(Utf8.encodeRune(bytes, 'A'rune) == 1)
     @assert(bytes[0] == 0x41)
 
-    @assert(Utf8.encodeRune(bytes, '\u00E9''rune) == 2)
+    @assert(Utf8.encodeRune(bytes, '\u00E9'rune) == 2)
     @assert(bytes[0] == 0xC3)
     @assert(bytes[1] == 0xA9)
 
-    @assert(Utf8.encodeRune(bytes, '\u20AC''rune) == 3)
+    @assert(Utf8.encodeRune(bytes, '\u20AC'rune) == 3)
     @assert(bytes[0] == 0xE2)
     @assert(bytes[1] == 0x82)
     @assert(bytes[2] == 0xAC)
 
-    @assert(Utf8.encodeRune(bytes, '\U0001F642''rune) == 4)
+    @assert(Utf8.encodeRune(bytes, '\U0001F642'rune) == 4)
     @assert(bytes[0] == 0xF0)
     @assert(bytes[1] == 0x9F)
     @assert(bytes[2] == 0x99)
@@ -62,7 +62,7 @@ func firstNonAsciiRune(text: string)->rune
 #test
 {
     let expected        = "A\u00E9\u20AC\U0001F642"
-    let runes: [4] rune = ['A''rune, '\u00E9''rune, '\u20AC''rune, '\U0001F642''rune]
+    let runes: [4] rune = ['A'rune, '\u00E9'rune, '\u20AC'rune, '\U0001F642'rune]
     let utf16: [5] u16  = [0x0041, 0x00E9, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [16] u8
@@ -88,27 +88,27 @@ func firstNonAsciiRune(text: string)->rune
 {
     let text     = "A\u00E9\u20AC\U0001F642"
     var {c, eat} = Utf8.decodeRune(text)
-    @assert(c == 'A''rune)
+    @assert(c == 'A'rune)
     @assert(eat == 1)
 
     {c, eat} = Utf8.decodeRune(text[1 until @countof(text)])
-    @assert(c == '\u00E9''rune)
+    @assert(c == '\u00E9'rune)
     @assert(eat == 2)
 
     {c, eat} = Utf8.decodeRune(text[3 until @countof(text)])
-    @assert(c == '\u20AC''rune)
+    @assert(c == '\u20AC'rune)
     @assert(eat == 3)
 
     {c, eat} = Utf8.decodeRune(text[6 until @countof(text)])
-    @assert(c == '\U0001F642''rune)
+    @assert(c == '\U0001F642'rune)
     @assert(eat == 4)
 
     {c, eat} = Utf8.decodeLastRune(text)
-    @assert(c == '\U0001F642''rune)
+    @assert(c == '\U0001F642'rune)
     @assert(eat == 4)
 
     {c, eat} = Utf8.decodeLastRune(text[0 until 6])
-    @assert(c == '\u20AC''rune)
+    @assert(c == '\u20AC'rune)
     @assert(eat == 3)
 }
 
@@ -181,17 +181,17 @@ func firstNonAsciiRune(text: string)->rune
     @assert(Utf8.indexOf(text, "Caf") == 5)
     @assert(Utf8.indexOf(text, "\u00E9") == 8)
     @assert(Utf8.indexOf(text, "\U0001F642") == 11)
-    @assert(Utf8.indexOf(text, '\u00E9''rune) == 8)
+    @assert(Utf8.indexOf(text, '\u00E9'rune) == 8)
     @assert(Utf8.indexOf(text, "core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)
     @assert(Utf8.indexOf(text, "missing") == Swag.U64.Max)
     @assert(Utf8.indexOf(text, "missing", @countof(text)) == Swag.U64.Max)
 
-    let byteNeedles: [2] u8 = ['f''u8, 'x''u8]
+    let byteNeedles: [2] u8 = ['f'u8, 'x'u8]
     @assert(Utf8.indexOfAny(text, byteNeedles) == 7)
     @assert(Utf8.indexOfAny(text, byteNeedles, 8) == Swag.U64.Max)
     @assert(Utf8.indexOfAny(text, byteNeedles, @countof(text)) == Swag.U64.Max)
 
-    let runeNeedles: [2] rune = ['\u00E9''rune, '\U0001F642''rune]
+    let runeNeedles: [2] rune = ['\u00E9'rune, '\U0001F642'rune]
     @assert(Utf8.indexOfAny(text, runeNeedles) == 8)
     @assert(Utf8.indexOfAny(text, runeNeedles, 9) == 11)
     @assert(Utf8.indexOfAny(text, runeNeedles, @countof(text)) == Swag.U64.Max)
@@ -202,23 +202,23 @@ func firstNonAsciiRune(text: string)->rune
     let text = "one fish two fish"
 
     @assert(Utf8.contains(text, cast(string) "fish"))
-    @assert(Utf8.contains(text, 'f''u8))
-    @assert(Utf8.contains(text, 'o''rune))
+    @assert(Utf8.contains(text, 'f'u8))
+    @assert(Utf8.contains(text, 'o'rune))
     @assert(!Utf8.contains(text, cast(string) "bird"))
 
     @assert(Utf8.lastIndexOf(text, "fish") == 13)
     @assert(Utf8.lastIndexOf(text, "FISH", Utf8.ComparisonType.Latin1NoCase) == 13)
-    @assert(Utf8.lastIndexOf(text, 'i''rune) == 14)
+    @assert(Utf8.lastIndexOf(text, 'i'rune) == 14)
 
-    let runeNeedles: [2] rune = ['o''rune, 't''rune]
+    let runeNeedles: [2] rune = ['o'rune, 't'rune]
     @assert(Utf8.lastIndexOfAny(text, runeNeedles) == 11)
-    let missingRuneNeedles: [2] rune = ['z''rune, '\u2603''rune]
+    let missingRuneNeedles: [2] rune = ['z'rune, '\u2603'rune]
     @assert(Utf8.lastIndexOfAny(text, missingRuneNeedles) == Swag.U64.Max)
     @assert(Utf8.lastIndexOfAny(text, @mkslice(@dataof(runeNeedles), 0)) == Swag.U64.Max)
 
-    let byteNeedles: [2] u8 = ['h''u8, 'x''u8]
+    let byteNeedles: [2] u8 = ['h'u8, 'x'u8]
     @assert(Utf8.lastIndexOfAny(text, byteNeedles) == 16)
-    let missingByteNeedles: [2] u8 = ['z''u8, 'x''u8]
+    let missingByteNeedles: [2] u8 = ['z'u8, 'x'u8]
     @assert(Utf8.lastIndexOfAny(text, missingByteNeedles) == Swag.U64.Max)
     @assert(Utf8.lastIndexOfAny(text, @mkslice(@dataof(byteNeedles), 0)) == Swag.U64.Max)
 
@@ -234,8 +234,8 @@ func firstNonAsciiRune(text: string)->rune
 {
     let text = "\u00E9clair\U0001F642"
 
-    @assert(Utf8.firstRune(text) == '\u00E9''rune)
-    @assert(Utf8.lastRune(text) == '\U0001F642''rune)
+    @assert(Utf8.firstRune(text) == '\u00E9'rune)
+    @assert(Utf8.lastRune(text) == '\U0001F642'rune)
     @assert(Utf8.firstRune("") == 0)
     @assert(Utf8.lastRune("") == 0)
 
@@ -262,7 +262,7 @@ func firstNonAsciiRune(text: string)->rune
         byteIndexSum += byteIndex
     }
 
-    @assert(runeSum == cast(u32) 'A''rune + cast(u32) '\u00E9''rune + cast(u32) '\U0001F642''rune)
+    @assert(runeSum == cast(u32) 'A'rune + cast(u32) '\u00E9'rune + cast(u32) '\U0001F642'rune)
     @assert(charIndexSum == 3)
     @assert(byteIndexSum == 4)
 }
@@ -270,5 +270,5 @@ func firstNonAsciiRune(text: string)->rune
 #test
 {
     @assert(firstNonAsciiRune("ASCII") == 0)
-    @assert(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9''rune)
+    @assert(firstNonAsciiRune("AB\u00E9\U0001F642") == '\u00E9'rune)
 }

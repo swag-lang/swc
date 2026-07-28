@@ -69,14 +69,14 @@ private impl FileBrowserCtrl
         .comboPath.clear()
         .comboPathStr.clear()
 
-        let all = Tokenize.split(.curFolder.toString(), '/''rune)
+        let all = Tokenize.split(.curFolder.toString(), '/'rune)
         for #reverse [i] in @countof(all)
         {
             var str: String
             for [j] in i + 1
             {
                 str += all[j]
-                str += '/''u8
+                str += '/'u8
             }
 
             .comboPathStr.add(str)
@@ -401,7 +401,7 @@ impl FileBrowserCtrl
                 filterExtensions = .options.filters[filterIndex].extensions
         }
 
-        let tokens = Tokenize.split(filterExtensions orelse "", ';''rune)
+        let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)
 
         for &fi in .curList
         {
@@ -471,7 +471,7 @@ impl FileBrowserCtrl
                 filterExtensions = .options.filters[filterIndex].extensions
         }
 
-        let tokens = Tokenize.split(.editFile.text, ';''rune)
+        let tokens = Tokenize.split(.editFile.text, ';'rune)
         for t in tokens
         {
             // Be sure this is a valid file/folder name
@@ -490,7 +490,7 @@ impl FileBrowserCtrl
             // Append extension if not done by the user
             if .options.mode != .SelectFolder and @countof(filterExtensions) and !Path.isExtension(val, notnull filterExtensions)
             {
-                let exts = Tokenize.split(notnull filterExtensions, ';''rune)
+                let exts = Tokenize.split(notnull filterExtensions, ';'rune)
                 val += exts[0]
             }
 

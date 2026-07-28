@@ -72,5 +72,15 @@
 #assert('\u4E00'u32 == 0x4E00)
 #assert('\u0000'u32 == 0)
 
-// Legacy spelling remains accepted during migration.
-#assert('A''u8 == 'A'u8)
+// The closing quote separates the literal from its suffix, so the suffix follows it
+// immediately. A second quote before the suffix is reported, see
+// 'parser_err_char_literal_suffix_quote'.
+#assert('A'u8 == 65)
+#assert(' 'u32 == 32)
+
+// The quote operator is told apart from a character literal by the last meaningful
+// token, so trivia between the literal and its suffix does not change the reading.
+#assert(1's32 == 1)
+#assert(1 's32 == 1)
+#assert(1 /* comment */ 's32 == 1)
+#assert(#typeof(1 's32) == s32)

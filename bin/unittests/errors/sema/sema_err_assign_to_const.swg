@@ -117,19 +117,19 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 #test
 {
     var text: const cstring = cast(const cstring) @dataof("abc")
-    text[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var text: const cstring = cast(const cstring) @dataof("abc")
-    text[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
 {
     var text: string = "abc"
-    text[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
+    text[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test
@@ -137,7 +137,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: string = "abc"
     for &value in text
     {
-        value = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
+        value = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -146,7 +146,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
     var text: const cstring = cast(const cstring) @dataof("abc")
     for &value in text
     {
-        value = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
+        value = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
     }
 }
 
@@ -160,7 +160,7 @@ func plainAssignConstParam(payload: InlineConstAssignPayload)
 #test
 {
     let bytes = cast(const [..] u8) (cast(const cstring) @dataof("abc"))
-    bytes[0] = 'A''u8     // swc-expected-error {{sema_err_assign_to_const}}
+    bytes[0] = 'A'u8     // swc-expected-error {{sema_err_assign_to_const}}
 }
 
 #test

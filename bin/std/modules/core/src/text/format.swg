@@ -22,10 +22,10 @@ func countPercent(fmt: string)->u32
     var cptPercent = 0'u32
     for var i = 0; i < @countof(fmt); i += 1
     {
-        if fmt[i] != '%''u8 do
+        if fmt[i] != '%'u8 do
             continue
 
-        if i == @countof(fmt) - 1 or fmt[i + 1] != '%''u8 do
+        if i == @countof(fmt) - 1 or fmt[i + 1] != '%'u8 do
             cptPercent += 1
         else do
             i += 1
@@ -88,7 +88,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
     while nextIdx < cpt
     {
-        if ptr[nextIdx] == '%''u8
+        if ptr[nextIdx] == '%'u8
         {
             // Add remaining text, and starts again after the mark
             buf.addBytes(cast(const [..] u8) @mkslice(ptr + idx, cast(u64) (nextIdx - idx)))
@@ -96,9 +96,9 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
             nextIdx = idx
 
             // Deal with the parameter. %% is for one % only
-            if ptr[nextIdx] == '%''u8
+            if ptr[nextIdx] == '%'u8
             {
-                buf.addNative('%''u8)
+                buf.addNative('%'u8)
                 nextIdx += 1
                 idx     += 1
                 continue
@@ -106,12 +106,12 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
 
             // Optional string format, like '%{whatever}'
             var strFormat: #null const [..] u8
-            if ptr[nextIdx] == '{''u8
+            if ptr[nextIdx] == '{'u8
             {
                 nextIdx += 1
                 let ptrFormat   = ptr + nextIdx
                 var countFormat = 0'u32
-                while ptr[nextIdx] and ptr[nextIdx] != '}''u8
+                while ptr[nextIdx] and ptr[nextIdx] != '}'u8
                 {
                     countFormat += 1
                     nextIdx     += 1
@@ -179,7 +179,7 @@ func toInterp(buf: *ConcatBuffer, exp: string)
 
             // Format
             var format: string
-            if exp[idxE] == ':''u8
+            if exp[idxE] == ':'u8
             {
                 idxE = Utf8.indexOf(exp, "}", startByteIndex: idx)
                 if idxE != Swag.U64.Max

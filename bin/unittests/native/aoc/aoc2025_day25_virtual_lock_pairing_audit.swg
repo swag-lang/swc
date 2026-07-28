@@ -27,7 +27,7 @@ func lineWidth(line: string)->u32
 func filledAt(schematic: const [..] string, row, column: u32)->bool
 {
     let bytes = cast(const [..] u8) schematic[row]
-    return bytes[column] == '#''u8
+    return bytes[column] == '#'u8
 }
 
 func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
@@ -47,12 +47,12 @@ func rowIsFilledWith(schematic: const [..] string, row: u32, ch: u8)->bool
 
 func isLockSchematic(schematic: const [..] string)->bool
 {
-    return rowIsFilledWith(schematic, 0, '#''u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '.''u8)
+    return rowIsFilledWith(schematic, 0, '#'u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '.'u8)
 }
 
 func isKeySchematic(schematic: const [..] string)->bool
 {
-    return rowIsFilledWith(schematic, 0, '.''u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '#''u8)
+    return rowIsFilledWith(schematic, 0, '.'u8) and rowIsFilledWith(schematic, SchematicHeight - 1, '#'u8)
 }
 
 func profileFromSchematic(schematic: const [..] string)->PinProfile

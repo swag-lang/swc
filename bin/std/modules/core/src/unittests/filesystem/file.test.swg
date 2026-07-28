@@ -21,7 +21,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 {
     let fileName = CoreTests.makeFilesystemTestPath("core_file_append_existing.tmp")
 
-    discard catch File.writeAllBytes(fileName, ['a''u8, 'b''u8]) as err
+    discard catch File.writeAllBytes(fileName, ['a'u8, 'b'u8]) as err
     @assert(err == null)
 
     {
@@ -36,7 +36,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     {
         let content = catch File.readAllBytes(fileName) as err4
         @assert(err4 == null)
-        @assert(assertBytes(content.toSlice(), ['a''u8, 'b''u8, 'c''u8, 'd''u8]))
+        @assert(assertBytes(content.toSlice(), ['a'u8, 'b'u8, 'c'u8, 'd'u8]))
     }
 
     discard catch File.delete(fileName) as err5
@@ -56,7 +56,7 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     let content = catch File.readAllBytes(fileName) as err8
     @assert(err8 == null)
-    @assert(assertBytes(content.toSlice(), ['x''u8, 'y''u8]))
+    @assert(assertBytes(content.toSlice(), ['x'u8, 'y'u8]))
 
     discard catch File.delete(fileName) as err9
     @assert(err9 == null)

@@ -106,7 +106,7 @@ func day7A()
 
     for l in lines
     {
-        let first = Tokenize.split(l, ' ''u8)
+        let first = Tokenize.split(l, ' 'u8)
 
         var card: Card
         for c in first[0]

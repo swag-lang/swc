@@ -83,7 +83,7 @@ alias StrictForeachF32 = f32
         sumV += cast(s32) x
         sumI += cast(s32) y
     }
-    @assert(sumV == cast(s32) 'A''u8 + cast(s32) 'B''u8)
+    @assert(sumV == cast(s32) 'A'u8 + cast(s32) 'B'u8)
     @assert(sumI == 1)
 }
 
@@ -96,7 +96,7 @@ alias StrictForeachF32 = f32
         #assert(#typeof(v) == #type const &u8)
         sum += cast(s32) v
     }
-    @assert(sum == cast(s32) 'C''u8 + cast(s32) 'D''u8)
+    @assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
 }
 
 #test
@@ -111,7 +111,7 @@ alias StrictForeachF32 = f32
         sumV += cast(s32) v
         sumI += i
     }
-    @assert(sumV == cast(s32) 'A''u8 + cast(s32) 'Z''u8)
+    @assert(sumV == cast(s32) 'A'u8 + cast(s32) 'Z'u8)
     @assert(sumI == 1)
 }
 
@@ -124,7 +124,7 @@ alias StrictForeachF32 = f32
         #assert(#typeof(v) == #type const &u8)
         sum += cast(s32) v
     }
-    @assert(sum == cast(s32) 'C''u8 + cast(s32) 'D''u8)
+    @assert(sum == cast(s32) 'C'u8 + cast(s32) 'D'u8)
 }
 
 #test
@@ -138,9 +138,9 @@ alias StrictForeachF32 = f32
         pos        += 1
         @assert(i == 2 - (pos - 1))
     }
-    @assert(order[0] == 'C''u8)
-    @assert(order[1] == 'B''u8)
-    @assert(order[2] == 'A''u8)
+    @assert(order[0] == 'C'u8)
+    @assert(order[1] == 'B'u8)
+    @assert(order[2] == 'A'u8)
 }
 
 func foreachCStringRefSum(value: &cstring)->s32
@@ -153,9 +153,9 @@ func foreachCStringRefSum(value: &cstring)->s32
 
 #test
 {
-    var textData: [3] u8  = ['B''u8, 'Y''u8, 0]
+    var textData: [3] u8  = ['B'u8, 'Y'u8, 0]
     var text:     cstring = cast(cstring) &textData[0]
-    @assert(foreachCStringRefSum(&text) == cast(s32) 'B''u8 + cast(s32) 'Y''u8)
+    @assert(foreachCStringRefSum(&text) == cast(s32) 'B'u8 + cast(s32) 'Y'u8)
 }
 
 #test

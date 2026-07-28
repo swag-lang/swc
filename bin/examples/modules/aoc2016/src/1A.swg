@@ -25,7 +25,7 @@ func day1A()
     let dataPath = Path.combine(Path.getDirectoryName(#file), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
-    let split  = Tokenize.split(lines[0], ',''u8)
+    let split  = Tokenize.split(lines[0], ','u8)
     var x      = 0
     var y      = 1
     var px, py = 0

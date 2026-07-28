@@ -80,25 +80,25 @@ func verifyImportedGenericRootMethodSema()
 
 func verifyImportedClosureCallbacks()
 {
-    var unarySet: DepByteSet = {values: ['C''u8, 'A''u8, 'B''u8, 0], count: 3}
-    @assert(depInvokeUnary('C''u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
-    @assert(!depInvokeUnary('Z''u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
-    @assert(depInvokeUnary('A''u8, func|&unarySet|(x: u8)->bool { return unarySet.containsViaGeneric(x) }))
+    var unarySet: DepByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    @assert(depInvokeUnary('C'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
+    @assert(!depInvokeUnary('Z'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
+    @assert(depInvokeUnary('A'u8, func|&unarySet|(x: u8)->bool { return unarySet.containsViaGeneric(x) }))
 
-    var genericSet: DepByteSet = {values: ['C''u8, 'A''u8, 'B''u8, 0], count: 3}
-    @assert(depInvokeGeneric('A''u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
-    @assert(!depInvokeGeneric('Z''u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
-    @assert(depInvokeGeneric('B''u8, func|&genericSet|(x: u8)->bool { return genericSet.containsViaGeneric(x) }))
+    var genericSet: DepByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    @assert(depInvokeGeneric('A'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
+    @assert(!depInvokeGeneric('Z'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
+    @assert(depInvokeGeneric('B'u8, func|&genericSet|(x: u8)->bool { return genericSet.containsViaGeneric(x) }))
 
     var prev:     [3] u8     = ['C', 'A', 'B']
-    var allOfSet: DepByteSet = {values: ['A''u8, 'B''u8, 'C''u8, 'D''u8], count: 4}
+    var allOfSet: DepByteSet = {values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
     @assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.contains(x) }))
     @assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.containsViaGeneric(x) }))
 
-    var selfBufferSet     = depMakeSelfBufferSet('A''u8, 'B''u8, 'C''u8, 'D''u8, 4)
-    var prevSelfBufferSet = depMakeSelfBufferSet('C''u8, 'A''u8, 'B''u8, 0, 3)
-    @assert(depInvokeUnary('A''u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
-    @assert(depInvokeGeneric('B''u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
+    var selfBufferSet     = depMakeSelfBufferSet('A'u8, 'B'u8, 'C'u8, 'D'u8, 4)
+    var prevSelfBufferSet = depMakeSelfBufferSet('C'u8, 'A'u8, 'B'u8, 0, 3)
+    @assert(depInvokeUnary('A'u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
+    @assert(depInvokeGeneric('B'u8, func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     @assert(depAllOf(prev[to], func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
     @assert(depAllOf(prev[to], func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     @assert(depAllOf(prevSelfBufferSet.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.contains(x) }))
@@ -110,25 +110,25 @@ func verifyImportedClosureCallbacks()
         @assert(depAllOf(wrapper.prev.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     }
 
-    var sharedUnarySet: CtxClosureByteSet = {values: ['C''u8, 'A''u8, 'B''u8, 0], count: 3}
-    @assert(ctxSharedInvokeUnary('C''u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
-    @assert(!ctxSharedInvokeUnary('Z''u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
-    @assert(ctxSharedInvokeUnary('A''u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.containsViaGeneric(x) }))
+    var sharedUnarySet: CtxClosureByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    @assert(ctxSharedInvokeUnary('C'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
+    @assert(!ctxSharedInvokeUnary('Z'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
+    @assert(ctxSharedInvokeUnary('A'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.containsViaGeneric(x) }))
 
-    var sharedGenericSet: CtxClosureByteSet = {values: ['C''u8, 'A''u8, 'B''u8, 0], count: 3}
-    @assert(ctxSharedInvokeGeneric('A''u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
-    @assert(!ctxSharedInvokeGeneric('Z''u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
-    @assert(ctxSharedInvokeGeneric('B''u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.containsViaGeneric(x) }))
+    var sharedGenericSet: CtxClosureByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    @assert(ctxSharedInvokeGeneric('A'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
+    @assert(!ctxSharedInvokeGeneric('Z'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
+    @assert(ctxSharedInvokeGeneric('B'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.containsViaGeneric(x) }))
 
     var sharedPrev:     [3] u8            = ['C', 'A', 'B']
-    var sharedAllOfSet: CtxClosureByteSet = {values: ['A''u8, 'B''u8, 'C''u8, 'D''u8], count: 4}
+    var sharedAllOfSet: CtxClosureByteSet = {values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
     @assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.contains(x) }))
     @assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.containsViaGeneric(x) }))
 
-    var sharedSelfBufferSet     = ctxSharedMakeSelfBufferSet('A''u8, 'B''u8, 'C''u8, 'D''u8, 4)
-    var sharedPrevSelfBufferSet = ctxSharedMakeSelfBufferSet('C''u8, 'A''u8, 'B''u8, 0, 3)
-    @assert(ctxSharedInvokeUnary('A''u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
-    @assert(ctxSharedInvokeGeneric('B''u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))
+    var sharedSelfBufferSet     = ctxSharedMakeSelfBufferSet('A'u8, 'B'u8, 'C'u8, 'D'u8, 4)
+    var sharedPrevSelfBufferSet = ctxSharedMakeSelfBufferSet('C'u8, 'A'u8, 'B'u8, 0, 3)
+    @assert(ctxSharedInvokeUnary('A'u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
+    @assert(ctxSharedInvokeGeneric('B'u8, func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))
     @assert(ctxSharedAllOf(sharedPrev[to], func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
     @assert(ctxSharedAllOf(sharedPrev[to], func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.containsViaGeneric(x) }))
     @assert(ctxSharedAllOf(sharedPrevSelfBufferSet.toSlice(), func|&sharedSelfBufferSet|(x: u8)->bool { return sharedSelfBufferSet.contains(x) }))
@@ -228,8 +228,8 @@ func verifyDllAbiCalls()
     @assert(ctxSharedPassString("abi-string") == "abi-string")
     @assert(ctxSharedPassString("abi-string-2") == "abi-string-2")
     @assert(ctxSharedPassStringAt("abi-string", 1) == 98'u8)
-    @assert(ctxSharedPassStringAt("abi-string", 2) == 'i''u8)
-    @assert(ctxSharedPassStringAt("abi-string", 9) == 'g''u8)
+    @assert(ctxSharedPassStringAt("abi-string", 2) == 'i'u8)
+    @assert(ctxSharedPassStringAt("abi-string", 9) == 'g'u8)
 
     let array0 = ctxSharedPassArray([11, 22, 33, 44])
     let array1 = ctxSharedPassArray([101, 202, 303, 404])

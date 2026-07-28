@@ -70,12 +70,12 @@ func startsWith(name: string, prefix: u8)->bool
 
 func isInputWire(name: string)->bool
 {
-    return startsWith(name, 'x''u8) or startsWith(name, 'y''u8)
+    return startsWith(name, 'x'u8) or startsWith(name, 'y'u8)
 }
 
 func isOutputWire(name: string)->bool
 {
-    return startsWith(name, 'z''u8)
+    return startsWith(name, 'z'u8)
 }
 
 func isLeastSignificantInputPair(left, right: string)->bool

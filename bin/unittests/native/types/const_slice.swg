@@ -75,11 +75,11 @@ func totalQty(lines: const [..] ProductLine)->s32
     let tail         = bytes[2 to]
 
     @assert(@countof(head) == 3)
-    @assert(head[0] == 'c''u8)
-    @assert(head[2] == 'n''u8)
+    @assert(head[0] == 'c'u8)
+    @assert(head[2] == 'n'u8)
     @assert(@countof(tail) == 3)
-    @assert(tail[0] == 'n''u8)
-    @assert(tail[2] == 't''u8)
+    @assert(tail[0] == 'n'u8)
+    @assert(tail[2] == 't'u8)
 }
 
 #test
@@ -93,7 +93,7 @@ func totalQty(lines: const [..] ProductLine)->s32
 
 #test
 {
-    @assert(aggregateLiteralRuneSlice('\u00E9''rune))
+    @assert(aggregateLiteralRuneSlice('\u00E9'rune))
 }
 
 #test

@@ -31,11 +31,11 @@ func parseX64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
             value <<= 4
             let c = dref buffer
             if Latin1.isDigit(c) do
-                value += cast(u64) (c - '0''u8)
-            elif c <= 'F''u8 do
-                value += cast(u64) 10 + (c - 'A''u8)
+                value += cast(u64) (c - '0'u8)
+            elif c <= 'F'u8 do
+                value += cast(u64) 10 + (c - 'A'u8)
             else do
-                value += cast(u64) 10 + (c - 'a''u8)
+                value += cast(u64) 10 + (c - 'a'u8)
         }
 
         buffer, cpt += 1
@@ -72,7 +72,7 @@ func parseB64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         else
         {
             value <<= 1
-            value += cast(u64) (dref buffer - '0''u8)
+            value += cast(u64) (dref buffer - '0'u8)
         }
 
         buffer, cpt += 1
@@ -119,10 +119,10 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
         fail SyntaxError{}
 
     // Detect 0x for hexa, 0b for binary
-    if countof > 2 and str[0] == '0''u8
+    if countof > 2 and str[0] == '0'u8
     {
         let c = str[1] | 32
-        if c == 'x''u8
+        if c == 'x'u8
         {
             let one = Tokenize.eatCount(str, 2)
             {result.value, result.eat, result.ovf} = try parseX64(one)
@@ -130,7 +130,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
             return result
         }
 
-        if c == 'b''u8
+        if c == 'b'u8
         {
             let one = Tokenize.eatCount(str, 2)
             {result.value, result.eat, result.ovf} = try parseB64(one)
@@ -158,7 +158,7 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 
         if !result.ovf
         {
-            let add = cast(u64) (dref buffer - '0''u8)
+            let add = cast(u64) (dref buffer - '0'u8)
             if value + #wrap add < value
             {
                 result.ovf = true
@@ -256,7 +256,7 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 
         if !result.ovf
         {
-            let toAdd = cast(u64) (dref buffer - '0''u8)
+            let toAdd = cast(u64) (dref buffer - '0'u8)
             if value + toAdd > maxValue
             {
                 result.ovf = true
@@ -352,11 +352,11 @@ func parseIdentifier(str: string)->#null string fail
     if !countof do
         fail SyntaxError{}
 
-    if str[0] != '_''u8 and !Latin1.isLetter(str[0]) do
+    if str[0] != '_'u8 and !Latin1.isLetter(str[0]) do
         fail SyntaxError{}
 
     var cpt = 1'u64
-    while cpt < countof and (str[cpt] == '_''u8 or Latin1.isLetterOrDigit(str[cpt])) do
+    while cpt < countof and (str[cpt] == '_'u8 or Latin1.isLetterOrDigit(str[cpt])) do
         cpt += 1
     return @mkstring(@dataof(str), cpt)
 }
@@ -373,7 +373,7 @@ func parseString(result: *String, str: string)->u32 fail
 
     var isQuoted = false
     var cpt      = 0
-    if str[0] == '"''u8
+    if str[0] == '"'u8
     {
         isQuoted = true
         cpt      += 1
@@ -382,19 +382,19 @@ func parseString(result: *String, str: string)->u32 fail
     while cpt < countof
     {
         // End dilimiter
-        if str[cpt] == '"''u8 and isQuoted do
+        if str[cpt] == '"'u8 and isQuoted do
             break
 
         // Escape character
-        if str[cpt] == '"''u8
+        if str[cpt] == '"'u8
         {
             cpt += 1
             if cpt == countof do
                 fail SyntaxError{}
             switch str[cpt]
             {
-            case 't''u8: dref result += '\t''u8
-            case 'n''u8: dref result += '\n''u8
+            case 't'u8: dref result += '\t'u8
+            case 'n'u8: dref result += '\n'u8
             default:     dref result += str[cpt]
             }
         }

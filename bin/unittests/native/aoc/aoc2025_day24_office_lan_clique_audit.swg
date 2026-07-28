@@ -42,7 +42,7 @@ func labelLess(left, right: u16)->bool
 
 func isLeadComputer(label: u16)->bool
 {
-    return labelFirstByte(label) == 't''u8
+    return labelFirstByte(label) == 't'u8
 }
 
 func edgeIndex(fromComputer, toComputer: u32)->u32
@@ -143,7 +143,7 @@ func buildPassword(outPassword: [..] u8, outLength: *u32, labels: const [..] u16
 
         if index != 0
         {
-            outPassword[length] = ',''u8
+            outPassword[length] = ','u8
             length              += 1
         }
 
@@ -201,7 +201,7 @@ func auditLan(connections: const [..] string)->LanAudit
     {
         let bytes = cast(const [..] u8) line
         @assert(@countof(bytes) == 5)
-        @assert(bytes[2] == '-''u8)
+        @assert(bytes[2] == '-'u8)
 
         let leftLabel  = parseLabel(bytes, 0)
         let rightLabel = parseLabel(bytes, 3)

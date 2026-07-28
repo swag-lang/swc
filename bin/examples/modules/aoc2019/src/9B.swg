@@ -106,7 +106,7 @@ func day9B()
     let lines    = expect File.readAllLines(dataPath)
 
     var prg: Array's64
-    for v in Tokenize.split(lines[0], ',''u8) do
+    for v in Tokenize.split(lines[0], ','u8) do
         prg.add(expect StrConv.toS64(v))
 
     let total = run(&prg, 2)

@@ -32,7 +32,7 @@ func parseNumber(bytes: const [..] u8, index: *u32)->u32
         index           += 1
         boxes[slot].max = parseNumber(bytes, &index)
 
-        if index < @countof(bytes) and bytes[index] == '\n''u8 do
+        if index < @countof(bytes) and bytes[index] == '\n'u8 do
             index += 1
     }
 
@@ -49,14 +49,14 @@ func bumpForIndex(index: &u32)
 
 func parseForDigit(bytes: const [..] u8, index: &u64)->u32
 {
-    let value = cast(u32) (bytes[index] - '0''u8)
+    let value = cast(u32) (bytes[index] - '0'u8)
     index += 2'u64
     return value
 }
 
 func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
 {
-    let value = cast(u32) (bytes[index] - '0''u8)
+    let value = cast(u32) (bytes[index] - '0'u8)
     index += 2'u32
     return value
 }
@@ -75,7 +75,7 @@ func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
         }
     }
 
-    @assert(seen == '3''u8)
+    @assert(seen == '3'u8)
 }
 
 #test
@@ -92,7 +92,7 @@ func parseForDigit32(bytes: const [..] u8, index: &u32)->u32
         }
     }
 
-    @assert(seen == '3''u8)
+    @assert(seen == '3'u8)
 }
 
 #test

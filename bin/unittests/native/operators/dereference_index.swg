@@ -49,7 +49,7 @@ alias IndexStrictU8 = u8
 {
     var A = "titi"
     var B = A[1]
-    @assert(B == cast(u8) 'i''rune)
+    @assert(B == cast(u8) 'i'rune)
 }
 
 // Multi-index on C-style nested arrays.
@@ -79,7 +79,7 @@ alias IndexStrictU8 = u8
 {
     var text             = "hello"
     var textRef: &string = &text
-    @assert(textRef[1] == cast(u8) 'e''rune)
+    @assert(textRef[1] == cast(u8) 'e'rune)
 
     var grid: [2, 3] s32
     grid[1, 2] = 42

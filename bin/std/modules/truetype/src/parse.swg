@@ -277,7 +277,7 @@ func parseFace(faceData: *FaceImpl) fail
     if @countof(data) < 12 do
         fault(0x02)
 
-    if readU32(data, 0) != 0x00010000 and readU32(data, 0) != imageTag('t''u32, 'r''u32, 'u''u32, 'e''u32) do
+    if readU32(data, 0) != 0x00010000 and readU32(data, 0) != imageTag('t'u32, 'r'u32, 'u'u32, 'e'u32) do
         fault(0x02)
 
     let numTables = readU16(data, 4)

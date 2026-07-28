@@ -62,7 +62,7 @@ func isDigit(ch: u8)->bool
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n''u8 or ch == '\r''u8
+    return ch == '\n'u8 or ch == '\r'u8
 }
 
 func concatNumbers(a, b: u64)->u64
@@ -136,7 +136,7 @@ func parseU64(bytes: const [..] u8, pos: *u32)->u64
 
 func skipSpaces(bytes: const [..] u8, pos: *u32)
 {
-    while dref pos < @countof(bytes) and bytes[dref pos] == ' ''u8
+    while dref pos < @countof(bytes) and bytes[dref pos] == ' 'u8
     {
         dref pos += 1
     }
@@ -159,7 +159,7 @@ func parseEquations(text: string)->EquationList
         var eq: Equation
         eq.target = parseU64(bytes, &pos)
 
-        @assert(pos < @countof(bytes) and bytes[pos] == ':''u8)
+        @assert(pos < @countof(bytes) and bytes[pos] == ':'u8)
         pos += 1
         skipSpaces(bytes, &pos)
 

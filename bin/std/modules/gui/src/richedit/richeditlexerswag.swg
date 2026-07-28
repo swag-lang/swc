@@ -404,7 +404,7 @@ impl IRichEditLexer for RichEditLexerSwag
                 }
 
                 if cpt < line.chars.count and line.chars[cpt] == '{' do
-                    str += '\t''rune
+                    str += '\t'rune
             }
 
             ed.pushUndo()

@@ -121,7 +121,7 @@ func day6B()
         var sx   = sx0
         var sy   = sy0
         var dx   = 0, dy = -1
-        var what = 'D''u8
+        var what = 'D'u8
         for
         {
             if sx + dx < 0 or sx + dx >= w or sy + dy < 0 or sy + dy >= h

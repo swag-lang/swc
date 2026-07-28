@@ -37,7 +37,7 @@ func semaTest001()
     var d         = @dataof(c)
     #assert(#typeof(d) == const [*] u8)
 
-    var ebuf: [2] u8  = ['x''u8, 0]
+    var ebuf: [2] u8  = ['x'u8, 0]
     var e:    cstring = cast(cstring) &ebuf[0]
     var f             = @dataof(e)
     #assert(#typeof(f) == const [*] u8)
@@ -89,7 +89,7 @@ func semaTest006()
     const s: string = "abc"
     const p         = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a''u8)
+    #assert(dref p == 'a'u8)
 }
 
 func semaTest007()
@@ -97,7 +97,7 @@ func semaTest007()
     const s: const [..] u8 = cast(const [..] u8) "abc"
     const p                = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a''u8)
+    #assert(dref p == 'a'u8)
 }
 
 func semaTest008()

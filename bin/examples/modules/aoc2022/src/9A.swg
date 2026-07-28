@@ -258,7 +258,7 @@ func day9A()
 
     for l in lines
     {
-        let cmd = Tokenize.split(l, ' ''u8)
+        let cmd = Tokenize.split(l, ' 'u8)
         let cpt = expect StrConv.toS32(cmd[1])
 
         var incx, incy = 0

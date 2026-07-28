@@ -55,7 +55,7 @@ func day5A()
     let lines    = expect File.readAllLines(dataPath)
 
     var op: Array's32
-    for v in Tokenize.split(lines[0], ',''u8) do
+    for v in Tokenize.split(lines[0], ','u8) do
         op.add(expect StrConv.toS32(v))
 
     var ip, output = 0

@@ -44,7 +44,7 @@ impl ConstDataOfSpecBuffer
     var d         = @dataof(c)
     #assert(#typeof(d) == const [*] u8)
 
-    var ebuf: [2] u8  = ['x''u8, 0]
+    var ebuf: [2] u8  = ['x'u8, 0]
     var e:    cstring = cast(cstring) &ebuf[0]
     var f             = @dataof(e)
     #assert(#typeof(f) == const [*] u8)
@@ -107,9 +107,9 @@ impl ConstDataOfSpecBuffer
     const s: string = "abc"
     const p         = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a''u8)
+    #assert(dref p == 'a'u8)
     @assert(p != null)
-    @assert(dref p == 'a''u8)
+    @assert(dref p == 'a'u8)
 }
 
 // @dataof on const slice at compile time
@@ -118,9 +118,9 @@ impl ConstDataOfSpecBuffer
     const s: const [..] u8 = cast(const [..] u8) "abc"
     const p                = @dataof(s)
     #assert(p != null)
-    #assert(dref p == 'a''u8)
+    #assert(dref p == 'a'u8)
     @assert(p != null)
-    @assert(dref p == 'a''u8)
+    @assert(dref p == 'a'u8)
 }
 
 // @dataof on const fixed array at compile time

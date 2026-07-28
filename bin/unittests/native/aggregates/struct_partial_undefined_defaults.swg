@@ -58,14 +58,14 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     value.required = 25
 
     @assert(value.required == 25)
-    @assert(value.label[0] == 'r''u8)
+    @assert(value.label[0] == 'r'u8)
     @assert(value.value == 17)
     @assert(value.enabled == false)
 }
 
 #test
 {
-    @assert(PARTIAL_UNDEFINED_CONST.label[0] == 'r''u8)
+    @assert(PARTIAL_UNDEFINED_CONST.label[0] == 'r'u8)
 }
 
 #test
@@ -74,7 +74,7 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     value.required = 31
 
     @assert(value.required == 31)
-    @assert(value.label[0] == 'r''u8)
+    @assert(value.label[0] == 'r'u8)
     @assert(value.value == 17)
     @assert(value.enabled == false)
 }
@@ -85,7 +85,7 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
     value.required = 49
 
     @assert(value.required == 49)
-    @assert(value.label[0] == 'r''u8)
+    @assert(value.label[0] == 'r'u8)
     @assert(value.value == 17)
     @assert(value.enabled == false)
 }

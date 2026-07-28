@@ -19,7 +19,7 @@ struct JSon
     indent:         u32                                            // Current indentation level.
     containerDepth: u32                                            // Current logical nesting depth for arrays/objects.
     fmtInt:         StrConv.ConvertFormatInt                       // Format used for converting integers.
-    fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g''u8}     // Format used for converting floating-point numbers.
+    fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g'u8}     // Format used for converting floating-point numbers.
     lastSeekValue:  ConcatBufferSeek                               // Seek position used for rollback of trailing commas.
 }
 
@@ -38,7 +38,7 @@ impl JSon
         if !.options.saveBlanks do
             return
         for .indent * .options.indentLevel do
-            .output.addNative(' ''u8)
+            .output.addNative(' 'u8)
     }
 
     // Initializes the JSON writer with the given output buffer.
@@ -133,7 +133,7 @@ impl JSon
     // Begins a named JSON element (a key-value pair).
     mtd beginElement(val: TypeValue)
     {
-        .output.addNative('"''u8)
+        .output.addNative('"'u8)
         .output.addBytes(val.name)
         .output.addBytes("\":")
         if .options.saveBlanks do
@@ -182,9 +182,9 @@ impl JSon
         }
         elif Reflection.isString(NT)
         {
-            .output.addNative('"''u8)
+            .output.addNative('"'u8)
             .output.addBytes(value)
-            .output.addNative('"''u8)
+            .output.addNative('"'u8)
         }
         else
         {

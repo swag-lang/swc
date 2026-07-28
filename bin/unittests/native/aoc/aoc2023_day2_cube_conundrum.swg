@@ -15,7 +15,7 @@ func s()->[2] u32
     for l, [g] in I
     {
         var i: u32
-        while i < @countof(l) and l[i] != ':''u8 do
+        while i < @countof(l) and l[i] != ':'u8 do
             i += 1
         i     += 1
 
@@ -25,7 +25,7 @@ func s()->[2] u32
 
         while i < @countof(l)
         {
-            if l[i] < '0''u8 or l[i] > '9''u8
+            if l[i] < '0'u8 or l[i] > '9'u8
             {
                 i += 1
                 continue

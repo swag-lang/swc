@@ -342,6 +342,10 @@ void Lexer::pushToken()
 
     // Always update prevToken, even for filtered tokens
     prevToken_ = token_;
+    if (!Token::isTrivia(tokenId))
+        prevCodeTokenId_ = tokenId;
+    else if (token_.hasFlag(TokenFlagsE::EolInside))
+        prevCodeTokenId_ = TokenId::Invalid;
 
     // '#raw' arms the next string literal. Trivia between the modifier and the literal is
     // transparent, so a comment or a blank does not disarm it.
@@ -986,6 +990,31 @@ void Lexer::lexIdentifier()
     pushToken();
 }
 
+bool Lexer::canPrecedeQuoteOperator() const
+{
+    switch (prevCodeTokenId_)
+    {
+        case TokenId::Identifier:
+        case TokenId::NumberHex:
+        case TokenId::NumberBin:
+        case TokenId::NumberInteger:
+        case TokenId::NumberFloat:
+        case TokenId::StringLine:
+        case TokenId::StringMultiLine:
+        case TokenId::StringRaw:
+            return true;
+
+        // A character literal opens and closes with the same delimiter, so only adjacency
+        // tells the removed suffix separator ("'a''u8") from two literals in a row. The
+        // quote is kept here so the parser can report the removed spelling precisely.
+        case TokenId::Character:
+            return prevToken_.id == TokenId::Character;
+
+        default:
+            return false;
+    }
+}
+
 void Lexer::lexSymbol()
 {
     // Safe to read buffer_[1] and buffer_[2] due to padding after endBuffer_
@@ -1487,9 +1516,10 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     srcView_ = &srcView;
     srcView_->tokens().clear();
     srcView_->lines().clear();
-    prevToken_    = {};
-    hasFileError_ = false;
-    hasUtf8Error_ = false;
+    prevToken_       = {};
+    prevCodeTokenId_ = TokenId::Invalid;
+    hasFileError_    = false;
+    hasUtf8Error_    = false;
 
     langSpec_   = &ctx.global().langSpec();
     ctx_        = &ctx;
@@ -1605,19 +1635,13 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
         }
 
         // Character literal or quote operator - context-sensitive
-        // Quote syntax reuses `'`: when the previous token can be a quoted expression
-        // target, leave it to lexSymbol(); otherwise this is a character literal.
+        // Quote syntax reuses `'`: when the last meaningful token of the line can carry a
+        // suffix or generic arguments, leave the quote to lexSymbol(); otherwise it opens a
+        // character literal. Trivia is skipped by that test, so a blank never changes the
+        // reading and '5's32' and '5 's32' are the same suffixed literal.
         if (buffer_[0] == '\'')
         {
-            if (prevToken_.id != TokenId::Identifier &&
-                prevToken_.id != TokenId::Character &&
-                prevToken_.id != TokenId::NumberHex &&
-                prevToken_.id != TokenId::NumberBin &&
-                prevToken_.id != TokenId::NumberInteger &&
-                prevToken_.id != TokenId::NumberFloat &&
-                prevToken_.id != TokenId::StringLine &&
-                prevToken_.id != TokenId::StringMultiLine &&
-                prevToken_.id != TokenId::StringRaw)
+            if (!canPrecedeQuoteOperator())
             {
                 lexCharacterLiteral();
                 continue;

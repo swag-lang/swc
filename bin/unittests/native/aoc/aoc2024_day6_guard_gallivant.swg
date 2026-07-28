@@ -59,7 +59,7 @@ struct PatrolReport
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n''u8 or ch == '\r''u8
+    return ch == '\n'u8 or ch == '\r'u8
 }
 
 func cellIndex(x, y, width: u32)->u32
@@ -216,11 +216,11 @@ func parseGrid(outGrid: *GridMap, text: string)
             continue
 
         let writeIndex = cellIndex(x, y, width)
-        if ch == '^''u8
+        if ch == '^'u8
         {
             result.startX            = x
             result.startY            = y
-            result.cells[writeIndex] = '.''u8
+            result.cells[writeIndex] = '.'u8
         }
         else
         {
@@ -276,7 +276,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
 
         let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, grid.width)
         let cells     = notnull grid.cells
-        if cells[nextIndex] == '#''u8
+        if cells[nextIndex] == '#'u8
         {
             dir = turnRight(dir)
             continue
@@ -324,7 +324,7 @@ func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
 
         let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, grid.width)
         let cells     = notnull grid.cells
-        if nextIndex == obstacleIndex or cells[nextIndex] == '#''u8
+        if nextIndex == obstacleIndex or cells[nextIndex] == '#'u8
         {
             dir = turnRight(dir)
             continue

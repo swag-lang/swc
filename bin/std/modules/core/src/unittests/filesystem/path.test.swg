@@ -5,9 +5,9 @@ using Swag
 
 #test
 {
-    @assert(Path.isDirectorySeparator('/''u8))
-    @assert(Path.isDirectorySeparator('\\''u8))
-    @assert(!Path.isDirectorySeparator('a''u8))
+    @assert(Path.isDirectorySeparator('/'u8))
+    @assert(Path.isDirectorySeparator('\\'u8))
+    @assert(!Path.isDirectorySeparator('a'u8))
 
     @assert(Path.isValidPathName("src/tests/core.swg"))
     @assert(Path.isValidPathName("C:/src/tests/core.swg"))

@@ -25,22 +25,22 @@ func moveDelta(outDx: *s32, outDy: *s32, instruction: u8)
 {
     switch instruction
     {
-    case '<''u8:
+    case '<'u8:
         dref outDx = -1
         dref outDy = 0
         break
 
-    case '>''u8:
+    case '>'u8:
         dref outDx = 1
         dref outDy = 0
         break
 
-    case '^''u8:
+    case '^'u8:
         dref outDx = 0
         dref outDy = -1
         break
 
-    case 'v''u8:
+    case 'v'u8:
         dref outDx = 0
         dref outDy = 1
         break
@@ -74,11 +74,11 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
             let src   = row[x]
             let index = cellIndex(x, cast(u32) rowIndex, width)
 
-            if src == '@''u8
+            if src == '@'u8
             {
                 robotX       = cast(s32) x
                 robotY       = cast(s32) rowIndex
-                cells[index] = '.''u8
+                cells[index] = '.'u8
             }
             else
             {
@@ -101,30 +101,30 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
         let nextIndex = cellIndex(cast(u32) nextX, cast(u32) nextY, width)
         let nextCell  = cells[nextIndex]
 
-        if nextCell == '#''u8 do
+        if nextCell == '#'u8 do
             continue
 
-        if nextCell == '.''u8
+        if nextCell == '.'u8
         {
             robotX = nextX
             robotY = nextY
             continue
         }
 
-        @assert(nextCell == 'O''u8)
+        @assert(nextCell == 'O'u8)
 
         var scanX     = nextX
         var scanY     = nextY
         var scanIndex = nextIndex
 
-        while cells[scanIndex] == 'O''u8
+        while cells[scanIndex] == 'O'u8
         {
             scanX     += dx
             scanY     += dy
             scanIndex = cellIndex(cast(u32) scanX, cast(u32) scanY, width)
         }
 
-        if cells[scanIndex] == '#''u8 do
+        if cells[scanIndex] == '#'u8 do
             continue
 
         while scanX != nextX or scanY != nextY
@@ -139,7 +139,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
             scanIndex        = prevIndex
         }
 
-        cells[nextIndex]        = '.''u8
+        cells[nextIndex]        = '.'u8
         robotX                  = nextX
         robotY                  = nextY
         result.successfulPushes += 1
@@ -147,7 +147,7 @@ func simulateWarehouse(layout: const [..] string, instructions: string)->Warehou
 
     for totalCells
     {
-        if cells[@index] == 'O''u8
+        if cells[@index] == 'O'u8
         {
             let x = cast(u64) (@index % width)
             let y = cast(u64) (@index / width)

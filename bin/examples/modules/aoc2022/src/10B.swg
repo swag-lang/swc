@@ -134,7 +134,7 @@ func day10B()
         {
             let tt = cycle % 40
             if x >= tt - 1 and x <= tt + 1 do
-                crt[cycle] = '#''u8
+                crt[cycle] = '#'u8
             cycle          += 1
         }
     }

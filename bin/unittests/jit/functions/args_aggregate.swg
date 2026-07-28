@@ -44,9 +44,9 @@ struct AbiNested
     const V = #run passString("abi-string", 1)
     #assert(V == 98'u8)
     const V1 = #run passString("abi-string", 2)
-    #assert(V1 == 'i''u8)
+    #assert(V1 == 'i'u8)
     const V2 = #run passString("abi-string", 9)
-    #assert(V2 == 'g''u8)
+    #assert(V2 == 'g'u8)
 }
 
 #test

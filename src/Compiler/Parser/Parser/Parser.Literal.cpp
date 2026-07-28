@@ -132,8 +132,17 @@ AstNodeRef Parser::parseLiteralExpression()
 
     TokenRef suffixTknRef = TokenRef::invalid();
     TokenRef quoteTknRef  = TokenRef::invalid();
-    if (is(TokenId::SymSingleQuote))
+
+    // Blanks and comments between the literal and its quote are transparent, but a line
+    // break is not: a statement ends at the end of a line, so the suffix stays on it.
+    if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
     {
+        // A character literal already ends with a quote, and that closing quote is what
+        // separates it from its suffix. A second one is the removed spelling: report it,
+        // then read the suffix anyway so one mistake produces one diagnostic.
+        if (ast_->node(literal).is(AstNodeId::CharacterLiteral))
+            raiseError(DiagnosticId::parser_err_char_literal_suffix_quote, ref());
+
         quoteTknRef  = ref();
         suffixTknRef = consume();
     }

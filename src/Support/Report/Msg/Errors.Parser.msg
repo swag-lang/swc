@@ -11,6 +11,7 @@ SWC_DIAG_DEF(parser_err_expected_array_dim, Error, "expected an array dimension 
 SWC_DIAG_DEF(parser_err_expected_sep_stmt, Error, "expected ';' to separate statements; [help] insert ';' before the next statement, or move it to a new line")
 SWC_DIAG_DEF(parser_err_empty_literal_suffix, Error, "empty literal suffix after the quote; [help] remove the quote, or add a suffix such as 's32', 'u64', 'f64', 'bool', or 'rune'")
 SWC_DIAG_DEF(parser_err_invalid_literal_suffix, Error, "literal suffix '{tok}' is not supported; [help] use a scalar numeric type, 'bool', or 'rune'")
+SWC_DIAG_DEF(parser_err_char_literal_suffix_quote, Error, "a character literal is already closed by its quote, which separates it from its suffix; [help] remove this second quote and write the suffix directly after the literal")
 SWC_DIAG_DEF(parser_err_unexpected_and_or, Error, "C-style boolean operator '{tok}' is not part of Swag; [help] use '{value}' instead")
 SWC_DIAG_DEF(parser_err_foreach_removed, Error, "'foreach' has been replaced by 'for'; [help] bind a name to iterate the values: 'for value in expression'")
 SWC_DIAG_DEF(parser_err_for_index_binding_brackets, Error, "loop index binding '{tok}' needs brackets; [help] write '[{tok}]' to bind the index")

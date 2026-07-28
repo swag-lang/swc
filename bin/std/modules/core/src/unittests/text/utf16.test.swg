@@ -21,13 +21,13 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
 {
     var buffer: [2] u16
 
-    @assert(Utf16.encodeRune(buffer, 'A''rune) == 1)
+    @assert(Utf16.encodeRune(buffer, 'A'rune) == 1)
     @assert(buffer[0] == 0x0041)
 
-    @assert(Utf16.encodeRune(buffer, '\u20AC''rune) == 1)
+    @assert(Utf16.encodeRune(buffer, '\u20AC'rune) == 1)
     @assert(buffer[0] == 0x20AC)
 
-    @assert(Utf16.encodeRune(buffer, '\U0001F642''rune) == 2)
+    @assert(Utf16.encodeRune(buffer, '\U0001F642'rune) == 2)
     @assert(buffer[0] == 0xD83D)
     @assert(buffer[1] == 0xDE42)
 
@@ -40,15 +40,15 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
     let values: [4] u16 = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var {c, eat} = Utf16.decodeRune(values)
-    @assert(c == 'A''rune)
+    @assert(c == 'A'rune)
     @assert(eat == 1)
 
     {c, eat} = Utf16.decodeRune(values[1 until @countof(values)])
-    @assert(c == '\u20AC''rune)
+    @assert(c == '\u20AC'rune)
     @assert(eat == 1)
 
     {c, eat} = Utf16.decodeRune(values[2 until @countof(values)])
-    @assert(c == '\U0001F642''rune)
+    @assert(c == '\U0001F642'rune)
     @assert(eat == 2)
 
     let loneHigh: [1] u16 = [0xD83D]
@@ -83,7 +83,7 @@ func assertUtf16(values: const &Array'u16, expected: const [..] u16)->bool
 
 #test
 {
-    let runes:    [3] rune = ['A''rune, '\u20AC''rune, '\U0001F642''rune]
+    let runes:    [3] rune = ['A'rune, '\u20AC'rune, '\U0001F642'rune]
     let expected: [4] u16  = [0x0041, 0x20AC, 0xD83D, 0xDE42]
 
     var dest: [8] u16

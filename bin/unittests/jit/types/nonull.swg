@@ -113,7 +113,7 @@ func jitNonNullConstruction()->bool
     var first                              = JitNonNullItem{value: 11}
     var second                             = JitNonNullItem{value: 22}
     var blockStorage:   [2] JitNonNullItem = [{value: 31}, {value: 32}]
-    var cstringStorage: [4] u8             = ['a''u8, 'b''u8, 'c''u8, 0]
+    var cstringStorage: [4] u8             = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                    *JitNonNullItem              = &first
     let block:                     [*] JitNonNullItem           = cast([*] JitNonNullItem) &blockStorage[0]
@@ -253,7 +253,7 @@ func jitNonNullConstruction()->bool
         return false
     if @countof(families.slice) != 2 or families.slice[0].value != 31 do
         return false
-    if families.text != "nonull" or families.ctext[0] != 'a''u8 do
+    if families.text != "nonull" or families.ctext[0] != 'a'u8 do
         return false
     if cast(s32) families.boxed != 123 or families.reflectedType.name != "JitNonNullItem" do
         return false
@@ -266,7 +266,7 @@ func jitNonNullConstruction()->bool
         return false
     if pointerArray[0] != &first or pointerArray[1] != &second or aliasedHolder.required != &first do
         return false
-    if pointerDefault.required != @dataof(JIT_NONULL_POINTER_DEFAULT_TEXT) or pointerDefault.required[0] != 'f''u8 do
+    if pointerDefault.required != @dataof(JIT_NONULL_POINTER_DEFAULT_TEXT) or pointerDefault.required[0] != 'f'u8 do
         return false
     if moveDefaultTarget.required != "explicit" or moveDefaultSource.required != "move-default" do
         return false

@@ -150,7 +150,7 @@ func semaTest005()
     #assert(#typeof(countStringRef(textRef)) == u64)
     #assert(#typeof(loopStringRef(textRef)) == u64)
 
-    var cstrData: [4] u8   = ['a''u8, 'b''u8, 'c''u8, 0]
+    var cstrData: [4] u8   = ['a'u8, 'b'u8, 'c'u8, 0]
     var cstr:     cstring  = cast(cstring) &cstrData[0]
     var cstrRef:  &cstring = &cstr
     #assert(#typeof(@countof(cstrRef)) == u64)

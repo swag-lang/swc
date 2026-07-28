@@ -68,7 +68,7 @@ func digitValue(ch: u8)->s32
 
 func isNewline(ch: u8)->bool
 {
-    return ch == '\n''u8 or ch == '\r''u8
+    return ch == '\n'u8 or ch == '\r'u8
 }
 
 func matchLiteral(bytes: const [..] u8, pos: u64, lit: string)->bool

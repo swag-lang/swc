@@ -77,9 +77,9 @@ func analyzeRoute(layout: const [..] string)->RouteReport
             let value = row[x]
 
             cells[index] = value
-            if value == 'S''u8 do
+            if value == 'S'u8 do
                 startCell = index
-            if value == 'E''u8 do
+            if value == 'E'u8 do
                 endCell = index
         }
     }
@@ -134,7 +134,7 @@ func analyzeRoute(layout: const [..] string)->RouteReport
         let nextX    = forwardX(x, direction)
         let nextY    = forwardY(y, direction)
         let nextCell = cellIndex(cast(u32) nextX, cast(u32) nextY, width)
-        if cells[nextCell] != '#''u8
+        if cells[nextCell] != '#'u8
         {
             let forwardState      = stateIndex(nextCell, direction)
             let candidateDistance = bestDistance + 1'u64

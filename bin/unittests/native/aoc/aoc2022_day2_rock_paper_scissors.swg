@@ -67,12 +67,12 @@ struct PartTwoScorer {}
 
 func isOpponentToken(ch: u8)->bool
 {
-    return ch == 'A''u8 or ch == 'B''u8 or ch == 'C''u8
+    return ch == 'A'u8 or ch == 'B'u8 or ch == 'C'u8
 }
 
 func isCodeToken(ch: u8)->bool
 {
-    return ch == 'X''u8 or ch == 'Y''u8 or ch == 'Z''u8
+    return ch == 'X'u8 or ch == 'Y'u8 or ch == 'Z'u8
 }
 
 func decodeOpponent(token: u8)->Shape
@@ -115,13 +115,13 @@ func decodeDesiredOutcome(token: u8)->Outcome
 {
     switch token
     {
-    case 'X''u8:
+    case 'X'u8:
         return Outcome.Lose
 
-    case 'Y''u8:
+    case 'Y'u8:
         return Outcome.Draw
 
-    case 'Z''u8:
+    case 'Z'u8:
         return Outcome.Win
     }
 
@@ -198,10 +198,10 @@ func parseGuide(bytes: const [..] u8)->StrategyGuide
     for @countof(bytes)
     {
         let ch = bytes[@index]
-        if ch == ' ''u8 or ch == '\r''u8 do
+        if ch == ' 'u8 or ch == '\r'u8 do
             continue
 
-        if ch == '\n''u8
+        if ch == '\n'u8
         {
             if haveOpponent or haveCode
             {
@@ -301,10 +301,10 @@ func forEachGuideLine(bytes: const [..] u8, stmt: #code(opponentToken: u8, codeT
     for @countof(bytes)
     {
         let ch = bytes[@index]
-        if ch == ' ''u8 or ch == '\r''u8 do
+        if ch == ' 'u8 or ch == '\r'u8 do
             continue
 
-        if ch == '\n''u8
+        if ch == '\n'u8
         {
             if haveOpponent or haveCode
             {
@@ -413,8 +413,8 @@ const CoverageResult: ScoreSummary = #run solveWithLanguageFeatures(CoverageInpu
     let edgeFeatures = solveWithLanguageFeatures(edgeBytes)
 
     @assert(edgeGuide.count == 2'u32)
-    @assert(edgeGuide.rounds[0].opponentToken == 'A''u8)
-    @assert(edgeGuide.rounds[0].codeToken == 'Z''u8)
+    @assert(edgeGuide.rounds[0].opponentToken == 'A'u8)
+    @assert(edgeGuide.rounds[0].codeToken == 'Z'u8)
     @assert(edgeClean.partOne == 10'u32)
     @assert(edgeClean.partTwo == 10'u32)
     @assert(edgeFeatures.partOne == edgeClean.partOne)

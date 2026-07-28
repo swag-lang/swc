@@ -44,19 +44,19 @@ alias MksliceStrictConstS32Ptr = const *s32
     #assert(#typeof(bytes) == const [..] u8)
     #assert(#typeof(text) == string)
     @assert(@countof(bytes) == 5)
-    @assert(bytes[1] == 'e''u8)
+    @assert(bytes[1] == 'e'u8)
     @assert(text == "hello")
 }
 
 #test
 {
-    var data: [6] u8  = ['h''u8, 'e''u8, 'l''u8, 'l''u8, 'o''u8, 0]
+    var data: [6] u8  = ['h'u8, 'e'u8, 'l'u8, 'l'u8, 'o'u8, 0]
     var cstr: cstring = cast(cstring) &data[0]
     let bytes         = @mkslice(cstr, @countof(cstr))
 
     #assert(#typeof(bytes) == const [..] u8)
     @assert(@countof(bytes) == 5)
-    @assert(bytes[4] == 'o''u8)
+    @assert(bytes[4] == 'o'u8)
 }
 
 #test

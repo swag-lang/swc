@@ -33,17 +33,17 @@ func numericPos(key: u8)->KeyPos
 {
     switch key
     {
-    case '7''u8: return {0, 0}
-    case '8''u8: return {1, 0}
-    case '9''u8: return {2, 0}
-    case '4''u8: return {0, 1}
-    case '5''u8: return {1, 1}
-    case '6''u8: return {2, 1}
-    case '1''u8: return {0, 2}
-    case '2''u8: return {1, 2}
-    case '3''u8: return {2, 2}
-    case '0''u8: return {1, 3}
-    case 'A''u8: return {2, 3}
+    case '7'u8: return {0, 0}
+    case '8'u8: return {1, 0}
+    case '9'u8: return {2, 0}
+    case '4'u8: return {0, 1}
+    case '5'u8: return {1, 1}
+    case '6'u8: return {2, 1}
+    case '1'u8: return {0, 2}
+    case '2'u8: return {1, 2}
+    case '3'u8: return {2, 2}
+    case '0'u8: return {1, 3}
+    case 'A'u8: return {2, 3}
     default:
         @assert(false)
         return {0, 0}
@@ -54,11 +54,11 @@ func directionalPos(key: u8)->KeyPos
 {
     switch key
     {
-    case '^''u8: return {1, 0}
-    case 'A''u8: return {2, 0}
-    case '<''u8: return {0, 1}
-    case 'v''u8: return {1, 1}
-    case '>''u8: return {2, 1}
+    case '^'u8: return {1, 0}
+    case 'A'u8: return {2, 0}
+    case '<'u8: return {0, 1}
+    case 'v'u8: return {1, 1}
+    case '>'u8: return {2, 1}
     default:
         @assert(false)
         return {0, 0}
@@ -69,11 +69,11 @@ func directionalKeyIndex(key: u8)->u32
 {
     switch key
     {
-    case '^''u8: return 0
-    case 'A''u8: return 1
-    case '<''u8: return 2
-    case 'v''u8: return 3
-    case '>''u8: return 4
+    case '^'u8: return 0
+    case 'A'u8: return 1
+    case '<'u8: return 2
+    case 'v'u8: return 3
+    case '>'u8: return 4
     default:
         @assert(false)
         return 0
@@ -95,13 +95,13 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     let dx = toPos.x - fromPos.x
     let dy = toPos.y - fromPos.y
 
-    var horizontalMove = '>''u8
+    var horizontalMove = '>'u8
     if dx < 0 do
-        horizontalMove = '<''u8
+        horizontalMove = '<'u8
 
-    var verticalMove = 'v''u8
+    var verticalMove = 'v'u8
     if dy < 0 do
-        verticalMove = '^''u8
+        verticalMove = '^'u8
     let horizontalCount = absValue(dx)
     let verticalCount   = absValue(dy)
 
@@ -122,10 +122,10 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     {
         switch firstMove
         {
-        case '<''u8: x -= 1
-        case '>''u8: x += 1
-        case '^''u8: y -= 1
-        case 'v''u8: y += 1
+        case '<'u8: x -= 1
+        case '>'u8: x += 1
+        case '^'u8: y -= 1
+        case 'v'u8: y += 1
         default:     @assert(false)
         }
 
@@ -148,10 +148,10 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
     {
         switch secondMove
         {
-        case '<''u8: x -= 1
-        case '>''u8: x += 1
-        case '^''u8: y -= 1
-        case 'v''u8: y += 1
+        case '<'u8: x -= 1
+        case '>'u8: x += 1
+        case '^'u8: y -= 1
+        case 'v'u8: y += 1
         default:     @assert(false)
         }
 
@@ -170,7 +170,7 @@ func buildPath(outPath: *PathBuffer, fromPos, toPos: KeyPos, directionalPad: boo
         path.count               += 1
     }
 
-    path.buttons[path.count] = 'A''u8
+    path.buttons[path.count] = 'A'u8
     path.count               += 1
     dref outPath             = path
     return true
@@ -182,7 +182,7 @@ func sequenceCost(path: PathBuffer, depth: u32)->u64
         return cast(u64) path.count
 
     var total: u64
-    var current = 'A''u8
+    var current = 'A'u8
 
     for path.count
     {
@@ -234,9 +234,9 @@ func codeValue(code: string)->u64
 
     for ch in bytes
     {
-        if ch == 'A''u8 do
+        if ch == 'A'u8 do
             break
-        value = value * 10'u64 + cast(u64) (ch - '0''u8)
+        value = value * 10'u64 + cast(u64) (ch - '0'u8)
     }
 
     return value
@@ -246,7 +246,7 @@ func codePressCount(code: string, depth: u32)->u64
 {
     let bytes   = cast(const [..] u8) code
     var total: u64
-    var current = 'A''u8
+    var current = 'A'u8
 
     for next in bytes
     {

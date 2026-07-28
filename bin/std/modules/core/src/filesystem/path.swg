@@ -3,9 +3,9 @@
 
 using Swag
 
-const DirectorySeparatorChar    = '/''u8      // Default directory separator character
-const AltDirectorySeparatorChar = '\\''u8     // Alternate directory separator character
-const VolumeSeparatorChar       = ':''u8      // Volume separator character (e.g., 'C:')
+const DirectorySeparatorChar    = '/'u8      // Default directory separator character
+const AltDirectorySeparatorChar = '\\'u8     // Alternate directory separator character
+const VolumeSeparatorChar       = ':'u8      // Volume separator character (e.g., 'C:')
 
 // Returns true if the given character is a directory separator
 #[Inline, ConstExpr]

@@ -71,11 +71,11 @@ func dirName(d: Dir)->string
 // Character classification
 // ---------------------------------------------------------------------------
 
-func isDigit(ch: u8)->bool   => ch >= '0''u8 and ch <= '9''u8
-func isDot(ch: u8)->bool     => ch == '.''u8
-func isNewline(ch: u8)->bool => ch == '\n''u8 or ch == '\r''u8
+func isDigit(ch: u8)->bool   => ch >= '0'u8 and ch <= '9'u8
+func isDot(ch: u8)->bool     => ch == '.'u8
+func isNewline(ch: u8)->bool => ch == '\n'u8 or ch == '\r'u8
 func isSymbol(ch: u8)->bool  => !isDigit(ch) and !isDot(ch) and !isNewline(ch) and ch != 0
-func isGear(ch: u8)->bool    => ch == '*''u8
+func isGear(ch: u8)->bool    => ch == '*'u8
 
 // ---------------------------------------------------------------------------
 // Grid
@@ -307,7 +307,7 @@ func extractNumbers(grid: Grid)->NumberList
                 let col0 = col
                 while col < grid.width and isDigit(grid.at(row, col))
                 {
-                    value = value * 10 + cast(u32) (grid.at(row, col) - '0''u8)
+                    value = value * 10 + cast(u32) (grid.at(row, col) - '0'u8)
                     col   += 1
                 }
 
@@ -464,11 +464,11 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 // Compile-time character classification
 // ---------------------------------------------------------------------------
 
-#assert(#run isDigit('5''u8) == true)
-#assert(#run isDigit('.''u8) == false)
-#assert(#run isSymbol('*''u8) == true)
-#assert(#run isSymbol('.''u8) == false)
-#assert(#run isGear('*''u8) == true)
+#assert(#run isDigit('5'u8) == true)
+#assert(#run isDigit('.'u8) == false)
+#assert(#run isSymbol('*'u8) == true)
+#assert(#run isSymbol('.'u8) == false)
+#assert(#run isGear('*'u8) == true)
 #assert(#run minOf's32(3, 7) == 3)
 #assert(#run maxOf'u32(10, 5) == 10)
 
@@ -481,8 +481,8 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
     let grid = parseGrid(cast(const [..] u8) SampleInput)
     @assert(grid.width == 10'u32)
     @assert(grid.height == 10'u32)
-    @assert(grid.at(0, 0) == '4''u8)
-    @assert(grid.at(1, 3) == '*''u8)
+    @assert(grid.at(0, 0) == '4'u8)
+    @assert(grid.at(1, 3) == '*'u8)
 
     let clean = solveClean(grid)
     @assert(clean.partNumberSum == 4361'u64)
@@ -545,19 +545,19 @@ func solveWithLanguageFeatures(grid: Grid)->EngineResult
 #test
 {
     // Character classification coverage
-    @assert(isDigit('0''u8))
-    @assert(isDigit('9''u8))
-    @assert(!isDigit('a''u8))
-    @assert(isDot('.''u8))
-    @assert(!isDot('*''u8))
-    @assert(isSymbol('*''u8))
-    @assert(isSymbol('#''u8))
-    @assert(isSymbol('+''u8))
-    @assert(isSymbol('$''u8))
-    @assert(!isSymbol('.''u8))
-    @assert(!isSymbol('5''u8))
-    @assert(isGear('*''u8))
-    @assert(!isGear('#''u8))
+    @assert(isDigit('0'u8))
+    @assert(isDigit('9'u8))
+    @assert(!isDigit('a'u8))
+    @assert(isDot('.'u8))
+    @assert(!isDot('*'u8))
+    @assert(isSymbol('*'u8))
+    @assert(isSymbol('#'u8))
+    @assert(isSymbol('+'u8))
+    @assert(isSymbol('$'u8))
+    @assert(!isSymbol('.'u8))
+    @assert(!isSymbol('5'u8))
+    @assert(isGear('*'u8))
+    @assert(!isGear('#'u8))
 
     // Direction name coverage
     @assert(dirName(Dir.N) == "N")

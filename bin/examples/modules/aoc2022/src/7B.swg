@@ -32,7 +32,7 @@ func day7B()
         if l[0] == '$' do
             l.remove(0, 1)
 
-        let cmd = Tokenize.split(l, ' ''u8)
+        let cmd = Tokenize.split(l, ' 'u8)
         switch cmd[0]
         {
         case "cd":

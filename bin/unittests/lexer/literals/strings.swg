@@ -78,16 +78,19 @@
 // --- Quotes inside character literals ---
 '\''        // Escaped single quote (valid)
 
-// --- Adjacent character literals (separate tokens) ---
-'a' 'b'
-'x''y'
-'1' '2' '3'
-
 // --- Character literals in expressions (context) ---
-// Note: In the lexer, '\'' after identifiers becomes the quote operator
-// These should be character literals since they don't follow identifiers
+// A quote opens a character literal unless the last meaningful token can carry a
+// suffix or generic arguments: an identifier, a character, a number, or a string.
+// Trivia is skipped by that test, so a blank or a comment never changes the reading.
 'a' + 'b'
 '0' - '9'
+
+// --- The quote operator, reached through trivia ---
+// Each of these is one suffixed literal, not a literal followed by a character.
+1's32
+1 's32
+1 /* comment */ 's32
+'a'u8
 
 // ============================================================================
 // MULTI-LINE STRINGS

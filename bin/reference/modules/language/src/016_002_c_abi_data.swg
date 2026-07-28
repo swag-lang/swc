@@ -14,8 +14,8 @@ trailing zero; take its data pointer before casting that pointer to 'cstring'.
     let literal = "Swag"
     let text    = cast(const cstring) @dataof(literal)
     @assert(@countof(text) == 4)
-    @assert(text[0] == 'S''u8)
-    @assert(text[3] == 'g''u8)
+    @assert(text[0] == 'S'u8)
+    @assert(text[3] == 'g'u8)
 }
 
 /**

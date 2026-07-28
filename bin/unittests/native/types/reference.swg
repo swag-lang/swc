@@ -148,8 +148,8 @@ func writeVecRef(target: &Vec2, value: Vec2)
 
     let bytes = cast(const [..] u8) "42"
     var index: u64
-    @assert(nextDigit(bytes, &index) == '4''u8)
-    @assert(nextDigit(bytes, &index) == '2''u8)
+    @assert(nextDigit(bytes, &index) == '4'u8)
+    @assert(nextDigit(bytes, &index) == '2'u8)
     @assert(index == 2'u64)
 }
 

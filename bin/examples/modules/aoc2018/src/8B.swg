@@ -25,7 +25,7 @@ internal var rootNodeTotal = 0
 func day8B()
 {
     let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
-    let values   = Tokenize.split(expect File.readAllText(dataPath), ' ''u8)
+    let values   = Tokenize.split(expect File.readAllText(dataPath), ' 'u8)
     let nums     = Slice.map(values.toSlice(), func(v) => expect StrConv.toS32(v))
 
     func read(n: Array's32, s: u32)->{ nStart, sum: u32 }

@@ -43,7 +43,7 @@ func typeInfoFallback()->bool
 
 func cstringFallback()->bool
 {
-    var data: [3] u8 = ['o''u8, 'k''u8, 0]
+    var data: [3] u8 = ['o'u8, 'k'u8, 0]
     let resolved     = cast(#null cstring) null orelse cast(cstring) &data[0]
     #assert(#typeof(resolved) == cstring)
     return resolved != null and @countof(resolved) == 2

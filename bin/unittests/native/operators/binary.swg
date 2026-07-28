@@ -188,7 +188,7 @@ func largeShiftRightS32(value: s32, count: s32)->s32
 // Rune bitwise and shift operators behave like int-like unsigned values
 #test
 {
-    let r = 'A''rune
+    let r = 'A'rune
     let a = r & 0x7F
     let b = r | 0x20
     let c = r << 1
@@ -199,21 +199,21 @@ func largeShiftRightS32(value: s32, count: s32)->s32
     #assert(#typeof(c) == rune)
     #assert(#typeof(d) == rune)
 
-    @assert(a == 'A''rune)
-    @assert(b == 'a''rune)
+    @assert(a == 'A'rune)
+    @assert(b == 'a'rune)
     @assert(c == cast(rune) 130'u32)
-    @assert(d == 'A''rune)
+    @assert(d == 'A'rune)
 }
 
 #test
 {
-    var r    = 'A''rune
+    var r    = 'A'rune
     let next = r + #wrap 1
     r += #wrap 1
 
     #assert(#typeof(next) == rune)
-    @assert(next == 'B''rune)
-    @assert(r == 'B''rune)
+    @assert(next == 'B'rune)
+    @assert(r == 'B'rune)
 }
 
 func binaryStrictAdd(a, b: BinaryStrictS32)->BinaryStrictS32
@@ -351,13 +351,13 @@ func binaryStrictPointerDiff(left, right: BinaryStrictS32Ptr)->s64
 #test
 {
     let wrapped = binaryStrictWrapAdd(cast(BinaryStrictS32) 0x7FFF_FFFF, cast(BinaryStrictS32) 1)
-    let r       = cast(BinaryStrictRune) 'A''rune
+    let r       = cast(BinaryStrictRune) 'A'rune
     let next    = r + #wrap cast(BinaryStrictRune) 1
 
     #assert(#typeof(wrapped) == BinaryStrictS32)
     #assert(#typeof(next) == BinaryStrictRune)
     @assert(wrapped == cast(BinaryStrictS32) -2147483648)
-    @assert(next == cast(BinaryStrictRune) 'B''rune)
+    @assert(next == cast(BinaryStrictRune) 'B'rune)
 }
 
 #test

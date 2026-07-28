@@ -11,8 +11,8 @@ namespace compiler1643
         const tbl = "0123456789ABCDEF"
         var c = tbl[0]
         // @print(cast(s64) c)
-        @assert(tbl[0] == cast(u8) '0''rune)
-        @assert(tbl[1] == cast(u8) '1''rune)
+        @assert(tbl[0] == cast(u8) '0'rune)
+        @assert(tbl[1] == cast(u8) '1'rune)
     }
 }
 
@@ -25,7 +25,7 @@ namespace compiler1644
         const tbl = "0123456789ABCDEF"
         let x = 1
         let c = tbl[x]
-        @assert(c == cast(u8) '1''rune)
+        @assert(c == cast(u8) '1'rune)
     }
 }
 
@@ -37,7 +37,7 @@ namespace compiler1654
     {
         let s   = "%%"
         let ptr = @dataof(s)
-        @assert(ptr[0] == cast(u8) '%''rune)
+        @assert(ptr[0] == cast(u8) '%'rune)
     }
 }
 
@@ -131,10 +131,10 @@ namespace compiler292
     #test
     {
         let b = "abcd"
-        @assert(b[0] == cast(u8) 'a''rune)
-        @assert(b[1] == cast(u8) 'b''rune)
-        @assert(b[2] == cast(u8) 'c''rune)
-        @assert(b[3] == cast(u8) 'd''rune)
+        @assert(b[0] == cast(u8) 'a'rune)
+        @assert(b[1] == cast(u8) 'b'rune)
+        @assert(b[2] == cast(u8) 'c'rune)
+        @assert(b[3] == cast(u8) 'd'rune)
     }
 }
 
@@ -143,14 +143,14 @@ namespace cstring_index_runtime
     #test
     {
         var text: const cstring = cast(const cstring) @dataof("abcd")
-        @assert(text[0] == cast(u8) 'a''rune)
-        @assert(text[3] == cast(u8) 'd''rune)
+        @assert(text[0] == cast(u8) 'a'rune)
+        @assert(text[3] == cast(u8) 'd'rune)
     }
 
     #test
     {
         let value = (cast(const cstring) @dataof("abcd"))[2]
-        @assert(value == cast(u8) 'c''rune)
+        @assert(value == cast(u8) 'c'rune)
     }
 }
 
@@ -161,7 +161,7 @@ namespace compiler293
     #test
     {
         let b = "XYZ"
-        @assert(b[2] == cast(u8) 'Z''rune)
+        @assert(b[2] == cast(u8) 'Z'rune)
     }
 }
 
@@ -235,10 +235,10 @@ namespace compiler302
     {
         let str             = "ABCD"
         let p: const [*] u8 = @dataof(str)
-        @assert(p[0] == cast(u8) 'A''rune)
-        @assert(p[1] == cast(u8) 'B''rune)
-        @assert(p[2] == cast(u8) 'C''rune)
-        @assert(p[3] == cast(u8) 'D''rune)
+        @assert(p[0] == cast(u8) 'A'rune)
+        @assert(p[1] == cast(u8) 'B'rune)
+        @assert(p[2] == cast(u8) 'C'rune)
+        @assert(p[3] == cast(u8) 'D'rune)
     }
 }
 

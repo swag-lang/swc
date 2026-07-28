@@ -20,7 +20,7 @@ Unintentional fallthroughs are prevented by default, ensuring each `case` is iso
     default: @assert(false)
     }
 
-    let ch = 'A''rune
+    let ch = 'A'rune
 
     switch ch
     {

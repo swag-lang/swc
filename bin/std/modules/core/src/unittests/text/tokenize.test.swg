@@ -43,7 +43,7 @@ func assertStringArray(values: const &Array'(string), expected: const [..] strin
 
 #test
 {
-    let bytes                = Tokenize.split("alpha,beta,gamma", ',''u8, maxSplit: 2)
+    let bytes                = Tokenize.split("alpha,beta,gamma", ','u8, maxSplit: 2)
     let expected: [3] string = ["alpha", "beta", "gamma"]
     @assert(assertStringArray(bytes, expected))
 
@@ -54,7 +54,7 @@ func assertStringArray(values: const &Array'(string), expected: const [..] strin
 
 #test
 {
-    let bytes                     = Tokenize.split(",alpha,,beta,", ',''u8, removeEmpty: false)
+    let bytes                     = Tokenize.split(",alpha,,beta,", ','u8, removeEmpty: false)
     let expectedBytes: [5] string = ["", "alpha", "", "beta", ""]
     @assert(assertStringArray(bytes, expectedBytes))
 
@@ -62,7 +62,7 @@ func assertStringArray(values: const &Array'(string), expected: const [..] strin
     let expectedString: [5] string = ["", "alpha", "", "beta", ""]
     @assert(assertStringArray(byString, expectedString))
 
-    let byRune                   = Tokenize.split("|alpha||beta|", '|''rune, removeEmpty: false)
+    let byRune                   = Tokenize.split("|alpha||beta|", '|'rune, removeEmpty: false)
     let expectedRune: [5] string = ["", "alpha", "", "beta", ""]
     @assert(assertStringArray(byRune, expectedRune))
 }

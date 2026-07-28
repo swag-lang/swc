@@ -26,7 +26,7 @@ func day7B()
         l.replace("]", "[")
 
         var outside, inside: String
-        for it, [i] in Tokenize.split(l, '[''u8)
+        for it, [i] in Tokenize.split(l, '['u8)
         {
             if !(i & 1) do
                 outside += it

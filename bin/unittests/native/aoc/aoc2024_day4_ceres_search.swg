@@ -90,7 +90,7 @@ func directionVector(dir: Direction)->Vec2
     return {dx: 0, dy: 0}
 }
 
-func isNewline(ch: u8)->bool => ch == '\n''u8 or ch == '\r''u8
+func isNewline(ch: u8)->bool => ch == '\n'u8 or ch == '\r'u8
 
 func parseGrid(bytes: const [..] u8)->Grid
 {
@@ -138,7 +138,7 @@ func inBounds(row, col: s32, rowCount, colCount: u32)->bool
 // Clean approach: explicit direction vectors
 // ---------------------------------------------------------------------------
 
-const XmasWord: [4] u8 = ['X''u8, 'M''u8, 'A''u8, 'S''u8]
+const XmasWord: [4] u8 = ['X'u8, 'M'u8, 'A'u8, 'S'u8]
 
 func matchWord(grid: Grid, startRow, startCol: s32, dir: Vec2)->bool
 {
@@ -177,7 +177,7 @@ func countXmasClean(grid: Grid)->u32
 
 func isMasArm(a, b: u8)->bool
 {
-    return (a == 'M''u8 and b == 'S''u8) or (a == 'S''u8 and b == 'M''u8)
+    return (a == 'M'u8 and b == 'S'u8) or (a == 'S'u8 and b == 'M'u8)
 }
 
 func countCrossClean(grid: Grid)->u32
@@ -191,7 +191,7 @@ func countCrossClean(grid: Grid)->u32
     {
         for [col] in 1 until grid.colCount - 1
         {
-            if gridAt(grid, row, col) != 'A''u8 do
+            if gridAt(grid, row, col) != 'A'u8 do
                 continue
 
             let tl = gridAt(grid, row - 1, col - 1)
@@ -255,8 +255,8 @@ func solveWithLanguageFeatures(grid: Grid)->SearchResult
 
     @assert(sampleGrid.rowCount == 10'u32)
     @assert(sampleGrid.colCount == 10'u32)
-    @assert(gridAt(sampleGrid, 0, 0) == 'M''u8)
-    @assert(sampleGrid.at(0, 0) == 'M''u8)
+    @assert(gridAt(sampleGrid, 0, 0) == 'M'u8)
+    @assert(sampleGrid.at(0, 0) == 'M'u8)
 
     @assert(sampleClean.xmasCount == 18'u32)
     @assert(sampleClean.crossCount == 9'u32)

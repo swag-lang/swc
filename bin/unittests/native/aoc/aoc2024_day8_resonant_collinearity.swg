@@ -87,7 +87,7 @@ struct ResonanceReport
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n''u8 or ch == '\r''u8
+    return ch == '\n'u8 or ch == '\r'u8
 }
 
 func isAntenna(ch: u8)->bool

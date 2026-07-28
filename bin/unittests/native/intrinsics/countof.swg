@@ -310,7 +310,7 @@ func loopSignedRef(value: &s32)->s32
 
 #test
 {
-    var data:    [5] u8   = ['a''u8, 'b''u8, 'c''u8, 'd''u8, 0]
+    var data:    [5] u8   = ['a'u8, 'b'u8, 'c'u8, 'd'u8, 0]
     var cstr:    cstring  = cast(cstring) &data[0]
     var cstrRef: &cstring = &cstr
     @assert(@countof(cstrRef) == 4)

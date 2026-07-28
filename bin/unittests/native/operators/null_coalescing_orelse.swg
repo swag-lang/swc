@@ -9,7 +9,7 @@ func zeroFallbackU32(x: u32)->u32
 
 func zeroFallbackRune(x: rune)->rune
 {
-    return x != cast(rune) 0'u32 ? x : 'A''rune
+    return x != cast(rune) 0'u32 ? x : 'A'rune
 }
 
 func zeroFallbackF32(x: f32)->f32
@@ -43,8 +43,8 @@ func nonNullPointerWins()->bool
 {
     @assert(zeroFallbackU32(0'u32) == 7'u32)
     @assert(zeroFallbackU32(9'u32) == 9'u32)
-    @assert(zeroFallbackRune(cast(rune) 0'u32) == 'A''rune)
-    @assert(zeroFallbackRune('B''rune) == 'B''rune)
+    @assert(zeroFallbackRune(cast(rune) 0'u32) == 'A'rune)
+    @assert(zeroFallbackRune('B'rune) == 'B'rune)
     @assert(zeroFallbackF32(0.0'f32) == 3.5'f32)
     @assert(zeroFallbackF32(2.25'f32) == 2.25'f32)
 }

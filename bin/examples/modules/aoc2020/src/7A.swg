@@ -65,10 +65,10 @@ func day7A0()
         if split[1] == "no other" do
             continue
 
-        let split1 = Tokenize.split(split[1], ',''u8)
+        let split1 = Tokenize.split(split[1], ','u8)
         for v in split1
         {
-            let splitVal = Tokenize.split(v, ' ''u8, 1)
+            let splitVal = Tokenize.split(v, ' 'u8, 1)
             for can in splitVal[1 to ]
             {
                 let it = id.tryFind(split[0])
@@ -125,7 +125,7 @@ func day7A1()
         let split = Tokenize.split(l, " bags contain ")
         for v in r.grepAll(split[1])
         {
-            let splitVal = Tokenize.split(v, ' ''u8, 1)
+            let splitVal = Tokenize.split(v, ' 'u8, 1)
             id.findOrAdd(split[0]).value.add(splitVal[1])
         }
     }

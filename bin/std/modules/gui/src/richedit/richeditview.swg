@@ -379,7 +379,7 @@ impl RichEditView
         let y    = py
 
         // Dummy character for empty lines, so that a selected line display something
-        var dummyChar  = ' ''rune
+        var dummyChar  = ' 'rune
         var dummyStyle = 0'u8
         var count      = line.length()
         var pChar      = cast([*] rune) &dummyChar

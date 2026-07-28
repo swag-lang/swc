@@ -21,13 +21,13 @@ var GNullCoerc: s32 = 56
 {
     func zeroFallbackRune(x: rune)->rune
     {
-        return x != cast(rune) 0'u32 ? x : 'A''rune
+        return x != cast(rune) 0'u32 ? x : 'A'rune
     }
 
     const V0 = #run zeroFallbackRune(cast(rune) 0'u32)
-    const V1 = #run zeroFallbackRune('B''rune)
-    #assert(V0 == 'A''rune)
-    #assert(V1 == 'B''rune)
+    const V1 = #run zeroFallbackRune('B'rune)
+    #assert(V0 == 'A'rune)
+    #assert(V1 == 'B'rune)
 }
 
 #test

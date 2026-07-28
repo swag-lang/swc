@@ -59,11 +59,11 @@ func constArrayToConstSliceView()->bool
 
 func cstringToConstByteView()->bool
 {
-    var data: [5] u8  = ['v''u8, 'i''u8, 'e''u8, 'w''u8, 0]
+    var data: [5] u8  = ['v'u8, 'i'u8, 'e'u8, 'w'u8, 0]
     var text: cstring = cast(cstring) &data[0]
     let bytes         = cast(const [..] u8) text
     #assert(#typeof(bytes) == const [..] u8)
-    return @countof(bytes) == 4 and bytes[0] == 'v''u8 and bytes[3] == 'w''u8
+    return @countof(bytes) == 4 and bytes[0] == 'v'u8 and bytes[3] == 'w'u8
 }
 
 func constCStringToByteView()->bool
@@ -71,7 +71,7 @@ func constCStringToByteView()->bool
     var text: const cstring = cast(const cstring) @dataof("view")
     let bytes               = cast(const [..] u8) text
     #assert(#typeof(bytes) == const [..] u8)
-    return @countof(bytes) == 4 and bytes[0] == 'v''u8 and bytes[3] == 'w''u8
+    return @countof(bytes) == 4 and bytes[0] == 'v'u8 and bytes[3] == 'w'u8
 }
 
 func cstringToStringView()->bool
@@ -83,26 +83,26 @@ func cstringToStringView()->bool
 
 func constArrayToConstCStringView()->bool
 {
-    const data: [4] u8 = ['v''u8, 'i''u8, 'e''u8, 0]
+    const data: [4] u8 = ['v'u8, 'i'u8, 'e'u8, 0]
     let text = cast(const cstring) data
     #assert(#typeof(text) == const cstring)
-    return @countof(text) == 3 and text[0] == 'v''u8 and text[2] == 'e''u8
+    return @countof(text) == 3 and text[0] == 'v'u8 and text[2] == 'e'u8
 }
 
 func constPointerToConstCStringView()->bool
 {
-    var data: [4] u8       = ['p''u8, 't''u8, 'r''u8, 0]
+    var data: [4] u8       = ['p'u8, 't'u8, 'r'u8, 0]
     let ptr:  const [*] u8 = cast(const [*] u8) &data[0]
     let text               = cast(const cstring) ptr
     #assert(#typeof(text) == const cstring)
-    return @countof(text) == 3 and text[0] == 'p''u8 and text[2] == 'r''u8
+    return @countof(text) == 3 and text[0] == 'p'u8 and text[2] == 'r'u8
 }
 
 func constCStringExprToByteView()->bool
 {
     let bytes = cast(const [..] u8) (cast(const cstring) @dataof("expr"))
     #assert(#typeof(bytes) == const [..] u8)
-    return @countof(bytes) == 4 and bytes[0] == 'e''u8 and bytes[3] == 'r''u8
+    return @countof(bytes) == 4 and bytes[0] == 'e'u8 and bytes[3] == 'r'u8
 }
 
 func constCStringExprToStringView()->bool

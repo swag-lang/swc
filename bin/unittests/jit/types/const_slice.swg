@@ -39,7 +39,7 @@ func aggregateLiteralRuneSlice(marker: rune)->bool
 
 #test
 {
-    const V = #run aggregateLiteralRuneSlice('\u00E9''rune)
+    const V = #run aggregateLiteralRuneSlice('\u00E9'rune)
     #assert(V)
 }
 

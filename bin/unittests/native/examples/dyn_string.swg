@@ -185,8 +185,8 @@ impl DynString
 
     @assert(s.count == 5)
     @assert(s.capacity >= 5)
-    @assert(s[0] == 'h''u8)
-    @assert(s[4] == 'o''u8)
+    @assert(s[0] == 'h'u8)
+    @assert(s[4] == 'o'u8)
 }
 
 #test
@@ -195,8 +195,8 @@ impl DynString
 
     @assert(s.count == 5)
     @assert(s.capacity >= 5)
-    @assert(s[0] == 'h''u8)
-    @assert(s[4] == 'o''u8)
+    @assert(s[0] == 'h'u8)
+    @assert(s[4] == 'o'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -215,9 +215,9 @@ impl DynString
     @assert(dst.count == 5)
     @assert(src.data != dst.data)     // distinct heap buffers
 
-    dst[0] = 'A''u8
-    @assert(dst[0] == 'A''u8)
-    @assert(src[0] == 'a''u8)     // original untouched
+    dst[0] = 'A'u8
+    @assert(dst[0] == 'A'u8)
+    @assert(src[0] == 'a'u8)     // original untouched
 }
 
 // ---------------------------------------------------------------------------
@@ -232,14 +232,14 @@ impl DynString
     dst = #move src
 
     @assert(dst.count == 8)
-    @assert(dst[0] == 't''u8)
-    @assert(dst[7] == 'r''u8)
+    @assert(dst[0] == 't'u8)
+    @assert(dst[7] == 'r'u8)
 
     // src was moved-from; it won't be opDrop'd at scope exit, so dst owns the
     // sole buffer. Rebind src to prove it is still a usable DynString.
     src = "reused"
     @assert(src.count == 6)
-    @assert(src[0] == 'r''u8)
+    @assert(src[0] == 'r'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -255,13 +255,13 @@ impl DynString
     for [i] in s.count
     {
         let c = s[i]
-        s[i] = c - ('a''u8 - 'A''u8)
+        s[i] = c - ('a'u8 - 'A'u8)
     }
 
     @assert(s.count == 6)
-    @assert(s[0] == 'A''u8)
-    @assert(s[1] == 'B''u8)
-    @assert(s[5] == 'F''u8)
+    @assert(s[0] == 'A'u8)
+    @assert(s[1] == 'B'u8)
+    @assert(s[5] == 'F'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -278,17 +278,17 @@ impl DynString
     s += "-"
     s += "bar"
     @assert(s.count == 7)
-    @assert(s[0] == 'f''u8)
-    @assert(s[3] == '-''u8)
-    @assert(s[6] == 'r''u8)
+    @assert(s[0] == 'f'u8)
+    @assert(s[3] == '-'u8)
+    @assert(s[6] == 'r'u8)
 
     // Append another DynString by const reference.
     var tail: DynString
     tail = "-baz"
     s    += tail
     @assert(s.count == 11)
-    @assert(s[7] == '-''u8)
-    @assert(s[10] == 'z''u8)
+    @assert(s[7] == '-'u8)
+    @assert(s[10] == 'z'u8)
 
     // Force at least one grow past the initial capacity.
     var wide: DynString
@@ -297,8 +297,8 @@ impl DynString
         wide += "y"
     @assert(wide.count == 41)
     @assert(wide.capacity > startCap)
-    @assert(wide[0] == 'x''u8)
-    @assert(wide[40] == 'y''u8)
+    @assert(wide[0] == 'x'u8)
+    @assert(wide[40] == 'y'u8)
 }
 
 // ---------------------------------------------------------------------------
@@ -345,5 +345,5 @@ impl DynString
     copy += "kick"
     @assert(copy.count == 4)
     @assert(empty.count == 0)
-    @assert(copy[0] == 'k''u8)
+    @assert(copy[0] == 'k'u8)
 }

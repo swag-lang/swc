@@ -54,21 +54,21 @@ struct BadgeScorer {}
 
 func isLineBreak(ch: u8)->bool
 {
-    return ch == '\n''u8 or ch == '\r''u8
+    return ch == '\n'u8 or ch == '\r'u8
 }
 
 func isItemType(ch: u8)->bool
 {
-    return (ch >= 'a''u8 and ch <= 'z''u8) or (ch >= 'A''u8 and ch <= 'Z''u8)
+    return (ch >= 'a'u8 and ch <= 'z'u8) or (ch >= 'A'u8 and ch <= 'Z'u8)
 }
 
 func priorityOf(ch: u8)->u32
 {
     @assert(isItemType(ch))
 
-    if ch >= 'a''u8 do
-        return cast(u32) (ch - 'a''u8) + 1'u32
-    return cast(u32) (ch - 'A''u8) + 27'u32
+    if ch >= 'a'u8 do
+        return cast(u32) (ch - 'a'u8) + 1'u32
+    return cast(u32) (ch - 'A'u8) + 27'u32
 }
 
 func maskForItem(ch: u8)->u64
@@ -355,7 +355,7 @@ const EdgeFeatureReport:     RucksackReport = #run solveWithLanguageFeatures(cas
     @assert(priorityOf('z') == 26)
     @assert(priorityOf('A') == 27)
     @assert(priorityOf('Z') == 52)
-    @assert(priorityFromMask(maskForItem('p''u8)) == 16'u32)
+    @assert(priorityFromMask(maskForItem('p'u8)) == 16'u32)
     @assert(priorityFromMask(duplicateMask(first)) == 16'u32)
     @assert(priorityFromMask(badgeMask(first, second, third)) == 18'u32)
 

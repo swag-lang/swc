@@ -27,7 +27,7 @@ func day2B()
     let lines    = expect File.readAllLines(dataPath)
 
     var prg: Array's32
-    for v in Tokenize.split(lines[0], ',''u8) do
+    for v in Tokenize.split(lines[0], ','u8) do
         prg.add(expect StrConv.toS32(v))
 
     var op   = prg

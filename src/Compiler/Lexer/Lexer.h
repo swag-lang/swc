@@ -32,6 +32,11 @@ public:
 private:
     Token token_     = {};
     Token prevToken_ = {};
+    // Last token that carries meaning on the current line, blanks and comments excluded.
+    // The quote operator is told apart from a character literal by what precedes it, and
+    // trivia must not change that reading: '5's32' and '5 's32' are the same suffixed
+    // literal. A line break does reset it, because a statement ends at the end of a line.
+    TokenId prevCodeTokenId_ = TokenId::Invalid;
     // Armed by '#raw', consumed by the next string literal: the escape rule decides where the
     // literal ends, so it has to be known before scanning it.
     bool pendingRawStringLiteral_ = false;
@@ -75,6 +80,7 @@ private:
     void lexDecimalNumber();
     void lexNumber();
     void lexSymbol();
+    bool canPrecedeQuoteOperator() const;
     void lexIdentifier();
     void lexSingleLineComment();
     void lexMultiLineComment();

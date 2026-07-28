@@ -54,7 +54,7 @@ func isDigit(ch: u8)->bool
 
 func isSpacing(ch: u8)->bool
 {
-    return ch == ' ''u8 or ch == '\t''u8 or ch == '\n''u8 or ch == '\r''u8
+    return ch == ' 'u8 or ch == '\t'u8 or ch == '\n'u8 or ch == '\r'u8
 }
 
 func skipSpacing(bytes: const [..] u8, index: *u32)

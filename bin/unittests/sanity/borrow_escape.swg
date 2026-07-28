@@ -28,7 +28,7 @@ struct BorrowEscapePayload
 func borrowEscapePayload()->BorrowEscapePayload
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
 
     var payload = BorrowEscapePayload{text: owner}
@@ -39,9 +39,9 @@ func borrowEscapePayload()->BorrowEscapePayload
 func borrowEscapeArrayCast()->string
 {
     var buf: [3] u8
-    buf[0] = 'a''u8
-    buf[1] = 'b''u8
-    buf[2] = 'c''u8
+    buf[0] = 'a'u8
+    buf[1] = 'b'u8
+    buf[2] = 'c'u8
     return cast(string) buf     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -50,7 +50,7 @@ func borrowEscapeArrayCast()->string
 func borrowEscapeImplicitOpCastReturn()->string
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
     return owner     // swc-expected-error {{sanity_err_borrow_escape}}
 }
@@ -60,7 +60,7 @@ var borrowEscapeGlobalText: string = ""
 func borrowEscapeImplicitOpCastAssign()
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0]        = 'x''u8
+    owner.buffer[0]        = 'x'u8
     owner.length           = 1
     borrowEscapeGlobalText = owner     // swc-expected-error {{sanity_err_borrow_escape}}
 }
@@ -76,7 +76,7 @@ func borrowEscapeImplicitArrayDecay()->[..] u8
 func borrowEscapeImplicitLocalOnly()->u64
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
     let s: string = owner
 
@@ -192,7 +192,7 @@ func borrowEscapeLoopBorrow()->#null *s32
 func borrowEscapeMakeOwner()->BorrowEscapeOwner
 {
     var o: BorrowEscapeOwner
-    o.buffer[0] = 'x''u8
+    o.buffer[0] = 'x'u8
     o.length    = 1
     return o
 }
@@ -415,9 +415,9 @@ func borrowEscapeScalarCast()->#null *void
 const BorrowEscapeRunString: string = #run
 {
     var buf: [3] u8
-    buf[0] = 'r''u8
-    buf[1] = 'u''u8
-    buf[2] = 'n''u8
+    buf[0] = 'r'u8
+    buf[1] = 'u'u8
+    buf[2] = 'n'u8
     return cast(string) buf
 }
 
@@ -460,7 +460,7 @@ struct BorrowEscapeSelfRef
 func borrowEscapeThroughLocalPointer()->u64
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
 
     var holder: BorrowEscapeSelfRef
@@ -473,7 +473,7 @@ func borrowEscapeThroughLocalPointer()->u64
 func borrowEscapeThroughLocalPointerAlias()->u64
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
 
     var holder: BorrowEscapeSelfRef
@@ -493,7 +493,7 @@ struct BorrowEscapeNode
 func borrowEscapeThroughHeapPointer(alloc: func()->*BorrowEscapeNode)->u64
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
 
     let node = alloc()
@@ -505,7 +505,7 @@ func borrowEscapeThroughHeapPointer(alloc: func()->*BorrowEscapeNode)->u64
 func borrowEscapeThroughParamPointer(node: *BorrowEscapeNode)
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
     node.text       = @mkstring(&owner.buffer[0], owner.length)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
@@ -514,7 +514,7 @@ func borrowEscapeThroughParamPointer(node: *BorrowEscapeNode)
 func borrowEscapeThroughParamPointerAlias(node: *BorrowEscapeNode)
 {
     var owner: BorrowEscapeOwner
-    owner.buffer[0] = 'x''u8
+    owner.buffer[0] = 'x'u8
     owner.length    = 1
     let ptrAlias = node
     ptrAlias.text = owner     // swc-expected-error {{sanity_err_borrow_escape}}
@@ -604,7 +604,7 @@ func borrowEscapeIdentity(s: string)->string
 func borrowEscapeThroughCallCarrier()->string
 {
     var buf: [3] u8
-    buf[0] = 'a''u8
+    buf[0] = 'a'u8
     return borrowEscapeIdentity(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -710,7 +710,7 @@ func borrowEscapeWrapIdentity(s: string)->string
 func borrowEscapeThroughWrapCarrier()->string
 {
     var buf: [3] u8
-    buf[0] = 'a''u8
+    buf[0] = 'a'u8
     return borrowEscapeWrapIdentity(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -1030,7 +1030,7 @@ func borrowEscapeRetvalBox(s: string)->BorrowEscapeBox
 func borrowEscapeThroughRetvalBox()->BorrowEscapeBox
 {
     var buf: [3] u8
-    buf[0] = 'a''u8
+    buf[0] = 'a'u8
     return borrowEscapeRetvalBox(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -1051,7 +1051,7 @@ func borrowEscapeRetvalBoxCall(s: string)->BorrowEscapeBox
 func borrowEscapeThroughRetvalBoxCall()->BorrowEscapeBox
 {
     var buf: [3] u8
-    buf[0] = 'a''u8
+    buf[0] = 'a'u8
     return borrowEscapeRetvalBoxCall(cast(string) buf)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
@@ -1060,7 +1060,7 @@ func borrowEscapeThroughRetvalBoxCall()->BorrowEscapeBox
 func borrowEscapeRetvalLocal()->BorrowEscapeBox
 {
     var buf: [3] u8
-    buf[0] = 'a''u8
+    buf[0] = 'a'u8
     var result: retval
     result.text = cast(string) buf     // swc-expected-error {{sanity_err_borrow_escape}}
     return result

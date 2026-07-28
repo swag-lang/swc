@@ -4,11 +4,11 @@ using Swag, Core
 
 #test
 {
-    let glyphA = catch lookupCMap4(Cmap4Fixture, 'A''u32) as err
+    let glyphA = catch lookupCMap4(Cmap4Fixture, 'A'u32) as err
     @assert(err == null)
     @assert(glyphA == 3)
 
-    let glyphB = catch lookupCMap4(Cmap4Fixture, 'B''u32) as err2
+    let glyphB = catch lookupCMap4(Cmap4Fixture, 'B'u32) as err2
     @assert(err2 == null)
     @assert(glyphB == 0)
 }

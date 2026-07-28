@@ -3,17 +3,17 @@ using Swag, Core
 #[ConstExpr]
 func imageTag(x1, x2, x3, x4: u32)->u32 => (x1 << 24) | (x2 << 16) | (x3 << 8) | x4
 
-const TAG_CMAP = imageTag('c''u32, 'm''u32, 'a''u32, 'p''u32)
-const TAG_GLYF = imageTag('g''u32, 'l''u32, 'y''u32, 'f''u32)
-const TAG_HEAD = imageTag('h''u32, 'e''u32, 'a''u32, 'd''u32)
-const TAG_HHEA = imageTag('h''u32, 'h''u32, 'e''u32, 'a''u32)
-const TAG_HMTX = imageTag('h''u32, 'm''u32, 't''u32, 'x''u32)
-const TAG_LOCA = imageTag('l''u32, 'o''u32, 'c''u32, 'a''u32)
-const TAG_MAXP = imageTag('m''u32, 'a''u32, 'x''u32, 'p''u32)
-const TAG_NAME = imageTag('n''u32, 'a''u32, 'm''u32, 'e''u32)
-const TAG_POST = imageTag('p''u32, 'o''u32, 's''u32, 't''u32)
-const TAG_KERN = imageTag('k''u32, 'e''u32, 'r''u32, 'n''u32)
-const TAG_OS2  = imageTag('O''u32, 'S''u32, '/''u32, '2''u32)
+const TAG_CMAP = imageTag('c'u32, 'm'u32, 'a'u32, 'p'u32)
+const TAG_GLYF = imageTag('g'u32, 'l'u32, 'y'u32, 'f'u32)
+const TAG_HEAD = imageTag('h'u32, 'e'u32, 'a'u32, 'd'u32)
+const TAG_HHEA = imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32)
+const TAG_HMTX = imageTag('h'u32, 'm'u32, 't'u32, 'x'u32)
+const TAG_LOCA = imageTag('l'u32, 'o'u32, 'c'u32, 'a'u32)
+const TAG_MAXP = imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
+const TAG_NAME = imageTag('n'u32, 'a'u32, 'm'u32, 'e'u32)
+const TAG_POST = imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
+const TAG_KERN = imageTag('k'u32, 'e'u32, 'r'u32, 'n'u32)
+const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2'u32)
 
 struct TableRecord
 {

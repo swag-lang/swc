@@ -64,7 +64,7 @@ func day6A()
     var coords: Array'{ x, y: s32 }
     for l in lines
     {
-        let split = Tokenize.split(l, ',''u8)
+        let split = Tokenize.split(l, ','u8)
         let vx    = expect StrConv.toS32(Latin1.trim(split[0]))
         let vy    = expect StrConv.toS32(Latin1.trim(split[1]))
         coords.add({vx, vy})

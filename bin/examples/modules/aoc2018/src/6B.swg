@@ -46,7 +46,7 @@ func day6B()
 
     for l in lines
     {
-        let split = Tokenize.split(l, ',''u8)
+        let split = Tokenize.split(l, ','u8)
         let cx    = expect StrConv.toS32(Latin1.trim(split[0])) + W / 2
         let cy    = expect StrConv.toS32(Latin1.trim(split[1])) + W / 2
 

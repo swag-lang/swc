@@ -52,7 +52,7 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
     let v1 = unaryPlusF64(42.5'f64)
     let v2 = unaryPlusU64(42'u64)
     let v3 = unaryPlusS32(-42)
-    let v4 = unaryPlusRune('A''rune)
+    let v4 = unaryPlusRune('A'rune)
     let v5 = unaryPlusChain(42.5'f32)
 
     #assert(#typeof(v0) == u32)
@@ -66,7 +66,7 @@ func unaryPlusStrictF32(a: UnaryPlusStrictF32)->UnaryPlusStrictF32
     @assert(v1 == 42.5'f64)
     @assert(v2 == 42'u64)
     @assert(v3 == -42)
-    @assert(v4 == 'A''rune)
+    @assert(v4 == 'A'rune)
     @assert(v5 == 42.5'f32)
 }
 

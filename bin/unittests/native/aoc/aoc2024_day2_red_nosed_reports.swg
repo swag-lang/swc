@@ -83,7 +83,7 @@ func parseReports(bytes: const [..] u8)->ReportBatch
             continue
         }
 
-        if ch == ' ''u8 or ch == '\r''u8 or ch == '\n''u8
+        if ch == ' 'u8 or ch == '\r'u8 or ch == '\n'u8
         {
             if readingNumber
             {
@@ -94,7 +94,7 @@ func parseReports(bytes: const [..] u8)->ReportBatch
                 readingNumber                 = false
             }
 
-            if ch == '\n''u8 and current.count != 0
+            if ch == '\n'u8 and current.count != 0
             {
                 @assert(result.count < MaxReports)
                 result.reports[result.count] = current

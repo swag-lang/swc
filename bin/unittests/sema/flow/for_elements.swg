@@ -160,7 +160,7 @@ func semaTest010()
 
 func semaTest011()
 {
-    let text: ForeachAliasBuffer = {data: ['a''u8, 'b''u8, 'c''u8]}
+    let text: ForeachAliasBuffer = {data: ['a'u8, 'b'u8, 'c'u8]}
     var freq: [3, 26] u32
 
     for c, [i] in text
@@ -197,7 +197,7 @@ func semaTest012()
 
 func semaTest013()
 {
-    let values: ForeachAliasBuffer = {data: ['a''u8, 'b''u8, 'c''u8]}
+    let values: ForeachAliasBuffer = {data: ['a'u8, 'b'u8, 'c'u8]}
 
     for [index] in values
     {

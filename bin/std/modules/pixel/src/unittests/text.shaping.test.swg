@@ -21,7 +21,7 @@ func makeShapingTestFont()->*Font
     @assert(shaped.glyphs[0].cluster == 0)
     @assert(shaped.glyphs[1].cluster == 1)
     @assert(shaped.glyphs[0].glyphIndex == font.glyphIndex('A'))
-    @assert(shaped.glyphs[1].glyphIndex == font.glyphIndex('\u00E9''rune))
+    @assert(shaped.glyphs[1].glyphIndex == font.glyphIndex('\u00E9'rune))
     @assert(shaped.metrics.width > 0)
     @assert(shaped.hasInk)
     @assert(shaped.inkBounds.width > 0)

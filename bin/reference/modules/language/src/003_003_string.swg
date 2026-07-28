@@ -111,22 +111,22 @@ Character literals are enclosed in quotes and can represent any Unicode characte
 not just ASCII.
 
 > NOTE:
-> A character literal's quote must follow a symbol or space to avoid confusion
-> with a type suffix. The lexer decides from what precedes the quote: right after
-> an identifier or a literal it opens a type suffix, anywhere else it opens a
-> character literal. Whitespace therefore matters here, and nowhere else in the
-> language.
-
-```swag
-let suffixed = 5's32      // a suffixed number
-let broken   = 5 's32     // error: the quote opens an unclosed character literal
-```
+> The quote is shared with the suffix and generic-argument syntax, so the lexer
+> reads it from what comes before: right after an identifier or a literal it opens
+> a suffix or a generic argument list, anywhere else it opens a character literal.
+> Only meaningful tokens count, so blanks and comments never change the reading and
+> '5's32' and '5 's32' are the same suffixed literal.
 */
 #test
 {
     let char0 = 'a'
     let char1 = '我'
     let value = 5's32     // Type suffix example
+
+    // The same literal, with the blank the lexer ignores.
+    let spaced = 5 's32
+    #assert(#typeof(spaced) == s32)
+    @assert(spaced == value)
 }
 
 /**
@@ -158,18 +158,17 @@ can select any integer type or 'rune' when the value fits the target type.
 
 Character literals remain adaptable until their context selects a concrete type. To
 select one explicitly, place an unsigned integer type or 'rune' directly after the
-closing quote. The closing quote also separates the literal from its type suffix.
-
-Both spellings are accepted. The closing quote can double as the separator, or the
-separating quote can be written explicitly. The explicit form is the one used
-throughout the standard modules, because it stays readable when the literal is
-itself a quote or a space.
+closing quote. The literal is already closed by that quote, so it is the quote that
+separates the literal from its suffix and the suffix follows it immediately.
 
 ```swag
-let a = '0'u8      // the closing quote doubles as the separator
-let b = '0''u8     // the separating quote is written out
-let c = ' ''u32    // a space literal, only readable in the explicit form
+let letter = '0'u8      // a 'u8'
+let space  = ' 'u32     // the literal is a space, the suffix still follows the quote
 ```
+
+> NOTE:
+> A second quote before the suffix ("'0''u8") was an earlier spelling and is now
+> reported as an error. Remove it: the closing quote is the separator.
 */
 #test
 {
@@ -192,6 +191,11 @@ let c = ' ''u32    // a space literal, only readable in the explicit form
     let e = '4'rune
     @assert(e == 52)
     @assert(#typeof(e) == rune)
+
+    // The literal itself can be a space: the closing quote still ends it.
+    let f = ' 'u32
+    @assert(f == 32)
+    @assert(#typeof(f) == u32)
 }
 
 /**

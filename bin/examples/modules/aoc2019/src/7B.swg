@@ -98,7 +98,7 @@ func day7B()
     let lines    = expect File.readAllLines(dataPath)
 
     var prg: Array's32
-    for v in Tokenize.split(lines[0], ',''u8) do
+    for v in Tokenize.split(lines[0], ','u8) do
         prg.add(expect StrConv.toS32(v))
 
     var phase = [5, 6, 7, 8, 9]

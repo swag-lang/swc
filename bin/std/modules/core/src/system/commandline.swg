@@ -56,7 +56,7 @@ func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
     {
         if !Reflection.isFloat(concreteType) do
             return false
-        if oneArg[1] != '.''u8 or @countof(oneArg) < 3 or !Latin1.isDigit(oneArg[2]) do
+        if oneArg[1] != '.'u8 or @countof(oneArg) < 3 or !Latin1.isDigit(oneArg[2]) do
             return false
     }
 
@@ -87,7 +87,7 @@ private func splitArgumentsEx(args: const [..] string, options: ParseOptions)->A
             continue
         }
 
-        let split = Tokenize.splitAny(oneArg, [':''rune, '=''rune], 1)
+        let split = Tokenize.splitAny(oneArg, [':'rune, '='rune], 1)
         if split.count == 2
         {
             let name = Latin1.trim(split[0])

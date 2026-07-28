@@ -24,7 +24,7 @@ must not outlive its backing memory.
 */
 #test
 {
-    var bytes = ['S''u8, 'w''u8, 'a''u8, 'g''u8]
+    var bytes = ['S'u8, 'w'u8, 'a'u8, 'g'u8]
 
     let slice = @mkslice(&bytes[0], @countof(bytes))
     let text  = @mkstring(&bytes[0], @countof(bytes))

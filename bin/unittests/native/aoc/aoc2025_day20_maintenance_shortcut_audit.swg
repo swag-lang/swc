@@ -53,12 +53,12 @@ func countCheats(layout: const [..] string, maxCheatLength, minSaving: u32)->u32
             let index = cellIndex(x, cast(u32) rowIndex, width)
             let cell  = row[x]
 
-            walkable[index]      = cell != '#''u8
+            walkable[index]      = cell != '#'u8
             distFromStart[index] = Swag.U32.Max
             distFromEnd[index]   = Swag.U32.Max
-            if cell == 'S''u8 do
+            if cell == 'S'u8 do
                 startCell = index
-            if cell == 'E''u8 do
+            if cell == 'E'u8 do
                 endCell = index
         }
     }

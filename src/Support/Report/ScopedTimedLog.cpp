@@ -232,7 +232,7 @@ bool ScopedTimedLog::isOutputEnabled(const TaskContext& ctx, const Stage stage)
         return false;
 
     const auto* moduleLog = ctx.hasCompiler() ? ctx.compiler().workspaceModuleLogState() : nullptr;
-    return !moduleLog || stage == Stage::Module;
+    return !moduleLog || stage == Stage::Module || ctx.global().logger().stagesDetailed();
 }
 
 ScopedTimedLog::ScopedTimedLog(const TaskContext& ctx, const Stage stage, Utf8 detail) :

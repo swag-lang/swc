@@ -233,13 +233,20 @@ namespace Command
 
     void build(CompilerInstance& compiler)
     {
-        TaskContext                   ctx(compiler);
+        TaskContext ctx(compiler);
+
+        // With detailed stages the backend reports its own 'forged' line, so keeping this
+        // command-level one would print the same label twice.
+        const bool detailedStages = ctx.global().logger().stagesDetailed();
+
         std::optional<ScopedTimedLog> stage;
-        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Build))
+        if (!detailedStages && ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Build))
             stage.emplace(ctx, ScopedTimedLog::Stage::Build);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
-            Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
+            std::optional<Logger::ScopedStageMute> muteNestedStages;
+            if (!detailedStages)
+                muteNestedStages.emplace(ctx.global().logger());
 
             sema(compiler);
             if (Stats::getNumErrors() == errorsBefore && finishBuildBackend(compiler, false) != Result::Continue)
@@ -255,13 +262,17 @@ namespace Command
 
     void run(CompilerInstance& compiler)
     {
-        TaskContext                   ctx(compiler);
+        TaskContext ctx(compiler);
+        const bool  detailedStages = ctx.global().logger().stagesDetailed();
+
         std::optional<ScopedTimedLog> stage;
-        if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Run))
+        if (!detailedStages && ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Run))
             stage.emplace(ctx, ScopedTimedLog::Stage::Run);
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
-            Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
+            std::optional<Logger::ScopedStageMute> muteNestedStages;
+            if (!detailedStages)
+                muteNestedStages.emplace(ctx.global().logger());
 
             sema(compiler);
             if (Stats::getNumErrors() == errorsBefore)

@@ -26,6 +26,7 @@
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
+#include "Support/Report/Logger.h"
 #include "Support/Report/ScopedTimedLog.h"
 #include "Support/Thread/JobManager.h"
 
@@ -1821,6 +1822,10 @@ ExitCode CompilerInstance::runWorkspace()
     workspaceBuildLogState_.filteredModules   = filteredModuleCount;
     workspaceBuildLogState_.ignoredModules    = ignoredModuleCount;
     workspaceStage.setStat(formatWorkspaceStageStat(ctx, workspaceBuildLogState_));
+
+    // A workspace narrowed down to a single module reads like a plain build, so it gets the same
+    // phase-by-phase report. Any wider selection keeps one summary line per module.
+    global().logger().setStagesDetailed(activeModuleCount == 1);
 
     std::vector<size_t> buildOrder;
     buildOrder.reserve(activeModuleCount);

@@ -901,6 +901,9 @@ ExitCode CompilerInstance::run()
         exitCode = runWorkspace();
     else
     {
+        // Outside a workspace the command has one target, so it can afford to name every phase it
+        // goes through. runWorkspace() makes the same call once it knows how many modules it builds.
+        global().logger().setStagesDetailed(true);
         processCommand();
         if (!cmdLine().dryRun && !cmdLine().showConfig)
         {

@@ -696,7 +696,12 @@ namespace Command
         bool           testPassed   = true;
         const uint64_t errorsBefore = Stats::getNumErrors();
         {
-            Logger::ScopedStageMute muteNestedStages(ctx.global().logger());
+            // Unlike 'build' and 'run', no phase of a test command is called 'tested', so the
+            // command-level line stays: it is the only one holding the full tally, including the
+            // tests a native artifact ran on its own.
+            std::optional<Logger::ScopedStageMute> muteNestedStages;
+            if (!ctx.global().logger().stagesDetailed())
+                muteNestedStages.emplace(ctx.global().logger());
 
             sema(compiler);
             if (Stats::getNumErrors() != errorsBefore)

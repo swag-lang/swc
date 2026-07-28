@@ -124,6 +124,12 @@ public:
     }
     bool stageOutputMuted() const { return stageMuteDepth_ != 0; }
 
+    // Detailed stages let every compilation phase report itself instead of hiding behind one
+    // command-level summary. Only a run with a single target turns them on: repeated per module,
+    // the cascade would bury the workspace output.
+    void setStagesDetailed(bool detailed) { stagesDetailed_ = detailed; }
+    bool stagesDetailed() const { return stagesDetailed_; }
+
     static void print(const TaskContext& ctx, std::string_view message);
     static void printDim(const TaskContext& ctx, std::string_view message);
     static void printStdErr(LogColor color, std::string_view message, bool resetColor = true);
@@ -138,6 +144,7 @@ private:
     std::recursive_mutex mutexAccess_;
     std::vector<Utf8>    claimedStageKeys_;
     size_t               stageMuteDepth_ = 0;
+    bool                 stagesDetailed_ = false;
 };
 
 SWC_END_NAMESPACE();

@@ -253,6 +253,8 @@ public impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
+        var defaultOptions: EncodeOptions
+        .userOptions = defaultOptions
         if @dataof(options) != null
         {
             Debug.assert(@kindof(options) == EncodeOptions)
@@ -298,6 +300,7 @@ public impl IImageEncoder for Encoder
         .filteredScanline = .filteredScanlineBuf + 16
 
         .pixelSize = image.bpp8
+        .encodeFlags.filterChoice = .Disabled
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 

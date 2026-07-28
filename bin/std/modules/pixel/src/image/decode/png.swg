@@ -177,10 +177,27 @@ impl Decoder
             if .interlaceMethod != .None and .interlaceMethod != .Adam7 do
                 fail InvalidFormatError{"invalid interlace mtd"}
 
-            if cast(u8) .colorType > 7 do
+            switch cast(u8) .colorType
+            {
+            case 0:
+                if .bitDepth != 1 and .bitDepth != 2 and .bitDepth != 4 and .bitDepth != 8 and .bitDepth != 16 do
+                    fail UnsupportedFormatError{"unsupported bit depth"}
+
+            case 2:
+                if .bitDepth != 8 and .bitDepth != 16 do
+                    fail UnsupportedFormatError{"unsupported bit depth"}
+
+            case 3:
+                if .bitDepth != 1 and .bitDepth != 2 and .bitDepth != 4 and .bitDepth != 8 do
+                    fail UnsupportedFormatError{"unsupported bit depth"}
+
+            case 4, 6:
+                if .bitDepth != 8 and .bitDepth != 16 do
+                    fail UnsupportedFormatError{"unsupported bit depth"}
+
+            default:
                 fail InvalidFormatError{"invalid color type"}
-            if .bitDepth > 8 do
-                fail UnsupportedFormatError{"unsupported bit depth"}
+            }
 
             me.outChannels = 3
             if me.header.colorType & .Paletted do
@@ -196,8 +213,6 @@ impl Decoder
                 me.outChannels += 1
             }
 
-            if .bitDepth != 1 and .bitDepth != 2 and .bitDepth != 4 and .bitDepth != 8 do
-                fail UnsupportedFormatError{"invalid bit depth"}
         }
     }
 
@@ -318,6 +333,16 @@ impl Decoder
             fail InvalidFormatError{"missing IDAT chunk"}
         if .header.colorType & .Paletted and !.seenPLTE do
             fail InvalidFormatError{"missing PLTE chunk"}
+        if .seenTRSN
+        {
+            let transparencySize = @countof(.safeTRNSData())
+            if cast(u8) .header.colorType == 0 and transparencySize != 2 do
+                fail InvalidFormatError{"invalid tRNS chunk"}
+            if cast(u8) .header.colorType == 2 and transparencySize != 6 do
+                fail InvalidFormatError{"invalid tRNS chunk"}
+            if .header.colorType & .Alpha do
+                fail InvalidFormatError{"invalid tRNS chunk"}
+        }
 
         // Initialize image depending on number of wanted channels. init() resets
         // the whole Image payload, so keep metadata parsed from pre-IDAT chunks.
@@ -334,8 +359,9 @@ impl Decoder
 
         // Allocate destination: defilter directly into result pixels when channels match
         // to avoid an extra full-image allocation and memcpy
-        .dstPixelsSize = .header.width * .header.height * .inChannels
-        if .inChannels == .outChannels
+        let bytesPerSample = .header.bitDepth == 16 ? 2'u64 : 1'u64
+        .dstPixelsSize = .header.width * .header.height * .inChannels * bytesPerSample
+        if .header.bitDepth == 8 and .inChannels == .outChannels
         {
             result.allocPixels()
             .dstPixels = cast([*] u8) (notnull result.pixels.buffer)
@@ -354,7 +380,7 @@ impl Decoder
         .defilter()
 
         // Channels match: result.pixels was already populated directly by defilter
-        if .inChannels == .outChannels do
+        if .header.bitDepth == 8 and .inChannels == .outChannels do
             return result
 
         result.allocPixels()

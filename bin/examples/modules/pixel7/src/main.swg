@@ -196,7 +196,7 @@ func pageDescription(page: s32)->string
     case PageJpg:  return "The bundled JPEG is regenerated at four quality levels and each encoded buffer is decoded for display."
     case PagePng:  return "The bundled PNG is regenerated with filtered, Adam7-interlaced, stored and alpha-bearing encodings."
     case PageGif:  return "The bundled GIF is regenerated with exact, transparent and quantized palettes before LZW decoding."
-    case PageTiff: return "The bundled TIFF is regenerated as uncompressed and PackBits-compressed RGB and RGBA data."
+    case PageTiff: return "The bundled TIFF is regenerated as uncompressed, PackBits and LZW-compressed RGB and RGBA data."
     case PageIco:  return "The bundled icon is regenerated as four 32-bit DIB entries with different sizes and alpha layouts."
     case PageWebp: return "The bundled WebP is regenerated as lossless VP8L data from RGB, BGR and alpha-bearing layouts."
     default:       unreachable

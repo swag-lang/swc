@@ -113,6 +113,117 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     }
 }
 
+func addPngU16Be(result: *ConcatBuffer, value: u16)
+{
+    result.addNative(cast(u8) ((value >> 8) & 0xFF))
+    result.addNative(cast(u8) (value & 0xFF))
+}
+
+func addPngU32Be(result: *ConcatBuffer, value: u32)
+{
+    result.addNative(cast(u8) ((value >> 24) & 0xFF))
+    result.addNative(cast(u8) ((value >> 16) & 0xFF))
+    result.addNative(cast(u8) ((value >> 8) & 0xFF))
+    result.addNative(cast(u8) (value & 0xFF))
+}
+
+func addPngChunk(result: *ConcatBuffer, chunkType: string, data: const [..] u8)
+{
+    @assert(@countof(chunkType) == 4)
+    addPngU32Be(result, cast(u32) @countof(data))
+    result.addBytes(chunkType)
+    result.addBytes(data)
+
+    var crc: Hash.Crc32
+    crc.update(chunkType)
+    crc.update(data)
+    addPngU32Be(result, crc.crc)
+}
+
+func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: const [..] u16, transparency: #null const [..] u16 = null)->Array'u8
+{
+    var channels: s32
+    switch colorType
+    {
+    case 0: channels = 1
+    case 2: channels = 3
+    case 4: channels = 2
+    case 6: channels = 4
+    default: unreachable
+    }
+
+    @assert(@countof(samples) == cast(u64) width * cast(u64) height * cast(u64) channels)
+
+    var raw: ConcatBuffer
+    if !interlace
+    {
+        for [y] in height
+        {
+            raw.addNative(0'u8)
+            for [x] in width
+            {
+                let pixel = cast(u64) (y * width + x) * cast(u64) channels
+                for [c] in channels do
+                    addPngU16Be(&raw, samples[pixel + c])
+            }
+        }
+    }
+    else
+    {
+        let startX: [7] s32 = [0, 4, 0, 2, 0, 1, 0]
+        let startY: [7] s32 = [0, 0, 4, 0, 2, 0, 1]
+        let stepX:  [7] s32 = [8, 8, 4, 4, 2, 2, 1]
+        let stepY:  [7] s32 = [8, 8, 8, 4, 4, 2, 2]
+
+        for [pass] in 7
+        {
+            if startX[pass] >= width or startY[pass] >= height do
+                continue
+
+            for var y = startY[pass]; y < height; y += stepY[pass]
+            {
+                raw.addNative(0'u8)
+                for var x = startX[pass]; x < width; x += stepX[pass]
+                {
+                    let pixel = cast(u64) (y * width + x) * cast(u64) channels
+                    for [c] in channels do
+                        addPngU16Be(&raw, samples[pixel + c])
+                }
+            }
+        }
+    }
+
+    var zlib: Compress.ZLib
+    let compressed = catch zlib.compress(nnBytes(raw.toSlice()), .Default) as compressionError
+    @assert(compressionError == null)
+
+    var result: ConcatBuffer
+    let signature: [8] u8 = [137, 80, 78, 71, 13, 10, 26, 10]
+    result.addBytes(signature)
+
+    var ihdr: ConcatBuffer
+    addPngU32Be(&ihdr, cast(u32) width)
+    addPngU32Be(&ihdr, cast(u32) height)
+    ihdr.addNative(16'u8)
+    ihdr.addNative(colorType)
+    ihdr.addNative(0'u8)
+    ihdr.addNative(0'u8)
+    ihdr.addNative(interlace ? 1'u8 : 0'u8)
+    addPngChunk(&result, "IHDR", nnBytes(ihdr.toSlice()))
+
+    if transparency != null
+    {
+        var trns: ConcatBuffer
+        for value in notnull transparency do
+            addPngU16Be(&trns, value)
+        addPngChunk(&result, "tRNS", nnBytes(trns.toSlice()))
+    }
+
+    addPngChunk(&result, "IDAT", nnBytes(compressed.toSlice()))
+    addPngChunk(&result, "IEND", "")
+    return cbToArray(&result)
+}
+
 // Decoder and encoder registries recognise PNG files.
 #test
 {
@@ -146,6 +257,91 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     assertLoadedPng("basi2c08.png", 32, 32, .RGB8, 31'u8, 31'u8, 31'u8, 255'u8)
     assertLoadedPng("basi4a08.png", 32, 32, .RGBA8, 0'u8, 0'u8, 0'u8, 0'u8)
     assertLoadedPng("basi6a08.png", 32, 32, .RGBA8, 0'u8, 32'u8, 255'u8, 0'u8)
+}
+
+// Decode 16-bit grayscale and RGBA samples by reducing the full 16-bit range
+// to the module's 8-bit pixel formats.
+#test
+{
+    var gray: Array'u16
+    gray.add(0x0000)
+    gray.add(0x8080)
+    gray.add(0xFFFF)
+
+    let grayPng = buildPng16(3, 1, 0, false, gray.toSlice())
+    let grayImg = catch Image.decode("gray16.png", nnBytes(grayPng.toSlice()), {}) as err4
+    @assert(err4 == null)
+    @assert(grayImg.pf == .RGB8)
+    assertPngPixelAt(grayImg, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
+    assertPngPixelAt(grayImg, 1, 0, 128'u8, 128'u8, 128'u8, 255'u8)
+    assertPngPixelAt(grayImg, 2, 0, 255'u8, 255'u8, 255'u8, 255'u8)
+
+    var rgba: Array'u16
+    rgba.add(0x1234)
+    rgba.add(0x8080)
+    rgba.add(0xFFFF)
+    rgba.add(0x0101)
+
+    let rgbaPng = buildPng16(1, 1, 6, false, rgba.toSlice())
+    let rgbaImg = catch Image.decode("rgba16.png", nnBytes(rgbaPng.toSlice()), {}) as err5
+    @assert(err5 == null)
+    @assert(rgbaImg.pf == .RGBA8)
+    assertPngPixelAt(rgbaImg, 0, 0, 18'u8, 128'u8, 255'u8, 1'u8)
+}
+
+// A 16-bit tRNS key compares the original samples before reduction to 8 bits.
+#test
+{
+    var samples: Array'u16
+    samples.add(0x1234); samples.add(0x5678); samples.add(0x9ABC)
+    samples.add(0x1235); samples.add(0x5678); samples.add(0x9ABC)
+
+    var key: Array'u16
+    key.add(0x1234)
+    key.add(0x5678)
+    key.add(0x9ABC)
+
+    let png = buildPng16(2, 1, 2, false, samples.toSlice(), key.toSlice())
+    let img = catch Image.decode("rgb16-trns.png", nnBytes(png.toSlice()), {}) as err6
+    @assert(err6 == null)
+    @assert(img.pf == .RGBA8)
+    @assert((notnull img.pixels.buffer)[3] == 0'u8)
+    @assert((notnull img.pixels.buffer)[7] == 255'u8)
+}
+
+// Decode every Adam7 pass for a 16-bit RGB image and preserve pixel placement.
+#test
+{
+    const Width  = 5
+    const Height = 5
+
+    var samples: Array'u16
+    for [y] in Height
+    {
+        for [x] in Width
+        {
+            samples.add(cast(u16) (10 + x + y * Width) * 257)
+            samples.add(cast(u16) (50 + x * 2 + y) * 257)
+            samples.add(cast(u16) (100 + x + y * 3) * 257)
+        }
+    }
+
+    let png = buildPng16(Width, Height, 2, true, samples.toSlice())
+    let img = catch Image.decode("rgb16-adam7.png", nnBytes(png.toSlice()), {}) as err7
+    @assert(err7 == null)
+    @assert(img.pf == .RGB8)
+
+    for [y] in Height
+    {
+        for [x] in Width
+        {
+            assertPngPixelAt(img, x, Height - y - 1,
+                             cast(u8) (10 + x + y * Width),
+                             cast(u8) (50 + x * 2 + y),
+                             cast(u8) (100 + x + y * 3),
+                             255'u8)
+        }
+    }
 }
 
 // Decode palette and tRNS transparency chunks.
@@ -323,6 +519,32 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     @assert(err20 == null)
     @assert(img.pf == .RGB8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+}
+
+// Default options enable filtering and Deflate compression, unlike an explicit
+// stored stream.
+#test
+{
+    var src = Image.create(64, 64, .RGB8)
+    fillSolidPngImage(&src, 24'u8, 48'u8, 96'u8, 255'u8)
+
+    var compressed: ConcatBuffer
+    catch encodePng(&compressed, src) as err
+    @assert(err == null)
+
+    var options: Png.EncodeOptions
+    options.filtering        = false
+    options.compressionLevel = .NoCompression
+
+    var stored: ConcatBuffer
+    catch encodePng(&stored, src, options) as storedErr
+    @assert(storedErr == null)
+    @assert(compressed.count() < stored.count())
+
+    compressed.makeLinear()
+    let decoded = catch Image.decode("default-options.png", nnBytes(compressed.toSlice()), {}) as decodeErr
+    @assert(decodeErr == null)
+    @assert(Memory.compare(src.pixels.buffer, decoded.pixels.buffer, src.pixels.count) == 0)
 }
 
 // Encode Adam7-interlaced RGB and BGRA images, including odd dimensions that

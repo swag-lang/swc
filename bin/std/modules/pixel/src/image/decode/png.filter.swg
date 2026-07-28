@@ -147,13 +147,13 @@ impl Decoder
     {
         if .header.bitDepth < 8 do
             return cast(u64) ((.inChannels * width * .header.bitDepth) + 7) / 8
-        return cast(u64) .inChannels * width
+        return cast(u64) .inChannels * width * (.header.bitDepth / 8)
     }
 
     mtd defilter8(width, height: u32, input, output: [*] u8)
     {
         let rowStrideIn  = .getStrideIn(width)
-        let rowStrideOut = cast(u64) .inChannels * width
+        let rowStrideOut = .header.bitDepth < 8 ? cast(u64) .inChannels * width : rowStrideIn
         let destOffset   = rowStrideOut - rowStrideIn
 
         var src  = input
@@ -171,7 +171,7 @@ impl Decoder
         // PNG filtering references the previous byte of the same pixel. Packed
         // samples (bit depths below 8) have an effective byte offset of 1, not
         // the number of channels; otherwise narrow Adam7 passes underflow here.
-        let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64) .inChannels
+        let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64) .inChannels * (.header.bitDepth / 8)
         let nk           = rowStrideIn > filterOffset ? rowStrideIn - filterOffset : 0
         var row          = 0'u32
         while row < height
@@ -271,7 +271,7 @@ impl Decoder
             return
         }
 
-        if .header.bitDepth == 8
+        if .header.bitDepth == 8 or .header.bitDepth == 16
         {
             .defilter8(width, height, input, output)
             return
@@ -289,7 +289,8 @@ impl Decoder
             if x <= 0 or y <= 0 do
                 continue
 
-            tmpArr.resize(cast(u64) (x * y * .inChannels))
+            let pixelBytes = cast(u64) .inChannels * (.header.bitDepth == 16 ? 2 : 1)
+            tmpArr.resize(cast(u64) (x * y) * pixelBytes)
             let tmpBuffer = notnull tmpArr.buffer
             Memory.clear(tmpBuffer, tmpArr.count)
 
@@ -302,12 +303,12 @@ impl Decoder
                 {
                     let out_y   = .header.height - ((j * Adam7SpacingY[p]) + Adam7OrigY[p]) - 1
                     let out_x   = (i * Adam7SpacingX[p]) + Adam7OrigX[p]
-                    var out_off = out_y * .header.width * .inChannels
-                    out_off += out_x * .inChannels
+                    var out_off = out_y * .header.width * pixelBytes
+                    out_off += out_x * pixelBytes
                     let dstPixels = .safeDstPixels()
-                    for [z] in .inChannels do
+                    for [z] in pixelBytes do
                         dstPixels[out_off + z] = t[z]
-                    t                          += .inChannels
+                    t                          += pixelBytes
                 }
             }
 

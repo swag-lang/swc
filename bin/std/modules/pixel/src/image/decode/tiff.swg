@@ -13,6 +13,7 @@ const TAG_SAMPLES_PER_PIXEL = 277
 const TAG_ROWS_PER_STRIP    = 278
 const TAG_STRIP_BYTE_COUNTS = 279
 const TAG_PLANAR_CONFIG     = 284
+const TAG_PREDICTOR         = 317
 const TAG_COLOR_MAP         = 320
 const TAG_EXTRA_SAMPLES     = 338
 
@@ -23,6 +24,7 @@ const TYPE_LONG  = 4
 
 // Compression schemes
 const COMPRESSION_NONE     = 1
+const COMPRESSION_LZW      = 5
 const COMPRESSION_PACKBITS = 32773
 
 // Photometric interpretations
@@ -231,12 +233,15 @@ public impl IImageDecoder for Decoder
         let photometric  = readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
         let samples      = readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
         let planar       = readScalar(base, last, le, &ifd, TAG_PLANAR_CONFIG, 1)
+        let predictor    = readScalar(base, last, le, &ifd, TAG_PREDICTOR, 1)
         var rowsPerStrip = readScalar(base, last, le, &ifd, TAG_ROWS_PER_STRIP, height)
 
-        if compression != COMPRESSION_NONE and compression != COMPRESSION_PACKBITS do
+        if compression != COMPRESSION_NONE and compression != COMPRESSION_LZW and compression != COMPRESSION_PACKBITS do
             fail UnsupportedFormatError{"unsupported compression"}
         if planar != 1 do
             fail UnsupportedFormatError{"unsupported planar configuration"}
+        if predictor != 1 and predictor != 2 do
+            fail UnsupportedFormatError{"unsupported predictor"}
         if samples != 1 and samples != 3 and samples != 4 do
             fail UnsupportedFormatError{"unsupported samples per pixel"}
         if rowsPerStrip == 0 do
@@ -333,7 +338,11 @@ public impl IImageDecoder for Decoder
 
             let dstPtr = (notnull decoded.buffer) + cast(u64) rowStart * rowBytes
 
-            if compression == COMPRESSION_PACKBITS
+            if compression == COMPRESSION_LZW
+            {
+                unpackLzw(dstPtr, stripBytes, srcPtr, srcCount)
+            }
+            elif compression == COMPRESSION_PACKBITS
             {
                 unpackBits(dstPtr, stripBytes, srcPtr, srcPtr + srcCount)
             }
@@ -345,6 +354,22 @@ public impl IImageDecoder for Decoder
             }
 
             rowStart += rowsInStrip
+        }
+
+        if rowStart != totalRows do
+            fail InvalidFormatError{"invalid strip data"}
+
+        if predictor == 2
+        {
+            for [y] in totalRows
+            {
+                let row = (notnull decoded.buffer) + cast(u64) y * rowBytes
+                for [i] in rowBytes - samples
+                {
+                    let offset = cast(u64) samples + i
+                    row[offset] += #wrap row[offset - samples]
+                }
+            }
         }
 
         result.allocPixels()

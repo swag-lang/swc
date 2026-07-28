@@ -8,6 +8,7 @@ public enum Compression
 {
     None
     PackBits
+    Lzw
 }
 
 public struct EncodeOptions
@@ -138,7 +139,17 @@ public impl IImageEncoder for Encoder
         var storedData = cast(const [*] u8) (notnull rawData.buffer)
         var storedLen  = rawData.count
         var compressionTag = COMPRESSION_NONE
-        if userOptions.compression == .PackBits
+        var hasPredictor: bool
+        if userOptions.compression == .Lzw
+        {
+            applyHorizontalPredictor(notnull rawData.buffer, rowBytes, cast(u64) height, samples)
+            packLzw(&packedData, storedData, storedLen)
+            storedData     = cast(const [*] u8) (notnull packedData.buffer)
+            storedLen      = packedData.count
+            compressionTag = COMPRESSION_LZW
+            hasPredictor   = true
+        }
+        elif userOptions.compression == .PackBits
         {
             for [y] in height do
                 packBitsRow(&packedData, storedData + cast(u64) y * rowBytes, rowBytes)
@@ -150,7 +161,7 @@ public impl IImageEncoder for Encoder
         // Layout: header(8) | pixel data | IFD | BitsPerSample array
         let dataPad    = storedLen & 1
         let ifdOffset  = 8 + storedLen + dataPad
-        let numEntries = hasAlpha ? 10'u32 : 9'u32
+        let numEntries = (hasAlpha ? 10'u32 : 9'u32) + cast(u32) hasPredictor
         let ifdLen     = cast(u64) 2 + cast(u64) numEntries * 12 + 4
         let bpsOffset  = ifdOffset + ifdLen
         if bpsOffset + cast(u64) samples * 2 > Swag.U32.Max do
@@ -177,6 +188,8 @@ public impl IImageEncoder for Encoder
         addEntry(result, TAG_SAMPLES_PER_PIXEL, TYPE_SHORT, 1,       samples)
         addEntry(result, TAG_ROWS_PER_STRIP,    TYPE_LONG,  1,       cast(u32) height)
         addEntry(result, TAG_STRIP_BYTE_COUNTS, TYPE_LONG,  1,       cast(u32) storedLen)
+        if hasPredictor do
+            addEntry(result, TAG_PREDICTOR, TYPE_SHORT, 1, 2)
         if hasAlpha do
             addEntry(result, TAG_EXTRA_SAMPLES, TYPE_SHORT, 1, 2)     // 2 = unassociated alpha
 

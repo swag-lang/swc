@@ -64,10 +64,66 @@ func entOffset(cb: *ConcatBuffer, le: bool, tag, type: u16, count, offset: u32)
     tw32(cb, le, offset)
 }
 
+struct TestTiffLzwWriter
+{
+    bytes:       Array'u8
+    pending:     u64
+    pendingBits: u32
+}
+
+impl TestTiffLzwWriter
+{
+    mtd write(code, width: u32)
+    {
+        .pending      = (.pending << width) | code
+        .pendingBits += width
+        while .pendingBits >= 8
+        {
+            .pendingBits -= 8
+            .bytes.add(cast(u8) (.pending >> .pendingBits))
+            .pending &= (1'u64 << .pendingBits) - 1
+        }
+    }
+
+    mtd finish()
+    {
+        if .pendingBits do
+            .bytes.add(cast(u8) (.pending << (8 - .pendingBits)))
+    }
+}
+
+// Emit only literal LZW codes. This deliberately independent fixture writer
+// exercises TIFF's early 9-to-12-bit transitions without sharing the encoder.
+func packLiteralTiffLzw(data: const [..] u8)->Array'u8
+{
+    var writer: TestTiffLzwWriter = undefined
+    writer.bytes       = {}
+    writer.pending     = 0
+    writer.pendingBits = 0
+    var width    = 9'u32
+    var nextCode = 258'u32
+    writer.write(256, width)
+
+    for [i] in @countof(data)
+    {
+        writer.write(@dataof(data)[i], width)
+        if i
+        {
+            nextCode += 1
+            if width < 12 and nextCode == (1'u32 << width) - 1 do
+                width += 1
+        }
+    }
+
+    writer.write(257, width)
+    writer.finish()
+    return #move writer.bytes
+}
+
 // Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
 // is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
 // single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: #null const [..] u16, extraSamples: bool)->Array'u8
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: #null const [..] u16, extraSamples: bool, predictor: u32 = 1)->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -100,6 +156,8 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if hasPalette do
         numEntries += 1
     if extraSamples do
+        numEntries += 1
+    if predictor != 1 do
         numEntries += 1
 
     let ifdSize = 2 + numEntries * 12 + 4
@@ -157,6 +215,8 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
         entOffset(&cb, le, 279, 4, numStrips, stripCntArrayOffset)
     else do
         entLong(&cb, le, 279, stripLens[0])
+    if predictor != 1 do
+        entShort(&cb, le, 317, cast(u16) predictor)
     if hasPalette do
         entOffset(&cb, le, 320, 3, palCount, colorMapOffset)
     if extraSamples do
@@ -414,15 +474,67 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert(err11 != null)
 }
 
-// Error: unsupported compression scheme (LZW).
+// Decode a hand-built MSB-first LZW stream.
 #test
 {
-    var pix: ConcatBuffer
-    pix.addNative(0'u8); pix.addNative(0'u8); pix.addNative(0'u8)
+    var raw: Array'u8
+    raw.add(10); raw.add(20); raw.add(30)
+    raw.add(40); raw.add(50); raw.add(60)
+    let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
 
-    let buf = buildTiff(true, 1, 1, 3, 2, 5, 1, 8, nnBytes(pix.toSlice()), null, false)
+    let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false)
     var img = catch decodeTiff(nnBytes(buf.toSlice())) as err12
-    @assert(err12 != null)
+    @assert(err12 == null)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 40'u8)
+    @assert((notnull img.pixels.buffer)[4] == 50'u8)
+    @assert((notnull img.pixels.buffer)[5] == 60'u8)
+}
+
+// Decode horizontal differencing (Predictor=2) after LZW expansion.
+#test
+{
+    var predicted: Array'u8
+    predicted.add(10); predicted.add(20); predicted.add(30)
+    predicted.add(5);  predicted.add(5);  predicted.add(5)
+    let packed = packLiteralTiffLzw(nnBytes(predicted.toSlice()))
+
+    let buf = buildTiff(true, 2, 1, 3, 2, 5, 1, 8, nnBytes(packed.toSlice()), null, false, 2)
+    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err
+    @assert(err == null)
+    @assert((notnull img.pixels.buffer)[0] == 10'u8)
+    @assert((notnull img.pixels.buffer)[1] == 20'u8)
+    @assert((notnull img.pixels.buffer)[2] == 30'u8)
+    @assert((notnull img.pixels.buffer)[3] == 15'u8)
+    @assert((notnull img.pixels.buffer)[4] == 25'u8)
+    @assert((notnull img.pixels.buffer)[5] == 35'u8)
+}
+
+// Exercise independent literal streams across every TIFF LZW code-width edge.
+#test
+{
+    var raw: Array'u8
+    for 4096 do
+        raw.add(cast(u8) ((@index * 73 + 19) & 0xFF))
+    let packed = packLiteralTiffLzw(nnBytes(raw.toSlice()))
+
+    let buf = buildTiff(true, 64, 64, 1, 1, 5, 64, 8, nnBytes(packed.toSlice()), null, false)
+    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err
+    @assert(err == null)
+    let pixels = notnull img.pixels.buffer
+    for [y] in 64
+    {
+        for [x] in 64
+        {
+            let expected = raw[cast(u64) (63 - y) * 64 + x]
+            let offset   = cast(u64) (y * 64 + x) * 3
+            @assert(pixels[offset] == expected)
+            @assert(pixels[offset + 1] == expected)
+            @assert(pixels[offset + 2] == expected)
+        }
+    }
 }
 
 // Error: unsupported samples-per-pixel.
@@ -627,4 +739,34 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert((notnull img.pixels.buffer)[0] == 1'u8)
     @assert((notnull img.pixels.buffer)[1] == 2'u8)
     @assert((notnull img.pixels.buffer)[2] == 3'u8)
+}
+
+// LZW encoding uses horizontal differencing and survives dictionary growth,
+// including a full-table clear, without changing RGBA pixels.
+#test
+{
+    var src    = Image.create(128, 40, .RGBA8)
+    let srcBuf = notnull src.pixels.buffer
+    var state  = 0x12345678'u32
+    for [i] in src.pixels.count
+    {
+        state    *= #wrap 1664525
+        state    += #wrap 1013904223
+        srcBuf[i] = cast(u8) (state >> 24)
+    }
+
+    var options: Tiff.EncodeOptions
+    options.compression = .Lzw
+
+    var cb: ConcatBuffer
+    catch encodeTiff(&cb, src, options) as err
+    @assert(err == null)
+    cb.makeLinear()
+
+    let img = catch decodeTiff(nnBytes(cb.toSlice())) as decodeErr
+    @assert(decodeErr == null)
+    @assert(img.pf == .RGBA8)
+    @assert(img.width == src.width)
+    @assert(img.height == src.height)
+    @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }

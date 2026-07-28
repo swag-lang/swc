@@ -119,4 +119,5 @@ public impl Image
     Image.addDecoder'(Gif.Decoder)()
     Image.addDecoder'(Tiff.Decoder)()
     Image.addDecoder'(Ico.Decoder)()
+    Image.addDecoder'(Webp.Decoder)()
 }

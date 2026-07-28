@@ -360,7 +360,7 @@ impl Decoder
         // Allocate destination: defilter directly into result pixels when channels match
         // to avoid an extra full-image allocation and memcpy
         let bytesPerSample = .header.bitDepth == 16 ? 2'u64 : 1'u64
-        .dstPixelsSize = .header.width * .header.height * .inChannels * bytesPerSample
+        .dstPixelsSize = cast(u64) .header.width * .header.height * .inChannels * bytesPerSample
         if .header.bitDepth == 8 and .inChannels == .outChannels
         {
             result.allocPixels()

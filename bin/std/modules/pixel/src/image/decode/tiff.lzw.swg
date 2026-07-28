@@ -39,8 +39,8 @@ impl LzwBitReader
 func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fail
 {
     var reader: LzwBitReader = undefined
-    reader.data     = src
-    reader.bitCount = srcCount * 8
+    reader.data        = src
+    reader.bitCount    = srcCount * 8
     reader.bitPosition = 0
 
     var prefixes: [4096] u16
@@ -127,7 +127,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
 
             // The decoder is one dictionary entry behind the encoder. TIFF's
             // early transition therefore happens when the next free code is
-            // one below the current width's all-ones value.
+            // the current width's all-ones value.
             if width < 12 and nextCode == (1'u32 << width) - 1 do
                 width += 1
         }

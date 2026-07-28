@@ -512,6 +512,28 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert((notnull img.pixels.buffer)[5] == 35'u8)
 }
 
+// Decode the LZW KwKwK case, where a code refers to the dictionary entry that
+// is being defined by that same code.
+#test
+{
+    var writer: TestTiffLzwWriter = undefined
+    writer.bytes       = {}
+    writer.pending     = 0
+    writer.pendingBits = 0
+    writer.write(256, 9)
+    writer.write(65, 9)
+    writer.write(258, 9)
+    writer.write(259, 9)
+    writer.write(257, 9)
+    writer.finish()
+
+    let buf = buildTiff(true, 6, 1, 1, 1, 5, 1, 8, nnBytes(writer.bytes.toSlice()), null, false)
+    var img = catch decodeTiff(nnBytes(buf.toSlice())) as err
+    @assert(err == null)
+    for [i] in img.pixels.count do
+        @assert((notnull img.pixels.buffer)[i] == 65'u8)
+}
+
 // Exercise independent literal streams across every TIFF LZW code-width edge.
 #test
 {

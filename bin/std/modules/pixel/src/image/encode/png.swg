@@ -241,6 +241,7 @@ public struct EncodeOptions
 {
     compressionLevel = Compress.Deflate.CompressionLevel.Default
     filtering        = true
+    interlace        = false
 }
 
 public impl IImageEncoder for Encoder
@@ -269,10 +270,11 @@ public impl IImageEncoder for Encoder
         .stream = result
 
         .stored.ihdr    = true
-        .ihdr.width     = image.width
-        .ihdr.height    = image.height
-        .ihdr.bitDepth  = 8
-        .ihdr.colorType = .Color
+        .ihdr.width           = image.width
+        .ihdr.height          = image.height
+        .ihdr.bitDepth        = 8
+        .ihdr.colorType       = .Color
+        .ihdr.interlaceMethod = .userOptions.interlace ? 1 : 0
         if image.bpp == 32 do
             .ihdr.colorType |= .Alpha
 
@@ -295,7 +297,7 @@ public impl IImageEncoder for Encoder
         .prevScanline     = .prevScanlineBuf + 16
         .filteredScanline = .filteredScanlineBuf + 16
 
-        .pixelSize = image.bpp
+        .pixelSize = image.bpp8
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
 

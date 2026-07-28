@@ -67,7 +67,7 @@ impl Encoder
             .subimage[0].height = .ihdr.height
         }
 
-        for [i] in 6
+        for [i] in 7
         {
             if .subimage[i].width == 0 or .subimage[i].height == 0 do
                 continue
@@ -142,7 +142,20 @@ impl Encoder
         for [k] in .subimage[pass].width
         {
             let ioffset = (Adam7StartX[pass] + k * Adam7DeltaX[pass]) * .pixelSize
-            Memory.copy(.scanline + k * .pixelSize, row + ioffset, .pixelSize)
+            let src     = row + ioffset
+            let dst     = (notnull .scanline) + k * .pixelSize
+            if .swapRB
+            {
+                dst[0] = src[2]
+                dst[1] = src[1]
+                dst[2] = src[0]
+                if .pixelSize == 4 do
+                    dst[3] = src[3]
+            }
+            else
+            {
+                Memory.copy(dst, src, .pixelSize)
+            }
         }
 
         return .encodeScanLine(cast([*] u8) (notnull .scanline))

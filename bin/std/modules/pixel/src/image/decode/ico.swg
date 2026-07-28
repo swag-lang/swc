@@ -124,6 +124,29 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
     // The AND mask is optional for 32-bit images that carry their own alpha
     let hasAndMask = andData + andStride * cast(u64) height <= last
 
+    // Older 32-bit icons leave every alpha byte at zero and carry transparency
+    // exclusively in the AND mask. A non-zero alpha byte means the entry uses
+    // the modern alpha channel instead.
+    var useAndMaskFor32 = dib.bitCount == 32 and hasAndMask
+    if useAndMaskFor32
+    {
+        for [y] in height
+        {
+            let xorRow = xorData + xorStride * cast(u64) y
+            for [x] in width
+            {
+                if xorRow[cast(u64) x * 4 + 3] != 0
+                {
+                    useAndMaskFor32 = false
+                    break
+                }
+            }
+
+            if !useAndMaskFor32 do
+                break
+        }
+    }
+
     // Icon pixel data is bottom-up, matching the internal buffer convention
     for [y] in height
     {
@@ -142,7 +165,10 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
                 b = pix[0]
                 g = pix[1]
                 r = pix[2]
-                a = pix[3]
+                if useAndMaskFor32 do
+                    a = maskBit(andRow, x) ? 0'u8 : 255'u8
+                else do
+                    a = pix[3]
 
             case 24:
                 let pix = xorRow + cast(u64) x * 3

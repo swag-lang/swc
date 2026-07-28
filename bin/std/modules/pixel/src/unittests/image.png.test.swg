@@ -56,10 +56,10 @@ func assertPngHasChunk(bytes: const [..] u8, c0, c1, c2, c3: u8)
     @assert(false)
 }
 
-func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat)
+func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: #null any = null)
 {
     var cb: ConcatBuffer
-    catch encodePng(&cb, src) as err2
+    catch encodePng(&cb, src, options) as err2
     @assert(err2 == null)
 
     let bytes = nnBytes(cb.toSlice())
@@ -323,4 +323,69 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     @assert(err20 == null)
     @assert(img.pf == .RGB8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+}
+
+// Encode Adam7-interlaced RGB and BGRA images, including odd dimensions that
+// exercise every pass, and round-trip them through the decoder.
+#test
+{
+    var options: Png.EncodeOptions
+    options.interlace = true
+
+    var rgb    = Image.create(9, 7, .RGB8)
+    let rgbBuf = notnull rgb.pixels.buffer
+    for [y] in rgb.height
+    {
+        for [x] in rgb.width
+        {
+            let offset = cast(u64) (y * rgb.width + x) * 3
+            rgbBuf[offset]     = cast(u8) (x * 17 + y)
+            rgbBuf[offset + 1] = cast(u8) (x + y * 19)
+            rgbBuf[offset + 2] = cast(u8) (x * 7 + y * 11)
+        }
+    }
+
+    var cb: ConcatBuffer
+    catch encodePng(&cb, rgb, options) as err20
+    @assert(err20 == null)
+    let rgbBytes = nnBytes(cb.toSlice())
+    @assert(rgbBytes[28] == 1'u8)
+
+    var decoded = catch Image.decode("adam7-rgb.png", rgbBytes, {}) as err21
+    @assert(err21 == null)
+    @assert(decoded.pf == .RGB8)
+    @assert(Memory.compare(rgb.pixels.buffer, decoded.pixels.buffer, rgb.pixels.count) == 0)
+
+    var bgra    = Image.create(9, 7, .BGRA8)
+    let bgraBuf = notnull bgra.pixels.buffer
+    for [y] in bgra.height
+    {
+        for [x] in bgra.width
+        {
+            let offset = cast(u64) (y * bgra.width + x) * 4
+            bgraBuf[offset]     = cast(u8) (10 + x)
+            bgraBuf[offset + 1] = cast(u8) (20 + y)
+            bgraBuf[offset + 2] = cast(u8) (30 + x + y)
+            bgraBuf[offset + 3] = cast(u8) (40 + x * 3 + y * 5)
+        }
+    }
+
+    cb.clear()
+    catch encodePng(&cb, bgra, options) as err22
+    @assert(err22 == null)
+    let bgraBytes = nnBytes(cb.toSlice())
+    @assert(bgraBytes[28] == 1'u8)
+
+    decoded = catch Image.decode("adam7-bgra.png", bgraBytes, {}) as err23
+    @assert(err23 == null)
+    @assert(decoded.pf == .RGBA8)
+    let decodedBuf = notnull decoded.pixels.buffer
+    for [i] in cast(u64) bgra.width * cast(u64) bgra.height
+    {
+        let offset = i * 4
+        @assert(decodedBuf[offset] == bgraBuf[offset + 2])
+        @assert(decodedBuf[offset + 1] == bgraBuf[offset + 1])
+        @assert(decodedBuf[offset + 2] == bgraBuf[offset])
+        @assert(decodedBuf[offset + 3] == bgraBuf[offset + 3])
+    }
 }

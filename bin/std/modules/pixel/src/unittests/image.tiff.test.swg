@@ -197,11 +197,11 @@ func tiffCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeTiff(result: *ConcatBuffer, image: Image) fail
+func encodeTiff(result: *ConcatBuffer, image: Image, options: #null any = null) fail
 {
     var enc: Tiff.Encoder
     let itf = @mkinterface(&enc, #typeof(Tiff.Encoder), IImageEncoder)
-    itf.encode(result, image, null)
+    itf.encode(result, image, options)
 }
 
 func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
@@ -561,4 +561,70 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     @assert((notnull img.pixels.buffer)[0] == 123'u8)
     @assert((notnull img.pixels.buffer)[1] == 45'u8)
     @assert((notnull img.pixels.buffer)[2] == 67'u8)
+}
+
+// Encode PackBits-compressed RGBA rows and round-trip them exactly. Repeated
+// pixels make the compressed stream smaller than the uncompressed TIFF.
+#test
+{
+    var src    = Image.create(32, 3, .RGBA8)
+    let srcBuf = notnull src.pixels.buffer
+    for [y] in src.height
+    {
+        for [x] in src.width
+        {
+            let offset = cast(u64) (y * src.width + x) * 4
+            srcBuf[offset]     = cast(u8) (10 + y)
+            srcBuf[offset + 1] = cast(u8) (10 + y)
+            srcBuf[offset + 2] = cast(u8) (10 + y)
+            srcBuf[offset + 3] = cast(u8) (10 + y)
+        }
+    }
+
+    var uncompressed: ConcatBuffer
+    catch encodeTiff(&uncompressed, src) as err24
+    @assert(err24 == null)
+
+    var options: Tiff.EncodeOptions
+    options.compression = .PackBits
+
+    var packed: ConcatBuffer
+    catch encodeTiff(&packed, src, options) as err25
+    @assert(err25 == null)
+    @assert(@countof(packed.toSlice()) < @countof(uncompressed.toSlice()))
+
+    let img = catch decodeTiff(nnBytes(packed.toSlice())) as err26
+    @assert(err26 == null)
+    @assert(img.pf == .RGBA8)
+    @assert(img.width == src.width)
+    @assert(img.height == src.height)
+    @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+}
+
+// PackBits also preserves BGR input after conversion to TIFF's RGB component order.
+#test
+{
+    var src    = Image.create(5, 1, .BGR8)
+    let srcBuf = notnull src.pixels.buffer
+    for [x] in src.width
+    {
+        let offset = cast(u64) x * 3
+        srcBuf[offset]     = 3'u8
+        srcBuf[offset + 1] = 2'u8
+        srcBuf[offset + 2] = 1'u8
+    }
+
+    var options: Tiff.EncodeOptions
+    options.compression = .PackBits
+
+    var cb: ConcatBuffer
+    catch encodeTiff(&cb, src, options) as err27
+    @assert(err27 == null)
+
+    let img = catch decodeTiff(nnBytes(cb.toSlice())) as err28
+    @assert(err28 == null)
+    @assert(img.pf == .RGB8)
+    @assert((notnull img.pixels.buffer)[0] == 1'u8)
+    @assert((notnull img.pixels.buffer)[1] == 2'u8)
+    @assert((notnull img.pixels.buffer)[2] == 3'u8)
 }

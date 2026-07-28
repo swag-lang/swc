@@ -36,11 +36,11 @@ func tgaCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
-func encodeTga(result: *ConcatBuffer, image: Image) fail
+func encodeTga(result: *ConcatBuffer, image: Image, options: #null any = null) fail
 {
     var enc: Tga.Encoder
     let itf = @mkinterface(&enc, #typeof(Tga.Encoder), IImageEncoder)
-    itf.encode(result, image, null)
+    itf.encode(result, image, options)
 }
 
 func addTgaImageHeader(cb: *ConcatBuffer, imageType, bpp, descriptor: u8, width, height: u16)
@@ -607,6 +607,79 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err38
     @assert(err38 == null)
+    @assert(img.pf == .BGRA8)
+    @assert((notnull img.pixels.buffer)[0] == 3'u8)
+    @assert((notnull img.pixels.buffer)[1] == 2'u8)
+    @assert((notnull img.pixels.buffer)[2] == 1'u8)
+    @assert((notnull img.pixels.buffer)[3] == 4'u8)
+}
+
+// Encode RLE packets for repeated and literal BGR pixels, then decode them
+// without changing the bottom-up pixel buffer.
+#test
+{
+    var src    = Image.create(8, 1, .BGR8)
+    let srcBuf = notnull src.pixels.buffer
+    for [x] in 4
+    {
+        let offset = cast(u64) x * 3
+        srcBuf[offset]     = 10'u8
+        srcBuf[offset + 1] = 20'u8
+        srcBuf[offset + 2] = 30'u8
+    }
+
+    for var x = 4; x < 8; x += 1
+    {
+        let offset = cast(u64) x * 3
+        srcBuf[offset]     = cast(u8) x
+        srcBuf[offset + 1] = cast(u8) (x + 10)
+        srcBuf[offset + 2] = cast(u8) (x + 20)
+    }
+
+    var options: Tga.EncodeOptions
+    options.rle = true
+
+    var cb: ConcatBuffer
+    catch encodeTga(&cb, src, options) as err39
+    @assert(err39 == null)
+    let bytes = nnBytes(cb.toSlice())
+    @assert(bytes[2] == TGA_TYPE_RLE_RGB)
+    @assert(bytes[18] == 0x83'u8)
+    @assert(@countof(bytes) < 18 + src.pixels.count)
+
+    var img = catch Image.decode("encoded-rle.tga", bytes, {}) as err40
+    @assert(err40 == null)
+    @assert(img.pf == .BGR8)
+    @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+}
+
+// RLE encoding preserves alpha while converting RGBA input to TGA's BGRA order.
+#test
+{
+    var src    = Image.create(3, 1, .RGBA8)
+    let srcBuf = notnull src.pixels.buffer
+    for [x] in src.width
+    {
+        let offset = cast(u64) x * 4
+        srcBuf[offset]     = 1'u8
+        srcBuf[offset + 1] = 2'u8
+        srcBuf[offset + 2] = 3'u8
+        srcBuf[offset + 3] = 4'u8
+    }
+
+    var options: Tga.EncodeOptions
+    options.rle = true
+
+    var cb: ConcatBuffer
+    catch encodeTga(&cb, src, options) as err41
+    @assert(err41 == null)
+    let bytes = nnBytes(cb.toSlice())
+    @assert(bytes[2] == TGA_TYPE_RLE_RGB)
+    @assert(bytes[16] == 32'u8)
+    @assert(bytes[17] == 8'u8)
+
+    let img = catch Image.decode("encoded-rle-alpha.tga", bytes, {}) as err42
+    @assert(err42 == null)
     @assert(img.pf == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 3'u8)
     @assert((notnull img.pixels.buffer)[1] == 2'u8)

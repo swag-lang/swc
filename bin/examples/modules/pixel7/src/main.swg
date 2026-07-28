@@ -9,6 +9,7 @@ const PageCount         = 8
 const TestFramesPerPage = 10
 const CardHeaderHeight  = 78.0
 const MaxSourceSide     = 192.0
+const AlphaFadeStep     = 16
 
 const PageBmp  = 0
 const PageTga  = 1
@@ -29,8 +30,7 @@ struct SceneLayout
 
 struct DecoderCard
 {
-    #[Swag.Late]
-    title:   string
+    title:   String
     details: String
     texture: Texture
 }
@@ -82,11 +82,11 @@ func loadSource(fileName: string)->Image fail
     return normalizeSource(image)
 }
 
-func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaPattern = false)->Image
+func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaBorder = false)->Image
 {
     let converted = source.toSetPixelFormat(pixelFormat)
     var result    = Image.create(converted.width, converted.height, converted.pf, converted.pixels.toSlice())
-    if !withAlphaPattern do
+    if !withAlphaBorder do
         return result
 
     Debug.assert(pixelFormat.hasAlpha())
@@ -95,7 +95,9 @@ func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaPatt
     {
         for [x] in result.width
         {
-            pixel[3] = cast(u8) (72 + ((x * 5 + y * 3) % 184))
+            let edgeDistance = Math.min(Math.min(x, result.width - x - 1), Math.min(y, result.height - y - 1))
+            let borderAlpha  = cast(u8) Math.min(edgeDistance * AlphaFadeStep, 255)
+            pixel[3]         = cast(u8) ((cast(u16) pixel[3] * borderAlpha + 127) / 255)
             pixel   += 4
         }
     }
@@ -105,8 +107,9 @@ func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaPatt
 
 func paletteVariant(source: const &Image, withAlpha: bool)->Image
 {
-    var result = sourceVariant(source, withAlpha ? .RGBA8 : .RGB8)
-    var pixel  = notnull result.pixels.buffer
+    var result      = sourceVariant(source, withAlpha ? .RGBA8 : .RGB8)
+    var pixel       = notnull result.pixels.buffer
+    let borderWidth = Math.max(Math.min(result.width, result.height) / 12, 1)
     for [y] in result.height
     {
         for [x] in result.width
@@ -114,8 +117,12 @@ func paletteVariant(source: const &Image, withAlpha: bool)->Image
             pixel[0] = (pixel[0] >> 6) * 85
             pixel[1] = (pixel[1] >> 6) * 85
             pixel[2] = (pixel[2] >> 6) * 85
-            if withAlpha do
-                pixel[3] = ((x / 24 + y / 24) & 3) == 0 ? 0'u8 : 255'u8
+            if withAlpha
+            {
+                let edgeDistance = Math.min(Math.min(x, result.width - x - 1), Math.min(y, result.height - y - 1))
+                if edgeDistance < borderWidth do
+                    pixel[3] = 0
+            }
             pixel += result.bpp8
         }
     }
@@ -185,11 +192,11 @@ func pageDescription(page: s32)->string
     switch page
     {
     case PageBmp:  return "The bundled BMP is decoded, converted to four pixel layouts, encoded by Swag, then decoded again."
-    case PageTga:  return "The bundled TGA is regenerated as 24-bit and 32-bit true-color images from RGB and BGR layouts."
+    case PageTga:  return "The bundled TGA is regenerated as raw and RLE-compressed true-color images from RGB and BGR layouts."
     case PageJpg:  return "The bundled JPEG is regenerated at four quality levels and each encoded buffer is decoded for display."
-    case PagePng:  return "The bundled PNG is regenerated with filtered, unfiltered, stored and alpha-bearing encodings."
+    case PagePng:  return "The bundled PNG is regenerated with filtered, Adam7-interlaced, stored and alpha-bearing encodings."
     case PageGif:  return "The bundled GIF is regenerated with exact, transparent and quantized palettes before LZW decoding."
-    case PageTiff: return "The bundled TIFF is regenerated as uncompressed RGB and RGBA data from four pixel layouts."
+    case PageTiff: return "The bundled TIFF is regenerated as uncompressed and PackBits-compressed RGB and RGBA data."
     case PageIco:  return "The bundled icon is regenerated as four 32-bit DIB entries with different sizes and alpha layouts."
     case PageWebp: return "The bundled WebP is regenerated as lossless VP8L data from RGB, BGR and alpha-bearing layouts."
     default:       unreachable

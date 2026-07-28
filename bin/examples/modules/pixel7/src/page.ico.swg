@@ -2,9 +2,11 @@ using Core, Pixel
 
 func addIcoCard(card: *DecoderCard, source: const &Image, size: s32, pixelFormat: PixelFormat, withAlpha: bool) fail
 {
-    let resized  = source.toResize(size, size, .Quadratic)
-    let title    = Format.toString("% x % icon", size, size)
-    let encoding = Format.toString("32-bit DIB from %", pixelFormat)
+    let resized        = source.toResize(size, size, .Quadratic)
+    let alphaTitle     = withAlpha ? " with alpha" : ""
+    let alphaEncoding  = withAlpha ? ", soft alpha border" : ""
+    let title          = Format.toString("% x % icon%", size, size, alphaTitle)
+    let encoding       = Format.toString("32-bit DIB from %%", pixelFormat, alphaEncoding)
     encodeCard'(Ico.Encoder)(card, "variant.ico", title, encoding, sourceVariant(resized, pixelFormat, withAlpha))
 }
 
@@ -16,4 +18,3 @@ func buildIcoPage() fail
     addIcoCard(&g_Cards[PageIco][2], source, 128, .RGBA8, true)
     addIcoCard(&g_Cards[PageIco][3], source, 256, .BGRA8, true)
 }
-

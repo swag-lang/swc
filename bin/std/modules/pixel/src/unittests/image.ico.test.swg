@@ -142,6 +142,48 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     @assert((notnull img.pixels.buffer)[7] == 80'u8)
 }
 
+// Legacy 32-bit icons leave alpha at zero and use the AND mask instead.
+#test
+{
+    var body: ConcatBuffer
+
+    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(0'u8)
+    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8); body.addNative(0'u8)
+
+    // x=1 is transparent; the row is padded to four bytes.
+    body.addNative(0x40'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+
+    let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
+    let img = catch decodeIco(nnBytes(buf.toSlice())) as err2
+    @assert(err2 == null)
+    @assert((notnull img.pixels.buffer)[3] == 255'u8)
+    @assert((notnull img.pixels.buffer)[7] == 0'u8)
+}
+
+// A non-zero 32-bit alpha channel takes precedence over the legacy AND mask.
+#test
+{
+    var body: ConcatBuffer
+
+    body.addNative(10'u8); body.addNative(20'u8); body.addNative(30'u8); body.addNative(128'u8)
+    body.addNative(40'u8); body.addNative(50'u8); body.addNative(60'u8); body.addNative(0'u8)
+
+    // Mark x=0 transparent in the AND mask; modern alpha must still win.
+    body.addNative(0x80'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+    body.addNative(0'u8)
+
+    let buf = buildIco(2, 1, 32, 0, nnBytes(body.toSlice()))
+    let img = catch decodeIco(nnBytes(buf.toSlice())) as err3
+    @assert(err3 == null)
+    @assert((notnull img.pixels.buffer)[3] == 128'u8)
+    @assert((notnull img.pixels.buffer)[7] == 0'u8)
+}
+
 // Decode a 2x2 24-bit icon, applying the AND mask as alpha.
 #test
 {

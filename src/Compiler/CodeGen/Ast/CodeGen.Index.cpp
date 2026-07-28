@@ -119,8 +119,8 @@ namespace
     // describe a view over the whole address space.
     void emitSliceCountReg(CodeGen& codeGen, MicroReg countReg, MicroReg lowReg, MicroReg endExclusiveReg)
     {
-        MicroBuilder&       builder   = codeGen.builder();
-        const MicroLabelRef emptyRef  = builder.createLabel();
+        MicroBuilder&       builder  = codeGen.builder();
+        const MicroLabelRef emptyRef = builder.createLabel();
         builder.emitLoadRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitCmpRegReg(endExclusiveReg, lowReg, MicroOpBits::B64);
         builder.emitJumpToLabel(CodeGenCompareHelpers::lessEqualCond(true), MicroOpBits::B32, emptyRef);

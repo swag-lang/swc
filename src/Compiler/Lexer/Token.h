@@ -60,7 +60,7 @@ enum class TokenFlagsE : uint16_t
     Escaped     = 1 << 5,
     // Set on a string literal introduced by '#raw': the content is taken verbatim, so no
     // escape sequence is recognized and no end-of-line is folded.
-    Raw         = 1 << 6,
+    Raw = 1 << 6,
 };
 using TokenFlags = EnumFlags<TokenFlagsE>;
 

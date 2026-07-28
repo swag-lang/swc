@@ -520,7 +520,7 @@ namespace
         if (!cst.isInt())
             return false;
 
-        outValue = static_cast<uint64_t>(cst.getInt().as64());
+        outValue = cst.getInt().as64();
         return true;
     }
 

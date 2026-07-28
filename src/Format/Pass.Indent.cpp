@@ -121,8 +121,8 @@ namespace
 
             const uint32_t oldCols = FormatModel::textColumns(model_->lineIndentOf(lineStart), std::max(options_->tabWidth, 1u));
 
-            uint32_t   newCols     = 0;
-            const bool isStatement = isStatementLine(piece);
+            uint32_t   newCols                = 0;
+            const bool isStatement            = isStatementLine(piece);
             const bool updatesStatementAnchor = isStatement && piece.isNot(TokenId::KwdElse);
             if (isStatement)
             {

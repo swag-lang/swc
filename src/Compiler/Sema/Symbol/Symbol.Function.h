@@ -28,7 +28,7 @@ enum class SymbolFunctionFlagsE : uint16_t
     Zero                   = 0,
     Closure                = 1 << 0,
     Method                 = 1 << 1,
-    Fallible              = 1 << 2,
+    Fallible               = 1 << 2,
     Const                  = 1 << 3,
     Empty                  = 1 << 4,
     Attribute              = 1 << 5,

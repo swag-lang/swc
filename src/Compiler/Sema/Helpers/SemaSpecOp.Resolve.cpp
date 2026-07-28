@@ -1744,11 +1744,11 @@ namespace
 
     struct BinarySpecOpProbeRequest
     {
-        const SemaNodeView* receiverView = nullptr;
-        AstNodeRef          receiverRef  = AstNodeRef::invalid();
-        AstNodeRef          argRef       = AstNodeRef::invalid();
-        IdentifierRef       opId         = IdentifierRef::invalid();
-        AstNodeRef          genericArg   = AstNodeRef::invalid();
+        const SemaNodeView* receiverView    = nullptr;
+        AstNodeRef          receiverRef     = AstNodeRef::invalid();
+        AstNodeRef          argRef          = AstNodeRef::invalid();
+        IdentifierRef       opId            = IdentifierRef::invalid();
+        AstNodeRef          genericArg      = AstNodeRef::invalid();
         SpecOperator        op              = SpecOperator::Add;
         bool                commutativeOnly = false;
     };

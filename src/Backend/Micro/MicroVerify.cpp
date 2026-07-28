@@ -822,7 +822,7 @@ Result MicroVerify::verify(const MicroPassContext& context, std::string_view pha
             const auto count = instructionRefValue < relocationCountByRef.size() ? relocationCountByRef[instructionRefValue] : 0u;
             if (count != 1)
             {
-                return reportError(context, phase, std::format("instruction ref {} expects exactly one relocation, found {}", instructionRefValue, count));
+                return reportError(context, phase, std::format("instruction ref {} needs exactly one relocation, found {}", instructionRefValue, count));
             }
         }
 

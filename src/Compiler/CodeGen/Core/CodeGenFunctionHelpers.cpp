@@ -782,7 +782,7 @@ namespace
             const MicroReg fieldAddressReg = addressWithOffset(codeGen, dstAddressReg, field->offset());
 
             // A 'Swag.Late' field is typed non-null, so the generic implicit-default
-            // path would skip it ("requires explicit initialization"). Its storage
+            // path would skip it ("needs explicit initialization"). Its storage
             // must instead start as null so '@isset' reads false: zero it.
             if (field->hasExtraFlag(SymbolVariableFlagsE::LateInit))
             {

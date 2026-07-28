@@ -742,7 +742,7 @@ namespace
         const Utf8 srcTypeName = ctx.typeMgr().get(fail.castFailure.srcTypeRef).toName(ctx);
         const Utf8 dstTypeName = ctx.typeMgr().get(fail.castFailure.dstTypeRef).toName(ctx);
         if (const SymbolVariable* param = failedParameter(fn, fail))
-            return std::format("has type '{}', but parameter '{}' expects '{}'", srcTypeName, param->name(ctx), dstTypeName);
+            return std::format("has type '{}', but parameter '{}' needs '{}'", srcTypeName, param->name(ctx), dstTypeName);
 
         return std::format("has type '{}', expected '{}'", srcTypeName, dstTypeName);
     }

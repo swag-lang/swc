@@ -228,24 +228,49 @@ impl HashSet
 
     // Finds the correct index for a new key, handling collisions and me.deleted slots.
     // Uses linear probing to find the next available slot.
+    //
+    // Both loops test the cached hash first: an occupied slot that does not match is by far
+    // the most frequent outcome, and it must cost a single compare. A set that has never seen
+    // a removal takes the shorter loop, which has no deleted slot to remember.
     mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
-        var firstDeleted = Swag.U64.Max
-        let mask         = .capacity - 1
-        var index        = idx
-        let table        = .tablePtr()
+        let mask  = .capacity - 1
+        var index = idx
+        let table = .tablePtr()
 
+        if !.deleted
+        {
+            for
+            {
+                let entryHash = table[index].hash
+                if entryHash == hashVal
+                {
+                    if table[index].key == key do
+                        return index
+                }
+                elif entryHash == HashSet.HASH_FREE do
+                    return index
+
+                index = (index + 1) & mask
+            }
+        }
+
+        var firstDeleted = Swag.U64.Max
         for
         {
             let entryHash = table[index].hash
-            if entryHash == HashSet.HASH_FREE do
-                return firstDeleted != Swag.U64.Max ? firstDeleted : index
-
-            if entryHash == HashSet.HASH_DELETED and firstDeleted == Swag.U64.Max do
-                firstDeleted = index
-
-            if entryHash == hashVal and table[index].key == key do
-                return index
+            if entryHash == hashVal
+            {
+                if table[index].key == key do
+                    return index
+            }
+            elif entryHash < HashSet.HASH_FIRST
+            {
+                if entryHash == HashSet.HASH_FREE do
+                    return firstDeleted != Swag.U64.Max ? firstDeleted : index
+                if firstDeleted == Swag.U64.Max do
+                    firstDeleted = index
+            }
 
             index = (index + 1) & mask
         }

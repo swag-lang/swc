@@ -19,11 +19,12 @@ struct(K, V) HashTable
     const HASH_DELETED = 1'u32     // The slot was previously occupied but has been me.deleted.
     const HASH_FIRST   = 2'u32     // The first possible valid hash value.
 
-    allocator: #null IAllocator             // The me.allocator used for memory operations.
-    table:     #null [*] HashTableEntry     // Pointer to the contiguous memory block for the hash me.table.
-    count:     u64                          // The number of valid key-value pairs currently in the me.table.
-    capacity:  u64                          // The total number of slots in the hash me.table.
-    deleted:   u64                          // The number of slots marked as me.deleted.
+    allocator:     #null IAllocator             // The me.allocator used for memory operations.
+    table:         #null [*] HashTableEntry     // Pointer to the contiguous memory block for the hash me.table.
+    count:         u64                          // The number of valid key-value pairs currently in the me.table.
+    capacity:      u64                          // The total number of slots in the hash me.table.
+    deleted:       u64                          // The number of slots marked as me.deleted.
+    growThreshold: u64                          // Used slot count that triggers a resize, derived from me.capacity.
 }
 
 impl HashTable
@@ -209,21 +210,21 @@ impl HashTable
         }
 
         Memory.free(table, .capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
-        .table                      = null
-        .count, .capacity, .deleted = 0
+        .table                                     = null
+        .count, .capacity, .deleted, .growThreshold = 0
     }
 
     // Checks if the me.table needs to be resized and triggers it if necessary.
     // Growth happens when the load factor (including me.deleted slots) exceeds 50%.
+    #[Inline]
     mtd grow()
     {
-        // Linear probing degrades sharply past half full: a failed lookup averages
-        // 2.5 probes at a 50% load factor, but 8.5 probes at 75%
-        if .capacity != 0 and .capacity - (.count + .deleted) > .capacity / 2 do
+        // Every insertion path runs this, so it is a single compare against a threshold
+        // computed once per resize. An empty me.table has a zero threshold and falls through.
+        if .count + .deleted < .growThreshold do
             return
 
-        let newCapacity = .capacity * 2
-        .reserve(newCapacity)
+        .reserve(.capacity * 2)
     }
 
     // Resizes the hash me.table to a new me.capacity, rehashing all existing elements.
@@ -247,7 +248,8 @@ impl HashTable
 
         // Copy the last me.table to the new me.table, removing me.deleted entries
         let oldCapacity = .capacity
-        .capacity = reqCapacity
+        .capacity       = reqCapacity
+        .growThreshold  = reqCapacity / 2
         let oldTablePtr = oldTable orelse cast([*] HashTableEntry'(K, V)) 1'u64
         for [i] in oldCapacity
         {
@@ -268,24 +270,49 @@ impl HashTable
 
     // Finds the correct index for a new key, handling collisions and me.deleted slots.
     // Uses linear probing to find the next available slot.
+    //
+    // Both loops test the cached hash first: an occupied slot that does not match is by far
+    // the most frequent outcome, and it must cost a single compare. A table that has never
+    // seen a removal takes the shorter loop, which has no deleted slot to remember.
     mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
-        var firstDeleted = Swag.U64.Max
-        let mask         = .capacity - 1
-        var index        = idx
-        let table        = .tablePtr()
+        let mask  = .capacity - 1
+        var index = idx
+        let table = .tablePtr()
 
+        if !.deleted
+        {
+            for
+            {
+                let entryHash = table[index].hash
+                if entryHash == hashVal
+                {
+                    if table[index].key == key do
+                        return index
+                }
+                elif entryHash == HashTable.HASH_FREE do
+                    return index
+
+                index = (index + 1) & mask
+            }
+        }
+
+        var firstDeleted = Swag.U64.Max
         for
         {
             let entryHash = table[index].hash
-            if entryHash == HashTable.HASH_FREE do
-                return firstDeleted != Swag.U64.Max ? firstDeleted : index
-
-            if entryHash == HashTable.HASH_DELETED and firstDeleted == Swag.U64.Max do
-                firstDeleted = index
-
-            if entryHash == hashVal and table[index].key == key do
-                return index
+            if entryHash == hashVal
+            {
+                if table[index].key == key do
+                    return index
+            }
+            elif entryHash < HashTable.HASH_FIRST
+            {
+                if entryHash == HashTable.HASH_FREE do
+                    return firstDeleted != Swag.U64.Max ? firstDeleted : index
+                if firstDeleted == Swag.U64.Max do
+                    firstDeleted = index
+            }
 
             index = (index + 1) & mask
         }
@@ -427,14 +454,21 @@ impl HashTable
         var index   = cast(u64) hashVal & mask
         let table   = .tablePtr()
 
-        while table[index].hash
+        // Read each slot hash once, and test the match before the end of chain: a lookup walks
+        // occupied slots, so that is the compare worth putting first
+        for
         {
-            if table[index].hash == hashVal and table[index].key == key do
-                return table + index
+            let entryHash = table[index].hash
+            if entryHash == hashVal
+            {
+                if table[index].key == key do
+                    return table + index
+            }
+            elif entryHash == HashTable.HASH_FREE do
+                return null
+
             index = (index + 1) & mask
         }
-
-        return null
     }
 
     // Tries to find the entry for a given key.

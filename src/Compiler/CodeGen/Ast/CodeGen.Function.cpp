@@ -435,6 +435,19 @@ namespace
         }
     }
 
+    // A parameter that needs addressable storage owns a local slot, which
+    // 'spillAddressableParametersToLocalSlots' fills from the payload registered for it here.
+    // 'materializeFunctionParameter' would instead hand back that slot's address right away,
+    // so the incoming argument would never be read and the spill would copy the still
+    // uninitialized slot onto itself. Register parameters avoid this because
+    // 'materializeRegisterParameters' loads them before any of that.
+    bool stackParameterNeedsEagerLoad(CodeGen& codeGen, const SymbolVariable& symVar)
+    {
+        return symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
+               symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&
+               codeGen.localStackBaseReg().isValid();
+    }
+
     void materializeStackParameters(CodeGen& codeGen, const SymbolFunction& symbolFunc, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         const std::vector<SymbolVariable*>& params = symbolFunc.parameters();
@@ -447,6 +460,17 @@ namespace
             const CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = paramInfos[i];
             if (paramInfo.isRegisterArg)
                 continue;
+
+            if (stackParameterNeedsEagerLoad(codeGen, *symVar))
+            {
+                CodeGenNodePayload symbolPayload;
+                symbolPayload.reg     = paramInfo.isFloat ? codeGen.nextVirtualFloatRegister() : codeGen.nextVirtualIntRegister();
+                symbolPayload.typeRef = symVar->typeRef();
+                CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
+                symbolPayload.setValueOrAddress(paramInfo.isIndirect);
+                codeGen.setVariablePayload(*symVar, symbolPayload);
+                continue;
+            }
 
             CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, *symVar, paramInfo);
         }

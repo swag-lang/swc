@@ -2,12 +2,30 @@ using Core
 
 var g_Codecs: Array'CodecDesc
 
-// Interface to describe a codec
+// Converts encoded audio incrementally between sound-file encodings.
+//
+// A codec instance is created per streaming voice. Implementations borrow the
+// input and output buffers only for the duration of each call and must never
+// read or write beyond the supplied byte lengths.
 public interface ICodec
 {
+    // Returns whether this codec can produce `encoding`.
     mtd canEncode(encoding: SoundFileEncoding)->bool
+
+    // Returns whether this codec can consume `encoding`.
     mtd canDecode(encoding: SoundFileEncoding)->bool
+
+    // Initializes decoder state and returns the number of input bytes consumed.
+    //
+    // `srcBuffer` contains up to `srcLength` bytes from the start of the encoded
+    // stream. Implementations may consume headers or initial sample data.
     mtd init(srcBuffer: [*] void, srcLength: u64)->u64 fail
+
+    // Decodes one chunk and reports produced and consumed byte counts.
+    //
+    // At most `destLength` bytes may be written to `destBuffer`, and at most
+    // `srcLength` bytes may be read from `srcBuffer`. `write` is the number of
+    // destination bytes produced; `read` is the number of source bytes consumed.
     mtd decode(destBuffer: [*] void, destLength: u64, srcBuffer: [*] void, srcLength: u64)->{ write, read: u64 } fail
 }
 
@@ -17,7 +35,10 @@ struct CodecDesc
     itf:  ICodec
 }
 
-// Register a codec
+// Registers a codec implementation for subsequent voice creation.
+//
+// `T` must implement [[Audio.ICodec]]. Registration stores its type and
+// interface dispatch table; codec instances are allocated on demand.
 public func(T) addCodec()
 {
     #assert(Reflection.hasInterface(#typeof(T), ICodec))
@@ -44,13 +65,14 @@ func getCodec(dstEncoding, srcEncoding: SoundFileEncoding)->#null *CodecDesc
     return found
 }
 
-// Base struct for all codec instances
+// Stores the source, destination, and concrete type of a codec instance.
 public struct Codec
 {
-    srcEncoding: SoundFileEncoding     // The original encoding
-    dstEncoding: SoundFileEncoding     // The requested encoding
+    srcEncoding: SoundFileEncoding // Encoding read from the sound file.
+    dstEncoding: SoundFileEncoding // Encoding requested by the active backend.
+    // Concrete codec type used for destruction.
     #[Swag.Late]
-    type: const *Swag.TypeInfoStruct     // The real type of the codec
+    type: const *Swag.TypeInfoStruct
 }
 
 // Initialize predefined codecs

@@ -1,6 +1,8 @@
 using Core
 
-// Convert a DB value to a percent
+// Converts a gain in decibels to a linear amplitude ratio.
+//
+// Values at or below `-100 dB` map to silence.
 public func convertDBToPercent(dbVolume: f32)->f32
 {
     if dbVolume > -100 do
@@ -8,7 +10,9 @@ public func convertDBToPercent(dbVolume: f32)->f32
     return 0.0
 }
 
-// Convert a percent value to DB
+// Converts a linear amplitude ratio to decibels.
+//
+// Zero and negative inputs map to `-100 dB`.
 public func convertPercentToDB(percentVolume: f32)->f32
 {
     if percentVolume > 0.0 do

@@ -237,7 +237,11 @@ func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) f
     }
 }
 
-// Load a wav file
+// Decodes WAV headers and optional payload bytes from an open stream.
+//
+// The stream must be positioned at the beginning of a RIFF or RIFX WAVE file.
+// Parsed properties are written to `file`; see [[Audio.SoundFile.load]] for the
+// path-based entry point.
 public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = true, loadMetaDatas = false) fail
 {
     enum Stage

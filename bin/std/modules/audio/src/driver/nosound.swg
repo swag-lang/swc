@@ -103,6 +103,7 @@ impl Voice
 
 public impl Voice
 {
+    // Sets the linear gain recorded by the no-sound backend.
     mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) fail
     {
         if !.handle do
@@ -111,6 +112,7 @@ public impl Voice
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
+    // Returns the linear gain recorded by the no-sound backend.
     mtd getVolumeNoSound()->f32 fail
     {
         if !.handle do
@@ -119,6 +121,7 @@ public impl Voice
         return handle.volume
     }
 
+    // Sets the frequency ratio recorded by the no-sound backend.
     mtd setFrequencyRatioNoSound(ratio: f32, batchID: u32 = 0) fail
     {
         if !.handle do
@@ -127,6 +130,7 @@ public impl Voice
         handle.frequencyRatio = ratio
     }
 
+    // Validates and records no-sound bus routing without producing audio.
     mtd setRootingNoSound(buses: const [..] *Bus) fail
     {
         if !.handle do
@@ -172,6 +176,7 @@ impl Bus
 
 public impl Bus
 {
+    // Sets the linear bus gain recorded by the no-sound backend.
     mtd setVolumeNoSound(volume: f32, batchID: u32 = 0) fail
     {
         if !.handle do
@@ -180,6 +185,7 @@ public impl Bus
         handle.volume = Math.clamp(volume, 0, 1)
     }
 
+    // Returns the linear bus gain recorded by the no-sound backend.
     mtd getVolumeNoSound()->f32 fail
     {
         if !.handle do

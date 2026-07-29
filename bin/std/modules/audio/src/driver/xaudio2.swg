@@ -299,7 +299,7 @@ impl Voice
 
 public impl Voice
 {
-    // Set the playing voice volume between [0..1].
+    // Sets this voice's XAudio2 gain as a linear value from `0` through `1`.
     mtd setVolumeXAudio2(volume: f32, batchID: u32 = 0) fail
     {
         if !.handle do
@@ -313,7 +313,7 @@ public impl Voice
             fail SystemError{"setVolume", errorID: cast(u64) hr}
     }
 
-    // Returns the actual volume.
+    // Returns this voice's current XAudio2 linear gain.
     mtd getVolumeXAudio2()->f32 fail
     {
         if !.handle do
@@ -326,9 +326,11 @@ public impl Voice
         return volume
     }
 
-    // Set the playing pitch.
-    // The voice should have been created with 'VoiceCreateFlags.AcceptPitch'.
-    // See [[Voice.create]]
+    // Sets this voice's XAudio2 playback frequency ratio.
+    //
+    // The voice must have been created with
+    // [[Audio.VoiceCreateFlags.AcceptPitch]]. Prefer
+    // [[Audio.Voice.setFrequencyRatio]] in backend-independent code.
     mtd setFrequencyRatioXAudio2(ratio: f32, batchID: u32 = 0) fail
     {
         if !.handle do
@@ -341,8 +343,10 @@ public impl Voice
             fail SystemError{"setFrequencyRatio", errorID: cast(u64) hr}
     }
 
-    // Root a voice to a given list of buses.
-    // An empty 'buses' slice roots the voice only to the main bus (the default).
+    // Replaces this voice's XAudio2 output buses.
+    //
+    // An empty slice routes to the mastering voice. Prefer
+    // [[Audio.Voice.setRooting]] in backend-independent code.
     mtd setRootingXAudio2(buses: const [..] *Bus) fail
     {
         const MaxBus = 16
@@ -424,7 +428,7 @@ impl Bus
 
 public impl Bus
 {
-    // Set the playing bus volume between [0..1]
+    // Sets this XAudio2 submix gain as a linear value from `0` through `1`.
     mtd setVolumeXAudio2(volume: f32, batchID: u32 = 0) fail
     {
         if !.handle do
@@ -438,7 +442,7 @@ public impl Bus
             fail SystemError{"setVolume", errorID: cast(u64) hr}
     }
 
-    // Returns the actual volume
+    // Returns this XAudio2 submix's current linear gain.
     mtd getVolumeXAudio2()->f32 fail
     {
         if !.handle do

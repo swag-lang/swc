@@ -2105,33 +2105,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#JSon_zapBlanks">JSon.zapBlanks</a></td><td><p>Performs the zap blanks operation.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginElement">TagBin.beginElement</a></td><td><p>Begin reading a field element identified by <span class="code-inline">val</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginRoot">TagBin.beginRoot</a></td><td><p>Begin reading the root container of the serialized data.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginSection">TagBin.beginSection</a></td><td><p>Begin reading a new section with the specified <span class="code-inline">kind</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginSequence">TagBin.beginSequence</a></td><td><p>Begin reading a sequence (array) of elements of type <span class="code-inline">typeElem</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginStruct">TagBin.beginStruct</a></td><td><p>Begin reading a struct of the given <span class="code-inline">structType</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginValue">TagBin.beginValue</a></td><td><p>Begin reading a value within the current context.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endElement">TagBin.endElement</a></td><td><p>Finish reading the current field element.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endRoot">TagBin.endRoot</a></td><td><p>Finish reading the root container.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endSection">TagBin.endSection</a></td><td><p>Finish reading the current section.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endSequence">TagBin.endSequence</a></td><td><p>Finish reading the current sequence.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endStruct">TagBin.endStruct</a></td><td><p>Finish reading the current struct.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endValue">TagBin.endValue</a></td><td><p>Finish reading a value within the current context.</p>
-</td></tr>
 <tr><td class="code-type"><a href="#TagBin_getVersion">TagBin.getVersion</a></td><td><p>Get the version number of the current section.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_isTextual">TagBin.isTextual</a></td><td><p>Check if this serializer uses textual representation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TagBin_peekStructFieldCrcs">TagBin.peekStructFieldCrcs</a></td><td><p>Performs the peek struct field crcs operation.</p>
 </td></tr>
@@ -2258,6 +2232,32 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <tr><td class="code-type"><a href="#JSon_writeIndent">JSon.writeIndent</a></td><td><p>Writes indentation based on the current indent level and settings.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#JSon_writeNative">JSon.writeNative</a></td><td><p>Writes a native value (bool, float, int, string) as a JSON value.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginElement">TagBin.beginElement</a></td><td><p>Begin reading a field element identified by <span class="code-inline">val</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginRoot">TagBin.beginRoot</a></td><td><p>Begin reading the root container of the serialized data.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginSection">TagBin.beginSection</a></td><td><p>Begin reading a new section with the specified <span class="code-inline">kind</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginSequence">TagBin.beginSequence</a></td><td><p>Begin reading a sequence (array) of elements of type <span class="code-inline">typeElem</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginStruct">TagBin.beginStruct</a></td><td><p>Begin reading a struct of the given <span class="code-inline">structType</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginValue">TagBin.beginValue</a></td><td><p>Begin reading a value within the current context.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endElement">TagBin.endElement</a></td><td><p>Finish reading the current field element.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endRoot">TagBin.endRoot</a></td><td><p>Finish reading the root container.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endSection">TagBin.endSection</a></td><td><p>Finish reading the current section.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endSequence">TagBin.endSequence</a></td><td><p>Finish reading the current sequence.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endStruct">TagBin.endStruct</a></td><td><p>Finish reading the current struct.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endValue">TagBin.endValue</a></td><td><p>Finish reading a value within the current context.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_isTextual">TagBin.isTextual</a></td><td><p>Check if this serializer uses textual representation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TagBin_startWrite">TagBin.startWrite</a></td><td><p>Begins writing to a specified output buffer</p>
 </td></tr>
@@ -7239,33 +7239,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#TagBin_beginElement">beginElement</a></td><td><p>Begin reading a field element identified by <span class="code-inline">val</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginRoot">beginRoot</a></td><td><p>Begin reading the root container of the serialized data.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginSection">beginSection</a></td><td><p>Begin reading a new section with the specified <span class="code-inline">kind</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginSequence">beginSequence</a></td><td><p>Begin reading a sequence (array) of elements of type <span class="code-inline">typeElem</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginStruct">beginStruct</a></td><td><p>Begin reading a struct of the given <span class="code-inline">structType</span>.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_beginValue">beginValue</a></td><td><p>Begin reading a value within the current context.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endElement">endElement</a></td><td><p>Finish reading the current field element.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endRoot">endRoot</a></td><td><p>Finish reading the root container.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endSection">endSection</a></td><td><p>Finish reading the current section.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endSequence">endSequence</a></td><td><p>Finish reading the current sequence.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endStruct">endStruct</a></td><td><p>Finish reading the current struct.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_endValue">endValue</a></td><td><p>Finish reading a value within the current context.</p>
-</td></tr>
 <tr><td class="code-type"><a href="#TagBin_getVersion">getVersion</a></td><td><p>Get the version number of the current section.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#TagBin_isTextual">isTextual</a></td><td><p>Check if this serializer uses textual representation.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TagBin_peekStructFieldCrcs">peekStructFieldCrcs</a></td><td><p>Performs the peek struct field crcs operation.</p>
 </td></tr>
@@ -7484,6 +7458,32 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#TagBin_beginElement">beginElement</a></td><td><p>Begin reading a field element identified by <span class="code-inline">val</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginRoot">beginRoot</a></td><td><p>Begin reading the root container of the serialized data.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginSection">beginSection</a></td><td><p>Begin reading a new section with the specified <span class="code-inline">kind</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginSequence">beginSequence</a></td><td><p>Begin reading a sequence (array) of elements of type <span class="code-inline">typeElem</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginStruct">beginStruct</a></td><td><p>Begin reading a struct of the given <span class="code-inline">structType</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_beginValue">beginValue</a></td><td><p>Begin reading a value within the current context.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endElement">endElement</a></td><td><p>Finish reading the current field element.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endRoot">endRoot</a></td><td><p>Finish reading the root container.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endSection">endSection</a></td><td><p>Finish reading the current section.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endSequence">endSequence</a></td><td><p>Finish reading the current sequence.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endStruct">endStruct</a></td><td><p>Finish reading the current struct.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_endValue">endValue</a></td><td><p>Finish reading a value within the current context.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TagBin_isTextual">isTextual</a></td><td><p>Check if this serializer uses textual representation.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#TagBin_startWrite">startWrite</a></td><td><p>Begins writing to a specified output buffer</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TagBin_writeNative">writeNative</a></td><td><p>Writes a native value to the output buffer, with special handling for strings</p>
@@ -14537,110 +14537,9 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">zapBlanks</span>()</span></div>
 </section>
 <section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_beginElement"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginElement</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L427">[src]</a></td></tr></table>
-<p>Begin reading a field element identified by <span class="code-inline">val</span>. Returns true if the element exists in the stream and should be processed, false to skip it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginElement</span>(val: <span class="SCst">TypeValue</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
-<p>Begins a new element inside the current section and records its metadata</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginElement</span>(val: <span class="SCst">TypeValue</span>)</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_beginRoot"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginRoot</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L292">[src]</a></td></tr></table>
-<p>Begin reading the root container of the serialized data. Validates the root signature to ensure the stream contains valid serialized data.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginRoot</span>() <span class="SKwd">fail</span></span></div>
-<p>Begins the root section of the serialization structure</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginRoot</span>()</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_beginSection"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSection</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L307">[src]</a></td></tr></table>
-<p>Begin reading a new section with the specified <span class="code-inline">kind</span>. Optionally skips reading the fat table if <span class="code-inline">skipFat</span> is true for performance optimization.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSection</span>(kind: <span class="SCst"><a href="#Core_Serialization_SectionKind">SectionKind</a></span>, skipFat = <span class="SKwd">false</span>) <span class="SKwd">fail</span></span></div>
-<p>Begins a new section of the specified kind</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSection</span>(kind: <span class="SCst"><a href="#Core_Serialization_SectionKind">SectionKind</a></span>)</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_beginSequence"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSequence</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L592">[src]</a></td></tr></table>
-<p>Begin reading a sequence (array) of elements of type <span class="code-inline">typeElem</span>. Updates <span class="code-inline">countElem</span> with the actual number of elements and returns true for bulk reading optimization.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSequence</span>(typeElem: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, data: <span class="SItr">#null</span> *<span class="STpe">u8</span>, countElem: *<span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
-<p>Begins a sequence and determines if elements can be written in bulk as raw data</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSequence</span>(typeElem: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, data: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>, countElem: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_beginStruct"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginStruct</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L371">[src]</a></td></tr></table>
-<p>Begin reading a struct of the given <span class="code-inline">structType</span>. Returns false for normal struct processing, true for special handling cases.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginStruct</span>(structType: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, _structData: <span class="SItr">#null</span> [*] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
-<p>Begins a new struct, writing versioning and section metadata</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginStruct</span>(structType: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, _structData: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_beginValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L583">[src]</a></td></tr></table>
-<p>Begin reading a value within the current context. Currently no special processing is required, but this maintains the symmetric API.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">beginValue</span>() <span class="SKwd">fail</span></span></div>
-<p>Begins a value (stubbed out)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">beginValue</span>()</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_endElement"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endElement</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L561">[src]</a></td></tr></table>
-<p>Finish reading the current field element. Clears any pending native type conversion state.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endElement</span>(_val: <span class="SCst">TypeValue</span>) <span class="SKwd">fail</span></span></div>
-<p>Ends the current element (stubbed out)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">endElement</span>(val: <span class="SCst">TypeValue</span>)</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_endRoot"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endRoot</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L303">[src]</a></td></tr></table>
-<p>Finish reading the root container. Currently no cleanup is required, but this maintains the symmetric begin/end API.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">endRoot</span>() <span class="SKwd">fail</span></span></div>
-<p>Ends the root section and asserts that all subsections have been closed</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endRoot</span>()</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_endSection"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSection</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L356">[src]</a></td></tr></table>
-<p>Finish reading the current section. Updates the stream position and releases the section back to the pool.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSection</span>() <span class="SKwd">fail</span></span></div>
-<p>Ends the current section and writes out any required metadata</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSection</span>()</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_endSequence"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSequence</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L688">[src]</a></td></tr></table>
-<p>Finish reading the current sequence. Currently no cleanup is required, but this maintains the symmetric API.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">endSequence</span>() <span class="SKwd">fail</span></span></div>
-<p>Ends a sequence (stubbed out)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">endSequence</span>()</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_endStruct"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endStruct</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L420">[src]</a></td></tr></table>
-<p>Finish reading the current struct. Closes the current section that was opened by <span class="code-inline">beginStruct</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endStruct</span>() <span class="SKwd">fail</span></span></div>
-<p>Ends the current struct section</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endStruct</span>()</span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_endValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L588">[src]</a></td></tr></table>
-<p>Finish reading a value within the current context. Currently no cleanup is required, but this maintains the symmetric API.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">endValue</span>() <span class="SKwd">fail</span></span></div>
-<p>Ends a value (stubbed out)</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">endValue</span>()</span></div>
-</section>
-<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TagBin_getVersion"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.getVersion</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L711">[src]</a></td></tr></table>
 <p>Get the version number of the current section. Returns 0 if no sections are active, otherwise returns the version of the most recent section.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVersion</span>()-&gt;<span class="STpe">u32</span></span></div>
-</section>
-<section class="api-symbol">
-<table class="api-item"><tr><td><span id="TagBin_isTextual"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.isTextual</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L704">[src]</a></td></tr></table>
-<p>Check if this serializer uses textual representation. Always returns false since this is a binary serializer.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">isTextual</span>()-&gt;<span class="STpe">bool</span></span></div>
-<p>Tagbin is a binary format.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
-<span class="SKwd">mtd</span> <span class="SFct">isTextual</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <table class="api-item"><tr><td><span id="TagBin_peekStructFieldCrcs"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.peekStructFieldCrcs</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L249">[src]</a></td></tr></table>
@@ -14995,6 +14894,107 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <table class="api-item"><tr><td><span id="JSon_writeNative"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">JSon.writeNative</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/json.swg#L170">[src]</a></td></tr></table>
 <p>Writes a native value (bool, float, int, string) as a JSON value.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">NT</span>) <span class="SFct">writeNative</span>(value: <span class="SCst">NT</span>)</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_beginElement"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginElement</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L427">[src]</a></td></tr></table>
+<p>Begin reading a field element identified by <span class="code-inline">val</span>. Returns true if the element exists in the stream and should be processed, false to skip it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginElement</span>(val: <span class="SCst">TypeValue</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+<p>Begins a new element inside the current section and records its metadata</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginElement</span>(val: <span class="SCst">TypeValue</span>)</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_beginRoot"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginRoot</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L292">[src]</a></td></tr></table>
+<p>Begin reading the root container of the serialized data. Validates the root signature to ensure the stream contains valid serialized data.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginRoot</span>() <span class="SKwd">fail</span></span></div>
+<p>Begins the root section of the serialization structure</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginRoot</span>()</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_beginSection"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSection</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L307">[src]</a></td></tr></table>
+<p>Begin reading a new section with the specified <span class="code-inline">kind</span>. Optionally skips reading the fat table if <span class="code-inline">skipFat</span> is true for performance optimization.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSection</span>(kind: <span class="SCst"><a href="#Core_Serialization_SectionKind">SectionKind</a></span>, skipFat = <span class="SKwd">false</span>) <span class="SKwd">fail</span></span></div>
+<p>Begins a new section of the specified kind</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSection</span>(kind: <span class="SCst"><a href="#Core_Serialization_SectionKind">SectionKind</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_beginSequence"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSequence</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L592">[src]</a></td></tr></table>
+<p>Begin reading a sequence (array) of elements of type <span class="code-inline">typeElem</span>. Updates <span class="code-inline">countElem</span> with the actual number of elements and returns true for bulk reading optimization.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSequence</span>(typeElem: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, data: <span class="SItr">#null</span> *<span class="STpe">u8</span>, countElem: *<span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+<p>Begins a sequence and determines if elements can be written in bulk as raw data</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSequence</span>(typeElem: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, data: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>, countElem: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_beginStruct"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginStruct</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L371">[src]</a></td></tr></table>
+<p>Begin reading a struct of the given <span class="code-inline">structType</span>. Returns false for normal struct processing, true for special handling cases.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginStruct</span>(structType: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, _structData: <span class="SItr">#null</span> [*] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+<p>Begins a new struct, writing versioning and section metadata</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginStruct</span>(structType: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, _structData: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_beginValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L583">[src]</a></td></tr></table>
+<p>Begin reading a value within the current context. Currently no special processing is required, but this maintains the symmetric API.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">beginValue</span>() <span class="SKwd">fail</span></span></div>
+<p>Begins a value (stubbed out)</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">beginValue</span>()</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_endElement"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endElement</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L561">[src]</a></td></tr></table>
+<p>Finish reading the current field element. Clears any pending native type conversion state.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endElement</span>(_val: <span class="SCst">TypeValue</span>) <span class="SKwd">fail</span></span></div>
+<p>Ends the current element (stubbed out)</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">endElement</span>(val: <span class="SCst">TypeValue</span>)</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_endRoot"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endRoot</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L303">[src]</a></td></tr></table>
+<p>Finish reading the root container. Currently no cleanup is required, but this maintains the symmetric begin/end API.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">endRoot</span>() <span class="SKwd">fail</span></span></div>
+<p>Ends the root section and asserts that all subsections have been closed</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endRoot</span>()</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_endSection"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSection</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L356">[src]</a></td></tr></table>
+<p>Finish reading the current section. Updates the stream position and releases the section back to the pool.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSection</span>() <span class="SKwd">fail</span></span></div>
+<p>Ends the current section and writes out any required metadata</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSection</span>()</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_endSequence"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSequence</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L688">[src]</a></td></tr></table>
+<p>Finish reading the current sequence. Currently no cleanup is required, but this maintains the symmetric API.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">endSequence</span>() <span class="SKwd">fail</span></span></div>
+<p>Ends a sequence (stubbed out)</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">endSequence</span>()</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_endStruct"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endStruct</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L420">[src]</a></td></tr></table>
+<p>Finish reading the current struct. Closes the current section that was opened by <span class="code-inline">beginStruct</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endStruct</span>() <span class="SKwd">fail</span></span></div>
+<p>Ends the current struct section</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endStruct</span>()</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_endValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L588">[src]</a></td></tr></table>
+<p>Finish reading a value within the current context. Currently no cleanup is required, but this maintains the symmetric API.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">endValue</span>() <span class="SKwd">fail</span></span></div>
+<p>Ends a value (stubbed out)</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">endValue</span>()</span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TagBin_isTextual"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.isTextual</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L704">[src]</a></td></tr></table>
+<p>Check if this serializer uses textual representation. Always returns false since this is a binary serializer.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">isTextual</span>()-&gt;<span class="STpe">bool</span></span></div>
+<p>Tagbin is a binary format.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">isTextual</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
 <table class="api-item"><tr><td><span id="TagBin_startWrite"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.startWrite</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L110">[src]</a></td></tr></table>

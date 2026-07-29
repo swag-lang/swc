@@ -1,36 +1,30 @@
 /*
-'Std.Audio' is a module to decode and play sound files.
-Under windows, it is based on the 'xaudio2' library.
-The no-sound driver can be selected with [[Audio.createEngine]] and [[Audio.DriverKind.NoSound]] when code needs to run without an audio device, for example in tests or CI.
-# How to play a sound
-First, you have to initialize the audio engine by calling [[Audio.createEngine]].
+Audio loads WAV files and plays them through a process-wide audio engine.
+
+The high-level API revolves around three objects: [[Audio.SoundFile]] describes
+decoded or streamable source data, [[Audio.Voice]] controls one playback
+instance, and [[Audio.Bus]] groups voices for shared volume and routing. The
+default Windows backend is XAudio2; [[Audio.DriverKind.NoSound]] provides the
+same lifecycle without opening an audio device.
+
+Create the engine before loading or playing sounds and destroy it only after
+all voices and buses are finished. A fire-and-forget voice created by
+[[Audio.Voice.play]] destroys itself at the end of playback.
+
 ```swag
-Audio.createEngine()
-defer Audio.destroyEngine() // Don't forget to destroy the engine when you are done
+#import("audio")
+
+using Audio
+
+try createEngine()
+defer destroyEngine()
+
+let sound = try SoundFile.load("assets/notify.wav")
+try Voice.play(&sound)
 ```
-To explicitly run without audio hardware:
-```swag
-Audio.createNoSoundEngine()
-defer Audio.destroyEngine()
-```
-You then have to load a sound file.
-```swag
-let soundFile = Audio.SoundFile.Load("mySound.wav")
-```
-Note that by default, the sound file will load all of its datas in memory. If you want the sound to be loaded only when played, set 'loadDatas' to false.
-```swag
-let soundFile = Audio.SoundFile.Load("mySound.wav", loadDatas = false)
-```
-Once you have a sound file, the simplest way to play it is by calling [[Voice.play]]. The sound will be played once, until the end, and will be destroyed.
-```swag
-Voice.play(soundFile)
-```
-To have more control, you could also use [[Voice.create]] then [[Voice.Play]] on the created sound. That way you will recieve a [[Voice]] object you can play with.
-```swag
-let voice = Voice.create(&soundFile)
-voice.setVolume(0.5)
-voice.play(Loop)
-```
+
+Failures use normal Swag error propagation. Loading currently accepts WAV
+files; unsupported containers or encodings fail instead of being guessed.
 */
 
 #import("core")
@@ -50,5 +44,7 @@ voice.play(Loop)
 
     cfg.genDoc.kind            = .Api
     cfg.genDoc.outputName      = "std.audio"
+    cfg.genDoc.titleContent    = "Audio"
+    cfg.genDoc.titleToc        = "Audio documentation"
     cfg.genDoc.css             = "css/style.css"
 }

@@ -1,13 +1,17 @@
 using Swag, Core, Core.Errors
 
+// Selects the engine backend.
 public enum DriverKind
 {
-    Default
-    NoSound
-    XAudio2
+    Default // Selects XAudio2 on Windows and the no-sound backend elsewhere.
+    NoSound // Preserves audio state and validation without producing sound.
+    XAudio2 // Uses the Windows XAudio2 backend and fails where it is unavailable.
 }
 
+// Stores an opaque backend handle for a voice.
 public alias VoiceHandle = #null *void
+
+// Stores an opaque backend handle for a bus.
 public alias BusHandle = #null *void
 
 struct DriverNative
@@ -220,6 +224,10 @@ impl Voice
 
 public impl Voice
 {
+    // Sets this voice's linear gain.
+    //
+    // `volume` is clamped to the range `0` through `1`. `batchID` is forwarded
+    // to backends that support deferred operation sets.
     mtd setVolume(volume: f32, batchID: u32 = 0) fail
     {
         switch g_Driver.kind
@@ -237,6 +245,7 @@ public impl Voice
         }
     }
 
+    // Returns this voice's current linear gain.
     mtd getVolume()->f32 fail
     {
         switch g_Driver.kind
@@ -256,6 +265,11 @@ public impl Voice
         return 0
     }
 
+    // Sets the playback frequency ratio.
+    //
+    // `1` preserves the source pitch, values below `1` lower it, and values
+    // above `1` raise it. Create the voice with
+    // [[Audio.VoiceCreateFlags.AcceptPitch]] before changing this value.
     mtd setFrequencyRatio(ratio: f32, batchID: u32 = 0) fail
     {
         switch g_Driver.kind
@@ -273,6 +287,10 @@ public impl Voice
         }
     }
 
+    // Replaces the buses that receive this voice.
+    //
+    // An empty slice routes directly to the mastering output. Every bus must be
+    // valid and must outlive this routing relationship.
     mtd setRooting(buses: const [..] *Bus) fail
     {
         switch g_Driver.kind
@@ -331,6 +349,10 @@ impl Bus
 
 public impl Bus
 {
+    // Sets this bus's linear gain.
+    //
+    // `volume` is clamped to the range `0` through `1`. `batchID` is forwarded
+    // to backends that support deferred operation sets.
     mtd setVolume(volume: f32, batchID: u32 = 0) fail
     {
         switch g_Driver.kind
@@ -348,6 +370,7 @@ public impl Bus
         }
     }
 
+    // Returns this bus's current linear gain.
     mtd getVolume()->f32 fail
     {
         switch g_Driver.kind

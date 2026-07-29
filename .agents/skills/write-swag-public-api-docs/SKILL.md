@@ -34,6 +34,16 @@ Each namespace also has a standalone index of its child namespaces and directly 
 6. Never expose identifiers reserved to compiler-generated declarations, including names beginning with `__`. Fix the generator boundary if one appears; do not work around it in prose.
 7. Document an interface method at its interface declaration. Do not duplicate the same contract on each `impl Interface for Type`.
 
+For one-to-one native bindings such as Win32, GDI, XInput, XAudio2, or raw
+OpenGL declarations, do not copy or paraphrase the upstream API reference into
+source comments. Leave that binding surface alone unless the user explicitly
+puts it in scope. Document only Swag-specific behavior, ownership, error
+translation, helpers, or deviations from the native contract, and link to the
+authoritative Microsoft or Khronos documentation from module-level prose when
+the binding itself is documented. Do not use `--require-complete` to judge a
+raw binding index unless complete native-binding documentation was explicitly
+requested.
+
 ## Place comments consistently
 
 - Put module overview prose at the top of `module.swg`, before imports and `#run`. Confirm it appears below the module title in the generated page.

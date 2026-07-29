@@ -494,4 +494,3 @@ Utf8 DocGenerator::renderMarkdownForTest(TaskContext& ctx, const std::string_vie
 }
 
 SWC_END_NAMESPACE();
-

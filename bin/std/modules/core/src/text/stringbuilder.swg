@@ -1,9 +1,10 @@
 #global public
 #global namespace StrConv
 
+// Represents string builder.
 struct StringBuilder
 {
-    buffer: ConcatBuffer
+    buffer: ConcatBuffer // Buffer associated with this value.
 }
 
 impl StringBuilder

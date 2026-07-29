@@ -41,6 +41,7 @@ enum EditBoxFlags
     ClearButton       // Show a clear ("x") button when content is not empty
 }
 
+// Represents edit box.
 struct EditBox
 {
     using wnd: Wnd     // Base window interface

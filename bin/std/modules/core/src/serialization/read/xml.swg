@@ -9,25 +9,28 @@ In the case of a struct, the XML file must represent the structure layout (order
 */
 public struct Xml
 {
-    stream:    ByteStream
-    line, col: u64 = 1
-    stackTags: Array'(string)
+    stream:    ByteStream // Stream associated with this value.
+    line, col: u64 = 1 // Line associated with this value.
+    stackTags: Array'(string) // Stack tags associated with this value.
 }
 
 public impl Xml
 {
+    // Returns version.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd getVersion()->u32
     {
         return 0
     }
 
+    // Returns whether textual.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
         return true
     }
 
+    // Reads tag.
     mtd readTag()->string fail
     {
         .zapBlanks()
@@ -47,6 +50,7 @@ public impl Xml
         return Latin1.trim(cast(string) (notnull .stream.readBuffer)[start until end])
     }
 
+    // Reads start tag.
     mtd readStartTag()->string fail
     {
         let tag = .readTag()
@@ -54,6 +58,7 @@ public impl Xml
         return tag
     }
 
+    // Reads end tag.
     mtd readEndTag() fail
     {
         let tag   = .readTag()
@@ -62,6 +67,7 @@ public impl Xml
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
     }
 
+    // Returns error.
     mtd getError(val: string)->SyntaxError
     {
         var err: retval
@@ -72,6 +78,7 @@ public impl Xml
         return err
     }
 
+    // Performs the zap blanks operation.
     mtd zapBlanks()
     {
         var c = .stream.peekU8()
@@ -92,37 +99,44 @@ public impl Xml
         }
     }
 
+    // Defines start read.
     mtd startRead(input: const [..] u8)
     {
         .stream = ByteStream.openRead(input)
     }
 
+    // Converts this value to next sequence element.
     mtd toNextSequenceElement(_countElem: *u64)->bool
     {
         let c = .stream.peekU8()
         return c != '<'
     }
 
+    // Begins section.
     mtd beginSection(_kind: SectionKind) fail
     {
         discard .readTag()
     }
 
+    // Performs the end section operation.
     mtd endSection() fail
     {
         discard .readTag()
     }
 
+    // Begins root.
     mtd beginRoot() fail
     {
         discard .readStartTag()
     }
 
+    // Performs the end root operation.
     mtd endRoot() fail
     {
         .readEndTag()
     }
 
+    // Begins element.
     mtd beginElement(val: TypeValue)->bool fail
     {
         let tag = .readStartTag()
@@ -131,6 +145,7 @@ public impl Xml
         return true
     }
 
+    // Performs the end element operation.
     mtd endElement(_val: TypeValue) fail
     {
         .readEndTag()
@@ -138,20 +153,26 @@ public impl Xml
 
     #[Warning("Wrn0006", WarningLevel.Disable)]
     {
+        // Begins struct.
         mtd beginStruct(structType: typeinfo, structData: const *u8)->bool fail
         {
             return false
         }
 
+        // Performs the end struct operation.
         mtd endStruct() fail {}
 
+        // Begins sequence.
         mtd beginSequence(_typeElem: typeinfo, _data: *u8, _countElem: *u64)->bool fail
         {
             return false
         }
 
+        // Performs the end sequence operation.
         mtd endSequence() fail {}
+        // Begins value.
         mtd beginValue() fail {}
+        // Performs the end value operation.
         mtd endValue() fail {}
     }
 
@@ -159,6 +180,7 @@ public impl Xml
     // VALUES
     /////////////////////////////////
 
+    // Reads a native value at the current XML position.
     mtd(NT) readNative()->NT fail
     {
         .zapBlanks()

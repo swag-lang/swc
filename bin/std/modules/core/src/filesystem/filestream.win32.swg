@@ -6,6 +6,7 @@ using Win32
 
 impl FileStream
 {
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         .close()

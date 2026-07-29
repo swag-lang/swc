@@ -16,17 +16,17 @@ struct Decimal
     nd:       s64          // number of digits used
     dp:       s64          // decimal point
     neg:      bool         // negative flag
-    bigtrunc: bool
-    mantissa: u64
-    trunc:    bool
-    exp:      s64
+    bigtrunc: bool // Bigtrunc associated with this value.
+    mantissa: u64 // Mantissa associated with this value.
+    trunc:    bool // Trunc associated with this value.
+    exp:      s64 // Exp associated with this value.
 }
 
 struct DecimalSlice
 {
-    d:      [..] u8
-    nd, dp: s64
-    neg:    bool
+    d:      [..] u8 // D associated with this value.
+    nd, dp: s64 // Nd associated with this value.
+    neg:    bool // Neg associated with this value.
 }
 
 struct LeftCheat

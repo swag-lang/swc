@@ -5,12 +5,12 @@ using Pixel
 // Used to animate the blending of a color.
 struct BlendColor
 {
-    curVec4:   Math.Vector4
-    startVec4: Math.Vector4
-    destVec4:  Math.Vector4
-    factor:    f32
-    speed:     f32 = 8
-    themeCrc:  u32 = Swag.U32.Max
+    curVec4:   Math.Vector4 // Cur vec4 associated with this value.
+    startVec4: Math.Vector4 // Start vec4 associated with this value.
+    destVec4:  Math.Vector4 // Dest vec4 associated with this value.
+    factor:    f32 // Factor associated with this value.
+    speed:     f32 = 8 // Speed associated with this value.
+    themeCrc:  u32 = Swag.U32.Max // Theme crc associated with this value.
 }
 
 impl BlendColor

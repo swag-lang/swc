@@ -2,24 +2,26 @@
 
 using Core, Pixel
 
+// Selects icon bar flags.
 #[Swag.EnumFlags]
 enum IconBarFlags
 {
-    Zero = 0
-    Vertical
+    Zero = 0 // No flags are enabled.
+    Vertical // Enables vertical.
 }
 
+// Represents icon bar.
 struct IconBar
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    iconBarFlags     = IconBarFlags.Zero
-    iconSize:    f32
-    iconPadding: f32 = 4
+    iconBarFlags     = IconBarFlags.Zero // Icon bar flags associated with this value.
+    iconSize:    f32 // Icon size associated with this value.
+    iconPadding: f32 = 4 // Icon padding associated with this value.
 
-    sigUpdateState:  SigArray'func||(*CommandStateEvent)
-    sigCheckChanged: SigArray'func||(*IconButton)
-    sigPressed:      SigArray'func||(*IconButton)
+    sigUpdateState:  SigArray'func||(*CommandStateEvent) // Signal emitted when update state.
+    sigCheckChanged: SigArray'func||(*IconButton) // Signal emitted when check changed.
+    sigPressed:      SigArray'func||(*IconButton) // Signal emitted when pressed.
 }
 
 impl IWnd for IconBar
@@ -33,6 +35,7 @@ impl IWnd for IconBar
 
 impl IconBar
 {
+    // Computes layout.
     mtd computeLayout()
     {
         for c in .childs
@@ -51,6 +54,7 @@ impl IconBar
             .resize(size, .iconSize + pad)
     }
 
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: #null WndId = null)->*IconBar
     {

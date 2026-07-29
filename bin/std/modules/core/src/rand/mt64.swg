@@ -10,6 +10,7 @@
 
 #global namespace Random
 
+// Defines nn.
 public const NN = 312
 
 const MID      = NN / 2
@@ -18,14 +19,17 @@ const MATRIX_A = 0xB5026F5AA96619E9'u64
 const UM       = 0xFFFFFFFF80000000'u64
 const LM       = 0x7FFFFFFF'u64
 
+// Represents mt64.
 public struct Mt64
 {
-    mt:  [NN] u64
-    mti: u64
+    mt:  [NN] u64 // Mt associated with this value.
+    mti: u64 // Mti associated with this value.
 }
 
 public impl Mt64
 {
+    // Performs the seed u64 operation.
+    // Performs the next u64 operation.
     #[Swag.Safety(.Overflow, false)]
     mtd seedU64(seed: u64)
     {
@@ -38,6 +42,7 @@ public impl Mt64
         }
     }
 
+    // Performs the next u64 operation.
     #[Swag.Safety(.Overflow, false)]
     mtd seedU64(seed: const [..] u64)
     {
@@ -81,6 +86,7 @@ public impl Mt64
     }
 
     #[Swag.Safety(.Overflow, false)]
+    // Returns the next pseudorandom 64-bit value.
     mtd nextU64()->u64
     {
         if .mti >= NN

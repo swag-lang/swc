@@ -8,26 +8,28 @@
 #global public
 #global namespace Latin1
 
+// Selects char attribute.
 #[Swag.EnumFlags]
 enum CharAttribute
 {
-    Zero = 0
-    Control
-    Punctuation
-    BinDigit
-    HexDigit
-    Digit
-    Symbol
-    Spacing
-    Upper
-    Lower
-    Printable
-    LowerUtf8
-    UpperUtf8
-    Graphical = Printable | Spacing
-    Letter    = Lower | Upper
+    Zero = 0 // No flags are enabled.
+    Control // Selects control.
+    Punctuation // Selects punctuation.
+    BinDigit // Selects bin digit.
+    HexDigit // Selects hex digit.
+    Digit // Selects digit.
+    Symbol // Selects symbol.
+    Spacing // Selects spacing.
+    Upper // Selects upper.
+    Lower // Selects lower.
+    Printable // Selects printable.
+    LowerUtf8 // Selects lower utf8.
+    UpperUtf8 // Selects upper utf8.
+    Graphical = Printable | Spacing // Selects graphical.
+    Letter    = Lower | Upper // Selects letter.
 }
 
+// Defines char properties.
 const CharProperties: [256] CharAttribute = [
     Control,                                     // '\x00'
     Control,                                     // '\x01'

@@ -103,45 +103,45 @@ internal
 
     struct SymFreq
     {
-        key:      u16
-        symIndex: u16
+        key:      u16 // Key associated with this value.
+        symIndex: u16 // Index of sym.
     }
 
     struct Compressor
     {
-        compressFlags:    u32
-        maxProbes:        [2] u32
-        greedyParsing:    bool
-        lookaheadPos:     u32
-        lookaheadSize:    u32
-        dictSize:         u32
-        lzCodeBufAddr:    #null [*] u8
-        lzFlags:          #null *u8
-        outputBufAddr:    #null [*] u8
-        outputBufEndAddr: #null [*] u8
-        numFlagsLeft:     u32
-        totalLzBytes:     u32
-        lzCodeBufDictPos: u32
-        bitsIn:           u32
-        bitBuffer:        u32
-        savedMatchDist:   u32
-        savedMatchLen:    u32
-        savedLit:         u32
-        outputFlushOfs:   u32
-        blockIndex:       u32
-        inBuf:            #null const [*] u8
-        inSrc:            #null const [*] u8
-        srcBufLeft:       u64
-        outBufOfs:        u64
-        dict:             [LzDictSize + MaxMatchLen - 1] u8
-        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16
-        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16
-        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8
-        lzCodeBuf:        [LzCodeBufSize] u8
-        next:             [LzDictSize] u16
-        hash:             [LzHashSize] u16
-        outputBuf:        [OutBufSize] u8
-        result:           #null *Array'u8
+        compressFlags:    u32 // Compress flags associated with this value.
+        maxProbes:        [2] u32 // Max probes associated with this value.
+        greedyParsing:    bool // Greedy parsing associated with this value.
+        lookaheadPos:     u32 // Lookahead pos associated with this value.
+        lookaheadSize:    u32 // Lookahead size associated with this value.
+        dictSize:         u32 // Dict size associated with this value.
+        lzCodeBufAddr:    #null [*] u8 // Lz code buf addr associated with this value.
+        lzFlags:          #null *u8 // Lz flags associated with this value.
+        outputBufAddr:    #null [*] u8 // Output buf addr associated with this value.
+        outputBufEndAddr: #null [*] u8 // Output buf end addr associated with this value.
+        numFlagsLeft:     u32 // Num flags left associated with this value.
+        totalLzBytes:     u32 // Total lz bytes associated with this value.
+        lzCodeBufDictPos: u32 // Lz code buf dict pos associated with this value.
+        bitsIn:           u32 // Bits in associated with this value.
+        bitBuffer:        u32 // Bit buffer associated with this value.
+        savedMatchDist:   u32 // Saved match dist associated with this value.
+        savedMatchLen:    u32 // Saved match len associated with this value.
+        savedLit:         u32 // Saved lit associated with this value.
+        outputFlushOfs:   u32 // Output flush ofs associated with this value.
+        blockIndex:       u32 // Index of block.
+        inBuf:            #null const [*] u8 // In buf associated with this value.
+        inSrc:            #null const [*] u8 // In src associated with this value.
+        srcBufLeft:       u64 // Src buf left associated with this value.
+        outBufOfs:        u64 // Out buf ofs associated with this value.
+        dict:             [LzDictSize + MaxMatchLen - 1] u8 // Dict associated with this value.
+        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16 // Number of huff entries.
+        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16 // Huff codes associated with this value.
+        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8 // Huff code sizes associated with this value.
+        lzCodeBuf:        [LzCodeBufSize] u8 // Lz code buf associated with this value.
+        next:             [LzDictSize] u16 // Next associated with this value.
+        hash:             [LzHashSize] u16 // Whether this value has h.
+        outputBuf:        [OutBufSize] u8 // Output buf associated with this value.
+        result:           #null *Array'u8 // Result associated with this value.
     }
 }
 
@@ -1125,6 +1125,7 @@ public impl Deflate
         Fixed           // Use fixed Huffman codes
     }
 
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         Memory.delete(.state)

@@ -1,14 +1,16 @@
 #global namespace Math
 #global public
 
+// Represents matrix3x3.
 #[Serialization.Final]
 struct Matrix3x3
 {
-    m: [3, 3] f32
+    m: [3, 3] f32 // M associated with this value.
 }
 
 impl Matrix3x3
 {
+    // Sets identity.
     mtd setIdentity()
     {
         .m[0, 0] = 1

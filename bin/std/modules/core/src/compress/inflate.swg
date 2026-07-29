@@ -68,12 +68,12 @@ internal
 
     struct HuffmanTable
     {
-        fast:        [1 << FastBits] u16
-        firstCode:   [16] u16
-        maxCode:     [17] s64
-        firstSymbol: [16] u16
-        size:        [288] u8
-        value:       [288] u16
+        fast:        [1 << FastBits] u16 // Fast associated with this value.
+        firstCode:   [16] u16 // First code associated with this value.
+        maxCode:     [17] s64 // Max code associated with this value.
+        firstSymbol: [16] u16 // First symbol associated with this value.
+        size:        [288] u8 // Size associated with this value.
+        value:       [288] u16 // Value associated with this value.
     }
 
     impl HuffmanTable
@@ -135,16 +135,18 @@ internal
     }
 }
 
+// Represents inflate.
 #[Swag.Opaque]
 public struct Inflate
 {
-    stream:     BitStream
-    windowSize: u32
-    adler:      Hash.Adler32
+    stream:     BitStream // Stream associated with this value.
+    windowSize: u32 // Window size associated with this value.
+    adler:      Hash.Adler32 // Adler associated with this value.
 }
 
 impl Inflate
 {
+    // Defines inflate max distance.
     public const InflateMaxDistance = 32768'u32
 
     mtd decode(ht: *HuffmanTable)->u16 fail

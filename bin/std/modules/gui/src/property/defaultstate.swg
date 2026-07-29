@@ -19,16 +19,16 @@ using Core, Pixel
 // Result of IPropertyNotify.isItemAtDefault. Auto lets the grid run its built-in comparison.
 public enum PropDefaultState
 {
-    Auto
-    AtDefault
-    Modified
+    Auto // Selects auto.
+    AtDefault // Selects at default.
+    Modified // Selects modified.
 }
 
 // One default-constructed instance backing a struct added to the grid (owned; freed on destroy).
 public struct PropDefaultRoot
 {
-    base: #null *u8
-    type: #null typeinfo
+    base: #null *u8 // Base associated with this value.
+    type: #null typeinfo // Type associated with this value.
 }
 
 // Size of the revert arrow icon inside its (square, editBox-height) button, and the gap kept on

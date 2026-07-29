@@ -1,7 +1,31 @@
-// The 'Std.core' module contains basic types and algorithms.
-// It is the base of all other modules of the standard 'Std' workspace.
-//
-// You will find collections like [[Array]] or [[HashTable]], a dynamic [[String]] and so on.
+/*
+Core is the foundation library shared by Swag applications and standard modules.
+It provides owned collections and strings, text and Unicode processing, files and
+paths, serialization, mathematics, hashing, time, concurrency, reflection,
+diagnostics, input, and access to the host environment.
+
+The APIs are grouped into focused namespaces such as [[Core.Math]], [[Core.File]],
+[[Core.Path]], [[Core.Time]], [[Core.Threading]], [[Core.Sync]],
+[[Core.Serialization]], and [[Core.Reflection]]. Frequently used value types,
+including [[Core.Array]], [[Core.HashTable]], and [[Core.String]], live directly
+in `Core`.
+
+## Read and process a file
+
+```swag
+using Core
+
+let text = try File.readAllText("settings.txt")
+
+var lines: Array'String
+for line in text.splitLines() do
+    lines.add(line)
+```
+
+Owned containers release their storage automatically. Slices and string views
+borrow storage instead; keep their source alive and do not retain them across an
+operation that can reallocate that source.
+*/
 #static if #os == Swag.TargetOs.Windows
 {
     #import("win32")

@@ -32,7 +32,7 @@ using Swag, Core
     discard catch face.setPixelSize(0, 18) as err
     @assert(err == null)
 
-    discard catch face.loadChar('A', .NoBitmap) as err2
+    discard catch face.loadChar('A') as err2
     @assert(err2 == null)
     @assert(face.glyph.outline.contourCount > 0)
     @assert(face.glyph.outline.pointCount > 0)
@@ -60,7 +60,7 @@ using Swag, Core
     @assert(bounds1.xMin == bounds0.xMin + 64)
     @assert(bounds1.xMax == bounds0.xMax + 64)
 
-    discard catch face.loadChar('A', .NoBitmap) as err3
+    discard catch face.loadChar('A') as err3
     @assert(err3 == null)
     let transformIdx     = findPointWithNonZeroY(&face.glyph.outline)
     let transformPts     = notnull face.glyph.outline.points
@@ -71,7 +71,7 @@ using Swag, Core
     @assert(transformPts[transformIdx].x == beforeTransformX)
     @assert(transformPts[transformIdx].y == beforeTransformY * 2)
 
-    discard catch face.loadChar('A', .NoBitmap) as err4
+    discard catch face.loadChar('A') as err4
     @assert(err4 == null)
     let bounds2 = getOutlineBounds(&face.glyph.outline)
     discard catch face.glyph.outline.embolden(64) as err5
@@ -82,7 +82,7 @@ using Swag, Core
     // Emboldening a glyph with a counter ('o') must add ink: the outer contour
     // grows while the inner hole shrinks. A per-contour winding bug would instead
     // grow the hole, so the total filled area would not increase.
-    discard catch face.loadChar('o', .NoBitmap) as err6
+    discard catch face.loadChar('o') as err6
     @assert(err6 == null)
     @assert(face.glyph.outline.contourCount >= 2)
     let inkBefore = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
@@ -91,7 +91,7 @@ using Swag, Core
     let inkAfter = Math.abs(totalOutlineSignedArea(&face.glyph.outline))
     @assert(inkAfter > inkBefore)
 
-    discard catch face.loadChar('A', .NoBitmap) as err8
+    discard catch face.loadChar('A') as err8
     @assert(err8 == null)
     let sampleIdx     = findPointWithNonZeroY(&face.glyph.outline)
     let samplePts     = notnull face.glyph.outline.points

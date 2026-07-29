@@ -6,10 +6,10 @@ using Math
 // Represents one mouse state
 struct MouseState
 {
-    pressed:     [MouseButton] bool
-    pressedTime: [MouseButton] u32
-    pressedPos:  [MouseButton] Point
-    position:    Point
+    pressed:     [MouseButton] bool // Pressed associated with this value.
+    pressedTime: [MouseButton] u32 // Pressed time associated with this value.
+    pressedPos:  [MouseButton] Point // Pressed pos associated with this value.
+    position:    Point // Position associated with this value.
 }
 
 // Represents a mouse state with cursor position and button press information

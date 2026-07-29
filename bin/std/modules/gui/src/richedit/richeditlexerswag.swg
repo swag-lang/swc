@@ -2,63 +2,66 @@
 
 using Core, Pixel
 
+// Represents rich edit lexer swag.
 struct RichEditLexerSwag
 {
     #[Swag.Incomplete]
+    // Identifies a syntax style emitted by the Swag lexer.
     enum Style: RichEditStyleRef
     {
-        Default
-        Comment
-        Keyword
-        Control
-        Intrinsic
-        Buildin
-        Function
-        Preprocessor
-        CharEscape
-        Type
-        Class
-        String
-        Character
-        Numeric
-        Error
+        Default // Selects default.
+        Comment // Selects comment.
+        Keyword // Selects keyword.
+        Control // Selects control.
+        Intrinsic // Selects intrinsic.
+        Buildin // Selects buildin.
+        Function // Selects function.
+        Preprocessor // Selects preprocessor.
+        CharEscape // Selects char escape.
+        Type // Selects type.
+        Class // Selects class.
+        String // Selects string.
+        Character // Selects character.
+        Numeric // Selects numeric.
+        Error // Selects error.
     }
 
     #[Swag.Incomplete]
+    // Identifies the lexical state carried between lines.
     enum State: s32
     {
-        Default
-        LineComment
-        Comment
-        Keyword
-        Declaration
-        Control
-        Intrinsic
-        Buildin
-        Compiler
-        CompilerFunction
-        CompilerGlobal
-        CompilerStatement
-        Modifier
-        FunctionCall
-        FunctionSpecOp
-        Type
-        StorageModifier
-        UserType
-        Constant
-        String
-        RawString
-        Character
-        Numeric
-        NumericHex
-        NumericBin
-        NumericFrac
-        Attribute
-        Error
+        Default // Selects default.
+        LineComment // Selects line comment.
+        Comment // Selects comment.
+        Keyword // Selects keyword.
+        Declaration // Selects declaration.
+        Control // Selects control.
+        Intrinsic // Selects intrinsic.
+        Buildin // Selects buildin.
+        Compiler // Selects compiler.
+        CompilerFunction // Selects compiler function.
+        CompilerGlobal // Selects compiler global.
+        CompilerStatement // Selects compiler statement.
+        Modifier // Selects modifier.
+        FunctionCall // Selects function call.
+        FunctionSpecOp // Selects function spec op.
+        Type // Selects type.
+        StorageModifier // Selects storage modifier.
+        UserType // Selects user type.
+        Constant // Selects constant.
+        String // Selects string.
+        RawString // Selects raw string.
+        Character // Selects character.
+        Numeric // Selects numeric.
+        NumericHex // Selects numeric hex.
+        NumericBin // Selects numeric bin.
+        NumericFrac // Selects numeric frac.
+        Attribute // Selects attribute.
+        Error // Selects error.
     }
 
-    mapStyles: [State] Style
-    mapWords:  HashTable'(string, State)
+    mapStyles: [State] Style // Map styles associated with this value.
+    mapWords:  HashTable'(string, State) // Map words associated with this value.
 }
 
 impl IRichEditLexer for RichEditLexerSwag

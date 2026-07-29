@@ -1,3 +1,37 @@
+/*
+GUI builds native desktop interfaces from composable windows, controls, dialogs,
+themes, actions, and Pixel drawing.
+
+An [[Gui.Application]] owns surfaces and drives the event loop. Each
+[[Gui.Surface]] has a root [[Gui.Wnd]]; controls form a flatly documented API and
+are connected at runtime through parent links, event hooks, signals, docking, and
+layout constraints.
+
+## Create a window
+
+```swag
+using Core, Gui
+
+var app: Application
+
+#main
+{
+    let surface = notnull (try app.createSurface(
+        100, 100, 640, 420, SurfaceFlags.OverlappedWindow))
+    surface.setTitle("My application")
+
+    let button = PushButton.create(surface.getView(), "Continue")
+    button.dockStyle = .CenterKeepSizeVert
+
+    surface.show()
+    return app.run()
+}
+```
+
+Coordinates and sizes are logical pixels. Windows are owned by their application;
+use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
+*/
+
 #import("pixel")
 
 #run
@@ -14,5 +48,7 @@
 
     cfg.genDoc.kind            = .Api
     cfg.genDoc.outputName      = "std.gui"
+    cfg.genDoc.titleContent    = "GUI"
+    cfg.genDoc.titleToc        = "GUI documentation"
     cfg.genDoc.css             = "css/style.css"
 }

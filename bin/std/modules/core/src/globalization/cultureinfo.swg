@@ -1,8 +1,9 @@
 #global namespace Globalization
 
+// Represents culture info.
 public struct CultureInfo
 {
-    numberFormat: NumberFormatInfo
+    numberFormat: NumberFormatInfo // Number format associated with this value.
 }
 
 var g_CultureInfo: CultureInfo

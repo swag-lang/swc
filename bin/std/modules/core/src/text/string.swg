@@ -2,38 +2,45 @@
 
 using Swag
 
+// Defines string small size.
 const StringSmallSize = 16'u64
 #assert(#sizeof(String) == 56)
 
+// Selects character set.
 enum CharacterSet
 {
-    Latin1
-    Unicode
+    Latin1 // Selects latin1.
+    Unicode // Selects unicode.
 }
 
+// Represents string.
 struct String
 {
-    buffer:    #null [*] u8
-    length:    u64
-    capacity:  u64
-    allocator: #null IAllocator
-    padding:   [StringSmallSize] u8
+    buffer:    #null [*] u8 // Buffer associated with this value.
+    length:    u64 // Length associated with this value.
+    capacity:  u64 // Capacity associated with this value.
+    allocator: #null IAllocator // Allocator associated with this value.
+    padding:   [StringSmallSize] u8 // Padding associated with this value.
 }
 
 impl String
 {
+    // Returns the number of elements.
     #[Inline]
     mtd const opCount()->u64
     {
         return .length
     }
 
+    // Returns the underlying data address.
     #[Inline]
     mtd const opData()->#null const [*] u8
     {
         return .buffer
     }
 
+    // Converts this value to another representation.
+    // Converts this value to another representation.
     #[Implicit, Inline]
     mtd const opCast()->#null cstring
     {
@@ -52,6 +59,7 @@ impl String
         return @mkslice(.buffer, .length)
     }
 
+    // Assigns a value.
     #[Implicit]
     mtd opSet(value: #null string)
     {
@@ -82,12 +90,14 @@ impl String
         buffer[.length] = 0
     }
 
+    // Returns a slice of this value.
     mtd const opSlice(lower, upper: u64)->string
     {
         Debug.assert(lower <= upper and lower < .length and upper < .length)
         return @mkstring(.buffer + lower, (upper + 1) - lower)
     }
 
+    // Returns whether two values are equal.
     mtd const opEquals(other: #null string)->bool
     {
         if .buffer == @dataof(other) do
@@ -97,11 +107,13 @@ impl String
         return Memory.compare(.buffer, @dataof(other), .length) == 0
     }
 
+    // Compares this value with another value.
     mtd const opCompare(other: string)->s32
     {
         return Utf8.compare(.toString(), other, Utf8.ComparisonType.Latin1)
     }
 
+    // Applies an assignment operator to the byte at the requested index.
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
@@ -114,6 +126,7 @@ impl String
         }
     }
 
+    // Sets an element by index.
     mtd opIndexSet(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
@@ -121,6 +134,7 @@ impl String
         buffer[index] = value
     }
 
+    // Applies an assignment operator with a sequence of strings.
     mtd(op: Swag.Operator) opAssign(value: const [..] string)
     {
         #static if op == .AddAssign do
@@ -181,12 +195,14 @@ impl String
             #error("invalid operator '" ++ op.symbol() ++ "'")
     }
 
+    // Completes a moved value.
     mtd opPostMove()
     {
         if .buffer and .capacity <= StringSmallSize do
             .buffer = cast() &.padding[0]
     }
 
+    // Completes a copied value.
     mtd opPostCopy()
     {
         if !.buffer do
@@ -204,6 +220,7 @@ impl String
         }
     }
 
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         if !.buffer do

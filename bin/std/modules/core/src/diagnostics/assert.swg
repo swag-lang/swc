@@ -1,6 +1,7 @@
 #global public
 #global namespace Debug
 
+// Performs the assert operation.
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
 func assert(expr: #code->bool, message: #null string = null, loc = #callerlocation)
 {
@@ -11,6 +12,7 @@ func assert(expr: #code->bool, message: #null string = null, loc = #callerlocati
     }
 }
 
+// Performs the safety operation.
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
 func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: #null string = null, loc = #callerlocation)
 {
@@ -21,6 +23,7 @@ func(what: Swag.SafetyWhat) safety(expr: #code->bool, message: #null string = nu
     }
 }
 
+// Performs the safety bound check operation.
 #[Swag.Macro, Swag.Warning("Wrn0006", Swag.WarningLevel.Disable)]
 func safetyBoundCheck(expr50: #code->bool, message: #null string = null, loc = #callerlocation)
 {

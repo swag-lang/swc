@@ -1,16 +1,17 @@
 using Core, Pixel
 
+// Represents rich edit view.
 #[Swag.Opaque]
 public struct RichEditView
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    ed:               #null *RichEditCtrl
-    visibleCaret:     bool
-    selMode:          bool
-    timerCaret:       #null *Timer
-    firstLineSelMode: u64
-    lastClientRect:   Math.Rectangle
+    ed:               #null *RichEditCtrl // Ed associated with this value.
+    visibleCaret:     bool // Visible caret associated with this value.
+    selMode:          bool // Sel mode associated with this value.
+    timerCaret:       #null *Timer // Timer caret associated with this value.
+    firstLineSelMode: u64 // First line sel mode associated with this value.
+    lastClientRect:   Math.Rectangle // Last client rect associated with this value.
 }
 
 impl IWnd for RichEditView

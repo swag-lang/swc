@@ -1,16 +1,17 @@
+// Represents button.
 public struct Button
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    icon:            Icon
-    iconSizeX:       f32
-    iconSizeY:       f32
-    sigPressed:      SigArray'func||(*Button)
-    sigRightPressed: SigArray'func||(*Button)
-    isPressed:       bool
-    isPressing:      bool
-    isHot:           bool
-    isIn:            bool
+    icon:            Icon // Icon associated with this value.
+    iconSizeX:       f32 // Icon size x associated with this value.
+    iconSizeY:       f32 // Icon size y associated with this value.
+    sigPressed:      SigArray'func||(*Button) // Signal emitted when pressed.
+    sigRightPressed: SigArray'func||(*Button) // Signal emitted when right pressed.
+    isPressed:       bool // Whether this value is pressed.
+    isPressing:      bool // Whether this value is pressing.
+    isHot:           bool // Whether this value is hot.
+    isIn:            bool // Whether this value is in.
 }
 
 impl IWnd for Button

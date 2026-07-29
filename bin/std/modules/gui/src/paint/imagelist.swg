@@ -2,19 +2,22 @@
 
 using Pixel
 
+// Represents image list.
 struct ImageList
 {
-    texture:     Texture
-    totalFrames: s32
-    frameSizeX:  s32
-    frameSizeY:  s32
+    texture:     Texture // Texture associated with this value.
+    totalFrames: s32 // Total frames associated with this value.
+    frameSizeX:  s32 // Frame size x associated with this value.
+    frameSizeY:  s32 // Frame size y associated with this value.
 }
 
 impl ImageList
 {
     #[Swag.Inline]
     {
+        // Performs the count x operation.
         mtd countX() => .texture.width / .frameSizeX
+        // Performs the count y operation.
         mtd countY() => .texture.height / .frameSizeY
     }
 

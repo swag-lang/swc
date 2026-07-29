@@ -3,11 +3,12 @@
 
 using Core.Errors
 
+// Represents z lib.
 #[Swag.Opaque]
 struct ZLib
 {
-    decoder: Inflate
-    encoder: Deflate
+    decoder: Inflate // Decoder associated with this value.
+    encoder: Deflate // Encoder associated with this value.
 }
 
 impl ZLib

@@ -2,9 +2,10 @@
 
 using Win32
 
+// Represents native cursor.
 public struct NativeCursor
 {
-    cursor: HCURSOR
+    cursor: HCURSOR // Cursor associated with this value.
 }
 
 impl NativeCursor
@@ -31,16 +32,19 @@ impl NativeCursor
 
 impl Cursor
 {
+    // Performs the from operation.
     public func from(shape: CursorShape)->Cursor
     {
         return NativeCursor.defaultCursors[shape]
     }
 
+    // Removes all content.
     public mtd clear()
     {
         .cursor = null
     }
 
+    // Performs the apply operation.
     public func apply(cursor: Cursor)
     {
         SetCursor(cursor.native.cursor)

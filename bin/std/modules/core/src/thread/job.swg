@@ -2,38 +2,42 @@
 
 using Threading, Swag
 
+// Selects job state.
 #[Swag.EnumFlags]
 public enum JobState
 {
-    Zero      = 0x00000000
-    InPending = 0x00000001
-    Done      = 0x00000002
+    Zero      = 0x00000000 // No flags are enabled.
+    InPending = 0x00000001 // Selects in pending.
+    Done      = 0x00000002 // Selects done.
 }
 
+// Represents job.
 public struct Job
 {
-    lambda: #null func(#null *void)
-    data:   #null *void
+    lambda: #null func(#null *void) // Lambda associated with this value.
+    data:   #null *void // Data associated with this value.
 
     // Internal state
-    state:        JobState = .Zero
-    pendingIndex: u32      = Swag.U32.Max
+    state:        JobState = .Zero // State associated with this value.
+    pendingIndex: u32      = Swag.U32.Max // Index of pending.
 }
 
+// Represents slice job.
 public struct(T) SliceJob
 {
-    using base:  Job
-    buffer:      #null const [..] T
-    offset:      u32
-    contextData: #null *void
+    using base:  Job // Embedded base state.
+    buffer:      #null const [..] T // Buffer associated with this value.
+    offset:      u32 // Offset associated with this value.
+    contextData: #null *void // Context data associated with this value.
 }
 
+// Represents for job.
 public struct ForJob
 {
-    using base:  Job
-    startIndex:  u32
-    endIndex:    u32
-    contextData: #null *void
+    using base:  Job // Embedded base state.
+    startIndex:  u32 // Index of start.
+    endIndex:    u32 // Index of end.
+    contextData: #null *void // Context data associated with this value.
 }
 
 var g_Allocator:        #null Swag.IAllocator

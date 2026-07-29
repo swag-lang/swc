@@ -2,77 +2,83 @@
 
 using Core, Pixel
 
+// Selects icon button form.
 enum IconButtonForm
 {
-    Square
-    Round
-    RoundSquare
+    Square // Uses the square form.
+    Round // Uses the round form.
+    RoundSquare // Uses the round square form.
 }
 
+// Selects icon button flags.
 #[Swag.EnumFlags]
 enum IconButtonFlags
 {
-    Zero = 0
-    Checkable
-    CheckableToggle
-    Popup
-    Center
-    HideName
+    Zero = 0 // No flags are enabled.
+    Checkable // Enables checkable.
+    CheckableToggle // Enables checkable toggle.
+    Popup // Enables popup.
+    Center // Enables center.
+    HideName // Enables hide name.
     Flat        // No background box (and no checked fill): paint only the icon/swatch and arrow
     Overlay     // No opaque box: hot/pressed/checked is a translucent state layer (Material-
 // style) drawn over the content, so it blends with whatever is underneath
 // (a pastel accent row, a color swatch) instead of clashing as a solid fill.
 }
 
+// Selects icon button arrow pos.
 enum IconButtonArrowPos
 {
-    None
-    Left
-    Top
-    Right
-    RightUp
-    RightDown
-    Bottom
+    None // No option is selected.
+    Left // Selects left.
+    Top // Selects top.
+    Right // Selects right.
+    RightUp // Selects right up.
+    RightDown // Selects right down.
+    Bottom // Selects bottom.
 }
 
+// Selects icon button text pos.
 enum IconButtonTextPos
 {
-    Left
-    Top
-    Right
-    Bottom
+    Left // Selects left.
+    Top // Selects top.
+    Right // Selects right.
+    Bottom // Selects bottom.
 }
 
+// Selects icon button checked form.
 enum IconButtonCheckedForm
 {
-    None
-    Bottom
-    Top
-    Left
-    Right
-    Full
+    None // No option is selected.
+    Bottom // Uses the bottom form.
+    Top // Uses the top form.
+    Left // Uses the left form.
+    Right // Uses the right form.
+    Full // Uses the full form.
 }
 
+// Represents icon button.
 struct IconButton
 {
-    using button: Button
+    using button: Button // Embedded button state.
 
-    form         = IconButtonForm.Square
-    iconBtnFlags = IconButtonFlags.Zero
-    checkedForm  = IconButtonCheckedForm.Full
-    arrowPos     = IconButtonArrowPos.None
-    textPos      = IconButtonTextPos.Bottom
-    iconColor: Color
-    textColor: Color
+    form         = IconButtonForm.Square // Form associated with this value.
+    iconBtnFlags = IconButtonFlags.Zero // Icon btn flags associated with this value.
+    checkedForm  = IconButtonCheckedForm.Full // Checked form associated with this value.
+    arrowPos     = IconButtonArrowPos.None // Arrow pos associated with this value.
+    textPos      = IconButtonTextPos.Bottom // Text pos associated with this value.
+    iconColor: Color // Icon color associated with this value.
+    textColor: Color // Text color associated with this value.
 
-    sigHidePopup:    SigArray'func||(*IconButton)
-    sigShowPopup:    SigArray'func||(*IconButton)
-    sigCheckChanged: SigArray'func||(*IconButton)
-    sigPaintIcon:    #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)
+    sigHidePopup:    SigArray'func||(*IconButton) // Signal emitted when hide popup.
+    sigShowPopup:    SigArray'func||(*IconButton) // Signal emitted when show popup.
+    sigCheckChanged: SigArray'func||(*IconButton) // Signal emitted when check changed.
+    sigPaintIcon:    #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags) // Signal emitted when paint icon.
 
-    aniBk:     BlendColor
-    isChecked: bool
-    popup:     #null *Wnd
+    aniBk:     BlendColor // Ani bk associated with this value.
+    isChecked: bool // Whether this value is checked.
+    popup:     #null *Wnd // Popup associated with this value.
 }
 
 impl IWnd for IconButton
@@ -566,6 +572,7 @@ impl IWnd for IconButton
 
 impl IconButton
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = {}, id: #null WndId = null)->*IconButton
     {

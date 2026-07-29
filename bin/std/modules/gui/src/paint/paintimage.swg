@@ -1,15 +1,16 @@
 using Pixel
 
+// Represents paint image.
 #[Swag.Opaque]
 public struct PaintImage
 {
-    app:     Application
-    painter: Painter
+    app:     Application // App associated with this value.
+    painter: Painter // Painter associated with this value.
     #[Swag.Late]
-    surface: *Surface
-    image:   Image
-    w, h:    s32
-    paint:   #null func||(app: *Application, painter: *Painter)
+    surface: *Surface // Surface associated with this value.
+    image:   Image // Image associated with this value.
+    w, h:    s32 // W component.
+    paint:   #null func||(app: *Application, painter: *Painter) // Paint associated with this value.
 }
 
 impl PaintImage
@@ -42,6 +43,7 @@ impl PaintImage
         return false
     }
 
+    // Releases resources owned by this value.
     public mtd opDrop()
     {
         if @isset(.surface) do

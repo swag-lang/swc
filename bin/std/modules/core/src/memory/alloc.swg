@@ -3,6 +3,7 @@
 
 using Swag
 
+// Performs the alloc zero size message operation.
 func allocZeroSizeMessage(kind: string, size: u64, hint: #null string, loc: Swag.SourceCodeLocation)->String
 {
     var result: retval

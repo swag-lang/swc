@@ -6,35 +6,36 @@ using Core, Pixel
 // Defines how color components are mapped to the 2D picker area or 1D sliders.
 enum ColorPickerMode
 {
-    SaturationLightness
-    HueSaturation
-    HueLightness
-    GreenBlue
-    RedBlue
-    RedGreen
-    HueVert
-    HueHorz
-    LightnessVert
-    LightnessHorz
-    SaturationVert
-    SaturationHorz
-    AlphaHorz
-    AlphaVert
-    RedHorz
-    RedVert
-    GreenHorz
-    GreenVert
-    BlueHorz
-    BlueVert
+    SaturationLightness // Selects saturation lightness mode.
+    HueSaturation // Selects hue saturation mode.
+    HueLightness // Selects hue lightness mode.
+    GreenBlue // Selects green blue mode.
+    RedBlue // Selects red blue mode.
+    RedGreen // Selects red green mode.
+    HueVert // Selects hue vert mode.
+    HueHorz // Selects hue horz mode.
+    LightnessVert // Selects lightness vert mode.
+    LightnessHorz // Selects lightness horz mode.
+    SaturationVert // Selects saturation vert mode.
+    SaturationHorz // Selects saturation horz mode.
+    AlphaHorz // Selects alpha horz mode.
+    AlphaVert // Selects alpha vert mode.
+    RedHorz // Selects red horz mode.
+    RedVert // Selects red vert mode.
+    GreenHorz // Selects green horz mode.
+    GreenVert // Selects green vert mode.
+    BlueHorz // Selects blue horz mode.
+    BlueVert // Selects blue vert mode.
 }
 
+// Represents color picker.
 struct ColorPicker
 {
-    using wnd:     Wnd
-    hue, sat, lum: f32
-    a, r, g, b:    f32
-    mode = ColorPickerMode.SaturationLightness
-    sigChanged:    SigArray'func||(*ColorPicker)
+    using wnd:     Wnd // Embedded wnd state.
+    hue, sat, lum: f32 // Hue associated with this value.
+    a, r, g, b:    f32 // A associated with this value.
+    mode = ColorPickerMode.SaturationLightness // Mode associated with this value.
+    sigChanged:    SigArray'func||(*ColorPicker) // Signal emitted when changed.
 
     internal
     {
@@ -465,6 +466,7 @@ impl IWnd for ColorPicker
 
 impl ColorPicker
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ColorPicker
     {

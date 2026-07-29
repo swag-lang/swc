@@ -25,7 +25,7 @@ using Swag, Core
 
     discard catch face.setPixelSize(0, 20) as err4
     @assert(err4 == null)
-    discard catch face.loadChar(0x00E9, .NoBitmap) as err5
+    discard catch face.loadChar(0x00E9) as err5
     @assert(err5 == null)
     @assert(face.glyph.index == glyphIndex)
     @assert(face.glyph.outline.pointCount > 0)

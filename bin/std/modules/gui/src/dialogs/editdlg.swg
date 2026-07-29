@@ -1,12 +1,13 @@
 using Core, Pixel
 
+// Represents edit dlg.
 public struct EditDlg
 {
-    using dialog: Dialog
+    using dialog: Dialog // Embedded dialog state.
     #[Swag.Late]
-    label:    *Label
-    edit:     #null *EditBox
-    richEdit: #null *RichEditCtrl
+    label:    *Label // Label associated with this value.
+    edit:     #null *EditBox // Edit associated with this value.
+    richEdit: #null *RichEditCtrl // Rich edit associated with this value.
 }
 
 public impl EditDlg

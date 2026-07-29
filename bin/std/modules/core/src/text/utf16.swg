@@ -1,10 +1,15 @@
 #global public
 #global namespace Utf16
 
+// Defines rune error.
 const RuneError = 0xFFFD'rune
+// Defines surr1.
 const Surr1     = 0xD800
+// Defines surr2.
 const Surr2     = 0xDC00
+// Defines surr3.
 const Surr3     = 0xE000
+// Defines surr self.
 const SurrSelf  = 0x10000
 
 // Get the unicode character pointed by 'buffer', and the number of u16 to encode it

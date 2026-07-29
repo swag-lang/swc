@@ -2,38 +2,41 @@
 
 using Core, Pixel
 
+// Selects splitter flags.
 #[Swag.EnumFlags]
 enum SplitterFlags
 {
-    Zero = 0
-    Vertical
-    HideBars
+    Zero = 0 // No flags are enabled.
+    Vertical // Enables vertical.
+    HideBars // Enables hide bars.
 }
 
+// Represents splitter item.
 struct SplitterItem
 {
     #[Swag.Late]
-    view:            *Wnd
-    size:            f32
-    minSize:         f32 = 5
-    maxSize:         f32 = 0
-    label:           #null *Label
-    tryPreserveSize: bool
-    visible              = true
-    aniBar:          BlendColor
+    view:            *Wnd // View associated with this value.
+    size:            f32 // Size associated with this value.
+    minSize:         f32 = 5 // Min size associated with this value.
+    maxSize:         f32 = 0 // Max size associated with this value.
+    label:           #null *Label // Label associated with this value.
+    tryPreserveSize: bool // Try preserve size associated with this value.
+    visible              = true // Visible associated with this value.
+    aniBar:          BlendColor // Ani bar associated with this value.
 }
 
+// Represents splitter ctrl.
 struct SplitterCtrl
 {
-    using frameWnd: FrameWnd
-    splitterFlags       = SplitterFlags.Zero
-    titleSize:      f32 = 30
+    using frameWnd: FrameWnd // Embedded frame wnd state.
+    splitterFlags       = SplitterFlags.Zero // Splitter flags associated with this value.
+    titleSize:      f32 = 30 // Title size associated with this value.
 
-    items:           ArrayPtr'SplitterItem
-    correctMoving:   f32
-    hotIdx = Swag.U32.Max
-    moving:          bool
-    numVisiblePanes: s32
+    items:           ArrayPtr'SplitterItem // Items associated with this value.
+    correctMoving:   f32 // Correct moving associated with this value.
+    hotIdx = Swag.U32.Max // Index of hot.
+    moving:          bool // Moving associated with this value.
+    numVisiblePanes: s32 // Num visible panes associated with this value.
 }
 
 impl IWnd for SplitterCtrl
@@ -425,6 +428,7 @@ impl SplitterCtrl
         return res
     }
 
+    // Returns whether vertical.
     #[Swag.Inline]
     mtd isVertical() => .splitterFlags.has(.Vertical)
 

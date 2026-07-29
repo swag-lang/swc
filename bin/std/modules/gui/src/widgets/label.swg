@@ -2,34 +2,36 @@
 
 using Core, Pixel
 
+// Selects label flags.
 #[Swag.EnumFlags]
 enum LabelFlags
 {
-    Zero = 0
-    WordWrap
-    LightText
-    AutoHeight
-    DontAdaptSingleLineHeight
+    Zero = 0 // No flags are enabled.
+    WordWrap // Enables word wrap.
+    LightText // Enables light text.
+    AutoHeight // Enables auto height.
+    DontAdaptSingleLineHeight // Enables dont adapt single line height.
 }
 
+// Represents label.
 struct Label
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    sigUrlClicked: SigArray'func||(*Label, string)
+    sigUrlClicked: SigArray'func||(*Label, string) // Signal emitted when url clicked.
 
-    icon:        Icon
-    iconColor:   Color
-    textColor:   Color
-    labelFlags        = LabelFlags.Zero
-    horzAlignmentIcon = StringHorzAlignment.Center
-    vertAlignmentIcon = StringVertAlignment.Center
-    horzAlignmentText = StringHorzAlignment.Center
-    vertAlignmentText = StringVertAlignment.Center
-    paddingText: Math.Vector4
-    paddingIcon: Math.Vector4
+    icon:        Icon // Icon associated with this value.
+    iconColor:   Color // Icon color associated with this value.
+    textColor:   Color // Text color associated with this value.
+    labelFlags        = LabelFlags.Zero // Label flags associated with this value.
+    horzAlignmentIcon = StringHorzAlignment.Center // Horz alignment icon associated with this value.
+    vertAlignmentIcon = StringVertAlignment.Center // Vert alignment icon associated with this value.
+    horzAlignmentText = StringHorzAlignment.Center // Horz alignment text associated with this value.
+    vertAlignmentText = StringVertAlignment.Center // Vert alignment text associated with this value.
+    paddingText: Math.Vector4 // Padding text associated with this value.
+    paddingIcon: Math.Vector4 // Padding icon associated with this value.
 
-    hotChunk: #null *RichChunk
+    hotChunk: #null *RichChunk // Hot chunk associated with this value.
 }
 
 impl IWnd for Label
@@ -189,6 +191,7 @@ impl Label
         return sf
     }
 
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: LabelFlags = .Zero)->*Label
     {

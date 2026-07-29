@@ -3,9 +3,10 @@
 
 using Swag
 
+// Represents numeric array.
 struct(T, N: u32) NumericArray
 {
-    buf: [N] T
+    buf: [N] T // Buf associated with this value.
 }
 
 impl NumericArray

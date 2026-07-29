@@ -179,11 +179,16 @@ func canCompare(type: #null typeinfo)->bool
 
 #[ConstExpr, Inline]
 {
+    // Returns whether this value has drop.
     func hasDrop(type: #null typeinfo)->bool     => type and (type.flags & TypeInfoFlags.HasDrop) ? true : false
+    // Returns whether this value has post move.
     func hasPostMove(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostMove) ? true : false
+    // Returns whether this value has post copy.
     func hasPostCopy(type: #null typeinfo)->bool => type and (type.flags & TypeInfoFlags.HasPostCopy) ? true : false
+    // Returns whether this value can copy.
     func canCopy(type: typeinfo)->bool           => type and (type.flags & TypeInfoFlags.CanCopy) ? true : false
 
+    // Returns whether pod.
     func isPod(type: #null typeinfo)->bool
     {
         if !type do

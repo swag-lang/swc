@@ -1,46 +1,49 @@
 using Swag, Core
 
+// Identifies which representation is active in a [[TrueType.GlyphSlot]].
 public enum GlyphFormat
 {
-    None      = 0
-    Composite = 0x636F6D70
-    Bitmap    = 0x62697473
-    Outline   = 0x6F75746C
-    Plotter   = 0x706C6F74
+    None    // No glyph representation is available.
+    Outline // The slot represents a scalable outline.
 }
 
+// Contains the measurements of the current glyph.
+//
+// Values use 26.6 fixed-point pixels.
 public struct GlyphMetrics
 {
-    width:              s32
-    height:             s32
-    horizontalBearingX: s32
-    horizontalBearingY: s32
-    horizontalAdvance:  s32
-    verticalBearingX:   s32
-    verticalBearingY:   s32
-    verticalAdvance:    s32
+    width:              s32 // Width of the outline control box.
+    height:             s32 // Height of the outline control box.
+    horizontalBearingX: s32 // Offset from the pen to the left outline bound.
+    horizontalBearingY: s32 // Offset from the baseline to the top outline bound.
+    horizontalAdvance:  s32 // Recommended horizontal pen advance.
 }
 
+// Holds the outline, metrics, and bitmap of the most recently loaded glyph.
+//
+// Every face has one reusable slot. Calling [[TrueType.Face.loadGlyph]] or
+// [[TrueType.Face.loadChar]] replaces its borrowed outline and bitmap storage.
+// Copy owned data before loading another glyph when it must outlive the operation.
 public struct GlyphSlot
 {
     #[Swag.Late]
-    face:                    *Face
-    index:                   u32
-    metrics:                 GlyphMetrics
-    linearHorizontalAdvance: s32
-    linearVerticalAdvance:   s32
-    advance:                 Vector
-    format:                  GlyphFormat = GlyphFormat.None
-    bitmap:                  Bitmap
-    bitmapLeft:              s32
-    bitmapTop:               s32
-    outline:                 Outline
-    leftSideBearingDelta:    s32
-    rightSideBearingDelta:   s32
+    face:                    *Face        // Borrowed pointer to the owning face.
+    index:                   u32          // Glyph index represented by this slot.
+    metrics:                 GlyphMetrics // Scaled measurements for the glyph.
+    advance:                 Vector       // Pen displacement after drawing this glyph.
+    format:                  GlyphFormat = GlyphFormat.None // Active representation.
+    bitmap:                  Bitmap       // Borrowed pixels from the most recent render.
+    bitmapLeft:              s32          // Bitmap left edge relative to the pen, in pixels.
+    bitmapTop:               s32          // Bitmap top edge above the baseline, in pixels.
+    outline:                 Outline      // Borrowed scalable outline for the glyph.
 }
 
 public impl GlyphSlot
 {
+    // Applies a synthetic italic slant to the current outline.
+    //
+    // The operation mutates the reusable outline and refreshes its bounds. Load
+    // the glyph again to recover the original geometry.
     mtd oblique()
     {
         if .outline.pointCount <= 0 do
@@ -113,7 +116,4 @@ func updateSlotMetrics(slot: *GlyphSlot)
     slot.metrics.height             = bounds.maxY - bounds.minY
     slot.metrics.horizontalBearingX = bounds.minX
     slot.metrics.horizontalBearingY = bounds.maxY
-    slot.metrics.verticalAdvance    = 0
-    slot.metrics.verticalBearingX   = 0
-    slot.metrics.verticalBearingY   = 0
 }

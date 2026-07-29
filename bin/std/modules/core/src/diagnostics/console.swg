@@ -1,23 +1,24 @@
 #global public
 #global namespace Console
 
+// Selects color.
 enum Color
 {
-    Black
-    White
-    Gray
-    Red
-    Blue
-    Green
-    Cyan
-    Yellow
-    Magenta
-    DarkRed
-    DarkBlue
-    DarkGreen
-    DarkCyan
-    DarkYellow
-    DarkMagenta
+    Black // Selects black.
+    White // Selects white.
+    Gray // Selects gray.
+    Red // Selects red.
+    Blue // Selects blue.
+    Green // Selects green.
+    Cyan // Selects cyan.
+    Yellow // Selects yellow.
+    Magenta // Selects magenta.
+    DarkRed // Selects dark red.
+    DarkBlue // Selects dark blue.
+    DarkGreen // Selects dark green.
+    DarkCyan // Selects dark cyan.
+    DarkYellow // Selects dark yellow.
+    DarkMagenta // Selects dark magenta.
 }
 
 internal var g_SilentMode: s32
@@ -27,6 +28,7 @@ private   var g_lock: Sync.Mutex
 // No console function is thread safe, so it is the user responsability
 // to lock the console when necessary
 func lock()   => g_lock.lock()
+// Releases the lock.
 func unlock() => g_lock.unlock()
 
 // Disable console output. This is a counter, so can be called

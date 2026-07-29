@@ -41,6 +41,8 @@ RESERVED_IDENTIFIER_RE = re.compile(r"(?<![A-Za-z0-9_])__[A-Za-z0-9_]+")
 SCRIPT_RE = re.compile(r"<\s*script\b", re.IGNORECASE)
 PHP_RE = re.compile(r"<\?php", re.IGNORECASE)
 UNRESOLVED_REFERENCE_RE = re.compile(r"\[\[([^\]]+)\]\]")
+CODE_BLOCK_RE = re.compile(r'<div class="code-block">.*?</div>', re.DOTALL)
+INLINE_CODE_RE = re.compile(r'<span class="code-inline">.*?</span>', re.DOTALL)
 NESTED_SYMBOL_SECTION_RE = re.compile(r'class="api-method-details"')
 EXAMPLE_RE = re.compile(
     r'<h[1-6][^>]*>\s*Examples?\s*</h[1-6]>|class="blockquote-example"',
@@ -108,7 +110,11 @@ def audit(path: Path, source_root: Path | None = None) -> dict[str, object]:
         if html.unescape(anchor) not in page_ids[page_path]:
             broken_page_anchors.append(f"{page_name}#{anchor}")
     synthetic_names = sorted(set(RESERVED_IDENTIFIER_RE.findall(plain_text(source))))
-    unresolved_references = sorted(set(UNRESOLVED_REFERENCE_RE.findall(plain_text(source))))
+    prose_source = CODE_BLOCK_RE.sub("", source)
+    prose_source = INLINE_CODE_RE.sub("", prose_source)
+    unresolved_references = sorted(
+        set(UNRESOLVED_REFERENCE_RE.findall(plain_text(prose_source)))
+    )
     long_summaries: list[str] = []
     seen_summaries: set[tuple[str, str]] = set()
     for table_match in SUMMARY_TABLE_RE.finditer(source):

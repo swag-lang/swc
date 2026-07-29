@@ -1,16 +1,18 @@
 #global namespace Hash
 #global #[Swag.Safety(.Overflow, false)]
 
+// Represents md5.
 public struct Md5
 {
-    padding: [64] u8
-    state:   [4] u32
-    count:   [2] u32
-    buffer:  [64] u8
+    padding: [64] u8 // Padding associated with this value.
+    state:   [4] u32 // State associated with this value.
+    count:   [2] u32 // Count associated with this value.
+    buffer:  [64] u8 // Buffer associated with this value.
 }
 
 public impl Md5
 {
+    // Names the digest type.
     alias Digest = [16] u8
 
     // Finalize the computation

@@ -2,16 +2,17 @@
 
 using Core, Pixel
 
+// Represents edit ctrl.
 struct EditCtrl
 {
-    using frameWnd: FrameWnd
-    labelSize:      f32 = 60
+    using frameWnd: FrameWnd // Embedded frame wnd state.
+    labelSize:      f32 = 60 // Label size associated with this value.
     editSize:       f32 = 60     // 0 to fit to parent size
 
     #[Swag.Late]
-    label: *Label
+    label: *Label // Label associated with this value.
     #[Swag.Late]
-    edit: *EditBox
+    edit: *EditBox // Edit associated with this value.
 }
 
 impl IWnd for EditCtrl

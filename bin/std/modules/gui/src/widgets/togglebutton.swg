@@ -2,16 +2,17 @@
 
 using Core, Pixel
 
+// Represents toggle button.
 struct ToggleButton
 {
-    using button: Button
+    using button: Button // Embedded button state.
 
-    isToggled:  bool
-    sigChanged: #null func(*ToggleButton)
+    isToggled:  bool // Whether this value is toggled.
+    sigChanged: #null func(*ToggleButton) // Signal emitted when changed.
 
-    aniBk:     BlendColor
-    aniBorder: BlendColor
-    aniMark:   BlendColor
+    aniBk:     BlendColor // Ani bk associated with this value.
+    aniBorder: BlendColor // Ani border associated with this value.
+    aniMark:   BlendColor // Ani mark associated with this value.
 }
 
 impl IWnd for ToggleButton
@@ -100,6 +101,7 @@ impl IWnd for ToggleButton
 
 impl ToggleButton
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ToggleButton
     {

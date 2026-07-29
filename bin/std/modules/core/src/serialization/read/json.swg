@@ -9,25 +9,28 @@ In the case of a struct, the JSON file must represent the structure layout (orde
 */
 public struct JSon
 {
-    stream:    ByteStream
-    line, col: u64 = 1
-    propName:  String
+    stream:    ByteStream // Stream associated with this value.
+    line, col: u64 = 1 // Line associated with this value.
+    propName:  String // Prop name associated with this value.
 }
 
 public impl JSon
 {
+    // Returns version.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd getVersion()->u32
     {
         return 0
     }
 
+    // Returns whether textual.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd isTextual()->bool
     {
         return true
     }
 
+    // Returns error.
     mtd getError(val: string)->SyntaxError
     {
         var err: retval
@@ -38,6 +41,7 @@ public impl JSon
         return err
     }
 
+    // Performs the zap blanks operation.
     mtd zapBlanks()
     {
         var c = .stream.peekU8()
@@ -55,11 +59,13 @@ public impl JSon
         }
     }
 
+    // Defines start read.
     mtd startRead(input: const [..] u8)
     {
         .stream = ByteStream.openRead(input)
     }
 
+    // Begins sequence.
     mtd beginSequence(_typeElem: #null typeinfo, _data: #null *u8, _countElem: *u64)->bool fail
     {
         .zapBlanks()
@@ -69,6 +75,7 @@ public impl JSon
         return false
     }
 
+    // Performs the end sequence operation.
     mtd endSequence() fail
     {
         .zapBlanks()
@@ -77,6 +84,7 @@ public impl JSon
             fail .getError("malformed array; missing closing [[?]]]")
     }
 
+    // Converts this value to next sequence element.
     mtd toNextSequenceElement(_countElem: *u64)->bool
     {
         .zapBlanks()
@@ -84,12 +92,15 @@ public impl JSon
         return c != ']'
     }
 
+    // Begins root.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginRoot() fail {}
 
+    // Performs the end root operation.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endRoot() fail {}
 
+    // Begins section.
     mtd beginSection(_kind: SectionKind) fail
     {
         .zapBlanks()
@@ -98,6 +109,7 @@ public impl JSon
             fail .getError("malformed struct, missing opening [[{]]")
     }
 
+    // Performs the end section operation.
     mtd endSection() fail
     {
         .zapBlanks()
@@ -106,17 +118,20 @@ public impl JSon
             fail .getError("malformed struct, missing closing [[}]]")
     }
 
+    // Begins struct.
     mtd beginStruct(_structType: #null typeinfo, _structData: #null const *u8)->bool fail
     {
         .beginSection(.Ordered)
         return false
     }
 
+    // Performs the end struct operation.
     mtd endStruct() fail
     {
         .endSection()
     }
 
+    // Begins element.
     mtd beginElement(val: TypeValue)->bool fail
     {
         .zapBlanks()
@@ -146,12 +161,15 @@ public impl JSon
         return true
     }
 
+    // Performs the end element operation.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd endElement(_val: TypeValue) fail {}
 
+    // Begins value.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd beginValue() fail {}
 
+    // Performs the end value operation.
     mtd endValue() fail
     {
         .zapBlanks()
@@ -164,6 +182,7 @@ public impl JSon
     // VALUES
     /////////////////////////////////
 
+    // Reads a native value at the current JSON position.
     mtd(NT) readNative()->NT fail
     {
         .zapBlanks()

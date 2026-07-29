@@ -1,22 +1,24 @@
 using Core, Pixel
 
+// Represents message dlg.
 public struct MessageDlg
 {
-    using dialog: Dialog
+    using dialog: Dialog // Embedded dialog state.
     #[Swag.Late]
-    labelIcon: *Label
+    labelIcon: *Label // Label icon associated with this value.
     #[Swag.Late]
-    label:     *Label
-    extension: #null *Wnd
+    label:     *Label // Label associated with this value.
+    extension: #null *Wnd // Extension associated with this value.
 }
 
+// Represents message dlg options.
 public struct MessageDlgOptions
 {
-    icon:      Icon
-    iconColor: Color
-    horzAlignmentText = StringHorzAlignment.Center
-    vertAlignmentText = StringVertAlignment.Center
-    sigCreate: #null func||(*MessageDlg)
+    icon:      Icon // Icon associated with this value.
+    iconColor: Color // Icon color associated with this value.
+    horzAlignmentText = StringHorzAlignment.Center // Horz alignment text associated with this value.
+    vertAlignmentText = StringVertAlignment.Center // Vert alignment text associated with this value.
+    sigCreate: #null func||(*MessageDlg) // Signal emitted when create.
 }
 
 public impl MessageDlg

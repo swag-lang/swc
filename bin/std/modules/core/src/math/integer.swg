@@ -7,12 +7,19 @@ using Swag
 
 #[ConstExpr, Safety(.Overflow, false)]
 {
+    // Performs the round up to power of2 operation.
     func roundUpToPowerOf2(x: u32)->u32   => x <= 1 ? 1 : 1'u32 << (32 - Math.leadingZeros(x - 1))
+    // Performs the round up to power of2 operation.
     func roundUpToPowerOf2(x: u64)->u64   => x <= 1 ? 1 : 1'u64 << cast(u32) (64 - Math.leadingZeros(x - 1))
+    // Performs the round down to power of2 operation.
     func roundDownToPowerOf2(x: u32)->u32 => x == 0 ? 0 : 1'u32 << (31 - Math.leadingZeros(x))
+    // Performs the round down to power of2 operation.
     func roundDownToPowerOf2(x: u64)->u64 => x == 0 ? 0 : 1'u64 << cast(u32) (63 - Math.leadingZeros(x))
+    // Returns whether power of2.
     func isPowerOf2(x: u8)->bool          => x and !(x & (x - 1))
+    // Returns whether an integer is a power of two.
     func isPowerOf2(x: u16)->bool         => x and !(x & (x - 1))
+    // Returns whether power of2.
     func isPowerOf2(x: u32)->bool         => x and !(x & (x - 1))
     func isPowerOf2(x: u64)->bool         => x and !(x & (x - 1))
 }

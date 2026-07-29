@@ -8,16 +8,17 @@ using Core, Pixel
 // tooltip. Mirrors the validation feedback of the Unity/Unreal inspectors.
 enum PropValidation
 {
-    None
-    Info
-    Warning
-    Error
+    None // No option is selected.
+    Info // Selects info.
+    Warning // Selects warning.
+    Error // Selects error.
 }
 
+// Represents prop validation result.
 struct PropValidationResult
 {
-    state:   PropValidation = .None
-    message: #null string
+    state:   PropValidation = .None // State associated with this value.
+    message: #null string // Message associated with this value.
 }
 
 internal impl Properties

@@ -1,12 +1,13 @@
 #global public
 
+// Represents dialog.
 struct Dialog
 {
-    using wnd:        Wnd
-    wndBottom:        *StackLayoutCtrl = undefined
-    buttons:          Array'(*PushButton)
-    sigPressedButton: #null func||(*Dialog, WndId)->bool
-    fromSurface:      #null *Surface
+    using wnd:        Wnd // Embedded wnd state.
+    wndBottom:        *StackLayoutCtrl = undefined // Wnd bottom associated with this value.
+    buttons:          Array'(*PushButton) // Buttons associated with this value.
+    sigPressedButton: #null func||(*Dialog, WndId)->bool // Signal emitted when pressed button.
+    fromSurface:      #null *Surface // From surface associated with this value.
 }
 
 impl IWnd for Dialog
@@ -170,6 +171,7 @@ impl Dialog
         return btn
     }
 
+    // Performs the validate id operation.
     mtd validateId(btnId: #null WndId)
     {
         let safeBtnId = btnId orelse ""

@@ -2,53 +2,55 @@
 
 using Core, Serialization
 
+// Names the frame callback type.
 alias FrameCallback = func||(*Application)
 
+// Represents application.
 struct Application
 {
-    using native: ApplicationNative
-    sigFrame:     SigArray'func||(*Application)
+    using native: ApplicationNative // Embedded native state.
+    sigFrame:     SigArray'func||(*Application) // Signal emitted when frame.
 
-    options:  ApplicationOptions
-    appIcon:  Pixel.Image
-    renderer: Pixel.RenderOgl
+    options:  ApplicationOptions // Options associated with this value.
+    appIcon:  Pixel.Image // App icon associated with this value.
+    renderer: Pixel.RenderOgl // Renderer associated with this value.
     #[Swag.Late]
-    theme:        *Theme
-    style:        ThemeStyle
-    keyb:         Input.Keyboard
-    mouse:        Input.Mouse
-    mainSurface:  #null *Surface
-    postedEvents: Array'(IEvent)
-    surfaces:     Array'(*Surface)
-    postDestroy:  Array'(*Wnd)
-    hookOnEvent:  Array'(*Wnd)
-    frameCursor:  Cursor
-    endModalExit: #null WndId
-    inModalLoop:  u32
-    quitCode:     s32
-    timing:       Time.FrameTiming
+    theme:        *Theme // Theme associated with this value.
+    style:        ThemeStyle // Style associated with this value.
+    keyb:         Input.Keyboard // Keyb associated with this value.
+    mouse:        Input.Mouse // Mouse associated with this value.
+    mainSurface:  #null *Surface // Main surface associated with this value.
+    postedEvents: Array'(IEvent) // Posted events associated with this value.
+    surfaces:     Array'(*Surface) // Surfaces associated with this value.
+    postDestroy:  Array'(*Wnd) // Post destroy associated with this value.
+    hookOnEvent:  Array'(*Wnd) // Hook on event associated with this value.
+    frameCursor:  Cursor // Frame cursor associated with this value.
+    endModalExit: #null WndId // End modal exit associated with this value.
+    inModalLoop:  u32 // In modal loop associated with this value.
+    quitCode:     s32 // Quit code associated with this value.
+    timing:       Time.FrameTiming // Timing associated with this value.
 
-    mustQuit:    bool
-    endModal:    bool
-    isActivated: bool
-    fadeDisabledSurface = true
+    mustQuit:    bool // Must quit associated with this value.
+    endModal:    bool // End modal associated with this value.
+    isActivated: bool // Whether this value is activated.
+    fadeDisabledSurface = true // Fade disabled surface associated with this value.
 
-    mutexPostedEvents: Sync.Mutex
+    mutexPostedEvents: Sync.Mutex // Mutex posted events associated with this value.
 
-    duringTimerEvents: bool
-    timers:            Array'(*Timer)
-    timersToAdd:       Array'(*Timer)
-    timersToDelete:    Array'(*Timer)
-    frameEvents:       Array'(*Wnd)
-    modalSurfaces:     Array'(*Surface)
-    toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo }
-    mouseEnterWnd:     #null *Wnd
-    mouseCaptureWnd:   #null *Wnd
-    keybFocusWnd:      #null *Wnd
-    maxRunFrame:       u32
-    configPath:        String
-    hotKeys:           Array'KeyShortcut
-    dirtyTheme:        u32
+    duringTimerEvents: bool // During timer events associated with this value.
+    timers:            Array'(*Timer) // Timers associated with this value.
+    timersToAdd:       Array'(*Timer) // Timers to add associated with this value.
+    timersToDelete:    Array'(*Timer) // Timers to delete associated with this value.
+    frameEvents:       Array'(*Wnd) // Frame events associated with this value.
+    modalSurfaces:     Array'(*Surface) // Modal surfaces associated with this value.
+    toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo } // To delete associated with this value.
+    mouseEnterWnd:     #null *Wnd // Mouse enter wnd associated with this value.
+    mouseCaptureWnd:   #null *Wnd // Mouse capture wnd associated with this value.
+    keybFocusWnd:      #null *Wnd // Keyb focus wnd associated with this value.
+    maxRunFrame:       u32 // Max run frame associated with this value.
+    configPath:        String // Config path associated with this value.
+    hotKeys:           Array'KeyShortcut // Hot keys associated with this value.
+    dirtyTheme:        u32 // Dirty theme associated with this value.
 }
 
 private impl Application
@@ -456,6 +458,7 @@ private impl Application
         .toDelete.clear()
     }
 
+    // Performs the run frame operation.
     public mtd runFrame()
     {
         // Auto exit
@@ -482,6 +485,7 @@ private impl Application
         .sigFrame.call(me)
     }
 
+    // Performs the do modal loop operation.
     public mtd doModalLoop(surface: #null *Surface, cb: #null func||(*Application) = null)->WndId
     {
         .inModalLoop += 1
@@ -538,6 +542,7 @@ private impl Application
 
 impl Application
 {
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         for it in .surfaces do
@@ -557,12 +562,17 @@ impl Application
     // Get application variables
     #[Swag.Inline]
     {
+        // Returns renderer.
         mtd getRenderer() => &.renderer
+        // Returns keyboard.
         mtd getKeyboard() => &.keyb
+        // Returns mouse.
         mtd getMouse()    => &.mouse
+        // Returns dt.
         mtd const getDt() => .timing.dt
     }
 
+    // Performs the clear wnd input state operation.
     mtd clearWndInputState(wnd: *Wnd)
     {
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
@@ -799,6 +809,7 @@ impl Application
         .postedEvents.add(event)
     }
 
+    // Sends event.
     mtd sendEvent(event: IEvent)
     {
         .sendEventPrivate(event, null)
@@ -890,7 +901,9 @@ impl Application
         .endModalExit = exitId
     }
 
+    // Returns file icon.
     mtd getFileIcon(name: string, small = true)->Icon      => .getFileDirectoryIcon(name, false, small)
+    // Returns directory icon.
     mtd getDirectoryIcon(name: string, small = true)->Icon => .getFileDirectoryIcon(name, true, small)
 
     // Enable or disable the processing of hot keys

@@ -1,11 +1,12 @@
 #global namespace Random
 #global public
 
+// Represents rng.
 #[Swag.Opaque]
 struct(T = MWC) Rng
 {
-    rng:      T
-    seedDone: bool
+    rng:      T // Rng associated with this value.
+    seedDone: bool // Seed done associated with this value.
 }
 
 impl Rng

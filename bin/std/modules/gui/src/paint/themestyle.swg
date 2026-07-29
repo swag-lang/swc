@@ -2,24 +2,27 @@
 
 using Core, Pixel
 
+// Represents theme style ref.
 struct ThemeStyleRef
 {
     #[Swag.Late]
-    theme: *Theme
-    count: u32
+    theme: *Theme // Theme associated with this value.
+    count: u32 // Count associated with this value.
 }
 
+// Represents theme style.
 struct ThemeStyle
 {
-    refr:              #null *ThemeStyleRef
-    dirty:             bool
-    styleSheetMetrics: String
-    styleSheetColors:  String
-    font:              FontFamily
+    refr:              #null *ThemeStyleRef // Refr associated with this value.
+    dirty:             bool // Dirty associated with this value.
+    styleSheetMetrics: String // Style sheet metrics associated with this value.
+    styleSheetColors:  String // Style sheet colors associated with this value.
+    font:              FontFamily // Font associated with this value.
 }
 
 impl ThemeStyle
 {
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         .free()
@@ -116,18 +119,21 @@ impl ThemeStyle
         }
     }
 
+    // Performs the clear style sheet colors operation.
     mtd clearStyleSheetColors()
     {
         .styleSheetColors.clear()
         .dirty = true
     }
 
+    // Sets style sheet colors.
     mtd setStyleSheetColors(str: string)
     {
         .styleSheetColors = str
         .dirty            = true
     }
 
+    // Adds style sheet colors.
     mtd addStyleSheetColors(str: string)
     {
         .styleSheetColors.append("\n")
@@ -135,12 +141,14 @@ impl ThemeStyle
         .dirty = true
     }
 
+    // Sets style sheet metrics.
     mtd setStyleSheetMetrics(str: string)
     {
         .styleSheetMetrics = str
         .dirty             = true
     }
 
+    // Adds style sheet metrics.
     mtd addStyleSheetMetrics(str: string)
     {
         .styleSheetMetrics.append("\n")
@@ -148,6 +156,7 @@ impl ThemeStyle
         .dirty = true
     }
 
+    // Returns font.
     mtd const getFont()->FontFamily
     {
         var result: retval
@@ -159,18 +168,21 @@ impl ThemeStyle
         return result
     }
 
+    // Sets font.
     mtd setFont(fnt: FontFamily)
     {
         .font  = fnt
         .dirty = true
     }
 
+    // Sets font.
     mtd setFont(fnt: *Font, style: FontFamilyStyle)
     {
         .font.setFont(fnt, style)
         .dirty = true
     }
 
+    // Performs the clear font operation.
     mtd clearFont()
     {
         @init(&.font, 1)

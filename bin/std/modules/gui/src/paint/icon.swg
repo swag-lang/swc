@@ -2,17 +2,19 @@
 
 using Pixel
 
+// Represents icon.
 struct Icon
 {
-    imageList: #null *ImageList
-    index:     s32
-    sizeX:     f32 = 24
-    sizeY:     f32 = 24
-    color:     Color
+    imageList: #null *ImageList // Image list associated with this value.
+    index:     s32 // Index associated with this value.
+    sizeX:     f32 = 24 // Size x associated with this value.
+    sizeY:     f32 = 24 // Size y associated with this value.
+    color:     Color // Color associated with this value.
 }
 
 impl Icon
 {
+    // Returns whether valid.
     #[Swag.Inline]
     mtd const isValid() => .imageList != null
 

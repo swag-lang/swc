@@ -2,21 +2,22 @@
 
 using Core, Pixel
 
+// Represents slider ctrl.
 struct SliderCtrl
 {
-    using frameWnd: FrameWnd
-    labelSize:      f32  = 60
-    editSize:       f32  = 60
-    gap:            f32  = 8
+    using frameWnd: FrameWnd // Embedded frame wnd state.
+    labelSize:      f32  = 60 // Label size associated with this value.
+    editSize:       f32  = 60 // Edit size associated with this value.
+    gap:            f32  = 8 // Gap associated with this value.
     autoEditSize:   bool = true     // When true, grow the value box to fit its numeric range; when false, use `editSize` as-is
 
-    sigChanged: SigArray'func||(*SliderCtrl)
+    sigChanged: SigArray'func||(*SliderCtrl) // Signal emitted when changed.
 
     #[Swag.Late]
     {
-        label:  *Label
-        slider: *Slider
-        edit:   *EditBox
+        label:  *Label // Label associated with this value.
+        slider: *Slider // Slider associated with this value.
+        edit:   *EditBox // Edit associated with this value.
     }
 }
 

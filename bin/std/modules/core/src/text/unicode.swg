@@ -10,13 +10,16 @@
 #[Swag.Inline, Swag.ConstExpr]
 public
 {
+    // Returns whether latin1.
     func isLatin1(c: rune) => c <= 0xFF
+    // Returns whether ascii.
     func isAscii(c: rune)  => c <= 0x7F
 }
 
 #[Swag.ConstExpr]
 public
 {
+    // Returns whether digit.
     func isDigit(c: rune)->bool
     {
         if isLatin1(c) do
@@ -24,6 +27,7 @@ public
         return isInTable(TableDigit, c)
     }
 
+    // Returns whether number.
     func isNumber(c: rune)->bool
     {
         if isLatin1(c) do
@@ -31,6 +35,7 @@ public
         return isInTable(TableNumber, c)
     }
 
+    // Returns whether control.
     func isControl(c: rune)->bool
     {
         if isLatin1(c) do
@@ -38,6 +43,7 @@ public
         return false
     }
 
+    // Returns whether space.
     func isSpace(c: rune)->bool
     {
         if isLatin1(c) do
@@ -45,6 +51,7 @@ public
         return isInTable(TableWhiteSpace, c)
     }
 
+    // Returns whether letter.
     func isLetter(c: rune)->bool
     {
         if isLatin1(c) do
@@ -52,6 +59,7 @@ public
         return isInTable(TableLetter, c)
     }
 
+    // Returns whether symbol.
     func isSymbol(c: rune)->bool
     {
         if isLatin1(c) do
@@ -59,11 +67,13 @@ public
         return isInTable(TableSymbol, c)
     }
 
+    // Returns whether symbol math.
     func isSymbolMath(c: rune)->bool
     {
         return isInTable(TableSymbolMath, c)
     }
 
+    // Returns whether letter or digit.
     func isLetterOrDigit(c: rune)->bool
     {
         if isLatin1(c) do
@@ -71,6 +81,7 @@ public
         return isDigit(c) or isLetter(c)
     }
 
+    // Returns whether title.
     func isTitle(c: rune)->bool
     {
         if isLatin1(c) do
@@ -78,6 +89,7 @@ public
         return isInTable(TableTitle, c)
     }
 
+    // Returns whether lower.
     func isLower(c: rune)->bool
     {
         if isLatin1(c) do
@@ -85,6 +97,7 @@ public
         return isInTable(TableLower, c)
     }
 
+    // Returns whether upper.
     func isUpper(c: rune)->bool
     {
         if isLatin1(c) do
@@ -92,11 +105,13 @@ public
         return isInTable(TableUpper, c)
     }
 
+    // Returns whether word.
     func isWord(c: rune)->bool
     {
         return isLetter(c) or isDigit(c) or c == '_'
     }
 
+    // Converts this value to lower.
     func toLower(c: rune)->rune
     {
         if isLatin1(c) do
@@ -111,6 +126,7 @@ public
         return res.mappedRune
     }
 
+    // Converts this value to upper.
     func toUpper(c: rune)->rune
     {
         if isLatin1(c) do
@@ -126,6 +142,7 @@ public
         return res.mappedRune
     }
 
+    // Converts this value to title.
     func toTitle(c: rune)->rune
     {
         if isLatin1(c) do
@@ -248,21 +265,21 @@ const UpperLower = Swag.S32.Max
 
 struct Range
 {
-    lo, hi: rune
-    stride: u32
+    lo, hi: rune // Lo associated with this value.
+    stride: u32 // Stride associated with this value.
 }
 
 enum WantedCase
 {
-    UpperCase
-    LowerCase
-    TitleCase
+    UpperCase // Selects upper case.
+    LowerCase // Selects lower case.
+    TitleCase // Selects title case.
 }
 
 struct CaseRange
 {
-    lo, hi: rune
-    delta:  [WantedCase] s32
+    lo, hi: rune // Lo associated with this value.
+    delta:  [WantedCase] s32 // Delta associated with this value.
 }
 
 func isInTable(ranges: const [..] Range, r: rune)->bool

@@ -8,6 +8,8 @@
 
 using Swag
 
+// Performs the murmur3 operation.
+// Performs the murmur3 operation.
 #[Safety(.All, false)]
 public func murmur3(h: u32)->u32
 {

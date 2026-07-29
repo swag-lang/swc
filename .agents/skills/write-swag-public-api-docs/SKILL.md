@@ -78,6 +78,8 @@ Each namespace also has a standalone index of its child namespaces and directly 
 - Types emitted by generated field tables and declaration signatures are linked automatically when their symbols can be resolved. Never hand-write HTML links around a type to compensate for a generator bug.
 - Use backticks or apostrophes around short code tokens, for example `` `null` `` or `'null'`.
 - Use fenced `swag` blocks for examples.
+- Put literal `[[...]]` syntax in inline or fenced code. The audit ignores code
+  while checking unresolved symbol references.
 - Use standard headings, emphasis, links, images, unordered or ordered lists, description lists, and Markdown tables.
 - Use `> NOTE:`, `> TIP:`, `> WARNING:`, `> ATTENTION:`, or `> EXAMPLE:` for callouts.
 - Use `<html>...</html>` only when the supported markup cannot express the required layout.

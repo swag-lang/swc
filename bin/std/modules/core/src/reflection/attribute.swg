@@ -3,6 +3,7 @@
 
 using Swag
 
+// Performs the same attribute type operation.
 #[ConstExpr]
 func sameAttributeType(left: #null typeinfo, right: #null typeinfo)->bool
 {

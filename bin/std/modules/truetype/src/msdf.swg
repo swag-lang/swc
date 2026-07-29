@@ -586,7 +586,7 @@ func renderCurrentOutlineMsdf(slot: *GlyphSlot, spread: u32) fail
     safeSlot.bitmap.width     = width
     safeSlot.bitmap.pitch     = cast(s32) width * 4
     safeSlot.bitmap.buffer    = dst
-    safeSlot.bitmap.pixelMode = .Bgra
+    safeSlot.bitmap.pixelMode = .Rgba
     safeSlot.bitmap.grayCount = 256
     safeSlot.bitmapLeft       = left
     safeSlot.bitmapTop        = top

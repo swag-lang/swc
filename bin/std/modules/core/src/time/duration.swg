@@ -11,6 +11,7 @@ struct Duration
 
 impl Duration
 {
+    // Assigns a value.
     #[ConstExpr, Implicit, Inline]
     mtd opSet(valueMs: s32)
     {
@@ -18,6 +19,7 @@ impl Duration
     }
 
     #[ConstExpr, Implicit, Inline]
+    // Creates a duration from an integer literal and its unit suffix.
     mtd(suffix: string) opSetLiteral(value: s32)
     {
         #static switch suffix

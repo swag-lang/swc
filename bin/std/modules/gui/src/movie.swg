@@ -2,32 +2,34 @@
 
 using Core, Core.Errors, Pixel
 
+// Selects movie source.
 enum MovieSource
 {
-    None
-    SpriteSheet
-    Gif
+    None // No option is selected.
+    SpriteSheet // Selects sprite sheet.
+    Gif // Selects gif.
 }
 
+// Represents movie.
 struct Movie
 {
-    enableCache:     bool = true
-    mustLoop:        bool = true
-    inPause:         bool
-    playFreq:        f32  = 0.05
-    sigFrameChanged: SigArray'func||(*Movie)
+    enableCache:     bool = true // Enable cache associated with this value.
+    mustLoop:        bool = true // Must loop associated with this value.
+    inPause:         bool // In pause associated with this value.
+    playFreq:        f32  = 0.05 // Play freq associated with this value.
+    sigFrameChanged: SigArray'func||(*Movie) // Signal emitted when frame changed.
 
-    numFrames:  s32
-    frameIndex: s32
-    frame:      Image
+    numFrames:  s32 // Num frames associated with this value.
+    frameIndex: s32 // Index of frame.
+    frame:      Image // Frame associated with this value.
 
-    source:      MovieSource = None
-    imgList:     ImageList
-    gif:         Gif.Decoder
-    bytes:       Array'u8
-    cacheFrames: Array'Image
-    currentTime: f32
-    dirtyFrame:  bool
+    source:      MovieSource = None // Source associated with this value.
+    imgList:     ImageList // Img list associated with this value.
+    gif:         Gif.Decoder // Gif associated with this value.
+    bytes:       Array'u8 // Bytes associated with this value.
+    cacheFrames: Array'Image // Cache frames associated with this value.
+    currentTime: f32 // Current time associated with this value.
+    dirtyFrame:  bool // Dirty frame associated with this value.
 }
 
 private impl Movie
@@ -78,6 +80,7 @@ private impl Movie
 
 impl Movie
 {
+    // Removes all content.
     mtd clear()
     {
         .cacheFrames.clear()

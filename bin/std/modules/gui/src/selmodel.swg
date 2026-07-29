@@ -2,19 +2,22 @@
 
 using Core
 
+// Represents sel range.
 struct SelRange
 {
-    start: u32
-    end:   u32
+    start: u32 // Start associated with this value.
+    end:   u32 // End associated with this value.
 }
 
+// Represents sel model.
 struct SelModel
 {
-    selection: Array'SelRange
+    selection: Array'SelRange // Selection associated with this value.
 }
 
 impl SelModel
 {
+    // Returns selected range index.
     mtd const getSelectedRangeIndex(idx: u32)->u32
     {
         for &r, [i] in .selection
@@ -28,7 +31,9 @@ impl SelModel
 
     #[Swag.Inline]
     {
+        // Returns whether empty.
         mtd const isEmpty()            => .selection.isEmpty()
+        // Returns whether selected.
         mtd const isSelected(idx: u32) => .getSelectedRangeIndex(idx) != Swag.U32.Max
     }
 

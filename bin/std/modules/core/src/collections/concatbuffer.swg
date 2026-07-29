@@ -456,9 +456,10 @@ impl ConcatBuffer
         .currentSP                            = .viewFirstBucket.datas
     }
 
-    // Converts the buffer to a 'String' by copying all its content.
+    // Converts the buffer to a [[Core.String]] by copying its content.
+    //
     // The buffer remains valid after this call.
-    // See [[moveToString]] for a more efficient version that avoids copying when possible.
+    // See [[Core.ConcatBuffer.moveToString]] to reuse linear storage when possible.
     mtd const toString(alloc: #null Swag.IAllocator = null)->String
     {
         var result: retval

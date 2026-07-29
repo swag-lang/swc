@@ -4,11 +4,13 @@ using Core, Pixel
 
 impl Theme
 {
+    // Performs the draw sub rect operation.
     mtd drawSubRect(painter: *Painter, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
         drawSubRect(painter, .res.imgWidgets, dstRect, subRect, color, center, interpol)
     }
 
+    // Performs the draw sub rect operation.
     func drawSubRect(painter: *Painter, texture: Texture, dstRect: Math.Rectangle, subRect: #null *ThemeImageRect, color: Color, center = true, interpol = InterpolationMode.Linear)
     {
         if !subRect or subRect.rect.isEmpty() or dstRect.isEmpty() or color.a == 0 do
@@ -112,6 +114,7 @@ impl Theme
         }
     }
 
+    // Performs the draw icon text operation.
     func drawIconText(painter: *Painter, position: Math.Rectangle, icon: Icon, name: *RichString, stringFormat: RichStringFormat, iconMargin = 4'f32)
     {
         let count = @countof(dref name)
@@ -144,6 +147,7 @@ impl Theme
         }
     }
 
+    // Sets text colors.
     mtd setTextColors(fmt: *RichStringFormat, mainColor: Color)
     {
         fmt.palette[0] = mainColor

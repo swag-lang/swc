@@ -2,110 +2,117 @@
 
 using Core, Pixel
 
+// Selects list selection mode.
 enum ListSelectionMode
 {
-    None
-    Single
-    Multi
+    None // No option is selected.
+    Single // Selects single mode.
+    Multi // Selects multi mode.
 }
 
+// Selects list flags.
 #[Swag.EnumFlags]
 enum ListFlags
 {
-    Zero = 0
-    HideSelection
-    AlternateLines
-    HorzLines
-    VertLines
+    Zero = 0 // No flags are enabled.
+    HideSelection // Enables hide selection.
+    AlternateLines // Enables alternate lines.
+    HorzLines // Enables horz lines.
+    VertLines // Enables vert lines.
     ForceMarginExpandMark     // Force one margin even if no expand mark
     NoMouseEmptySel           // Click does not clear selection if not on an item
-    HotTrack
+    HotTrack // Enables hot track.
 }
 
+// Represents list item.
 struct ListItem
 {
-    using item: Item
-    sortKey:    String
-    colorBk:    Color
-    colorFg:    Color
-    column:     u32
-    horzAlign = StringHorzAlignment.Left
+    using item: Item // Embedded item state.
+    sortKey:    String // Sort key associated with this value.
+    colorBk:    Color // Color bk associated with this value.
+    colorFg:    Color // Color fg associated with this value.
+    column:     u32 // Column associated with this value.
+    horzAlign = StringHorzAlignment.Left // Horz align associated with this value.
 }
 
+// Represents list line.
 struct ListLine
 {
-    colorBk:         Color
-    colorFg:         Color
-    userData0:       #null *void
-    userData1:       #null *void
-    userData2:       #null *void
-    userData3:       #null *void
-    leftTextMargin:  f32
-    forceExpandMark: bool
-    canCheck:        bool
-    separator:       bool
-    iconMargin:      bool
+    colorBk:         Color // Color bk associated with this value.
+    colorFg:         Color // Color fg associated with this value.
+    userData0:       #null *void // User data0 associated with this value.
+    userData1:       #null *void // User data1 associated with this value.
+    userData2:       #null *void // User data2 associated with this value.
+    userData3:       #null *void // User data3 associated with this value.
+    leftTextMargin:  f32 // Left text margin associated with this value.
+    forceExpandMark: bool // Force expand mark associated with this value.
+    canCheck:        bool // Can check associated with this value.
+    separator:       bool // Separator associated with this value.
+    iconMargin:      bool // Icon margin associated with this value.
 
-    lines:    ArrayPtr'ListLine
-    items:    ArrayPtr'ListItem
-    parent:   #null *ListLine
-    index:    u32
-    level:    u32
-    expanded: bool
+    lines:    ArrayPtr'ListLine // Lines associated with this value.
+    items:    ArrayPtr'ListItem // Items associated with this value.
+    parent:   #null *ListLine // Parent associated with this value.
+    index:    u32 // Index associated with this value.
+    level:    u32 // Level associated with this value.
+    expanded: bool // Expanded associated with this value.
 }
 
+// Represents list ctrl.
 struct ListCtrl
 {
-    using frameWnd: FrameWnd
+    using frameWnd: FrameWnd // Embedded frame wnd state.
 
-    horizontalExtent: f32
-    lineHeight:       f32
-    indentWidth:      f32 = 22
-    iconSize:         f32
-    iconMarginFirstCol    = true
-    listFlags             = ListFlags.Zero
-    selectionMode         = ListSelectionMode.Single
-    leftTextMargin:   f32
+    horizontalExtent: f32 // Horizontal extent associated with this value.
+    lineHeight:       f32 // Line height associated with this value.
+    indentWidth:      f32 = 22 // Indent width associated with this value.
+    iconSize:         f32 // Icon size associated with this value.
+    iconMarginFirstCol    = true // Icon margin first col associated with this value.
+    listFlags             = ListFlags.Zero // List flags associated with this value.
+    selectionMode         = ListSelectionMode.Single // Selection mode associated with this value.
+    leftTextMargin:   f32 // Left text margin associated with this value.
 
-    sigSelChanged:      SigArray'func||(*ListCtrl)
-    sigCheckChanged:    SigArray'func||(*ListCtrl)
-    sigRightClick:      SigArray'func||(*ListCtrl, Math.Point)
-    sigLeftDoubleClick: SigArray'func||(*ListCtrl, Math.Point)
-    sigExpand:          SigArray'func||(*ListCtrl, *ListLine)
-    sigCollapse:        SigArray'func||(*ListCtrl, *ListLine)
-    sigKeyPressed:      SigArray'func||(*ListCtrl, *KeyEvent)
-    sigVirtualFill:     #null func(*ListCtrl, #null *ListLine, u32)
-    sigSort:            #null func(#null *ListLine, #null *ListLine, u32, bool)->s32
+    sigSelChanged:      SigArray'func||(*ListCtrl) // Signal emitted when sel changed.
+    sigCheckChanged:    SigArray'func||(*ListCtrl) // Signal emitted when check changed.
+    sigRightClick:      SigArray'func||(*ListCtrl, Math.Point) // Signal emitted when right click.
+    sigLeftDoubleClick: SigArray'func||(*ListCtrl, Math.Point) // Signal emitted when left double click.
+    sigExpand:          SigArray'func||(*ListCtrl, *ListLine) // Signal emitted when expand.
+    sigCollapse:        SigArray'func||(*ListCtrl, *ListLine) // Signal emitted when collapse.
+    sigKeyPressed:      SigArray'func||(*ListCtrl, *KeyEvent) // Signal emitted when key pressed.
+    sigVirtualFill:     #null func(*ListCtrl, #null *ListLine, u32) // Signal emitted when virtual fill.
+    sigSort:            #null func(#null *ListLine, #null *ListLine, u32, bool)->s32 // Signal emitted when sort.
 
-    toFreeLines:      ArrayPtr'ListLine
-    lines:            Array'(#null *ListLine)
-    idxLineToIdxList: HashTable'(u32, u32)
-    selModel:         SelModel
-    checkModel:       SelModel
-    nextLineIndex:    u32
-    focusIndex = Swag.U32.Max
-    hotIndex   = Swag.U32.Max
+    toFreeLines:      ArrayPtr'ListLine // To free lines associated with this value.
+    lines:            Array'(#null *ListLine) // Lines associated with this value.
+    idxLineToIdxList: HashTable'(u32, u32) // Idx line to idx list associated with this value.
+    selModel:         SelModel // Sel model associated with this value.
+    checkModel:       SelModel // Check model associated with this value.
+    nextLineIndex:    u32 // Index of next line.
+    focusIndex = Swag.U32.Max // Index of focus.
+    hotIndex   = Swag.U32.Max // Index of hot.
     #[Swag.Late]
     {
-        scrollWnd: *ScrollWnd
-        listView:  *ListView
-        header:    *Header
+        scrollWnd: *ScrollWnd // Scroll wnd associated with this value.
+        listView:  *ListView // List view associated with this value.
+        header:    *Header // Header associated with this value.
     }
 
-    virtualCount: u32
-    isVirtual:    bool
+    virtualCount: u32 // Number of virtual entries.
+    isVirtual:    bool // Whether this value is virtual.
 }
 
+// Represents list view.
 struct ListView
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
     #[Swag.Late]
-    list:                *ListCtrl
-    discardMouseRelease: bool
+    list:                *ListCtrl // List associated with this value.
+    discardMouseRelease: bool // Discard mouse release associated with this value.
 }
 
 impl ListLine
 {
+    // Returns whether parent of.
     mtd isParentOf(other: *ListLine)->bool
     {
         var l = other.parent
@@ -114,6 +121,7 @@ impl ListLine
         return l ? true : false
     }
 
+    // Returns whether this value can expand.
     #[Swag.Inline]
     mtd canExpand()->bool
     {
@@ -135,6 +143,8 @@ impl ListLine
     }
 
     // Initialize a given column item
+    // Creates simple.
+    // Creates multi columns.
     #[Swag.Discardable]
     mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
     {
@@ -784,6 +794,7 @@ private impl ListView
 
 impl ListCtrl
 {
+    // Creates multi columns.
     #[Swag.Discardable]
     func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
     {
@@ -802,6 +813,7 @@ impl ListCtrl
         return list
     }
 
+    // Creates a list control configured for multiple columns.
     #[Swag.Discardable]
     func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ListCtrl
     {
@@ -985,6 +997,7 @@ impl ListCtrl
         return cast(u32) .lines.count
     }
 
+    // Returns whether this value has visible check boxes.
     mtd hasVisibleCheckBoxes()->bool
     {
         if .isVirtual do

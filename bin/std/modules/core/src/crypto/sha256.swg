@@ -1,12 +1,13 @@
 #global namespace Hash
 #global #[Swag.Safety(.Overflow, false)]
 
+// Represents sha256.
 public struct Sha256
 {
-    data:    [64] u8
-    state:   [8] u32
-    datalen: u32
-    bitlen:  u64
+    data:    [64] u8 // Data associated with this value.
+    state:   [8] u32 // State associated with this value.
+    datalen: u32 // Datalen associated with this value.
+    bitlen:  u64 // Bitlen associated with this value.
 }
 
 impl Sha256
@@ -89,6 +90,7 @@ impl Sha256
 
 public impl Sha256
 {
+    // Names the digest type.
     alias Digest = [8] u32
 
     // Finalize the computation

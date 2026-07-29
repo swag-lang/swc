@@ -4,18 +4,21 @@
 
 using Win32
 
+// Represents rw lock.
 struct RWLock
 {
-    v: SRWLOCK = SRWLOCK_INIT
+    v: SRWLOCK = SRWLOCK_INIT // V associated with this value.
 }
 
 impl RWLock
 {
+    // Acquires the lock.
     mtd lock()
     {
         .lockExclusive()
     }
 
+    // Releases the lock.
     mtd unlock()
     {
         .unlockExclusive()

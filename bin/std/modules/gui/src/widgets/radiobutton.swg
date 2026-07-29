@@ -2,26 +2,28 @@
 
 using Core, Pixel
 
+// Represents radio button.
 struct RadioButton
 {
-    using button: Button
-    checked:      bool
+    using button: Button // Embedded button state.
+    checked:      bool // Checked associated with this value.
 
     // Auto-grouping: radios sharing the same (parent, group) uncheck each other when one is
     // checked, so a group keeps a single selection. 'group' is a string id, like a command id; an
     // empty/unset group means "ungrouped" — grouping is then left to the caller (backward
     // compatible; several radios under one parent stay independent). Give the radios you want
     // mutually exclusive the same non-empty id.
-    group:      WndId
-    radioButtonFlags = RadioButtonFlags.Zero
-    sigChanged: SigArray'func||(*RadioButton)
+    group:      WndId // Group associated with this value.
+    radioButtonFlags = RadioButtonFlags.Zero // Radio button flags associated with this value.
+    sigChanged: SigArray'func||(*RadioButton) // Signal emitted when changed.
 }
 
+// Selects radio button flags.
 #[Swag.EnumFlags]
 enum RadioButtonFlags
 {
-    Zero = 0
-    RightAlign
+    Zero = 0 // No flags are enabled.
+    RightAlign // Enables right align.
 }
 
 impl IWnd for RadioButton
@@ -129,6 +131,7 @@ impl IWnd for RadioButton
 
 impl RadioButton
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*RadioButton
     {

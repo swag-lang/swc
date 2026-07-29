@@ -5264,17 +5264,20 @@ path.<span class="SFct">close</span>()
 </tbody>
 </table>
 <section class="api-symbol">
-<table class="api-item"><tr><td><span id="Pixel_Testing_DumpLevel"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Testing.DumpLevel</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/tests/framework/commanddump.swg#L8">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Pixel_Testing_DumpLevel"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Testing.DumpLevel</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/tests/framework/commanddump.swg#L13">[src]</a></td></tr></table>
 <p>Granularity of a <a href="#Pixel_Testing_dumpPainter">Testing.dumpPainter</a> snapshot.</p>
+<p>Only <span class="code-inline">Full</span> records texture coordinates, and they are the one part of a snapshot that is not self-contained: glyph coordinates depend on the packing order of a glyph cache shared by the whole process, so a drawing that uses a font shared with another test must be recorded at <span class="code-inline">Batches</span> or below to stay reproducible whatever the test order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Testing_DumpLevel">DumpLevel</a></span></span></div>
 </section>
 <h3>Cases</h3>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Pixel_Testing_DumpLevel_Full" class="code-type">Full</td><td><p>Commands plus a per-batch vertex summary (count, bounds, colors, coverage).</p>
+<tr><td id="Pixel_Testing_DumpLevel_Batches" class="code-type">Batches</td><td><p>Adds per-batch bounds, colors and antialiasing coverage.</p>
 </td></tr>
-<tr><td id="Pixel_Testing_DumpLevel_Summary" class="code-type">Summary</td><td><p>Commands only, with no vertex information.</p>
+<tr><td id="Pixel_Testing_DumpLevel_Commands" class="code-type">Commands</td><td><p>Commands and batch sizes, with no vertex detail.</p>
+</td></tr>
+<tr><td id="Pixel_Testing_DumpLevel_Full" class="code-type">Full</td><td><p>Adds per-batch texture coordinates.</p>
 </td></tr>
 </tbody>
 </table>
@@ -7174,7 +7177,7 @@ path.<span class="SFct">close</span>()
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertGoldenText</span>(text: <span class="STpe">string</span>, name: <span class="STpe">string</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<table class="api-item"><tr><td><span id="Pixel_Testing_dumpPainter"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.dumpPainter</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/tests/framework/commanddump.swg#L30">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Pixel_Testing_dumpPainter"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.dumpPainter</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/tests/framework/commanddump.swg#L36">[src]</a></td></tr></table>
 <p>Serializes the display list recorded by <span class="code-inline">painter</span> into a stable, human readable snapshot.</p>
 <p>The result is meant to be stored as a golden file and compared verbatim, so every value that is not reproducible across runs or machines is normalized away:</p>
 <div class="description-list-title"><p>Texture handles, font and render target addresses, and shader uniform locations are replaced</p></div>
@@ -7188,7 +7191,7 @@ path.<span class="SFct">close</span>()
 <div class="description-list-block">
 </div>
 <p>The snapshot opens with one <span class="code-inline">#</span> legend line per remapped object, then a blank line, then one line per command. Lines are separated by a single <span class="code-inline">\n</span> and the result ends with a <span class="code-inline">\n</span>.</p>
-<p><span class="code-inline">painter</span> must have completed a <span class="code-inline">begin()</span> / <span class="code-inline">end()</span> pass; the painter is only read, never modified. A <span class="code-inline">Summary</span> dump omits vertex details, which keeps snapshots of composite drawings (widgets, whole windows) readable while still catching command level regressions.</p>
+<p><span class="code-inline">painter</span> must have completed a <span class="code-inline">begin()</span> / <span class="code-inline">end()</span> pass; the painter is only read, never modified. A lower <span class="code-inline">level</span> keeps snapshots of composite drawings (widgets, whole windows) readable while still catching command level regressions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">dumpPainter</span>(painter: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, level = <span class="SCst"><a href="#Pixel_Testing_DumpLevel">DumpLevel</a></span>.<span class="SCst"><a href="#Pixel_Testing_DumpLevel_Full">Full</a></span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">

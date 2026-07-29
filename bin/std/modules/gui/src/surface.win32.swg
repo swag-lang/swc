@@ -6,33 +6,50 @@ using Core, Win32
 
 #[Swag.Foreign("dwmapi")]
 {
+    // Performs the dwm set window attribute operation.
     func DwmSetWindowAttribute(hWnd: HWND, dwAttribute: DWORD, pvAttribute: LPCVOID, cbAttribute: DWORD)->s32
 }
 
+// Defines dwmwa window corner preference.
 const DWMWA_WINDOW_CORNER_PREFERENCE = 33'u32
+// Defines dwmwa border color.
 const DWMWA_BORDER_COLOR             = 34'u32
+// Defines dwmwa color none.
 const DWMWA_COLOR_NONE               = 0xFFFFFFFE'u32
 
+// Defines dwmwcp donotround.
 const DWMWCP_DONOTROUND = 1'u32
+// Defines dwmwcp round.
 const DWMWCP_ROUND      = 2'u32
+// Defines htclient.
 const HTCLIENT          = 1
+// Defines htcaption.
 const HTCAPTION         = 2
+// Defines htleft.
 const HTLEFT            = 10
+// Defines htright.
 const HTRIGHT           = 11
+// Defines httop.
 const HTTOP             = 12
+// Defines httopleft.
 const HTTOPLEFT         = 13
+// Defines httopright.
 const HTTOPRIGHT        = 14
+// Defines htbottom.
 const HTBOTTOM          = 15
+// Defines htbottomleft.
 const HTBOTTOMLEFT      = 16
+// Defines htbottomright.
 const HTBOTTOMRIGHT     = 17
 
+// Represents native surface.
 #[Swag.NoCopy]
 struct NativeSurface
 {
-    hWnd:         HWND
-    lastDeadChar: WPARAM
-    topMost:      bool
-    trayIcon:     HICON
+    hWnd:         HWND // H wnd associated with this value.
+    lastDeadChar: WPARAM // Last dead char associated with this value.
+    topMost:      bool // Top most associated with this value.
+    trayIcon:     HICON // Tray icon associated with this value.
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -360,26 +377,31 @@ impl Surface
         catch Shell_NotifyIconA(NIM_ADD, &tnid)
     }
 
+    // Performs the request close operation.
     mtd requestClose()
     {
         catch PostMessageW(.hWnd, WM_CLOSE, 0, 0)
     }
 
+    // Performs the request minimize operation.
     mtd requestMinimize()
     {
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0)
     }
 
+    // Performs the request maximize operation.
     mtd requestMaximize()
     {
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0)
     }
 
+    // Performs the request restore operation.
     mtd requestRestore()
     {
         catch PostMessageW(.hWnd, WM_SYSCOMMAND, SC_RESTORE, 0)
     }
 
+    // Applies native surface flags.
     mtd applyNativeSurfaceFlags()
     {
         if .app.renderer.headless do
@@ -445,6 +467,7 @@ impl Surface
         .topMost = true
     }
 
+    // Returns whether top most.
     mtd isTopMost()->bool
     {
         return .topMost

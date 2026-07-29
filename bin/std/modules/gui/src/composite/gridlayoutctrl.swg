@@ -2,46 +2,50 @@
 
 using Core
 
+// Selects grid layout ctrl flags.
 #[Swag.EnumFlags]
 enum GridLayoutCtrlFlags
 {
-    Zero = 0
-    AdaptSizeToContent
-    AdaptColWidth
-    AdaptRowHeight
+    Zero = 0 // No flags are enabled.
+    AdaptSizeToContent // Enables adapt size to content.
+    AdaptColWidth // Enables adapt col width.
+    AdaptRowHeight // Enables adapt row height.
 }
 
+// Selects grid track kind.
 enum GridTrackKind
 {
-    Fixed
-    Content
-    Fraction
-    Fill
+    Fixed // Selects the fixed kind.
+    Content // Selects the content kind.
+    Fraction // Selects the fraction kind.
+    Fill // Selects the fill kind.
 }
 
+// Represents grid track.
 struct GridTrack
 {
-    kind       = GridTrackKind.Fixed
-    value: f32 = 100
-    min:   f32
-    max:   f32
+    kind       = GridTrackKind.Fixed // Kind associated with this value.
+    value: f32 = 100 // Value associated with this value.
+    min:   f32 // Min associated with this value.
+    max:   f32 // Max associated with this value.
 }
 
+// Represents grid layout ctrl.
 struct GridLayoutCtrl
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    gridLayoutFlags  = GridLayoutCtrlFlags.Zero
-    numColumns:  s32
-    numRows:     s32
-    spacingHorz: f32 = 5
-    spacingVert: f32 = 5
+    gridLayoutFlags  = GridLayoutCtrlFlags.Zero // Grid layout flags associated with this value.
+    numColumns:  s32 // Num columns associated with this value.
+    numRows:     s32 // Num rows associated with this value.
+    spacingHorz: f32 = 5 // Spacing horz associated with this value.
+    spacingVert: f32 = 5 // Spacing vert associated with this value.
 
-    layout:    Array'(#null *Wnd)
-    colSizes:  Array'f32
-    rowSizes:  Array'f32
-    colTracks: Array'GridTrack
-    rowTracks: Array'GridTrack
+    layout:    Array'(#null *Wnd) // Layout associated with this value.
+    colSizes:  Array'f32 // Col sizes associated with this value.
+    rowSizes:  Array'f32 // Row sizes associated with this value.
+    colTracks: Array'GridTrack // Col tracks associated with this value.
+    rowTracks: Array'GridTrack // Row tracks associated with this value.
 }
 
 impl IWnd for GridLayoutCtrl
@@ -369,6 +373,7 @@ impl GridLayoutCtrl
         .setRowTrack(row, GridTrackKind.Fixed, size)
     }
 
+    // Sets col track.
     mtd setColTrack(col: s32, kind: GridTrackKind, value: f32 = 1, min: f32 = 0, max: f32 = 0)
     {
         .ensureStorage()
@@ -376,6 +381,7 @@ impl GridLayoutCtrl
         .colTracks[col] = {kind: kind, value: value, min: min, max: max}
     }
 
+    // Sets row track.
     mtd setRowTrack(row: s32, kind: GridTrackKind, value: f32 = 1, min: f32 = 0, max: f32 = 0)
     {
         .ensureStorage()

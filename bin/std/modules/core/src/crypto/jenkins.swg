@@ -7,6 +7,8 @@
 
 using Swag
 
+// Performs the jenkins operation.
+// Performs the jenkins operation.
 #[Safety(.All, false)]
 public func jenkins(h: u64)->u64
 {

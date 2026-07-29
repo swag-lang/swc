@@ -2,43 +2,46 @@
 
 using Core, File, Directory
 
+// Selects file dlg mode.
 enum FileDlgMode
 {
-    CreateFile
-    SelectOneFile
-    SelectMultiFiles
-    SelectFolder
+    CreateFile // Selects create file mode.
+    SelectOneFile // Selects select one file mode.
+    SelectMultiFiles // Selects select multi files mode.
+    SelectFolder // Selects select folder mode.
 }
 
+// Represents file dlg state.
 struct FileDlgState
 {
-    position:            Math.Rectangle
-    curFolder:           String
-    folderHistory:       Array'String
-    columnWidthName:     s32 = 200
-    columnWidthModified: s32 = 150
+    position:            Math.Rectangle // Position associated with this value.
+    curFolder:           String // Cur folder associated with this value.
+    folderHistory:       Array'String // Folder history associated with this value.
+    columnWidthName:     s32 = 200 // Column width name associated with this value.
+    columnWidthModified: s32 = 150 // Column width modified associated with this value.
 }
 
+// Represents file dlg options.
 struct FileDlgOptions
 {
-    title:      string      = ""
-    btnOkName:  string      = ""
-    openFolder: string      = ""
-    editName:   string      = ""
-    drivePane               = true
-    mode:       FileDlgMode = SelectOneFile
-    filters:    Array'{ name: string, extensions: string }
-    shortcuts:  Array'{ type: Core.Env.SpecialDirectory, name: string }
-    state:      #null *FileDlgState
+    title:      string      = "" // Title associated with this value.
+    btnOkName:  string      = "" // Btn ok name associated with this value.
+    openFolder: string      = "" // Open folder associated with this value.
+    editName:   string      = "" // Edit name associated with this value.
+    drivePane               = true // Drive pane associated with this value.
+    mode:       FileDlgMode = SelectOneFile // Mode associated with this value.
+    filters:    Array'{ name: string, extensions: string } // Filters associated with this value.
+    shortcuts:  Array'{ type: Core.Env.SpecialDirectory, name: string } // Shortcuts associated with this value.
+    state:      #null *FileDlgState // State associated with this value.
 }
 
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
 struct FileDlg
 {
-    using dialog: Dialog
+    using dialog: Dialog // Embedded dialog state.
     #[Swag.Late]
-    browser:    *FileBrowserCtrl
-    dlgOptions: FileDlgOptions
+    browser:    *FileBrowserCtrl // Browser associated with this value.
+    dlgOptions: FileDlgOptions // Dlg options associated with this value.
 }
 
 impl IWnd for FileDlg

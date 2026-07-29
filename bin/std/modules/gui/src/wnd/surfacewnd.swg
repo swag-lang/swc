@@ -1,24 +1,26 @@
 using Core, Pixel, Serialization
 
+// Selects sizing border.
 #[Swag.EnumFlags]
 public enum SizingBorder
 {
-    Zero = 0
-    Left
-    Top
-    Right
-    Bottom
+    Zero = 0 // No flags are enabled.
+    Left // Selects left.
+    Top // Selects top.
+    Right // Selects right.
+    Bottom // Selects bottom.
 }
 
+// Represents surface wnd.
 public struct SurfaceWnd
 {
-    using base:    FrameWnd
-    icon:          Icon
-    minimizeBtn:   #null *IconButton
-    maximizeBtn:   #null *IconButton
-    closeBtn:      #null *IconButton
-    movingSurface: bool
-    sizingBorder:  SizingBorder = Zero
+    using base:    FrameWnd // Embedded base state.
+    icon:          Icon // Icon associated with this value.
+    minimizeBtn:   #null *IconButton // Minimize btn associated with this value.
+    maximizeBtn:   #null *IconButton // Maximize btn associated with this value.
+    closeBtn:      #null *IconButton // Close btn associated with this value.
+    movingSurface: bool // Moving surface associated with this value.
+    sizingBorder:  SizingBorder = Zero // Sizing border associated with this value.
 }
 
 impl IWnd for SurfaceWnd

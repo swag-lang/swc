@@ -18,6 +18,7 @@ enum LogFlags
 // Interface for writing log output.
 interface ILogWriter
 {
+    // Performs the print operation.
     mtd print(text: string)     // Print a string to the log destination.
 }
 

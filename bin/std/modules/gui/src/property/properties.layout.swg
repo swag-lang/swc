@@ -61,6 +61,7 @@ impl Properties
         .invalidate()
     }
 
+    // Performs the refresh grid column layout operation.
     mtd refreshGridColumnLayout()
     {
         if !.isGridLike() do

@@ -40,45 +40,45 @@ const RuneInvert = cast(rune) 0x0400_0000
 
 struct NfaTable
 {
-    level: u32
-    nodes: Array'(*NfaNode)
+    level: u32 // Level associated with this value.
+    nodes: Array'(*NfaNode) // Nodes associated with this value.
 }
 
 struct NfaNode
 {
-    transitions: HashTable'(rune, Array'(*NfaNode))
-    group:       u32
-    terminal:    bool
+    transitions: HashTable'(rune, Array'(*NfaNode)) // Transitions associated with this value.
+    group:       u32 // Group associated with this value.
+    terminal:    bool // Terminal associated with this value.
 }
 
 struct DfaNode
 {
-    table:       Array'(*NfaNode)
-    transitions: HashTable'(rune, #null *DfaNode)
-    rawGroup:    u32
-    group:       u32
-    terminal:    bool
+    table:       Array'(*NfaNode) // Table associated with this value.
+    transitions: HashTable'(rune, #null *DfaNode) // Transitions associated with this value.
+    rawGroup:    u32 // Raw group associated with this value.
+    group:       u32 // Group associated with this value.
+    terminal:    bool // Terminal associated with this value.
 }
 
 struct RegExpGroup
 {
-    rank:  u32
-    value: string
+    rank:  u32 // Rank associated with this value.
+    value: string // Value associated with this value.
 }
 
 struct ActiveGroup
 {
-    rawGroup: u32
-    rank:     u32
-    startIdx: s32
+    rawGroup: u32 // Raw group associated with this value.
+    rank:     u32 // Rank associated with this value.
+    startIdx: s32 // Index of start.
 }
 
 struct DfaState
 {
-    node:         #null *DfaNode
-    parseIdx:     s32
-    activeGroups: Array'ActiveGroup
-    groups:       Array'RegExpGroup
+    node:         #null *DfaNode // Node associated with this value.
+    parseIdx:     s32 // Index of parse.
+    activeGroups: Array'ActiveGroup // Active groups associated with this value.
+    groups:       Array'RegExpGroup // Groups associated with this value.
 }
 
 // Simple regular expression matcher.
@@ -91,26 +91,26 @@ struct DfaState
 // | a\|b             | a or b
 // | [abc]            | match any in list
 // | [a-zA-Z]         | match any in range
-// | [[:digit:]]      | [0-9]
-// | [[:xdigit:]]     | [a-fA-F0-9]
-// | [[:alpha:]]      | [a-zA-Z]
-// | [[:alnum:]]      | [a-zA-Z0-9]
-// | [[:lower:]]      | [a-z]
-// | [[:upper:]]      | [A-Z]
-// | [[:blank:]]      | whitespace or tab
-// | [[:space:]]      | and whitespace character
-// | [[:word:]]       | [a-zA-Z0-9_]
-// | [[:ascii:]]      | Any ascii character
+// | `[[:digit:]]`      | `[0-9]`
+// | `[[:xdigit:]]`     | `[a-fA-F0-9]`
+// | `[[:alpha:]]`      | `[a-zA-Z]`
+// | `[[:alnum:]]`      | `[a-zA-Z0-9]`
+// | `[[:lower:]]`      | `[a-z]`
+// | `[[:upper:]]`      | `[A-Z]`
+// | `[[:blank:]]`      | whitespace or tab
+// | `[[:space:]]`      | and whitespace character
+// | `[[:word:]]`       | `[a-zA-Z0-9_]`
+// | `[[:ascii:]]`      | any ASCII character
 // | [^<interval>]    | Inverse of <interval>
-// | \d               | [[:digit:]]
+// | `\d`               | `[[:digit:]]`
 // | \D               | [^[:digit:]]
-// | \l               | [[:lower:]]
+// | `\l`               | `[[:lower:]]`
 // | \L               | [^[:lower:]]
-// | \u               | [[:upper:]]
+// | `\u`               | `[[:upper:]]`
 // | \U               | [^[:upper:]]
-// | \s               | [[:space:]]
+// | `\s`               | `[[:space:]]`
 // | \S               | [^[:space:]]
-// | \w               | [[:word:]]
+// | `\w`               | `[[:word:]]`
 // | \W               | [^[:word:]]
 // | \b               | start or end of word
 // | \pL              | unicode letter
@@ -123,32 +123,33 @@ struct DfaState
 #[Swag.Opaque]
 public struct RegExp
 {
-    nfaNodes:         ArrayPtr'(NfaNode)
-    dfaNodes:         ArrayPtr'(DfaNode)
-    nfaTables:        ArrayPtr'(NfaTable)
-    nfaStack:         Array'(*NfaTable)
-    charSet:          HashSet'rune
-    groups:           Array'RegExpGroup
-    groupTransform:   Array'u32
-    groupParent:      Array'u32
-    captureRanks:     Array'u32
-    captureRankStack: Array'u32
-    openParen:        Array'u32
-    orOpStack:        Array'rune
-    orOpLevel:        Array'u32
-    preprocessed:     Array'rune
-    group:            u32
-    captureRankMax:   u32
-    captureRankIdx:   u64
-    hasStarted:       bool
-    wasWord:          bool
-    ignoreCase:       bool
-    bufStart:         #null const [*] u8
-    bufLength:        u64
+    nfaNodes:         ArrayPtr'(NfaNode) // Nfa nodes associated with this value.
+    dfaNodes:         ArrayPtr'(DfaNode) // Dfa nodes associated with this value.
+    nfaTables:        ArrayPtr'(NfaTable) // Nfa tables associated with this value.
+    nfaStack:         Array'(*NfaTable) // Nfa stack associated with this value.
+    charSet:          HashSet'rune // Char set associated with this value.
+    groups:           Array'RegExpGroup // Groups associated with this value.
+    groupTransform:   Array'u32 // Group transform associated with this value.
+    groupParent:      Array'u32 // Group parent associated with this value.
+    captureRanks:     Array'u32 // Capture ranks associated with this value.
+    captureRankStack: Array'u32 // Capture rank stack associated with this value.
+    openParen:        Array'u32 // Open paren associated with this value.
+    orOpStack:        Array'rune // Or op stack associated with this value.
+    orOpLevel:        Array'u32 // Or op level associated with this value.
+    preprocessed:     Array'rune // Preprocessed associated with this value.
+    group:            u32 // Group associated with this value.
+    captureRankMax:   u32 // Capture rank max associated with this value.
+    captureRankIdx:   u64 // Index of capture rank.
+    hasStarted:       bool // Whether this value has started.
+    wasWord:          bool // Was word associated with this value.
+    ignoreCase:       bool // Ignore case associated with this value.
+    bufStart:         #null const [*] u8 // Buf start associated with this value.
+    bufLength:        u64 // Buf length associated with this value.
 }
 
 impl RegExp
 {
+    // Releases resources owned by this value.
     public mtd opDrop()
     {
         .clear()

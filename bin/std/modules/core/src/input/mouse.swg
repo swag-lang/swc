@@ -6,10 +6,10 @@ using Math
 // Allows reading position and button click information from mouse
 struct Mouse
 {
-    previousState: MouseState
-    currentState:  MouseState
-    dblClk:        [MouseButton] bool
-    dblClkTimeMs:  u32 = 300
+    previousState: MouseState // Previous state associated with this value.
+    currentState:  MouseState // Current state associated with this value.
+    dblClk:        [MouseButton] bool // Dbl clk associated with this value.
+    dblClkTimeMs:  u32 = 300 // Dbl clk time ms associated with this value.
 }
 
 impl Mouse
@@ -42,6 +42,7 @@ impl Mouse
         .currentState.clear()
     }
 
+    // Returns whether button double click.
     mtd isButtonDoubleClick(button: MouseButton)->bool
     {
         return .dblClk[button]

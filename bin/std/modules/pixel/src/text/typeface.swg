@@ -195,7 +195,7 @@ public impl TypeFace
         pathList.clear()
 
         .face.setPixelSize(0, size)
-        .face.loadChar(c, .NoBitmap)
+        .face.loadChar(c)
         .transform(size, embolden)
 
         let prevIdx  = pathList.paths.count
@@ -223,7 +223,7 @@ public impl TypeFace
 
         Utf8.visitRunes(text)
         {
-            .face.loadChar(c, .NoBitmap)
+            .face.loadChar(c)
             .transform(size, embolden)
 
             .face.glyph.outline.translate(x, 0)

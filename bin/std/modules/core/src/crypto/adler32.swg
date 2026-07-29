@@ -3,9 +3,10 @@
 
 #global namespace Hash
 
+// Represents adler32.
 public struct Adler32
 {
-    adler: u32 = 1
+    adler: u32 = 1 // Adler associated with this value.
 }
 
 public impl Adler32

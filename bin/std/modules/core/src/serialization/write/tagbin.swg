@@ -22,8 +22,8 @@ enum TagBinSignatures: u32
 #[Swag.EnumFlags]
 enum TagBinValueFlags: u8
 {
-    Zero
-    Compressed
+    Zero // No flags are enabled.
+    Compressed // Enables compressed.
 }
 
 // Internal state for a binary serialization section
@@ -38,9 +38,9 @@ struct TagBinSection
 #[Swag.Opaque]
 struct TagBin
 {
-    compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero
-    compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed
-    compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default
+    compressionFlags:    Core.Compress.Deflate.CompressionFlags    = .Zero // Compression flags associated with this value.
+    compressionLevel:    Core.Compress.Deflate.CompressionLevel    = .BestSpeed // Compression level associated with this value.
+    compressionStrategy: Core.Compress.Deflate.CompressionStrategy = .Default // Compression strategy associated with this value.
 
     internal
     {

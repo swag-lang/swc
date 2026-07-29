@@ -1,11 +1,12 @@
 using Core, Pixel
 
+// Represents properties view.
 #[Swag.Opaque]
 public struct PropertiesView
 {
-    using stackWnd: StackLayoutCtrl
+    using stackWnd: StackLayoutCtrl // Embedded stack wnd state.
     #[Swag.Late]
-    ed: *Properties
+    ed: *Properties // Ed associated with this value.
 }
 
 impl IWnd for PropertiesView

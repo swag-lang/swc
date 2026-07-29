@@ -2,16 +2,17 @@
 
 using Core, Pixel
 
+// Represents combo ctrl.
 struct ComboCtrl
 {
-    using frameWnd: FrameWnd
-    labelSize:      f32 = 60
+    using frameWnd: FrameWnd // Embedded frame wnd state.
+    labelSize:      f32 = 60 // Label size associated with this value.
     comboSize:      f32 = 60     // 0 to fit to parent size
 
     #[Swag.Late]
-    label: *Label
+    label: *Label // Label associated with this value.
     #[Swag.Late]
-    combo: *ComboBox
+    combo: *ComboBox // Combo associated with this value.
 }
 
 impl IWnd for ComboCtrl
@@ -32,6 +33,7 @@ impl IWnd for ComboCtrl
 
 impl ComboCtrl
 {
+    // Performs the create operation.
     func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*ComboCtrl
     {
         let metrics = parent.getThemeMetrics()

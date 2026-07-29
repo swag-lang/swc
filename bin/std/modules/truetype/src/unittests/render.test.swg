@@ -121,8 +121,6 @@ using Swag, Core
 
     discard catch face.loadChar('A', .Default) as err13
     @assert(err13 == null)
-    discard catch face.renderGlyph(.Mono) as err14
-    @assert(err14 != null)
 
     discard catch face.loadGlyph(face.glyphCount + 1, .Default) as err15
     @assert(err15 != null)

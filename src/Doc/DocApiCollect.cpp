@@ -480,16 +480,18 @@ namespace DocInternal
                     symbols.push_back(entry.symbol);
                     publicRootRefs.emplace(entry.symbol, entry.rootRef);
 
-                    // Interface methods are exported as part of the interface root,
-                    // not as independent module API entries. Add their declaration
-                    // symbols so the API page owns one canonical method contract.
-                    if (entry.symbol->isInterface() && entry.symbol->isSymMap())
+                    // Nested types and interface methods are exported through their
+                    // aggregate root rather than as independent module API entries.
+                    // Collect the public symbol tree so each of them still receives
+                    // its own canonical, top-level documentation section.
+                    if (entry.symbol->isSymMap())
                     {
                         std::vector<const Symbol*> members;
-                        entry.symbol->asSymMap()->getAllSymbols(members);
+                        std::unordered_set<const Symbol*> nestedSeen;
+                        collectSymbolTree(members, nestedSeen, *entry.symbol->asSymMap());
                         for (const Symbol* member : members)
                         {
-                            if (!member || !member->isFunction() || !seen.insert(member).second)
+                            if (!member || !isDocumentationSymbol(compiler, *member, false) || !seen.insert(member).second)
                                 continue;
                             symbols.push_back(member);
                         }

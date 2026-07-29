@@ -2,11 +2,12 @@
 
 using Core, Pixel
 
+// Selects combo box kind.
 enum ComboBoxKind
 {
-    Select
-    Edit
-    CheckBox
+    Select // Selects the select kind.
+    Edit // Selects the edit kind.
+    CheckBox // Selects the check box kind.
 }
 
 // Optional behaviour modifiers for the ComboBox.
@@ -17,32 +18,34 @@ enum ComboBoxFlags
     Flat         // Borderless cell style: only paints background/border when hot or open (e.g. property grids)
 }
 
+// Represents combo box item.
 struct ComboBoxItem
 {
-    using base:  Item
-    isSeparator: bool
+    using base:  Item // Embedded base state.
+    isSeparator: bool // Whether this value is separator.
 }
 
+// Represents combo box.
 struct ComboBox
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    kind                = ComboBoxKind.Select
+    kind                = ComboBoxKind.Select // Kind associated with this value.
     comboBoxFlags       = ComboBoxFlags.Zero     // Active behaviour flags
-    minWidthPopup:  f32 = 100
-    maxHeightPopup: f32 = 300
-    sigChanged:     SigArray'func||(*ComboBox, u32)
+    minWidthPopup:  f32 = 100 // Min width popup associated with this value.
+    maxHeightPopup: f32 = 300 // Max height popup associated with this value.
+    sigChanged:     SigArray'func||(*ComboBox, u32) // Signal emitted when changed.
 
-    editBox:     #null *EditBox
-    isHot:       bool
-    popup:       #null *PopupListCtrl
-    items:       ArrayPtr'ComboBoxItem
-    selectedIdx = Swag.U32.Max
-    maxIconSize: s32
+    editBox:     #null *EditBox // Edit box associated with this value.
+    isHot:       bool // Whether this value is hot.
+    popup:       #null *PopupListCtrl // Popup associated with this value.
+    items:       ArrayPtr'ComboBoxItem // Items associated with this value.
+    selectedIdx = Swag.U32.Max // Index of selected.
+    maxIconSize: s32 // Max icon size associated with this value.
 
-    aniBk:     BlendColor
-    aniBorder: BlendColor
-    aniText:   BlendColor
+    aniBk:     BlendColor // Ani bk associated with this value.
+    aniBorder: BlendColor // Ani border associated with this value.
+    aniText:   BlendColor // Ani text associated with this value.
 }
 
 impl IWnd for ComboBox
@@ -310,6 +313,7 @@ private impl ComboBox
 
 impl ComboBox
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, kind = ComboBoxKind.Select)->*ComboBox
     {

@@ -4,6 +4,7 @@
 
 using Win32
 
+// Performs the create operation.
 func create(dirname: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirname)

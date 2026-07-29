@@ -1,8 +1,9 @@
 #global namespace Hash
 
+// Represents crc32.
 public struct Crc32
 {
-    crc: u32
+    crc: u32 // Crc associated with this value.
 }
 
 impl Crc32

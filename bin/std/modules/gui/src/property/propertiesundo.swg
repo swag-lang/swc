@@ -21,8 +21,8 @@ using Core, Pixel
 // addStruct), as long as the edited instances themselves are still alive.
 struct PropFieldValue
 {
-    valid:    bool
-    isString: bool
+    valid:    bool // Valid associated with this value.
+    isString: bool // Whether this value is string.
     n:        u64                   // number of instances captured
     sz:       u64                   // per-instance byte size (raw-bytes case only)
     addrs:    Array'(#null *u8)     // field address in each captured instance
@@ -151,20 +151,22 @@ impl PropFieldValue
 struct PropUndoCommand
 {
     #[Swag.Late]
-    prop:       *Properties
-    generation: u64
-    oldVal:     PropFieldValue
-    newVal:     PropFieldValue
+    prop:       *Properties // Prop associated with this value.
+    generation: u64 // Generation associated with this value.
+    oldVal:     PropFieldValue // Old val associated with this value.
+    newVal:     PropFieldValue // New val associated with this value.
 }
 
 impl IUndoCommand for PropUndoCommand
 {
+    // Performs the redo operation.
     mtd impl redo()
     {
         .newVal.restore()
         .prop.postUndoRefresh(.generation)
     }
 
+    // Performs the undo operation.
     mtd impl undo()
     {
         .oldVal.restore()
@@ -285,21 +287,25 @@ public impl Properties
         .externUndoMgr = mgr
     }
 
+    // Returns whether this value can undo.
     mtd canUndo()->bool
     {
         return .activeUndoMgr().canUndo()
     }
 
+    // Returns whether this value can redo.
     mtd canRedo()->bool
     {
         return .activeUndoMgr().canRedo()
     }
 
+    // Performs the undo operation.
     mtd undo()
     {
         .activeUndoMgr().undo()
     }
 
+    // Performs the redo operation.
     mtd redo()
     {
         .activeUndoMgr().redo()

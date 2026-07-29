@@ -80,6 +80,7 @@ private impl RichEditCtrl
 
 impl RichEditCtrl
 {
+    // Performs the select all operation.
     mtd selectAll()
     {
         .moveCursorStartFile(&.selBeg)
@@ -87,17 +88,20 @@ impl RichEditCtrl
         .setRectangularSelection(false)
     }
 
+    // Sets rectangular selection.
     mtd setRectangularSelection(selRect: bool)
     {
         .hasSelRect = selRect
     }
 
+    // Performs the clear selection operation.
     mtd clearSelection()
     {
         .selBeg = .cursorPos
         .setRectangularSelection(false)
     }
 
+    // Sets selection.
     mtd setSelection(start, end: RichEditCursor)
     {
         .selBeg    = start
@@ -105,6 +109,7 @@ impl RichEditCtrl
         .checkSelection()
     }
 
+    // Returns whether selection empty.
     mtd isSelectionEmpty()->bool
     {
         if .selBeg.lineIndex != .cursorPos.lineIndex do
@@ -114,6 +119,7 @@ impl RichEditCtrl
         return true
     }
 
+    // Returns beg selection.
     mtd getBegSelection()->RichEditCursor
     {
         if .hasSelRect
@@ -133,6 +139,7 @@ impl RichEditCtrl
         return .cursorPos
     }
 
+    // Returns end selection.
     mtd getEndSelection()->RichEditCursor
     {
         if .hasSelRect
@@ -152,6 +159,7 @@ impl RichEditCtrl
         return .selBeg
     }
 
+    // Performs the check selection operation.
     mtd checkSelection()
     {
         if .selBeg.lineIndex >= .lines.count do
@@ -177,6 +185,7 @@ impl RichEditCtrl
         .computeRectangularSelection(.getBegSelection(), .getEndSelection())
     }
 
+    // Performs the delete selection operation.
     mtd deleteSelection()
     {
         if .isReadOnly() do
@@ -203,6 +212,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
+    // Performs the delete left operation.
     mtd deleteLeft()
     {
         .pushUndo()
@@ -226,6 +236,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
+    // Performs the delete right operation.
     mtd deleteRight()
     {
         .pushUndo()
@@ -239,6 +250,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
+    // Performs the delete word left operation.
     mtd deleteWordLeft()
     {
         .pushUndo()
@@ -249,6 +261,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
+    // Performs the delete word right operation.
     mtd deleteWordRight()
     {
         .pushUndo()
@@ -264,6 +277,7 @@ impl RichEditCtrl
         .clipFormat = catch Clipboard.registerFormat("std.richedit.style")
     }
 
+    // Performs the copy to clipboard operation.
     mtd copyToClipboard()
     {
         if .isSelectionEmpty() do
@@ -278,6 +292,7 @@ impl RichEditCtrl
         Clipboard.addString(txt)
     }
 
+    // Performs the paste from clipboard operation.
     mtd pasteFromClipboard()
     {
         let txt = Clipboard.getString()
@@ -298,6 +313,7 @@ impl RichEditCtrl
         .forceCaretVisible = true
     }
 
+    // Performs the delete line operation.
     mtd deleteLine()
     {
         .pushUndo()
@@ -315,6 +331,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
+    // Performs the select word operation.
     mtd selectWord()
     {
         let line = notnull .lines[.cursorPos.lineIndex]
@@ -369,6 +386,7 @@ impl RichEditCtrl
             .cursorPos.charPosInLine += 1
     }
 
+    // Performs the scroll line up operation.
     mtd scrollLineUp()
     {
         let pt   = .scrollWnd.getScrollPos()
@@ -391,6 +409,7 @@ impl RichEditCtrl
         }
     }
 
+    // Performs the scroll line down operation.
     mtd scrollLineDown()
     {
         let pt   = .scrollWnd.getScrollPos()

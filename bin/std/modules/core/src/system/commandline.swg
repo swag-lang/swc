@@ -3,8 +3,10 @@
 
 using Core.Errors
 
+// Overrides the command-line name associated with a reflected field.
 attr ArgParams(nameAlias: #null string = null)
 
+// Represents parse options.
 struct ParseOptions {}
 
 // The 'IsSet' generic struct is a mirror of the user input struct.
@@ -29,7 +31,7 @@ struct(T) IsSet
 // Result of the [parse] function
 struct(T) Result
 {
-    isSet: IsSet'T
+    isSet: IsSet'T // Whether this value is set.
 }
 
 // Returns true if 'oneArg' is a valid option (starting with a delimiter)
@@ -40,6 +42,7 @@ func isOption(oneArg: string, _options: ParseOptions)->bool
     return oneArg[0] == '-'
 }
 
+// Returns whether value.
 func isValue(oneArg: string, typeField: typeinfo, options: ParseOptions)->bool
 {
     if !isOption(oneArg, options) do
@@ -119,12 +122,14 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'(stri
     return allArgs
 }
 
+// Represents field result.
 struct FieldResult
 {
-    field: #null const *Swag.TypeValue
-    index: u64 = Swag.U64.Max
+    field: #null const *Swag.TypeValue // Field associated with this value.
+    index: u64 = Swag.U64.Max // Index associated with this value.
 }
 
+// Returns field.
 func getField(typeStruct: const *Swag.TypeInfoStruct, name: string)->FieldResult
 {
     var result: retval

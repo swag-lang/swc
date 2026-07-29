@@ -10,6 +10,7 @@
 
 using Swag
 
+// Multiplies two unsigned 64-bit values.
 #[Swag.Safety(.Overflow, false)]
 func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
 {
@@ -30,14 +31,16 @@ func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
     return result
 }
 
+// Represents int128.
 struct Int128
 {
-    lo: u64
-    hi: s64
+    lo: u64 // Lo associated with this value.
+    hi: s64 // Hi associated with this value.
 }
 
 impl Int128
 {
+    // Compares this value with another value.
     mtd const opCompare(other: Int128)->s32
     {
         if .hi != other.hi do
@@ -45,6 +48,7 @@ impl Int128
         return .lo <=> other.lo
     }
 
+    // Converts this value to another representation.
     mtd const opCast()->f64
     {
         const Shift64: f64 = cast #bit (f64) 0x43F0000000000000     // 18446744073709551616.0'f64 //2^64
@@ -61,6 +65,7 @@ impl Int128
         return cast(f64) (.lo + .hi * Shift64)
     }
 
+    // Performs the mul operation.
     #[Swag.Safety(.Overflow, false)]
     func mul(x, y: s64)->Int128
     {

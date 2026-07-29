@@ -1,16 +1,17 @@
 using Core
 
+// Represents rich edit line.
 #[Swag.Opaque]
 public struct RichEditLine
 {
-    chars:            Array'rune
-    styles:           Array'RichEditStyleRef
-    dirtyStyle:       bool
-    hidden:           u64
-    drawingRect:      Math.Rectangle
-    lexerEndingState: s32
-    lexerCptCmt:      s32
-    wordWrap:         bool
+    chars:            Array'rune // Chars associated with this value.
+    styles:           Array'RichEditStyleRef // Styles associated with this value.
+    dirtyStyle:       bool // Dirty style associated with this value.
+    hidden:           u64 // Hidden associated with this value.
+    drawingRect:      Math.Rectangle // Drawing rect associated with this value.
+    lexerEndingState: s32 // Lexer ending state associated with this value.
+    lexerCptCmt:      s32 // Lexer cpt cmt associated with this value.
+    wordWrap:         bool // Word wrap associated with this value.
 }
 
 impl RichEditLine

@@ -2,19 +2,21 @@
 
 using Core, Pixel
 
+// Selects progress bar flags.
 #[Swag.EnumFlags]
 enum ProgressBarFlags
 {
-    Zero = 0
-    Infinite
+    Zero = 0 // No flags are enabled.
+    Infinite // Enables infinite.
 }
 
+// Represents progress bar.
 struct ProgressBar
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    prgBarFlags = ProgressBarFlags.Zero
-    progression: f32
+    prgBarFlags = ProgressBarFlags.Zero // Prg bar flags associated with this value.
+    progression: f32 // Progression associated with this value.
 }
 
 impl IWnd for ProgressBar
@@ -91,6 +93,7 @@ impl IWnd for ProgressBar
 
 impl ProgressBar
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ProgressBar
     {

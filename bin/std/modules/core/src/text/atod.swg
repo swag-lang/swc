@@ -870,6 +870,7 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
     return result
 }
 
+// Defines parse.
 public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
 {
     var result: retval

@@ -4,6 +4,7 @@
 
 using Core, Win32, Pixel
 
+// Names the value format type.
 alias ValueFormat = u64
 
 private var g_PngFormat: UINT

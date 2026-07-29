@@ -1,14 +1,16 @@
 #global namespace Math
 #global public
 
+// Represents matrix4x4.
 #[Serialization.Final]
 struct Matrix4x4
 {
-    m: [4, 4] f32
+    m: [4, 4] f32 // M associated with this value.
 }
 
 impl Matrix4x4
 {
+    // Sets identity.
     mtd setIdentity()
     {
         .m[0, 0] = 1

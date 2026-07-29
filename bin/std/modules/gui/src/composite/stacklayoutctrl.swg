@@ -2,6 +2,7 @@
 
 using Core
 
+// Selects stack layout kind.
 enum StackLayoutKind
 {
     Top            // From top to bottom
@@ -9,19 +10,20 @@ enum StackLayoutKind
     Left           // From left to right
     Right          // From right to left
     HorzCenter     // Center horizontally
-    HorzCenterVertCenter
+    HorzCenterVertCenter // Selects the horz center vert center kind.
     VertCenter     // Center vertically
     HorzFit        // From left to right; fit the available room
     VertFit        // From top to bottom; fit the available room
 }
 
+// Represents stack layout ctrl.
 struct StackLayoutCtrl
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    layoutKind:   StackLayoutKind = Top
-    spacing:      f32             = 5
-    fitToContent: bool
+    layoutKind:   StackLayoutKind = Top // Layout kind associated with this value.
+    spacing:      f32             = 5 // Spacing associated with this value.
+    fitToContent: bool // Fit to content associated with this value.
 }
 
 impl IWnd for StackLayoutCtrl
@@ -362,11 +364,13 @@ impl StackLayoutCtrl
         .arrangeLinear()
     }
 
+    // Applies layout.
     mtd applyLayout()
     {
         .computeLayout()
     }
 
+    // Applies layout.
     mtd applyLayout(oldSize: Math.Point)
     {
         discard oldSize

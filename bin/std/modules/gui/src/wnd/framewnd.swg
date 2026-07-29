@@ -2,42 +2,46 @@
 
 using Core, Pixel
 
+// Selects frame wnd form.
 enum FrameWndForm
 {
-    Transparent
-    Square
-    Round
+    Transparent // Uses the transparent form.
+    Square // Uses the square form.
+    Round // Uses the round form.
 }
 
+// Selects frame wnd flags.
 #[Swag.EnumFlags]
 enum FrameWndFlags
 {
-    Zero = 0
-    Borders
-    FocusBorder
-    SmallShadow
+    Zero = 0 // No flags are enabled.
+    Borders // Enables borders.
+    FocusBorder // Enables focus border.
+    SmallShadow // Enables small shadow.
 }
 
+// Selects frame wnd anchor.
 enum FrameWndAnchor
 {
-    None
-    Left
-    Top
-    Right
-    Bottom
+    None // No option is selected.
+    Left // Selects left.
+    Top // Selects top.
+    Right // Selects right.
+    Bottom // Selects bottom.
 }
 
+// Represents frame wnd.
 struct FrameWnd
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
     #[Swag.Late]
-    view:        *Wnd
-    frameForm  = FrameWndForm.Transparent
-    frameFlags = FrameWndFlags.Borders
-    anchor     = FrameWndAnchor.None
-    anchorPos:   f32
-    usedColorBk: Color
+    view:        *Wnd // View associated with this value.
+    frameForm  = FrameWndForm.Transparent // Frame form associated with this value.
+    frameFlags = FrameWndFlags.Borders // Frame flags associated with this value.
+    anchor     = FrameWndAnchor.None // Anchor associated with this value.
+    anchorPos:   f32 // Anchor pos associated with this value.
+    usedColorBk: Color // Used color bk associated with this value.
 }
 
 impl IWnd for FrameWnd
@@ -206,6 +210,7 @@ impl IWnd for FrameWnd
 
 impl FrameWnd
 {
+    // Creates and attaches a typed child as this frame's view.
     #[Swag.Discardable]
     mtd(T) createView(hook: #null HookEvent = null)->*T
     {
@@ -215,6 +220,7 @@ impl FrameWnd
         return notnull cast(#null *T) .view
     }
 
+    // Sets view.
     mtd setView(what: *Wnd)
     {
         if @isset(.view) do

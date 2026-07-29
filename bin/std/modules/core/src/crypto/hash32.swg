@@ -2,8 +2,10 @@
 
 using Swag
 
+// Defines the operations supported by i hash32.
 public interface IHash32
 {
+    // Defines compute.
     mtd const compute()->u32
 }
 

@@ -46,11 +46,13 @@ func startProcess(info: StartInfo)->Process fail
 
 impl Process
 {
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         .close()
     }
 
+    // Performs the close operation.
     mtd close()
     {
         if .handle

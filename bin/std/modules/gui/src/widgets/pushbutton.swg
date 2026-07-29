@@ -2,23 +2,25 @@
 
 using Core, Pixel
 
+// Selects push button form.
 enum PushButtonForm
 {
-    Normal
-    Default
-    Flat
-    Strong
+    Normal // Uses the normal form.
+    Default // Uses the default form.
+    Flat // Uses the flat form.
+    Strong // Uses the strong form.
 }
 
+// Represents push button.
 struct PushButton
 {
-    using button: Button
+    using button: Button // Embedded button state.
 
-    form = PushButtonForm.Normal
+    form = PushButtonForm.Normal // Form associated with this value.
 
-    aniBk:     BlendColor
-    aniBorder: BlendColor
-    aniText:   BlendColor
+    aniBk:     BlendColor // Ani bk associated with this value.
+    aniBorder: BlendColor // Ani border associated with this value.
+    aniText:   BlendColor // Ani text associated with this value.
 }
 
 impl IWnd for PushButton
@@ -191,6 +193,7 @@ impl IWnd for PushButton
 
 impl PushButton
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*PushButton
     {

@@ -2,12 +2,13 @@
 
 using Core, Pixel
 
+// Names the hook event type.
 alias HookEvent = func||(*Wnd, IEvent)->bool
 
 // Automatic placement and size of the window in the parent client rectangle
 enum DockStyle
 {
-    None
+    None // No option is selected.
     Top                    // Stack to the top, keeping the vertical size
     Left                   // Stack to the left, keeping the horizontal size
     Right                  // Stack to the right, keeping the horizontal size
@@ -16,174 +17,208 @@ enum DockStyle
     CenterKeepSizeVert     // Fill the remaining parent rect horizontally, but keep the vertical size
 }
 
+// Selects anchor style.
 #[Swag.EnumFlags]
 enum AnchorStyle
 {
-    None
-    X
-    Y
-    Width
-    Height
+    None // No option is selected.
+    X // Selects x.
+    Y // Selects y.
+    Width // Selects width.
+    Height // Selects height.
 }
 
+// Selects background style.
 enum BackgroundStyle
 {
-    Transparent
-    Window
-    Dialog
-    DialogBar
-    View
+    Transparent // Selects transparent.
+    Window // Selects window.
+    Dialog // Selects dialog.
+    DialogBar // Selects dialog bar.
+    View // Selects view.
 }
 
+// Selects focus stategy.
 enum FocusStategy
 {
-    None
-    MousePressed
+    None // No option is selected.
+    MousePressed // Selects mouse pressed.
 }
 
+// Selects size policy.
 enum SizePolicy
 {
-    Fixed
-    Content
-    Fill
-    Expand
+    Fixed // Selects fixed.
+    Content // Selects content.
+    Fill // Selects fill.
+    Expand // Selects expand.
 }
 
+// Selects layout align.
 enum LayoutAlign
 {
-    Start
-    Center
-    End
-    Stretch
+    Start // Selects start.
+    Center // Selects center.
+    End // Selects end.
+    Stretch // Selects stretch.
 }
 
+// Represents size hint.
 struct SizeHint
 {
-    min:       Math.Point
-    preferred: Math.Point
-    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}
+    min:       Math.Point // Min associated with this value.
+    preferred: Math.Point // Preferred associated with this value.
+    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max} // Max associated with this value.
 }
 
+// Represents layout spec.
 struct LayoutSpec
 {
-    policyX: SizePolicy  = SizePolicy.Content
-    policyY: SizePolicy  = SizePolicy.Content
-    weightX: f32         = 1
-    weightY: f32         = 1
-    alignX:  LayoutAlign = LayoutAlign.Stretch
-    alignY:  LayoutAlign = LayoutAlign.Stretch
-    margin:  Math.Vector4
+    policyX: SizePolicy  = SizePolicy.Content // Policy x associated with this value.
+    policyY: SizePolicy  = SizePolicy.Content // Policy y associated with this value.
+    weightX: f32         = 1 // Weight x associated with this value.
+    weightY: f32         = 1 // Weight y associated with this value.
+    alignX:  LayoutAlign = LayoutAlign.Stretch // Align x associated with this value.
+    alignY:  LayoutAlign = LayoutAlign.Stretch // Align y associated with this value.
+    margin:  Math.Vector4 // Margin associated with this value.
 }
 
+// Represents layout debug info.
 struct LayoutDebugInfo
 {
-    measuredMin:       Math.Point
-    measuredPreferred: Math.Point
-    measuredMax:       Math.Point
-    arrangedRect:      Math.Rectangle
-    clippedX:          bool
-    clippedY:          bool
-    clampedByMinX:     bool
-    clampedByMinY:     bool
-    clampedByMaxX:     bool
-    clampedByMaxY:     bool
+    measuredMin:       Math.Point // Measured min associated with this value.
+    measuredPreferred: Math.Point // Measured preferred associated with this value.
+    measuredMax:       Math.Point // Measured max associated with this value.
+    arrangedRect:      Math.Rectangle // Arranged rect associated with this value.
+    clippedX:          bool // Clipped x associated with this value.
+    clippedY:          bool // Clipped y associated with this value.
+    clampedByMinX:     bool // Clamped by min x associated with this value.
+    clampedByMinY:     bool // Clamped by min y associated with this value.
+    clampedByMaxX:     bool // Clamped by max x associated with this value.
+    clampedByMaxY:     bool // Clamped by max y associated with this value.
 }
 
+// Represents key shortcut.
 struct KeyShortcut
 {
-    mdf:    Input.KeyModifiers = Zero
-    key:    Input.Key          = None
-    id:     WndId              = undefined
-    target: #null *Wnd
+    mdf:    Input.KeyModifiers = Zero // Mdf associated with this value.
+    key:    Input.Key          = None // Key associated with this value.
+    id:     WndId              = undefined // Id associated with this value.
+    target: #null *Wnd // Target associated with this value.
 }
 
+// Defines the operations supported by i wnd.
 interface IWnd
 {
+    // Performs the on event operation.
     mtd onEvent(evt: IEvent)
+    // Performs the on hook event operation.
     mtd onHookEvent(evt: IEvent)
 
+    // Performs the on create event operation.
     mtd onCreateEvent(evt: *CreateEvent)
+    // Performs the on destroy event operation.
     mtd onDestroyEvent(evt: *DestroyEvent)
+    // Performs the on state event operation.
     mtd onStateEvent(evt: *StateEvent)
+    // Performs the on resize event operation.
     mtd onResizeEvent(evt: *ResizeEvent)
+    // Performs the on pre paint event operation.
     mtd onPrePaintEvent(evt: *PaintEvent)
+    // Performs the on paint event operation.
     mtd onPaintEvent(evt: *PaintEvent)
+    // Performs the on post paint event operation.
     mtd onPostPaintEvent(evt: *PaintEvent)
+    // Performs the on key event operation.
     mtd onKeyEvent(evt: *KeyEvent)
+    // Performs the on mouse event operation.
     mtd onMouseEvent(evt: *MouseEvent)
+    // Performs the on sys command event operation.
     mtd onSysCommandEvent(evt: *SysCommandEvent)
+    // Performs the on sys user event operation.
     mtd onSysUserEvent(evt: *SysUserEvent)
+    // Performs the on theme event operation.
     mtd onThemeEvent(evt: *ThemeEvent)
+    // Performs the on timer event operation.
     mtd onTimerEvent(evt: *TimerEvent)
+    // Performs the on focus event operation.
     mtd onFocusEvent(evt: *FocusEvent)
+    // Performs the on command event operation.
     mtd onCommandEvent(evt: *CommandEvent)
+    // Performs the on compute state event operation.
     mtd onComputeStateEvent(evt: *CommandStateEvent)
+    // Performs the on apply state event operation.
     mtd onApplyStateEvent(evt: *CommandStateEvent)
+    // Performs the on frame event operation.
     mtd onFrameEvent(evt: *FrameEvent)
+    // Performs the on serialize state event operation.
     mtd onSerializeStateEvent(evt: *SerializeStateEvent)
+    // Performs the on notify event operation.
     mtd onNotifyEvent(evt: *NotifyEvent)
 }
 
+// Selects wnd flags.
 #[Swag.EnumFlags]
 enum WndFlags
 {
-    Zero = 0
-    NoScroll
-    ClipChildren
-    Disabled
-    Hidden
-    PreChildsPaint
-    PostChildsPaint
-    TopMost
+    Zero = 0 // No flags are enabled.
+    NoScroll // Enables no scroll.
+    ClipChildren // Enables clip children.
+    Disabled // Enables disabled.
+    Hidden // Enables hidden.
+    PreChildsPaint // Enables pre childs paint.
+    PostChildsPaint // Enables post childs paint.
+    TopMost // Enables top most.
 }
 
+// Represents wnd.
 struct Wnd
 {
     #[Swag.Late]
-    itf: IWnd
+    itf: IWnd // Itf associated with this value.
     #[Swag.Late]
-    type:     typeinfo
-    surface:  #null *Surface
-    style:    ThemeStyle
-    wndFlags = WndFlags.ClipChildren
-    userData: #null *void
+    type:     typeinfo // Type associated with this value.
+    surface:  #null *Surface // Surface associated with this value.
+    style:    ThemeStyle // Style associated with this value.
+    wndFlags = WndFlags.ClipChildren // Wnd flags associated with this value.
+    userData: #null *void // User data associated with this value.
 
-    position:      Math.Rectangle
-    preferredSize: Math.Point
-    minSize:       Math.Point
-    maxSize:       Math.Point
-    scrollPos:     Math.Point
+    position:      Math.Rectangle // Position associated with this value.
+    preferredSize: Math.Point // Preferred size associated with this value.
+    minSize:       Math.Point // Min size associated with this value.
+    maxSize:       Math.Point // Max size associated with this value.
+    scrollPos:     Math.Point // Scroll pos associated with this value.
 
-    invalidatePadding: Math.Vector4
+    invalidatePadding: Math.Vector4 // Invalidate padding associated with this value.
 
-    parent: #null *Wnd
-    owner:  #null *Wnd
-    childs: Array'(*Wnd)
+    parent: #null *Wnd // Parent associated with this value.
+    owner:  #null *Wnd // Owner associated with this value.
+    childs: Array'(*Wnd) // Childs associated with this value.
 
-    name:    RichString
-    id:      #null WndId
-    cursor:  Cursor
-    toolTip: String
+    name:    RichString // Name associated with this value.
+    id:      #null WndId // Id associated with this value.
+    cursor:  Cursor // Cursor associated with this value.
+    toolTip: String // Tool tip associated with this value.
 
-    keyShortcuts: Array'KeyShortcut
-    actions:      Array'IActionUI
+    keyShortcuts: Array'KeyShortcut // Key shortcuts associated with this value.
+    actions:      Array'IActionUI // Actions associated with this value.
 
-    margin:         Math.Vector4
-    padding:        Math.Vector4
-    dockStyle:      DockStyle   = None
-    anchorStyle:    AnchorStyle = None
-    layoutSpec:     LayoutSpec
-    cachedSizeHint: SizeHint
-    layoutDebug:    LayoutDebugInfo
+    margin:         Math.Vector4 // Margin associated with this value.
+    padding:        Math.Vector4 // Padding associated with this value.
+    dockStyle:      DockStyle   = None // Dock style associated with this value.
+    anchorStyle:    AnchorStyle = None // Anchor style associated with this value.
+    layoutSpec:     LayoutSpec // Layout spec associated with this value.
+    cachedSizeHint: SizeHint // Cached size hint associated with this value.
+    layoutDebug:    LayoutDebugInfo // Layout debug associated with this value.
 
-    focusStrategy: FocusStategy = MousePressed
+    focusStrategy: FocusStategy = MousePressed // Focus strategy associated with this value.
 
-    backgroundStyle:  BackgroundStyle = Transparent
-    isAllocated:      bool
-    isPendingDestroy: bool
-    createEventDone:  bool
-    layoutDirty:      bool            = true
-    managedByLayout:  bool
+    backgroundStyle:  BackgroundStyle = Transparent // Background style associated with this value.
+    isAllocated:      bool // Whether this value is allocated.
+    isPendingDestroy: bool // Whether this value is pending destroy.
+    createEventDone:  bool // Create event done associated with this value.
+    layoutDirty:      bool            = true // Layout dirty associated with this value.
+    managedByLayout:  bool // Managed by layout associated with this value.
 
     hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
     hookOnChildEvent: #null HookEvent     // Will be called before processing whatever event of a child window
@@ -191,6 +226,7 @@ struct Wnd
 
 impl IWnd for Wnd
 {
+    // Performs the on event operation.
     mtd impl onEvent(evt: IEvent)
     {
         switch evt
@@ -259,66 +295,87 @@ impl IWnd for Wnd
         }
     }
 
+    // Performs the on hook event operation.
     mtd impl onHookEvent(evt: IEvent) {}
 
+    // Performs the on create event operation.
     mtd impl onCreateEvent(evt: *CreateEvent) {}
+    // Performs the on destroy event operation.
     mtd impl onDestroyEvent(evt: *DestroyEvent) {}
+    // Performs the on state event operation.
     mtd impl onStateEvent(evt: *StateEvent) {}
+    // Performs the on resize event operation.
     mtd impl onResizeEvent(evt: *ResizeEvent) {}
+    // Performs the on pre paint event operation.
     mtd impl onPrePaintEvent(evt: *PaintEvent) {}
+    // Performs the on paint event operation.
     mtd impl onPaintEvent(evt: *PaintEvent) {}
+    // Performs the on post paint event operation.
     mtd impl onPostPaintEvent(evt: *PaintEvent) {}
 
+    // Performs the on theme event operation.
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         .invalidate()
         .sendResizeEvent()
     }
 
+    // Performs the on timer event operation.
     mtd impl onTimerEvent(evt: *TimerEvent) {}
+    // Performs the on serialize state event operation.
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
+    // Performs the on frame event operation.
     mtd impl onFrameEvent(evt: *FrameEvent) {}
 
+    // Performs the on sys command event operation.
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on sys user event operation.
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on key event operation.
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on mouse event operation.
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on focus event operation.
     mtd impl onFocusEvent(evt: *FocusEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on command event operation.
     mtd impl onCommandEvent(evt: *CommandEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on compute state event operation.
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on apply state event operation.
     mtd impl onApplyStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false
     }
 
+    // Performs the on notify event operation.
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         evt.accepted = false
@@ -333,17 +390,28 @@ impl Wnd
 
     #[Swag.Inline]
     {
+        // Returns app.
         mtd getApp()          => (notnull .surface).app
+        // Returns top view.
         mtd getTopView()      => (notnull .surface).wnd.view
+        // Returns top wnd.
         mtd getTopWnd()       => (notnull .surface).wnd
+        // Returns theme.
         mtd getTheme()        => (notnull .style.refr).theme
+        // Returns theme metrics.
         mtd getThemeMetrics() => &(notnull .style.refr).theme.metrics
+        // Returns theme colors.
         mtd getThemeColors()  => &(notnull .style.refr).theme.colors
+        // Returns theme rects.
         mtd getThemeRects()   => &(notnull .style.refr).theme.rects
+        // Returns timing.
         mtd getTiming()       => &(notnull .surface).app.timing
+        // Returns font.
         mtd getFont()         => .style.getFont()
     }
 
+    // Performs the create operation.
+    // Performs the create operation.
     #[Swag.Inline]
     func(T) create(parent: #null *Wnd = null, id: #null WndId = null, hook: #null HookEvent = null)->*T
     {
@@ -576,6 +644,7 @@ impl Wnd
     // Paint
     //////////////////////////////////////////////
 
+    // Computes style.
     mtd computeStyle()
     {
         let srf = .surface
@@ -583,6 +652,7 @@ impl Wnd
             .style.compute(me, &srf.app.style)
     }
 
+    // Performs the paint operation.
     mtd paint(bc: *PaintContext)
     {
         let painter = bc.painter
@@ -696,6 +766,7 @@ impl Wnd
     // Layout sizing contract
     //////////////////////////////////////////////
 
+    // Performs the invalidate layout operation.
     mtd invalidateLayout()
     {
         .layoutDirty = true
@@ -703,11 +774,13 @@ impl Wnd
             .parent.invalidateLayout()
     }
 
+    // Returns layout margin.
     mtd getLayoutMargin()->Math.Vector4
     {
         return .margin + .layoutSpec.margin
     }
 
+    // Performs the measure operation.
     mtd measure(available: Math.Point)->SizeHint
     {
         discard available
@@ -754,6 +827,7 @@ impl Wnd
         return result
     }
 
+    // Performs the arrange operation.
     mtd arrange(rect: Math.Rectangle)
     {
         var pos    = rect
@@ -772,6 +846,7 @@ impl Wnd
         .layoutDebug.clampedByMaxY = before.height > pos.height
     }
 
+    // Performs the dump layout tree operation.
     mtd dumpLayoutTree()
     {
         let srf = .surface
@@ -924,7 +999,9 @@ impl Wnd
             .parent.sendResizeEvent()
     }
 
+    // Sets all margins.
     mtd setAllMargins(value: f32)          => .setMargin(value, value, value, value)
+    // Sets all margins.
     mtd setAllMargins(value: Math.Vector4) => .setMargin(value.x, value.y, value.z, value.w)
 
     // Set padding for childs
@@ -946,7 +1023,9 @@ impl Wnd
         .sendResizeEvent()
     }
 
+    // Sets all paddings.
     mtd setAllPaddings(value: f32)          => .setPadding(value, value, value, value)
+    // Sets all paddings.
     mtd setAllPaddings(value: Math.Vector4) => .setPadding(value.x, value.y, value.z, value.w)
 
     // Force the window to be the first painted (before all siblings)
@@ -1277,18 +1356,21 @@ impl Wnd
     // Mouse
     //////////////////////////////////////////////
 
+    // Performs the capture mouse operation.
     mtd captureMouse()
     {
         let srfn = notnull .surface
         srfn.app.captureMouse(me)
     }
 
+    // Performs the release mouse operation.
     mtd releaseMouse()
     {
         let srfn = notnull .surface
         srfn.app.releaseMouse()
     }
 
+    // Returns mouse capture.
     mtd getMouseCapture()->#null *Wnd
     {
         let srfn = notnull .surface
@@ -1423,12 +1505,14 @@ impl Wnd
         return .getApp().addTimer(time, me)
     }
 
+    // Posts quit event.
     mtd postQuitEvent()
     {
         let srfn = notnull .surface
         srfn.app.postQuitEvent()
     }
 
+    // Posts event.
     mtd postEvent(evt: IEvent)
     {
         let srfn = notnull .surface
@@ -1437,12 +1521,14 @@ impl Wnd
         srfn.app.postEvent(evt)
     }
 
+    // Posts invalidate event.
     mtd postInvalidateEvent()
     {
         let evt = Event.create'InvalidateEvent()
         .postEvent(evt)
     }
 
+    // Sends event.
     mtd sendEvent(evt: IEvent)
     {
         let srfn = notnull .surface
@@ -1451,12 +1537,14 @@ impl Wnd
         srfn.app.sendEvent(evt)
     }
 
+    // Sends state event.
     mtd sendStateEvent(kind: StateEvent.Kind)
     {
         var evt = StateEvent{kind: kind}
         .sendEvent(&evt)
     }
 
+    // Sends hide state event.
     mtd sendHideStateEvent()
     {
         .sendStateEvent(.Hide)
@@ -1467,6 +1555,7 @@ impl Wnd
         }
     }
 
+    // Sends disable state event.
     mtd sendDisableStateEvent()
     {
         .sendStateEvent(.Disable)
@@ -1477,6 +1566,7 @@ impl Wnd
         }
     }
 
+    // Sends resize event.
     mtd sendResizeEvent()
     {
         var evt = ResizeEvent{}
@@ -1485,6 +1575,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
+    // Posts resize event.
     mtd postResizeEvent()
     {
         let evt = Event.create'ResizeEvent()
@@ -1493,6 +1584,7 @@ impl Wnd
         .postEvent(evt)
     }
 
+    // Sends create event.
     mtd sendCreateEvent()
     {
         if .createEventDone do
@@ -1502,6 +1594,7 @@ impl Wnd
         .sendEvent(&evt)
     }
 
+    // Posts command event.
     mtd postCommandEvent(cmdId: #null WndId)
     {
         if cmdId == null do
@@ -1513,6 +1606,7 @@ impl Wnd
         .postEvent(evt)
     }
 
+    // Performs the process event operation.
     mtd processEvent(evt: IEvent)
     {
         var eat = false
@@ -1668,6 +1762,7 @@ impl Wnd
     // Serialization
     //////////////////////////////////////////////
 
+    // Performs the serialize state operation.
     mtd serializeState(ser: *Serialization.Serializer) fail
     {
         var evt: SerializeStateEvent

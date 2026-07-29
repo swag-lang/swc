@@ -2,37 +2,40 @@
 
 using Core, Pixel
 
+// Represents popup list ctrl item.
 struct PopupListCtrlItem
 {
-    using base:  Item
-    isSeparator: bool
+    using base:  Item // Embedded base state.
+    isSeparator: bool // Whether this value is separator.
 }
 
+// Represents popup list ctrl.
 struct PopupListCtrl
 {
-    using frameWnd:   FrameWnd
-    heightItem:       f32 = 30
-    heightSeparator:  f32 = 15
-    minWidthPopup:    f32 = 100
-    maxHeightPopup:   f32 = 300
-    simFitX, simFitY: bool
+    using frameWnd:   FrameWnd // Embedded frame wnd state.
+    heightItem:       f32 = 30 // Height item associated with this value.
+    heightSeparator:  f32 = 15 // Height separator associated with this value.
+    minWidthPopup:    f32 = 100 // Min width popup associated with this value.
+    maxHeightPopup:   f32 = 300 // Max height popup associated with this value.
+    simFitX, simFitY: bool // Sim fit x associated with this value.
 
-    sigSelected: #null func||(*PopupListCtrl, u32)
+    sigSelected: #null func||(*PopupListCtrl, u32) // Signal emitted when selected.
 
-    items: ArrayPtr'PopupListCtrlItem
-    selectedIdx = Swag.U32.Max
+    items: ArrayPtr'PopupListCtrlItem // Items associated with this value.
+    selectedIdx = Swag.U32.Max // Index of selected.
     #[Swag.Late]
-    scrollWnd:   *ScrollWnd
-    maxIconSize: s32
+    scrollWnd:   *ScrollWnd // Scroll wnd associated with this value.
+    maxIconSize: s32 // Max icon size associated with this value.
 }
 
+// Represents popup list view.
 struct PopupListView
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
     #[Swag.Late]
-    list:    *PopupListCtrl
-    hotIdx:  u32 = Swag.U32.Max
-    closing: bool
+    list:    *PopupListCtrl // List associated with this value.
+    hotIdx:  u32 = Swag.U32.Max // Index of hot.
+    closing: bool // Closing associated with this value.
 }
 
 impl IWnd for PopupListView
@@ -326,24 +329,28 @@ impl PopupListCtrl
         view.moveHot(dir)
     }
 
+    // Performs the key home operation.
     mtd keyHome()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: true)
     }
 
+    // Performs the key end operation.
     mtd keyEnd()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.moveHotEdge(forward: false)
     }
 
+    // Performs the key cancel operation.
     mtd keyCancel()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view
         view.close(Swag.U32.Max)
     }
 
+    // Performs the key commit operation.
     mtd keyCommit()
     {
         let view = notnull cast(#null *PopupListView) .scrollWnd.view

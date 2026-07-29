@@ -23,26 +23,35 @@ attr NoSerialize()
 #[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]
 attr Compress()
 
+// Defines the operations supported by i serialize.
 interface ISerialize
 {
+    // Performs the read operation.
     mtd read(decoder: IDecoder)->bool fail
+    // Performs the write operation.
     mtd write(encoder: IEncoder)->bool fail
+    // Reads element.
     mtd readElement(type: TypeValue, data: #null *void, decoder: IDecoder)->bool fail
+    // Writes element.
     mtd writeElement(type: TypeValue, data: #null const *void, encoder: IEncoder)->bool fail
+    // Posts read.
     mtd postRead(data: #null *void, decoder: IDecoder) fail
 }
 
+// Represents serializer.
 struct Serializer
 {
-    encode:  #null IEncoder
-    decode:  #null IDecoder
-    isWrite: bool
+    encode:  #null IEncoder // Encode associated with this value.
+    decode:  #null IDecoder // Decode associated with this value.
+    isWrite: bool // Whether this value is write.
 }
 
 impl Serializer
 {
+    // Returns whether writing.
     #[Swag.Inline]
     mtd isWriting() => .isWrite
+    // Returns whether reading.
     #[Swag.Inline]
     mtd isReading() => !.isWrite
 

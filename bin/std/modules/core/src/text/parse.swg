@@ -94,6 +94,7 @@ func parseU8(str: string)->{ value: u8, eat: u32, ovf: bool } fail
     return {cast(u8) res, eat, ovf}
 }
 
+// Parses u16.
 func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } fail
 {
     let {res, eat, ovf} = try parseU64(str)
@@ -102,6 +103,7 @@ func parseU16(str: string)->{ value: u16, eat: u32, ovf: bool } fail
     return {cast(u16) res, eat, ovf}
 }
 
+// Parses u32.
 func parseU32(str: string)->{ value: u32, eat: u32, ovf: bool } fail
 {
     let {res, eat, ovf} = try parseU64(str)
@@ -110,6 +112,7 @@ func parseU32(str: string)->{ value: u32, eat: u32, ovf: bool } fail
     return {cast(u32) res, eat, ovf}
 }
 
+// Parses u64.
 func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
 {
     var result: retval
@@ -189,6 +192,7 @@ func parseS8(str: string)->{ value: s8, eat: u32, ovf: bool } fail
     return {cast(s8) res, eat, ovf}
 }
 
+// Parses s16.
 func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } fail
 {
     let {res, eat, ovf} = try parseS64(str)
@@ -199,6 +203,7 @@ func parseS16(str: string)->{ value: s16, eat: u32, ovf: bool } fail
     return {cast(s16) res, eat, ovf}
 }
 
+// Parses s32.
 func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } fail
 {
     let {res, eat, ovf} = try parseS64(str)
@@ -209,6 +214,7 @@ func parseS32(str: string)->{ value: s32, eat: u32, ovf: bool } fail
     return {cast(s32) res, eat, ovf}
 }
 
+// Parses s64.
 func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
 {
     var result: retval
@@ -313,6 +319,7 @@ func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail
     return {cast(f32) res, eat, ovf}
 }
 
+// Parses f64.
 func parseF64(str: string)->{ value: f64, eat: u32, ovf: bool } fail
 {
     return try StrConv.Atod.parse(str)

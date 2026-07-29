@@ -3,6 +3,7 @@
 
 using Win32
 
+// Defines end line.
 public const EndLine = "\r\n"
 
 // Gets a well-known system directory
@@ -255,40 +256,46 @@ public func getDPIScale()->f32
     return cast(f32) w1 / cast(f32) w0
 }
 
+// Names the window paint callback type.
 public alias WindowPaintCallback  = func||(*Window)
+// Names the window resize callback type.
 public alias WindowResizeCallback = func||(*Window, s32, s32)
 
+// Represents window callbacks.
 public struct WindowCallbacks
 {
-    onPaint:  #null WindowPaintCallback
-    onResize: #null WindowResizeCallback
+    onPaint:  #null WindowPaintCallback // On paint associated with this value.
+    onResize: #null WindowResizeCallback // On resize associated with this value.
 }
 
+// Represents window options.
 public struct WindowOptions
 {
-    className:   string
-    title:       string
-    width:       s32
-    height:      s32
-    x:           s32 = CW_USEDEFAULT
-    y:           s32 = CW_USEDEFAULT
-    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN
-    exStyle:     u32
-    classStyle:  u32 = CS_OWNDC
-    showCommand: s32 = SW_SHOW
+    className:   string // Class name associated with this value.
+    title:       string // Title associated with this value.
+    width:       s32 // Width in logical units.
+    height:      s32 // Height in logical units.
+    x:           s32 = CW_USEDEFAULT // X component.
+    y:           s32 = CW_USEDEFAULT // Y component.
+    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN // Style associated with this value.
+    exStyle:     u32 // Ex style associated with this value.
+    classStyle:  u32 = CS_OWNDC // Class style associated with this value.
+    showCommand: s32 = SW_SHOW // Show command associated with this value.
 }
 
+// Represents window.
 public struct Window
 {
-    nativeHandle: HWND
-    callbacks:    WindowCallbacks
-    showCommand:  s32 = SW_SHOW
+    nativeHandle: HWND // Native handle associated with this value.
+    callbacks:    WindowCallbacks // Callbacks associated with this value.
+    showCommand:  s32 = SW_SHOW // Show command associated with this value.
 }
 
+// Represents window loop.
 public struct WindowLoop
 {
-    maxTestFrames: u32 = 50
-    testFrames:    u32
+    maxTestFrames: u32 = 50 // Max test frames associated with this value.
+    testFrames:    u32 // Test frames associated with this value.
 }
 
 private func getWindowFromHandle(hWnd: HWND)->#null *Window
@@ -377,21 +384,25 @@ public func processWindowMessages()->bool
 
 public impl Window
 {
+    // Returns dc.
     mtd getDC()->HDC
     {
         return GetDC(.nativeHandle)
     }
 
+    // Performs the release dc operation.
     mtd releaseDC(hDC: HDC)
     {
         ReleaseDC(.nativeHandle, hDC)
     }
 
+    // Performs the request paint operation.
     mtd requestPaint()
     {
         expect PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
     }
 
+    // Sets client size.
     mtd setClientSize(width, height: s32) fail
     {
         var windowRect: RECT
@@ -406,6 +417,7 @@ public impl Window
         try MoveWindow(.nativeHandle, windowRect.left, windowRect.top, width + frameWidth, height + frameHeight, FALSE)
     }
 
+    // Performs the show operation.
     mtd show() fail
     {
         ShowWindow(.nativeHandle, .showCommand)
@@ -415,6 +427,7 @@ public impl Window
 
 public impl WindowLoop
 {
+    // Advances to the next value.
     mtd next()->bool
     {
         if Env.hasArg("swag.test") and .testFrames >= .maxTestFrames do

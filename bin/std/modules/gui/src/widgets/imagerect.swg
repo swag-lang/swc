@@ -2,11 +2,12 @@
 
 using Core, Pixel
 
+// Represents image rect.
 struct ImageRect
 {
-    using wnd:    Wnd
-    movie:        Movie
-    textureFrame: Texture
+    using wnd:    Wnd // Embedded wnd state.
+    movie:        Movie // Movie associated with this value.
+    textureFrame: Texture // Texture frame associated with this value.
 }
 
 impl IWnd for ImageRect
@@ -50,6 +51,7 @@ impl IWnd for ImageRect
 
 impl ImageRect
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ImageRect
     {
@@ -58,6 +60,7 @@ impl ImageRect
         return res
     }
 
+    // Removes all content.
     mtd clear()
     {
         .getApp().renderer.removeTexture(&.textureFrame)

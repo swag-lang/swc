@@ -257,8 +257,6 @@ func parseKern(faceData: *FaceImpl) fail
 
 func initFaceRecords(faceData: *FaceImpl)
 {
-    faceData.face.faceCount              = 1
-    faceData.face.faceIndex              = 0
     faceData.face.glyph.face             = &faceData.face
     faceData.face.glyph.format           = .None
     faceData.face.glyph.bitmap.pixelMode = .Gray

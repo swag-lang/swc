@@ -11,19 +11,19 @@ using Core, Pixel
 
 struct FakeTypedData
 {
-    fmt:  ValueFormat
-    crc:  u32
-    data: Array'u8
+    fmt:  ValueFormat // Fmt associated with this value.
+    crc:  u32 // Crc associated with this value.
+    data: Array'u8 // Data associated with this value.
 }
 
 struct FakeStore
 {
-    enabled: bool
-    hasStr:  bool
-    str:     String
-    hasImg:  bool
-    img:     Image
-    typed:   Array'FakeTypedData
+    enabled: bool // Enabled associated with this value.
+    hasStr:  bool // Whether this value has str.
+    str:     String // Str associated with this value.
+    hasImg:  bool // Whether this value has img.
+    img:     Image // Img associated with this value.
+    typed:   Array'FakeTypedData // Typed associated with this value.
 }
 
 var g_Fake: FakeStore

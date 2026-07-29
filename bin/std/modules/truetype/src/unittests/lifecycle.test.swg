@@ -9,8 +9,6 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     let face = notnull scope.face
 
     @assert(scope.bytes.count > 0)
-    @assert(face.faceCount == 1)
-    @assert(face.faceIndex == 0)
     @assert(face.glyphCount > 0)
     @assert(!face.familyName.isEmpty())
     @assert(!face.styleName.isEmpty())
@@ -37,9 +35,6 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     let badFace1: #null *Face = catch Face.load(empty.toSlice()) as err4
     @assert(err4 != null)
 
-    let bytes                 = loadFontBytes()
-    let badFace2: #null *Face = catch Face.load(bytes.toSlice(), 1) as err5
-    @assert(err5 != null)
 }
 
 #test

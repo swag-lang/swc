@@ -1,33 +1,45 @@
 using Swag, Core
 
+// Identifies one operation in a decomposed glyph contour.
 public enum OutlineCommandKind
 {
-    MoveTo
-    LineTo
-    ConicTo
-    CubicTo
+    MoveTo  // Starts a new contour at `p0`.
+    LineTo  // Adds a straight segment ending at `p0`.
+    ConicTo // Adds a quadratic Bézier with control `p0` and endpoint `p1`.
+    CubicTo // Adds a cubic Bézier with controls `p0`, `p1` and endpoint `p2`.
 }
 
+// Represents one path operation produced by [[TrueType.Outline.decompose]].
+//
+// Coordinates use 26.6 fixed-point pixels. The fields used by the command depend
+// on `kind`; unused points remain zero.
 public struct OutlineCommand
 {
-    kind: OutlineCommandKind
-    p0:   Vector
-    p1:   Vector
-    p2:   Vector
+    kind: OutlineCommandKind // Operation represented by this value.
+    p0:   Vector             // Destination or first control point.
+    p1:   Vector             // Destination or second control point when required.
+    p2:   Vector             // Cubic destination when required.
 }
 
+// Exposes the borrowed contours of the current scalable glyph.
+//
+// Points use 26.6 fixed-point pixels with y growing upward. `contours` stores the
+// inclusive last point index of each contour; `tags` identifies on-curve points.
+// All pointed-to storage belongs to the parent [[TrueType.Face]] and is replaced
+// by the next glyph load.
 public struct Outline
 {
-    contourCount: s16
-    pointCount:   s16
-    points:       #null [*] Vector
-    tags:         #null [*] u8
-    contours:     #null [*] s16
-    flags:        s32
+    contourCount: s16               // Number of closed contours.
+    pointCount:   s16               // Total number of outline points.
+    points:       #null [*] Vector  // Borrowed point array, or null when empty.
+    tags:         #null [*] u8      // Borrowed point-tag array, or null when empty.
+    contours:     #null [*] s16     // Borrowed inclusive contour-end indices.
+    flags:        s32               // Reserved outline flags; currently zero.
 }
 
 public impl Outline
 {
+    // Translates every point by a 26.6 fixed-point offset.
     mtd translate(xOffset, yOffset: s32)
     {
         if .pointCount <= 0 do
@@ -41,6 +53,10 @@ public impl Outline
         }
     }
 
+    // Applies a 16.16 fixed-point linear transform to every point.
+    //
+    // Translation is intentionally not part of [[TrueType.Matrix]]; call
+    // [[TrueType.Outline.translate]] separately when required.
     mtd transform(matrix: Matrix)
     {
         if .pointCount <= 0 do
@@ -55,6 +71,10 @@ public impl Outline
         }
     }
 
+    // Thickens the current outline by the requested 26.6 fixed-point strength.
+    //
+    // The outline is mutated in place. Positive strengths add ink while preserving
+    // counters; load the glyph again to recover its original shape.
     mtd embolden(strength: s32) fail
     {
         if .pointCount <= 0 or .contourCount <= 0 or !strength do
@@ -85,6 +105,10 @@ public impl Outline
         }
     }
 
+    // Converts the contours into an owned sequence of path commands.
+    //
+    // Quadratic TrueType segments become `ConicTo` commands. The returned array
+    // remains valid independently of the face's reusable glyph slot.
     mtd const decompose()->Array'OutlineCommand => buildOutlineCommands(me)
 }
 

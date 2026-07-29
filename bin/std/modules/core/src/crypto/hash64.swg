@@ -2,8 +2,10 @@
 
 using Swag
 
+// Defines the operations supported by i hash64.
 public interface IHash64
 {
+    // Defines compute.
     mtd const compute()->u64
 }
 

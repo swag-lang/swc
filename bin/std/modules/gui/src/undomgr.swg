@@ -31,19 +31,21 @@ interface IUndoCommand
 // One entry of the undo timeline: the owned command plus the group it belongs to.
 struct UndoStep
 {
-    serial: u64
-    cmd:    IUndoCommand
+    serial: u64 // Serial associated with this value.
+    cmd:    IUndoCommand // Cmd associated with this value.
 }
 
+// Represents undo manager.
 struct UndoManager
 {
-    steps:     Array'UndoStep
+    steps:     Array'UndoStep // Steps associated with this value.
     next:      u64     // index just past the last applied step (the redo tail starts here)
-    serialGen: u64
+    serialGen: u64 // Serial gen associated with this value.
 }
 
 impl UndoManager
 {
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         .clear()
@@ -72,11 +74,13 @@ impl UndoManager
         return .steps.count
     }
 
+    // Returns whether this value can undo.
     mtd canUndo()->bool
     {
         return .next != 0
     }
 
+    // Returns whether this value can redo.
     mtd canRedo()->bool
     {
         return .next != .steps.count

@@ -36,6 +36,7 @@
 <li><a href="#summary-namespaces">Namespaces</a></li>
 <li><a href="#summary-types">Types</a></li>
 <li><a href="#summary-enumerations">Enumerations</a></li>
+<li><a href="#summary-constants">Constants</a></li>
 <li><a href="#summary-functions">Functions</a></li>
 </ul>
 </div></aside>
@@ -107,6 +108,15 @@ voice.<span class="SFct">play</span>(<span class="SCst"><a href="#Audio_VoicePla
 </td></tr>
 <tr><td class="code-type"><a href="#Audio_SoundFileValidityMask">Audio.SoundFileValidityMask</a></td><td><p>Determins which informations in the <a href="#Audio_SoundFile">SoundFile</a> struct are valid.</p>
 </td></tr>
+</tbody>
+</table>
+<h3 id="summary-constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Audio_Voice_DecodedBufferSize">Voice.DecodedBufferSize</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Audio_Voice_NumDecodedBuffers">Voice.NumDecodedBuffers</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Audio_Voice_StreamBufferSize">Voice.StreamBufferSize</a></td><td></td></tr>
 </tbody>
 </table>
 <h3 id="summary-functions">Functions</h3>
@@ -309,6 +319,15 @@ voice.<span class="SFct">play</span>(<span class="SCst"><a href="#Audio_VoicePla
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst"><a href="#Audio_Voice">Voice</a></span></span></div>
 </section>
+<h3 id="Audio_Voice_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Audio_Voice_DecodedBufferSize">DecodedBufferSize</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Audio_Voice_NumDecodedBuffers">NumDecodedBuffers</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Audio_Voice_StreamBufferSize">StreamBufferSize</a></td><td></td></tr>
+</tbody>
+</table>
 <h3 id="Audio_Voice_methods">Methods</h3>
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
@@ -538,6 +557,19 @@ voice.<span class="SFct">play</span>(<span class="SCst"><a href="#Audio_VoicePla
 <tr><td id="Audio_SoundFileValidityMask_Zero" class="code-type">Zero</td><td></td></tr>
 </tbody>
 </table>
+<h3 id="constants">Constants</h3>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="Audio_Voice_DecodedBufferSize"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.DecodedBufferSize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L49">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Audio_Voice_DecodedBufferSize">DecodedBufferSize</a></span> = <span class="SNum">65536</span>'<span class="STpe">u64</span></span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="Audio_Voice_NumDecodedBuffers"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.NumDecodedBuffers</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L48">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Audio_Voice_NumDecodedBuffers">NumDecodedBuffers</a></span> = <span class="SNum">3</span></span></div>
+</section>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="Audio_Voice_StreamBufferSize"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.StreamBufferSize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L44">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Audio_Voice_StreamBufferSize">StreamBufferSize</a></span>  = <span class="SNum">16</span> * <span class="SNum">1024</span>'<span class="STpe">u64</span></span></div>
+</section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
 <table class="api-item"><tr><td><span id="Audio_convertDBToPercent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.convertDBToPercent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/helpers.swg#L5">[src]</a></td></tr></table>

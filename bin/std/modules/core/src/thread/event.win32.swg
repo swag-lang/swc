@@ -4,14 +4,16 @@
 
 using Win32
 
+// Represents event.
 #[Swag.NoCopy]
 struct Event
 {
-    handle: #null HANDLE
+    handle: #null HANDLE // Handle associated with this value.
 }
 
 impl Event
 {
+    // Releases resources owned by this value.
     mtd opDrop()
     {
         .release()

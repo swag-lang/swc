@@ -2,31 +2,35 @@
 
 using Core, Pixel
 
+// Selects circular flags.
 #[Swag.EnumFlags]
 enum CircularFlags
 {
-    Zero = 0
-    Range
-    Integer
+    Zero = 0 // No flags are enabled.
+    Range // Enables range.
+    Integer // Enables integer.
 }
 
+// Selects circular step form.
 enum CircularStepForm
 {
-    None = 0
-    Dot
-    Tick
+    None = 0 // No option is selected.
+    Dot // Uses the dot form.
+    Tick // Uses the tick form.
 }
 
+// Selects circular marker form.
 enum CircularMarkerForm
 {
-    None = 0
-    Circle
-    Needle
+    None = 0 // No option is selected.
+    Circle // Uses the circle form.
+    Needle // Uses the needle form.
 }
 
+// Represents circular.
 struct Circular
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
     // Main values (0.0 to 1.0 range)
     value1: f32     // Primary value (or left value in range mode)
@@ -559,15 +563,20 @@ private impl Circular
 
 impl Circular
 {
+    // Returns value.
     mtd const getValue()->f32      => .getValueLeft()
+    // Returns value left.
     mtd const getValueLeft()->f32  => .min + (.max - .min) * .value1
+    // Returns value right.
     mtd const getValueRight()->f32 => .min + (.max - .min) * .value2
 
+    // Sets value.
     mtd setValue(f: f32)
     {
         .setValueLeft(f)
     }
 
+    // Sets value no change.
     mtd setValueNoChange(f: f32)
     {
         .setValue1((f - .min) / (.max - .min))
@@ -643,6 +652,7 @@ impl Circular
         }
     }
 
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null, range = false)->*Circular
     {

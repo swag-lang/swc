@@ -1,64 +1,66 @@
 using Core, Pixel
 
+// Selects scroll wnd flags.
 #[Swag.EnumFlags]
 public enum ScrollWndFlags
 {
-    Zero = 0
-    SmallBar
-    ForceHorizontal
-    ForceVertical
-    TransparentBar
+    Zero = 0 // No flags are enabled.
+    SmallBar // Enables small bar.
+    ForceHorizontal // Enables force horizontal.
+    ForceVertical // Enables force vertical.
+    TransparentBar // Enables transparent bar.
 }
 
+// Represents scroll wnd.
 public struct ScrollWnd
 {
-    using frameWnd: FrameWnd
+    using frameWnd: FrameWnd // Embedded frame wnd state.
 
-    scrollIncrementV: f32 = 50
-    scrollIncrementH: f32 = 50
+    scrollIncrementV: f32 = 50 // Scroll increment v associated with this value.
+    scrollIncrementH: f32 = 50 // Scroll increment h associated with this value.
 
-    scrollSize: Math.Point
-    scrollWndFlags = ScrollWndFlags.Zero
+    scrollSize: Math.Point // Scroll size associated with this value.
+    scrollWndFlags = ScrollWndFlags.Zero // Scroll wnd flags associated with this value.
 
-    sigScrollPosChanged:  SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
-    sigScrollSizeChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point)
+    sigScrollPosChanged:  SigArray'func||(*ScrollWnd, Math.Point, Math.Point) // Signal emitted when scroll pos changed.
+    sigScrollSizeChanged: SigArray'func||(*ScrollWnd, Math.Point, Math.Point) // Signal emitted when scroll size changed.
 
-    oldMouseCapture: #null *Wnd
+    oldMouseCapture: #null *Wnd // Old mouse capture associated with this value.
 
-    scrollSmoothPos:  Math.Point
-    scrollRequestPos: Math.Point
-    smoothScroll:     bool
+    scrollSmoothPos:  Math.Point // Scroll smooth pos associated with this value.
+    scrollRequestPos: Math.Point // Scroll request pos associated with this value.
+    smoothScroll:     bool // Smooth scroll associated with this value.
 
-    showBarV:   bool
-    needV:      bool
-    posBoxV:    f32
-    sizeBoxV:   f32
-    isHotV:     bool
-    isHotBarV:  bool
-    isPressedV: bool
+    showBarV:   bool // Show bar v associated with this value.
+    needV:      bool // Need v associated with this value.
+    posBoxV:    f32 // Pos box v associated with this value.
+    sizeBoxV:   f32 // Size box v associated with this value.
+    isHotV:     bool // Whether this value is hot v.
+    isHotBarV:  bool // Whether this value is hot bar v.
+    isPressedV: bool // Whether this value is pressed v.
 
-    showBarH:   bool
-    needH:      bool
-    posBoxH:    f32
-    sizeBoxH:   f32
-    isHotH:     bool
-    isHotBarH:  bool
-    isPressedH: bool
+    showBarH:   bool // Show bar h associated with this value.
+    needH:      bool // Need h associated with this value.
+    posBoxH:    f32 // Pos box h associated with this value.
+    sizeBoxH:   f32 // Size box h associated with this value.
+    isHotH:     bool // Whether this value is hot h.
+    isHotBarH:  bool // Whether this value is hot bar h.
+    isPressedH: bool // Whether this value is pressed h.
 
-    isMoving:      bool
-    isGrabbing:    bool
-    correcMoving:  f32
-    offsetClientV: f32
-    offsetClientH: f32
-    paddingZ:      f32
-    paddingW:      f32
+    isMoving:      bool // Whether this value is moving.
+    isGrabbing:    bool // Whether this value is grabbing.
+    correcMoving:  f32 // Correc moving associated with this value.
+    offsetClientV: f32 // Offset client v associated with this value.
+    offsetClientH: f32 // Offset client h associated with this value.
+    paddingZ:      f32 // Padding z associated with this value.
+    paddingW:      f32 // Padding w associated with this value.
 
-    aniBkBarV: BlendColor
-    aniBkBarH: BlendColor
-    aniBoxV:   BlendColor
-    aniBoxH:   BlendColor
+    aniBkBarV: BlendColor // Ani bk bar v associated with this value.
+    aniBkBarH: BlendColor // Ani bk bar h associated with this value.
+    aniBoxV:   BlendColor // Ani box v associated with this value.
+    aniBoxH:   BlendColor // Ani box h associated with this value.
 
-    grabbingPos: Math.Point
+    grabbingPos: Math.Point // Grabbing pos associated with this value.
 }
 
 public impl IWnd for ScrollWnd
@@ -527,6 +529,7 @@ public impl ScrollWnd
         .sendResizeEvent()
     }
 
+    // Returns client scroll rect.
     mtd getClientScrollRect()->Math.Rectangle
     {
         var result: retval

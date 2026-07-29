@@ -3,9 +3,10 @@
 
 using Win32
 
+// Represents keyboard state native.
 public struct KeyboardStateNative
 {
-    nativeState: [256] BYTE
+    nativeState: [256] BYTE // Native state associated with this value.
 }
 
 impl KeyboardStateNative

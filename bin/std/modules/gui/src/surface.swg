@@ -2,57 +2,60 @@
 
 using Core, Pixel, Serialization
 
+// Represents surface state.
 struct SurfaceState
 {
-    position:             Math.Rectangle
-    positionNotMaximized: Math.Rectangle
-    isMaximized:          bool
+    position:             Math.Rectangle // Position associated with this value.
+    positionNotMaximized: Math.Rectangle // Position not maximized associated with this value.
+    isMaximized:          bool // Whether this value is maximized.
 }
 
+// Represents surface.
 struct Surface
 {
-    using native: NativeSurface
-    app:          *Application = undefined
-    wnd:          *SurfaceWnd  = undefined
-    painter:      Painter
-    rt:           RenderTarget
-    userData:     #null *void
-    surfaceID:    String
+    using native: NativeSurface // Embedded native state.
+    app:          *Application = undefined // App associated with this value.
+    wnd:          *SurfaceWnd  = undefined // Wnd associated with this value.
+    painter:      Painter // Painter associated with this value.
+    rt:           RenderTarget // Rt associated with this value.
+    userData:     #null *void // User data associated with this value.
+    surfaceID:    String // Surface id associated with this value.
 
-    rc:      RenderingContext
-    minSize: Math.Point
-    maxSize: Math.Point
+    rc:      RenderingContext // Rc associated with this value.
+    minSize: Math.Point // Min size associated with this value.
+    maxSize: Math.Point // Max size associated with this value.
 
-    flags:         SurfaceFlags   = Zero
-    dirtyRect:     Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}
-    colorDisabled: Color
+    flags:         SurfaceFlags   = Zero // Flags associated with this value.
+    dirtyRect:     Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0} // Dirty rect associated with this value.
+    colorDisabled: Color // Color disabled associated with this value.
 
-    isDirty:       bool
-    isHidden:      bool = true
-    isInitialized: bool
-    isDisabled:    bool
-    isMinimized:   bool
-    using state:   SurfaceState
+    isDirty:       bool // Whether this value is dirty.
+    isHidden:      bool = true // Whether this value is hidden.
+    isInitialized: bool // Whether this value is initialized.
+    isDisabled:    bool // Whether this value is disabled.
+    isMinimized:   bool // Whether this value is minimized.
+    using state:   SurfaceState // Embedded state state.
 }
 
+// Selects surface flags.
 #[Swag.EnumFlags]
 enum SurfaceFlags
 {
-    Zero = 0
+    Zero = 0 // No flags are enabled.
 
-    BigCaption
-    SmallCaption
-    MinimizeBtn
-    MaximizeBtn
-    CloseBtn
-    Border
-    Sizeable
+    BigCaption // Enables big caption.
+    SmallCaption // Enables small caption.
+    MinimizeBtn // Enables minimize btn.
+    MaximizeBtn // Enables maximize btn.
+    CloseBtn // Enables close btn.
+    Border // Enables border.
+    Sizeable // Enables sizeable.
 
-    Secondary
-    TopMost
-    NoShadow
+    Secondary // Enables secondary.
+    TopMost // Enables top most.
+    NoShadow // Enables no shadow.
 
-    OverlappedWindow = BigCaption | MinimizeBtn | MaximizeBtn | CloseBtn | Border | Sizeable
+    OverlappedWindow = BigCaption | MinimizeBtn | MaximizeBtn | CloseBtn | Border | Sizeable // Enables overlapped window.
 }
 
 impl Surface
@@ -322,6 +325,7 @@ impl Surface
         .wnd.setPosition({sdw, sdw, width - 2 * sdw, height - 2 * sdw})
     }
 
+    // Returns corner radius.
     mtd getCornerRadius()->f32
     {
         if .isMaximized or .flags.has(.NoShadow) do
@@ -398,6 +402,7 @@ impl Surface
             .painter.fillRect(rect, Argb.Black)
     }
 
+    // Sets view.
     mtd setView(view: *Wnd)
     {
         if @isset(.wnd.view) do

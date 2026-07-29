@@ -15,11 +15,13 @@ impl Keyboard
         mapVKeyToKey[vkey] = cast(u8) key
     }
 
+    // Performs the key to virtual key operation.
     public func keyToVirtualKey(key: Key)->VirtualKey
     {
         return cast(VirtualKey) mapKeyToVKey[key]
     }
 
+    // Performs the virtual key to key operation.
     public func virtualKeyToKey(vkey: VirtualKey)->Key
     {
         if vkey > 255 do

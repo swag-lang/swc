@@ -9,15 +9,15 @@ using Core, Pixel
 // currently selected one).
 struct BreadcrumbItem
 {
-    name:     String
-    icon:     Icon
-    userData: u64
+    name:     String // Name associated with this value.
+    icon:     Icon // Icon associated with this value.
+    userData: u64 // User data associated with this value.
     tag:      String     // free app-defined string payload (e.g. a folder path)
-    hasArrow = true
+    hasArrow = true // Whether this value has arrow.
 
     // Computed by layout(), in control-local coordinates.
-    bodyRect:  Math.Rectangle
-    arrowRect: Math.Rectangle
+    bodyRect:  Math.Rectangle // Body rect associated with this value.
+    arrowRect: Math.Rectangle // Arrow rect associated with this value.
 }
 
 // A horizontal breadcrumb / path bar. Each level is drawn as "[icon] name >". Clicking a
@@ -27,32 +27,33 @@ struct BreadcrumbItem
 // so it works for folders, categories, or any other hierarchy.
 struct BreadcrumbCtrl
 {
-    using wnd: Wnd
+    using wnd: Wnd // Embedded wnd state.
 
-    items:      Array'BreadcrumbItem
-    hotItem   = Swag.U64.Max
-    hotArrow:   bool
-    pressItem = Swag.U64.Max
-    pressArrow: bool
+    items:      Array'BreadcrumbItem // Items associated with this value.
+    hotItem   = Swag.U64.Max // Hot item associated with this value.
+    hotArrow:   bool // Hot arrow associated with this value.
+    pressItem = Swag.U64.Max // Press item associated with this value.
+    pressArrow: bool // Press arrow associated with this value.
 
     // Horizontal padding inside a level body, gap between icon and text, and the padding
     // on each side of a chevron.
-    padX     = 7.0'f32
-    iconGap  = 5.0'f32
-    arrowPad = 6.0'f32
+    padX     = 7.0'f32 // Pad x associated with this value.
+    iconGap  = 5.0'f32 // Icon gap associated with this value.
+    arrowPad = 6.0'f32 // Arrow pad associated with this value.
 
     // Clicking a level body: navigate to the level at this index.
-    sigItemPressed: SigArray'func||(*BreadcrumbCtrl, u64)
+    sigItemPressed: SigArray'func||(*BreadcrumbCtrl, u64) // Signal emitted when item pressed.
 
     // Opening a level's chevron: the app fills 'menu' with the level's children.
-    sigFillMenu: #null func||(*BreadcrumbCtrl, u64, *MenuCtrl)
+    sigFillMenu: #null func||(*BreadcrumbCtrl, u64, *MenuCtrl) // Signal emitted when fill menu.
 
     // A child was picked from a level's chevron menu; 'id' is the chosen menu item id.
-    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)
+    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String) // Signal emitted when menu selected.
 }
 
 impl BreadcrumbCtrl
 {
+    // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*BreadcrumbCtrl
     {

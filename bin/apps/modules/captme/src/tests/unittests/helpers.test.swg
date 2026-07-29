@@ -4,7 +4,7 @@ using Swag, Core
 
 struct HeadlessFixture
 {
-    gui:      Testing.HeadlessHost
+    gui:      Gui.Testing.HeadlessHost
     main:     *MainWnd  = undefined
     editView: *EditView = undefined
     capture:  *Capture  = undefined
@@ -171,7 +171,7 @@ func testDeleteForm(itf: IForm)
 
 func testTempCapturePath()->String
 {
-    return Testing.tempFilePath("captme-", ".captme")
+    return Gui.Testing.tempFilePath("captme-", ".captme")
 }
 
 func testPrimeGizmo(form: IForm, z: f32 = 1)

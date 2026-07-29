@@ -34,7 +34,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -56,7 +56,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -86,7 +86,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -116,7 +116,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -151,7 +151,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -179,7 +179,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -207,7 +207,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -234,7 +234,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -267,7 +267,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -295,7 +295,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()
@@ -318,7 +318,7 @@ func pushButtonHeadlessResetCounters()
 
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     pushButtonHeadlessResetCounters()

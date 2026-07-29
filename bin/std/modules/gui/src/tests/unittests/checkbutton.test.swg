@@ -16,7 +16,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 // A click toggles the state from UnChecked to Checked and back.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
@@ -46,7 +46,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 // The ThreeState flag adds the Undefined state to the toggle cycle.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
@@ -71,7 +71,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 // Space and Enter toggle the focused check button.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     CheckButtonHeadlessChangedCount = 0
 
@@ -93,7 +93,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
 // A disabled checkbutton ignores clicks.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0

@@ -7,7 +7,7 @@ using Swag, Core
 // normal Close button.
 #test
 {
-    var gui: Testing.HeadlessHost
+    var gui: Gui.Testing.HeadlessHost
     gui.setup(900, 700)
     gui.bindApplication(&g_App)
 
@@ -15,7 +15,7 @@ using Swag, Core
     g_Main = main
 
     gui.clickModalButtonWhenShown(Dialog.BtnYes)
-    @assert(Testing.actionExecute'ActionAbout(main, ActionAbout.About))
+    @assert(Gui.Testing.actionExecute'ActionAbout(main, ActionAbout.About))
     gui.pump()
     @assert(gui.autoHandled)
     @assert(gui.app.surfaces.count == 0)

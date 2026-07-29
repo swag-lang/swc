@@ -7,7 +7,7 @@ using Swag, Core
 // Colors can be added individually and in generated ranges.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
 
     let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})

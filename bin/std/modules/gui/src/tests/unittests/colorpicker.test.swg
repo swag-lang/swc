@@ -15,7 +15,7 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
 // setColor decomposes the color into its components and emits sigChanged.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(200, 200)
     ColorPickerHeadlessChangedCount = 0
 
@@ -40,7 +40,7 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
 // change() updates the targeted HSL component and notifies once.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(200, 200)
     ColorPickerHeadlessChangedCount = 0
 

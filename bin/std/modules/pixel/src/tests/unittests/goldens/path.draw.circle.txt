@@ -1,0 +1,7 @@
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+StartNoOverlap
+DrawTriangles n=1920 bbox=(7.995,7.995)-(92.005,92.005) colors=[FFFF0000] cov=aa
+StopNoOverlap

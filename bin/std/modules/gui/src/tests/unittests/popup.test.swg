@@ -18,7 +18,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 // and updates the selection.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 200)
     host.recordCommands()
     PopupHeadlessChangedCount = 0
@@ -51,7 +51,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 // Clicking an open combobox again hides the popup.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 200)
 
     let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
@@ -76,7 +76,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 // PopupListCtrl data model: items and separators.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 200)
 
     let popup = PopupListCtrl.create(&host.root)

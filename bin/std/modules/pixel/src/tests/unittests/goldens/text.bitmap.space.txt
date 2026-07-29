@@ -1,0 +1,13 @@
+# font#0 segoeui.ttf_23_false_false_bitmap_bitmap_0_23 size=23 mode=Bitmap
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+StartFont
+UpdateFont font#0
+ResetTexture0
+BindTextureFont font#0 atlas=0
+DrawTriangles n=12 bbox=(10,19)-(46,35) uv=(0,0)-(0.117,0.125) colors=[FF000000] cov=solid
+ResetTextureFont
+EndFont

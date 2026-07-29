@@ -23,40 +23,40 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testAddMonitor(f.main, 2)
     testAddMonitor(f.main, 3)
 
-    var evt = Testing.commandState(ActionCapture.DoIt)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.DoIt, &evt))
+    var evt = Gui.Testing.commandState(ActionCapture.DoIt)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.DoIt, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.Area)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Area, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.Area)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Area, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.LastArea)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.LastArea, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.LastArea)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.LastArea, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.FullScreen)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.FullScreen, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.FullScreen)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.FullScreen, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.ActiveWnd)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.ActiveWnd)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.Screen0)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen0, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.Screen0)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen0, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.Screen1)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen1, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.Screen1)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen1, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.Screen2)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen2, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.Screen2)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen2, &evt))
     @assert(!evt.name.isEmpty())
 
-    evt = Testing.commandState(ActionCapture.Screen3)
-    @assert(Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen3, &evt))
+    evt = Gui.Testing.commandState(ActionCapture.Screen3)
+    @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.Screen3, &evt))
     @assert(!evt.name.isEmpty())
 
     f.shutdown()
@@ -106,7 +106,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     g_EndGrabX   = 16
     g_EndGrabY   = 12
 
-    @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
+    @assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.LastArea))
 
     let img = Clipboard.getImage()
     @assert(img.isValid())
@@ -135,7 +135,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     f.main.monitors.clear()
     testAddMonitor(f.main, 0)
 
-    @assert(Testing.actionExecute'ActionCapture(f.main, ActionCapture.Screen0))
+    @assert(Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.Screen0))
 
     let img = Clipboard.getImage()
     @assert(img.isValid())

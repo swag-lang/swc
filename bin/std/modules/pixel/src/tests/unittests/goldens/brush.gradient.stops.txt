@@ -1,0 +1,6 @@
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindTexture0 LinearGradient uv=Fill interp=Pixel bound=(0,0)-(100,100) from=(0,0) to=(100,0) spread=Clamp stops=[0:FFFF0000 0.25:FFFFFF00 0.75:FF008000 1:FF0000FF]
+DrawTriangles n=6 bbox=(0,0)-(100,100) colors=[FFFFFFFF] cov=solid

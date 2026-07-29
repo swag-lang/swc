@@ -16,7 +16,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 // Clicking checks the radio once; a second click does not re-notify.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
@@ -44,7 +44,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 // setChecked changes state silently (no signal/command).
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 120)
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
@@ -66,7 +66,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 // caller (unchanged default).
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 200)
     host.recordCommands()
 
@@ -91,7 +91,7 @@ func radioButtonHeadlessChanged(btn: *RadioButton)
 // group under the same parent stays independent.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(240, 280)
 
     let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})

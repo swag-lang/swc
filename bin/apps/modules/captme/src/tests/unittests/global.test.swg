@@ -47,21 +47,21 @@ func testSetupGlobalMain(main: *MainWnd)
 
     testSetupGlobalMain(f.main)
 
-    var evt = Testing.commandState(ActionGlobal.ShowLibrary)
-    @assert(Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
+    var evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
+    @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     @assert(!evt.name.isEmpty())
     @assert(!evt.checked)
 
-    @assert(Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
+    @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     @assert(f.main.libraryMode)
     @assert(!f.main.editWnd.isVisibleState())
     @assert(f.main.libWnd.isVisibleState())
 
-    evt = Testing.commandState(ActionGlobal.ShowLibrary)
-    @assert(Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
+    evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
+    @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     @assert(evt.checked)
 
-    @assert(Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
+    @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     @assert(!f.main.libraryMode)
     @assert(f.main.editWnd.isVisibleState())
     @assert(!f.main.libWnd.isVisibleState())
@@ -70,14 +70,14 @@ func testSetupGlobalMain(main: *MainWnd)
     surface.show()
     @assert(!surface.isHidden)
 
-    @assert(Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize))
+    @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.Minimize))
     @assert(surface.isHidden)
 
-    @assert(Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor))
+    @assert(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowEditor))
     @assert(!surface.isHidden)
 
-    evt = Testing.commandState(ActionGlobal.Exit)
-    @assert(Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
+    evt = Gui.Testing.commandState(ActionGlobal.Exit)
+    @assert(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.Exit, &evt))
     @assert(!evt.name.isEmpty())
 
     f.shutdown()

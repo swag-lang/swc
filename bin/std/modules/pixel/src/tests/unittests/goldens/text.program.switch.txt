@@ -1,0 +1,29 @@
+# font#0 segoeui.ttf_25_false_false_bitmap_bitmap_0_25 size=25 mode=Bitmap
+# font#1 segoeui.ttf_26_false_false_msdf_msdf_8_40 size=26 mode=Msdf
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+StartFont
+UpdateFont font#0
+ResetTexture0
+BindTextureFont font#0 atlas=0
+DrawTriangles n=6 bbox=(10,19)-(26,37) uv=(0,0)-(0.125,0.141) colors=[FF000000] cov=solid
+ResetTextureFont
+EndFont
+StartMsdfFont
+UpdateFont font#1
+ResetTexture0
+SetFontEffect off
+BindTextureFont font#1 atlas=0
+DrawTriangles n=6 bbox=(4.8,44.012)-(32.1,73.262) uv=(0,0)-(0.164,0.176) colors=[FF000000] cov=solid
+ResetTextureFont
+EndFont
+StartFont
+UpdateFont font#0
+ResetTexture0
+BindTextureFont font#0 atlas=0
+DrawTriangles n=6 bbox=(10,79)-(26,97) uv=(0,0)-(0.125,0.141) colors=[FF000000] cov=solid
+ResetTextureFont
+EndFont

@@ -5,7 +5,7 @@ using Swag, Core
 
 func testSetClipboardImage(width, height: s32)
 {
-    Clipboard.addImage(Testing.indexedImage(width, height))
+    Clipboard.addImage(Gui.Testing.indexedImage(width, height))
     @assert(Clipboard.hasImage())
 }
 
@@ -105,7 +105,7 @@ func testResetClipboardToImage()
 
     f.capture.width   = 40
     f.capture.height  = 24
-    f.capture.backImg = Testing.indexedImage(40, 24)
+    f.capture.backImg = Gui.Testing.indexedImage(40, 24)
     f.main.sendCommandEvent(ActionCopyPaste.CopyAsImage)
 
     let copiedImage = Clipboard.getImage()
@@ -130,7 +130,7 @@ func testResetClipboardToImage()
 
     let target = testAddImage(f.capture, 3, 4, 12, 10)
     target.kind  = .Image
-    target.image = Testing.indexedImage(2, 2)
+    target.image = Gui.Testing.indexedImage(2, 2)
     f.capture.selection.add(0)
 
     testSetClipboardImage(6, 5)

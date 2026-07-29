@@ -6,7 +6,7 @@ using Swag, Core
 // setText/getText round-trips; addText appends; clear empties.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(320, 220)
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
@@ -25,7 +25,7 @@ using Swag, Core
 // selectAll selects the whole content.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(320, 220)
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
@@ -39,7 +39,7 @@ using Swag, Core
 // insertText at the cursor, with undo/redo.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(320, 220)
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})

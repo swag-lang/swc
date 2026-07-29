@@ -251,9 +251,9 @@ using Swag, Core
     moveBase.newSizeX = 7
     moveBase.newSizeY = 8
     f.capture.pushUndo(moveBase)
-    Testing.assertRect(shape.IForm.boundRect(), 15, 26, 37, 48)
+    Gui.Testing.assertRect(shape.IForm.boundRect(), 15, 26, 37, 48)
     f.capture.undo()
-    Testing.assertRect(shape.IForm.boundRect(), 10, 20, 30, 40)
+    Gui.Testing.assertRect(shape.IForm.boundRect(), 10, 20, 30, 40)
 
     var movePoint = f.capture.newUndo(.MovePoint)
     movePoint.baseForm = cast(IForm) line
@@ -372,8 +372,8 @@ using Swag, Core
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     f.capture.selection.add(0)
 
-    var evt = Testing.commandState(ActionSelection.Freeze)
-    @assert(Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    var evt = Gui.Testing.commandState(ActionSelection.Freeze)
+    @assert(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
     @assert(!evt.disabled)
 
     f.main.sendCommandEvent(ActionSelection.Freeze)
@@ -389,8 +389,8 @@ using Swag, Core
     Memory.delete(old)
 
     // Without a capture the command is disabled and freezing does nothing.
-    evt = Testing.commandState(ActionSelection.Freeze)
-    @assert(Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
+    evt = Gui.Testing.commandState(ActionSelection.Freeze)
+    @assert(Gui.Testing.actionUpdate'ActionSelection(f.main, ActionSelection.Freeze, &evt))
     @assert(evt.disabled)
 
     f.main.freezeSelection(true)

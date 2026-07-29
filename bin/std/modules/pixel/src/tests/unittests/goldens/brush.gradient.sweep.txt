@@ -1,0 +1,6 @@
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindTexture0 SweepGradient uv=Fill interp=Pixel bound=(0,0)-(100,100) center=(50,50) angle=0..6.283 spread=Repeat stops=[0:FFFF0000 1:FF0000FF]
+DrawTriangles n=6 bbox=(0,0)-(100,100) colors=[FFFFFFFF] cov=solid

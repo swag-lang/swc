@@ -13,14 +13,14 @@ using Swag, Core, File
     discard f.setupLibraryWnd()
     let libWnd = cast(*Wnd) notnull f.main.libWnd
 
-    var sizeEvt = Testing.commandState(ActionRecentSize.LibBig)
-    @assert(Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
+    var sizeEvt = Gui.Testing.commandState(ActionRecentSize.LibBig)
+    @assert(Gui.Testing.actionUpdate'ActionRecentSize(f.main, ActionRecentSize.LibBig, &sizeEvt))
     @assert(!sizeEvt.checked)
     f.main.sendCommandEvent(ActionRecentSize.LibBig)
     @assert(f.main.libWnd.previewSize == .Big)
-    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium))
+    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibMedium))
     @assert(f.main.libWnd.previewSize == .Medium)
-    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall))
+    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.LibSmall))
     @assert(f.main.libWnd.previewSize == .Small)
 
     with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
@@ -28,22 +28,22 @@ using Swag, Core, File
         .dockStyle = .Bottom
     }
 
-    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall))
+    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentSmall))
     @assert(f.main.bottomSize == .Small)
-    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium))
+    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentMedium))
     @assert(f.main.bottomSize == .Medium)
-    @assert(Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig))
+    @assert(Gui.Testing.actionExecute'ActionRecentSize(f.main, ActionRecentSize.RecentBig))
     @assert(f.main.bottomSize == .Big)
 
-    var evt = Testing.commandState(ActionLibSort.Recent)
-    @assert(Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
+    var evt = Gui.Testing.commandState(ActionLibSort.Recent)
+    @assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Recent, &evt))
     @assert(evt.checked)
 
     libWnd.sendCommandEvent(ActionLibSort.FileSize)
     @assert(f.main.libWnd.sortMethod == .FileSize)
 
-    evt = Testing.commandState(ActionLibSort.Invert)
-    @assert(Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    evt = Gui.Testing.commandState(ActionLibSort.Invert)
+    @assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
     @assert(!evt.name.isEmpty())
     @assert(!evt.disabled)
 
@@ -51,23 +51,23 @@ using Swag, Core, File
     @assert(f.main.libWnd.invertSort)
 
     libWnd.sendCommandEvent(ActionLibSort.Similar)
-    evt = Testing.commandState(ActionLibSort.Invert)
-    @assert(Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
+    evt = Gui.Testing.commandState(ActionLibSort.Invert)
+    @assert(Gui.Testing.actionUpdate'ActionLibSort(libWnd, ActionLibSort.Invert, &evt))
     @assert(evt.disabled)
 
-    evt = Testing.commandState(ActionLibFilter.LinkedImage)
-    @assert(Testing.actionUpdate'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
+    evt = Gui.Testing.commandState(ActionLibFilter.LinkedImage)
+    @assert(Gui.Testing.actionUpdate'ActionLibFilter(libWnd, ActionLibFilter.LinkedImage, &evt))
     @assert(evt.checked)
     libWnd.sendCommandEvent(ActionLibFilter.LinkedImage)
     @assert(!f.main.libWnd.showLinkedImage)
 
-    evt = Testing.commandState(ActionLibSel.Right)
-    @assert(Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    evt = Gui.Testing.commandState(ActionLibSel.Right)
+    @assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(evt.disabled)
 
     f.main.libWnd.view.focusItem = 0
-    evt                          = Testing.commandState(ActionLibSel.Right)
-    @assert(Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
+    evt                          = Gui.Testing.commandState(ActionLibSel.Right)
+    @assert(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     @assert(!evt.disabled)
 
     f.shutdown()
@@ -219,7 +219,7 @@ using Swag, Core, File
         let capture = Memory.new'Capture()
         capture.width, capture.widthOrg   = 8
         capture.height, capture.heightOrg = 6
-        capture.backImg                   = Testing.indexedImage(8, 6)
+        capture.backImg                   = Gui.Testing.indexedImage(8, 6)
         let path = testTempCapturePath()
         capture.file    = path
         capture.changed = true

@@ -29,7 +29,7 @@ using Swag, Core
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg               = Testing.indexedImage(8, 6)
+    cap.backImg               = Gui.Testing.indexedImage(8, 6)
     cap.file                  = src
     cap.changed               = true
     catch cap.save() as err2
@@ -69,7 +69,7 @@ using Swag, Core
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg               = Testing.indexedImage(8, 6)
+    cap.backImg               = Gui.Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
     defer
     {
@@ -108,7 +108,7 @@ using Swag, Core
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 20
     cap.height, cap.heightOrg = 14
-    cap.backImg               = Testing.indexedImage(20, 14)
+    cap.backImg               = Gui.Testing.indexedImage(20, 14)
     let path = testTempCapturePath()
     defer
     {
@@ -214,7 +214,7 @@ using Swag, Core
     let cap = Memory.new'Capture()
     cap.width, cap.widthOrg   = 8
     cap.height, cap.heightOrg = 6
-    cap.backImg               = Testing.indexedImage(8, 6)
+    cap.backImg               = Gui.Testing.indexedImage(8, 6)
     let path = testTempCapturePath()
     defer
     {

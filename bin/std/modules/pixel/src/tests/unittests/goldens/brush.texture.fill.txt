@@ -1,0 +1,8 @@
+# tex#0 64x32 BGRA8
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindTexture0 Texture uv=Fill interp=Pixel tex#0 bound=(10,10)-(74,42)
+DrawTriangles n=6 bbox=(10,10)-(74,42) colors=[FFFFFFFF] cov=solid

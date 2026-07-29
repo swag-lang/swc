@@ -61,7 +61,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     f.gui.withModalEdit("Width", "48")
     f.gui.withModalEdit("Height", "32")
 
-    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.NewImage))
+    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewImage))
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
@@ -95,9 +95,9 @@ func testPrepareRecentLibrary(main: *MainWnd)
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
-    Clipboard.addImage(Testing.indexedImage(19, 11))
+    Clipboard.addImage(Gui.Testing.indexedImage(19, 11))
 
-    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard))
+    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.NewFromClipboard))
     f.gui.pump()
 
     let capture       = notnull f.main.getCapture()
@@ -127,19 +127,19 @@ func testPrepareRecentLibrary(main: *MainWnd)
     testRegisterIoActions(f.main)
     testPrepareRecentLibrary(f.main)
 
-    let sourcePath = Testing.tempFilePath("captme-", ".png")
+    let sourcePath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(sourcePath)
     }
 
-    var source = Testing.indexedImage(21, 13)
+    var source = Gui.Testing.indexedImage(21, 13)
     catch source.save(sourcePath) as err3
     @assert(err3 == null)
 
     f.gui.acceptModalFileDialog(sourcePath)
 
-    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage))
+    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.OpenImage))
     f.gui.pump()
 
     @assert(f.gui.autoHandled)
@@ -173,7 +173,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 32
     f.capture.height  = 20
-    f.capture.backImg = Testing.indexedImage(32, 20)
+    f.capture.backImg = Gui.Testing.indexedImage(32, 20)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -181,7 +181,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let pngPath = Testing.tempFilePath("captme-", ".png")
+    let pngPath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(pngPath)
@@ -212,7 +212,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 34
     f.capture.height  = 22
-    f.capture.backImg = Testing.indexedImage(34, 22)
+    f.capture.backImg = Gui.Testing.indexedImage(34, 22)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -220,7 +220,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let pngPath = Testing.tempFilePath("captme-", ".png")
+    let pngPath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(pngPath)
@@ -254,7 +254,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 40
     f.capture.height  = 30
-    f.capture.backImg = Testing.indexedImage(40, 30)
+    f.capture.backImg = Gui.Testing.indexedImage(40, 30)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -262,7 +262,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let pngPath = Testing.tempFilePath("captme-", ".png")
+    let pngPath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(pngPath)
@@ -301,7 +301,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 28
     f.capture.height  = 18
-    f.capture.backImg = Testing.indexedImage(28, 18)
+    f.capture.backImg = Gui.Testing.indexedImage(28, 18)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -309,7 +309,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let linkedPath = Testing.tempFilePath("captme-", ".png")
+    let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(linkedPath)
@@ -344,7 +344,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 36
     f.capture.height  = 24
-    f.capture.backImg = Testing.indexedImage(36, 24)
+    f.capture.backImg = Gui.Testing.indexedImage(36, 24)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -352,7 +352,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let linkedPath = Testing.tempFilePath("captme-", ".png")
+    let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(linkedPath)
@@ -392,7 +392,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 26
     f.capture.height  = 16
-    f.capture.backImg = Testing.indexedImage(26, 16)
+    f.capture.backImg = Gui.Testing.indexedImage(26, 16)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -400,7 +400,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let linkedPath = Testing.tempFilePath("captme-", ".png")
+    let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(linkedPath)
@@ -445,7 +445,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 38
     f.capture.height  = 26
-    f.capture.backImg = Testing.indexedImage(38, 26)
+    f.capture.backImg = Gui.Testing.indexedImage(38, 26)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -453,7 +453,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let linkedPath = Testing.tempFilePath("captme-", ".png")
+    let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
     defer
     {
         discard catch File.delete(linkedPath)
@@ -503,7 +503,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.capture.width   = 24
     f.capture.height  = 18
-    f.capture.backImg = Testing.indexedImage(24, 18)
+    f.capture.backImg = Gui.Testing.indexedImage(24, 18)
 
     let capturePath = testPrepareSavedCapture(f.capture)
     defer
@@ -511,7 +511,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(capturePath)
     }
 
-    let linkedPath = Testing.tempFilePath("captme-", ".png")
+    let linkedPath = Gui.Testing.tempFilePath("captme-", ".png")
     f.capture.linkedImage    = linkedPath
     f.capture.linkedUpToDate = true
     f.capture.changed        = true
@@ -556,7 +556,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
         discard catch File.delete(originalPath)
     }
 
-    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture))
+    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture))
     f.gui.pump()
 
     @assert(f.main.recentWnd.recentView.items.count == 1)
@@ -603,7 +603,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
 
-    @assert(Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
+    @assert(Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture))
     f.gui.pump()
 
     @assert(f.gui.autoHandled)

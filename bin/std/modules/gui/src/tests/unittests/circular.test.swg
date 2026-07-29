@@ -14,7 +14,7 @@ func circularHeadlessChanged(c: *Circular)
 // setValue/getValue map through the [min..max] range and emit sigChanged.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(160, 160)
     CircularHeadlessChangedCount = 0
 
@@ -41,7 +41,7 @@ func circularHeadlessChanged(c: *Circular)
 // A range circular keeps two ordered values.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host: Gui.Testing.HeadlessHost
     host.setup(160, 160)
 
     let circ = Circular.create(&host.root, {20, 20, 120, 120}, null, true)

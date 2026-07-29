@@ -110,15 +110,10 @@ namespace
         ownBuildCfgString(buildCfg.resAppCompany, newOwnedStrings);
         ownBuildCfgString(buildCfg.resAppCopyright, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.outputName, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.outputExtension, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.titleToc, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.titleContent, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.css, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.icon, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.startHead, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.endHead, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.startBody, newOwnedStrings);
-        ownBuildCfgString(buildCfg.genDoc.endBody, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.morePages, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.quoteIconNote, newOwnedStrings);
         ownBuildCfgString(buildCfg.genDoc.quoteIconTip, newOwnedStrings);

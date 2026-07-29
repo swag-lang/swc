@@ -43,11 +43,13 @@ Keep documentation next to the public declaration it describes. Treat comments a
 - Use standard headings, emphasis, links, images, unordered or ordered lists, description lists, and Markdown tables.
 - Use `> NOTE:`, `> TIP:`, `> WARNING:`, `> ATTENTION:`, or `> EXAMPLE:` for callouts.
 - Use `<html>...</html>` only when the supported markup cannot express the required layout.
+- Keep generated pages static: link only to `.html` documentation pages and never add PHP or script elements.
 - In `.Examples` source files, place prose between `/**` and `*/`; keep executable Swag code outside those blocks.
 
 ## Validate
 
 1. Run the narrowest relevant `swc doc` command and inspect the generated page.
 2. Check headings, code coloring, tables, callouts, internal links, runtime links, and source links touched by the change.
-3. Confirm `#[Swag.NoDoc]` declarations are absent.
-4. Run `tools/web.bat dm` when changing shared documentation rules, website configuration, or several documented modules.
+3. Confirm generated pages contain no PHP or script elements and use the generated stylesheet.
+4. Confirm `#[Swag.NoDoc]` declarations are absent.
+5. Run `tools/web.bat dm` when changing shared documentation rules, website configuration, or several documented modules.

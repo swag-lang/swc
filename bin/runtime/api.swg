@@ -905,16 +905,11 @@ namespace Swag
     struct BuildCfgGenDoc
     {
         kind                     = BuildCfgDocKind.None     // The kind of documentation to generate
-        outputName:          #null string                   // The name of the output file (without extension)
-        outputExtension:     #null string                   // The output extension
+        outputName:          #null string                   // The name of the HTML output file (without extension)
         titleToc:            #null string                   // Title for the table of content
         titleContent:        #null string                   // Title for the main document content
-        css:                 #null string                   // The 'css' file to include in generated documentations
+        css:                 #null string                   // Relative output path of the generated stylesheet
         icon:                #null string                   // The icon path of the page
-        startHead:           #null string                   // Content to insert at the start of the <head> section
-        endHead:             #null string                   // Content to insert at the end of the <head> section
-        startBody:           #null string                   // Content to insert at the start of the <body> section
-        endBody:             #null string                   // Content to insert at the end of the <body> section
         morePages:           #null string                   // Additional external file pages to process (separated with ';')
         quoteIconNote:       #null string                   // The icon for the note blockquote
         quoteIconTip:        #null string                   // The icon for the tip blockquote
@@ -928,8 +923,6 @@ namespace Swag
         quoteTitleExample:   #null string                   // The title for the example blockquote
         syntaxDefaultColor:  u32 = 0x00222222               // Code syntax default color (if not colorized)
         syntaxColorLum:      f32 = 0.5                      // Code syntax color luminosity in range ]0, 1]
-        hasFontAwesome           = true                     // Generate a reference to the FontAwesome script (icons)
-        hasStyleSection          = true                     // Generate a default <style> section
         hasSwagWatermark         = true                     // Generate a swag watermark at the bottom of each page
     }
 

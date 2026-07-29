@@ -3,7 +3,7 @@
     <p style="padding-top:30px;"><img src="imgs/swag_logo.png" width="50%"></p>
     <p style="color:white; font-size:40px; line-height:1.3em;"><b>SWAG</b> Programming Language</p>
     <div style="margin-top:50px; padding-bottom:20px; color:white; font-size:20px;">
-        <div class="round-button"><a href="getting-started.php" style="color:#F7F900; text-decoration:none;">Getting Started</a></div>
+        <div class="round-button"><a href="getting-started.html" style="color:#F7F900; text-decoration:none;">Getting Started</a></div>
         <div class="round-button"><a href="https://github.com/swag-lang/swag/releases" style="color:#F7F900; text-decoration:none;">Download the Compiler</a></div>
     </div>
 </div>
@@ -30,13 +30,13 @@
 
 <div align="center">
     <div class="round-button">
-        <a href="language.php" class="no-decoration">Documentation</a>
+        <a href="language.html" class="no-decoration">Documentation</a>
     </div>
     <div class="round-button">
-        <a href="swag-as-script.php" class="no-decoration">Scripting</a>
+        <a href="swag-as-script.html" class="no-decoration">Scripting</a>
     </div>
     <div class="round-button">
-        <a href="std.php">Standard Modules</a>
+        <a href="std.html">Standard Modules</a>
     </div>
 </div>
 </html>
@@ -44,7 +44,7 @@
 <div align="center">
     <p>Explore a detailed, single-script implementation of the <b>Flappy Bird</b> game.</p>
     <div class="round-button">
-        <a href="flappy.php" class="no-decoration">Flappy Bird</a>
+        <a href="flappy.html" class="no-decoration">Flappy Bird</a>
     </div>
 </div>
 </html>

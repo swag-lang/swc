@@ -6,20 +6,20 @@ You can find that workspace locally in `bin/std`, or [here](https://github.com/s
 
 | Module | Purpose |
 |---|---|
-| [std.core](std.core.php) | Main core module, the base of everything else |
-| [std.pixel](std.pixel.php) | Image processing and 2D painting |
-| [std.gui](std.gui.php) | User interfaces, windows, and widgets |
-| [std.audio](std.audio.php) | Sound decoding and playback |
+| [std.core](std.core.html) | Main core module, the base of everything else |
+| [std.pixel](std.pixel.html) | Image processing and 2D painting |
+| [std.gui](std.gui.html) | User interfaces, windows, and widgets |
+| [std.audio](std.audio.html) | Sound decoding and playback |
 
 # Wrappers
 Those other modules are just wrappers to external libraries.
 
 | Module | Purpose |
 |---|---|
-| [std.ogl](std.ogl.php) | OpenGL wrapper |
-| [std.truetype](std.truetype.php) | TrueType font wrapper |
-| [std.win32](std.win32.php) | Windows SDK wrapper |
-| [std.gdi32](std.gdi32.php) | Windows GDI wrapper |
-| [std.gdiplus](std.gdiplus.php) | Windows GDI+ wrapper |
-| [std.xinput](std.xinput.php) | Microsoft XInput wrapper |
-| [std.xaudio2](std.xaudio2.php) | Microsoft XAudio2 wrapper |
+| [std.ogl](std.ogl.html) | OpenGL wrapper |
+| [std.truetype](std.truetype.html) | TrueType font wrapper |
+| [std.win32](std.win32.html) | Windows SDK wrapper |
+| [std.gdi32](std.gdi32.html) | Windows GDI wrapper |
+| [std.gdiplus](std.gdiplus.html) | Windows GDI+ wrapper |
+| [std.xinput](std.xinput.html) | Microsoft XInput wrapper |
+| [std.xaudio2](std.xaudio2.html) | Microsoft XAudio2 wrapper |

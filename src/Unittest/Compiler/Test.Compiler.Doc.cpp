@@ -62,12 +62,10 @@ SWC_TEST_BEGIN(Compiler_DocCommandParsesOptions)
     char        arg1[] = "doc";
     char        arg2[] = "--css";
     char        arg3[] = "site.css";
-    char        arg4[] = "--ext";
-    char        arg5[] = ".php";
-    char        arg6[] = "--no-output-doc";
-    char        arg7[] = "--doc-output-dir";
-    char        arg8[] = "generated-doc";
-    char*       argv[] = {arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8};
+    char        arg4[] = "--no-output-doc";
+    char        arg5[] = "--doc-output-dir";
+    char        arg6[] = "generated-doc";
+    char*       argv[] = {arg0, arg1, arg2, arg3, arg4, arg5, arg6};
 
     CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
     if (parser.parse(std::size(argv), argv) != Result::Continue)
@@ -75,7 +73,7 @@ SWC_TEST_BEGIN(Compiler_DocCommandParsesOptions)
 
     if (parserCmdLine.command != CommandKind::Doc)
         return Result::Error;
-    if (parserCmdLine.docCss != "site.css" || parserCmdLine.docExtension != ".php")
+    if (parserCmdLine.docCss != "site.css")
         return Result::Error;
     if (parserCmdLine.outputDoc)
         return Result::Error;
@@ -129,7 +127,6 @@ func hidden(value: s32)->s32
 }
 )";
     static constexpr std::string_view OUTPUT_NAME = "doc-test";
-    static constexpr std::string_view OUTPUT_EXT  = ".html";
     static constexpr std::string_view TITLE       = "Documentation Test";
 
     ScopedDocTestDirectory directory("public-api");
@@ -155,7 +152,6 @@ func hidden(value: s32)->s32
     Runtime::BuildCfgGenDoc& genDoc = compiler.buildCfg().genDoc;
     genDoc.kind                     = Runtime::BuildCfgDocKind::Api;
     genDoc.outputName               = runtimeString(OUTPUT_NAME);
-    genDoc.outputExtension          = runtimeString(OUTPUT_EXT);
     genDoc.titleContent             = runtimeString(TITLE);
 
     TaskContext                  compilerCtx(compiler);
@@ -170,6 +166,15 @@ func hidden(value: s32)->s32
     if (!content.contains("documented") || !content.contains("Return the next integer."))
         return Result::Error;
     if (content.contains(">hidden<") || content.contains("func hidden"))
+        return Result::Error;
+    if (!content.contains("<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\">"))
+        return Result::Error;
+    if (content.contains("<script") || content.contains("<?php"))
+        return Result::Error;
+
+    const fs::path stylesheetPath = directory.root() / "style.css";
+    SWC_RESULT(FileSystem::readTextFile(stylesheetPath, content, ioError));
+    if (!content.contains(".site-header") || !content.contains(".code-block"))
         return Result::Error;
 }
 SWC_TEST_END()

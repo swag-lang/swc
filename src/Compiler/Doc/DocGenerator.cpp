@@ -38,15 +38,10 @@ namespace
     {
         Runtime::BuildCfgDocKind kind = Runtime::BuildCfgDocKind::None;
         Utf8                     outputName;
-        Utf8                     outputExtension;
         Utf8                     titleToc;
         Utf8                     titleContent;
         Utf8                     css;
         Utf8                     icon;
-        Utf8                     startHead;
-        Utf8                     endHead;
-        Utf8                     startBody;
-        Utf8                     endBody;
         Utf8                     morePages;
         Utf8                     quoteIconNote;
         Utf8                     quoteIconTip;
@@ -59,8 +54,6 @@ namespace
         Utf8                     quoteTitleAttention;
         Utf8                     quoteTitleExample;
         uint32_t                 syntaxDefaultColor = 0x00222222;
-        bool                     hasFontAwesome     = true;
-        bool                     hasStyleSection    = true;
         bool                     hasSwagWatermark   = true;
     };
 
@@ -87,7 +80,6 @@ namespace
         TaskContext*                          ctx     = nullptr;
         const PageOptions*                    options = nullptr;
         const std::unordered_map<Utf8, Utf8>* references;
-        Utf8                                  runtimeExtension;
     };
 
     struct ApiDocument
@@ -100,6 +92,7 @@ namespace
 
     std::mutex               g_RuntimeDocMutex;
     std::unordered_set<Utf8> g_GeneratedRuntimeDocs;
+    std::mutex               g_StylesheetMutex;
 
     Utf8 fromRuntimeString(const Runtime::String& value)
     {
@@ -115,15 +108,10 @@ namespace
         PageOptions result;
         result.kind                = genDoc.kind;
         result.outputName          = fromRuntimeString(genDoc.outputName);
-        result.outputExtension     = fromRuntimeString(genDoc.outputExtension);
         result.titleToc            = fromRuntimeString(genDoc.titleToc);
         result.titleContent        = fromRuntimeString(genDoc.titleContent);
         result.css                 = fromRuntimeString(genDoc.css);
         result.icon                = fromRuntimeString(genDoc.icon);
-        result.startHead           = fromRuntimeString(genDoc.startHead);
-        result.endHead             = fromRuntimeString(genDoc.endHead);
-        result.startBody           = fromRuntimeString(genDoc.startBody);
-        result.endBody             = fromRuntimeString(genDoc.endBody);
         result.morePages           = fromRuntimeString(genDoc.morePages);
         result.quoteIconNote       = fromRuntimeString(genDoc.quoteIconNote);
         result.quoteIconTip        = fromRuntimeString(genDoc.quoteIconTip);
@@ -136,44 +124,22 @@ namespace
         result.quoteTitleAttention = fromRuntimeString(genDoc.quoteTitleAttention);
         result.quoteTitleExample   = fromRuntimeString(genDoc.quoteTitleExample);
         result.syntaxDefaultColor  = genDoc.syntaxDefaultColor;
-        result.hasFontAwesome      = genDoc.hasFontAwesome;
-        result.hasStyleSection     = genDoc.hasStyleSection;
         result.hasSwagWatermark    = genDoc.hasSwagWatermark;
 
         if (!compiler.cmdLine().docCss.empty())
             result.css = compiler.cmdLine().docCss;
-        if (!compiler.cmdLine().docExtension.empty())
-            result.outputExtension = compiler.cmdLine().docExtension;
         return result;
     }
 
     PageOptions getRuntimePageOptions(const CompilerInstance& compiler)
     {
-        PageOptions result;
+        PageOptions result     = getPageOptions(compiler);
         result.kind            = Runtime::BuildCfgDocKind::Api;
         result.outputName      = "swag.runtime";
-        result.outputExtension = ".php";
         result.titleContent    = "Swag Runtime";
-        result.css             = "css/style.css";
-        result.icon            = "favicon.ico";
-        result.startHead       = "<?php include('common/start-head.php'); ?>";
-        result.endHead         = "<?php include('common/end-head.php'); ?>";
-        result.startBody       = "<?php include('common/start-body.php'); ?>";
-
-        if (!compiler.cmdLine().docCss.empty())
-            result.css = compiler.cmdLine().docCss;
-        if (!compiler.cmdLine().docExtension.empty())
-            result.outputExtension = compiler.cmdLine().docExtension;
+        if (result.css.empty())
+            result.css = "style.css";
         return result;
-    }
-
-    Utf8 effectiveExtension(Utf8 extension)
-    {
-        if (extension.empty())
-            return ".html";
-        if (extension.front() != '.')
-            extension.insert(extension.begin(), '.');
-        return extension;
     }
 
     std::string_view trimView(std::string_view value)
@@ -731,7 +697,7 @@ namespace
         if (name.starts_with("Swag."))
         {
             const Utf8 anchor = makeAnchor(name);
-            return std::format("<a href=\"swag.runtime{}#{}\">{}</a>", escapeHtml(renderCtx.runtimeExtension, true), anchor, escapeHtml(name));
+            return std::format("<a href=\"swag.runtime.html#{}\">{}</a>", anchor, escapeHtml(name));
         }
         return {};
     }
@@ -1376,10 +1342,9 @@ namespace
     {
         buildReferences(document);
         const RenderContext renderCtx = {
-            .ctx              = &ctx,
-            .options          = &options,
-            .references       = &document.references,
-            .runtimeExtension = effectiveExtension(options.outputExtension),
+            .ctx        = &ctx,
+            .options    = &options,
+            .references = &document.references,
         };
 
         Utf8 lastSection;
@@ -1470,59 +1435,482 @@ namespace
         return {};
     }
 
-    Utf8 pageStyles(const PageOptions& options, const bool pages)
+    Utf8 documentationStyles()
     {
-        Utf8 result = R"(<style>
-.container{display:flex;flex-wrap:nowrap;flex-direction:row;margin:0 auto;padding:0}.left{display:block;overflow-y:auto;width:500px}.left-page{margin:10px}.right{display:block;width:100%}.right-page{max-width:1024px;margin:10px auto}
-@media(min-width:640px){.container{max-width:640px}}@media(min-width:768px){.container{max-width:768px}}@media(min-width:1024px){.container{max-width:1024px}}@media(min-width:1280px){.container{max-width:1280px}}@media(min-width:1536px){.container{max-width:1536px}}@media screen and (max-width:600px){.left{display:none}.right-page{margin:10px}}
-html{font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}body{margin:0;line-height:1.3em}.container a{color:DodgerBlue}.container a:hover{text-decoration:underline}.container img{margin:0 auto}.left a{text-decoration:none}.left ul{list-style-type:none;margin-left:-20px}.left h3{background-color:#000;color:#fff;padding:6px}.right h1{margin-top:50px;margin-bottom:50px}.right h2{margin-top:35px}.right hr{margin-top:50px;margin-bottom:50px}.strikethrough-text{text-decoration:line-through}.swag-watermark{text-align:right;font-size:80%;margin-top:30px}.swag-watermark a{text-decoration:none;color:inherit}
-.blockquote{border-radius:5px;border:1px solid;margin:20px;padding:10px}.blockquote-default{border-color:orange;border-left:6px solid orange;background-color:#ffffe0}.blockquote-note{border-color:#adcedd;background-color:#cdeefd}.blockquote-tip{border-color:#bccfbc;background-color:#dcefdc}.blockquote-warning{border-color:#dfbdb3;background-color:#ffddd3}.blockquote-attention{border-color:#ddbab8;background-color:#fddad8}.blockquote-example{border:2px solid #d3d3d3}.blockquote-title-block{margin-bottom:10px}.blockquote-title{font-weight:bold}.description-list-title{font-weight:bold;font-style:italic}.description-list-block{margin-left:30px}
-.container table{border:1px solid #d3d3d3;border-collapse:collapse;font-size:90%;margin:20px}.container td,.container th{border:1px solid #d3d3d3;padding:6px;min-width:100px}.container th{background-color:#eee}table.api-item{border-collapse:separate;background-color:#000;color:#fff;width:100%;margin:70px 0 0;font-size:110%}.api-item td{font-size:revert;border:0}.api-item td:first-child{width:66%;white-space:nowrap}.api-item-title-src-ref{text-align:right}.api-item-title-src-ref a{color:inherit}.api-item-title-kind{font-weight:normal;font-size:80%}.api-item-title-strong{font-weight:bold}.table-enumeration{width:calc(100% - 40px)}.table-enumeration td:first-child{background-color:#f8f8f8;white-space:nowrap}.table-enumeration td:last-child{width:100%}.table-enumeration td.code-type{background-color:#eee}.table-enumeration a{text-decoration:none;color:inherit}
-.code-inline{background-color:#eee;border-radius:5px;border:1px dotted #ccc;padding:0 8px;font-size:110%;font-family:monospace;display:inline-block}.code-block{background-color:#eee;border-radius:5px;border:1px solid #d3d3d3;padding:10px;margin:20px;white-space:pre;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}.code-block a{color:inherit}
-.SCmt{color:#6a9955}.SCmp,.SAtr{color:#777}.SFct{color:#c54f00}.SCst{color:#168f7d}.SItr{color:#8a7600}.STpe{color:#a66c00}.SKwd{color:#286fa8}.SLgc{color:#8e4d99}.SNum{color:#4d7a45}.SStr{color:#a64f38}.SInv{color:#d22}.SBcR{color:#817c31}
+        Utf8 result = R"(/*
+ * Static stylesheet generated by swc doc.
+ * The documentation intentionally needs no script or server-side runtime.
+ */
+
+:root {
+    color-scheme: light;
+    --swag-black: #050505;
+    --swag-yellow: #f7f900;
+    --swag-link: #1677c8;
+    --swag-line: #d7d7d7;
+    --swag-soft: #f3f3f3;
+    --swag-header-height: 74px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    color: #222;
+    background: #fff;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.45;
+}
+
+.site-header {
+    position: sticky;
+    z-index: 10;
+    top: 0;
+    min-height: var(--swag-header-height);
+    color: #fff;
+    background: var(--swag-black);
+    border-bottom: 3px solid var(--swag-yellow);
+}
+
+.site-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 28px;
+    width: min(1200px, calc(100% - 32px));
+    min-height: var(--swag-header-height);
+    margin: 0 auto;
+}
+
+.site-brand {
+    color: var(--swag-yellow);
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-decoration: none;
+}
+
+.site-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px 22px;
+}
+
+.site-links a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.site-links a:hover,
+.site-links a:focus-visible {
+    color: var(--swag-yellow);
+}
+
+.container {
+    display: grid;
+    grid-template-columns: minmax(230px, 330px) minmax(0, 1fr);
+    gap: 34px;
+    width: min(1500px, calc(100% - 32px));
+    margin: 0 auto;
+}
+
+.container.single-page {
+    display: block;
+}
+
+.left {
+    position: sticky;
+    top: var(--swag-header-height);
+    height: calc(100vh - var(--swag-header-height));
+    overflow-y: auto;
+    border-right: 1px solid var(--swag-line);
+}
+
+.left-page {
+    padding: 24px 24px 40px 4px;
+}
+
+.left h2 {
+    margin-top: 0;
+}
+
+.left h3 {
+    margin: 28px 0 8px;
+    padding: 7px 9px;
+    color: #fff;
+    background: var(--swag-black);
+}
+
+.left h4 {
+    margin: 18px 0 6px;
+}
+
+.left ul {
+    margin: 0;
+    padding-left: 14px;
+    list-style: none;
+}
+
+.left li {
+    margin: 3px 0;
+}
+
+.right {
+    min-width: 0;
+}
+
+.right-page {
+    width: min(100%, 1024px);
+    margin: 0 auto;
+    padding: 30px 10px 48px;
+}
+
+.single-page .right-page {
+    padding-top: 34px;
+}
+
+.right h1 {
+    margin: 32px 0 48px;
+    font-size: clamp(2rem, 5vw, 3rem);
+    line-height: 1.1;
+}
+
+.right h2 {
+    margin-top: 42px;
+}
+
+.right hr {
+    margin: 48px 0;
+    border: 0;
+    border-top: 1px solid var(--swag-line);
+}
+
+[id] {
+    scroll-margin-top: calc(var(--swag-header-height) + 16px);
+}
+
+.container a {
+    color: var(--swag-link);
+}
+
+.container a:hover {
+    text-decoration: underline;
+}
+
+.container img {
+    max-width: 100%;
+    height: auto;
+}
+
+.no-decoration,
+.round-button a,
+.left a,
+.table-enumeration a {
+    text-decoration: none;
+}
+
+.round-button {
+    display: inline-block;
+    margin: 10px 5px;
+    padding: 10px 14px;
+    text-align: center;
+    border: 1px solid #777;
+    border-radius: 5px;
+}
+
+.strikethrough-text {
+    text-decoration: line-through;
+}
+
+.swag-watermark {
+    margin-top: 40px;
+    color: #666;
+    font-size: 80%;
+    text-align: right;
+}
+
+.swag-watermark a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.blockquote {
+    margin: 20px;
+    padding: 12px 14px;
+    border: 1px solid;
+    border-radius: 5px;
+}
+
+.blockquote-default {
+    background: #ffffe0;
+    border-color: orange;
+    border-left-width: 6px;
+}
+
+.blockquote-note {
+    background: #cdeefd;
+    border-color: #adcedd;
+}
+
+.blockquote-tip {
+    background: #dcefdc;
+    border-color: #bccfbc;
+}
+
+.blockquote-warning {
+    background: #ffddd3;
+    border-color: #dfbdb3;
+}
+
+.blockquote-attention {
+    background: #fddad8;
+    border-color: #ddbab8;
+}
+
+.blockquote-example {
+    border: 2px solid var(--swag-line);
+}
+
+.blockquote-title-block {
+    margin-bottom: 10px;
+}
+
+.blockquote-title {
+    font-weight: 700;
+}
+
+.description-list-title {
+    font-weight: 700;
+    font-style: italic;
+}
+
+.description-list-block {
+    margin-left: 30px;
+}
+
+.container table {
+    max-width: 100%;
+    margin: 20px 0;
+    border: 1px solid var(--swag-line);
+    border-collapse: collapse;
+    font-size: 90%;
+}
+
+.container td,
+.container th {
+    min-width: 100px;
+    padding: 7px;
+    border: 1px solid var(--swag-line);
+}
+
+.container th {
+    background: #eee;
+}
+
+.table-markdown {
+    width: 100%;
+}
+
+table.api-item {
+    width: 100%;
+    margin: 70px 0 0;
+    color: #fff;
+    background: var(--swag-black);
+    border-collapse: separate;
+    font-size: 110%;
+}
+
+.api-item td {
+    border: 0;
+}
+
+.api-item td:first-child {
+    width: 66%;
+}
+
+.api-item-title-src-ref {
+    text-align: right;
+}
+
+.api-item-title-src-ref a {
+    color: inherit;
+}
+
+.api-item-title-kind {
+    font-size: 80%;
+    font-weight: 400;
+}
+
+.api-item-title-strong {
+    font-weight: 700;
+}
+
+.table-enumeration {
+    width: 100%;
+}
+
+.table-enumeration td:first-child {
+    white-space: nowrap;
+    background: #f8f8f8;
+}
+
+.table-enumeration td:last-child {
+    width: 100%;
+}
+
+.table-enumeration td.code-type {
+    background: #eee;
+}
+
+.code-inline {
+    display: inline-block;
+    padding: 0 7px;
+    background: #eee;
+    border: 1px dotted #ccc;
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.code-block {
+    margin: 20px 0;
+    padding: 12px;
+    overflow-x: auto;
+    background: var(--swag-soft);
+    border: 1px solid var(--swag-line);
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space: pre;
+}
+
+.code-block a {
+    color: inherit;
+}
+
+.SCmt { color: #6a9955; }
+.SCmp, .SAtr { color: #777; }
+.SFct { color: #c54f00; }
+.SCst { color: #168f7d; }
+.SItr { color: #8a7600; }
+.STpe { color: #a66c00; }
+.SKwd { color: #286fa8; }
+.SLgc { color: #8e4d99; }
+.SNum { color: #4d7a45; }
+.SStr { color: #a64f38; }
+.SInv { color: #d22; }
+.SBcR { color: #817c31; }
+.SCde { color: var(--swag-code-default, #222); }
+
+@media (max-width: 780px) {
+    :root {
+        --swag-header-height: 112px;
+    }
+
+    .site-nav {
+        align-items: flex-start;
+        padding: 14px 0;
+    }
+
+    .site-links {
+        gap: 6px 14px;
+    }
+
+    .container {
+        display: block;
+    }
+
+    .left {
+        position: static;
+        width: 100%;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--swag-line);
+    }
+
+    .left-page {
+        padding-right: 4px;
+    }
+
+    .right-page {
+        padding-right: 0;
+        padding-left: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --swag-header-height: 146px;
+    }
+
+    .site-nav {
+        display: block;
+    }
+
+    .site-brand {
+        display: inline-block;
+        margin-bottom: 10px;
+    }
+
+    .site-links {
+        justify-content: flex-start;
+    }
+
+    .blockquote {
+        margin-right: 0;
+        margin-left: 0;
+    }
+
+    .container table {
+        display: block;
+        overflow-x: auto;
+    }
+}
 )";
-        result.append(std::format(".SCde{{color:#{:06x}}}\n", options.syntaxDefaultColor & 0x00FFFFFF));
-        if (!pages)
-            result += ".container{height:100vh}.right{overflow-y:auto}\n";
-        result += "</style>\n";
         return result;
     }
 
     Utf8 constructPage(const PageOptions& options, const std::string_view toc, const std::string_view content, const bool pages)
     {
-        Utf8 result = "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n";
-        result += options.startHead;
+        Utf8 result = std::format("<!DOCTYPE html>\n<html lang=\"en\" style=\"--swag-code-default: #{:06x}\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n", options.syntaxDefaultColor & 0x00FFFFFF);
         if (!options.titleContent.empty())
             result.append(std::format("<title>{}</title>\n", escapeHtml(options.titleContent)));
         if (!options.icon.empty())
             result.append(std::format("<link rel=\"icon\" type=\"image/x-icon\" href=\"{}\">\n", escapeHtml(options.icon, true)));
         if (!options.css.empty())
             result.append(std::format("<link rel=\"stylesheet\" type=\"text/css\" href=\"{}\">\n", escapeHtml(options.css, true)));
-        if (options.hasFontAwesome)
-            result += "<script src=\"https://kit.fontawesome.com/f76be2b3ee.js\" crossorigin=\"anonymous\"></script>\n";
-        if (options.hasStyleSection)
-            result += pageStyles(options, pages);
-        result += options.endHead;
-        result += "\n</head>\n<body>\n";
-        result += options.startBody;
-        result += "\n<div class=\"container\">\n";
+        result += "</head>\n<body>\n";
+        result += R"(<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+)";
+        result += pages ? "<main class=\"container single-page\">\n" : "<main class=\"container\">\n";
         if (!pages)
         {
-            result += "<div class=\"left\"><div class=\"left-page\">\n";
+            result += "<aside class=\"left\"><div class=\"left-page\">\n";
             result.append(toc);
-            result += "</div></div>\n";
+            result += "</div></aside>\n";
         }
-        result += "<div class=\"right\"><div class=\"right-page\">\n";
+        result += "<section class=\"right\"><article class=\"right-page\">\n";
         result.append(content);
         if (options.hasSwagWatermark)
-            result.append(std::format("<div class=\"swag-watermark\">Generated with <a href=\"https://swag-lang.org/index.php\">swc</a> {}.{}.{}</div>\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
-        result += "</div></div>\n</div>\n";
-        result += R"(<script>
-function getOffsetTop(element,parent){let offsetTop=0;while(element&&element!=parent){offsetTop+=element.offsetTop;element=element.offsetParent}return offsetTop}
-document.addEventListener("DOMContentLoaded",function(){let hash=window.location.hash;if(!hash)return;let parent=document.querySelector(".right");let target=parent?parent.querySelector(hash):null;if(target)parent.scrollTop=getOffsetTop(target,parent)});
-</script>
-)";
-        result += options.endBody;
+            result.append(std::format("<div class=\"swag-watermark\">Generated with <a href=\"https://github.com/swag-lang/swc\">swc</a> {}.{}.{}</div>\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
+        result += "</article></section>\n</main>\n";
         result += "</body>\n</html>\n";
         return result;
     }
@@ -1563,6 +1951,26 @@ document.addEventListener("DOMContentLoaded",function(){let hash=window.location
         return Result::Continue;
     }
 
+    Result writeDocumentationStyles(TaskContext& ctx, const PageOptions& options)
+    {
+        if (!ctx.cmdLine().outputDoc)
+            return Result::Continue;
+
+        const fs::path outputDir = DocGenerator::outputDirectory(ctx.compiler()).lexically_normal();
+        const fs::path cssPath(options.css.c_str());
+        if (cssPath.is_absolute() || options.css.contains("://"))
+            return reportDocFileError(ctx, cssPath, "the stylesheet path must be relative to the documentation output directory");
+
+        const fs::path path     = (outputDir / cssPath).lexically_normal();
+        const fs::path relative = path.lexically_relative(outputDir);
+        if (relative.empty() || (relative.begin() != relative.end() && *relative.begin() == ".."))
+            return reportDocFileError(ctx, cssPath, "the stylesheet path must stay inside the documentation output directory");
+
+        const std::scoped_lock lock(g_StylesheetMutex);
+        SWC_RESULT(ensureOutputDirectory(ctx, path.parent_path()));
+        return writeDocumentationFile(ctx, path, documentationStyles());
+    }
+
     Utf8 defaultOutputBaseName(const CompilerInstance& compiler, const PageOptions& options)
     {
         if (!options.outputName.empty())
@@ -1583,7 +1991,7 @@ document.addEventListener("DOMContentLoaded",function(){let hash=window.location
     {
         Utf8 baseName = defaultOutputBaseName(compiler, options);
         baseName.make_lower();
-        baseName += effectiveExtension(options.outputExtension);
+        baseName += ".html";
         fs::path result = DocGenerator::outputDirectory(compiler) / fs::path(baseName.c_str());
         return result.lexically_normal();
     }
@@ -1595,10 +2003,9 @@ document.addEventListener("DOMContentLoaded",function(){let hash=window.location
         renderApiDocument(ctx, document, options, runtime);
 
         const RenderContext renderCtx = {
-            .ctx              = &ctx,
-            .options          = &options,
-            .references       = &document.references,
-            .runtimeExtension = effectiveExtension(options.outputExtension),
+            .ctx        = &ctx,
+            .options    = &options,
+            .references = &document.references,
         };
 
         Utf8 content;
@@ -1704,10 +2111,9 @@ document.addEventListener("DOMContentLoaded",function(){let hash=window.location
             options.titleToc = "Table of Contents";
 
         const RenderContext renderCtx = {
-            .ctx              = &ctx,
-            .options          = &options,
-            .references       = nullptr,
-            .runtimeExtension = effectiveExtension(options.outputExtension),
+            .ctx        = &ctx,
+            .options    = &options,
+            .references = nullptr,
         };
 
         Utf8 toc     = std::format("<h2>{}</h2>\n<ul>\n", escapeHtml(options.titleToc));
@@ -1833,10 +2239,9 @@ document.addEventListener("DOMContentLoaded",function(){let hash=window.location
         SWC_RESULT(appendAdditionalPages(ctx, options, paths));
 
         const RenderContext renderCtx = {
-            .ctx              = &ctx,
-            .options          = &options,
-            .references       = nullptr,
-            .runtimeExtension = effectiveExtension(options.outputExtension),
+            .ctx        = &ctx,
+            .options    = &options,
+            .references = nullptr,
         };
 
         for (const fs::path& path : paths)
@@ -1851,7 +2256,7 @@ document.addEventListener("DOMContentLoaded",function(){let hash=window.location
                 content = renderExampleSource(ctx, renderCtx, source);
 
             fs::path outPath = DocGenerator::outputDirectory(ctx.compiler()) / path.filename();
-            outPath.replace_extension(effectiveExtension(options.outputExtension).c_str());
+            outPath.replace_extension(".html");
             outPath = outPath.lexically_normal();
 
             PageOptions pageOptions  = options;
@@ -1869,8 +2274,7 @@ document.addEventListener("DOMContentLoaded",function(){let hash=window.location
         if (options.titleToc.empty())
             options.titleToc = "Table of Contents";
 
-        Utf8 runtimeFileName = "swag.runtime";
-        runtimeFileName += effectiveExtension(options.outputExtension);
+        Utf8 runtimeFileName = "swag.runtime.html";
         fs::path runtimePath  = outputDirectory / fs::path(runtimeFileName.c_str());
         runtimePath           = runtimePath.lexically_normal();
         const Utf8 runtimeKey = Utf8(FileSystem::normalizePath(runtimePath));
@@ -1905,6 +2309,8 @@ Result DocGenerator::generate(GenerateResult& outResult) const
     if (ctx.cmdLine().outputDoc)
         SWC_RESULT(ensureOutputDirectory(ctx, outputDir));
 
+    if (options.css.empty())
+        options.css = "style.css";
     if (options.titleToc.empty())
         options.titleToc = "Table of Contents";
     if (options.titleContent.empty())
@@ -1912,6 +2318,7 @@ Result DocGenerator::generate(GenerateResult& outResult) const
         options.titleContent = "Module ";
         options.titleContent += defaultArtifactName(compiler.cmdLine());
     }
+    SWC_RESULT(writeDocumentationStyles(ctx, options));
 
     switch (options.kind)
     {
@@ -1961,10 +2368,9 @@ Utf8 DocGenerator::renderMarkdownForTest(TaskContext& ctx, const std::string_vie
 {
     const PageOptions   options;
     const RenderContext renderCtx = {
-        .ctx              = &ctx,
-        .options          = &options,
-        .references       = nullptr,
-        .runtimeExtension = ".html",
+        .ctx        = &ctx,
+        .options    = &options,
+        .references = nullptr,
     };
     return renderMarkdownLines(renderCtx, splitLines(text));
 }

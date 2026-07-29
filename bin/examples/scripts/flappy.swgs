@@ -5,7 +5,7 @@ Here is a very simple script that implements the [Flappy Bird](https://en.wikipe
 
     $ swag flappy.swgs
 
-The goal here is to comment a real-life example of Swag usage. However, it's better to read the basic language [documentation](language.php) first, as we will not go too deep into the details.
+The goal here is to comment a real-life example of Swag usage. However, it's better to read the basic language [documentation](language.html) first, as we will not go too deep into the details.
 
 > NOTE:
 > This page has been generated with Swag directly from the [source code](https://github.com/swag-lang/swag/blob/master/bin/examples/scripts/flappy.swgs).

@@ -120,10 +120,7 @@ void CommandLineParser::registerCommands()
         "Write generated documentation to this directory");
     add(HelpOptionGroup::Target, "doc", "--css", nullptr,
         &cmdLine_->docCss,
-        "Override the stylesheet path in generated documentation");
-    add(HelpOptionGroup::Target, "doc", "--ext", nullptr,
-        &cmdLine_->docExtension,
-        "Override the extension of generated documentation files");
+        "Set the relative output path of the generated stylesheet");
 
     add(HelpOptionGroup::Compiler, "all", "--num-cores", "-j",
         &cmdLine_->numCores,

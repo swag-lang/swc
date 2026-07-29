@@ -50,9 +50,5 @@ voice.play(Loop)
 
     cfg.genDoc.kind            = .Api
     cfg.genDoc.outputName      = "std.audio"
-    cfg.genDoc.outputExtension = ".php"
     cfg.genDoc.css             = "css/style.css"
-    cfg.genDoc.startHead       = "<?php include('common/start-head.php'); ?>"
-    cfg.genDoc.endHead         = "<?php include('common/end-head.php'); ?>"
-    cfg.genDoc.startBody       = "<?php include('common/start-body.php'); ?>"
 }

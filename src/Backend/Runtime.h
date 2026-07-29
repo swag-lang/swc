@@ -485,15 +485,10 @@ namespace Runtime
     {
         BuildCfgDocKind kind = BuildCfgDocKind::None;
         String          outputName;
-        String          outputExtension;
         String          titleToc;
         String          titleContent;
         String          css;
         String          icon;
-        String          startHead;
-        String          endHead;
-        String          startBody;
-        String          endBody;
         String          morePages;
         String          quoteIconNote;
         String          quoteIconTip;
@@ -507,8 +502,6 @@ namespace Runtime
         String          quoteTitleExample;
         uint32_t        syntaxDefaultColor = 0x00222222;
         float           syntaxColorLum     = 0.5f;
-        bool            hasFontAwesome     = true;
-        bool            hasStyleSection    = true;
         bool            hasSwagWatermark   = true;
     };
 

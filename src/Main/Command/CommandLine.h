@@ -155,7 +155,6 @@ struct CommandLine
 
     Utf8              verboseVerifyFilter;
     Utf8              docCss;
-    Utf8              docExtension;
     std::set<Utf8>    fileFilter;
     std::vector<Utf8> tags;
     std::vector<Utf8> runArgs;

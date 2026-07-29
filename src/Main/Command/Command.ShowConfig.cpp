@@ -105,7 +105,6 @@ namespace
         {
             addInfoEntry(entries, "Documentation directory", DocGenerator::outputDirectory(ctx.compiler()));
             addInfoEntry(entries, "Documentation stylesheet", cmdLine.docCss);
-            addInfoEntry(entries, "Documentation extension", cmdLine.docExtension);
         }
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);

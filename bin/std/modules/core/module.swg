@@ -23,9 +23,5 @@
     cfg.genDoc.outputName      = "std.core"
     cfg.genDoc.icon            = "favicon.ico"
     cfg.genDoc.titleContent    = "Swag Std.Core"
-    cfg.genDoc.outputExtension = ".php"
     cfg.genDoc.css             = "css/style.css"
-    cfg.genDoc.startHead       = "<?php include('common/start-head.php'); ?>"
-    cfg.genDoc.endHead         = "<?php include('common/end-head.php'); ?>"
-    cfg.genDoc.startBody       = "<?php include('common/start-body.php'); ?>"
 }

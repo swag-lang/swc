@@ -40,7 +40,7 @@ To run one of them from the console, go to the folder and type for example `swag
 <html>
 <div align="center">
     <div class="round-button">
-        <a href="flappy.php" class="no-decoration">Flappy Bird</a>
+        <a href="flappy.html" class="no-decoration">Flappy Bird</a>
     </div>
 </div>
 </html>

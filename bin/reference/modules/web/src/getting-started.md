@@ -98,10 +98,10 @@ The Swag folder contains the compiler `swag.exe`, but also a bunch of sub folder
 * `reference/` is a workspace which contains an overview of the language, in the form of small tests.
 * `testsuite/` is a workspace which contains all the tests to debug the compiler.
 * `runtime/` contains the compiler runtime, which is included in all user modules.
-* `std/` is the [standard workspace](std.php) which contains all the standard modules that come with the compiler. A big work in progress.
+* `std/` is the [standard workspace](std.html) which contains all the standard modules that come with the compiler. A big work in progress.
 
 # The Swag language
-You should take a look at the `reference/` sub folder in the Swag directory, or to the corresponding generated [documentation](language.php).
+You should take a look at the `reference/` sub folder in the Swag directory, or to the corresponding generated [documentation](language.html).
 It contains the list of all that can be done with the language, in the form of small tests (in fact it's not really exhaustive, but should be...).
 
 It's a good starting point to familiarize yourself with the language.

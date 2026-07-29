@@ -20,14 +20,30 @@ goto parse_args
 :generate
 set "WEB_DIR=%ROOT%\web"
 if not exist "%WEB_DIR%" mkdir "%WEB_DIR%" || exit /b 1
-if not exist "%WEB_DIR%\html" mkdir "%WEB_DIR%\html" || exit /b 1
+
+if exist "%WEB_DIR%\*.html" (
+    del /Q "%WEB_DIR%\*.html"
+    if errorlevel 1 exit /b 1
+)
+if exist "%WEB_DIR%\*.php" (
+    del /Q "%WEB_DIR%\*.php"
+    if errorlevel 1 exit /b 1
+)
+if exist "%WEB_DIR%\.htaccess" (
+    del /Q "%WEB_DIR%\.htaccess"
+    if errorlevel 1 exit /b 1
+)
+if exist "%WEB_DIR%\common" (
+    rmdir /S /Q "%WEB_DIR%\common"
+    if errorlevel 1 exit /b 1
+)
+if exist "%WEB_DIR%\html" (
+    rmdir /S /Q "%WEB_DIR%\html"
+    if errorlevel 1 exit /b 1
+)
 
 call "%TOOLS_DIR%_common.bat" :run_swc doc --workspace "%ROOT%\bin\std" --doc-output-dir "%WEB_DIR%" --rebuild%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%_common.bat" :run_swc doc --workspace "%ROOT%\bin\reference" --doc-output-dir "%WEB_DIR%" --rebuild%EXTRA_ARGS% || exit /b 1
-
-for %%F in ("%WEB_DIR%\*.php") do (
-    copy /Y "%%~fF" "%WEB_DIR%\html\%%~nF.html" >nul || exit /b 1
-)
 
 call "%TOOLS_DIR%_common.bat" :batch_end "%~f0"
 exit /b 0

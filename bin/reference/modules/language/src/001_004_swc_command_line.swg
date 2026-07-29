@@ -84,8 +84,7 @@ per source file.
 | Option | Effect |
 |---|---|
 | `--doc-output-dir PATH` | Write generated pages under 'PATH' |
-| `--css PATH` | Override the configured stylesheet link |
-| `--ext EXTENSION` | Override the configured output extension |
+| `--css PATH` | Override the generated stylesheet path |
 | `--output-doc` / `--no-output-doc` | Enable or suppress documentation files |
 
 The command also generates the public runtime API page once per output

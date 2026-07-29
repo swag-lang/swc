@@ -40,7 +40,6 @@
 <li><a href="#XAudio2_IXAudio2VoiceItf">XAudio2.IXAudio2VoiceItf</a></li>
 <li><a href="#XAudio2_WAVEFORMATEX">XAudio2.WAVEFORMATEX</a></li>
 <li><a href="#XAudio2_WAVEFORMATEXTENSIBLE">XAudio2.WAVEFORMATEXTENSIBLE</a></li>
-<li><a href="#XAudio2_WAVEFORMATEXTENSIBLE___anonymous_union_67">WAVEFORMATEXTENSIBLE.__anonymous_union_67</a></li>
 <li><a href="#XAudio2_XAUDIO2_BUFFER">XAudio2.XAUDIO2_BUFFER</a></li>
 <li><a href="#XAudio2_XAUDIO2_BUFFER_WMA">XAudio2.XAUDIO2_BUFFER_WMA</a></li>
 <li><a href="#XAudio2_XAUDIO2_DEBUG_CONFIGURATION">XAudio2.XAUDIO2_DEBUG_CONFIGURATION</a></li>
@@ -298,21 +297,8 @@
 <table class="table-enumeration">
 <tr><td class="code-type">dwChannelMask</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">format</td><td class="code-type">XAudio2.WAVEFORMATEX</td><td></td></tr>
-<tr><td class="code-type">samples</td><td class="code-type">XAudio2.WAVEFORMATEXTENSIBLE.__anonymous_union_67</td><td></td></tr>
+<tr><td class="code-type">samples</td><td class="code-type">XAudio2.WAVEFORMATEXTENSIBLE.__anonymous_union_30</td><td></td></tr>
 <tr><td class="code-type">subFormat</td><td class="code-type">Win32.GUID</td><td></td></tr>
-</table>
-<table class="api-item"><tr><td><span id="XAudio2_WAVEFORMATEXTENSIBLE___anonymous_union_67"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">WAVEFORMATEXTENSIBLE.__anonymous_union_67</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L353">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">union</span>
-{
-    wValidBitsPerSample: <span class="SCst">WORD</span>
-    wSamplesPerBlock:    <span class="SCst">WORD</span>
-    wReserved:           <span class="SCst">WORD</span>
-}</span></div>
-<h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">wReserved</td><td class="code-type">u16</td><td></td></tr>
-<tr><td class="code-type">wSamplesPerBlock</td><td class="code-type">u16</td><td></td></tr>
-<tr><td class="code-type">wValidBitsPerSample</td><td class="code-type">u16</td><td></td></tr>
 </table>
 <table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_BUFFER"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_BUFFER</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L172">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Pack(1)]</span>

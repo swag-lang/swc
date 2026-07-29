@@ -4,6 +4,7 @@
 #include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/AttributeList.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -77,9 +78,10 @@ namespace
 
     struct RenderContext
     {
-        TaskContext*                          ctx     = nullptr;
-        const PageOptions*                    options = nullptr;
-        const std::unordered_map<Utf8, Utf8>* references;
+        TaskContext*                                     ctx     = nullptr;
+        const PageOptions*                               options = nullptr;
+        const std::unordered_map<Utf8, Utf8>*            references;
+        const std::vector<std::pair<Utf8, Utf8>>* anonymousTypeNames = nullptr;
     };
 
     struct ApiDocument
@@ -359,6 +361,23 @@ namespace
         return symbol.isPublic() && hasPublicAggregateOwner(symbol);
     }
 
+    bool isAnonymousAggregateSymbol(const Symbol& symbol)
+    {
+        const auto* symbolStruct = symbol.safeCast<SymbolStruct>();
+        if (!symbolStruct || !symbolStruct->decl())
+            return false;
+
+        return symbolStruct->decl()->is(AstNodeId::AnonymousStructDecl) ||
+               symbolStruct->decl()->is(AstNodeId::AnonymousUnionDecl);
+    }
+
+    bool hasCompilerGeneratedIdentifier(TaskContext& ctx, const Symbol& symbol)
+    {
+        // Source identifiers cannot use the reserved "__" prefix. Sema uses it for
+        // unique anonymous aggregates, lambdas, inline temporaries, and other helpers.
+        return symbol.idRef().isValid() && symbol.name(ctx).starts_with("__");
+    }
+
     uint32_t countLineBreaks(const std::string_view text)
     {
         uint32_t result = 0;
@@ -611,25 +630,66 @@ namespace
         CompilerInstance&                 compiler = ctx.compiler();
         std::vector<const Symbol*>        symbols;
         std::unordered_set<const Symbol*> seen;
-        if (compiler.symModule())
-            collectSymbolTree(symbols, seen, *compiler.symModule());
-        if (compiler.importRootNamespace())
-            collectSymbolTree(symbols, seen, *compiler.importRootNamespace());
+        std::unordered_map<const Symbol*, AstNodeRef> publicRootRefs;
+        if (runtime)
+        {
+            if (compiler.symModule())
+                collectSymbolTree(symbols, seen, *compiler.symModule());
+            if (compiler.importRootNamespace())
+                collectSymbolTree(symbols, seen, *compiler.importRootNamespace());
+        }
+        else
+        {
+            std::unordered_map<SourceViewRef, ModuleApiFileEntry> publicEntries;
+            if (ModuleApi::collectPublicEntries(ctx, publicEntries) != Result::Continue)
+                return;
+
+            for (const ModuleApiFileEntry& fileEntry : publicEntries | std::views::values)
+            {
+                for (const ModuleApiPublicEntry& entry : fileEntry.publicEntries)
+                {
+                    if (!entry.symbol || !seen.insert(entry.symbol).second)
+                        continue;
+
+                    symbols.push_back(entry.symbol);
+                    publicRootRefs.emplace(entry.symbol, entry.rootRef);
+                }
+            }
+        }
 
         std::unordered_map<Utf8, size_t> itemIndices;
         std::unordered_set<Utf8>         overloadKeys;
         for (const Symbol* symbol : symbols)
         {
-            if (!symbol || !isDocumentationSymbol(compiler, *symbol, runtime))
+            if (!symbol || hasNoDocAttribute(*symbol) || !itemKind(*symbol).has_value())
+                continue;
+            if (runtime && !isDocumentationSymbol(compiler, *symbol, true))
+                continue;
+            if (isAnonymousAggregateSymbol(*symbol) || hasCompilerGeneratedIdentifier(ctx, *symbol))
                 continue;
 
-            const SourceFile* file = compiler.sourceViewFile(*symbol);
-            SWC_ASSERT(file != nullptr);
+            const SourceFile* file = compiler.ownerSourceFile(symbol->srcViewRef());
+            if (!file)
+                file = compiler.sourceViewFile(*symbol);
+            if (!file)
+                continue;
 
             AstNodeRef declRef;
             if (!ModuleApi::Internal::tryFindNodeRef(file->ast(), symbol->decl(), declRef))
+            {
+                if (file->ast().hasSourceView() && symbol->srcViewRef() != file->ast().srcView().ref())
+                    declRef = file->ast().tryFindNodeRef(symbol->decl());
+            }
+            if (declRef.isInvalid() || ModuleApi::Internal::isGeneratedSourceDecl(*file, declRef))
                 continue;
-            const AstNodeRef rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
+
+            AstNodeRef rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
+            if (!runtime)
+            {
+                const auto it = publicRootRefs.find(symbol);
+                if (it != publicRootRefs.end())
+                    rootRef = it->second;
+            }
             if (rootRef.isInvalid())
                 continue;
 
@@ -1264,6 +1324,100 @@ namespace
         return symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
     }
 
+    void collectAnonymousTypeNames(TaskContext& ctx, std::vector<std::pair<Utf8, Utf8>>& outNames, std::unordered_set<uint32_t>& seen, const TypeRef typeRef)
+    {
+        if (!typeRef.isValid() || !seen.insert(typeRef.get()).second)
+            return;
+
+        const TypeInfo& type = ctx.typeMgr().get(typeRef);
+        if (type.isStruct())
+        {
+            const SymbolStruct& symbolStruct = type.payloadSymStruct();
+            const SymbolStruct* root         = symbolStruct.genericRootOrSelf();
+            if (root && (isAnonymousAggregateSymbol(*root) || hasCompilerGeneratedIdentifier(ctx, *root)))
+            {
+                const Utf8 fullName    = root->getFullScopedName(ctx);
+                const Utf8 replacement = root->isUnion() ? "union { ... }" : "struct { ... }";
+                if (!fullName.empty())
+                    outNames.emplace_back(fullName, replacement);
+            }
+
+            SmallVector<GenericInstanceKey> args;
+            if (symbolStruct.tryGetGenericInstanceArgs(args))
+            {
+                for (const GenericInstanceKey& arg : args)
+                {
+                    collectAnonymousTypeNames(ctx, outNames, seen, arg.typeRef);
+                    if (arg.cstRef.isValid())
+                    {
+                        const ConstantValue& constant = ctx.cstMgr().get(arg.cstRef);
+                        if (constant.isTypeValue())
+                            collectAnonymousTypeNames(ctx, outNames, seen, constant.getTypeValue());
+                    }
+                }
+            }
+            return;
+        }
+
+        if (type.isAlias())
+        {
+            collectAnonymousTypeNames(ctx, outNames, seen, type.payloadSymAlias().underlyingTypeRef());
+            return;
+        }
+
+        if (type.isArray())
+        {
+            collectAnonymousTypeNames(ctx, outNames, seen, type.payloadArrayElemTypeRef());
+            for (const TypeRef indexTypeRef : type.payloadArrayIndexTypeRefs())
+                collectAnonymousTypeNames(ctx, outNames, seen, indexTypeRef);
+            return;
+        }
+
+        if (type.isSlice() || type.isAnyPointer() || type.isReference() || type.isTypeValue() || type.isTypedVariadic() || type.isCodeBlock())
+        {
+            collectAnonymousTypeNames(ctx, outNames, seen, type.payloadTypeRef());
+            return;
+        }
+
+        if (type.isFunction())
+        {
+            const SymbolFunction& function = type.payloadSymFunction();
+            collectAnonymousTypeNames(ctx, outNames, seen, function.returnTypeRef());
+            for (const SymbolVariable* parameter : function.parameters())
+            {
+                if (parameter)
+                    collectAnonymousTypeNames(ctx, outNames, seen, parameter->typeRef());
+            }
+            return;
+        }
+
+        if (type.isAggregate())
+        {
+            for (const TypeRef childTypeRef : type.payloadAggregate().types)
+                collectAnonymousTypeNames(ctx, outNames, seen, childTypeRef);
+        }
+    }
+
+    Utf8 documentationTypeName(const RenderContext& renderCtx, const Symbol& symbol)
+    {
+        if (!symbol.typeRef().isValid())
+            return {};
+
+        TaskContext&                       ctx    = *renderCtx.ctx;
+        Utf8                               result = symbol.typeInfo(ctx).toFullName(ctx);
+        std::vector<std::pair<Utf8, Utf8>> anonymousNames;
+        std::unordered_set<uint32_t>       seen;
+        collectAnonymousTypeNames(ctx, anonymousNames, seen, symbol.typeRef());
+        for (const auto& [name, replacement] : anonymousNames)
+            result.replace_loop(name, replacement);
+        if (renderCtx.anonymousTypeNames)
+        {
+            for (const auto& [name, replacement] : *renderCtx.anonymousTypeNames)
+                result.replace_loop(name, replacement);
+        }
+        return result;
+    }
+
     void renderMemberTable(Utf8& content, const RenderContext& renderCtx, const Symbol& owner, const bool runtime)
     {
         if (!owner.isSymMap())
@@ -1292,8 +1446,7 @@ namespace
             row.symbol       = member;
             row.name         = Utf8(member->name(*renderCtx.ctx));
             row.commentLines = memberCommentLines(*renderCtx.ctx, *member);
-            if (member->typeRef().isValid())
-                row.type = member->typeInfo(*renderCtx.ctx).toFullName(*renderCtx.ctx);
+            row.type         = documentationTypeName(renderCtx, *member);
 
             if (member->isFunction())
             {
@@ -1341,10 +1494,32 @@ namespace
     void renderApiDocument(TaskContext& ctx, ApiDocument& document, const PageOptions& options, const bool runtime)
     {
         buildReferences(document);
+        std::vector<const Symbol*>        symbols;
+        std::unordered_set<const Symbol*> seenSymbols;
+        if (ctx.compiler().symModule())
+            collectSymbolTree(symbols, seenSymbols, *ctx.compiler().symModule());
+        if (ctx.compiler().importRootNamespace())
+            collectSymbolTree(symbols, seenSymbols, *ctx.compiler().importRootNamespace());
+
+        std::vector<std::pair<Utf8, Utf8>> anonymousTypeNames;
+        std::unordered_set<Utf8>           seenNames;
+        for (const Symbol* symbol : symbols)
+        {
+            const auto* symbolStruct = symbol ? symbol->safeCast<SymbolStruct>() : nullptr;
+            if (!symbolStruct || (!isAnonymousAggregateSymbol(*symbolStruct) && !hasCompilerGeneratedIdentifier(ctx, *symbolStruct)))
+                continue;
+
+            const Utf8 fullName = symbolStruct->getFullScopedName(ctx);
+            if (fullName.empty() || !seenNames.insert(fullName).second)
+                continue;
+            anonymousTypeNames.emplace_back(fullName, symbolStruct->isUnion() ? "union { ... }" : "struct { ... }");
+        }
+
         const RenderContext renderCtx = {
-            .ctx        = &ctx,
-            .options    = &options,
-            .references = &document.references,
+            .ctx                = &ctx,
+            .options            = &options,
+            .references         = &document.references,
+            .anonymousTypeNames = &anonymousTypeNames,
         };
 
         Utf8 lastSection;

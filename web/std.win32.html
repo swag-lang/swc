@@ -39,9 +39,7 @@
 <li><a href="#Win32_MONITORINFO">Win32.MONITORINFO</a></li>
 <li><a href="#Win32_MSG">Win32.MSG</a></li>
 <li><a href="#Win32_NOTIFYICONDATAA">Win32.NOTIFYICONDATAA</a></li>
-<li><a href="#Win32_NOTIFYICONDATAA___anonymous_union_17">NOTIFYICONDATAA.__anonymous_union_17</a></li>
 <li><a href="#Win32_NOTIFYICONDATAW">Win32.NOTIFYICONDATAW</a></li>
-<li><a href="#Win32_NOTIFYICONDATAW___anonymous_union_16">NOTIFYICONDATAW.__anonymous_union_16</a></li>
 <li><a href="#Win32_PAINTSTRUCT">Win32.PAINTSTRUCT</a></li>
 <li><a href="#Win32_POINT">Win32.POINT</a></li>
 <li><a href="#Win32_PROCESS_INFORMATION">Win32.PROCESS_INFORMATION</a></li>
@@ -1578,7 +1576,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">NOTIFYICONDATAA</span></span></div>
 <h3>Fields</h3>
 <table class="table-enumeration">
-<tr><td class="code-type">DUMMYUNIONNAME</td><td class="code-type">Win32.NOTIFYICONDATAA.__anonymous_union_17</td><td></td></tr>
+<tr><td class="code-type">DUMMYUNIONNAME</td><td class="code-type">union { ... }</td><td></td></tr>
 <tr><td class="code-type">cbSize</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">dwInfoFlags</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">dwState</td><td class="code-type">u32</td><td></td></tr>
@@ -1594,22 +1592,11 @@
 <tr><td class="code-type">uFlags</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">uID</td><td class="code-type">u32</td><td></td></tr>
 </table>
-<table class="api-item"><tr><td><span id="Win32_NOTIFYICONDATAA___anonymous_union_17"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">NOTIFYICONDATAA.__anonymous_union_17</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L267">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">union</span>
-{
-    uTimeout: <span class="SCst">UINT</span>
-    uVersion: <span class="SCst">UINT</span>
-}</span></div>
-<h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">uTimeout</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">uVersion</td><td class="code-type">u32</td><td></td></tr>
-</table>
 <table class="api-item"><tr><td><span id="Win32_NOTIFYICONDATAW"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.NOTIFYICONDATAW</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L278">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">NOTIFYICONDATAW</span></span></div>
 <h3>Fields</h3>
 <table class="table-enumeration">
-<tr><td class="code-type">DUMMYUNIONNAME</td><td class="code-type">Win32.NOTIFYICONDATAW.__anonymous_union_16</td><td></td></tr>
+<tr><td class="code-type">DUMMYUNIONNAME</td><td class="code-type">union { ... }</td><td></td></tr>
 <tr><td class="code-type">cbSize</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">dwInfoFlags</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">dwState</td><td class="code-type">u32</td><td></td></tr>
@@ -1624,17 +1611,6 @@
 <tr><td class="code-type">uCallbackMessage</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">uFlags</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">uID</td><td class="code-type">u32</td><td></td></tr>
-</table>
-<table class="api-item"><tr><td><span id="Win32_NOTIFYICONDATAW___anonymous_union_16"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">NOTIFYICONDATAW.__anonymous_union_16</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/shell32.swg#L290">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">union</span>
-{
-    uTimeout: <span class="SCst">UINT</span>
-    uVersion: <span class="SCst">UINT</span>
-}</span></div>
-<h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">uTimeout</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">uVersion</td><td class="code-type">u32</td><td></td></tr>
 </table>
 <table class="api-item"><tr><td><span id="Win32_PAINTSTRUCT"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Win32.PAINTSTRUCT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/user32.swg#L818">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PAINTSTRUCT</span></span></div>

@@ -209,14 +209,6 @@ namespace
         return targetSymMap && !isCurrentModuleSymbol(ctx, *targetSymMap);
     }
 
-    bool isGeneratedSourceDecl(const SourceFile& file, const AstNodeRef declRef)
-    {
-        if (declRef.isInvalid() || !file.ast().hasSourceView())
-            return false;
-
-        const AstNode& node = file.ast().node(declRef);
-        return node.srcViewRef().isValid() && node.srcViewRef() != file.ast().srcView().ref();
-    }
 }
 
 namespace ModuleApi
@@ -235,6 +227,15 @@ namespace ModuleApi
 
 namespace ModuleApi::Internal
 {
+    bool isGeneratedSourceDecl(const SourceFile& file, const AstNodeRef declRef)
+    {
+        if (declRef.isInvalid() || !file.ast().hasSourceView())
+            return false;
+
+        const AstNode& node = file.ast().node(declRef);
+        return node.srcViewRef().isValid() && node.srcViewRef() != file.ast().srcView().ref();
+    }
+
     bool tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef)
     {
         outNodeRef = AstNodeRef::invalid();

@@ -304,18 +304,34 @@ namespace ModuleApi::Export
 
 namespace ModuleApi
 {
+    Result collectPublicEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& outEntries)
+    {
+        outEntries.clear();
+        CompilerInstance& compiler = ctx.compiler();
+        for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
+            mergeThreadData(outEntries, compiler.moduleApiPerThreadData(i));
+
+        return resolvePendingEntries(ctx, outEntries, false);
+    }
+
     Result exportFiles(TaskContext& ctx)
     {
         CompilerInstance& compiler     = ctx.compiler();
         const fs::path&   exportApiDir = compiler.cmdLine().exportApiDir;
 
         std::unordered_map<SourceViewRef, ModuleApiFileEntry> collectedEntries;
-        for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
-            mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));
+        if (exportApiDir.empty())
+        {
+            for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
+                mergeThreadData(collectedEntries, compiler.moduleApiPerThreadData(i));
 
-        // Sema is done here, so walking the ASTs is safe now. Without an export directory,
-        // only the diagnostics (public global variables) are needed.
-        SWC_RESULT(resolvePendingEntries(ctx, collectedEntries, exportApiDir.empty()));
+            // Sema is done here, so walking the ASTs is safe now. Without an export
+            // directory, only diagnostics such as public global variables are needed.
+            SWC_RESULT(resolvePendingEntries(ctx, collectedEntries, true));
+        }
+        else
+            SWC_RESULT(collectPublicEntries(ctx, collectedEntries));
+
         if (exportApiDir.empty())
             return Result::Continue;
 

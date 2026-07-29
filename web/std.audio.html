@@ -28,7 +28,6 @@
 <li><a href="#Audio_Voice">Audio.Voice</a></li>
 <h4>codec</h4>
 <li><a href="#Audio_Codec">Audio.Codec</a></li>
-<li><a href="#Audio_ICodec___anonymous_struct_2">ICodec.__anonymous_struct_2</a></li>
 <h4>file</h4>
 <li><a href="#Audio_SoundFile">Audio.SoundFile</a></li>
 <h3>Interfaces</h3>
@@ -43,10 +42,6 @@
 <h4>file</h4>
 <li><a href="#Audio_SoundFileEncoding">Audio.SoundFileEncoding</a></li>
 <li><a href="#Audio_SoundFileValidityMask">Audio.SoundFileValidityMask</a></li>
-<h3>Constants</h3>
-<li><a href="#Audio_Voice_DecodedBufferSize">Voice.DecodedBufferSize</a></li>
-<li><a href="#Audio_Voice_NumDecodedBuffers">Voice.NumDecodedBuffers</a></li>
-<li><a href="#Audio_Voice_StreamBufferSize">Voice.StreamBufferSize</a></li>
 <h3>Type Aliases</h3>
 <h4>driver</h4>
 <li><a href="#Audio_BusHandle">Audio.BusHandle</a></li>
@@ -59,14 +54,43 @@
 <li><a href="#Audio_destroyEngine">Audio.destroyEngine</a></li>
 <li><a href="#Audio_getOutputVolume">Audio.getOutputVolume</a></li>
 <li><a href="#Audio_setOutputVolume">Audio.setOutputVolume</a></li>
+<li><a href="#Bus_create">Bus.create</a></li>
+<li><a href="#Bus_destroy">Bus.destroy</a></li>
+<li><a href="#Bus_getVolumeDB">Bus.getVolumeDB</a></li>
+<li><a href="#Bus_setVolumeDB">Bus.setVolumeDB</a></li>
+<li><a href="#Voice_create">Voice.create</a></li>
+<li><a href="#Voice_destroy">Voice.destroy</a></li>
+<li><a href="#Voice_getVolumeDB">Voice.getVolumeDB</a></li>
+<li><a href="#Voice_isPlaying">Voice.isPlaying</a></li>
+<li><a href="#Voice_opDrop">Voice.opDrop</a></li>
+<li><a href="#Voice_pause">Voice.pause</a></li>
+<li><a href="#Voice_play">Voice.play</a></li>
+<li><a href="#Voice_setVolumeDB">Voice.setVolumeDB</a></li>
+<li><a href="#Voice_stop">Voice.stop</a></li>
 <h4>codec</h4>
-<li><a href="#Audio_ICodec_canDecode">ICodec.canDecode</a></li>
-<li><a href="#Audio_ICodec_canEncode">ICodec.canEncode</a></li>
-<li><a href="#Audio_ICodec_decode">ICodec.decode</a></li>
-<li><a href="#Audio_ICodec_init">ICodec.init</a></li>
 <li><a href="#Audio_addCodec">Audio.addCodec</a></li>
+<h4>driver</h4>
+<li><a href="#Bus_getVolume">Bus.getVolume</a></li>
+<li><a href="#Bus_getVolumeNoSound">Bus.getVolumeNoSound</a></li>
+<li><a href="#Bus_getVolumeXAudio2">Bus.getVolumeXAudio2</a></li>
+<li><a href="#Bus_setVolume">Bus.setVolume</a></li>
+<li><a href="#Bus_setVolumeNoSound">Bus.setVolumeNoSound</a></li>
+<li><a href="#Bus_setVolumeXAudio2">Bus.setVolumeXAudio2</a></li>
+<li><a href="#Voice_getVolume">Voice.getVolume</a></li>
+<li><a href="#Voice_getVolumeNoSound">Voice.getVolumeNoSound</a></li>
+<li><a href="#Voice_getVolumeXAudio2">Voice.getVolumeXAudio2</a></li>
+<li><a href="#Voice_setFrequencyRatio">Voice.setFrequencyRatio</a></li>
+<li><a href="#Voice_setFrequencyRatioNoSound">Voice.setFrequencyRatioNoSound</a></li>
+<li><a href="#Voice_setFrequencyRatioXAudio2">Voice.setFrequencyRatioXAudio2</a></li>
+<li><a href="#Voice_setRooting">Voice.setRooting</a></li>
+<li><a href="#Voice_setRootingNoSound">Voice.setRootingNoSound</a></li>
+<li><a href="#Voice_setRootingXAudio2">Voice.setRootingXAudio2</a></li>
+<li><a href="#Voice_setVolume">Voice.setVolume</a></li>
+<li><a href="#Voice_setVolumeNoSound">Voice.setVolumeNoSound</a></li>
+<li><a href="#Voice_setVolumeXAudio2">Voice.setVolumeXAudio2</a></li>
 <h4>file</h4>
 <li><a href="#Audio_Wav_loadFile">Wav.loadFile</a></li>
+<li><a href="#SoundFile_load">SoundFile.load</a></li>
 </div></aside>
 <section class="right"><article class="right-page">
 <h1>Module audio</h1>
@@ -111,13 +135,6 @@
 </td></tr>
 <tr><td class="code-type">type</td><td class="code-type">const *Audio.Swag.TypeInfoStruct</td><td><p>The real type of the codec</p>
 </td></tr>
-</table>
-<table class="api-item"><tr><td><span id="Audio_ICodec___anonymous_struct_2"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ICodec.__anonymous_struct_2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L12">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde">{ write, read: <span class="STpe">u64</span> }</span></div>
-<h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">read</td><td class="code-type">u64</td><td></td></tr>
-<tr><td class="code-type">write</td><td class="code-type">u64</td><td></td></tr>
 </table>
 <table class="api-item"><tr><td><span id="Audio_SoundFile"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.SoundFile</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L36">[src]</a></td></tr></table>
 <p>Represents a sound file. The <span class="code-inline">SoundFile</span> is not necessary fully loaded in memory, in case we want it to be streamed.</p>
@@ -178,12 +195,6 @@
 <p>Determins which informations in the <a href="#Audio_SoundFile">SoundFile</a> struct are valid.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">SoundFileValidityMask</span></span></div>
-<table class="api-item"><tr><td><span id="Audio_Voice_DecodedBufferSize"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.DecodedBufferSize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L49">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DecodedBufferSize</span> = <span class="SNum">65536</span>'<span class="STpe">u64</span></span></div>
-<table class="api-item"><tr><td><span id="Audio_Voice_NumDecodedBuffers"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.NumDecodedBuffers</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L48">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">NumDecodedBuffers</span> = <span class="SNum">3</span></span></div>
-<table class="api-item"><tr><td><span id="Audio_Voice_StreamBufferSize"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Voice.StreamBufferSize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L44">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">StreamBufferSize</span>  = <span class="SNum">16</span> * <span class="SNum">1024</span>'<span class="STpe">u64</span></span></div>
 <table class="api-item"><tr><td><span id="Audio_BusHandle"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Audio.BusHandle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L12">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">BusHandle</span> = <span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
 <table class="api-item"><tr><td><span id="Audio_VoiceHandle"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Audio.VoiceHandle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L11">[src]</a></td></tr></table>
@@ -209,20 +220,98 @@
 <table class="api-item"><tr><td><span id="Audio_setOutputVolume"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.setOutputVolume</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/audio.swg#L24">[src]</a></td></tr></table>
 <p>Set the general output volume</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setOutputVolume</span>(volume: <span class="STpe">f32</span>) <span class="SKwd">fail</span> =&gt; g_Driver.setOutputVolume</span></div>
-<table class="api-item"><tr><td><span id="Audio_ICodec_canDecode"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canDecode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L10">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canDecode</span>(encoding: <span class="SCst">SoundFileEncoding</span>)-&gt;<span class="STpe">bool</span></span></div>
-<table class="api-item"><tr><td><span id="Audio_ICodec_canEncode"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canEncode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L9">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canEncode</span>(encoding: <span class="SCst">SoundFileEncoding</span>)-&gt;<span class="STpe">bool</span></span></div>
-<table class="api-item"><tr><td><span id="Audio_ICodec_decode"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.decode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L12">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decode</span>(destBuffer: [*] <span class="STpe">void</span>, destLength: <span class="STpe">u64</span>, srcBuffer: [*] <span class="STpe">void</span>, srcLength: <span class="STpe">u64</span>)-&gt;{ write, read: <span class="STpe">u64</span> }</span></div>
-<table class="api-item"><tr><td><span id="Audio_ICodec_init"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.init</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L11">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">init</span>(srcBuffer: [*] <span class="STpe">void</span>, srcLength: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_create"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.create</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L16">[src]</a></td></tr></table>
+<p>Creates an audio bus. You can then associate a <a href="#Audio_Voice">Voice</a> to that bus with <a href="#Voice_setRooting">Voice.setRooting</a> Note that you can have a graph of buses, because a bus can have another bus as <span class="code-inline">parent</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(numChannels: <span class="STpe">u32</span>, parent: <span class="SItr">#null</span> *<span class="SCst">Bus</span> = <span class="SKwd">null</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">Bus</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_destroy"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.destroy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L28">[src]</a></td></tr></table>
+<p>Destroy the bus (immediatly).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>() <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_getVolumeDB"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.getVolumeDB</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L44">[src]</a></td></tr></table>
+<p>Returns the actual volume, in DB.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolumeDB</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_setVolumeDB"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolumeDB</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/bus.swg#L38">[src]</a></td></tr></table>
+<p>Set the playing bus volume in DB.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeDB</span>(volumeDB: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_create"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.create</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L93">[src]</a></td></tr></table>
+<p>Creates a new voice for a given sound file. A voice is what will be actually played. You can have as many voices as you want for one unique <a href="#Audio_SoundFile">SoundFile</a>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(file: *<span class="SCst">SoundFile</span>, createFlags = <span class="SCst">VoiceCreateFlags</span>.<span class="SCst">Default</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">Voice</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_destroy"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.destroy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L153">[src]</a></td></tr></table>
+<p>Destroy the voice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
+<table class="api-item"><tr><td><span id="Voice_getVolumeDB"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.getVolumeDB</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L176">[src]</a></td></tr></table>
+<p>Returns the actual volume, in DB</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolumeDB</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_isPlaying"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.isPlaying</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L162">[src]</a></td></tr></table>
+<p>Returns true if the voice is currently playing</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isPlaying</span>()-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_opDrop"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.opDrop</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L86">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+<table class="api-item"><tr><td><span id="Voice_pause"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.pause</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L133">[src]</a></td></tr></table>
+<p>Pause the playing voice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pause</span>() <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_play"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.play</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L107">[src]</a></td></tr></table>
+<p>Creates a voice and plays it. By default, the voice will be destroyed when stopped or finished.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Discardable]</span>
+<span class="SKwd">func</span> <span class="SFct">play</span>(file: *<span class="SCst">SoundFile</span>, createFlags = <span class="SCst">VoiceCreateFlags</span>.<span class="SCst">Default</span>, playFlags = <span class="SCst">VoicePlayFlags</span>.<span class="SCst">Default</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">Voice</span> <span class="SKwd">fail</span></span></div>
+<p>Plays a voice. By default, you will have to destroy the voice yourself when no more needed, for example if <a href="#Voice_isPlaying">Voice.isPlaying</a> returns false. But if you want the voice to be destroyed automatically when done, set the <span class="code-inline">DestroyOnStop</span> flag in <span class="code-inline">playFlags</span>. See <a href="#Voice_create">Voice.create</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">play</span>(playFlags = <span class="SCst">VoicePlayFlags</span>.<span class="SCst">Zero</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setVolumeDB"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolumeDB</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L170">[src]</a></td></tr></table>
+<p>Set the playing voice volume</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeDB</span>(volumeDB: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_stop"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.stop</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L142">[src]</a></td></tr></table>
+<p>Stop the playing voice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">stop</span>() <span class="SKwd">fail</span></span></div>
 <table class="api-item"><tr><td><span id="Audio_addCodec"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.addCodec</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L22">[src]</a></td></tr></table>
 <p>Register a codec</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">addCodec</span>()</span></div>
+<table class="api-item"><tr><td><span id="Bus_getVolume"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.getVolume</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L352">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolume</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_getVolumeNoSound"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.getVolumeNoSound</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/nosound.swg#L184">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolumeNoSound</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_getVolumeXAudio2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.getVolumeXAudio2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/xaudio2.swg#L443">[src]</a></td></tr></table>
+<p>Returns the actual volume</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolumeXAudio2</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_setVolume"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolume</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L335">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolume</span>(volume: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_setVolumeNoSound"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolumeNoSound</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/nosound.swg#L176">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeNoSound</span>(volume: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Bus_setVolumeXAudio2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bus.setVolumeXAudio2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/xaudio2.swg#L429">[src]</a></td></tr></table>
+<p>Set the playing bus volume between [0..1]</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeXAudio2</span>(volume: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_getVolume"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.getVolume</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L241">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolume</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_getVolumeNoSound"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.getVolumeNoSound</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/nosound.swg#L115">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolumeNoSound</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_getVolumeXAudio2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.getVolumeXAudio2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/xaudio2.swg#L318">[src]</a></td></tr></table>
+<p>Returns the actual volume.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getVolumeXAudio2</span>()-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setFrequencyRatio"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setFrequencyRatio</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L260">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrequencyRatio</span>(ratio: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setFrequencyRatioNoSound"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setFrequencyRatioNoSound</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/nosound.swg#L123">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrequencyRatioNoSound</span>(ratio: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setFrequencyRatioXAudio2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setFrequencyRatioXAudio2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/xaudio2.swg#L333">[src]</a></td></tr></table>
+<p>Set the playing pitch. The voice should have been created with <span class="code-inline">VoiceCreateFlags.AcceptPitch</span>. See <a href="#Voice_create">Voice.create</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setFrequencyRatioXAudio2</span>(ratio: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setRooting"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setRooting</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L277">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRooting</span>(buses: <span class="SKwd">const</span> [..] *<span class="SCst">Bus</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setRootingNoSound"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setRootingNoSound</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/nosound.swg#L131">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRootingNoSound</span>(buses: <span class="SKwd">const</span> [..] *<span class="SCst">Bus</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setRootingXAudio2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setRootingXAudio2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/xaudio2.swg#L347">[src]</a></td></tr></table>
+<p>Root a voice to a given list of buses. An empty <span class="code-inline">buses</span> slice roots the voice only to the main bus (the default).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setRootingXAudio2</span>(buses: <span class="SKwd">const</span> [..] *<span class="SCst">Bus</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setVolume"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolume</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L224">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolume</span>(volume: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setVolumeNoSound"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolumeNoSound</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/nosound.swg#L107">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeNoSound</span>(volume: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Voice_setVolumeXAudio2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.setVolumeXAudio2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/xaudio2.swg#L304">[src]</a></td></tr></table>
+<p>Set the playing voice volume between [0..1].</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setVolumeXAudio2</span>(volume: <span class="STpe">f32</span>, batchID: <span class="STpe">u32</span> = <span class="SNum">0</span>) <span class="SKwd">fail</span></span></div>
 <table class="api-item"><tr><td><span id="Audio_Wav_loadFile"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Wav.loadFile</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/wav.swg#L242">[src]</a></td></tr></table>
 <p>Load a wav file</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadFile</span>(file: *<span class="SCst">SoundFile</span>, stream: *<span class="SCst">File</span>.<span class="SCst">FileStream</span>, loadDatas = <span class="SKwd">true</span>, loadMetaDatas = <span class="SKwd">false</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="SoundFile_load"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">SoundFile.load</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L61">[src]</a></td></tr></table>
+<p>Load a <span class="code-inline">SoundFile</span> from disk. Will load the sound datas if <span class="code-inline">loadDatas</span> is true. Will load the sound metadatas if <span class="code-inline">loadMetaData</span> is true.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fullname: <span class="STpe">string</span>, loadDatas = <span class="SKwd">true</span>, loadMetaDatas = <span class="SKwd">false</span>)-&gt;<span class="SCst">SoundFile</span> <span class="SKwd">fail</span></span></div>
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
 </article></section>
 </main>

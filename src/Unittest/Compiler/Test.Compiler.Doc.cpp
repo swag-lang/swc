@@ -119,6 +119,27 @@ func documented(value: s32)->s32
     return value + 1
 }
 
+// A small public value used to verify methods and anonymous storage.
+struct Counter
+{
+    value: s32 // Current counter value.
+
+    using storage: union
+    {
+        integer: s32
+        decimal: f32
+    }
+}
+
+impl Counter
+{
+    // Increase the counter by one.
+    mtd increment()
+    {
+        .value += 1
+    }
+}
+
 // Keep this compiler-only helper out of the API page.
 #[Swag.NoDoc]
 func hidden(value: s32)->s32
@@ -164,6 +185,10 @@ func hidden(value: s32)->s32
     FileSystem::IoErrorInfo ioError;
     SWC_RESULT(FileSystem::readTextFile(outputPath, content, ioError));
     if (!content.contains("documented") || !content.contains("Return the next integer."))
+        return Result::Error;
+    if (!content.contains("Counter.increment") || !content.contains("Increase the counter by one."))
+        return Result::Error;
+    if (content.contains("__anonymous_"))
         return Result::Error;
     if (content.contains(">hidden<") || content.contains("func hidden"))
         return Result::Error;

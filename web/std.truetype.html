@@ -43,6 +43,26 @@
 <li><a href="#TrueType_PixelMode">TrueType.PixelMode</a></li>
 <li><a href="#TrueType_RenderMode">TrueType.RenderMode</a></li>
 <li><a href="#TrueType_StyleFlag">TrueType.StyleFlag</a></li>
+<h3>Functions</h3>
+<li><a href="#Face_destroy">Face.destroy</a></li>
+<li><a href="#Face_getKerning">Face.getKerning</a></li>
+<li><a href="#Face_glyphIndex">Face.glyphIndex</a></li>
+<li><a href="#Face_hasKerning">Face.hasKerning</a></li>
+<li><a href="#Face_hintVertical">Face.hintVertical</a></li>
+<li><a href="#Face_isBold">Face.isBold</a></li>
+<li><a href="#Face_isItalic">Face.isItalic</a></li>
+<li><a href="#Face_load">Face.load</a></li>
+<li><a href="#Face_loadChar">Face.loadChar</a></li>
+<li><a href="#Face_loadGlyph">Face.loadGlyph</a></li>
+<li><a href="#Face_renderGlyph">Face.renderGlyph</a></li>
+<li><a href="#Face_renderGlyphMsdf">Face.renderGlyphMsdf</a></li>
+<li><a href="#Face_renderGlyphSdf">Face.renderGlyphSdf</a></li>
+<li><a href="#Face_setPixelSize">Face.setPixelSize</a></li>
+<li><a href="#GlyphSlot_oblique">GlyphSlot.oblique</a></li>
+<li><a href="#Outline_decompose">Outline.decompose</a></li>
+<li><a href="#Outline_embolden">Outline.embolden</a></li>
+<li><a href="#Outline_transform">Outline.transform</a></li>
+<li><a href="#Outline_translate">Outline.translate</a></li>
 </div></aside>
 <section class="right"><article class="right-page">
 <h1>Module truetype</h1>
@@ -201,6 +221,48 @@
 <table class="api-item"><tr><td><span id="TrueType_StyleFlag"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.StyleFlag</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L30">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">StyleFlag</span></span></div>
+<table class="api-item"><tr><td><span id="Face_destroy"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.destroy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L88">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
+<table class="api-item"><tr><td><span id="Face_getKerning"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.getKerning</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L129">[src]</a></td></tr></table>
+<p>Horizontal kerning between two glyphs, scaled to the current pixel size. Returns a 26.6 fixed-point value in <span class="code-inline">x</span> (FreeType-style), 0 if no pair.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getKerning</span>(leftGlyph, rightGlyph: <span class="STpe">u32</span>)-&gt;<span class="SCst">Vector</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_glyphIndex"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndex</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L145">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndex</span>(charCode: <span class="STpe">rune</span>)-&gt;<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Face_hasKerning"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasKerning</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L122">[src]</a></td></tr></table>
+<p>True if the face carries any (legacy <span class="code-inline">kern</span> format-0) kerning pairs. Lets callers skip per-glyph-pair kerning lookups entirely for the many fonts that have none.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasKerning</span>()-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_hintVertical"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hintVertical</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L177">[src]</a></td></tr></table>
+<p>Vertical grid-fitting (blue zones): snap the baseline, x-height and cap-height of the currently-loaded outline to whole pixels so horizontal stems stay crisp. No-op when the face has no x-height (OS/2 missing). Apply before rendering the bitmap; it must not be used on the size-independent SDF/MSDF atlases.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hintVertical</span>() <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_isBold"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isBold</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L94">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isBold</span>()-&gt;<span class="STpe">bool</span>   =&gt; .style.has</span></div>
+<table class="api-item"><tr><td><span id="Face_isItalic"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isItalic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L95">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isItalic</span>()-&gt;<span class="STpe">bool</span> =&gt; .style.has</span></div>
+<table class="api-item"><tr><td><span id="Face_load"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.load</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L73">[src]</a></td></tr></table>
+<p>Load a face from an in-memory font file. The returned pointer aliases an internal FaceImpl that owns a private copy of the bytes; release it with destroy().</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span> = <span class="SNum">0</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">Face</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_loadChar"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadChar</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L159">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadChar</span>(charCode: <span class="STpe">rune</span>, loadFlags = <span class="SCst">LoadFlag</span>.<span class="SCst">Default</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_loadGlyph"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadGlyph</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L152">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadGlyph</span>(glyphIndex: <span class="STpe">u32</span>, loadFlags = <span class="SCst">LoadFlag</span>.<span class="SCst">Default</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_renderGlyph"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyph</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L166">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyph</span>(renderMode = <span class="SCst">RenderMode</span>.<span class="SCst">Normal</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_renderGlyphMsdf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphMsdf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L216">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_renderGlyphSdf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphSdf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L211">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphSdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Face_setPixelSize"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.setPixelSize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L97">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPixelSize</span>(pixelWidth, pixelHeight: <span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="GlyphSlot_oblique"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">GlyphSlot.oblique</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">oblique</span>()</span></div>
+<table class="api-item"><tr><td><span id="Outline_decompose"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.decompose</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L89">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decompose</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst">OutlineCommand</span> =&gt; buildOutlineCommands</span></div>
+<table class="api-item"><tr><td><span id="Outline_embolden"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.embolden</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L59">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">embolden</span>(strength: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Outline_transform"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.transform</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transform</span>(matrix: <span class="SCst">Matrix</span>)</span></div>
+<table class="api-item"><tr><td><span id="Outline_translate"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.translate</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translate</span>(xOffset, yOffset: <span class="STpe">s32</span>)</span></div>
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
 </article></section>
 </main>

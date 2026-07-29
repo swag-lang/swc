@@ -37,12 +37,14 @@ namespace ModuleApi
 {
     bool   isCurrentModuleSourceFile(const SourceFile& sourceFile);
     void   onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol);
+    Result collectPublicEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& outEntries);
     Result resolvePendingEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& entries, bool diagnosticsOnly);
     Result exportFiles(TaskContext& ctx);
 
     namespace Internal
     {
         bool       tryFindNodeRef(const Ast& ast, const AstNode* targetNode, AstNodeRef& outNodeRef);
+        bool       isGeneratedSourceDecl(const SourceFile& file, AstNodeRef declRef);
         AstNodeRef findExportDeclRoot(const SourceFile& file, AstNodeRef declRef);
         bool       hasExplicitPublicAccessModifier(const SourceFile& file, AstNodeRef declRef);
         bool       isExportedPublicDeclScope(const SourceFile& file, AstNodeRef declRef, const Symbol& symbol);

@@ -2,12 +2,12 @@
 
 using Swag, Core
 
-private func makeMathTestFont()->*Font
+private func makeMathTestFont(cache: *FontCache)->*Font
 {
     var face: *TypeFace = undefined
     catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
     @assert(err == null)
-    return Font.create(face, 36, .Bitmap)
+    return cache.createFont(face, 36, .Bitmap)
 }
 
 private func assertMathParses(source: string)
@@ -72,7 +72,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var plain = expect MathExpression.parse("x")
     var scripted = expect MathExpression.parse(#raw "x_i^2")
 
@@ -87,7 +88,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var original = expect MathExpression.parse(#raw "\frac{x_1+1}{\sqrt{y}}")
     discard original.measure(font)
     var copied = original
@@ -114,7 +116,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var simple = expect MathExpression.parse("ab")
     var fraction = expect MathExpression.parse(#raw "\frac{a+b}{c-d}")
     var binomial = expect MathExpression.parse(#raw "\binom{n}{k}")
@@ -132,7 +135,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var square = expect MathExpression.parse(#raw "\sqrt{x+1}")
     var indexed = expect MathExpression.parse(#raw "\sqrt[3]{x+1}")
 
@@ -148,7 +152,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var fixed = expect MathExpression.parse("(x)")
     var stretchy = expect MathExpression.parse(#raw "\left(\frac{a}{b}\right)")
 
@@ -166,7 +171,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     assertMathDelimiterPaths(font, #raw "\left[\frac{a}{b}\right]", .LeftBracket, .RightBracket)
     assertMathDelimiterPaths(font, #raw "\left\lbrace\frac{a}{b}\right\rbrace", .LeftBrace, .RightBrace)
     assertMathDelimiterPaths(font, #raw "\left\langle\frac{a}{b}\right\rangle", .LeftAngle, .RightAngle)
@@ -178,7 +184,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var display = expect MathExpression.parse(#raw "\sum_{i=0}^{n} i^2")
     var text = expect MathExpression.parse(#raw "\sum_{i=0}^{n} i^2")
     var integral = expect MathExpression.parse(#raw "\int_{0}^{1} x\,dx")
@@ -198,7 +205,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var tight = expect MathExpression.parse("ab")
     var binary = expect MathExpression.parse("a+b")
     var relation = expect MathExpression.parse("a=b")
@@ -218,7 +226,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var matrix = expect MathExpression.parse(#raw "\begin{matrix}a&b\\c&d\end{matrix}")
     var parenthesized = expect MathExpression.parse(#raw "\begin{pmatrix}1&0\\0&1\end{pmatrix}")
     var cases = expect MathExpression.parse(#raw "\begin{cases}x&x>0\\-x&x\le0\end{cases}")
@@ -254,7 +263,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var plain = expect MathExpression.parse("x")
     var accents = expect MathExpression.parse(#raw "\hat{x}+\tilde{y}+\vec{v}+\dot{x}+\ddot{x}+\bar{q}+\overline{AB}+\underline{z}")
     let plainMetrics = plain.measure(font)
@@ -286,7 +296,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var styled = expect MathExpression.parse(#raw "\mathrm{d}x+\mathit{ABC}+\mathbf{x}+\boldsymbol{\alpha}+\text{for all }x")
     let metrics = styled.measure(font)
     @assert(metrics.width > 0)
@@ -322,7 +333,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var expression = expect MathExpression.parse(#raw "\left(\frac{x_i^2}{\sqrt{1+x}}\right)")
     var painter: Painter
     painter.begin()
@@ -351,7 +363,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
         #raw "\vec{}"
     ]
 
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var painter: Painter
     painter.begin()
     for source, [idx] in PathOnlyExpressions
@@ -366,7 +379,8 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 
 #test
 {
-    let font = makeMathTestFont()
+    var cache: FontCache
+    let font = makeMathTestFont(&cache)
     var painter: Painter
     painter.begin()
     let metrics = catch painter.drawMathLatex(0, 0, #raw "\frac{1}{2}", font, Argb.Black) as err

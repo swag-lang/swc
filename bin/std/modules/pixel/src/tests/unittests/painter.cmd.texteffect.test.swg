@@ -4,22 +4,23 @@ using Swag, Core
 
 // Command-stream goldens for text decorations, layout options and MSDF effects.
 //
-// As in [[painter.cmd.text.test.swg]], every test asks for its own font size: a glyph cache is
-// shared process-wide and packs its atlas in first-use order, so two tests sharing a font would
-// record atlas coordinates that depend on which one ran first. See [[Testing.assertGolden]].
-private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
+// As in [[painter.cmd.text.test.swg]], every test owns its font cache: glyph slots are packed in
+// first-use order, so a shared cache would record atlas coordinates depending on which test ran
+// first. See [[Testing.assertGolden]].
+private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMode)->*Font
 {
     var face: *TypeFace = undefined
     catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
     @assert(err == null)
-    return Font.create(face, size, mode)
+    return cache.createFont(face, size, mode)
 }
 
 // A decoration is a separate solid quad, so it lands in its own batch after the glyph batch.
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(31, .Bitmap)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawString(10, 10, "AB", font, Color.fromArgb(Argb.Black), .Underline)
@@ -30,7 +31,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(32, .Bitmap)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawString(10, 10, "AB", font, Color.fromArgb(Argb.Black), .Strikeout)
@@ -43,7 +45,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(33, .Bitmap)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawString(10, 10, "AB", font, Color.fromArgb(Argb.Black), .None, 2.0)
@@ -54,7 +57,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(34, .Bitmap)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawStringCenter(50, 50, "AB", font, Color.fromArgb(Argb.Black))
@@ -66,7 +70,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(35, .Bitmap)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawString(10, 10, "A\tB", font, Color.fromArgb(Argb.Black))
@@ -79,7 +84,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(36, .Msdf)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Msdf)
     var effect: TextEffect
     effect.outlineWidth = 0.2
     effect.outlineColor = Color.fromArgb(Argb.Blue)
@@ -93,7 +99,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(37, .Msdf)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Msdf)
     var effect: TextEffect
     effect.glowColor  = Color.fromArgb(Argb.Yellow)
     effect.glowOuter  = 0.6
@@ -108,7 +115,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(38, .Msdf)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Msdf)
     var effect: TextEffect
     effect.faceDilate = 0.15
     effect.softness   = 0.05
@@ -125,7 +133,8 @@ private func makeEffectTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeEffectTestFont(39, .Msdf)
+    var cache:   FontCache
+    let font = makeEffectTestFont(&cache, 16, .Msdf)
     var effect: TextEffect
     effect.outlineWidth = 0.2
 

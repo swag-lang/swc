@@ -1,4 +1,4 @@
-# font#0 segoeui.ttf_39_false_false_msdf_msdf_8_40 size=39 mode=Msdf
+# font#0 segoeui.ttf size=16 mode=Msdf
 
 ResetTexture0
 Transform 1 0 0 1 0 0
@@ -9,13 +9,13 @@ UpdateFont font#0
 ResetTexture0
 SetFontEffect dilate=0 soft=0 outline=0.2:FF000000 glow=0.45:00000000
 BindTextureFont font#0 atlas=0
-DrawTriangles n=6 bbox=(2.2,16.018)-(43.15,59.893) uv=(0,0)-(0.164,0.176) colors=[FF000000] cov=solid
+DrawTriangles n=6 bbox=(6.8,12.469)-(23.6,30.469) uv=(0,0)-(0.164,0.176) colors=[FF000000] cov=solid
 ResetTextureFont
 EndFont
 StartMsdfFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=6 bbox=(5.125,46.018)-(38.275,89.893) uv=(0.164,0)-(0.297,0.176) colors=[FF000000] cov=solid
+DrawTriangles n=6 bbox=(8,42.469)-(21.6,60.469) uv=(0.164,0)-(0.297,0.176) colors=[FF000000] cov=solid
 ResetTextureFont
 EndFont

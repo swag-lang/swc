@@ -59,9 +59,9 @@ func dataPath(fileName: string, loc = #callerlocation)->String
 func loadFonts() fail
 {
     g_TypeFace  = TypeFace.load("segoeui.ttf")
-    g_TitleFont = Font.create(notnull g_TypeFace, 34)
-    g_LabelFont = Font.create(notnull g_TypeFace, 18)
-    g_HelpFont  = Font.create(notnull g_TypeFace, 14)
+    g_TitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 34)
+    g_LabelFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 18)
+    g_HelpFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 14)
 }
 
 func normalizeSource(image: const &Image)->Image

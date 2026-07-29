@@ -1,5 +1,5 @@
 # tex#0 512x512 RGBA8
-# font#0 segoeui.ttf_17_false_false_bitmap_bitmap_0_17 size=17 mode=Bitmap
+# font#0 segoeui.ttf size=14 mode=Bitmap
 
 ResetTexture0
 Transform 1 0 0 1 0 0
@@ -36,7 +36,7 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=6 bbox=(45,8)-(56,22) colors=[FFF0F0F0] cov=solid
+DrawTriangles n=6 bbox=(45,9)-(54,21) colors=[FFF0F0F0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 10 10 100 30
@@ -75,7 +75,7 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=6 bbox=(46,8)-(54,22) colors=[FFF0F0F0] cov=solid
+DrawTriangles n=6 bbox=(47,9)-(54,21) colors=[FFF0F0F0] cov=solid
 ResetTextureFont
 EndFont
 SetClippingRect 10 50 100 30
@@ -95,7 +95,7 @@ StartFont
 UpdateFont font#0
 ResetTexture0
 BindTextureFont font#0 atlas=0
-DrawTriangles n=6 bbox=(45,8)-(55,22) colors=[FFE0E0E0] cov=solid
+DrawTriangles n=6 bbox=(46,9)-(54,21) colors=[FFE0E0E0] cov=solid
 ResetTextureFont
 EndFont
 Transform 1 0 0 1 130 10

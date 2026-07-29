@@ -28,24 +28,52 @@ impl ThemeStyle
         .free()
     }
 
+    // Drops this style's reference on its theme, and the theme with it when it was the last one.
+    //
+    // Clearing 'refr' whatever the resulting count is what makes this idempotent: a style that has
+    // released its reference no longer holds a pointer it could decrement a second time.
     private mtd free()
     {
         if !.refr do
             return
-        .refr.count -= 1
-        if .refr.count == 0
+
+        let refr = notnull .refr
+        .refr      = null
+        refr.count -= 1
+        if refr.count == 0
         {
-            Memory.delete(.refr.theme)
-            Memory.delete(.refr)
-            .refr = null
+            Memory.delete(refr.theme)
+            Memory.delete(refr)
         }
+    }
+
+    // Takes ownership of a theme, as the sole holder for now.
+    mtd own(theme: *Theme)
+    {
+        .free()
+        .refr       = Memory.new'ThemeStyleRef()
+        .refr.theme = theme
+        .refr.count = 1
+    }
+
+    // Takes a reference on the theme another style already holds.
+    //
+    // Use this rather than copying `refr` by hand: the reference count then follows the number of
+    // holders instead of having to be set to match it.
+    mtd share(other: *ThemeStyle)
+    {
+        let refr = notnull other.refr
+        if .refr == refr do
+            return
+
+        .free()
+        .refr      = refr
+        refr.count += 1
     }
 
     private mtd set(theme: *Theme)
     {
-        .refr       = Memory.new'ThemeStyleRef()
-        .refr.theme = theme
-        .refr.count = 1
+        .own(theme)
     }
 
     // Create a specific style based on the parent
@@ -62,10 +90,8 @@ impl ThemeStyle
         // First time, initialize to parent
         if !.refr
         {
-            let refr = notnull parent.refr
-            .refr      = refr
-            refr.count += 1
-            .dirty     = true
+            .share(parent)
+            .dirty = true
         }
 
         // If parent is dirty, or i am dirty, then we need
@@ -75,10 +101,7 @@ impl ThemeStyle
         .dirty = true
 
         // By default, same as the parent
-        .free()
-        let refr = notnull parent.refr
-        .refr      = refr
-        refr.count += 1
+        .share(parent)
 
         // Ask user
         var evt = ThemeEvent{}
@@ -104,17 +127,18 @@ impl ThemeStyle
             .create(parent)
 
         // Then tweak it with the stylesheet
+        let own = notnull .refr
         if .styleSheetColors.length
         {
             var tf: File.TweakFile
-            tf.registerFolder'ThemeColors(&.refr.theme.colors)
+            tf.registerFolder'ThemeColors(&own.theme.colors)
             catch tf.parse(.styleSheetColors)
         }
 
         if .styleSheetMetrics.length
         {
             var tf: File.TweakFile
-            tf.registerFolder'ThemeMetrics(&.refr.theme.metrics)
+            tf.registerFolder'ThemeMetrics(&own.theme.metrics)
             catch tf.parse(.styleSheetMetrics)
         }
     }

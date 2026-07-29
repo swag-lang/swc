@@ -343,7 +343,7 @@ func loadBindTextures()
         g_SoundLaser     = loadSound("laser.wav")
         g_SoundMusic     = loadSound("music.wav")
 
-        g_Font = Font.create(Path.combine(g_DataPath, "pixeled.ttf"), 40)
+        g_Font = (notnull g_Wnd).getApp().getRenderer().fonts.createFont(Path.combine(g_DataPath, "pixeled.ttf"), 40)
     }
 }
 

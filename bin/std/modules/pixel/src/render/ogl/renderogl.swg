@@ -83,6 +83,11 @@ struct RenderOgl
     headless:           bool                        // Whether OpenGL calls are replaced by CPU storage.
     headlessNextHandle: u64          = 1            // Next synthetic headless resource handle.
     headlessTextures:   Array'HeadlessTexture       // CPU textures owned in headless mode.
+
+    // Glyph storage and font views of this renderer. A glyph atlas carries a GPU texture created
+    // in this renderer's context, so it must not outlive it: fonts are created through this cache
+    // and released with the renderer.
+    fonts: FontCache
 }
 
 private impl RenderOgl
@@ -323,9 +328,11 @@ private impl RenderOgl
 
 impl RenderOgl
 {
-    // Releases queued and currently bound render-target descriptors.
+    // Releases queued and currently bound render-target descriptors, and the glyph atlases.
     mtd opDrop()
     {
+        .releaseFontTextures()
+
         for rt in .stackReleasedRT do
             Memory.delete(rt)
         for rt in .stackRT do
@@ -333,11 +340,34 @@ impl RenderOgl
         Memory.delete(.curRT)
     }
 
+    // Deletes the GPU textures of every glyph atlas of this renderer.
+    //
+    // The atlases themselves are plain CPU pixels and go away with the cache; only the texture
+    // names belong to the graphics context and have to be handed back to it here.
+    private mtd releaseFontTextures()
+    {
+        if .headless do
+            return
+
+        for it in .fonts.glyphCaches
+        {
+            let cache = notnull it
+            for &atlas in cache.atlases where atlas.texture.handle != InvalidTextureHandle
+            {
+                glDeleteTextures(1, cast(*GLuint) &atlas.texture.handle)
+                atlas.texture.handle = InvalidTextureHandle
+            }
+        }
+    }
+
     // Resets the renderer into deterministic CPU-backed headless mode.
     //
     // Existing render-target descriptors and headless textures are discarded.
     mtd setupHeadless()
     {
+        .releaseFontTextures()
+        .fonts.clear()
+
         for rt in .stackReleasedRT do
             Memory.delete(rt)
         for rt in .stackRT do
@@ -457,8 +487,6 @@ impl RenderOgl
         {
             return
         }
-
-        Font.clearCaches()
 
         glInitExtensions()
         .createShaders()

@@ -16,21 +16,6 @@ using Swag, Core, Pixel
 // come down to -- a disabled button draws the very same geometry as an enabled one -- so leaving
 // them out would make those goldens indistinguishable. Texture coordinates are left out because
 // they depend on where a glyph sits in its atlas.
-
-// Glyph caches are keyed by typeface and size and shared by the whole process, and a cache that
-// overflows spills into a second atlas. At the theme's default size the 200-odd other tests in this
-// module have already filled the first atlas by the time these run, so which atlas a glyph lands in
-// -- and therefore how the glyph batches split, which is visible in the command stream whatever the
-// dump level -- depends on the test order. Painting at a size nothing else uses gives these goldens
-// a cache of their own, small enough to always fit a single atlas.
-private const WidgetGoldenFontSize = 17'u32
-
-private func setupWidgetHost(host: *Testing.HeadlessHost, width, height: f32)
-{
-    host.setup(width, height)
-    host.theme.res.fontDefault = host.theme.createDefaultFontfamily(WidgetGoldenFontSize)
-}
-
 private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerlocation)
 {
     var painter: Painter
@@ -50,14 +35,14 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
     assertPaintGolden(&host, "widget.root.empty")
 }
 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
 
     discard PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     assertPaintGolden(&host, "widget.pushbutton")
@@ -68,7 +53,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
 
     let btn = PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     btn.disable()
@@ -79,7 +64,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
 
     let btn = PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     btn.hide()
@@ -89,7 +74,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
 
     discard Label.create(&host.root, "Hello", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.label")
@@ -100,7 +85,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
 
     discard CheckButton.create(&host.root, "On", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.checkbutton.unchecked")
@@ -109,7 +94,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
 
     let chk = CheckButton.create(&host.root, "On", {20, 20, 160, 24})
     chk.toggle()
@@ -119,7 +104,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 200, 80)
+    host.setup(200, 80)
 
     discard RadioButton.create(&host.root, "One", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.radiobutton")
@@ -130,7 +115,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 240, 60)
+    host.setup(240, 60)
 
     discard ProgressBar.create(&host.root, {20, 20, 200, 20})
     assertPaintGolden(&host, "widget.progressbar.empty")
@@ -139,7 +124,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 240, 60)
+    host.setup(240, 60)
 
     let bar = ProgressBar.create(&host.root, {20, 20, 200, 20})
     bar.setProgression(0.5)
@@ -149,7 +134,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 240, 60)
+    host.setup(240, 60)
 
     discard Slider.create(&host.root, {20, 20, 200, 20})
     assertPaintGolden(&host, "widget.slider")
@@ -158,7 +143,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 240, 60)
+    host.setup(240, 60)
 
     discard EditBox.create(&host.root, "text", {20, 20, 200, 24})
     assertPaintGolden(&host, "widget.editbox")
@@ -168,7 +153,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 240, 120)
+    host.setup(240, 120)
 
     discard PushButton.create(&host.root, "A", {10, 10, 100, 30})
     discard PushButton.create(&host.root, "B", {10, 50, 100, 30})
@@ -181,7 +166,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
 #test
 {
     var host: Testing.HeadlessHost
-    setupWidgetHost(&host, 240, 120)
+    host.setup(240, 120)
 
     let view = Wnd.create'Wnd(&host.root, {10, 10, 100, 50})
     view.wndFlags.add(.ClipChildren)

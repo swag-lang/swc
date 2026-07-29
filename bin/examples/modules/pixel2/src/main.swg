@@ -37,9 +37,9 @@ func loadFonts() fail
     g_FontInfo = Format.toString("% % | % glyphs | % bytes", face.familyName, face.styleName, face.glyphCount, g_FontBytes.count)
 
     g_TypeFace  = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont = Font.create(notnull g_TypeFace, 54)
-    g_BodyFont  = Font.create(notnull g_TypeFace, 34)
-    g_InfoFont  = Font.create(notnull g_TypeFace, 18)
+    g_TitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 54)
+    g_BodyFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 34)
+    g_InfoFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 18)
 }
 
 func dropFonts()

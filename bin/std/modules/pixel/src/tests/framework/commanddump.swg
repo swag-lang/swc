@@ -135,10 +135,9 @@ private
             .fonts.add(font)
             let idx = .fonts.count - 1
 
-            // 'fullname' embeds the typeface name, which may itself be an absolute path when the
-            // font was loaded from a file. Keeping only the file name makes the label identical
-            // whatever the checkout directory is.
-            let label = Path.getFileName(font.fullname.toString())
+            // A typeface loaded from a file is named by its path. Keeping only the file name makes
+            // the label identical whatever the checkout directory is.
+            let label = Path.getFileName(font.cache.typeFace.fullname)
             .legend.appendFormat("# font#% % size=% mode=%\n", idx, label, font.size, fmtEnum(font.mode))
             return Format.toString("font#%", idx)
         }

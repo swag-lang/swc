@@ -45,9 +45,9 @@ const Samples = [
 func loadFonts() fail
 {
     g_TypeFace  = try TypeFace.load("segoeui.ttf")
-    g_TitleFont = Font.create(notnull g_TypeFace, 34, .Bitmap)
-    g_LabelFont = Font.create(notnull g_TypeFace, 16, .Bitmap)
-    g_HelpFont  = Font.create(notnull g_TypeFace, 13, .Bitmap)
+    g_TitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 34, .Bitmap)
+    g_LabelFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 16, .Bitmap)
+    g_HelpFont  = g_Renderer.fonts.createFont(notnull g_TypeFace, 13, .Bitmap)
 }
 
 func gdipCheck(status: GpStatus)

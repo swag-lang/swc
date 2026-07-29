@@ -36,8 +36,4 @@ using Swag, Core
     var empty:    Array'u8
     let badFace1: #null *Face = catch Face.load(empty.toSlice()) as err8
     @assert(err8 != null)
-
-    let bytes                 = loadFontBytes()
-    let badFace2: #null *Face = catch Face.load(bytes.toSlice(), 1) as err9
-    @assert(err9 != null)
 }

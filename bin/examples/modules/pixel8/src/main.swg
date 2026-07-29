@@ -59,11 +59,11 @@ func initContent() fail
 {
     g_TypeFace     = TypeFace.load("segoeui.ttf")
     g_BoldTypeFace = TypeFace.load("segoeuib.ttf")
-    g_TitleFont    = Font.create(notnull g_BoldTypeFace, 32, .Auto)
-    g_SubtitleFont = Font.create(notnull g_TypeFace, 15, .Auto)
-    g_LabelFont    = Font.create(notnull g_BoldTypeFace, 15, .Auto)
-    g_SourceFont   = Font.create(notnull g_TypeFace, 12, .Auto)
-    g_MathFont     = Font.create(notnull g_TypeFace, 34, .Auto)
+    g_TitleFont    = g_Renderer.fonts.createFont(notnull g_BoldTypeFace, 32, .Auto)
+    g_SubtitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 15, .Auto)
+    g_LabelFont    = g_Renderer.fonts.createFont(notnull g_BoldTypeFace, 15, .Auto)
+    g_SourceFont   = g_Renderer.fonts.createFont(notnull g_TypeFace, 12, .Auto)
+    g_MathFont     = g_Renderer.fonts.createFont(notnull g_TypeFace, 34, .Auto)
 
     for source, [idx] in Sources do
         g_Formulas[idx] = try MathExpression.parse(source)

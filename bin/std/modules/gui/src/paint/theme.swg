@@ -93,6 +93,11 @@ struct Theme
     rects:      ThemeImageRects // Rects associated with this value.
     metrics:    ThemeMetrics // Metrics associated with this value.
     colors:     ThemeColors // Colors associated with this value.
+
+    // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
+    // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
+    #[Swag.Late]
+    fonts: *Pixel.FontCache
 }
 
 impl Theme
@@ -111,6 +116,7 @@ impl Theme
     private mtd setupDefault(renderer: *RenderOgl)
     {
         .intialized = true
+        .fonts      = &renderer.fonts
         .colors.setDark()
 
         let images = defaultThemeImages()
@@ -131,10 +137,11 @@ impl Theme
         .setupDefaultFonts()
     }
 
-    // Initialize only the default fonts from the embedded font data.
-    // This needs no renderer (glyph metrics are rasterized on the CPU), so it can
-    // be used for headless/offscreen text measurement. Idempotent.
-    public mtd setupDefaultFonts()
+    // Loads the embedded typefaces and builds the default font families.
+    //
+    // Glyph metrics are rasterized on the CPU, so this works against a headless renderer exactly
+    // as it does against a real one. Idempotent.
+    private mtd setupDefaultFonts()
     {
         with me.res
         {
@@ -151,15 +158,15 @@ impl Theme
             catch createGuiTypeFace(&.defaultFsTypeFaceI, DefaultFontFsItalicName, DefaultFontFsItalic)
             catch createGuiTypeFace(&.defaultFsTypeFaceBI, DefaultFontFsBoldItalicName, DefaultFontFsBoldItalic)
 
-            .fontDefault.regular    = Font.create(.defaultTypeFaceR, me.metrics.defaultFontSize)
-            .fontDefault.bold       = Font.create(.defaultTypeFaceB, me.metrics.defaultFontSize)
-            .fontDefault.italic     = Font.create(.defaultTypeFaceI, me.metrics.defaultFontSize)
-            .fontDefault.boldItalic = Font.create(.defaultTypeFaceBI, me.metrics.defaultFontSize)
+            .fontDefault.regular    = .fonts.createFont(.defaultTypeFaceR, me.metrics.defaultFontSize)
+            .fontDefault.bold       = .fonts.createFont(.defaultTypeFaceB, me.metrics.defaultFontSize)
+            .fontDefault.italic     = .fonts.createFont(.defaultTypeFaceI, me.metrics.defaultFontSize)
+            .fontDefault.boldItalic = .fonts.createFont(.defaultTypeFaceBI, me.metrics.defaultFontSize)
 
-            .fontDefaultFs.regular    = Font.create(.defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.bold       = Font.create(.defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.italic     = Font.create(.defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
-            .fontDefaultFs.boldItalic = Font.create(.defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.regular    = .fonts.createFont(.defaultFsTypeFaceR, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.bold       = .fonts.createFont(.defaultFsTypeFaceB, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.italic     = .fonts.createFont(.defaultFsTypeFaceI, me.metrics.defaultFixedFontSize)
+            .fontDefaultFs.boldItalic = .fonts.createFont(.defaultFsTypeFaceBI, me.metrics.defaultFixedFontSize)
         }
     }
 
@@ -167,10 +174,10 @@ impl Theme
     mtd createDefaultFontfamily(size: u32)->FontFamily
     {
         var result: retval
-        result.regular    = Font.create(.res.defaultTypeFaceR, size)
-        result.bold       = Font.create(.res.defaultTypeFaceB, size)
-        result.italic     = Font.create(.res.defaultTypeFaceI, size)
-        result.boldItalic = Font.create(.res.defaultTypeFaceBI, size)
+        result.regular    = .fonts.createFont(.res.defaultTypeFaceR, size)
+        result.bold       = .fonts.createFont(.res.defaultTypeFaceB, size)
+        result.italic     = .fonts.createFont(.res.defaultTypeFaceI, size)
+        result.boldItalic = .fonts.createFont(.res.defaultTypeFaceBI, size)
         return result
     }
 
@@ -179,10 +186,10 @@ impl Theme
     {
         switch #complete style
         {
-        case .Regular:    return Font.create(.res.defaultTypeFaceR, size)
-        case .Bold:       return Font.create(.res.defaultTypeFaceB, size)
-        case .Italic:     return Font.create(.res.defaultTypeFaceI, size)
-        case .BoldItalic: return Font.create(.res.defaultTypeFaceBI, size)
+        case .Regular:    return .fonts.createFont(.res.defaultTypeFaceR, size)
+        case .Bold:       return .fonts.createFont(.res.defaultTypeFaceB, size)
+        case .Italic:     return .fonts.createFont(.res.defaultTypeFaceI, size)
+        case .BoldItalic: return .fonts.createFont(.res.defaultTypeFaceBI, size)
         }
 
         unreachable
@@ -193,10 +200,10 @@ impl Theme
     {
         switch #complete style
         {
-        case .Regular:    return Font.create(.res.defaultFsTypeFaceR, size)
-        case .Bold:       return Font.create(.res.defaultFsTypeFaceB, size)
-        case .Italic:     return Font.create(.res.defaultFsTypeFaceI, size)
-        case .BoldItalic: return Font.create(.res.defaultFsTypeFaceBI, size)
+        case .Regular:    return .fonts.createFont(.res.defaultFsTypeFaceR, size)
+        case .Bold:       return .fonts.createFont(.res.defaultFsTypeFaceB, size)
+        case .Italic:     return .fonts.createFont(.res.defaultFsTypeFaceI, size)
+        case .BoldItalic: return .fonts.createFont(.res.defaultFsTypeFaceBI, size)
         }
 
         unreachable

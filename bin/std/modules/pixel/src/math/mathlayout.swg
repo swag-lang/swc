@@ -39,7 +39,7 @@ private func mathResolveFont(baseFont: *Font, variant: MathFontVariant, text: st
 
     if bold == baseFont.forceBold and italic == baseFont.forceItalic do
         return baseFont
-    return Font.create(baseFont.cache.typeFace, baseFont.size, baseFont.renderMode(), bold, italic)
+    return baseFont.owner.createFont(baseFont.cache.typeFace, baseFont.size, baseFont.renderMode(), bold, italic)
 }
 
 private func mathRuleThickness(font: *Font, options: const &MathLayoutOptions, scale: f32)->f32

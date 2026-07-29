@@ -6,22 +6,22 @@ using Swag, Core
 // coordinates, so these are the goldens that pin glyph atlas addressing. See
 // [[Testing.assertGolden]].
 //
-// A glyph cache is a process-wide shared resource keyed by typeface, size, render mode and
-// spread, and glyph slots are packed in first-use order. Two tests sharing a cache would
-// therefore see atlas coordinates that depend on which one ran first. Every test below asks for
-// its own size so that it owns a private cache and stays reproducible whatever the test order.
-private func makeTextTestFont(size: u32, mode: FontRenderMode)->*Font
+// Glyph slots are packed in first-use order, so tests that shared a cache would record atlas
+// coordinates depending on which one ran first. Each test owns its cache, which makes it
+// reproducible whatever the test order without any arrangement between tests.
+private func makeTextTestFont(cache: *FontCache, size: u32, mode: FontRenderMode)->*Font
 {
     var face: *TypeFace = undefined
     catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
     @assert(err == null)
-    return Font.create(face, size, mode)
+    return cache.createFont(face, size, mode)
 }
 
 #test
 {
     var painter: Painter
-    let font = makeTextTestFont(21, .Bitmap)
+    var cache:   FontCache
+    let font = makeTextTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawString(10, 10, "AB", font, Color.fromArgb(Argb.Black))
@@ -30,11 +30,12 @@ private func makeTextTestFont(size: u32, mode: FontRenderMode)->*Font
 }
 
 // Consecutive glyphs from one atlas must extend a single DrawTriangles batch rather than
-// re-binding per glyph: two characters make one batch of twelve vertices.
+// re-binding per glyph: four characters make one batch of twenty-four vertices.
 #test
 {
     var painter: Painter
-    let font = makeTextTestFont(22, .Bitmap)
+    var cache:   FontCache
+    let font = makeTextTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawString(10, 10, "AAAA", font, Color.fromArgb(Argb.Black))
@@ -46,7 +47,8 @@ private func makeTextTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeTextTestFont(23, .Bitmap)
+    var cache:   FontCache
+    let font = makeTextTestFont(&cache, 16, .Bitmap)
 
     painter.begin()
     painter.drawString(10, 10, "A A", font, Color.fromArgb(Argb.Black))
@@ -59,7 +61,8 @@ private func makeTextTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let font = makeTextTestFont(24, .Msdf)
+    var cache:   FontCache
+    let font = makeTextTestFont(&cache, 16, .Msdf)
 
     painter.begin()
     painter.drawString(10, 10, "AB", font, Color.fromArgb(Argb.Black))
@@ -71,8 +74,9 @@ private func makeTextTestFont(size: u32, mode: FontRenderMode)->*Font
 #test
 {
     var painter: Painter
-    let bitmap = makeTextTestFont(25, .Bitmap)
-    let msdf   = makeTextTestFont(26, .Msdf)
+    var cache:   FontCache
+    let bitmap = makeTextTestFont(&cache, 16, .Bitmap)
+    let msdf   = makeTextTestFont(&cache, 16, .Msdf)
 
     painter.begin()
     painter.drawString(10, 10, "A", bitmap, Color.fromArgb(Argb.Black))

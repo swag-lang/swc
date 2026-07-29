@@ -516,5 +516,5 @@ func loadAssets(wnd: *Wnd) fail
     img.flip()
     g_PipeTextureU = render.addImage(img)
 
-    g_Font = Font.create(Path.combine(dataPath, "FlappyBirdy.ttf"), 50)
+    g_Font = render.fonts.createFont(Path.combine(dataPath, "FlappyBirdy.ttf"), 50)
 }

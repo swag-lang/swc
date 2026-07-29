@@ -70,12 +70,8 @@ impl HeadlessHost
         .theme.colors.setDark()
         .theme.setupDefault(&.app.renderer)
 
-        let style = Memory.new'ThemeStyleRef()
-        style.theme = .theme
-        style.count = 3
-
-        .app.theme      = .theme
-        .app.style.refr = style
+        .app.theme = .theme
+        .app.style.own(.theme)
 
         .surface.app       = &.app
         .surface.position  = {0, 0, width, height}
@@ -87,7 +83,7 @@ impl HeadlessHost
         root.itf             = cast(IWnd) dref root
         root.type            = Wnd
         root.surface         = &.surface
-        root.style.refr      = style
+        root.style.share(&.app.style)
         root.position        = {0, 0, width, height}
         root.backgroundStyle = .Dialog
         root.sendCreateEvent()
@@ -99,7 +95,7 @@ impl HeadlessHost
         .surfaceWnd.itf           = cast(IWnd) &.surfaceWnd
         .surfaceWnd.type          = SurfaceWnd
         .surfaceWnd.surface       = &.surface
-        .surfaceWnd.style.refr    = style
+        .surfaceWnd.style.share(&.app.style)
         .surfaceWnd.position      = {0, 0, width, height}
         .surfaceWnd.focusStrategy = .None
         .surfaceWnd.view          = root
@@ -124,9 +120,7 @@ impl HeadlessHost
         app.renderer.setupHeadless()
         app.theme = .theme
 
-        let style = notnull .app.style.refr
-        style.count    += 1
-        app.style.refr = style
+        app.style.share(&.app.style)
     }
 
     private mtd installAutoHook()

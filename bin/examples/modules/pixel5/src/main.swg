@@ -74,10 +74,10 @@ func loadFonts() fail
     let path = g_FontPath.toString()
     g_FontBytes    = File.readAllBytes(path)
     g_TypeFace     = TypeFace.create(path, g_FontBytes.toSlice())
-    g_TitleFont    = Font.create(notnull g_TypeFace, 34)
-    g_SubTitleFont = Font.create(notnull g_TypeFace, 18)
-    g_LabelFont    = Font.create(notnull g_TypeFace, 15)
-    g_HelpFont     = Font.create(notnull g_TypeFace, 13)
+    g_TitleFont    = g_Renderer.fonts.createFont(notnull g_TypeFace, 34)
+    g_SubTitleFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 18)
+    g_LabelFont    = g_Renderer.fonts.createFont(notnull g_TypeFace, 15)
+    g_HelpFont     = g_Renderer.fonts.createFont(notnull g_TypeFace, 13)
 }
 
 func cloneImage(image: const &Image)->Image

@@ -2,17 +2,18 @@
 
 using Swag, Core
 
-func makeShapingTestFont()->*Font
+func makeShapingTestFont(cache: *FontCache)->*Font
 {
     var face: *TypeFace = undefined
     catch loadTestTypeFace(&face, getTestDataPath("segoeui.ttf")) as err
     @assert(err == null)
-    return Font.create(face, 32, .Bitmap)
+    return cache.createFont(face, 32, .Bitmap)
 }
 
 #test
 {
-    let font   = makeShapingTestFont()
+    var cache: FontCache
+    let font   = makeShapingTestFont(&cache)
     let text   = "A\u00E9"
     var shaped = Painter.shapeRun(text, font)
 
@@ -53,7 +54,7 @@ func makeShapingTestFont()->*Font
     var tab8 = Painter.shapeRun("\t", font, 8)
     @assert(tab8.metrics.width > tab.metrics.width)
 
-    let msdfFont = Font.create(font.cache.typeFace, 32, .Msdf)
+    let msdfFont = font.owner.createFont(font.cache.typeFace, 32, .Msdf)
     let reshaped = Painter.shapeRunForFont(&shaped, msdfFont)
     @assert(reshaped.font == msdfFont)
     @assert(reshaped.glyphs.count == shaped.glyphs.count)
@@ -64,7 +65,7 @@ func makeShapingTestFont()->*Font
     @assert(reshapedTab.tabSize == 8)
     @assert(reshapedTab.glyphs[0].isTab)
 
-    let largeFont            = Font.create(font.cache.typeFace, 48, .Bitmap)
+    let largeFont            = font.owner.createFont(font.cache.typeFace, 48, .Bitmap)
     var richText: RichString = "<b>A</b>\nA"
     var format:   RichStringFormat
     format.font.regular = font

@@ -41,16 +41,16 @@ func loadFonts() fail
 
     g_FontBytes  = File.readAllBytes(path)
     g_TypeFace   = TypeFace.create(path, g_FontBytes.toSlice())
-    g_HeaderFont = Font.create(notnull g_TypeFace, 15)
+    g_HeaderFont = g_Renderer.fonts.createFont(notnull g_TypeFace, 15)
 }
 
 // The three fonts for a given size (all cached after the first call).
 func fontsFor(size: u32)->{ bmp, msdf, auto: *Pixel.Font }
 {
     var result: retval = undefined
-    result.bmp  = Font.create(notnull g_TypeFace, size, .Bitmap)
-    result.msdf = Font.create(notnull g_TypeFace, size, .Msdf)
-    result.auto = Font.create(notnull g_TypeFace, size, .Auto)
+    result.bmp  = g_Renderer.fonts.createFont(notnull g_TypeFace, size, .Bitmap)
+    result.msdf = g_Renderer.fonts.createFont(notnull g_TypeFace, size, .Msdf)
+    result.auto = g_Renderer.fonts.createFont(notnull g_TypeFace, size, .Auto)
     return result
 }
 

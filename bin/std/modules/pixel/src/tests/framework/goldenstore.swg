@@ -9,8 +9,12 @@ using Swag, Core
 // the native pass of a test run:
 //
 // ```
-// tools\std.bat dm test -m pixel --tag Std.Pixel.UpdateGoldens
+// tools\std.bat dm test -m pixel --tag Std.Pixel.UpdateGoldens --rebuild
 // ```
+//
+// The switch is compiled into this module, so recording the goldens of a *dependent* module needs
+// this module rebuilt with the tag; a tag change alone does not invalidate the module cache, hence
+// '--rebuild'.
 //
 // Every golden touched by the run is then rewritten from the current output instead of being
 // compared, and the assertion always succeeds. Review the resulting diff before committing it:

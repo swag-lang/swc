@@ -114,13 +114,12 @@ public struct GlyphCache
 // ## Example
 //
 // ```swag
-// let font = try Pixel.Font.create("Inter-Regular.ttf", 18)
-// defer Pixel.Font.release(font)
-//
+// let font = try renderer.fonts.createFont("Inter-Regular.ttf", 18)
 // painter.drawString(20, 32, "Hello, Pixel", font, Pixel.Argb.White)
 // ```
 public struct Font
 {
+    owner:       *FontCache  = undefined // Cache that created this view and owns it.
     cache:       *GlyphCache = undefined // Shared glyph storage borrowed by this font view.
     mode:        FontRenderMode           // Creation intent; the underlying cache is always concrete.
     size:        u32                      // Requested drawing size in pixels.
@@ -133,30 +132,23 @@ public struct Font
     height:        f32 // Recommended line height.
     underlinePos:  f32 // Underline position relative to the baseline.
     underlineSize: f32 // Recommended underline thickness.
-
-    fullname: String // Stable cache key identifying the typeface, size, style, and render mode.
-
-    // Memoized result of 'resolveDrawFont' for an 'Auto' font: the last on-screen
-    // pixel size that was resolved and the concrete bitmap view it produced. Avoids a
-    // string-keyed hash lookup (and its lock) on every single drawn glyph run. A draw
-    // size of 0 is never resolved, so it doubles as the "empty" sentinel.
-    drawResolvePx: s32
-    #[Swag.Late]
-    drawResolveFont: *Font // Borrowed concrete bitmap view for `drawResolvePx`.
 }
 
-private var g_HashFont:       HashTable'(String, *Font)
-private var g_HashGlyphCache: HashTable'(String, *GlyphCache)
-
-#drop
+// Owns the glyph storage and the font views created through it.
+//
+// A glyph atlas carries a GPU texture, so it has the lifetime of a graphics context, not of the
+// process: [[Pixel.RenderOgl]] owns one cache and every font it hands out lives and dies with it.
+// Code that only measures or lays out text can own a bare cache with no renderer at all -- atlases
+// then simply never get a texture.
+//
+// A cache holds a handful of entries (one per typeface, size and style actually drawn), so lookups
+// walk them rather than hashing a key. That keeps font creation allocation-free on the draw path,
+// which matters because an automatic font resolves a concrete view on every run it draws.
+#[Swag.NoCopy]
+public struct FontCache
 {
-    for k, [v] in g_HashFont do
-        Memory.delete(v)
-    g_HashFont.free()
-
-    for k, [v] in g_HashGlyphCache do
-        Memory.delete(v)
-    g_HashGlyphCache.free()
+    glyphCaches: ArrayPtr'GlyphCache // Glyph storage, one per typeface / reference size / style.
+    fonts:       ArrayPtr'Font       // Views handed out by this cache.
 }
 
 private func mulFix(a, b: s32)->s32
@@ -165,58 +157,134 @@ private func mulFix(a, b: s32)->s32
     return cast(s32) ((ab + 0x8000 - (ab < 0 ? 1 : 0)) >> 16)
 }
 
-private func renderModeName(mode: FontRenderMode)->string
+public impl FontCache
 {
-    switch mode
+    // Drops every glyph cache and font view created through this cache.
+    //
+    // A renderer must release the GPU textures of the atlases before this runs; see
+    // [[Pixel.RenderOgl.opDrop]].
+    mtd clear()
     {
-    case .Auto: return "auto"
-    case .Msdf: return "msdf"
+        .fonts.clear()
+        .glyphCaches.clear()
     }
 
-    return "bitmap"
-}
+    // Get or create the glyph storage for a (typeface, style, mode, refSize, spread).
+    private mtd acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*GlyphCache
+    {
+        for it in .glyphCaches
+        {
+            let cache = notnull it
+            if cache.typeFace == typeFace and
+               cache.refSize == refSize and
+               cache.spread == spread and
+               cache.renderMode == renderMode and
+               cache.forceBold == forceBold and
+               cache.forceItalic == forceItalic do
+                return cache
+        }
 
-private var g_FontLock: Sync.Mutex
+        let cache = .glyphCaches.addNewPtr()
+        cache.typeFace    = typeFace
+        cache.renderMode  = renderMode
+        cache.refSize     = refSize
+        cache.spread      = spread
+        cache.forceBold   = forceBold
+        cache.forceItalic = forceItalic
+        cache.hasKerning  = expect typeFace.face.hasKerning()
 
-// Get or create the shared glyph cache for a (typeface, style, mode, refSize, spread).
-// Assumes g_FontLock is held.
-private func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, renderMode: FontRenderMode, forceBold, forceItalic: bool)->*GlyphCache
-{
-    let key = Format.toString("%_%_%_%_%_%", typeFace.fullname, refSize, forceBold, forceItalic, renderModeName(renderMode), spread)
+        expect typeFace.face.setPixelSize(0, refSize)
+        let metrics = &typeFace.face.size.metrics
+        cache.ascent        = metrics.ascender / 64.0
+        cache.descent       = metrics.descender / 64.0
+        cache.height        = cache.ascent - cache.descent
+        cache.underlinePos  = mulFix(cast(s32) typeFace.face.underlinePosition, metrics.yScale) / 64.0
+        cache.underlineSize = mulFix(cast(s32) typeFace.face.underlineThickness, metrics.yScale) / 64.0
 
-    let here = g_HashGlyphCache.tryFind(key)
-    if here do
-        return notnull here.value
+        return cache
+    }
 
-    let cache = Memory.new'GlyphCache()
-    cache.typeFace    = typeFace
-    cache.renderMode  = renderMode
-    cache.refSize     = refSize
-    cache.spread      = spread
-    cache.forceBold   = forceBold
-    cache.forceItalic = forceItalic
-    cache.hasKerning  = expect typeFace.face.hasKerning()
+    // Builds (or returns the already created) font view.
+    //
+    // 'atlasMode' is the concrete glyph cache mode; 'intent' is the creation mode stored on the
+    // font and may be 'Auto'. Both take part in the identity, so an automatic font and an explicit
+    // MSDF font of the same size are two distinct views.
+    private mtd createView(typeFace: *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->*Font
+    {
+        Debug.assert(typeFace != null)
+        Debug.assert(size > 0)
 
-    expect typeFace.face.setPixelSize(0, refSize)
-    let metrics = &typeFace.face.size.metrics
-    cache.ascent        = metrics.ascender / 64.0
-    cache.descent       = metrics.descender / 64.0
-    cache.height        = cache.ascent - cache.descent
-    cache.underlinePos  = mulFix(cast(s32) typeFace.face.underlinePosition, metrics.yScale) / 64.0
-    cache.underlineSize = mulFix(cast(s32) typeFace.face.underlineThickness, metrics.yScale) / 64.0
+        for it in .fonts
+        {
+            let font = notnull it
+            if font.cache.typeFace == typeFace and
+               font.size == size and
+               font.cache.refSize == refSize and
+               font.cache.spread == spread and
+               font.cache.renderMode == atlasMode and
+               font.mode == intent and
+               font.forceBold == forceBold and
+               font.forceItalic == forceItalic do
+                return font
+        }
 
-    g_HashGlyphCache.add(key, cache)
-    return cache
+        let cache = .acquireGlyphCache(typeFace, refSize, spread, atlasMode, forceBold, forceItalic)
+        let font  = .fonts.addNewPtr()
+        font.owner       = me
+        font.cache       = cache
+        font.mode        = intent
+        font.size        = size
+        font.forceBold   = forceBold
+        font.forceItalic = forceItalic
+
+        let s = cast(f32) size / cast(f32) refSize
+        font.ascent        = cache.ascent * s
+        font.descent       = cache.descent * s
+        font.height        = cache.height * s
+        font.underlinePos  = cache.underlinePos * s
+        font.underlineSize = cache.underlineSize * s
+
+        return font
+    }
+
+    // Creates a font from an existing typeface and draw size.
+    //
+    // `mode` selects the rendering technique. `Auto`, the default, adapts between bitmap and MSDF
+    // rendering at draw time. The returned view is owned by this cache; never delete it.
+    mtd createFont(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font
+    {
+        switch mode
+        {
+        case .Bitmap:
+
+            // Classic grayscale bitmap, rasterized at the exact pixel size.
+            return .createView(typeFace, size, size, 0, .Bitmap, .Bitmap, forceBold, forceItalic)
+
+        case .Msdf:
+
+            // Multi-channel SDF, size-independent reference atlas.
+            return .createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Msdf, forceBold, forceItalic)
+        }
+
+        // Auto: an MSDF reference view that substitutes a crisp bitmap at small on-screen sizes
+        // (resolved per draw, see resolveDrawFont).
+        return .createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Auto, forceBold, forceItalic)
+    }
+
+    // Loads a typeface file and creates a font at the requested draw size.
+    //
+    // Typefaces are shared process-wide: they are immutable parsed files with no graphics resource
+    // of their own, so loading the same one through two caches parses it once.
+    mtd createFont(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
+    {
+        Debug.assert(@countof(fullname) != 0)
+        let typeFace = try TypeFace.load(fullname)
+        return .createFont(typeFace, size, mode, forceBold, forceItalic)
+    }
 }
 
 public impl Font
 {
-    // Releases this lightweight font view.
-    //
-    // Shared glyph data remains owned by the Pixel font cache and can be reused by
-    // other views.
-    mtd opDrop() {}
-
     // Scale factor from the shared cache reference size to this Font's draw size
     mtd const scale()->f32
     {
@@ -247,87 +315,6 @@ public impl Font
         return .cache.typeFace.face.glyphIndex(c)
     }
 
-    // Clear private caches
-    func clearCaches()
-    {
-        for a, [b] in g_HashFont do
-            Memory.delete(b)
-        g_HashFont.clear()
-
-        for a, [b] in g_HashGlyphCache do
-            Memory.delete(b)
-        g_HashGlyphCache.clear()
-    }
-
-    // Release the given font
-    func release(font: *Font)
-    {
-        if !font do
-            return
-        Sync.scopedLock(&g_FontLock)
-        g_HashFont.remove(font.fullname)
-        Memory.delete(font)
-    }
-
-    // Builds (or returns the cached) Font view.
-    // 'atlasMode' is the concrete glyph cache mode; 'intent' is the creation mode
-    // stored on the Font (may be .Auto). Both take part in the Font key so an auto
-    // Font and an explicit MSDF Font of the same size do not collide.
-    private func createView(typeFace: *TypeFace, size, refSize, spread: u32, atlasMode, intent: FontRenderMode, forceBold, forceItalic: bool)->*Font
-    {
-        Debug.assert(typeFace != null)
-        Debug.assert(size > 0)
-
-        let str = Format.toString("%_%_%_%_%_%_%_%", typeFace.fullname, size, forceBold, forceItalic, renderModeName(intent), renderModeName(atlasMode), spread, refSize)
-
-        Sync.scopedLock(&g_FontLock)
-
-        let here = g_HashFont.tryFind(str)
-        if here do
-            return notnull here.value
-
-        let cache = acquireGlyphCache(typeFace, refSize, spread, atlasMode, forceBold, forceItalic)
-
-        let font = Memory.new'Font()
-        font.fullname    = str
-        font.cache       = cache
-        font.mode        = intent
-        font.size        = size
-        font.forceBold   = forceBold
-        font.forceItalic = forceItalic
-
-        let s = cast(f32) size / cast(f32) refSize
-        font.ascent        = cache.ascent * s
-        font.descent       = cache.descent * s
-        font.height        = cache.height * s
-        font.underlinePos  = cache.underlinePos * s
-        font.underlineSize = cache.underlineSize * s
-
-        g_HashFont.add(str, font)
-        return font
-    }
-
-    // Builds a Font for the requested creation mode (spread is internal).
-    private func createMode(typeFace: *TypeFace, size: u32, mode: FontRenderMode, forceBold, forceItalic: bool)->*Font
-    {
-        switch mode
-        {
-        case .Bitmap:
-
-            // Classic grayscale bitmap, rasterized at the exact pixel size.
-            return createView(typeFace, size, size, 0, .Bitmap, .Bitmap, forceBold, forceItalic)
-
-        case .Msdf:
-
-            // Multi-channel SDF, size-independent reference atlas.
-            return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Msdf, forceBold, forceItalic)
-        }
-
-        // Auto: an MSDF reference view that substitutes a crisp bitmap at small
-        // on-screen sizes (resolved per draw, see resolveDrawFont).
-        return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Auto, forceBold, forceItalic)
-    }
-
     // Resolves the concrete font for an on-screen pixel size.
     //
     // Non-automatic fonts return themselves. An automatic font uses the
@@ -342,42 +329,7 @@ public impl Font
 
         var px = cast(s32) Math.round(effectivePx)
         px = Math.clamp(px, 1, cast(s32) AutoMsdfMinPx)
-
-        // Fast path: same on-screen size as the previous draw (the common case for a
-        // given widget) returns the already-resolved view with no lookup or lock.
-        if px == font.drawResolvePx do
-            return font.drawResolveFont
-
-        let view = createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
-
-        // Publish the view before the size so a concurrent reader that sees the new
-        // size also sees the matching view (drawing is single-threaded per surface;
-        // this only guards the rare cross-surface overlap).
-        font.drawResolveFont = view
-        font.drawResolvePx   = px
-        return view
-    }
-
-    // Creates a font from an existing typeface and draw size.
-    //
-    // `mode` selects the rendering technique. `Auto`, the default, adapts between
-    // bitmap and MSDF rendering at draw time.
-    func create(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font
-    {
-        return createMode(typeFace, size, mode, forceBold, forceItalic)
-    }
-
-    // Loads a typeface file and creates a font at the requested draw size.
-    //
-    // `mode` selects the rendering technique. `Auto`, the default, adapts at draw
-    // time.
-    func create(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
-    {
-        Debug.assert(@countof(fullname) != 0)
-        Debug.assert(size > 0)
-
-        let typeFace = try TypeFace.load(fullname)
-        return createMode(typeFace, size, mode, forceBold, forceItalic)
+        return font.owner.createView(font.cache.typeFace, font.size, cast(u32) px, 0, .Bitmap, .Bitmap, font.forceBold, font.forceItalic)
     }
 }
 

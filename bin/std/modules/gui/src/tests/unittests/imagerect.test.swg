@@ -6,7 +6,7 @@ using Swag, Core
 // An empty imagerect is a valid, hit-testable window.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(160, 160)
 
     let img = ImageRect.create(&host.root, {20, 20, 120, 120})

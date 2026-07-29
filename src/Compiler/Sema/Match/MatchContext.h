@@ -46,6 +46,10 @@ public:
     void resetCandidates();
     void beginSymMapLookup(const Priority& priority);
     void addSymbol(const Symbol* symbol, const Priority& priority);
+
+    // Discards the resolved candidates in favor of 'symbol'. Used to arbitrate a lookup on a rule
+    // the scope priorities cannot express, such as preferring a namespace of the current module.
+    void replaceWithSingleSymbol(const Symbol* symbol);
     void addIgnoredSymbol(const Priority& priority);
     void collectCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const;
     void collectCallableSymbols(SmallVector<const Symbol*>& outSymbols) const;

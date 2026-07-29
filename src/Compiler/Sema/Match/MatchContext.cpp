@@ -13,6 +13,14 @@ int MatchContext::Priority::compare(const Priority& a, const Priority& b)
     return 0;
 }
 
+void MatchContext::replaceWithSingleSymbol(const Symbol* symbol)
+{
+    symbols_.clear();
+    symbols_.push_back(symbol);
+    allSymbols_.clear();
+    allSymbols_.push_back({.symbol = symbol, .priority = bestPriority_});
+}
+
 void MatchContext::clear()
 {
     resetCandidates();

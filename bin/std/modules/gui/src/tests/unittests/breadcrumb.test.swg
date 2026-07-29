@@ -16,7 +16,7 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
 // Levels lay out left-to-right without overlap; a leaf level has no chevron.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(400, 60)
 
     let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
@@ -39,7 +39,7 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
 // does not navigate.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(400, 60)
     BreadcrumbPressedCount = 0
     BreadcrumbPressedIndex = Swag.U64.Max

@@ -6,7 +6,7 @@ using Swag, Core
 // Parenting, child enumeration and lookup by id.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
@@ -29,7 +29,7 @@ using Swag, Core
 // Hidden state and its propagation to children.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
@@ -58,7 +58,7 @@ using Swag, Core
 // Disabled state and its propagation to children.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
@@ -84,7 +84,7 @@ using Swag, Core
 // Move/resize and coordinate conversion through the parent chain.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {10, 20, 180, 160})
@@ -113,7 +113,7 @@ using Swag, Core
 // Dock layout: Left/Right consume edges, Center fills the rest.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(220, 140)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 100})
@@ -136,7 +136,7 @@ using Swag, Core
 // getWndAt descends the hierarchy and skips hidden/disabled by default.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {10, 10, 180, 180})
@@ -163,7 +163,7 @@ using Swag, Core
 // Z-order: getWndAt returns the topmost (last) sibling; bringToFront/bringToTop reorder.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
@@ -187,7 +187,7 @@ using Swag, Core
 // destroy() detaches the window from its parent after the destroy pump.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(200, 200)
 
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})

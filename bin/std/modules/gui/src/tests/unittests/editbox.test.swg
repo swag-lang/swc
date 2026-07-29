@@ -21,7 +21,7 @@ func editHeadlessEscape(eb: *EditBox)
 // setText/getText round-trips the content.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
@@ -36,7 +36,7 @@ func editHeadlessEscape(eb: *EditBox)
 // Typing runes inserts text at the caret.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
@@ -52,7 +52,7 @@ func editHeadlessEscape(eb: *EditBox)
 // Backspace removes the rune before the caret.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
@@ -71,7 +71,7 @@ func editHeadlessEscape(eb: *EditBox)
 // selectAll + deleteSelection clears the content.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
@@ -85,7 +85,7 @@ func editHeadlessEscape(eb: *EditBox)
 // A read-only editbox ignores typed runes.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, "lock", {20, 20, 200, 26}, null, EditBoxFlags.ReadOnly)
@@ -100,7 +100,7 @@ func editHeadlessEscape(eb: *EditBox)
 // maxLength caps the number of runes.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
@@ -122,7 +122,7 @@ func editHeadlessEscape(eb: *EditBox)
 // from the real glyph edge the longer the text is.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(400, 60)
 
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
@@ -146,7 +146,7 @@ func editHeadlessEscape(eb: *EditBox)
 // was already snapped; the test guards against a regression).
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(400, 60)
 
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
@@ -169,7 +169,7 @@ func editHeadlessEscape(eb: *EditBox)
 // far left lands on 0 and the far right lands on the last index.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(420, 60)
 
     let edit = EditBox.create(&host.root, "Hello world example text", {0, 0, 400, 26}, null, EditBoxFlags.Zero)
@@ -204,7 +204,7 @@ func editHeadlessEscape(eb: *EditBox)
 // caret sits within half an average glyph of where the click landed.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(420, 60)
 
     let edit = EditBox.create(&host.root, "Monotonic caret round trip", {0, 0, 400, 26}, null, EditBoxFlags.Zero)
@@ -228,7 +228,7 @@ func editHeadlessEscape(eb: *EditBox)
 // Home / End / arrow navigation moves the caret to the expected byte positions.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 60)
 
     let edit = EditBox.create(&host.root, "abcdef", {0, 0, 260, 26}, null, EditBoxFlags.Zero)
@@ -256,7 +256,7 @@ func editHeadlessEscape(eb: *EditBox)
 // in sync with the snapped advances of both ends.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(300, 60)
 
     let edit = EditBox.create(&host.root, "selection", {0, 0, 260, 26}, null, EditBoxFlags.Zero)
@@ -278,7 +278,7 @@ func editHeadlessEscape(eb: *EditBox)
 // Ctrl+Left / Ctrl+Right jump by words.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(360, 60)
 
     let edit = EditBox.create(&host.root, "one two three", {0, 0, 320, 26}, null, EditBoxFlags.Zero)
@@ -304,7 +304,7 @@ func editHeadlessEscape(eb: *EditBox)
 // the snapped text width after the scroll offset is applied.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(160, 60)
 
     // Narrow box, long text -> horizontal scroll kicks in.
@@ -326,7 +326,7 @@ func editHeadlessEscape(eb: *EditBox)
 // otherwise it is clipped at the right edge and appears to vanish.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(160, 60)
 
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.Zero)
@@ -350,7 +350,7 @@ func editHeadlessEscape(eb: *EditBox)
 // visible at every position once the scroll is updated.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(160, 60)
 
     let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.Zero)
@@ -373,7 +373,7 @@ func editHeadlessEscape(eb: *EditBox)
 // (EditBoxFlags.Zero avoids AutoLoseFocus, which would re-focus the top view.)
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 60)
     EditHeadlessEnterCount  = 0
     EditHeadlessEscapeCount = 0

@@ -11,7 +11,7 @@ using Swag, Core, File
 // logic (name + filter extension) is pure and is what we validate.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(640, 460)
 
     var opt: FileDlgOptions
@@ -49,7 +49,7 @@ using Swag, Core, File
 // SelectFolder mode offers a single "Folders" type entry.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(640, 460)
 
     var opt: FileDlgOptions

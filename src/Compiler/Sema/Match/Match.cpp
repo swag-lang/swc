@@ -103,6 +103,47 @@ namespace
         }
     }
 
+    // True when 'symMap' is 'owner' or lives somewhere below it.
+    bool isOwnedBySymMap(const SymbolMap* symMap, const SymbolMap* owner)
+    {
+        for (const SymbolMap* current = symMap; current; current = current->ownerSymMap())
+        {
+            if (current == owner)
+                return true;
+        }
+
+        return false;
+    }
+
+    // A namespace declared by the current module always wins over a same-named namespace reaching
+    // us from a dependency. Without this, a single `using Pixel` anywhere in gui makes an
+    // unqualified `Testing` mean `Pixel.Testing` even though `Gui.Testing` exists, and the module
+    // can no longer name its own namespaces. Code that wants the imported one qualifies it
+    // (`Pixel.Testing`).
+    //
+    // Only namespaces are arbitrated here. Every other kind of symbol keeps the plain scope
+    // priority, where a `using` legitimately brings a name closer than the module root.
+    void preferOwnModuleNamespace(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
+    {
+        // Only unqualified lookups are arbitrated. A hinted one is already precise: `ExportApi.Shared`
+        // asks for that exact namespace and must not be redirected to the current module's.
+        if (lookUpCxt.symMapHint || lookUpCxt.empty())
+            return;
+
+        const SymbolMap& moduleNs = sema.moduleNamespace();
+        for (const Symbol* symbol : lookUpCxt.symbols())
+        {
+            if (!symbol->isNamespace() || isOwnedBySymMap(symbol->ownerSymMap(), &moduleNs))
+                return;
+        }
+
+        const Symbol* own = moduleNs.findFirstSymbol(idRef);
+        if (!own || !own->isNamespace())
+            return;
+
+        lookUpCxt.replaceWithSingleSymbol(own);
+    }
+
     void addPersistedUsingSymMaps(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchPriority& priority)
     {
         if (!symMap)
@@ -383,6 +424,7 @@ Result Match::match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
 {
     SWC_RESULT(collect(sema, lookUpCxt));
     lookup(lookUpCxt, idRef);
+    preferOwnModuleNamespace(sema, lookUpCxt, idRef);
     if (lookUpCxt.empty())
     {
         if (lookUpCxt.blockedByIgnored())

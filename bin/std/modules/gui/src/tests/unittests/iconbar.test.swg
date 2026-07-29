@@ -29,7 +29,7 @@ func iconBarHeadlessReset()
 // Buttons are added as children and retrievable by id.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 80)
     iconBarHeadlessReset()
 
@@ -48,7 +48,7 @@ func iconBarHeadlessReset()
 // Clicking a docked button forwards through the bar's sigPressed.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 80)
     iconBarHeadlessReset()
 
@@ -66,7 +66,7 @@ func iconBarHeadlessReset()
 // A checkable-toggle button forwards through the bar's sigCheckChanged.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(240, 80)
     iconBarHeadlessReset()
 

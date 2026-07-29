@@ -10,7 +10,7 @@ const Menu_Quit = "Menu.Quit"
 // A menu bar holds items; a popup menu holds items, separators and disabled entries.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
@@ -36,7 +36,7 @@ const Menu_Quit = "Menu.Quit"
 // Headless tests can drive modal popup menus through the normal mouse pipeline.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let popup = MenuCtrl.createPopup(&host.root)
@@ -70,7 +70,7 @@ const Menu_Quit = "Menu.Quit"
 // Headless popup menus can drive nested submenus through hover/timer behavior.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let popup = MenuCtrl.createPopup(&host.root)
@@ -108,7 +108,7 @@ const Menu_Quit = "Menu.Quit"
 // Clicking outside a captured popup dismisses it without selecting an item.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let popup = MenuCtrl.createPopup(&host.root)
@@ -138,7 +138,7 @@ const Menu_Quit = "Menu.Quit"
 // intercept the row now visible under the mouse.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let popup = MenuCtrl.createPopup(&host.root)
@@ -170,7 +170,7 @@ const Menu_Quit = "Menu.Quit"
 // A popup item links a submenu back to its owner.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
@@ -192,7 +192,7 @@ const Menu_Quit = "Menu.Quit"
 // captured by the newly shown popup.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
@@ -221,7 +221,7 @@ const Menu_Quit = "Menu.Quit"
 // A taller menu bar centers its visual/hit item band and uses that band as popup anchor.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let metrics   = host.root.getThemeMetrics()
@@ -252,7 +252,7 @@ const Menu_Quit = "Menu.Quit"
 // A menu-bar popup carries the opened bar item inside its own themed area.
 #test
 {
-    var host: Gui.Testing.HeadlessHost
+    var host: Testing.HeadlessHost
     host.setup(320, 200)
 
     let metrics = host.root.getThemeMetrics()

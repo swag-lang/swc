@@ -108,6 +108,36 @@ internal struct MathDrawText
     scale: f32
 }
 
+internal enum MathPathKind
+{
+    Radical
+    LeftParenthesis
+    RightParenthesis
+    LeftBracket
+    RightBracket
+    LeftBrace
+    RightBrace
+    LeftAngle
+    RightAngle
+    LeftFloor
+    RightFloor
+    LeftCeiling
+    RightCeiling
+    Bar
+    DoubleBar
+    Hat
+    Tilde
+    Vector
+}
+
+internal struct MathDrawPath
+{
+    kind:      MathPathKind
+    rect:      Math.Rectangle     // Baseline-relative bounds
+    lineWidth: f32
+    aux:       f32                // Kind-specific local coordinate
+}
+
 internal struct MathNode
 {
     id:        u64
@@ -121,6 +151,7 @@ internal struct MathNode
     offsets: Array'Math.Vector2
     rules:   Array'MathRule
     draws:   Array'MathDrawText
+    paths:   Array'MathDrawPath
 
     style:       MathStyle
     fontVariant: MathFontVariant = Default
@@ -1021,6 +1052,7 @@ public impl MathExpression
             node.offsets.clear()
             node.rules.clear()
             node.draws.clear()
+            node.paths.clear()
         }
         .root = notnull .nodes[rootId]
     }

@@ -47,6 +47,7 @@ var g_Painter:  Pixel.Painter
 var g_RC:       Pixel.RenderingContext
 
 var g_TypeFace:     #null *Pixel.TypeFace
+var g_BoldTypeFace: #null *Pixel.TypeFace
 var g_TitleFont:    #null *Pixel.Font
 var g_SubtitleFont: #null *Pixel.Font
 var g_LabelFont:    #null *Pixel.Font
@@ -57,9 +58,10 @@ var g_Formulas:     [FormulaCount] MathExpression
 func initContent() fail
 {
     g_TypeFace     = TypeFace.load("segoeui.ttf")
-    g_TitleFont    = Font.create(notnull g_TypeFace, 32, .Auto, true)
+    g_BoldTypeFace = TypeFace.load("segoeuib.ttf")
+    g_TitleFont    = Font.create(notnull g_BoldTypeFace, 32, .Auto)
     g_SubtitleFont = Font.create(notnull g_TypeFace, 15, .Auto)
-    g_LabelFont    = Font.create(notnull g_TypeFace, 15, .Auto, true)
+    g_LabelFont    = Font.create(notnull g_BoldTypeFace, 15, .Auto)
     g_SourceFont   = Font.create(notnull g_TypeFace, 12, .Auto)
     g_MathFont     = Font.create(notnull g_TypeFace, 34, .Auto)
 

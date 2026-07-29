@@ -4,6 +4,7 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/RuntimeName.h"
+#include "Compiler/Doc/DocGenerator.h"
 #include "Compiler/SourceFile.h"
 #include "Format/FormatJob.h"
 #include "Format/FormatOptionsLoader.h"
@@ -101,6 +102,7 @@ namespace
             case CommandKind::Format:
             case CommandKind::Syntax:
             case CommandKind::Sema:
+            case CommandKind::Doc:
             case CommandKind::Unittest:
                 return result;
 
@@ -229,6 +231,8 @@ namespace
         addInfoEntry(entries, "Workspace module", cmdLine.workspaceModuleFilter);
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
         addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
+        if (cmdLine.command == CommandKind::Doc)
+            addInfoEntry(entries, "Documentation directory", DocGenerator::outputDirectory(ctx.compiler()));
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);
         addUtf8Set(entries, "Import API modules", cmdLine.importApiModules);
@@ -281,6 +285,12 @@ namespace
                 addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
                 if (!cmdLine.exportApiDir.empty())
                     addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("write generated module API files under {}", Utf8(cmdLine.exportApiDir)));
+                break;
+
+            case CommandKind::Doc:
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, std::format("parse {}", inputCount));
+                addPlanEntry(entries, index++, "Would", LogColor::BrightGreen, "run semantic analysis, including compile-time evaluation when required");
+                addPlanEntry(entries, index, "Would", LogColor::BrightGreen, std::format("write documentation under {}", Utf8(DocGenerator::outputDirectory(ctx.compiler()))));
                 break;
 
             case CommandKind::Build:

@@ -19,6 +19,7 @@ public:
         Format,
         Syntax,
         Sema,
+        Doc,
         JIT,
         Micro,
         Build,

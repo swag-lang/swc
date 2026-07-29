@@ -1,0 +1,2659 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php include('common/start-head.php'); ?><title>Swag Runtime</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<script src="https://kit.fontawesome.com/f76be2b3ee.js" crossorigin="anonymous"></script>
+<style>
+.container{display:flex;flex-wrap:nowrap;flex-direction:row;margin:0 auto;padding:0}.left{display:block;overflow-y:auto;width:500px}.left-page{margin:10px}.right{display:block;width:100%}.right-page{max-width:1024px;margin:10px auto}
+@media(min-width:640px){.container{max-width:640px}}@media(min-width:768px){.container{max-width:768px}}@media(min-width:1024px){.container{max-width:1024px}}@media(min-width:1280px){.container{max-width:1280px}}@media(min-width:1536px){.container{max-width:1536px}}@media screen and (max-width:600px){.left{display:none}.right-page{margin:10px}}
+html{font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}body{margin:0;line-height:1.3em}.container a{color:DodgerBlue}.container a:hover{text-decoration:underline}.container img{margin:0 auto}.left a{text-decoration:none}.left ul{list-style-type:none;margin-left:-20px}.left h3{background-color:#000;color:#fff;padding:6px}.right h1{margin-top:50px;margin-bottom:50px}.right h2{margin-top:35px}.right hr{margin-top:50px;margin-bottom:50px}.strikethrough-text{text-decoration:line-through}.swag-watermark{text-align:right;font-size:80%;margin-top:30px}.swag-watermark a{text-decoration:none;color:inherit}
+.blockquote{border-radius:5px;border:1px solid;margin:20px;padding:10px}.blockquote-default{border-color:orange;border-left:6px solid orange;background-color:#ffffe0}.blockquote-note{border-color:#adcedd;background-color:#cdeefd}.blockquote-tip{border-color:#bccfbc;background-color:#dcefdc}.blockquote-warning{border-color:#dfbdb3;background-color:#ffddd3}.blockquote-attention{border-color:#ddbab8;background-color:#fddad8}.blockquote-example{border:2px solid #d3d3d3}.blockquote-title-block{margin-bottom:10px}.blockquote-title{font-weight:bold}.description-list-title{font-weight:bold;font-style:italic}.description-list-block{margin-left:30px}
+.container table{border:1px solid #d3d3d3;border-collapse:collapse;font-size:90%;margin:20px}.container td,.container th{border:1px solid #d3d3d3;padding:6px;min-width:100px}.container th{background-color:#eee}table.api-item{border-collapse:separate;background-color:#000;color:#fff;width:100%;margin:70px 0 0;font-size:110%}.api-item td{font-size:revert;border:0}.api-item td:first-child{width:66%;white-space:nowrap}.api-item-title-src-ref{text-align:right}.api-item-title-src-ref a{color:inherit}.api-item-title-kind{font-weight:normal;font-size:80%}.api-item-title-strong{font-weight:bold}.table-enumeration{width:calc(100% - 40px)}.table-enumeration td:first-child{background-color:#f8f8f8;white-space:nowrap}.table-enumeration td:last-child{width:100%}.table-enumeration td.code-type{background-color:#eee}.table-enumeration a{text-decoration:none;color:inherit}
+.code-inline{background-color:#eee;border-radius:5px;border:1px dotted #ccc;padding:0 8px;font-size:110%;font-family:monospace;display:inline-block}.code-block{background-color:#eee;border-radius:5px;border:1px solid #d3d3d3;padding:10px;margin:20px;white-space:pre;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}.code-block a{color:inherit}
+.SCmt{color:#6a9955}.SCmp,.SAtr{color:#777}.SFct{color:#c54f00}.SCst{color:#168f7d}.SItr{color:#8a7600}.STpe{color:#a66c00}.SKwd{color:#286fa8}.SLgc{color:#8e4d99}.SNum{color:#4d7a45}.SStr{color:#a64f38}.SInv{color:#d22}.SBcR{color:#817c31}
+.SCde{color:#222222}
+.container{height:100vh}.right{overflow-y:auto}
+</style>
+<?php include('common/end-head.php'); ?>
+</head>
+<body>
+<?php include('common/start-body.php'); ?>
+<div class="container">
+<div class="left"><div class="left-page">
+<h2>Table of Contents</h2>
+<h3>Namespaces</h3>
+<li><a href="#Language_Swag">Language.Swag</a></li>
+<li><a href="#Language_Swag_F32">Language.Swag.F32</a></li>
+<li><a href="#Language_Swag_F64">Language.Swag.F64</a></li>
+<li><a href="#Language_Swag_S16">Language.Swag.S16</a></li>
+<li><a href="#Language_Swag_S32">Language.Swag.S32</a></li>
+<li><a href="#Language_Swag_S64">Language.Swag.S64</a></li>
+<li><a href="#Language_Swag_S8">Language.Swag.S8</a></li>
+<li><a href="#Language_Swag_U16">Language.Swag.U16</a></li>
+<li><a href="#Language_Swag_U32">Language.Swag.U32</a></li>
+<li><a href="#Language_Swag_U64">Language.Swag.U64</a></li>
+<li><a href="#Language_Swag_U8">Language.Swag.U8</a></li>
+<li><a href="#Language___Win32RT">Language.__Win32RT</a></li>
+<h3>Structs</h3>
+<li><a href="#Language_Swag_Allocator">Swag.Allocator</a></li>
+<li><a href="#Language_Swag_AllocatorClass">Swag.AllocatorClass</a></li>
+<li><a href="#Language_Swag_AllocatorFooter">Swag.AllocatorFooter</a></li>
+<li><a href="#Language_Swag_AllocatorHeader">Swag.AllocatorHeader</a></li>
+<li><a href="#Language_Swag_AllocatorRawBlock">Swag.AllocatorRawBlock</a></li>
+<li><a href="#Language_Swag_AllocatorRequest">Swag.AllocatorRequest</a></li>
+<li><a href="#Language_Swag_AllocatorThreadClass">Swag.AllocatorThreadClass</a></li>
+<li><a href="#Language_Swag_AllocatorThreadHeap">Swag.AllocatorThreadHeap</a></li>
+<li><a href="#Language_Swag_Attribute">Swag.Attribute</a></li>
+<li><a href="#Language_Swag_AttributeParam">Swag.AttributeParam</a></li>
+<li><a href="#Language_Swag_BaseError">Swag.BaseError</a></li>
+<li><a href="#Language_Swag_BuildCfg">Swag.BuildCfg</a></li>
+<li><a href="#Language_Swag_BuildCfgBackend">Swag.BuildCfgBackend</a></li>
+<li><a href="#Language_Swag_BuildCfgGenDoc">Swag.BuildCfgGenDoc</a></li>
+<li><a href="#Language_Swag_CVaList">Swag.CVaList</a></li>
+<li><a href="#Language_Swag_ClosureValue">Swag.ClosureValue</a></li>
+<li><a href="#Language_Swag_CompilerMessage">Swag.CompilerMessage</a></li>
+<li><a href="#Language_Swag_Context">Swag.Context</a></li>
+<li><a href="#Language_Swag_ErrorValue">Swag.ErrorValue</a></li>
+<li><a href="#Language_Swag_Gvtd">Swag.Gvtd</a></li>
+<li><a href="#Language_Swag_Interface">Swag.Interface</a></li>
+<li><a href="#Language_Swag_Module">Swag.Module</a></li>
+<li><a href="#Language_Swag_ProcessInfos">Swag.ProcessInfos</a></li>
+<li><a href="#Language_Swag_ScratchAllocator">Swag.ScratchAllocator</a></li>
+<li><a href="#Language_Swag_SourceCodeLocation">Swag.SourceCodeLocation</a></li>
+<li><a href="#Language_Swag_SystemError">Swag.SystemError</a></li>
+<li><a href="#Language_Swag_TypeInfo">Swag.TypeInfo</a></li>
+<li><a href="#Language_Swag_TypeInfoAlias">Swag.TypeInfoAlias</a></li>
+<li><a href="#Language_Swag_TypeInfoArray">Swag.TypeInfoArray</a></li>
+<li><a href="#Language_Swag_TypeInfoCodeBlock">Swag.TypeInfoCodeBlock</a></li>
+<li><a href="#Language_Swag_TypeInfoEnum">Swag.TypeInfoEnum</a></li>
+<li><a href="#Language_Swag_TypeInfoFunc">Swag.TypeInfoFunc</a></li>
+<li><a href="#Language_Swag_TypeInfoGeneric">Swag.TypeInfoGeneric</a></li>
+<li><a href="#Language_Swag_TypeInfoNamespace">Swag.TypeInfoNamespace</a></li>
+<li><a href="#Language_Swag_TypeInfoNative">Swag.TypeInfoNative</a></li>
+<li><a href="#Language_Swag_TypeInfoPointer">Swag.TypeInfoPointer</a></li>
+<li><a href="#Language_Swag_TypeInfoSlice">Swag.TypeInfoSlice</a></li>
+<li><a href="#Language_Swag_TypeInfoStruct">Swag.TypeInfoStruct</a></li>
+<li><a href="#Language_Swag_TypeInfoVariadic">Swag.TypeInfoVariadic</a></li>
+<li><a href="#Language_Swag_TypeValue">Swag.TypeValue</a></li>
+<li><a href="#Language___SwagSym">Language.__SwagSym</a></li>
+<h3>Interfaces</h3>
+<li><a href="#Language_Swag_IAllocator">Swag.IAllocator</a></li>
+<li><a href="#Language_Swag_ICompiler">Swag.ICompiler</a></li>
+<h3>Enums</h3>
+<li><a href="#Language_Swag_AttributeUsage">Swag.AttributeUsage</a></li>
+<li><a href="#Language_Swag_BuildCfgBackendCpuVectorize">Swag.BuildCfgBackendCpuVectorize</a></li>
+<li><a href="#Language_Swag_BuildCfgBackendInlineMode">Swag.BuildCfgBackendInlineMode</a></li>
+<li><a href="#Language_Swag_BuildCfgBackendKind">Swag.BuildCfgBackendKind</a></li>
+<li><a href="#Language_Swag_BuildCfgBackendSubKind">Swag.BuildCfgBackendSubKind</a></li>
+<li><a href="#Language_Swag_BuildCfgDocKind">Swag.BuildCfgDocKind</a></li>
+<li><a href="#Language_Swag_CallConv">Swag.CallConv</a></li>
+<li><a href="#Language_Swag_CompilerCommand">Swag.CompilerCommand</a></li>
+<li><a href="#Language_Swag_CompilerMsgKind">Swag.CompilerMsgKind</a></li>
+<li><a href="#Language_Swag_CompilerMsgMask">Swag.CompilerMsgMask</a></li>
+<li><a href="#Language_Swag_ExceptionKind">Swag.ExceptionKind</a></li>
+<li><a href="#Language_Swag_ExportWhat">Swag.ExportWhat</a></li>
+<li><a href="#Language_Swag_MatchWhat">Swag.MatchWhat</a></li>
+<li><a href="#Language_Swag_Operator">Swag.Operator</a></li>
+<li><a href="#Language_Swag_RuntimeFlags">Swag.RuntimeFlags</a></li>
+<li><a href="#Language_Swag_SafetyWhat">Swag.SafetyWhat</a></li>
+<li><a href="#Language_Swag_TargetArch">Swag.TargetArch</a></li>
+<li><a href="#Language_Swag_TargetOs">Swag.TargetOs</a></li>
+<li><a href="#Language_Swag_TypeCmpFlags">Swag.TypeCmpFlags</a></li>
+<li><a href="#Language_Swag_TypeInfoFlags">Swag.TypeInfoFlags</a></li>
+<li><a href="#Language_Swag_TypeInfoKind">Swag.TypeInfoKind</a></li>
+<li><a href="#Language_Swag_TypeInfoNativeKind">Swag.TypeInfoNativeKind</a></li>
+<li><a href="#Language_Swag_TypeValueFlags">Swag.TypeValueFlags</a></li>
+<li><a href="#Language_Swag_WarningLevel">Swag.WarningLevel</a></li>
+<h3>Constants</h3>
+<li><a href="#Language_Swag_AllocatorClassCount">Swag.AllocatorClassCount</a></li>
+<li><a href="#Language_Swag_AllocatorInvalidClass">Swag.AllocatorInvalidClass</a></li>
+<li><a href="#Language_Swag_ClosureCaptureBufferSize">Swag.ClosureCaptureBufferSize</a></li>
+<li><a href="#Language_Swag_F32_Bias">F32.Bias</a></li>
+<li><a href="#Language_Swag_F32_ExpBits">F32.ExpBits</a></li>
+<li><a href="#Language_Swag_F32_Inf">F32.Inf</a></li>
+<li><a href="#Language_Swag_F32_MantBits">F32.MantBits</a></li>
+<li><a href="#Language_Swag_F32_Max">F32.Max</a></li>
+<li><a href="#Language_Swag_F32_Min">F32.Min</a></li>
+<li><a href="#Language_Swag_F32_NaN">F32.NaN</a></li>
+<li><a href="#Language_Swag_F32_NegInf">F32.NegInf</a></li>
+<li><a href="#Language_Swag_F64_Bias">F64.Bias</a></li>
+<li><a href="#Language_Swag_F64_ExpBits">F64.ExpBits</a></li>
+<li><a href="#Language_Swag_F64_Inf">F64.Inf</a></li>
+<li><a href="#Language_Swag_F64_MantBits">F64.MantBits</a></li>
+<li><a href="#Language_Swag_F64_Max">F64.Max</a></li>
+<li><a href="#Language_Swag_F64_Min">F64.Min</a></li>
+<li><a href="#Language_Swag_F64_NaN">F64.NaN</a></li>
+<li><a href="#Language_Swag_F64_NegInf">F64.NegInf</a></li>
+<li><a href="#Language_Swag_MaxErrors">Swag.MaxErrors</a></li>
+<li><a href="#Language_Swag_MaxTraces">Swag.MaxTraces</a></li>
+<li><a href="#Language_Swag_S16_Max">S16.Max</a></li>
+<li><a href="#Language_Swag_S16_Min">S16.Min</a></li>
+<li><a href="#Language_Swag_S32_Max">S32.Max</a></li>
+<li><a href="#Language_Swag_S32_Min">S32.Min</a></li>
+<li><a href="#Language_Swag_S64_Max">S64.Max</a></li>
+<li><a href="#Language_Swag_S64_Min">S64.Min</a></li>
+<li><a href="#Language_Swag_S8_Max">S8.Max</a></li>
+<li><a href="#Language_Swag_S8_Min">S8.Min</a></li>
+<li><a href="#Language_Swag_U16_Max">U16.Max</a></li>
+<li><a href="#Language_Swag_U16_Min">U16.Min</a></li>
+<li><a href="#Language_Swag_U32_Max">U32.Max</a></li>
+<li><a href="#Language_Swag_U32_Min">U32.Min</a></li>
+<li><a href="#Language_Swag_U64_Max">U64.Max</a></li>
+<li><a href="#Language_Swag_U64_Min">U64.Min</a></li>
+<li><a href="#Language_Swag_U8_Max">U8.Max</a></li>
+<li><a href="#Language_Swag_U8_Min">U8.Min</a></li>
+<li><a href="#Language___MAX_ARGUMENTS">Language.__MAX_ARGUMENTS</a></li>
+<li><a href="#Language___Win32RT_FALSE">__Win32RT.FALSE</a></li>
+<li><a href="#Language___Win32RT_IDCANCEL">__Win32RT.IDCANCEL</a></li>
+<li><a href="#Language___Win32RT_IDCONTINUE">__Win32RT.IDCONTINUE</a></li>
+<li><a href="#Language___Win32RT_IDTRYAGAIN">__Win32RT.IDTRYAGAIN</a></li>
+<li><a href="#Language___Win32RT_MB_CANCELTRYCONTINUE">__Win32RT.MB_CANCELTRYCONTINUE</a></li>
+<li><a href="#Language___Win32RT_MB_ICONERROR">__Win32RT.MB_ICONERROR</a></li>
+<li><a href="#Language___Win32RT_MEM_COMMIT">__Win32RT.MEM_COMMIT</a></li>
+<li><a href="#Language___Win32RT_MEM_RELEASE">__Win32RT.MEM_RELEASE</a></li>
+<li><a href="#Language___Win32RT_MEM_RESERVE">__Win32RT.MEM_RESERVE</a></li>
+<li><a href="#Language___Win32RT_PAGE_READWRITE">__Win32RT.PAGE_READWRITE</a></li>
+<li><a href="#Language___Win32RT_SRWLOCK_INIT">__Win32RT.SRWLOCK_INIT</a></li>
+<li><a href="#Language___Win32RT_STD_OUTPUT_HANDLE">__Win32RT.STD_OUTPUT_HANDLE</a></li>
+<li><a href="#Language___Win32RT_TRUE">__Win32RT.TRUE</a></li>
+<li><a href="#Language___buildCfg">Language.__buildCfg</a></li>
+<h3>Type Aliases</h3>
+<li><a href="#Language___Win32RT_BOOL">__Win32RT.BOOL</a></li>
+<li><a href="#Language___Win32RT_CHAR">__Win32RT.CHAR</a></li>
+<li><a href="#Language___Win32RT_DWORD">__Win32RT.DWORD</a></li>
+<li><a href="#Language___Win32RT_HANDLE">__Win32RT.HANDLE</a></li>
+<li><a href="#Language___Win32RT_SRWLOCK">__Win32RT.SRWLOCK</a></li>
+<li><a href="#Language___Win32RT_ULONG">__Win32RT.ULONG</a></li>
+<li><a href="#Language___Win32RT_ULONG64">__Win32RT.ULONG64</a></li>
+<li><a href="#Language___Win32RT_USHORT">__Win32RT.USHORT</a></li>
+<li><a href="#Language___Win32RT_WCHAR">__Win32RT.WCHAR</a></li>
+<h3>Attributes</h3>
+<li><a href="#Language_Swag_Align">Swag.Align</a></li>
+<li><a href="#Language_Swag_AttrMulti">Swag.AttrMulti</a></li>
+<li><a href="#Language_Swag_AttrUsage">Swag.AttrUsage</a></li>
+<li><a href="#Language_Swag_BorrowSummary">Swag.BorrowSummary</a></li>
+<li><a href="#Language_Swag_CalleeReturn">Swag.CalleeReturn</a></li>
+<li><a href="#Language_Swag_Commutative">Swag.Commutative</a></li>
+<li><a href="#Language_Swag_Compiler">Swag.Compiler</a></li>
+<li><a href="#Language_Swag_ConstExpr">Swag.ConstExpr</a></li>
+<li><a href="#Language_Swag_Deprecated">Swag.Deprecated</a></li>
+<li><a href="#Language_Swag_Discardable">Swag.Discardable</a></li>
+<li><a href="#Language_Swag_EnumFlags">Swag.EnumFlags</a></li>
+<li><a href="#Language_Swag_ExportType">Swag.ExportType</a></li>
+<li><a href="#Language_Swag_Foreign">Swag.Foreign</a></li>
+<li><a href="#Language_Swag_FullInit">Swag.FullInit</a></li>
+<li><a href="#Language_Swag_Global">Swag.Global</a></li>
+<li><a href="#Language_Swag_Implicit">Swag.Implicit</a></li>
+<li><a href="#Language_Swag_Incomplete">Swag.Incomplete</a></li>
+<li><a href="#Language_Swag_Inline">Swag.Inline</a></li>
+<li><a href="#Language_Swag_Late">Swag.Late</a></li>
+<li><a href="#Language_Swag_Macro">Swag.Macro</a></li>
+<li><a href="#Language_Swag_Match">Swag.Match</a></li>
+<li><a href="#Language_Swag_Mixin">Swag.Mixin</a></li>
+<li><a href="#Language_Swag_NoCopy">Swag.NoCopy</a></li>
+<li><a href="#Language_Swag_NoDoc">Swag.NoDoc</a></li>
+<li><a href="#Language_Swag_NoDuplicate">Swag.NoDuplicate</a></li>
+<li><a href="#Language_Swag_NoInline">Swag.NoInline</a></li>
+<li><a href="#Language_Swag_NoPrint">Swag.NoPrint</a></li>
+<li><a href="#Language_Swag_Offset">Swag.Offset</a></li>
+<li><a href="#Language_Swag_Opaque">Swag.Opaque</a></li>
+<li><a href="#Language_Swag_OperatorIgnore">Swag.OperatorIgnore</a></li>
+<li><a href="#Language_Swag_Operators">Swag.Operators</a></li>
+<li><a href="#Language_Swag_Optimize">Swag.Optimize</a></li>
+<li><a href="#Language_Swag_Pack">Swag.Pack</a></li>
+<li><a href="#Language_Swag_PlaceHolder">Swag.PlaceHolder</a></li>
+<li><a href="#Language_Swag_PrintAst">Swag.PrintAst</a></li>
+<li><a href="#Language_Swag_PrintMicro">Swag.PrintMicro</a></li>
+<li><a href="#Language_Swag_Safety">Swag.Safety</a></li>
+<li><a href="#Language_Swag_Sanity">Swag.Sanity</a></li>
+<li><a href="#Language_Swag_Strict">Swag.Strict</a></li>
+<li><a href="#Language_Swag_Tls">Swag.Tls</a></li>
+<li><a href="#Language_Swag_Using">Swag.Using</a></li>
+<li><a href="#Language_Swag_Warning">Swag.Warning</a></li>
+<h3>Functions</h3>
+<li><a href="#Language__abs">Language.@abs</a></li>
+<li><a href="#Language__acos">Language.@acos</a></li>
+<li><a href="#Language__alloc">Language.@alloc</a></li>
+<li><a href="#Language__args">Language.@args</a></li>
+<li><a href="#Language__as">Language.@as</a></li>
+<li><a href="#Language__asin">Language.@asin</a></li>
+<li><a href="#Language__assert">Language.@assert</a></li>
+<li><a href="#Language__atan">Language.@atan</a></li>
+<li><a href="#Language__atan2">Language.@atan2</a></li>
+<li><a href="#Language__atomadd">Language.@atomadd</a></li>
+<li><a href="#Language__atomand">Language.@atomand</a></li>
+<li><a href="#Language__atomcmpxchg">Language.@atomcmpxchg</a></li>
+<li><a href="#Language__atomor">Language.@atomor</a></li>
+<li><a href="#Language__atomxchg">Language.@atomxchg</a></li>
+<li><a href="#Language__atomxor">Language.@atomxor</a></li>
+<li><a href="#Language__bitcountlz">Language.@bitcountlz</a></li>
+<li><a href="#Language__bitcountnz">Language.@bitcountnz</a></li>
+<li><a href="#Language__bitcounttz">Language.@bitcounttz</a></li>
+<li><a href="#Language__breakpoint">Language.@breakpoint</a></li>
+<li><a href="#Language__byteswap">Language.@byteswap</a></li>
+<li><a href="#Language__ceil">Language.@ceil</a></li>
+<li><a href="#Language__compiler">Language.@compiler</a></li>
+<li><a href="#Language__compilererror">Language.@compilererror</a></li>
+<li><a href="#Language__compilerwarning">Language.@compilerwarning</a></li>
+<li><a href="#Language__cos">Language.@cos</a></li>
+<li><a href="#Language__cosh">Language.@cosh</a></li>
+<li><a href="#Language__exp">Language.@exp</a></li>
+<li><a href="#Language__exp2">Language.@exp2</a></li>
+<li><a href="#Language__floor">Language.@floor</a></li>
+<li><a href="#Language__free">Language.@free</a></li>
+<li><a href="#Language__getcontext">Language.@getcontext</a></li>
+<li><a href="#Language__gvtd">Language.@gvtd</a></li>
+<li><a href="#Language__is">Language.@is</a></li>
+<li><a href="#Language__jit">Language.@jit</a></li>
+<li><a href="#Language__log">Language.@log</a></li>
+<li><a href="#Language__log10">Language.@log10</a></li>
+<li><a href="#Language__log2">Language.@log2</a></li>
+<li><a href="#Language__max">Language.@max</a></li>
+<li><a href="#Language__memcmp">Language.@memcmp</a></li>
+<li><a href="#Language__memcpy">Language.@memcpy</a></li>
+<li><a href="#Language__memmove">Language.@memmove</a></li>
+<li><a href="#Language__memset">Language.@memset</a></li>
+<li><a href="#Language__min">Language.@min</a></li>
+<li><a href="#Language__modules">Language.@modules</a></li>
+<li><a href="#Language__muladd">Language.@muladd</a></li>
+<li><a href="#Language__panic">Language.@panic</a></li>
+<li><a href="#Language__pinfos">Language.@pinfos</a></li>
+<li><a href="#Language__pow">Language.@pow</a></li>
+<li><a href="#Language__print">Language.@print</a></li>
+<li><a href="#Language__realloc">Language.@realloc</a></li>
+<li><a href="#Language__rol">Language.@rol</a></li>
+<li><a href="#Language__ror">Language.@ror</a></li>
+<li><a href="#Language__round">Language.@round</a></li>
+<li><a href="#Language__rtflags">Language.@rtflags</a></li>
+<li><a href="#Language__safetypanic">Language.@safetypanic</a></li>
+<li><a href="#Language__setcontext">Language.@setcontext</a></li>
+<li><a href="#Language__sin">Language.@sin</a></li>
+<li><a href="#Language__sinh">Language.@sinh</a></li>
+<li><a href="#Language__sqrt">Language.@sqrt</a></li>
+<li><a href="#Language__stringcmp">Language.@stringcmp</a></li>
+<li><a href="#Language__tableof">Language.@tableof</a></li>
+<li><a href="#Language__tan">Language.@tan</a></li>
+<li><a href="#Language__tanh">Language.@tanh</a></li>
+<li><a href="#Language__trunc">Language.@trunc</a></li>
+<li><a href="#Language__typecmp">Language.@typecmp</a></li>
+<li><a href="#Language_Swag_Allocator_IAllocator_alloc">IAllocator.alloc</a></li>
+<li><a href="#Language_Swag_Allocator_IAllocator_assertAllocated">IAllocator.assertAllocated</a></li>
+<li><a href="#Language_Swag_Allocator_IAllocator_free">IAllocator.free</a></li>
+<li><a href="#Language_Swag_Allocator_IAllocator_freeAll">IAllocator.freeAll</a></li>
+<li><a href="#Language_Swag_Allocator_IAllocator_lockDiagnostic">IAllocator.lockDiagnostic</a></li>
+<li><a href="#Language_Swag_Allocator_IAllocator_realloc">IAllocator.realloc</a></li>
+<li><a href="#Language_Swag_Allocator_IAllocator_unlockDiagnostic">IAllocator.unlockDiagnostic</a></li>
+<li><a href="#Language_Swag_IAllocator_alloc">IAllocator.alloc</a></li>
+<li><a href="#Language_Swag_IAllocator_assertAllocated">IAllocator.assertAllocated</a></li>
+<li><a href="#Language_Swag_IAllocator_free">IAllocator.free</a></li>
+<li><a href="#Language_Swag_IAllocator_freeAll">IAllocator.freeAll</a></li>
+<li><a href="#Language_Swag_IAllocator_realloc">IAllocator.realloc</a></li>
+<li><a href="#Language_Swag_ICompiler_compileString">ICompiler.compileString</a></li>
+<li><a href="#Language_Swag_ICompiler_getBuildCfg">ICompiler.getBuildCfg</a></li>
+<li><a href="#Language_Swag_ICompiler_getMessage">ICompiler.getMessage</a></li>
+<li><a href="#Language_Swag_ScratchAllocator_IAllocator_alloc">IAllocator.alloc</a></li>
+<li><a href="#Language_Swag_ScratchAllocator_IAllocator_allocBlock">IAllocator.allocBlock</a></li>
+<li><a href="#Language_Swag_ScratchAllocator_IAllocator_assertAllocated">IAllocator.assertAllocated</a></li>
+<li><a href="#Language_Swag_ScratchAllocator_IAllocator_free">IAllocator.free</a></li>
+<li><a href="#Language_Swag_ScratchAllocator_IAllocator_freeAll">IAllocator.freeAll</a></li>
+<li><a href="#Language_Swag_ScratchAllocator_IAllocator_realloc">IAllocator.realloc</a></li>
+<li><a href="#Language_Swag_atomicCompareExchangeHeader">Swag.atomicCompareExchangeHeader</a></li>
+<li><a href="#Language_Swag_atomicExchangeHeader">Swag.atomicExchangeHeader</a></li>
+<li><a href="#Language_Swag_atomicGet">Swag.atomicGet</a></li>
+<li><a href="#Language_Swag_atomicLoadHeader">Swag.atomicLoadHeader</a></li>
+<li><a href="#Language_Swag_currentThreadId">Swag.currentThreadId</a></li>
+<li><a href="#Language_Swag_defaultAllocator">Swag.defaultAllocator</a></li>
+<li><a href="#Language_Swag_installAllocator">Swag.installAllocator</a></li>
+<li><a href="#Language_Swag_releaseAllocatorThreadCache">Swag.releaseAllocatorThreadCache</a></li>
+<li><a href="#Language___Win32RT_AcquireSRWLockExclusive">__Win32RT.AcquireSRWLockExclusive</a></li>
+<li><a href="#Language___Win32RT_DebugBreak">__Win32RT.DebugBreak</a></li>
+<li><a href="#Language___Win32RT_ExitProcess">__Win32RT.ExitProcess</a></li>
+<li><a href="#Language___Win32RT_GetCurrentProcess">__Win32RT.GetCurrentProcess</a></li>
+<li><a href="#Language___Win32RT_GetCurrentThreadId">__Win32RT.GetCurrentThreadId</a></li>
+<li><a href="#Language___Win32RT_GetModuleHandleA">__Win32RT.GetModuleHandleA</a></li>
+<li><a href="#Language___Win32RT_GetModuleHandleExA">__Win32RT.GetModuleHandleExA</a></li>
+<li><a href="#Language___Win32RT_GetStdHandle">__Win32RT.GetStdHandle</a></li>
+<li><a href="#Language___Win32RT_LoadLibraryA">__Win32RT.LoadLibraryA</a></li>
+<li><a href="#Language___Win32RT_MessageBoxA">__Win32RT.MessageBoxA</a></li>
+<li><a href="#Language___Win32RT_RaiseException">__Win32RT.RaiseException</a></li>
+<li><a href="#Language___Win32RT_ReleaseSRWLockExclusive">__Win32RT.ReleaseSRWLockExclusive</a></li>
+<li><a href="#Language___Win32RT_RtlCaptureContext">__Win32RT.RtlCaptureContext</a></li>
+<li><a href="#Language___Win32RT_RtlCaptureStackBackTrace">__Win32RT.RtlCaptureStackBackTrace</a></li>
+<li><a href="#Language___Win32RT_RtlRestoreContext">__Win32RT.RtlRestoreContext</a></li>
+<li><a href="#Language___Win32RT_SetUnhandledExceptionFilter">__Win32RT.SetUnhandledExceptionFilter</a></li>
+<li><a href="#Language___Win32RT_TlsAlloc">__Win32RT.TlsAlloc</a></li>
+<li><a href="#Language___Win32RT_TlsGetValue">__Win32RT.TlsGetValue</a></li>
+<li><a href="#Language___Win32RT_TlsSetValue">__Win32RT.TlsSetValue</a></li>
+<li><a href="#Language___Win32RT_VirtualAlloc">__Win32RT.VirtualAlloc</a></li>
+<li><a href="#Language___Win32RT_VirtualFree">__Win32RT.VirtualFree</a></li>
+<li><a href="#Language___Win32RT_WriteFile">__Win32RT.WriteFile</a></li>
+<li><a href="#Language___bindErr">Language.__bindErr</a></li>
+<li><a href="#Language___captureStack">Language.__captureStack</a></li>
+<li><a href="#Language___catchErr">Language.__catchErr</a></li>
+<li><a href="#Language___clearErr">Language.__clearErr</a></li>
+<li><a href="#Language___closeRuntime">Language.__closeRuntime</a></li>
+<li><a href="#Language___compilerError">Language.__compilerError</a></li>
+<li><a href="#Language___concreteAlias">Language.__concreteAlias</a></li>
+<li><a href="#Language___convertArgcArgv">Language.__convertArgcArgv</a></li>
+<li><a href="#Language___dbgFindSection">Language.__dbgFindSection</a></li>
+<li><a href="#Language___dbgStr">Language.__dbgStr</a></li>
+<li><a href="#Language___dropErr">Language.__dropErr</a></li>
+<li><a href="#Language___dropGlobalVariables">Language.__dropGlobalVariables</a></li>
+<li><a href="#Language___endErr">Language.__endErr</a></li>
+<li><a href="#Language___ensureRuntimeAllocator">Language.__ensureRuntimeAllocator</a></li>
+<li><a href="#Language___exit">Language.__exit</a></li>
+<li><a href="#Language___exitError">Language.__exitError</a></li>
+<li><a href="#Language___failedExpect">Language.__failedExpect</a></li>
+<li><a href="#Language___ftoa">Language.__ftoa</a></li>
+<li><a href="#Language___hasErr">Language.__hasErr</a></li>
+<li><a href="#Language___isErrContext">Language.__isErrContext</a></li>
+<li><a href="#Language___isTestRun">Language.__isTestRun</a></li>
+<li><a href="#Language___itoa">Language.__itoa</a></li>
+<li><a href="#Language___loaddll">Language.__loaddll</a></li>
+<li><a href="#Language___logStackTrace">Language.__logStackTrace</a></li>
+<li><a href="#Language___panic">Language.__panic</a></li>
+<li><a href="#Language___panicBox">Language.__panicBox</a></li>
+<li><a href="#Language___peU16">Language.__peU16</a></li>
+<li><a href="#Language___peU32">Language.__peU32</a></li>
+<li><a href="#Language___popErr">Language.__popErr</a></li>
+<li><a href="#Language___printF64">Language.__printF64</a></li>
+<li><a href="#Language___printPanicReport">Language.__printPanicReport</a></li>
+<li><a href="#Language___printS64">Language.__printS64</a></li>
+<li><a href="#Language___printString">Language.__printString</a></li>
+<li><a href="#Language___printU64">Language.__printU64</a></li>
+<li><a href="#Language___pushErr">Language.__pushErr</a></li>
+<li><a href="#Language___raiseException666">Language.__raiseException666</a></li>
+<li><a href="#Language___releaseRuntime">Language.__releaseRuntime</a></li>
+<li><a href="#Language___resetRuntimeContext">Language.__resetRuntimeContext</a></li>
+<li><a href="#Language___runTest">Language.__runTest</a></li>
+<li><a href="#Language___runtimeAllocator">Language.__runtimeAllocator</a></li>
+<li><a href="#Language___setErr">Language.__setErr</a></li>
+<li><a href="#Language___setErrRaw">Language.__setErrRaw</a></li>
+<li><a href="#Language___setupRuntime">Language.__setupRuntime</a></li>
+<li><a href="#Language___stackTrace">Language.__stackTrace</a></li>
+<li><a href="#Language___symbolize">Language.__symbolize</a></li>
+<li><a href="#Language___testPanicHandler">Language.__testPanicHandler</a></li>
+<li><a href="#Language___testResumeContext">Language.__testResumeContext</a></li>
+<li><a href="#Language___testUnhandledFilter">Language.__testUnhandledFilter</a></li>
+<li><a href="#Language___testsDone">Language.__testsDone</a></li>
+<li><a href="#Language___tlsAlloc">Language.__tlsAlloc</a></li>
+<li><a href="#Language___tlsGetPtr">Language.__tlsGetPtr</a></li>
+<li><a href="#Language___tlsGetValue">Language.__tlsGetValue</a></li>
+<li><a href="#Language___tlsSetValue">Language.__tlsSetValue</a></li>
+<li><a href="#Language___utoa">Language.__utoa</a></li>
+<li><a href="#Language_acos">Language.acos</a></li>
+<li><a href="#Language_acosf">Language.acosf</a></li>
+<li><a href="#Language_asin">Language.asin</a></li>
+<li><a href="#Language_asinf">Language.asinf</a></li>
+<li><a href="#Language_atan">Language.atan</a></li>
+<li><a href="#Language_atan2">Language.atan2</a></li>
+<li><a href="#Language_atan2f">Language.atan2f</a></li>
+<li><a href="#Language_atanf">Language.atanf</a></li>
+<li><a href="#Language_ceil">Language.ceil</a></li>
+<li><a href="#Language_ceilf">Language.ceilf</a></li>
+<li><a href="#Language_cos">Language.cos</a></li>
+<li><a href="#Language_cosf">Language.cosf</a></li>
+<li><a href="#Language_cosh">Language.cosh</a></li>
+<li><a href="#Language_coshf">Language.coshf</a></li>
+<li><a href="#Language_exp">Language.exp</a></li>
+<li><a href="#Language_exp2">Language.exp2</a></li>
+<li><a href="#Language_exp2f">Language.exp2f</a></li>
+<li><a href="#Language_expf">Language.expf</a></li>
+<li><a href="#Language_floor">Language.floor</a></li>
+<li><a href="#Language_floorf">Language.floorf</a></li>
+<li><a href="#Language_free">Language.free</a></li>
+<li><a href="#Language_log">Language.log</a></li>
+<li><a href="#Language_log10">Language.log10</a></li>
+<li><a href="#Language_log10f">Language.log10f</a></li>
+<li><a href="#Language_log2">Language.log2</a></li>
+<li><a href="#Language_log2f">Language.log2f</a></li>
+<li><a href="#Language_logf">Language.logf</a></li>
+<li><a href="#Language_malloc">Language.malloc</a></li>
+<li><a href="#Language_memcmp">Language.memcmp</a></li>
+<li><a href="#Language_memcpy">Language.memcpy</a></li>
+<li><a href="#Language_memmove">Language.memmove</a></li>
+<li><a href="#Language_memset">Language.memset</a></li>
+<li><a href="#Language_pow">Language.pow</a></li>
+<li><a href="#Language_powf">Language.powf</a></li>
+<li><a href="#Language_realloc">Language.realloc</a></li>
+<li><a href="#Language_round">Language.round</a></li>
+<li><a href="#Language_roundf">Language.roundf</a></li>
+<li><a href="#Language_sin">Language.sin</a></li>
+<li><a href="#Language_sinf">Language.sinf</a></li>
+<li><a href="#Language_sinh">Language.sinh</a></li>
+<li><a href="#Language_sinhf">Language.sinhf</a></li>
+<li><a href="#Language_sqrt">Language.sqrt</a></li>
+<li><a href="#Language_sqrtf">Language.sqrtf</a></li>
+<li><a href="#Language_tan">Language.tan</a></li>
+<li><a href="#Language_tanf">Language.tanf</a></li>
+<li><a href="#Language_tanh">Language.tanh</a></li>
+<li><a href="#Language_tanhf">Language.tanhf</a></li>
+<li><a href="#Language_trunc">Language.trunc</a></li>
+<li><a href="#Language_truncf">Language.truncf</a></li>
+</div></div>
+<div class="right"><div class="right-page">
+<h1>Swag Runtime</h1>
+<h1>Content</h1>
+<table class="api-item"><tr><td><span id="Language_Swag"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L2">[src]</a></td></tr></table>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Language_Swag_Align">Align</a></td><td><p>Alignment of the following struct or struct field</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_AttrMulti">AttrMulti</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_AttrUsage">AttrUsage</a></td><td><p>Hardcoded usage</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_BorrowSummary">BorrowSummary</a></td><td><p>Computed borrow summary of a function, consumed by the static borrow analysis. Bit <span class="code-inline">i</span> of <span class="code-inline">returns</span> means the return value may borrow parameter #i; bit <span class="code-inline">i</span> of <span class="code-inline">stores</span> means parameter #i may be stored in storage that outlives the call; bit <span class="code-inline">i*8+j</span> of <span class="code-inline">into</span> means parameter #j may be stored into storage reachable from parameter #i (packed 8x8); bit <span class="code-inline">i</span> of <span class="code-inline">frees</span> means the call invalidates what parameter #i points to (it reaches [[IAllocator.free]] or [[IAllocator.realloc]]). Emitted automatically in generated module APIs so summaries cross module boundaries; can also be written manually on a <a href="#Language_Swag_Foreign">Foreign</a> function.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_CalleeReturn">CalleeReturn</a></td><td><p>A <span class="code-inline">return</span> in the following macro/mixin function must be done in the callee context</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Commutative">Commutative</a></td><td><p>An opBinary operator overload can also be used when its receiver is the right operand. Optional parameters restrict the operators for generic opBinary implementations.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Compiler">Compiler</a></td><td><p>The following function or variable is only defined at compile time</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_ConstExpr">ConstExpr</a></td><td><p>Can be executed at compile time</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Deprecated">Deprecated</a></td><td><p>The following definition is deprecated and should not be used</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Discardable">Discardable</a></td><td><p>The following function accepts that the called does not use its return value</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_EnumFlags">EnumFlags</a></td><td><p>The following enum is a set of flags</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_ExportType">ExportType</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Foreign">Foreign</a></td><td><p>The following function is foreign (imported)</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_FullInit">FullInit</a></td><td><p>The following <span class="code-inline">opSet</span> or <span class="code-inline">opCast</span> initializes the whole destination, so the caller does not have to default-initialize it first.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Global">Global</a></td><td><p>Give the following local declaration static storage</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Implicit">Implicit</a></td><td><p>Can force an <span class="code-inline">opCast</span> operator overload to work as implicit</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Incomplete">Incomplete</a></td><td><p>The declared values of the following enum are not the full set: a value outside them is expected at runtime, so a switch on it is not meant to be exhaustive.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Inline">Inline</a></td><td><p>Force a function to be inlined</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Late">Late</a></td><td><p>The following struct field or global variable is initialized after construction: the type stays non-null, the storage starts null, and a read is only accepted once the declaration is provably set. A local has no such storage lifetime and is rejected with its own diagnostic, so the usage stays at the coarse 'any variable' level here.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Macro">Macro</a></td><td><p>The following function is a <span class="code-inline">macro</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Match">Match</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Mixin">Mixin</a></td><td><p>The following function is a <span class="code-inline">mixin</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_NoCopy">NoCopy</a></td><td><p>The following struct should never be copied</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_NoDoc">NoDoc</a></td><td><p>Do not generate documentation.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_NoDuplicate">NoDuplicate</a></td><td><p>The following enum can't have duplicated values</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_NoInline">NoInline</a></td><td><p>Never inline the following function. This is a hint for the backend.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_NoPrint">NoPrint</a></td><td><p>Disable <span class="code-inline">@print</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Offset">Offset</a></td><td><p>Struct field member relocation. The field offset in the struct should be the same as the variable <span class="code-inline">name</span></p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Opaque">Opaque</a></td><td><p>When exporting the following struct,: not export its content</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_OperatorIgnore">OperatorIgnore</a></td><td><p>Exclude a struct field from generated operator overloads.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Operators">Operators</a></td><td><p>Generate operator overloads for a struct.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Optimize">Optimize</a></td><td><p>Set optimized code generation on/off.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Pack">Pack</a></td><td><p><span class="code-inline">struct</span> packing information</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_PlaceHolder">PlaceHolder</a></td><td><p>An empty function will be generated</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_PrintAst">PrintAst</a></td><td><p>On a function or a struct, this prints the associated AST shape.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_PrintMicro">PrintMicro</a></td><td><p>On a function or a struct, this prints generated micro instructions. If no parameter is provided, this prints right before the emit pass. Otherwise, parameters are strings of the form before-passname / after-passname.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Safety">Safety</a></td><td><p>Enable/Disable one or more safety checks.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Sanity">Sanity</a></td><td><p>Enable/Disable one or more STATIC (compile-time) sanity checks: the borrow analysis, and the proven-fault sanitizer (use-after-move, stack escapes, proven null dereferences, ...). Reuses the <a href="#Language_Swag_SafetyWhat">SafetyWhat</a> flags. Unlike <a href="#Language_Swag_Safety">Safety</a>, these checks add no runtime cost and are enabled by default in every build configuration.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Strict">Strict</a></td><td><p>Keep the following alias distinct from its target for implicit conversions</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Tls">Tls</a></td><td><p>Put the following global variable in the <span class="code-inline">tls</span> segment. A copy of the variable will be available for each thread.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Using">Using</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_Warning">Warning</a></td><td><p>Change the behavior of a given warning or list of warnings. For example:</p>
+<div class="code-block"><span class="SAtr">#[Swag.Warning("Wrn0006", Swag.WarningLevel.Error)
+#[Swag.Warning("Wrn0002|Wrn0006", Swag.WarningLevel.Disable)
+#global #[Swag.Warning("Wrn0005", Swag.WarningLevel.Enable)]
+</span></div>
+<p>You can also change the warning behaviors for the whole module in your <a href="#Language_Swag_BuildCfg">BuildCfg</a></p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_atomicCompareExchangeHeader">atomicCompareExchangeHeader</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_atomicExchangeHeader">atomicExchangeHeader</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_atomicGet">atomicGet</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_atomicGet">atomicGet</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_atomicLoadHeader">atomicLoadHeader</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_currentThreadId">currentThreadId</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_defaultAllocator">defaultAllocator</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_installAllocator">installAllocator</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_releaseAllocatorThreadCache">releaseAllocatorThreadCache</a></td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_F32"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.F32</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L397">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_F64"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.F64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L409">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_S16"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.S16</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L355">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_S32"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.S32</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L361">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_S64"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.S64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L367">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_S8"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.S8</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L349">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_U16"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.U16</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L379">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_U32"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.U32</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L385">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_U64"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.U64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L391">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language_Swag_U8"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.Swag.U8</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L373">[src]</a></td></tr></table>
+<table class="api-item"><tr><td><span id="Language___Win32RT"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Language.__Win32RT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L10">[src]</a></td></tr></table>
+<p>//////////////////////////////////////////////////////////</p>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Language___Win32RT_AcquireSRWLockExclusive">AcquireSRWLockExclusive</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_DebugBreak">DebugBreak</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_ExitProcess">ExitProcess</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_GetCurrentProcess">GetCurrentProcess</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_GetCurrentThreadId">GetCurrentThreadId</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_GetModuleHandleA">GetModuleHandleA</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_GetModuleHandleExA">GetModuleHandleExA</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_GetStdHandle">GetStdHandle</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_LoadLibraryA">LoadLibraryA</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_MessageBoxA">MessageBoxA</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_RaiseException">RaiseException</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_ReleaseSRWLockExclusive">ReleaseSRWLockExclusive</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_RtlCaptureContext">RtlCaptureContext</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_RtlCaptureStackBackTrace">RtlCaptureStackBackTrace</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_RtlRestoreContext">RtlRestoreContext</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_SetUnhandledExceptionFilter">SetUnhandledExceptionFilter</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_TlsAlloc">TlsAlloc</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_TlsGetValue">TlsGetValue</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_TlsSetValue">TlsSetValue</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_VirtualAlloc">VirtualAlloc</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_VirtualFree">VirtualFree</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language___Win32RT_WriteFile">WriteFile</a></td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Allocator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L70">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Allocator</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">breakOnAllocId</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">captureAllocStack</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">classes</td><td class="code-type">[28] Language.Swag.AllocatorClass</td><td></td></tr>
+<tr><td class="code-type">countAlloc</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">countFree</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">countOsAlloc</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">countOsFree</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">detectLeaks</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">electricMode</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">fillAlloc</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">fillFree</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">firstAlloc</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">firstFree</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">firstRetiredHeap</td><td class="code-type">#null *Language.Swag.AllocatorThreadHeap</td><td></td></tr>
+<tr><td class="code-type">installMagic</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">lastFree</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">maxCachedBytes</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">maxCachedSize</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">maxFreeSize</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">mutex</td><td class="code-type">Language.MutexRW</td><td></td></tr>
+<tr><td class="code-type">nextId</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">showMaxLeaks</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">sizeAlloc</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">sizeCached</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">sizeFree</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">sizeOsAlloc</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">sizeOsFree</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">trackAllocations</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorClass"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AllocatorClass</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L40">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AllocatorClass</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">cachedBytes</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">cachedCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">firstFree</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorFooter"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AllocatorFooter</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L29">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AllocatorFooter</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">magic</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorHeader"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AllocatorHeader</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AllocatorHeader</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">alignment</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">allocAddr</td><td class="code-type">#null [*] void</td><td></td></tr>
+<tr><td class="code-type">allocId</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">allocSize</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">blockSize</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">classIndex</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">hint</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">isTracked</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">loc</td><td class="code-type">Language.Swag.SourceCodeLocation</td><td></td></tr>
+<tr><td class="code-type">magic</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">next</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">nextFree</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">ownerHeap</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">prev</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">prevFree</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">stack</td><td class="code-type">[16] *void</td><td></td></tr>
+<tr><td class="code-type">stackCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">userSize</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorRawBlock"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AllocatorRawBlock</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L34">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AllocatorRawBlock</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">address</td><td class="code-type">#null [*] void</td><td></td></tr>
+<tr><td class="code-type">size</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorRequest"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AllocatorRequest</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L471">[src]</a></td></tr></table>
+<p>Represents the request for a given allocator. The operation itself is carried by the <a href="#Language_Swag_IAllocator">IAllocator</a> method being called; the request only transports its operands and the tracking metadata.</p>
+<p>For [[IAllocator.alloc]]:</p>
+<ul>
+<li><span class="code-inline">size</span> must be the size in bytes to allocate</li>
+<li><span class="code-inline">alignment</span> must be the alignment constraint in bytes (or 0)</li>
+<li><span class="code-inline">address</span> will be the returned allocated memory address</li>
+</ul>
+<p>For [[IAllocator.free]]:</p>
+<ul>
+<li><span class="code-inline">size</span> must be the original allocated size in bytes of <span class="code-inline">address</span></li>
+<li><span class="code-inline">address</span> must be the memory address to release</li>
+</ul>
+<p>For [[IAllocator.realloc]]:</p>
+<ul>
+<li><span class="code-inline">size</span> must be the new size in bytes</li>
+<li><span class="code-inline">oldSize</span> must be the original allocated size in bytes of <span class="code-inline">address</span></li>
+<li><span class="code-inline">address</span> must be the memory address to reallocate, and receives the new one</li>
+</ul>
+<p>See <a href="#Language_Swag_IAllocator">IAllocator</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AllocatorRequest</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">address</td><td class="code-type">#null *void</td><td><p>The returned address or the address to deal with.</p>
+</td></tr>
+<tr><td class="code-type">alignment</td><td class="code-type">u32</td><td><p>Alignment constraint.</p>
+</td></tr>
+<tr><td class="code-type">callerLoc</td><td class="code-type">Language.Swag.SourceCodeLocation</td><td><p>The caller code, to help tracking leaks. Optional.</p>
+</td></tr>
+<tr><td class="code-type">hint</td><td class="code-type">#null string</td><td><p>A hint message, to help tracking leaks. Optional.</p>
+</td></tr>
+<tr><td class="code-type">oldSize</td><td class="code-type">u64</td><td><p>When reallocating.</p>
+</td></tr>
+<tr><td class="code-type">size</td><td class="code-type">u64</td><td><p>The requested size or the size to deal with.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorThreadClass"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AllocatorThreadClass</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L47">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AllocatorThreadClass</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">cachedBytes</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">cachedCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">firstFree</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+<tr><td class="code-type">remoteFree</td><td class="code-type">#null *Language.Swag.AllocatorHeader</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorThreadHeap"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AllocatorThreadHeap</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L55">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AllocatorThreadHeap</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">activeCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">allocator</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">cachedBytes</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">cachedCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">classes</td><td class="code-type">[28] Language.Swag.AllocatorThreadClass</td><td></td></tr>
+<tr><td class="code-type">nextRetired</td><td class="code-type">#null *Language.Swag.AllocatorThreadHeap</td><td></td></tr>
+<tr><td class="code-type">retired</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">threadId</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_Attribute"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Attribute</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L687">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Attribute</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">params</td><td class="code-type">#null const [..] Language.Swag.AttributeParam</td><td><p>Attribute parameters</p>
+</td></tr>
+<tr><td class="code-type">type</td><td class="code-type">#null const *Language.Swag.TypeInfo</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AttributeParam"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.AttributeParam</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L681">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AttributeParam</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">name</td><td class="code-type">#null string</td><td><p>Name of the attribute parameter</p>
+</td></tr>
+<tr><td class="code-type">value</td><td class="code-type">#null any</td><td><p>Optional default value</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BaseError"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.BaseError</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L531">[src]</a></td></tr></table>
+<p>This is the base of all errors</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BaseError</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">message</td><td class="code-type">#null string</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfg"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.BuildCfg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L939">[src]</a></td></tr></table>
+<p>The current module build configuration. See <a href="#Language_Swag_ICompiler">ICompiler</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BuildCfg</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">allocatorCaptureStack</td><td class="code-type">bool</td><td><p>Capture a call stack for each tracked allocation</p>
+</td></tr>
+<tr><td class="code-type">allocatorElectricMode</td><td class="code-type">bool</td><td><p>Never reuse freed blocks</p>
+</td></tr>
+<tr><td class="code-type">allocatorFillMemory</td><td class="code-type">bool</td><td><p>Fill allocated/freed memory with debug patterns</p>
+</td></tr>
+<tr><td class="code-type">allocatorLeaks</td><td class="code-type">bool</td><td><p>Report memory leaks at runtime shutdown</p>
+</td></tr>
+<tr><td class="code-type">allocatorTrackAllocations</td><td class="code-type">bool</td><td><p>Keep an exact allocation list for detailed leak reporting</p>
+</td></tr>
+<tr><td class="code-type">backend</td><td class="code-type">Language.Swag.BuildCfgBackend</td><td><p>Backend options</p>
+</td></tr>
+<tr><td class="code-type">backendKind</td><td class="code-type">Language.Swag.BuildCfgBackendKind</td><td><p>Backend type (executable, shared library, static library, export...)</p>
+</td></tr>
+<tr><td class="code-type">backendSubKind</td><td class="code-type">Language.Swag.BuildCfgBackendSubKind</td><td><p>Backend sub kind</p>
+</td></tr>
+<tr><td class="code-type">embeddedImports</td><td class="code-type">bool</td><td><p>Module should embed all its dependencies</p>
+</td></tr>
+<tr><td class="code-type">errorAllocatorCapacity</td><td class="code-type">u32</td><td><p>Default capacity of the <span class="code-inline">error</span> allocator (in bytes)</p>
+</td></tr>
+<tr><td class="code-type">errorStackTrace</td><td class="code-type">bool</td><td><p>Add stack trace in case a <span class="code-inline">fail</span> is raised</p>
+</td></tr>
+<tr><td class="code-type">genDoc</td><td class="code-type">Language.Swag.BuildCfgGenDoc</td><td><p>Parameters for document generation</p>
+</td></tr>
+<tr><td class="code-type">ignoreInWorkspace</td><td class="code-type">bool</td><td><p>Skip this module when building a workspace</p>
+</td></tr>
+<tr><td class="code-type">moduleBuildNum</td><td class="code-type">u32</td><td><p>The module build value</p>
+</td></tr>
+<tr><td class="code-type">moduleNamespace</td><td class="code-type">#null string</td><td><p>The namespace name of the module</p>
+</td></tr>
+<tr><td class="code-type">moduleRevision</td><td class="code-type">u32</td><td><p>The module revision</p>
+</td></tr>
+<tr><td class="code-type">moduleVersion</td><td class="code-type">u32</td><td><p>The module version</p>
+</td></tr>
+<tr><td class="code-type">name</td><td class="code-type">#null string</td><td><p>Artifact name</p>
+</td></tr>
+<tr><td class="code-type">outDir</td><td class="code-type">#null string</td><td><p>Artifact output directory</p>
+</td></tr>
+<tr><td class="code-type">registeredConfigs</td><td class="code-type">string</td><td><p>Registered build configuration names used by --build-cfg and #cfg</p>
+</td></tr>
+<tr><td class="code-type">repoPath</td><td class="code-type">#null string</td><td><p>Repository access path to the module</p>
+</td></tr>
+<tr><td class="code-type">resAppCompany</td><td class="code-type">#null string</td><td><p>For an executable, the associated company name</p>
+</td></tr>
+<tr><td class="code-type">resAppCopyright</td><td class="code-type">#null string</td><td><p>For an executable, the associated copyright notice</p>
+</td></tr>
+<tr><td class="code-type">resAppDescription</td><td class="code-type">#null string</td><td><p>For an executable, the associated application description</p>
+</td></tr>
+<tr><td class="code-type">resAppIcoFileName</td><td class="code-type">#null string</td><td><p>For an executable, the associated icon file name</p>
+</td></tr>
+<tr><td class="code-type">resAppName</td><td class="code-type">#null string</td><td><p>For an executable, the associated application name</p>
+</td></tr>
+<tr><td class="code-type">safetyGuards</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Activate specific RUNTIME safety checks (guards, panics, poisoning)</p>
+</td></tr>
+<tr><td class="code-type">sanityGuards</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Activate specific STATIC (compile-time) sanity checks</p>
+</td></tr>
+<tr><td class="code-type">tempAllocatorCapacity</td><td class="code-type">u32</td><td><p>Default capacity of the <span class="code-inline">temp</span> allocator (in bytes)</p>
+</td></tr>
+<tr><td class="code-type">warnAsDisabled</td><td class="code-type">#null string</td><td><p>Disable some specific warnings</p>
+</td></tr>
+<tr><td class="code-type">warnAsErrors</td><td class="code-type">#null string</td><td><p>Force some warnings to be treated as errors. Format is "WrnXXXX|WrnXXXX..."</p>
+</td></tr>
+<tr><td class="code-type">warnAsWarning</td><td class="code-type">#null string</td><td><p>Override <span class="code-inline">warnAsErrors</span>, restoring warnings as warnings</p>
+</td></tr>
+<tr><td class="code-type">warnDefaultDisabled</td><td class="code-type">bool</td><td><p>All warnings are disabled, except those specified above</p>
+</td></tr>
+<tr><td class="code-type">warnDefaultErrors</td><td class="code-type">bool</td><td><p>All warnings are treated as errors, except those specified above</p>
+</td></tr>
+<tr><td class="code-type">workDir</td><td class="code-type">#null string</td><td><p>Work directory</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfgBackend"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.BuildCfgBackend</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L862">[src]</a></td></tr></table>
+<p>Backend options</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BuildCfgBackend</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">cpuVectorize</td><td class="code-type">Language.Swag.BuildCfgBackendCpuVectorize</td><td><p>Auto-vectorization policy (set per build config)</p>
+</td></tr>
+<tr><td class="code-type">debugInfo</td><td class="code-type">bool</td><td><p>Output debug information if <span class="code-inline">true</span></p>
+</td></tr>
+<tr><td class="code-type">enableExceptions</td><td class="code-type">bool</td><td><p>Generate unwind info for JIT code and register SEH function tables</p>
+</td></tr>
+<tr><td class="code-type">fpMathApproxFunc</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">fpMathFma</td><td class="code-type">bool</td><td><p>true in <span class="code-inline">release</span></p>
+</td></tr>
+<tr><td class="code-type">fpMathNoInf</td><td class="code-type">bool</td><td><p>true in <span class="code-inline">release</span></p>
+</td></tr>
+<tr><td class="code-type">fpMathNoNaN</td><td class="code-type">bool</td><td><p>true in <span class="code-inline">release</span></p>
+</td></tr>
+<tr><td class="code-type">fpMathNoSignedZero</td><td class="code-type">bool</td><td><p>true in <span class="code-inline">release</span></p>
+</td></tr>
+<tr><td class="code-type">fpMathUnsafe</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">inlineMode</td><td class="code-type">Language.Swag.BuildCfgBackendInlineMode</td><td><p>Inlining policy (set per build config)</p>
+</td></tr>
+<tr><td class="code-type">optimize</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">unrollMemLimit</td><td class="code-type">u32</td><td><p>Maximum number of bytes to unroll memset/cpy in optimize mode</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfgGenDoc"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.BuildCfgGenDoc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L906">[src]</a></td></tr></table>
+<p>This contains all options when generating documentation.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BuildCfgGenDoc</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">css</td><td class="code-type">#null string</td><td><p>The <span class="code-inline">css</span> file to include in generated documentations</p>
+</td></tr>
+<tr><td class="code-type">endBody</td><td class="code-type">#null string</td><td><p>Content to insert at the end of the &lt;body&gt; section</p>
+</td></tr>
+<tr><td class="code-type">endHead</td><td class="code-type">#null string</td><td><p>Content to insert at the end of the &lt;head&gt; section</p>
+</td></tr>
+<tr><td class="code-type">hasFontAwesome</td><td class="code-type">bool</td><td><p>Generate a reference to the FontAwesome script (icons)</p>
+</td></tr>
+<tr><td class="code-type">hasStyleSection</td><td class="code-type">bool</td><td><p>Generate a default &lt;style&gt; section</p>
+</td></tr>
+<tr><td class="code-type">hasSwagWatermark</td><td class="code-type">bool</td><td><p>Generate a swag watermark at the bottom of each page</p>
+</td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">#null string</td><td><p>The icon path of the page</p>
+</td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Language.Swag.BuildCfgDocKind</td><td><p>The kind of documentation to generate</p>
+</td></tr>
+<tr><td class="code-type">morePages</td><td class="code-type">#null string</td><td><p>Additional external file pages to process (separated with <span class="code-inline">;</span>)</p>
+</td></tr>
+<tr><td class="code-type">outputExtension</td><td class="code-type">#null string</td><td><p>The output extension</p>
+</td></tr>
+<tr><td class="code-type">outputName</td><td class="code-type">#null string</td><td><p>The name of the output file (without extension)</p>
+</td></tr>
+<tr><td class="code-type">quoteIconAttention</td><td class="code-type">#null string</td><td><p>The icon for the attention blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteIconExample</td><td class="code-type">#null string</td><td><p>The icon for the example blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteIconNote</td><td class="code-type">#null string</td><td><p>The icon for the note blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteIconTip</td><td class="code-type">#null string</td><td><p>The icon for the tip blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteIconWarning</td><td class="code-type">#null string</td><td><p>The icon for the warning blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteTitleAttention</td><td class="code-type">#null string</td><td><p>The title for the attention blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteTitleExample</td><td class="code-type">#null string</td><td><p>The title for the example blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteTitleNote</td><td class="code-type">#null string</td><td><p>The title for the note blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteTitleTip</td><td class="code-type">#null string</td><td><p>The title for the tip blockquote</p>
+</td></tr>
+<tr><td class="code-type">quoteTitleWarning</td><td class="code-type">#null string</td><td><p>The title for the warning blockquote</p>
+</td></tr>
+<tr><td class="code-type">startBody</td><td class="code-type">#null string</td><td><p>Content to insert at the start of the &lt;body&gt; section</p>
+</td></tr>
+<tr><td class="code-type">startHead</td><td class="code-type">#null string</td><td><p>Content to insert at the start of the &lt;head&gt; section</p>
+</td></tr>
+<tr><td class="code-type">syntaxColorLum</td><td class="code-type">f32</td><td><p>Code syntax color luminosity in range ]0, 1]</p>
+</td></tr>
+<tr><td class="code-type">syntaxDefaultColor</td><td class="code-type">u32</td><td><p>Code syntax default color (if not colorized)</p>
+</td></tr>
+<tr><td class="code-type">titleContent</td><td class="code-type">#null string</td><td><p>Title for the main document content</p>
+</td></tr>
+<tr><td class="code-type">titleToc</td><td class="code-type">#null string</td><td><p>Title for the table of content</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_CVaList"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.CVaList</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1053">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CVaList</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">buf</td><td class="code-type">[2048] u8</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_ClosureValue"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ClosureValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L675">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ClosureValue</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">capture</td><td class="code-type">[64] u8</td><td></td></tr>
+<tr><td class="code-type">invoke</td><td class="code-type">#null *void</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_CompilerMessage"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.CompilerMessage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1022">[src]</a></td></tr></table>
+<p>A message received in a <span class="code-inline">#message</span> function.</p>
+<p>In a <span class="code-inline">#message</span> function, you can retreive the associated message by calling <span class="code-inline">getMessage</span> of the interface returned by <a href="#Language__compiler">@compiler</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CompilerMessage</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">kind</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Kind of the message</p>
+</td></tr>
+<tr><td class="code-type">moduleName</td><td class="code-type">#null string</td><td><p>Name of the module for which the message is sent.</p>
+</td></tr>
+<tr><td class="code-type">name</td><td class="code-type">#null string</td><td><p>Depends on <span class="code-inline">kind</span></p>
+</td></tr>
+<tr><td class="code-type">type</td><td class="code-type">#null const *Language.Swag.TypeInfo</td><td><p>Depends on <span class="code-inline">kind</span></p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_Context"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Context</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L554">[src]</a></td></tr></table>
+<p>Thread context as returned by [@getcontext].</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Context</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">allocator</td><td class="code-type">#null Language.Swag.IAllocator</td><td><p>The current allocator interface</p>
+</td></tr>
+<tr><td class="code-type">curError</td><td class="code-type">#null any</td><td><p>The current raised error</p>
+</td></tr>
+<tr><td class="code-type">defaultAllocator</td><td class="code-type">#null Language.Swag.IAllocator</td><td><p>The default allocator, to restore after a temporary change of <span class="code-inline">allocator</span></p>
+</td></tr>
+<tr><td class="code-type">errorAllocator</td><td class="code-type">Language.Swag.ScratchAllocator</td><td><p>A temporary allocator to store the error values</p>
+</td></tr>
+<tr><td class="code-type">errorIndex</td><td class="code-type">u32</td><td><p>Number of errors in the array</p>
+</td></tr>
+<tr><td class="code-type">errors</td><td class="code-type">[32] Language.Swag.ErrorValue</td><td><p>All errors</p>
+</td></tr>
+<tr><td class="code-type">exceptionLoc</td><td class="code-type">Language.Swag.SourceCodeLocation</td><td><p>When an exception is raised, this is the code location</p>
+</td></tr>
+<tr><td class="code-type">exceptionParams</td><td class="code-type">[4] #null const *void</td><td><p>When an exception is raised, this are the parameters</p>
+</td></tr>
+<tr><td class="code-type">hasError</td><td class="code-type">u32</td><td><p>&lt;&gt; 0 if an error is raised</p>
+</td></tr>
+<tr><td class="code-type">panic</td><td class="code-type">#null func(#null string, Language.Swag.SourceCodeLocation)</td><td><p>A function to call if there's a panic</p>
+</td></tr>
+<tr><td class="code-type">runtimeFlags</td><td class="code-type">Language.Swag.RuntimeFlags</td><td><p>As initialized by the runtime</p>
+</td></tr>
+<tr><td class="code-type">tempAllocator</td><td class="code-type">Language.Swag.ScratchAllocator</td><td><p>A temporary allocator for the user</p>
+</td></tr>
+<tr><td class="code-type">traceIndex</td><td class="code-type">u32</td><td><p>Number of traces in the array</p>
+</td></tr>
+<tr><td class="code-type">traces</td><td class="code-type">[32] Language.Swag.SourceCodeLocation</td><td><p>Stack trace, in case of errors</p>
+</td></tr>
+<tr><td class="code-type">user0</td><td class="code-type">u64</td><td><p>For user usage</p>
+</td></tr>
+<tr><td class="code-type">user1</td><td class="code-type">u64</td><td><p>For user usage</p>
+</td></tr>
+<tr><td class="code-type">user2</td><td class="code-type">u64</td><td><p>For user usage</p>
+</td></tr>
+<tr><td class="code-type">user3</td><td class="code-type">u64</td><td><p>For user usage</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_ErrorValue"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ErrorValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L544">[src]</a></td></tr></table>
+<p>Store a <span class="code-inline">fail</span> error information</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ErrorValue</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">padding</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">pushHasError</td><td class="code-type">u32</td><td><p>Internal</p>
+</td></tr>
+<tr><td class="code-type">pushTraceIndex</td><td class="code-type">u32</td><td><p>Internal</p>
+</td></tr>
+<tr><td class="code-type">pushUsedAlloc</td><td class="code-type">u32</td><td><p>Internal</p>
+</td></tr>
+<tr><td class="code-type">value</td><td class="code-type">#null any</td><td><p>Error value (or null)</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_Gvtd"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Gvtd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L440">[src]</a></td></tr></table>
+<p>Defined a global variable that needs to be dropped when exiting</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Gvtd</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">count</td><td class="code-type">u32</td><td><p>Number of elements to drop</p>
+</td></tr>
+<tr><td class="code-type">opDrop</td><td class="code-type">func(#null *void)</td><td><p>The <span class="code-inline">opDrop</span> function to call when the process must exit</p>
+</td></tr>
+<tr><td class="code-type">ptr</td><td class="code-type">*void</td><td><p>Pointer to the global variable memory</p>
+</td></tr>
+<tr><td class="code-type">sizeOf</td><td class="code-type">u32</td><td><p>Size of one element</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_Interface"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Interface</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L667">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Interface</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">itable</td><td class="code-type">#null const [*] #null [*] void</td><td><p>Pointer to the table: [0] type descriptor, then method pointers</p>
+</td></tr>
+<tr><td class="code-type">obj</td><td class="code-type">#null *void</td><td><p>Pointer to the associated struct instance</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_Module"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Module</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L426">[src]</a></td></tr></table>
+<p>Defined some information about a loaded module</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Module</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">name</td><td class="code-type">#null string</td><td><p>Name of the module</p>
+</td></tr>
+<tr><td class="code-type">types</td><td class="code-type">#null const [..] #null const *Language.Swag.TypeInfo</td><td><p>All exported types</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_ProcessInfos"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ProcessInfos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L433">[src]</a></td></tr></table>
+<p>Defined some information about the current process</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ProcessInfos</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">args</td><td class="code-type">#null string</td><td><p>The application arguments, as returned by <a href="#Language__args">@args</a></p>
+</td></tr>
+<tr><td class="code-type">modules</td><td class="code-type">#null const [..] Language.Swag.Module</td><td><p>The list of all modules</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_ScratchAllocator"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.ScratchAllocator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L502">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ScratchAllocator</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">allocator</td><td class="code-type">#null Language.Swag.IAllocator</td><td></td></tr>
+<tr><td class="code-type">block</td><td class="code-type">#null [*] u8</td><td></td></tr>
+<tr><td class="code-type">capacity</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">firstLeak</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">maxLeak</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">maxUsed</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">totalLeak</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">used</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_SourceCodeLocation"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.SourceCodeLocation</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1043">[src]</a></td></tr></table>
+<p>Represent a part of a source code file.</p>
+<p>This is typically what will be returned by <span class="code-inline">#curlocation</span> or <span class="code-inline">#callerlocation</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SourceCodeLocation</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">colEnd</td><td class="code-type">u32</td><td><p>End column</p>
+</td></tr>
+<tr><td class="code-type">colStart</td><td class="code-type">u32</td><td><p>Start column</p>
+</td></tr>
+<tr><td class="code-type">fileName</td><td class="code-type">#null string</td><td><p>Full path name of the source file</p>
+</td></tr>
+<tr><td class="code-type">funcName</td><td class="code-type">#null string</td><td><p>Name of the function</p>
+</td></tr>
+<tr><td class="code-type">lineEnd</td><td class="code-type">u32</td><td><p>End line</p>
+</td></tr>
+<tr><td class="code-type">lineStart</td><td class="code-type">u32</td><td><p>Start line (starts at 0)</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_SystemError"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.SystemError</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L537">[src]</a></td></tr></table>
+<p>An error raised by the system</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SystemError</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.BaseError</td><td></td></tr>
+<tr><td class="code-type">errorID</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfo"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfo</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L716">[src]</a></td></tr></table>
+<p>Will be available for all types</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfo</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">crc</td><td class="code-type">u32</td><td><p>A unique CRC to identify the type</p>
+</td></tr>
+<tr><td class="code-type">flags</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>Some additional flags</p>
+</td></tr>
+<tr><td class="code-type">fullname</td><td class="code-type">#null string</td><td><p>The full scoped name of the type</p>
+</td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The kind of the type</p>
+</td></tr>
+<tr><td class="code-type">name</td><td class="code-type">#null string</td><td><p>The unscoped name</p>
+</td></tr>
+<tr><td class="code-type">padding</td><td class="code-type">[3] u8</td><td></td></tr>
+<tr><td class="code-type">sizeof</td><td class="code-type">u32</td><td><p>Size in bytes</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoAlias"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoAlias</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L739">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoAlias</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">rawType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td><p>The underlying type</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoArray"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoArray</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L785">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoArray</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">count</td><td class="code-type">u64</td><td><p>Number of elements in the array</p>
+</td></tr>
+<tr><td class="code-type">finalType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td><p>If this is an array with multiple dimensions, this will be the final type</p>
+</td></tr>
+<tr><td class="code-type">pointedType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td><p>The underlying type</p>
+</td></tr>
+<tr><td class="code-type">totalCount</td><td class="code-type">u64</td><td><p>The total number of elements in case this has multiple dimensions</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoCodeBlock"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoCodeBlock</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L745">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoCodeBlock</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">rawType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td><p>The underlying type</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoEnum"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoEnum</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L777">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoEnum</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">attributes</td><td class="code-type">#null const [..] Language.Swag.Attribute</td><td><p>All the attributes</p>
+</td></tr>
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">rawType</td><td class="code-type">#null const *Language.Swag.TypeInfo</td><td><p>The underlying enum type</p>
+</td></tr>
+<tr><td class="code-type">values</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>All the values</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoFunc"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoFunc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L768">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoFunc</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">attributes</td><td class="code-type">#null const [..] Language.Swag.Attribute</td><td><p>All the attributes</p>
+</td></tr>
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">generics</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>Generic parameters</p>
+</td></tr>
+<tr><td class="code-type">parameters</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>Parameters</p>
+</td></tr>
+<tr><td class="code-type">returnType</td><td class="code-type">#null const *Language.Swag.TypeInfo</td><td><p>The return type, or <span class="code-inline">null</span></p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoGeneric"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoGeneric</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L806">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoGeneric</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">rawType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoNamespace"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoNamespace</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L812">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoNamespace</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoNative"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoNative</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L727">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoNative</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">nativeKind</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoPointer"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoPointer</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L733">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoPointer</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">pointedType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td><p>The pointed type</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoSlice"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoSlice</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L794">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoSlice</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">pointedType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td><p>The underlying type</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoStruct"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoStruct</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L751">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoStruct</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">attributes</td><td class="code-type">#null const [..] Language.Swag.Attribute</td><td><p>All the attributes</p>
+</td></tr>
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">fields</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>All the fields</p>
+</td></tr>
+<tr><td class="code-type">fromGeneric</td><td class="code-type">#null const *Language.Swag.TypeInfo</td><td><p>If it comes from a generic instantiation, this is the original generic struct</p>
+</td></tr>
+<tr><td class="code-type">generics</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>Generic parameters</p>
+</td></tr>
+<tr><td class="code-type">interfaces</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>All the interfaces</p>
+</td></tr>
+<tr><td class="code-type">methods</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>All the methods, if exported</p>
+</td></tr>
+<tr><td class="code-type">opDrop</td><td class="code-type">#null func(#null *void)</td><td><p>Pointer to the function to drop an instance of that struct</p>
+</td></tr>
+<tr><td class="code-type">opInit</td><td class="code-type">#null func(#null *void)</td><td><p>Initialization hook; null when zero-initialization suffices or explicit initialization is required</p>
+</td></tr>
+<tr><td class="code-type">opPostCopy</td><td class="code-type">#null func(#null *void)</td><td><p>Pointer to the function to call after a copy</p>
+</td></tr>
+<tr><td class="code-type">opPostMove</td><td class="code-type">#null func(#null *void)</td><td><p>Pointer to the function to call after a move</p>
+</td></tr>
+<tr><td class="code-type">structName</td><td class="code-type">#null string</td><td><p>User name of the struct</p>
+</td></tr>
+<tr><td class="code-type">usingFields</td><td class="code-type">#null const [..] Language.Swag.TypeValue</td><td><p>All the fields marked with <span class="code-inline">using</span></p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoVariadic"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeInfoVariadic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L800">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeInfoVariadic</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Language.Swag.TypeInfo</td><td></td></tr>
+<tr><td class="code-type">rawType</td><td class="code-type">const *Language.Swag.TypeInfo</td><td><p>The underlying type</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeValue"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.TypeValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L703">[src]</a></td></tr></table>
+<p>Represents a value, like a function parameter or an enum value</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TypeValue</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">attributes</td><td class="code-type">#null const [..] Language.Swag.Attribute</td><td><p>Associated attributes</p>
+</td></tr>
+<tr><td class="code-type">crc</td><td class="code-type">u32</td><td><p>Unique CRC</p>
+</td></tr>
+<tr><td class="code-type">flags</td><td class="code-type">Language.Swag.TypeValueFlags</td><td><p>Associated flags</p>
+</td></tr>
+<tr><td class="code-type">name</td><td class="code-type">#null string</td><td><p>Name of the value</p>
+</td></tr>
+<tr><td class="code-type">offset</td><td class="code-type">u32</td><td><p>Offset, in bytes</p>
+</td></tr>
+<tr><td class="code-type">padding</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">pointedType</td><td class="code-type">#null const *Language.Swag.TypeInfo</td><td><p>Type of the value</p>
+</td></tr>
+<tr><td class="code-type">value</td><td class="code-type">#null const *void</td><td><p>Pointer to the constant value</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language___SwagSym"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Language.__SwagSym</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L461">[src]</a></td></tr></table>
+<p>Self-symbolization. The linker embeds a <span class="code-inline">.swagdbg</span> section in every image (a per-function table of name + source file/line keyed by image-relative address); the runtime reads it directly, so stack traces need neither a PDB nor dbghelp. A one-entry cache avoids re-parsing the PE for consecutive frames in the same module.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> __SwagSym</span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">file</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">found</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">hasLine</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">line</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">name</td><td class="code-type">string</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_IAllocator"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Swag.IAllocator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L484">[src]</a></td></tr></table>
+<p>Every operation is a distinct method so the semantics are structural: the compiler (static lifetime analysis) and the reader both know what a call does without inspecting the request.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IAllocator</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Language_Swag_IAllocator_alloc">alloc</a></td><td><p>Allocate a block of memory.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_IAllocator_assertAllocated">assertAllocated</a></td><td><p>Assert that <span class="code-inline">request.address</span> is currently allocated, if supported.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_IAllocator_free">free</a></td><td><p>Free a previously allocated block.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_IAllocator_freeAll">freeAll</a></td><td><p>Free all memory allocated with this allocator, if supported.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_IAllocator_realloc">realloc</a></td><td><p>Reallocate a previously allocated block.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_ICompiler"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Swag.ICompiler</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1033">[src]</a></td></tr></table>
+<p>This is the interface to communicate with the compiler.</p>
+<p>The intrinsic <span class="code-inline">@compiler</span> will return that interface at compile-time, and <span class="code-inline">null</span> at runtime.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">ICompiler</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Language_Swag_ICompiler_compileString">compileString</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_ICompiler_getBuildCfg">getBuildCfg</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Language_Swag_ICompiler_getMessage">getMessage</a></td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AttributeUsage"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.AttributeUsage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">AttributeUsage</span>: <span class="STpe">u32</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Alias</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on an alias</p>
+</td></tr>
+<tr><td class="code-type">All</td><td class="code-type">Language.Swag.AttributeUsage</td><td></td></tr>
+<tr><td class="code-type">Constant</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on a constant</p>
+</td></tr>
+<tr><td class="code-type">Enum</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on an enum</p>
+</td></tr>
+<tr><td class="code-type">EnumValue</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on an enum value</p>
+</td></tr>
+<tr><td class="code-type">File</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used with <span class="code-inline">#global</span></p>
+</td></tr>
+<tr><td class="code-type">Function</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on a function</p>
+</td></tr>
+<tr><td class="code-type">FunctionParameter</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on a struct parameter</p>
+</td></tr>
+<tr><td class="code-type">Gen</td><td class="code-type">Language.Swag.AttributeUsage</td><td></td></tr>
+<tr><td class="code-type">GlobalVariable</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on a global variable</p>
+</td></tr>
+<tr><td class="code-type">Multi</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used more than once</p>
+</td></tr>
+<tr><td class="code-type">Scope</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute acts on a lexical scope instead of a declaration</p>
+</td></tr>
+<tr><td class="code-type">Struct</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on a struct</p>
+</td></tr>
+<tr><td class="code-type">StructVariable</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on an struct member</p>
+</td></tr>
+<tr><td class="code-type">Variable</td><td class="code-type">Language.Swag.AttributeUsage</td><td><p>Attribute can be used on any variable</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfgBackendCpuVectorize"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.BuildCfgBackendCpuVectorize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L854">[src]</a></td></tr></table>
+<p>Highest SIMD instruction set the auto-vectorizer may target.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">BuildCfgBackendCpuVectorize</span>: <span class="STpe">u8</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">AVX2</td><td class="code-type">Language.Swag.BuildCfgBackendCpuVectorize</td><td><p>Allow 256-bit AVX2 packed vectorization.</p>
+</td></tr>
+<tr><td class="code-type">None</td><td class="code-type">Language.Swag.BuildCfgBackendCpuVectorize</td><td><p>No auto-vectorization.</p>
+</td></tr>
+<tr><td class="code-type">SSE2</td><td class="code-type">Language.Swag.BuildCfgBackendCpuVectorize</td><td><p>Allow 128-bit SSE2 packed vectorization.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfgBackendInlineMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.BuildCfgBackendInlineMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L846">[src]</a></td></tr></table>
+<p>Controls which calls the semantic inliner expands.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">BuildCfgBackendInlineMode</span>: <span class="STpe">u8</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Auto</td><td class="code-type">Language.Swag.BuildCfgBackendInlineMode</td><td><p>MarkedOnly plus compiler-chosen small/cheap callees.</p>
+</td></tr>
+<tr><td class="code-type">MarkedOnly</td><td class="code-type">Language.Swag.BuildCfgBackendInlineMode</td><td><p>Also inline functions explicitly tagged #[Inline].</p>
+</td></tr>
+<tr><td class="code-type">Never</td><td class="code-type">Language.Swag.BuildCfgBackendInlineMode</td><td><p>Only mandatory expansions (macro/mixin); no inlining.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfgBackendKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.BuildCfgBackendKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L879">[src]</a></td></tr></table>
+<p>The kind of native backend to generate.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">BuildCfgBackendKind</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Executable</td><td class="code-type">Language.Swag.BuildCfgBackendKind</td><td><p>The module needs to be compiled to an executable application.</p>
+</td></tr>
+<tr><td class="code-type">Export</td><td class="code-type">Language.Swag.BuildCfgBackendKind</td><td><p>The module only exports dependency metadata/API and does not produce a native artifact.</p>
+</td></tr>
+<tr><td class="code-type">None</td><td class="code-type">Language.Swag.BuildCfgBackendKind</td><td><p>Nothing</p>
+</td></tr>
+<tr><td class="code-type">SharedLibrary</td><td class="code-type">Language.Swag.BuildCfgBackendKind</td><td><p>The module needs to be compiled as a shared library.</p>
+</td></tr>
+<tr><td class="code-type">StaticLibrary</td><td class="code-type">Language.Swag.BuildCfgBackendKind</td><td><p>The module needs to be compiled as a static library.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfgBackendSubKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.BuildCfgBackendSubKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L891">[src]</a></td></tr></table>
+<p>The native backend sub category. Under windows, by default, the application will be compiled to make a <span class="code-inline">windowed</span> application. But you can change it and force the application to behave like a <span class="code-inline">console</span> one.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">BuildCfgBackendSubKind</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Console</td><td class="code-type">Language.Swag.BuildCfgBackendSubKind</td><td></td></tr>
+<tr><td class="code-type">Default</td><td class="code-type">Language.Swag.BuildCfgBackendSubKind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_BuildCfgDocKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.BuildCfgDocKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L897">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">BuildCfgDocKind</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Api</td><td class="code-type">Language.Swag.BuildCfgDocKind</td><td><p>Generate 'api like' documentation</p>
+</td></tr>
+<tr><td class="code-type">Examples</td><td class="code-type">Language.Swag.BuildCfgDocKind</td><td><p>Generate 'examples like' documentation</p>
+</td></tr>
+<tr><td class="code-type">None</td><td class="code-type">Language.Swag.BuildCfgDocKind</td><td><p>Do not generate documentation for that module</p>
+</td></tr>
+<tr><td class="code-type">Pages</td><td class="code-type">Language.Swag.BuildCfgDocKind</td><td><p>Generate one page per file</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_CallConv"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.CallConv</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L24">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CallConv</span>: <span class="STpe">u8</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">C</td><td class="code-type">Language.Swag.CallConv</td><td><p>Target C ABI for the selected platform</p>
+</td></tr>
+<tr><td class="code-type">Swag</td><td class="code-type">Language.Swag.CallConv</td><td><p>Swag compiled/JIT ABI for the current target runtime</p>
+</td></tr>
+<tr><td class="code-type">WindowsX64</td><td class="code-type">Language.Swag.CallConv</td><td><p>Concrete Windows x64 ABI</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_CompilerCommand"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.CompilerCommand</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L838">[src]</a></td></tr></table>
+<p>The compiler command being executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CompilerCommand</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Build</td><td class="code-type">Language.Swag.CompilerCommand</td><td></td></tr>
+<tr><td class="code-type">Format</td><td class="code-type">Language.Swag.CompilerCommand</td><td></td></tr>
+<tr><td class="code-type">Test</td><td class="code-type">Language.Swag.CompilerCommand</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_CompilerMsgKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.CompilerMsgKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L989">[src]</a></td></tr></table>
+<p>The kind of message in <a href="#Language_Swag_CompilerMessage">CompilerMessage</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CompilerMsgKind</span>: <span class="STpe">u32</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">AttributeGen</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td></td></tr>
+<tr><td class="code-type">PassAfterSemantic</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Called once the program semantic has been done</p>
+</td></tr>
+<tr><td class="code-type">PassAllDone</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Called when everything has be done</p>
+</td></tr>
+<tr><td class="code-type">PassBeforeOutput</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Called just before generating the native code</p>
+</td></tr>
+<tr><td class="code-type">PassBeforeRunByteCode</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Called just before running bytecode</p>
+</td></tr>
+<tr><td class="code-type">SemFunctions</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Called for each function in the module</p>
+</td></tr>
+<tr><td class="code-type">SemGlobals</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Called for each global variable in the module</p>
+</td></tr>
+<tr><td class="code-type">SemTypes</td><td class="code-type">Language.Swag.CompilerMsgKind</td><td><p>Called for each type in the module</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_CompilerMsgMask"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.CompilerMsgMask</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1005">[src]</a></td></tr></table>
+<p>The type of message you want to retreive in a <span class="code-inline">#message</span> function.</p>
+<p>The function could be called for more than one reason, as this is a mask.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">CompilerMsgMask</span>: <span class="STpe">u64</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">All</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">AttributeGen</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">PassAfterSemantic</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">PassAllDone</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">PassBeforeOutput</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">PassBeforeRun</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">SemFunctions</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">SemGlobals</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+<tr><td class="code-type">SemTypes</td><td class="code-type">Language.Swag.CompilerMsgMask</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_ExceptionKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.ExceptionKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L518">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ExceptionKind</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Assert</td><td class="code-type">Language.Swag.ExceptionKind</td><td></td></tr>
+<tr><td class="code-type">Error</td><td class="code-type">Language.Swag.ExceptionKind</td><td></td></tr>
+<tr><td class="code-type">Panic</td><td class="code-type">Language.Swag.ExceptionKind</td><td></td></tr>
+<tr><td class="code-type">Safety</td><td class="code-type">Language.Swag.ExceptionKind</td><td></td></tr>
+<tr><td class="code-type">Warning</td><td class="code-type">Language.Swag.ExceptionKind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_ExportWhat"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.ExportWhat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L240">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">ExportWhat</span>: <span class="STpe">u32</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">All</td><td class="code-type">Language.Swag.ExportWhat</td><td></td></tr>
+<tr><td class="code-type">Methods</td><td class="code-type">Language.Swag.ExportWhat</td><td></td></tr>
+<tr><td class="code-type">NoZero</td><td class="code-type">Language.Swag.ExportWhat</td><td></td></tr>
+<tr><td class="code-type">None</td><td class="code-type">Language.Swag.ExportWhat</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_MatchWhat"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.MatchWhat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L322">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">MatchWhat</span>: <span class="STpe">u32</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">All</td><td class="code-type">Language.Swag.MatchWhat</td><td></td></tr>
+<tr><td class="code-type">Me</td><td class="code-type">Language.Swag.MatchWhat</td><td></td></tr>
+<tr><td class="code-type">None</td><td class="code-type">Language.Swag.MatchWhat</td><td></td></tr>
+<tr><td class="code-type">Where</td><td class="code-type">Language.Swag.MatchWhat</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_Operator"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.Operator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L96">[src]</a></td></tr></table>
+<p>The operator an overload hook is being asked to implement. The compiler passes it as the generic value argument of <span class="code-inline">opBinary</span>, <span class="code-inline">opBinaryRight</span>, <span class="code-inline">opUnary</span>, <span class="code-inline">opAssign</span> and <span class="code-inline">opIndexAssign</span>. Each spelling has its own member, so a hook never has to guess: <span class="code-inline">Sub</span> and <span class="code-inline">Neg</span> are distinct even though both are written <span class="code-inline">-</span>. The member order is part of the compiler contract; do not reorder or renumber.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Operator</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Add</td><td class="code-type">Language.Swag.Operator</td><td><p>Binary operators: + - * / % &amp; | ^ &lt;&lt; &gt;&gt;</p>
+</td></tr>
+<tr><td class="code-type">AddAssign</td><td class="code-type">Language.Swag.Operator</td><td><p>Compound assignments: += -= *= /= %= &amp;= |= ^= &lt;&lt;= &gt;&gt;=</p>
+</td></tr>
+<tr><td class="code-type">BitAnd</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">BitAndAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">BitNot</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">BitOr</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">BitOrAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">BitXor</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">BitXorAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Div</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">DivAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Mod</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">ModAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Mul</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">MulAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Neg</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Not</td><td class="code-type">Language.Swag.Operator</td><td><p>Unary operators: ! + - ~</p>
+</td></tr>
+<tr><td class="code-type">Pos</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Shl</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">ShlAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Shr</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">ShrAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">Sub</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+<tr><td class="code-type">SubAssign</td><td class="code-type">Language.Swag.Operator</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_RuntimeFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.RuntimeFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L822">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">RuntimeFlags</span>: <span class="STpe">u64</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">FromCompiler</td><td class="code-type">Language.Swag.RuntimeFlags</td><td></td></tr>
+<tr><td class="code-type">Zero</td><td class="code-type">Language.Swag.RuntimeFlags</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_SafetyWhat"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.SafetyWhat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L276">[src]</a></td></tr></table>
+<p>All safety checks</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">SafetyWhat</span>: <span class="STpe">u16</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">All</td><td class="code-type">Language.Swag.SafetyWhat</td><td></td></tr>
+<tr><td class="code-type">Bool</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check if a <span class="code-inline">bool</span> does not have a valid value (<span class="code-inline">true</span> or <span class="code-inline">false</span>)</p>
+</td></tr>
+<tr><td class="code-type">BoundCheck</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check out of bound access</p>
+</td></tr>
+<tr><td class="code-type">DynCast</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check if a cast from a <span class="code-inline">any</span> variable does not match the real underlying type</p>
+</td></tr>
+<tr><td class="code-type">Expect</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check if <span class="code-inline">expect</span> must panic on an unexpected runtime error</p>
+</td></tr>
+<tr><td class="code-type">Lifecycle</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check use of moved-from values, and poison abandoned/dropped storage</p>
+</td></tr>
+<tr><td class="code-type">Math</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check various math operations (like a negative <span class="code-inline">@sqrt</span>)</p>
+</td></tr>
+<tr><td class="code-type">Memory</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check some memory things (mostly in sanity pass)</p>
+</td></tr>
+<tr><td class="code-type">NaN</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check if a <span class="code-inline">NaN</span> is used in a float arithmetic operation</p>
+</td></tr>
+<tr><td class="code-type">None</td><td class="code-type">Language.Swag.SafetyWhat</td><td></td></tr>
+<tr><td class="code-type">Null</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check on dereferencing some null pointers</p>
+</td></tr>
+<tr><td class="code-type">Overflow</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check type conversion lost of bits or precision</p>
+</td></tr>
+<tr><td class="code-type">Switch</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check if an unexpected case value is encountered</p>
+</td></tr>
+<tr><td class="code-type">Unreachable</td><td class="code-type">Language.Swag.SafetyWhat</td><td><p>Check if unreachable is... reached</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TargetArch"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.TargetArch</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L829">[src]</a></td></tr></table>
+<p>Target processor</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TargetArch</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">X86_64</td><td class="code-type">Language.Swag.TargetArch</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TargetOs"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.TargetOs</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L832">[src]</a></td></tr></table>
+<p>The <span class="code-inline">OS</span> to target when generating native code</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TargetOs</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Windows</td><td class="code-type">Language.Swag.TargetOs</td><td><p>Windows</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeCmpFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.TypeCmpFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L586">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">TypeCmpFlags</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">CastAny</td><td class="code-type">Language.Swag.TypeCmpFlags</td><td></td></tr>
+<tr><td class="code-type">Strict</td><td class="code-type">Language.Swag.TypeCmpFlags</td><td></td></tr>
+<tr><td class="code-type">UnScoped</td><td class="code-type">Language.Swag.TypeCmpFlags</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.TypeInfoFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L643">[src]</a></td></tr></table>
+<p>Flags in each <a href="#Language_Swag_TypeInfo">TypeInfo</a></p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">TypeInfoFlags</span>: <span class="STpe">u32</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">CString</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a <span class="code-inline">cstring</span></p>
+</td></tr>
+<tr><td class="code-type">CanCopy</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a struct that can be copied</p>
+</td></tr>
+<tr><td class="code-type">Character</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a 32 bits character</p>
+</td></tr>
+<tr><td class="code-type">Const</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is const</p>
+</td></tr>
+<tr><td class="code-type">Float</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a native float</p>
+</td></tr>
+<tr><td class="code-type">Generic</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a generic type</p>
+</td></tr>
+<tr><td class="code-type">HasDrop</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a struct with a <span class="code-inline">opDrop</span></p>
+</td></tr>
+<tr><td class="code-type">HasPostCopy</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a struct with a <span class="code-inline">opPostCopy</span></p>
+</td></tr>
+<tr><td class="code-type">HasPostMove</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a struct with a <span class="code-inline">opPostMove</span></p>
+</td></tr>
+<tr><td class="code-type">Integer</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a native integer</p>
+</td></tr>
+<tr><td class="code-type">Nullable</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a nullable type</p>
+</td></tr>
+<tr><td class="code-type">PointerArithmetic</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a pointer to multiple values</p>
+</td></tr>
+<tr><td class="code-type">PointerMoveRef</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a move reference</p>
+</td></tr>
+<tr><td class="code-type">PointerRef</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a reference</p>
+</td></tr>
+<tr><td class="code-type">PointerTypeInfo</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a pointer to a <a href="#Language_Swag_TypeInfo">TypeInfo</a> struct</p>
+</td></tr>
+<tr><td class="code-type">RequiresExplicitInit</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This type must be explicitly initialized</p>
+</td></tr>
+<tr><td class="code-type">Strict</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a alias with the Swag.Strict attribute</p>
+</td></tr>
+<tr><td class="code-type">Tuple</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a tuple</p>
+</td></tr>
+<tr><td class="code-type">Unsigned</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td><p>This is a native unsigned integer</p>
+</td></tr>
+<tr><td class="code-type">Zero</td><td class="code-type">Language.Swag.TypeInfoFlags</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.TypeInfoKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L594">[src]</a></td></tr></table>
+<p>The kind of the typeinfo.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TypeInfoKind</span>: <span class="STpe">u8</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Alias</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoAlias">TypeInfoAlias</a></p>
+</td></tr>
+<tr><td class="code-type">Array</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoArray">TypeInfoArray</a></p>
+</td></tr>
+<tr><td class="code-type">Attribute</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoFunc">TypeInfoFunc</a>, but this is an attribute</p>
+</td></tr>
+<tr><td class="code-type">CVariadic</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoVariadic">TypeInfoVariadic</a></p>
+</td></tr>
+<tr><td class="code-type">CodeBlock</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoCodeBlock">TypeInfoCodeBlock</a></p>
+</td></tr>
+<tr><td class="code-type">Enum</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoEnum">TypeInfoEnum</a></p>
+</td></tr>
+<tr><td class="code-type">Func</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoFunc">TypeInfoFunc</a></p>
+</td></tr>
+<tr><td class="code-type">Generic</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoGeneric">TypeInfoGeneric</a></p>
+</td></tr>
+<tr><td class="code-type">Interface</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoStruct">TypeInfoStruct</a>, but this is an interface</p>
+</td></tr>
+<tr><td class="code-type">Invalid</td><td class="code-type">Language.Swag.TypeInfoKind</td><td></td></tr>
+<tr><td class="code-type">Lambda</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoFunc">TypeInfoFunc</a>, but this is a lambda or a func</p>
+</td></tr>
+<tr><td class="code-type">Namespace</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoNamespace">TypeInfoNamespace</a></p>
+</td></tr>
+<tr><td class="code-type">Native</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoNative">TypeInfoNative</a>. See <a href="#Language_Swag_TypeInfoNativeKind">TypeInfoNativeKind</a> for the underlying type.</p>
+</td></tr>
+<tr><td class="code-type">Pointer</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoPointer">TypeInfoPointer</a></p>
+</td></tr>
+<tr><td class="code-type">Slice</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoSlice">TypeInfoSlice</a></p>
+</td></tr>
+<tr><td class="code-type">Struct</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoStruct">TypeInfoStruct</a></p>
+</td></tr>
+<tr><td class="code-type">TypeListArray</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoArray">TypeInfoArray</a></p>
+</td></tr>
+<tr><td class="code-type">TypeListTuple</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoStruct">TypeInfoStruct</a></p>
+</td></tr>
+<tr><td class="code-type">TypedVariadic</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoVariadic">TypeInfoVariadic</a></p>
+</td></tr>
+<tr><td class="code-type">Variadic</td><td class="code-type">Language.Swag.TypeInfoKind</td><td><p>The typeinfo is a <a href="#Language_Swag_TypeInfoVariadic">TypeInfoVariadic</a></p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeInfoNativeKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.TypeInfoNativeKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L620">[src]</a></td></tr></table>
+<p>The native type if the type is... native. If the <span class="code-inline">kind</span> of the type is <span class="code-inline">TypeInfoKind.Native</span>, then this is the real native type.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TypeInfoNativeKind</span>: <span class="STpe">u8</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Any</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">Bool</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">CString</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">F32</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">F64</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">Rune</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">S16</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">S32</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">S64</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">S8</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">String</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">U16</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">U32</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">U64</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">U8</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">Undefined</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+<tr><td class="code-type">Void</td><td class="code-type">Language.Swag.TypeInfoNativeKind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_TypeValueFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.TypeValueFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L694">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">TypeValueFlags</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">AutoName</td><td class="code-type">Language.Swag.TypeValueFlags</td><td></td></tr>
+<tr><td class="code-type">HasUsing</td><td class="code-type">Language.Swag.TypeValueFlags</td><td></td></tr>
+<tr><td class="code-type">LateInit</td><td class="code-type">Language.Swag.TypeValueFlags</td><td><p><span class="code-inline">Swag.Late</span> field: starts null, receives its value later</p>
+</td></tr>
+<tr><td class="code-type">Zero</td><td class="code-type">Language.Swag.TypeValueFlags</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_WarningLevel"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Swag.WarningLevel</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L303">[src]</a></td></tr></table>
+<p>Warning behavior for <a href="#Language_Swag_Warning">Warning</a> attribute</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">WarningLevel</span>: <span class="STpe">u8</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Disable</td><td class="code-type">Language.Swag.WarningLevel</td><td><p>Disable the given warning</p>
+</td></tr>
+<tr><td class="code-type">Enable</td><td class="code-type">Language.Swag.WarningLevel</td><td><p>Enable the given warning</p>
+</td></tr>
+<tr><td class="code-type">Error</td><td class="code-type">Language.Swag.WarningLevel</td><td><p>Force the given warning to be raised as an error</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorClassCount"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.AllocatorClassCount</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">AllocatorClassCount</span>   = <span class="SNum">28</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_AllocatorInvalidClass"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.AllocatorInvalidClass</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">AllocatorInvalidClass</span> = <span class="SNum">0xFFFF_FFFF</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ClosureCaptureBufferSize"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.ClosureCaptureBufferSize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L673">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">ClosureCaptureBufferSize</span> = <span class="SNum">64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_Bias"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.Bias</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L406">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Bias</span>     = -<span class="SNum">127</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_ExpBits"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.ExpBits</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L405">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">ExpBits</span>  = <span class="SNum">8</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_Inf"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.Inf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L402">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Inf</span>      = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f32</span>) <span class="SNum">0x7F800000</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_MantBits"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.MantBits</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L404">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MantBits</span> = <span class="SNum">23</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L400">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span>      = <span class="SNum">3.40282346638528859812e+38</span>'<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L399">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span>      = <span class="SNum">1.17549435082228750797e-38</span>'<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_NaN"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.NaN</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L401">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">NaN</span>      = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f32</span>) <span class="SNum">0x7F800001</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F32_NegInf"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F32.NegInf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L403">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">NegInf</span>   = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f32</span>) <span class="SNum">0xFF800000</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_Bias"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.Bias</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L418">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Bias</span>     = -<span class="SNum">1023</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_ExpBits"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.ExpBits</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L417">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">ExpBits</span>  = <span class="SNum">11</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_Inf"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.Inf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L414">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Inf</span>      = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f64</span>) <span class="SNum">0x7FF0000000000000</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_MantBits"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.MantBits</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L416">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MantBits</span> = <span class="SNum">52</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L412">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span>      = <span class="SNum">1.79769313486231570815e+308</span>'<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L411">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span>      = <span class="SNum">2.2250738585072014e-308</span>'<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_NaN"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.NaN</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L413">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">NaN</span>      = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f64</span>) <span class="SNum">0x7FF8000000000001</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_F64_NegInf"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">F64.NegInf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L415">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">NegInf</span>   = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">f64</span>) <span class="SNum">0xFFF0000000000000</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_MaxErrors"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.MaxErrors</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L527">[src]</a></td></tr></table>
+<p>Maximum nested errors</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MaxErrors</span> = <span class="SNum">32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_MaxTraces"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Swag.MaxTraces</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L528">[src]</a></td></tr></table>
+<p>Maximum error traces</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MaxTraces</span> = <span class="SNum">32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S16_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S16.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L358">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s16</span>) <span class="SNum">0x7FFF</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S16_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S16.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L357">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s16</span>) <span class="SNum">0x8000</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S32_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S32.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L364">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s32</span>) <span class="SNum">0x7FFFFFFF</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S32_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S32.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L363">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s32</span>) <span class="SNum">0x80000000</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S64_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S64.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L370">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s64</span>) <span class="SNum">0x7FFFFFFF_FFFFFFFF</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S64_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S64.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L369">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s64</span>) <span class="SNum">0x80000000_00000000</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S8_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S8.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L352">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s8</span>) <span class="SNum">0x7F</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_S8_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">S8.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L351">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="STpe">s8</span>) <span class="SNum">0x80</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U16_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U16.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L382">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SNum">0xFFFF</span>'<span class="STpe">u16</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U16_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U16.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L381">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SNum">0</span>'<span class="STpe">u16</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U32_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U32.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L388">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SNum">0xFFFFFFFF</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U32_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U32.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L387">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SNum">0</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U64_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U64.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L394">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SNum">0xFFFFFFFF_FFFFFFFF</span>'<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U64_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U64.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L393">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SNum">0</span>'<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U8_Max"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U8.Max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L376">[src]</a></td></tr></table>
+<p>Max <span class="code-inline">u8</span> value</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Max</span> = <span class="SNum">0xFF</span>'<span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_U8_Min"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">U8.Min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L375">[src]</a></td></tr></table>
+<p>Min <span class="code-inline">u8</span> value</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Min</span> = <span class="SNum">0</span>'<span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Language___MAX_ARGUMENTS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Language.__MAX_ARGUMENTS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L197">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> __MAX_ARGUMENTS = <span class="SNum">512</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_FALSE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.FALSE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L28">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">FALSE</span>: <span class="SCst">BOOL</span>          = <span class="SNum">0</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_IDCANCEL"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.IDCANCEL</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L25">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">IDCANCEL</span>             = <span class="SNum">2</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_IDCONTINUE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.IDCONTINUE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">IDCONTINUE</span>           = <span class="SNum">11</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_IDTRYAGAIN"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.IDTRYAGAIN</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L26">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">IDTRYAGAIN</span>           = <span class="SNum">10</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_MB_CANCELTRYCONTINUE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.MB_CANCELTRYCONTINUE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L23">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MB_CANCELTRYCONTINUE</span> = <span class="SNum">0x00000006</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_MB_ICONERROR"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.MB_ICONERROR</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L24">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MB_ICONERROR</span>         = <span class="SNum">0x00000010</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_MEM_COMMIT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.MEM_COMMIT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MEM_COMMIT</span>           = <span class="SNum">0x0000_1000</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_MEM_RELEASE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.MEM_RELEASE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L33">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MEM_RELEASE</span>          = <span class="SNum">0x0000_8000</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_MEM_RESERVE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.MEM_RESERVE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">MEM_RESERVE</span>          = <span class="SNum">0x0000_2000</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_PAGE_READWRITE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.PAGE_READWRITE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L34">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">PAGE_READWRITE</span>       = <span class="SNum">0x0000_0004</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_SRWLOCK_INIT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.SRWLOCK_INIT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L30">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">SRWLOCK_INIT</span>         = <span class="SKwd">cast</span>(<span class="SCst">SRWLOCK</span>) <span class="SKwd">null</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_STD_OUTPUT_HANDLE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.STD_OUTPUT_HANDLE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">STD_OUTPUT_HANDLE</span>    = <span class="SNum">0xFFFF_FFF5</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_TRUE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">__Win32RT.TRUE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L29">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">TRUE</span>:  <span class="SCst">BOOL</span>          = <span class="SNum">1</span></span></div>
+<table class="api-item"><tr><td><span id="Language___buildCfg"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Language.__buildCfg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L251">[src]</a></td></tr></table>
+<p>Make a build configuration copy</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> __buildCfg = <span class="SFct">#run</span> <span class="SKwd">dref</span> <span class="SKwd">notnull</span> <span class="SItr">@compiler</span>.getBuildCfg</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_BOOL"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.BOOL</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">BOOL</span>    = <span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_CHAR"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.CHAR</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L18">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">CHAR</span>    = <span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_DWORD"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.DWORD</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">DWORD</span>   = <span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_HANDLE"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.HANDLE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L12">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">HANDLE</span>  = <span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_SRWLOCK"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.SRWLOCK</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">SRWLOCK</span> = <span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_ULONG"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.ULONG</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L16">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">ULONG</span>   = <span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_ULONG64"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.ULONG64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L17">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">ULONG64</span> = <span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_USHORT"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.USHORT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">USHORT</span>  = <span class="STpe">u16</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_WCHAR"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">__Win32RT.WCHAR</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L19">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">WCHAR</span>   = <span class="STpe">u16</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Align"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Align</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L343">[src]</a></td></tr></table>
+<p>Alignment of the following struct or struct field</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct | AttributeUsage.StructVariable)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Align</span>(value: <span class="STpe">u8</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_AttrMulti"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.AttrMulti</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L37">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">attr</span> <span class="SFct">AttrMulti</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_AttrUsage"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.AttrUsage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L36">[src]</a></td></tr></table>
+<p>Hardcoded usage</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">attr</span> <span class="SFct">AttrUsage</span>(usage: <span class="SCst">AttributeUsage</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_BorrowSummary"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.BorrowSummary</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L272">[src]</a></td></tr></table>
+<p>Computed borrow summary of a function, consumed by the static borrow analysis. Bit <span class="code-inline">i</span> of <span class="code-inline">returns</span> means the return value may borrow parameter #i; bit <span class="code-inline">i</span> of <span class="code-inline">stores</span> means parameter #i may be stored in storage that outlives the call; bit <span class="code-inline">i*8+j</span> of <span class="code-inline">into</span> means parameter #j may be stored into storage reachable from parameter #i (packed 8x8); bit <span class="code-inline">i</span> of <span class="code-inline">frees</span> means the call invalidates what parameter #i points to (it reaches [[IAllocator.free]] or [[IAllocator.realloc]]). Emitted automatically in generated module APIs so summaries cross module boundaries; can also be written manually on a <a href="#Language_Swag_Foreign">Foreign</a> function.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">BorrowSummary</span>(returns: <span class="STpe">u64</span>, stores: <span class="STpe">u64</span> = <span class="SNum">0</span>, into: <span class="STpe">u64</span> = <span class="SNum">0</span>, frees: <span class="STpe">u64</span> = <span class="SNum">0</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_CalleeReturn"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.CalleeReturn</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L183">[src]</a></td></tr></table>
+<p>A <span class="code-inline">return</span> in the following macro/mixin function must be done in the callee context</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">CalleeReturn</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Commutative"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Commutative</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L171">[src]</a></td></tr></table>
+<p>An opBinary operator overload can also be used when its receiver is the right operand. Optional parameters restrict the operators for generic opBinary implementations.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Commutative</span>(operators: <span class="SCst">Operator</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Compiler"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Compiler</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L55">[src]</a></td></tr></table>
+<p>The following function or variable is only defined at compile time</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.GlobalVariable | AttributeUsage.Constant)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Compiler</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ConstExpr"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ConstExpr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L41">[src]</a></td></tr></table>
+<p>Can be executed at compile time</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct)]</span>
+<span class="SKwd">attr</span> <span class="SFct">ConstExpr</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Deprecated"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Deprecated</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L195">[src]</a></td></tr></table>
+<p>The following definition is deprecated and should not be used</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.Enum | AttributeUsage.EnumValue)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Deprecated</span>(msg: <span class="SItr">#null</span> <span class="STpe">string</span> = <span class="SKwd">null</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Discardable"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Discardable</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L191">[src]</a></td></tr></table>
+<p>The following function accepts that the called does not use its return value</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Variable)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Discardable</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_EnumFlags"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.EnumFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L228">[src]</a></td></tr></table>
+<p>The following enum is a set of flags</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Enum)]</span>
+<span class="SKwd">attr</span> <span class="SFct">EnumFlags</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ExportType"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.ExportType</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L249">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
+<span class="SKwd">attr</span> <span class="SFct">ExportType</span>(what: <span class="SCst">ExportWhat</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Foreign"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Foreign</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L187">[src]</a></td></tr></table>
+<p>The following function is foreign (imported)</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Foreign</span>(module: <span class="STpe">string</span>, function: <span class="STpe">string</span> = <span class="SStr">""</span>, link: <span class="STpe">string</span> = <span class="SStr">""</span>, callconv: <span class="SCst">CallConv</span> = <span class="SCst">Swag</span>.<span class="SCst">CallConv</span>.<span class="SCst">C</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_FullInit"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.FullInit</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L89">[src]</a></td></tr></table>
+<p>The following <span class="code-inline">opSet</span> or <span class="code-inline">opCast</span> initializes the whole destination, so the caller does not have to default-initialize it first.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">FullInit</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Global"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Global</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L339">[src]</a></td></tr></table>
+<p>Give the following local declaration static storage</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Variable)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Global</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Implicit"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Implicit</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L84">[src]</a></td></tr></table>
+<p>Can force an <span class="code-inline">opCast</span> operator overload to work as implicit</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Implicit</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Incomplete"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Incomplete</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L237">[src]</a></td></tr></table>
+<p>The declared values of the following enum are not the full set: a value outside them is expected at runtime, so a switch on it is not meant to be exhaustive.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Enum)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Incomplete</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Inline"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Inline</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L59">[src]</a></td></tr></table>
+<p>Force a function to be inlined</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Inline</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Late"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Late</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L224">[src]</a></td></tr></table>
+<p>The following struct field or global variable is initialized after construction: the type stays non-null, the storage starts null, and a read is only accepted once the declaration is provably set. A local has no such storage lifetime and is rejected with its own diagnostic, so the usage stays at the coarse 'any variable' level here.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Variable)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Late</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Macro"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Macro</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L76">[src]</a></td></tr></table>
+<p>The following function is a <span class="code-inline">macro</span></p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Macro</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Match"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Match</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L331">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Match</span>(what: <span class="SCst">MatchWhat</span>, value: <span class="STpe">bool</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Mixin"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Mixin</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L80">[src]</a></td></tr></table>
+<p>The following function is a <span class="code-inline">mixin</span></p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Mixin</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_NoCopy"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoCopy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L208">[src]</a></td></tr></table>
+<p>The following struct should never be copied</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
+<span class="SKwd">attr</span> <span class="SFct">NoCopy</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_NoDoc"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoDoc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L253">[src]</a></td></tr></table>
+<p>Do not generate documentation.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File)]</span>
+<span class="SKwd">attr</span> <span class="SFct">NoDoc</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_NoDuplicate"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoDuplicate</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L232">[src]</a></td></tr></table>
+<p>The following enum can't have duplicated values</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Enum)]</span>
+<span class="SKwd">attr</span> <span class="SFct">NoDuplicate</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_NoInline"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoInline</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L64">[src]</a></td></tr></table>
+<p>Never inline the following function. This is a hint for the backend.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">NoInline</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_NoPrint"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.NoPrint</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L72">[src]</a></td></tr></table>
+<p>Disable <span class="code-inline">@print</span></p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">NoPrint</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Offset"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Offset</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L217">[src]</a></td></tr></table>
+<p>Struct field member relocation. The field offset in the struct should be the same as the variable <span class="code-inline">name</span></p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.StructVariable)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Offset</span>(name: <span class="STpe">string</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Opaque"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Opaque</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L212">[src]</a></td></tr></table>
+<p>When exporting the following struct,: not export its content</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Opaque</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_OperatorIgnore"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.OperatorIgnore</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L179">[src]</a></td></tr></table>
+<p>Exclude a struct field from generated operator overloads.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.StructVariable)]</span>
+<span class="SKwd">attr</span> <span class="SFct">OperatorIgnore</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Operators"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Operators</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L175">[src]</a></td></tr></table>
+<p>Generate operator overloads for a struct.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Operators</span>(operators: <span class="STpe">string</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Optimize"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Optimize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L300">[src]</a></td></tr></table>
+<p>Set optimized code generation on/off.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
+<span class="SKwd">attr</span> <span class="SFct">Optimize</span>(level: <span class="STpe">bool</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Pack"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Pack</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L204">[src]</a></td></tr></table>
+<p><span class="code-inline">struct</span> packing information</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Struct)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Pack</span>(value: <span class="STpe">u8</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_PlaceHolder"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PlaceHolder</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L68">[src]</a></td></tr></table>
+<p>An empty function will be generated</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function)]</span>
+<span class="SKwd">attr</span> <span class="SFct">PlaceHolder</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_PrintAst"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PrintAst</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L51">[src]</a></td></tr></table>
+<p>On a function or a struct, this prints the associated AST shape.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]</span>
+<span class="SKwd">attr</span> <span class="SFct">PrintAst</span>(stages: <span class="STpe">string</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_PrintMicro"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.PrintMicro</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L47">[src]</a></td></tr></table>
+<p>On a function or a struct, this prints generated micro instructions. If no parameter is provided, this prints right before the emit pass. Otherwise, parameters are strings of the form before-passname / after-passname.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Function | AttributeUsage.Struct | AttributeUsage.File)]</span>
+<span class="SKwd">attr</span> <span class="SFct">PrintMicro</span>(stages: <span class="STpe">string</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Safety"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Safety</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L296">[src]</a></td></tr></table>
+<p>Enable/Disable one or more safety checks.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
+<span class="SKwd">attr</span> <span class="SFct">Safety</span>(what: <span class="SCst">SafetyWhat</span>, value: <span class="STpe">bool</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Sanity"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Sanity</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L260">[src]</a></td></tr></table>
+<p>Enable/Disable one or more STATIC (compile-time) sanity checks: the borrow analysis, and the proven-fault sanitizer (use-after-move, stack escapes, proven null dereferences, ...). Reuses the <a href="#Language_Swag_SafetyWhat">SafetyWhat</a> flags. Unlike <a href="#Language_Swag_Safety">Safety</a>, these checks add no runtime cost and are enabled by default in every build configuration.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
+<span class="SKwd">attr</span> <span class="SFct">Sanity</span>(what: <span class="SCst">SafetyWhat</span>, value: <span class="STpe">bool</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Strict"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Strict</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L335">[src]</a></td></tr></table>
+<p>Keep the following alias distinct from its target for implicit conversions</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.Alias)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Strict</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Tls"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Tls</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L200">[src]</a></td></tr></table>
+<p>Put the following global variable in the <span class="code-inline">tls</span> segment. A copy of the variable will be available for each thread.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.GlobalVariable)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Tls</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Using"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Using</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L9">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All)]</span>
+<span class="SKwd">attr</span> <span class="SFct">Using</span>(what: <span class="STpe">typeinfo</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Warning"><span class="api-item-title-kind">attr</span> <span class="api-item-title-strong">Swag.Warning</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L319">[src]</a></td></tr></table>
+<p>Change the behavior of a given warning or list of warnings. For example:</p>
+<div class="code-block"><span class="SAtr">#[Swag.Warning("Wrn0006", Swag.WarningLevel.Error)
+#[Swag.Warning("Wrn0002|Wrn0006", Swag.WarningLevel.Disable)
+#global #[Swag.Warning("Wrn0005", Swag.WarningLevel.Enable)]
+</span></div>
+<p>You can also change the warning behaviors for the whole module in your <a href="#Language_Swag_BuildCfg">BuildCfg</a></p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[AttrUsage(AttributeUsage.All | AttributeUsage.File | AttributeUsage.Scope), AttrMulti]</span>
+<span class="SKwd">attr</span> <span class="SFct">Warning</span>(what: <span class="STpe">string</span>, level: <span class="SCst">WarningLevel</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__abs"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@abs</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1191">[src]</a></td></tr></table>
+<p>Absolute value.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@abs</span>(value: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@abs</span>(value: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@abs</span>(value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@abs</span>(value: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@abs</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@abs</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__acos"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@acos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L207">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@acos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; acosf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; acos</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@acos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@acos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__alloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@alloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L155">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@alloc</span>(size: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<p>Returns a system allocated memory block of <span class="code-inline">size</span> bytes. Use <a href="#Language__free">@free</a> to release the allocated memory.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@alloc</span>(size: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language__args"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@args</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L241">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@args</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">string</span></span></div>
+<table class="api-item"><tr><td><span id="Language__as"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@as</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L58">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@as</span>(toType, fromType: <span class="STpe">typeinfo</span>, ptr: *<span class="STpe">void</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language__asin"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@asin</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L205">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@asin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; asinf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@asin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; asin</span></div>
+<p>Inverse trigonometric functions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@asin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@asin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__assert"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@assert</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1060">[src]</a></td></tr></table>
+<p>Panic if the expression is false. Typically used in tests.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@assert</span>(value: <span class="STpe">bool</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__atan"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atan</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L209">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; atanf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; atan</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__atan2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atan2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L238">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan2</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; atan2f</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan2</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; atan2</span></div>
+<p>Arctangent of y/x with quadrant selection.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan2</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atan2</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__atomadd"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atomadd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1099">[src]</a></td></tr></table>
+<p>Atomic <span class="code-inline">add</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">s8</span>, value: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">s16</span>, value: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">s32</span>, value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">s64</span>, value: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">u8</span>, value: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">u16</span>, value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">u32</span>, value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomadd</span>(addr: *<span class="STpe">u64</span>, value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__atomand"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atomand</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1109">[src]</a></td></tr></table>
+<p>Atomic <span class="code-inline">and</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">s8</span>, value: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">s16</span>, value: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">s32</span>, value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">s64</span>, value: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">u8</span>, value: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">u16</span>, value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">u32</span>, value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomand</span>(addr: *<span class="STpe">u64</span>, value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__atomcmpxchg"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atomcmpxchg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1149">[src]</a></td></tr></table>
+<p>Atomic 'compare and exchange'</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">s8</span>, compareTo, exchangeWith: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">s16</span>, compareTo, exchangeWith: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">s32</span>, compareTo, exchangeWith: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">s64</span>, compareTo, exchangeWith: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">u8</span>, compareTo, exchangeWith: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">u16</span>, compareTo, exchangeWith: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">u32</span>, compareTo, exchangeWith: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomcmpxchg</span>(addr: *<span class="STpe">u64</span>, compareTo, exchangeWith: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__atomor"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atomor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1119">[src]</a></td></tr></table>
+<p>Atomic <span class="code-inline">or</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">s8</span>, value: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">s16</span>, value: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">s32</span>, value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">s64</span>, value: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">u8</span>, value: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">u16</span>, value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">u32</span>, value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomor</span>(addr: *<span class="STpe">u64</span>, value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__atomxchg"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atomxchg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1139">[src]</a></td></tr></table>
+<p>Atomic <span class="code-inline">exchange</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">s8</span>, exchangeWith: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">s16</span>, exchangeWith: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">s32</span>, exchangeWith: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">s64</span>, exchangeWith: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">u8</span>, exchangeWith: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">u16</span>, exchangeWith: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">u32</span>, exchangeWith: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxchg</span>(addr: *<span class="STpe">u64</span>, exchangeWith: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__atomxor"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@atomxor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1129">[src]</a></td></tr></table>
+<p>Atomic <span class="code-inline">xor</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">s8</span>, value: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">s16</span>, value: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">s32</span>, value: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">s64</span>, value: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">u8</span>, value: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">u16</span>, value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">u32</span>, value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@atomxor</span>(addr: *<span class="STpe">u64</span>, value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__bitcountlz"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@bitcountlz</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1228">[src]</a></td></tr></table>
+<p>Returns the index+1 of the first set bit, starting from the left (msb). 0 if all zero.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountlz</span>(value: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountlz</span>(value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountlz</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountlz</span>(value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__bitcountnz"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@bitcountnz</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1216">[src]</a></td></tr></table>
+<p>Count the number of bits set to 1</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountnz</span>(value: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountnz</span>(value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountnz</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcountnz</span>(value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__bitcounttz"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@bitcounttz</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1222">[src]</a></td></tr></table>
+<p>Returns the index+1 of the first set bit, starting from right (lsb). 0 if all zero.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcounttz</span>(value: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcounttz</span>(value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcounttz</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@bitcounttz</span>(value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__breakpoint"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@breakpoint</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1063">[src]</a></td></tr></table>
+<p>Stop a bytecode execution, and launch the bytecode debugger.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@breakpoint</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language__byteswap"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@byteswap</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1211">[src]</a></td></tr></table>
+<p>Reverses the order of bytes in an integer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@byteswap</span>(value: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@byteswap</span>(value: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@byteswap</span>(value: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__ceil"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@ceil</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L221">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ceil</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>  =&gt; ceilf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ceil</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>  =&gt; ceil</span></div>
+<p>Round toward plus infinity.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ceil</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ceil</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__compiler"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@compiler</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1081">[src]</a></td></tr></table>
+<p>Returns an <a href="#Language_Swag_ICompiler">ICompiler</a> interface to communicate with the compiler.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@compiler</span>()-&gt;<span class="SCst">Swag</span>.<span class="SCst">ICompiler</span></span></div>
+<table class="api-item"><tr><td><span id="Language__compilererror"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@compilererror</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L191">[src]</a></td></tr></table>
+<p>Raise a compiler error at the given source location</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@compilererror</span>(message: <span class="STpe">string</span>, loc: <span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__compilerwarning"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@compilerwarning</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L201">[src]</a></td></tr></table>
+<p>Raise a compiler warning at the given source location</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@compilerwarning</span>(message: <span class="STpe">string</span>, loc: <span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__cos"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@cos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L193">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; cosf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; cos</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cos</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cos</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__cosh"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@cosh</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L200">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cosh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; coshf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cosh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; cosh</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cosh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@cosh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__exp"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@exp</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L230">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>  =&gt; expf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>  =&gt; exp</span></div>
+<p>Exponentials and power.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__exp2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@exp2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L232">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; exp2f</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; exp2</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@exp2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__floor"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@floor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L219">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@floor</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; floorf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@floor</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; floor</span></div>
+<p>Round toward minus infinity.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@floor</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@floor</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__free"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@free</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L165">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@free</span>(ptr: <span class="SItr">#null</span> [*] <span class="STpe">void</span>)</span></div>
+<p>Free a system memory block allocated with <a href="#Language__alloc">@alloc</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@free</span>(ptr: <span class="SItr">#null</span> [*] <span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__getcontext"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@getcontext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1066">[src]</a></td></tr></table>
+<p>Get the current thread context.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@getcontext</span>()-&gt;*<span class="SCst">Swag</span>.<span class="SCst">Context</span></span></div>
+<table class="api-item"><tr><td><span id="Language__gvtd"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@gvtd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1078">[src]</a></td></tr></table>
+<p>Returns the list of all global variables.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@gvtd</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="SCst">Swag</span>.<span class="SCst">Gvtd</span></span></div>
+<table class="api-item"><tr><td><span id="Language__is"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@is</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@is</span>(toType, fromType: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Language__jit"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@jit</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L254">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@jit</span>()-&gt;<span class="STpe">bool</span> =&gt; <span class="SItr">@getcontext</span>().runtimeFlags &amp; .<span class="SCst">FromCompiler</span></span></div>
+<table class="api-item"><tr><td><span id="Language__log"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@log</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L212">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>   =&gt; logf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>   =&gt; log</span></div>
+<p>Logarithms.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__log10"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@log10</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L216">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log10</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; log10f</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log10</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; log10</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log10</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log10</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__log2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@log2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L214">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>  =&gt; log2f</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>  =&gt; log2</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log2</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@log2</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__max"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@max</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1179">[src]</a></td></tr></table>
+<p>Maximum of two values.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@max</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__memcmp"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@memcmp</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L185">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memcmp</span>(dst, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)-&gt;<span class="STpe">s32</span></span></div>
+<p>Compare two memory blocks, and returns -1, 0 if equal, or 1.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memcmp</span>(dst, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)-&gt;<span class="STpe">s32</span></span></div>
+<table class="api-item"><tr><td><span id="Language__memcpy"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@memcpy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L175">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memcpy</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)</span></div>
+<p>Copy one memory block to another address.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memcpy</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__memmove"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@memmove</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L180">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memmove</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)</span></div>
+<p>Move one memory block to another address.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memmove</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__memset"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@memset</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L170">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memset</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, value: <span class="STpe">u8</span>, size: <span class="STpe">u64</span>)</span></div>
+<p>Set all bytes of a given memory block to <span class="code-inline">value</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@memset</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, value: <span class="STpe">u8</span>, size: <span class="STpe">u64</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__min"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@min</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1167">[src]</a></td></tr></table>
+<p>Minimum of two values.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">s8</span>)-&gt;<span class="STpe">s8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">s16</span>)-&gt;<span class="STpe">s16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">s64</span>)-&gt;<span class="STpe">s64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@min</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__modules"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@modules</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1075">[src]</a></td></tr></table>
+<p>Returns the list of all loaded modules.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@modules</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> [..] <span class="SCst">Swag</span>.<span class="SCst">Module</span></span></div>
+<table class="api-item"><tr><td><span id="Language__muladd"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@muladd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1234">[src]</a></td></tr></table>
+<p>Returns '(val1 * val2) + val3'</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@muladd</span>(val1, val2, val3: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@muladd</span>(val1, val2, val3: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__panic"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@panic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L252">[src]</a></td></tr></table>
+<p>Stop the execution and panic</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.All, false)]</span>
+<span class="SKwd">func</span> <span class="SItr">@panic</span>(message: <span class="SItr">#null</span> <span class="STpe">string</span>, loc: <span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__pinfos"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@pinfos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1072">[src]</a></td></tr></table>
+<p>Get information about the current process.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@pinfos</span>()-&gt;*<span class="SCst">Swag</span>.<span class="SCst">ProcessInfos</span></span></div>
+<table class="api-item"><tr><td><span id="Language__pow"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@pow</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L235">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@pow</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; powf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@pow</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; pow</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@pow</span>(value1, value2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@pow</span>(value1, value2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__print"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@print</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L159">[src]</a></td></tr></table>
+<p>Basic print to console function</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@print</span>(params: ...)</span></div>
+<table class="api-item"><tr><td><span id="Language__realloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@realloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L160">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@realloc</span>(ptr: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<p>Realloc a system memory block allocated with <a href="#Language__alloc">@alloc</a></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@realloc</span>(ptr: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language__rol"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@rol</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1199">[src]</a></td></tr></table>
+<p>Rotate bits left</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@rol</span>(value: <span class="STpe">u8</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@rol</span>(value: <span class="STpe">u16</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@rol</span>(value: <span class="STpe">u32</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@rol</span>(value: <span class="STpe">u64</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__ror"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@ror</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1205">[src]</a></td></tr></table>
+<p>Rotate bits right</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ror</span>(value: <span class="STpe">u8</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u8</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ror</span>(value: <span class="STpe">u16</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ror</span>(value: <span class="STpe">u32</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@ror</span>(value: <span class="STpe">u64</span>, num: <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__round"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@round</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L225">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@round</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; roundf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@round</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; round</span></div>
+<p>Round to nearest, away from zero at .5.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@round</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@round</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__rtflags"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@rtflags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L253">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@rtflags</span>()   =&gt; <span class="SItr">@getcontext</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language__safetypanic"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@safetypanic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L321">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Safety(.All, false)]</span>
+<span class="SKwd">func</span> <span class="SItr">@safetypanic</span>(message: <span class="STpe">string</span>, loc: <span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__setcontext"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@setcontext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1069">[src]</a></td></tr></table>
+<p>Replace the current thread context.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@setcontext</span>(context: <span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">Context</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language__sin"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@sin</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L191">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; sinf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; sin</span></div>
+<p>Trigonometric functions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sin</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sin</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__sinh"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@sinh</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L198">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sinh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; sinhf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sinh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; sinh</span></div>
+<p>Hyperbolic trigonometric functions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sinh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sinh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__sqrt"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@sqrt</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L227">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sqrt</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span>  =&gt; sqrtf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sqrt</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span>  =&gt; sqrt</span></div>
+<p>Square root.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sqrt</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@sqrt</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__stringcmp"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@stringcmp</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L221">[src]</a></td></tr></table>
+<p>Compares two strings, and returns <span class="code-inline">true</span> if they are equal.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@stringcmp</span>(str1: <span class="SItr">#null</span> <span class="STpe">string</span>, str2: <span class="SItr">#null</span> <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Language__tableof"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@tableof</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L177">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tableof</span>(structType, itfType: <span class="SKwd">const</span> *<span class="SCst">TypeInfoStruct</span>)-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language__tan"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@tan</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L195">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; tanf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; tan</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tan</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tan</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__tanh"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@tanh</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L202">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tanh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; tanhf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; tanh</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tanh</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@tanh</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__trunc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@trunc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L223">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@trunc</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span> =&gt; truncf</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@trunc</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span> =&gt; trunc</span></div>
+<p>Round toward zero.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@trunc</span>(value: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@trunc</span>(value: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language__typecmp"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.@typecmp</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L98">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SItr">@typecmp</span>(typeA, typeB: <span class="STpe">typeinfo</span>, cmpFlags: <span class="SCst">TypeCmpFlags</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator_IAllocator_alloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.alloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1114">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">alloc</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator_IAllocator_assertAllocated"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.assertAllocated</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1144">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">assertAllocated</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator_IAllocator_free"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.free</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1129">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">free</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator_IAllocator_freeAll"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.freeAll</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1136">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">freeAll</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator_IAllocator_lockDiagnostic"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.lockDiagnostic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1098">[src]</a></td></tr></table>
+<p>The diagnostic modes (leak tracking, electric mode, ...) mutate shared state: every operation takes the mutex when one of them is active.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">mtd</span> <span class="SFct">lockDiagnostic</span>()-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator_IAllocator_realloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.realloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1122">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">realloc</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_Allocator_IAllocator_unlockDiagnostic"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.unlockDiagnostic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1108">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Inline]</span>
+<span class="SKwd">mtd</span> <span class="SFct">unlockDiagnostic</span>(locked: <span class="STpe">bool</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_IAllocator_alloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.alloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L487">[src]</a></td></tr></table>
+<p>Allocate a block of memory.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">alloc</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_IAllocator_assertAllocated"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.assertAllocated</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L499">[src]</a></td></tr></table>
+<p>Assert that <span class="code-inline">request.address</span> is currently allocated, if supported.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">assertAllocated</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_IAllocator_free"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.free</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L493">[src]</a></td></tr></table>
+<p>Free a previously allocated block.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">free</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_IAllocator_freeAll"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.freeAll</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L496">[src]</a></td></tr></table>
+<p>Free all memory allocated with this allocator, if supported.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">freeAll</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_IAllocator_realloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.realloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L490">[src]</a></td></tr></table>
+<p>Reallocate a previously allocated block.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">realloc</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ICompiler_compileString"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICompiler.compileString</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1037">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">compileString</span>(str: <span class="STpe">string</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ICompiler_getBuildCfg"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICompiler.getBuildCfg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1036">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getBuildCfg</span>()-&gt;<span class="SItr">#null</span> *<span class="SCst">BuildCfg</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ICompiler_getMessage"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICompiler.getMessage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/api.swg#L1035">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getMessage</span>()-&gt;<span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="SCst">CompilerMessage</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ScratchAllocator_IAllocator_alloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.alloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/scratchallocator.swg#L160">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">alloc</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ScratchAllocator_IAllocator_allocBlock"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.allocBlock</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/scratchallocator.swg#L128">[src]</a></td></tr></table>
+<p>Shared allocation path: in the buffer when there is room, otherwise a tracked leak allocation. A non-null incoming <span class="code-inline">request.address</span> is a reallocation: the old payload (<span class="code-inline">request.oldSize</span> bytes) is copied into the new block.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">allocBlock</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ScratchAllocator_IAllocator_assertAllocated"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.assertAllocated</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/scratchallocator.swg#L193">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">assertAllocated</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ScratchAllocator_IAllocator_free"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.free</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/scratchallocator.swg#L86">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">free</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ScratchAllocator_IAllocator_freeAll"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.freeAll</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/scratchallocator.swg#L186">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">freeAll</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_ScratchAllocator_IAllocator_realloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IAllocator.realloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/scratchallocator.swg#L173">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">realloc</span>(request: *<span class="SCst">AllocatorRequest</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_atomicCompareExchangeHeader"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atomicCompareExchangeHeader</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L115">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">atomicCompareExchangeHeader</span>(slot: *<span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span>, compareTo, exchangeWith: <span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_atomicExchangeHeader"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atomicExchangeHeader</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L110">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">atomicExchangeHeader</span>(slot: *<span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span>, value: <span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_atomicGet"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atomicGet</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L120">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">atomicGet</span>(addr: *<span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">atomicGet</span>(addr: *<span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span> =&gt;</span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_atomicLoadHeader"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.atomicLoadHeader</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L105">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">atomicLoadHeader</span>(slot: *<span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">AllocatorHeader</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_currentThreadId"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.currentThreadId</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L123">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">private</span> <span class="SKwd">func</span> <span class="SFct">currentThreadId</span>()-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_defaultAllocator"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.defaultAllocator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1152">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">defaultAllocator</span>()-&gt;*<span class="SCst">Allocator</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_installAllocator"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.installAllocator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1172">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">installAllocator</span>(electricMode: <span class="STpe">bool</span> = <span class="SKwd">false</span>, detectLeaks: <span class="STpe">bool</span> = <span class="SKwd">true</span>, captureStack: <span class="STpe">bool</span> = <span class="SKwd">false</span>, trackAllocations: <span class="STpe">bool</span> = <span class="SKwd">false</span>, fillMemory: <span class="STpe">bool</span> = <span class="SKwd">false</span>, installInContext: <span class="STpe">bool</span> = <span class="SKwd">true</span>)-&gt;*<span class="SCst">Allocator</span></span></div>
+<table class="api-item"><tr><td><span id="Language_Swag_releaseAllocatorThreadCache"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.releaseAllocatorThreadCache</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/allocator.swg#L1157">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">releaseAllocatorThreadCache</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_AcquireSRWLockExclusive"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.AcquireSRWLockExclusive</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L55">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">AcquireSRWLockExclusive</span>(<span class="SCst">SRWLock</span>: *<span class="SCst">SRWLOCK</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_DebugBreak"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.DebugBreak</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L50">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DebugBreak</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_ExitProcess"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.ExitProcess</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L48">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ExitProcess</span>(uExitCode: <span class="STpe">u32</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_GetCurrentProcess"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.GetCurrentProcess</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetCurrentProcess</span>()-&gt;<span class="SCst">HANDLE</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_GetCurrentThreadId"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.GetCurrentThreadId</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L46">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetCurrentThreadId</span>()-&gt;<span class="SCst">DWORD</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_GetModuleHandleA"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.GetModuleHandleA</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L41">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetModuleHandleA</span>(lpModuleName: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">u8</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_GetModuleHandleExA"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.GetModuleHandleExA</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L42">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetModuleHandleExA</span>(dwFlags: <span class="SCst">DWORD</span>, lpModuleName: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">u8</span>, phModule: *<span class="SItr">#null</span> *<span class="STpe">void</span>)-&gt;<span class="SCst">BOOL</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_GetStdHandle"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.GetStdHandle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L43">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">GetStdHandle</span>(nStdHandle: <span class="STpe">u32</span>)-&gt;<span class="SCst">HANDLE</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_LoadLibraryA"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.LoadLibraryA</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L51">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">LoadLibraryA</span>(name: <span class="SKwd">const</span> *<span class="STpe">u8</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_MessageBoxA"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.MessageBoxA</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L63">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">MessageBoxA</span>(hWnd: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>, lpText: <span class="SKwd">const</span> *<span class="STpe">void</span>, lpCaption: <span class="SKwd">const</span> *<span class="STpe">void</span>, uType: <span class="STpe">u32</span>)-&gt;<span class="STpe">s32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_RaiseException"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.RaiseException</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L49">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RaiseException</span>(dwExceptionCode: <span class="STpe">u32</span>, dwExceptionFlags: <span class="STpe">u32</span>, nNumberOfArguments: <span class="STpe">u32</span>, lpArguments: *<span class="SKwd">const</span> *<span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_ReleaseSRWLockExclusive"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.ReleaseSRWLockExclusive</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L56">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ReleaseSRWLockExclusive</span>(<span class="SCst">SRWLock</span>: *<span class="SCst">SRWLOCK</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_RtlCaptureContext"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.RtlCaptureContext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L38">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RtlCaptureContext</span>(contextRecord: *<span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_RtlCaptureStackBackTrace"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.RtlCaptureStackBackTrace</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L40">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RtlCaptureStackBackTrace</span>(framesToSkip: <span class="SCst">ULONG</span>, framesToCapture: <span class="SCst">ULONG</span>, backTrace: **<span class="STpe">void</span>, backTraceHash: <span class="SItr">#null</span> *<span class="SCst">ULONG</span>)-&gt;<span class="SCst">USHORT</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_RtlRestoreContext"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.RtlRestoreContext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L39">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">RtlRestoreContext</span>(contextRecord: *<span class="STpe">void</span>, exceptionRecord: <span class="SItr">#null</span> *<span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_SetUnhandledExceptionFilter"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.SetUnhandledExceptionFilter</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L47">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">SetUnhandledExceptionFilter</span>(lpTopLevelExceptionFilter: <span class="SItr">#null</span> *<span class="STpe">void</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_TlsAlloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.TlsAlloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L52">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">TlsAlloc</span>()-&gt;<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_TlsGetValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.TlsGetValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L54">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">TlsGetValue</span>(dwTlsIndex: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_TlsSetValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.TlsSetValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L53">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">TlsSetValue</span>(dwTlsIndex: <span class="STpe">u32</span>, lpTlsValue: <span class="SItr">#null</span> *<span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_VirtualAlloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.VirtualAlloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L57">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">VirtualAlloc</span>(lpAddress: <span class="SItr">#null</span> *<span class="STpe">void</span>, dwSize: <span class="SCst">ULONG64</span>, flAllocationType: <span class="SCst">DWORD</span>, flProtect: <span class="SCst">DWORD</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_VirtualFree"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.VirtualFree</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L58">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">VirtualFree</span>(lpAddress: <span class="SItr">#null</span> *<span class="STpe">void</span>, dwSize: <span class="SCst">ULONG64</span>, dwFreeType: <span class="SCst">DWORD</span>)-&gt;<span class="SCst">BOOL</span></span></div>
+<table class="api-item"><tr><td><span id="Language___Win32RT_WriteFile"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">__Win32RT.WriteFile</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L44">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">WriteFile</span>(hFile: <span class="SCst">HANDLE</span>, lpBuffer: <span class="SItr">#null</span> <span class="SKwd">const</span> *<span class="STpe">void</span>, nNumberOfBytesToWrite: <span class="STpe">u32</span>, lpNumberOfBytesWritten: <span class="SItr">#null</span> *<span class="STpe">u32</span>, lpOverlapped: <span class="SItr">#null</span> *<span class="STpe">void</span>)-&gt;<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___bindErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__bindErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L99">[src]</a></td></tr></table>
+<p>Seed the 'catch e as err { H }' binding: copy the current error into the caller-provided slot right before the handler runs (curError is still valid at that point, cleared by <span class="code-inline">__endErr</span> only after H). All the fat-value copy lives here so codegen just passes the slot.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__bindErr</span>(dst: *<span class="SItr">#null</span> <span class="STpe">any</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___captureStack"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__captureStack</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L450">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__captureStack</span>(skip: <span class="STpe">u32</span>, wh: [..] *<span class="STpe">void</span>)-&gt;<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___catchErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__catchErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L111">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__catchErr</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___clearErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__clearErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L106">[src]</a></td></tr></table>
+<p>Reset a 'catch e as err' capture slot before the fallible call runs, so a successful call leaves <span class="code-inline">err</span> null (the failure path overwrites it via <span class="code-inline">__bindErr</span>).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__clearErr</span>(dst: *<span class="SItr">#null</span> <span class="STpe">any</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___closeRuntime"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__closeRuntime</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L327">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__closeRuntime</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___compilerError"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__compilerError</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L343">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__compilerError</span>(file: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>, line: <span class="STpe">u32</span>, col: <span class="STpe">u32</span>, message: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___concreteAlias"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__concreteAlias</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__concreteAlias</span>(type1: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">typeinfo</span></span></div>
+<table class="api-item"><tr><td><span id="Language___convertArgcArgv"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__convertArgcArgv</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L201">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__convertArgcArgv</span>(args: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___dbgFindSection"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__dbgFindSection</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L478">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__dbgFindSection</span>(base: <span class="SItr">#null</span> *<span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___dbgStr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__dbgStr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L520">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__dbgStr</span>(off: <span class="STpe">u32</span>)-&gt;<span class="STpe">string</span></span></div>
+<table class="api-item"><tr><td><span id="Language___dropErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__dropErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__dropErr</span>(err: <span class="SItr">#null</span> <span class="STpe">any</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___dropGlobalVariables"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__dropGlobalVariables</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L332">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__dropGlobalVariables</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___endErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__endErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L91">[src]</a></td></tr></table>
+<p>Dismiss the error a <span class="code-inline">catch</span> handler or 'as err' capture just dealt with: after it runs (with the error still in curError), clear it so it no longer counts as in-flight for <span class="code-inline">#fail</span>/<span class="code-inline">#nofail</span> defers. <span class="code-inline">catchErr</span> already popped the error frame, so only the current-error pointer remains to be cleared.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__endErr</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___ensureRuntimeAllocator"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__ensureRuntimeAllocator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L279">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__ensureRuntimeAllocator</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___exit"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__exit</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L287">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__exit</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___exitError"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__exitError</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L320">[src]</a></td></tr></table>
+<p>//////////////////////////////////////////////////////////</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__exitError</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___failedExpect"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__failedExpect</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L124">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__failedExpect</span>(loc: <span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___ftoa"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__ftoa</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L81">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Safety(.All, false)]</span>
+<span class="SKwd">func</span> <span class="SFct">__ftoa</span>(result: [*] <span class="STpe">u8</span>, value: <span class="STpe">f64</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___hasErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__hasErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L50">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__hasErr</span>()-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Language___isErrContext"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__isErrContext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L55">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__isErrContext</span>()-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Language___isTestRun"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__isTestRun</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L376">[src]</a></td></tr></table>
+<p>A test executable launched without the <span class="code-inline">swag.test</span> run-arg (started by hand rather than by the compiler's test command, which always passes it) behaves like the plain application: the startup thunk still calls the runner, but every #test is skipped and #main runs on a state no test has touched.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__isTestRun</span>()-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Language___itoa"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__itoa</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable, Safety(.All, false)]</span>
+<span class="SKwd">func</span> <span class="SFct">__itoa</span>(result: [*] <span class="STpe">u8</span>, value: <span class="STpe">s64</span>)-&gt;[*] <span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Language___loaddll"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__loaddll</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L285">[src]</a></td></tr></table>
+<p>//////////////////////////////////////////////////////////</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__loaddll</span>(name: <span class="STpe">string</span>) =&gt; __Win32RT.<span class="SCst">LoadLibraryA</span></span></div>
+<table class="api-item"><tr><td><span id="Language___logStackTrace"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__logStackTrace</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L573">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__logStackTrace</span>(wh: [..] *<span class="STpe">void</span>, startAfter: <span class="SItr">#null</span> *<span class="SCst">Swag</span>.<span class="SCst">SourceCodeLocation</span> = <span class="SKwd">null</span>, printNoLine = <span class="SKwd">true</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___panic"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__panic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L332">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__panic</span>(file: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>, line: <span class="STpe">u32</span>, col: <span class="STpe">u32</span>, message: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___panicBox"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__panicBox</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L438">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__panicBox</span>(msg, title: <span class="STpe">string</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___peU16"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__peU16</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L475">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__peU16</span>(p: [*] <span class="STpe">u8</span>, off: <span class="STpe">u64</span>)-&gt;<span class="STpe">u16</span> =&gt;</span></div>
+<table class="api-item"><tr><td><span id="Language___peU32"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__peU32</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L476">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__peU32</span>(p: [*] <span class="STpe">u8</span>, off: <span class="STpe">u64</span>)-&gt;<span class="STpe">u32</span> =&gt;</span></div>
+<table class="api-item"><tr><td><span id="Language___popErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__popErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L73">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__popErr</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___printF64"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__printF64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L150">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__printF64</span>(value: <span class="STpe">f64</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___printPanicReport"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__printPanicReport</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L213">[src]</a></td></tr></table>
+<p>Print a full panic report: banner, message, source location and both stack traces. Shared by the default panic path below and by the native #test runner, whose panic hook reports a failing test with the exact same output before resuming the runner.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__printPanicReport</span>(message: <span class="SItr">#null</span> <span class="STpe">string</span>, loc: <span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___printS64"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__printS64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L142">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__printS64</span>(value: <span class="STpe">s64</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___printString"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__printString</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L243">[src]</a></td></tr></table>
+<p>//////////////////////////////////////////////////////////</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__printString</span>(message: <span class="SItr">#null</span> <span class="STpe">string</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___printU64"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__printU64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L134">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__printU64</span>(value: <span class="STpe">u64</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___pushErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__pushErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L61">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__pushErr</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___raiseException666"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__raiseException666</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L253">[src]</a></td></tr></table>
+<p>//////////////////////////////////////////////////////////</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__raiseException666</span>(message: <span class="SItr">#null</span> <span class="STpe">string</span>, loc: <span class="SCst">Swag</span>.<span class="SCst">SourceCodeLocation</span>, kind: <span class="SCst">Swag</span>.<span class="SCst">ExceptionKind</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___releaseRuntime"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__releaseRuntime</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L312">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__releaseRuntime</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___resetRuntimeContext"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__resetRuntimeContext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L284">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__resetRuntimeContext</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___runTest"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__runTest</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L391">[src]</a></td></tr></table>
+<p>Optimizations stay off: after a panic resume, execution re-enters the middle of this function with the registers captured before the test ran, so every local must live on the stack, not in a register the test call could have recycled.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Optimize(false)]</span>
+<span class="SKwd">func</span> <span class="SFct">__runTest</span>(fn: *<span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___runtimeAllocator"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__runtimeAllocator</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L256">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__runtimeAllocator</span>()-&gt;<span class="SCst">IAllocator</span></span></div>
+<table class="api-item"><tr><td><span id="Language___setErr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__setErr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L43">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__setErr</span>(err: <span class="STpe">any</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___setErrRaw"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__setErrRaw</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L16">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__setErrRaw</span>(data: *<span class="STpe">void</span>, type: <span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">TypeInfoStruct</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___setupRuntime"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__setupRuntime</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/core.swg#L297">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__setupRuntime</span>(flags: <span class="SCst">RuntimeFlags</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___stackTrace"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__stackTrace</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/error.swg#L179">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__stackTrace</span>(loc: <span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___symbolize"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__symbolize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L531">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__symbolize</span>(addr: *<span class="STpe">void</span>)-&gt;__SwagSym</span></div>
+<table class="api-item"><tr><td><span id="Language___testPanicHandler"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__testPanicHandler</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L348">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__testPanicHandler</span>(message: <span class="SItr">#null</span> <span class="STpe">string</span>, loc: <span class="SCst">Swag</span>.<span class="SCst">SourceCodeLocation</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language___testResumeContext"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__testResumeContext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L341">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__testResumeContext</span>()-&gt;*<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___testUnhandledFilter"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__testUnhandledFilter</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L360">[src]</a></td></tr></table>
+<p>Last-chance rescue for hardware faults (access violation, division by zero...) raised by the running test on the test thread. Anything else (worker threads, faults outside a test) keeps the default fatal behavior.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__testUnhandledFilter</span>(exceptionPointers: *<span class="STpe">void</span>)-&gt;<span class="STpe">s32</span></span></div>
+<table class="api-item"><tr><td><span id="Language___testsDone"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__testsDone</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L427">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__testsDone</span>()</span></div>
+<table class="api-item"><tr><td><span id="Language___tlsAlloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__tlsAlloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L292">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__tlsAlloc</span>()                         =&gt;</span></div>
+<table class="api-item"><tr><td><span id="Language___tlsGetPtr"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__tlsGetPtr</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L299">[src]</a></td></tr></table>
+<p>////////////////////////////////////////////////////////// Returns the current thread's runtime context, lazily creating it on a thread the runtime has never seen (an OS-owned callback thread, e.g. xaudio2).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__tlsGetPtr</span>(id: <span class="STpe">u64</span>, size: <span class="STpe">u64</span>, init: <span class="SKwd">const</span> *<span class="STpe">void</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language___tlsGetValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__tlsGetValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L294">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__tlsGetValue</span>(id: <span class="STpe">u64</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span>  =&gt; __Win32RT.<span class="SCst">TlsGetValue</span></span></div>
+<table class="api-item"><tr><td><span id="Language___tlsSetValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__tlsSetValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L293">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">__tlsSetValue</span>(id: <span class="STpe">u64</span>, value: *<span class="STpe">void</span>) =&gt; __Win32RT.<span class="SCst">TlsSetValue</span></span></div>
+<table class="api-item"><tr><td><span id="Language___utoa"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.__utoa</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/print.swg#L47">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Discardable, Safety(.All, false)]</span>
+<span class="SKwd">func</span> <span class="SFct">__utoa</span>(result: [*] <span class="STpe">u8</span>, value: <span class="STpe">u64</span>)-&gt;[*] <span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Language_acos"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.acos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L124">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acos</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_acosf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.acosf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L104">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">acosf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_asin"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.asin</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L123">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asin</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_asinf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.asinf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L103">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">asinf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_atan"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.atan</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L125">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_atan2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.atan2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L140">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2</span>(val1, val2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_atan2f"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.atan2f</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L138">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atan2f</span>(val1, val2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_atanf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.atanf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L105">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">atanf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_ceil"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.ceil</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L130">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceil</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_ceilf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.ceilf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L110">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ceilf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_cos"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.cos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L118">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cos</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_cosf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.cosf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L98">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_cosh"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.cosh</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L121">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">cosh</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_coshf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.coshf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L101">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">coshf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_exp"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.exp</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L133">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_exp2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.exp2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L134">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_exp2f"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.exp2f</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L114">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">exp2f</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_expf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.expf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L113">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">expf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_floor"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.floor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L129">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floor</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_floorf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.floorf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L109">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">floorf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_free"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.free</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L144">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">free</span>(ptr: <span class="SItr">#null</span> [*] <span class="STpe">void</span>)</span></div>
+<table class="api-item"><tr><td><span id="Language_log"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.log</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L126">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_log10"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.log10</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L128">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_log10f"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.log10f</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L108">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log10f</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_log2"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.log2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L127">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_log2f"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.log2f</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L107">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log2f</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_logf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.logf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L106">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">logf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_malloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.malloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L142">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">malloc</span>(s: <span class="STpe">s64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language_memcmp"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.memcmp</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L148">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">memcmp</span>(dst: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">s64</span>)-&gt;<span class="STpe">s32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_memcpy"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.memcpy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L145">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">memcpy</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">s64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language_memmove"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.memmove</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L146">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">memmove</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, src: <span class="SItr">#null</span> <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">s64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language_memset"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.memset</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L147">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">memset</span>(dst: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, value: <span class="STpe">s32</span>, size: <span class="STpe">s64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language_pow"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.pow</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L139">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pow</span>(val1, val2: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_powf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.powf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L137">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">powf</span>(val1, val2: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_realloc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.realloc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L143">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">realloc</span>(ptr: <span class="SItr">#null</span> [*] <span class="STpe">void</span>, s: <span class="STpe">s64</span>)-&gt;<span class="SItr">#null</span> [*] <span class="STpe">void</span></span></div>
+<table class="api-item"><tr><td><span id="Language_round"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.round</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L132">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">round</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_roundf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.roundf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L112">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">roundf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_sin"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.sin</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L117">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sin</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_sinf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.sinf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L97">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_sinh"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.sinh</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L120">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinh</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_sinhf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.sinhf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L100">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sinhf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_sqrt"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.sqrt</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L135">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrt</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_sqrtf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.sqrtf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L115">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">sqrtf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_tan"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.tan</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L119">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tan</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_tanf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.tanf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L99">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_tanh"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.tanh</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L122">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanh</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_tanhf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.tanhf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L102">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tanhf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Language_trunc"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.trunc</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L131">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trunc</span>(val: <span class="STpe">f64</span>)-&gt;<span class="STpe">f64</span></span></div>
+<table class="api-item"><tr><td><span id="Language_truncf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Language.truncf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/runtime/os_windows.swg#L111">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">truncf</span>(val: <span class="STpe">f32</span>)-&gt;<span class="STpe">f32</span></span></div>
+<div class="swag-watermark">Generated with <a href="https://swag-lang.org/index.php">swc</a> 0.1.1</div>
+</div></div>
+</div>
+<script>
+function getOffsetTop(element,parent){let offsetTop=0;while(element&&element!=parent){offsetTop+=element.offsetTop;element=element.offsetParent}return offsetTop}
+document.addEventListener("DOMContentLoaded",function(){let hash=window.location.hash;if(!hash)return;let parent=document.querySelector(".right");let target=parent?parent.querySelector(hash):null;if(target)parent.scrollTop=getOffsetTop(target,parent)});
+</script>
+</body>
+</html>

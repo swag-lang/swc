@@ -81,10 +81,13 @@ namespace Command
         }
 
         // Parser
-        const uint64_t errorsBefore = Stats::getNumErrors();
+        const uint64_t         errorsBefore  = Stats::getNumErrors();
+        const ParserJobOptions parserOptions = {
+            .emitTrivia = compiler.cmdLine().command == CommandKind::Doc,
+        };
         for (SourceFile* f : inputFiles)
         {
-            auto* job = compiler.makeJob<ParserJob>(ctx, f);
+            auto* job = compiler.makeJob<ParserJob>(ctx, f, parserOptions);
             jobMgr.enqueue(*job, JobPriority::Normal, clientId);
         }
 

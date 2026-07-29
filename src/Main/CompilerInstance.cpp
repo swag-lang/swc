@@ -536,6 +536,9 @@ void CompilerInstance::processCommand()
         case CommandKind::Sema:
             Command::sema(*this);
             break;
+        case CommandKind::Doc:
+            Command::doc(*this);
+            break;
         case CommandKind::Unittest:
             return;
         case CommandKind::Test:

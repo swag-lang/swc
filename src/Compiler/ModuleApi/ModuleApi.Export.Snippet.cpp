@@ -651,7 +651,7 @@ namespace ModuleApi::Export
 
         SourceView srcView(SourceViewRef::invalid(), &lexFile);
         Lexer      lexer;
-        lexer.tokenize(ctx, srcView, LexerFlagsE::EmitTrivia);
+        lexer.tokenize(ctx, srcView, LexerFlagsE::EmitTrivia | LexerFlagsE::AllowReservedIdentifiers);
 
         Utf8     result;
         Utf8     line;

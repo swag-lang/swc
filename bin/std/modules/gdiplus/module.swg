@@ -11,9 +11,10 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Gdiplus"
     cfg.backendKind     = .Export
-    cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/gdiplus"
+    cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus"
 
     cfg.genDoc.kind            = .Api
+    cfg.genDoc.outputName      = "std.gdiplus"
     cfg.genDoc.outputExtension = ".php"
     cfg.genDoc.css             = "css/style.css"
     cfg.genDoc.startHead       = "<?php include('common/start-head.php'); ?>"

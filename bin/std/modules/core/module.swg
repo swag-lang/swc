@@ -17,9 +17,10 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "Core"
     cfg.backendKind     = .SharedLibrary
-    cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/core"
+    cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/core"
 
     cfg.genDoc.kind            = .Api
+    cfg.genDoc.outputName      = "std.core"
     cfg.genDoc.icon            = "favicon.ico"
     cfg.genDoc.titleContent    = "Swag Std.Core"
     cfg.genDoc.outputExtension = ".php"

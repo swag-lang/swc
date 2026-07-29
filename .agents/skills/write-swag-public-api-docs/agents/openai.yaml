@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Swag Public API Docs"
+  short_description: "Document public Swag APIs consistently"
+  default_prompt: "Use $write-swag-public-api-docs to document the public API changes under bin/."

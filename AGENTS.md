@@ -12,3 +12,7 @@ When the change adds, removes, or renames language surface syntax (a keyword, `#
 `@` intrinsic, operator, or token spelling), also read and follow
 [reflect-swag-syntax-changes](.agents/skills/reflect-swag-syntax-changes/SKILL.md): the
 language reference and the VSCode extension must be updated to match.
+
+When the change adds or updates public declarations or documentation comments under `bin/`,
+also read and follow
+[write-swag-public-api-docs](.agents/skills/write-swag-public-api-docs/SKILL.md).

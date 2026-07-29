@@ -20,10 +20,10 @@ The current commands are:
 | 'format' | Rewrite source using canonical formatting |
 | 'syntax' | Parse source without semantic analysis or code generation |
 | 'sema' | Parse and type-check source without backend code generation |
+| 'doc' | Parse and type-check source, then generate configured documentation |
 | 'unittest' | Run the compiler's internal C++ unit tests |
 
-There is no 'new' project generator or 'doc' documentation command in the
-current CLI.
+There is no 'new' project generator in the current CLI.
 
 # Selecting Input
 
@@ -39,8 +39,8 @@ Use one input model per invocation:
 | '--file PATH', '-f PATH' | Add an individual source file |
 
 '--workspace' and '--workspace-module' are available to 'build', 'run', 'test',
-and 'sema'. The 'format', 'syntax', and compiler-internal 'unittest' commands
-use the direct module, module-file, directory, or file modes instead.
+'sema', and 'doc'. The 'format', 'syntax', and compiler-internal 'unittest'
+commands use the direct module, module-file, directory, or file modes instead.
 
 Where workspace mode is accepted, it excludes the direct module, directory,
 and file input modes. '--workspace-module' is meaningful only with
@@ -66,6 +66,7 @@ artifact with '--artifact-kind' ('-ak'): 'executable', 'shared-library',
 swc build -w <workspace> -m app -bc release
 swc run   -w <workspace> -m app --run-arg first --run-arg second
 swc sema  -w <workspace> -m app
+swc doc   -w <workspace> -m app --doc-output-dir <directory>
 swc syntax -mf <workspace>/modules/app
 swc format -mf <workspace>/modules/app --dry-run
 ```
@@ -73,6 +74,22 @@ swc format -mf <workspace>/modules/app --dry-run
 '--dry-run' previews planned stages without executing compile-time code, native
 tools, tests, or emitted programs. '--show-config' prints the resolved command,
 environment, toolchain, and artifact configuration, then exits.
+
+# Documentation Generation
+
+`swc doc` uses the module's 'BuildCfg.genDoc' configuration. The documentation
+kind can generate a public API page, a numbered examples document, or one page
+per source file.
+
+| Option | Effect |
+|---|---|
+| `--doc-output-dir PATH` | Write generated pages under 'PATH' |
+| `--css PATH` | Override the configured stylesheet link |
+| `--ext EXTENSION` | Override the configured output extension |
+| `--output-doc` / `--no-output-doc` | Enable or suppress documentation files |
+
+The command also generates the public runtime API page once per output
+directory.
 
 # Test Controls
 

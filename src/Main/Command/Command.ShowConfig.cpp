@@ -4,6 +4,7 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/RuntimeName.h"
+#include "Compiler/Doc/DocGenerator.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandPrint.h"
 #include "Main/CompilerInstance.h"
@@ -64,6 +65,8 @@ namespace
         addBoolEntry(entries, "Syntax only", cmdLine.syntaxOnly);
         addBoolEntry(entries, "Sema only", cmdLine.semaOnly);
         addBoolEntry(entries, "Emit output", cmdLine.output);
+        if (cmdLine.command == CommandKind::Doc)
+            addBoolEntry(entries, "Emit documentation", cmdLine.outputDoc);
         addBoolEntry(entries, "Dev full", cmdLine.devFull);
 
 #if SWC_HAS_UNITTEST
@@ -98,6 +101,12 @@ namespace
         addInfoEntry(entries, "Module path", cmdLine.modulePath);
         addInfoEntry(entries, "Export API directory", cmdLine.exportApiDir);
         addInfoEntry(entries, "Output directory", Utf8(buildCfg.outDir));
+        if (cmdLine.command == CommandKind::Doc)
+        {
+            addInfoEntry(entries, "Documentation directory", DocGenerator::outputDirectory(ctx.compiler()));
+            addInfoEntry(entries, "Documentation stylesheet", cmdLine.docCss);
+            addInfoEntry(entries, "Documentation extension", cmdLine.docExtension);
+        }
         addPathSet(entries, "Source directories", cmdLine.directories);
         addPathSet(entries, "Source files", cmdLine.files);
         addUtf8Set(entries, "Import API modules", cmdLine.importApiModules);
@@ -125,6 +134,8 @@ namespace
 
     void printNativeConfig(const TaskContext& ctx, CompilerInstance& compiler, bool& hasPrintedGroup)
     {
+        if (ctx.cmdLine().command == CommandKind::Doc)
+            return;
         if (!Runtime::backendKindProducesNativeArtifact(compiler.buildCfg().backendKind))
             return;
 

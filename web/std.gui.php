@@ -1,0 +1,3673 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<?php include('common/start-head.php'); ?><title>Module gui</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<script src="https://kit.fontawesome.com/f76be2b3ee.js" crossorigin="anonymous"></script>
+<style>
+.container{display:flex;flex-wrap:nowrap;flex-direction:row;margin:0 auto;padding:0}.left{display:block;overflow-y:auto;width:500px}.left-page{margin:10px}.right{display:block;width:100%}.right-page{max-width:1024px;margin:10px auto}
+@media(min-width:640px){.container{max-width:640px}}@media(min-width:768px){.container{max-width:768px}}@media(min-width:1024px){.container{max-width:1024px}}@media(min-width:1280px){.container{max-width:1280px}}@media(min-width:1536px){.container{max-width:1536px}}@media screen and (max-width:600px){.left{display:none}.right-page{margin:10px}}
+html{font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}body{margin:0;line-height:1.3em}.container a{color:DodgerBlue}.container a:hover{text-decoration:underline}.container img{margin:0 auto}.left a{text-decoration:none}.left ul{list-style-type:none;margin-left:-20px}.left h3{background-color:#000;color:#fff;padding:6px}.right h1{margin-top:50px;margin-bottom:50px}.right h2{margin-top:35px}.right hr{margin-top:50px;margin-bottom:50px}.strikethrough-text{text-decoration:line-through}.swag-watermark{text-align:right;font-size:80%;margin-top:30px}.swag-watermark a{text-decoration:none;color:inherit}
+.blockquote{border-radius:5px;border:1px solid;margin:20px;padding:10px}.blockquote-default{border-color:orange;border-left:6px solid orange;background-color:#ffffe0}.blockquote-note{border-color:#adcedd;background-color:#cdeefd}.blockquote-tip{border-color:#bccfbc;background-color:#dcefdc}.blockquote-warning{border-color:#dfbdb3;background-color:#ffddd3}.blockquote-attention{border-color:#ddbab8;background-color:#fddad8}.blockquote-example{border:2px solid #d3d3d3}.blockquote-title-block{margin-bottom:10px}.blockquote-title{font-weight:bold}.description-list-title{font-weight:bold;font-style:italic}.description-list-block{margin-left:30px}
+.container table{border:1px solid #d3d3d3;border-collapse:collapse;font-size:90%;margin:20px}.container td,.container th{border:1px solid #d3d3d3;padding:6px;min-width:100px}.container th{background-color:#eee}table.api-item{border-collapse:separate;background-color:#000;color:#fff;width:100%;margin:70px 0 0;font-size:110%}.api-item td{font-size:revert;border:0}.api-item td:first-child{width:66%;white-space:nowrap}.api-item-title-src-ref{text-align:right}.api-item-title-src-ref a{color:inherit}.api-item-title-kind{font-weight:normal;font-size:80%}.api-item-title-strong{font-weight:bold}.table-enumeration{width:calc(100% - 40px)}.table-enumeration td:first-child{background-color:#f8f8f8;white-space:nowrap}.table-enumeration td:last-child{width:100%}.table-enumeration td.code-type{background-color:#eee}.table-enumeration a{text-decoration:none;color:inherit}
+.code-inline{background-color:#eee;border-radius:5px;border:1px dotted #ccc;padding:0 8px;font-size:110%;font-family:monospace;display:inline-block}.code-block{background-color:#eee;border-radius:5px;border:1px solid #d3d3d3;padding:10px;margin:20px;white-space:pre;overflow-x:auto;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace}.code-block a{color:inherit}
+.SCmt{color:#6a9955}.SCmp,.SAtr{color:#777}.SFct{color:#c54f00}.SCst{color:#168f7d}.SItr{color:#8a7600}.STpe{color:#a66c00}.SKwd{color:#286fa8}.SLgc{color:#8e4d99}.SNum{color:#4d7a45}.SStr{color:#a64f38}.SInv{color:#d22}.SBcR{color:#817c31}
+.SCde{color:#222222}
+.container{height:100vh}.right{overflow-y:auto}
+</style>
+<?php include('common/end-head.php'); ?>
+</head>
+<body>
+<?php include('common/start-body.php'); ?>
+<div class="container">
+<div class="left"><div class="left-page">
+<h2>Table of Contents</h2>
+<h3>Structs</h3>
+<li><a href="#Gui_ActionContext">Gui.ActionContext</a></li>
+<li><a href="#Gui_Application">Gui.Application</a></li>
+<li><a href="#Gui_Application___anonymous_struct_4864">Application.__anonymous_struct_4864</a></li>
+<li><a href="#Gui_ApplicationNative">Gui.ApplicationNative</a></li>
+<li><a href="#Gui_ApplicationOptions">Gui.ApplicationOptions</a></li>
+<li><a href="#Gui_CommandEvent">Gui.CommandEvent</a></li>
+<li><a href="#Gui_CommandStateEvent">Gui.CommandStateEvent</a></li>
+<li><a href="#Gui_CreateEvent">Gui.CreateEvent</a></li>
+<li><a href="#Gui_DestroyEvent">Gui.DestroyEvent</a></li>
+<li><a href="#Gui_Event">Gui.Event</a></li>
+<li><a href="#Gui_FocusEvent">Gui.FocusEvent</a></li>
+<li><a href="#Gui_FrameEvent">Gui.FrameEvent</a></li>
+<li><a href="#Gui_InvalidateEvent">Gui.InvalidateEvent</a></li>
+<li><a href="#Gui_Item">Gui.Item</a></li>
+<li><a href="#Gui_KeyEvent">Gui.KeyEvent</a></li>
+<li><a href="#Gui_MouseEvent">Gui.MouseEvent</a></li>
+<li><a href="#Gui_MoveEvent">Gui.MoveEvent</a></li>
+<li><a href="#Gui_Movie">Gui.Movie</a></li>
+<li><a href="#Gui_NativeSurface">Gui.NativeSurface</a></li>
+<li><a href="#Gui_NotifyEvent">Gui.NotifyEvent</a></li>
+<li><a href="#Gui_PaintEvent">Gui.PaintEvent</a></li>
+<li><a href="#Gui_QuitEvent">Gui.QuitEvent</a></li>
+<li><a href="#Gui_ResizeEvent">Gui.ResizeEvent</a></li>
+<li><a href="#Gui_SelModel">Gui.SelModel</a></li>
+<li><a href="#Gui_SelRange">Gui.SelRange</a></li>
+<li><a href="#Gui_SerializeStateEvent">Gui.SerializeStateEvent</a></li>
+<li><a href="#Gui_SigArray">Gui.SigArray</a></li>
+<li><a href="#Gui_StateEvent">Gui.StateEvent</a></li>
+<li><a href="#Gui_Surface">Gui.Surface</a></li>
+<li><a href="#Gui_SurfaceState">Gui.SurfaceState</a></li>
+<li><a href="#Gui_SysCommandEvent">Gui.SysCommandEvent</a></li>
+<li><a href="#Gui_SysUserEvent">Gui.SysUserEvent</a></li>
+<li><a href="#Gui_ThemeEvent">Gui.ThemeEvent</a></li>
+<li><a href="#Gui_Timer">Gui.Timer</a></li>
+<li><a href="#Gui_TimerEvent">Gui.TimerEvent</a></li>
+<li><a href="#Gui_UndoManager">Gui.UndoManager</a></li>
+<li><a href="#Gui_UndoStep">Gui.UndoStep</a></li>
+<h4>composite</h4>
+<li><a href="#Gui_BreadcrumbCtrl">Gui.BreadcrumbCtrl</a></li>
+<li><a href="#Gui_BreadcrumbItem">Gui.BreadcrumbItem</a></li>
+<li><a href="#Gui_ColorPickerCtrl">Gui.ColorPickerCtrl</a></li>
+<li><a href="#Gui_ComboCtrl">Gui.ComboCtrl</a></li>
+<li><a href="#Gui_EditCtrl">Gui.EditCtrl</a></li>
+<li><a href="#Gui_EmbInfoCtrl">Gui.EmbInfoCtrl</a></li>
+<li><a href="#Gui_FileBrowserCtrl">Gui.FileBrowserCtrl</a></li>
+<li><a href="#Gui_GridLayoutCtrl">Gui.GridLayoutCtrl</a></li>
+<li><a href="#Gui_GridTrack">Gui.GridTrack</a></li>
+<li><a href="#Gui_ListCtrl">Gui.ListCtrl</a></li>
+<li><a href="#Gui_ListItem">Gui.ListItem</a></li>
+<li><a href="#Gui_ListLine">Gui.ListLine</a></li>
+<li><a href="#Gui_ListView">Gui.ListView</a></li>
+<li><a href="#Gui_MenuCtrl">Gui.MenuCtrl</a></li>
+<li><a href="#Gui_PopupListCtrl">Gui.PopupListCtrl</a></li>
+<li><a href="#Gui_PopupListCtrlItem">Gui.PopupListCtrlItem</a></li>
+<li><a href="#Gui_PopupListView">Gui.PopupListView</a></li>
+<li><a href="#Gui_PopupMenuItem">Gui.PopupMenuItem</a></li>
+<li><a href="#Gui_SliderCtrl">Gui.SliderCtrl</a></li>
+<li><a href="#Gui_SplitterCtrl">Gui.SplitterCtrl</a></li>
+<li><a href="#Gui_SplitterItem">Gui.SplitterItem</a></li>
+<li><a href="#Gui_StackLayoutCtrl">Gui.StackLayoutCtrl</a></li>
+<li><a href="#Gui_WrapLayoutCtrl">Gui.WrapLayoutCtrl</a></li>
+<h4>dialogs</h4>
+<li><a href="#Gui_AboutDlg">Gui.AboutDlg</a></li>
+<li><a href="#Gui_AboutDlgParams">Gui.AboutDlgParams</a></li>
+<li><a href="#Gui_Dialog">Gui.Dialog</a></li>
+<li><a href="#Gui_EditDlg">Gui.EditDlg</a></li>
+<li><a href="#Gui_FileDlg">Gui.FileDlg</a></li>
+<li><a href="#Gui_FileDlgOptions">Gui.FileDlgOptions</a></li>
+<li><a href="#Gui_FileDlgOptions___anonymous_struct_215">FileDlgOptions.__anonymous_struct_215</a></li>
+<li><a href="#Gui_FileDlgOptions___anonymous_struct_44">FileDlgOptions.__anonymous_struct_44</a></li>
+<li><a href="#Gui_FileDlgState">Gui.FileDlgState</a></li>
+<li><a href="#Gui_MessageDlg">Gui.MessageDlg</a></li>
+<li><a href="#Gui_MessageDlgOptions">Gui.MessageDlgOptions</a></li>
+<h4>paint</h4>
+<li><a href="#Gui_BlendColor">Gui.BlendColor</a></li>
+<li><a href="#Gui_Cursor">Gui.Cursor</a></li>
+<li><a href="#Gui_Icon">Gui.Icon</a></li>
+<li><a href="#Gui_ImageList">Gui.ImageList</a></li>
+<li><a href="#Gui_NativeCursor">Gui.NativeCursor</a></li>
+<li><a href="#Gui_PaintContext">Gui.PaintContext</a></li>
+<li><a href="#Gui_PaintImage">Gui.PaintImage</a></li>
+<li><a href="#Gui_Theme">Gui.Theme</a></li>
+<li><a href="#Gui_ThemeColors">Gui.ThemeColors</a></li>
+<li><a href="#Gui_ThemeImageRect">Gui.ThemeImageRect</a></li>
+<li><a href="#Gui_ThemeImageRects">Gui.ThemeImageRects</a></li>
+<li><a href="#Gui_ThemeMetrics">Gui.ThemeMetrics</a></li>
+<li><a href="#Gui_ThemeResources">Gui.ThemeResources</a></li>
+<li><a href="#Gui_ThemeStyle">Gui.ThemeStyle</a></li>
+<li><a href="#Gui_ThemeStyleRef">Gui.ThemeStyleRef</a></li>
+<h4>property</h4>
+<li><a href="#Gui_ActionProperties">Gui.ActionProperties</a></li>
+<li><a href="#Gui_PropDefaultRoot">Gui.PropDefaultRoot</a></li>
+<li><a href="#Gui_PropFieldValue">Gui.PropFieldValue</a></li>
+<li><a href="#Gui_PropUndoCommand">Gui.PropUndoCommand</a></li>
+<li><a href="#Gui_PropValidationResult">Gui.PropValidationResult</a></li>
+<li><a href="#Gui_Properties">Gui.Properties</a></li>
+<li><a href="#Gui_Properties___anonymous_struct_6870">Properties.__anonymous_struct_6870</a></li>
+<li><a href="#Gui_PropertiesCtrl">Gui.PropertiesCtrl</a></li>
+<li><a href="#Gui_PropertiesItem">Gui.PropertiesItem</a></li>
+<li><a href="#Gui_PropertiesView">Gui.PropertiesView</a></li>
+<li><a href="#Gui_PropertyEditorReg">Gui.PropertyEditorReg</a></li>
+<h4>richedit</h4>
+<li><a href="#Gui_RichEditCtrl">Gui.RichEditCtrl</a></li>
+<li><a href="#Gui_RichEditCursor">Gui.RichEditCursor</a></li>
+<li><a href="#Gui_RichEditLexerSwag">Gui.RichEditLexerSwag</a></li>
+<li><a href="#Gui_RichEditLine">Gui.RichEditLine</a></li>
+<li><a href="#Gui_RichEditMapping">Gui.RichEditMapping</a></li>
+<li><a href="#Gui_RichEditRuneStyle">Gui.RichEditRuneStyle</a></li>
+<li><a href="#Gui_RichEditUndo">Gui.RichEditUndo</a></li>
+<li><a href="#Gui_RichEditView">Gui.RichEditView</a></li>
+<h4>testing</h4>
+<li><a href="#Gui_Testing_AutoEdit">Testing.AutoEdit</a></li>
+<li><a href="#Gui_Testing_AutoStage">Testing.AutoStage</a></li>
+<li><a href="#Gui_Testing_HeadlessHost">Testing.HeadlessHost</a></li>
+<h4>widgets</h4>
+<li><a href="#Gui_Button">Gui.Button</a></li>
+<li><a href="#Gui_CheckButton">Gui.CheckButton</a></li>
+<li><a href="#Gui_Circular">Gui.Circular</a></li>
+<li><a href="#Gui_ColorPicker">Gui.ColorPicker</a></li>
+<li><a href="#Gui_ComboBox">Gui.ComboBox</a></li>
+<li><a href="#Gui_ComboBoxItem">Gui.ComboBoxItem</a></li>
+<li><a href="#Gui_EditBox">Gui.EditBox</a></li>
+<li><a href="#Gui_Header">Gui.Header</a></li>
+<li><a href="#Gui_HeaderItem">Gui.HeaderItem</a></li>
+<li><a href="#Gui_IconBar">Gui.IconBar</a></li>
+<li><a href="#Gui_IconButton">Gui.IconButton</a></li>
+<li><a href="#Gui_ImageRect">Gui.ImageRect</a></li>
+<li><a href="#Gui_Label">Gui.Label</a></li>
+<li><a href="#Gui_PalettePicker">Gui.PalettePicker</a></li>
+<li><a href="#Gui_ProgressBar">Gui.ProgressBar</a></li>
+<li><a href="#Gui_PushButton">Gui.PushButton</a></li>
+<li><a href="#Gui_RadioButton">Gui.RadioButton</a></li>
+<li><a href="#Gui_Slider">Gui.Slider</a></li>
+<li><a href="#Gui_Tab">Gui.Tab</a></li>
+<li><a href="#Gui_TabItem">Gui.TabItem</a></li>
+<li><a href="#Gui_ToggleButton">Gui.ToggleButton</a></li>
+<h4>wnd</h4>
+<li><a href="#Gui_FrameWnd">Gui.FrameWnd</a></li>
+<li><a href="#Gui_KeyShortcut">Gui.KeyShortcut</a></li>
+<li><a href="#Gui_LayoutDebugInfo">Gui.LayoutDebugInfo</a></li>
+<li><a href="#Gui_LayoutSpec">Gui.LayoutSpec</a></li>
+<li><a href="#Gui_ScrollWnd">Gui.ScrollWnd</a></li>
+<li><a href="#Gui_SizeHint">Gui.SizeHint</a></li>
+<li><a href="#Gui_SurfaceWnd">Gui.SurfaceWnd</a></li>
+<li><a href="#Gui_Wnd">Gui.Wnd</a></li>
+<h3>Interfaces</h3>
+<li><a href="#Gui_IActionUI">Gui.IActionUI</a></li>
+<li><a href="#Gui_IEvent">Gui.IEvent</a></li>
+<li><a href="#Gui_IUndoCommand">Gui.IUndoCommand</a></li>
+<h4>property</h4>
+<li><a href="#Gui_IPropertyEditor">Gui.IPropertyEditor</a></li>
+<li><a href="#Gui_IPropertyNotify">Gui.IPropertyNotify</a></li>
+<h4>richedit</h4>
+<li><a href="#Gui_IRichEditLexer">Gui.IRichEditLexer</a></li>
+<h4>wnd</h4>
+<li><a href="#Gui_IWnd">Gui.IWnd</a></li>
+<h3>Enums</h3>
+<li><a href="#Gui_CommandStateEvent_Kind">CommandStateEvent.Kind</a></li>
+<li><a href="#Gui_CommandStateEvent_RenderingHint">CommandStateEvent.RenderingHint</a></li>
+<li><a href="#Gui_CommandStateEvent_SetFlags">CommandStateEvent.SetFlags</a></li>
+<li><a href="#Gui_FocusEvent_Kind">FocusEvent.Kind</a></li>
+<li><a href="#Gui_KeyEvent_Kind">KeyEvent.Kind</a></li>
+<li><a href="#Gui_MouseEvent_Kind">MouseEvent.Kind</a></li>
+<li><a href="#Gui_MovieSource">Gui.MovieSource</a></li>
+<li><a href="#Gui_NotifyEvent_Kind">NotifyEvent.Kind</a></li>
+<li><a href="#Gui_PaintEvent_Kind">PaintEvent.Kind</a></li>
+<li><a href="#Gui_PaintItemFlags">Gui.PaintItemFlags</a></li>
+<li><a href="#Gui_StateEvent_Kind">StateEvent.Kind</a></li>
+<li><a href="#Gui_SurfaceFlags">Gui.SurfaceFlags</a></li>
+<li><a href="#Gui_SysCommandEvent_Kind">SysCommandEvent.Kind</a></li>
+<h4>composite</h4>
+<li><a href="#Gui_ColorPickerFlags">Gui.ColorPickerFlags</a></li>
+<li><a href="#Gui_ColorPickerViewMode">Gui.ColorPickerViewMode</a></li>
+<li><a href="#Gui_EmbInfoCtrlFlags">Gui.EmbInfoCtrlFlags</a></li>
+<li><a href="#Gui_EmbInfoCtrlKind">Gui.EmbInfoCtrlKind</a></li>
+<li><a href="#Gui_GridLayoutCtrlFlags">Gui.GridLayoutCtrlFlags</a></li>
+<li><a href="#Gui_GridTrackKind">Gui.GridTrackKind</a></li>
+<li><a href="#Gui_ListFlags">Gui.ListFlags</a></li>
+<li><a href="#Gui_ListSelectionMode">Gui.ListSelectionMode</a></li>
+<li><a href="#Gui_MenuCtrlFlags">Gui.MenuCtrlFlags</a></li>
+<li><a href="#Gui_PopupPos">Gui.PopupPos</a></li>
+<li><a href="#Gui_SplitterFlags">Gui.SplitterFlags</a></li>
+<li><a href="#Gui_StackLayoutKind">Gui.StackLayoutKind</a></li>
+<h4>dialogs</h4>
+<li><a href="#Gui_FileDlgMode">Gui.FileDlgMode</a></li>
+<h4>paint</h4>
+<li><a href="#Gui_CursorShape">Gui.CursorShape</a></li>
+<li><a href="#Gui_ThemeIcons24">Gui.ThemeIcons24</a></li>
+<li><a href="#Gui_ThemeIcons64">Gui.ThemeIcons64</a></li>
+<h4>property</h4>
+<li><a href="#Gui_AddItemFlags">Gui.AddItemFlags</a></li>
+<li><a href="#Gui_ItemFlags">Gui.ItemFlags</a></li>
+<li><a href="#Gui_PropDefaultState">Gui.PropDefaultState</a></li>
+<li><a href="#Gui_PropValidation">Gui.PropValidation</a></li>
+<li><a href="#Gui_PropertiesCtrlFlags">Gui.PropertiesCtrlFlags</a></li>
+<li><a href="#Gui_PropertiesKind">Gui.PropertiesKind</a></li>
+<h4>richedit</h4>
+<li><a href="#Gui_RichEditCommand">Gui.RichEditCommand</a></li>
+<li><a href="#Gui_RichEditFlags">Gui.RichEditFlags</a></li>
+<li><a href="#Gui_RichEditForm">Gui.RichEditForm</a></li>
+<li><a href="#Gui_RichEditLexerSwag_State">RichEditLexerSwag.State</a></li>
+<li><a href="#Gui_RichEditLexerSwag_Style">RichEditLexerSwag.Style</a></li>
+<li><a href="#Gui_RichEditUndoType">Gui.RichEditUndoType</a></li>
+<h4>testing</h4>
+<li><a href="#Gui_Testing_AutoStageKind">Testing.AutoStageKind</a></li>
+<h4>widgets</h4>
+<li><a href="#Gui_ButtonCheckState">Gui.ButtonCheckState</a></li>
+<li><a href="#Gui_CheckButtonFlags">Gui.CheckButtonFlags</a></li>
+<li><a href="#Gui_CircularFlags">Gui.CircularFlags</a></li>
+<li><a href="#Gui_CircularMarkerForm">Gui.CircularMarkerForm</a></li>
+<li><a href="#Gui_CircularStepForm">Gui.CircularStepForm</a></li>
+<li><a href="#Gui_ColorPickerMode">Gui.ColorPickerMode</a></li>
+<li><a href="#Gui_ComboBoxFlags">Gui.ComboBoxFlags</a></li>
+<li><a href="#Gui_ComboBoxKind">Gui.ComboBoxKind</a></li>
+<li><a href="#Gui_EditBoxCheckResult">Gui.EditBoxCheckResult</a></li>
+<li><a href="#Gui_EditBoxFlags">Gui.EditBoxFlags</a></li>
+<li><a href="#Gui_EditBoxForm">Gui.EditBoxForm</a></li>
+<li><a href="#Gui_EditBoxInputMode">Gui.EditBoxInputMode</a></li>
+<li><a href="#Gui_HeaderFlags">Gui.HeaderFlags</a></li>
+<li><a href="#Gui_HeaderForm">Gui.HeaderForm</a></li>
+<li><a href="#Gui_IconBarFlags">Gui.IconBarFlags</a></li>
+<li><a href="#Gui_IconButtonArrowPos">Gui.IconButtonArrowPos</a></li>
+<li><a href="#Gui_IconButtonCheckedForm">Gui.IconButtonCheckedForm</a></li>
+<li><a href="#Gui_IconButtonFlags">Gui.IconButtonFlags</a></li>
+<li><a href="#Gui_IconButtonForm">Gui.IconButtonForm</a></li>
+<li><a href="#Gui_IconButtonTextPos">Gui.IconButtonTextPos</a></li>
+<li><a href="#Gui_LabelFlags">Gui.LabelFlags</a></li>
+<li><a href="#Gui_ProgressBarFlags">Gui.ProgressBarFlags</a></li>
+<li><a href="#Gui_PushButtonForm">Gui.PushButtonForm</a></li>
+<li><a href="#Gui_RadioButtonFlags">Gui.RadioButtonFlags</a></li>
+<li><a href="#Gui_SliderFlags">Gui.SliderFlags</a></li>
+<li><a href="#Gui_TabBarForm">Gui.TabBarForm</a></li>
+<li><a href="#Gui_TabBarLayout">Gui.TabBarLayout</a></li>
+<li><a href="#Gui_TabForm">Gui.TabForm</a></li>
+<li><a href="#Gui_TabItemForm">Gui.TabItemForm</a></li>
+<li><a href="#Gui_TabViewForm">Gui.TabViewForm</a></li>
+<h4>wnd</h4>
+<li><a href="#Gui_AnchorStyle">Gui.AnchorStyle</a></li>
+<li><a href="#Gui_BackgroundStyle">Gui.BackgroundStyle</a></li>
+<li><a href="#Gui_DockStyle">Gui.DockStyle</a></li>
+<li><a href="#Gui_FocusStategy">Gui.FocusStategy</a></li>
+<li><a href="#Gui_FrameWndAnchor">Gui.FrameWndAnchor</a></li>
+<li><a href="#Gui_FrameWndFlags">Gui.FrameWndFlags</a></li>
+<li><a href="#Gui_FrameWndForm">Gui.FrameWndForm</a></li>
+<li><a href="#Gui_LayoutAlign">Gui.LayoutAlign</a></li>
+<li><a href="#Gui_ScrollWndFlags">Gui.ScrollWndFlags</a></li>
+<li><a href="#Gui_SizePolicy">Gui.SizePolicy</a></li>
+<li><a href="#Gui_SizingBorder">Gui.SizingBorder</a></li>
+<li><a href="#Gui_WndFlags">Gui.WndFlags</a></li>
+<h3>Constants</h3>
+<li><a href="#Gui_DWMWA_BORDER_COLOR">Gui.DWMWA_BORDER_COLOR</a></li>
+<li><a href="#Gui_DWMWA_COLOR_NONE">Gui.DWMWA_COLOR_NONE</a></li>
+<li><a href="#Gui_DWMWA_WINDOW_CORNER_PREFERENCE">Gui.DWMWA_WINDOW_CORNER_PREFERENCE</a></li>
+<li><a href="#Gui_DWMWCP_DONOTROUND">Gui.DWMWCP_DONOTROUND</a></li>
+<li><a href="#Gui_DWMWCP_ROUND">Gui.DWMWCP_ROUND</a></li>
+<li><a href="#Gui_HTBOTTOM">Gui.HTBOTTOM</a></li>
+<li><a href="#Gui_HTBOTTOMLEFT">Gui.HTBOTTOMLEFT</a></li>
+<li><a href="#Gui_HTBOTTOMRIGHT">Gui.HTBOTTOMRIGHT</a></li>
+<li><a href="#Gui_HTCAPTION">Gui.HTCAPTION</a></li>
+<li><a href="#Gui_HTCLIENT">Gui.HTCLIENT</a></li>
+<li><a href="#Gui_HTLEFT">Gui.HTLEFT</a></li>
+<li><a href="#Gui_HTRIGHT">Gui.HTRIGHT</a></li>
+<li><a href="#Gui_HTTOP">Gui.HTTOP</a></li>
+<li><a href="#Gui_HTTOPLEFT">Gui.HTTOPLEFT</a></li>
+<li><a href="#Gui_HTTOPRIGHT">Gui.HTTOPRIGHT</a></li>
+<li><a href="#Gui_TrayIconID">Gui.TrayIconID</a></li>
+<h4>property</h4>
+<li><a href="#Gui_PropCondensedControlHeight">Gui.PropCondensedControlHeight</a></li>
+<h3>Type Aliases</h3>
+<li><a href="#Gui_Clipboard_ValueFormat">Clipboard.ValueFormat</a></li>
+<li><a href="#Gui_FrameCallback">Gui.FrameCallback</a></li>
+<li><a href="#Gui_WndId">Gui.WndId</a></li>
+<h4>richedit</h4>
+<li><a href="#Gui_RichEditStyleRef">Gui.RichEditStyleRef</a></li>
+<h4>wnd</h4>
+<li><a href="#Gui_HookEvent">Gui.HookEvent</a></li>
+<h3>Functions</h3>
+<li><a href="#Gui_Clipboard___init_1">Clipboard.__init_1</a></li>
+<li><a href="#Gui_Clipboard_addImage">Clipboard.addImage</a></li>
+<li><a href="#Gui_Clipboard_addString">Clipboard.addString</a></li>
+<li><a href="#Gui_Clipboard_addTypedData">Clipboard.addTypedData</a></li>
+<li><a href="#Gui_Clipboard_addTypedValue">Clipboard.addTypedValue</a></li>
+<li><a href="#Gui_Clipboard_getImage">Clipboard.getImage</a></li>
+<li><a href="#Gui_Clipboard_getString">Clipboard.getString</a></li>
+<li><a href="#Gui_Clipboard_getTypedData">Clipboard.getTypedData</a></li>
+<li><a href="#Gui_Clipboard_getTypedValue">Clipboard.getTypedValue</a></li>
+<li><a href="#Gui_Clipboard_hasFormat">Clipboard.hasFormat</a></li>
+<li><a href="#Gui_Clipboard_hasImage">Clipboard.hasImage</a></li>
+<li><a href="#Gui_Clipboard_hasString">Clipboard.hasString</a></li>
+<li><a href="#Gui_Clipboard_hasTypedData">Clipboard.hasTypedData</a></li>
+<li><a href="#Gui_Clipboard_hasTypedValue">Clipboard.hasTypedValue</a></li>
+<li><a href="#Gui_Clipboard_registerFormat">Clipboard.registerFormat</a></li>
+<li><a href="#Gui_Clipboard_setFake">Clipboard.setFake</a></li>
+<li><a href="#Gui_DwmSetWindowAttribute">Gui.DwmSetWindowAttribute</a></li>
+<li><a href="#Gui_IActionUI_accept">IActionUI.accept</a></li>
+<li><a href="#Gui_IActionUI_execute">IActionUI.execute</a></li>
+<li><a href="#Gui_IActionUI_update">IActionUI.update</a></li>
+<li><a href="#Gui_IUndoCommand_redo">IUndoCommand.redo</a></li>
+<li><a href="#Gui_IUndoCommand_undo">IUndoCommand.undo</a></li>
+<li><a href="#Gui_ToolTip_hide">ToolTip.hide</a></li>
+<li><a href="#Gui_ToolTip_show">ToolTip.show</a></li>
+<li><a href="#Gui_newCmdId">Gui.newCmdId</a></li>
+<h4>composite</h4>
+<li><a href="#Gui_BreadcrumbCtrl_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_BreadcrumbCtrl_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ColorPickerCtrl_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ComboCtrl_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_EditCtrl_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_EmbInfoCtrl_IWnd_onDestroyEvent">IWnd.onDestroyEvent</a></li>
+<li><a href="#Gui_EmbInfoCtrl_IWnd_onNotifyEvent">IWnd.onNotifyEvent</a></li>
+<li><a href="#Gui_EmbInfoCtrl_IWnd_onTimerEvent">IWnd.onTimerEvent</a></li>
+<li><a href="#Gui_FileBrowserCtrl_IWnd_onDestroyEvent">IWnd.onDestroyEvent</a></li>
+<li><a href="#Gui_GridLayoutCtrl_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_ListView_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_ListView_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_ListView_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ListView_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_MenuCtrl_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_MenuCtrl_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_MenuCtrl_IWnd_onTimerEvent">IWnd.onTimerEvent</a></li>
+<li><a href="#Gui_PopupListView_IWnd_hitAt">IWnd.hitAt</a></li>
+<li><a href="#Gui_PopupListView_IWnd_onFocusEvent">IWnd.onFocusEvent</a></li>
+<li><a href="#Gui_PopupListView_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_PopupListView_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_PopupListView_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_SliderCtrl_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_SplitterCtrl_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_SplitterCtrl_IWnd_onPostPaintEvent">IWnd.onPostPaintEvent</a></li>
+<li><a href="#Gui_SplitterCtrl_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_StackLayoutCtrl_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_WrapLayoutCtrl_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<h4>dialogs</h4>
+<li><a href="#Gui_Dialog_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_Dialog_IWnd_onSysCommandEvent">IWnd.onSysCommandEvent</a></li>
+<li><a href="#Gui_FileDlg_IWnd_onDestroyEvent">IWnd.onDestroyEvent</a></li>
+<h4>property</h4>
+<li><a href="#Gui_ActionProperties_IActionUI_accept">IActionUI.accept</a></li>
+<li><a href="#Gui_ActionProperties_IActionUI_execute">IActionUI.execute</a></li>
+<li><a href="#Gui_ActionProperties_IActionUI_update">IActionUI.update</a></li>
+<li><a href="#Gui_IPropertyEditor_canEdit">IPropertyEditor.canEdit</a></li>
+<li><a href="#Gui_IPropertyEditor_construct">IPropertyEditor.construct</a></li>
+<li><a href="#Gui_IPropertyNotify_fillPopupMenu">IPropertyNotify.fillPopupMenu</a></li>
+<li><a href="#Gui_IPropertyNotify_isEnumValueVisible">IPropertyNotify.isEnumValueVisible</a></li>
+<li><a href="#Gui_IPropertyNotify_isItemAtDefault">IPropertyNotify.isItemAtDefault</a></li>
+<li><a href="#Gui_IPropertyNotify_isItemEnabled">IPropertyNotify.isItemEnabled</a></li>
+<li><a href="#Gui_IPropertyNotify_isItemReadOnly">IPropertyNotify.isItemReadOnly</a></li>
+<li><a href="#Gui_IPropertyNotify_isItemVisible">IPropertyNotify.isItemVisible</a></li>
+<li><a href="#Gui_IPropertyNotify_itemHasChanged">IPropertyNotify.itemHasChanged</a></li>
+<li><a href="#Gui_IPropertyNotify_onPopupCommand">IPropertyNotify.onPopupCommand</a></li>
+<li><a href="#Gui_IPropertyNotify_resetItemToDefault">IPropertyNotify.resetItemToDefault</a></li>
+<li><a href="#Gui_IPropertyNotify_validateItem">IPropertyNotify.validateItem</a></li>
+<li><a href="#Gui_PropUndoCommand_IUndoCommand_redo">IUndoCommand.redo</a></li>
+<li><a href="#Gui_PropUndoCommand_IUndoCommand_undo">IUndoCommand.undo</a></li>
+<li><a href="#Gui_Properties_IWnd_onCommandEvent">IWnd.onCommandEvent</a></li>
+<li><a href="#Gui_Properties_IWnd_onDestroyEvent">IWnd.onDestroyEvent</a></li>
+<li><a href="#Gui_Properties_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Properties_IWnd_onThemeEvent">IWnd.onThemeEvent</a></li>
+<h4>richedit</h4>
+<li><a href="#Gui_IRichEditLexer_compute">IRichEditLexer.compute</a></li>
+<li><a href="#Gui_IRichEditLexer_insertRune">IRichEditLexer.insertRune</a></li>
+<li><a href="#Gui_IRichEditLexer_setup">IRichEditLexer.setup</a></li>
+<li><a href="#Gui_IRichEditLexer_setupTheme">IRichEditLexer.setupTheme</a></li>
+<li><a href="#Gui_RichEditLexerSwag_IRichEditLexer_compute">IRichEditLexer.compute</a></li>
+<li><a href="#Gui_RichEditLexerSwag_IRichEditLexer_insertRune">IRichEditLexer.insertRune</a></li>
+<li><a href="#Gui_RichEditLexerSwag_IRichEditLexer_setup">IRichEditLexer.setup</a></li>
+<li><a href="#Gui_RichEditLexerSwag_IRichEditLexer_setupTheme">IRichEditLexer.setupTheme</a></li>
+<h4>testing</h4>
+<li><a href="#Gui_Testing_actionAccept">Testing.actionAccept</a></li>
+<li><a href="#Gui_Testing_actionExecute">Testing.actionExecute</a></li>
+<li><a href="#Gui_Testing_actionUpdate">Testing.actionUpdate</a></li>
+<li><a href="#Gui_Testing_assertPoint">Testing.assertPoint</a></li>
+<li><a href="#Gui_Testing_assertRect">Testing.assertRect</a></li>
+<li><a href="#Gui_Testing_commandState">Testing.commandState</a></li>
+<li><a href="#Gui_Testing_countNonZeroBytes">Testing.countNonZeroBytes</a></li>
+<li><a href="#Gui_Testing_indexedImage">Testing.indexedImage</a></li>
+<li><a href="#Gui_Testing_tempFilePath">Testing.tempFilePath</a></li>
+<h4>widgets</h4>
+<li><a href="#Gui_CheckButton_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_CheckButton_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_CheckButton_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Circular_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_Circular_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ColorPicker_IWnd_computeXY">IWnd.computeXY</a></li>
+<li><a href="#Gui_ColorPicker_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_ColorPicker_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ColorPicker_IWnd_onPostPaintEvent">IWnd.onPostPaintEvent</a></li>
+<li><a href="#Gui_ComboBox_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_ComboBox_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_ComboBox_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ComboBox_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_EditBox_IWnd_onFocusEvent">IWnd.onFocusEvent</a></li>
+<li><a href="#Gui_EditBox_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_EditBox_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_EditBox_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_EditBox_IWnd_onTimerEvent">IWnd.onTimerEvent</a></li>
+<li><a href="#Gui_Header_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_Header_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Header_IWnd_paintItem">IWnd.paintItem</a></li>
+<li><a href="#Gui_IconBar_IWnd_onComputeStateEvent">IWnd.onComputeStateEvent</a></li>
+<li><a href="#Gui_IconButton_IWnd_hidePopup">IWnd.hidePopup</a></li>
+<li><a href="#Gui_IconButton_IWnd_onApplyStateEvent">IWnd.onApplyStateEvent</a></li>
+<li><a href="#Gui_IconButton_IWnd_onDestroyEvent">IWnd.onDestroyEvent</a></li>
+<li><a href="#Gui_IconButton_IWnd_onHookEvent">IWnd.onHookEvent</a></li>
+<li><a href="#Gui_IconButton_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_IconButton_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_IconButton_IWnd_onStateEvent">IWnd.onStateEvent</a></li>
+<li><a href="#Gui_IconButton_IWnd_overlayRadius">IWnd.overlayRadius</a></li>
+<li><a href="#Gui_ImageRect_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Label_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_Label_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_PalettePicker_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_PalettePicker_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ProgressBar_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_PushButton_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_PushButton_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_PushButton_IWnd_onStateEvent">IWnd.onStateEvent</a></li>
+<li><a href="#Gui_RadioButton_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_RadioButton_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Slider_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_Slider_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_Slider_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Tab_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_Tab_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Tab_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_Tab_IWnd_paintItem">IWnd.paintItem</a></li>
+<li><a href="#Gui_ToggleButton_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_ToggleButton_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ToggleButton_IWnd_onStateEvent">IWnd.onStateEvent</a></li>
+<h4>wnd</h4>
+<li><a href="#Gui_FrameWnd_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_FrameWnd_IWnd_onPostPaintEvent">IWnd.onPostPaintEvent</a></li>
+<li><a href="#Gui_FrameWnd_IWnd_onPrePaintEvent">IWnd.onPrePaintEvent</a></li>
+<li><a href="#Gui_FrameWnd_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_IWnd_onApplyStateEvent">IWnd.onApplyStateEvent</a></li>
+<li><a href="#Gui_IWnd_onCommandEvent">IWnd.onCommandEvent</a></li>
+<li><a href="#Gui_IWnd_onComputeStateEvent">IWnd.onComputeStateEvent</a></li>
+<li><a href="#Gui_IWnd_onCreateEvent">IWnd.onCreateEvent</a></li>
+<li><a href="#Gui_IWnd_onDestroyEvent">IWnd.onDestroyEvent</a></li>
+<li><a href="#Gui_IWnd_onEvent">IWnd.onEvent</a></li>
+<li><a href="#Gui_IWnd_onFocusEvent">IWnd.onFocusEvent</a></li>
+<li><a href="#Gui_IWnd_onFrameEvent">IWnd.onFrameEvent</a></li>
+<li><a href="#Gui_IWnd_onHookEvent">IWnd.onHookEvent</a></li>
+<li><a href="#Gui_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_IWnd_onNotifyEvent">IWnd.onNotifyEvent</a></li>
+<li><a href="#Gui_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_IWnd_onPostPaintEvent">IWnd.onPostPaintEvent</a></li>
+<li><a href="#Gui_IWnd_onPrePaintEvent">IWnd.onPrePaintEvent</a></li>
+<li><a href="#Gui_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_IWnd_onSerializeStateEvent">IWnd.onSerializeStateEvent</a></li>
+<li><a href="#Gui_IWnd_onStateEvent">IWnd.onStateEvent</a></li>
+<li><a href="#Gui_IWnd_onSysCommandEvent">IWnd.onSysCommandEvent</a></li>
+<li><a href="#Gui_IWnd_onSysUserEvent">IWnd.onSysUserEvent</a></li>
+<li><a href="#Gui_IWnd_onThemeEvent">IWnd.onThemeEvent</a></li>
+<li><a href="#Gui_IWnd_onTimerEvent">IWnd.onTimerEvent</a></li>
+<li><a href="#Gui_ScrollWnd_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_ScrollWnd_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_ScrollWnd_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onApplyStateEvent">IWnd.onApplyStateEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onCommandEvent">IWnd.onCommandEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onComputeStateEvent">IWnd.onComputeStateEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onCreateEvent">IWnd.onCreateEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onDestroyEvent">IWnd.onDestroyEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onEvent">IWnd.onEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onFocusEvent">IWnd.onFocusEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onFrameEvent">IWnd.onFrameEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onHookEvent">IWnd.onHookEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onKeyEvent">IWnd.onKeyEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onMouseEvent">IWnd.onMouseEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onNotifyEvent">IWnd.onNotifyEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onPaintEvent">IWnd.onPaintEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onPostPaintEvent">IWnd.onPostPaintEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onPrePaintEvent">IWnd.onPrePaintEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onResizeEvent">IWnd.onResizeEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onSerializeStateEvent">IWnd.onSerializeStateEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onStateEvent">IWnd.onStateEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onSysCommandEvent">IWnd.onSysCommandEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onSysUserEvent">IWnd.onSysUserEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onThemeEvent">IWnd.onThemeEvent</a></li>
+<li><a href="#Gui_Wnd_IWnd_onTimerEvent">IWnd.onTimerEvent</a></li>
+</div></div>
+<div class="right"><div class="right-page">
+<h1>Module gui</h1>
+<h1>Content</h1>
+<table class="api-item"><tr><td><span id="Gui_ActionContext"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ActionContext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/action.swg#L2">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ActionContext</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">id</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Application"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Application</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/application.swg#L8">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Application</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">appIcon</td><td class="code-type">Pixel.Image</td><td></td></tr>
+<tr><td class="code-type">configPath</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">dirtyTheme</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">duringTimerEvents</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">endModal</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">endModalExit</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">fadeDisabledSurface</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">frameCursor</td><td class="code-type">Gui.Cursor</td><td></td></tr>
+<tr><td class="code-type">frameEvents</td><td class="code-type">Core.Array'(*Gui.Wnd)</td><td></td></tr>
+<tr><td class="code-type">hookOnEvent</td><td class="code-type">Core.Array'(*Gui.Wnd)</td><td></td></tr>
+<tr><td class="code-type">hotKeys</td><td class="code-type">Core.Array'(Gui.KeyShortcut)</td><td></td></tr>
+<tr><td class="code-type">inModalLoop</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">isActivated</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">keyb</td><td class="code-type">Core.Input.Keyboard</td><td></td></tr>
+<tr><td class="code-type">keybFocusWnd</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">mainSurface</td><td class="code-type">#null *Gui.Surface</td><td></td></tr>
+<tr><td class="code-type">maxRunFrame</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">modalSurfaces</td><td class="code-type">Core.Array'(*Gui.Surface)</td><td></td></tr>
+<tr><td class="code-type">mouse</td><td class="code-type">Core.Input.Mouse</td><td></td></tr>
+<tr><td class="code-type">mouseCaptureWnd</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">mouseEnterWnd</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">mustQuit</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">mutexPostedEvents</td><td class="code-type">Core.Sync.Mutex</td><td></td></tr>
+<tr><td class="code-type">native</td><td class="code-type">Gui.ApplicationNative</td><td></td></tr>
+<tr><td class="code-type">options</td><td class="code-type">Gui.ApplicationOptions</td><td></td></tr>
+<tr><td class="code-type">postDestroy</td><td class="code-type">Core.Array'(*Gui.Wnd)</td><td></td></tr>
+<tr><td class="code-type">postedEvents</td><td class="code-type">Core.Array'(Gui.IEvent)</td><td></td></tr>
+<tr><td class="code-type">quitCode</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">renderer</td><td class="code-type">Pixel.RenderOgl</td><td></td></tr>
+<tr><td class="code-type">sigFrame</td><td class="code-type">Gui.SigArray'(func||(*Gui.Application))</td><td></td></tr>
+<tr><td class="code-type">style</td><td class="code-type">Gui.ThemeStyle</td><td></td></tr>
+<tr><td class="code-type">surfaces</td><td class="code-type">Core.Array'(*Gui.Surface)</td><td></td></tr>
+<tr><td class="code-type">theme</td><td class="code-type">*Gui.Theme</td><td></td></tr>
+<tr><td class="code-type">timers</td><td class="code-type">Core.Array'(*Gui.Timer)</td><td></td></tr>
+<tr><td class="code-type">timersToAdd</td><td class="code-type">Core.Array'(*Gui.Timer)</td><td></td></tr>
+<tr><td class="code-type">timersToDelete</td><td class="code-type">Core.Array'(*Gui.Timer)</td><td></td></tr>
+<tr><td class="code-type">timing</td><td class="code-type">Core.Time.FrameTiming</td><td></td></tr>
+<tr><td class="code-type">toDelete</td><td class="code-type">Core.Array'(Gui.Application.__anonymous_struct_4864)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Application___anonymous_struct_4864"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Application.__anonymous_struct_4864</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/application.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde">{ ptr: <span class="SItr">#null</span> *<span class="STpe">void</span>, type: <span class="SKwd">const</span> *<span class="SCst">Swag</span>.<span class="SCst">TypeInfo</span> }</span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">ptr</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">const *Gui.Swag.TypeInfo</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ApplicationNative"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ApplicationNative</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/application.win32.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ApplicationNative</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">fileBigIconsImage</td><td class="code-type">Pixel.Image</td><td></td></tr>
+<tr><td class="code-type">fileBigIconsImageList</td><td class="code-type">Gui.ImageList</td><td></td></tr>
+<tr><td class="code-type">fileSmallIconsImage</td><td class="code-type">Pixel.Image</td><td></td></tr>
+<tr><td class="code-type">fileSmallIconsImageList</td><td class="code-type">Gui.ImageList</td><td></td></tr>
+<tr><td class="code-type">hotKeysDisabled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">mapFileBigIcons</td><td class="code-type">Core.HashTable'(Core.String, s32)</td><td></td></tr>
+<tr><td class="code-type">mapFileSmallIcons</td><td class="code-type">Core.HashTable'(Core.String, s32)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ApplicationOptions"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ApplicationOptions</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/options.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ApplicationOptions</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">dumpLayoutTree</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">showClipRect</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">showLayoutRects</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_CommandEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.CommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CommandEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">id</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">source</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_CommandStateEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.CommandStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L36">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CommandStateEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">checked</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">disabled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">hidden</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">id</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.CommandStateEvent.Kind</td><td></td></tr>
+<tr><td class="code-type">longName</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">name</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">renderingHint</td><td class="code-type">Gui.CommandStateEvent.RenderingHint</td><td></td></tr>
+<tr><td class="code-type">setFlags</td><td class="code-type">Gui.CommandStateEvent.SetFlags</td><td></td></tr>
+<tr><td class="code-type">shortcut</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">source</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">toolTip</td><td class="code-type">Core.String</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_CreateEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.CreateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L101">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CreateEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_DestroyEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.DestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L129">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">DestroyEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Event"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Event</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L8">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Event</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">accepted</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">target</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">#null typeinfo</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FocusEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FocusEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L219">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FocusEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">canChangeFocus</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.FocusEvent.Kind</td><td></td></tr>
+<tr><td class="code-type">other</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FrameEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FrameEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L93">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FrameEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">firstFrame</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_InvalidateEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.InvalidateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L297">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">InvalidateEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Item"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Item</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/item.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Item</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">id</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">name</td><td class="code-type">Pixel.RichString</td><td></td></tr>
+<tr><td class="code-type">userData0</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">userData1</td><td class="code-type">#null *void</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_KeyEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.KeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L168">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">KeyEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">char</td><td class="code-type">rune</td><td></td></tr>
+<tr><td class="code-type">key</td><td class="code-type">Core.Input.Key</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.KeyEvent.Kind</td><td></td></tr>
+<tr><td class="code-type">modifiers</td><td class="code-type">Core.Input.KeyModifiers</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_MouseEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.MouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L186">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">MouseEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">button</td><td class="code-type">Core.Input.MouseButton</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.MouseEvent.Kind</td><td></td></tr>
+<tr><td class="code-type">modifiers</td><td class="code-type">Core.Input.KeyModifiers</td><td></td></tr>
+<tr><td class="code-type">move</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">surfacePos</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_MoveEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.MoveEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L160">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">MoveEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">oldPos</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Movie"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Movie</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/movie.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Movie</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">bytes</td><td class="code-type">Core.Array'(u8)</td><td></td></tr>
+<tr><td class="code-type">cacheFrames</td><td class="code-type">Core.Array'(Pixel.Image)</td><td></td></tr>
+<tr><td class="code-type">currentTime</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">dirtyFrame</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">enableCache</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">frame</td><td class="code-type">Pixel.Image</td><td></td></tr>
+<tr><td class="code-type">frameIndex</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">gif</td><td class="code-type">Pixel.Gif.Decoder</td><td></td></tr>
+<tr><td class="code-type">imgList</td><td class="code-type">Gui.ImageList</td><td></td></tr>
+<tr><td class="code-type">inPause</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">mustLoop</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">numFrames</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">playFreq</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sigFrameChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.Movie))</td><td></td></tr>
+<tr><td class="code-type">source</td><td class="code-type">Gui.MovieSource</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_NativeSurface"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.NativeSurface</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst">NativeSurface</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">hWnd</td><td class="code-type">Win32.HWND</td><td></td></tr>
+<tr><td class="code-type">lastDeadChar</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">topMost</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">trayIcon</td><td class="code-type">Win32.HICON</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_NotifyEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.NotifyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L281">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">NotifyEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">from</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">ntfyKind</td><td class="code-type">Gui.NotifyEvent.Kind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PaintEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L136">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PaintEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">bc</td><td class="code-type">*Gui.PaintContext</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.PaintEvent.Kind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_QuitEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.QuitEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L211">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">QuitEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">quitCode</td><td class="code-type">s32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ResizeEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L152">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ResizeEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">oldSize</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SelModel"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SelModel</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/selmodel.swg#L12">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SelModel</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">selection</td><td class="code-type">Core.Array'(Gui.SelRange)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SelRange"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SelRange</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/selmodel.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SelRange</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">end</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">start</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SerializeStateEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SerializeStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L273">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SerializeStateEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">ser</td><td class="code-type">*Core.Serialization.Serializer</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SigArray"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SigArray</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/sigarray.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span>(<span class="SCst">T</span>) <span class="SCst">SigArray</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_StateEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.StateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L108">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">StateEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.StateEvent.Kind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Surface"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Surface</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Surface</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">app</td><td class="code-type">*Gui.Application</td><td></td></tr>
+<tr><td class="code-type">colorDisabled</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">dirtyRect</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">flags</td><td class="code-type">Gui.SurfaceFlags</td><td></td></tr>
+<tr><td class="code-type">isDirty</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isDisabled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isHidden</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isInitialized</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isMinimized</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">maxSize</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">minSize</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">native</td><td class="code-type">Gui.NativeSurface</td><td></td></tr>
+<tr><td class="code-type">painter</td><td class="code-type">Pixel.Painter</td><td></td></tr>
+<tr><td class="code-type">rc</td><td class="code-type">Pixel.RenderingContext</td><td></td></tr>
+<tr><td class="code-type">rt</td><td class="code-type">Pixel.RenderTarget</td><td></td></tr>
+<tr><td class="code-type">state</td><td class="code-type">Gui.SurfaceState</td><td></td></tr>
+<tr><td class="code-type">surfaceID</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">userData</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">*Gui.SurfaceWnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SurfaceState"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SurfaceState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SurfaceState</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">isMaximized</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">position</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">positionNotMaximized</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SysCommandEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SysCommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L247">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SysCommandEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.SysCommandEvent.Kind</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SysUserEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SysUserEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L237">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SysUserEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">param0</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">param1</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">userMsg</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L264">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">parent</td><td class="code-type">#null *Gui.ThemeStyle</td><td></td></tr>
+<tr><td class="code-type">style</td><td class="code-type">*Gui.ThemeStyle</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Timer"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Timer</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/timer.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Timer</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">stopwatch</td><td class="code-type">Core.Time.Stopwatch</td><td></td></tr>
+<tr><td class="code-type">target</td><td class="code-type">*Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">timeMs</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">toDelete</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_TimerEvent"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.TimerEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L85">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TimerEvent</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Event</td><td></td></tr>
+<tr><td class="code-type">timer</td><td class="code-type">*Gui.Timer</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_UndoManager"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.UndoManager</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/undomgr.swg#L39">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">UndoManager</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">next</td><td class="code-type">u64</td><td><p>index just past the last applied step (the redo tail starts here)</p>
+</td></tr>
+<tr><td class="code-type">serialGen</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">steps</td><td class="code-type">Core.Array'(Gui.UndoStep)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_UndoStep"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.UndoStep</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/undomgr.swg#L33">[src]</a></td></tr></table>
+<p>One entry of the undo timeline: the owned command plus the group it belongs to.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">UndoStep</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">cmd</td><td class="code-type">Gui.IUndoCommand</td><td></td></tr>
+<tr><td class="code-type">serial</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_BreadcrumbCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.BreadcrumbCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/breadcrumbctrl.swg#L29">[src]</a></td></tr></table>
+<p>A horizontal breadcrumb / path bar. Each level is drawn as "[icon] name &gt;". Clicking a level body navigates to it (sigItemPressed); clicking its chevron opens a drop-down that the app fills with the level's children (sigFillMenu) and reports the chosen entry id (sigMenuSelected). The control is data-only: it knows nothing about what the levels mean, so it works for folders, categories, or any other hierarchy.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BreadcrumbCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">arrowPad</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">hotArrow</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">hotItem</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">iconGap</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.Array'(Gui.BreadcrumbItem)</td><td></td></tr>
+<tr><td class="code-type">padX</td><td class="code-type">f32</td><td><p>Horizontal padding inside a level body, gap between icon and text, and the padding on each side of a chevron.</p>
+</td></tr>
+<tr><td class="code-type">pressArrow</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">pressItem</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">sigFillMenu</td><td class="code-type">#null func||(*Gui.BreadcrumbCtrl, u64, *Gui.MenuCtrl)</td><td><p>Opening a level's chevron: the app fills <span class="code-inline">menu</span> with the level's children.</p>
+</td></tr>
+<tr><td class="code-type">sigItemPressed</td><td class="code-type">Gui.SigArray'(func||(*Gui.BreadcrumbCtrl, u64))</td><td><p>Clicking a level body: navigate to the level at this index.</p>
+</td></tr>
+<tr><td class="code-type">sigMenuSelected</td><td class="code-type">Gui.SigArray'(func||(*Gui.BreadcrumbCtrl, u64, Core.String))</td><td><p>A child was picked from a level's chevron menu; <span class="code-inline">id</span> is the chosen menu item id.</p>
+</td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_BreadcrumbItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.BreadcrumbItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/breadcrumbctrl.swg#L11">[src]</a></td></tr></table>
+<p>One level of the path shown by a BreadcrumbCtrl (e.g. a folder). The app fills <span class="code-inline">name</span>/<span class="code-inline">icon</span>/<span class="code-inline">userData</span>; the rectangles are computed by the control's layout and used for hit-testing. <span class="code-inline">hasArrow</span> controls whether the level shows a drop-down chevron (the chevron of a level lists that level's children, the level to its right being the currently selected one).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BreadcrumbItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">arrowRect</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">bodyRect</td><td class="code-type">Core.Math.Rectangle</td><td><p>Computed by layout(), in control-local coordinates.</p>
+</td></tr>
+<tr><td class="code-type">hasArrow</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">name</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">tag</td><td class="code-type">Core.String</td><td><p>free app-defined string payload (e.g. a folder path)</p>
+</td></tr>
+<tr><td class="code-type">userData</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ColorPickerCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ColorPickerCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/colorpickerctrl.swg#L24">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ColorPickerCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">color</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">editA</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">editB</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">editG</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">editH</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">editR</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">mode</td><td class="code-type">Gui.ColorPickerViewMode</td><td></td></tr>
+<tr><td class="code-type">oldColor</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">oldColorDone</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">pickAlpha</td><td class="code-type">*Gui.ColorPicker</td><td></td></tr>
+<tr><td class="code-type">pickBar</td><td class="code-type">*Gui.ColorPicker</td><td></td></tr>
+<tr><td class="code-type">pickBox</td><td class="code-type">*Gui.ColorPicker</td><td></td></tr>
+<tr><td class="code-type">pickerFlags</td><td class="code-type">Gui.ColorPickerFlags</td><td></td></tr>
+<tr><td class="code-type">radioB</td><td class="code-type">*Gui.RadioButton</td><td></td></tr>
+<tr><td class="code-type">radioG</td><td class="code-type">*Gui.RadioButton</td><td></td></tr>
+<tr><td class="code-type">radioH</td><td class="code-type">*Gui.RadioButton</td><td></td></tr>
+<tr><td class="code-type">radioL</td><td class="code-type">*Gui.RadioButton</td><td></td></tr>
+<tr><td class="code-type">radioR</td><td class="code-type">*Gui.RadioButton</td><td></td></tr>
+<tr><td class="code-type">radioS</td><td class="code-type">*Gui.RadioButton</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.ColorPickerCtrl))</td><td></td></tr>
+<tr><td class="code-type">staticRes</td><td class="code-type">*Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ComboCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ComboCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/comboctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ComboCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">combo</td><td class="code-type">*Gui.ComboBox</td><td></td></tr>
+<tr><td class="code-type">comboSize</td><td class="code-type">f32</td><td><p>0 to fit to parent size</p>
+</td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">labelSize</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_EditCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.EditCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/editctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EditCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">edit</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">editSize</td><td class="code-type">f32</td><td><p>0 to fit to parent size</p>
+</td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">labelSize</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_EmbInfoCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.EmbInfoCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/embinfoctrl.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EmbInfoCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">ctrlFlags</td><td class="code-type">Gui.EmbInfoCtrlFlags</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">iconBtn</td><td class="code-type">*Gui.IconButton</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.EmbInfoCtrlKind</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">sigOnClose</td><td class="code-type">Gui.SigArray'(func||(*Gui.EmbInfoCtrl))</td><td></td></tr>
+<tr><td class="code-type">timer</td><td class="code-type">#null *Gui.Timer</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FileBrowserCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FileBrowserCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L14">[src]</a></td></tr></table>
+<p>A reusable file-browsing composite control: a shortcut/drive tree, a file list, a path combo and a name/type row. It is a plain window that can be embedded anywhere (a dialog, a side panel, a tab...) independently of FileDlg. FileDlg is just a thin modal wrapper around this control.</p>
+<p>Reuses the public option types declared by FileDlg (FileDlgOptions/Mode/State) so existing callers keep working; the dialog-only fields (title, btnOkName) are simply ignored here.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FileBrowserCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">comboPath</td><td class="code-type">*Gui.ComboBox</td><td></td></tr>
+<tr><td class="code-type">comboPathStr</td><td class="code-type">Core.Array'(Core.String)</td><td></td></tr>
+<tr><td class="code-type">comboType</td><td class="code-type">*Gui.ComboBox</td><td></td></tr>
+<tr><td class="code-type">curFolder</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">curList</td><td class="code-type">Core.Array'(Core.File.FileInfo)</td><td></td></tr>
+<tr><td class="code-type">editFile</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">listCtrl</td><td class="code-type">*Gui.ListCtrl</td><td></td></tr>
+<tr><td class="code-type">options</td><td class="code-type">Gui.FileDlgOptions</td><td></td></tr>
+<tr><td class="code-type">sigAccept</td><td class="code-type">Gui.SigArray'(func||(*Gui.FileBrowserCtrl))</td><td><p>A file/folder was activated (double-click or Enter on a non-directory).</p>
+</td></tr>
+<tr><td class="code-type">sigFolderChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.FileBrowserCtrl))</td><td><p>The current folder changed.</p>
+</td></tr>
+<tr><td class="code-type">sigNewFolder</td><td class="code-type">Gui.SigArray'(func||(*Gui.FileBrowserCtrl))</td><td><p>The user requested the creation of a new folder (host shows the prompt).</p>
+</td></tr>
+<tr><td class="code-type">treeCtrl</td><td class="code-type">#null *Gui.ListCtrl</td><td></td></tr>
+<tr><td class="code-type">treePathStr</td><td class="code-type">Core.Array'(Core.String)</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_GridLayoutCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.GridLayoutCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/gridlayoutctrl.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">GridLayoutCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">colSizes</td><td class="code-type">Core.Array'(f32)</td><td></td></tr>
+<tr><td class="code-type">colTracks</td><td class="code-type">Core.Array'(Gui.GridTrack)</td><td></td></tr>
+<tr><td class="code-type">gridLayoutFlags</td><td class="code-type">Gui.GridLayoutCtrlFlags</td><td></td></tr>
+<tr><td class="code-type">layout</td><td class="code-type">Core.Array'(#null *Gui.Wnd)</td><td></td></tr>
+<tr><td class="code-type">numColumns</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">numRows</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">rowSizes</td><td class="code-type">Core.Array'(f32)</td><td></td></tr>
+<tr><td class="code-type">rowTracks</td><td class="code-type">Core.Array'(Gui.GridTrack)</td><td></td></tr>
+<tr><td class="code-type">spacingHorz</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">spacingVert</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_GridTrack"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.GridTrack</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/gridlayoutctrl.swg#L23">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">GridTrack</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">kind</td><td class="code-type">Gui.GridTrackKind</td><td></td></tr>
+<tr><td class="code-type">max</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">min</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">value</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ListCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ListCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L58">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ListCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">checkModel</td><td class="code-type">Gui.SelModel</td><td></td></tr>
+<tr><td class="code-type">focusIndex</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">header</td><td class="code-type">*Gui.Header</td><td></td></tr>
+<tr><td class="code-type">horizontalExtent</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">hotIndex</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">iconMarginFirstCol</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">iconSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">idxLineToIdxList</td><td class="code-type">Core.HashTable'(u32, u32)</td><td></td></tr>
+<tr><td class="code-type">indentWidth</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">isVirtual</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">leftTextMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">lineHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">lines</td><td class="code-type">Core.Array'(#null *Gui.ListLine)</td><td></td></tr>
+<tr><td class="code-type">listFlags</td><td class="code-type">Gui.ListFlags</td><td></td></tr>
+<tr><td class="code-type">listView</td><td class="code-type">*Gui.ListView</td><td></td></tr>
+<tr><td class="code-type">nextLineIndex</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">scrollWnd</td><td class="code-type">*Gui.ScrollWnd</td><td></td></tr>
+<tr><td class="code-type">selModel</td><td class="code-type">Gui.SelModel</td><td></td></tr>
+<tr><td class="code-type">selectionMode</td><td class="code-type">Gui.ListSelectionMode</td><td></td></tr>
+<tr><td class="code-type">sigCheckChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.ListCtrl))</td><td></td></tr>
+<tr><td class="code-type">sigCollapse</td><td class="code-type">Gui.SigArray'(func||(*Gui.ListCtrl, *Gui.ListLine))</td><td></td></tr>
+<tr><td class="code-type">sigExpand</td><td class="code-type">Gui.SigArray'(func||(*Gui.ListCtrl, *Gui.ListLine))</td><td></td></tr>
+<tr><td class="code-type">sigKeyPressed</td><td class="code-type">Gui.SigArray'(func||(*Gui.ListCtrl, *Gui.KeyEvent))</td><td></td></tr>
+<tr><td class="code-type">sigLeftDoubleClick</td><td class="code-type">Gui.SigArray'(func||(*Gui.ListCtrl, Core.Math.Point))</td><td></td></tr>
+<tr><td class="code-type">sigRightClick</td><td class="code-type">Gui.SigArray'(func||(*Gui.ListCtrl, Core.Math.Point))</td><td></td></tr>
+<tr><td class="code-type">sigSelChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.ListCtrl))</td><td></td></tr>
+<tr><td class="code-type">sigSort</td><td class="code-type">#null func(#null *Gui.ListLine, #null *Gui.ListLine, u32, bool)-&gt;s32</td><td></td></tr>
+<tr><td class="code-type">sigVirtualFill</td><td class="code-type">#null func(*Gui.ListCtrl, #null *Gui.ListLine, u32)</td><td></td></tr>
+<tr><td class="code-type">toFreeLines</td><td class="code-type">Core.ArrayPtr'(Gui.ListLine)</td><td></td></tr>
+<tr><td class="code-type">virtualCount</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ListItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ListItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L26">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ListItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">colorBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">colorFg</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">column</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">horzAlign</td><td class="code-type">Pixel.StringHorzAlignment</td><td></td></tr>
+<tr><td class="code-type">item</td><td class="code-type">Gui.Item</td><td></td></tr>
+<tr><td class="code-type">sortKey</td><td class="code-type">Core.String</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ListLine"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ListLine</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L36">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ListLine</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">canCheck</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">colorBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">colorFg</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">expanded</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">forceExpandMark</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">iconMargin</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">index</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.ArrayPtr'(Gui.ListItem)</td><td></td></tr>
+<tr><td class="code-type">leftTextMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">level</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">lines</td><td class="code-type">Core.ArrayPtr'(Gui.ListLine)</td><td></td></tr>
+<tr><td class="code-type">parent</td><td class="code-type">#null *Gui.ListLine</td><td></td></tr>
+<tr><td class="code-type">separator</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">userData0</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">userData1</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">userData2</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">userData3</td><td class="code-type">#null *void</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ListView"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ListView</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L100">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ListView</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">discardMouseRelease</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">list</td><td class="code-type">*Gui.ListCtrl</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_MenuCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.MenuCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/menuctrl.swg#L33">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">MenuCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">bar</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">dirtyLayout</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">endModal</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">endModalResult</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">hotIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">ignoreNextRelease</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.ArrayPtr'(Gui.PopupMenuItem)</td><td></td></tr>
+<tr><td class="code-type">menuCtrlFlags</td><td class="code-type">Gui.MenuCtrlFlags</td><td></td></tr>
+<tr><td class="code-type">onComputeItem</td><td class="code-type">#null func(*Gui.MenuCtrl, *Gui.PopupMenuItem)</td><td></td></tr>
+<tr><td class="code-type">onValidateResult</td><td class="code-type">#null func(*Gui.MenuCtrl, #null string)</td><td></td></tr>
+<tr><td class="code-type">ownerMenu</td><td class="code-type">#null *Gui.MenuCtrl</td><td></td></tr>
+<tr><td class="code-type">paddingSel</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">paintByFrame</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">popupBarItemIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">popupBarItemSurfaceRect</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">selectedIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">subVisible</td><td class="code-type">#null *Gui.MenuCtrl</td><td></td></tr>
+<tr><td class="code-type">timer</td><td class="code-type">#null *Gui.Timer</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PopupListCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PopupListCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L12">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PopupListCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">heightItem</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">heightSeparator</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.ArrayPtr'(Gui.PopupListCtrlItem)</td><td></td></tr>
+<tr><td class="code-type">maxHeightPopup</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">maxIconSize</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">minWidthPopup</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollWnd</td><td class="code-type">*Gui.ScrollWnd</td><td></td></tr>
+<tr><td class="code-type">selectedIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">sigSelected</td><td class="code-type">#null func||(*Gui.PopupListCtrl, u32)</td><td></td></tr>
+<tr><td class="code-type">simFitX</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">simFitY</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PopupListCtrlItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PopupListCtrlItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PopupListCtrlItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Item</td><td></td></tr>
+<tr><td class="code-type">isSeparator</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PopupListView"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PopupListView</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L30">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PopupListView</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">closing</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">hotIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">list</td><td class="code-type">*Gui.PopupListCtrl</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PopupMenuItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PopupMenuItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/menuctrl.swg#L18">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PopupMenuItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">checked</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">disabled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">hidden</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">item</td><td class="code-type">Gui.Item</td><td></td></tr>
+<tr><td class="code-type">popup</td><td class="code-type">*Gui.MenuCtrl</td><td></td></tr>
+<tr><td class="code-type">pos</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">rg</td><td class="code-type">Gui.CommandStateEvent.RenderingHint</td><td></td></tr>
+<tr><td class="code-type">rightName</td><td class="code-type">Pixel.RichString</td><td></td></tr>
+<tr><td class="code-type">separator</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">size</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SliderCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SliderCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/sliderctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SliderCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">autoEditSize</td><td class="code-type">bool</td><td><p>When true, grow the value box to fit its numeric range; when false, use <span class="code-inline">editSize</span> as-is</p>
+</td></tr>
+<tr><td class="code-type">edit</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">editSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">gap</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">labelSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.SliderCtrl))</td><td></td></tr>
+<tr><td class="code-type">slider</td><td class="code-type">*Gui.Slider</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SplitterCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SplitterCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/splitterctrl.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SplitterCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">correctMoving</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">hotIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.ArrayPtr'(Gui.SplitterItem)</td><td></td></tr>
+<tr><td class="code-type">moving</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">numVisiblePanes</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">splitterFlags</td><td class="code-type">Gui.SplitterFlags</td><td></td></tr>
+<tr><td class="code-type">titleSize</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SplitterItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SplitterItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/splitterctrl.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SplitterItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBar</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">#null *Gui.Label</td><td></td></tr>
+<tr><td class="code-type">maxSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">minSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">size</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">tryPreserveSize</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">view</td><td class="code-type">*Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">visible</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_StackLayoutCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.StackLayoutCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/stacklayoutctrl.swg#L19">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">StackLayoutCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">fitToContent</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">layoutKind</td><td class="code-type">Gui.StackLayoutKind</td><td></td></tr>
+<tr><td class="code-type">spacing</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_WrapLayoutCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.WrapLayoutCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/wraplayoutctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">WrapLayoutCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">resultHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">spacing</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">wrapHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wrapWidth</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_AboutDlg"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.AboutDlg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/aboutdlg.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AboutDlg</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">dialog</td><td class="code-type">Gui.Dialog</td><td></td></tr>
+<tr><td class="code-type">labelIcon</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">labelMessage</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">labelMessageTitle</td><td class="code-type">*Gui.Label</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_AboutDlgParams"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.AboutDlgParams</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/aboutdlg.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AboutDlgParams</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">bigIcon</td><td class="code-type">Gui.Icon</td><td><p>Big icon, inside the dialog</p>
+</td></tr>
+<tr><td class="code-type">dlgTitle</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">iconTitle</td><td class="code-type">Gui.Icon</td><td><p>Icon that will be displayed in the title bar</p>
+</td></tr>
+<tr><td class="code-type">message</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">messageTitle</td><td class="code-type">string</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Dialog"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Dialog</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/dialog.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Dialog</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">buttons</td><td class="code-type">Core.Array'(*Gui.PushButton)</td><td></td></tr>
+<tr><td class="code-type">fromSurface</td><td class="code-type">#null *Gui.Surface</td><td></td></tr>
+<tr><td class="code-type">sigPressedButton</td><td class="code-type">#null func||(*Gui.Dialog, #null string)-&gt;bool</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">wndBottom</td><td class="code-type">*Gui.StackLayoutCtrl</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_EditDlg"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.EditDlg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/editdlg.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EditDlg</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">dialog</td><td class="code-type">Gui.Dialog</td><td></td></tr>
+<tr><td class="code-type">edit</td><td class="code-type">#null *Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">richEdit</td><td class="code-type">#null *Gui.RichEditCtrl</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FileDlg"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FileDlg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L37">[src]</a></td></tr></table>
+<p>Thin modal wrapper around the reusable <span class="code-inline">FileBrowserCtrl</span> composite.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FileDlg</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">browser</td><td class="code-type">*Gui.FileBrowserCtrl</td><td></td></tr>
+<tr><td class="code-type">dialog</td><td class="code-type">Gui.Dialog</td><td></td></tr>
+<tr><td class="code-type">dlgOptions</td><td class="code-type">Gui.FileDlgOptions</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FileDlgOptions"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FileDlgOptions</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L23">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FileDlgOptions</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">btnOkName</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">drivePane</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">editName</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">filters</td><td class="code-type">Core.Array'(Gui.FileDlgOptions.__anonymous_struct_44)</td><td></td></tr>
+<tr><td class="code-type">mode</td><td class="code-type">Gui.FileDlgMode</td><td></td></tr>
+<tr><td class="code-type">openFolder</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">shortcuts</td><td class="code-type">Core.Array'(Gui.FileDlgOptions.__anonymous_struct_215)</td><td></td></tr>
+<tr><td class="code-type">state</td><td class="code-type">#null *Gui.FileDlgState</td><td></td></tr>
+<tr><td class="code-type">title</td><td class="code-type">string</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FileDlgOptions___anonymous_struct_215"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FileDlgOptions.__anonymous_struct_215</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde">{ type: <span class="SCst">Core</span>.<span class="SCst">Env</span>.<span class="SCst">SpecialDirectory</span>, name: <span class="STpe">string</span> }</span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">name</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">Core.Env.SpecialDirectory</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FileDlgOptions___anonymous_struct_44"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FileDlgOptions.__anonymous_struct_44</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde">{ name: <span class="STpe">string</span>, extensions: <span class="STpe">string</span> }</span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">extensions</td><td class="code-type">string</td><td></td></tr>
+<tr><td class="code-type">name</td><td class="code-type">string</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FileDlgState"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FileDlgState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FileDlgState</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">columnWidthModified</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">columnWidthName</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">curFolder</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">folderHistory</td><td class="code-type">Core.Array'(Core.String)</td><td></td></tr>
+<tr><td class="code-type">position</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_MessageDlg"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.MessageDlg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/messagedlg.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">MessageDlg</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">dialog</td><td class="code-type">Gui.Dialog</td><td></td></tr>
+<tr><td class="code-type">extension</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">labelIcon</td><td class="code-type">*Gui.Label</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_MessageDlgOptions"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.MessageDlgOptions</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/messagedlg.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">MessageDlgOptions</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">horzAlignmentText</td><td class="code-type">Pixel.StringHorzAlignment</td><td></td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">iconColor</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">sigCreate</td><td class="code-type">#null func||(*Gui.MessageDlg)</td><td></td></tr>
+<tr><td class="code-type">vertAlignmentText</td><td class="code-type">Pixel.StringVertAlignment</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_BlendColor"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.BlendColor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/blendcolor.swg#L7">[src]</a></td></tr></table>
+<p>Used to animate the blending of a color.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BlendColor</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">curVec4</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">destVec4</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">factor</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">speed</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">startVec4</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">themeCrc</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Cursor"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Cursor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/cursor.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Cursor</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">native</td><td class="code-type">Gui.NativeCursor</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Icon"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Icon</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/icon.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Icon</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">color</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">imageList</td><td class="code-type">#null *Gui.ImageList</td><td></td></tr>
+<tr><td class="code-type">index</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">sizeX</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sizeY</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ImageList"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ImageList</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/imagelist.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ImageList</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">frameSizeX</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">frameSizeY</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">texture</td><td class="code-type">Pixel.Texture</td><td></td></tr>
+<tr><td class="code-type">totalFrames</td><td class="code-type">s32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_NativeCursor"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.NativeCursor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/cursor.win32.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">NativeCursor</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">cursor</td><td class="code-type">Win32.HCURSOR</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PaintContext"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PaintContext</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/paintcontext.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PaintContext</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">isDisabled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">painter</td><td class="code-type">*Pixel.Painter</td><td></td></tr>
+<tr><td class="code-type">renderer</td><td class="code-type">*Pixel.RenderOgl</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PaintImage"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PaintImage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/paintimage.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst">PaintImage</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">app</td><td class="code-type">Gui.Application</td><td></td></tr>
+<tr><td class="code-type">h</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">image</td><td class="code-type">Pixel.Image</td><td></td></tr>
+<tr><td class="code-type">paint</td><td class="code-type">#null func||(app: *Gui.Application, painter: *Pixel.Painter)</td><td></td></tr>
+<tr><td class="code-type">painter</td><td class="code-type">Pixel.Painter</td><td></td></tr>
+<tr><td class="code-type">surface</td><td class="code-type">*Gui.Surface</td><td></td></tr>
+<tr><td class="code-type">w</td><td class="code-type">s32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Theme"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Theme</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/theme.swg#L88">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Theme</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">colors</td><td class="code-type">Gui.ThemeColors</td><td></td></tr>
+<tr><td class="code-type">intialized</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">metrics</td><td class="code-type">Gui.ThemeMetrics</td><td></td></tr>
+<tr><td class="code-type">rects</td><td class="code-type">Gui.ThemeImageRects</td><td></td></tr>
+<tr><td class="code-type">res</td><td class="code-type">Gui.ThemeResources</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeColors"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeColors</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/themecolors.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeColors</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_CheckedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_CheckedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_CheckedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_CheckedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_DisabledMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_HotMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_Mark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_PressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_PressedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_PressedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_PressedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnCheck_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedDisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedDisabledIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedDisabledMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedDisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedHotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedHotIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedHotMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedHotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedPressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedPressedIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedPressedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedPressedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_DisabledIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_HotIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_Icon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_PressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_PressedIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_PressedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnIcon_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_PressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_PressedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_PressedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushDefault_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_PressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_PressedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_PressedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPushFlat_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_PressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_PressedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_PressedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_StrongBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_StrongBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_StrongText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnPush_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_DisabledMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffHotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffHotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffHotMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffPressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffPressedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OffPressedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnHotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnHotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnHotMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnPressedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnPressedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">btnToggle_OnPressedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_Circle</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_DisabledCircle</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_DisabledMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_DisabledStep</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_HotMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_Mark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_PressedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_RangeArc</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">circular_Step</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">colorPicker_BackAlpha</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">colorPicker_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">colorPicker_Mark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBoxItem_CheckMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBoxItem_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBoxItem_HotCheckMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBoxItem_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBoxItem_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_SelectedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_SelectedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_SelectedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">comboBox_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">disabled</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">dlg_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">dlg_BtnBarBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_ErrorBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_ErrorBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_FocusBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_FocusBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_Note</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_SelectedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">edit_TextUnit</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">embInfo_CriticalBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">embInfo_CriticalText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">embInfo_InformationBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">embInfo_InformationText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">embInfo_MessageBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">embInfo_MessageText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_FocusBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_FocusBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_PopupBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">frameWnd_SmallShadow</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">headerItem_ClickedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">headerItem_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">headerItem_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">headerItem_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">headerItem_Separator</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">headerItem_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">header_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">hilight</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">hilightDark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">hilightLight</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">hilightLightContrast</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">imageRect_Fg</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_DisabledIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_Icon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_Text1</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_Text2</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_Text3</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">label_TextLight</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">lighterBig</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">lighterMedium</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">lighterSmall</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">lighterVeryBig</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_AlternateBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_FocusSelectedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_FocusSelectedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_Line</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_SelectedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_SelectedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_Separator</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">listItem_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuBar_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuBar_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuBar_SelectedBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuBar_SelectedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Separator</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Shadow</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">palPicker_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">palPicker_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupItem_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupItem_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupItem_HotRightText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupItem_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupItem_RightText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupItem_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupList_CheckMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupList_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupList_HotCheckMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupList_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupList_Separator</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">popupList_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">progressBar_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">progressBar_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">progressBar_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">progressBar_DisabledBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">progressBar_DisabledMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">progressBar_Mark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_CategBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_FocusBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_FocusBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_GridBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_GridColumn</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_HotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">prop_SectionBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richColor1</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richColor2</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richColor3</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_Caret</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_CurLineBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_SelBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_SelBkNoFocus</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_SelText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_SelTextNoFocus</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">richEdit_TextSpecial</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">scrollBar_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">scrollBar_Box</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">scrollBar_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">scrollBar_HotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">scrollBar_HotBox</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">scrollBar_PressedBox</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_BkLeft</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_BkMiddle</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_BkRight</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_DisabledBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_DisabledHilightBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_DisabledMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_HilightBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_HilightStepBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_HotMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_HotStepBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_Mark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_PressedMark</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">slider_StepBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">splitView_Bar</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">splitView_BarHot</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">splitView_TitleBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">surfaceDisabled</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabBar_FlatBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabBar_RoundBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_ButtonHot</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_ButtonSelected</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_DisabledText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_FlatHot</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_FlatSelected</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonHot</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonHotBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonHotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonSelected</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonSelectedBorder</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonSelectedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_RoundHot</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_RoundSelected</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_SelectedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabItem_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabView_FlatBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">tabView_RoundBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">toolTip_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">toolTip_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">toolTip_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">transparent</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">url_HotText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">url_Text</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">view_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_Bk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_Border</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_BtnCloseBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_BtnCloseHotBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_BtnCloseHotIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_BtnClosePressedIcon</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionBkNotActived</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionNotActivatedText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionText</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">wnd_Shadow</td><td class="code-type">Pixel.Color</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeImageRect"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeImageRect</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/themerects.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeImageRect</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">corner</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">keepBordersRatio</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">rect</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeImageRects"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeImageRects</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/themerects.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeImageRects</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">btnCheck_Checked</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnCheck_CheckedBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnCheck_CheckedMark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnCheck_Normal</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnCheck_NormalBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnCheck_Undefined</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnCheck_UndefinedBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnCheck_UndefinedMark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_ArrowDown</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_ArrowLeft</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_ArrowRight</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_ArrowUp</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedBottom</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedLeft</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedRight</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedRound</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedRoundSquare</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedSquare</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_CheckedTop</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_RoundBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_RoundSquareBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnIcon_SquareBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_Disabled</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_DisabledBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_Hot</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_HotBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_Normal</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_NormalBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_Pressed</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnPush_PressedBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnRadio_Checked</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnRadio_CheckedBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnRadio_CheckedMark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnRadio_Normal</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnRadio_NormalBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnToggle_Bk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnToggle_Border</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">btnToggle_Mark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">circular_Mark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">colorPicker_Bk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">colorPicker_Border</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">colorPicker_RoundPick</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">colorPicker_SquarePick</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">dlg_BtnBar</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">edit_FlatBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">edit_FlatBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">edit_RoundBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">edit_RoundBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">edit_SquareBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">edit_SquareBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorBottom</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorBottomBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorLeft</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorLeftBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorRight</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorRightBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorTop</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorTopBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_RoundBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_RoundBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_SmallShadow</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_SquareBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">frameWnd_SquareBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">header_FlatBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">header_RoundBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuBar_Bk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuBar_Border</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuBar_PopupSelectedBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuBar_PopupSelectedBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuBar_SelectedBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuItem_CheckedMark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuPopup_BarAnchorBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuPopup_BarAnchorBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Bk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Border</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuPopup_HotBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Shadow</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">progressBar_Bk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">progressBar_Border</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">progressBar_Mark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">scrollBar_BkH</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">scrollBar_BkV</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">scrollBar_BoxH</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">scrollBar_BoxV</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">scrollBar_Corner</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">selectionBox_Bk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_BkLeft</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_BkLeftVert</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_BkMiddle</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_BkMiddleVert</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_BkRight</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_BkRightVert</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_Mark</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">slider_Step</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">splitView_HorzBarBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">splitView_HorzBarHotBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">splitView_VertBarBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">splitView_VertBarHotBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd_Shadow</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabBar_FlatBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabBar_FlatRoundBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabBar_RoundBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_ButtonHot</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_ButtonSelected</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_FlatSelected</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonBorder</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonHot</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_PushButtonSelected</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_RoundHot</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabItem_RoundSelected</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabView_FlatBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">tabView_RoundBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">wnd_Border</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionBk</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionSmall</td><td class="code-type">Gui.ThemeImageRect</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeMetrics"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeMetrics</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/thememetrics.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeMetrics</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">btnCheck_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnCheck_Size</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_HeightArrow</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_MarginArrow</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_SpacingArrowH</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_SpacingArrowV</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_SpacingIcon</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_SpacingTextH</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_SpacingTextV</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnIcon_WidthArrow</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnPush_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnPush_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnPush_Width</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnToggle_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">btnToggle_Width</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">circular_MarkerSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">circular_Size</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">colorPicker_RoundPick</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">colorPicker_SquarePick</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">comboBox_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">comboBox_IconTextMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">comboBox_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">comboBox_RightMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">comboBox_Width</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">defaultFixedFontSize</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">defaultFontSize</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">dialog_BtnPadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">dialog_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">editBox_FlatPadding</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">editBox_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">editBox_RoundPadding</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">editBox_SquarePadding</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">editBox_UnitMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">editBox_Width</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorOverlap</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorRoundBorderMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorSquareBorderMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_AnchorWidth</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_FlatPadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_RoundPadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd_SmallShadowSize</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">frameWnd_SquarePadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">header_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">header_Padding</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">header_Separator</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">iconBar_ButtonsPadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">iconText_Margin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">label_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">list_ExpandSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">list_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuBar_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuBar_SpaceBetween</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuPopup_BarItemOverlap</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuPopup_IconMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuPopup_IconTextMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuPopup_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuPopup_SeparatorHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuPopup_ShadowSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">menuPopup_SpaceLines</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">popupList_IconTextMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">popupList_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">popupList_SeparatorPadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">progressBar_ClipOffset</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">progressBar_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">progressBar_SpeedInf</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">richEdit_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollBar_BoxMinSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollBar_BoxPadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollBar_NormalSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollBar_SmallSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">slider_BoxSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">slider_Height</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">slider_StepSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">slider_TrackSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">slider_Width</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">splitView_BarSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd_CornerRadius</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd_ShadowLayers</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd_ShadowOffsetX</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd_ShadowOffsetY</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd_ShadowSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd_ShadowSpread</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">tabBar_ButtonHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">tabBar_FlatHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">tabBar_RoundHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">toolTip_Padding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_BigCaptionCY</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_BorderSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionButtonAspect</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionButtonMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionButtonMinWidth</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_CaptionMarginTitle</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_SizingBorderSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_SmallCaptionCY</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd_TopSizingBorderSize</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeResources"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeResources</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/theme.swg#L66">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeResources</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">defaultFsTypeFaceB</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">defaultFsTypeFaceBI</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">defaultFsTypeFaceI</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">defaultFsTypeFaceR</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">defaultTypeFaceB</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">defaultTypeFaceBI</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">defaultTypeFaceI</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">defaultTypeFaceR</td><td class="code-type">*Pixel.TypeFace</td><td></td></tr>
+<tr><td class="code-type">fontDefault</td><td class="code-type">Pixel.FontFamily</td><td></td></tr>
+<tr><td class="code-type">fontDefaultFs</td><td class="code-type">Pixel.FontFamily</td><td></td></tr>
+<tr><td class="code-type">icons24</td><td class="code-type">*Gui.ImageList</td><td></td></tr>
+<tr><td class="code-type">icons64</td><td class="code-type">*Gui.ImageList</td><td></td></tr>
+<tr><td class="code-type">imgWidgets</td><td class="code-type">Pixel.Texture</td><td></td></tr>
+<tr><td class="code-type">spin</td><td class="code-type">*Gui.ImageList</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeStyle"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeStyle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/themestyle.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeStyle</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">dirty</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">font</td><td class="code-type">Pixel.FontFamily</td><td></td></tr>
+<tr><td class="code-type">refr</td><td class="code-type">#null *Gui.ThemeStyleRef</td><td></td></tr>
+<tr><td class="code-type">styleSheetColors</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">styleSheetMetrics</td><td class="code-type">Core.String</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ThemeStyleRef"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ThemeStyleRef</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/themestyle.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ThemeStyleRef</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">count</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">theme</td><td class="code-type">*Gui.Theme</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ActionProperties"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ActionProperties</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/actionproperties.swg#L12">[src]</a></td></tr></table>
+<p>The property grid's built-in context-menu commands, exposed through the shared gui action system (IActionUI) rather than a hardcoded addItem+doModal+switch(result). Registered on every Properties control in create(); the context menu (properties.menu.swg) just declares item ids, and doModal dispatches update()/execute() here. The target row is read from Properties.menuItem, so the very same commands could also be driven by a toolbar button or a keyboard shortcut (same WndId).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ActionProperties</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PropDefaultRoot"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropDefaultRoot</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/defaultstate.swg#L29">[src]</a></td></tr></table>
+<p>One default-constructed instance backing a struct added to the grid (owned; freed on destroy).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PropDefaultRoot</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">#null *u8</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">#null typeinfo</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PropFieldValue"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropFieldValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesundo.swg#L23">[src]</a></td></tr></table>
+<p>A captured copy of one field's value across every edited instance. Strings are copied by content (they own a heap buffer); every other supported type is copied as raw bytes. The per-instance addresses are captured too, so a value can be restored without the row it was recorded against: undo commands stay valid across a grid rebuild (clearStructs + addStruct), as long as the edited instances themselves are still alive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PropFieldValue</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">addrs</td><td class="code-type">Core.Array'(#null *u8)</td><td><p>field address in each captured instance</p>
+</td></tr>
+<tr><td class="code-type">bytes</td><td class="code-type">Core.Array'(u8)</td><td><p>n * sz contiguous raw bytes (raw-bytes case)</p>
+</td></tr>
+<tr><td class="code-type">isString</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">n</td><td class="code-type">u64</td><td><p>number of instances captured</p>
+</td></tr>
+<tr><td class="code-type">strings</td><td class="code-type">Core.Array'(Core.String)</td><td><p>n strings (String case)</p>
+</td></tr>
+<tr><td class="code-type">sz</td><td class="code-type">u64</td><td><p>per-instance byte size (raw-bytes case only)</p>
+</td></tr>
+<tr><td class="code-type">valid</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PropUndoCommand"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropUndoCommand</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesundo.swg#L152">[src]</a></td></tr></table>
+<p>One undoable property edit: restore the old/new value at the instance addresses it was captured on. The command does not reference the row it came from: <span class="code-inline">generation</span> records the grid content it was built against, so a command replayed after a rebuild silently skips the row refresh (the values still land at the right addresses).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PropUndoCommand</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">generation</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">newVal</td><td class="code-type">Gui.PropFieldValue</td><td></td></tr>
+<tr><td class="code-type">oldVal</td><td class="code-type">Gui.PropFieldValue</td><td></td></tr>
+<tr><td class="code-type">prop</td><td class="code-type">*Gui.Properties</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PropValidationResult"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropValidationResult</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/validation.swg#L18">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PropValidationResult</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">message</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">state</td><td class="code-type">Gui.PropValidation</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Properties"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Properties</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L105">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Properties</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBar</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">applyingUndo</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">buildOnlyNamed</td><td class="code-type">bool</td><td><p>Build-time state of the opt-in mode (addStructMulti <span class="code-inline">onlyNamed</span>): only fields carrying an explicit Properties.Name attribute get a row.</p>
+</td></tr>
+<tr><td class="code-type">currentSectionIndex</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">cursorSet</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">defaultRoots</td><td class="code-type">Core.Array'(Gui.PropDefaultRoot)</td><td><p>"Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed instance per added struct, freed on destroy; every row's defaultData points into it. showReverts is the master switch for the revert markers.</p>
+</td></tr>
+<tr><td class="code-type">dragCmd</td><td class="code-type">#null *Gui.PropUndoCommand</td><td></td></tr>
+<tr><td class="code-type">dragItem</td><td class="code-type">#null *Gui.PropertiesItem</td><td></td></tr>
+<tr><td class="code-type">edView</td><td class="code-type">*Gui.PropertiesView</td><td></td></tr>
+<tr><td class="code-type">editPopup</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">externUndoMgr</td><td class="code-type">#null *Gui.UndoManager</td><td></td></tr>
+<tr><td class="code-type">fontCategory</td><td class="code-type">Pixel.FontFamily</td><td></td></tr>
+<tr><td class="code-type">fontName</td><td class="code-type">Pixel.FontFamily</td><td></td></tr>
+<tr><td class="code-type">fontSection</td><td class="code-type">Pixel.FontFamily</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">generation</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">gridColumnSize</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">gridColumnSizeReq</td><td class="code-type">s32</td><td><p>Requested column size, re-clamped to the current width on resize</p>
+</td></tr>
+<tr><td class="code-type">gridIndentSize</td><td class="code-type">s32</td><td><p>Per-nesting-level indent of the name label + disclosure triangle</p>
+</td></tr>
+<tr><td class="code-type">gridLevelHasMark</td><td class="code-type">Core.Array'(bool)</td><td><p>Per data-column depth: does any row at that depth show a disclosure triangle? Drives the reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).</p>
+</td></tr>
+<tr><td class="code-type">gridLineHeight</td><td class="code-type">f32</td><td><p>For grid kind</p>
+</td></tr>
+<tr><td class="code-type">gridLineMargin</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">gridMarginColumn</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">hostNtfy</td><td class="code-type">#null Gui.IPropertyNotify</td><td><p>Host-level notify interface (setNotify): consulted for every row, in addition to the per-struct IPropertyNotify implementations bound at build time. This is how a host that does not own the displayed structs (an editor panel showing a document's objects) plugs dynamic visibility, validation and change reactions.</p>
+</td></tr>
+<tr><td class="code-type">hotItem</td><td class="code-type">#null *Gui.PropertiesItem</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.ArrayPtr'(Gui.PropertiesItem)</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.PropertiesKind</td><td></td></tr>
+<tr><td class="code-type">leftMargin</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">listDescMarginAfter</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">listNameMarginAfter</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">listNameMarginBefore</td><td class="code-type">s32</td><td><p>For list kind</p>
+</td></tr>
+<tr><td class="code-type">menuItem</td><td class="code-type">#null *Gui.PropertiesItem</td><td><p>Row the context menu currently operates on. Read by the ActionProperties commands (and any keyboard/toolbar trigger of the same commands); kept set across the async command dispatch that follows doModal.</p>
+</td></tr>
+<tr><td class="code-type">resizingColumn</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">rightMargin</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">scrollWnd</td><td class="code-type">*Gui.ScrollWnd</td><td></td></tr>
+<tr><td class="code-type">sections</td><td class="code-type">Core.Array'(Gui.Properties.__anonymous_struct_6870)</td><td></td></tr>
+<tr><td class="code-type">selItem</td><td class="code-type">#null *Gui.PropertiesItem</td><td></td></tr>
+<tr><td class="code-type">showReverts</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.Properties, #null *Gui.PropertiesItem))</td><td></td></tr>
+<tr><td class="code-type">sizeEditValue</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">stringFilter</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">undoEnabled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">undoMgr</td><td class="code-type">Gui.UndoManager</td><td><p>Undo/redo (propertiesundo.swg). Every field edit that goes through hasChanged records one command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording while a command is restoring a value. externUndoMgr, when set, receives the commands instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves of one slider drag into a single command. generation stamps the grid content: it bumps on clearStructs so commands recorded against dropped rows skip their row refresh.</p>
+</td></tr>
+<tr><td class="code-type">usingFieldsLast</td><td class="code-type">bool</td><td><p>Walk the <span class="code-inline">using</span> base structs after the struct's own fields, so a derived type edits its most specific fields first (see addStructInternal). The language forces the base to be declared first; this inverts the generated row order only.</p>
+</td></tr>
+<tr><td class="code-type">valBarGap</td><td class="code-type">f32</td><td><p>gap between the row editor and the bar</p>
+</td></tr>
+<tr><td class="code-type">valBarGlyphWidth</td><td class="code-type">f32</td><td><p>left room reserved for the severity icon</p>
+</td></tr>
+<tr><td class="code-type">valBarIconSize</td><td class="code-type">f32</td><td><p>size of the severity icon</p>
+</td></tr>
+<tr><td class="code-type">valBarPaddingX</td><td class="code-type">f32</td><td><p>horizontal text inset from the colored background</p>
+</td></tr>
+<tr><td class="code-type">valBarPaddingY</td><td class="code-type">f32</td><td><p>vertical breathing room added around the text</p>
+</td></tr>
+<tr><td class="code-type">valBarRadius</td><td class="code-type">f32</td><td><p>corner radius of the colored background</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Properties___anonymous_struct_6870"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Properties.__anonymous_struct_6870</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L151">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde">{ item: <span class="SItr">#null</span> *<span class="SCst">PropertiesItem</span>, lvl: <span class="STpe">s32</span> }</span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">item</td><td class="code-type">#null *Gui.PropertiesItem</td><td></td></tr>
+<tr><td class="code-type">lvl</td><td class="code-type">s32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PropertiesCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropertiesCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesctrl.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PropertiesCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">list</td><td class="code-type">*Gui.ListCtrl</td><td></td></tr>
+<tr><td class="code-type">prop</td><td class="code-type">*Gui.Properties</td><td></td></tr>
+<tr><td class="code-type">propFlags</td><td class="code-type">Gui.PropertiesCtrlFlags</td><td></td></tr>
+<tr><td class="code-type">splitter</td><td class="code-type">*Gui.SplitterCtrl</td><td></td></tr>
+<tr><td class="code-type">tab</td><td class="code-type">*Gui.Tab</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PropertiesItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropertiesItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesitem.swg#L37">[src]</a></td></tr></table>
+<p>One row of the property grid: its window, the bound field (typeinfo + address, plus one address per instance for multi-selection), the editor sub-widgets, validation state and the tree bookkeeping. Rows are created by Properties.addItem (properties.build.swg) and stored flat in Properties.items, with the hierarchy tracked through the <span class="code-inline">parent</span> pointer.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PropertiesItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniFocusBk</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniFocusBorder</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">arrayAddButton</td><td class="code-type">*Gui.IconButton</td><td></td></tr>
+<tr><td class="code-type">checkBox</td><td class="code-type">*Gui.CheckButton</td><td></td></tr>
+<tr><td class="code-type">comboBox</td><td class="code-type">*Gui.ComboBox</td><td></td></tr>
+<tr><td class="code-type">data</td><td class="code-type">#null *u8</td><td></td></tr>
+<tr><td class="code-type">dataInstances</td><td class="code-type">Core.Array'(*u8)</td><td><p>Field address in every edited instance (multi-selection). [0] aliases <span class="code-inline">data</span>. Empty or a single entry means a plain single-instance edit. Items under a dynamic array are left single (their element addresses are not at a fixed struct offset).</p>
+</td></tr>
+<tr><td class="code-type">defaultData</td><td class="code-type">#null *u8</td><td><p>"Reset to default" tracking (defaultstate.swg). defaultData points into the default- constructed root instance at this field's fixed offset, i.e. the value the field is initialized to in the struct declaration; it is null when there is no comparable default (rows under a dynamic array, non-POD aggregates, ...). isModified caches whether the current value differs from that default (recomputed on build and after every change); revertButton is the lazily-created revert affordance shown while the row is modified.</p>
+</td></tr>
+<tr><td class="code-type">description</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">editBox</td><td class="code-type">*Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">extendFocus</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">filter</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">flags</td><td class="code-type">Gui.ItemFlags</td><td></td></tr>
+<tr><td class="code-type">isModified</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">labelDesc</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">level</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">line</td><td class="code-type">*Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">ntfyItf</td><td class="code-type">#null Gui.IPropertyNotify</td><td></td></tr>
+<tr><td class="code-type">numChilds</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">parent</td><td class="code-type">#null *Gui.PropertiesItem</td><td></td></tr>
+<tr><td class="code-type">revertButton</td><td class="code-type">*Gui.IconButton</td><td></td></tr>
+<tr><td class="code-type">section</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">selfPropagate</td><td class="code-type">bool</td><td><p>When set, the editor writes each instance itself (e.g. a vector component or an enum-flags bit), so hasChanged must not blindly copy the whole field over the others — that would clobber the components/bits the user did not touch.</p>
+</td></tr>
+<tr><td class="code-type">sigRefresh</td><td class="code-type">Gui.SigArray'(func||(*Gui.PropertiesItem))</td><td></td></tr>
+<tr><td class="code-type">sigResize</td><td class="code-type">Gui.SigArray'(func||(*Gui.PropertiesItem))</td><td></td></tr>
+<tr><td class="code-type">sliderBox</td><td class="code-type">*Gui.SliderCtrl</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">#null typeinfo</td><td></td></tr>
+<tr><td class="code-type">typeValue</td><td class="code-type">Gui.Swag.TypeValue</td><td></td></tr>
+<tr><td class="code-type">undoValue</td><td class="code-type">Gui.PropFieldValue</td><td><p>Undo/redo snapshot (propertiesundo.swg): the last value the grid committed for this field, kept per row so hasChanged can diff the new value against it and record one undo command. Captured at build for every snapshot-able row (POD or String); left invalid for rows that cannot be safely byte-copied (dynamic arrays, non-POD aggregates).</p>
+</td></tr>
+<tr><td class="code-type">userData0</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">userData1</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">validation</td><td class="code-type">Gui.PropValidation</td><td><p>Per-item validation (info/warning/error) shown as an inline colored message bar stacked under the row.</p>
+</td></tr>
+<tr><td class="code-type">validationLabel</td><td class="code-type">*Gui.Label</td><td></td></tr>
+<tr><td class="code-type">validationMsg</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">valueCellHeight</td><td class="code-type">f32</td><td><p>Grid only: height of the value cell (label + editor) on its own. The row grows below it to host the validation message bar, so we keep the base height to restore/recompute.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PropertiesView"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropertiesView</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesview.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst">PropertiesView</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">ed</td><td class="code-type">*Gui.Properties</td><td></td></tr>
+<tr><td class="code-type">stackWnd</td><td class="code-type">Gui.StackLayoutCtrl</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PropertyEditorReg"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PropertyEditorReg</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertieseditors.swg#L37">[src]</a></td></tr></table>
+<p>One registered editor: the implementing type (used to instantiate a fresh editor per field) plus a null-pointer interface used only for the canEdit capability query. Same shape as ImageDecoder / ImageEncoder.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PropertyEditorReg</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">itf</td><td class="code-type">Gui.IPropertyEditor</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">const *Gui.Swag.TypeInfoStruct</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditCtrl"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditCtrl</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richedit.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RichEditCtrl</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">bkColorModel</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">clipFormat</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">countVisibleLines</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">currentUndo</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">cursorPos</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">cursorPosUndo</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">dirtyFirstLineView</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">edView</td><td class="code-type">*Gui.RichEditView</td><td></td></tr>
+<tr><td class="code-type">firstVisibleLineView</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">forceCaretVisible</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">forceCaretVisibleCenter</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">form</td><td class="code-type">Gui.RichEditForm</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">freeLines</td><td class="code-type">Core.ArrayPtr'(Gui.RichEditLine)</td><td></td></tr>
+<tr><td class="code-type">hasSelRect</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">lastVisibleLineView</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">lexer</td><td class="code-type">#null Gui.IRichEditLexer</td><td></td></tr>
+<tr><td class="code-type">lineSpacing</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">lines</td><td class="code-type">Core.ArrayPtr'(Gui.RichEditLine)</td><td></td></tr>
+<tr><td class="code-type">mapping</td><td class="code-type">Core.Array'(Gui.RichEditMapping)</td><td></td></tr>
+<tr><td class="code-type">marginLeft</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">marginRight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">modified</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">modifiedUndoMarker</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">overwriteMode</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">recomputeScroll</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">richEdFlags</td><td class="code-type">Gui.RichEditFlags</td><td></td></tr>
+<tr><td class="code-type">scrollWnd</td><td class="code-type">*Gui.ScrollWnd</td><td></td></tr>
+<tr><td class="code-type">selBeg</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">selBegUndo</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">selRectangle</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">serialUndo</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.RichEditCtrl))</td><td></td></tr>
+<tr><td class="code-type">sigIsReadOnly</td><td class="code-type">Gui.SigArray'(func||(*bool))</td><td></td></tr>
+<tr><td class="code-type">sigModified</td><td class="code-type">Gui.SigArray'(func||(*Gui.RichEditCtrl))</td><td></td></tr>
+<tr><td class="code-type">styles</td><td class="code-type">[256] Gui.RichEditRuneStyle</td><td></td></tr>
+<tr><td class="code-type">stylesSelect</td><td class="code-type">[2] Gui.RichEditRuneStyle</td><td></td></tr>
+<tr><td class="code-type">tabSize</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">toUndo</td><td class="code-type">Core.ArrayPtr'(Gui.RichEditUndo)</td><td></td></tr>
+<tr><td class="code-type">undoCounter</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">undoMgr</td><td class="code-type">Core.ArrayPtr'(Gui.RichEditUndo)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditCursor"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditCursor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditcursor.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RichEditCursor</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">charPosInLine</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">lineIndex</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditLexerSwag"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditLexerSwag</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexerswag.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RichEditLexerSwag</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">mapStyles</td><td class="code-type">[Gui.RichEditLexerSwag.State] Gui.RichEditLexerSwag.Style</td><td></td></tr>
+<tr><td class="code-type">mapWords</td><td class="code-type">Core.HashTable'(string, Gui.RichEditLexerSwag.State)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditLine"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditLine</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditline.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst">RichEditLine</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">chars</td><td class="code-type">Core.Array'(rune)</td><td></td></tr>
+<tr><td class="code-type">dirtyStyle</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">drawingRect</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">hidden</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">lexerCptCmt</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">lexerEndingState</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">styles</td><td class="code-type">Core.Array'(u8)</td><td></td></tr>
+<tr><td class="code-type">wordWrap</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditMapping"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditMapping</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richedit.swg#L25">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RichEditMapping</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">command</td><td class="code-type">Gui.RichEditCommand</td><td></td></tr>
+<tr><td class="code-type">key</td><td class="code-type">Core.Input.Key</td><td></td></tr>
+<tr><td class="code-type">modifiers</td><td class="code-type">Core.Input.KeyModifiers</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditRuneStyle"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditRuneStyle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditcharstyle.swg#L8">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RichEditRuneStyle</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">colBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">colFg</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">fontMode</td><td class="code-type">Pixel.FontFamilyStyle</td><td></td></tr>
+<tr><td class="code-type">underline</td><td class="code-type">Pixel.UnderlineStyle</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditUndo"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditUndo</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditundo.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RichEditUndo</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">begSelectionAfter</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">begSelectionBefore</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">concatChars</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">cursorPos</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">endSelectionAfter</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">endSelectionBefore</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">hasSelRect</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">runes</td><td class="code-type">Core.Array'(rune)</td><td></td></tr>
+<tr><td class="code-type">selBeg</td><td class="code-type">Gui.RichEditCursor</td><td></td></tr>
+<tr><td class="code-type">serial</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">styles</td><td class="code-type">Core.Array'(u8)</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">Gui.RichEditUndoType</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RichEditView"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RichEditView</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditview.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
+<span class="SKwd">struct</span> <span class="SCst">RichEditView</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">ed</td><td class="code-type">#null *Gui.RichEditCtrl</td><td></td></tr>
+<tr><td class="code-type">firstLineSelMode</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">lastClientRect</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">selMode</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">timerCaret</td><td class="code-type">#null *Gui.Timer</td><td></td></tr>
+<tr><td class="code-type">visibleCaret</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Testing_AutoEdit"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Testing.AutoEdit</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/headless.swg#L8">[src]</a></td></tr></table>
+<p>One labelled edit box of a modal to fill before accepting it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AutoEdit</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">label</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">text</td><td class="code-type">Core.String</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Testing_AutoStage"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Testing.AutoStage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/headless.swg#L22">[src]</a></td></tr></table>
+<p>One step of the auto UI driver (see clickModalButtonWhenShown and friends).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AutoStage</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">button</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">edits</td><td class="code-type">Core.Array'(Gui.Testing.AutoEdit)</td><td></td></tr>
+<tr><td class="code-type">file</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">folder</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.Testing.AutoStageKind</td><td></td></tr>
+<tr><td class="code-type">label</td><td class="code-type">Core.String</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Testing_HeadlessHost"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Testing.HeadlessHost</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/headless.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">HeadlessHost</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">app</td><td class="code-type">Gui.Application</td><td></td></tr>
+<tr><td class="code-type">autoArmed</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">autoFrames</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">autoHandled</td><td class="code-type">bool</td><td><p>Auto UI driver state (see clickModalButtonWhenShown and friends). <span class="code-inline">autoHandled</span> is true once every armed stage has completed.</p>
+</td></tr>
+<tr><td class="code-type">autoHookInstalled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">autoMaxFrames</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">autoStage</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">autoStages</td><td class="code-type">Core.Array'(Gui.Testing.AutoStage)</td><td></td></tr>
+<tr><td class="code-type">closed</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">commandCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">lastCommand</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">mousePos</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">root</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">surface</td><td class="code-type">Gui.Surface</td><td></td></tr>
+<tr><td class="code-type">surfaceWnd</td><td class="code-type">Gui.SurfaceWnd</td><td></td></tr>
+<tr><td class="code-type">theme</td><td class="code-type">*Gui.Theme</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Button"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Button</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/button.swg#L2">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Button</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">iconSizeX</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">iconSizeY</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">isHot</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isIn</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isPressed</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isPressing</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">sigPressed</td><td class="code-type">Gui.SigArray'(func||(*Gui.Button))</td><td></td></tr>
+<tr><td class="code-type">sigRightPressed</td><td class="code-type">Gui.SigArray'(func||(*Gui.Button))</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_CheckButton"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.CheckButton</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/checkbutton.swg#L21">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CheckButton</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">button</td><td class="code-type">Gui.Button</td><td></td></tr>
+<tr><td class="code-type">checkButtonFlags</td><td class="code-type">Gui.CheckButtonFlags</td><td></td></tr>
+<tr><td class="code-type">checked</td><td class="code-type">Gui.ButtonCheckState</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.CheckButton))</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Circular"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Circular</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/circular.swg#L28">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Circular</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">circleGap</td><td class="code-type">f32</td><td><p>Gap between inner and outer circles (0 = single circle)</p>
+</td></tr>
+<tr><td class="code-type">circularFlags</td><td class="code-type">Gui.CircularFlags</td><td><p>Control behavior flags (Range, Integer, etc.)</p>
+</td></tr>
+<tr><td class="code-type">endAngle</td><td class="code-type">f32</td><td><p>Ending angle of the circular range (2π = full circle)</p>
+</td></tr>
+<tr><td class="code-type">markerForm</td><td class="code-type">Gui.CircularMarkerForm</td><td><p>Visual form of value markers (None, Circle, Needle)</p>
+</td></tr>
+<tr><td class="code-type">max</td><td class="code-type">f32</td><td><p>Maximum value</p>
+</td></tr>
+<tr><td class="code-type">min</td><td class="code-type">f32</td><td><p>Minimum value</p>
+</td></tr>
+<tr><td class="code-type">rangeColor</td><td class="code-type">Pixel.Color</td><td><p>Color for the range arc (when in range mode)</p>
+</td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.Circular))</td><td><p>Fired when value changes</p>
+</td></tr>
+<tr><td class="code-type">sigEndChange</td><td class="code-type">Gui.SigArray'(func||(*Gui.Circular))</td><td><p>Fired when user finishes changing value</p>
+</td></tr>
+<tr><td class="code-type">sigStartChange</td><td class="code-type">Gui.SigArray'(func||(*Gui.Circular))</td><td><p>Fired when user starts changing value</p>
+</td></tr>
+<tr><td class="code-type">startAngle</td><td class="code-type">f32</td><td><p>Starting angle of the circular range (0 = top)</p>
+</td></tr>
+<tr><td class="code-type">stepForm</td><td class="code-type">Gui.CircularStepForm</td><td><p>Visual form of step indicators (None, Dot, Tick)</p>
+</td></tr>
+<tr><td class="code-type">steps</td><td class="code-type">f32</td><td><p>Step size (0 = no stepping)</p>
+</td></tr>
+<tr><td class="code-type">tickCount</td><td class="code-type">u32</td><td><p>Number of step indicators to draw</p>
+</td></tr>
+<tr><td class="code-type">tickInnerRadiusFactor</td><td class="code-type">f32</td><td><p>Distance from main circle to inner edge of ticks</p>
+</td></tr>
+<tr><td class="code-type">tickOuterRadiusFactor</td><td class="code-type">f32</td><td><p>Distance from main circle to outer edge of ticks</p>
+</td></tr>
+<tr><td class="code-type">value1</td><td class="code-type">f32</td><td><p>Primary value (or left value in range mode)</p>
+</td></tr>
+<tr><td class="code-type">value2</td><td class="code-type">f32</td><td><p>Secondary value (right value in range mode)</p>
+</td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ColorPicker"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ColorPicker</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/colorpicker.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ColorPicker</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">a</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">b</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">g</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">hue</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">lum</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">mode</td><td class="code-type">Gui.ColorPickerMode</td><td></td></tr>
+<tr><td class="code-type">r</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sat</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.ColorPicker))</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ComboBox"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ComboBox</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ComboBox</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBk</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniBorder</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniText</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">comboBoxFlags</td><td class="code-type">Gui.ComboBoxFlags</td><td><p>Active behaviour flags</p>
+</td></tr>
+<tr><td class="code-type">editBox</td><td class="code-type">#null *Gui.EditBox</td><td></td></tr>
+<tr><td class="code-type">isHot</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.ArrayPtr'(Gui.ComboBoxItem)</td><td></td></tr>
+<tr><td class="code-type">kind</td><td class="code-type">Gui.ComboBoxKind</td><td></td></tr>
+<tr><td class="code-type">maxHeightPopup</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">maxIconSize</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">minWidthPopup</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">popup</td><td class="code-type">#null *Gui.PopupListCtrl</td><td></td></tr>
+<tr><td class="code-type">selectedIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.ComboBox, u32))</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ComboBoxItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ComboBoxItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L21">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ComboBoxItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.Item</td><td></td></tr>
+<tr><td class="code-type">isSeparator</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_EditBox"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.EditBox</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EditBox</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">editBoxFlags</td><td class="code-type">Gui.EditBoxFlags</td><td><p>Active behaviour flags</p>
+</td></tr>
+<tr><td class="code-type">form</td><td class="code-type">Gui.EditBoxForm</td><td><p>Visual form of the EditBox</p>
+</td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td><p>Optional icon shown on the left</p>
+</td></tr>
+<tr><td class="code-type">inputMode</td><td class="code-type">Gui.EditBoxInputMode</td><td><p>Current input mode</p>
+</td></tr>
+<tr><td class="code-type">maxLength</td><td class="code-type">s32</td><td><p>Maximum number of runes (0 = unlimited)</p>
+</td></tr>
+<tr><td class="code-type">rightMargin</td><td class="code-type">f32</td><td><p>Extra right margin inside the client rectangle</p>
+</td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.EditBox))</td><td><p>Emitted when the text changes</p>
+</td></tr>
+<tr><td class="code-type">sigCheckContent</td><td class="code-type">#null func||(*Gui.EditBox)-&gt;Gui.EditBoxCheckResult</td><td><p>Optional custom validator</p>
+</td></tr>
+<tr><td class="code-type">sigEnterPressed</td><td class="code-type">Gui.SigArray'(func||(*Gui.EditBox))</td><td><p>Emitted when Enter is pressed</p>
+</td></tr>
+<tr><td class="code-type">sigEscapePressed</td><td class="code-type">Gui.SigArray'(func||(*Gui.EditBox))</td><td><p>Emitted when Escape is pressed</p>
+</td></tr>
+<tr><td class="code-type">sigLoseFocus</td><td class="code-type">Gui.SigArray'(func||(*Gui.EditBox))</td><td><p>Emitted when the EditBox loses focus</p>
+</td></tr>
+<tr><td class="code-type">text</td><td class="code-type">Core.String</td><td><p>Current UTF‑8 text content</p>
+</td></tr>
+<tr><td class="code-type">unit</td><td class="code-type">Core.String</td><td><p>Suffix unit (e.g. "kg")</p>
+</td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td><p>Base window interface</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Header"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Header</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/header.swg#L33">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Header</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">clicked</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">correctMoving</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">form</td><td class="code-type">Gui.HeaderForm</td><td></td></tr>
+<tr><td class="code-type">headerFlags</td><td class="code-type">Gui.HeaderFlags</td><td></td></tr>
+<tr><td class="code-type">hotIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">hotSeparator</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">items</td><td class="code-type">Core.ArrayPtr'(Gui.HeaderItem)</td><td></td></tr>
+<tr><td class="code-type">marginItems</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">moving</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">sigClicked</td><td class="code-type">#null func||(*Gui.Header, u32)</td><td></td></tr>
+<tr><td class="code-type">sigLayoutChanged</td><td class="code-type">#null func||(*Gui.Header)</td><td></td></tr>
+<tr><td class="code-type">sortColumn</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">sortMark</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_HeaderItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.HeaderItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/header.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">HeaderItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">clickable</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">column</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">iconMargin</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">maxWidth</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">minWidth</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">name</td><td class="code-type">Pixel.RichString</td><td></td></tr>
+<tr><td class="code-type">sizeable</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">width</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IconBar"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.IconBar</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbar.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IconBar</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">iconBarFlags</td><td class="code-type">Gui.IconBarFlags</td><td></td></tr>
+<tr><td class="code-type">iconPadding</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">iconSize</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sigCheckChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.IconButton))</td><td></td></tr>
+<tr><td class="code-type">sigPressed</td><td class="code-type">Gui.SigArray'(func||(*Gui.IconButton))</td><td></td></tr>
+<tr><td class="code-type">sigUpdateState</td><td class="code-type">Gui.SigArray'(func||(*Gui.CommandStateEvent))</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IconButton"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.IconButton</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L57">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IconButton</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBk</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">arrowPos</td><td class="code-type">Gui.IconButtonArrowPos</td><td></td></tr>
+<tr><td class="code-type">button</td><td class="code-type">Gui.Button</td><td></td></tr>
+<tr><td class="code-type">checkedForm</td><td class="code-type">Gui.IconButtonCheckedForm</td><td></td></tr>
+<tr><td class="code-type">form</td><td class="code-type">Gui.IconButtonForm</td><td></td></tr>
+<tr><td class="code-type">iconBtnFlags</td><td class="code-type">Gui.IconButtonFlags</td><td></td></tr>
+<tr><td class="code-type">iconColor</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">isChecked</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">popup</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">sigCheckChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.IconButton))</td><td></td></tr>
+<tr><td class="code-type">sigHidePopup</td><td class="code-type">Gui.SigArray'(func||(*Gui.IconButton))</td><td></td></tr>
+<tr><td class="code-type">sigPaintIcon</td><td class="code-type">#null func||(*Gui.IconButton, *Gui.PaintContext, Core.Math.Rectangle, Gui.PaintItemFlags)</td><td></td></tr>
+<tr><td class="code-type">sigShowPopup</td><td class="code-type">Gui.SigArray'(func||(*Gui.IconButton))</td><td></td></tr>
+<tr><td class="code-type">textColor</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">textPos</td><td class="code-type">Gui.IconButtonTextPos</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ImageRect"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ImageRect</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/imagerect.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ImageRect</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">movie</td><td class="code-type">Gui.Movie</td><td></td></tr>
+<tr><td class="code-type">textureFrame</td><td class="code-type">Pixel.Texture</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Label"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Label</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/label.swg#L16">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Label</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">horzAlignmentIcon</td><td class="code-type">Pixel.StringHorzAlignment</td><td></td></tr>
+<tr><td class="code-type">horzAlignmentText</td><td class="code-type">Pixel.StringHorzAlignment</td><td></td></tr>
+<tr><td class="code-type">hotChunk</td><td class="code-type">#null *Pixel.RichChunk</td><td></td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">iconColor</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">labelFlags</td><td class="code-type">Gui.LabelFlags</td><td></td></tr>
+<tr><td class="code-type">paddingIcon</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">paddingText</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">sigUrlClicked</td><td class="code-type">Gui.SigArray'(func||(*Gui.Label, string))</td><td></td></tr>
+<tr><td class="code-type">textColor</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">vertAlignmentIcon</td><td class="code-type">Pixel.StringVertAlignment</td><td></td></tr>
+<tr><td class="code-type">vertAlignmentText</td><td class="code-type">Pixel.StringVertAlignment</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PalettePicker"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PalettePicker</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/palettepicker.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PalettePicker</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">boxMargin</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">boxSize</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">hotIdx</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">pal</td><td class="code-type">Core.Array'(Pixel.Color)</td><td></td></tr>
+<tr><td class="code-type">palPos</td><td class="code-type">Core.Array'(Core.Math.Rectangle)</td><td></td></tr>
+<tr><td class="code-type">selectedColor</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.PalettePicker))</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ProgressBar"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ProgressBar</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/progressbar.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ProgressBar</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">prgBarFlags</td><td class="code-type">Gui.ProgressBarFlags</td><td></td></tr>
+<tr><td class="code-type">progression</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_PushButton"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PushButton</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/pushbutton.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PushButton</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBk</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniBorder</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniText</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">button</td><td class="code-type">Gui.Button</td><td></td></tr>
+<tr><td class="code-type">form</td><td class="code-type">Gui.PushButtonForm</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_RadioButton"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.RadioButton</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/radiobutton.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">RadioButton</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">button</td><td class="code-type">Gui.Button</td><td></td></tr>
+<tr><td class="code-type">checked</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">group</td><td class="code-type">#null string</td><td><p>Auto-grouping: radios sharing the same (parent, group) uncheck each other when one is checked, so a group keeps a single selection. <span class="code-inline">group</span> is a string id, like a command id; an empty/unset group means "ungrouped" — grouping is then left to the caller (backward compatible; several radios under one parent stay independent). Give the radios you want mutually exclusive the same non-empty id.</p>
+</td></tr>
+<tr><td class="code-type">radioButtonFlags</td><td class="code-type">Gui.RadioButtonFlags</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.RadioButton))</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Slider"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Slider</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/slider.swg#L17">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Slider</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniMark1</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniMark2</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniStep1</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniStep2</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">correcMoving</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">hasValue1</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">hasValue2</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isHot1</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isHot2</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isMoving</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isPressed1</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isPressed2</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">max</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">min</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.Slider))</td><td></td></tr>
+<tr><td class="code-type">sigEndChange</td><td class="code-type">Gui.SigArray'(func||(*Gui.Slider))</td><td></td></tr>
+<tr><td class="code-type">sigStartChange</td><td class="code-type">Gui.SigArray'(func||(*Gui.Slider))</td><td></td></tr>
+<tr><td class="code-type">sliderFlags</td><td class="code-type">Gui.SliderFlags</td><td></td></tr>
+<tr><td class="code-type">steps</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">value1</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">value2</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Tab"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Tab</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L56">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Tab</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">barForm</td><td class="code-type">Gui.TabBarForm</td><td></td></tr>
+<tr><td class="code-type">barHeight</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">barLayout</td><td class="code-type">Gui.TabBarLayout</td><td></td></tr>
+<tr><td class="code-type">buttonPopup</td><td class="code-type">#null *Gui.IconButton</td><td></td></tr>
+<tr><td class="code-type">firstVisibleIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">hotIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">itemAutoLayoutMargin</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">itemFixedLayoutWidth</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">itemForm</td><td class="code-type">Gui.TabItemForm</td><td></td></tr>
+<tr><td class="code-type">itemMinWidth</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">mostRightPos</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">popup</td><td class="code-type">#null *Gui.PopupListCtrl</td><td></td></tr>
+<tr><td class="code-type">selectedIdx</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">sigSelChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.Tab))</td><td></td></tr>
+<tr><td class="code-type">viewForm</td><td class="code-type">Gui.TabViewForm</td><td></td></tr>
+<tr><td class="code-type">views</td><td class="code-type">Core.ArrayPtr'(Gui.TabItem)</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_TabItem"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.TabItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TabItem</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBorder</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniImg</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniText</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">item</td><td class="code-type">Gui.Item</td><td></td></tr>
+<tr><td class="code-type">pos</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">view</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">width</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ToggleButton"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ToggleButton</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/togglebutton.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ToggleButton</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBk</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniBorder</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniMark</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">button</td><td class="code-type">Gui.Button</td><td></td></tr>
+<tr><td class="code-type">isToggled</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">sigChanged</td><td class="code-type">#null func(*Gui.ToggleButton)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_FrameWnd"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.FrameWnd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FrameWnd</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">anchor</td><td class="code-type">Gui.FrameWndAnchor</td><td></td></tr>
+<tr><td class="code-type">anchorPos</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameFlags</td><td class="code-type">Gui.FrameWndFlags</td><td></td></tr>
+<tr><td class="code-type">frameForm</td><td class="code-type">Gui.FrameWndForm</td><td></td></tr>
+<tr><td class="code-type">usedColorBk</td><td class="code-type">Pixel.Color</td><td></td></tr>
+<tr><td class="code-type">view</td><td class="code-type">*Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">wnd</td><td class="code-type">Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_KeyShortcut"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.KeyShortcut</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L93">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">KeyShortcut</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">id</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">key</td><td class="code-type">Core.Input.Key</td><td></td></tr>
+<tr><td class="code-type">mdf</td><td class="code-type">Core.Input.KeyModifiers</td><td></td></tr>
+<tr><td class="code-type">target</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_LayoutDebugInfo"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.LayoutDebugInfo</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L79">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">LayoutDebugInfo</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">arrangedRect</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">clampedByMaxX</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">clampedByMaxY</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">clampedByMinX</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">clampedByMinY</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">clippedX</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">clippedY</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">measuredMax</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">measuredMin</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">measuredPreferred</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_LayoutSpec"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.LayoutSpec</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L68">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">LayoutSpec</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">alignX</td><td class="code-type">Gui.LayoutAlign</td><td></td></tr>
+<tr><td class="code-type">alignY</td><td class="code-type">Gui.LayoutAlign</td><td></td></tr>
+<tr><td class="code-type">margin</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">policyX</td><td class="code-type">Gui.SizePolicy</td><td></td></tr>
+<tr><td class="code-type">policyY</td><td class="code-type">Gui.SizePolicy</td><td></td></tr>
+<tr><td class="code-type">weightX</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">weightY</td><td class="code-type">f32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_ScrollWnd"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.ScrollWnd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">ScrollWnd</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">aniBkBarH</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniBkBarV</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniBoxH</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">aniBoxV</td><td class="code-type">Gui.BlendColor</td><td></td></tr>
+<tr><td class="code-type">correcMoving</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">frameWnd</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">grabbingPos</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">isGrabbing</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isHotBarH</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isHotBarV</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isHotH</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isHotV</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isMoving</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isPressedH</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isPressedV</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">needH</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">needV</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">offsetClientH</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">offsetClientV</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">oldMouseCapture</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">paddingW</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">paddingZ</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">posBoxH</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">posBoxV</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollIncrementH</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollIncrementV</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">scrollRequestPos</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">scrollSize</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">scrollSmoothPos</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">scrollWndFlags</td><td class="code-type">Gui.ScrollWndFlags</td><td></td></tr>
+<tr><td class="code-type">showBarH</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">showBarV</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">sigScrollPosChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.ScrollWnd, Core.Math.Point, Core.Math.Point))</td><td></td></tr>
+<tr><td class="code-type">sigScrollSizeChanged</td><td class="code-type">Gui.SigArray'(func||(*Gui.ScrollWnd, Core.Math.Point, Core.Math.Point))</td><td></td></tr>
+<tr><td class="code-type">sizeBoxH</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">sizeBoxV</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">smoothScroll</td><td class="code-type">bool</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SizeHint"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SizeHint</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L61">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SizeHint</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">max</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">min</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">preferred</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_SurfaceWnd"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.SurfaceWnd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SurfaceWnd</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">base</td><td class="code-type">Gui.FrameWnd</td><td></td></tr>
+<tr><td class="code-type">closeBtn</td><td class="code-type">#null *Gui.IconButton</td><td></td></tr>
+<tr><td class="code-type">icon</td><td class="code-type">Gui.Icon</td><td></td></tr>
+<tr><td class="code-type">maximizeBtn</td><td class="code-type">#null *Gui.IconButton</td><td></td></tr>
+<tr><td class="code-type">minimizeBtn</td><td class="code-type">#null *Gui.IconButton</td><td></td></tr>
+<tr><td class="code-type">movingSurface</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">sizingBorder</td><td class="code-type">Gui.SizingBorder</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_Wnd"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.Wnd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L141">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Wnd</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">actions</td><td class="code-type">Core.Array'(Gui.IActionUI)</td><td></td></tr>
+<tr><td class="code-type">anchorStyle</td><td class="code-type">Gui.AnchorStyle</td><td></td></tr>
+<tr><td class="code-type">backgroundStyle</td><td class="code-type">Gui.BackgroundStyle</td><td></td></tr>
+<tr><td class="code-type">cachedSizeHint</td><td class="code-type">Gui.SizeHint</td><td></td></tr>
+<tr><td class="code-type">childs</td><td class="code-type">Core.Array'(*Gui.Wnd)</td><td></td></tr>
+<tr><td class="code-type">createEventDone</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">cursor</td><td class="code-type">Gui.Cursor</td><td></td></tr>
+<tr><td class="code-type">dockStyle</td><td class="code-type">Gui.DockStyle</td><td></td></tr>
+<tr><td class="code-type">focusStrategy</td><td class="code-type">Gui.FocusStategy</td><td></td></tr>
+<tr><td class="code-type">hookOnChildEvent</td><td class="code-type">#null func||(*Gui.Wnd, Gui.IEvent)-&gt;bool</td><td><p>Will be called before processing whatever event of a child window</p>
+</td></tr>
+<tr><td class="code-type">hookOnEvent</td><td class="code-type">#null func||(*Gui.Wnd, Gui.IEvent)-&gt;bool</td><td><p>Will be called before processing the event of the window</p>
+</td></tr>
+<tr><td class="code-type">id</td><td class="code-type">#null string</td><td></td></tr>
+<tr><td class="code-type">invalidatePadding</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">isAllocated</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">isPendingDestroy</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">itf</td><td class="code-type">Gui.IWnd</td><td></td></tr>
+<tr><td class="code-type">keyShortcuts</td><td class="code-type">Core.Array'(Gui.KeyShortcut)</td><td></td></tr>
+<tr><td class="code-type">layoutDebug</td><td class="code-type">Gui.LayoutDebugInfo</td><td></td></tr>
+<tr><td class="code-type">layoutDirty</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">layoutSpec</td><td class="code-type">Gui.LayoutSpec</td><td></td></tr>
+<tr><td class="code-type">managedByLayout</td><td class="code-type">bool</td><td></td></tr>
+<tr><td class="code-type">margin</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">maxSize</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">minSize</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">name</td><td class="code-type">Pixel.RichString</td><td></td></tr>
+<tr><td class="code-type">owner</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">padding</td><td class="code-type">Core.Math.Vector4</td><td></td></tr>
+<tr><td class="code-type">parent</td><td class="code-type">#null *Gui.Wnd</td><td></td></tr>
+<tr><td class="code-type">position</td><td class="code-type">Core.Math.Rectangle</td><td></td></tr>
+<tr><td class="code-type">preferredSize</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">scrollPos</td><td class="code-type">Core.Math.Point</td><td></td></tr>
+<tr><td class="code-type">style</td><td class="code-type">Gui.ThemeStyle</td><td></td></tr>
+<tr><td class="code-type">surface</td><td class="code-type">#null *Gui.Surface</td><td></td></tr>
+<tr><td class="code-type">toolTip</td><td class="code-type">Core.String</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">typeinfo</td><td></td></tr>
+<tr><td class="code-type">userData</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">wndFlags</td><td class="code-type">Gui.WndFlags</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IActionUI"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Gui.IActionUI</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/action.swg#L8">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IActionUI</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Gui_IActionUI_accept">accept</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IActionUI_execute">execute</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IActionUI_update">update</a></td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IEvent"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Gui.IEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IEvent</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IUndoCommand"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Gui.IUndoCommand</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/undomgr.swg#L23">[src]</a></td></tr></table>
+<p>One atomic, reversible change. redo() (re)applies it, undo() reverts it. The concrete command struct carries whatever state it needs to do both.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IUndoCommand</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Gui_IUndoCommand_redo">redo</a></td><td><p>(Re)apply the change. Called on redo, and once on push when pushCmd's <span class="code-inline">apply</span> is true.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IUndoCommand_undo">undo</a></td><td><p>Revert the change.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IPropertyEditor"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Gui.IPropertyEditor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertieseditors.swg#L17">[src]</a></td></tr></table>
+<p>A pluggable property editor. Register an implementing type with Properties.registerEditor (typically from a #init block); for each field the grid asks every registered editor whether it handles the field's type via canEdit, then builds the row via construct. This mirrors the image codec architecture (IImageDecoder / IImageEncoder): an interface + a type registry + per-use instantiation.</p>
+<p>It is non-intrusive: the edited type is never touched. It lets ANY type (including primitives, enums, the built-in Color/vector types, or types you do not own) get a bespoke editor, registered from the outside. Because canEdit receives the type, one editor can claim a whole FAMILY of types (every enum, every type carrying a given attribute, a set of related structs), not just a single one — something a type-keyed map cannot express.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IPropertyEditor</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Gui_IPropertyEditor_canEdit">canEdit</a></td><td><p>Return true if this editor should handle a field of type <span class="code-inline">type</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyEditor_construct">construct</a></td><td><p>Build the editor row(s) for <span class="code-inline">value</span> (the field at <span class="code-inline">data</span>) under <span class="code-inline">parent</span> and return the created item — exactly like the built-in construct* methods. The recipe: call list.addItem(value, data, parent), create the editor widget(s) under item.line, wire their change callbacks to list.hasChanged(item), and add an item.sigRefresh handler that pushes the current value back into the widget(s). See values/color.swg and values/vector.swg.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Gui.IPropertyNotify</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L21">[src]</a></td></tr></table>
+<p>To notify a struct about properties changes</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Warning("Wrn0006", .Disable)]</span>
+<span class="SKwd">interface</span> <span class="SCst">IPropertyNotify</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_fillPopupMenu">fillPopupMenu</a></td><td><p>Called when the user right-clicks a row: add custom menu items (each with a unique command id) before the built-in ones (Copy/Paste/...). Use a separator to set them apart.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_isEnumValueVisible">isEnumValueVisible</a></td><td><p>Return false to hide one value of an enum field (a value that makes no sense for the host, e.g. a <span class="code-inline">None</span> entry): the combo omits it, an enum-flags block skips its row. Like isItemVisible, checked on the host notify and along the item's parent chain, but when the row is BUILT: rebuild the grid content to re-evaluate it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_isItemAtDefault">isItemAtDefault</a></td><td><p>Customize the "is this field still at its default value?" test, used to decide whether the row shows the revert marker. Return .Auto (the default) to let the grid compare the current value against the value the field is initialized to in the struct declaration; return .AtDefault / .Modified to force the answer when the test is more involved than a plain comparison. The first non-Auto result along the item's parent chain wins.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_isItemEnabled">isItemEnabled</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_isItemReadOnly">isItemReadOnly</a></td><td><p>Return true to make <span class="code-inline">item</span> read-only at runtime: shown but not editable, and "Paste" is disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor. The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_isItemVisible">isItemVisible</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_itemHasChanged">itemHasChanged</a></td><td><p><span class="code-inline">item</span> is null when the change is not tied to a live row anymore: an undo/redo restore recorded against a previous grid content (the values are already back in the instances).</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_onPopupCommand">onPopupCommand</a></td><td><p>Called with the command id chosen in the popup menu when it is not one of the built-in actions. Return true once handled. This is how custom fillPopupMenu items are executed.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_resetItemToDefault">resetItemToDefault</a></td><td><p>Reset <span class="code-inline">item</span> to its default value yourself; return true once handled. Return false (the default) to let the grid restore the value declared in the struct. Called by the "Reset to default" action and the revert marker. Checked along the item's parent chain.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Gui_IPropertyNotify_validateItem">validateItem</a></td><td><p>Return a validation state + message for <span class="code-inline">item</span>. Called on build and after every change; the row shows an accent bar + badge in the state color and the message as a tooltip. The most severe result along the item's parent chain wins.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IRichEditLexer"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Gui.IRichEditLexer</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexer.swg#L2">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IRichEditLexer</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Gui_IRichEditLexer_compute">compute</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IRichEditLexer_insertRune">insertRune</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IRichEditLexer_setup">setup</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IRichEditLexer_setupTheme">setupTheme</a></td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_IWnd"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Gui.IWnd</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L101">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IWnd</span></span></div>
+<h3>Functions</h3>
+<table class="table-enumeration">
+<tr><td class="code-type"><a href="#Gui_IWnd_onApplyStateEvent">onApplyStateEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onCommandEvent">onCommandEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onComputeStateEvent">onComputeStateEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onCreateEvent">onCreateEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onDestroyEvent">onDestroyEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onEvent">onEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onFocusEvent">onFocusEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onFrameEvent">onFrameEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onHookEvent">onHookEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onKeyEvent">onKeyEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onMouseEvent">onMouseEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onNotifyEvent">onNotifyEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onPaintEvent">onPaintEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onPostPaintEvent">onPostPaintEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onPrePaintEvent">onPrePaintEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onResizeEvent">onResizeEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onSerializeStateEvent">onSerializeStateEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onStateEvent">onStateEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onSysCommandEvent">onSysCommandEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onSysUserEvent">onSysUserEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onThemeEvent">onThemeEvent</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Gui_IWnd_onTimerEvent">onTimerEvent</a></td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="Gui_CommandStateEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">CommandStateEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L60">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CommandStateEvent_RenderingHint"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">CommandStateEvent.RenderingHint</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L54">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">RenderingHint</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CommandStateEvent_SetFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">CommandStateEvent.SetFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L39">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">SetFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_FocusEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">FocusEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L221">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_KeyEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">KeyEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L170">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_MouseEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">MouseEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L188">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_MovieSource"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.MovieSource</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/movie.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">MovieSource</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_NotifyEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">NotifyEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L285">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PaintEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">PaintEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L138">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PaintItemFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.PaintItemFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/item.swg#L16">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">PaintItemFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_StateEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">StateEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L110">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_SurfaceFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.SurfaceFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.swg#L40">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">SurfaceFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_SysCommandEvent_Kind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">SysCommandEvent.Kind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/events.swg#L249">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Kind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPickerFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ColorPickerFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/colorpickerctrl.swg#L17">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">ColorPickerFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPickerViewMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ColorPickerViewMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/colorpickerctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ColorPickerViewMode</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_EmbInfoCtrlFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.EmbInfoCtrlFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/embinfoctrl.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">EmbInfoCtrlFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_EmbInfoCtrlKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.EmbInfoCtrlKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/embinfoctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">EmbInfoCtrlKind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_GridLayoutCtrlFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.GridLayoutCtrlFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/gridlayoutctrl.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">GridLayoutCtrlFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_GridTrackKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.GridTrackKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/gridlayoutctrl.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">GridTrackKind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ListFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ListFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">ListFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ListSelectionMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ListSelectionMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ListSelectionMode</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_MenuCtrlFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.MenuCtrlFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/menuctrl.swg#L12">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">MenuCtrlFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PopupPos"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.PopupPos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/menuctrl.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">PopupPos</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_SplitterFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.SplitterFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/splitterctrl.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">SplitterFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_StackLayoutKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.StackLayoutKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/stacklayoutctrl.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">StackLayoutKind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_FileDlgMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.FileDlgMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">FileDlgMode</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CursorShape"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.CursorShape</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/cursor.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CursorShape</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ThemeIcons24"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ThemeIcons24</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ThemeIcons24</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ThemeIcons64"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ThemeIcons64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/paint/themeicons.swg#L53">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ThemeIcons64</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_AddItemFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.AddItemFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesitem.swg#L8">[src]</a></td></tr></table>
+<p>Flags passed to Properties.addItem to select which sub-widgets a row gets.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">AddItemFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ItemFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ItemFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesitem.swg#L17">[src]</a></td></tr></table>
+<p>Per-row state flags.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">ItemFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PropDefaultState"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.PropDefaultState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/defaultstate.swg#L21">[src]</a></td></tr></table>
+<p>Result of IPropertyNotify.isItemAtDefault. Auto lets the grid run its built-in comparison.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">PropDefaultState</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PropValidation"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.PropValidation</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/validation.swg#L10">[src]</a></td></tr></table>
+<p>Per-item validation state for the property grid, in increasing severity. A field can be flagged Info/Warning/Error (e.g. a value out of range, an empty required string); the row then shows an accent bar and a badge in the state color, with the message in a tooltip. Mirrors the validation feedback of the Unity/Unreal inspectors.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">PropValidation</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PropertiesCtrlFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.PropertiesCtrlFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesctrl.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">PropertiesCtrlFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PropertiesKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.PropertiesKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L92">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">PropertiesKind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditCommand"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.RichEditCommand</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditcmd.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">RichEditCommand</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.RichEditFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richedit.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">RichEditFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.RichEditForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richedit.swg#L19">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">RichEditForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditLexerSwag_State"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">RichEditLexerSwag.State</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexerswag.swg#L29">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Incomplete]</span>
+<span class="SKwd">enum</span> <span class="SCst">State</span>: <span class="STpe">s32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditLexerSwag_Style"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">RichEditLexerSwag.Style</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexerswag.swg#L9">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Incomplete]</span>
+<span class="SKwd">enum</span> <span class="SCst">Style</span>: <span class="SCst">RichEditStyleRef</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditUndoType"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.RichEditUndoType</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditundo.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">RichEditUndoType</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_AutoStageKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Testing.AutoStageKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/headless.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">AutoStageKind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ButtonCheckState"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ButtonCheckState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/checkbutton.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ButtonCheckState</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CheckButtonFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.CheckButtonFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/checkbutton.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">CheckButtonFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CircularFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.CircularFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/circular.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">CircularFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CircularMarkerForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.CircularMarkerForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/circular.swg#L21">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CircularMarkerForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CircularStepForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.CircularStepForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/circular.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CircularStepForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPickerMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ColorPickerMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/colorpicker.swg#L8">[src]</a></td></tr></table>
+<p>Enumeration of different color picker display modes. Defines how color components are mapped to the 2D picker area or 1D sliders.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ColorPickerMode</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ComboBoxFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ComboBoxFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L15">[src]</a></td></tr></table>
+<p>Optional behaviour modifiers for the ComboBox.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">ComboBoxFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ComboBoxKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ComboBoxKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">ComboBoxKind</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBoxCheckResult"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.EditBoxCheckResult</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L26">[src]</a></td></tr></table>
+<p>Possible outcomes when validating the EditBox content.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">EditBoxCheckResult</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBoxFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.EditBoxFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L36">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">EditBoxFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBoxForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.EditBoxForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L7">[src]</a></td></tr></table>
+<p>Specifies the visual geometry of the EditBox.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">EditBoxForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBoxInputMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.EditBoxInputMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L16">[src]</a></td></tr></table>
+<p>Defines the type of input that the EditBox should accept and validate.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">EditBoxInputMode</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HeaderFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.HeaderFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/header.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">HeaderFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HeaderForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.HeaderForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/header.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">HeaderForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IconBarFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.IconBarFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbar.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">IconBarFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButtonArrowPos"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.IconButtonArrowPos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L28">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">IconButtonArrowPos</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButtonCheckedForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.IconButtonCheckedForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L47">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">IconButtonCheckedForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButtonFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.IconButtonFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">IconButtonFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButtonForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.IconButtonForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">IconButtonForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButtonTextPos"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.IconButtonTextPos</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L39">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">IconButtonTextPos</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_LabelFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.LabelFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/label.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">LabelFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ProgressBarFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ProgressBarFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/progressbar.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">ProgressBarFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PushButtonForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.PushButtonForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/pushbutton.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">PushButtonForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RadioButtonFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.RadioButtonFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/radiobutton.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">RadioButtonFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_SliderFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.SliderFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/slider.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">SliderFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_TabBarForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.TabBarForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TabBarForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_TabBarLayout"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.TabBarLayout</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L38">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TabBarLayout</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_TabForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.TabForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TabForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_TabItemForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.TabItemForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TabItemForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_TabViewForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.TabViewForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">TabViewForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_AnchorStyle"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.AnchorStyle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L21">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">AnchorStyle</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_BackgroundStyle"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.BackgroundStyle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L30">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">BackgroundStyle</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_DockStyle"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.DockStyle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L9">[src]</a></td></tr></table>
+<p>Automatic placement and size of the window in the parent client rectangle</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">DockStyle</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_FocusStategy"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.FocusStategy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L39">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">FocusStategy</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameWndAnchor"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.FrameWndAnchor</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">FrameWndAnchor</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameWndFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.FrameWndFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">FrameWndFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameWndForm"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.FrameWndForm</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">FrameWndForm</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_LayoutAlign"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.LayoutAlign</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L53">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">LayoutAlign</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ScrollWndFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.ScrollWndFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">ScrollWndFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_SizePolicy"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.SizePolicy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">SizePolicy</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_SizingBorder"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.SizingBorder</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/surfacewnd.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">SizingBorder</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_WndFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Gui.WndFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L129">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
+<span class="SKwd">enum</span> <span class="SCst">WndFlags</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_DWMWA_BORDER_COLOR"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.DWMWA_BORDER_COLOR</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L14">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DWMWA_BORDER_COLOR</span>             = <span class="SNum">34</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_DWMWA_COLOR_NONE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.DWMWA_COLOR_NONE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DWMWA_COLOR_NONE</span>               = <span class="SNum">0xFFFFFFFE</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_DWMWA_WINDOW_CORNER_PREFERENCE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.DWMWA_WINDOW_CORNER_PREFERENCE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DWMWA_WINDOW_CORNER_PREFERENCE</span> = <span class="SNum">33</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_DWMWCP_DONOTROUND"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.DWMWCP_DONOTROUND</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L17">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DWMWCP_DONOTROUND</span> = <span class="SNum">1</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_DWMWCP_ROUND"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.DWMWCP_ROUND</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L18">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">DWMWCP_ROUND</span>      = <span class="SNum">2</span>'<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTBOTTOM"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTBOTTOM</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L26">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTBOTTOM</span>          = <span class="SNum">15</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTBOTTOMLEFT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTBOTTOMLEFT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTBOTTOMLEFT</span>      = <span class="SNum">16</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTBOTTOMRIGHT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTBOTTOMRIGHT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L28">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTBOTTOMRIGHT</span>     = <span class="SNum">17</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTCAPTION"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTCAPTION</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTCAPTION</span>         = <span class="SNum">2</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTCLIENT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTCLIENT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L19">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTCLIENT</span>          = <span class="SNum">1</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTLEFT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTLEFT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L21">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTLEFT</span>            = <span class="SNum">10</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTRIGHT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTRIGHT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTRIGHT</span>           = <span class="SNum">11</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTTOP"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTTOP</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L23">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTTOP</span>             = <span class="SNum">12</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTTOPLEFT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTTOPLEFT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L24">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTTOPLEFT</span>         = <span class="SNum">13</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HTTOPRIGHT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.HTTOPRIGHT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L25">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">HTTOPRIGHT</span>        = <span class="SNum">14</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_TrayIconID"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.TrayIconID</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L40">[src]</a></td></tr></table>
+<p>Fixed notification-area icon id. A surface owns at most one tray icon.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">TrayIconID</span> = <span class="SNum">1</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PropCondensedControlHeight"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Gui.PropCondensedControlHeight</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L103">[src]</a></td></tr></table>
+<p>Height of the inner value editors in condensed mode, so they fit the thin rows.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">PropCondensedControlHeight</span> = <span class="SNum">20</span>'<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_ValueFormat"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Clipboard.ValueFormat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L8">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">ValueFormat</span> = <span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameCallback"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gui.FrameCallback</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/application.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">FrameCallback</span> = <span class="SKwd">func</span>||(*<span class="SCst">Application</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_WndId"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gui.WndId</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wndid.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">WndId</span> = <span class="SItr">#null</span> <span class="STpe">string</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditStyleRef"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gui.RichEditStyleRef</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditcharstyle.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">RichEditStyleRef</span> = <span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_HookEvent"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Gui.HookEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">HookEvent</span> = <span class="SKwd">func</span>||(*<span class="SCst">Wnd</span>, <span class="SCst">IEvent</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard___init_1"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.__init_1</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L362">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SFct">#init</span>
+{
+    g_PngFormat = <span class="SKwd">catch</span> <span class="SFct">RegisterClipboardFormatA</span>(<span class="SItr">@dataof</span>(<span class="SStr">"PNG"</span>))
+}</span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_addImage"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.addImage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L147">[src]</a></td></tr></table>
+<p>Add an image</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addImage</span>(image: <span class="SCst">Image</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_addString"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.addString</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L282">[src]</a></td></tr></table>
+<p>Add string to clipboard</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addString</span>(str: <span class="STpe">string</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_addTypedData"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.addTypedData</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L60">[src]</a></td></tr></table>
+<p>Add data of a given format of the given <span class="code-inline">type</span> to the clipboard <span class="code-inline">type</span> can be null to just check for the given clipboard format.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addTypedData</span>(fmt: <span class="SCst">ValueFormat</span>, type: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>, data: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_addTypedValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.addTypedValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.swg#L9">[src]</a></td></tr></table>
+<p>Add whatever value with a given <span class="code-inline">type</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">addTypedValue</span>(value: *<span class="STpe">void</span>, type: <span class="STpe">typeinfo</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_getImage"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.getImage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L214">[src]</a></td></tr></table>
+<p>Get image from clipboard</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getImage</span>()-&gt;<span class="SCst">Image</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_getString"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.getString</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L318">[src]</a></td></tr></table>
+<p>Get utf8 string from clipboard</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getString</span>()-&gt;<span class="SCst">String</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_getTypedData"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.getTypedData</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L90">[src]</a></td></tr></table>
+<p>Get data of the given format and <span class="code-inline">type</span> <span class="code-inline">type</span> can be null to just check for the given clipboard format.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getTypedData</span>(fmt: <span class="SCst">ValueFormat</span>, type: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_getTypedValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.getTypedValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.swg#L50">[src]</a></td></tr></table>
+<p>Get whatever value with a given <span class="code-inline">type</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">getTypedValue</span>(value: *<span class="STpe">void</span>, type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_hasFormat"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.hasFormat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L19">[src]</a></td></tr></table>
+<p>Returns true if the clipboard contains the given format</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasFormat</span>(fmt: <span class="SCst">ValueFormat</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_hasImage"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.hasImage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L129">[src]</a></td></tr></table>
+<p>Returns true if the clipbboard contains an image</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasImage</span>()-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_hasString"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.hasString</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L264">[src]</a></td></tr></table>
+<p>Returns true if the clipboard contains a string</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasString</span>()-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_hasTypedData"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.hasTypedData</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L33">[src]</a></td></tr></table>
+<p>Returns true if the clipboard contains the given format of the given <span class="code-inline">type</span>. <span class="code-inline">type</span> can be null to just check for the given clipboard format.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasTypedData</span>(fmt: <span class="SCst">ValueFormat</span>, type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_hasTypedValue"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.hasTypedValue</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.swg#L38">[src]</a></td></tr></table>
+<p>Get whatever value with a given <span class="code-inline">type</span></p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasTypedValue</span>(type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_registerFormat"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.registerFormat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.win32.swg#L13">[src]</a></td></tr></table>
+<p>Register a new format</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerFormat</span>(name: <span class="STpe">string</span>)-&gt;<span class="SCst">ValueFormat</span> <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Clipboard_setFake"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clipboard.setFake</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/clipboard.fake.swg#L34">[src]</a></td></tr></table>
+<p>Redirect the whole Clipboard API to a process-local store (true) or back to the OS clipboard (false). The store starts empty on each switch.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">setFake</span>(enable: <span class="STpe">bool</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_DwmSetWindowAttribute"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.DwmSetWindowAttribute</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/surface.win32.swg#L10">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">DwmSetWindowAttribute</span>(hWnd: <span class="SCst">HWND</span>, dwAttribute: <span class="SCst">DWORD</span>, pvAttribute: <span class="SCst">LPCVOID</span>, cbAttribute: <span class="SCst">DWORD</span>)-&gt;<span class="STpe">s32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IActionUI_accept"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IActionUI.accept</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/action.swg#L10">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">accept</span>(cxt: <span class="SCst">ActionContext</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IActionUI_execute"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IActionUI.execute</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/action.swg#L12">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">execute</span>(cxt: <span class="SCst">ActionContext</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IActionUI_update"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IActionUI.update</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/action.swg#L11">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">update</span>(cxt: <span class="SCst">ActionContext</span>, evt: *<span class="SCst">CommandStateEvent</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IUndoCommand_redo"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IUndoCommand.redo</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/undomgr.swg#L26">[src]</a></td></tr></table>
+<p>(Re)apply the change. Called on redo, and once on push when pushCmd's <span class="code-inline">apply</span> is true.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">redo</span>()</span></div>
+<table class="api-item"><tr><td><span id="Gui_IUndoCommand_undo"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IUndoCommand.undo</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/undomgr.swg#L29">[src]</a></td></tr></table>
+<p>Revert the change.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">undo</span>()</span></div>
+<table class="api-item"><tr><td><span id="Gui_ToolTip_hide"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ToolTip.hide</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/tooltip.swg#L41">[src]</a></td></tr></table>
+<p>Hide the current tooltip, if visible</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hide</span>()</span></div>
+<table class="api-item"><tr><td><span id="Gui_ToolTip_show"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ToolTip.show</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/tooltip.swg#L76">[src]</a></td></tr></table>
+<p>Show a tooltip</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">show</span>(owner: *<span class="SCst">Wnd</span>, surfacePos: <span class="SCst">Math</span>.<span class="SCst">Point</span>, str: <span class="SItr">#null</span> <span class="STpe">string</span>, delay: <span class="SCst">Time</span>.<span class="SCst">Duration</span> = <span class="SNum">500</span>'ms)</span></div>
+<table class="api-item"><tr><td><span id="Gui_newCmdId"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Gui.newCmdId</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wndid.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Mixin]</span>
+<span class="SKwd">func</span> <span class="SFct">newCmdId</span>(val: <span class="STpe">string</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_BreadcrumbCtrl_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/breadcrumbctrl.swg#L152">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_BreadcrumbCtrl_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/breadcrumbctrl.swg#L223">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPickerCtrl_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/colorpickerctrl.swg#L57">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ComboCtrl_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/comboctrl.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EditCtrl_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/editctrl.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EmbInfoCtrl_IWnd_onDestroyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onDestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/embinfoctrl.swg#L43">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDestroyEvent</span>(evt: *<span class="SCst">DestroyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EmbInfoCtrl_IWnd_onNotifyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onNotifyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/embinfoctrl.swg#L49">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onNotifyEvent</span>(evt: *<span class="SCst">NotifyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EmbInfoCtrl_IWnd_onTimerEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onTimerEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/embinfoctrl.swg#L37">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onTimerEvent</span>(evt: *<span class="SCst">TimerEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_FileBrowserCtrl_IWnd_onDestroyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onDestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/filebrowserctrl.swg#L46">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDestroyEvent</span>(evt: *<span class="SCst">DestroyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_GridLayoutCtrl_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/gridlayoutctrl.swg#L50">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ListView_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L170">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ListView_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L319">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ListView_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L507">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ListView_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/listctrl.swg#L164">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_MenuCtrl_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/menuctrl.swg#L285">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_MenuCtrl_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/menuctrl.swg#L269">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_MenuCtrl_IWnd_onTimerEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onTimerEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/menuctrl.swg#L278">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onTimerEvent</span>(evt: *<span class="SCst">TimerEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PopupListView_IWnd_hitAt"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.hitAt</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L115">[src]</a></td></tr></table>
+<p>Item index under a local position, or U32.Max when over a separator or empty space.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hitAt</span>(pos: <span class="SCst">Math</span>.<span class="SCst">Point</span>)-&gt;<span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PopupListView_IWnd_onFocusEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onFocusEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L41">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onFocusEvent</span>(evt: *<span class="SCst">FocusEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PopupListView_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L57">[src]</a></td></tr></table>
+<p>Keyboard control of the popup when it holds the focus directly. The property grid keeps the focus and forwards keys via PopupListCtrl.key* instead, but a standalone focused popup still works through this path.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PopupListView_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L77">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PopupListView_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/popuplistctrl.swg#L135">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_SliderCtrl_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/sliderctrl.swg#L26">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_SplitterCtrl_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/splitterctrl.swg#L42">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_SplitterCtrl_IWnd_onPostPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPostPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/splitterctrl.swg#L163">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPostPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_SplitterCtrl_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/splitterctrl.swg#L109">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_StackLayoutCtrl_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/stacklayoutctrl.swg#L30">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_WrapLayoutCtrl_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/composite/wraplayoutctrl.swg#L18">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Dialog_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/dialog.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Dialog_IWnd_onSysCommandEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onSysCommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/dialog.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onSysCommandEvent</span>(evt: *<span class="SCst">SysCommandEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_FileDlg_IWnd_onDestroyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onDestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/dialogs/filedlg.swg#L47">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDestroyEvent</span>(evt: *<span class="SCst">DestroyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ActionProperties_IActionUI_accept"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IActionUI.accept</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/actionproperties.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">accept</span>(cxt: <span class="SCst">ActionContext</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ActionProperties_IActionUI_execute"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IActionUI.execute</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/actionproperties.swg#L110">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">execute</span>(cxt: <span class="SCst">ActionContext</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ActionProperties_IActionUI_update"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IActionUI.update</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/actionproperties.swg#L39">[src]</a></td></tr></table>
+<p>Provide each item's label, icon and enabled state from the current target row. This is the logic that used to live inline in popupMenu next to each addItem.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">update</span>(cxt: <span class="SCst">ActionContext</span>, evt: *<span class="SCst">CommandStateEvent</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyEditor_canEdit"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyEditor.canEdit</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertieseditors.swg#L20">[src]</a></td></tr></table>
+<p>Return true if this editor should handle a field of type <span class="code-inline">type</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canEdit</span>(type: <span class="SItr">#null</span> <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyEditor_construct"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyEditor.construct</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertieseditors.swg#L31">[src]</a></td></tr></table>
+<p>Build the editor row(s) for <span class="code-inline">value</span> (the field at <span class="code-inline">data</span>) under <span class="code-inline">parent</span> and return the created item — exactly like the built-in construct* methods. The recipe: call list.addItem(value, data, parent), create the editor widget(s) under item.line, wire their change callbacks to list.hasChanged(item), and add an item.sigRefresh handler that pushes the current value back into the widget(s). See values/color.swg and values/vector.swg.</p>
+<p>An editor is a stateless singleton: it is invoked on a null instance (like canEdit), so <span class="code-inline">me</span> carries no per-field state — read any per-field configuration from <span class="code-inline">value</span> (its attributes), and wire <span class="code-inline">data</span>/<span class="code-inline">item</span>/<span class="code-inline">list</span> into the widget callbacks.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">construct</span>(list: *<span class="SCst">Properties</span>, value: <span class="SCst">Swag</span>.<span class="SCst">TypeValue</span>, data: <span class="SItr">#null</span> [*] <span class="STpe">u8</span>, parent: <span class="SItr">#null</span> *<span class="SCst">PropertiesItem</span>)-&gt;*<span class="SCst">PropertiesItem</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_fillPopupMenu"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.fillPopupMenu</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L56">[src]</a></td></tr></table>
+<p>Called when the user right-clicks a row: add custom menu items (each with a unique command id) before the built-in ones (Copy/Paste/...). Use a separator to set them apart.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillPopupMenu</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>, menu: *<span class="SCst">MenuCtrl</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_isEnumValueVisible"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.isEnumValueVisible</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L41">[src]</a></td></tr></table>
+<p>Return false to hide one value of an enum field (a value that makes no sense for the host, e.g. a <span class="code-inline">None</span> entry): the combo omits it, an enum-flags block skips its row. Like isItemVisible, checked on the host notify and along the item's parent chain, but when the row is BUILT: rebuild the grid content to re-evaluate it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isEnumValueVisible</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>, enumValue: <span class="SCst">Swag</span>.<span class="SCst">TypeValue</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_isItemAtDefault"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.isItemAtDefault</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L78">[src]</a></td></tr></table>
+<p>Customize the "is this field still at its default value?" test, used to decide whether the row shows the revert marker. Return .Auto (the default) to let the grid compare the current value against the value the field is initialized to in the struct declaration; return .AtDefault / .Modified to force the answer when the test is more involved than a plain comparison. The first non-Auto result along the item's parent chain wins.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isItemAtDefault</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>)-&gt;<span class="SCst">PropDefaultState</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_isItemEnabled"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.isItemEnabled</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isItemEnabled</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_isItemReadOnly"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.isItemReadOnly</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L49">[src]</a></td></tr></table>
+<p>Return true to make <span class="code-inline">item</span> read-only at runtime: shown but not editable, and "Paste" is disabled. Unlike isItemEnabled (which grays the whole row), this only locks the editor. The static equivalent is the Properties.ReadOnly attribute. Checked along the parent chain.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isItemReadOnly</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_isItemVisible"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.isItemVisible</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isItemVisible</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_itemHasChanged"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.itemHasChanged</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L25">[src]</a></td></tr></table>
+<p><span class="code-inline">item</span> is null when the change is not tied to a live row anymore: an undo/redo restore recorded against a previous grid content (the values are already back in the instances).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">itemHasChanged</span>(list: *<span class="SCst">Properties</span>, item: <span class="SItr">#null</span> *<span class="SCst">PropertiesItem</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_onPopupCommand"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.onPopupCommand</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L60">[src]</a></td></tr></table>
+<p>Called with the command id chosen in the popup menu when it is not one of the built-in actions. Return true once handled. This is how custom fillPopupMenu items are executed.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onPopupCommand</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>, cmdId: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_resetItemToDefault"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.resetItemToDefault</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L86">[src]</a></td></tr></table>
+<p>Reset <span class="code-inline">item</span> to its default value yourself; return true once handled. Return false (the default) to let the grid restore the value declared in the struct. Called by the "Reset to default" action and the revert marker. Checked along the item's parent chain.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetItemToDefault</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IPropertyNotify_validateItem"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IPropertyNotify.validateItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L68">[src]</a></td></tr></table>
+<p>Return a validation state + message for <span class="code-inline">item</span>. Called on build and after every change; the row shows an accent bar + badge in the state color and the message as a tooltip. The most severe result along the item's parent chain wins.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">validateItem</span>(list: *<span class="SCst">Properties</span>, item: *<span class="SCst">PropertiesItem</span>)-&gt;<span class="SCst">PropValidationResult</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_PropUndoCommand_IUndoCommand_redo"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IUndoCommand.redo</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesundo.swg#L163">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">redo</span>()</span></div>
+<table class="api-item"><tr><td><span id="Gui_PropUndoCommand_IUndoCommand_undo"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IUndoCommand.undo</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/propertiesundo.swg#L169">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">undo</span>()</span></div>
+<table class="api-item"><tr><td><span id="Gui_Properties_IWnd_onCommandEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onCommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L241">[src]</a></td></tr></table>
+<p>Built-in commands are handled by ActionProperties (registered in create). A command id that no action claims comes from a custom fillPopupMenu item: dispatch it to the notify interface(s) along the clicked row's parent chain, then refresh — the same contract the old inline <span class="code-inline">default:</span> switch case had.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onCommandEvent</span>(evt: *<span class="SCst">CommandEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Properties_IWnd_onDestroyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onDestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L215">[src]</a></td></tr></table>
+<p>Free the default-constructed instances backing the "reset to default" feature. They are heap-allocated per added struct (assignDefaults), so their drop+free is not covered by the struct's automatic field drop.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDestroyEvent</span>(evt: *<span class="SCst">DestroyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Properties_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L206">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Properties_IWnd_onThemeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onThemeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/property/properties.swg#L225">[src]</a></td></tr></table>
+<p>The validation bar's icon + colors are manually-set Label fields (not theme styles), so they do not follow a theme switch on their own. Re-apply them from the current theme here (exactly like EmbInfoCtrl re-runs setColors on ThemeChanged) — otherwise a bar built under one theme keeps stale colors under the next (e.g. dark-theme light text nearly invisible on the light pastel background).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onThemeEvent</span>(evt: *<span class="SCst">ThemeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IRichEditLexer_compute"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.compute</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexer.swg#L7">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">compute</span>(linePrev: <span class="SItr">#null</span> *<span class="SCst">RichEditLine</span>, line: *<span class="SCst">RichEditLine</span>, lineNext: <span class="SItr">#null</span> *<span class="SCst">RichEditLine</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IRichEditLexer_insertRune"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.insertRune</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexer.swg#L6">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">insertRune</span>(ed: *<span class="SCst">RichEditCtrl</span>, ch: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_IRichEditLexer_setup"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.setup</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexer.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setup</span>(ed: *<span class="SCst">RichEditCtrl</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IRichEditLexer_setupTheme"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.setupTheme</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexer.swg#L5">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setupTheme</span>(ed: *<span class="SCst">RichEditCtrl</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditLexerSwag_IRichEditLexer_compute"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.compute</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexerswag.swg#L421">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">compute</span>(linePrev: <span class="SItr">#null</span> *<span class="SCst">RichEditLine</span>, line: *<span class="SCst">RichEditLine</span>, lineNext: <span class="SItr">#null</span> *<span class="SCst">RichEditLine</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditLexerSwag_IRichEditLexer_insertRune"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.insertRune</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexerswag.swg#L389">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">insertRune</span>(ed: *<span class="SCst">RichEditCtrl</span>, ch: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditLexerSwag_IRichEditLexer_setup"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.setup</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexerswag.swg#L67">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">setup</span>(ed: *<span class="SCst">RichEditCtrl</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_RichEditLexerSwag_IRichEditLexer_setupTheme"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IRichEditLexer.setupTheme</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/richedit/richeditlexerswag.swg#L370">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">setupTheme</span>(ed: *<span class="SCst">RichEditCtrl</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_actionAccept"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionAccept</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L85">[src]</a></td></tr></table>
+<p>Asks action type T whether it accepts the command, through its IActionUI interface.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">actionAccept</span>(wnd: <span class="SItr">#null</span> *<span class="SCst">Wnd</span>, id: <span class="SCst">WndId</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_actionExecute"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionExecute</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L92">[src]</a></td></tr></table>
+<p>Executes action type T through its IActionUI interface, as the command dispatch would.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">actionExecute</span>(wnd: <span class="SItr">#null</span> *<span class="SCst">Wnd</span>, id: <span class="SCst">WndId</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_actionUpdate"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.actionUpdate</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L99">[src]</a></td></tr></table>
+<p>Updates the command state of action type T through its IActionUI interface.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">actionUpdate</span>(wnd: *<span class="SCst">Wnd</span>, id: <span class="SCst">WndId</span>, evt: *<span class="SCst">CommandStateEvent</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_assertPoint"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertPoint</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L19">[src]</a></td></tr></table>
+<p>Asserts that <span class="code-inline">pt</span> equals the given coordinates within <span class="code-inline">eps</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertPoint</span>(pt: <span class="SCst">Math</span>.<span class="SCst">Vector2</span>, x, y: <span class="STpe">f32</span>, eps: <span class="STpe">f32</span> = <span class="SNum">0.001</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_assertRect"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertRect</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L10">[src]</a></td></tr></table>
+<p>Asserts that <span class="code-inline">rect</span> equals the given coordinates within <span class="code-inline">eps</span>.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertRect</span>(rect: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>, x, y, width, height: <span class="STpe">f32</span>, eps: <span class="STpe">f32</span> = <span class="SNum">0.001</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_commandState"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.commandState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L73">[src]</a></td></tr></table>
+<p>Returns a command state event for the given command id.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">commandState</span>(id: <span class="SCst">WndId</span>)-&gt;<span class="SCst">CommandStateEvent</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_countNonZeroBytes"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.countNonZeroBytes</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L59">[src]</a></td></tr></table>
+<p>Number of non-zero bytes in the image pixels (cheap "something was painted" probe).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countNonZeroBytes</span>(img: <span class="SCst">Image</span>)-&gt;<span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_indexedImage"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.indexedImage</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L44">[src]</a></td></tr></table>
+<p>Deterministic BGRA test image: every pixel derives from its coordinates, so a save/load round-trip can be verified byte-for-byte.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">indexedImage</span>(w, h: <span class="STpe">s32</span>)-&gt;<span class="SCst">Image</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_Testing_tempFilePath"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.tempFilePath</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/testing/helpers.swg#L29">[src]</a></td></tr></table>
+<p>Returns a unique file path in a dedicated <span class="code-inline">swag-tests</span> sub-folder of the system temp folder (created on demand). A dedicated folder keeps test files out of the source tree and stays nearly empty, so tests that drive a real file dialog into it only enumerate a handful of entries, not the whole system temp folder.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tempFilePath</span>(prefix, extension: <span class="STpe">string</span>)-&gt;<span class="SCst">String</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_CheckButton_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/checkbutton.swg#L135">[src]</a></td></tr></table>
+<p>Space or Enter toggles the focused check button.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_CheckButton_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/checkbutton.swg#L128">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_CheckButton_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/checkbutton.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Circular_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/circular.swg#L157">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Circular_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/circular.swg#L90">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPicker_IWnd_computeXY"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.computeXY</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/colorpicker.swg#L52">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">computeXY</span>()</span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPicker_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/colorpicker.swg#L340">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPicker_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/colorpicker.swg#L138">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ColorPicker_IWnd_onPostPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPostPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/colorpicker.swg#L311">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPostPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ComboBox_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L178">[src]</a></td></tr></table>
+<p>Keyboard control of the focused combo box. Up/Left and Down/Right move the selection to the previous/next selectable item; Home/End jump to the first/ last; Enter/Space (or Alt+Down) open the drop-down and Escape closes it.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ComboBox_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L149">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ComboBox_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L63">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ComboBox_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/combobox.swg#L51">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBox_IWnd_onFocusEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onFocusEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L97">[src]</a></td></tr></table>
+<p>Handles gaining and losing keyboard focus.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onFocusEvent</span>(evt: *<span class="SCst">FocusEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBox_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L349">[src]</a></td></tr></table>
+<p>Handles keyboard input (navigation, edition, clipboard shortcuts, etc.).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBox_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L283">[src]</a></td></tr></table>
+<p>Processes mouse interaction with the EditBox (clicks, drags, hover, wheel).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBox_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L119">[src]</a></td></tr></table>
+<p>Renders the EditBox, including background, border, text, selection and caret.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_EditBox_IWnd_onTimerEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onTimerEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/editbox.swg#L335">[src]</a></td></tr></table>
+<p>Blinking caret timer handler.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onTimerEvent</span>(evt: *<span class="SCst">TimerEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Header_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/header.swg#L154">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Header_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/header.swg#L113">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Header_IWnd_paintItem"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.paintItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/header.swg#L55">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">paintItem</span>(bc: <span class="SCst">PaintContext</span>, item: *<span class="SCst">HeaderItem</span>, idx: <span class="STpe">u32</span>, x: <span class="STpe">f32</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconBar_IWnd_onComputeStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onComputeStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbar.swg#L28">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onComputeStateEvent</span>(evt: *<span class="SCst">CommandStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_hidePopup"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.hidePopup</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L81">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hidePopup</span>()</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_onApplyStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onApplyStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L121">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onApplyStateEvent</span>(evt: *<span class="SCst">CommandStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_onDestroyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onDestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L109">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDestroyEvent</span>(evt: *<span class="SCst">DestroyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_onHookEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onHookEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L94">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onHookEvent</span>(evt: <span class="SCst">IEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L530">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L141">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_onStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L114">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onStateEvent</span>(evt: *<span class="SCst">StateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IconButton_IWnd_overlayRadius"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.overlayRadius</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/iconbutton.swg#L517">[src]</a></td></tr></table>
+<p>Corner radius of the overlay state layer, matching the button's form.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">overlayRadius</span>(r: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>)-&gt;<span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="Gui_ImageRect_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/imagerect.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Label_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/label.swg#L38">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Label_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/label.swg#L81">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PalettePicker_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/palettepicker.swg#L60">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PalettePicker_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/palettepicker.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ProgressBar_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/progressbar.swg#L23">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PushButton_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/pushbutton.swg#L186">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PushButton_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/pushbutton.swg#L38">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_PushButton_IWnd_onStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/pushbutton.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onStateEvent</span>(evt: *<span class="SCst">StateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_RadioButton_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/radiobutton.swg#L120">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_RadioButton_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/radiobutton.swg#L30">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Slider_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/slider.swg#L329">[src]</a></td></tr></table>
+<p>Keyboard control of the focused slider. Left/Down decrease and Right/Up increase the (left) value by one step; Home/End jump to min/max; Page keys move by a larger amount. The step is the configured step, one integer unit for an integer slider, or 5% of the range otherwise.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Slider_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/slider.swg#L200">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Slider_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/slider.swg#L48">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Tab_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L283">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Tab_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L207">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Tab_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L265">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Tab_IWnd_paintItem"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.paintItem</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/tab.swg#L82">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">paintItem</span>(painter: *<span class="SCst">Painter</span>, v: *<span class="SCst">TabItem</span>, idx: <span class="STpe">u32</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ToggleButton_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/togglebutton.swg#L90">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ToggleButton_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/togglebutton.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ToggleButton_IWnd_onStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/widgets/togglebutton.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onStateEvent</span>(evt: *<span class="SCst">StateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameWnd_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L63">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameWnd_IWnd_onPostPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPostPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L104">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPostPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameWnd_IWnd_onPrePaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPrePaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L46">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPrePaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_FrameWnd_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/framewnd.swg#L198">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onApplyStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onApplyStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L122">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onApplyStateEvent</span>(evt: *<span class="SCst">CommandStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onCommandEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onCommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L120">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onCommandEvent</span>(evt: *<span class="SCst">CommandEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onComputeStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onComputeStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L121">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onComputeStateEvent</span>(evt: *<span class="SCst">CommandStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onCreateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onCreateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L106">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onCreateEvent</span>(evt: *<span class="SCst">CreateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onDestroyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onDestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L107">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onDestroyEvent</span>(evt: *<span class="SCst">DestroyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L103">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onEvent</span>(evt: <span class="SCst">IEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onFocusEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onFocusEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L119">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onFocusEvent</span>(evt: *<span class="SCst">FocusEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onFrameEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onFrameEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L123">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onFrameEvent</span>(evt: *<span class="SCst">FrameEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onHookEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onHookEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L104">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onHookEvent</span>(evt: <span class="SCst">IEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L113">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L114">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onNotifyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onNotifyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L125">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onNotifyEvent</span>(evt: *<span class="SCst">NotifyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L111">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onPostPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPostPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L112">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onPostPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onPrePaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPrePaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L110">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onPrePaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L109">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onSerializeStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onSerializeStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L124">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onSerializeStateEvent</span>(evt: *<span class="SCst">SerializeStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L108">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onStateEvent</span>(evt: *<span class="SCst">StateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onSysCommandEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onSysCommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L115">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onSysCommandEvent</span>(evt: *<span class="SCst">SysCommandEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onSysUserEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onSysUserEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L116">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onSysUserEvent</span>(evt: *<span class="SCst">SysUserEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onThemeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onThemeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L117">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onThemeEvent</span>(evt: *<span class="SCst">ThemeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_IWnd_onTimerEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onTimerEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L118">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">onTimerEvent</span>(evt: *<span class="SCst">TimerEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ScrollWnd_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L79">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ScrollWnd_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L198">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_ScrollWnd_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L67">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onApplyStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onApplyStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L318">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onApplyStateEvent</span>(evt: *<span class="SCst">CommandStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onCommandEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onCommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L308">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onCommandEvent</span>(evt: *<span class="SCst">CommandEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onComputeStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onComputeStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L313">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onComputeStateEvent</span>(evt: *<span class="SCst">CommandStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onCreateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onCreateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L265">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onCreateEvent</span>(evt: *<span class="SCst">CreateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onDestroyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onDestroyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L266">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onDestroyEvent</span>(evt: *<span class="SCst">DestroyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L195">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onEvent</span>(evt: <span class="SCst">IEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onFocusEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onFocusEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L303">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onFocusEvent</span>(evt: *<span class="SCst">FocusEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onFrameEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onFrameEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L281">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onFrameEvent</span>(evt: *<span class="SCst">FrameEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onHookEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onHookEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L263">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onHookEvent</span>(evt: <span class="SCst">IEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onKeyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onKeyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L293">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onKeyEvent</span>(evt: *<span class="SCst">KeyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onMouseEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onMouseEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L298">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onMouseEvent</span>(evt: *<span class="SCst">MouseEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onNotifyEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onNotifyEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L323">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onNotifyEvent</span>(evt: *<span class="SCst">NotifyEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L270">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onPostPaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPostPaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L271">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPostPaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onPrePaintEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onPrePaintEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L269">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onPrePaintEvent</span>(evt: *<span class="SCst">PaintEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onResizeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onResizeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L268">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onResizeEvent</span>(evt: *<span class="SCst">ResizeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onSerializeStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onSerializeStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L280">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onSerializeStateEvent</span>(evt: *<span class="SCst">SerializeStateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onStateEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onStateEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L267">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onStateEvent</span>(evt: *<span class="SCst">StateEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onSysCommandEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onSysCommandEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L283">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onSysCommandEvent</span>(evt: *<span class="SCst">SysCommandEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onSysUserEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onSysUserEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L288">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onSysUserEvent</span>(evt: *<span class="SCst">SysUserEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onThemeEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onThemeEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L273">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onThemeEvent</span>(evt: *<span class="SCst">ThemeEvent</span>)</span></div>
+<table class="api-item"><tr><td><span id="Gui_Wnd_IWnd_onTimerEvent"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">IWnd.onTimerEvent</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swag/blob/master/bin/std/modules/gui/src/wnd/wnd.swg#L279">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">impl</span> <span class="SFct">onTimerEvent</span>(evt: *<span class="SCst">TimerEvent</span>)</span></div>
+<div class="swag-watermark">Generated with <a href="https://swag-lang.org/index.php">swc</a> 0.1.1</div>
+</div></div>
+</div>
+<script>
+function getOffsetTop(element,parent){let offsetTop=0;while(element&&element!=parent){offsetTop+=element.offsetTop;element=element.offsetParent}return offsetTop}
+document.addEventListener("DOMContentLoaded",function(){let hash=window.location.hash;if(!hash)return;let parent=document.querySelector(".right");let target=parent?parent.querySelector(hash):null;if(target)parent.scrollTop=getOffsetTop(target,parent)});
+</script>
+</body>
+</html>

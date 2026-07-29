@@ -11,9 +11,10 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "XInput"
     cfg.backendKind     = .Export
-    cfg.repoPath        = "https://github.com/swag-lang/swag/blob/master/bin/std/modules/xinput"
+    cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput"
 
     cfg.genDoc.kind            = .Api
+    cfg.genDoc.outputName      = "std.xinput"
     cfg.genDoc.outputExtension = ".php"
     cfg.genDoc.css             = "css/style.css"
     cfg.genDoc.startHead       = "<?php include('common/start-head.php'); ?>"

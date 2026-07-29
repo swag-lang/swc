@@ -55,6 +55,7 @@ namespace
             case Stage::Format: return "formatting";
             case Stage::Syntax: return "reading";
             case Stage::Sema: return "checking";
+            case Stage::Doc: return "documenting";
             case Stage::JIT: return "executing";
             case Stage::Micro: return "tuning";
             case Stage::Build: return "forging";
@@ -75,6 +76,7 @@ namespace
             case Stage::Format: return "formatted";
             case Stage::Syntax: return "read";
             case Stage::Sema: return "checked";
+            case Stage::Doc: return "documented";
             case Stage::JIT: return "executed";
             case Stage::Micro: return "tuned";
             case Stage::Build: return "forged";

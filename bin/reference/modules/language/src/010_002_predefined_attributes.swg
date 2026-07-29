@@ -143,9 +143,13 @@ func localName(value: u32)->u32
 'function' defaults to the local declaration name, 'link' defaults to the
 module name, and 'callconv' defaults to the target C ABI.
 
-# Compatibility Metadata
+# Documentation
 
-'NoDoc()' remains exported in the runtime API for source compatibility.
-The current 'swc' command set has no documentation-generation command, so this
-attribute has no effect in the language-reference workflow.
+| Attribute | Purpose |
+|---|---|
+| 'NoDoc()' | Exclude an otherwise public declaration from generated API documentation |
+
+Use 'Swag.NoDoc' only for declarations that are intentionally public but
+unsuitable for the generated API reference. It does not change visibility or
+module API export.
 */

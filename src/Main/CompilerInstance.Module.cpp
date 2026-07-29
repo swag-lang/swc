@@ -1073,7 +1073,7 @@ namespace
         if (cmdLine.rebuild || cmdLine.dryRun || cmdLine.showConfig)
             return false;
 
-        return cmdLine.command != CommandKind::Test;
+        return cmdLine.command != CommandKind::Test && cmdLine.command != CommandKind::Doc;
     }
 
     Utf8 formatWorkspaceReuseStat(const TaskContext& ctx, const CompilerInstance& compiler)
@@ -2038,7 +2038,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         {
             // No deferred link to finalize (non-native backend, or a test run): finalize synchronously,
             // exactly as before. The artifacts, if any, were already produced by processCommand.
-            if (moduleCmdLine.command != CommandKind::Test)
+            if (moduleCmdLine.command != CommandKind::Test && moduleCmdLine.command != CommandKind::Doc)
             {
                 WorkspaceArtifactManifest manifest;
                 collectWorkspaceModuleInputs(manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);
@@ -2058,7 +2058,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         link->moduleName    = moduleBuild.name;
         link->outDir        = moduleCmdLine.outDir;
         link->manifestPath  = workspaceArtifactManifestPath(moduleCmdLine.outDir);
-        link->writeManifest = moduleCmdLine.command != CommandKind::Test;
+        link->writeManifest = moduleCmdLine.command != CommandKind::Test && moduleCmdLine.command != CommandKind::Doc;
         if (link->writeManifest)
         {
             collectWorkspaceModuleInputs(link->manifest.inputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, moduleCompiler->compilerInputFiles_);

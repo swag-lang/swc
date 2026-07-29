@@ -9,4 +9,13 @@
     cfg.moduleBuildNum  = #swcbuildnum
     cfg.moduleNamespace = "TrueType"
     cfg.backendKind     = .SharedLibrary
+    cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype"
+
+    cfg.genDoc.kind            = .Api
+    cfg.genDoc.outputName      = "std.truetype"
+    cfg.genDoc.outputExtension = ".php"
+    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.startHead       = "<?php include('common/start-head.php'); ?>"
+    cfg.genDoc.endHead         = "<?php include('common/end-head.php'); ?>"
+    cfg.genDoc.startBody       = "<?php include('common/start-body.php'); ?>"
 }

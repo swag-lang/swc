@@ -1089,6 +1089,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->outDir, &cmdLine_->outDirStorage));
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->workDir, &cmdLine_->workDirStorage));
     SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->exportApiDir));
+    SWC_RESULT(normalizeAbsoluteDirectory(ctx, cmdLine_->docOutputDir));
 
     updateDefaultBuildCfg(*cmdLine_);
 

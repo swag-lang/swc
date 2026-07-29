@@ -12,6 +12,7 @@ enum class CommandKind
     Format,
     Syntax,
     Sema,
+    Doc,
     Unittest,
     Test,
     Build,
@@ -29,6 +30,7 @@ inline constexpr CommandInfo COMMANDS[] = {
     {CommandKind::Format, "format", "Parse source files and write their canonical formatting back to disk"},
     {CommandKind::Syntax, "syntax", "Check source syntax without generating IR or backend code"},
     {CommandKind::Sema, "sema", "Analyze source semantics, including type checking"},
+    {CommandKind::Doc, "doc", "Compile source semantics and generate HTML documentation"},
 #if SWC_HAS_UNITTEST
     {CommandKind::Unittest, "unittest", "Run only the internal C++ unit tests"},
 #endif
@@ -49,6 +51,7 @@ inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind comman
             return Runtime::CompilerCommand::Format;
         case CommandKind::Syntax:
         case CommandKind::Sema:
+        case CommandKind::Doc:
         case CommandKind::Unittest:
         case CommandKind::Build:
         case CommandKind::Run:
@@ -122,6 +125,7 @@ struct CommandLine
     bool syntaxOnly              = false;
     bool semaOnly                = false;
     bool output                  = true;
+    bool outputDoc               = true;
     bool devStopDiagnostics      = true;
 
     bool devFull = false;
@@ -150,6 +154,8 @@ struct CommandLine
     FileSystem::FilePathDisplayMode filePathDisplay = FileSystem::FilePathDisplayMode::Absolute;
 
     Utf8              verboseVerifyFilter;
+    Utf8              docCss;
+    Utf8              docExtension;
     std::set<Utf8>    fileFilter;
     std::vector<Utf8> tags;
     std::vector<Utf8> runArgs;
@@ -165,6 +171,7 @@ struct CommandLine
     fs::path          modulePath;
     fs::path          workspacePath;
     fs::path          exportApiDir;
+    fs::path          docOutputDir;
     fs::path          outDir;
     fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};
@@ -180,6 +187,8 @@ constexpr std::string_view commandName(const CommandKind command)
             return "syntax";
         case CommandKind::Sema:
             return "sema";
+        case CommandKind::Doc:
+            return "doc";
         case CommandKind::Unittest:
             return "unittest";
         case CommandKind::Test:

@@ -1,0 +1,5 @@
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+DrawTriangles n=648 bbox=(9.5,9.5)-(390.501,390.501) colors=[FFFF0000] cov=aa

@@ -1,0 +1,18 @@
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetBlendingMode Copy
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Alpha
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Add
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Sub
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode SubDst
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Min
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid
+SetBlendingMode Max
+DrawTriangles n=6 bbox=(0,0)-(10,10) colors=[FFFF0000] cov=solid

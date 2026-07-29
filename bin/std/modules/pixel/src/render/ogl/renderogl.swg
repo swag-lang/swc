@@ -21,13 +21,16 @@ private
     const PixelShaderFontMsdf = #include("shaders/font_msdf.frag")
 }
 
-// Exponent applied to glyph coverage in the font shaders to approximate
-// linear-space text compositing (the framebuffer blend is non-linear sRGB).
+// Sets the glyph-coverage exponent used by the font shaders.
+//
+// This approximates linear-space text compositing when framebuffer blending uses
+// nonlinear sRGB.
 // 1.0 = off; ~1.33 (= 1/0.75) is a mild, safe correction for dark-on-light text.
 const FontGamma = 1.0'f32 / 0.75
 
 // MSDF distance range in atlas texels mapped to the stored [0,1] range.
-// Must match the generator: 2 * Font.RefEmSpread (spread = 8).
+//
+// The value must remain twice the font atlas spread.
 const MsdfRange = 16.0'f32
 
 #[Swag.Strict]

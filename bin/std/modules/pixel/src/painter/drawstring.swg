@@ -27,12 +27,13 @@ enum UnderlineStyle
     Strikeout // Draw a line through the glyphs.
 }
 
-// TextMeshPro-style text effects for MSDF fonts. They are derived from the glyph
-// distance field, so a single draw produces outline, glow and bevel; the soft drop
-// shadow is rendered as an offset second pass. Effects only apply when the resolved
-// draw font is MSDF (an explicit .Msdf font, or an .Auto font drawn at >= 20px);
-// for a bitmap font they are ignored. Distances are in distance-field units, where
-// 0.5 spans roughly the atlas spread, so widths scale with the text size.
+// Configures face, outline, glow, shadow, and bevel effects for MSDF text.
+//
+// The face effects are derived from the glyph distance field and share one draw.
+// The soft drop shadow uses an offset second pass. Effects apply only when the
+// resolved draw font uses MSDF; bitmap rendering ignores them. Distances are in
+// distance-field units, where `0.5` spans approximately the atlas spread, so widths
+// scale with the text size.
 public struct TextEffect
 {
     // Outline drawn under the glyph face. 0 disables it; useful range ~0.05..0.35.
@@ -94,8 +95,10 @@ public impl TextEffect
         return r
     }
 
-    // Resolve the shader uniforms for the drop-shadow pass: a softened, dilated face
-    // drawn solid in the shadow color (no outline/glow/bevel).
+    // Resolves shader parameters for the drop-shadow pass.
+    //
+    // The pass draws a softened, dilated face in the shadow color without outline,
+    // glow, or bevel effects.
     mtd const shadowParams()->FontEffectParams
     {
         var r: retval
@@ -305,11 +308,11 @@ impl Painter
         return result
     }
 
-    // Shape a single-font text run into a caller-provided run, reusing its glyph
-    // buffer (cleared, capacity kept) so a per-frame draw path can shape without
-    // allocating. This currently preserves the legacy one-rune to one-glyph behavior,
-    // but stores glyph indexes, advances and cluster positions so GSUB/GPOS, fallback
-    // and bidi can be introduced at this layer.
+    // Shapes text into a reusable caller-provided run.
+    //
+    // The glyph buffer is cleared while retaining its capacity, so per-frame shaping
+    // can avoid allocation. The current implementation preserves one rune per glyph
+    // and records glyph indices, advances, and cluster positions.
     func shapeRunInto(result: *ShapedRun, text: string, font: *Font, tabSize: u32 = DefaultTextTabSize, letterSpacing = 0.0'f32)
     {
         Debug.assert(font != null, "invalid font")
@@ -446,12 +449,12 @@ impl Painter
     // Returns the metrics of an already shaped text run
     func measureString(text: *ShapedRun)->StringMetrics => text.metrics
 
-    // Horizontal advance up to byte `atByte`, computed with the exact pixel
-    // snapping and draw-font resolution `drawString` uses to render `run`. Unlike
-    // `measureString().width` (which sums raw, unsnapped advances) this matches the
-    // on-screen glyph positions, so carets, selection rectangles and right-aligned
-    // anchoring line up with what is actually drawn. Default `atByte` measures the
-    // whole run.
+    // Measures the rendered horizontal advance up to byte `atByte`.
+    //
+    // The result uses the same pixel snapping and draw-font resolution as
+    // [[Pixel.Painter.drawString]]. Unlike [[Pixel.Painter.measureString]], it
+    // matches on-screen glyph positions for carets, selections, and right-aligned
+    // anchors. The default `atByte` measures the whole run.
     func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max)->f32
     {
         let info = getTextDrawInfo(run.font)
@@ -961,7 +964,8 @@ impl Painter
         text.boundRect.width = boundRight - text.boundRect.x
     }
 
-    // Draw a rich string.
+    // Draws a laid-out rich string.
+    //
     // A rich string can be multiline, and accepts private formats.
     // The layout will be computed at the first call, and each time 'pos' has changed.
     mtd drawRichString(pos: Math.Rectangle, text: *RichString, format: RichStringFormat, forceCompute = false)

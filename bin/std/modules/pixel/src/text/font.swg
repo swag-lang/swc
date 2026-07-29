@@ -35,12 +35,11 @@ public struct GlyphDesc
     height:     f32            // Bitmap height in reference-size pixels.
 }
 
-// Rendering technique requested when creating a Font.
-// 'Auto' is the recommended default: the actual technique is chosen at draw time
-// from the on-screen pixel size (crisp bitmap when small, MSDF when larger/zoomed).
-// 'Bitmap' and 'Msdf' force a single technique.
-// A glyph cache is always one of the two concrete modes; 'Auto' only ever lives
-// on a Font, never on a cache.
+// Selects the glyph rendering technique used by a [[Pixel.Font]].
+//
+// `Auto` is the recommended default and chooses the concrete technique from the
+// effective on-screen size. `Bitmap` and `Msdf` force one technique. A glyph cache
+// always uses a concrete mode; `Auto` belongs only to a font view.
 public enum FontRenderMode
 {
     Auto   // Select bitmap or MSDF rendering from the effective on-screen size.
@@ -50,7 +49,8 @@ public enum FontRenderMode
 
 public impl FontRenderMode
 {
-    // Number of bytes per pixel in the glyph atlas for this render mode.
+    // Returns the glyph-atlas bytes per pixel for this mode.
+    //
     // MSDF is 4 (MTSDF): RGB multi-channel field + a true SDF in alpha for effects.
     mtd bytesPerPixel()->u32
     {
@@ -64,19 +64,22 @@ public impl FontRenderMode
     }
 }
 
-// Reference em size and distance-field range used by the size-independent MSDF path.
+// Defines the reference em size and range for size-independent MSDF rendering.
+//
 // A single MSDF atlas rendered at this size serves every draw size and zoom.
 const RefEmSize:   u32 = 40
 const RefEmSpread: u32 = 8
 
-// On-screen pixel size below which an 'Auto' font rasterizes a crisp bitmap at the
-// exact pixel size; at or above it, the size-independent MSDF atlas is used (and
-// scales/zooms cleanly). MSDF degrades below this, so bitmap wins for small text.
+// Sets the on-screen threshold where automatic fonts switch to MSDF rendering.
+//
+// Below this size, an `Auto` font rasterizes a crisp bitmap at the exact pixel size.
+// At or above it, the size-independent MSDF atlas scales and zooms cleanly.
 const AutoMsdfMinPx: f32 = 20.0
 
-// Shared glyph storage for a (typeface, style, render mode, reference size, spread).
-// All Fonts that map to the same key share this cache, so a typeface needs a single
-// MSDF atlas regardless of how many sizes are used.
+// Stores glyphs shared by compatible [[Pixel.Font]] views.
+//
+// Fonts with the same typeface, style, render mode, reference size, and spread share
+// this cache. A typeface therefore needs only one MSDF atlas across draw sizes.
 public struct GlyphCache
 {
     typeFace:    *TypeFace = undefined // Typeface borrowed for rasterization and metrics.
@@ -103,8 +106,10 @@ public struct GlyphCache
     dirty:   bool                 // Whether at least one atlas requires a GPU upload.
 }
 
-// A Font is a lightweight view over a shared GlyphCache at a given draw size.
-// Glyph quads and metrics are scaled by size/refSize when drawn or measured.
+// Represents a lightweight view of a shared [[Pixel.GlyphCache]] at one draw size.
+//
+// Glyph quads and metrics scale from the cache reference size when drawn or
+// measured.
 //
 // ## Example
 //
@@ -206,8 +211,10 @@ private func acquireGlyphCache(typeFace: *TypeFace, refSize, spread: u32, render
 
 public impl Font
 {
-    // Releases this lightweight view. Shared glyph data remains owned by the Pixel
-    // font cache and can be reused by other views.
+    // Releases this lightweight font view.
+    //
+    // Shared glyph data remains owned by the Pixel font cache and can be reused by
+    // other views.
     mtd opDrop() {}
 
     // Scale factor from the shared cache reference size to this Font's draw size
@@ -321,10 +328,11 @@ public impl Font
         return createView(typeFace, size, RefEmSize, RefEmSpread, .Msdf, .Auto, forceBold, forceItalic)
     }
 
-    // Resolves the concrete Font to rasterize with for a given on-screen pixel size.
-    // Non-auto fonts return themselves. An auto Font uses the size-independent MSDF
-    // view at or above AutoMsdfMinPx, and a crisp bitmap rasterized at the exact
-    // pixel size below it.
+    // Resolves the concrete font for an on-screen pixel size.
+    //
+    // Non-automatic fonts return themselves. An automatic font uses the
+    // size-independent MSDF view at or above the automatic quality threshold, and
+    // a crisp bitmap rasterized at the exact pixel size below it.
     func resolveDrawFont(font: *Font, effectivePx: f32)->*Font
     {
         if font.mode != .Auto do
@@ -350,16 +358,19 @@ public impl Font
         return view
     }
 
-    // Creates a Font of the given typeface and size.
-    // 'mode' selects the rendering technique; .Auto (default) gives the best quality
-    // at #null any on-screen size by adapting between a bitmap and MSDF at draw time.
+    // Creates a font from an existing typeface and draw size.
+    //
+    // `mode` selects the rendering technique. `Auto`, the default, adapts between
+    // bitmap and MSDF rendering at draw time.
     func create(typeFace: *TypeFace, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font
     {
         return createMode(typeFace, size, mode, forceBold, forceItalic)
     }
 
-    // Creates a Font with the given filename and size.
-    // 'mode' selects the rendering technique; .Auto (default) adapts at draw time.
+    // Loads a typeface file and creates a font at the requested draw size.
+    //
+    // `mode` selects the rendering technique. `Auto`, the default, adapts at draw
+    // time.
     func create(fullname: string, size: u32, mode = FontRenderMode.Auto, forceBold, forceItalic = false)->*Font fail
     {
         Debug.assert(@countof(fullname) != 0)
@@ -381,7 +392,8 @@ public impl GlyphCache
         .kernRef.free()
     }
 
-    // Horizontal kerning between two glyphs, in reference-size pixels (lazily cached).
+    // Returns horizontal kerning in reference-size pixels.
+    //
     // Returns 0 when the typeface has no kerning pair for the couple.
     mtd kerning(leftIndex, rightIndex: u32)->f32
     {

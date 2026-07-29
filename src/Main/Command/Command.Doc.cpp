@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Main/Command/Command.h"
-#include "Compiler/Doc/DocGenerator.h"
+#include "Doc/DocGenerator.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
 #include "Support/Report/ScopedTimedLog.h"

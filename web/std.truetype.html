@@ -23,310 +23,563 @@
 <main class="container">
 <aside class="left"><div class="left-page">
 <h2>Table of Contents</h2>
-<h3>Structs</h3>
-<li><a href="#TrueType_BBox">TrueType.BBox</a></li>
-<li><a href="#TrueType_Bitmap">TrueType.Bitmap</a></li>
-<li><a href="#TrueType_CharMap">TrueType.CharMap</a></li>
-<li><a href="#TrueType_Face">TrueType.Face</a></li>
-<li><a href="#TrueType_GlyphMetrics">TrueType.GlyphMetrics</a></li>
-<li><a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a></li>
-<li><a href="#TrueType_Matrix">TrueType.Matrix</a></li>
-<li><a href="#TrueType_Outline">TrueType.Outline</a></li>
-<li><a href="#TrueType_OutlineCommand">TrueType.OutlineCommand</a></li>
-<li><a href="#TrueType_Size">TrueType.Size</a></li>
-<li><a href="#TrueType_SizeMetrics">TrueType.SizeMetrics</a></li>
-<li><a href="#TrueType_Vector">TrueType.Vector</a></li>
-<h3>Enums</h3>
-<li><a href="#TrueType_GlyphFormat">TrueType.GlyphFormat</a></li>
-<li><a href="#TrueType_LoadFlag">TrueType.LoadFlag</a></li>
-<li><a href="#TrueType_OutlineCommandKind">TrueType.OutlineCommandKind</a></li>
-<li><a href="#TrueType_PixelMode">TrueType.PixelMode</a></li>
-<li><a href="#TrueType_RenderMode">TrueType.RenderMode</a></li>
-<li><a href="#TrueType_StyleFlag">TrueType.StyleFlag</a></li>
-<h3>Functions</h3>
-<li><a href="#Face_destroy">Face.destroy</a></li>
-<li><a href="#Face_getKerning">Face.getKerning</a></li>
-<li><a href="#Face_glyphIndex">Face.glyphIndex</a></li>
-<li><a href="#Face_hasKerning">Face.hasKerning</a></li>
-<li><a href="#Face_hintVertical">Face.hintVertical</a></li>
-<li><a href="#Face_isBold">Face.isBold</a></li>
-<li><a href="#Face_isItalic">Face.isItalic</a></li>
-<li><a href="#Face_load">Face.load</a></li>
-<li><a href="#Face_loadChar">Face.loadChar</a></li>
-<li><a href="#Face_loadGlyph">Face.loadGlyph</a></li>
-<li><a href="#Face_renderGlyph">Face.renderGlyph</a></li>
-<li><a href="#Face_renderGlyphMsdf">Face.renderGlyphMsdf</a></li>
-<li><a href="#Face_renderGlyphSdf">Face.renderGlyphSdf</a></li>
-<li><a href="#Face_setPixelSize">Face.setPixelSize</a></li>
-<li><a href="#GlyphSlot_oblique">GlyphSlot.oblique</a></li>
-<li><a href="#Outline_decompose">Outline.decompose</a></li>
-<li><a href="#Outline_embolden">Outline.embolden</a></li>
-<li><a href="#Outline_transform">Outline.transform</a></li>
-<li><a href="#Outline_translate">Outline.translate</a></li>
+<h3>Start here</h3>
+<ul>
+<li><a href="#overview">Overview</a></li>
+</ul>
+<h3>API reference</h3>
+<ul>
+<li><a href="#api-reference">At a glance</a></li>
+<li><a href="#detailed-reference">Detailed reference</a></li>
+</ul>
+<ul>
+<li><a href="#summary-namespaces">Namespaces</a></li>
+<li><a href="#summary-types">Types</a></li>
+<li><a href="#summary-enumerations">Enumerations</a></li>
+<li><a href="#summary-functions">Functions</a></li>
+</ul>
 </div></aside>
 <section class="right"><article class="right-page">
-<h1>Module truetype</h1>
-<h1>Content</h1>
-<table class="api-item"><tr><td><span id="TrueType_BBox"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.BBox</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L4">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">BBox</span></span></div>
-<h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">xMax</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">xMin</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">yMax</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">yMin</td><td class="code-type">s32</td><td></td></tr>
+<section class="module-overview"><h1 id="overview">Module truetype</h1>
+</section>
+<section class="api-overview">
+<h2 id="api-reference">API reference</h2>
+<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>
+<h3 id="summary-namespaces">Namespaces</h3>
+<table class="api-summary">
+<thead><tr><th>Namespace</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#namespace_TrueType">TrueType</a></td></tr>
+</tbody>
 </table>
+<h3 id="summary-types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#TrueType_BBox">TrueType.BBox</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Bitmap">TrueType.Bitmap</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_CharMap">TrueType.CharMap</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Face">TrueType.Face</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_GlyphMetrics">TrueType.GlyphMetrics</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Matrix">TrueType.Matrix</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Outline">TrueType.Outline</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_OutlineCommand">TrueType.OutlineCommand</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Size">TrueType.Size</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_SizeMetrics">TrueType.SizeMetrics</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td>struct</td><td></td></tr>
+</tbody>
+</table>
+<h3 id="summary-enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#TrueType_GlyphFormat">TrueType.GlyphFormat</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_LoadFlag">TrueType.LoadFlag</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_OutlineCommandKind">TrueType.OutlineCommandKind</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_PixelMode">TrueType.PixelMode</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_RenderMode">TrueType.RenderMode</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_StyleFlag">TrueType.StyleFlag</a></td><td></td></tr>
+</tbody>
+</table>
+<h3 id="summary-functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Face_destroy">Face.destroy</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_getKerning">Face.getKerning</a></td><td><p>Horizontal kerning between two glyphs, scaled to the current pixel size.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_glyphIndex">Face.glyphIndex</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_hasKerning">Face.hasKerning</a></td><td><p>True if the face carries any (legacy <span class="code-inline">kern</span> format-0) kerning pairs. Lets callers</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_hintVertical">Face.hintVertical</a></td><td><p>Vertical grid-fitting (blue zones): snap the baseline, x-height and cap-height</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_isBold">Face.isBold</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_isItalic">Face.isItalic</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_load">Face.load</a></td><td><p>Load a face from an in-memory font file. The returned pointer aliases an</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_loadChar">Face.loadChar</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_loadGlyph">Face.loadGlyph</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_renderGlyph">Face.renderGlyph</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_renderGlyphMsdf">Face.renderGlyphMsdf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_renderGlyphSdf">Face.renderGlyphSdf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_setPixelSize">Face.setPixelSize</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#GlyphSlot_oblique">GlyphSlot.oblique</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Outline_decompose">Outline.decompose</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Outline_embolden">Outline.embolden</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Outline_transform">Outline.transform</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Outline_translate">Outline.translate</a></td><td></td></tr>
+</tbody>
+</table>
+</section>
+<h2 id="detailed-reference">Detailed reference</h2>
+<h3 id="namespaces">Namespaces</h3>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="namespace_TrueType"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">TrueType</span></span></td></tr></table>
+<p>Public API declared directly in <span class="code-inline">TrueType</span>.</p>
+<h3 id="namespace_TrueType_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#TrueType_BBox">TrueType.BBox</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Bitmap">TrueType.Bitmap</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_CharMap">TrueType.CharMap</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Face">TrueType.Face</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_GlyphMetrics">TrueType.GlyphMetrics</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Matrix">TrueType.Matrix</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Outline">TrueType.Outline</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_OutlineCommand">TrueType.OutlineCommand</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Size">TrueType.Size</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_SizeMetrics">TrueType.SizeMetrics</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td>struct</td><td></td></tr>
+</tbody>
+</table>
+<h3 id="namespace_TrueType_enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#TrueType_GlyphFormat">TrueType.GlyphFormat</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_LoadFlag">TrueType.LoadFlag</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_OutlineCommandKind">TrueType.OutlineCommandKind</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_PixelMode">TrueType.PixelMode</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_RenderMode">TrueType.RenderMode</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#TrueType_StyleFlag">TrueType.StyleFlag</a></td><td></td></tr>
+</tbody>
+</table>
+</section>
+<h3 id="types">Types</h3>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="TrueType_BBox"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.BBox</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L4">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_BBox">BBox</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_BBox_xMax" class="code-type">xMax</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_BBox_xMin" class="code-type">xMin</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_BBox_yMax" class="code-type">yMax</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_BBox_yMin" class="code-type">yMin</td><td class="code-type">s32</td><td></td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_Bitmap"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Bitmap</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L17">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Bitmap</span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">buffer</td><td class="code-type">#null [*] u8</td><td></td></tr>
-<tr><td class="code-type">grayCount</td><td class="code-type">u16</td><td></td></tr>
-<tr><td class="code-type">pitch</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">pixelMode</td><td class="code-type">TrueType.PixelMode</td><td></td></tr>
-<tr><td class="code-type">rows</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">width</td><td class="code-type">u32</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_Bitmap_buffer" class="code-type">buffer</td><td class="code-type">#null [*] u8</td><td></td></tr>
+<tr><td id="TrueType_Bitmap_grayCount" class="code-type">grayCount</td><td class="code-type">u16</td><td></td></tr>
+<tr><td id="TrueType_Bitmap_pitch" class="code-type">pitch</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Bitmap_pixelMode" class="code-type">pixelMode</td><td class="code-type"><a href="#TrueType_PixelMode">TrueType.PixelMode</a></td><td></td></tr>
+<tr><td id="TrueType_Bitmap_rows" class="code-type">rows</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="TrueType_Bitmap_width" class="code-type">width</td><td class="code-type">u32</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_CharMap"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.CharMap</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/charmap.swg#L4">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">CharMap</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_CharMap">CharMap</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">encoding</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">encodingID</td><td class="code-type">u16</td><td></td></tr>
-<tr><td class="code-type">face</td><td class="code-type">*TrueType.Face</td><td></td></tr>
-<tr><td class="code-type">platformID</td><td class="code-type">u16</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_CharMap_encoding" class="code-type">encoding</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="TrueType_CharMap_encodingID" class="code-type">encodingID</td><td class="code-type">u16</td><td></td></tr>
+<tr><td id="TrueType_CharMap_face" class="code-type">face</td><td class="code-type">*<a href="#TrueType_Face">TrueType.Face</a></td><td></td></tr>
+<tr><td id="TrueType_CharMap_platformID" class="code-type">platformID</td><td class="code-type">u16</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_Face"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Face</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L46">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Face</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">ascender</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">bbox</td><td class="code-type">TrueType.BBox</td><td></td></tr>
-<tr><td class="code-type">charMap</td><td class="code-type">TrueType.CharMap</td><td></td></tr>
-<tr><td class="code-type">descender</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">faceCount</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">faceIndex</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">familyName</td><td class="code-type">Core.String</td><td></td></tr>
-<tr><td class="code-type">flags</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">glyph</td><td class="code-type">TrueType.GlyphSlot</td><td></td></tr>
-<tr><td class="code-type">glyphCount</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">height</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">maxAdvanceHeight</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">maxAdvanceWidth</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">size</td><td class="code-type">TrueType.Size</td><td></td></tr>
-<tr><td class="code-type">style</td><td class="code-type">TrueType.StyleFlag</td><td></td></tr>
-<tr><td class="code-type">styleName</td><td class="code-type">Core.String</td><td></td></tr>
-<tr><td class="code-type">underlinePosition</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">underlineThickness</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">unitsPerEm</td><td class="code-type">u16</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_Face_ascender" class="code-type">ascender</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Face_bbox" class="code-type">bbox</td><td class="code-type"><a href="#TrueType_BBox">TrueType.BBox</a></td><td></td></tr>
+<tr><td id="TrueType_Face_charMap" class="code-type">charMap</td><td class="code-type"><a href="#TrueType_CharMap">TrueType.CharMap</a></td><td></td></tr>
+<tr><td id="TrueType_Face_descender" class="code-type">descender</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Face_faceCount" class="code-type">faceCount</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Face_faceIndex" class="code-type">faceIndex</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Face_familyName" class="code-type">familyName</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td></td></tr>
+<tr><td id="TrueType_Face_flags" class="code-type">flags</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Face_glyph" class="code-type">glyph</td><td class="code-type"><a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a></td><td></td></tr>
+<tr><td id="TrueType_Face_glyphCount" class="code-type">glyphCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="TrueType_Face_height" class="code-type">height</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Face_maxAdvanceHeight" class="code-type">maxAdvanceHeight</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Face_maxAdvanceWidth" class="code-type">maxAdvanceWidth</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Face_size" class="code-type">size</td><td class="code-type"><a href="#TrueType_Size">TrueType.Size</a></td><td></td></tr>
+<tr><td id="TrueType_Face_style" class="code-type">style</td><td class="code-type"><a href="#TrueType_StyleFlag">TrueType.StyleFlag</a></td><td></td></tr>
+<tr><td id="TrueType_Face_styleName" class="code-type">styleName</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td></td></tr>
+<tr><td id="TrueType_Face_underlinePosition" class="code-type">underlinePosition</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Face_underlineThickness" class="code-type">underlineThickness</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Face_unitsPerEm" class="code-type">unitsPerEm</td><td class="code-type">u16</td><td></td></tr>
+</tbody>
 </table>
+<h3 id="TrueType_Face_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Face_destroy">destroy</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_getKerning">getKerning</a></td><td><p>Horizontal kerning between two glyphs, scaled to the current pixel size.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_glyphIndex">glyphIndex</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_hasKerning">hasKerning</a></td><td><p>True if the face carries any (legacy <span class="code-inline">kern</span> format-0) kerning pairs. Lets callers</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_hintVertical">hintVertical</a></td><td><p>Vertical grid-fitting (blue zones): snap the baseline, x-height and cap-height</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_isBold">isBold</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_isItalic">isItalic</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_load">load</a></td><td><p>Load a face from an in-memory font file. The returned pointer aliases an</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Face_loadChar">loadChar</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_loadGlyph">loadGlyph</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_renderGlyph">renderGlyph</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_renderGlyphMsdf">renderGlyphMsdf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_renderGlyphSdf">renderGlyphSdf</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Face_setPixelSize">setPixelSize</a></td><td></td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_GlyphMetrics"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.GlyphMetrics</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L13">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">GlyphMetrics</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_GlyphMetrics">GlyphMetrics</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">height</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">horizontalAdvance</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">horizontalBearingX</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">horizontalBearingY</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">verticalAdvance</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">verticalBearingX</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">verticalBearingY</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">width</td><td class="code-type">s32</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_GlyphMetrics_height" class="code-type">height</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphMetrics_horizontalAdvance" class="code-type">horizontalAdvance</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphMetrics_horizontalBearingX" class="code-type">horizontalBearingX</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphMetrics_horizontalBearingY" class="code-type">horizontalBearingY</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphMetrics_verticalAdvance" class="code-type">verticalAdvance</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphMetrics_verticalBearingX" class="code-type">verticalBearingX</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphMetrics_verticalBearingY" class="code-type">verticalBearingY</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphMetrics_width" class="code-type">width</td><td class="code-type">s32</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_GlyphSlot"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.GlyphSlot</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L25">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">GlyphSlot</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_GlyphSlot">GlyphSlot</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">advance</td><td class="code-type">TrueType.Vector</td><td></td></tr>
-<tr><td class="code-type">bitmap</td><td class="code-type">TrueType.Bitmap</td><td></td></tr>
-<tr><td class="code-type">bitmapLeft</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">bitmapTop</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">face</td><td class="code-type">*TrueType.Face</td><td></td></tr>
-<tr><td class="code-type">format</td><td class="code-type">TrueType.GlyphFormat</td><td></td></tr>
-<tr><td class="code-type">index</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">leftSideBearingDelta</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">linearHorizontalAdvance</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">linearVerticalAdvance</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">metrics</td><td class="code-type">TrueType.GlyphMetrics</td><td></td></tr>
-<tr><td class="code-type">outline</td><td class="code-type">TrueType.Outline</td><td></td></tr>
-<tr><td class="code-type">rightSideBearingDelta</td><td class="code-type">s32</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_GlyphSlot_advance" class="code-type">advance</td><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_bitmap" class="code-type">bitmap</td><td class="code-type"><a href="#TrueType_Bitmap">TrueType.Bitmap</a></td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_bitmapLeft" class="code-type">bitmapLeft</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_bitmapTop" class="code-type">bitmapTop</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_face" class="code-type">face</td><td class="code-type">*<a href="#TrueType_Face">TrueType.Face</a></td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_format" class="code-type">format</td><td class="code-type"><a href="#TrueType_GlyphFormat">TrueType.GlyphFormat</a></td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_index" class="code-type">index</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_leftSideBearingDelta" class="code-type">leftSideBearingDelta</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_linearHorizontalAdvance" class="code-type">linearHorizontalAdvance</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_linearVerticalAdvance" class="code-type">linearVerticalAdvance</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_metrics" class="code-type">metrics</td><td class="code-type"><a href="#TrueType_GlyphMetrics">TrueType.GlyphMetrics</a></td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_outline" class="code-type">outline</td><td class="code-type"><a href="#TrueType_Outline">TrueType.Outline</a></td><td></td></tr>
+<tr><td id="TrueType_GlyphSlot_rightSideBearingDelta" class="code-type">rightSideBearingDelta</td><td class="code-type">s32</td><td></td></tr>
+</tbody>
 </table>
+<h3 id="TrueType_GlyphSlot_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#GlyphSlot_oblique">oblique</a></td><td></td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_Matrix"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Matrix</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L15">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Matrix</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Matrix">Matrix</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">xx</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">xy</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">yx</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">yy</td><td class="code-type">s32</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_Matrix_xx" class="code-type">xx</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Matrix_xy" class="code-type">xy</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Matrix_yx" class="code-type">yx</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Matrix_yy" class="code-type">yy</td><td class="code-type">s32</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_Outline"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Outline</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L20">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Outline</span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">contourCount</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">contours</td><td class="code-type">#null [*] s16</td><td></td></tr>
-<tr><td class="code-type">flags</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">pointCount</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">points</td><td class="code-type">#null [*] TrueType.Vector</td><td></td></tr>
-<tr><td class="code-type">tags</td><td class="code-type">#null [*] u8</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_Outline_contourCount" class="code-type">contourCount</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Outline_contours" class="code-type">contours</td><td class="code-type">#null [*] s16</td><td></td></tr>
+<tr><td id="TrueType_Outline_flags" class="code-type">flags</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Outline_pointCount" class="code-type">pointCount</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="TrueType_Outline_points" class="code-type">points</td><td class="code-type">#null [*] <a href="#TrueType_Vector">TrueType.Vector</a></td><td></td></tr>
+<tr><td id="TrueType_Outline_tags" class="code-type">tags</td><td class="code-type">#null [*] u8</td><td></td></tr>
+</tbody>
 </table>
+<h3 id="TrueType_Outline_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Outline_decompose">decompose</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Outline_embolden">embolden</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Outline_transform">transform</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Outline_translate">translate</a></td><td></td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_OutlineCommand"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.OutlineCommand</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L12">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">OutlineCommand</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_OutlineCommand">OutlineCommand</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">kind</td><td class="code-type">TrueType.OutlineCommandKind</td><td></td></tr>
-<tr><td class="code-type">p0</td><td class="code-type">TrueType.Vector</td><td></td></tr>
-<tr><td class="code-type">p1</td><td class="code-type">TrueType.Vector</td><td></td></tr>
-<tr><td class="code-type">p2</td><td class="code-type">TrueType.Vector</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_OutlineCommand_kind" class="code-type">kind</td><td class="code-type"><a href="#TrueType_OutlineCommandKind">TrueType.OutlineCommandKind</a></td><td></td></tr>
+<tr><td id="TrueType_OutlineCommand_p0" class="code-type">p0</td><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td></td></tr>
+<tr><td id="TrueType_OutlineCommand_p1" class="code-type">p1</td><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td></td></tr>
+<tr><td id="TrueType_OutlineCommand_p2" class="code-type">p2</td><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_Size"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Size</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/size.swg#L16">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Size</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Size">Size</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">face</td><td class="code-type">*TrueType.Face</td><td></td></tr>
-<tr><td class="code-type">metrics</td><td class="code-type">TrueType.SizeMetrics</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_Size_face" class="code-type">face</td><td class="code-type">*<a href="#TrueType_Face">TrueType.Face</a></td><td></td></tr>
+<tr><td id="TrueType_Size_metrics" class="code-type">metrics</td><td class="code-type"><a href="#TrueType_SizeMetrics">TrueType.SizeMetrics</a></td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_SizeMetrics"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.SizeMetrics</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/size.swg#L4">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SizeMetrics</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_SizeMetrics">SizeMetrics</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">ascender</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">descender</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">height</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">maxAdvance</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">xPpem</td><td class="code-type">u16</td><td></td></tr>
-<tr><td class="code-type">xScale</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">yPpem</td><td class="code-type">u16</td><td></td></tr>
-<tr><td class="code-type">yScale</td><td class="code-type">s32</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_SizeMetrics_ascender" class="code-type">ascender</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_SizeMetrics_descender" class="code-type">descender</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_SizeMetrics_height" class="code-type">height</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_SizeMetrics_maxAdvance" class="code-type">maxAdvance</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_SizeMetrics_xPpem" class="code-type">xPpem</td><td class="code-type">u16</td><td></td></tr>
+<tr><td id="TrueType_SizeMetrics_xScale" class="code-type">xScale</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_SizeMetrics_yPpem" class="code-type">yPpem</td><td class="code-type">u16</td><td></td></tr>
+<tr><td id="TrueType_SizeMetrics_yScale" class="code-type">yScale</td><td class="code-type">s32</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_Vector"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Vector</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/geometry.swg#L9">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Vector</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Vector">Vector</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">x</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">y</td><td class="code-type">s32</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_Vector_x" class="code-type">x</td><td class="code-type">s32</td><td></td></tr>
+<tr><td id="TrueType_Vector_y" class="code-type">y</td><td class="code-type">s32</td><td></td></tr>
+</tbody>
 </table>
+<h3 id="enumerations">Enumerations</h3>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_GlyphFormat"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.GlyphFormat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L4">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">GlyphFormat</span></span></div>
-<h3>Values</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">Bitmap</td><td class="code-type">1651078259</td><td></td></tr>
-<tr><td class="code-type">Composite</td><td class="code-type">1668246896</td><td></td></tr>
-<tr><td class="code-type">None</td><td class="code-type">0</td><td></td></tr>
-<tr><td class="code-type">Outline</td><td class="code-type">1869968492</td><td></td></tr>
-<tr><td class="code-type">Plotter</td><td class="code-type">1886154612</td><td></td></tr>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#TrueType_GlyphFormat">GlyphFormat</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_GlyphFormat_Bitmap" class="code-type">Bitmap</td><td></td></tr>
+<tr><td id="TrueType_GlyphFormat_Composite" class="code-type">Composite</td><td></td></tr>
+<tr><td id="TrueType_GlyphFormat_None" class="code-type">None</td><td></td></tr>
+<tr><td id="TrueType_GlyphFormat_Outline" class="code-type">Outline</td><td></td></tr>
+<tr><td id="TrueType_GlyphFormat_Plotter" class="code-type">Plotter</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_LoadFlag"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.LoadFlag</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L5">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
-<span class="SKwd">enum</span> <span class="SCst">LoadFlag</span></span></div>
-<h3>Values</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">AdvanceOnly</td><td class="code-type">256</td><td></td></tr>
-<tr><td class="code-type">BitmapMetricsOnly</td><td class="code-type">4194304</td><td></td></tr>
-<tr><td class="code-type">Color</td><td class="code-type">1048576</td><td></td></tr>
-<tr><td class="code-type">ComputeMetrics</td><td class="code-type">2097152</td><td></td></tr>
-<tr><td class="code-type">CropBitmap</td><td class="code-type">64</td><td></td></tr>
-<tr><td class="code-type">Default</td><td class="code-type">0</td><td></td></tr>
-<tr><td class="code-type">ForceAutoHint</td><td class="code-type">32</td><td></td></tr>
-<tr><td class="code-type">IgnoreGlobalAdvanceWidth</td><td class="code-type">512</td><td></td></tr>
-<tr><td class="code-type">IgnoreTransform</td><td class="code-type">2048</td><td></td></tr>
-<tr><td class="code-type">LinearDesign</td><td class="code-type">8192</td><td></td></tr>
-<tr><td class="code-type">Monochrome</td><td class="code-type">4096</td><td></td></tr>
-<tr><td class="code-type">NoAutoHint</td><td class="code-type">32768</td><td></td></tr>
-<tr><td class="code-type">NoBitmap</td><td class="code-type">8</td><td></td></tr>
-<tr><td class="code-type">NoHinting</td><td class="code-type">2</td><td></td></tr>
-<tr><td class="code-type">NoRecurse</td><td class="code-type">1024</td><td></td></tr>
-<tr><td class="code-type">NoScale</td><td class="code-type">1</td><td></td></tr>
-<tr><td class="code-type">Pedantic</td><td class="code-type">128</td><td></td></tr>
-<tr><td class="code-type">Render</td><td class="code-type">4</td><td></td></tr>
-<tr><td class="code-type">SBitsOnly</td><td class="code-type">16384</td><td></td></tr>
-<tr><td class="code-type">VerticalLayout</td><td class="code-type">16</td><td></td></tr>
+<span class="SKwd">enum</span> <span class="SCst"><a href="#TrueType_LoadFlag">LoadFlag</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_LoadFlag_AdvanceOnly" class="code-type">AdvanceOnly</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_BitmapMetricsOnly" class="code-type">BitmapMetricsOnly</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_Color" class="code-type">Color</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_ComputeMetrics" class="code-type">ComputeMetrics</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_CropBitmap" class="code-type">CropBitmap</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_Default" class="code-type">Default</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_ForceAutoHint" class="code-type">ForceAutoHint</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_IgnoreGlobalAdvanceWidth" class="code-type">IgnoreGlobalAdvanceWidth</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_IgnoreTransform" class="code-type">IgnoreTransform</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_LinearDesign" class="code-type">LinearDesign</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_Monochrome" class="code-type">Monochrome</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_NoAutoHint" class="code-type">NoAutoHint</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_NoBitmap" class="code-type">NoBitmap</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_NoHinting" class="code-type">NoHinting</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_NoRecurse" class="code-type">NoRecurse</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_NoScale" class="code-type">NoScale</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_Pedantic" class="code-type">Pedantic</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_Render" class="code-type">Render</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_SBitsOnly" class="code-type">SBitsOnly</td><td></td></tr>
+<tr><td id="TrueType_LoadFlag_VerticalLayout" class="code-type">VerticalLayout</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_OutlineCommandKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.OutlineCommandKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L4">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">OutlineCommandKind</span></span></div>
-<h3>Values</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">ConicTo</td><td class="code-type">2</td><td></td></tr>
-<tr><td class="code-type">CubicTo</td><td class="code-type">3</td><td></td></tr>
-<tr><td class="code-type">LineTo</td><td class="code-type">1</td><td></td></tr>
-<tr><td class="code-type">MoveTo</td><td class="code-type">0</td><td></td></tr>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#TrueType_OutlineCommandKind">OutlineCommandKind</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_OutlineCommandKind_ConicTo" class="code-type">ConicTo</td><td></td></tr>
+<tr><td id="TrueType_OutlineCommandKind_CubicTo" class="code-type">CubicTo</td><td></td></tr>
+<tr><td id="TrueType_OutlineCommandKind_LineTo" class="code-type">LineTo</td><td></td></tr>
+<tr><td id="TrueType_OutlineCommandKind_MoveTo" class="code-type">MoveTo</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_PixelMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.PixelMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L4">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">PixelMode</span></span></div>
-<h3>Values</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">Bgra</td><td class="code-type">7</td><td></td></tr>
-<tr><td class="code-type">Gray</td><td class="code-type">2</td><td></td></tr>
-<tr><td class="code-type">Gray2</td><td class="code-type">3</td><td></td></tr>
-<tr><td class="code-type">Gray4</td><td class="code-type">4</td><td></td></tr>
-<tr><td class="code-type">Lcd</td><td class="code-type">5</td><td></td></tr>
-<tr><td class="code-type">LcdV</td><td class="code-type">6</td><td></td></tr>
-<tr><td class="code-type">Max</td><td class="code-type">8</td><td></td></tr>
-<tr><td class="code-type">Mono</td><td class="code-type">1</td><td></td></tr>
-<tr><td class="code-type">None</td><td class="code-type">0</td><td></td></tr>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#TrueType_PixelMode">PixelMode</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_PixelMode_Bgra" class="code-type">Bgra</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_Gray" class="code-type">Gray</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_Gray2" class="code-type">Gray2</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_Gray4" class="code-type">Gray4</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_Lcd" class="code-type">Lcd</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_LcdV" class="code-type">LcdV</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_Max" class="code-type">Max</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_Mono" class="code-type">Mono</td><td></td></tr>
+<tr><td id="TrueType_PixelMode_None" class="code-type">None</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_RenderMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.RenderMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L37">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">RenderMode</span></span></div>
-<h3>Values</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">Lcd</td><td class="code-type">3</td><td></td></tr>
-<tr><td class="code-type">LcdV</td><td class="code-type">4</td><td></td></tr>
-<tr><td class="code-type">Light</td><td class="code-type">1</td><td></td></tr>
-<tr><td class="code-type">Mono</td><td class="code-type">2</td><td></td></tr>
-<tr><td class="code-type">Normal</td><td class="code-type">0</td><td></td></tr>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#TrueType_RenderMode">RenderMode</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_RenderMode_Lcd" class="code-type">Lcd</td><td></td></tr>
+<tr><td id="TrueType_RenderMode_LcdV" class="code-type">LcdV</td><td></td></tr>
+<tr><td id="TrueType_RenderMode_Light" class="code-type">Light</td><td></td></tr>
+<tr><td id="TrueType_RenderMode_Mono" class="code-type">Mono</td><td></td></tr>
+<tr><td id="TrueType_RenderMode_Normal" class="code-type">Normal</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="TrueType_StyleFlag"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.StyleFlag</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L30">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
-<span class="SKwd">enum</span> <span class="SCst">StyleFlag</span></span></div>
-<h3>Values</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">Bold</td><td class="code-type">2</td><td></td></tr>
-<tr><td class="code-type">Italic</td><td class="code-type">1</td><td></td></tr>
-<tr><td class="code-type">None</td><td class="code-type">0</td><td></td></tr>
+<span class="SKwd">enum</span> <span class="SCst"><a href="#TrueType_StyleFlag">StyleFlag</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_StyleFlag_Bold" class="code-type">Bold</td><td></td></tr>
+<tr><td id="TrueType_StyleFlag_Italic" class="code-type">Italic</td><td></td></tr>
+<tr><td id="TrueType_StyleFlag_None" class="code-type">None</td><td></td></tr>
+</tbody>
 </table>
+<h3 id="functions">Functions</h3>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_destroy"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.destroy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L88">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_getKerning"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.getKerning</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L129">[src]</a></td></tr></table>
 <p>Horizontal kerning between two glyphs, scaled to the current pixel size. Returns a 26.6 fixed-point value in <span class="code-inline">x</span> (FreeType-style), 0 if no pair.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getKerning</span>(leftGlyph, rightGlyph: <span class="STpe">u32</span>)-&gt;<span class="SCst">Vector</span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getKerning</span>(leftGlyph, rightGlyph: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#TrueType_Vector">Vector</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_glyphIndex"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndex</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L145">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndex</span>(charCode: <span class="STpe">rune</span>)-&gt;<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_hasKerning"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasKerning</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L122">[src]</a></td></tr></table>
 <p>True if the face carries any (legacy <span class="code-inline">kern</span> format-0) kerning pairs. Lets callers skip per-glyph-pair kerning lookups entirely for the many fonts that have none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasKerning</span>()-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_hintVertical"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hintVertical</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L177">[src]</a></td></tr></table>
 <p>Vertical grid-fitting (blue zones): snap the baseline, x-height and cap-height of the currently-loaded outline to whole pixels so horizontal stems stay crisp. No-op when the face has no x-height (OS/2 missing). Apply before rendering the bitmap; it must not be used on the size-independent SDF/MSDF atlases.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hintVertical</span>() <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_isBold"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isBold</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L94">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isBold</span>()-&gt;<span class="STpe">bool</span>   =&gt; .style.has</span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_isItalic"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isItalic</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L95">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isItalic</span>()-&gt;<span class="STpe">bool</span> =&gt; .style.has</span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_load"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.load</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L73">[src]</a></td></tr></table>
 <p>Load a face from an in-memory font file. The returned pointer aliases an internal FaceImpl that owns a private copy of the bytes; release it with destroy().</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span> = <span class="SNum">0</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst">Face</span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span> = <span class="SNum">0</span>)-&gt;<span class="SItr">#null</span> *<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_loadChar"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadChar</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L159">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadChar</span>(charCode: <span class="STpe">rune</span>, loadFlags = <span class="SCst">LoadFlag</span>.<span class="SCst">Default</span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadChar</span>(charCode: <span class="STpe">rune</span>, loadFlags = <span class="SCst"><a href="#TrueType_LoadFlag">LoadFlag</a></span>.<span class="SCst"><a href="#TrueType_LoadFlag_Default">Default</a></span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_loadGlyph"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadGlyph</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L152">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadGlyph</span>(glyphIndex: <span class="STpe">u32</span>, loadFlags = <span class="SCst">LoadFlag</span>.<span class="SCst">Default</span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadGlyph</span>(glyphIndex: <span class="STpe">u32</span>, loadFlags = <span class="SCst"><a href="#TrueType_LoadFlag">LoadFlag</a></span>.<span class="SCst"><a href="#TrueType_LoadFlag_Default">Default</a></span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_renderGlyph"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyph</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L166">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyph</span>(renderMode = <span class="SCst">RenderMode</span>.<span class="SCst">Normal</span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyph</span>(renderMode = <span class="SCst"><a href="#TrueType_RenderMode">RenderMode</a></span>.<span class="SCst"><a href="#TrueType_RenderMode_Normal">Normal</a></span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_renderGlyphMsdf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphMsdf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L216">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_renderGlyphSdf"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphSdf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L211">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphSdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Face_setPixelSize"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.setPixelSize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L97">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPixelSize</span>(pixelWidth, pixelHeight: <span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="GlyphSlot_oblique"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">GlyphSlot.oblique</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L45">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">oblique</span>()</span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Outline_decompose"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.decompose</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L89">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decompose</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst">OutlineCommand</span> =&gt; buildOutlineCommands</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decompose</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#TrueType_OutlineCommand">OutlineCommand</a></span> =&gt; buildOutlineCommands</span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Outline_embolden"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.embolden</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L59">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">embolden</span>(strength: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Outline_transform"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.transform</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L45">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transform</span>(matrix: <span class="SCst">Matrix</span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transform</span>(matrix: <span class="SCst"><a href="#TrueType_Matrix">Matrix</a></span>)</span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="Outline_translate"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.translate</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L32">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translate</span>(xOffset, yOffset: <span class="STpe">s32</span>)</span></div>
+</section>
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
 </article></section>
 </main>

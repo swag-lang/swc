@@ -410,9 +410,10 @@ impl Polygon
         return result
     }
 
-    // Compute private values, like convex/clockwise
-    // Call it once the polygon contains all its points.
-    // 'knownSimple' lets a caller that already guarantees the polygon does not
+    // Computes the polygon's cached geometric properties.
+    //
+    // Call this after adding all points. `knownSimple` lets a caller that already
+    // guarantees the polygon does not
     // self-intersect (e.g. the output of a Clipper union/clean/offset) skip the
     // O(n^2) self-intersection test, which otherwise dominates for large contours.
     mtd compute(knownSimple = false)

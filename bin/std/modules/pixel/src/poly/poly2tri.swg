@@ -787,7 +787,7 @@ impl Tessellate
     }
 
     // To call to register the polyline.
-    // The polyline registration should have been done before with [[startPolyline]]
+    // The polyline registration should have been done before with [[startPolyLine]]
     public mtd endPolyLine()
     {
         mtd initEdges(polyline: [..] *Point)

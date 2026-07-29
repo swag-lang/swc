@@ -3,9 +3,11 @@
 using Core
 using Errors
 
-// TeX-like mathematical style. Display style uses limits above and below large
-// operators; text style keeps them beside the operator. Script styles are selected
-// automatically for nested subscripts, superscripts, fractions and matrix cells.
+// Selects sizing and limit placement for a mathematical expression.
+//
+// Display style puts limits above and below large operators, while text style keeps
+// them beside the operator. Script styles are selected automatically for nested
+// subscripts, superscripts, fractions, and matrix cells.
 enum MathStyle
 {
     Display      // Full-size stand-alone formula with limits above and below large operators.
@@ -28,9 +30,11 @@ impl MathMetrics
     mtd const height()->f32 => .ascent + .descent
 }
 
-// Tunable layout constants. Values expressed in em scale with the supplied font.
-// The defaults follow the proportions used by modern TeX/OpenType math engines and
-// remain useful with an ordinary text font that has no OpenType MATH table.
+// Configures mathematical expression layout.
+//
+// Values expressed in em scale with the supplied font. The defaults follow the
+// proportions used by modern TeX/OpenType math engines and remain useful with an
+// ordinary text font that has no OpenType MATH table.
 struct MathLayoutOptions
 {
     style:             MathStyle = Display // Root style used to begin layout.
@@ -163,8 +167,10 @@ internal struct MathNode
     rowLengths:  Array'u32
 }
 
-// Parsed, reusable mathematical expression. The accepted input is a practical
-// LaTeX math subset; no surrounding `$` delimiters are needed. It includes:
+// Stores a parsed, reusable mathematical expression.
+//
+// The accepted input is a practical LaTeX math subset; no surrounding `$`
+// delimiters are needed. It includes:
 // - grouped rows, Unicode literals, sub/superscripts and TeX atom spacing;
 // - fractions, binomials, indexed roots, scalable delimiters and common accents;
 // - Greek letters, relations, arrows, named functions and large operators/limits;
@@ -1040,8 +1046,10 @@ public impl MathExpression
         .nodes.clear()
     }
 
-    // ArrayPtr deep-copies owned nodes. Rebind the root and every edge through the
-    // stable parse-time node ids so copied expressions remain independent and valid.
+    // Produces an independent copy of the parsed expression.
+    //
+    // The owned node array is copied deeply. The root and every edge are rebound
+    // through stable parse-time node identifiers.
     mtd opPostCopy()
     {
         if .nodes.isEmpty() do

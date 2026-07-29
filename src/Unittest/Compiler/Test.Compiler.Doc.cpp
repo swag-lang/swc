@@ -3,7 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Runtime.h"
-#include "Compiler/Doc/DocGenerator.h"
+#include "Doc/DocGenerator.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
@@ -111,9 +111,13 @@ SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocGeneratesPublicApiAndHonorsNoDoc)
 {
-    static constexpr std::string_view SOURCE      = R"(#global public
+    // The first declaration deliberately omits the blank comment line so this test
+    // also proves that a malformed long description cannot flood summary tables.
+    static constexpr std::string_view SOURCE      = R"(#global namespace DocApi
+#global public
 
-// Return the next integer.
+// Returns the next integer.
+// The long description belongs only to the standalone symbol documentation.
 func documented(value: s32)->s32
 {
     return value + 1
@@ -132,7 +136,8 @@ func ordered(value: f32) {}
 // ```
 struct Counter
 {
-    value: s32 // Current counter value.
+    value: s32           // Current counter value.
+    next:  #null *Counter // Optional next counter in a caller-owned chain.
 
     using storage: union // Active numeric storage.
     {
@@ -175,7 +180,7 @@ struct PackedCoordinate
 // Selects a test mode.
 enum TestMode
 {
-    Fast // Prefer lower latency.
+    Fast = 41 // Prefer lower latency.
     Full // Prefer complete coverage.
 }
 
@@ -230,21 +235,40 @@ func hidden(value: s32)->s32
     std::string             content;
     FileSystem::IoErrorInfo ioError;
     SWC_RESULT(FileSystem::readTextFile(outputPath, content, ioError));
-    if (!content.contains("documented") || !content.contains("Return the next integer."))
+    if (!content.contains("documented") || !content.contains("Returns the next integer.") || !content.contains("The long description belongs only to the standalone symbol documentation."))
         return Result::Error;
-    if (!content.contains("Counter.increment") || !content.contains("Increase the counter by one."))
+    const size_t documentedSummary = content.find("href=\"#Compiler_doc_test_DocApi_documented\"");
+    const size_t documentedRowEnd  = content.find("</tr>", documentedSummary);
+    const size_t documentedDetail  = content.find("The long description belongs only to the standalone symbol documentation.");
+    if (documentedSummary == std::string::npos || documentedRowEnd == std::string::npos || documentedDetail == std::string::npos || documentedDetail < documentedRowEnd)
         return Result::Error;
-    if (!content.contains("Resettable.reset") || !content.contains("Reset the value to zero."))
+    if (!content.contains("id=\"Counter_increment\"") || !content.contains("Increase the counter by one."))
+        return Result::Error;
+    if (!content.contains("id=\"Compiler_doc_test_DocApi_Resettable_reset\"") || !content.contains("Reset the value to zero."))
         return Result::Error;
     if (content.contains("Counter.Resettable.reset"))
         return Result::Error;
     if (!content.contains("<p>A packed public coordinate.</p>"))
         return Result::Error;
-    if (!content.contains("<h3>Values</h3>") || !content.contains("Prefer lower latency."))
+    if (!content.contains("<h3>Cases</h3>") || !content.contains("Prefer lower latency."))
+        return Result::Error;
+    if (content.contains(">41<"))
+        return Result::Error;
+    if (!content.contains("href=\"#Compiler_doc_test_DocApi_Counter\">Counter</a>"))
+        return Result::Error;
+    if (!content.contains("id=\"namespace_Compiler_doc_test_DocApi\"") || !content.contains("Public API declared directly in"))
+        return Result::Error;
+    const size_t counterItem    = content.find("id=\"Compiler_doc_test_DocApi_Counter\"");
+    const size_t counterSummary = content.find("id=\"Compiler_doc_test_DocApi_Counter_methods\"", counterItem);
+    const size_t counterMethod  = content.find("id=\"Counter_increment\"");
+    const size_t opaqueItem     = content.find("id=\"Compiler_doc_test_DocApi_OpaqueRecord\"");
+    if (counterItem == std::string::npos || counterSummary == std::string::npos || counterMethod == std::string::npos || opaqueItem == std::string::npos || counterSummary < counterItem || counterSummary > opaqueItem || counterMethod < opaqueItem)
+        return Result::Error;
+    if (content.contains("api-method-details") || !content.contains("Counter.increment"))
         return Result::Error;
     if (content.contains(">implementationValue<"))
         return Result::Error;
-    if (content.contains("id=\"Example\"") || !content.contains("Counter_0_Example"))
+    if (content.contains("id=\"Example\"") || !content.contains("Compiler_doc_test_DocApi_Counter_0_Example"))
         return Result::Error;
     if (content.contains("__anonymous_"))
         return Result::Error;
@@ -252,8 +276,8 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (content.contains(">hidden<") || content.contains("func hidden"))
         return Result::Error;
-    const size_t orderedSummary = content.find("<p>Source-order summary for an overloaded function.</p>");
-    const size_t orderedItem    = content.rfind("<table class=\"api-item\"", orderedSummary);
+    const size_t orderedItem    = content.find("id=\"Compiler_doc_test_DocApi_ordered\"");
+    const size_t orderedSummary = content.find("<p>Source-order summary for an overloaded function.</p>", orderedItem);
     const size_t orderedCode    = content.find("<div class=\"code-block\"", orderedItem);
     const size_t nextItem       = content.find("<table class=\"api-item\"", orderedItem + 1);
     if (orderedItem == std::string::npos || orderedSummary == std::string::npos || orderedCode == std::string::npos || orderedSummary > orderedCode || (nextItem != std::string::npos && orderedCode > nextItem))

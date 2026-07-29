@@ -10,6 +10,7 @@ import re
 import sys
 from collections import Counter
 from pathlib import Path
+from urllib.parse import unquote
 
 
 API_ITEM_RE = re.compile(
@@ -22,22 +23,33 @@ API_ITEM_RE = re.compile(
     re.DOTALL,
 )
 MEMBER_TABLE_RE = re.compile(
-    r"<h3>(?P<title>Fields|Values|Functions)</h3>\s*"
-    r'<table class="table-enumeration">(?P<body>.*?)</table>',
+    r"<h3>(?P<title>Fields|Cases)</h3>\s*"
+    r'<table class="[^"]*\btable-enumeration\b[^"]*">(?P<body>.*?)</table>',
     re.DOTALL,
 )
 ROW_RE = re.compile(r"<tr>(?P<body>.*?)</tr>", re.DOTALL)
 CELL_RE = re.compile(r"<td(?:\s+[^>]*)?>(?P<body>.*?)</td>", re.DOTALL)
+SUMMARY_TABLE_RE = re.compile(
+    r'<table class="[^"]*\bapi-summary\b[^"]*">(?P<body>.*?)</table>',
+    re.DOTALL,
+)
 TAG_RE = re.compile(r"<[^>]+>")
 ID_RE = re.compile(r'\bid="([^"]+)"')
 LOCAL_HREF_RE = re.compile(r'\bhref="#([^"]+)"')
+PAGE_HREF_RE = re.compile(r'\bhref="([^"#?]+\.html)#([^"]+)"')
 RESERVED_IDENTIFIER_RE = re.compile(r"(?<![A-Za-z0-9_])__[A-Za-z0-9_]+")
 SCRIPT_RE = re.compile(r"<\s*script\b", re.IGNORECASE)
 PHP_RE = re.compile(r"<\?php", re.IGNORECASE)
+UNRESOLVED_REFERENCE_RE = re.compile(r"\[\[([^\]]+)\]\]")
+NESTED_SYMBOL_SECTION_RE = re.compile(r'class="api-method-details"')
 EXAMPLE_RE = re.compile(
     r'<h[1-6][^>]*>\s*Examples?\s*</h[1-6]>|class="blockquote-example"',
     re.IGNORECASE,
 )
+SOURCE_LOCATION_RE = re.compile(
+    r"/blob/[^/]+/(?P<path>[^#]+)#L(?P<line>[0-9]+)$"
+)
+SUMMARY_MAX_LENGTH = 140
 
 
 def plain_text(fragment: str) -> str:
@@ -50,13 +62,72 @@ def first_signature_offset(body: str) -> int:
     return len(body) if offset == -1 else offset
 
 
-def audit(path: Path) -> dict[str, object]:
+def has_unseparated_long_description(
+    source_root: Path, source_link: str
+) -> bool:
+    match = SOURCE_LOCATION_RE.search(source_link)
+    if not match:
+        return False
+
+    source_path = source_root / Path(unquote(match.group("path")))
+    if not source_path.is_file():
+        return False
+
+    lines = source_path.read_text(encoding="utf-8").splitlines()
+    index = int(match.group("line")) - 2
+    while index >= 0 and lines[index].strip().startswith("#["):
+        index -= 1
+
+    comments: list[str] = []
+    while index >= 0 and lines[index].lstrip().startswith("//"):
+        comments.append(lines[index].lstrip()[2:].strip())
+        index -= 1
+    comments.reverse()
+
+    non_empty = sum(bool(line) for line in comments)
+    return non_empty > 1 and not any(not line for line in comments[1:])
+
+
+def audit(path: Path, source_root: Path | None = None) -> dict[str, object]:
     source = path.read_text(encoding="utf-8")
     ids = ID_RE.findall(source)
     id_counts = Counter(ids)
     duplicate_ids = sorted(name for name, count in id_counts.items() if count > 1)
     broken_anchors = sorted(set(LOCAL_HREF_RE.findall(source)) - set(ids))
+    broken_page_anchors: list[str] = []
+    page_ids: dict[Path, set[str]] = {}
+    for page_name, anchor in sorted(set(PAGE_HREF_RE.findall(source))):
+        page_path = (path.parent / html.unescape(page_name)).resolve()
+        if not page_path.is_file():
+            broken_page_anchors.append(f"{page_name}#{anchor} (missing page)")
+            continue
+        if page_path not in page_ids:
+            page_ids[page_path] = set(
+                ID_RE.findall(page_path.read_text(encoding="utf-8"))
+            )
+        if html.unescape(anchor) not in page_ids[page_path]:
+            broken_page_anchors.append(f"{page_name}#{anchor}")
     synthetic_names = sorted(set(RESERVED_IDENTIFIER_RE.findall(plain_text(source))))
+    unresolved_references = sorted(set(UNRESOLVED_REFERENCE_RE.findall(plain_text(source))))
+    long_summaries: list[str] = []
+    seen_summaries: set[tuple[str, str]] = set()
+    for table_match in SUMMARY_TABLE_RE.finditer(source):
+        for row_match in ROW_RE.finditer(table_match.group("body")):
+            cells = CELL_RE.findall(row_match.group("body"))
+            if len(cells) < 2:
+                continue
+            name = plain_text(cells[0])
+            description = plain_text(cells[-1])
+            key = (name, description)
+            if (
+                description
+                and len(description) > SUMMARY_MAX_LENGTH
+                and key not in seen_summaries
+            ):
+                seen_summaries.add(key)
+                long_summaries.append(
+                    f"{name} ({len(description)} characters)"
+                )
 
     items: list[dict[str, object]] = []
     undocumented_items: list[str] = []
@@ -67,6 +138,7 @@ def audit(path: Path) -> dict[str, object]:
     kinds: Counter[str] = Counter()
     total_members = 0
     total_values = 0
+    unseparated_descriptions: list[str] = []
 
     for match in API_ITEM_RE.finditer(source):
         name = plain_text(match.group("name"))
@@ -82,6 +154,12 @@ def audit(path: Path) -> dict[str, object]:
             re.DOTALL,
         )
         source_link = html.unescape(source_match.group(1)) if source_match else ""
+        if (
+            source_root is not None
+            and source_link
+            and has_unseparated_long_description(source_root, source_link)
+        ):
+            unseparated_descriptions.append(name)
 
         kinds[kind] += 1
         if not has_description:
@@ -100,11 +178,11 @@ def audit(path: Path) -> dict[str, object]:
                 member_name = plain_text(cells[0])
                 description = plain_text(cells[-1])
                 qualified_name = f"{name}.{member_name}"
-                if table_title == "Values":
+                if table_title == "Cases":
                     total_values += 1
                 else:
                     total_members += 1
-                if not description and table_title == "Values":
+                if not description and table_title == "Cases":
                     undocumented_values.append(qualified_name)
                 elif not description:
                     missing_members.append(qualified_name)
@@ -151,8 +229,13 @@ def audit(path: Path) -> dict[str, object]:
         "items_with_examples": len(example_items),
         "example_items": example_items,
         "synthetic_names": synthetic_names,
+        "unresolved_references": unresolved_references,
+        "long_summaries": long_summaries,
+        "unseparated_descriptions": sorted(set(unseparated_descriptions)),
+        "nested_symbol_sections": len(NESTED_SYMBOL_SECTION_RE.findall(source)),
         "duplicate_ids": duplicate_ids,
         "broken_anchors": broken_anchors,
+        "broken_page_anchors": broken_page_anchors,
         "scripts": len(SCRIPT_RE.findall(source)),
         "php_blocks": len(PHP_RE.findall(source)),
         "stylesheets": css_links,
@@ -185,8 +268,21 @@ def print_report(report: dict[str, object], limit: int) -> None:
     print_list("Undocumented members", report["undocumented_members"], limit)
     print_list("Enum values without comments", report["undocumented_values"], limit)
     print_list("Synthetic identifiers", report["synthetic_names"], limit)
+    print_list("Unresolved symbol references", report["unresolved_references"], limit)
+    print_list(
+        f"Summaries longer than {SUMMARY_MAX_LENGTH} characters",
+        report["long_summaries"],
+        limit,
+    )
+    print_list(
+        "Long descriptions without a blank comment line",
+        report["unseparated_descriptions"],
+        limit,
+    )
+    print(f"Nested canonical symbol sections: {report['nested_symbol_sections']}")
     print_list("Duplicate HTML ids", report["duplicate_ids"], limit)
     print_list("Broken local anchors", report["broken_anchors"], limit)
+    print_list("Broken cross-page anchors", report["broken_page_anchors"], limit)
     print_list("Missing stylesheets", report["missing_stylesheets"], limit)
     print(f"Forbidden elements: scripts={report['scripts']}, php={report['php_blocks']}")
 
@@ -212,12 +308,20 @@ def main() -> int:
         default=30,
         help="Maximum entries shown per issue category in text mode.",
     )
+    parser.add_argument(
+        "--source-root",
+        type=Path,
+        help="Repository root used to audit source-comment summary separators.",
+    )
     args = parser.parse_args()
 
     if not args.html.is_file():
         parser.error(f"file not found: {args.html}")
+    if args.source_root is not None and not args.source_root.is_dir():
+        parser.error(f"source root not found: {args.source_root}")
 
-    report = audit(args.html.resolve())
+    source_root = args.source_root.resolve() if args.source_root else None
+    report = audit(args.html.resolve(), source_root)
     if args.json:
         print(json.dumps(report, indent=2, ensure_ascii=False))
     else:
@@ -225,8 +329,13 @@ def main() -> int:
 
     hard_failures = (
         report["synthetic_names"]
+        or report["unresolved_references"]
+        or report["long_summaries"]
+        or report["unseparated_descriptions"]
+        or report["nested_symbol_sections"]
         or report["duplicate_ids"]
         or report["broken_anchors"]
+        or report["broken_page_anchors"]
         or report["missing_stylesheets"]
         or report["scripts"]
         or report["php_blocks"]

@@ -23,90 +23,225 @@
 <main class="container">
 <aside class="left"><div class="left-page">
 <h2>Table of Contents</h2>
-<h3>Structs</h3>
-<li><a href="#XInput_XINPUT_GAMEPAD">XInput.XINPUT_GAMEPAD</a></li>
-<li><a href="#XInput_XINPUT_STATE">XInput.XINPUT_STATE</a></li>
-<li><a href="#XInput_XINPUT_VIBRATION">XInput.XINPUT_VIBRATION</a></li>
-<h3>Constants</h3>
-<li><a href="#XInput_XINPUT_GAMEPAD_A">XInput.XINPUT_GAMEPAD_A</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_B">XInput.XINPUT_GAMEPAD_B</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_BACK">XInput.XINPUT_GAMEPAD_BACK</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_DPAD_DOWN">XInput.XINPUT_GAMEPAD_DPAD_DOWN</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_DPAD_LEFT">XInput.XINPUT_GAMEPAD_DPAD_LEFT</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_DPAD_RIGHT">XInput.XINPUT_GAMEPAD_DPAD_RIGHT</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_DPAD_UP">XInput.XINPUT_GAMEPAD_DPAD_UP</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_LEFT_SHOULDER">XInput.XINPUT_GAMEPAD_LEFT_SHOULDER</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_LEFT_THUMB">XInput.XINPUT_GAMEPAD_LEFT_THUMB</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_RIGHT_SHOULDER">XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_RIGHT_THUMB">XInput.XINPUT_GAMEPAD_RIGHT_THUMB</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_START">XInput.XINPUT_GAMEPAD_START</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_X">XInput.XINPUT_GAMEPAD_X</a></li>
-<li><a href="#XInput_XINPUT_GAMEPAD_Y">XInput.XINPUT_GAMEPAD_Y</a></li>
-<h3>Functions</h3>
-<li><a href="#XInput_XInputGetState">XInput.XInputGetState</a></li>
-<li><a href="#XInput_XInputSetState">XInput.XInputSetState</a></li>
+<h3>Start here</h3>
+<ul>
+<li><a href="#overview">Overview</a></li>
+</ul>
+<h3>API reference</h3>
+<ul>
+<li><a href="#api-reference">At a glance</a></li>
+<li><a href="#detailed-reference">Detailed reference</a></li>
+</ul>
+<ul>
+<li><a href="#summary-namespaces">Namespaces</a></li>
+<li><a href="#summary-types">Types</a></li>
+<li><a href="#summary-constants">Constants</a></li>
+<li><a href="#summary-functions">Functions</a></li>
+</ul>
 </div></aside>
 <section class="right"><article class="right-page">
-<h1>Module xinput</h1>
-<h1>Content</h1>
+<section class="module-overview"><h1 id="overview">Module xinput</h1>
+<p>Wrapper for Microsoft DirectX Input.</p>
+</section>
+<section class="api-overview">
+<h2 id="api-reference">API reference</h2>
+<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>
+<h3 id="summary-namespaces">Namespaces</h3>
+<table class="api-summary">
+<thead><tr><th>Namespace</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#namespace_XInput">XInput</a></td></tr>
+</tbody>
+</table>
+<h3 id="summary-types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD">XInput.XINPUT_GAMEPAD</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_STATE">XInput.XINPUT_STATE</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_VIBRATION">XInput.XINPUT_VIBRATION</a></td><td>struct</td><td></td></tr>
+</tbody>
+</table>
+<h3 id="summary-constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_A">XInput.XINPUT_GAMEPAD_A</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_B">XInput.XINPUT_GAMEPAD_B</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_BACK">XInput.XINPUT_GAMEPAD_BACK</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_DOWN">XInput.XINPUT_GAMEPAD_DPAD_DOWN</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_LEFT">XInput.XINPUT_GAMEPAD_DPAD_LEFT</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_RIGHT">XInput.XINPUT_GAMEPAD_DPAD_RIGHT</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_UP">XInput.XINPUT_GAMEPAD_DPAD_UP</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_LEFT_SHOULDER">XInput.XINPUT_GAMEPAD_LEFT_SHOULDER</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_LEFT_THUMB">XInput.XINPUT_GAMEPAD_LEFT_THUMB</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_RIGHT_SHOULDER">XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_RIGHT_THUMB">XInput.XINPUT_GAMEPAD_RIGHT_THUMB</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_START">XInput.XINPUT_GAMEPAD_START</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_X">XInput.XINPUT_GAMEPAD_X</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_Y">XInput.XINPUT_GAMEPAD_Y</a></td><td></td></tr>
+</tbody>
+</table>
+<h3 id="summary-functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#XInput_XInputGetState">XInput.XInputGetState</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XInputSetState">XInput.XInputSetState</a></td><td></td></tr>
+</tbody>
+</table>
+</section>
+<h2 id="detailed-reference">Detailed reference</h2>
+<h3 id="namespaces">Namespaces</h3>
+<section class="api-symbol">
+<table class="api-item"><tr><td><span id="namespace_XInput"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">XInput</span></span></td></tr></table>
+<p>Public API declared directly in <span class="code-inline">XInput</span>.</p>
+<h3 id="namespace_XInput_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD">XInput.XINPUT_GAMEPAD</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_STATE">XInput.XINPUT_STATE</a></td><td>struct</td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_VIBRATION">XInput.XINPUT_VIBRATION</a></td><td>struct</td><td></td></tr>
+</tbody>
+</table>
+<h3 id="namespace_XInput_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_A">XInput.XINPUT_GAMEPAD_A</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_B">XInput.XINPUT_GAMEPAD_B</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_BACK">XInput.XINPUT_GAMEPAD_BACK</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_DOWN">XInput.XINPUT_GAMEPAD_DPAD_DOWN</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_LEFT">XInput.XINPUT_GAMEPAD_DPAD_LEFT</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_RIGHT">XInput.XINPUT_GAMEPAD_DPAD_RIGHT</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_DPAD_UP">XInput.XINPUT_GAMEPAD_DPAD_UP</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_LEFT_SHOULDER">XInput.XINPUT_GAMEPAD_LEFT_SHOULDER</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_LEFT_THUMB">XInput.XINPUT_GAMEPAD_LEFT_THUMB</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_RIGHT_SHOULDER">XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_RIGHT_THUMB">XInput.XINPUT_GAMEPAD_RIGHT_THUMB</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_START">XInput.XINPUT_GAMEPAD_START</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_X">XInput.XINPUT_GAMEPAD_X</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD_Y">XInput.XINPUT_GAMEPAD_Y</a></td><td></td></tr>
+</tbody>
+</table>
+<h3 id="namespace_XInput_functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#XInput_XInputGetState">XInput.XInputGetState</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#XInput_XInputSetState">XInput.XInputSetState</a></td><td></td></tr>
+</tbody>
+</table>
+</section>
+<h3 id="types">Types</h3>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L23">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XINPUT_GAMEPAD</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD">XINPUT_GAMEPAD</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">bLeftTrigger</td><td class="code-type">u8</td><td></td></tr>
-<tr><td class="code-type">bRightTrigger</td><td class="code-type">u8</td><td></td></tr>
-<tr><td class="code-type">sThumbLX</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">sThumbLY</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">sThumbRX</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">sThumbRY</td><td class="code-type">s16</td><td></td></tr>
-<tr><td class="code-type">wButtons</td><td class="code-type">u16</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="XInput_XINPUT_GAMEPAD_bLeftTrigger" class="code-type">bLeftTrigger</td><td class="code-type">u8</td><td></td></tr>
+<tr><td id="XInput_XINPUT_GAMEPAD_bRightTrigger" class="code-type">bRightTrigger</td><td class="code-type">u8</td><td></td></tr>
+<tr><td id="XInput_XINPUT_GAMEPAD_sThumbLX" class="code-type">sThumbLX</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="XInput_XINPUT_GAMEPAD_sThumbLY" class="code-type">sThumbLY</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="XInput_XINPUT_GAMEPAD_sThumbRX" class="code-type">sThumbRX</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="XInput_XINPUT_GAMEPAD_sThumbRY" class="code-type">sThumbRY</td><td class="code-type">s16</td><td></td></tr>
+<tr><td id="XInput_XINPUT_GAMEPAD_wButtons" class="code-type">wButtons</td><td class="code-type">u16</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_STATE"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XInput.XINPUT_STATE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L34">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XINPUT_STATE</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#XInput_XINPUT_STATE">XINPUT_STATE</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">Gamepad</td><td class="code-type">XInput.XINPUT_GAMEPAD</td><td></td></tr>
-<tr><td class="code-type">dwPacketNumber</td><td class="code-type">u32</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="XInput_XINPUT_STATE_Gamepad" class="code-type">Gamepad</td><td class="code-type"><a href="#XInput_XINPUT_GAMEPAD">XInput.XINPUT_GAMEPAD</a></td><td></td></tr>
+<tr><td id="XInput_XINPUT_STATE_dwPacketNumber" class="code-type">dwPacketNumber</td><td class="code-type">u32</td><td></td></tr>
+</tbody>
 </table>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_VIBRATION"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XInput.XINPUT_VIBRATION</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L40">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XINPUT_VIBRATION</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#XInput_XINPUT_VIBRATION">XINPUT_VIBRATION</a></span></span></div>
+</section>
 <h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">wLeftMotorSpeed</td><td class="code-type">u16</td><td></td></tr>
-<tr><td class="code-type">wRightMotorSpeed</td><td class="code-type">u16</td><td></td></tr>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="XInput_XINPUT_VIBRATION_wLeftMotorSpeed" class="code-type">wLeftMotorSpeed</td><td class="code-type">u16</td><td></td></tr>
+<tr><td id="XInput_XINPUT_VIBRATION_wRightMotorSpeed" class="code-type">wRightMotorSpeed</td><td class="code-type">u16</td><td></td></tr>
+</tbody>
 </table>
+<h3 id="constants">Constants</h3>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_A"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_A</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L18">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_A</span>              = <span class="SNum">0x1000</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_A">XINPUT_GAMEPAD_A</a></span>              = <span class="SNum">0x1000</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_B"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_B</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L19">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_B</span>              = <span class="SNum">0x2000</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_B">XINPUT_GAMEPAD_B</a></span>              = <span class="SNum">0x2000</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_BACK"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_BACK</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L13">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_BACK</span>           = <span class="SNum">0x0020</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_BACK">XINPUT_GAMEPAD_BACK</a></span>           = <span class="SNum">0x0020</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_DPAD_DOWN"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_DPAD_DOWN</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L9">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_DPAD_DOWN</span>      = <span class="SNum">0x0002</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_DPAD_DOWN">XINPUT_GAMEPAD_DPAD_DOWN</a></span>      = <span class="SNum">0x0002</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_DPAD_LEFT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_DPAD_LEFT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L10">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_DPAD_LEFT</span>      = <span class="SNum">0x0004</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_DPAD_LEFT">XINPUT_GAMEPAD_DPAD_LEFT</a></span>      = <span class="SNum">0x0004</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_DPAD_RIGHT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_DPAD_RIGHT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L11">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_DPAD_RIGHT</span>     = <span class="SNum">0x0008</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_DPAD_RIGHT">XINPUT_GAMEPAD_DPAD_RIGHT</a></span>     = <span class="SNum">0x0008</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_DPAD_UP"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_DPAD_UP</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L8">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_DPAD_UP</span>        = <span class="SNum">0x0001</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_DPAD_UP">XINPUT_GAMEPAD_DPAD_UP</a></span>        = <span class="SNum">0x0001</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_LEFT_SHOULDER"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_LEFT_SHOULDER</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L16">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_LEFT_SHOULDER</span>  = <span class="SNum">0x0100</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_LEFT_SHOULDER">XINPUT_GAMEPAD_LEFT_SHOULDER</a></span>  = <span class="SNum">0x0100</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_LEFT_THUMB"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_LEFT_THUMB</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L14">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_LEFT_THUMB</span>     = <span class="SNum">0x0040</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_LEFT_THUMB">XINPUT_GAMEPAD_LEFT_THUMB</a></span>     = <span class="SNum">0x0040</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_RIGHT_SHOULDER"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_RIGHT_SHOULDER</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L17">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_RIGHT_SHOULDER</span> = <span class="SNum">0x0200</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_RIGHT_SHOULDER">XINPUT_GAMEPAD_RIGHT_SHOULDER</a></span> = <span class="SNum">0x0200</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_RIGHT_THUMB"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_RIGHT_THUMB</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L15">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_RIGHT_THUMB</span>    = <span class="SNum">0x0080</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_RIGHT_THUMB">XINPUT_GAMEPAD_RIGHT_THUMB</a></span>    = <span class="SNum">0x0080</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_START"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_START</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L12">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_START</span>          = <span class="SNum">0x0010</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_START">XINPUT_GAMEPAD_START</a></span>          = <span class="SNum">0x0010</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_X"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_X</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L20">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_X</span>              = <span class="SNum">0x4000</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_X">XINPUT_GAMEPAD_X</a></span>              = <span class="SNum">0x4000</span>'<span class="STpe">u16</span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XINPUT_GAMEPAD_Y"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XInput.XINPUT_GAMEPAD_Y</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L21">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XINPUT_GAMEPAD_Y</span>              = <span class="SNum">0x8000</span>'<span class="STpe">u16</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#XInput_XINPUT_GAMEPAD_Y">XINPUT_GAMEPAD_Y</a></span>              = <span class="SNum">0x8000</span>'<span class="STpe">u16</span></span></div>
+</section>
+<h3 id="functions">Functions</h3>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XInputGetState"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">XInput.XInputGetState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L48">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">XInputGetState</span>(dwUserIndex: <span class="SCst">DWORD</span>, pState: *<span class="SCst">XINPUT_STATE</span>)-&gt;<span class="SCst">DWORD</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">XInputGetState</span>(dwUserIndex: <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, pState: *<span class="SCst"><a href="#XInput_XINPUT_STATE">XINPUT_STATE</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span></span></div>
+</section>
+<section class="api-symbol">
 <table class="api-item"><tr><td><span id="XInput_XInputSetState"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">XInput.XInputSetState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput/src/xinput.swg#L49">[src]</a></td></tr></table>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">XInputSetState</span>(dwUserIndex: <span class="SCst">DWORD</span>, pVibration: *<span class="SCst">XINPUT_VIBRATION</span>)-&gt;<span class="SCst">DWORD</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">XInputSetState</span>(dwUserIndex: <span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span>, pVibration: *<span class="SCst"><a href="#XInput_XINPUT_VIBRATION">XINPUT_VIBRATION</a></span>)-&gt;<span class="SCst"><a href="std.win32.html#Win32_DWORD">DWORD</a></span></span></div>
+</section>
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
 </article></section>
 </main>

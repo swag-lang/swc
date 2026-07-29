@@ -4,7 +4,7 @@
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/RuntimeName.h"
-#include "Compiler/Doc/DocGenerator.h"
+#include "Doc/DocGenerator.h"
 #include "Compiler/SourceFile.h"
 #include "Format/FormatJob.h"
 #include "Format/FormatOptionsLoader.h"

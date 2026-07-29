@@ -919,6 +919,7 @@ public impl Painter
     }
 
     // Returns the extent in both directions of a given LineCapStyle.
+    //
     // * 'lineSize' is the supposed line drawing size
     // * 'capScale' is the supposed LineCapStyle scale
     // Returns the width and the length.

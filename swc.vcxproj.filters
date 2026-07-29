@@ -46,9 +46,6 @@
     <Filter Include="src\Compiler\CodeGen\Core">
       <UniqueIdentifier>{EFF337B9-854D-D7E7-5AA6-0C09791EB507}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\Compiler\Doc">
-      <UniqueIdentifier>{E950C33A-6D83-4A85-A366-B62E38DCF958}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\Compiler\Lexer">
       <UniqueIdentifier>{27AFDAE9-FE6D-C728-1DDA-9ECC6F53A144}</UniqueIdentifier>
     </Filter>
@@ -127,13 +124,31 @@
     <Filter Include="src\Support\Thread">
       <UniqueIdentifier>{AB8199D3-24C3-4C19-33E7-938BC7C10FCB}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\Doc">
+      <UniqueIdentifier>{538A25B5-FEA0-4C74-8714-F5A5EF11D2B9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Backend\Backend.cpp">
       <Filter>src\Backend</Filter>
     </ClCompile>
-    <ClCompile Include="src\Compiler\Doc\DocGenerator.cpp">
-      <Filter>src\Compiler\Doc</Filter>
+    <ClCompile Include="src\Doc\DocApi.cpp">
+      <Filter>src\Doc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Doc\DocApiCollect.cpp">
+      <Filter>src\Doc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Doc\DocApiRender.cpp">
+      <Filter>src\Doc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Doc\DocGenerator.cpp">
+      <Filter>src\Doc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Doc\DocMarkdown.cpp">
+      <Filter>src\Doc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Doc\DocPage.cpp">
+      <Filter>src\Doc</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Command\Command.Doc.cpp">
       <Filter>src\Main\Command</Filter>
@@ -1403,8 +1418,11 @@
     <ClInclude Include="src\Main\Command\Command.h">
       <Filter>src\Main\Command</Filter>
     </ClInclude>
-    <ClInclude Include="src\Compiler\Doc\DocGenerator.h">
-      <Filter>src\Compiler\Doc</Filter>
+    <ClInclude Include="src\Doc\DocGenerator.h">
+      <Filter>src\Doc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Doc\DocInternal.h">
+      <Filter>src\Doc</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\Stats.h">
       <Filter>src\Main</Filter>

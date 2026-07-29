@@ -889,8 +889,10 @@ private func mathDrawNode(painter: *Painter, node: *MathNode, x, baseline: f32, 
 
 public impl MathExpression
 {
-    // Compute layout without drawing. Repeated calls are allowed; the latest font,
-    // style and options replace the cached box metrics.
+    // Measures the expression without drawing it.
+    //
+    // Repeated calls are allowed; the latest font, style, and options replace the
+    // cached box metrics.
     mtd measure(font: *Font, options: MathLayoutOptions = {})->MathMetrics
     {
         Debug.assert(font != null, "math layout needs a font")

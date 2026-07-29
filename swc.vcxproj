@@ -337,7 +337,12 @@
         <ClCompile Include="src\Support\Core\Utf8.cpp"/>
         <ClCompile Include="src\Support\Core\Utf8Helper.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\LangSpec.cpp"/>
-        <ClCompile Include="src\Compiler\Doc\DocGenerator.cpp"/>
+        <ClCompile Include="src\Doc\DocApi.cpp"/>
+        <ClCompile Include="src\Doc\DocApiCollect.cpp"/>
+        <ClCompile Include="src\Doc\DocApiRender.cpp"/>
+        <ClCompile Include="src\Doc\DocGenerator.cpp"/>
+        <ClCompile Include="src\Doc\DocMarkdown.cpp"/>
+        <ClCompile Include="src\Doc\DocPage.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\Lexer.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SourceCodeRange.cpp"/>
         <ClCompile Include="src\Compiler\Lexer\SourceView.cpp"/>
@@ -637,7 +642,8 @@
         <ClInclude Include="src\Support\Core\Utf8.h"/>
         <ClInclude Include="src\Support\Core\Utf8Helper.h"/>
         <ClInclude Include="src\Compiler\Lexer\LangSpec.h"/>
-        <ClInclude Include="src\Compiler\Doc\DocGenerator.h"/>
+        <ClInclude Include="src\Doc\DocGenerator.h"/>
+        <ClInclude Include="src\Doc\DocInternal.h"/>
         <ClInclude Include="src\Compiler\Lexer\Lexer.h"/>
         <ClInclude Include="src\Compiler\Lexer\SourceCodeRange.h"/>
         <ClInclude Include="src\Compiler\Lexer\SourceView.h"/>

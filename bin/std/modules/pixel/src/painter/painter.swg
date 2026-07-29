@@ -10,6 +10,7 @@ enum DefaultShaderId
 }
 
 // Antialiasing fringe half-width, in (untransformed) path-space pixels.
+//
 // The fringe band is centered on the shape contour (AAHalf inside / AAHalf
 // outside), giving a 1px transition with 50% coverage on the true edge.
 const AAHalf = 0.5'f32

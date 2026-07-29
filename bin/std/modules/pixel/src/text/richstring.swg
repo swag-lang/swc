@@ -121,6 +121,7 @@ impl RichString
     }
 
     // Associate a string.
+    //
     // The string can have multiple lines.
     // Accepted markers are:
     // * `<u>` => underline
@@ -218,9 +219,10 @@ impl RichString
         return null
     }
 
-    // Compute layout.
-    // This will transform the string in a serie of chunks, each chunk having its one style. The string
-    // will only be recomputed if it's dirty (the text has changed) or if 'force' is true.
+    // Computes the styled text layout.
+    //
+    // The string is split into chunks that each carry one style. Layout is recomputed
+    // only when the text is dirty or when `force` is true.
     mtd compute(force = false)
     {
         if !.dirty and !force do

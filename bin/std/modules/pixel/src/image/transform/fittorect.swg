@@ -3,6 +3,7 @@ using Core
 public impl Image
 {
     // Fits the image to fill the target rectangle while maintaining aspect ratio.
+    //
     // The image is scaled to cover the entire target area, then cropped to exact dimensions.
     // Uses center cropping to preserve the most important part of the image.
     mtd fitToRect(targetRect: Math.Rectangle)

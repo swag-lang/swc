@@ -328,7 +328,8 @@ impl Color
         return result
     }
 
-    // Convert the color to a linear-light Math.Vector4.
+    // Converts the color to a linear-light [[Core.Math.Vector4]].
+    //
     // Components are normalized to [0, 1], with gamma-correct sRGB → linear conversion applied.
     // Useful for rendering, lighting, and blending operations where
     // linear color space is required instead of gamma-encoded sRGB.
@@ -349,7 +350,8 @@ impl Color
         return result
     }
 
-    // Create a new Color from a linear-light Math.Vector4.
+    // Creates a color from a linear-light [[Core.Math.Vector4]].
+    //
     // Components are expected to be normalized in [0, 1].
     // Performs gamma correction (linear → sRGB) on the RGB channels.
     // Useful for reconstructing an 8-bit Color after doing math in linear space.
@@ -370,13 +372,14 @@ impl Color
         return result
     }
 
-    // Calculate the relative luminance (Y) of the color in linear light.
-    // Uses the linearized RGB values from toLinear() and BT.709 coefficients (WCAG 2.x).
+    // Calculates the color's relative luminance in linear light.
+    //
+    // Uses the linearized RGB values from [[Pixel.Color.toLinear]] and BT.709
+    // coefficients (WCAG 2.x).
     // Returns a scalar in [0, 1] representing perceived brightness.
     // Formula:
     //   Y = 0.2126 * R_lin + 0.7152 * G_lin + 0.0722 * B_lin
     // where R_lin, G_lin, B_lin are the linearized channels.
-    //#[Inline, ConstExpr]
     mtd const getRelativeLuminance()->f32
     {
         let lin = .toLinear()
@@ -469,6 +472,7 @@ impl Color
     }
 
     // Calculates contrast ratio between this color and another.
+    //
     // Uses the standard WCAG contrast formula: (l1 + 0.05) / (l2 + 0.05)
     mtd const getContrastRatio(against: Color)->f32
     {
@@ -499,11 +503,11 @@ impl Color
         return result
     }
 
-    // Returns a new color adjusted so that its contrast ratio against `target`
-    // meets or exceeds the given `requiredContrast` (WCAG-compatible).
+    // Adjusts the color to meet a required contrast ratio against `target`.
     //
-    // The function iteratively darkens or lightens the color depending on
-    // which direction increases contrast most effectively.
+    // The result meets or exceeds `requiredContrast` using the WCAG contrast
+    // calculation. The function iteratively darkens or lightens the color in the
+    // direction that increases contrast most effectively.
     //
     // - Parameters:
     //   - target: The color to contrast against (e.g., foreground or background).
@@ -604,6 +608,7 @@ impl Color
     }
 
     // Generates N visually distinct colors.
+    //
     // Uses golden-angle hue spacing to ensure that each color is clearly separated from the others,
     // with slight lightness variation for good contrast against white text.
     func generateDistinctColors(n: u32, startHue: f32 = 0.113, lum: f32 = 0.44, sat: f32 = 0.68)->Array'Color

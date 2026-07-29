@@ -1,3 +1,7 @@
+// Provides named opaque colors packed as `0xAARRGGBB`.
+//
+// Names and component values follow the standard CSS named-color palette.
+// `Zero` is fully transparent black.
 public enum Argb: u32
 {
     AliceBlue            = 0xFFF0F8FF
@@ -145,7 +149,9 @@ public enum Argb: u32
 
 public impl Argb
 {
-    // Get the Argb value that matches 'name'
+    // Returns the named color whose spelling exactly matches `name`.
+    //
+    // The lookup is case-sensitive and returns `Argb.Black` when no name matches.
     func fromName(name: string)->Argb
     {
         let t = #typeof(Argb)

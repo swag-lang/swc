@@ -209,18 +209,82 @@
 </table>
 <table class="api-item"><tr><td><span id="TrueType_GlyphFormat"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.GlyphFormat</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L4">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">GlyphFormat</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Bitmap</td><td class="code-type">1651078259</td><td></td></tr>
+<tr><td class="code-type">Composite</td><td class="code-type">1668246896</td><td></td></tr>
+<tr><td class="code-type">None</td><td class="code-type">0</td><td></td></tr>
+<tr><td class="code-type">Outline</td><td class="code-type">1869968492</td><td></td></tr>
+<tr><td class="code-type">Plotter</td><td class="code-type">1886154612</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="TrueType_LoadFlag"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.LoadFlag</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L5">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">LoadFlag</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">AdvanceOnly</td><td class="code-type">256</td><td></td></tr>
+<tr><td class="code-type">BitmapMetricsOnly</td><td class="code-type">4194304</td><td></td></tr>
+<tr><td class="code-type">Color</td><td class="code-type">1048576</td><td></td></tr>
+<tr><td class="code-type">ComputeMetrics</td><td class="code-type">2097152</td><td></td></tr>
+<tr><td class="code-type">CropBitmap</td><td class="code-type">64</td><td></td></tr>
+<tr><td class="code-type">Default</td><td class="code-type">0</td><td></td></tr>
+<tr><td class="code-type">ForceAutoHint</td><td class="code-type">32</td><td></td></tr>
+<tr><td class="code-type">IgnoreGlobalAdvanceWidth</td><td class="code-type">512</td><td></td></tr>
+<tr><td class="code-type">IgnoreTransform</td><td class="code-type">2048</td><td></td></tr>
+<tr><td class="code-type">LinearDesign</td><td class="code-type">8192</td><td></td></tr>
+<tr><td class="code-type">Monochrome</td><td class="code-type">4096</td><td></td></tr>
+<tr><td class="code-type">NoAutoHint</td><td class="code-type">32768</td><td></td></tr>
+<tr><td class="code-type">NoBitmap</td><td class="code-type">8</td><td></td></tr>
+<tr><td class="code-type">NoHinting</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">NoRecurse</td><td class="code-type">1024</td><td></td></tr>
+<tr><td class="code-type">NoScale</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">Pedantic</td><td class="code-type">128</td><td></td></tr>
+<tr><td class="code-type">Render</td><td class="code-type">4</td><td></td></tr>
+<tr><td class="code-type">SBitsOnly</td><td class="code-type">16384</td><td></td></tr>
+<tr><td class="code-type">VerticalLayout</td><td class="code-type">16</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="TrueType_OutlineCommandKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.OutlineCommandKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L4">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">OutlineCommandKind</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">ConicTo</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">CubicTo</td><td class="code-type">3</td><td></td></tr>
+<tr><td class="code-type">LineTo</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">MoveTo</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="TrueType_PixelMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.PixelMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L4">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">PixelMode</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Bgra</td><td class="code-type">7</td><td></td></tr>
+<tr><td class="code-type">Gray</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">Gray2</td><td class="code-type">3</td><td></td></tr>
+<tr><td class="code-type">Gray4</td><td class="code-type">4</td><td></td></tr>
+<tr><td class="code-type">Lcd</td><td class="code-type">5</td><td></td></tr>
+<tr><td class="code-type">LcdV</td><td class="code-type">6</td><td></td></tr>
+<tr><td class="code-type">Max</td><td class="code-type">8</td><td></td></tr>
+<tr><td class="code-type">Mono</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">None</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="TrueType_RenderMode"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.RenderMode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L37">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">RenderMode</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Lcd</td><td class="code-type">3</td><td></td></tr>
+<tr><td class="code-type">LcdV</td><td class="code-type">4</td><td></td></tr>
+<tr><td class="code-type">Light</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">Mono</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">Normal</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="TrueType_StyleFlag"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.StyleFlag</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L30">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">StyleFlag</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Bold</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">Italic</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">None</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="Face_destroy"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.destroy</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L88">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 <table class="api-item"><tr><td><span id="Face_getKerning"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.getKerning</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L129">[src]</a></td></tr></table>

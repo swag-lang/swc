@@ -1,9 +1,10 @@
 using Core
 
+// Selects how a [[Pixel.LinePathList]] is stroked.
 public enum DrawPathListMode
 {
-    Separate
-    Merge
+    Separate // Stroke each path independently, including its own caps.
+    Merge    // Treat compatible paths as one continuous stroke.
 }
 
 struct Context

@@ -5,6 +5,10 @@ using Swag, Core, Core.Errors, Win32, Gdi32
 
 impl Image
 {
+    // Copies pixels from a native Windows bitmap into a new image.
+    //
+    // The handle remains owned by the caller. Only 24-bit BGR and 32-bit BGRA
+    // bitmaps are accepted; other bit depths raise `UnsupportedFormatError`.
     func fromBitmapHandle(hbitmap: HBITMAP)->Image fail
     {
         var result: retval

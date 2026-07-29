@@ -31,49 +31,55 @@ const FontGamma = 1.0'f32 / 0.75
 const MsdfRange = 16.0'f32
 
 #[Swag.Strict]
-alias TextureHandle = u64
-const InvalidTextureHandle: TextureHandle = cast() 0
+alias TextureHandle = u64 // Opaque renderer texture identifier.
+const InvalidTextureHandle: TextureHandle = cast() 0 // Sentinel that identifies no texture.
 
 #[Swag.Strict]
-alias RenderTargetHandle = u64
-const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0
+alias RenderTargetHandle = u64 // Opaque renderer framebuffer identifier.
+const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0 // Sentinel that identifies no framebuffer.
 
 #[Swag.Strict]
-alias RenderTargetSurfaceHandle = u64
-const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0
+alias RenderTargetSurfaceHandle = u64 // Opaque renderer depth/stencil-surface identifier.
+const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0 // Sentinel that identifies no surface.
 
+// Owns CPU pixel storage for one texture in headless mode.
 struct HeadlessTexture
 {
-    handle: TextureHandle
-    pixels: Array'u8
+    handle: TextureHandle // Synthetic renderer handle.
+    pixels: Array'u8      // Owned, tightly packed pixel bytes.
 }
 
+// Executes [[Pixel.Painter]] command streams through OpenGL or a headless backend.
+//
+// A renderer is non-copyable and owns its shaders, textures, buffers, and queued
+// render targets. On Windows, create a [[Pixel.RenderingContext]], call `init`,
+// then bracket frames with `begin` and `end`.
 #[Swag.NoCopy]
 struct RenderOgl
 {
-    using native:       NativeRenderOgl
-    vertexbuffer:       GLuint
-    shaderSimple:       ShaderSimple
-    shaderAA:           ShaderAA
-    shaderBlur:         ShaderBlur
-    shaderResolve:      ShaderResolve
-    shaderFont:         ShaderFont
-    shaderFontMsdf:     ShaderFont
-    worldTransform:     Transform2
-    orthoMatrix:        Matrix4x4
-    modelMatrix:        Matrix4x4
-    whiteTexture:       GLuint
-    hatchTextures:      [HatchStyle] GLuint
-    blendingMode:       BlendingMode = .Alpha
-    curRC:              RenderingContext
-    stackReleasedRT:    Array'#null *RenderTarget
-    stackRT:            Array'#null *RenderTarget
-    curRT:              #null *RenderTarget
-    curShader:          #null *ShaderBase
-    overlapMode                      = false
-    headless:           bool
-    headlessNextHandle: u64          = 1
-    headlessTextures:   Array'HeadlessTexture
+    using native:       NativeRenderOgl             // Platform-specific context operations.
+    vertexbuffer:       GLuint                      // OpenGL streaming vertex buffer.
+    shaderSimple:       ShaderSimple                // Built-in non-antialiased shader.
+    shaderAA:           ShaderAA                    // Built-in antialiased shader.
+    shaderBlur:         ShaderBlur                  // Built-in separable-blur shader.
+    shaderResolve:      ShaderResolve               // Built-in supersampling-resolve shader.
+    shaderFont:         ShaderFont                  // Built-in bitmap-font shader.
+    shaderFontMsdf:     ShaderFont                  // Built-in MSDF-font shader.
+    worldTransform:     Transform2                  // Current painter world transform.
+    orthoMatrix:        Matrix4x4                   // Current surface projection matrix.
+    modelMatrix:        Matrix4x4                   // Current model matrix.
+    whiteTexture:       GLuint                      // Built-in one-pixel white texture.
+    hatchTextures:      [HatchStyle] GLuint         // Built-in hatch texture handles.
+    blendingMode:       BlendingMode = .Alpha      // Active OpenGL blending mode.
+    curRC:              RenderingContext            // Active drawable and viewport.
+    stackReleasedRT:    Array'#null *RenderTarget  // Targets queued for deferred release.
+    stackRT:            Array'#null *RenderTarget  // Nested bound render targets.
+    curRT:              #null *RenderTarget         // Active off-screen target, if any.
+    curShader:          #null *ShaderBase           // Active shader, or the default shader.
+    overlapMode:        bool                        // Whether overlap-safe alpha drawing is active.
+    headless:           bool                        // Whether OpenGL calls are replaced by CPU storage.
+    headlessNextHandle: u64          = 1            // Next synthetic headless resource handle.
+    headlessTextures:   Array'HeadlessTexture       // CPU textures owned in headless mode.
 }
 
 private impl RenderOgl
@@ -314,6 +320,7 @@ private impl RenderOgl
 
 impl RenderOgl
 {
+    // Releases queued and currently bound render-target descriptors.
     mtd opDrop()
     {
         for rt in .stackReleasedRT do
@@ -323,6 +330,9 @@ impl RenderOgl
         Memory.delete(.curRT)
     }
 
+    // Resets the renderer into deterministic CPU-backed headless mode.
+    //
+    // Existing render-target descriptors and headless textures are discarded.
     mtd setupHeadless()
     {
         for rt in .stackReleasedRT do
@@ -339,7 +349,7 @@ impl RenderOgl
         .headlessNextHandle = 1
     }
 
-    // To be called before rendering
+    // Makes `rc` current and starts a frame.
     mtd begin(rc: RenderingContext)
     {
         .curRC = rc
@@ -353,7 +363,7 @@ impl RenderOgl
         .resetTransform()
     }
 
-    // To be called after rendering
+    // Finishes and presents the current frame.
     mtd end()
     {
         if .headless do
@@ -435,7 +445,9 @@ impl RenderOgl
     // @print(cast(cstring) (Message));
     }
 
-    // First init
+    // Initializes OpenGL extensions, built-in shaders, buffers, and hatch textures.
+    //
+    // Call this once after a native context is current. In headless mode it is a no-op.
     mtd init()
     {
         if .headless
@@ -718,6 +730,7 @@ impl RenderOgl
         return result
     }
 
+    // Maps a Pixel byte layout to its OpenGL upload/readback format.
     func pixelFormatToNative(pf: PixelFormat)->GLenum
     {
         switch #complete pf
@@ -835,6 +848,9 @@ impl RenderOgl
         .modelMatrix.setIdentity()
     }
 
+    // Uploads projection and model matrices for the current target.
+    //
+    // `mvp` and `mdl` are uniform locations in the active shader.
     mtd computeMatrices(mvp, mdl: ShaderParamHandle)
     {
         let {width, height} = .getTargetSize()

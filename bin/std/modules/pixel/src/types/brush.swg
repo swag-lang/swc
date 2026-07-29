@@ -2,53 +2,71 @@
 
 using Core
 
+// Selects the paint source represented by a [[Pixel.Brush]].
 enum BrushType
 {
-    SolidColor
-    Texture
-    Hatch
-    LinearGradient
-    RadialGradient
-    SweepGradient
+    SolidColor     // A uniform color.
+    Texture        // A renderer-owned texture modulated by the brush tint.
+    Hatch          // A repeating built-in monochrome pattern.
+    LinearGradient // A gradient along a line segment.
+    RadialGradient // A gradient between two concentric radii.
+    SweepGradient  // An angular gradient around a center.
 }
 
+// Selects how a gradient behaves outside its normalized `[0, 1]` interval.
 enum GradientSpread
 {
-    Clamp
-    Repeat
-    Mirror
+    Clamp  // Extend the nearest endpoint color.
+    Repeat // Restart the gradient at every integer interval.
+    Mirror // Alternate forward and reversed intervals.
 }
 
-const MaxGradientStops = 8
+const MaxGradientStops = 8 // Maximum number of color stops stored by one brush.
 
+// Associates a normalized gradient position with a straight-alpha color.
 struct GradientStop
 {
-    offset: f32
-    color:  Color
+    offset: f32   // Position in `[0, 1]`.
+    color:  Color // Color sampled at `offset`.
 }
 
+// Describes a reusable fill source for painter shapes.
+//
+// Construct brushes with the `create...` functions, then optionally add sorted
+// color stops or apply a tint. Gradient geometry is expressed in painter
+// path-space coordinates.
+//
+// ## Example
+//
+// ```swag
+// var brush = Brush.createLinearGradient({0, 0}, {160, 0},
+//                                        Color.fromArgb(Argb.DodgerBlue),
+//                                        Color.fromArgb(Argb.DeepPink))
+// brush.addGradientStop(0.5, Color.fromArgb(Argb.White))
+// ```
 struct Brush
 {
-    color:   Color      = Color.fromArgb(Argb.White)
-    type:    BrushType  = SolidColor
-    hatch:   HatchStyle = Dot
-    texture: Texture
-    uvMode:  UVMode     = Fill
-    uvRect:  Math.Rectangle
+    color:   Color      = Color.fromArgb(Argb.White) // Color or multiplicative tint.
+    type:    BrushType  = SolidColor                 // Active paint-source variant.
+    hatch:   HatchStyle = Dot                        // Built-in hatch used by `.Hatch`.
+    texture: Texture                                 // Texture used by `.Texture`.
+    uvMode:  UVMode     = Fill                       // Texture coverage mode.
+    uvRect:  Math.Rectangle                          // Source texel rectangle used by `.FillSubRect`.
 
-    gradientStart:     Math.Vector2
-    gradientEnd:       Math.Vector2
-    gradientRadius0:   f32
-    gradientRadius1:   f32
-    gradientAngle0:    f32
-    gradientAngle1:    f32
-    gradientSpread:    GradientSpread = Clamp
-    gradientStops:     [MaxGradientStops] GradientStop
-    gradientStopCount: u8
+    gradientStart:     Math.Vector2                    // Linear start point or radial/sweep center.
+    gradientEnd:       Math.Vector2                    // Linear end point or secondary radial center.
+    gradientRadius0:   f32                             // Inner radial radius, in pixels.
+    gradientRadius1:   f32                             // Outer radial radius, in pixels.
+    gradientAngle0:    f32                             // Sweep start angle, in radians.
+    gradientAngle1:    f32                             // Sweep end angle, in radians.
+    gradientSpread:    GradientSpread = Clamp          // Sampling outside the endpoint interval.
+    gradientStops:     [MaxGradientStops] GradientStop // Stops sorted by increasing offset.
+    gradientStopCount: u8                              // Number of initialized entries in `gradientStops`.
 }
 
 impl Brush
 {
+    // Reports whether the brush can contribute nonzero alpha.
     mtd const hasVisibleAlpha()->bool
     {
         switch #complete .type
@@ -70,6 +88,7 @@ impl Brush
         }
     }
 
+    // Reports whether every color produced by the brush is fully opaque.
     mtd const isOpaque()->bool
     {
         switch #complete .type
@@ -94,6 +113,10 @@ impl Brush
         }
     }
 
+    // Inserts a gradient stop in increasing offset order.
+    //
+    // `offset` is clamped to `[0, 1]`. The brush must contain fewer than
+    // [[Pixel.MaxGradientStops]] stops.
     mtd addGradientStop(offset: f32, color: Color)
     {
         Debug.assert(.gradientStopCount < MaxGradientStops, "too many gradient stops")
@@ -151,7 +174,7 @@ impl Brush
         .color = .color.withAlphaf((cast(f32) .color.a / 255.0) * factor)
     }
 
-    // Returns a solid color brush
+    // Creates a uniform straight-alpha color brush.
     func createSolid(color: Color)->Brush
     {
         var result: retval
@@ -160,7 +183,7 @@ impl Brush
         return result
     }
 
-    // Returns a full texture brush
+    // Creates an untinted brush that stretches the complete texture.
     func createTexture(texture: Texture)->Brush
     {
         var result: retval
@@ -171,7 +194,7 @@ impl Brush
         return result
     }
 
-    // Returns a tiled texture brush
+    // Creates an untinted brush that repeats the texture.
     func createTiled(texture: Texture)->Brush
     {
         var result: retval
@@ -182,7 +205,7 @@ impl Brush
         return result
     }
 
-    // Returns a hatch brush
+    // Creates a repeating built-in hatch with the specified color.
     func createHatch(style: HatchStyle, color: Color)->Brush
     {
         var result: retval
@@ -193,7 +216,7 @@ impl Brush
         return result
     }
 
-    // Returns a linear gradient brush
+    // Creates a two-stop linear gradient between path-space points.
     func createLinearGradient(start, end: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
         var result: retval
@@ -207,13 +230,13 @@ impl Brush
         return result
     }
 
-    // Returns a linear gradient brush
+    // Creates a two-stop linear gradient from path-space coordinates.
     func createLinearGradient(x0, y0, x1, y1: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
         return createLinearGradient(Math.Vector2{x0, y0}, Math.Vector2{x1, y1}, color0, color1, spread)
     }
 
-    // Returns a radial gradient brush
+    // Creates a two-stop radial gradient from radius zero to `radius`.
     func createRadialGradient(center: Math.Vector2, radius: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
         var result: retval
@@ -229,13 +252,13 @@ impl Brush
         return result
     }
 
-    // Returns a radial gradient brush
+    // Creates a two-stop radial gradient from center coordinates.
     func createRadialGradient(centerX, centerY, radius: f32, color0, color1: Color, spread: GradientSpread = .Clamp)->Brush
     {
         return createRadialGradient(Math.Vector2{centerX, centerY}, radius, color0, color1, spread)
     }
 
-    // Returns a sweep gradient brush
+    // Creates a two-stop angular gradient over the specified angle interval.
     func createSweepGradient(center: Math.Vector2, startAngle, endAngle: Math.Angle, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
     {
         var result: retval
@@ -251,13 +274,13 @@ impl Brush
         return result
     }
 
-    // Returns a full-turn sweep gradient brush
+    // Creates a two-stop sweep gradient covering one full turn.
     func createSweepGradient(center: Math.Vector2, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
     {
         return createSweepGradient(center, 0.0'deg, 360.0'deg, color0, color1, spread)
     }
 
-    // Returns a full-turn sweep gradient brush
+    // Creates a two-stop full-turn sweep gradient from center coordinates.
     func createSweepGradient(centerX, centerY: f32, color0, color1: Color, spread: GradientSpread = .Repeat)->Brush
     {
         return createSweepGradient(Math.Vector2{centerX, centerY}, color0, color1, spread)

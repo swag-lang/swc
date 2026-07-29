@@ -2,21 +2,26 @@
 
 using Swag, Core, Win32, Ogl, Gdi32
 
+// Provides the Windows-specific OpenGL context operations used by [[Pixel.RenderOgl]].
 public struct NativeRenderOgl {}
 
+// Describes a Windows device context, OpenGL context, drawable, and viewport.
 public struct RenderingContext
 {
-    hDC:    HDC
-    hRC:    HGLRC
-    hWnd:   HWND
-    width:  s32
-    height: s32
-    ownsDC: bool
-    ownsRC: bool
+    hDC:    HDC   // Windows device context.
+    hRC:    HGLRC // OpenGL rendering context.
+    hWnd:   HWND  // Associated window, or `null` for an externally supplied device context.
+    width:  s32   // Drawable width, in pixels.
+    height: s32   // Drawable height, in pixels.
+    ownsDC: bool  // Whether dropping the context must release `hDC`.
+    ownsRC: bool  // Whether dropping the context must delete `hRC`.
 }
 
 public impl NativeRenderOgl
 {
+    // Creates a rendering context for a window handle.
+    //
+    // When `mainRC` is provided, it is borrowed instead of creating a new context.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createContext(hWnd: HWND, width, height: s32, mainRC: HGLRC = null)->RenderingContext fail
     {
@@ -26,12 +31,16 @@ public impl NativeRenderOgl
         return result
     }
 
+    // Creates a rendering context for an environment window.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createContext(window: &Env.Window, width, height: s32, mainRC: HGLRC = null)->RenderingContext fail
     {
         return try .createContext(cast(HWND) window.nativeHandle, width, height, mainRC)
     }
 
+    // Creates a rendering context for an existing device context.
+    //
+    // The device context remains caller-owned. A supplied `mainRC` is borrowed.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd createContext(hdc: HDC, width, height: s32, mainRC: HGLRC = null)->RenderingContext fail
     {
@@ -57,6 +66,7 @@ public impl NativeRenderOgl
         return result
     }
 
+    // Releases native resources owned by `rc`.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd dropContext(rc: RenderingContext)
     {
@@ -67,12 +77,14 @@ public impl NativeRenderOgl
             ReleaseDC(rc.hWnd, rc.hDC)
     }
 
+    // Makes `rc` current on the calling thread.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd setCurrentContext(rc: RenderingContext)
     {
         catch wglMakeCurrent(rc.hDC, rc.hRC)
     }
 
+    // Presents the current back buffer for `rc`.
     #[Warning("Wrn0006", WarningLevel.Disable)]
     mtd swapBuffers(rc: RenderingContext)
     {

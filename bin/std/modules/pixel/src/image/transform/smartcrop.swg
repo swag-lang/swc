@@ -825,6 +825,11 @@ public impl Image
         maxSize: s32 = 0
     }
 
+    // Evaluates how well a candidate rectangle preserves visually salient content.
+    //
+    // Higher scores are preferred. `rect` uses image pixel coordinates. When
+    // `opts.maxSize` is positive, scoring may use a reduced working copy while
+    // preserving the rectangle's proportions.
     mtd evaluateCropScore(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})->f32
     {
         // If a max working size is set and we’re larger, evaluate on a resized copy
@@ -861,6 +866,11 @@ public impl Image
         return .evaluateCropScoreFull(rect, opts)
     }
 
+    // Reframes and crops the image to the size of `rect`.
+    //
+    // The position in `rect` is ignored: Pixel searches the source for the
+    // highest-scoring placement with the requested width and height. The final
+    // crop always uses the original pixels, even when search downscaling is enabled.
     mtd smartCrop(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})
     {
         Debug.assert(rect.width > 0 and rect.height > 0)

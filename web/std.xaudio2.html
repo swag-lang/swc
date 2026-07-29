@@ -297,7 +297,7 @@
 <table class="table-enumeration">
 <tr><td class="code-type">dwChannelMask</td><td class="code-type">u32</td><td></td></tr>
 <tr><td class="code-type">format</td><td class="code-type">XAudio2.WAVEFORMATEX</td><td></td></tr>
-<tr><td class="code-type">samples</td><td class="code-type">XAudio2.WAVEFORMATEXTENSIBLE.__anonymous_union_30</td><td></td></tr>
+<tr><td class="code-type">samples</td><td class="code-type">union { ... }</td><td></td></tr>
 <tr><td class="code-type">subFormat</td><td class="code-type">Win32.GUID</td><td></td></tr>
 </table>
 <table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_BUFFER"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_BUFFER</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L172">[src]</a></td></tr></table>
@@ -406,9 +406,39 @@
 </table>
 <table class="api-item"><tr><td><span id="XAudio2_AUDIO_STREAM_CATEGORY"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">XAudio2.AUDIO_STREAM_CATEGORY</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L133">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">AUDIO_STREAM_CATEGORY</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">AudioCategory_Alerts</td><td class="code-type">4</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_BackgroundCapableMedia</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_Communications</td><td class="code-type">3</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_ForegroundOnlyMedia</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_GameChat</td><td class="code-type">8</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_GameEffects</td><td class="code-type">6</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_GameMedia</td><td class="code-type">7</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_Media</td><td class="code-type">11</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_Movie</td><td class="code-type">10</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_Other</td><td class="code-type">0</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_SoundEffects</td><td class="code-type">5</td><td></td></tr>
+<tr><td class="code-type">AudioCategory_Speech</td><td class="code-type">9</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_FILTER_TYPE"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_FILTER_TYPE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L199">[src]</a></td></tr></table>
 <p>Used in XAUDIO2_FILTER_PARAMETERS below</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">XAUDIO2_FILTER_TYPE</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">BandPassFilter</td><td class="code-type">1</td><td><p>Attenuates frequencies outside a given range      (state-variable filter).</p>
+</td></tr>
+<tr><td class="code-type">HighPassFilter</td><td class="code-type">2</td><td><p>Attenuates frequencies below the cutoff frequency (state-variable filter).</p>
+</td></tr>
+<tr><td class="code-type">HighPassOnePoleFilter</td><td class="code-type">5</td><td><p>Attenuates frequencies below the cutoff frequency (one-pole filter, XAUDIO2_FILTER_PARAMETERS.OneOverQ has no effect)</p>
+</td></tr>
+<tr><td class="code-type">LowPassFilter</td><td class="code-type">0</td><td><p>Attenuates frequencies above the cutoff frequency (state-variable filter).</p>
+</td></tr>
+<tr><td class="code-type">LowPassOnePoleFilter</td><td class="code-type">4</td><td><p>Attenuates frequencies above the cutoff frequency (one-pole filter, XAUDIO2_FILTER_PARAMETERS.OneOverQ has no effect)</p>
+</td></tr>
+<tr><td class="code-type">NotchFilter</td><td class="code-type">3</td><td><p>Attenuates frequencies inside a given range       (state-variable filter).</p>
+</td></tr>
+</table>
 <table class="api-item"><tr><td><span id="XAudio2_FORMAT_EXTENSIBLE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.FORMAT_EXTENSIBLE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L335">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">FORMAT_EXTENSIBLE</span> = <span class="SNum">0xFFFE</span>'<span class="STpe">u16</span></span></div>
 <table class="api-item"><tr><td><span id="XAudio2_Processor1"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor1</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L16">[src]</a></td></tr></table>

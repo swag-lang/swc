@@ -2,54 +2,65 @@
 
 using Core
 
+// Configures an off-screen layer recording scope.
 struct LayerBeginInfo
 {
-    width:        s32
-    height:       s32
-    renderScale:  s32          = 1
-    paintAlpha:   bool         = true
-    clearColor:   Color        = Color.fromArgb(Argb.Zero)
-    antialiased:  bool         = true
-    blendingMode: BlendingMode = .Alpha
+    width:        s32           // Logical layer width, in pixels.
+    height:       s32           // Logical layer height, in pixels.
+    renderScale:  s32          = 1 // Supersampling factor; values below `1` become `1`.
+    paintAlpha:   bool         = true // Preserve alpha through a separate resolve when needed.
+    clearColor:   Color        = Color.fromArgb(Argb.Zero) // Initial straight-alpha color.
+    antialiased:  bool         = true // Enable antialiasing while recording.
+    blendingMode: BlendingMode = .Alpha // Initial blend mode.
 }
 
+// Configures the blurred shadow generated for an off-screen layer.
 struct LayerShadowInfo
 {
-    enabled: bool
-    margin:  s32   = 8
-    radius:  f32   = 8
-    offsetX: f32
-    offsetY: f32
-    color:   Color = Color.fromArgb(150, Argb.Black)
+    enabled: bool // Generate and draw a shadow when true.
+    margin:  s32   = 8 // Extra pixels reserved around the layer for blur.
+    radius:  f32   = 8 // Separable blur radius, in pixels.
+    offsetX: f32       // Horizontal shadow offset, in pixels.
+    offsetY: f32       // Vertical shadow offset, in pixels.
+    color:   Color = Color.fromArgb(150, Argb.Black) // Shadow tint and opacity.
 }
 
+// Configures compositing an off-screen layer into the current painter target.
 struct LayerDrawInfo
 {
-    dstRect:           Math.Rectangle
-    color:             Color             = Color.fromArgb(Argb.White)
-    interpolationMode: InterpolationMode = .Linear
-    writeAlpha:        bool              = true
-    alphaBlendingMode: BlendingMode      = .Max
-    releaseAfterDraw:  bool              = true
-    shadow:            LayerShadowInfo
+    dstRect:           Math.Rectangle // Destination rectangle in painter path space.
+    color:             Color             = Color.fromArgb(Argb.White) // Multiplicative tint.
+    interpolationMode: InterpolationMode = .Linear // Sampling used while scaling.
+    writeAlpha:        bool              = true // Composite the layer alpha channel separately.
+    alphaBlendingMode: BlendingMode      = .Max // Blend operation for the alpha-only pass.
+    releaseAfterDraw:  bool              = true // Queue layer targets for release after drawing.
+    shadow:            LayerShadowInfo   // Optional blurred shadow.
 }
 
+// Records painter commands into an off-screen render target and composites the result.
+//
+// A layer owns renderer targets until [[Layer.release]] or a draw configured with
+// `releaseAfterDraw`. Calls must follow `begin`, drawing, `end`, then optional
+// `resolve`/`buildShadow`/`draw`.
 struct Layer
 {
-    renderer:      #null *RenderOgl
-    painter:       #null *Painter
-    paintTarget:   #null *RenderTarget
-    contentTarget: #null *RenderTarget
-    shadowTarget:  #null *RenderTarget
-    width:         s32
-    height:        s32
-    renderScale:   s32 = 1
-    active:        bool
-    resolved:      bool
+    renderer:      #null *RenderOgl    // Borrowed renderer used to allocate targets.
+    painter:       #null *Painter      // Borrowed painter receiving layer commands.
+    paintTarget:   #null *RenderTarget // Supersampled recording target, if allocated.
+    contentTarget: #null *RenderTarget // Resolved content target, if allocated.
+    shadowTarget:  #null *RenderTarget // Shadow-composited target, if allocated.
+    width:         s32                 // Logical content width, in pixels.
+    height:        s32                 // Logical content height, in pixels.
+    renderScale:   s32 = 1             // Active supersampling factor.
+    active:        bool                // Whether recording is between `begin` and `end`.
+    resolved:      bool                // Whether content is at logical resolution.
 }
 
 impl Layer
 {
+    // Begins recording into a newly acquired off-screen target.
+    //
+    // `renderer` and `painter` are borrowed until release. Dimensions must be positive.
     mtd begin(renderer: *RenderOgl, painter: *Painter, info: LayerBeginInfo)
     {
         Debug.assert(!.active)
@@ -80,6 +91,7 @@ impl Layer
         }
     }
 
+    // Ends the active off-screen recording scope.
     mtd end()
     {
         Debug.assert(.active)
@@ -88,6 +100,9 @@ impl Layer
         .active = false
     }
 
+    // Downsamples supersampled content to logical layer dimensions.
+    //
+    // Calling this more than once is harmless.
     mtd resolve()
     {
         Debug.assert(!.active)
@@ -121,6 +136,9 @@ impl Layer
         .resolved      = true
     }
 
+    // Builds the optional blurred shadow and composites the layer content into it.
+    //
+    // Recording must have ended. A disabled shadow leaves the layer unchanged.
     mtd buildShadow(info: LayerShadowInfo)
     {
         Debug.assert(!.active)
@@ -191,6 +209,9 @@ impl Layer
         .shadowTarget = target1
     }
 
+    // Composites the resolved layer into the painter.
+    //
+    // The layer is released afterward when `info.releaseAfterDraw` is true.
     mtd draw(info: LayerDrawInfo)
     {
         Debug.assert(!.active)
@@ -236,6 +257,10 @@ impl Layer
             .release()
     }
 
+    // Returns the resolved layer texture.
+    //
+    // Supersampled content is resolved on demand. The texture remains renderer-owned
+    // and valid until the layer is released.
     mtd texture()->Texture
     {
         .resolve()
@@ -243,11 +268,15 @@ impl Layer
         return contentTarget.colorBuffer
     }
 
+    // Returns the logical layer rectangle with origin `(0, 0)`.
     mtd sourceRect()->Math.Rectangle
     {
         return Math.Rectangle{0, 0, .width, .height}
     }
 
+    // Queues every owned render target for release and resets the layer.
+    //
+    // Calling `release` on an empty layer is harmless.
     mtd release()
     {
         if .painter

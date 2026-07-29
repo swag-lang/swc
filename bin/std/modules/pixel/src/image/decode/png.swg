@@ -94,6 +94,9 @@ private
     }
 }
 
+// Decodes PNG images, including palettes, transparency, filters, and Adam7 passes.
+//
+// The decoder is opaque and reports malformed chunks or unsupported data through `fail`.
 #[Opaque]
 public struct Decoder
 {

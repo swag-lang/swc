@@ -90,6 +90,7 @@ struct EncodeChannels
     alpha: EncodeChannel
 }
 
+// Encodes lossless VP8L WebP images in a RIFF container.
 public struct Encoder {}
 
 impl Encoder

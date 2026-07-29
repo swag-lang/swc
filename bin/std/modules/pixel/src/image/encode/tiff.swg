@@ -2,18 +2,21 @@
 
 using Core, Core.Errors
 
+// Encodes little-endian baseline TIFF images.
 public struct Encoder {}
 
+// Selects the strip compression used by the TIFF encoder.
 public enum Compression
 {
-    None
-    PackBits
-    Lzw
+    None     // Store uncompressed pixel bytes.
+    PackBits // Use PackBits run-length encoding.
+    Lzw      // Use TIFF LZW compression with horizontal differencing.
 }
 
+// Configures TIFF strip compression.
 public struct EncodeOptions
 {
-    compression: Compression
+    compression: Compression // Compression applied to image strips; defaults to `.None`.
 }
 
 // Append one 12-byte IFD entry (little-endian).

@@ -1,61 +1,80 @@
 using Core, Core.Math
 
+// Identifies the segment encoded by one [[Pixel.Element]].
 public enum ElementType
 {
-    Line
-    Arc
-    Bezier1
-    Bezier2
-    Curve
+    Line    // Straight segment ending at `position`.
+    Arc     // Elliptical arc encoded by center, angle, and radius data.
+    Bezier1 // Quadratic Bézier segment with one control point.
+    Bezier2 // Cubic Bézier segment with two control points.
+    Curve   // Smoothed curve point interpreted with neighboring elements.
 }
 
+// Stores one compact segment in a [[Pixel.LinePath]].
 public struct Element
 {
-    type:     ElementType = undefined
-    position: Vector2
-    p1, p2:   Vector2
+    type:     ElementType = undefined // Segment representation.
+    position: Vector2                 // Endpoint, or center for an arc.
+    p1:       Vector2                 // First control point, or arc angle interval.
+    p2:       Vector2                 // Second control point, or arc radii.
 }
 
+// Builds a mutable vector path from lines, arcs, and Bézier curves.
+//
+// A path begins with [[LinePath.start]]. Segment methods update `endPoint`;
+// [[LinePath.close]] optionally joins the last point to the first. Flattened
+// polygons and triangles are cached and invalidated by geometry changes.
+//
+// ## Example
+//
+// ```swag
+// var path: LinePath
+// path.start(12, 12)
+// path.lineTo(84, 12)
+// path.lineTo(48, 72)
+// path.close()
+// ```
 public struct LinePath
 {
-    elements:   Array'Element
-    startPoint: Vector2
-    endPoint:   Vector2
-    isClosed:   bool
-    isDirty:    bool
-    serial:     s32
+    elements:   Array'Element // Ordered segments after the starting point.
+    startPoint: Vector2       // First point in path-space pixels.
+    endPoint:   Vector2       // Current last point in path-space pixels.
+    isClosed:   bool          // Whether the path forms a closed contour.
+    isDirty:    bool          // Whether cached flattened geometry is stale.
+    serial:     s32           // Caller-defined grouping identifier used by path lists.
 
-    // Flatten infos
-    flattenQuality: PaintQuality
-    isPolyOnly:     bool
-    isFlatten:      bool
-    bvMin:          Vector2
-    bvMax:          Vector2
-    endPosBuffer:   Vector2
-    polygon:        Polygon
-    triangles:      Poly2Tri.Result
+    flattenQuality: PaintQuality    // Quality used to build the current flattened cache.
+    isPolyOnly:     bool            // Whether every segment is already polygonal.
+    isFlatten:      bool            // Whether flattened geometry is available.
+    bvMin:          Vector2         // Minimum cached path bound.
+    bvMax:          Vector2         // Maximum cached path bound.
+    endPosBuffer:   Vector2         // Reusable endpoint workspace for flattening.
+    polygon:        Polygon         // Cached flattened contour.
+    triangles:      Poly2Tri.Result // Cached fill tessellation.
 }
 
 public impl LinePath
 {
+    // Releases cached tessellation when the path leaves scope.
     mtd opDrop()
     {
         .clearCache()
     }
 
+    // Detaches cached tessellation after copying the path.
     mtd opPostCopy()
     {
         .triangles.clear()
     }
 
-    // Clear private cache
+    // Releases all cached polygon and tessellation data.
     mtd clearCache()
     {
         .triangles.release()
         .polygon.clear()
     }
 
-    // Reset the path
+    // Clears the path and starts a new open contour at `(startX, startY)`.
     mtd start(startX, startY: f32)
     {
         .elements.clear()
@@ -66,7 +85,7 @@ public impl LinePath
         .endPoint   = .startPoint
     }
 
-    // Add a line from the previous point to 'pt'
+    // Adds a straight segment from the current endpoint to `(x, y)`.
     mtd lineTo(x, y: f32)
     {
         let newEndPoint = Vector2{x, y}
@@ -81,7 +100,7 @@ public impl LinePath
         .isDirty  = true
     }
 
-    // Add a curve from the previous point to 'pt'
+    // Adds a smoothed curve point at `(x, y)`.
     mtd curveTo(x, y: f32)
     {
         let newEndPoint = Vector2{x, y}
@@ -96,7 +115,7 @@ public impl LinePath
         .isDirty  = true
     }
 
-    // Add a curve from the previous point to 'pt'
+    // Adds a quadratic Bézier ending at `(x, y)` with one control point.
     mtd bezierTo(x, y: f32, ctx, cty: f32)
     {
         let newEndPoint = Vector2{x, y}
@@ -112,7 +131,7 @@ public impl LinePath
         .isDirty  = true
     }
 
-    // Add a curve from the previous point to 'pt'
+    // Adds a cubic Bézier ending at `(x, y)` with two control points.
     mtd bezierTo(x, y: f32, ct1x, ct1y: f32, ct2x, ct2y: f32)
     {
         let newEndPoint = Vector2{x, y}

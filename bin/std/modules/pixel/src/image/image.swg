@@ -2,30 +2,51 @@
 
 using Swag, Core, Core.Serialization
 
-// An image buffer, in various pixel formats.
+// Owns a two-dimensional, tightly packed pixel buffer.
+//
+// Pixels are stored row by row without padding in the format given by [[Pixel.PixelFormat]].
+// Copying an image copies its owned byte array; temporary working storage is never shared.
+//
+// ## Example
+//
+// ```swag
+// var image = Image.create(64, 64, .RGBA8)
+// image.fill(Color.fromRgb(18, 24, 32))
+// ```
 struct Image
 {
-    pixels:    Array'u8        // All the pixels
-    size:      u64             // Size in bytes
-    width:     s32             // The width of the image
-    height:    s32             // The height of the image
-    width8:    s32             // The width, in bytes
-    pf:        PixelFormat     // Format of one pixel
-    bpp:       u8              // Bits per pixel
-    bpp8:      u8              // Bytes per pixel
-    metaDatas: Array'ImageMetaData
+    pixels:    Array'u8             // Owned, row-major pixel bytes.
+    size:      u64                  // Total pixel-buffer size, in bytes.
+    width:     s32                  // Image width, in pixels.
+    height:    s32                  // Image height, in pixels.
+    width8:    s32                  // Byte stride of one tightly packed row.
+    pf:        PixelFormat          // Encoding of each pixel.
+    bpp:       u8                   // Number of bits per pixel.
+    bpp8:      u8                   // Number of bytes per pixel.
+    metaDatas: Array'ImageMetaData  // Format-specific metadata preserved by compatible codecs.
 
     #[Core.Serialization.NoSerialize]
-    workingBuffer: #null *Image     // Temporary buffer for filters and transformations
+    workingBuffer: #null *Image // Reusable scratch image owned by this image.
 }
 
 impl Image
 {
-    // Returns true if the image is valid
+    // Reports whether the image owns an allocated pixel buffer.
     #[Swag.Inline]
     mtd const isValid() => .pixels.buffer != null
 
-    // Creates a new image
+    // Creates a tightly packed image with positive dimensions.
+    //
+    // When `buffer` is provided, its bytes are copied into the new image. The slice
+    // must not be larger than the computed image size; bytes not supplied by a shorter
+    // slice remain uninitialized.
+    //
+    // ## Example
+    //
+    // ```swag
+    // let pixels: [4] u8 = {255, 0, 0, 255}
+    // let image = Image.create(1, 1, .RGBA8, pixels)
+    // ```
     func create(width, height: s32, pf: PixelFormat, buffer: #null const [..] u8 = null)->Image
     {
         Debug.assert(width > 0 and height > 0, "invalid dimensions")
@@ -38,17 +59,23 @@ impl Image
         return result
     }
 
+    // Releases temporary working storage when the image leaves scope.
     mtd opDrop()
     {
         Memory.delete'Image(.workingBuffer)
     }
 
+    // Detaches temporary working storage after copying the image.
     mtd opPostCopy()
     {
         .workingBuffer = null
     }
 
-    // Block parameters: 'pixel' is the address of the current pixel, 'index' its ordinal.
+    // Visits every pixel in storage order.
+    //
+    // The injected `pixel` value is the address of the current pixel and `index` is
+    // its zero-based row-major ordinal. Set `back` to use reverse visitation where
+    // supported by the macro invocation.
     #[Swag.Macro]
     func(ptr: bool, back: bool) opVisit(me, stmt: #code(var pixel, var index: u64))
     {
@@ -61,9 +88,10 @@ impl Image
         }
     }
 
-    // Initialize image informations
-    // 'pixels' is set to null, and must be initialized after a call to that function
-    // This gives the opportunity to set the pixels with an external buffer
+    // Initializes image geometry without allocating pixels.
+    //
+    // This resets `pixels`, metadata, and temporary storage. Call [[Image.allocPixels]]
+    // afterward, or supply storage through a higher-level creation operation.
     mtd init(width, height: s32, pf: PixelFormat)
     {
         .pixels        = {}
@@ -78,8 +106,7 @@ impl Image
         .size          = cast(u64) (.width * .height * .bpp8)
     }
 
-    // Allocate pixels.
-    // Pixels will not be initialized.
+    // Allocates the pixel buffer without initializing its bytes.
     mtd allocPixels()
     {
         Debug.assert(.size != 0)
@@ -90,13 +117,15 @@ impl Image
         .pixels.count = .size
     }
 
-    // Allocate a computing buffer with current image size
+    // Allocates reusable working storage with the current geometry and pixel format.
     mtd allocWorkingBuffer()
     {
         .allocWorkingBuffer(.width, .height, .pf)
     }
 
-    // Allocate a computing buffer with new sizes
+    // Allocates reusable working storage with the requested geometry and format.
+    //
+    // An existing compatible buffer is retained; an incompatible one is released.
     mtd allocWorkingBuffer(newWidth, newHeight: s32, newPf: PixelFormat)
     {
         if .workingBuffer and
@@ -112,19 +141,25 @@ impl Image
         dref .workingBuffer = Image.create(newWidth, newHeight, newPf)
     }
 
+    // Returns the allocated working image.
+    //
+    // The caller must have called an `allocWorkingBuffer` overload first.
     mtd safeWorkingBuffer()->*Image
     {
         return notnull .workingBuffer
     }
 
-    // Free the working buffer if allocated
+    // Releases the working image, if any.
     mtd freeWorkingBuffer()
     {
         Memory.delete(.workingBuffer)
         .workingBuffer = null
     }
 
-    // Replace the current image content with the working buffer
+    // Swaps the current pixels and geometry with the working image.
+    //
+    // Working storage must already be allocated. Metadata remains attached to the
+    // current image.
     mtd applyWorkingBuffer()
     {
         let wb = notnull .workingBuffer
@@ -138,8 +173,10 @@ impl Image
         swap(&.width8, &wb.width8)
     }
 
-    // Macro to visit all pixels of the image in parallel chunks.
-    // Block parameters:
+    // Visits pixels in parallel using chunks separated by `stride` pixels.
+    //
+    // `stride` must be positive. Each injected invocation receives:
+    //
     // | pix       | address of the pixel
     // | image     | the processed image
     // | index     | the pixel index
@@ -171,21 +208,21 @@ impl Image
         }
     }
 
-    // Release the content of the image
+    // Releases all owned image content and restores an empty value.
     mtd release()
     {
         @drop(me, 1)
         @init(me, 1)
     }
 
-    // Clear the content of the image
+    // Sets every byte of the pixel buffer to zero.
     mtd clear()
     {
         let pixels = notnull .pixels.buffer
         Memory.clear(pixels, .size)
     }
 
-    // Copy one pixel, depending on bpp
+    // Copies one 24-bit or 32-bit pixel between non-null addresses.
     #[Swag.Inline]
     func(BPP: u8) copyPixelDirect(pixDst, pixSrc: [*] u8)
     {
@@ -203,8 +240,7 @@ impl Image
         }
     }
 
-    // Set pixel values at 'pixDst' depending on pixel format
-    // Destination is supped to be in RGBA8 format
+    // Writes RGBA components to `pixDst` using the compile-time pixel format.
     func(PF: PixelFormat) convertToRGBA8(pixDst: [*] u8, r, g, b, a: u8)
     {
         #static if PF == .BGR8

@@ -1,19 +1,24 @@
 #global public
 
+// Fonts that represent the regular, bold, italic, and bold-italic faces of one family.
+//
+// A style slot may be `null`. [[Pixel.FontFamily.getFont]] falls back to an
+// available compatible slot when the requested face is absent.
 struct FontFamily
 {
-    regular:    #null *Font
-    bold:       #null *Font
-    italic:     #null *Font
-    boldItalic: #null *Font
+    regular:    #null *Font // Regular face, when available.
+    bold:       #null *Font // Bold face, when available.
+    italic:     #null *Font // Italic face, when available.
+    boldItalic: #null *Font // Combined bold and italic face, when available.
 }
 
+// Style slot within a [[Pixel.FontFamily]].
 enum FontFamilyStyle
 {
-    Regular
-    Bold
-    Italic
-    BoldItalic
+    Regular    // Upright text with normal weight.
+    Bold       // Upright text with bold weight.
+    Italic     // Slanted text with normal weight.
+    BoldItalic // Slanted text with bold weight.
 }
 
 impl FontFamily

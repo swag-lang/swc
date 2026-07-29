@@ -2,6 +2,7 @@
 
 using Core, Core.Errors
 
+// Encodes one image as a 32-bit Windows icon entry.
 public struct Encoder {}
 
 public impl IImageEncoder for Encoder

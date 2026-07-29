@@ -48,6 +48,10 @@ impl Image
         return result
     }
 
+    // Returns a cropped copy described by `cropRect`.
+    //
+    // Coordinates are clamped to the source image. Width and height must leave at
+    // least one source pixel after clamping.
     public mtd const toCrop(cropRect: Math.Rectangle)->Image
     {
         return .toCrop(cast() cropRect.x, cast() cropRect.y, cast() cropRect.width, cast() cropRect.height)

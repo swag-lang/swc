@@ -68,6 +68,10 @@
 <li><a href="#Voice_setVolumeDB">Voice.setVolumeDB</a></li>
 <li><a href="#Voice_stop">Voice.stop</a></li>
 <h4>codec</h4>
+<li><a href="#Audio_ICodec_canDecode">ICodec.canDecode</a></li>
+<li><a href="#Audio_ICodec_canEncode">ICodec.canEncode</a></li>
+<li><a href="#Audio_ICodec_decode">ICodec.decode</a></li>
+<li><a href="#Audio_ICodec_init">ICodec.init</a></li>
 <li><a href="#Audio_addCodec">Audio.addCodec</a></li>
 <h4>driver</h4>
 <li><a href="#Bus_getVolume">Bus.getVolume</a></li>
@@ -106,24 +110,6 @@
 <p>Represents a playing sound</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Opaque]</span>
 <span class="SKwd">struct</span> <span class="SCst">Voice</span></span></div>
-<h3>Fields</h3>
-<table class="table-enumeration">
-<tr><td class="code-type">DecodedBufferSize</td><td class="code-type">u64</td><td></td></tr>
-<tr><td class="code-type">NumDecodedBuffers</td><td class="code-type">s32</td><td></td></tr>
-<tr><td class="code-type">StreamBufferSize</td><td class="code-type">u64</td><td></td></tr>
-<tr><td class="code-type">codec</td><td class="code-type">#null Audio.ICodec</td><td></td></tr>
-<tr><td class="code-type">decodedBufferIdx</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">decodedBuffers</td><td class="code-type">[3] Core.Array'(u8)</td><td></td></tr>
-<tr><td class="code-type">file</td><td class="code-type">#null *Audio.SoundFile</td><td></td></tr>
-<tr><td class="code-type">handle</td><td class="code-type">#null *void</td><td></td></tr>
-<tr><td class="code-type">idxInList</td><td class="code-type">u32</td><td></td></tr>
-<tr><td class="code-type">playFlags</td><td class="code-type">Audio.VoicePlayFlags</td><td></td></tr>
-<tr><td class="code-type">requestedEncoding</td><td class="code-type">Audio.SoundFileEncoding</td><td></td></tr>
-<tr><td class="code-type">state</td><td class="code-type">Audio.VoiceState</td><td></td></tr>
-<tr><td class="code-type">stream</td><td class="code-type">Core.File.FileStream</td><td></td></tr>
-<tr><td class="code-type">streamBuffer</td><td class="code-type">Core.Array'(u8)</td><td></td></tr>
-<tr><td class="code-type">streamCurSeek</td><td class="code-type">u64</td><td></td></tr>
-</table>
 <table class="api-item"><tr><td><span id="Audio_Codec"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Audio.Codec</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L49">[src]</a></td></tr></table>
 <p>Base struct for all codec instances</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Codec</span></span></div>
@@ -180,21 +166,78 @@
 <table class="api-item"><tr><td><span id="Audio_VoiceCreateFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoiceCreateFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L5">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">VoiceCreateFlags</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">AcceptFilters</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">AcceptPitch</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">Default</td><td class="code-type">3</td><td></td></tr>
+<tr><td class="code-type">Zero</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="Audio_VoicePlayFlags"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoicePlayFlags</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L14">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">VoicePlayFlags</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Default</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">DestroyOnStop</td><td class="code-type">2</td><td><p>Destroy the voice once the sound has been played</p>
+</td></tr>
+<tr><td class="code-type">Loop</td><td class="code-type">1</td><td><p>Play in loops</p>
+</td></tr>
+<tr><td class="code-type">Zero</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="Audio_VoiceState"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.VoiceState</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L23">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">VoiceState</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">PendingDestroy</td><td class="code-type">4</td><td></td></tr>
+<tr><td class="code-type">PlayedOnce</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">Playing</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">Zero</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="Audio_DriverKind"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.DriverKind</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L4">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">DriverKind</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Default</td><td class="code-type">0</td><td></td></tr>
+<tr><td class="code-type">NoSound</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">XAudio2</td><td class="code-type">2</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="Audio_SoundFileEncoding"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.SoundFileEncoding</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L24">[src]</a></td></tr></table>
 <p>SoundFile private format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">SoundFileEncoding</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">Float32</td><td class="code-type">5</td><td><p>Pcm, uncompressed, float 32 bits per sample</p>
+</td></tr>
+<tr><td class="code-type">Pcm16</td><td class="code-type">2</td><td><p>Pcm, uncompressed, 16 bits per sample</p>
+</td></tr>
+<tr><td class="code-type">Pcm24</td><td class="code-type">3</td><td><p>Pcm, uncompressed, 24 bits per sample</p>
+</td></tr>
+<tr><td class="code-type">Pcm32</td><td class="code-type">4</td><td><p>Pcm, uncompressed, 32 bits per sample</p>
+</td></tr>
+<tr><td class="code-type">Pcm8</td><td class="code-type">1</td><td><p>Pcm, uncompressed, 8 bits per sample</p>
+</td></tr>
+<tr><td class="code-type">Unknown</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="Audio_SoundFileValidityMask"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Audio.SoundFileValidityMask</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/file/soundfile.swg#L8">[src]</a></td></tr></table>
 <p>Determins which informations in the <a href="#Audio_SoundFile">SoundFile</a> struct are valid.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
 <span class="SKwd">enum</span> <span class="SCst">SoundFileValidityMask</span></span></div>
+<h3>Values</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">BitsPerSample</td><td class="code-type">16</td><td></td></tr>
+<tr><td class="code-type">ChannelCount</td><td class="code-type">4</td><td></td></tr>
+<tr><td class="code-type">ChannelMask</td><td class="code-type">8</td><td></td></tr>
+<tr><td class="code-type">Data</td><td class="code-type">256</td><td></td></tr>
+<tr><td class="code-type">Duration</td><td class="code-type">32</td><td></td></tr>
+<tr><td class="code-type">Format</td><td class="code-type">1</td><td></td></tr>
+<tr><td class="code-type">Frequency</td><td class="code-type">2</td><td></td></tr>
+<tr><td class="code-type">MetaData</td><td class="code-type">512</td><td></td></tr>
+<tr><td class="code-type">SampleCount</td><td class="code-type">64</td><td></td></tr>
+<tr><td class="code-type">ValidBitsPerSample</td><td class="code-type">128</td><td></td></tr>
+<tr><td class="code-type">Zero</td><td class="code-type">0</td><td></td></tr>
+</table>
 <table class="api-item"><tr><td><span id="Audio_BusHandle"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Audio.BusHandle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L12">[src]</a></td></tr></table>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">BusHandle</span> = <span class="SItr">#null</span> *<span class="STpe">void</span></span></div>
 <table class="api-item"><tr><td><span id="Audio_VoiceHandle"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Audio.VoiceHandle</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/driver/backend.swg#L11">[src]</a></td></tr></table>
@@ -261,6 +304,14 @@
 <table class="api-item"><tr><td><span id="Voice_stop"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Voice.stop</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/voice.swg#L142">[src]</a></td></tr></table>
 <p>Stop the playing voice</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">stop</span>() <span class="SKwd">fail</span></span></div>
+<table class="api-item"><tr><td><span id="Audio_ICodec_canDecode"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canDecode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L10">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canDecode</span>(encoding: <span class="SCst">SoundFileEncoding</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Audio_ICodec_canEncode"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.canEncode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L9">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">canEncode</span>(encoding: <span class="SCst">SoundFileEncoding</span>)-&gt;<span class="STpe">bool</span></span></div>
+<table class="api-item"><tr><td><span id="Audio_ICodec_decode"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.decode</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L12">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decode</span>(destBuffer: [*] <span class="STpe">void</span>, destLength: <span class="STpe">u64</span>, srcBuffer: [*] <span class="STpe">void</span>, srcLength: <span class="STpe">u64</span>)-&gt;{ write, read: <span class="STpe">u64</span> }</span></div>
+<table class="api-item"><tr><td><span id="Audio_ICodec_init"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ICodec.init</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L11">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">init</span>(srcBuffer: [*] <span class="STpe">void</span>, srcLength: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 <table class="api-item"><tr><td><span id="Audio_addCodec"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Audio.addCodec</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio/src/codec/codec.swg#L22">[src]</a></td></tr></table>
 <p>Register a codec</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">addCodec</span>()</span></div>

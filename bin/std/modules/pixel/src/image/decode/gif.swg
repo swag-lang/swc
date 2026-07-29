@@ -54,6 +54,10 @@ impl Entry
     }
 }
 
+// Decodes GIF images and retains animation state for sequential frames.
+//
+// Treat the structure as opaque. Use it through [[Pixel.IImageDecoder]] or the
+// GIF animation operations exposed by this module.
 #[Swag.Opaque]
 public struct Decoder
 {

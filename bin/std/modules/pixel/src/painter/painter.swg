@@ -2,10 +2,11 @@
 
 using Core, Ogl, Core.Math
 
+// Identifies the built-in shader selected when no custom shader is active.
 enum DefaultShaderId
 {
-    Default
-    Blur
+    Default // Standard shape, texture, and text rendering.
+    Blur    // Separable blur pass used by layers and effects.
 }
 
 // Antialiasing fringe half-width, in (untransformed) path-space pixels.
@@ -13,118 +14,135 @@ enum DefaultShaderId
 // outside), giving a 1px transition with 50% coverage on the true edge.
 const AAHalf = 0.5'f32
 
+// Defines the packed vertex format consumed by [[Pixel.RenderOgl]].
 #[Swag.Pack(1)]
 struct VertexLayout
 {
-    pos:   Vector2
-    uv:    Vector2
-    color: u32
-    cov:   f32     // antialiasing coverage: 1 = solid, 0 = outer fringe edge
+    pos:   Vector2 // Position in painter path-space pixels.
+    uv:    Vector2 // Normalized or tiled texture coordinates.
+    color: u32     // Vertex color packed for the renderer.
+    cov:   f32     // Antialiasing coverage: `1` is solid and `0` is the outer fringe edge.
 }
 
+// Identifies one command in the painter's deferred command stream.
 enum CommandId
 {
-    Clear
-    ColorMask
-    Transform
-    DrawTriangles
-    BindTexture0
-    ResetTexture0
-    StartFont
-    StartMsdfFont
-    EndFont
-    BindTextureFont
-    ResetTextureFont
-    SetClippingRect
-    ResetClippingRect
-    StartClippingRegion
-    EndClippingRegion
-    ResetClippingRegion
-    SetClippingRegionMode
-    UpdateFont
-    StartNoOverlap
-    StopNoOverlap
-    SetBlendingMode
-    BindRenderTarget
-    UnbindRenderTarget
-    ReleaseRenderTarget
-    SetShader
-    SetShaderParam
-    SetFontEffect
+    Clear                 // Clear the active rendering surface.
+    ColorMask             // Change writable color channels.
+    Transform             // Change the current two-dimensional transform.
+    DrawTriangles         // Draw a contiguous vertex-buffer range.
+    BindTexture0          // Bind the current brush texture or gradient.
+    ResetTexture0         // Restore the default brush texture.
+    StartFont             // Begin bitmap-font rendering.
+    StartMsdfFont         // Begin multi-channel signed-distance-field text rendering.
+    EndFont               // End the current font batch.
+    BindTextureFont       // Bind one font-atlas texture.
+    ResetTextureFont      // Unbind the current font atlas.
+    SetClippingRect       // Enable a rectangular scissor region.
+    ResetClippingRect     // Disable the rectangular scissor region.
+    StartClippingRegion   // Begin writing a stencil clipping region.
+    EndClippingRegion     // Finish writing a stencil clipping region.
+    ResetClippingRegion   // Clear stencil clipping.
+    SetClippingRegionMode // Change how subsequent shapes affect stencil clipping.
+    UpdateFont            // Upload pending font-atlas changes.
+    StartNoOverlap        // Begin overlap-safe alpha rendering.
+    StopNoOverlap         // Finish overlap-safe alpha rendering.
+    SetBlendingMode       // Change the framebuffer blend operation.
+    BindRenderTarget      // Redirect drawing to an off-screen target.
+    UnbindRenderTarget    // Restore the previous rendering target.
+    ReleaseRenderTarget   // Release a renderer-owned target.
+    SetShader             // Select a custom shader.
+    SetShaderParam        // Update one custom-shader uniform.
+    SetFontEffect         // Update MSDF font-effect uniforms.
 }
 
+// Controls optional painter behaviors.
 #[Swag.EnumFlags]
 enum PaintParams
 {
-    Zero
-    Antialiased
-    Default = Antialiased
+    Zero                  // Disable every optional behavior.
+    Antialiased           // Generate coverage fringes along vector edges.
+    Default = Antialiased // Use the normal antialiased configuration.
 }
 
+// Selects the geometric approximation quality used for curved paths.
 enum PaintQuality
 {
-    Draft
-    Normal
-    High
+    Draft  // Favor fewer segments and lower tessellation cost.
+    Normal // Balance visual quality and cost.
+    High   // Favor smoother curves at additional tessellation cost.
 }
 
+// Selects how newly drawn geometry changes the stencil clipping region.
 enum ClippingMode
 {
-    Set
-    Clear
+    Set   // Add drawn coverage to the clipping region.
+    Clear // Remove drawn coverage from the clipping region.
 }
 
+// Selects how source and destination colors are combined.
 enum BlendingMode
 {
-    Copy
-    Alpha
-    Add
-    Sub
-    SubDst
-    Min
-    Max
+    Copy   // Replace the destination with the source.
+    Alpha  // Composite using source alpha.
+    Add    // Add source and destination components.
+    Sub    // Subtract destination components from the source.
+    SubDst // Subtract source components from the destination.
+    Min    // Keep the minimum source/destination component.
+    Max    // Keep the maximum source/destination component.
 }
 
+// Captures the complete mutable drawing state of a [[Pixel.Painter]].
 struct PaintState
 {
-    paintParams:       PaintParams       = Default
-    paintQuality:      PaintQuality      = Normal
-    transform:         Transform2
-    blendingMode:      BlendingMode      = Alpha
-    interpolationMode: InterpolationMode = .Pixel
-    clippingRect:      Math.Rectangle
-    stackClipRect:     Array'Math.Rectangle
-    clippingRectOn:    bool
-    colorMask:         ColorMask
+    paintParams:       PaintParams       = Default // Enabled painter behaviors.
+    paintQuality:      PaintQuality      = Normal  // Curve tessellation quality.
+    transform:         Transform2                  // Current path-to-surface transform.
+    blendingMode:      BlendingMode      = Alpha   // Current color blend operation.
+    interpolationMode: InterpolationMode = .Pixel  // Current texture sampler mode.
+    clippingRect:      Math.Rectangle              // Active surface-space clipping rectangle.
+    stackClipRect:     Array'Math.Rectangle        // Saved nested clipping rectangles.
+    clippingRectOn:    bool                        // Whether `clippingRect` is active.
+    colorMask:         ColorMask                   // Channels currently writable by the renderer.
 }
 
+// Selects which framebuffer color channels may be written.
 struct ColorMask
 {
-    r, g, b, a: bool
+    r: bool // Allow writes to the red channel.
+    g: bool // Allow writes to the green channel.
+    b: bool // Allow writes to the blue channel.
+    a: bool // Allow writes to the alpha channel.
 }
 
-// Resolved MSDF font-effect uniforms (see TextEffect / font_msdf.frag). Colors are
-// kept as Color (not Vector4) and expanded to vec4 at the GL layer.
+// Contains resolved MSDF font-effect values sent to the text shader.
+//
+// Applications normally configure [[Pixel.TextEffect]]; the painter derives this
+// low-level representation for the renderer.
 struct FontEffectParams
 {
-    enabled:      f32
-    faceDilate:   f32
-    faceSoftness: f32
-    outlineWidth: f32
-    outlineColor: Color
-    glowColor:    Color
-    glowOffset:   f32
-    glowInner:    f32
-    glowOuter:    f32
-    glowPower:    f32
-    bevel:        f32
+    enabled:      f32   // Nonzero when at least one effect is active.
+    faceDilate:   f32   // Signed expansion of the glyph face in distance-field units.
+    faceSoftness: f32   // Width of the softened face edge.
+    outlineWidth: f32   // Outline thickness in distance-field units.
+    outlineColor: Color // Straight-alpha outline color.
+    glowColor:    Color // Straight-alpha glow color.
+    glowOffset:   f32   // Signed glow displacement in distance-field units.
+    glowInner:    f32   // Inner glow boundary.
+    glowOuter:    f32   // Outer glow boundary.
+    glowPower:    f32   // Glow falloff exponent.
+    bevel:        f32   // Bevel intensity.
 }
 
+// Stores one deferred painter command and its command-specific payload.
+//
+// This is the transport format consumed by [[Pixel.RenderOgl]]. Applications
+// should use `Painter` methods instead of constructing commands directly.
 struct Command
 {
-    id: CommandId = undefined
+    id: CommandId = undefined // Operation represented by the active union payload.
 
-    using params: union
+    using params: union // Command-specific payload selected by `id`; inactive members must not be read.
     {
         clear:          struct{ color: Color }
         drawTriangles:  struct{ start: u32, count: u32 }
@@ -170,53 +188,68 @@ struct Command
     }
 }
 
+// Records drawing operations as a deferred command and vertex stream.
+//
+// Call [[Painter.begin]], issue drawing operations, and call [[Painter.end]]
+// before handing the painter to a renderer. Coordinates are in path-space pixels
+// and are transformed by the current [[Core.Math.Transform2]].
+//
+// ## Example
+//
+// ```swag
+// var painter: Painter
+// painter.begin()
+// painter.clear(Color.fromRgb(24, 32, 48))
+// painter.fillCircle(48, 48, 24, Color.fromRgb(72, 149, 239))
+// painter.end()
+// ```
 struct Painter
 {
-    commandBuffer:  Array'Command
-    vertexBuffer:   Array'VertexLayout
-    triangulateIdx: Array's32
-    fake:           bool
+    commandBuffer:  Array'Command      // Deferred renderer command stream.
+    vertexBuffer:   Array'VertexLayout // Packed vertices referenced by draw commands.
+    triangulateIdx: Array's32          // Reusable tessellation index workspace.
+    fake:           bool               // Record layout without emitting render commands when true.
 
-    sharedLinePath:     LinePath
-    sharedLinePathList: LinePathList
-    sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }
+    sharedLinePath:     LinePath                              // Reusable single-path workspace.
+    sharedLinePathList: LinePathList                          // Reusable multi-path workspace.
+    sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }  // Reusable stroke-rounding workspace.
 
-    curState:         PaintState
-    stackState:       Array'PaintState
-    stackTransform:   Array'Transform2
-    lastTexture0Type: BrushType = SolidColor
-    tess:             Poly2Tri.Tessellate
+    curState:         PaintState       // Current mutable drawing state.
+    stackState:       Array'PaintState // States saved by [[Painter.pushState]].
+    stackTransform:   Array'Transform2 // Transforms saved by [[Painter.pushTransform]].
+    lastTexture0Type: BrushType = SolidColor // Last brush type emitted to the command stream.
+    tess:             Poly2Tri.Tessellate    // Reusable polygon tessellator.
 
-    stackRT: Array'#null *RenderTarget
-    curRT:   #null *RenderTarget
+    stackRT: Array'#null *RenderTarget // Nested off-screen render targets.
+    curRT:   #null *RenderTarget       // Active off-screen target, or `null` for the surface.
 
-    lastTexture0Handle: TextureHandle
-    hasTextureFont:     bool
+    lastTexture0Handle: TextureHandle // Last brush texture handle emitted.
+    hasTextureFont:     bool          // Whether a glyph atlas is currently bound.
 
     // The paintType / gradient uniforms live per shader program, but texture0 state
     // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
     // program's paint uniforms stale, so a program switch forces the next texture0
     // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
-    texture0Dirty:  bool
-    curTextProgram: s32
+    texture0Dirty:  bool // Whether brush uniforms must be re-emitted.
+    curTextProgram: s32  // Active text program: `0` none, `1` bitmap, `2` MSDF.
 
     // Last MSDF font-effect uniforms emitted this frame, to skip redundant
     // SetFontEffect commands (most text shares the same -- usually empty -- effect).
-    lastFontEffect: FontEffectParams
-    hasFontEffect:  bool
+    lastFontEffect: FontEffectParams // Last emitted MSDF effect values.
+    hasFontEffect:  bool             // Whether `lastFontEffect` is initialized.
 
     // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
     // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
-    curTextureFont:      #null *Font
-    curTextureFontAtlas: s32 = -1
+    curTextureFont:      #null *Font // Font owning the currently bound glyph atlas.
+    curTextureFontAtlas: s32 = -1   // Zero-based bound atlas index, or `-1`.
 
     // Reusable shaped run for the immediate drawString path, so per-frame text drawing
     // shapes without allocating a fresh glyph buffer on every call.
-    scratchShaped: ShapedRun
+    scratchShaped: ShapedRun // Reusable shaping result for immediate text drawing.
 
-    drawingBegin:   bool
-    overlapMode:    bool
-    canSetTexture0: bool = true
+    drawingBegin:   bool        // Whether a `begin`/`end` recording scope is active.
+    overlapMode:    bool        // Whether overlap-safe alpha rendering is active.
+    canSetTexture0: bool = true // Whether drawing operations may change the brush texture.
 }
 
 impl Painter
@@ -479,7 +512,7 @@ impl Painter
         ptr.pos = outerA; ptr.color = color; ptr.cov = 0
     }
 
-    mtd aaHalfPathSpace()->f32
+    private mtd aaHalfPathSpace()->f32
     {
         let tr = .curState.transform
         let sx = Math.sqrt(tr.m11 * tr.m11 + tr.m12 * tr.m12)
@@ -490,7 +523,7 @@ impl Painter
         return AAHalf / sc
     }
 
-    mtd aaHalfPathSpace(normal: Vector2)->f32
+    private mtd aaHalfPathSpace(normal: Vector2)->f32
     {
         let tr = .curState.transform
         let tx = normal.x * tr.m11 + normal.y * tr.m21
@@ -582,7 +615,9 @@ impl Painter
         }
     }
 
-    // Call this before drawing
+    // Starts a fresh recording scope and resets drawing state.
+    //
+    // A previous scope must have ended. Existing commands and vertices are discarded.
     mtd begin()
     {
         Debug.assert(.drawingBegin == false)
@@ -602,21 +637,21 @@ impl Painter
         .resetState()
     }
 
-    // Call this after drawing
+    // Ends the active recording scope.
     mtd end()
     {
         Debug.assert(.drawingBegin)
         .drawingBegin = false
     }
 
-    // Clear the rendering surface
+    // Records a clear of the complete active rendering surface.
     mtd clear(color: Color)
     {
         let cmd = .newCommand(.Clear)
         cmd.clear.color = color
     }
 
-    // Reset the current painting state
+    // Restores default transform, clipping, blending, interpolation, and color masks.
     mtd resetState()
     {
         with me.curState
@@ -636,7 +671,7 @@ impl Painter
         .setState(.curState)
     }
 
-    // Set the current painting state
+    // Replaces the current drawing state and emits its renderer-visible changes.
     mtd setState(state: PaintState)
     {
         .curState = state
@@ -651,37 +686,39 @@ impl Painter
         }
     }
 
-    // Save the current paint state
+    // Pushes a copy of the current drawing state.
     mtd pushState()
     {
         .stackState.add(.curState)
     }
 
-    // Restore the last paint state
+    // Pops and restores the most recently pushed drawing state.
     mtd popState()
     {
         let state = .stackState.popBack()
         .setState(state)
     }
 
-    // Set the paint parameters
+    // Adds and removes painter behavior flags atomically.
     mtd setParams(add: PaintParams, remove: PaintParams = .Zero)
     {
         .curState.paintParams |= add
         .curState.paintParams &= ~remove
     }
 
+    // Enables the specified painter behavior flags.
     mtd addParams(add: PaintParams)
     {
         .curState.paintParams |= add
     }
 
+    // Disables the specified painter behavior flags.
     mtd removeParams(remove: PaintParams)
     {
         .curState.paintParams &= ~remove
     }
 
-    // Set antialiased mode on/off
+    // Enables or disables antialiased path fringes.
     mtd setAntialiased(aa = true)
     {
         if aa do
@@ -690,18 +727,21 @@ impl Painter
             .curState.paintParams &= ~.Antialiased
     }
 
+    // Returns the currently enabled painter behavior flags.
     #[Swag.Inline]
     mtd getParams() => .curState.paintParams
+
+    // Returns the current curve tessellation quality.
     #[Swag.Inline]
     mtd getQuality() => .curState.paintQuality
 
-    // Set the paint quality
+    // Sets the curve tessellation quality for subsequent paths.
     mtd setQuality(quality: PaintQuality)
     {
         .curState.paintQuality = quality
     }
 
-    // Set the paint position
+    // Appends a translation, in path-space pixels, to the current transform.
     mtd translateTransform(x, y: f32)
     {
         if isZeroEpsilon(x) and isZeroEpsilon(y) do
@@ -711,7 +751,7 @@ impl Painter
         .setTransform(.curState.transform)
     }
 
-    // Set the paint rotation
+    // Appends a rotation around the path-space origin.
     mtd rotateTransform(angle: Math.Angle)
     {
         if isZeroEpsilon(angle.rad) do
@@ -721,7 +761,7 @@ impl Painter
         .setTransform(.curState.transform)
     }
 
-    // Set the paint rotation
+    // Appends a rotation around the specified path-space center.
     mtd rotateTransform(angle: Math.Angle, centerX, centerY: f32)
     {
         if isZeroEpsilon(angle.rad) do
@@ -742,7 +782,7 @@ impl Painter
         .setTransform(.curState.transform)
     }
 
-    // Set the paint scale
+    // Appends independent horizontal and vertical scale factors.
     mtd scaleTransform(x, y: f32)
     {
         if isZeroEpsilon(x) and isZeroEpsilon(y) do
@@ -752,7 +792,7 @@ impl Painter
         .setTransform(.curState.transform)
     }
 
-    // Set the paint scale
+    // Appends a uniform scale factor.
     mtd scaleTransform(x: f32)
     {
         if isZeroEpsilon(x) do
@@ -762,26 +802,26 @@ impl Painter
         .setTransform(.curState.transform)
     }
 
-    // Push the current transformation
+    // Pushes a copy of the current transform.
     mtd pushTransform()
     {
         .stackTransform.add(.curState.transform)
     }
 
-    // Restore the pushed transformation
+    // Pops and restores the most recently pushed transform.
     mtd popTransform()
     {
         .setTransform(.stackTransform.popBack())
     }
 
-    // Reset the paint position, rotation, scale
+    // Restores the identity transform.
     mtd resetTransform()
     {
         .curState.transform.setIdentity()
         .setTransform(.curState.transform)
     }
 
-    // Set the paint transformation
+    // Replaces the current path-to-surface transform.
     mtd setTransform(tr: Transform2)
     {
         .curState.transform = tr
@@ -789,19 +829,20 @@ impl Painter
         cmd.transform.tr = tr
     }
 
-    // Returns the current tranformation
+    // Returns the current path-to-surface transform.
     mtd getTransform()->Transform2
     {
         var result: retval = .curState.transform
         return result
     }
 
-    // Set the texture interpolation mode
+    // Sets texture interpolation for subsequent textured and gradient draws.
     mtd setInterpolationMode(mode: InterpolationMode)
     {
         .curState.interpolationMode = mode
     }
 
+    // Returns the current texture interpolation mode.
     #[Swag.Inline]
     mtd getInterpolationMode() => .curState.interpolationMode
 
@@ -833,13 +874,15 @@ impl Painter
         }
     }
 
-    // Interface the given rectangle with the current clipping rectangle
+    // Pushes the intersection of a surface-space rectangle and the current clip.
     mtd pushClippingSurfaceRect(rect: Math.Rectangle)
     {
         .pushClippingRect(rect, true)
     }
 
-    // Interface the given rectangle with the current clipping rectangle
+    // Pushes the intersection of `rect` and the current clipping rectangle.
+    //
+    // By default `rect` is transformed to surface space using the current translation.
     mtd pushClippingRect(rect: Math.Rectangle, isSurfacePos = false)
     {
         var rrect = rect
@@ -882,7 +925,7 @@ impl Painter
         return {0, 0, Swag.F32.Max, Swag.F32.Max}
     }
 
-    // Returns true if the current clipping rectangle is empty (no drawing !)
+    // Reports whether rectangular clipping currently rejects all drawing.
     mtd isEmptyClippingRect()->bool
     {
         return .curState.clippingRectOn and .curState.clippingRect.isEmpty()
@@ -922,7 +965,7 @@ impl Painter
         .curState.blendingMode = mode
     }
 
-    // Set color mask
+    // Sets the writable framebuffer channels from a mask value.
     mtd setColorMask(cm: ColorMask)
     {
         let cmd = .newCommand(.ColorMask, true)
@@ -930,7 +973,7 @@ impl Painter
         .curState.colorMask = cm
     }
 
-    // Set color mask
+    // Sets the writable red, green, blue, and alpha channels.
     mtd setColorMask(r, g, b, a: bool)
     {
         let cmd = .newCommand(.ColorMask, true)
@@ -941,8 +984,13 @@ impl Painter
         .curState.colorMask = cmd.colorMask
     }
 
+    // Enables writes to RGB and disables writes to alpha.
     mtd setColorMaskColor() => .setColorMask(true, true, true, false)
+
+    // Enables writes to all color channels.
     mtd setColorMaskFull()  => .setColorMask(true, true, true, true)
+
+    // Enables writes only to alpha.
     mtd setColorMaskAlpha() => .setColorMask(false, false, false, true)
 
     // Bind a render target

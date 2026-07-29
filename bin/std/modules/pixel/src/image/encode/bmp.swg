@@ -2,6 +2,7 @@
 
 using Core, Core.Errors
 
+// Encodes 24-bit or 32-bit uncompressed Windows BMP images.
 public struct Encoder {}
 
 public impl IImageEncoder for Encoder

@@ -16,6 +16,26 @@ enum Orientation
     Collinear
 }
 
+// Owns the working state for constrained Delaunay triangulation.
+//
+// Treat this type as opaque and use its tessellation entry points. The returned
+// [[Poly2Tri.Result]] owns the public points, edges, and triangle descriptors.
+//
+// ## Example
+//
+// ```swag
+// var polygon: Pixel.Polygon
+// polygon.add({0, 0})
+// polygon.add({100, 0})
+// polygon.add({50, 80})
+// polygon.add({0, 0}) // Close the ring.
+// polygon.compute()
+//
+// var tessellator: Pixel.Poly2Tri.Tessellate
+// tessellator.addPolyLine(polygon)
+// tessellator.triangulate()
+// let triangles = tessellator.getResult().triIndices
+// ```
 #[Swag.Opaque]
 public struct Tessellate
 {
@@ -39,36 +59,40 @@ public struct Tessellate
     polyStart: u64
 }
 
+// Owns the graph and index output of one tessellation.
 public struct Result
 {
-    triangles:  Array'(*Triangle)
-    edges:      Array'(*Edge)
-    points:     Array'(*Point)
-    triIndices: Array'u64
-    tess:       #null *Tessellate
+    triangles:  Array'(*Triangle) // Owned triangle descriptors.
+    edges:      Array'(*Edge)     // Owned constrained-edge descriptors.
+    points:     Array'(*Point)    // Owned point descriptors.
+    triIndices: Array'u64         // Flat triples indexing `points`.
+    tess:       #null *Tessellate // Tessellator associated with this result, if retained.
 }
 
+// Stores one tessellation point and its incident constrained edges.
 public struct Point
 {
-    using v: Math.Vector2
-    edges:   Array'(*Edge)
-    border:  [2] #null *Edge
+    using v: Math.Vector2     // Point coordinates in path space.
+    edges:   Array'(*Edge)    // Incident constrained edges.
+    border:  [2] #null *Edge // Up to two boundary edges.
 }
 
+// Connects two tessellation points with a constrained edge.
 public struct Edge
 {
-    p: *Point = undefined
-    q: *Point = undefined
+    p: *Point = undefined // Lower endpoint according to Poly2Tri ordering.
+    q: *Point = undefined // Upper endpoint according to Poly2Tri ordering.
 }
 
+// Stores one triangle and its adjacency/classification state.
 public struct Triangle
 {
-    constrainedEdge: [3] bool
-    delaunayEdge:    [3] bool
-    points:          [3] *Point = undefined
-    neighbors:       [3] #null *Triangle
-    idx:             u64
-    interior:        bool
+    constrainedEdge: [3] bool           // Whether each opposite edge is constrained.
+    delaunayEdge:    [3] bool           // Temporary Delaunay edge markers.
+    points:          [3] *Point = undefined // Counter-clockwise triangle vertices.
+    neighbors:       [3] #null *Triangle // Adjacent triangles opposite each point.
+    idx:             u64                // Result-local triangle index.
+    interior:        bool               // Whether the triangle belongs to the output interior.
 }
 
 struct EdgeEvent
@@ -634,6 +658,7 @@ impl AdvancingFront
 
 impl Tessellate
 {
+    // Releases all working geometry and cached sweep nodes owned by the tessellator.
     public mtd opDrop()
     {
         .clear()

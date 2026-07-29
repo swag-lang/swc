@@ -6,6 +6,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/AttributeList.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
@@ -78,10 +79,11 @@ namespace
 
     struct RenderContext
     {
-        TaskContext*                                     ctx     = nullptr;
-        const PageOptions*                               options = nullptr;
-        const std::unordered_map<Utf8, Utf8>*            references;
+        TaskContext*                                     ctx                 = nullptr;
+        const PageOptions*                               options             = nullptr;
+        const std::unordered_map<Utf8, Utf8>*            references          = nullptr;
         const std::vector<std::pair<Utf8, Utf8>>* anonymousTypeNames = nullptr;
+        Utf8                                             headingAnchorPrefix;
     };
 
     struct ApiDocument
@@ -448,20 +450,13 @@ namespace
             outLines.pop_back();
     }
 
-    std::vector<Utf8> leadingCommentLines(TaskContext& ctx, const SourceFile& file, const AstNodeRef rootRef)
+    bool collectLeadingCommentTrivia(std::vector<Utf8>& result, const SourceView& srcView, const TokenRef tokenRef)
     {
-        std::vector<Utf8> result;
-        const Ast&        ast = file.ast();
-        if (rootRef.isInvalid() || !ast.hasNode(rootRef))
-            return result;
+        if (!tokenRef.isValid() || tokenRef.get() >= srcView.numTokens() || tokenRef.get() + 1 >= srcView.triviaStart().size())
+            return false;
 
-        const AstNode&    rootNode   = ast.node(rootRef);
-        const SourceView& srcView    = ModuleApi::Export::moduleApiNodeSourceView(ctx, ast, rootRef);
-        const TokenRef    startToken = ModuleApi::Export::moduleApiSnippetStartTokRef(ast, rootNode);
-        if (!startToken.isValid() || startToken.get() >= srcView.numTokens() || startToken.get() + 1 >= srcView.triviaStart().size())
-            return result;
-
-        const auto [triviaStart, triviaEnd] = srcView.triviaRangeForToken(startToken);
+        result.clear();
+        const auto [triviaStart, triviaEnd] = srcView.triviaRangeForToken(tokenRef);
         bool hasComment                     = false;
         for (uint32_t i = triviaStart; i < triviaEnd; ++i)
         {
@@ -491,6 +486,23 @@ namespace
 
         if (!hasComment)
             result.clear();
+        return hasComment;
+    }
+
+    std::vector<Utf8> leadingCommentLines(TaskContext& ctx, const SourceFile& file, const AstNodeRef rootRef)
+    {
+        std::vector<Utf8> result;
+        const Ast&        ast = file.ast();
+        if (rootRef.isInvalid() || !ast.hasNode(rootRef))
+            return result;
+
+        const AstNode&    rootNode   = ast.node(rootRef);
+        const SourceView& srcView    = ModuleApi::Export::moduleApiNodeSourceView(ctx, ast, rootRef);
+        const TokenRef    startToken = ModuleApi::Export::moduleApiSnippetStartTokRef(ast, rootNode);
+        if (!startToken.isValid() || startToken.get() >= srcView.numTokens() || startToken.get() + 1 >= srcView.triviaStart().size())
+            return result;
+
+        collectLeadingCommentTrivia(result, srcView, startToken);
         return result;
     }
 
@@ -541,6 +553,8 @@ namespace
             result = trailingCommentLines(ctx, file, declRef);
         if (result.empty())
             result = leadingCommentLines(ctx, file, rootRef);
+        if (result.empty() && declRef != rootRef)
+            result = leadingCommentLines(ctx, file, declRef);
         return result;
     }
 
@@ -653,6 +667,21 @@ namespace
 
                     symbols.push_back(entry.symbol);
                     publicRootRefs.emplace(entry.symbol, entry.rootRef);
+
+                    // Interface methods are exported as part of the interface root,
+                    // not as independent module API entries. Add their declaration
+                    // symbols so the API page owns one canonical method contract.
+                    if (entry.symbol->isInterface() && entry.symbol->isSymMap())
+                    {
+                        std::vector<const Symbol*> members;
+                        entry.symbol->asSymMap()->getAllSymbols(members);
+                        for (const Symbol* member : members)
+                        {
+                            if (!member || !member->isFunction() || !seen.insert(member).second)
+                                continue;
+                            symbols.push_back(member);
+                        }
+                    }
                 }
             }
         }
@@ -667,6 +696,12 @@ namespace
                 continue;
             if (isAnonymousAggregateSymbol(*symbol) || hasCompilerGeneratedIdentifier(ctx, *symbol))
                 continue;
+            if (const auto* function = symbol->safeCast<SymbolFunction>())
+            {
+                const SymbolImpl* impl = function->declImplContext();
+                if (impl && impl->isForInterface())
+                    continue;
+            }
 
             const SourceFile* file = compiler.ownerSourceFile(symbol->srcViewRef());
             if (!file)
@@ -732,6 +767,19 @@ namespace
                 outItems.push_back(std::move(item));
             }
             outItems[it->second].overloads.push_back(std::move(overload));
+        }
+
+        for (DocItem& item : outItems)
+        {
+            std::ranges::sort(item.overloads, [](const DocOverload& lhs, const DocOverload& rhs) {
+                const std::string lhsPath = lhs.file ? lhs.file->path().generic_string() : std::string{};
+                const std::string rhsPath = rhs.file ? rhs.file->path().generic_string() : std::string{};
+                if (lhsPath != rhsPath)
+                    return lhsPath < rhsPath;
+                if (lhs.sourceLine != rhs.sourceLine)
+                    return lhs.sourceLine < rhs.sourceLine;
+                return lhs.signature < rhs.signature;
+            });
         }
 
         std::ranges::sort(outItems, [](const DocItem& lhs, const DocItem& rhs) {
@@ -1053,7 +1101,10 @@ namespace
                 {
                     const std::string_view title     = trimView(line.substr(level + 1));
                     const uint32_t         htmlLevel = std::clamp<uint32_t>(static_cast<uint32_t>(level) + headingOffset, 1, 6);
-                    result.append(std::format("<h{} id=\"{}\">{}</h{}>\n", htmlLevel, makeAnchor(title), renderInline(renderCtx, title), htmlLevel));
+                    Utf8 anchor = makeAnchor(title);
+                    if (!renderCtx.headingAnchorPrefix.empty())
+                        anchor = std::format("{}_{}", renderCtx.headingAnchorPrefix, anchor);
+                    result.append(std::format("<h{} id=\"{}\">{}</h{}>\n", htmlLevel, anchor, renderInline(renderCtx, title), htmlLevel));
                     index++;
                     continue;
                 }
@@ -1309,19 +1360,56 @@ namespace
             return false;
         if (runtime)
             return file->isRuntime();
-        return ModuleApi::isCurrentModuleSourceFile(*file) && symbol.isPublic();
+        return ModuleApi::isCurrentModuleSourceFile(*file) && (symbol.isPublic() || symbol.isEnumValue());
     }
 
     std::vector<Utf8> memberCommentLines(TaskContext& ctx, const Symbol& symbol)
     {
-        const SourceFile* file = ctx.compiler().sourceViewFile(symbol);
+        const SourceFile* file = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
+        if (!file)
+            file = ctx.compiler().sourceViewFile(symbol);
         if (!file)
             return {};
         AstNodeRef declRef;
         if (!ModuleApi::Internal::tryFindNodeRef(file->ast(), symbol.decl(), declRef))
-            return {};
+        {
+            if (file->ast().hasSourceView() && symbol.srcViewRef() != file->ast().srcView().ref())
+                declRef = file->ast().tryFindNodeRef(symbol.decl());
+            if (declRef.isInvalid())
+                return {};
+        }
         const AstNodeRef rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
-        return symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
+        std::vector<Utf8> result = symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
+        if (!result.empty())
+            return result;
+
+        // A `using name: union` member is represented by its anonymous aggregate
+        // declaration, whose AST end token is not the member name. Fall back to
+        // the symbol token's physical line so an ordinary trailing field comment
+        // remains sufficient for this source form.
+        const SourceCodeRange range = symbol.codeRange(ctx);
+        if (!range.srcView)
+            return result;
+
+        const std::string_view source = range.srcView->stringView();
+        size_t                 start  = std::min<size_t>(range.offset + range.len, source.size());
+        size_t                 end    = source.find_first_of("\r\n", start);
+        if (end == std::string_view::npos)
+            end = source.size();
+
+        const std::string_view suffix = source.substr(start, end - start);
+        const size_t           line   = suffix.find("//");
+        const size_t           block  = suffix.find("/*");
+        size_t                 commentPos;
+        if (line == std::string_view::npos)
+            commentPos = block;
+        else if (block == std::string_view::npos)
+            commentPos = line;
+        else
+            commentPos = std::min(line, block);
+        if (commentPos != std::string_view::npos)
+            appendNormalizedComment(result, suffix.substr(commentPos));
+        return result;
     }
 
     void collectAnonymousTypeNames(TaskContext& ctx, std::vector<std::pair<Utf8, Utf8>>& outNames, std::unordered_set<uint32_t>& seen, const TypeRef typeRef)
@@ -1415,6 +1503,35 @@ namespace
             for (const auto& [name, replacement] : *renderCtx.anonymousTypeNames)
                 result.replace_loop(name, replacement);
         }
+
+        // Generic constant arguments can preserve a cloned anonymous type name after
+        // sema has detached the clone from its source declaration. The "__" prefix is
+        // reserved to the compiler, so remove the whole qualified token as a final
+        // boundary guarantee instead of exposing implementation-generated spelling.
+        size_t generatedPos = result.find("__");
+        while (generatedPos != Utf8::npos)
+        {
+            size_t start = generatedPos;
+            while (start)
+            {
+                const char c = result[start - 1];
+                if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_' && c != '.')
+                    break;
+                start--;
+            }
+
+            size_t end = generatedPos + 2;
+            while (end < result.size())
+            {
+                const char c = result[end];
+                if (!std::isalnum(static_cast<unsigned char>(c)) && c != '_')
+                    break;
+                end++;
+            }
+
+            result.replace(start, end - start, "anonymous aggregate");
+            generatedPos = result.find("__", start);
+        }
         return result;
     }
 
@@ -1436,6 +1553,7 @@ namespace
         };
         std::vector<MemberRow> fields;
         std::vector<MemberRow> functions;
+        const bool             hideFields = owner.isStruct() && ModuleApi::Export::isModuleApiOpaqueType(owner);
 
         for (const Symbol* member : members)
         {
@@ -1447,6 +1565,8 @@ namespace
             row.name         = Utf8(member->name(*renderCtx.ctx));
             row.commentLines = memberCommentLines(*renderCtx.ctx, *member);
             row.type         = documentationTypeName(renderCtx, *member);
+            if (const auto* enumValue = member->safeCast<SymbolEnumValue>(); enumValue && enumValue->cstRef().isValid())
+                row.type = renderCtx.ctx->cstMgr().get(enumValue->cstRef()).toString(*renderCtx.ctx);
 
             if (member->isFunction())
             {
@@ -1454,8 +1574,9 @@ namespace
                 row.anchor          = makeAnchor(fullName);
                 functions.push_back(std::move(row));
             }
-            else if ((owner.isEnum() && member->isEnumValue()) ||
-                     ((owner.isStruct() || owner.isInterface()) && (member->isVariable() || member->isConstant())))
+            else if (!hideFields &&
+                     ((owner.isEnum() && member->isEnumValue()) ||
+                      ((owner.isStruct() || owner.isInterface()) && (member->isVariable() || member->isConstant()))))
             {
                 fields.push_back(std::move(row));
             }
@@ -1515,7 +1636,7 @@ namespace
             anonymousTypeNames.emplace_back(fullName, symbolStruct->isUnion() ? "union { ... }" : "struct { ... }");
         }
 
-        const RenderContext renderCtx = {
+        RenderContext renderCtx = {
             .ctx                = &ctx,
             .options            = &options,
             .references         = &document.references,
@@ -1560,8 +1681,10 @@ namespace
                 document.content.append(std::format("<td class=\"api-item-title-src-ref\"><a href=\"{}\">[src]</a></td>", escapeHtml(link, true)));
             document.content += "</tr></table>\n";
 
-            for (const DocOverload& overload : item.overloads)
+            for (size_t overloadIndex = 0; overloadIndex < item.overloads.size(); ++overloadIndex)
             {
+                const DocOverload& overload = item.overloads[overloadIndex];
+                renderCtx.headingAnchorPrefix = std::format("{}_{}", makeAnchor(item.fullName), overloadIndex);
                 if (!overload.commentLines.empty())
                     document.content += renderMarkdownLines(renderCtx, overload.commentLines);
                 if (!overload.signature.empty() && item.kind != DocItemKind::Namespace)

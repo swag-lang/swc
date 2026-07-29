@@ -22,6 +22,7 @@ private
     }
 }
 
+// Encodes a single GIF image using a generated palette and LZW compression.
 public struct Encoder {}
 
 impl Encoder

@@ -2,45 +2,48 @@
 
 using Core
 
+// Provides a compact fluent wrapper for drawing one rich string.
+//
+// Configure font, color, alignment, and flags, then call [[StringPainter.draw]].
 struct StringPainter
 {
-    str: RichString
-    fmt: RichStringFormat
+    str: RichString       // Reusable parsed rich-text storage.
+    fmt: RichStringFormat // Formatting applied by the next draw.
 }
 
 impl StringPainter
 {
-    // Set font
+    // Sets the regular font used for drawing.
     mtd font(font: *Font)
     {
         .fmt.font.regular = font
     }
 
-    // Set text color
+    // Sets palette entry zero, the default text color.
     mtd color(col: Color)
     {
         .fmt.palette[0] = col
     }
 
-    // Set horizontal alignment
+    // Sets horizontal alignment within the draw rectangle.
     mtd horzAlign(align: StringHorzAlignment)
     {
         .fmt.horzAlignment = align
     }
 
-    // Set vertical alignment
+    // Sets vertical alignment within the draw rectangle.
     mtd vertAlign(align: StringVertAlignment)
     {
         .fmt.vertAlignment = align
     }
 
-    // Set drawing flags
+    // Replaces wrapping and clipping flags.
     mtd flags(f: StringFormatFlags)
     {
         .fmt.flags = f
     }
 
-    // Draw string
+    // Parses `what` and records it in `painter` inside `rect`.
     mtd draw(painter: *Painter, rect: Math.Rectangle, what: string)
     {
         .str.set(what)

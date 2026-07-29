@@ -2,16 +2,21 @@ using Core
 
 public impl Image
 {
+    // Resampling filter used when resizing an image.
+    //
+    // `Raw` selects nearest-neighbor sampling. The remaining filters trade speed
+    // for progressively smoother reconstruction and are suitable for photographic
+    // or continuously toned content.
     enum ResizeMode
     {
-        Raw
-        Bilinear
-        Bicubic
-        Gaussian
-        Quadratic
-        Hermite
-        Hamming
-        Catrom
+        Raw       // Nearest-neighbor sampling; preserves hard pixel edges.
+        Bilinear  // Linear interpolation over adjacent samples.
+        Bicubic   // Smooth cubic B-spline reconstruction.
+        Gaussian  // Wide Gaussian reconstruction.
+        Quadratic // Quadratic reconstruction.
+        Hermite   // Cubic Hermite reconstruction.
+        Hamming   // Windowed-sinc Hamming reconstruction.
+        Catrom    // Sharper Catmull–Rom cubic reconstruction.
     }
 
     // Resize image

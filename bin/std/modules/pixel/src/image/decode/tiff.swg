@@ -33,6 +33,7 @@ const PHOTO_BLACK_IS_ZERO = 1
 const PHOTO_RGB           = 2
 const PHOTO_PALETTE       = 3
 
+// Decodes baseline TIFF images with uncompressed, PackBits, or LZW strips.
 public struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail

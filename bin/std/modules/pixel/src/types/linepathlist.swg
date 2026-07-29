@@ -2,20 +2,25 @@
 
 using Core, Core.Math
 
+// Owns an ordered collection of heap-allocated paths and their combined bounds.
+//
+// Copies are deep: each path is duplicated and remains independently mutable.
 struct LinePathList
 {
-    paths: Array'(*LinePath)
-    bvMin: Vector2
-    bvMax: Vector2
+    paths: Array'(*LinePath) // Owned path pointers.
+    bvMin: Vector2           // Minimum combined bound after flattening.
+    bvMax: Vector2           // Maximum combined bound after flattening.
 }
 
 impl LinePathList
 {
+    // Releases every owned path when the list leaves scope.
     mtd opDrop()
     {
         .clear()
     }
 
+    // Deep-copies every owned path after copying the list.
     mtd opPostCopy()
     {
         for p, [i] in .paths
@@ -26,10 +31,11 @@ impl LinePathList
         }
     }
 
+    // Returns the number of owned paths.
     #[Swag.Inline]
     mtd count() => .paths.count
 
-    // Remove all private line paths
+    // Releases and removes all owned paths.
     mtd clear()
     {
         for p in .paths do
@@ -37,7 +43,7 @@ impl LinePathList
         .paths.clear()
     }
 
-    // Returns a new path
+    // Allocates, owns, and returns a new empty path.
     mtd newPath()->*LinePath
     {
         let ptr = Memory.new'LinePath()
@@ -45,7 +51,7 @@ impl LinePathList
         return ptr
     }
 
-    // Flatten all paths
+    // Flattens all paths at `quality` and recomputes combined bounds.
     mtd flatten(quality: PaintQuality)
     {
         // Flatten all path, and compute BV
@@ -59,8 +65,7 @@ impl LinePathList
         }
     }
 
-    // Call fast offset on all paths
-    // They must before be flattened
+    // Offsets every already-flattened polygon using its winding direction.
     mtd offset(value: f32)
     {
         if Math.isZeroEpsilon(value) do
@@ -73,8 +78,9 @@ impl LinePathList
         }
     }
 
-    // Call quality offset on all paths
-    // They must before be flattened
+    // Rebuilds every already-flattened path with a quality offset.
+    //
+    // `toler` controls round-join approximation in pixels.
     mtd offset(value: f32, joinStyle: JoinStyle, toler: f32 = 0.5)
     {
         if Math.isZeroEpsilon(value) do
@@ -127,8 +133,7 @@ impl LinePathList
         .bvMax = newList.bvMax
     }
 
-    // Clean all paths
-    // They must before be flattened
+    // Unions and normalizes groups of already-flattened paths.
     mtd clean()
     {
         var newList: LinePathList

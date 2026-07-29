@@ -8,22 +8,23 @@ using Errors
 // automatically for nested subscripts, superscripts, fractions and matrix cells.
 enum MathStyle
 {
-    Display
-    Text
-    Script
-    ScriptScript
+    Display      // Full-size stand-alone formula with limits above and below large operators.
+    Text         // Inline formula with compact operator limits.
+    Script       // First-level subscript or superscript style.
+    ScriptScript // Nested subscript or superscript style.
 }
 
 // Result of mathematical layout. The baseline is `ascent` pixels below the top.
 struct MathMetrics
 {
-    width:   f32
-    ascent:  f32
-    descent: f32
+    width:   f32 // Horizontal extent in pixels.
+    ascent:  f32 // Distance from the baseline to the top edge, in pixels.
+    descent: f32 // Distance from the baseline to the bottom edge, in pixels.
 }
 
 impl MathMetrics
 {
+    // Returns the total vertical extent, `ascent + descent`, in pixels.
     mtd const height()->f32 => .ascent + .descent
 }
 
@@ -32,13 +33,13 @@ impl MathMetrics
 // remain useful with an ordinary text font that has no OpenType MATH table.
 struct MathLayoutOptions
 {
-    style:             MathStyle = Display
-    scriptScale:       f32       = 0.72
-    scriptScriptScale: f32       = 0.55
-    ruleThicknessEm:   f32       = 0.055
-    minRuleThickness:  f32       = 1.0
-    rowGapEm:          f32       = 0.32
-    columnGapEm:       f32       = 0.65
+    style:             MathStyle = Display // Root style used to begin layout.
+    scriptScale:       f32       = 0.72    // Font-size multiplier for first-level scripts.
+    scriptScriptScale: f32       = 0.55    // Font-size multiplier for nested scripts.
+    ruleThicknessEm:   f32       = 0.055   // Fraction and radical rule thickness in em.
+    minRuleThickness:  f32       = 1.0     // Minimum visible rule thickness in pixels.
+    rowGapEm:          f32       = 0.32    // Vertical gap between matrix rows in em.
+    columnGapEm:       f32       = 0.65    // Horizontal gap between matrix columns in em.
 }
 
 internal enum MathNodeKind
@@ -169,6 +170,15 @@ internal struct MathNode
 // - Greek letters, relations, arrows, named functions and large operators/limits;
 // - roman/italic/bold/text runs and explicit TeX spacing;
 // - matrix, pmatrix, bmatrix, Bmatrix, vmatrix, Vmatrix, cases and aligned.
+//
+// Parse expressions once when they are drawn repeatedly:
+//
+// ## Example
+//
+// ```swag
+// var expression = try Pixel.MathExpression.parse(#raw "\frac{x_i^2}{\sqrt{1+x}}")
+// let metrics = painter.drawMath(20, 30, &expression, font, Pixel.Argb.MidnightBlue)
+// ```
 #[Swag.Opaque]
 struct MathExpression
 {
@@ -1024,6 +1034,7 @@ private impl MathParser
 
 public impl MathExpression
 {
+    // Releases the parsed expression tree and its cached layout data.
     mtd opDrop()
     {
         .nodes.clear()

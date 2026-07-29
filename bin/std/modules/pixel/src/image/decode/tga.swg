@@ -39,6 +39,7 @@ struct Palette
     bpp8:  u8
 }
 
+// Decodes mapped, grayscale, and true-color TGA images with optional RLE.
 public struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail

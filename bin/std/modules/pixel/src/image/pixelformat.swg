@@ -2,18 +2,18 @@
 
 using Swag
 
-// Desribe the layout format of one image pixel
+// Describes the byte order and channel set of one tightly packed 8-bit pixel.
 enum PixelFormat: u8
 {
-    BGR8
-    BGRA8
-    RGB8
-    RGBA8
+    BGR8  // Blue, green, then red; 24 bits per pixel.
+    BGRA8 // Blue, green, red, then alpha; 32 bits per pixel.
+    RGB8  // Red, green, then blue; 24 bits per pixel.
+    RGBA8 // Red, green, blue, then alpha; 32 bits per pixel.
 }
 
 impl PixelFormat
 {
-    // Returns the bpp (bits per pixel) of the given pixel format
+    // Returns the number of bits occupied by one pixel.
     #[ConstExpr]
     func bpp(me)->u8
     {
@@ -28,7 +28,7 @@ impl PixelFormat
         return 0
     }
 
-    // Returns the number of image channels
+    // Returns the number of stored color channels.
     #[ConstExpr]
     func channels(me)->u8
     {
@@ -43,7 +43,7 @@ impl PixelFormat
         return 0
     }
 
-    // Returns the bit depth of each channel
+    // Returns the bit depth of each channel.
     #[ConstExpr]
     func bitDepth(me)->u8
     {
@@ -58,7 +58,7 @@ impl PixelFormat
         return 0
     }
 
-    // Returns true if the given pixel format has an alpha channel
+    // Reports whether the format stores an alpha channel.
     #[ConstExpr]
     func hasAlpha(me)->bool
     {

@@ -55,6 +55,7 @@ struct Container
     expectsAlpha:      bool
 }
 
+// Decodes lossless VP8L WebP images from a RIFF container.
 public struct Decoder {}
 
 func readU24(data: const [*] u8)->u32

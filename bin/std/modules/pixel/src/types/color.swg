@@ -23,6 +23,7 @@ struct Color
 
 impl Color
 {
+    // Orders colors by their packed 32-bit ARGB representation.
     #[Inline]
     mtd const opCompare(other: Color)->s32 => .argb <=> other.argb
 

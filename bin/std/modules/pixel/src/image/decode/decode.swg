@@ -6,20 +6,23 @@ struct ImageDecoder
     itf:  IImageDecoder
 }
 
+// Controls which parts of an encoded image are materialized.
 public struct DecodeOptions
 {
-    // Decode image informations (width, height...) but do no read pixels
-    // Used to fast retrieve informations about the image
-    decodePixels = true
+    decodePixels = true // Decode pixel storage; disable for metadata and geometry probing.
 
-    // Decode meta datas
-    decodeMetaDatas = true
+    decodeMetaDatas = true // Preserve supported format metadata in `Image.metaDatas`.
 }
 
-// Interface to decode a buffer
+// Defines a decoder selected by filename extension and applied to encoded bytes.
 public interface IImageDecoder
 {
+    // Reports whether this decoder accepts the filename extension.
     mtd canDecode(filename: string)->bool
+
+    // Decodes one complete encoded buffer according to `opt`.
+    //
+    // Fails when the data is malformed, truncated, or uses unsupported features.
     mtd decode(buf: const [..] u8, opt: DecodeOptions)->Image fail
 }
 

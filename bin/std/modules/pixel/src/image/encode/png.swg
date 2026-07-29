@@ -119,6 +119,9 @@ private
     }
 }
 
+// Encodes PNG images with configurable filtering, compression, and interlacing.
+//
+// The encoder is opaque; use [[Png.EncodeOptions]] to configure output.
 #[Swag.Opaque]
 public struct Encoder
 {
@@ -237,11 +240,12 @@ impl Encoder
     }
 }
 
+// Configures PNG filtering, Deflate behavior, and Adam7 interlacing.
 public struct EncodeOptions
 {
-    compressionLevel = Compress.Deflate.CompressionLevel.Default
-    filtering        = true
-    interlace        = false
+    compressionLevel = Compress.Deflate.CompressionLevel.Default // Deflate compression level.
+    filtering        = true // Select adaptive PNG scanline filters.
+    interlace        = false // Encode seven-pass Adam7 interlacing.
 }
 
 public impl IImageEncoder for Encoder

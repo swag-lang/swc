@@ -2,20 +2,23 @@
 
 using Core.Math
 
-const ClipperScaleCoords = 1000.0'f64
+const ClipperScaleCoords = 1000.0'f64 // Scale from floating path pixels to integer Clipper coordinates.
 
+// Owns an ordered polygon contour and cached geometric properties.
+//
+// Call `compute` after mutating `points` to refresh winding, convexity, length,
+// area, and bounds.
 struct Polygon
 {
-    points: Array'Vector2
+    points: Array'Vector2 // Ordered contour vertices in path-space pixels.
 
-    // Fill with a call to compute()
-    isClockwise: bool
-    isConvex:    bool
-    isSimple:    bool
-    area:        f32
-    totalLen:    f32
-    bvMin:       Math.Vector2
-    bvMax:       Math.Vector2
+    isClockwise: bool         // Winding direction after `compute`.
+    isConvex:    bool         // Whether every turn has the same orientation.
+    isSimple:    bool         // Whether non-adjacent edges do not intersect.
+    area:        f32          // Unsigned enclosed area, in square pixels.
+    totalLen:    f32          // Closed-contour perimeter, in pixels.
+    bvMin:       Math.Vector2 // Minimum coordinate bound.
+    bvMax:       Math.Vector2 // Maximum coordinate bound.
 }
 
 impl Polygon
@@ -49,7 +52,7 @@ impl Polygon
         }
     }
 
-    // Get the given point
+    // Borrows the point at zero-based index `i`.
     #[Swag.Inline]
     mtd getPoint(i: u64)->&Vector2
     {
@@ -57,6 +60,7 @@ impl Polygon
         return points + i
     }
 
+    // Borrows the point at zero-based index `i` as read-only.
     #[Swag.Inline]
     mtd const getPoint(i: u64)->const &Vector2
     {
@@ -64,7 +68,7 @@ impl Polygon
         return points + i
     }
 
-    // Get the given point, with an optional offset
+    // Returns point `i`, optionally offset along the averaged edge normal.
     mtd const getPoint(i: u64, offset: f32 = 0)->Vector2
     {
         let points = notnull .points.buffer

@@ -1,13 +1,18 @@
 using Core, TrueType
 
+// Loaded font-face data used to create fonts and rasterize glyphs.
+//
+// Use [[Pixel.TypeFace.load]] for a font file or [[Pixel.TypeFace.create]] for
+// bytes already in memory. Returned pointers are shared by Pixel's typeface cache;
+// release them with [[Pixel.TypeFace.release]] rather than deleting them directly.
 public struct TypeFace
 {
-    fullname:     string = ""
-    buffer:       Array'u8
-    face:         *Face  = undefined
-    forceBoldDiv: u32    = 11
-    forceItalic:  bool
-    forceBold:    bool
+    fullname:     string = ""        // Cache key or source filename.
+    buffer:       Array'u8           // Owned font bytes kept alive for the native face.
+    face:         *Face  = undefined // Borrowed TrueType face backed by `buffer`.
+    forceBoldDiv: u32    = 11        // Em-size divisor used for synthetic bold strength.
+    forceItalic:  bool               // Whether every rasterized glyph is synthetically slanted.
+    forceBold:    bool               // Whether every rasterized glyph is synthetically emboldened.
 }
 
 var g_HashTypeFace: HashTable'(String, *TypeFace)
@@ -51,6 +56,7 @@ impl TypeFace
 
 public impl TypeFace
 {
+    // Destroys the native face associated with this value.
     mtd opDrop()
     {
         if .face do

@@ -28,6 +28,10 @@ impl Painter
         .drawPath(&.sharedLinePath, pen)
     }
 
+    // Strokes a quadratic Bézier segment from the start point to the end point.
+    //
+    // `ptX` and `ptY` define the control point in path-space pixels. A zero-width
+    // or fully transparent pen produces no geometry.
     mtd drawBezier(startX, startY, endX, endY: f32, ptX, ptY: f32, pen: Pen)
     {
         if (startX == endX and startY == endY) or !pen.brush.hasVisibleAlpha() or pen.size == 0 do

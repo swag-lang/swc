@@ -2,16 +2,18 @@
 
 using Core, Win32, Gdi32
 
+// One Windows face discovered for a font-family style.
 public struct FontFamilyStyleEnumerate
 {
-    name: String
-    face: LOGFONTW
+    name: String   // Windows face name.
+    face: LOGFONTW // Native descriptor returned by GDI.
 }
 
+// A Windows font family and the native faces available for its style slots.
 public struct FontFamilyEnumerate
 {
-    name:  String
-    faces: [@countof(FontFamilyStyle)] FontFamilyStyleEnumerate
+    name:  String                                              // Family name.
+    faces: [@countof(FontFamilyStyle)] FontFamilyStyleEnumerate // Face descriptor indexed by [[Pixel.FontFamilyStyle]].
 }
 
 impl FontFamily

@@ -42,6 +42,7 @@ struct DibHeader
     clrImportant:  u32
 }
 
+// Decodes Windows icon containers and selects their embedded BMP or PNG image.
 public struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail

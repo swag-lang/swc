@@ -7,27 +7,31 @@ const FILL_RLE_ENDOFLINE   = 0
 const FILL_RLE_ENDOFBITMAP = 1
 const FILL_RLE_DELTA       = 2
 
-public const BI_RGB = 0
-public const BI_RLE8 = 1
-public const BI_RLE4 = 2
-public const BI_BITFIELDS = 3
+public const BI_RGB = 0       // Uncompressed RGB bitmap data.
+public const BI_RLE8 = 1      // Run-length encoded 8-bit indexed data.
+public const BI_RLE4 = 2      // Run-length encoded 4-bit indexed data.
+public const BI_BITFIELDS = 3 // Direct-color data described by channel masks.
 
 const BMP_SIGNATURE = 0x4D42'u16
 
+// Represents the Windows `BITMAPINFOHEADER` binary layout.
+//
+// Fields retain the names and units defined by the BMP file format. The structure
+// can also be used when exchanging DIB data with Windows APIs.
 #[Swag.Pack(1)]
 public struct Header
 {
-    biSize:          u32
-    biWidth:         s32
-    biHeight:        s32
-    biPlanes:        u16
-    biBitCount:      u16
-    biCompression:   u32
-    biSizeImage:     u32
-    biXPelsPerMeter: u32
-    biYPelsPerMeter: u32
-    biClrUsed:       u32
-    biClrImportant:  u32
+    biSize:          u32 // Size of this header in bytes.
+    biWidth:         s32 // Bitmap width in pixels.
+    biHeight:        s32 // Signed height; a negative value denotes top-down rows.
+    biPlanes:        u16 // Number of color planes; valid BMP data uses `1`.
+    biBitCount:      u16 // Bits stored for one pixel.
+    biCompression:   u32 // Compression mode, such as `BI_RGB` or `BI_BITFIELDS`.
+    biSizeImage:     u32 // Encoded pixel-data size in bytes, or zero when permitted by the format.
+    biXPelsPerMeter: u32 // Preferred horizontal resolution in pixels per meter.
+    biYPelsPerMeter: u32 // Preferred vertical resolution in pixels per meter.
+    biClrUsed:       u32 // Number of palette entries used, or zero for the format default.
+    biClrImportant:  u32 // Number of important palette entries, or zero when all are important.
 }
 
 #[Swag.Pack(1)]
@@ -65,6 +69,7 @@ struct Masks
     a: Mask
 }
 
+// Decodes Windows BMP/DIB images, including palettes, bitfields, and RLE data.
 public struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail

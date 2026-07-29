@@ -6,10 +6,16 @@ struct ImageEncoder
     itf:  IImageEncoder
 }
 
-// Interface to decode a buffer
+// Defines an encoder selected by filename extension.
 public interface IImageEncoder
 {
+    // Reports whether this encoder accepts the filename extension.
     mtd canEncode(filename: string)->bool
+
+    // Appends an encoded image to `buf`.
+    //
+    // `opt` is `null` for defaults or points to the encoder-specific options
+    // structure. Fails for invalid images or unsupported dimensions/formats.
     mtd encode(buf: *ConcatBuffer, img: Image, opt: #null any) fail
 }
 

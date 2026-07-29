@@ -137,6 +137,9 @@ private
     }
 }
 
+// Decodes baseline and progressive JPEG image data.
+//
+// The decoder is opaque and reusable only through its public decoding operations.
 #[Opaque]
 public struct Decoder
 {

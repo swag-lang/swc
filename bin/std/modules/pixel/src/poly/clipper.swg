@@ -15,44 +15,49 @@ const Unassigned    = -1
 const Skip          = -2
 const HorizontalVal = -1.0e+40
 
-public alias CInt = s64
+public alias CInt = s64 // Signed integer coordinate used by clipping operations.
 alias ClipperPath  = Array'IntPoint
 alias ClipperPaths = Array'ClipperPath
 
+// Selects whether an input path belongs to the subject or clipping set.
 public enum PolyType
 {
-    Subject
-    Clip
+    Subject // Geometry being transformed.
+    Clip    // Geometry used to clip the subject.
 }
 
+// Selects the Boolean operation applied to subject and clip paths.
 public enum ClipType
 {
-    Intersection
-    Union
-    Difference
-    Xor
+    Intersection // Keep regions present in both sets.
+    Union        // Keep regions present in either set.
+    Difference   // Remove clip regions from subject regions.
+    Xor          // Keep regions present in exactly one set.
 }
 
+// Selects the winding rule used to determine polygon interiors.
 public enum PolyFillType
 {
-    EvenOdd
-    NonZero
-    Positive
-    Negative
+    EvenOdd  // Toggle interior state at every edge crossing.
+    NonZero  // Treat a nonzero winding count as interior.
+    Positive // Treat a positive winding count as interior.
+    Negative // Treat a negative winding count as interior.
 }
 
+// Defines optional initialization behavior for clipping transforms.
 public enum InitOptions
 {
-    ReverseSolution   = 1
-    StrictlySimple    = 2
-    PreserveCollinear = 4
+    ReverseSolution   = 1 // Reverse output winding.
+    StrictlySimple    = 2 // Split self-touching polygons into simple polygons.
+    PreserveCollinear = 4 // Retain collinear vertices where possible.
 }
 
+// Selects how offset polygon corners are joined.
 public enum JoinType
 {
-    Square
-    Round
-    Miter
+    Square // Bevel the corner with a square join.
+    Round  // Approximate the corner with an arc.
+    Miter  // Extend edges to their intersection.
 }
 
 enum EdgeSide
@@ -67,9 +72,11 @@ enum Direction
     LeftToRight
 }
 
+// Stores one integer clipping coordinate.
 public struct IntPoint
 {
-    x, y: CInt
+    x: CInt // Horizontal coordinate.
+    y: CInt // Vertical coordinate.
 }
 
 struct IntRect
@@ -170,6 +177,25 @@ struct Join
     offPt:  IntPoint
 }
 
+// Performs integer polygon clipping and Boolean operations.
+//
+// Add subject and clip paths with `addPath`, then call `execute`. The structure
+// is opaque because its edge graph and scanline state are implementation details.
+//
+// ## Example
+//
+// ```swag
+// var subject: Clipper.ClipperPath
+// subject.add({x: 0, y: 0})
+// subject.add({x: 100, y: 0})
+// subject.add({x: 100, y: 80})
+// subject.add({x: 0, y: 80})
+//
+// var transform: Clipper.Transform
+// transform.addPath(&subject, .Subject)
+// var solution: Clipper.ClipperPaths
+// transform.execute(.Union, &solution, .NonZero, .NonZero)
+// ```
 #[Swag.Opaque]
 public struct Transform
 {
@@ -205,6 +231,7 @@ impl Transform
     #[Swag.Inline]
     func nnIntersect(n: #null *IntersectNode)->*IntersectNode => notnull n
 
+    // Releases edge storage owned by the transform.
     public mtd opDrop()
     {
         for it in .edgeList do

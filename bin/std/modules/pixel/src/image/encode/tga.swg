@@ -2,11 +2,13 @@
 
 using Core, Core.Errors
 
+// Encodes true-color TGA images with optional run-length encoding.
 public struct Encoder {}
 
+// Configures TGA packet encoding.
 public struct EncodeOptions
 {
-    rle = false
+    rle = false // Use TGA run-length encoded packets when true.
 }
 
 func writeTgaPixel(result: *ConcatBuffer, src: const [*] u8, pixelFormat: PixelFormat)

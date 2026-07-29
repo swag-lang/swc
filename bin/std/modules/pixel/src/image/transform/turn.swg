@@ -2,11 +2,12 @@ using Core
 
 impl Image
 {
+    // Clockwise quarter-turn applied by [[Image.turn]] and [[Image.toTurn]].
     public enum TurnAngle
     {
-        T90
-        T180
-        T270
+        T90  // Rotate clockwise by 90 degrees.
+        T180 // Rotate by 180 degrees.
+        T270 // Rotate clockwise by 270 degrees.
     }
 
     #[Swag.Safety(.All, false)]

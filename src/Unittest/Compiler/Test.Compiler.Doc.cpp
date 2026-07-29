@@ -119,12 +119,22 @@ func documented(value: s32)->s32
     return value + 1
 }
 
+// Source-order summary for an overloaded function.
+func ordered(value: s32) {}
+func ordered(value: f32) {}
+
 // A small public value used to verify methods and anonymous storage.
+//
+// ## Example
+//
+// ```swag
+// var counter: Counter
+// ```
 struct Counter
 {
     value: s32 // Current counter value.
 
-    using storage: union
+    using storage: union // Active numeric storage.
     {
         integer: s32
         decimal: f32
@@ -138,6 +148,42 @@ impl Counter
     {
         .value += 1
     }
+}
+
+// A value whose state can be reset.
+interface Resettable
+{
+    // Reset the value to zero.
+    mtd reset()
+}
+
+impl Resettable for Counter
+{
+    mtd impl reset()
+    {
+        .value = 0
+    }
+}
+
+// A packed public coordinate.
+#[Swag.Pack(1)]
+struct PackedCoordinate
+{
+    x: u8
+}
+
+// Selects a test mode.
+enum TestMode
+{
+    Fast // Prefer lower latency.
+    Full // Prefer complete coverage.
+}
+
+#[Swag.Opaque]
+// An opaque public record.
+struct OpaqueRecord
+{
+    implementationValue: u64
 }
 
 // Keep this compiler-only helper out of the API page.
@@ -188,9 +234,29 @@ func hidden(value: s32)->s32
         return Result::Error;
     if (!content.contains("Counter.increment") || !content.contains("Increase the counter by one."))
         return Result::Error;
+    if (!content.contains("Resettable.reset") || !content.contains("Reset the value to zero."))
+        return Result::Error;
+    if (content.contains("Counter.Resettable.reset"))
+        return Result::Error;
+    if (!content.contains("<p>A packed public coordinate.</p>"))
+        return Result::Error;
+    if (!content.contains("<h3>Values</h3>") || !content.contains("Prefer lower latency."))
+        return Result::Error;
+    if (content.contains(">implementationValue<"))
+        return Result::Error;
+    if (content.contains("id=\"Example\"") || !content.contains("Counter_0_Example"))
+        return Result::Error;
     if (content.contains("__anonymous_"))
         return Result::Error;
+    if (!content.contains("<p>Active numeric storage.</p>"))
+        return Result::Error;
     if (content.contains(">hidden<") || content.contains("func hidden"))
+        return Result::Error;
+    const size_t orderedSummary = content.find("<p>Source-order summary for an overloaded function.</p>");
+    const size_t orderedItem    = content.rfind("<table class=\"api-item\"", orderedSummary);
+    const size_t orderedCode    = content.find("<div class=\"code-block\"", orderedItem);
+    const size_t nextItem       = content.find("<table class=\"api-item\"", orderedItem + 1);
+    if (orderedItem == std::string::npos || orderedSummary == std::string::npos || orderedCode == std::string::npos || orderedSummary > orderedCode || (nextItem != std::string::npos && orderedCode > nextItem))
         return Result::Error;
     if (!content.contains("<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\">"))
         return Result::Error;

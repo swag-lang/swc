@@ -11,6 +11,7 @@ set "STD_OUTPUT_ROOT=%STD_WORKSPACE%\.output"
 set "SWC_COMMAND=build"
 set "BUILD_CFG=fast-debug"
 set "EXTRA_ARGS="
+set "TEST_ARGS="
 set "WORKSPACE_ARGS="
 set "MODULE_FILTER="
 
@@ -23,6 +24,13 @@ if /I "%~1"=="build" (
 
 :parse_args
 if "%~1"=="" goto run
+rem --run-arg is only accepted by the test command, so it must not reach the build step.
+if /I "%~1"=="--run-arg" (
+    set "TEST_ARGS=%TEST_ARGS% --run-arg %~2"
+    shift
+    shift
+    goto parse_args
+)
 if /I "%~1"=="--build-cfg" (
     set "BUILD_CFG=%~2"
     shift
@@ -77,7 +85,7 @@ for /d %%D in ("%STD_WORKSPACE%\modules\*") do (
             call "%TOOLS_DIR%_common.bat" :set_paths "std\!MODULE_NAME!" "executable" "%BUILD_CFG%"
             if not "!ERRORLEVEL!"=="0" exit /b !ERRORLEVEL!
 
-            call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind executable --module-file "!MODULE_FILE!" -d "src" --out-dir "!OUT_DIR!" --work-dir "!WORK_DIR!" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%EXTRA_ARGS%
+            call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind executable --module-file "!MODULE_FILE!" -d "src" --out-dir "!OUT_DIR!" --work-dir "!WORK_DIR!" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%EXTRA_ARGS%%TEST_ARGS%
             if not "!ERRORLEVEL!"=="0" exit /b !ERRORLEVEL!
         )
     )

@@ -35,7 +35,7 @@ namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
     using RuntimeSetupInvoker                    = void (*)(Runtime::RuntimeFlags);
-    using RuntimeHookInvoker                     = void (*)(uint64_t, uint64_t, uint64_t);
+    using RuntimeHookInvoker                     = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
 
     enum class RuntimeHookStage : uint64_t
     {
@@ -168,6 +168,13 @@ namespace
             return Result::Continue;
 
         const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
+
+        // A JIT run has no operating-system command line of its own: the effective one exists only
+        // in the compiler, so hand it to every imported module. Otherwise '@args' answers from the
+        // module's own, never-filled slot, and 'Env.hasArg' says something different depending on
+        // whether it was compiled into the module under test or into an imported library.
+        ctx.compiler().ensureProcessInfosRunArgs();
+        const Runtime::String* processArgs = &ctx.compiler().processInfos().args;
         for (const CompilerInstance::NativeRuntimeImport& runtimeImport : runtimeImports)
         {
             if (!runtimeImport.hasSharedRuntimeHook)
@@ -188,8 +195,8 @@ namespace
             // their one-time lifecycle guards, which is exactly what JIT needs
             // to keep @getcontext() valid inside imported DLL code like core.dll.
             const auto hookInvoker = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler));
-            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler));
+            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
+            hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
         }
 
         return Result::Continue;

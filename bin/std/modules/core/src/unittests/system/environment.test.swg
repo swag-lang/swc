@@ -11,3 +11,15 @@ using Swag
     @assert(Path.isRooted(tempDir.toString()))
     @assert(Directory.exists(tempDir.toString()))
 }
+
+// A '#test' is a program run, whether it executes in the JIT pass of 'swc test' or in the
+// generated executable, so both must expose the same command line. The test command always
+// injects the 'swag.test' run argument, which makes it the one argument every run is guaranteed
+// to see: if '@args' comes back empty here, run arguments are not reaching this pass at all and
+// nothing can be driven from the command line.
+#test
+{
+    @assert(@countof(Env.getArgs()) != 0)
+    @assert(Env.hasArg("swag.test"))
+    @assert(@countof(Env.getExe()) != 0)
+}

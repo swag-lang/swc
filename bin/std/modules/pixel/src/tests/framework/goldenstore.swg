@@ -3,24 +3,6 @@
 
 using Swag, Core
 
-// Compile-time switch that turns golden assertions from *compare* into *record*.
-//
-// It is driven by the 'Std.Pixel.UpdateGoldens' compiler tag, so it applies to both the JIT and
-// the native pass of a test run:
-//
-// ```
-// tools\std.bat dm test -m pixel --tag Std.Pixel.UpdateGoldens --rebuild
-// ```
-//
-// The switch is compiled into this module, so recording the goldens of a *dependent* module needs
-// this module rebuilt with the tag; a tag change alone does not invalidate the module cache, hence
-// '--rebuild'.
-//
-// Every golden touched by the run is then rewritten from the current output instead of being
-// compared, and the assertion always succeeds. Review the resulting diff before committing it:
-// recording a golden accepts whatever the code currently produces, including a regression.
-const UpdateGoldens = #hastag("Std.Pixel.UpdateGoldens")
-
 // Compares the display list recorded by 'painter' against the golden named 'name'.
 //
 // The painter is serialized with [[Testing.dumpPainter]], so this asserts on the *commands* a
@@ -28,11 +10,13 @@ const UpdateGoldens = #hastag("Std.Pixel.UpdateGoldens")
 // result is identical on every machine.
 //
 // Goldens live in a 'goldens' folder next to the calling source file, one '.txt' file per name.
-// 'name' may contain '/' to group goldens in sub-folders. A missing golden fails the assertion
-// instead of being created silently; record it with [[Testing.UpdateGoldens]].
+// 'name' may contain '/' to group goldens in sub-folders.
 //
-// On mismatch the produced text is written next to the golden as '<name>.actual.txt' and a
-// line-level report is printed to the console before the assertion fails.
+// There is no recording mode and no flag to pass. A name with no golden yet writes one and passes,
+// so a new test starts by producing its reference; the file then shows up as untracked, which is
+// where it gets reviewed and committed. A name whose golden no longer matches writes the produced
+// text next to it as '<name>.actual.txt', prints the first differing line, and fails. Accepting
+// the new output is therefore a copy, which 'tools\goldens.bat accept' does in bulk.
 func assertGolden(painter: const *Painter, name: string, level = DumpLevel.Full, loc = #callerlocation)
 {
     let dump = dumpPainter(painter, level)
@@ -48,22 +32,14 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
 {
     let path = goldenPath(name, loc)
 
-    #static if UpdateGoldens
-    {
-        writeText(path.toString(), text)
-        Console.println("[golden] recorded ", name)
-        return
-    }
-
+    // No golden yet: write one and let the test pass. It is loud on purpose -- an untracked file
+    // appearing in the working tree is what turns a mistyped name into something visible rather
+    // than a test that silently asserts nothing forever.
     if !File.exists(path)
     {
-        let actual = actualPath(path.toString())
-        writeText(actual.toString(), text)
-        Console.println("[golden] MISSING ", name)
-        Console.println("         expected : ", path)
-        Console.println("         produced : ", actual)
-        Console.println("         record it with --tag Std.Pixel.UpdateGoldens")
-        @assert(false)
+        writeText(path.toString(), text)
+        Console.println("[golden] CREATED ", name, " -- review it before committing")
+        Console.println("         ", path)
         return
     }
 

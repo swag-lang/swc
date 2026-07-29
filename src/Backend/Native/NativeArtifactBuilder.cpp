@@ -79,7 +79,16 @@ namespace
         SWC_UNREACHABLE();
     }
 
-    void emitRuntimeDependencyHookCall(MicroBuilder& builder, const NativeRuntimeDependency& dependency, const RuntimeHookStage stage, MicroReg tlsIdPlusOneReg, MicroReg runtimeFlagsReg, uint32_t& nextVirtualIntRegIndex)
+    // Values a runtime hook receives and passes down unchanged to its own dependencies, so that a
+    // whole artifact graph shares one TLS context slot and one process command line.
+    struct RuntimeHookArgs
+    {
+        MicroReg tlsIdPlusOne;
+        MicroReg runtimeFlags;
+        MicroReg processArgs;
+    };
+
+    void emitRuntimeDependencyHookCall(MicroBuilder& builder, const NativeRuntimeDependency& dependency, const RuntimeHookStage stage, const RuntimeHookArgs& hookArgs, uint32_t& nextVirtualIntRegIndex)
     {
         SWC_ASSERT(dependency.hookSymbol != nullptr);
         if (!dependency.hookSymbol)
@@ -95,9 +104,11 @@ namespace
         SmallVector<ABICall::PreparedArg> preparedArgs;
         directArg.srcReg = stageReg;
         preparedArgs.push_back(directArg);
-        directArg.srcReg = tlsIdPlusOneReg;
+        directArg.srcReg = hookArgs.tlsIdPlusOne;
         preparedArgs.push_back(directArg);
-        directArg.srcReg = runtimeFlagsReg;
+        directArg.srcReg = hookArgs.runtimeFlags;
+        preparedArgs.push_back(directArg);
+        directArg.srcReg = hookArgs.processArgs;
         preparedArgs.push_back(directArg);
 
         const CallConvKind          callConvKind = dependency.hookSymbol->callConvKind();
@@ -105,7 +116,7 @@ namespace
         ABICall::callExtern(builder, callConvKind, dependency.hookSymbol, preparedCall);
     }
 
-    void emitRuntimeDependencyHookCalls(MicroBuilder& builder, const NativeBackendBuilder& nativeBuilder, std::span<const uint32_t> dependencyOrder, const RuntimeHookStage stage, MicroReg tlsIdPlusOneReg, MicroReg runtimeFlagsReg, uint32_t& nextVirtualIntRegIndex)
+    void emitRuntimeDependencyHookCalls(MicroBuilder& builder, const NativeBackendBuilder& nativeBuilder, std::span<const uint32_t> dependencyOrder, const RuntimeHookStage stage, const RuntimeHookArgs& hookArgs, uint32_t& nextVirtualIntRegIndex)
     {
         for (const uint32_t dependencyIndex : dependencyOrder)
         {
@@ -113,8 +124,35 @@ namespace
             if (dependencyIndex >= nativeBuilder.runtimeDependencies.size())
                 continue;
 
-            emitRuntimeDependencyHookCall(builder, nativeBuilder.runtimeDependencies[dependencyIndex], stage, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
+            emitRuntimeDependencyHookCall(builder, nativeBuilder.runtimeDependencies[dependencyIndex], stage, hookArgs, nextVirtualIntRegIndex);
         }
+    }
+
+    // Copies the caller's process command line into this artifact's own '@pinfos.args'.
+    //
+    // '@pinfos' resolves to a per-artifact slot of the zero-initialized data segment, so every
+    // executable and every shared library starts with its own empty copy. Whoever owns the real
+    // command line -- the startup thunk of a native run, or the compiler for a JIT run -- passes it
+    // down the hook chain, and each artifact adopts it here. Without this an imported module
+    // answers '@args' from a slot nobody ever filled, and code as ordinary as 'Env.hasArg' returns
+    // a different answer depending on which module it was compiled into.
+    void emitAdoptProcessArgs(MicroBuilder& builder, CompilerInstance& compiler, MicroReg processArgsReg, uint32_t& nextVirtualIntRegIndex)
+    {
+        const MicroLabelRef skipLabel = builder.createLabel();
+        builder.emitCmpRegImm(processArgsReg, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
+
+        const MicroReg targetReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        builder.emitLoadRegDataSegmentReloc(targetReg, DataSegmentKind::GlobalZero, compiler.nativeProcessInfosOffset() + static_cast<uint32_t>(offsetof(Runtime::ProcessInfos, args)));
+
+        const MicroReg wordReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        for (uint64_t offset = 0; offset < sizeof(Runtime::String); offset += sizeof(uint64_t))
+        {
+            builder.emitLoadRegMem(wordReg, processArgsReg, offset, MicroOpBits::B64);
+            builder.emitLoadMemReg(targetReg, offset, wordReg, MicroOpBits::B64);
+        }
+
+        builder.placeLabel(skipLabel);
     }
 
     void emitLifecycleCalls(MicroBuilder& builder, const std::span<SymbolFunction* const> functions)
@@ -206,22 +244,29 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     uint32_t nextVirtualIntRegIndex = builder.nextVirtualIntRegIndexHint();
 
     const CallConv& callConv = CallConv::swag();
-    SWC_ASSERT(callConv.intArgRegs.size() >= 3);
-    if (callConv.intArgRegs.size() < 3)
+    SWC_ASSERT(callConv.intArgRegs.size() >= 4);
+    if (callConv.intArgRegs.size() < 4)
         return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
 
     const MicroReg stageReg = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegReg(stageReg, callConv.intArgRegs[0], MicroOpBits::B64);
 
-    const MicroReg tlsIdPlusOneReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-    builder.emitLoadRegReg(tlsIdPlusOneReg, callConv.intArgRegs[1], MicroOpBits::B64);
+    RuntimeHookArgs hookArgs;
 
-    const MicroReg runtimeFlagsReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-    builder.emitLoadRegReg(runtimeFlagsReg, callConv.intArgRegs[2], MicroOpBits::B64);
+    hookArgs.tlsIdPlusOne = nextVirtualIntReg(nextVirtualIntRegIndex);
+    builder.emitLoadRegReg(hookArgs.tlsIdPlusOne, callConv.intArgRegs[1], MicroOpBits::B64);
+
+    hookArgs.runtimeFlags = nextVirtualIntReg(nextVirtualIntRegIndex);
+    builder.emitLoadRegReg(hookArgs.runtimeFlags, callConv.intArgRegs[2], MicroOpBits::B64);
+
+    hookArgs.processArgs = nextVirtualIntReg(nextVirtualIntRegIndex);
+    builder.emitLoadRegReg(hookArgs.processArgs, callConv.intArgRegs[3], MicroOpBits::B64);
 
     const MicroReg tlsStorageReg = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegDataSegmentReloc(tlsStorageReg, DataSegmentKind::GlobalZero, compiler.nativeRuntimeContextTlsIdOffset());
-    builder.emitLoadMemReg(tlsStorageReg, 0, tlsIdPlusOneReg, MicroOpBits::B64);
+    builder.emitLoadMemReg(tlsStorageReg, 0, hookArgs.tlsIdPlusOne, MicroOpBits::B64);
+
+    emitAdoptProcessArgs(builder, compiler, hookArgs.processArgs, nextVirtualIntRegIndex);
 
     const MicroLabelRef initLabel            = builder.createLabel();
     const MicroLabelRef preMainSelectLabel   = builder.createLabel();
@@ -239,28 +284,28 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
 
     emitGuardedRuntimeHookStage(builder, initLabel, doneLabel, RuntimeHookStage::Init, lifecycleStateOffset, [&] {
-        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
+        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, hookArgs, nextVirtualIntRegIndex);
         emitLifecycleCalls(builder, builder_->initFunctions); }, nextVirtualIntRegIndex);
 
     builder.placeLabel(preMainSelectLabel);
     const MicroReg preMainFlagsReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-    builder.emitLoadRegReg(preMainFlagsReg, runtimeFlagsReg, MicroOpBits::B64);
+    builder.emitLoadRegReg(preMainFlagsReg, hookArgs.runtimeFlags, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(preMainFlagsReg, ApInt(static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), 64), MicroOp::And, MicroOpBits::B64);
     builder.emitCmpRegImm(preMainFlagsReg, ApInt(0, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, preMainCompilerLabel);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, preMainRuntimeLabel);
 
     emitGuardedRuntimeHookStage(builder, preMainRuntimeLabel, doneLabel, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] {
-        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
+        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, hookArgs, nextVirtualIntRegIndex);
         emitLifecycleCalls(builder, builder_->preMainFunctions); }, nextVirtualIntRegIndex);
 
     emitGuardedRuntimeHookStage(builder, preMainCompilerLabel, doneLabel, RuntimeHookStage::PreMain, lifecycleStateOffset, [&] {
-        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
+        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, hookArgs, nextVirtualIntRegIndex);
         emitLifecycleCalls(builder, builder_->preMainFunctions); }, nextVirtualIntRegIndex, K_RUNTIME_HOOK_PREMAIN_COMPILER_DONE);
 
     emitGuardedRuntimeHookStage(builder, dropLabel, doneLabel, RuntimeHookStage::Drop, lifecycleStateOffset, [&] {
         emitLifecycleCalls(builder, builder_->dropFunctions);
-        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex); }, nextVirtualIntRegIndex);
+        emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, hookArgs, nextVirtualIntRegIndex); }, nextVirtualIntRegIndex);
 
     builder.placeLabel(doneLabel);
     builder.emitRet();
@@ -686,14 +731,23 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     const MicroReg tlsStorageReg = nextVirtualIntReg(nextVirtualIntRegIndex);
     builder.emitLoadRegDataSegmentReloc(tlsStorageReg, DataSegmentKind::GlobalZero, builder_->compiler().nativeRuntimeContextTlsIdOffset());
 
-    const MicroReg tlsIdPlusOneReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-    builder.emitLoadRegMem(tlsIdPlusOneReg, tlsStorageReg, 0, MicroOpBits::B64);
+    RuntimeHookArgs hookArgs;
+    hookArgs.runtimeFlags = runtimeFlagsReg;
+
+    hookArgs.tlsIdPlusOne = nextVirtualIntReg(nextVirtualIntRegIndex);
+    builder.emitLoadRegMem(hookArgs.tlsIdPlusOne, tlsStorageReg, 0, MicroOpBits::B64);
+
+    // A native run reads its command line from the operating system, in each artifact, so the
+    // startup thunk has nothing to hand down and passes null. Only a JIT run has a command line
+    // that exists solely in the compiler, and there it is the compiler that fills this in.
+    hookArgs.processArgs = nextVirtualIntReg(nextVirtualIntRegIndex);
+    builder.emitLoadRegImm(hookArgs.processArgs, ApInt(0, 64), MicroOpBits::B64);
 
     // The startup thunk runs compiler-generated lifecycle hooks and then hands off
     // process termination to the runtime wrapper for the active target.
-    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::Init, hookArgs, nextVirtualIntRegIndex);
     emitLifecycleCalls(builder, builder_->initFunctions);
-    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyInitOrder, RuntimeHookStage::PreMain, hookArgs, nextVirtualIntRegIndex);
     emitLifecycleCalls(builder, builder_->preMainFunctions);
 
     // #test functions run through the runtime test runner: __runTest reports and
@@ -731,7 +785,7 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
     }
     emitLifecycleCalls(builder, builder_->mainFunctions);
     emitLifecycleCalls(builder, builder_->dropFunctions);
-    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, tlsIdPlusOneReg, runtimeFlagsReg, nextVirtualIntRegIndex);
+    emitRuntimeDependencyHookCalls(builder, *builder_, builder_->runtimeDependencyDropOrder, RuntimeHookStage::Drop, hookArgs, nextVirtualIntRegIndex);
 
     // Startup closes the runtime through the shared runtime wrapper so setup and
     // teardown stay aligned across native entry points.

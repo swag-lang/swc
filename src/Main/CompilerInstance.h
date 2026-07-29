@@ -172,6 +172,7 @@ public:
     uint32_t                        nativeRuntimeContextTlsIdOffset();
     uint32_t                        nativeProcessInfosOffset();
     void                            ensureProcessInfosRunArgs();
+    const Runtime::ProcessInfos&    processInfos();
 
     SymbolModule*       symModule() { return symModule_; }
     const SymbolModule* symModule() const { return symModule_; }

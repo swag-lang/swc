@@ -73,7 +73,7 @@ namespace Command
             Drop    = 3,
         };
 
-        using RuntimeHookInvoker = void (*)(uint64_t, uint64_t, uint64_t);
+        using RuntimeHookInvoker = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
 
         Result reportMissingRuntimeHook(TaskContext& ctx, const NativeRuntimeDependency& dependency, const Utf8& hookSymbolName)
         {
@@ -97,7 +97,7 @@ namespace Command
 
             const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
             const auto     hookInvoker  = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
-            hookInvoker(static_cast<uint64_t>(stage), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::Zero));
+            hookInvoker(static_cast<uint64_t>(stage), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::Zero), nullptr);
             return Result::Continue;
         }
 

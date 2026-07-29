@@ -662,6 +662,14 @@ void CompilerInstance::ensureProcessInfosRunArgs()
     infos->args = {processInfosArgsStorage_.data(), processInfosArgsStorage_.length()};
 }
 
+// The process infos JIT-compiled code sees through '@pinfos'.
+const Runtime::ProcessInfos& CompilerInstance::processInfos()
+{
+    const auto* infos = globalZeroSegment_.ptr<Runtime::ProcessInfos>(nativeProcessInfosOffset());
+    SWC_ASSERT(infos != nullptr);
+    return *infos;
+}
+
 void CompilerInstance::initPerThreadRuntimeContextForJit()
 {
     PerThreadData& td                  = perThreadData_[JobManager::threadIndex()];

@@ -473,16 +473,23 @@ impl Painter
         let cmd = .pushTriangleCmd()
         cmd.drawTriangles.count += 3
 
+        // 'uv' is unused by the non-text shaders (they derive their texture coordinates from the
+        // boundRect / textureRect uniforms), but the vertex storage is reused from frame to frame,
+        // so leaving it alone would keep publishing stale bytes to anything that reads vertices
+        // back.
         var ptr = .vertexBuffer.emplaceAddress(3)
         ptr.pos   = p1
+        ptr.uv    = {0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = p2
+        ptr.uv    = {0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = p3
+        ptr.uv    = {0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
 
@@ -499,17 +506,17 @@ impl Painter
         cmd.drawTriangles.count += 6
 
         var ptr = .vertexBuffer.emplaceAddress(6)
-        ptr.pos = innerA; ptr.color = color; ptr.cov = 1
+        ptr.pos = innerA; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 1
         ptr     += 1
-        ptr.pos = innerB; ptr.color = color; ptr.cov = 1
+        ptr.pos = innerB; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 1
         ptr     += 1
-        ptr.pos = outerA; ptr.color = color; ptr.cov = 0
+        ptr.pos = outerA; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 0
         ptr     += 1
-        ptr.pos = innerB; ptr.color = color; ptr.cov = 1
+        ptr.pos = innerB; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 1
         ptr     += 1
-        ptr.pos = outerB; ptr.color = color; ptr.cov = 0
+        ptr.pos = outerB; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 0
         ptr     += 1
-        ptr.pos = outerA; ptr.color = color; ptr.cov = 0
+        ptr.pos = outerA; ptr.uv = {0, 0}; ptr.color = color; ptr.cov = 0
     }
 
     private mtd aaHalfPathSpace()->f32

@@ -4,10 +4,16 @@
 using Swag, Core, Core.Math
 
 // Granularity of a [[Testing.dumpPainter]] snapshot.
+//
+// Only 'Full' records texture coordinates, and they are the one part of a snapshot that is not
+// self-contained: glyph coordinates depend on the packing order of a glyph cache shared by the
+// whole process, so a drawing that uses a font shared with another test must be recorded at
+// 'Batches' or below to stay reproducible whatever the test order.
 enum DumpLevel
 {
-    Summary     // Commands only, with no vertex information.
-    Full        // Commands plus a per-batch vertex summary (count, bounds, colors, coverage).
+    Commands     // Commands and batch sizes, with no vertex detail.
+    Batches      // Adds per-batch bounds, colors and antialiasing coverage.
+    Full         // Adds per-batch texture coordinates.
 }
 
 // Serializes the display list recorded by 'painter' into a stable, human readable snapshot.
@@ -24,8 +30,8 @@ enum DumpLevel
 // line per command. Lines are separated by a single '\n' and the result ends with a '\n'.
 //
 // 'painter' must have completed a `begin()` / `end()` pass; the painter is only read, never
-// modified. A 'Summary' dump omits vertex details, which keeps snapshots of composite drawings
-// (widgets, whole windows) readable while still catching command level regressions.
+// modified. A lower 'level' keeps snapshots of composite drawings (widgets, whole windows)
+// readable while still catching command level regressions.
 func dumpPainter(painter: const *Painter, level = DumpLevel.Full)->String
 {
     var dump: CommandDump
@@ -312,7 +318,7 @@ private
         mtd dumpTriangles(painter: const *Painter, start, count: u32)
         {
             .body.appendFormat(" n=%", count)
-            if .level == .Summary or !count do
+            if .level == .Commands or !count do
                 return
 
             var bbMin = Vector2{Swag.F32.Max, Swag.F32.Max}
@@ -366,7 +372,7 @@ private
             }
 
             .body.appendFormat(" bbox=(%,%)-(%,%)", fmtF(bbMin.x), fmtF(bbMin.y), fmtF(bbMax.x), fmtF(bbMax.y))
-            if hasUv do
+            if hasUv and .level == .Full do
                 .body.appendFormat(" uv=(%,%)-(%,%)", fmtF(uvMin.x), fmtF(uvMin.y), fmtF(uvMax.x), fmtF(uvMax.y))
 
             .body += " colors=["

@@ -1,0 +1,32 @@
+# font#0 segoeui.ttf_17_false_false_bitmap_bitmap_0_17 size=17 mode=Bitmap
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+DrawTriangles n=6 bbox=(0,0)-(200,80) colors=[FF353535] cov=solid
+SetClippingRect 0 0 200 80
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetClippingRect 0 0 200 80
+Transform 1 0 0 1 20 20
+SetClippingRect 20 20 160 24
+StartFont
+UpdateFont font#0
+ResetTexture0
+BindTextureFont font#0 atlas=0
+DrawTriangles n=30 bbox=(61,5)-(99,19) colors=[FFE0E0E0] cov=solid
+ResetTextureFont
+EndFont
+Transform 1 0 0 1 20 20
+SetBlendingMode Alpha
+ColorMask rgb-
+SetClippingRect 20 20 160 24
+Transform 1 0 0 1 20 20
+SetClippingRect 0 0 200 80
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetClippingRect 0 0 200 80
+ResetClippingRect

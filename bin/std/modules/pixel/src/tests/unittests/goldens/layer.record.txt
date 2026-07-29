@@ -1,0 +1,19 @@
+# rt#0 64x32
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindRenderTarget rt#0 paintAlpha=true
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgba
+Clear 00000000
+ColorMask rgb-
+SetBlendingMode Alpha
+DrawTriangles n=6 bbox=(0,0)-(64,32) colors=[FFFF0000] cov=solid
+UnbindRenderTarget
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+ReleaseRenderTarget rt#0

@@ -1,0 +1,91 @@
+# rt#0 64x32
+# rt#1 128x64
+# tex#0 64x32 BGRA8
+# rt#2 128x64
+# tex#1 128x64 BGRA8
+# tex#2 128x64 BGRA8
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindRenderTarget rt#0 paintAlpha=true
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgba
+Clear 00000000
+ColorMask rgb-
+SetBlendingMode Alpha
+DrawTriangles n=6 bbox=(0,0)-(64,32) colors=[FFFF0000] cov=solid
+UnbindRenderTarget
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindRenderTarget rt#1 paintAlpha=false
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetShader shader#0
+SetBlendingMode Copy
+ColorMask rgba
+Clear 00000000
+BindTexture0 Texture uv=FillSubRect interp=Pixel tex#0 bound=(8,8)-(72,40) src=(0.007813,0.015625)-(0.992188,0.984375)
+DrawTriangles n=6 bbox=(8,8)-(72,40) colors=[FFFFFFFF] cov=solid
+UnbindRenderTarget
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindRenderTarget rt#2 paintAlpha=false
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetShader shader#1
+SetShaderParam p#0 s32=0
+SetShaderParam p#0 f32=6
+SetBlendingMode Copy
+ColorMask rgba
+Clear 00000000
+BindTexture0 Texture uv=FillSubRect interp=Pixel tex#1 bound=(0,0)-(80,48) src=(0.003906,0.007813)-(0.621094,0.742188)
+DrawTriangles n=6 bbox=(0,0)-(80,48) colors=[FFFFFFFF] cov=solid
+SetShader none
+UnbindRenderTarget
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+BindRenderTarget rt#1 paintAlpha=false
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetShader shader#1
+SetShaderParam p#0 s32=1
+SetShaderParam p#0 f32=6
+SetBlendingMode Copy
+ColorMask rgba
+BindTexture0 Texture uv=FillSubRect interp=Pixel tex#2 bound=(0,0)-(80,48) src=(0.003906,0.007813)-(0.621094,0.742188)
+DrawTriangles n=6 bbox=(0,0)-(80,48) colors=[96000000] cov=solid
+SetShader shader#0
+SetBlendingMode Alpha
+BindTexture0 Texture uv=FillSubRect interp=Pixel tex#0 bound=(5,4)-(69,36) src=(0.007813,0.015625)-(0.992188,0.984375)
+DrawTriangles n=6 bbox=(5,4)-(69,36) colors=[FFFFFFFF] cov=solid
+SetShader none
+UnbindRenderTarget
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+ReleaseRenderTarget rt#2
+SetShader none
+ColorMask rgb-
+SetBlendingMode Alpha
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#1 bound=(5,6)-(85,54) src=(0.003906,0.007813)-(0.621094,0.742188)
+DrawTriangles n=6 bbox=(5,6)-(85,54) colors=[FFFFFFFF] cov=solid
+SetBlendingMode Max
+ColorMask ---a
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#1 bound=(5,6)-(85,54) src=(0.003906,0.007813)-(0.621094,0.742188)
+DrawTriangles n=6 bbox=(5,6)-(85,54) colors=[FFFFFFFF] cov=solid
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+ReleaseRenderTarget rt#0
+ReleaseRenderTarget rt#1

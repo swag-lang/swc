@@ -1,0 +1,12 @@
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+DrawTriangles n=6 bbox=(0,0)-(200,80) colors=[FF353535] cov=solid
+SetClippingRect 0 0 200 80
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetClippingRect 0 0 200 80
+Transform 1 0 0 1 0 0
+ResetClippingRect

@@ -1,0 +1,71 @@
+# tex#0 512x512 RGBA8
+# font#0 segoeui.ttf_17_false_false_bitmap_bitmap_0_17 size=17 mode=Bitmap
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+DrawTriangles n=6 bbox=(0,0)-(240,60) colors=[FF353535] cov=solid
+SetClippingRect 0 0 240 60
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetClippingRect 0 0 240 60
+Transform 1 0 0 1 20 20
+SetClippingRect 20 20 200 24
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(5,5) src=(0.00293,0.112305)-(0.010742,0.120117)
+DrawTriangles n=6 bbox=(0,0)-(5,5) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(5,0)-(195,5) src=(0.012695,0.112305)-(0.043945,0.120117)
+DrawTriangles n=6 bbox=(5,0)-(195,5) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(195,0)-(200,5) src=(0.045898,0.112305)-(0.053711,0.120117)
+DrawTriangles n=6 bbox=(195,0)-(200,5) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,5)-(5,19) src=(0.00293,0.12207)-(0.010742,0.15332)
+DrawTriangles n=6 bbox=(0,5)-(5,19) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(5,5)-(195,19) src=(0.012695,0.12207)-(0.043945,0.15332)
+DrawTriangles n=6 bbox=(5,5)-(195,19) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(195,5)-(200,19) src=(0.045898,0.12207)-(0.053711,0.15332)
+DrawTriangles n=6 bbox=(195,5)-(200,19) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,19)-(5,24) src=(0.00293,0.155273)-(0.010742,0.163086)
+DrawTriangles n=6 bbox=(0,19)-(5,24) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(5,19)-(195,24) src=(0.012695,0.155273)-(0.043945,0.163086)
+DrawTriangles n=6 bbox=(5,19)-(195,24) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(195,19)-(200,24) src=(0.045898,0.155273)-(0.053711,0.163086)
+DrawTriangles n=6 bbox=(195,19)-(200,24) colors=[FF353535] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,0)-(5,5) src=(0.057617,0.112305)-(0.06543,0.120117)
+DrawTriangles n=6 bbox=(0,0)-(5,5) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(5,0)-(195,5) src=(0.067383,0.112305)-(0.098633,0.120117)
+DrawTriangles n=6 bbox=(5,0)-(195,5) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(195,0)-(200,5) src=(0.100586,0.112305)-(0.108398,0.120117)
+DrawTriangles n=6 bbox=(195,0)-(200,5) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,5)-(5,19) src=(0.057617,0.12207)-(0.06543,0.15332)
+DrawTriangles n=6 bbox=(0,5)-(5,19) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(5,5)-(195,19) src=(0.067383,0.12207)-(0.098633,0.15332)
+DrawTriangles n=6 bbox=(5,5)-(195,19) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(195,5)-(200,19) src=(0.100586,0.12207)-(0.108398,0.15332)
+DrawTriangles n=6 bbox=(195,5)-(200,19) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(0,19)-(5,24) src=(0.057617,0.155273)-(0.06543,0.163086)
+DrawTriangles n=6 bbox=(0,19)-(5,24) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(5,19)-(195,24) src=(0.067383,0.155273)-(0.098633,0.163086)
+DrawTriangles n=6 bbox=(5,19)-(195,24) colors=[FF606060] cov=solid
+BindTexture0 Texture uv=FillSubRect interp=Linear tex#0 bound=(195,19)-(200,24) src=(0.100586,0.155273)-(0.108398,0.163086)
+DrawTriangles n=6 bbox=(195,19)-(200,24) colors=[FF606060] cov=solid
+SetClippingRect 30 25 180 14
+StartFont
+UpdateFont font#0
+ResetTexture0
+BindTextureFont font#0 atlas=0
+DrawTriangles n=24 bbox=(10,7)-(39,20) colors=[FFF0F0F0] cov=solid
+ResetTextureFont
+EndFont
+SetClippingRect 20 20 200 24
+Transform 1 0 0 1 20 20
+SetBlendingMode Alpha
+ColorMask rgb-
+SetClippingRect 20 20 200 24
+Transform 1 0 0 1 20 20
+SetClippingRect 0 0 240 60
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+SetClippingRect 0 0 240 60
+ResetClippingRect

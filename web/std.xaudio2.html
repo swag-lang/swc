@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module xaudio2</title>
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container">
+<aside class="left"><div class="left-page">
+<h2>Table of Contents</h2>
+<h3>Structs</h3>
+<li><a href="#XAudio2_IXAudio2">XAudio2.IXAudio2</a></li>
+<li><a href="#XAudio2_IXAudio2EngineCallback">XAudio2.IXAudio2EngineCallback</a></li>
+<li><a href="#XAudio2_IXAudio2EngineCallbackItf">XAudio2.IXAudio2EngineCallbackItf</a></li>
+<li><a href="#XAudio2_IXAudio2Itf">XAudio2.IXAudio2Itf</a></li>
+<li><a href="#XAudio2_IXAudio2MasteringVoice">XAudio2.IXAudio2MasteringVoice</a></li>
+<li><a href="#XAudio2_IXAudio2MasteringVoiceItf">XAudio2.IXAudio2MasteringVoiceItf</a></li>
+<li><a href="#XAudio2_IXAudio2SourceVoice">XAudio2.IXAudio2SourceVoice</a></li>
+<li><a href="#XAudio2_IXAudio2SourceVoiceItf">XAudio2.IXAudio2SourceVoiceItf</a></li>
+<li><a href="#XAudio2_IXAudio2SubmixVoice">XAudio2.IXAudio2SubmixVoice</a></li>
+<li><a href="#XAudio2_IXAudio2SubmixVoiceItf">XAudio2.IXAudio2SubmixVoiceItf</a></li>
+<li><a href="#XAudio2_IXAudio2Voice">XAudio2.IXAudio2Voice</a></li>
+<li><a href="#XAudio2_IXAudio2VoiceCallback">XAudio2.IXAudio2VoiceCallback</a></li>
+<li><a href="#XAudio2_IXAudio2VoiceCallbackItf">XAudio2.IXAudio2VoiceCallbackItf</a></li>
+<li><a href="#XAudio2_IXAudio2VoiceItf">XAudio2.IXAudio2VoiceItf</a></li>
+<li><a href="#XAudio2_WAVEFORMATEX">XAudio2.WAVEFORMATEX</a></li>
+<li><a href="#XAudio2_WAVEFORMATEXTENSIBLE">XAudio2.WAVEFORMATEXTENSIBLE</a></li>
+<li><a href="#XAudio2_WAVEFORMATEXTENSIBLE___anonymous_union_67">WAVEFORMATEXTENSIBLE.__anonymous_union_67</a></li>
+<li><a href="#XAudio2_XAUDIO2_BUFFER">XAudio2.XAUDIO2_BUFFER</a></li>
+<li><a href="#XAudio2_XAUDIO2_BUFFER_WMA">XAudio2.XAUDIO2_BUFFER_WMA</a></li>
+<li><a href="#XAudio2_XAUDIO2_DEBUG_CONFIGURATION">XAudio2.XAUDIO2_DEBUG_CONFIGURATION</a></li>
+<li><a href="#XAudio2_XAUDIO2_EFFECT_CHAIN">XAudio2.XAUDIO2_EFFECT_CHAIN</a></li>
+<li><a href="#XAudio2_XAUDIO2_FILTER_PARAMETERS">XAudio2.XAUDIO2_FILTER_PARAMETERS</a></li>
+<li><a href="#XAudio2_XAUDIO2_PERFORMANCE_DATA">XAudio2.XAUDIO2_PERFORMANCE_DATA</a></li>
+<li><a href="#XAudio2_XAUDIO2_SEND_DESCRIPTOR">XAudio2.XAUDIO2_SEND_DESCRIPTOR</a></li>
+<li><a href="#XAudio2_XAUDIO2_VOICE_DETAILS">XAudio2.XAUDIO2_VOICE_DETAILS</a></li>
+<li><a href="#XAudio2_XAUDIO2_VOICE_SENDS">XAudio2.XAUDIO2_VOICE_SENDS</a></li>
+<li><a href="#XAudio2_XAUDIO2_VOICE_STATE">XAudio2.XAUDIO2_VOICE_STATE</a></li>
+<h3>Enums</h3>
+<li><a href="#XAudio2_AUDIO_STREAM_CATEGORY">XAudio2.AUDIO_STREAM_CATEGORY</a></li>
+<li><a href="#XAudio2_XAUDIO2_FILTER_TYPE">XAudio2.XAUDIO2_FILTER_TYPE</a></li>
+<h3>Constants</h3>
+<li><a href="#XAudio2_FORMAT_EXTENSIBLE">XAudio2.FORMAT_EXTENSIBLE</a></li>
+<li><a href="#XAudio2_Processor1">XAudio2.Processor1</a></li>
+<li><a href="#XAudio2_Processor10">XAudio2.Processor10</a></li>
+<li><a href="#XAudio2_Processor11">XAudio2.Processor11</a></li>
+<li><a href="#XAudio2_Processor12">XAudio2.Processor12</a></li>
+<li><a href="#XAudio2_Processor13">XAudio2.Processor13</a></li>
+<li><a href="#XAudio2_Processor14">XAudio2.Processor14</a></li>
+<li><a href="#XAudio2_Processor15">XAudio2.Processor15</a></li>
+<li><a href="#XAudio2_Processor16">XAudio2.Processor16</a></li>
+<li><a href="#XAudio2_Processor17">XAudio2.Processor17</a></li>
+<li><a href="#XAudio2_Processor18">XAudio2.Processor18</a></li>
+<li><a href="#XAudio2_Processor19">XAudio2.Processor19</a></li>
+<li><a href="#XAudio2_Processor2">XAudio2.Processor2</a></li>
+<li><a href="#XAudio2_Processor20">XAudio2.Processor20</a></li>
+<li><a href="#XAudio2_Processor21">XAudio2.Processor21</a></li>
+<li><a href="#XAudio2_Processor22">XAudio2.Processor22</a></li>
+<li><a href="#XAudio2_Processor23">XAudio2.Processor23</a></li>
+<li><a href="#XAudio2_Processor24">XAudio2.Processor24</a></li>
+<li><a href="#XAudio2_Processor25">XAudio2.Processor25</a></li>
+<li><a href="#XAudio2_Processor26">XAudio2.Processor26</a></li>
+<li><a href="#XAudio2_Processor27">XAudio2.Processor27</a></li>
+<li><a href="#XAudio2_Processor28">XAudio2.Processor28</a></li>
+<li><a href="#XAudio2_Processor29">XAudio2.Processor29</a></li>
+<li><a href="#XAudio2_Processor3">XAudio2.Processor3</a></li>
+<li><a href="#XAudio2_Processor30">XAudio2.Processor30</a></li>
+<li><a href="#XAudio2_Processor31">XAudio2.Processor31</a></li>
+<li><a href="#XAudio2_Processor32">XAudio2.Processor32</a></li>
+<li><a href="#XAudio2_Processor4">XAudio2.Processor4</a></li>
+<li><a href="#XAudio2_Processor5">XAudio2.Processor5</a></li>
+<li><a href="#XAudio2_Processor6">XAudio2.Processor6</a></li>
+<li><a href="#XAudio2_Processor7">XAudio2.Processor7</a></li>
+<li><a href="#XAudio2_Processor8">XAudio2.Processor8</a></li>
+<li><a href="#XAudio2_Processor9">XAudio2.Processor9</a></li>
+<li><a href="#XAudio2_X3DAUDIO_HANDLE_BYTESIZE">XAudio2.X3DAUDIO_HANDLE_BYTESIZE</a></li>
+<li><a href="#XAudio2_X3DAUDIO_SPEED_OF_SOUND">XAudio2.X3DAUDIO_SPEED_OF_SOUND</a></li>
+<li><a href="#XAudio2_XAUDIO2_1024_QUANTUM">XAudio2.XAUDIO2_1024_QUANTUM</a></li>
+<li><a href="#XAudio2_XAUDIO2_ANY_PROCESSOR">XAudio2.XAUDIO2_ANY_PROCESSOR</a></li>
+<li><a href="#XAudio2_XAUDIO2_COMMIT_ALL">XAudio2.XAUDIO2_COMMIT_ALL</a></li>
+<li><a href="#XAudio2_XAUDIO2_COMMIT_NOW">XAudio2.XAUDIO2_COMMIT_NOW</a></li>
+<li><a href="#XAudio2_XAUDIO2_DEBUG_ENGINE">XAudio2.XAUDIO2_DEBUG_ENGINE</a></li>
+<li><a href="#XAudio2_XAUDIO2_DEFAULT_CHANNELS">XAudio2.XAUDIO2_DEFAULT_CHANNELS</a></li>
+<li><a href="#XAudio2_XAUDIO2_DEFAULT_FREQ_RATIO">XAudio2.XAUDIO2_DEFAULT_FREQ_RATIO</a></li>
+<li><a href="#XAudio2_XAUDIO2_DEFAULT_SAMPLERATE">XAudio2.XAUDIO2_DEFAULT_SAMPLERATE</a></li>
+<li><a href="#XAudio2_XAUDIO2_END_OF_STREAM">XAudio2.XAUDIO2_END_OF_STREAM</a></li>
+<li><a href="#XAudio2_XAUDIO2_INVALID_OPSET">XAudio2.XAUDIO2_INVALID_OPSET</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_API_CALLS">XAudio2.XAUDIO2_LOG_API_CALLS</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_DETAIL">XAudio2.XAUDIO2_LOG_DETAIL</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_ERRORS">XAudio2.XAUDIO2_LOG_ERRORS</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_FUNC_CALLS">XAudio2.XAUDIO2_LOG_FUNC_CALLS</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_INFO">XAudio2.XAUDIO2_LOG_INFO</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_LOCKS">XAudio2.XAUDIO2_LOG_LOCKS</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_MEMORY">XAudio2.XAUDIO2_LOG_MEMORY</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_STREAMING">XAudio2.XAUDIO2_LOG_STREAMING</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_TIMING">XAudio2.XAUDIO2_LOG_TIMING</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOG_WARNINGS">XAudio2.XAUDIO2_LOG_WARNINGS</a></li>
+<li><a href="#XAudio2_XAUDIO2_LOOP_INFINITE">XAudio2.XAUDIO2_LOOP_INFINITE</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_AUDIO_CHANNELS">XAudio2.XAUDIO2_MAX_AUDIO_CHANNELS</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_BUFFERS_SYSTEM">XAudio2.XAUDIO2_MAX_BUFFERS_SYSTEM</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_BUFFER_BYTES">XAudio2.XAUDIO2_MAX_BUFFER_BYTES</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_FILTER_FREQUENCY">XAudio2.XAUDIO2_MAX_FILTER_FREQUENCY</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_FILTER_ONEOVERQ">XAudio2.XAUDIO2_MAX_FILTER_ONEOVERQ</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_FREQ_RATIO">XAudio2.XAUDIO2_MAX_FREQ_RATIO</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_INSTANCES">XAudio2.XAUDIO2_MAX_INSTANCES</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_LOOP_COUNT">XAudio2.XAUDIO2_MAX_LOOP_COUNT</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_QUEUED_BUFFERS">XAudio2.XAUDIO2_MAX_QUEUED_BUFFERS</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_SAMPLE_RATE">XAudio2.XAUDIO2_MAX_SAMPLE_RATE</a></li>
+<li><a href="#XAudio2_XAUDIO2_MAX_VOLUME_LEVEL">XAudio2.XAUDIO2_MAX_VOLUME_LEVEL</a></li>
+<li><a href="#XAudio2_XAUDIO2_MIN_FREQ_RATIO">XAudio2.XAUDIO2_MIN_FREQ_RATIO</a></li>
+<li><a href="#XAudio2_XAUDIO2_MIN_SAMPLE_RATE">XAudio2.XAUDIO2_MIN_SAMPLE_RATE</a></li>
+<li><a href="#XAudio2_XAUDIO2_NO_LOOP_REGION">XAudio2.XAUDIO2_NO_LOOP_REGION</a></li>
+<li><a href="#XAudio2_XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT">XAudio2.XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT</a></li>
+<li><a href="#XAudio2_XAUDIO2_PLAY_TAILS">XAudio2.XAUDIO2_PLAY_TAILS</a></li>
+<li><a href="#XAudio2_XAUDIO2_SEND_USEFILTER">XAudio2.XAUDIO2_SEND_USEFILTER</a></li>
+<li><a href="#XAudio2_XAUDIO2_STOP_ENGINE_WHEN_IDLE">XAudio2.XAUDIO2_STOP_ENGINE_WHEN_IDLE</a></li>
+<li><a href="#XAudio2_XAUDIO2_VOICE_NOPITCH">XAudio2.XAUDIO2_VOICE_NOPITCH</a></li>
+<li><a href="#XAudio2_XAUDIO2_VOICE_NOSAMPLESPLAYED">XAudio2.XAUDIO2_VOICE_NOSAMPLESPLAYED</a></li>
+<li><a href="#XAudio2_XAUDIO2_VOICE_NOSRC">XAudio2.XAUDIO2_VOICE_NOSRC</a></li>
+<li><a href="#XAudio2_XAUDIO2_VOICE_USEFILTER">XAudio2.XAUDIO2_VOICE_USEFILTER</a></li>
+<h3>Type Aliases</h3>
+<li><a href="#XAudio2_FLOAT32">XAudio2.FLOAT32</a></li>
+<li><a href="#XAudio2_UINT32">XAudio2.UINT32</a></li>
+<li><a href="#XAudio2_UINT64">XAudio2.UINT64</a></li>
+<li><a href="#XAudio2_X3DAUDIO_HANDLE">XAudio2.X3DAUDIO_HANDLE</a></li>
+<li><a href="#XAudio2_XAUDIO2_PROCESSOR">XAudio2.XAUDIO2_PROCESSOR</a></li>
+<h3>Functions</h3>
+<li><a href="#XAudio2_X3DAudioInitialize">XAudio2.X3DAudioInitialize</a></li>
+<li><a href="#XAudio2_XAudio2Create">XAudio2.XAudio2Create</a></li>
+</div></aside>
+<section class="right"><article class="right-page">
+<h1>Module xaudio2</h1>
+<h1>Content</h1>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L216">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">vtbl</td><td class="code-type">*XAudio2.IXAudio2Itf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2EngineCallback"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2EngineCallback</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L236">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2EngineCallback</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">vtbl</td><td class="code-type">*XAudio2.IXAudio2EngineCallbackItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2EngineCallbackItf"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2EngineCallbackItf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L251">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2EngineCallbackItf</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">onCriticalError</td><td class="code-type">func(this: *XAudio2.IXAudio2EngineCallback, error: #null *void)</td><td></td></tr>
+<tr><td class="code-type">onProcessingPassEnd</td><td class="code-type">func(this: *XAudio2.IXAudio2EngineCallback)</td><td></td></tr>
+<tr><td class="code-type">onProcessingPassStart</td><td class="code-type">func(this: *XAudio2.IXAudio2EngineCallback)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2Itf"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2Itf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L269">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2Itf</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">addRef</td><td class="code-type">func(this: *XAudio2.IXAudio2)-&gt;u32</td><td></td></tr>
+<tr><td class="code-type">commitChanges</td><td class="code-type">func(this: *XAudio2.IXAudio2, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">createMasteringVoice</td><td class="code-type">func(this: *XAudio2.IXAudio2, voice: *#null *XAudio2.IXAudio2MasteringVoice, inputChannels: u32, inputSampleRate: u32, flags: u32, szDeviceId: #null const [*] u16, effectChain: #null *XAudio2.XAUDIO2_EFFECT_CHAIN, streamCategory: XAudio2.AUDIO_STREAM_CATEGORY)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">createSourceVoice</td><td class="code-type">func(this: *XAudio2.IXAudio2, ppSourceVoice: *#null *XAudio2.IXAudio2SourceVoice, pSourceFormat: const *XAudio2.WAVEFORMATEX, flags: u32, maxFrequencyRatio: f32, pCallback: *XAudio2.IXAudio2VoiceCallback, pSendList: #null const *XAudio2.XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAudio2.XAUDIO2_EFFECT_CHAIN)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">createSubmixVoice</td><td class="code-type">func(this: *XAudio2.IXAudio2, ppSubmixVoice: *#null *XAudio2.IXAudio2SubmixVoice, inputChannels: u32, inputSampleRate: u32, flags: u32, processingStage: u32, pSendList: #null const *XAudio2.XAUDIO2_VOICE_SENDS, pEffectChain: #null const *XAudio2.XAUDIO2_EFFECT_CHAIN)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">getPerformanceData</td><td class="code-type">func(this: *XAudio2.IXAudio2, pPerfData: *XAudio2.XAUDIO2_PERFORMANCE_DATA)</td><td></td></tr>
+<tr><td class="code-type">queryInterface</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">registerForCallbacks</td><td class="code-type">func(this: *XAudio2.IXAudio2, pCallback: *XAudio2.IXAudio2EngineCallback)</td><td></td></tr>
+<tr><td class="code-type">release</td><td class="code-type">func(this: *XAudio2.IXAudio2)-&gt;u32</td><td></td></tr>
+<tr><td class="code-type">setDebugConfiguration</td><td class="code-type">func(this: *XAudio2.IXAudio2, pDebugConfiguration: const *XAudio2.XAUDIO2_DEBUG_CONFIGURATION, pReserved: #null *void)</td><td></td></tr>
+<tr><td class="code-type">startEngine</td><td class="code-type">func(this: *XAudio2.IXAudio2)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">stopEngine</td><td class="code-type">func(this: *XAudio2.IXAudio2)</td><td></td></tr>
+<tr><td class="code-type">unregisterForCallbacks</td><td class="code-type">func(this: *XAudio2.IXAudio2, pCallback: *XAudio2.IXAudio2EngineCallback)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2MasteringVoice"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2MasteringVoice</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L226">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2MasteringVoice</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">vtbl</td><td class="code-type">*XAudio2.IXAudio2MasteringVoiceItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2MasteringVoiceItf"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2MasteringVoiceItf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L309">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2MasteringVoiceItf</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">getChannelMask</td><td class="code-type">func(this: *XAudio2.IXAudio2MasteringVoice, pChannelmask: *u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">voice</td><td class="code-type">XAudio2.IXAudio2VoiceItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2SourceVoice"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2SourceVoice</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L231">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2SourceVoice</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">vtbl</td><td class="code-type">*XAudio2.IXAudio2SourceVoiceItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2SourceVoiceItf"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2SourceVoiceItf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L320">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2SourceVoiceItf</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">discontinuity</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">exitLoop</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, OperationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">getFrequencyRatio</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, pRatio: *f32)</td><td></td></tr>
+<tr><td class="code-type">getState</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, pVoiceState: *XAudio2.XAUDIO2_VOICE_STATE, flags: u32)</td><td></td></tr>
+<tr><td class="code-type">glushSourceBuffers</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setFrequencyRatio</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, ratio: f32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setSourceSampleRate</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, newSourceSampleRate: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">start</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, flags: u32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">stop</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, flags: u32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">submitSourceBuffer</td><td class="code-type">func(this: *XAudio2.IXAudio2SourceVoice, pBuffer: const *XAudio2.XAUDIO2_BUFFER, pBufferWMA: #null const *XAudio2.XAUDIO2_BUFFER_WMA)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">voice</td><td class="code-type">XAudio2.IXAudio2VoiceItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2SubmixVoice"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2SubmixVoice</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L246">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2SubmixVoice</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">vtbl</td><td class="code-type">*XAudio2.IXAudio2SubmixVoiceItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2SubmixVoiceItf"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2SubmixVoiceItf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L315">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2SubmixVoiceItf</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">voice</td><td class="code-type">XAudio2.IXAudio2VoiceItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2Voice"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2Voice</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L221">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2Voice</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">vtbl</td><td class="code-type">*XAudio2.IXAudio2VoiceItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2VoiceCallback"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2VoiceCallback</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L241">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2VoiceCallback</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">vtbl</td><td class="code-type">*XAudio2.IXAudio2VoiceCallbackItf</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2VoiceCallbackItf"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2VoiceCallbackItf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L258">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2VoiceCallbackItf</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">onBufferEnd</td><td class="code-type">func(this: *XAudio2.IXAudio2VoiceCallback, pBufferContext: #null *void)</td><td></td></tr>
+<tr><td class="code-type">onBufferStart</td><td class="code-type">func(this: *XAudio2.IXAudio2VoiceCallback, pBufferContext: #null *void)</td><td></td></tr>
+<tr><td class="code-type">onLoopEnd</td><td class="code-type">func(this: *XAudio2.IXAudio2VoiceCallback, pBufferContext: #null *void)</td><td></td></tr>
+<tr><td class="code-type">onStreamEnd</td><td class="code-type">func(this: *XAudio2.IXAudio2VoiceCallback)</td><td></td></tr>
+<tr><td class="code-type">onVoiceError</td><td class="code-type">func(this: *XAudio2.IXAudio2VoiceCallback, pBufferContext: #null *void, error: #null *void)</td><td></td></tr>
+<tr><td class="code-type">onVoiceProcessingPassEnd</td><td class="code-type">func(this: *XAudio2.IXAudio2VoiceCallback)</td><td></td></tr>
+<tr><td class="code-type">onVoiceProcessingPassStart</td><td class="code-type">func(this: *XAudio2.IXAudio2VoiceCallback, bytesRequired: u32)</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_IXAudio2VoiceItf"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.IXAudio2VoiceItf</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L286">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">IXAudio2VoiceItf</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">destroyVoice</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice)</td><td></td></tr>
+<tr><td class="code-type">disableEffect</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, effectIndex: u32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">enableEffect</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, effectIndex: u32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">getChannelVolumes</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, channels: u32, pVolumes: *f32)</td><td></td></tr>
+<tr><td class="code-type">getEffectParameters</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, effectIndex: u32, pParameters: *void, parametersByteSize: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">getEffectState</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, effectIndex: u32, pEnabled: *s32)</td><td></td></tr>
+<tr><td class="code-type">getFilterParameters</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pParameters: *XAudio2.XAUDIO2_FILTER_PARAMETERS)</td><td></td></tr>
+<tr><td class="code-type">getOutputFilterParameters</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pDestinationVoice: *XAudio2.IXAudio2Voice, pParameters: *XAudio2.XAUDIO2_FILTER_PARAMETERS)</td><td></td></tr>
+<tr><td class="code-type">getOutputMatrix</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pDestinationVoice: *XAudio2.IXAudio2Voice, sourceChannels: u32, destinationChannels: u32, pLevelMatrix: *f32)</td><td></td></tr>
+<tr><td class="code-type">getVoiceDetails</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pVoiceDetails: *XAudio2.XAUDIO2_VOICE_DETAILS)</td><td></td></tr>
+<tr><td class="code-type">getVolume</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pVolume: *f32)</td><td></td></tr>
+<tr><td class="code-type">setChannelVolumes</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, channels: u32, pVolumes: const *f32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setEffectChain</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pEffectChain: #null const *XAudio2.XAUDIO2_EFFECT_CHAIN)</td><td></td></tr>
+<tr><td class="code-type">setEffectParameters</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, effectIndex: u32, pParameters: const *void, parametersByteSize: u32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setFilterParameters</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pParameters: const *XAudio2.XAUDIO2_FILTER_PARAMETERS, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setOutputFilterParameters</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pDestinationVoice: *XAudio2.IXAudio2Voice, pParameters: const *XAudio2.XAUDIO2_FILTER_PARAMETERS, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setOutputMatrix</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pDestinationVoice: *XAudio2.IXAudio2Voice, sourceChannels: u32, destinationChannels: u32, pLevelMatrix: const *f32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setOutputVoices</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, pSendList: #null const *XAudio2.XAUDIO2_VOICE_SENDS)-&gt;#null *void</td><td></td></tr>
+<tr><td class="code-type">setVolume</td><td class="code-type">func(this: *XAudio2.IXAudio2Voice, volume: f32, operationSet: u32)-&gt;#null *void</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_WAVEFORMATEX"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.WAVEFORMATEX</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L338">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Pack(1)]</span>
+<span class="SKwd">struct</span> <span class="SCst">WAVEFORMATEX</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">cbSize</td><td class="code-type">u16</td><td></td></tr>
+<tr><td class="code-type">nAvgBytesPerSec</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">nBlockAlign</td><td class="code-type">u16</td><td></td></tr>
+<tr><td class="code-type">nChannels</td><td class="code-type">u16</td><td></td></tr>
+<tr><td class="code-type">nSamplesPerSec</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">wBitsPerSample</td><td class="code-type">u16</td><td></td></tr>
+<tr><td class="code-type">wFormatTag</td><td class="code-type">u16</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_WAVEFORMATEXTENSIBLE"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.WAVEFORMATEXTENSIBLE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L349">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">WAVEFORMATEXTENSIBLE</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">dwChannelMask</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">format</td><td class="code-type">XAudio2.WAVEFORMATEX</td><td></td></tr>
+<tr><td class="code-type">samples</td><td class="code-type">XAudio2.WAVEFORMATEXTENSIBLE.__anonymous_union_67</td><td></td></tr>
+<tr><td class="code-type">subFormat</td><td class="code-type">Win32.GUID</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_WAVEFORMATEXTENSIBLE___anonymous_union_67"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">WAVEFORMATEXTENSIBLE.__anonymous_union_67</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L353">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">union</span>
+{
+    wValidBitsPerSample: <span class="SCst">WORD</span>
+    wSamplesPerBlock:    <span class="SCst">WORD</span>
+    wReserved:           <span class="SCst">WORD</span>
+}</span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">wReserved</td><td class="code-type">u16</td><td></td></tr>
+<tr><td class="code-type">wSamplesPerBlock</td><td class="code-type">u16</td><td></td></tr>
+<tr><td class="code-type">wValidBitsPerSample</td><td class="code-type">u16</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_BUFFER"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_BUFFER</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L172">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Pack(1)]</span>
+<span class="SKwd">struct</span> <span class="SCst">XAUDIO2_BUFFER</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">audioBytes</td><td class="code-type">u32</td><td><p>Size of the audio data buffer in bytes.</p>
+</td></tr>
+<tr><td class="code-type">flags</td><td class="code-type">u32</td><td><p>Either 0 or XAUDIO2_END_OF_STREAM.</p>
+</td></tr>
+<tr><td class="code-type">loopBegin</td><td class="code-type">u32</td><td><p>First sample of the region to be looped.</p>
+</td></tr>
+<tr><td class="code-type">loopCount</td><td class="code-type">u32</td><td><p>Number of times to repeat the for region, or XAUDIO2_LOOP_INFINITE to for forever.</p>
+</td></tr>
+<tr><td class="code-type">loopLength</td><td class="code-type">u32</td><td><p>Length of the desired for region in samples, or 0 to for the entire buffer.</p>
+</td></tr>
+<tr><td class="code-type">pAudioData</td><td class="code-type">const *u8</td><td><p>Pointer to the audio data buffer.</p>
+</td></tr>
+<tr><td class="code-type">pContext</td><td class="code-type">#null *void</td><td><p>Context value to be passed back in callbacks.</p>
+</td></tr>
+<tr><td class="code-type">playBegin</td><td class="code-type">u32</td><td><p>First sample in this buffer to be played.</p>
+</td></tr>
+<tr><td class="code-type">playLength</td><td class="code-type">u32</td><td><p>Length of the region to be played in samples, or 0 to play the whole buffer.</p>
+</td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_BUFFER_WMA"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_BUFFER_WMA</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L185">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XAUDIO2_BUFFER_WMA</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">PacketCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">pDecodedPacketCumulativeBytes</td><td class="code-type">const *u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_DEBUG_CONFIGURATION"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_DEBUG_CONFIGURATION</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L123">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XAUDIO2_DEBUG_CONFIGURATION</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">breakMask</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">logFileline</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">logFunctionName</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">logThreadID</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">logTiming</td><td class="code-type">s32</td><td></td></tr>
+<tr><td class="code-type">traceMask</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_EFFECT_CHAIN"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_EFFECT_CHAIN</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L103">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XAUDIO2_EFFECT_CHAIN</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_FILTER_PARAMETERS"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_FILTER_PARAMETERS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L209">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XAUDIO2_FILTER_PARAMETERS</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">frequency</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">oneOverQ</td><td class="code-type">f32</td><td></td></tr>
+<tr><td class="code-type">type</td><td class="code-type">XAudio2.XAUDIO2_FILTER_TYPE</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_PERFORMANCE_DATA"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_PERFORMANCE_DATA</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L105">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XAUDIO2_PERFORMANCE_DATA</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">ActiveMatrixMixCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">ActiveResamplerCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">ActiveSourceVoiceCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">ActiveSubmixVoiceCount</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">ActiveXmaSourceVoices</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">ActiveXmaStreams</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">AudioCyclesSinceLastQuery</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">CurrentLatencyInSamples</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">GlitchesSinceEngineStarted</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">MaximumCyclesPerQuantum</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">MemoryUsageInBytes</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">MinimumCyclesPerQuantum</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">TotalCyclesSinceLastQuery</td><td class="code-type">u64</td><td></td></tr>
+<tr><td class="code-type">TotalSourceVoiceCount</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_SEND_DESCRIPTOR"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_SEND_DESCRIPTOR</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L158">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Pack(1)]</span>
+<span class="SKwd">struct</span> <span class="SCst">XAUDIO2_SEND_DESCRIPTOR</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">flags</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">pOutputVoice</td><td class="code-type">*XAudio2.IXAudio2Voice</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_VOICE_DETAILS"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_VOICE_DETAILS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L149">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XAUDIO2_VOICE_DETAILS</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">activeFlags</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">creationFlags</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">inputChannels</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">inputSampleRate</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_VOICE_SENDS"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_VOICE_SENDS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L165">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Pack(1)]</span>
+<span class="SKwd">struct</span> <span class="SCst">XAUDIO2_VOICE_SENDS</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">pSends</td><td class="code-type">*XAudio2.XAUDIO2_SEND_DESCRIPTOR</td><td></td></tr>
+<tr><td class="code-type">sendCount</td><td class="code-type">u32</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_VOICE_STATE"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_VOICE_STATE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L191">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">XAUDIO2_VOICE_STATE</span></span></div>
+<h3>Fields</h3>
+<table class="table-enumeration">
+<tr><td class="code-type">buffersQueued</td><td class="code-type">u32</td><td></td></tr>
+<tr><td class="code-type">pCurrentBufferContext</td><td class="code-type">#null *void</td><td></td></tr>
+<tr><td class="code-type">samplesPlayed</td><td class="code-type">u64</td><td></td></tr>
+</table>
+<table class="api-item"><tr><td><span id="XAudio2_AUDIO_STREAM_CATEGORY"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">XAudio2.AUDIO_STREAM_CATEGORY</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L133">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">AUDIO_STREAM_CATEGORY</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_FILTER_TYPE"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_FILTER_TYPE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L199">[src]</a></td></tr></table>
+<p>Used in XAUDIO2_FILTER_PARAMETERS below</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">XAUDIO2_FILTER_TYPE</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_FORMAT_EXTENSIBLE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.FORMAT_EXTENSIBLE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L335">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">FORMAT_EXTENSIBLE</span> = <span class="SNum">0xFFFE</span>'<span class="STpe">u16</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor1"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor1</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L16">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor1</span>            = <span class="SNum">0x00000001</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor10"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor10</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L25">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor10</span>           = <span class="SNum">0x00000200</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor11"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor11</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L26">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor11</span>           = <span class="SNum">0x00000400</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor12"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor12</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L27">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor12</span>           = <span class="SNum">0x00000800</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor13"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor13</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L28">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor13</span>           = <span class="SNum">0x00001000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor14"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor14</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L29">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor14</span>           = <span class="SNum">0x00002000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor15"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor15</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L30">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor15</span>           = <span class="SNum">0x00004000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor16"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor16</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L31">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor16</span>           = <span class="SNum">0x00008000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor17"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor17</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L32">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor17</span>           = <span class="SNum">0x00010000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor18"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor18</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L33">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor18</span>           = <span class="SNum">0x00020000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor19"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor19</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L34">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor19</span>           = <span class="SNum">0x00040000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor2"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor2</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L17">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor2</span>            = <span class="SNum">0x00000002</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor20"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor20</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L35">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor20</span>           = <span class="SNum">0x00080000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor21"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor21</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L36">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor21</span>           = <span class="SNum">0x00100000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor22"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor22</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L37">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor22</span>           = <span class="SNum">0x00200000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor23"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor23</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L38">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor23</span>           = <span class="SNum">0x00400000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor24"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor24</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L39">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor24</span>           = <span class="SNum">0x00800000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor25"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor25</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L40">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor25</span>           = <span class="SNum">0x01000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor26"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor26</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L41">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor26</span>           = <span class="SNum">0x02000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor27"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor27</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L42">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor27</span>           = <span class="SNum">0x04000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor28"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor28</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L43">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor28</span>           = <span class="SNum">0x08000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor29"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor29</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L44">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor29</span>           = <span class="SNum">0x10000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor3"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor3</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L18">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor3</span>            = <span class="SNum">0x00000004</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor30"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor30</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L45">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor30</span>           = <span class="SNum">0x20000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor31"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor31</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L46">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor31</span>           = <span class="SNum">0x40000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor32"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor32</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L47">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor32</span>           = <span class="SNum">0x80000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor4"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor4</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L19">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor4</span>            = <span class="SNum">0x00000008</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor5"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor5</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L20">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor5</span>            = <span class="SNum">0x00000010</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor6"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor6</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L21">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor6</span>            = <span class="SNum">0x00000020</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor7"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor7</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L22">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor7</span>            = <span class="SNum">0x00000040</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor8"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor8</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L23">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor8</span>            = <span class="SNum">0x00000080</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_Processor9"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.Processor9</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L24">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Processor9</span>            = <span class="SNum">0x00000100</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_X3DAUDIO_HANDLE_BYTESIZE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.X3DAUDIO_HANDLE_BYTESIZE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L12">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">X3DAUDIO_HANDLE_BYTESIZE</span> = <span class="SNum">20</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_X3DAUDIO_SPEED_OF_SOUND"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.X3DAUDIO_SPEED_OF_SOUND</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L50">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">X3DAUDIO_SPEED_OF_SOUND</span> = <span class="SNum">343.5</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_1024_QUANTUM"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_1024_QUANTUM</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L61">[src]</a></td></tr></table>
+<p>Used in XAudio2Create to specify nondefault processing quantum of 21.33 ms (1024 samples at 48KHz)</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_1024_QUANTUM</span>            = <span class="SNum">0x8000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_ANY_PROCESSOR"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_ANY_PROCESSOR</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L48">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_ANY_PROCESSOR</span> = <span class="SNum">0xFFFFFFFF</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_COMMIT_ALL"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_COMMIT_ALL</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L81">[src]</a></td></tr></table>
+<p>Used in IXAudio2::CommitChanges</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_COMMIT_ALL</span>         = <span class="SNum">0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_COMMIT_NOW"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_COMMIT_NOW</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L80">[src]</a></td></tr></table>
+<p>Used as an OperationSet argument</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_COMMIT_NOW</span>         = <span class="SNum">0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_DEBUG_ENGINE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_DEBUG_ENGINE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L52">[src]</a></td></tr></table>
+<p>Used in XAudio2Create</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_DEBUG_ENGINE</span>            = <span class="SNum">0x0001</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_DEFAULT_CHANNELS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_DEFAULT_CHANNELS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L85">[src]</a></td></tr></table>
+<p>Used in CreateMasteringVoice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_DEFAULT_CHANNELS</span>   = <span class="SNum">0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_DEFAULT_FREQ_RATIO"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_DEFAULT_FREQ_RATIO</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L73">[src]</a></td></tr></table>
+<p>Default MaxFrequencyRatio argument</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_DEFAULT_FREQ_RATIO</span>   = <span class="SNum">2.0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_DEFAULT_SAMPLERATE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_DEFAULT_SAMPLERATE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L86">[src]</a></td></tr></table>
+<p>Used in CreateMasteringVoice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_DEFAULT_SAMPLERATE</span> = <span class="SNum">0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_END_OF_STREAM"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_END_OF_STREAM</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L57">[src]</a></td></tr></table>
+<p>Used in XAUDIO2_BUFFER.Flags</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_END_OF_STREAM</span>           = <span class="SNum">0x0040</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_INVALID_OPSET"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_INVALID_OPSET</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L82">[src]</a></td></tr></table>
+<p>Not allowed for OperationSet arguments</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_INVALID_OPSET</span>      = <span class="SNum">0xFFFFFFFF</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_API_CALLS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_API_CALLS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L96">[src]</a></td></tr></table>
+<p>Public API function entries and exits.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_API_CALLS</span>  = <span class="SNum">0x0010</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_DETAIL"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_DETAIL</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L95">[src]</a></td></tr></table>
+<p>More detailed chit-chat.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_DETAIL</span>     = <span class="SNum">0x0008</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_ERRORS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_ERRORS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L92">[src]</a></td></tr></table>
+<p>For handled errors with serious effects.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_ERRORS</span>     = <span class="SNum">0x0001</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_FUNC_CALLS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_FUNC_CALLS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L97">[src]</a></td></tr></table>
+<p>Internal function entries and exits.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_FUNC_CALLS</span> = <span class="SNum">0x0020</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_INFO"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_INFO</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L94">[src]</a></td></tr></table>
+<p>Informational chit-chat (e.g. state changes).</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_INFO</span>       = <span class="SNum">0x0004</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_LOCKS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_LOCKS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L99">[src]</a></td></tr></table>
+<p>Usage of critical sections and mutexes.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_LOCKS</span>      = <span class="SNum">0x0080</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_MEMORY"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_MEMORY</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L100">[src]</a></td></tr></table>
+<p>Memory heap usage information.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_MEMORY</span>     = <span class="SNum">0x0100</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_STREAMING"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_STREAMING</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L101">[src]</a></td></tr></table>
+<p>Audio streaming information.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_STREAMING</span>  = <span class="SNum">0x1000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_TIMING"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_TIMING</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L98">[src]</a></td></tr></table>
+<p>Delays detected and other timing data.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_TIMING</span>     = <span class="SNum">0x0040</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOG_WARNINGS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOG_WARNINGS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L93">[src]</a></td></tr></table>
+<p>For handled errors that may be recoverable.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOG_WARNINGS</span>   = <span class="SNum">0x0002</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_LOOP_INFINITE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_LOOP_INFINITE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L84">[src]</a></td></tr></table>
+<p>Used in XAUDIO2_BUFFER.LoopCount</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_LOOP_INFINITE</span>      = <span class="SNum">255</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_AUDIO_CHANNELS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_AUDIO_CHANNELS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L67">[src]</a></td></tr></table>
+<p>Maximum channels in an audio stream</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_AUDIO_CHANNELS</span>   = <span class="SNum">64</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_BUFFERS_SYSTEM"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_BUFFERS_SYSTEM</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L66">[src]</a></td></tr></table>
+<p>Maximum buffers allowed for system threads (Xbox 360 only)</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_BUFFERS_SYSTEM</span>   = <span class="SNum">2</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_BUFFER_BYTES"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_BUFFER_BYTES</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L64">[src]</a></td></tr></table>
+<p>Maximum bytes allowed in a source buffer</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_BUFFER_BYTES</span>     = <span class="SNum">0x80000000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_FILTER_FREQUENCY"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_FILTER_FREQUENCY</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L75">[src]</a></td></tr></table>
+<p>Maximum XAUDIO2_FILTER_PARAMETERS.Frequency</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_FILTER_FREQUENCY</span> = <span class="SNum">1.0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_FILTER_ONEOVERQ"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_FILTER_ONEOVERQ</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L74">[src]</a></td></tr></table>
+<p>Maximum XAUDIO2_FILTER_PARAMETERS.OneOverQ</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_FILTER_ONEOVERQ</span>  = <span class="SNum">1.5</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_FREQ_RATIO"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_FREQ_RATIO</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L72">[src]</a></td></tr></table>
+<p>Maximum MaxFrequencyRatio argument</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_FREQ_RATIO</span>       = <span class="SNum">1024.0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_INSTANCES"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_INSTANCES</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L77">[src]</a></td></tr></table>
+<p>Maximum simultaneous XAudio2 objects on Xbox 360</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_INSTANCES</span>        = <span class="SNum">8</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_LOOP_COUNT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_LOOP_COUNT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L76">[src]</a></td></tr></table>
+<p>Maximum non-infinite XAUDIO2_BUFFER.LoopCount</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_LOOP_COUNT</span>       = <span class="SNum">254</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_QUEUED_BUFFERS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_QUEUED_BUFFERS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L65">[src]</a></td></tr></table>
+<p>Maximum buffers allowed in a voice queue</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_QUEUED_BUFFERS</span>   = <span class="SNum">64</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_SAMPLE_RATE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_SAMPLE_RATE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L69">[src]</a></td></tr></table>
+<p>Maximum audio sample rate supported</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_SAMPLE_RATE</span>      = <span class="SNum">200000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MAX_VOLUME_LEVEL"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MAX_VOLUME_LEVEL</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L70">[src]</a></td></tr></table>
+<p>Maximum acceptable volume level (2^24)</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MAX_VOLUME_LEVEL</span>     = <span class="SNum">16777216.0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MIN_FREQ_RATIO"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MIN_FREQ_RATIO</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L71">[src]</a></td></tr></table>
+<p>Minimum SetFrequencyRatio argument</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MIN_FREQ_RATIO</span>       = (<span class="SNum">1</span> / <span class="SNum">1024.0</span>)</span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_MIN_SAMPLE_RATE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_MIN_SAMPLE_RATE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L68">[src]</a></td></tr></table>
+<p>Minimum audio sample rate supported</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_MIN_SAMPLE_RATE</span>      = <span class="SNum">1000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_NO_LOOP_REGION"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_NO_LOOP_REGION</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L83">[src]</a></td></tr></table>
+<p>Used in XAUDIO2_BUFFER.LoopCount</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_NO_LOOP_REGION</span>     = <span class="SNum">0</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L62">[src]</a></td></tr></table>
+<p>Used in CreateMasteringVoice to create a virtual audio client</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_NO_VIRTUAL_AUDIO_CLIENT</span> = <span class="SNum">0x10000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_PLAY_TAILS"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_PLAY_TAILS</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L56">[src]</a></td></tr></table>
+<p>Used in IXAudio2SourceVoice::Stop</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_PLAY_TAILS</span>              = <span class="SNum">0x0020</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_SEND_USEFILTER"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_SEND_USEFILTER</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L58">[src]</a></td></tr></table>
+<p>Used in XAUDIO2_SEND_DESCRIPTOR.Flags</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_SEND_USEFILTER</span>          = <span class="SNum">0x0080</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_STOP_ENGINE_WHEN_IDLE"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_STOP_ENGINE_WHEN_IDLE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L60">[src]</a></td></tr></table>
+<p>Used in XAudio2Create to force the engine to Stop when no source voices are Started, and Start when a voice is Started</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_STOP_ENGINE_WHEN_IDLE</span>   = <span class="SNum">0x2000</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_VOICE_NOPITCH"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_VOICE_NOPITCH</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L53">[src]</a></td></tr></table>
+<p>Used in IXAudio2::CreateSourceVoice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_VOICE_NOPITCH</span>           = <span class="SNum">0x0002</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_VOICE_NOSAMPLESPLAYED"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_VOICE_NOSAMPLESPLAYED</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L59">[src]</a></td></tr></table>
+<p>Used in IXAudio2SourceVoice::GetState</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_VOICE_NOSAMPLESPLAYED</span>   = <span class="SNum">0x0100</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_VOICE_NOSRC"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_VOICE_NOSRC</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L54">[src]</a></td></tr></table>
+<p>Used in IXAudio2::CreateSourceVoice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_VOICE_NOSRC</span>             = <span class="SNum">0x0004</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_VOICE_USEFILTER"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_VOICE_USEFILTER</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L55">[src]</a></td></tr></table>
+<p>Used in IXAudio2::CreateSource/SubmixVoice</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">XAUDIO2_VOICE_USEFILTER</span>         = <span class="SNum">0x0008</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_FLOAT32"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">XAudio2.FLOAT32</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L10">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">FLOAT32</span> = <span class="STpe">f32</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_UINT32"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">XAudio2.UINT32</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L8">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">UINT32</span>  = <span class="STpe">u32</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_UINT64"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">XAudio2.UINT64</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L9">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">UINT64</span>  = <span class="STpe">u64</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_X3DAUDIO_HANDLE"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">XAudio2.X3DAUDIO_HANDLE</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L13">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">X3DAUDIO_HANDLE</span> = [<span class="SCst">X3DAUDIO_HANDLE_BYTESIZE</span>] <span class="SCst">BYTE</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAUDIO2_PROCESSOR"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">XAudio2.XAUDIO2_PROCESSOR</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L15">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">XAUDIO2_PROCESSOR</span> = <span class="SCst">UINT32</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_X3DAudioInitialize"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">XAudio2.X3DAudioInitialize</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L367">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">X3DAudioInitialize</span>(speakerChannelMask: <span class="SCst">UINT32</span>, speedOfSound: <span class="SCst">FLOAT32</span>, instance: <span class="SCst">X3DAUDIO_HANDLE</span>)-&gt;<span class="SCst">HRESULT</span></span></div>
+<table class="api-item"><tr><td><span id="XAudio2_XAudio2Create"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">XAudio2.XAudio2Create</span></span></td><td class="api-item-title-src-ref"><a href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2/src/xaudio2.swg#L366">[src]</a></td></tr></table>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">XAudio2Create</span>(ppXAudio2: *<span class="SItr">#null</span> *<span class="SCst">IXAudio2</span>, flags: <span class="SCst">UINT32</span>, processor: <span class="SCst">XAUDIO2_PROCESSOR</span> = <span class="SCst">XAUDIO2_ANY_PROCESSOR</span>)-&gt;<span class="SCst">HRESULT</span></span></div>
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
+</article></section>
+</main>
+</body>
+</html>

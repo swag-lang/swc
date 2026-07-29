@@ -55,6 +55,52 @@ namespace
         sema.setConstant(nodeRef, cstRef);
         return nodeRef;
     }
+
+    // The elements of an array literal are unified, not independent: an untyped element belongs to
+    // the type deduced for the literal as a whole. Returns that element type when it is a scalar
+    // the untyped elements can be retargeted to, and an invalid ref otherwise (struct aggregates,
+    // nested arrays, type-like elements), which leaves the caller on plain concretization.
+    TypeRef unifiedArrayLiteralElemTypeRef(Sema& sema, ConstantRef cstRef, TypeRef aggregateTypeRef)
+    {
+        if (!aggregateTypeRef.isValid() || !sema.typeMgr().get(aggregateTypeRef).isAggregateArray())
+            return TypeRef::invalid();
+
+        const TypeRef concretizedTypeRef = SemaHelpers::deduceConcretizedAggregateArrayType(sema, aggregateTypeRef, cstRef);
+        if (!concretizedTypeRef.isValid())
+            return TypeRef::invalid();
+
+        const TypeInfo& concretizedType = sema.typeMgr().get(concretizedTypeRef);
+        if (!concretizedType.isArray())
+            return TypeRef::invalid();
+
+        const TypeRef elemTypeRef = concretizedType.payloadArrayElemTypeRef();
+        return sema.typeMgr().get(elemTypeRef).isScalarNumeric() ? elemTypeRef : TypeRef::invalid();
+    }
+
+    // Concretizing an untyped element on its own would land it on its standalone default (s32/f64)
+    // and then drag a narrower typed sibling up with it, so `[1'u8, 2, 3]` would become an s32
+    // array while the very same literal typed through a variable declaration stays u8.
+    //
+    // Folds through 'castAllowed' rather than 'castConstant' because this path must stay silent:
+    // a target the element cannot reach just falls back to plain concretization instead of
+    // raising, and 'castAllowed' only records the failure.
+    bool concretizeUntypedArrayElement(Sema& sema, ConstantRef& result, ConstantRef valueRef, TypeRef unifiedElemTypeRef)
+    {
+        if (!unifiedElemTypeRef.isValid())
+            return false;
+
+        const TypeRef valueTypeRef = sema.cstMgr().get(valueRef).typeRef();
+        if (!sema.typeMgr().get(valueTypeRef).isScalarUnsized())
+            return false;
+
+        CastRequest castRequest(CastKind::Implicit);
+        castRequest.setConstantFoldingSrc(valueRef);
+        if (Cast::castAllowed(sema, castRequest, valueTypeRef, unifiedElemTypeRef) != Result::Continue)
+            return false;
+
+        result = castRequest.constantFoldingResult();
+        return result.isValid() && sema.cstMgr().get(result).typeRef() == unifiedElemTypeRef;
+    }
 }
 
 void Cast::foldConstantIdentity(CastRequest& castRequest)
@@ -641,7 +687,8 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
 
     if (srcCst.isAggregate())
     {
-        const auto&              values = srcCst.getAggregate();
+        const auto&              values             = srcCst.getAggregate();
+        const TypeRef            unifiedElemTypeRef = unifiedArrayLiteralElemTypeRef(sema, cstRef, srcCst.typeRef());
         SmallVector<ConstantRef> concretizedValues;
         concretizedValues.reserve(values.size());
 
@@ -649,6 +696,13 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         for (const ConstantRef valueRef : values)
         {
             ConstantRef concretizedValueRef = ConstantRef::invalid();
+            if (concretizeUntypedArrayElement(sema, concretizedValueRef, valueRef, unifiedElemTypeRef))
+            {
+                concretizedValues.push_back(concretizedValueRef);
+                changed = changed || concretizedValueRef != valueRef;
+                continue;
+            }
+
             if (!concretizeConstant(sema, concretizedValueRef, valueRef, hintSign))
                 return false;
 

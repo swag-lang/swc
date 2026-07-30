@@ -188,9 +188,23 @@ namespace
         return result;
     }
 
+    // A field restricted to its type or its module is not part of the documented surface. This is
+    // checked on the member access rather than on the symbol's visibility flag, because the
+    // runtime page documents its files whatever their top-level access.
+    bool isRestrictedField(const Symbol& symbol)
+    {
+        const auto* symVar = symbol.safeCast<SymbolVariable>();
+        if (!symVar)
+            return false;
+        const MemberAccess access = symVar->memberAccess();
+        return access == MemberAccess::Internal || access == MemberAccess::Private;
+    }
+
     bool canDocumentMember(const CompilerInstance& compiler, const Symbol& symbol, const bool runtime)
     {
         if (symbol.isIgnored() || hasNoDocAttribute(symbol) || !symbol.decl() || !symbol.tokRef().isValid())
+            return false;
+        if (isRestrictedField(symbol))
             return false;
         const SourceFile* file = compiler.sourceViewFile(symbol);
         if (!file)

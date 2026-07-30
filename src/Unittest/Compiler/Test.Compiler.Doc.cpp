@@ -191,6 +191,18 @@ struct OpaqueRecord
     implementationValue: u64
 }
 
+// A record whose implementation state is restricted.
+struct RestrictedRecord
+{
+    publicValue: u64 // Part of the API.
+
+    // Read from anywhere, written only by the type: still part of the API.
+    readonly observedValue: u64
+
+    internal moduleValue: u64 // Restricted to the module.
+    private  ownedValue:  u64 // Restricted to the type.
+}
+
 // Keep this compiler-only helper out of the API page.
 #[Swag.NoDoc]
 func hidden(value: s32)->s32
@@ -267,6 +279,13 @@ func hidden(value: s32)->s32
     if (content.contains("api-method-details") || !content.contains("Counter.increment"))
         return Result::Error;
     if (content.contains(">implementationValue<"))
+        return Result::Error;
+
+    // A field restricted to its module or its type is not API, so it stays off the page; a
+    // read-only field is API for reading, so it stays on it.
+    if (content.contains(">moduleValue<") || content.contains(">ownedValue<"))
+        return Result::Error;
+    if (!content.contains(">publicValue<") || !content.contains(">observedValue<"))
         return Result::Error;
     if (content.contains("id=\"Example\"") || !content.contains("Compiler_doc_test_DocApi_Counter_0_Example"))
         return Result::Error;

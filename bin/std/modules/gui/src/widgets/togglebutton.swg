@@ -10,9 +10,13 @@ struct ToggleButton
     isToggled:  bool                          // Whether this value is toggled.
     sigChanged: #null func(*ToggleButton)     // Signal emitted when changed.
 
-    aniBk:     BlendColor     // Ani bk associated with this value.
-    aniBorder: BlendColor     // Ani border associated with this value.
-    aniMark:   BlendColor     // Ani mark associated with this value.
+    // Color animations of the painted parts, driven by the toggle and hover state.
+    internal
+    {
+        aniBk:     BlendColor     // Color animation of the background.
+        aniBorder: BlendColor     // Color animation of the border.
+        aniMark:   BlendColor     // Color animation of the toggle mark.
+    }
 }
 
 impl IWnd for ToggleButton

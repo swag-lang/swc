@@ -100,21 +100,27 @@ private
 #[Opaque]
 public struct Decoder
 {
-    decOptions:    DecodeOptions
-    stream:        Compress.BitStream
-    header:        Header
-    inChannels:    s32
-    outChannels:   s32
-    dcmpBuf:       Array'u8
-    dstPixels:     #null [*] u8
-    dstPixelsSize: u64
-    chunkTRNS:     DecodeChunk
-    palette:       [256] u32
-    paletteCount:  s32
-    seenTRSN:      bool
-    seenBKGD:      bool
-    seenPLTE:      bool
-    orderDefilter: bool
+    // Decoding state of one image: the chunk cursor, the palette and transparency chunks it
+    // collected, and the scanline buffers it defilters into. Decode through the module entry
+    // points; nothing here survives the call.
+    private
+    {
+        decOptions:    DecodeOptions          // Options the caller asked for.
+        stream:        Compress.BitStream     // Bit cursor over the compressed data.
+        header:        Header                 // Image header of the stream.
+        inChannels:    s32                    // Channels present in the source.
+        outChannels:   s32                    // Channels written to the destination.
+        dcmpBuf:       Array'u8               // Decompressed scanlines before defiltering.
+        dstPixels:     #null [*] u8           // Destination pixel buffer.
+        dstPixelsSize: u64                    // Size of the destination buffer, in bytes.
+        chunkTRNS:     DecodeChunk            // Transparency chunk, when the stream carries one.
+        palette:       [256] u32              // Palette entries of an indexed stream.
+        paletteCount:  s32                    // Number of valid palette entries.
+        seenTRSN:      bool                   // Whether a transparency chunk was seen.
+        seenBKGD:      bool                   // Whether a background chunk was seen.
+        seenPLTE:      bool                   // Whether a palette chunk was seen.
+        orderDefilter: bool                   // Whether scanlines defilter in interlaced order.
+    }
 }
 
 impl Decoder

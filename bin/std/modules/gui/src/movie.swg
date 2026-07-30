@@ -19,17 +19,25 @@ struct Movie
     playFreq:        f32  = 0.05                 // Play freq associated with this value.
     sigFrameChanged: SigArray'func||(*Movie)     // Signal emitted when frame changed.
 
-    numFrames:  s32       // Num frames associated with this value.
-    frameIndex: s32       // Index of frame.
-    frame:      Image     // Frame associated with this value.
+    // Where the movie is. The playback advances all three; seek with 'setFrame'.
+    readonly
+    {
+        numFrames:  s32       // Number of frames of the source.
+        frameIndex: s32       // Frame currently decoded.
+        frame:      Image     // Pixels of the current frame.
+    }
 
-    source:      MovieSource = None     // Source associated with this value.
-    imgList:     ImageList              // Img list associated with this value.
-    gif:         Gif.Decoder            // Gif associated with this value.
-    bytes:       Array'u8               // Bytes associated with this value.
-    cacheFrames: Array'Image            // Cache frames associated with this value.
-    currentTime: f32                    // Current time associated with this value.
-    dirtyFrame:  bool                   // Dirty frame associated with this value.
+    // The source the frames come from, and the decoding state that walks it.
+    internal
+    {
+        source:      MovieSource = None     // Kind of source the movie plays.
+        imgList:     ImageList              // Frames of an image-list source.
+        gif:         Gif.Decoder            // Decoder of a GIF source.
+        bytes:       Array'u8               // Encoded bytes of the source.
+        cacheFrames: Array'Image            // Decoded frames kept when caching is on.
+        currentTime: f32                    // Time accumulated toward the next frame.
+        dirtyFrame:  bool                   // Whether the current frame must be decoded again.
+    }
 }
 
 private impl Movie

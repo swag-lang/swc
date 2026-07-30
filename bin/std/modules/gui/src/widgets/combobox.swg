@@ -36,16 +36,26 @@ struct ComboBox
     maxHeightPopup: f32 = 300                           // Max height popup associated with this value.
     sigChanged:     SigArray'func||(*ComboBox, u32)     // Signal emitted when changed.
 
-    editBox:     #null *EditBox            // Edit box associated with this value.
-    isHot:       bool                      // Whether this value is hot.
-    popup:       #null *PopupListCtrl      // Popup associated with this value.
-    items:       ArrayPtr'ComboBoxItem     // Items associated with this value.
-    selectedIdx = Swag.U32.Max             // Index of selected.
-    maxIconSize: s32                       // Max icon size associated with this value.
+    // What the combo shows. Add items through the methods, which keep the popup and the
+    // measured icon width in step, and select through 'setSelected'.
+    readonly
+    {
+        items:       ArrayPtr'ComboBoxItem     // Items of the list, in display order.
+        selectedIdx = Swag.U32.Max             // Index of the selected item.
+        editBox:     #null *EditBox            // Edit box of an editable combo, if any.
+    }
 
-    aniBk:     BlendColor     // Ani bk associated with this value.
-    aniBorder: BlendColor     // Ani border associated with this value.
-    aniText:   BlendColor     // Ani text associated with this value.
+    // Hover state, the open popup, and the color animations of the painted parts.
+    internal
+    {
+        isHot:       bool                     // Whether the mouse is over the combo.
+        popup:       #null *PopupListCtrl     // Drop-down list while it is open.
+        maxIconSize: s32                      // Widest item icon, sizing the icon column.
+
+        aniBk:     BlendColor     // Color animation of the background.
+        aniBorder: BlendColor     // Color animation of the border.
+        aniText:   BlendColor     // Color animation of the label.
+    }
 }
 
 impl IWnd for ComboBox

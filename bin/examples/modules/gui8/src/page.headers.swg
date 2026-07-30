@@ -15,8 +15,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     let size = header.addItem("Size", 92)
     size.sizeable = false
     discard header.addItem("Owner", Math.max(rect.width - 36 - 190 - 120 - 92, 140.0), app.theme.getIcon24(.Sort, 16))
-    header.sortColumn = 1
-    header.sortMark   = round ? 1 : -1
+    header.setSortMark(1, !round)
 
     let rowY = 148.0
     for [i] in 4
@@ -50,8 +49,7 @@ func createHeadersPage(parent: *Wnd)
     list.header.getItem(0).minWidth   = 160
     list.header.getItem(1).maxWidth   = 160
     list.header.getItem(2).iconMargin = true
-    list.header.sortColumn            = 0
-    list.header.sortMark              = 1
+    list.header.setSortMark(0, false)
     addListFlags(list)
     for [i] in 10
     {

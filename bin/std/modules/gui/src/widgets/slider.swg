@@ -29,19 +29,24 @@ struct Slider
     sigChanged:     SigArray'func||(*Slider)         // Signal emitted when changed.
     sigEndChange:   SigArray'func||(*Slider)         // Signal emitted when end change.
 
-    isMoving:     bool     // Whether this value is moving.
-    isPressed1:   bool     // Whether this value is pressed1.
-    isPressed2:   bool     // Whether this value is pressed2.
-    isHot1:       bool     // Whether this value is hot1.
-    isHot2:       bool     // Whether this value is hot2.
-    hasValue1:    bool     // Whether this value has value1.
-    hasValue2:    bool     // Whether this value has value2.
-    correcMoving: f32      // Correc moving associated with this value.
+    // Drag and hover state of the two markers, and the color animations that follow it. The
+    // mouse and keyboard events maintain all of it; connect to the signals to react to a change.
+    internal
+    {
+        isMoving:     bool     // Whether a drag gesture is in progress.
+        isPressed1:   bool     // Whether the first marker is held down.
+        isPressed2:   bool     // Whether the second marker is held down.
+        isHot1:       bool     // Whether the mouse is over the first marker.
+        isHot2:       bool     // Whether the mouse is over the second marker.
+        hasValue1:    bool     // Whether the first value was established.
+        hasValue2:    bool     // Whether the second value was established.
+        correcMoving: f32      // Grab offset inside the marker, kept for the drag.
 
-    aniMark1: BlendColor     // Ani mark1 associated with this value.
-    aniMark2: BlendColor     // Ani mark2 associated with this value.
-    aniStep1: BlendColor     // Ani step1 associated with this value.
-    aniStep2: BlendColor     // Ani step2 associated with this value.
+        aniMark1: BlendColor     // Color animation of the first marker.
+        aniMark2: BlendColor     // Color animation of the second marker.
+        aniStep1: BlendColor     // Color animation of the first step indicator.
+        aniStep2: BlendColor     // Color animation of the second step indicator.
+    }
 }
 
 impl IWnd for Slider

@@ -18,9 +18,13 @@ struct PushButton
 
     form = PushButtonForm.Normal     // Form associated with this value.
 
-    aniBk:     BlendColor     // Ani bk associated with this value.
-    aniBorder: BlendColor     // Ani border associated with this value.
-    aniText:   BlendColor     // Ani text associated with this value.
+    // Color animations of the painted parts, driven by the hover and press state.
+    internal
+    {
+        aniBk:     BlendColor     // Color animation of the background.
+        aniBorder: BlendColor     // Color animation of the border.
+        aniText:   BlendColor     // Color animation of the label.
+    }
 }
 
 impl IWnd for PushButton

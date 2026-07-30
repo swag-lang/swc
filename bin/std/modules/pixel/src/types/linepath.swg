@@ -43,14 +43,19 @@ public struct LinePath
     isDirty:    bool              // Whether cached flattened geometry is stale.
     serial:     s32               // Caller-defined grouping identifier used by path lists.
 
-    flattenQuality: PaintQuality        // Quality used to build the current flattened cache.
-    isPolyOnly:     bool                // Whether every segment is already polygonal.
-    isFlatten:      bool                // Whether flattened geometry is available.
-    bvMin:          Vector2             // Minimum cached path bound.
-    bvMax:          Vector2             // Maximum cached path bound.
-    endPosBuffer:   Vector2             // Reusable endpoint workspace for flattening.
-    polygon:        Polygon             // Cached flattened contour.
-    triangles:      Poly2Tri.Result     // Cached fill tessellation.
+    // Flattening cache, rebuilt from the segments whenever the path or the quality changes.
+    // Call 'flatten' and read the result through the accessors; the cache is not an input.
+    internal
+    {
+        flattenQuality: PaintQuality        // Quality used to build the current flattened cache.
+        isPolyOnly:     bool                // Whether every segment is already polygonal.
+        isFlatten:      bool                // Whether flattened geometry is available.
+        bvMin:          Vector2             // Minimum cached path bound.
+        bvMax:          Vector2             // Maximum cached path bound.
+        endPosBuffer:   Vector2             // Reusable endpoint workspace for flattening.
+        polygon:        Polygon             // Cached flattened contour.
+        triangles:      Poly2Tri.Result     // Cached fill tessellation.
+    }
 }
 
 public impl LinePath
@@ -327,6 +332,15 @@ public impl LinePath
             m = Math.min(endAngle.rad, Math.ConstF32.TwoPi)
             .arcTo(cX, cY, r, r, s, m)
         }
+    }
+
+    // Returns the flattened contour of this path.
+    //
+    // Call [[Pixel.LinePath.flatten]] first: the result is the cache that call builds, so it
+    // is empty until the path has been flattened at least once.
+    mtd flattenedPolygon()->*Polygon
+    {
+        return &.polygon
     }
 
     // Convert the path to a list of points

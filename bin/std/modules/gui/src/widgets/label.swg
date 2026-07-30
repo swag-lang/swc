@@ -31,7 +31,8 @@ struct Label
     paddingText: Math.Vector4                          // Padding text associated with this value.
     paddingIcon: Math.Vector4                          // Padding icon associated with this value.
 
-    hotChunk: #null *RichChunk     // Hot chunk associated with this value.
+    // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
+    internal hotChunk: #null *RichChunk
 }
 
 impl IWnd for Label

@@ -8,10 +8,16 @@ public struct Button
     iconSizeY:       f32                          // Icon size y associated with this value.
     sigPressed:      SigArray'func||(*Button)     // Signal emitted when pressed.
     sigRightPressed: SigArray'func||(*Button)     // Signal emitted when right pressed.
-    isPressed:       bool                         // Whether this value is pressed.
-    isPressing:      bool                         // Whether this value is pressing.
-    isHot:           bool                         // Whether this value is hot.
-    isIn:            bool                         // Whether this value is in.
+
+    // Hover and press state, moved by the mouse events the button receives. Connect to
+    // 'sigPressed' to react to a press instead of polling it.
+    internal
+    {
+        isPressed:  bool     // Whether the button is held down.
+        isPressing: bool     // Whether the press gesture started on this button.
+        isHot:      bool     // Whether the mouse is over the button.
+        isIn:       bool     // Whether the mouse is inside the button rectangle.
+    }
 }
 
 impl IWnd for Button

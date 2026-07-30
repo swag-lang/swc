@@ -85,11 +85,19 @@ struct ListCtrl
     toFreeLines:      ArrayPtr'ListLine           // To free lines associated with this value.
     lines:            Array'(#null *ListLine)     // Lines associated with this value.
     idxLineToIdxList: HashTable'(u32, u32)        // Idx line to idx list associated with this value.
-    selModel:         SelModel                    // Sel model associated with this value.
-    checkModel:       SelModel                    // Check model associated with this value.
-    nextLineIndex:    u32                         // Index of next line.
-    focusIndex = Swag.U32.Max                     // Index of focus.
-    hotIndex   = Swag.U32.Max                     // Index of hot.
+    selModel:   SelModel     // Sel model associated with this value.
+    checkModel: SelModel     // Check model associated with this value.
+
+    // Where the keyboard and the mouse currently are in the list. The list moves them as it
+    // handles events; move the focus with 'setFocusIndex'.
+    readonly
+    {
+        focusIndex = Swag.U32.Max     // Row the keyboard focus is on.
+        hotIndex   = Swag.U32.Max     // Row under the mouse.
+    }
+
+    // Identity counter handed to the next created row.
+    internal nextLineIndex: u32
     #[Swag.Late]
     {
         scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
@@ -106,8 +114,10 @@ struct ListView
 {
     using wnd: Wnd     // Embedded wnd state.
     #[Swag.Late]
-    list:                *ListCtrl     // List associated with this value.
-    discardMouseRelease: bool          // Discard mouse release associated with this value.
+    list: *ListCtrl     // List associated with this value.
+
+    // Set when a press was consumed by something else, so the matching release is ignored.
+    internal discardMouseRelease: bool
 }
 
 impl ListLine
@@ -1279,12 +1289,8 @@ impl ListCtrl
         .sort(column, descentOrder, &.lines)
         .mapIndexes()
 
-        if @isset(.header) and persistent
-        {
-            .header.sortColumn = column
-            .header.sortMark   = descentOrder ? -1 : 1
-            .header.invalidate()
-        }
+        if @isset(.header) and persistent do
+            .header.setSortMark(column, descentOrder)
 
         .invalidate()
     }

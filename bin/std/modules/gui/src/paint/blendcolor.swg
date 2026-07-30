@@ -5,12 +5,18 @@ using Pixel
 // Used to animate the blending of a color.
 struct BlendColor
 {
-    curVec4:   Math.Vector4           // Cur vec4 associated with this value.
-    startVec4: Math.Vector4           // Start vec4 associated with this value.
-    destVec4:  Math.Vector4           // Dest vec4 associated with this value.
-    factor:    f32                    // Factor associated with this value.
-    speed:     f32 = 8                // Speed associated with this value.
-    themeCrc:  u32 = Swag.U32.Max     // Theme crc associated with this value.
+    speed: f32 = 8     // Speed of the interpolation, in units per second.
+
+    // Interpolation state, advanced one step per frame. Set a target with 'setColor' and read
+    // the current value with 'getColor'; the endpoints and the cursor between them are derived.
+    internal
+    {
+        curVec4:   Math.Vector4           // Color of the current frame.
+        startVec4: Math.Vector4           // Color the interpolation started from.
+        destVec4:  Math.Vector4           // Color the interpolation runs to.
+        factor:    f32                    // Cursor between the endpoints, from 0 to 1.
+        themeCrc:  u32 = Swag.U32.Max     // Theme the endpoints were resolved against.
+    }
 }
 
 impl BlendColor

@@ -43,14 +43,24 @@ struct Header
     sigLayoutChanged: #null func||(*Header)           // Signal emitted when layout changed.
     sigClicked:       #null func||(*Header, u32)      // Signal emitted when clicked.
 
-    items:         ArrayPtr'HeaderItem     // Items associated with this value.
-    hotIdx = Swag.U32.Max                  // Index of hot.
-    hotSeparator:  bool                    // Hot separator associated with this value.
-    moving:        bool                    // Moving associated with this value.
-    clicked:       bool                    // Clicked associated with this value.
-    correctMoving: f32                     // Correct moving associated with this value.
-    sortColumn:    u32                     // Sort column associated with this value.
-    sortMark:      s32                     // Sort mark associated with this value.
+    // The columns the header shows, and which one it sorts on. Add columns through the methods
+    // so the layout and the owning list stay in step.
+    readonly
+    {
+        items:      ArrayPtr'HeaderItem     // Columns of the header, in display order.
+        sortColumn: u32                     // Column the sort mark is on.
+        sortMark:   s32                     // Direction of the sort mark, zero for none.
+    }
+
+    // Hover and drag state of one gesture over the header.
+    internal
+    {
+        hotIdx = Swag.U32.Max     // Column under the mouse.
+        hotSeparator:  bool       // Whether the mouse is over a separator.
+        moving:        bool       // Whether a separator drag is in progress.
+        clicked:       bool       // Whether a click gesture started on a column.
+        correctMoving: f32        // Grab offset inside the separator, kept for the drag.
+    }
 }
 
 impl IWnd for Header
@@ -278,6 +288,26 @@ private impl Header
 
 impl Header
 {
+    // Shows the sort mark on one column, and repaints.
+    //
+    // The owning list calls this after it sorted, so the mark always agrees with the order the
+    // rows are in. Pass a column of 'Swag.U32.Max' to remove the mark.
+    mtd setSortMark(column: u32, descentOrder: bool)
+    {
+        if column == Swag.U32.Max
+        {
+            .sortColumn = 0
+            .sortMark   = 0
+        }
+        else
+        {
+            .sortColumn = column
+            .sortMark   = descentOrder ? -1 : 1
+        }
+
+        .invalidate()
+    }
+
     // Performs the create operation.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Header

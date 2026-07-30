@@ -43,20 +43,34 @@ namespace
 
     bool inDeclaringType(Sema& sema, const SymbolStruct& ownerStruct, const SourceViewRef siteViewRef)
     {
+        const SymbolStruct& ownerRoot = *ownerStruct.genericRootOrSelf();
+
         if (const SymbolImpl* impl = sema.frame().currentImpl())
         {
             // A generic instance and its root share one declaration, hence one access contract.
             const SymbolStruct* implStruct = impl->symStruct();
-            if (implStruct && implStruct->genericRootOrSelf() == ownerStruct.genericRootOrSelf())
+            if (implStruct && implStruct->genericRootOrSelf() == &ownerRoot)
                 return true;
         }
 
-        // Code written in the file that declares the aggregate is the type's own code. This is
-        // what keeps a macro or an inlined body that touches its own state legal at every
-        // expansion site, and what lets a type split its 'impl' over platform files.
-        const SourceFile* declFile = sema.compiler().sourceViewFile(ownerStruct);
+        // Otherwise the answer comes from where the code was WRITTEN: the file that declares the
+        // aggregate, or any file that declares an 'impl' of it. Going through the files instead of
+        // the frame is what keeps an inlined body, a mixin and '#inject'ed code legal at every
+        // expansion site, and what lets a type spread its 'impl' over platform or concern files.
         const SourceFile* siteFile = accessSiteFile(sema, siteViewRef);
-        return declFile && declFile == siteFile;
+        if (!siteFile)
+            return false;
+
+        if (sema.compiler().sourceViewFile(ownerRoot) == siteFile)
+            return true;
+
+        for (const SymbolImpl* impl : ownerRoot.impls())
+        {
+            if (sema.compiler().sourceViewFile(*impl) == siteFile)
+                return true;
+        }
+
+        return false;
     }
 
     template<typename AT>

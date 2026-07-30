@@ -143,89 +143,95 @@ private
 #[Opaque]
 public struct Decoder
 {
-    stream:     #null const [*] u8
-    inBufOfs:   #null [*] u8
-    pSampleBuf: #null [*] u8
+    // Decoding state of one image: the entropy-coded bit cursor, the frame and scan tables,
+    // and the coefficient and scanline buffers. Decode through the module entry points;
+    // nothing here survives the call.
+    private
+    {
+        stream:     #null const [*] u8
+        inBufOfs:   #null [*] u8
+        pSampleBuf: #null [*] u8
 
-    imageSizeX:      s32
-    imageSizeY:      s32
-    streamLen:       s32
-    streamSeek:      s32
-    bitBuf:          u32
-    bitsLeft:        s32
-    inBufLeft:       s32
-    temFlag:         s32
-    eofReached:      s32
-    totalBytesRead:  s32
-    compsInFrame:    s32
-    restartInterval: s32
-    scanType:        s32
-    maxBlocksPerMcu: s32
-    maxMcuSizeX:     s32
-    maxMcuSizeY:     s32
-    blocksPerMcu:    u32
-    maxMcusPerRow:   s32
-    maxMcusPerCol:   s32
-    maxBlocksPerRow: s32
-    totalLinesLeft:  s32
-    mcuLinesLeft:    s32
-    spectralStart:   s32
-    spectralEnd:     s32
-    successiveLow:   s32
-    successiveHigh:  s32
-    mcusPerRow:      s32
-    mcusPerCol:      s32
-    eobRun:          s32
-    restartsLeft:    s32
-    nextRestartNum:  s32
-    compsInScan:     u32
+        imageSizeX:      s32
+        imageSizeY:      s32
+        streamLen:       s32
+        streamSeek:      s32
+        bitBuf:          u32
+        bitsLeft:        s32
+        inBufLeft:       s32
+        temFlag:         s32
+        eofReached:      s32
+        totalBytesRead:  s32
+        compsInFrame:    s32
+        restartInterval: s32
+        scanType:        s32
+        maxBlocksPerMcu: s32
+        maxMcuSizeX:     s32
+        maxMcuSizeY:     s32
+        blocksPerMcu:    u32
+        maxMcusPerRow:   s32
+        maxMcusPerCol:   s32
+        maxBlocksPerRow: s32
+        totalLinesLeft:  s32
+        mcuLinesLeft:    s32
+        spectralStart:   s32
+        spectralEnd:     s32
+        successiveLow:   s32
+        successiveHigh:  s32
+        mcusPerRow:      s32
+        mcusPerCol:      s32
+        eobRun:          s32
+        restartsLeft:    s32
+        nextRestartNum:  s32
+        compsInScan:     u32
 
-    destBytesPerPixel:        s32
-    realDestBytesPerScanLine: s32
-    destBytesPerScanLine:     s32
+        destBytesPerPixel:        s32
+        realDestBytesPerScanLine: s32
+        destBytesPerScanLine:     s32
 
-    acceptMetaDatas: bool
-    progressiveFlag: bool
-    hasAdobeMarker:  bool
-    hasJfifMarker:   bool
-    adobeTransform:  u8
+        acceptMetaDatas: bool
+        progressiveFlag: bool
+        hasAdobeMarker:  bool
+        hasJfifMarker:   bool
+        adobeTransform:  u8
 
-    inBuf:          [InBufSize + 128] u8
-    compSampH:      [MaxComponents] s32
-    compSampV:      [MaxComponents] s32
-    compQuant:      [MaxComponents] u32
-    compIdent:      [MaxComponents] s32
-    blockMaxZagSet: [MaxBlocksPerRow] s32
-    blockSeg:       [MaxBlocksPerRow] #null [*] s16
-    compList:       [MaxCompsInScan] u32
-    compDcTab:      [MaxComponents] s32
-    compAcTab:      [MaxComponents] s32
-    compBlocksH:    [MaxComponents] s32
-    compBlocksV:    [MaxComponents] s32
-    mcuOrg:         [MaxBocksPerMcu] u32
-    h:              [MaxHuffTables] HuffTables
-    dcHuffSeg:      [MaxBocksPerMcu] #null *HuffTables
-    acHuffSeg:      [MaxBocksPerMcu] #null *HuffTables
-    blockMcuY:      [MaxComponents] s32
-    component:      [MaxBocksPerMcu] #null *u32
-    lastDcVal:      [MaxComponents] s32
-    dcCoeffs:       [MaxComponents] CoeffBuf
-    acCoeffs:       [MaxComponents] CoeffBuf
-    tempBlock:      [64] s16
-    crr:            [256] s32
-    cbb:            [256] s32
-    crg:            [256] s32
-    cbg:            [256] s32
+        inBuf:          [InBufSize + 128] u8
+        compSampH:      [MaxComponents] s32
+        compSampV:      [MaxComponents] s32
+        compQuant:      [MaxComponents] u32
+        compIdent:      [MaxComponents] s32
+        blockMaxZagSet: [MaxBlocksPerRow] s32
+        blockSeg:       [MaxBlocksPerRow] #null [*] s16
+        compList:       [MaxCompsInScan] u32
+        compDcTab:      [MaxComponents] s32
+        compAcTab:      [MaxComponents] s32
+        compBlocksH:    [MaxComponents] s32
+        compBlocksV:    [MaxComponents] s32
+        mcuOrg:         [MaxBocksPerMcu] u32
+        h:              [MaxHuffTables] HuffTables
+        dcHuffSeg:      [MaxBocksPerMcu] #null *HuffTables
+        acHuffSeg:      [MaxBocksPerMcu] #null *HuffTables
+        blockMcuY:      [MaxComponents] s32
+        component:      [MaxBocksPerMcu] #null *u32
+        lastDcVal:      [MaxComponents] s32
+        dcCoeffs:       [MaxComponents] CoeffBuf
+        acCoeffs:       [MaxComponents] CoeffBuf
+        tempBlock:      [64] s16
+        crr:            [256] s32
+        cbb:            [256] s32
+        crg:            [256] s32
+        cbg:            [256] s32
 
-    huffNum:    [MaxHuffTables] Array'u8
-    huffVal:    [MaxHuffTables] Array'u8
-    quant:      [MaxQuantTables] Array's16
-    scanLine0:  Array'u8
-    scanLine1:  Array'u8
-    quantBuf:   Array'u8
-    sampleBuf:  Array'u8
-    decOptions: DecodeOptions
-    metaDatas:  Array'ImageMetaData
+        huffNum:    [MaxHuffTables] Array'u8
+        huffVal:    [MaxHuffTables] Array'u8
+        quant:      [MaxQuantTables] Array's16
+        scanLine0:  Array'u8
+        scanLine1:  Array'u8
+        quantBuf:   Array'u8
+        sampleBuf:  Array'u8
+        decOptions: DecodeOptions
+        metaDatas:  Array'ImageMetaData
+    }
 }
 
 impl Decoder

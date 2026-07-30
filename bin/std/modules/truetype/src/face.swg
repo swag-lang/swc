@@ -24,6 +24,9 @@ public enum StyleFlag
 // slot, outlines, and bitmaps all belong to the face.
 public struct Face
 {
+    // Everything below is read from the font file by 'load' and describes the typeface itself.
+    // The table parser fills it in from its own files, so it stays writable inside the module;
+    // treat it as a result.
     style:              StyleFlag     // Declared bold and italic traits.
     glyphCount:         u32           // Number of glyphs in the face.
     familyName:         String        // Owned font-family name.

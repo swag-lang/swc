@@ -22,7 +22,9 @@ struct SplitterItem
     label:           #null *Label     // Label associated with this value.
     tryPreserveSize: bool             // Try preserve size associated with this value.
     visible              = true       // Visible associated with this value.
-    aniBar:          BlendColor       // Ani bar associated with this value.
+
+    // Color animation of the bar that follows this pane.
+    internal aniBar: BlendColor
 }
 
 // Represents splitter ctrl.
@@ -32,11 +34,18 @@ struct SplitterCtrl
     splitterFlags       = SplitterFlags.Zero     // Splitter flags associated with this value.
     titleSize:      f32 = 30                     // Title size associated with this value.
 
-    items:           ArrayPtr'SplitterItem     // Items associated with this value.
-    correctMoving:   f32                       // Correct moving associated with this value.
-    hotIdx = Swag.U32.Max                      // Index of hot.
-    moving:          bool                      // Moving associated with this value.
-    numVisiblePanes: s32                       // Num visible panes associated with this value.
+    // The panes the splitter manages, in order. Add them through the methods so the bars and
+    // the layout follow.
+    readonly items: ArrayPtr'SplitterItem
+
+    // Hover and drag state of one gesture over a bar, and the pane count the layout derived.
+    internal
+    {
+        correctMoving:   f32       // Grab offset inside the bar, kept for the drag.
+        hotIdx = Swag.U32.Max      // Bar under the mouse.
+        moving:          bool      // Whether a bar drag is in progress.
+        numVisiblePanes: s32       // Panes the last layout actually placed.
+    }
 }
 
 impl IWnd for SplitterCtrl

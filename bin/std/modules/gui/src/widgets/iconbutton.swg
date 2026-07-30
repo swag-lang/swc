@@ -76,9 +76,14 @@ struct IconButton
     sigCheckChanged: SigArray'func||(*IconButton)                                                 // Signal emitted when check changed.
     sigPaintIcon:    #null func||(*IconButton, *PaintContext, Math.Rectangle, PaintItemFlags)     // Signal emitted when paint icon.
 
-    aniBk:     BlendColor     // Ani bk associated with this value.
-    isChecked: bool           // Whether this value is checked.
-    popup:     #null *Wnd     // Popup associated with this value.
+    isChecked: bool     // Whether this value is checked.
+
+    // The popup this button owns while it is open, and the background animation.
+    internal
+    {
+        aniBk: BlendColor     // Color animation of the background.
+        popup: #null *Wnd     // Popup currently shown by this button.
+    }
 }
 
 impl IWnd for IconButton

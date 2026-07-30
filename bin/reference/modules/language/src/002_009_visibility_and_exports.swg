@@ -55,13 +55,14 @@ or private and placed in a namespace for organization.
 
 A declaration belongs to its file, so 'private' at the top level means "this file". A
 **member belongs to its type**, so on a field the same word grants the type: the file that
-declares the aggregate, and every 'impl' of that type in the module that declares it. One
-rule, one reading: 'private' grants the owner, 'internal' grants the module, 'public'
-grants everyone.
+declares the aggregate, and every file that declares an 'impl' of it, inside the module
+that declares the type. One rule, one reading: 'private' grants the owner, 'internal'
+grants the module, 'public' grants everyone.
 
-Granting the declaring file matters in practice. A type keeps its declaration and its
-methods together, splits an 'impl' across platform files, and reaches its own state from a
-mixin or an inlined body without the access depending on where that body expands.
+Granting those files, rather than the enclosing 'impl' alone, is what makes the rule hold
+in practice. A type spreads its 'impl' over platform or concern files, and reaches its own
+state from a mixin or an inlined body without the access depending on where that body
+expands.
 
 A field takes a fourth level that a top-level declaration has no use for. 'readonly'
 splits reading from writing:

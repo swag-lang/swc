@@ -50,12 +50,17 @@ enum TabBarLayout
 struct TabItem
 {
     using item: Item           // Embedded item state.
-    pos:        f32            // Pos associated with this value.
-    width:      f32            // Width in logical units.
     view:       #null *Wnd     // View associated with this value.
-    aniImg:     BlendColor     // Ani img associated with this value.
-    aniBorder:  BlendColor     // Ani border associated with this value.
-    aniText:    BlendColor     // Ani text associated with this value.
+
+    // Placement computed by the bar layout, and the color animations of the painted parts.
+    internal
+    {
+        pos:       f32            // Left edge of the tab in the bar.
+        width:     f32            // Width of the tab in the bar.
+        aniImg:    BlendColor     // Color animation of the icon.
+        aniBorder: BlendColor     // Color animation of the border.
+        aniText:   BlendColor     // Color animation of the label.
+    }
 }
 
 // Represents tab.
@@ -73,14 +78,24 @@ struct Tab
 
     sigSelChanged: SigArray'func||(*Tab)     // Signal emitted when sel changed.
 
-    buttonPopup:     #null *IconButton        // Button popup associated with this value.
-    views:           ArrayPtr'TabItem         // Views associated with this value.
-    popup:           #null *PopupListCtrl     // Popup associated with this value.
-    selectedIdx:     u32                      // Index of selected.
-    firstVisibleIdx: u32                      // Index of first visible.
-    hotIdx:          u32 = Swag.U32.Max       // Index of hot.
-    barHeight:       f32                      // Bar height associated with this value.
-    mostRightPos:    f32                      // Most right pos associated with this value.
+    // The tabs the bar shows, in display order. Add and remove them through the methods, which
+    // keep the views, the layout and the selection consistent.
+    readonly
+    {
+        views:       ArrayPtr'TabItem     // Tabs of the bar, in display order.
+        selectedIdx: u32                  // Index of the selected tab.
+    }
+
+    // Bar layout and overflow state, recomputed by the layout pass.
+    internal
+    {
+        buttonPopup:     #null *IconButton        // Button that opens the overflow list.
+        popup:           #null *PopupListCtrl     // Overflow list while it is open.
+        firstVisibleIdx: u32                      // First tab the bar can show.
+        hotIdx:          u32 = Swag.U32.Max       // Tab under the mouse.
+        barHeight:       f32                      // Height the bar measured for itself.
+        mostRightPos:    f32                      // Right edge of the last laid out tab.
+    }
 }
 
 impl IWnd for Tab

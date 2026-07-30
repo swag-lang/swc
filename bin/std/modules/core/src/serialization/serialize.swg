@@ -45,9 +45,16 @@ interface ISerialize
 // Represents serializer.
 struct Serializer
 {
-    encode:  #null IEncoder     // Encode associated with this value.
-    decode:  #null IDecoder     // Decode associated with this value.
-    isWrite: bool               // Whether this value is write.
+    // Which direction the serializer runs in. Established by 'startWrite' or 'startRead'.
+    readonly isWrite: bool
+
+    // The backend the serializer drives. It is chosen by 'startWrite' and 'startRead', which
+    // also pair it with the matching 'end'.
+    internal
+    {
+        encode: #null IEncoder     // Encoder used while writing.
+        decode: #null IDecoder     // Decoder used while reading.
+    }
 }
 
 impl Serializer

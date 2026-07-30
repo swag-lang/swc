@@ -392,7 +392,7 @@ namespace
         if (ec || relative.empty() || relative == ".")
             return {};
 
-        const std::string value = relative.generic_string();
+        std::string value = relative.generic_string();
         if (value.starts_with(".."))
             return {};
         return value;

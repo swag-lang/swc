@@ -33,36 +33,20 @@ namespace DocInternal
             return fullName;
         return fullName.substr(previous + 1);
     }
+}
 
-    const char* itemKindName(const DocItemKind kind)
-    {
-        switch (kind)
-        {
-            case DocItemKind::Namespace:
-                return "namespace";
-            case DocItemKind::Struct:
-                return "struct";
-            case DocItemKind::Interface:
-                return "interface";
-            case DocItemKind::Enum:
-                return "enum";
-            case DocItemKind::Constant:
-                return "const";
-            case DocItemKind::Alias:
-                return "type alias";
-            case DocItemKind::Attribute:
-                return "attr";
-            case DocItemKind::Function:
-                return "func";
-        }
-        SWC_UNREACHABLE();
-    }
+namespace
+{
+    using namespace DocInternal;
 
     int itemSortOrder(const DocItemKind kind)
     {
         return static_cast<int>(kind);
     }
+}
 
+namespace DocInternal
+{
     std::optional<DocItemKind> itemKind(const Symbol& symbol)
     {
         if (symbol.isNamespace())
@@ -93,6 +77,11 @@ namespace DocInternal
         }
         return false;
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     bool hasPublicAggregateOwner(const Symbol& symbol)
     {
@@ -122,7 +111,10 @@ namespace DocInternal
             return false;
         return symbol.isPublic() && hasPublicAggregateOwner(symbol);
     }
+}
 
+namespace DocInternal
+{
     bool isAnonymousAggregateSymbol(const Symbol& symbol)
     {
         const auto* symbolStruct = symbol.safeCast<SymbolStruct>();
@@ -139,6 +131,11 @@ namespace DocInternal
         // unique anonymous aggregates, lambdas, inline temporaries, and other helpers.
         return symbol.idRef().isValid() && symbol.name(ctx).starts_with("__");
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     uint32_t countLineBreaks(const std::string_view text)
     {
@@ -172,7 +169,10 @@ namespace DocInternal
         }
         return true;
     }
+}
 
+namespace DocInternal
+{
     void appendNormalizedComment(std::vector<Utf8>& outLines, std::string_view text)
     {
         if (text.starts_with("//"))
@@ -209,6 +209,11 @@ namespace DocInternal
         while (!outLines.empty() && trimView(outLines.back()).empty())
             outLines.pop_back();
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     bool collectLeadingCommentTrivia(std::vector<Utf8>& result, const SourceView& srcView, const TokenRef tokenRef)
     {
@@ -284,7 +289,7 @@ namespace DocInternal
 
         const Token&           token  = srcView.token(endTokRef);
         const std::string_view source = srcView.stringView();
-        const size_t                 start  = std::min<size_t>(ModuleApi::Export::sourceTokenByteEnd(srcView, token), source.size());
+        const size_t           start  = std::min<size_t>(ModuleApi::Export::sourceTokenByteEnd(srcView, token), source.size());
         size_t                 end    = source.find_first_of("\r\n", start);
         if (end == std::string_view::npos)
             end = source.size();
@@ -305,7 +310,10 @@ namespace DocInternal
         appendNormalizedComment(result, suffix.substr(commentPos));
         return result;
     }
+}
 
+namespace DocInternal
+{
     std::vector<Utf8> symbolCommentLines(TaskContext& ctx, const Symbol& symbol, const SourceFile& file, const AstNodeRef declRef, const AstNodeRef rootRef)
     {
         std::vector<Utf8> result;
@@ -317,6 +325,11 @@ namespace DocInternal
             result = leadingCommentLines(ctx, file, declRef);
         return result;
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     AstNodeRef declarationBodyRef(const AstNode& node)
     {
@@ -375,16 +388,19 @@ namespace DocInternal
 
         const fs::path  sourceRoot = (compiler.cmdLine().modulePath / "src").lexically_normal();
         std::error_code ec;
-        const fs::path        relative = fs::relative(file.path().parent_path(), sourceRoot, ec);
+        const fs::path  relative = fs::relative(file.path().parent_path(), sourceRoot, ec);
         if (ec || relative.empty() || relative == ".")
             return {};
 
         const std::string value = relative.generic_string();
         if (value.starts_with(".."))
             return {};
-        return Utf8(value);
+        return value;
     }
+}
 
+namespace DocInternal
+{
     void collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unordered_set<const Symbol*>& seen, const SymbolMap& symbolMap)
     {
         std::vector<const Symbol*> symbols;
@@ -398,6 +414,11 @@ namespace DocInternal
                 collectSymbolTree(outSymbols, seen, *symbol->asSymMap());
         }
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     const Symbol* documentationImplOwner(const SymbolImpl& impl)
     {
@@ -445,7 +466,10 @@ namespace DocInternal
         }
         return {};
     }
+}
 
+namespace DocInternal
+{
     void collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, const bool runtime)
     {
         CompilerInstance&                             compiler = ctx.compiler();

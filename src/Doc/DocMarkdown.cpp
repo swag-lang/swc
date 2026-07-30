@@ -90,14 +90,11 @@ namespace DocInternal
             result.insert(result.begin(), '_');
         return result;
     }
+}
 
-    Utf8 lastNamePart(const std::string_view value)
-    {
-        const size_t pos = value.rfind('.');
-        if (pos == std::string_view::npos)
-            return value;
-        return value.substr(pos + 1);
-    }
+namespace
+{
+    using namespace DocInternal;
 
     Utf8 resolveReference(const RenderContext& renderCtx, const std::string_view name)
     {
@@ -137,7 +134,10 @@ namespace DocInternal
         }
         return {};
     }
+}
 
+namespace DocInternal
+{
     Utf8 renderTypeName(const RenderContext& renderCtx, const std::string_view typeName)
     {
         Utf8   result;
@@ -170,7 +170,10 @@ namespace DocInternal
         }
         return result;
     }
+}
 
+namespace
+{
     Utf8 renderInline(const RenderContext& renderCtx, const std::string_view text)
     {
         Utf8   result;
@@ -203,7 +206,7 @@ namespace DocInternal
                     {
                         const auto name = text.substr(pos + 2, nameEnd - pos - 2);
                         const auto link = text.substr(nameEnd + 2, linkEnd - nameEnd - 2);
-                        result.append(std::format("<img src=\"{}\" alt=\"{}\">", escapeHtml(link, true), escapeHtml(name, true)));
+                        result.append(std::format(R"(<img src="{}" alt="{}">)", escapeHtml(link, true), escapeHtml(name, true)));
                         pos = linkEnd + 1;
                         continue;
                     }
@@ -304,7 +307,10 @@ namespace DocInternal
     }
 
     void linkSyntaxClass(Utf8& html, const RenderContext& renderCtx, std::string_view cssClass);
+}
 
+namespace DocInternal
+{
     Utf8 renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const RenderContext* renderCtx)
     {
         const Utf8 escaped = escapeHtml(code);
@@ -322,7 +328,10 @@ namespace DocInternal
             rendered = std::format("<span class=\"{}\">{}</span>", SYN_CODE, escaped);
         return std::format("<div class=\"code-block\">{}</div>\n", rendered);
     }
+}
 
+namespace
+{
     bool isOrderedListLine(const std::string_view line)
     {
         const std::string_view value = trimView(line);
@@ -379,7 +388,10 @@ namespace DocInternal
             return true;
         return line.starts_with("|") && index + 1 < lines.size();
     }
+}
 
+namespace DocInternal
+{
     Utf8 renderMarkdownLines(const RenderContext& renderCtx, std::span<const Utf8> lines, const uint32_t headingOffset)
     {
         Utf8   result;
@@ -653,18 +665,10 @@ namespace DocInternal
         }
         return result;
     }
+}
 
-    std::vector<Utf8> summaryLines(std::span<const Utf8> lines)
-    {
-        for (const Utf8& line : lines)
-        {
-            if (trimView(line).empty())
-                continue;
-            return {line};
-        }
-        return {};
-    }
-
+namespace
+{
     void linkSyntaxClass(Utf8& html, const RenderContext& renderCtx, const std::string_view cssClass)
     {
         const Utf8 open = std::format("<span class=\"{}\">", cssClass);
@@ -689,13 +693,6 @@ namespace DocInternal
             }
             pos = textEnd + 7;
         }
-    }
-
-    Utf8 codeHtml(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view code)
-    {
-        if (code.empty())
-            return {};
-        return renderCodeBlock(ctx, code, true, &renderCtx);
     }
 }
 

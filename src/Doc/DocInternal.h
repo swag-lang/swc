@@ -83,15 +83,6 @@ namespace DocInternal
         std::vector<Utf8> lines;
     };
 
-    struct DocNamespace
-    {
-        Utf8                        fullName;
-        std::vector<Utf8>           children;
-        std::vector<const DocItem*> items;
-    };
-
-    using DocItemsByOwner = std::unordered_map<Utf8, std::vector<const DocItem*>>;
-
     struct RenderContext
     {
         TaskContext*                              ctx                = nullptr;
@@ -116,19 +107,14 @@ namespace DocInternal
     };
 
     Utf8                       fromRuntimeString(const Runtime::String& value);
-    PageOptions                getPageOptions(const CompilerInstance& compiler);
-    PageOptions                getRuntimePageOptions(const CompilerInstance& compiler);
     std::string_view           trimView(std::string_view value);
     Utf8                       trimCopy(std::string_view value);
     std::vector<Utf8>          splitLines(std::string_view text);
     Utf8                       escapeHtml(std::string_view text, bool attribute = false);
     Utf8                       makeAnchor(std::string_view value);
-    Utf8                       lastNamePart(std::string_view value);
     Utf8                       renderTypeName(const RenderContext& renderCtx, std::string_view typeName);
     Utf8                       renderCodeBlock(const TaskContext& ctx, std::string_view code, bool swagSyntax, const RenderContext* renderCtx = nullptr);
     Utf8                       renderMarkdownLines(const RenderContext& renderCtx, std::span<const Utf8> lines, uint32_t headingOffset = 0);
-    std::vector<Utf8>          summaryLines(std::span<const Utf8> lines);
-    Utf8                       codeHtml(const TaskContext& ctx, const RenderContext& renderCtx, std::string_view code);
     Utf8                       documentationStyles();
     Utf8                       constructPage(const PageOptions& options, std::string_view toc, std::string_view content, bool pages);
     Utf8                       correctTitle(Utf8 title);
@@ -137,7 +123,6 @@ namespace DocInternal
     Result                     writeDocumentationFile(TaskContext& ctx, const fs::path& path, std::string_view content);
     fs::path                   outputFilePath(const CompilerInstance& compiler, const PageOptions& options);
     Utf8                       displayNameFor(std::string_view fullName, DocItemKind kind);
-    const char*                itemKindName(DocItemKind kind);
     std::optional<DocItemKind> itemKind(const Symbol& symbol);
     bool                       hasNoDocAttribute(const Symbol& symbol);
     bool                       isAnonymousAggregateSymbol(const Symbol& symbol);
@@ -147,7 +132,6 @@ namespace DocInternal
     void                       collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unordered_set<const Symbol*>& seen, const SymbolMap& symbolMap);
     void                       collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, bool runtime);
     void                       renderApiDocument(TaskContext& ctx, ApiDocument& document, const PageOptions& options, bool runtime);
-    Utf8                       defaultModuleDocComment(const CompilerInstance& compiler);
     Result                     generateApi(TaskContext& ctx, PageOptions options, bool runtime, fs::path& outPath);
 }
 

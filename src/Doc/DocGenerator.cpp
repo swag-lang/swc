@@ -11,18 +11,28 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace DocInternal
+namespace
 {
+    using namespace DocInternal;
+
     std::mutex               g_RuntimeDocMutex;
     std::unordered_set<Utf8> g_GeneratedRuntimeDocs;
     std::mutex               g_StylesheetMutex;
+}
 
+namespace DocInternal
+{
     Utf8 fromRuntimeString(const Runtime::String& value)
     {
         if (!value.ptr || !value.length)
             return {};
-        return Utf8(value.ptr, value.length);
+        return {value.ptr, value.length};
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     PageOptions getPageOptions(const CompilerInstance& compiler)
     {
@@ -72,7 +82,10 @@ namespace DocInternal
         diag.report(ctx);
         return Result::Error;
     }
+}
 
+namespace DocInternal
+{
     Result reportDocFileError(TaskContext& ctx, const fs::path& path, const Utf8& because)
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_doc_file_write_failed);
@@ -80,6 +93,11 @@ namespace DocInternal
         diag.report(ctx);
         return Result::Error;
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     Result ensureOutputDirectory(TaskContext& ctx, const fs::path& path)
     {
@@ -89,7 +107,10 @@ namespace DocInternal
             return reportDocDirectoryError(ctx, path, FileSystem::normalizeSystemMessage(ec));
         return Result::Continue;
     }
+}
 
+namespace DocInternal
+{
     Result writeDocumentationFile(TaskContext& ctx, const fs::path& path, const std::string_view content)
     {
         if (!ctx.cmdLine().outputDoc)
@@ -100,6 +121,11 @@ namespace DocInternal
             return reportDocFileError(ctx, path, FileSystem::describeIoFailure(error));
         return Result::Continue;
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     Result writeDocumentationStyles(TaskContext& ctx, const PageOptions& options)
     {
@@ -136,7 +162,10 @@ namespace DocInternal
 
         return defaultArtifactName(compiler.cmdLine());
     }
+}
 
+namespace DocInternal
+{
     fs::path outputFilePath(const CompilerInstance& compiler, const PageOptions& options)
     {
         Utf8 baseName = defaultOutputBaseName(compiler, options);
@@ -178,6 +207,11 @@ namespace DocInternal
             return reportDocFileError(ctx, path, FileSystem::describeIoFailure(error));
         return Result::Continue;
     }
+}
+
+namespace
+{
+    using namespace DocInternal;
 
     Utf8 renderExampleSource(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view source)
     {
@@ -348,7 +382,7 @@ namespace DocInternal
         return Result::Continue;
     }
 
-    Result generatePages(TaskContext& ctx, PageOptions options, std::vector<fs::path>& outPaths)
+    Result generatePages(TaskContext& ctx, const PageOptions& options, std::vector<fs::path>& outPaths)
     {
         std::vector<fs::path> paths;
         SWC_RESULT(collectPageSourcePaths(ctx, paths));
@@ -390,10 +424,10 @@ namespace DocInternal
         if (options.titleToc.empty())
             options.titleToc = "Table of Contents";
 
-        const Utf8     runtimeFileName = "swag.runtime.html";
-        fs::path runtimePath     = outputDirectory / fs::path(runtimeFileName.c_str());
-        runtimePath              = runtimePath.lexically_normal();
-        const auto runtimeKey    = Utf8(FileSystem::normalizePath(runtimePath));
+        const Utf8 runtimeFileName = "swag.runtime.html";
+        fs::path   runtimePath     = outputDirectory / fs::path(runtimeFileName.c_str());
+        runtimePath                = runtimePath.lexically_normal();
+        const auto runtimeKey      = Utf8(FileSystem::normalizePath(runtimePath));
 
         {
             const std::scoped_lock lock(g_RuntimeDocMutex);
@@ -420,10 +454,10 @@ Result DocGenerator::generate(GenerateResult& outResult) const
     SWC_ASSERT(ctx_ != nullptr);
     outResult = {};
 
-    TaskContext&      ctx       = *ctx_;
+    TaskContext&            ctx       = *ctx_;
     const CompilerInstance& compiler  = ctx.compiler();
-    PageOptions       options   = getPageOptions(compiler);
-    const fs::path    outputDir = outputDirectory(compiler);
+    PageOptions             options   = getPageOptions(compiler);
+    const fs::path          outputDir = outputDirectory(compiler);
     if (ctx.cmdLine().outputDoc)
         SWC_RESULT(ensureOutputDirectory(ctx, outputDir));
 

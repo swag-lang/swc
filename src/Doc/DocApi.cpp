@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/SourceFile.h"
 #include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -9,8 +10,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
-namespace DocInternal
+namespace
 {
+    using namespace DocInternal;
 
     Result collectApiGuides(TaskContext& ctx, std::vector<DocGuide>& guides)
     {
@@ -74,6 +76,64 @@ namespace DocInternal
         return Result::Continue;
     }
 
+    Utf8 extractModuleDocComment(std::string_view source)
+    {
+        source = trimView(source);
+        std::vector<Utf8> result;
+        if (source.starts_with("/*"))
+        {
+            const size_t end = source.find("*/", 2);
+            if (end != std::string_view::npos)
+                appendNormalizedComment(result, source.substr(0, end + 2));
+        }
+        else
+        {
+            for (const Utf8& line : splitLines(source))
+            {
+                const std::string_view view = trimView(line);
+                if (!view.starts_with("//"))
+                    break;
+                appendNormalizedComment(result, view);
+            }
+        }
+
+        Utf8 comment;
+        for (const Utf8& line : result)
+        {
+            comment += line;
+            comment += "\n";
+        }
+        return comment;
+    }
+
+    Utf8 defaultModuleDocComment(const CompilerInstance& compiler)
+    {
+        for (const SourceFile* file : compiler.files())
+        {
+            if (file && file->hasFlag(FileFlagsE::Module))
+            {
+                Utf8 result = extractModuleDocComment(file->sourceView());
+                if (!result.empty())
+                    return result;
+            }
+        }
+
+        fs::path path = compiler.cmdLine().moduleFilePath;
+        if (path.empty() && !compiler.cmdLine().modulePath.empty())
+            path = compiler.cmdLine().modulePath / "module.swg";
+        if (!path.empty())
+        {
+            std::string             source;
+            FileSystem::IoErrorInfo error;
+            if (FileSystem::readTextFile(path, source, error) == Result::Continue)
+                return extractModuleDocComment(source);
+        }
+        return {};
+    }
+}
+
+namespace DocInternal
+{
     Result generateApi(TaskContext& ctx, PageOptions options, const bool runtime, fs::path& outPath)
     {
         if (options.titleContent.empty())

@@ -11,13 +11,72 @@
 #include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
 
 SWC_BEGIN_NAMESPACE();
 
-namespace DocInternal
+namespace
 {
+    using namespace DocInternal;
+
+    struct DocNamespace
+    {
+        Utf8                        fullName;
+        std::vector<Utf8>           children;
+        std::vector<const DocItem*> items;
+    };
+
+    using DocItemsByOwner = std::unordered_map<Utf8, std::vector<const DocItem*>>;
+
+    Utf8 lastNamePart(const std::string_view value)
+    {
+        const size_t pos = value.rfind('.');
+        if (pos == std::string_view::npos)
+            return value;
+        return value.substr(pos + 1);
+    }
+
+    std::vector<Utf8> summaryLines(std::span<const Utf8> lines)
+    {
+        for (const Utf8& line : lines)
+        {
+            if (trimView(line).empty())
+                continue;
+            return {line};
+        }
+        return {};
+    }
+
+    Utf8 codeHtml(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view code)
+    {
+        if (code.empty())
+            return {};
+        return renderCodeBlock(ctx, code, true, &renderCtx);
+    }
+
+    const char* itemKindName(const DocItemKind kind)
+    {
+        switch (kind)
+        {
+            case DocItemKind::Namespace:
+                return "namespace";
+            case DocItemKind::Struct:
+                return "struct";
+            case DocItemKind::Interface:
+                return "interface";
+            case DocItemKind::Enum:
+                return "enum";
+            case DocItemKind::Constant:
+                return "const";
+            case DocItemKind::Alias:
+                return "type alias";
+            case DocItemKind::Attribute:
+                return "attr";
+            case DocItemKind::Function:
+                return "func";
+        }
+        SWC_UNREACHABLE();
+    }
 
     void addReference(std::unordered_map<Utf8, Utf8>& references, std::unordered_set<Utf8>& ambiguous, const Utf8& name, const Utf8& anchor)
     {
@@ -182,7 +241,7 @@ namespace DocInternal
             }
         }
 
-        std::vector<Utf8> sortedNames(names.begin(), names.end());
+        std::vector sortedNames(names.begin(), names.end());
         std::ranges::sort(sortedNames);
         std::unordered_map<Utf8, size_t> indices;
         for (Utf8& name : sortedNames)
@@ -250,7 +309,7 @@ namespace DocInternal
             return result;
 
         const std::string_view source = range.srcView->stringView();
-        const size_t                 start  = std::min<size_t>(range.offset + range.len, source.size());
+        const size_t           start  = std::min<size_t>(range.offset + range.len, source.size());
         size_t                 end    = source.find_first_of("\r\n", start);
         if (end == std::string_view::npos)
             end = source.size();
@@ -444,7 +503,7 @@ namespace DocInternal
         content += "<th>Description</th></tr></thead>\n<tbody>\n";
         for (const MemberRow& row : fields)
         {
-            content.append(std::format("<tr><td id=\"{}\" class=\"code-type\">{}</td>", row.anchor, escapeHtml(row.name)));
+            content.append(std::format(R"(<tr><td id="{}" class="code-type">{}</td>)", row.anchor, escapeHtml(row.name)));
             if (!isEnum)
                 content.append(std::format("<td class=\"code-type\">{}</td>", renderTypeName(renderCtx, row.type)));
             const std::vector<Utf8> summary = summaryLines(row.commentLines);
@@ -467,7 +526,7 @@ namespace DocInternal
             if (!item || item->overloads.empty())
                 continue;
             const Utf8 name = shortNames ? lastNamePart(item->fullName) : item->displayName;
-            content.append(std::format("<tr><td class=\"code-type\"><a href=\"#{}\">{}</a></td>", makeAnchor(item->fullName), escapeHtml(name)));
+            content.append(std::format(R"(<tr><td class="code-type"><a href="#{}">{}</a></td>)", makeAnchor(item->fullName), escapeHtml(name)));
             if (showKind)
                 content.append(std::format("<td>{}</td>", itemKindName(item->kind)));
             const std::vector<Utf8> summary = summaryLines(item->overloads.front().commentLines);
@@ -490,7 +549,7 @@ namespace DocInternal
     {
         const Utf8 anchor = std::format("namespace_{}", makeAnchor(docNamespace.fullName));
         content += "<section class=\"api-symbol\">\n<table class=\"api-item\"><tr><td>";
-        content.append(std::format("<span id=\"{}\"><span class=\"api-item-title-kind\">namespace</span> <span class=\"api-item-title-strong\">{}</span></span>", anchor, escapeHtml(docNamespace.fullName)));
+        content.append(std::format(R"(<span id="{}"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">{}</span></span>)", anchor, escapeHtml(docNamespace.fullName)));
         content += "</td></tr></table>\n";
         content.append(std::format("<p>Public API declared directly in <span class=\"code-inline\">{}</span>.</p>\n", escapeHtml(docNamespace.fullName)));
 
@@ -581,10 +640,10 @@ namespace DocInternal
 
         content += "<section class=\"api-symbol\">\n";
         content += "<table class=\"api-item\"><tr><td>";
-        content.append(std::format("<span id=\"{}\"><span class=\"api-item-title-kind\">{}</span> <span class=\"api-item-title-strong\">{}</span></span>", makeAnchor(item.fullName), itemKindName(item.kind), escapeHtml(item.displayName)));
+        content.append(std::format(R"(<span id="{}"><span class="api-item-title-kind">{}</span> <span class="api-item-title-strong">{}</span></span>)", makeAnchor(item.fullName), itemKindName(item.kind), escapeHtml(item.displayName)));
         content += "</td>";
         if (!link.empty())
-            content.append(std::format("<td class=\"api-item-title-src-ref\"><a href=\"{}\">[src]</a></td>", escapeHtml(link, true)));
+            content.append(std::format(R"(<td class="api-item-title-src-ref"><a href="{}">[src]</a></td>)", escapeHtml(link, true)));
         content += "</tr></table>\n";
 
         for (size_t overloadIndex = 0; overloadIndex < item.overloads.size(); ++overloadIndex)
@@ -598,7 +657,10 @@ namespace DocInternal
         }
         content += "</section>\n";
     }
+}
 
+namespace DocInternal
+{
     void renderApiDocument(TaskContext& ctx, ApiDocument& document, const PageOptions& options, const bool runtime)
     {
         buildReferences(document);
@@ -739,61 +801,6 @@ namespace DocInternal
         renderGroup("Constants", "constants", constants);
         renderGroup("Functions", "functions", functions);
         renderGroup("Other symbols", "other-symbols", other);
-    }
-
-    Utf8 extractModuleDocComment(std::string_view source)
-    {
-        source = trimView(source);
-        std::vector<Utf8> result;
-        if (source.starts_with("/*"))
-        {
-            const size_t end = source.find("*/", 2);
-            if (end != std::string_view::npos)
-                appendNormalizedComment(result, source.substr(0, end + 2));
-        }
-        else
-        {
-            for (const Utf8& line : splitLines(source))
-            {
-                const std::string_view view = trimView(line);
-                if (!view.starts_with("//"))
-                    break;
-                appendNormalizedComment(result, view);
-            }
-        }
-
-        Utf8 comment;
-        for (const Utf8& line : result)
-        {
-            comment += line;
-            comment += "\n";
-        }
-        return comment;
-    }
-
-    Utf8 defaultModuleDocComment(const CompilerInstance& compiler)
-    {
-        for (const SourceFile* file : compiler.files())
-        {
-            if (file && file->hasFlag(FileFlagsE::Module))
-            {
-                Utf8 result = extractModuleDocComment(file->sourceView());
-                if (!result.empty())
-                    return result;
-            }
-        }
-
-        fs::path path = compiler.cmdLine().moduleFilePath;
-        if (path.empty() && !compiler.cmdLine().modulePath.empty())
-            path = compiler.cmdLine().modulePath / "module.swg";
-        if (!path.empty())
-        {
-            std::string             source;
-            FileSystem::IoErrorInfo error;
-            if (FileSystem::readTextFile(path, source, error) == Result::Continue)
-                return extractModuleDocComment(source);
-        }
-        return {};
     }
 }
 

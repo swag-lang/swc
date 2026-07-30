@@ -258,44 +258,45 @@ public func getDPIScale()->f32
 
 // Names the window paint callback type.
 public alias WindowPaintCallback  = func||(*Window)
+
 // Names the window resize callback type.
 public alias WindowResizeCallback = func||(*Window, s32, s32)
 
 // Represents window callbacks.
 public struct WindowCallbacks
 {
-    onPaint:  #null WindowPaintCallback // On paint associated with this value.
-    onResize: #null WindowResizeCallback // On resize associated with this value.
+    onPaint:  #null WindowPaintCallback      // On paint associated with this value.
+    onResize: #null WindowResizeCallback     // On resize associated with this value.
 }
 
 // Represents window options.
 public struct WindowOptions
 {
-    className:   string // Class name associated with this value.
-    title:       string // Title associated with this value.
-    width:       s32 // Width in logical units.
-    height:      s32 // Height in logical units.
-    x:           s32 = CW_USEDEFAULT // X component.
-    y:           s32 = CW_USEDEFAULT // Y component.
-    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN // Style associated with this value.
-    exStyle:     u32 // Ex style associated with this value.
-    classStyle:  u32 = CS_OWNDC // Class style associated with this value.
-    showCommand: s32 = SW_SHOW // Show command associated with this value.
+    className:   string                                                            // Class name associated with this value.
+    title:       string                                                            // Title associated with this value.
+    width:       s32                                                               // Width in logical units.
+    height:      s32                                                               // Height in logical units.
+    x:           s32 = CW_USEDEFAULT                                               // X component.
+    y:           s32 = CW_USEDEFAULT                                               // Y component.
+    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN     // Style associated with this value.
+    exStyle:     u32                                                               // Ex style associated with this value.
+    classStyle:  u32 = CS_OWNDC                                                    // Class style associated with this value.
+    showCommand: s32 = SW_SHOW                                                     // Show command associated with this value.
 }
 
 // Represents window.
 public struct Window
 {
-    nativeHandle: HWND // Native handle associated with this value.
-    callbacks:    WindowCallbacks // Callbacks associated with this value.
-    showCommand:  s32 = SW_SHOW // Show command associated with this value.
+    nativeHandle: HWND                // Native handle associated with this value.
+    callbacks:    WindowCallbacks     // Callbacks associated with this value.
+    showCommand:  s32 = SW_SHOW       // Show command associated with this value.
 }
 
 // Represents window loop.
 public struct WindowLoop
 {
-    maxTestFrames: u32 = 50 // Max test frames associated with this value.
-    testFrames:    u32 // Test frames associated with this value.
+    maxTestFrames: u32 = 50     // Max test frames associated with this value.
+    testFrames:    u32          // Test frames associated with this value.
 }
 
 private func getWindowFromHandle(hWnd: HWND)->#null *Window

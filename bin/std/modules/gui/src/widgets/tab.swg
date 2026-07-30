@@ -5,82 +5,82 @@ using Core, Pixel
 // Selects tab form.
 enum TabForm
 {
-    Flat // Uses the flat form.
-    Round // Uses the round form.
-    Button // Uses the button form.
-    PushButton // Uses the push button form.
+    Flat           // Uses the flat form.
+    Round          // Uses the round form.
+    Button         // Uses the button form.
+    PushButton     // Uses the push button form.
 }
 
 // Selects tab bar form.
 enum TabBarForm
 {
-    Transparent // Uses the transparent form.
-    Flat // Uses the flat form.
-    FlatRound // Uses the flat round form.
-    Round // Uses the round form.
+    Transparent     // Uses the transparent form.
+    Flat            // Uses the flat form.
+    FlatRound       // Uses the flat round form.
+    Round           // Uses the round form.
 }
 
 // Selects tab item form.
 enum TabItemForm
 {
-    Transparent // Uses the transparent form.
-    Flat // Uses the flat form.
-    Round // Uses the round form.
-    Button // Uses the button form.
-    PushButton // Uses the push button form.
+    Transparent     // Uses the transparent form.
+    Flat            // Uses the flat form.
+    Round           // Uses the round form.
+    Button          // Uses the button form.
+    PushButton      // Uses the push button form.
 }
 
 // Selects tab view form.
 enum TabViewForm
 {
-    None // No option is selected.
-    Flat // Uses the flat form.
-    Round // Uses the round form.
+    None      // No option is selected.
+    Flat      // Uses the flat form.
+    Round     // Uses the round form.
 }
 
 // Selects tab bar layout.
 enum TabBarLayout
 {
-    Divide // Selects divide.
-    Fixed // Selects fixed.
-    Auto // Selects auto.
+    Divide     // Selects divide.
+    Fixed      // Selects fixed.
+    Auto       // Selects auto.
 }
 
 // Represents tab item.
 struct TabItem
 {
-    using item: Item // Embedded item state.
-    pos:        f32 // Pos associated with this value.
-    width:      f32 // Width in logical units.
-    view:       #null *Wnd // View associated with this value.
-    aniImg:     BlendColor // Ani img associated with this value.
-    aniBorder:  BlendColor // Ani border associated with this value.
-    aniText:    BlendColor // Ani text associated with this value.
+    using item: Item           // Embedded item state.
+    pos:        f32            // Pos associated with this value.
+    width:      f32            // Width in logical units.
+    view:       #null *Wnd     // View associated with this value.
+    aniImg:     BlendColor     // Ani img associated with this value.
+    aniBorder:  BlendColor     // Ani border associated with this value.
+    aniText:    BlendColor     // Ani text associated with this value.
 }
 
 // Represents tab.
 struct Tab
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    barForm                   = TabBarForm.Flat // Bar form associated with this value.
-    itemForm                  = TabItemForm.Flat // Item form associated with this value.
-    viewForm                  = TabViewForm.Flat // View form associated with this value.
-    barLayout                 = TabBarLayout.Divide // Bar layout associated with this value.
-    itemFixedLayoutWidth: f32 = 100 // Item fixed layout width associated with this value.
-    itemAutoLayoutMargin: f32 = 25 // Item auto layout margin associated with this value.
-    itemMinWidth:         f32 = 25 // Item min width associated with this value.
+    barForm                   = TabBarForm.Flat         // Bar form associated with this value.
+    itemForm                  = TabItemForm.Flat        // Item form associated with this value.
+    viewForm                  = TabViewForm.Flat        // View form associated with this value.
+    barLayout                 = TabBarLayout.Divide     // Bar layout associated with this value.
+    itemFixedLayoutWidth: f32 = 100                     // Item fixed layout width associated with this value.
+    itemAutoLayoutMargin: f32 = 25                      // Item auto layout margin associated with this value.
+    itemMinWidth:         f32 = 25                      // Item min width associated with this value.
 
-    sigSelChanged: SigArray'func||(*Tab) // Signal emitted when sel changed.
+    sigSelChanged: SigArray'func||(*Tab)     // Signal emitted when sel changed.
 
-    buttonPopup:     #null *IconButton // Button popup associated with this value.
-    views:           ArrayPtr'TabItem // Views associated with this value.
-    popup:           #null *PopupListCtrl // Popup associated with this value.
-    selectedIdx:     u32 // Index of selected.
-    firstVisibleIdx: u32 // Index of first visible.
-    hotIdx:          u32 = Swag.U32.Max // Index of hot.
-    barHeight:       f32 // Bar height associated with this value.
-    mostRightPos:    f32 // Most right pos associated with this value.
+    buttonPopup:     #null *IconButton        // Button popup associated with this value.
+    views:           ArrayPtr'TabItem         // Views associated with this value.
+    popup:           #null *PopupListCtrl     // Popup associated with this value.
+    selectedIdx:     u32                      // Index of selected.
+    firstVisibleIdx: u32                      // Index of first visible.
+    hotIdx:          u32 = Swag.U32.Max       // Index of hot.
+    barHeight:       f32                      // Bar height associated with this value.
+    mostRightPos:    f32                      // Most right pos associated with this value.
 }
 
 impl IWnd for Tab

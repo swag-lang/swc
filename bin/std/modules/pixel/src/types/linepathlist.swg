@@ -7,9 +7,9 @@ using Core, Core.Math
 // Copies are deep: each path is duplicated and remains independently mutable.
 struct LinePathList
 {
-    paths: Array'(*LinePath) // Owned path pointers.
-    bvMin: Vector2           // Minimum combined bound after flattening.
-    bvMax: Vector2           // Maximum combined bound after flattening.
+    paths: Array'(*LinePath)     // Owned path pointers.
+    bvMin: Vector2               // Minimum combined bound after flattening.
+    bvMax: Vector2               // Maximum combined bound after flattening.
 }
 
 impl LinePathList

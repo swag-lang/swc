@@ -105,7 +105,7 @@ using Swag, Core
 {
     var painter: Painter
     var path:    LinePath
-    var pen      = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
+    var pen = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
     pen.joinStyle = .Miter
 
     path.start(10, 80)
@@ -122,7 +122,7 @@ using Swag, Core
 {
     var painter: Painter
     var path:    LinePath
-    var pen      = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
+    var pen = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
     pen.joinStyle = .Round
 
     path.start(10, 80)
@@ -139,7 +139,7 @@ using Swag, Core
 {
     var painter: Painter
     var path:    LinePath
-    var pen      = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
+    var pen = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
     pen.joinStyle = .Bevel
 
     path.start(10, 80)
@@ -156,7 +156,7 @@ using Swag, Core
 {
     var painter: Painter
     var path:    LinePath
-    var pen        = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
+    var pen = Pen.createSolid(Color.fromArgb(Argb.Red), 6)
     pen.begCapStyle = .Square
     pen.endCapStyle = .Triangle
 
@@ -173,7 +173,7 @@ using Swag, Core
 {
     var painter: Painter
     var path:    LinePath
-    var pen      = Pen.createSolid(Color.fromArgb(Argb.Red), 2)
+    var pen = Pen.createSolid(Color.fromArgb(Argb.Red), 2)
     pen.dashStyle = .Dash
 
     path.start(10, 50)

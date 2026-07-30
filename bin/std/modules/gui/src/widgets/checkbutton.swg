@@ -5,28 +5,28 @@ using Core, Pixel
 // Selects button check state.
 enum ButtonCheckState
 {
-    UnChecked // Selects un checked.
-    Checked // Selects checked.
-    Undefined // Selects undefined.
+    UnChecked     // Selects un checked.
+    Checked       // Selects checked.
+    Undefined     // Selects undefined.
 }
 
 // Selects check button flags.
 #[Swag.EnumFlags]
 enum CheckButtonFlags
 {
-    Zero = 0 // No flags are enabled.
-    ThreeState // Enables three state.
-    RightAlign // Enables right align.
+    Zero = 0       // No flags are enabled.
+    ThreeState     // Enables three state.
+    RightAlign     // Enables right align.
 }
 
 // Represents check button.
 struct CheckButton
 {
-    using button: Button // Embedded button state.
+    using button: Button     // Embedded button state.
 
-    checked          = ButtonCheckState.UnChecked // Checked associated with this value.
-    checkButtonFlags = CheckButtonFlags.Zero // Check button flags associated with this value.
-    sigChanged: SigArray'func||(*CheckButton) // Signal emitted when changed.
+    checked          = ButtonCheckState.UnChecked     // Checked associated with this value.
+    checkButtonFlags = CheckButtonFlags.Zero          // Check button flags associated with this value.
+    sigChanged: SigArray'func||(*CheckButton)         // Signal emitted when changed.
 }
 
 impl IWnd for CheckButton

@@ -7,7 +7,7 @@ using Win32
 // Represents mutex.
 struct Mutex
 {
-    v: SRWLOCK = SRWLOCK_INIT // V associated with this value.
+    v: SRWLOCK = SRWLOCK_INIT     // V associated with this value.
 }
 
 impl Mutex

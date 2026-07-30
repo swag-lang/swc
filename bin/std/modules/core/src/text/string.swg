@@ -9,18 +9,18 @@ const StringSmallSize = 16'u64
 // Selects character set.
 enum CharacterSet
 {
-    Latin1 // Selects latin1.
-    Unicode // Selects unicode.
+    Latin1      // Selects latin1.
+    Unicode     // Selects unicode.
 }
 
 // Represents string.
 struct String
 {
-    buffer:    #null [*] u8 // Buffer associated with this value.
-    length:    u64 // Length associated with this value.
-    capacity:  u64 // Capacity associated with this value.
-    allocator: #null IAllocator // Allocator associated with this value.
-    padding:   [StringSmallSize] u8 // Padding associated with this value.
+    buffer:    #null [*] u8             // Buffer associated with this value.
+    length:    u64                      // Length associated with this value.
+    capacity:  u64                      // Capacity associated with this value.
+    allocator: #null IAllocator         // Allocator associated with this value.
+    padding:   [StringSmallSize] u8     // Padding associated with this value.
 }
 
 impl String

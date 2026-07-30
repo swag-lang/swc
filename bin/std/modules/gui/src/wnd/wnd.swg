@@ -8,7 +8,7 @@ alias HookEvent = func||(*Wnd, IEvent)->bool
 // Automatic placement and size of the window in the parent client rectangle
 enum DockStyle
 {
-    None // No option is selected.
+    None                   // No option is selected.
     Top                    // Stack to the top, keeping the vertical size
     Left                   // Stack to the left, keeping the horizontal size
     Right                  // Stack to the right, keeping the horizontal size
@@ -21,90 +21,90 @@ enum DockStyle
 #[Swag.EnumFlags]
 enum AnchorStyle
 {
-    None // No option is selected.
-    X // Selects x.
-    Y // Selects y.
-    Width // Selects width.
-    Height // Selects height.
+    None       // No option is selected.
+    X          // Selects x.
+    Y          // Selects y.
+    Width      // Selects width.
+    Height     // Selects height.
 }
 
 // Selects background style.
 enum BackgroundStyle
 {
-    Transparent // Selects transparent.
-    Window // Selects window.
-    Dialog // Selects dialog.
-    DialogBar // Selects dialog bar.
-    View // Selects view.
+    Transparent     // Selects transparent.
+    Window          // Selects window.
+    Dialog          // Selects dialog.
+    DialogBar       // Selects dialog bar.
+    View            // Selects view.
 }
 
 // Selects focus stategy.
 enum FocusStategy
 {
-    None // No option is selected.
-    MousePressed // Selects mouse pressed.
+    None             // No option is selected.
+    MousePressed     // Selects mouse pressed.
 }
 
 // Selects size policy.
 enum SizePolicy
 {
-    Fixed // Selects fixed.
-    Content // Selects content.
-    Fill // Selects fill.
-    Expand // Selects expand.
+    Fixed       // Selects fixed.
+    Content     // Selects content.
+    Fill        // Selects fill.
+    Expand      // Selects expand.
 }
 
 // Selects layout align.
 enum LayoutAlign
 {
-    Start // Selects start.
-    Center // Selects center.
-    End // Selects end.
-    Stretch // Selects stretch.
+    Start       // Selects start.
+    Center      // Selects center.
+    End         // Selects end.
+    Stretch     // Selects stretch.
 }
 
 // Represents size hint.
 struct SizeHint
 {
-    min:       Math.Point // Min associated with this value.
-    preferred: Math.Point // Preferred associated with this value.
-    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max} // Max associated with this value.
+    min:       Math.Point                                    // Min associated with this value.
+    preferred: Math.Point                                    // Preferred associated with this value.
+    max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Max associated with this value.
 }
 
 // Represents layout spec.
 struct LayoutSpec
 {
-    policyX: SizePolicy  = SizePolicy.Content // Policy x associated with this value.
-    policyY: SizePolicy  = SizePolicy.Content // Policy y associated with this value.
-    weightX: f32         = 1 // Weight x associated with this value.
-    weightY: f32         = 1 // Weight y associated with this value.
-    alignX:  LayoutAlign = LayoutAlign.Stretch // Align x associated with this value.
-    alignY:  LayoutAlign = LayoutAlign.Stretch // Align y associated with this value.
-    margin:  Math.Vector4 // Margin associated with this value.
+    policyX: SizePolicy  = SizePolicy.Content      // Policy x associated with this value.
+    policyY: SizePolicy  = SizePolicy.Content      // Policy y associated with this value.
+    weightX: f32         = 1                       // Weight x associated with this value.
+    weightY: f32         = 1                       // Weight y associated with this value.
+    alignX:  LayoutAlign = LayoutAlign.Stretch     // Align x associated with this value.
+    alignY:  LayoutAlign = LayoutAlign.Stretch     // Align y associated with this value.
+    margin:  Math.Vector4                          // Margin associated with this value.
 }
 
 // Represents layout debug info.
 struct LayoutDebugInfo
 {
-    measuredMin:       Math.Point // Measured min associated with this value.
-    measuredPreferred: Math.Point // Measured preferred associated with this value.
-    measuredMax:       Math.Point // Measured max associated with this value.
-    arrangedRect:      Math.Rectangle // Arranged rect associated with this value.
-    clippedX:          bool // Clipped x associated with this value.
-    clippedY:          bool // Clipped y associated with this value.
-    clampedByMinX:     bool // Clamped by min x associated with this value.
-    clampedByMinY:     bool // Clamped by min y associated with this value.
-    clampedByMaxX:     bool // Clamped by max x associated with this value.
-    clampedByMaxY:     bool // Clamped by max y associated with this value.
+    measuredMin:       Math.Point         // Measured min associated with this value.
+    measuredPreferred: Math.Point         // Measured preferred associated with this value.
+    measuredMax:       Math.Point         // Measured max associated with this value.
+    arrangedRect:      Math.Rectangle     // Arranged rect associated with this value.
+    clippedX:          bool               // Clipped x associated with this value.
+    clippedY:          bool               // Clipped y associated with this value.
+    clampedByMinX:     bool               // Clamped by min x associated with this value.
+    clampedByMinY:     bool               // Clamped by min y associated with this value.
+    clampedByMaxX:     bool               // Clamped by max x associated with this value.
+    clampedByMaxY:     bool               // Clamped by max y associated with this value.
 }
 
 // Represents key shortcut.
 struct KeyShortcut
 {
-    mdf:    Input.KeyModifiers = Zero // Mdf associated with this value.
-    key:    Input.Key          = None // Key associated with this value.
-    id:     WndId              = undefined // Id associated with this value.
-    target: #null *Wnd // Target associated with this value.
+    mdf:    Input.KeyModifiers = Zero          // Mdf associated with this value.
+    key:    Input.Key          = None          // Key associated with this value.
+    id:     WndId              = undefined     // Id associated with this value.
+    target: #null *Wnd                         // Target associated with this value.
 }
 
 // Defines the operations supported by i wnd.
@@ -112,47 +112,67 @@ interface IWnd
 {
     // Performs the on event operation.
     mtd onEvent(evt: IEvent)
+
     // Performs the on hook event operation.
     mtd onHookEvent(evt: IEvent)
 
     // Performs the on create event operation.
     mtd onCreateEvent(evt: *CreateEvent)
+
     // Performs the on destroy event operation.
     mtd onDestroyEvent(evt: *DestroyEvent)
+
     // Performs the on state event operation.
     mtd onStateEvent(evt: *StateEvent)
+
     // Performs the on resize event operation.
     mtd onResizeEvent(evt: *ResizeEvent)
+
     // Performs the on pre paint event operation.
     mtd onPrePaintEvent(evt: *PaintEvent)
+
     // Performs the on paint event operation.
     mtd onPaintEvent(evt: *PaintEvent)
+
     // Performs the on post paint event operation.
     mtd onPostPaintEvent(evt: *PaintEvent)
+
     // Performs the on key event operation.
     mtd onKeyEvent(evt: *KeyEvent)
+
     // Performs the on mouse event operation.
     mtd onMouseEvent(evt: *MouseEvent)
+
     // Performs the on sys command event operation.
     mtd onSysCommandEvent(evt: *SysCommandEvent)
+
     // Performs the on sys user event operation.
     mtd onSysUserEvent(evt: *SysUserEvent)
+
     // Performs the on theme event operation.
     mtd onThemeEvent(evt: *ThemeEvent)
+
     // Performs the on timer event operation.
     mtd onTimerEvent(evt: *TimerEvent)
+
     // Performs the on focus event operation.
     mtd onFocusEvent(evt: *FocusEvent)
+
     // Performs the on command event operation.
     mtd onCommandEvent(evt: *CommandEvent)
+
     // Performs the on compute state event operation.
     mtd onComputeStateEvent(evt: *CommandStateEvent)
+
     // Performs the on apply state event operation.
     mtd onApplyStateEvent(evt: *CommandStateEvent)
+
     // Performs the on frame event operation.
     mtd onFrameEvent(evt: *FrameEvent)
+
     // Performs the on serialize state event operation.
     mtd onSerializeStateEvent(evt: *SerializeStateEvent)
+
     // Performs the on notify event operation.
     mtd onNotifyEvent(evt: *NotifyEvent)
 }
@@ -161,76 +181,76 @@ interface IWnd
 #[Swag.EnumFlags]
 enum WndFlags
 {
-    Zero = 0 // No flags are enabled.
-    NoScroll // Enables no scroll.
-    ClipChildren // Enables clip children.
-    Disabled // Enables disabled.
-    Hidden // Enables hidden.
-    PreChildsPaint // Enables pre childs paint.
-    PostChildsPaint // Enables post childs paint.
-    TopMost // Enables top most.
+    Zero = 0            // No flags are enabled.
+    NoScroll            // Enables no scroll.
+    ClipChildren        // Enables clip children.
+    Disabled            // Enables disabled.
+    Hidden              // Enables hidden.
+    PreChildsPaint      // Enables pre childs paint.
+    PostChildsPaint     // Enables post childs paint.
+    TopMost             // Enables top most.
 }
 
 // Represents wnd.
 struct Wnd
 {
     #[Swag.Late]
-    itf: IWnd // Itf associated with this value.
+    itf: IWnd     // Itf associated with this value.
     #[Swag.Late]
-    type:     typeinfo // Type associated with this value.
-    surface:  #null *Surface // Surface associated with this value.
-    style:    ThemeStyle // Style associated with this value.
-    wndFlags = WndFlags.ClipChildren // Wnd flags associated with this value.
-    userData: #null *void // User data associated with this value.
+    type:     typeinfo                   // Type associated with this value.
+    surface:  #null *Surface             // Surface associated with this value.
+    style:    ThemeStyle                 // Style associated with this value.
+    wndFlags = WndFlags.ClipChildren     // Wnd flags associated with this value.
+    userData: #null *void                // User data associated with this value.
 
-    position:      Math.Rectangle // Position associated with this value.
-    preferredSize: Math.Point // Preferred size associated with this value.
-    minSize:       Math.Point // Min size associated with this value.
-    maxSize:       Math.Point // Max size associated with this value.
-    scrollPos:     Math.Point // Scroll pos associated with this value.
+    position:      Math.Rectangle     // Position associated with this value.
+    preferredSize: Math.Point         // Preferred size associated with this value.
+    minSize:       Math.Point         // Min size associated with this value.
+    maxSize:       Math.Point         // Max size associated with this value.
+    scrollPos:     Math.Point         // Scroll pos associated with this value.
 
-    invalidatePadding: Math.Vector4 // Invalidate padding associated with this value.
+    invalidatePadding: Math.Vector4     // Invalidate padding associated with this value.
 
-    parent: #null *Wnd // Parent associated with this value.
-    owner:  #null *Wnd // Owner associated with this value.
+    parent: #null *Wnd     // Parent associated with this value.
+    owner:  #null *Wnd     // Owner associated with this value.
 
     // The child list is maintained by the window itself: add and remove children through
     // 'addChild' and 'removeChild' so parent links and layout state stay consistent.
     readonly childs: Array'(*Wnd)
 
-    name:    RichString // Name associated with this value.
-    id:      #null WndId // Id associated with this value.
-    cursor:  Cursor // Cursor associated with this value.
-    toolTip: String // Tool tip associated with this value.
+    name:    RichString      // Name associated with this value.
+    id:      #null WndId     // Id associated with this value.
+    cursor:  Cursor          // Cursor associated with this value.
+    toolTip: String          // Tool tip associated with this value.
 
-    keyShortcuts: Array'KeyShortcut // Key shortcuts associated with this value.
-    actions:      Array'IActionUI // Actions associated with this value.
+    keyShortcuts: Array'KeyShortcut     // Key shortcuts associated with this value.
+    actions:      Array'IActionUI       // Actions associated with this value.
 
-    margin:      Math.Vector4 // Margin associated with this value.
-    padding:     Math.Vector4 // Padding associated with this value.
-    dockStyle:   DockStyle   = None // Dock style associated with this value.
-    anchorStyle: AnchorStyle = None // Anchor style associated with this value.
-    layoutSpec:  LayoutSpec // Layout spec associated with this value.
+    margin:      Math.Vector4           // Margin associated with this value.
+    padding:     Math.Vector4           // Padding associated with this value.
+    dockStyle:   DockStyle   = None     // Dock style associated with this value.
+    anchorStyle: AnchorStyle = None     // Anchor style associated with this value.
+    layoutSpec:  LayoutSpec             // Layout spec associated with this value.
 
-    focusStrategy: FocusStategy = MousePressed // Focus strategy associated with this value.
+    focusStrategy: FocusStategy = MousePressed     // Focus strategy associated with this value.
 
-    backgroundStyle: BackgroundStyle = Transparent // Background style associated with this value.
-    isAllocated:     bool // Whether this value is allocated.
+    backgroundStyle: BackgroundStyle = Transparent     // Background style associated with this value.
+    isAllocated:     bool                              // Whether this value is allocated.
 
     // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
     // writing it from outside would desynchronize the pass from the tree.
     readonly
     {
-        isPendingDestroy: bool // Whether the window is scheduled for destruction.
-        managedByLayout:  bool // Whether a layout container places this window.
-        layoutDebug:      LayoutDebugInfo // Last layout decision, for diagnostics.
+        isPendingDestroy: bool                // Whether the window is scheduled for destruction.
+        managedByLayout:  bool                // Whether a layout container places this window.
+        layoutDebug:      LayoutDebugInfo     // Last layout decision, for diagnostics.
     }
 
     private
     {
-        cachedSizeHint:  SizeHint // Memoized measure result, refreshed by the layout pass.
-        createEventDone: bool // Whether the create event was already delivered.
-        layoutDirty:     bool = true // Whether the next frame must re-run layout.
+        cachedSizeHint:  SizeHint        // Memoized measure result, refreshed by the layout pass.
+        createEventDone: bool            // Whether the create event was already delivered.
+        layoutDirty:     bool = true     // Whether the next frame must re-run layout.
     }
 
     hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
@@ -313,16 +333,22 @@ impl IWnd for Wnd
 
     // Performs the on create event operation.
     mtd impl onCreateEvent(evt: *CreateEvent) {}
+
     // Performs the on destroy event operation.
     mtd impl onDestroyEvent(evt: *DestroyEvent) {}
+
     // Performs the on state event operation.
     mtd impl onStateEvent(evt: *StateEvent) {}
+
     // Performs the on resize event operation.
     mtd impl onResizeEvent(evt: *ResizeEvent) {}
+
     // Performs the on pre paint event operation.
     mtd impl onPrePaintEvent(evt: *PaintEvent) {}
+
     // Performs the on paint event operation.
     mtd impl onPaintEvent(evt: *PaintEvent) {}
+
     // Performs the on post paint event operation.
     mtd impl onPostPaintEvent(evt: *PaintEvent) {}
 
@@ -335,8 +361,10 @@ impl IWnd for Wnd
 
     // Performs the on timer event operation.
     mtd impl onTimerEvent(evt: *TimerEvent) {}
+
     // Performs the on serialize state event operation.
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent) {}
+
     // Performs the on frame event operation.
     mtd impl onFrameEvent(evt: *FrameEvent) {}
 
@@ -404,23 +432,31 @@ impl Wnd
     #[Swag.Inline]
     {
         // Returns app.
-        mtd getApp()          => (notnull .surface).app
+        mtd getApp() => (notnull .surface).app
+
         // Returns top view.
-        mtd getTopView()      => (notnull .surface).wnd.view
+        mtd getTopView() => (notnull .surface).wnd.view
+
         // Returns top wnd.
-        mtd getTopWnd()       => (notnull .surface).wnd
+        mtd getTopWnd() => (notnull .surface).wnd
+
         // Returns theme.
-        mtd getTheme()        => (notnull .style.refr).theme
+        mtd getTheme() => (notnull .style.refr).theme
+
         // Returns theme metrics.
         mtd getThemeMetrics() => &(notnull .style.refr).theme.metrics
+
         // Returns theme colors.
-        mtd getThemeColors()  => &(notnull .style.refr).theme.colors
+        mtd getThemeColors() => &(notnull .style.refr).theme.colors
+
         // Returns theme rects.
-        mtd getThemeRects()   => &(notnull .style.refr).theme.rects
+        mtd getThemeRects() => &(notnull .style.refr).theme.rects
+
         // Returns timing.
-        mtd getTiming()       => &(notnull .surface).app.timing
+        mtd getTiming() => &(notnull .surface).app.timing
+
         // Returns font.
-        mtd getFont()         => .style.getFont()
+        mtd getFont() => .style.getFont()
     }
 
     // Performs the create operation.
@@ -1013,7 +1049,8 @@ impl Wnd
     }
 
     // Sets all margins.
-    mtd setAllMargins(value: f32)          => .setMargin(value, value, value, value)
+    mtd setAllMargins(value: f32) => .setMargin(value, value, value, value)
+
     // Sets all margins.
     mtd setAllMargins(value: Math.Vector4) => .setMargin(value.x, value.y, value.z, value.w)
 
@@ -1037,7 +1074,8 @@ impl Wnd
     }
 
     // Sets all paddings.
-    mtd setAllPaddings(value: f32)          => .setPadding(value, value, value, value)
+    mtd setAllPaddings(value: f32) => .setPadding(value, value, value, value)
+
     // Sets all paddings.
     mtd setAllPaddings(value: Math.Vector4) => .setPadding(value.x, value.y, value.z, value.w)
 

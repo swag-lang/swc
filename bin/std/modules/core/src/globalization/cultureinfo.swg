@@ -3,7 +3,7 @@
 // Represents culture info.
 public struct CultureInfo
 {
-    numberFormat: NumberFormatInfo // Number format associated with this value.
+    numberFormat: NumberFormatInfo     // Number format associated with this value.
 }
 
 var g_CultureInfo: CultureInfo

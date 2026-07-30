@@ -6,14 +6,14 @@ using Math
 // Represents a gamepad
 struct GamePad
 {
-    previousState: GamePadState // Previous state associated with this value.
-    currentState:  GamePadState // Current state associated with this value.
+    previousState: GamePadState     // Previous state associated with this value.
+    currentState:  GamePadState     // Current state associated with this value.
 
     // The pad index associated with that GamePad instance
-    padIndex: u32 // Index of pad.
+    padIndex: u32     // Index of pad.
 
     // true if the corresponding padIndex is connected
-    connected: bool // Connected associated with this value.
+    connected: bool     // Connected associated with this value.
 }
 
 impl GamePad

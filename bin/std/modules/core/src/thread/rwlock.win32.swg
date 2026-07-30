@@ -7,7 +7,7 @@ using Win32
 // Represents rw lock.
 struct RWLock
 {
-    v: SRWLOCK = SRWLOCK_INIT // V associated with this value.
+    v: SRWLOCK = SRWLOCK_INIT     // V associated with this value.
 }
 
 impl RWLock

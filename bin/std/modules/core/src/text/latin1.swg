@@ -6,37 +6,52 @@ using Swag
 #[Inline, ConstExpr]
 {
     // Returns whether ascii.
-    func isAscii(c: u8)         => c <= 0x7F
+    func isAscii(c: u8) => c <= 0x7F
+
     // Returns whether digit.
-    func isDigit(c: u8)         => cast(bool) (CharProperties[c] & .Digit)
+    func isDigit(c: u8) => cast(bool) (CharProperties[c] & .Digit)
+
     // Returns whether number.
-    func isNumber(c: u8)        => cast(bool) (CharProperties[c] & .Digit)
+    func isNumber(c: u8) => cast(bool) (CharProperties[c] & .Digit)
+
     // Returns whether bin digit.
-    func isBinDigit(c: u8)      => cast(bool) (CharProperties[c] & .BinDigit)
+    func isBinDigit(c: u8) => cast(bool) (CharProperties[c] & .BinDigit)
+
     // Returns whether hex digit.
-    func isHexDigit(c: u8)      => cast(bool) (CharProperties[c] & .HexDigit)
+    func isHexDigit(c: u8) => cast(bool) (CharProperties[c] & .HexDigit)
+
     // Returns whether upper.
-    func isUpper(c: u8)         => cast(bool) (CharProperties[c] & .Upper)
+    func isUpper(c: u8) => cast(bool) (CharProperties[c] & .Upper)
+
     // Returns whether lower.
-    func isLower(c: u8)         => cast(bool) (CharProperties[c] & .Lower)
+    func isLower(c: u8) => cast(bool) (CharProperties[c] & .Lower)
+
     // Returns whether punctuation.
-    func isPunctuation(c: u8)   => cast(bool) (CharProperties[c] & .Punctuation)
+    func isPunctuation(c: u8) => cast(bool) (CharProperties[c] & .Punctuation)
+
     // Returns whether letter.
-    func isLetter(c: u8)        => cast(bool) (CharProperties[c] & .Letter)
+    func isLetter(c: u8) => cast(bool) (CharProperties[c] & .Letter)
+
     // Returns whether letter or digit.
     func isLetterOrDigit(c: u8) => cast(bool) (CharProperties[c] & (.Letter | .Digit))
+
     // Returns whether space.
-    func isSpace(c: u8)         => cast(bool) (CharProperties[c] & .Spacing)
+    func isSpace(c: u8) => cast(bool) (CharProperties[c] & .Spacing)
+
     // Returns whether control.
-    func isControl(c: u8)       => cast(bool) (CharProperties[c] & .Control)
+    func isControl(c: u8) => cast(bool) (CharProperties[c] & .Control)
+
     // Returns whether symbol.
-    func isSymbol(c: u8)        => cast(bool) (CharProperties[c] & .Symbol)
+    func isSymbol(c: u8) => cast(bool) (CharProperties[c] & .Symbol)
+
     // Returns whether word.
-    func isWord(c: u8)          => isLetter(c) or isDigit(c) or c == '_'
+    func isWord(c: u8) => isLetter(c) or isDigit(c) or c == '_'
+
     // Converts this value to lower.
-    func toLower(c: u8)         => isUpper(c) ? (c | 0x20'u8) : c
+    func toLower(c: u8) => isUpper(c) ? (c | 0x20'u8) : c
+
     // Converts this value to upper.
-    func toUpper(c: u8)         => isLower(c) ? (c & ~0x20'u8) : c
+    func toUpper(c: u8) => isLower(c) ? (c & ~0x20'u8) : c
 }
 
 #[Inline, ConstExpr]

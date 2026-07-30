@@ -3,9 +3,9 @@ using Swag, Core, Core.Errors
 // Selects the engine backend.
 public enum DriverKind
 {
-    Default // Selects XAudio2 on Windows and the no-sound backend elsewhere.
-    NoSound // Preserves audio state and validation without producing sound.
-    XAudio2 // Uses the Windows XAudio2 backend and fails where it is unavailable.
+    Default     // Selects XAudio2 on Windows and the no-sound backend elsewhere.
+    NoSound     // Preserves audio state and validation without producing sound.
+    XAudio2     // Uses the Windows XAudio2 backend and fails where it is unavailable.
 }
 
 // Stores an opaque backend handle for a voice.

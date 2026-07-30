@@ -12,44 +12,57 @@ using Core, Win32
 
 // Defines dwmwa window corner preference.
 const DWMWA_WINDOW_CORNER_PREFERENCE = 33'u32
+
 // Defines dwmwa border color.
-const DWMWA_BORDER_COLOR             = 34'u32
+const DWMWA_BORDER_COLOR = 34'u32
+
 // Defines dwmwa color none.
-const DWMWA_COLOR_NONE               = 0xFFFFFFFE'u32
+const DWMWA_COLOR_NONE = 0xFFFFFFFE'u32
 
 // Defines dwmwcp donotround.
 const DWMWCP_DONOTROUND = 1'u32
+
 // Defines dwmwcp round.
-const DWMWCP_ROUND      = 2'u32
+const DWMWCP_ROUND = 2'u32
+
 // Defines htclient.
-const HTCLIENT          = 1
+const HTCLIENT = 1
+
 // Defines htcaption.
-const HTCAPTION         = 2
+const HTCAPTION = 2
+
 // Defines htleft.
-const HTLEFT            = 10
+const HTLEFT = 10
+
 // Defines htright.
-const HTRIGHT           = 11
+const HTRIGHT = 11
+
 // Defines httop.
-const HTTOP             = 12
+const HTTOP = 12
+
 // Defines httopleft.
-const HTTOPLEFT         = 13
+const HTTOPLEFT = 13
+
 // Defines httopright.
-const HTTOPRIGHT        = 14
+const HTTOPRIGHT = 14
+
 // Defines htbottom.
-const HTBOTTOM          = 15
+const HTBOTTOM = 15
+
 // Defines htbottomleft.
-const HTBOTTOMLEFT      = 16
+const HTBOTTOMLEFT = 16
+
 // Defines htbottomright.
-const HTBOTTOMRIGHT     = 17
+const HTBOTTOMRIGHT = 17
 
 // Represents native surface.
 #[Swag.NoCopy]
 struct NativeSurface
 {
-    hWnd:         HWND // H wnd associated with this value.
-    lastDeadChar: WPARAM // Last dead char associated with this value.
-    topMost:      bool // Top most associated with this value.
-    trayIcon:     HICON // Tray icon associated with this value.
+    hWnd:         HWND       // H wnd associated with this value.
+    lastDeadChar: WPARAM     // Last dead char associated with this value.
+    topMost:      bool       // Top most associated with this value.
+    trayIcon:     HICON      // Tray icon associated with this value.
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.

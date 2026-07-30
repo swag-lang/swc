@@ -13,7 +13,7 @@
     cfg.backendKind     = .Export
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/xinput"
 
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputName      = "std.xinput"
-    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.kind       = .Api
+    cfg.genDoc.outputName = "std.xinput"
+    cfg.genDoc.css        = "css/style.css"
 }

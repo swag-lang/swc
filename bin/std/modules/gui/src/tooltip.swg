@@ -4,11 +4,11 @@ internal
 {
     struct ToolTipVal
     {
-        owner:      *Wnd = undefined // Owner associated with this value.
-        surfacePos: Math.Point // Surface pos associated with this value.
-        str:        String // Str associated with this value.
-        delay:      f32 // Delay associated with this value.
-        startDelay: f32 // Start delay associated with this value.
+        owner:      *Wnd = undefined     // Owner associated with this value.
+        surfacePos: Math.Point           // Surface pos associated with this value.
+        str:        String               // Str associated with this value.
+        delay:      f32                  // Delay associated with this value.
+        startDelay: f32                  // Start delay associated with this value.
     }
 
     var g_Pending:      #null *ToolTipVal

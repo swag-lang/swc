@@ -3,11 +3,11 @@
 // Represents dialog.
 struct Dialog
 {
-    using wnd:        Wnd // Embedded wnd state.
-    wndBottom:        *StackLayoutCtrl = undefined // Wnd bottom associated with this value.
-    buttons:          Array'(*PushButton) // Buttons associated with this value.
-    sigPressedButton: #null func||(*Dialog, WndId)->bool // Signal emitted when pressed button.
-    fromSurface:      #null *Surface // From surface associated with this value.
+    using wnd:        Wnd                                    // Embedded wnd state.
+    wndBottom:        *StackLayoutCtrl = undefined           // Wnd bottom associated with this value.
+    buttons:          Array'(*PushButton)                    // Buttons associated with this value.
+    sigPressedButton: #null func||(*Dialog, WndId)->bool     // Signal emitted when pressed button.
+    fromSurface:      #null *Surface                         // From surface associated with this value.
 }
 
 impl IWnd for Dialog

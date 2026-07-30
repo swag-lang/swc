@@ -5,8 +5,8 @@ using Core, Pixel
 // Represents rich edit cursor.
 struct RichEditCursor
 {
-    lineIndex:     u64 // Index of line.
-    charPosInLine: u64 // Char pos in line associated with this value.
+    lineIndex:     u64     // Index of line.
+    charPosInLine: u64     // Char pos in line associated with this value.
 }
 
 impl RichEditCtrl
@@ -54,7 +54,7 @@ impl RichEditCtrl
         if hasPrevRune
         {
             let prevGlyphIndex = drawFont.glyphIndex(line.chars[i - 1])
-            offsetX = drawFont.cache.kerning(prevGlyphIndex, glyphIndex)
+            offsetX = drawFont.kerning(prevGlyphIndex, glyphIndex)
         }
 
         let step = Painter.advanceTextX(x, offsetX, desc.advanceX, info, !hasPrevRune)

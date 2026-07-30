@@ -3,58 +3,58 @@ using Core, Pixel
 // Selects popup pos.
 public enum PopupPos
 {
-    TopLeft // Selects top left.
-    AnchorTopCenter // Selects anchor top center.
-    AnchorBottomCenter // Selects anchor bottom center.
+    TopLeft                // Selects top left.
+    AnchorTopCenter        // Selects anchor top center.
+    AnchorBottomCenter     // Selects anchor bottom center.
 }
 
 // Selects menu ctrl flags.
 #[Swag.EnumFlags]
 public enum MenuCtrlFlags
 {
-    Zero = 0 // No flags are enabled.
-    NoKeyShortcuts // Enables no key shortcuts.
+    Zero = 0           // No flags are enabled.
+    NoKeyShortcuts     // Enables no key shortcuts.
 }
 
 // Represents popup menu item.
 public struct PopupMenuItem
 {
-    using item: Item // Embedded item state.
-    rightName:  RichString // Right name associated with this value.
+    using item: Item           // Embedded item state.
+    rightName:  RichString     // Right name associated with this value.
     #[Swag.Late]
-    popup:     *MenuCtrl // Popup associated with this value.
-    pos:       f32 // Pos associated with this value.
-    size:      f32 // Size associated with this value.
-    rg:        CommandStateEvent.RenderingHint // Rg associated with this value.
-    separator: bool // Separator associated with this value.
-    disabled:  bool // Disabled associated with this value.
-    checked:   bool // Checked associated with this value.
-    hidden:    bool // Hidden associated with this value.
+    popup:     *MenuCtrl                           // Popup associated with this value.
+    pos:       f32                                 // Pos associated with this value.
+    size:      f32                                 // Size associated with this value.
+    rg:        CommandStateEvent.RenderingHint     // Rg associated with this value.
+    separator: bool                                // Separator associated with this value.
+    disabled:  bool                                // Disabled associated with this value.
+    checked:   bool                                // Checked associated with this value.
+    hidden:    bool                                // Hidden associated with this value.
 }
 
 // Represents menu ctrl.
 public struct MenuCtrl
 {
-    using frameWnd:   FrameWnd // Embedded frame wnd state.
-    onValidateResult: #null func(*MenuCtrl, WndId) // On validate result associated with this value.
-    onComputeItem:    #null func(*MenuCtrl, *PopupMenuItem) // On compute item associated with this value.
-    menuCtrlFlags:    MenuCtrlFlags = Zero // Menu ctrl flags associated with this value.
+    using frameWnd:   FrameWnd                                  // Embedded frame wnd state.
+    onValidateResult: #null func(*MenuCtrl, WndId)              // On validate result associated with this value.
+    onComputeItem:    #null func(*MenuCtrl, *PopupMenuItem)     // On compute item associated with this value.
+    menuCtrlFlags:    MenuCtrlFlags = Zero                      // Menu ctrl flags associated with this value.
 
-    paddingSel:              f32 = 4 // Padding sel associated with this value.
-    items:                   ArrayPtr'PopupMenuItem // Items associated with this value.
-    hotIdx:                  u32 = Swag.U32.Max // Index of hot.
-    selectedIdx:             u32 = Swag.U32.Max // Index of selected.
-    bar:                     bool // Bar associated with this value.
-    endModal:                bool // End modal associated with this value.
-    endModalResult:          WndId // End modal result associated with this value.
-    ownerMenu:               #null *MenuCtrl // Owner menu associated with this value.
-    subVisible:              #null *MenuCtrl // Sub visible associated with this value.
-    timer:                   #null *Timer // Timer associated with this value.
-    dirtyLayout:             bool // Dirty layout associated with this value.
-    paintByFrame:            bool // Paint by frame associated with this value.
-    popupBarItemIdx:         u32 = Swag.U32.Max // Index of popup bar item.
-    popupBarItemSurfaceRect: Math.Rectangle // Popup bar item surface rect associated with this value.
-    ignoreNextRelease:       bool // Ignore next release associated with this value.
+    paddingSel:              f32 = 4                    // Padding sel associated with this value.
+    items:                   ArrayPtr'PopupMenuItem     // Items associated with this value.
+    hotIdx:                  u32 = Swag.U32.Max         // Index of hot.
+    selectedIdx:             u32 = Swag.U32.Max         // Index of selected.
+    bar:                     bool                       // Bar associated with this value.
+    endModal:                bool                       // End modal associated with this value.
+    endModalResult:          WndId                      // End modal result associated with this value.
+    ownerMenu:               #null *MenuCtrl            // Owner menu associated with this value.
+    subVisible:              #null *MenuCtrl            // Sub visible associated with this value.
+    timer:                   #null *Timer               // Timer associated with this value.
+    dirtyLayout:             bool                       // Dirty layout associated with this value.
+    paintByFrame:            bool                       // Paint by frame associated with this value.
+    popupBarItemIdx:         u32 = Swag.U32.Max         // Index of popup bar item.
+    popupBarItemSurfaceRect: Math.Rectangle             // Popup bar item surface rect associated with this value.
+    ignoreNextRelease:       bool                       // Ignore next release associated with this value.
 }
 
 public impl IWnd for MenuCtrl

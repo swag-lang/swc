@@ -834,9 +834,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
         for (const Symbol* memberSym : symbols)
         {
-            const auto* fieldVar = memberSym->safeCast<SymbolVariable>();
-            if (fieldVar && !SemaAccess::canWriteMember(sema, *fieldVar, autoMemberCodeRef.srcViewRef))
-                sema.setConstAssignTarget(nodeRef);
+            if (const auto* fieldVar = memberSym->safeCast<SymbolVariable>())
+                SemaAccess::markUnwritableMemberAccess(sema, *fieldVar, nodeRef, autoMemberCodeRef.srcViewRef);
         }
 
         AstNodeRef substituteRef = nodeRef;

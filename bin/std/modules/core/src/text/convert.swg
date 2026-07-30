@@ -6,16 +6,16 @@ using Swag, Globalization
 // Represents convert format.
 struct ConvertFormat
 {
-    formatInt:   ConvertFormatInt // Format int associated with this value.
-    formatFloat: ConvertFormatFloat // Format float associated with this value.
+    formatInt:   ConvertFormatInt       // Format int associated with this value.
+    formatFloat: ConvertFormatFloat     // Format float associated with this value.
 }
 
 // Format structure to convert a float to a string
 struct ConvertFormatFloat
 {
-    precision: s8 = -1     // -1 is for 'most possible precision'
-    fmt:       u8 = 'f'u8 // Fmt associated with this value.
-    forceSign: bool // Force sign associated with this value.
+    precision: s8 = -1        // -1 is for 'most possible precision'
+    fmt:       u8 = 'f'u8     // Fmt associated with this value.
+    forceSign: bool           // Force sign associated with this value.
 }
 
 impl ConvertFormatFloat
@@ -78,10 +78,10 @@ impl ConvertFormatFloat
 // be stored in 'unsignedValue'.
 struct ConvertFormatInt
 {
-    base:      u32 = 10 // Base associated with this value.
-    padding:   u8 // Padding associated with this value.
-    width:     u8 // Width in logical units.
-    forceSign: bool // Force sign associated with this value.
+    base:      u32 = 10     // Base associated with this value.
+    padding:   u8           // Padding associated with this value.
+    width:     u8           // Width in logical units.
+    forceSign: bool         // Force sign associated with this value.
 }
 
 impl ConvertFormatInt

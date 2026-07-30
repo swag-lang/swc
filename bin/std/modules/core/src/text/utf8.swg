@@ -9,11 +9,14 @@
 #global namespace Utf8
 
 // Defines rune error.
-const RuneError    = 0xFFFD'rune
+const RuneError = 0xFFFD'rune
+
 // Defines max runes.
-const MaxRunes     = 0x10FFFF'rune
+const MaxRunes = 0x10FFFF'rune
+
 // Defines surrogate min.
 const SurrogateMin = 0xD800'rune
+
 // Defines surrogate max.
 const SurrogateMax = 0xDFFF'rune
 
@@ -81,8 +84,8 @@ private
 
     struct AcceptRange
     {
-        lo: u8 // Lo associated with this value.
-        hi: u8 // Hi associated with this value.
+        lo: u8     // Lo associated with this value.
+        hi: u8     // Hi associated with this value.
     }
 
     const AcceptRanges: [?] AcceptRange = [
@@ -724,10 +727,10 @@ func lastRune(src: const [..] u8)->rune
 // Selects comparison type.
 public enum ComparisonType
 {
-    Latin1 // Selects latin1.
-    Latin1NoCase // Selects latin1 no case.
-    Unicode // Selects unicode.
-    UnicodeNoCase // Selects unicode no case.
+    Latin1            // Selects latin1.
+    Latin1NoCase      // Selects latin1 no case.
+    Unicode           // Selects unicode.
+    UnicodeNoCase     // Selects unicode no case.
 }
 
 // Compare two utf8 buffers with the given algorithm

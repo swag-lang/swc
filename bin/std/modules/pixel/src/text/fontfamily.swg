@@ -6,19 +6,19 @@
 // available compatible slot when the requested face is absent.
 struct FontFamily
 {
-    regular:    #null *Font // Regular face, when available.
-    bold:       #null *Font // Bold face, when available.
-    italic:     #null *Font // Italic face, when available.
-    boldItalic: #null *Font // Combined bold and italic face, when available.
+    regular:    #null *Font     // Regular face, when available.
+    bold:       #null *Font     // Bold face, when available.
+    italic:     #null *Font     // Italic face, when available.
+    boldItalic: #null *Font     // Combined bold and italic face, when available.
 }
 
 // Style slot within a [[Pixel.FontFamily]].
 enum FontFamilyStyle
 {
-    Regular    // Upright text with normal weight.
-    Bold       // Upright text with bold weight.
-    Italic     // Slanted text with normal weight.
-    BoldItalic // Slanted text with bold weight.
+    Regular        // Upright text with normal weight.
+    Bold           // Upright text with bold weight.
+    Italic         // Slanted text with normal weight.
+    BoldItalic     // Slanted text with bold weight.
 }
 
 impl FontFamily

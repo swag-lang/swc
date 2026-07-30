@@ -4,14 +4,19 @@ using Core
 #[Swag.Opaque]
 public struct RichEditLine
 {
-    chars:            Array'rune // Chars associated with this value.
-    styles:           Array'RichEditStyleRef // Styles associated with this value.
-    dirtyStyle:       bool // Dirty style associated with this value.
-    hidden:           u64 // Hidden associated with this value.
-    drawingRect:      Math.Rectangle // Drawing rect associated with this value.
-    lexerEndingState: s32 // Lexer ending state associated with this value.
-    lexerCptCmt:      s32 // Lexer cpt cmt associated with this value.
-    wordWrap:         bool // Word wrap associated with this value.
+    // One line of the document: its runes, the style of each rune, and the state the layout
+    // and the lexer left on it. The control that owns the line maintains all of it.
+    internal
+    {
+        chars:            Array'rune                 // Runes of the line, without its terminator.
+        styles:           Array'RichEditStyleRef     // Style reference of each rune, same count as 'chars'.
+        dirtyStyle:       bool                       // Whether the line must be lexed again.
+        hidden:           u64                        // Fold depth hiding the line, zero when visible.
+        drawingRect:      Math.Rectangle             // Last painted rectangle, in client space.
+        lexerEndingState: s32                        // Lexer state at the end of the line, seeding the next one.
+        lexerCptCmt:      s32                        // Depth of nested block comments at the end of the line.
+        wordWrap:         bool                       // Whether the line was wrapped by the layout.
+    }
 }
 
 impl RichEditLine

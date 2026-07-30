@@ -10,18 +10,18 @@ using Errors
 // subscripts, superscripts, fractions, and matrix cells.
 enum MathStyle
 {
-    Display      // Full-size stand-alone formula with limits above and below large operators.
-    Text         // Inline formula with compact operator limits.
-    Script       // First-level subscript or superscript style.
-    ScriptScript // Nested subscript or superscript style.
+    Display          // Full-size stand-alone formula with limits above and below large operators.
+    Text             // Inline formula with compact operator limits.
+    Script           // First-level subscript or superscript style.
+    ScriptScript     // Nested subscript or superscript style.
 }
 
 // Result of mathematical layout. The baseline is `ascent` pixels below the top.
 struct MathMetrics
 {
-    width:   f32 // Horizontal extent in pixels.
-    ascent:  f32 // Distance from the baseline to the top edge, in pixels.
-    descent: f32 // Distance from the baseline to the bottom edge, in pixels.
+    width:   f32     // Horizontal extent in pixels.
+    ascent:  f32     // Distance from the baseline to the top edge, in pixels.
+    descent: f32     // Distance from the baseline to the bottom edge, in pixels.
 }
 
 impl MathMetrics
@@ -37,13 +37,13 @@ impl MathMetrics
 // ordinary text font that has no OpenType MATH table.
 struct MathLayoutOptions
 {
-    style:             MathStyle = Display // Root style used to begin layout.
-    scriptScale:       f32       = 0.72    // Font-size multiplier for first-level scripts.
-    scriptScriptScale: f32       = 0.55    // Font-size multiplier for nested scripts.
-    ruleThicknessEm:   f32       = 0.055   // Fraction and radical rule thickness in em.
-    minRuleThickness:  f32       = 1.0     // Minimum visible rule thickness in pixels.
-    rowGapEm:          f32       = 0.32    // Vertical gap between matrix rows in em.
-    columnGapEm:       f32       = 0.65    // Horizontal gap between matrix columns in em.
+    style:             MathStyle = Display     // Root style used to begin layout.
+    scriptScale:       f32       = 0.72        // Font-size multiplier for first-level scripts.
+    scriptScriptScale: f32       = 0.55        // Font-size multiplier for nested scripts.
+    ruleThicknessEm:   f32       = 0.055       // Fraction and radical rule thickness in em.
+    minRuleThickness:  f32       = 1.0         // Minimum visible rule thickness in pixels.
+    rowGapEm:          f32       = 0.32        // Vertical gap between matrix rows in em.
+    columnGapEm:       f32       = 0.65        // Horizontal gap between matrix columns in em.
 }
 
 internal enum MathNodeKind
@@ -140,7 +140,7 @@ internal struct MathDrawPath
     kind:      MathPathKind
     rect:      Math.Rectangle     // Baseline-relative bounds
     lineWidth: f32
-    aux:       f32                // Kind-specific local coordinate
+    aux:       f32     // Kind-specific local coordinate
 }
 
 internal struct MathNode
@@ -193,9 +193,9 @@ struct MathExpression
     // The module reads the tree directly to check the parser.
     internal
     {
-        source: String // Expression text the tree was parsed from.
-        nodes:  ArrayPtr'MathNode // Pool owning every node of the tree.
-        root:   *MathNode = undefined // Root of the tree, set by 'parse'.
+        source: String                    // Expression text the tree was parsed from.
+        nodes:  ArrayPtr'MathNode         // Pool owning every node of the tree.
+        root:   *MathNode = undefined     // Root of the tree, set by 'parse'.
     }
 }
 
@@ -266,12 +266,12 @@ private func mathLiteralClass(c: rune)->MathAtomClass
 {
     switch c
     {
-    case '+', '-', '*', '/', '\u00D7'rune, '\u00F7'rune: return .Bin
+    case '+', '-', '*', '/', '\u00D7'rune, '\u00F7'rune:          return .Bin
     case '=', '<', '>', '\u2260'rune, '\u2264'rune, '\u2265'rune: return .Rel
-    case '(', '[', '{': return .Open
-    case ')', ']', '}': return .Close
-    case ',', ';', ':': return .Punct
-    case '|':           return .Rel
+    case '(', '[', '{':                                           return .Open
+    case ')', ']', '}':                                           return .Close
+    case ',', ';', ':':                                           return .Punct
+    case '|':                                                     return .Rel
     }
 
     return .Ord
@@ -490,8 +490,8 @@ private impl MathParser
 
     mtd newSymbol(text: string, atomClass = MathAtomClass.Ord)->*MathNode
     {
-        let node      = .newNode(.Symbol)
-        node.text     = text
+        let node = .newNode(.Symbol)
+        node.text      = text
         node.atomClass = atomClass
         return node
     }
@@ -503,12 +503,12 @@ private impl MathParser
         if .eof() do
             mathFail("math expression ends, but this position needs an atom", .pos)
 
-        let slice        = @mkslice(@dataof(.source) + .pos, .count() - .pos)
-        let {c, eat}     = Utf8.decodeRune(slice)
+        let slice    = @mkslice(@dataof(.source) + .pos, .count() - .pos)
+        let {c, eat} = Utf8.decodeRune(slice)
         if eat == 0 do
             mathFail("math expression contains an incomplete UTF-8 sequence", .pos)
         result.value = c
-        .pos       += eat
+        .pos         += eat
         return result
     }
 
@@ -577,6 +577,7 @@ private impl MathParser
                     .pos += 1
                 continue
             }
+
             if c == '{' do
                 depth += 1
             elif c == '}'
@@ -589,6 +590,7 @@ private impl MathParser
                     return result
                 }
             }
+
             .pos += 1
         }
 
@@ -613,6 +615,7 @@ private impl MathParser
             if .atControlWord("end") do
                 return true
         }
+
         return false
     }
 
@@ -634,6 +637,7 @@ private impl MathParser
 
             row.children.add(.parseAtom())
         }
+
         return row
     }
 
@@ -644,6 +648,7 @@ private impl MathParser
             mathFail(Format.toString("% needs an argument", label), .pos)
         if .peek() == '{' do
             return .parseGroup()
+
         // TeX consumes exactly one token for an unbraced argument. In `x_i^2`,
         // this keeps `^2` attached to x instead of accidentally nesting it under i.
         return .parsePrimary()
@@ -703,8 +708,8 @@ private impl MathParser
             mathFail("'\\left' has no matching '\\right'", .pos)
         let right = .parseDelimiter("'\\right'")
 
-        let node  = .newNode(.Delimited)
-        node.text = left
+        let node = .newNode(.Delimited)
+        node.text  = left
         node.text2 = right
         node.children.add(body)
         node.atomClass = .Inner
@@ -716,7 +721,7 @@ private impl MathParser
         let numerator   = .parseRequiredArgument("fraction numerator")
         let denominator = .parseRequiredArgument("fraction denominator")
         let node        = .newNode(.Fraction)
-        node.flag       = withRule
+        node.flag = withRule
         node.children.add(numerator)
         node.children.add(denominator)
         node.atomClass = .Inner
@@ -737,14 +742,15 @@ private impl MathParser
             node.children.add(notnull index)
             node.flag = true
         }
+
         node.atomClass = .Ord
         return node
     }
 
     mtd parseStyle(variant: MathFontVariant, label: string)->*MathNode fail
     {
-        let child       = .parseRequiredArgument(label)
-        let node        = .newNode(.Style)
+        let child = .parseRequiredArgument(label)
+        let node  = .newNode(.Style)
         node.fontVariant = variant
         node.children.add(child)
         return node
@@ -752,8 +758,8 @@ private impl MathParser
 
     mtd parseAccent(accent: string, under = false, asRule = false)->*MathNode fail
     {
-        let child  = .parseRequiredArgument("math accent")
-        let node   = .newNode(.Accent)
+        let child = .parseRequiredArgument("math accent")
+        let node  = .newNode(.Accent)
         node.text  = accent
         node.flag  = under
         node.flag2 = asRule
@@ -803,8 +809,8 @@ private impl MathParser
         else do
             return matrix
 
-        let delimited  = .newNode(.Delimited)
-        delimited.text = left
+        let delimited = .newNode(.Delimited)
+        delimited.text  = left
         delimited.text2 = right
         delimited.children.add(matrix)
         delimited.atomClass = .Inner
@@ -878,6 +884,7 @@ private impl MathParser
             node.atomClass = .Inner
             return node
         }
+
         if command == "sqrt" do
             return .parseRadical()
         if command == "left" do
@@ -913,8 +920,8 @@ private impl MathParser
         let spec = mathCommandSymbol(command)
         if spec.found
         {
-            let node       = .newSymbol(spec.text, spec.atomClass)
-            node.flag      = spec.largeOperator
+            let node = .newSymbol(spec.text, spec.atomClass)
+            node.flag       = spec.largeOperator
             node.limitsMode = spec.limitsMode
             return node
         }
@@ -930,7 +937,7 @@ private impl MathParser
         elif command == "qquad" do space = 2.0
         if space != 0
         {
-            let node   = .newNode(.Space)
+            let node = .newNode(.Space)
             node.spaceEm = space
             return node
         }
@@ -968,7 +975,7 @@ private impl MathParser
         if .peek() == '~'
         {
             .pos += 1
-            let node   = .newNode(.Space)
+            let node = .newNode(.Space)
             node.spaceEm = 1.0 / 3.0
             return node
         }
@@ -980,7 +987,7 @@ private impl MathParser
 
     mtd parseAtom()->*MathNode fail
     {
-        let base = .parsePrimary()
+        let base       = .parsePrimary()
         var sub, sup: #null *MathNode
         var limitsMode = MathLimitsMode.Automatic
 
@@ -992,6 +999,7 @@ private impl MathParser
                 limitsMode = .Limits
                 continue
             }
+
             if .consumeControlWord("nolimits")
             {
                 limitsMode = .NoLimits
@@ -1026,7 +1034,7 @@ private impl MathParser
             return base
         }
 
-        let scripts   = .newNode(.Scripts)
+        let scripts = .newNode(.Scripts)
         scripts.limitsMode = limitsMode
         scripts.children.add(base)
         if sub
@@ -1034,11 +1042,13 @@ private impl MathParser
             scripts.children.add(notnull sub)
             scripts.flag = true
         }
+
         if sup
         {
             scripts.children.add(notnull sup)
             scripts.flag2 = true
         }
+
         scripts.atomClass = base.atomClass
         return scripts
     }
@@ -1067,9 +1077,10 @@ public impl MathExpression
             let node = notnull nodeRef
             for [idx] in node.children.count
             {
-                let childId      = node.children[idx].id
+                let childId = node.children[idx].id
                 node.children[idx] = notnull .nodes[childId]
             }
+
             // Layout caches contain non-owning text views and are cheap to rebuild.
             // Clearing them prevents a post-layout copy from retaining views into
             // the original expression.
@@ -1079,6 +1090,7 @@ public impl MathExpression
             node.draws.clear()
             node.paths.clear()
         }
+
         .root = notnull .nodes[rootId]
     }
 

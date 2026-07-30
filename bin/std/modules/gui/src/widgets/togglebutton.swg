@@ -5,14 +5,14 @@ using Core, Pixel
 // Represents toggle button.
 struct ToggleButton
 {
-    using button: Button // Embedded button state.
+    using button: Button     // Embedded button state.
 
-    isToggled:  bool // Whether this value is toggled.
-    sigChanged: #null func(*ToggleButton) // Signal emitted when changed.
+    isToggled:  bool                          // Whether this value is toggled.
+    sigChanged: #null func(*ToggleButton)     // Signal emitted when changed.
 
-    aniBk:     BlendColor // Ani bk associated with this value.
-    aniBorder: BlendColor // Ani border associated with this value.
-    aniMark:   BlendColor // Ani mark associated with this value.
+    aniBk:     BlendColor     // Ani bk associated with this value.
+    aniBorder: BlendColor     // Ani border associated with this value.
+    aniMark:   BlendColor     // Ani mark associated with this value.
 }
 
 impl IWnd for ToggleButton

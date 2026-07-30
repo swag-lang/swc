@@ -9,9 +9,9 @@ using Core
 // decode/encode round trip without Pixel interpreting their contents.
 struct ImageMetaData
 {
-    sig:   u32       // Codec-defined signature or namespace identifier.
-    tag:   Array'u8  // Owned byte tag that identifies the record within `sig`.
-    value: Array'u8  // Owned, codec-defined payload bytes.
+    sig:   u32          // Codec-defined signature or namespace identifier.
+    tag:   Array'u8     // Owned byte tag that identifies the record within `sig`.
+    value: Array'u8     // Owned, codec-defined payload bytes.
 }
 
 impl ImageMetaData

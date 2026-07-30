@@ -27,6 +27,11 @@ namespace SemaAccess
 
     // Reports the write rejected by 'canWriteMember'.
     Result reportMemberWrite(Sema& sema, const SymbolVariable& field, AstNodeRef nodeRef);
+
+    // Marks a member access the site cannot write, so the const paths reject an assignment, a
+    // mutable address and a mutable by-reference argument. 'readonly' restricts writing the
+    // field itself, so a field that points somewhere else does not freeze what it points to.
+    void markUnwritableMemberAccess(Sema& sema, const SymbolVariable& field, AstNodeRef accessRef, SourceViewRef siteViewRef);
 }
 
 SWC_END_NAMESPACE();

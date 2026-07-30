@@ -5,33 +5,33 @@ using Core, Pixel
 // Selects emb info ctrl kind.
 enum EmbInfoCtrlKind
 {
-    Critical // Selects the critical kind.
-    Information // Selects the information kind.
-    Message // Selects the message kind.
+    Critical        // Selects the critical kind.
+    Information     // Selects the information kind.
+    Message         // Selects the message kind.
 }
 
 // Selects emb info ctrl flags.
 #[Swag.EnumFlags]
 enum EmbInfoCtrlFlags
 {
-    Zero // No flags are enabled.
-    Top // Enables top.
-    Bottom // Enables bottom.
-    AutoHide // Enables auto hide.
+    Zero         // No flags are enabled.
+    Top          // Enables top.
+    Bottom       // Enables bottom.
+    AutoHide     // Enables auto hide.
 }
 
 // Represents emb info ctrl.
 struct EmbInfoCtrl
 {
-    using frameWnd: FrameWnd // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
     #[Swag.Late]
-    label: *Label // Label associated with this value.
+    label: *Label     // Label associated with this value.
     #[Swag.Late]
-    iconBtn:    *IconButton // Icon btn associated with this value.
-    ctrlFlags:  EmbInfoCtrlFlags = .Zero // Ctrl flags associated with this value.
-    sigOnClose: SigArray'func||(*EmbInfoCtrl) // Signal emitted when on close.
-    timer:      #null *Timer // Timer associated with this value.
-    kind:       EmbInfoCtrlKind // Kind associated with this value.
+    iconBtn:    *IconButton                       // Icon btn associated with this value.
+    ctrlFlags:  EmbInfoCtrlFlags = .Zero          // Ctrl flags associated with this value.
+    sigOnClose: SigArray'func||(*EmbInfoCtrl)     // Signal emitted when on close.
+    timer:      #null *Timer                      // Timer associated with this value.
+    kind:       EmbInfoCtrlKind                   // Kind associated with this value.
 }
 
 impl IWnd for EmbInfoCtrl

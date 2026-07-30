@@ -5,43 +5,43 @@ using Core, Pixel
 // Selects frame wnd form.
 enum FrameWndForm
 {
-    Transparent // Uses the transparent form.
-    Square // Uses the square form.
-    Round // Uses the round form.
+    Transparent     // Uses the transparent form.
+    Square          // Uses the square form.
+    Round           // Uses the round form.
 }
 
 // Selects frame wnd flags.
 #[Swag.EnumFlags]
 enum FrameWndFlags
 {
-    Zero = 0 // No flags are enabled.
-    Borders // Enables borders.
-    FocusBorder // Enables focus border.
-    SmallShadow // Enables small shadow.
+    Zero = 0        // No flags are enabled.
+    Borders         // Enables borders.
+    FocusBorder     // Enables focus border.
+    SmallShadow     // Enables small shadow.
 }
 
 // Selects frame wnd anchor.
 enum FrameWndAnchor
 {
-    None // No option is selected.
-    Left // Selects left.
-    Top // Selects top.
-    Right // Selects right.
-    Bottom // Selects bottom.
+    None       // No option is selected.
+    Left       // Selects left.
+    Top        // Selects top.
+    Right      // Selects right.
+    Bottom     // Selects bottom.
 }
 
 // Represents frame wnd.
 struct FrameWnd
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
     #[Swag.Late]
-    view:        *Wnd // View associated with this value.
-    frameForm  = FrameWndForm.Transparent // Frame form associated with this value.
-    frameFlags = FrameWndFlags.Borders // Frame flags associated with this value.
-    anchor     = FrameWndAnchor.None // Anchor associated with this value.
-    anchorPos:   f32 // Anchor pos associated with this value.
-    usedColorBk: Color // Used color bk associated with this value.
+    view:        *Wnd                         // View associated with this value.
+    frameForm  = FrameWndForm.Transparent     // Frame form associated with this value.
+    frameFlags = FrameWndFlags.Borders        // Frame flags associated with this value.
+    anchor     = FrameWndAnchor.None          // Anchor associated with this value.
+    anchorPos:   f32                          // Anchor pos associated with this value.
+    usedColorBk: Color                        // Used color bk associated with this value.
 }
 
 impl IWnd for FrameWnd

@@ -9,9 +9,9 @@ In the case of a struct, the XML file must represent the structure layout (order
 */
 public struct Xml
 {
-    stream:    ByteStream // Stream associated with this value.
-    line, col: u64 = 1 // Line associated with this value.
-    stackTags: Array'(string) // Stack tags associated with this value.
+    stream:    ByteStream         // Stream associated with this value.
+    line, col: u64 = 1            // Line associated with this value.
+    stackTags: Array'(string)     // Stack tags associated with this value.
 }
 
 public impl Xml
@@ -170,8 +170,10 @@ public impl Xml
 
         // Performs the end sequence operation.
         mtd endSequence() fail {}
+
         // Begins value.
         mtd beginValue() fail {}
+
         // Performs the end value operation.
         mtd endValue() fail {}
     }

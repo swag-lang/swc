@@ -10,8 +10,8 @@ struct ZLib
     // One codec of each direction, reused across calls.
     private
     {
-        decoder: Inflate // Decompressor used by 'decompress'.
-        encoder: Deflate // Compressor used by 'compress'.
+        decoder: Inflate     // Decompressor used by 'decompress'.
+        encoder: Deflate     // Compressor used by 'compress'.
     }
 }
 

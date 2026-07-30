@@ -103,45 +103,45 @@ internal
 
     struct SymFreq
     {
-        key:      u16 // Key associated with this value.
-        symIndex: u16 // Index of sym.
+        key:      u16     // Key associated with this value.
+        symIndex: u16     // Index of sym.
     }
 
     struct Compressor
     {
-        compressFlags:    u32 // Compress flags associated with this value.
-        maxProbes:        [2] u32 // Max probes associated with this value.
-        greedyParsing:    bool // Greedy parsing associated with this value.
-        lookaheadPos:     u32 // Lookahead pos associated with this value.
-        lookaheadSize:    u32 // Lookahead size associated with this value.
-        dictSize:         u32 // Dict size associated with this value.
-        lzCodeBufAddr:    #null [*] u8 // Lz code buf addr associated with this value.
-        lzFlags:          #null *u8 // Lz flags associated with this value.
-        outputBufAddr:    #null [*] u8 // Output buf addr associated with this value.
-        outputBufEndAddr: #null [*] u8 // Output buf end addr associated with this value.
-        numFlagsLeft:     u32 // Num flags left associated with this value.
-        totalLzBytes:     u32 // Total lz bytes associated with this value.
-        lzCodeBufDictPos: u32 // Lz code buf dict pos associated with this value.
-        bitsIn:           u32 // Bits in associated with this value.
-        bitBuffer:        u32 // Bit buffer associated with this value.
-        savedMatchDist:   u32 // Saved match dist associated with this value.
-        savedMatchLen:    u32 // Saved match len associated with this value.
-        savedLit:         u32 // Saved lit associated with this value.
-        outputFlushOfs:   u32 // Output flush ofs associated with this value.
-        blockIndex:       u32 // Index of block.
-        inBuf:            #null const [*] u8 // In buf associated with this value.
-        inSrc:            #null const [*] u8 // In src associated with this value.
-        srcBufLeft:       u64 // Src buf left associated with this value.
-        outBufOfs:        u64 // Out buf ofs associated with this value.
-        dict:             [LzDictSize + MaxMatchLen - 1] u8 // Dict associated with this value.
-        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16 // Number of huff entries.
-        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16 // Huff codes associated with this value.
-        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8 // Huff code sizes associated with this value.
-        lzCodeBuf:        [LzCodeBufSize] u8 // Lz code buf associated with this value.
-        next:             [LzDictSize] u16 // Next associated with this value.
-        hash:             [LzHashSize] u16 // Whether this value has h.
-        outputBuf:        [OutBufSize] u8 // Output buf associated with this value.
-        result:           #null *Array'u8 // Result associated with this value.
+        compressFlags:    u32                                     // Compress flags associated with this value.
+        maxProbes:        [2] u32                                 // Max probes associated with this value.
+        greedyParsing:    bool                                    // Greedy parsing associated with this value.
+        lookaheadPos:     u32                                     // Lookahead pos associated with this value.
+        lookaheadSize:    u32                                     // Lookahead size associated with this value.
+        dictSize:         u32                                     // Dict size associated with this value.
+        lzCodeBufAddr:    #null [*] u8                            // Lz code buf addr associated with this value.
+        lzFlags:          #null *u8                               // Lz flags associated with this value.
+        outputBufAddr:    #null [*] u8                            // Output buf addr associated with this value.
+        outputBufEndAddr: #null [*] u8                            // Output buf end addr associated with this value.
+        numFlagsLeft:     u32                                     // Num flags left associated with this value.
+        totalLzBytes:     u32                                     // Total lz bytes associated with this value.
+        lzCodeBufDictPos: u32                                     // Lz code buf dict pos associated with this value.
+        bitsIn:           u32                                     // Bits in associated with this value.
+        bitBuffer:        u32                                     // Bit buffer associated with this value.
+        savedMatchDist:   u32                                     // Saved match dist associated with this value.
+        savedMatchLen:    u32                                     // Saved match len associated with this value.
+        savedLit:         u32                                     // Saved lit associated with this value.
+        outputFlushOfs:   u32                                     // Output flush ofs associated with this value.
+        blockIndex:       u32                                     // Index of block.
+        inBuf:            #null const [*] u8                      // In buf associated with this value.
+        inSrc:            #null const [*] u8                      // In src associated with this value.
+        srcBufLeft:       u64                                     // Src buf left associated with this value.
+        outBufOfs:        u64                                     // Out buf ofs associated with this value.
+        dict:             [LzDictSize + MaxMatchLen - 1] u8       // Dict associated with this value.
+        huffCount:        [MaxHuffTables, MaxHuffSymbols] u16     // Number of huff entries.
+        huffCodes:        [MaxHuffTables, MaxHuffSymbols] u16     // Huff codes associated with this value.
+        huffCodeSizes:    [MaxHuffTables, MaxHuffSymbols] u8      // Huff code sizes associated with this value.
+        lzCodeBuf:        [LzCodeBufSize] u8                      // Lz code buf associated with this value.
+        next:             [LzDictSize] u16                        // Next associated with this value.
+        hash:             [LzHashSize] u16                        // Whether this value has h.
+        outputBuf:        [OutBufSize] u8                         // Output buf associated with this value.
+        result:           #null *Array'u8                         // Result associated with this value.
     }
 }
 
@@ -152,8 +152,8 @@ public struct Deflate
     // Compression state, established by 'init' and consumed by 'compress'.
     private
     {
-        state:     #null *Compressor // Compressor state, allocated on first use.
-        initFlags: CompressionFlags = CompressionFlags.Default // Flags 'init' was given.
+        state:     #null *Compressor                               // Compressor state, allocated on first use.
+        initFlags: CompressionFlags = CompressionFlags.Default     // Flags 'init' was given.
     }
 
     // Running checksum of the compressed data. The container formats built on top of Deflate

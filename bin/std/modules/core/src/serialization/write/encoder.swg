@@ -6,9 +6,9 @@ using Swag, Core.Errors
 // Selects section kind.
 enum SectionKind
 {
-    Raw // Selects the raw kind.
-    Unordered // Selects the unordered kind.
-    Ordered // Selects the ordered kind.
+    Raw           // Selects the raw kind.
+    Unordered     // Selects the unordered kind.
+    Ordered       // Selects the ordered kind.
 }
 
 // Defines the operations supported by i encoder.
@@ -19,45 +19,61 @@ interface IEncoder
 
     // Starts the operation.
     mtd start(result: *ConcatBuffer) fail
+
     // Finishes the operation.
     mtd end() fail
 
     // Begins field.
     mtd beginField(val: Swag.TypeValue) fail
+
     // Performs the end field operation.
     mtd endField(val: Swag.TypeValue) fail
+
     // Begins section.
     mtd beginSection(kind: SectionKind) fail
+
     // Performs the end section operation.
     mtd endSection() fail
 
     // Defines write.
     mtd write(data: const [*] void, type: typeinfo) fail
+
     // Writes buffer u8.
     mtd writeBufferU8(data: #null const [*] u8, count: u64) fail
 
     // Writes bool.
     mtd writeBool(value: bool)
+
     // Writes s8.
     mtd writeS8(value: s8)
+
     // Writes s16.
     mtd writeS16(value: s16)
+
     // Writes s32.
     mtd writeS32(value: s32)
+
     // Writes s64.
     mtd writeS64(value: s64)
+
     // Writes u8.
     mtd writeU8(value: u8)
+
     // Writes u16.
     mtd writeU16(value: u16)
+
     // Writes u32.
     mtd writeU32(value: u32)
+
     // Writes u64.
     mtd writeU64(value: u64)
+
     // Writes f32.
     mtd writeF32(value: f32)
+
     // Writes f64.
     mtd writeF64(value: f64)
+
     // Writes string.
     mtd writeString(value: #null string)
 }
@@ -89,7 +105,7 @@ A struct can implement the 'ISerialize' interface in order to have a specific se
 */
 struct(T) Encoder
 {
-    serializer:     T // Serializer associated with this value.
+    serializer:     T        // Serializer associated with this value.
     errorIfUnknown: bool     // If true, an error will be raised if a type cannot be saved. The field will be ignored if set to false
 }
 
@@ -382,27 +398,38 @@ impl IEncoder for Encoder
     }
 
     // Writes bool.
-    mtd impl writeBool(value: bool)           => .serializer.writeNative(value)
+    mtd impl writeBool(value: bool) => .serializer.writeNative(value)
+
     // Writes s8.
-    mtd impl writeS8(value: s8)               => .serializer.writeNative(value)
+    mtd impl writeS8(value: s8) => .serializer.writeNative(value)
+
     // Writes s16.
-    mtd impl writeS16(value: s16)             => .serializer.writeNative(value)
+    mtd impl writeS16(value: s16) => .serializer.writeNative(value)
+
     // Writes s32.
-    mtd impl writeS32(value: s32)             => .serializer.writeNative(value)
+    mtd impl writeS32(value: s32) => .serializer.writeNative(value)
+
     // Writes s64.
-    mtd impl writeS64(value: s64)             => .serializer.writeNative(value)
+    mtd impl writeS64(value: s64) => .serializer.writeNative(value)
+
     // Writes u8.
-    mtd impl writeU8(value: u8)               => .serializer.writeNative(value)
+    mtd impl writeU8(value: u8) => .serializer.writeNative(value)
+
     // Writes u16.
-    mtd impl writeU16(value: u16)             => .serializer.writeNative(value)
+    mtd impl writeU16(value: u16) => .serializer.writeNative(value)
+
     // Writes u32.
-    mtd impl writeU32(value: u32)             => .serializer.writeNative(value)
+    mtd impl writeU32(value: u32) => .serializer.writeNative(value)
+
     // Writes u64.
-    mtd impl writeU64(value: u64)             => .serializer.writeNative(value)
+    mtd impl writeU64(value: u64) => .serializer.writeNative(value)
+
     // Writes f32.
-    mtd impl writeF32(value: f32)             => .serializer.writeNative(value)
+    mtd impl writeF32(value: f32) => .serializer.writeNative(value)
+
     // Writes f64.
-    mtd impl writeF64(value: f64)             => .serializer.writeNative(value)
+    mtd impl writeF64(value: f64) => .serializer.writeNative(value)
+
     // Writes string.
     mtd impl writeString(value: #null string) => .serializer.writeNative(value)
 }

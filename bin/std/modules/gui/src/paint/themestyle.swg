@@ -6,18 +6,24 @@ using Core, Pixel
 struct ThemeStyleRef
 {
     #[Swag.Late]
-    theme: *Theme // Theme associated with this value.
-    count: u32 // Count associated with this value.
+    theme: *Theme     // Theme associated with this value.
+    count: u32        // Count associated with this value.
 }
 
 // Represents theme style.
 struct ThemeStyle
 {
-    refr:              #null *ThemeStyleRef // Refr associated with this value.
-    dirty:             bool // Dirty associated with this value.
-    styleSheetMetrics: String // Style sheet metrics associated with this value.
-    styleSheetColors:  String // Style sheet colors associated with this value.
-    font:              FontFamily // Font associated with this value.
+    styleSheetMetrics: String         // Style sheet metrics associated with this value.
+    styleSheetColors:  String         // Style sheet colors associated with this value.
+    font:              FontFamily     // Font associated with this value.
+
+    // The shared theme this style resolves against, and whether it must be resolved again.
+    // The style takes and releases the reference itself, so its count stays correct.
+    internal
+    {
+        refr:  #null *ThemeStyleRef     // Reference-counted theme this style resolves to.
+        dirty: bool                     // Whether the style sheets must be applied again.
+    }
 }
 
 impl ThemeStyle

@@ -43,9 +43,9 @@ operation that can reallocate that source.
     cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/core"
 
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputName      = "std.core"
-    cfg.genDoc.icon            = "favicon.ico"
-    cfg.genDoc.titleContent    = "Swag Std.Core"
-    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.kind         = .Api
+    cfg.genDoc.outputName   = "std.core"
+    cfg.genDoc.icon         = "favicon.ico"
+    cfg.genDoc.titleContent = "Swag Std.Core"
+    cfg.genDoc.css          = "css/style.css"
 }

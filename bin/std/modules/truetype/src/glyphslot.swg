@@ -3,8 +3,8 @@ using Swag, Core
 // Identifies which representation is active in a [[TrueType.GlyphSlot]].
 public enum GlyphFormat
 {
-    None    // No glyph representation is available.
-    Outline // The slot represents a scalable outline.
+    None        // No glyph representation is available.
+    Outline     // The slot represents a scalable outline.
 }
 
 // Contains the measurements of the current glyph.
@@ -12,11 +12,11 @@ public enum GlyphFormat
 // Values use 26.6 fixed-point pixels.
 public struct GlyphMetrics
 {
-    width:              s32 // Width of the outline control box.
-    height:             s32 // Height of the outline control box.
-    horizontalBearingX: s32 // Offset from the pen to the left outline bound.
-    horizontalBearingY: s32 // Offset from the baseline to the top outline bound.
-    horizontalAdvance:  s32 // Recommended horizontal pen advance.
+    width:              s32     // Width of the outline control box.
+    height:             s32     // Height of the outline control box.
+    horizontalBearingX: s32     // Offset from the pen to the left outline bound.
+    horizontalBearingY: s32     // Offset from the baseline to the top outline bound.
+    horizontalAdvance:  s32     // Recommended horizontal pen advance.
 }
 
 // Holds the outline, metrics, and bitmap of the most recently loaded glyph.
@@ -27,15 +27,15 @@ public struct GlyphMetrics
 public struct GlyphSlot
 {
     #[Swag.Late]
-    face:                    *Face        // Borrowed pointer to the owning face.
-    index:                   u32          // Glyph index represented by this slot.
-    metrics:                 GlyphMetrics // Scaled measurements for the glyph.
-    advance:                 Vector       // Pen displacement after drawing this glyph.
-    format:                  GlyphFormat = GlyphFormat.None // Active representation.
-    bitmap:                  Bitmap       // Borrowed pixels from the most recent render.
-    bitmapLeft:              s32          // Bitmap left edge relative to the pen, in pixels.
-    bitmapTop:               s32          // Bitmap top edge above the baseline, in pixels.
-    outline:                 Outline      // Borrowed scalable outline for the glyph.
+    face:       *Face                              // Borrowed pointer to the owning face.
+    index:      u32                                // Glyph index represented by this slot.
+    metrics:    GlyphMetrics                       // Scaled measurements for the glyph.
+    advance:    Vector                             // Pen displacement after drawing this glyph.
+    format:     GlyphFormat = GlyphFormat.None     // Active representation.
+    bitmap:     Bitmap                             // Borrowed pixels from the most recent render.
+    bitmapLeft: s32                                // Bitmap left edge relative to the pen, in pixels.
+    bitmapTop:  s32                                // Bitmap top edge above the baseline, in pixels.
+    outline:    Outline                            // Borrowed scalable outline for the glyph.
 }
 
 public impl GlyphSlot

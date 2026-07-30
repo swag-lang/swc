@@ -75,7 +75,7 @@ impl TestTiffLzwWriter
 {
     mtd write(code, width: u32)
     {
-        .pending      = (.pending << width) | code
+        .pending     = (.pending << width) | code
         .pendingBits += width
         while .pendingBits >= 8
         {
@@ -772,8 +772,8 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var state  = 0x12345678'u32
     for [i] in src.pixels.count
     {
-        state    *= #wrap 1664525
-        state    += #wrap 1013904223
+        state     *= #wrap 1664525
+        state     += #wrap 1013904223
         srcBuf[i] = cast(u8) (state >> 24)
     }
 

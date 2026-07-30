@@ -8,8 +8,8 @@ using Swag, Core
 public struct CharMap
 {
     #[Swag.Late]
-    face:       *Face // Borrowed pointer to the owning face.
-    encoding:   u32   // Four-byte encoding tag, or zero for the selected Unicode map.
-    platformID: u16   // TrueType platform identifier.
-    encodingID: u16   // Platform-specific encoding identifier.
+    face:       *Face     // Borrowed pointer to the owning face.
+    encoding:   u32       // Four-byte encoding tag, or zero for the selected Unicode map.
+    platformID: u16       // TrueType platform identifier.
+    encodingID: u16       // Platform-specific encoding identifier.
 }

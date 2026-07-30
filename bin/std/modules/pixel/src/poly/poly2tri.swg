@@ -39,60 +39,65 @@ enum Orientation
 #[Swag.Opaque]
 public struct Tessellate
 {
-    basin:     Basin
-    edgeEvent: EdgeEvent
+    // Sweep-line state of one tessellation: the advancing front, the node pool, and the
+    // graph being built. Read the outcome from 'Result', never from here.
+    private
+    {
+        basin:     Basin         // Basin being filled by the current sweep event.
+        edgeEvent: EdgeEvent     // Constrained edge the current sweep event follows.
 
-    triangles:  Array'(*Triangle)
-    edges:      Array'(*Edge)
-    points:     Array'(*Point)
-    triIndices: Array'u64
+        triangles:  Array'(*Triangle)     // Triangles produced so far.
+        edges:      Array'(*Edge)         // Constrained edges of the input.
+        points:     Array'(*Point)        // Points of the input, in sweep order.
+        triIndices: Array'u64             // Flat triples indexing 'points'.
 
-    nodes:     Array'(*Node)
-    freeNodes: Array'(*Node)
+        nodes:     Array'(*Node)     // Node pool of the advancing front.
+        freeNodes: Array'(*Node)     // Nodes returned to the pool.
 
-    front:     AdvancingFront
-    head:      #null *Point
-    tail:      #null *Point
-    afHead:    #null *Node
-    afMiddle:  #null *Node
-    afTail:    #null *Node
-    polyStart: u64
+        front:     AdvancingFront     // The advancing front itself.
+        head:      #null *Point       // Left artificial point of the front.
+        tail:      #null *Point       // Right artificial point of the front.
+        afHead:    #null *Node        // Node holding 'head'.
+        afMiddle:  #null *Node        // Node the sweep last searched from.
+        afTail:    #null *Node        // Node holding 'tail'.
+        polyStart: u64                // Index the current polygon starts at in 'points'.
+    }
 }
 
 // Owns the graph and index output of one tessellation.
 public struct Result
 {
-    triangles:  Array'(*Triangle) // Owned triangle descriptors.
-    edges:      Array'(*Edge)     // Owned constrained-edge descriptors.
-    points:     Array'(*Point)    // Owned point descriptors.
-    triIndices: Array'u64         // Flat triples indexing `points`.
-    tess:       #null *Tessellate // Tessellator associated with this result, if retained.
+    triangles:  Array'(*Triangle)     // Owned triangle descriptors.
+    edges:      Array'(*Edge)         // Owned constrained-edge descriptors.
+    points:     Array'(*Point)        // Owned point descriptors.
+    triIndices: Array'u64             // Flat triples indexing `points`.
+    tess:       #null *Tessellate     // Tessellator associated with this result, if retained.
 }
 
 // Stores one tessellation point and its incident constrained edges.
 public struct Point
 {
-    using v: Math.Vector2     // Point coordinates in path space.
-    edges:   Array'(*Edge)    // Incident constrained edges.
-    border:  [2] #null *Edge // Up to two boundary edges.
+    using v: Math.Vector2        // Point coordinates in path space.
+    edges:   Array'(*Edge)       // Incident constrained edges.
+    border:  [2] #null *Edge     // Up to two boundary edges.
 }
 
 // Connects two tessellation points with a constrained edge.
 public struct Edge
 {
-    p: *Point = undefined // Lower endpoint according to Poly2Tri ordering.
-    q: *Point = undefined // Upper endpoint according to Poly2Tri ordering.
+    p: *Point = undefined     // Lower endpoint according to Poly2Tri ordering.
+    q: *Point = undefined     // Upper endpoint according to Poly2Tri ordering.
 }
 
 // Stores one triangle and its adjacency/classification state.
 public struct Triangle
 {
-    constrainedEdge: [3] bool           // Whether each opposite edge is constrained.
-    delaunayEdge:    [3] bool           // Temporary Delaunay edge markers.
-    points:          [3] *Point = undefined // Counter-clockwise triangle vertices.
-    neighbors:       [3] #null *Triangle // Adjacent triangles opposite each point.
-    idx:             u64                // Result-local triangle index.
-    interior:        bool               // Whether the triangle belongs to the output interior.
+    constrainedEdge: [3] bool                   // Whether each opposite edge is constrained.
+    delaunayEdge:    [3] bool                   // Temporary Delaunay edge markers.
+    points:          [3] *Point = undefined     // Counter-clockwise triangle vertices.
+    neighbors:       [3] #null *Triangle        // Adjacent triangles opposite each point.
+    idx:             u64                        // Result-local triangle index.
+    interior:        bool                       // Whether the triangle belongs to the output interior.
 }
 
 struct EdgeEvent

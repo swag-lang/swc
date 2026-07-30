@@ -7,7 +7,7 @@ using Core, Win32
 // may target a parent bus to form a mixing graph.
 public struct Bus
 {
-    handle: BusHandle // Backend-owned submix handle, or `null` after destruction.
+    handle: BusHandle     // Backend-owned submix handle, or `null` after destruction.
 }
 
 public impl Bus

@@ -6,22 +6,22 @@ impl Image
     #[Swag.EnumFlags]
     public enum ChannelMode
     {
-        Red               // Red channel.
-        Green             // Green channel.
-        Blue              // Blue channel.
-        Alpha             // Alpha channel.
-        RGB  = Red | Green | Blue // All color channels.
-        RGBA = RGB | Alpha        // All color and alpha channels.
+        Red                           // Red channel.
+        Green                         // Green channel.
+        Blue                          // Blue channel.
+        Alpha                         // Alpha channel.
+        RGB  = Red | Green | Blue     // All color channels.
+        RGBA = RGB | Alpha            // All color and alpha channels.
     }
 
     // Selects the value copied into channels by [[Image.setChannel]].
     public enum ChannelValueMode
     {
-        Color   // Use the explicit `color` byte.
-        MinRGB  // Use the smallest color channel of the current pixel.
-        MaxRGB  // Use the largest color channel of the current pixel.
-        MeanRGB // Use the arithmetic mean of the current color channels.
-        Alpha   // Use the current alpha channel.
+        Color       // Use the explicit `color` byte.
+        MinRGB      // Use the smallest color channel of the current pixel.
+        MaxRGB      // Use the largest color channel of the current pixel.
+        MeanRGB     // Use the arithmetic mean of the current color channels.
+        Alpha       // Use the current alpha channel.
     }
 
     // Change the alpha channel

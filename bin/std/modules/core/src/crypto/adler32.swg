@@ -6,7 +6,7 @@
 // Represents adler32.
 public struct Adler32
 {
-    adler: u32 = 1 // Adler associated with this value.
+    adler: u32 = 1     // Adler associated with this value.
 }
 
 public impl Adler32

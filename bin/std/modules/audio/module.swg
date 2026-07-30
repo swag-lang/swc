@@ -42,9 +42,9 @@ files; unsupported containers or encodings fail instead of being guessed.
     cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/audio"
 
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputName      = "std.audio"
-    cfg.genDoc.titleContent    = "Audio"
-    cfg.genDoc.titleToc        = "Audio documentation"
-    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.kind         = .Api
+    cfg.genDoc.outputName   = "std.audio"
+    cfg.genDoc.titleContent = "Audio"
+    cfg.genDoc.titleToc     = "Audio documentation"
+    cfg.genDoc.css          = "css/style.css"
 }

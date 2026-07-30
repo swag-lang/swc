@@ -6,15 +6,15 @@ using Swag
 // CRC-64 implementation as described in ECMA-182, Annex B.
 public struct Crc64
 {
-    crc: u64 // Crc associated with this value.
+    crc: u64     // Crc associated with this value.
 }
 
 // Selects crc64 kind.
 public enum Crc64Kind
 {
-    ECMA182 // Selects the ecma182 kind.
-    ISO // Selects the iso kind.
-    ISOXZ // Selects the isoxz kind.
+    ECMA182     // Selects the ecma182 kind.
+    ISO         // Selects the iso kind.
+    ISOXZ       // Selects the isoxz kind.
 }
 
 impl Crc64

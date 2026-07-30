@@ -16,7 +16,7 @@
     cfg.backendKind     = .SharedLibrary
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/ogl"
 
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputName      = "std.ogl"
-    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.kind       = .Api
+    cfg.genDoc.outputName = "std.ogl"
+    cfg.genDoc.css        = "css/style.css"
 }

@@ -1185,7 +1185,7 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
 
         // Only an aggregate body can carry a member access modifier, so locals and parameters
         // always end up 'Public' here and the stamp costs them nothing.
-        symVar.setMemberAccess(sema.frame().currentMemberAccess());
+        symVar.setMemberAccess(sema.frame().memberAccessFor(symVar.ownerSymMap()));
     }
 
     return Result::SkipChildren;
@@ -1294,7 +1294,7 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
             auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
             if (hasFlag(AstVarDeclFlagsE::Let))
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
-            symVar.setMemberAccess(sema.frame().currentMemberAccess());
+            symVar.setMemberAccess(sema.frame().memberAccessFor(symVar.ownerSymMap()));
         }
     }
 

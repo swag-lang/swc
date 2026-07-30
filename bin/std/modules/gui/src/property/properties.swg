@@ -107,29 +107,29 @@ const PropCondensedControlHeight = 20'f32
 // Represents properties.
 struct Properties
 {
-    using frameWnd: FrameWnd // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-    kind = PropertiesKind.List // Kind associated with this value.
+    kind = PropertiesKind.List     // Kind associated with this value.
 
-    sizeEditValue: s32 = 200 // Size edit value associated with this value.
+    sizeEditValue: s32 = 200     // Size edit value associated with this value.
 
     // Walk the 'using' base structs after the struct's own fields, so a derived type
     // edits its most specific fields first (see addStructInternal). The language forces
     // the base to be declared first; this inverts the generated row order only.
-    usingFieldsLast: bool // Using fields last associated with this value.
+    usingFieldsLast: bool     // Using fields last associated with this value.
 
     // For grid kind
-    gridLineHeight:    f32 = 35 // Grid line height associated with this value.
-    gridLineMargin:    s32 = 12 // Grid line margin associated with this value.
-    gridColumnSize:    s32 = 150 // Grid column size associated with this value.
+    gridLineHeight:    f32 = 35      // Grid line height associated with this value.
+    gridLineMargin:    s32 = 12      // Grid line margin associated with this value.
+    gridColumnSize:    s32 = 150     // Grid column size associated with this value.
     gridColumnSizeReq: s32 = 150     // Requested column size, re-clamped to the current width on resize
-    gridMarginColumn:  s32 = 16 // Grid margin column associated with this value.
-    gridIndentSize:    s32 = 14     // Per-nesting-level indent of the name label + disclosure triangle
+    gridMarginColumn:  s32 = 16      // Grid margin column associated with this value.
+    gridIndentSize:    s32 = 14      // Per-nesting-level indent of the name label + disclosure triangle
 
     // For list kind
-    listNameMarginBefore: s32 = 20 // List name margin before associated with this value.
-    listNameMarginAfter:  s32 = 0 // List name margin after associated with this value.
-    listDescMarginAfter:  s32 = 5 // List desc margin after associated with this value.
+    listNameMarginBefore: s32 = 20     // List name margin before associated with this value.
+    listNameMarginAfter:  s32 = 0      // List name margin after associated with this value.
+    listDescMarginAfter:  s32 = 5      // List desc margin after associated with this value.
 
     // Inline validation message bar (info/warning/error)
     valBarGlyphWidth: f32 = 32     // left room reserved for the severity icon
@@ -139,42 +139,58 @@ struct Properties
     valBarGap:        f32 = 7      // gap between the row editor and the bar
     valBarRadius:     f32 = 6      // corner radius of the colored background
 
-    sigChanged: SigArray'func||(*Properties, #null *PropertiesItem) // Signal emitted when changed.
+    sigChanged: SigArray'func||(*Properties, #null *PropertiesItem)     // Signal emitted when changed.
 
-    leftMargin:   s32 = 15 // Left margin associated with this value.
-    rightMargin:  s32 = 15 // Right margin associated with this value.
-    fontSection:  FontFamily // Font section associated with this value.
-    fontCategory: FontFamily // Font category associated with this value.
-    fontName:     FontFamily // Font name associated with this value.
+    leftMargin:   s32 = 15       // Left margin associated with this value.
+    rightMargin:  s32 = 15       // Right margin associated with this value.
+    fontSection:  FontFamily     // Font section associated with this value.
+    fontCategory: FontFamily     // Font category associated with this value.
+    fontName:     FontFamily     // Font name associated with this value.
+    // What the grid currently shows. Rows are produced by 'addStruct' and friends and the
+    // selection moves with the keyboard and the mouse; a host reads both to follow the grid.
+    readonly
+    {
+        items:   ArrayPtr'PropertiesItem     // Rows of the grid, in display order.
+        selItem: #null *PropertiesItem       // Selected row, or 'null'.
+    }
+
+    // Scrolling viewport of the grid, established when it is created. A host configures the
+    // scrollbars or scrolls the grid through it; the grid decides which window it is.
     #[Swag.Late]
-    scrollWnd: *ScrollWnd // Scroll wnd associated with this value.
+    readonly scrollWnd: *ScrollWnd
+
+    // View the rows are painted in, established when the grid is created.
     #[Swag.Late]
-    edView:   *PropertiesView // Ed view associated with this value.
-    items:    ArrayPtr'PropertiesItem // Items associated with this value.
-    sections: Array'{ item: #null *PropertiesItem, lvl: s32 } // Sections associated with this value.
+    internal edView: *PropertiesView
 
-    // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
-    // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
-    gridLevelHasMark:    Array'bool // Grid level has mark associated with this value.
-    hotItem:             #null *PropertiesItem // Hot item associated with this value.
-    selItem:             #null *PropertiesItem // Sel item associated with this value.
-    currentSectionIndex: u32 = Swag.U32.Max // Index of current section.
-    stringFilter:        String // String filter associated with this value.
-    cursorSet:           bool // Cursor set associated with this value.
-    resizingColumn:      bool // Resizing column associated with this value.
-    aniBar:              BlendColor // Ani bar associated with this value.
-    editPopup:           #null *Wnd // Edit popup associated with this value.
+    // Grid state rebuilt from the rows: section index, hover and selection, and the transient
+    // state of one gesture. The grid maintains all of it.
+    internal
+    {
+        sections: Array'{ item: #null *PropertiesItem, lvl: s32 }     // Section rows and their depth.
 
-    // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
-    // instance per added struct, freed on destroy; every row's defaultData points into it.
-    // showReverts is the master switch for the revert markers.
-    defaultRoots: Array'PropDefaultRoot // Default roots associated with this value.
-    showReverts:  bool = true // Show reverts associated with this value.
+        // Per data-column depth: does any row at that depth show a disclosure triangle? Drives the
+        // reclaimed triangle gutter for all-leaf depths (see computeLevelMarks / itemLabelGutter).
+        gridLevelHasMark:    Array'bool                // Whether any row at that depth shows a triangle.
+        hotItem:             #null *PropertiesItem     // Row under the mouse.
+        currentSectionIndex: u32 = Swag.U32.Max        // Section the viewport is scrolled to.
+        stringFilter:        String                    // Active row filter.
+        cursorSet:           bool                      // Whether the grid set the cursor this frame.
+        resizingColumn:      bool                      // Whether a column-resize drag is in progress.
+        aniBar:              BlendColor                // Animation of the validation bar color.
+        editPopup:           #null *Wnd                // Popup owned by the row being edited.
+
+        // "Reset to default" feature (defaultstate.swg). defaultRoots owns one default-constructed
+        // instance per added struct, freed on destroy; every row's defaultData points into it.
+        defaultRoots: Array'PropDefaultRoot     // One default-constructed instance per added struct.
+    }
+
+    showReverts: bool = true     // Whether the revert markers are shown.
 
     // Row the context menu currently operates on. Read by the ActionProperties commands (and
     // any keyboard/toolbar trigger of the same commands); kept set across the async command
     // dispatch that follows doModal.
-    menuItem: #null *PropertiesItem // Menu item associated with this value.
+    menuItem: #null *PropertiesItem     // Menu item associated with this value.
 
     // Undo/redo (propertiesundo.swg). Every field edit that goes through hasChanged records one
     // command into undoMgr (unless undoEnabled is off). applyingUndo guards against re-recording
@@ -182,23 +198,28 @@ struct Properties
     // instead, so the grid shares the host's undo timeline. dragItem/dragCmd coalesce the moves
     // of one slider drag into a single command. generation stamps the grid content: it bumps on
     // clearStructs so commands recorded against dropped rows skip their row refresh.
-    undoMgr:       UndoManager // Undo mgr associated with this value.
-    externUndoMgr: #null *UndoManager // Extern undo mgr associated with this value.
-    undoEnabled:   bool = true // Undo enabled associated with this value.
-    applyingUndo:  bool // Applying undo associated with this value.
-    generation:    u64 // Generation associated with this value.
-    dragItem:      #null *PropertiesItem // Drag item associated with this value.
-    dragCmd:       #null *PropUndoCommand // Drag cmd associated with this value.
+    externUndoMgr: #null *UndoManager     // Undo timeline of the host, when it shares one.
+    undoEnabled:   bool = true            // Whether edits record undo commands.
+
+    // Recording state of the undo timeline the grid owns.
+    internal
+    {
+        undoMgr:      UndoManager                // Commands recorded by this grid.
+        applyingUndo: bool                       // Whether a command is restoring a value right now.
+        generation:   u64                        // Content stamp, bumped by 'clearStructs'.
+        dragItem:     #null *PropertiesItem      // Row of the slider drag being coalesced.
+        dragCmd:      #null *PropUndoCommand     // Command the drag accumulates into.
+    }
 
     // Host-level notify interface (setNotify): consulted for every row, in addition to the
     // per-struct IPropertyNotify implementations bound at build time. This is how a host that
     // does not own the displayed structs (an editor panel showing a document's objects) plugs
     // dynamic visibility, validation and change reactions.
-    hostNtfy: #null IPropertyNotify // Host ntfy associated with this value.
+    hostNtfy: #null IPropertyNotify     // Host ntfy associated with this value.
 
     // Build-time state of the opt-in mode (addStructMulti 'onlyNamed'): only fields carrying an
     // explicit Properties.Name attribute get a row.
-    buildOnlyNamed: bool // Build only named associated with this value.
+    buildOnlyNamed: bool     // Build only named associated with this value.
 }
 
 // The control's own IWnd events. Swag does not allow a split interface impl, so both entry points

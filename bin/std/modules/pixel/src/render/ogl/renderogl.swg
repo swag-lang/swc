@@ -34,22 +34,22 @@ const FontGamma = 1.0'f32 / 0.75
 const MsdfRange = 16.0'f32
 
 #[Swag.Strict]
-alias TextureHandle = u64 // Opaque renderer texture identifier.
-const InvalidTextureHandle: TextureHandle = cast() 0 // Sentinel that identifies no texture.
+alias TextureHandle = u64                                // Opaque renderer texture identifier.
+const InvalidTextureHandle: TextureHandle = cast() 0     // Sentinel that identifies no texture.
 
 #[Swag.Strict]
-alias RenderTargetHandle = u64 // Opaque renderer framebuffer identifier.
-const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0 // Sentinel that identifies no framebuffer.
+alias RenderTargetHandle = u64                                     // Opaque renderer framebuffer identifier.
+const InvalidRenderTargetHandle: RenderTargetHandle = cast() 0     // Sentinel that identifies no framebuffer.
 
 #[Swag.Strict]
-alias RenderTargetSurfaceHandle = u64 // Opaque renderer depth/stencil-surface identifier.
-const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0 // Sentinel that identifies no surface.
+alias RenderTargetSurfaceHandle = u64                                            // Opaque renderer depth/stencil-surface identifier.
+const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0     // Sentinel that identifies no surface.
 
 // Owns CPU pixel storage for one texture in headless mode.
 struct HeadlessTexture
 {
-    handle: TextureHandle // Synthetic renderer handle.
-    pixels: Array'u8      // Owned, tightly packed pixel bytes.
+    handle: TextureHandle     // Synthetic renderer handle.
+    pixels: Array'u8          // Owned, tightly packed pixel bytes.
 }
 
 // Executes [[Pixel.Painter]] command streams through OpenGL or a headless backend.
@@ -60,34 +60,48 @@ struct HeadlessTexture
 #[Swag.NoCopy]
 struct RenderOgl
 {
-    using native:       NativeRenderOgl             // Platform-specific context operations.
-    vertexbuffer:       GLuint                      // OpenGL streaming vertex buffer.
-    shaderSimple:       ShaderSimple                // Built-in non-antialiased shader.
-    shaderAA:           ShaderAA                    // Built-in antialiased shader.
-    shaderBlur:         ShaderBlur                  // Built-in separable-blur shader.
-    shaderResolve:      ShaderResolve               // Built-in supersampling-resolve shader.
-    shaderFont:         ShaderFont                  // Built-in bitmap-font shader.
-    shaderFontMsdf:     ShaderFont                  // Built-in MSDF-font shader.
-    worldTransform:     Transform2                  // Current painter world transform.
-    orthoMatrix:        Matrix4x4                   // Current surface projection matrix.
-    modelMatrix:        Matrix4x4                   // Current model matrix.
-    whiteTexture:       GLuint                      // Built-in one-pixel white texture.
-    hatchTextures:      [HatchStyle] GLuint         // Built-in hatch texture handles.
-    blendingMode:       BlendingMode = .Alpha      // Active OpenGL blending mode.
-    curRC:              RenderingContext            // Active drawable and viewport.
-    stackReleasedRT:    Array'#null *RenderTarget  // Targets queued for deferred release.
-    stackRT:            Array'#null *RenderTarget  // Nested bound render targets.
-    curRT:              #null *RenderTarget         // Active off-screen target, if any.
-    curShader:          #null *ShaderBase           // Active shader, or the default shader.
-    overlapMode:        bool                        // Whether overlap-safe alpha drawing is active.
-    headless:           bool                        // Whether OpenGL calls are replaced by CPU storage.
-    headlessNextHandle: u64          = 1            // Next synthetic headless resource handle.
-    headlessTextures:   Array'HeadlessTexture       // CPU textures owned in headless mode.
+    using native: NativeRenderOgl     // Platform-specific context operations.
 
     // Glyph storage and font views of this renderer. A glyph atlas carries a GPU texture created
     // in this renderer's context, so it must not outlive it: fonts are created through this cache
     // and released with the renderer.
     fonts: FontCache
+
+    // Whether OpenGL calls are replaced by CPU storage. Set before 'init' to render without a
+    // graphics context, which is how the headless host and the golden tests run.
+    headless: bool
+
+    // The built-in shaders. Bind one with [[Pixel.Painter.setShader]] and feed its uniforms
+    // with [[Pixel.Painter.setShaderParam]] to build a custom pass.
+    shaderSimple:   ShaderSimple      // Built-in non-antialiased shader.
+    shaderAA:       ShaderAA          // Built-in antialiased shader.
+    shaderBlur:     ShaderBlur        // Built-in separable-blur shader.
+    shaderResolve:  ShaderResolve     // Built-in supersampling-resolve shader.
+    shaderFont:     ShaderFont        // Built-in bitmap-font shader.
+    shaderFontMsdf: ShaderFont        // Built-in MSDF-font shader.
+
+    // The GPU objects and the state mirror of the context. Everything here belongs to the
+    // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
+    private
+    {
+        vertexbuffer:   GLuint                    // OpenGL streaming vertex buffer.
+        worldTransform: Transform2                // Current painter world transform.
+        orthoMatrix:    Matrix4x4                 // Current surface projection matrix.
+        modelMatrix:    Matrix4x4                 // Current model matrix.
+        whiteTexture:   GLuint                    // Built-in one-pixel white texture.
+        hatchTextures:  [HatchStyle] GLuint       // Built-in hatch texture handles.
+        blendingMode:   BlendingMode = .Alpha     // Active OpenGL blending mode.
+        curRC:          RenderingContext          // Active drawable and viewport.
+
+        stackReleasedRT: Array'#null *RenderTarget     // Targets queued for deferred release.
+        stackRT:         Array'#null *RenderTarget     // Nested bound render targets.
+        curRT:           #null *RenderTarget           // Active off-screen target, if any.
+        curShader:       #null *ShaderBase             // Active shader, or the default shader.
+        overlapMode:     bool                          // Whether overlap-safe alpha drawing is active.
+
+        headlessNextHandle: u64 = 1                   // Next synthetic headless resource handle.
+        headlessTextures:   Array'HeadlessTexture     // CPU textures owned in headless mode.
+    }
 }
 
 private impl RenderOgl

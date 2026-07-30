@@ -8,18 +8,18 @@ alias FrameCallback = func||(*Application)
 // Represents application.
 struct Application
 {
-    using native: ApplicationNative // Embedded native state.
-    sigFrame:     SigArray'func||(*Application) // Signal emitted when frame.
+    using native: ApplicationNative                 // Embedded native state.
+    sigFrame:     SigArray'func||(*Application)     // Signal emitted when frame.
 
-    options:  ApplicationOptions // Options associated with this value.
-    appIcon:  Pixel.Image // App icon associated with this value.
-    renderer: Pixel.RenderOgl // Renderer associated with this value.
+    options:  ApplicationOptions     // Options associated with this value.
+    appIcon:  Pixel.Image            // App icon associated with this value.
+    renderer: Pixel.RenderOgl        // Renderer associated with this value.
     #[Swag.Late]
-    theme:        *Theme // Theme associated with this value.
-    style:        ThemeStyle // Style associated with this value.
-    keyb:         Input.Keyboard // Keyb associated with this value.
-    mouse:        Input.Mouse // Mouse associated with this value.
-    mainSurface: #null *Surface // Main surface associated with this value.
+    theme:       *Theme             // Theme associated with this value.
+    style:       ThemeStyle         // Style associated with this value.
+    keyb:        Input.Keyboard     // Keyb associated with this value.
+    mouse:       Input.Mouse        // Mouse associated with this value.
+    mainSurface: #null *Surface     // Main surface associated with this value.
 
     // The surface list is maintained by the application: create and destroy surfaces through
     // its own API so the modal stack and the render loop stay consistent.
@@ -29,48 +29,48 @@ struct Application
     // writing it from outside would desynchronize the loop from the window tree.
     readonly
     {
-        timing:          Time.FrameTiming // Timing of the frame being run.
-        mouseCaptureWnd: #null *Wnd // Window currently holding the mouse capture.
-        isActivated:     bool // Whether the application window is active.
+        timing:          Time.FrameTiming     // Timing of the frame being run.
+        mouseCaptureWnd: #null *Wnd           // Window currently holding the mouse capture.
+        isActivated:     bool                 // Whether the application window is active.
     }
 
     // Focus tracking, moved by the windows themselves as events are dispatched.
     internal
     {
-        keybFocusWnd:  #null *Wnd // Window currently holding the keyboard focus.
-        mouseEnterWnd: #null *Wnd // Window the mouse last entered.
+        keybFocusWnd:  #null *Wnd     // Window currently holding the keyboard focus.
+        mouseEnterWnd: #null *Wnd     // Window the mouse last entered.
     }
 
-    frameCursor:         Cursor // Frame cursor associated with this value.
-    fadeDisabledSurface = true // Fade disabled surface associated with this value.
+    frameCursor: Cursor            // Frame cursor associated with this value.
+    fadeDisabledSurface = true     // Fade disabled surface associated with this value.
 
     // Run-loop state. It only means something to the loop that owns it.
     internal
     {
-        postedEvents:      Array'(IEvent) // Events queued from any thread, drained each frame.
-        postDestroy:       Array'(*Wnd) // Windows to destroy once the frame is over.
-        hookOnEvent:       Array'(*Wnd) // Windows watching every event of the application.
-        endModalExit:      #null WndId // Result the innermost modal loop exits with.
-        inModalLoop:       u32 // Depth of the modal loop nesting.
-        quitCode:          s32 // Exit code the run loop returns.
-        mustQuit:          bool // Whether the run loop stops at the end of the frame.
-        endModal:          bool // Whether the innermost modal loop stops.
-        mutexPostedEvents: Sync.Mutex // Guards 'postedEvents' against other threads.
-        duringTimerEvents: bool // Whether timer callbacks are running, so lists defer.
-        timers:            Array'(*Timer) // Active timers.
-        timersToAdd:       Array'(*Timer) // Timers added while callbacks were running.
-        timersToDelete:    Array'(*Timer) // Timers removed while callbacks were running.
-        frameEvents:       Array'(*Wnd) // Windows asking for a per-frame event.
-        modalSurfaces:     Array'(*Surface) // Surface stack of the nested modal loops.
-        toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo } // Deferred deletions.
+        postedEvents:      Array'(IEvent)                                             // Events queued from any thread, drained each frame.
+        postDestroy:       Array'(*Wnd)                                               // Windows to destroy once the frame is over.
+        hookOnEvent:       Array'(*Wnd)                                               // Windows watching every event of the application.
+        endModalExit:      #null WndId                                                // Result the innermost modal loop exits with.
+        inModalLoop:       u32                                                        // Depth of the modal loop nesting.
+        quitCode:          s32                                                        // Exit code the run loop returns.
+        mustQuit:          bool                                                       // Whether the run loop stops at the end of the frame.
+        endModal:          bool                                                       // Whether the innermost modal loop stops.
+        mutexPostedEvents: Sync.Mutex                                                 // Guards 'postedEvents' against other threads.
+        duringTimerEvents: bool                                                       // Whether timer callbacks are running, so lists defer.
+        timers:            Array'(*Timer)                                             // Active timers.
+        timersToAdd:       Array'(*Timer)                                             // Timers added while callbacks were running.
+        timersToDelete:    Array'(*Timer)                                             // Timers removed while callbacks were running.
+        frameEvents:       Array'(*Wnd)                                               // Windows asking for a per-frame event.
+        modalSurfaces:     Array'(*Surface)                                           // Surface stack of the nested modal loops.
+        toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo }     // Deferred deletions.
     }
 
     // Stops the run loop after this many frames, or never when zero. A test or a scripted
     // run sets it to bound the loop without a user closing the window.
     maxRunFrame: u32
-    configPath:        String // Config path associated with this value.
-    hotKeys:           Array'KeyShortcut // Hot keys associated with this value.
-    dirtyTheme:        u32 // Dirty theme associated with this value.
+    configPath:  String                // Config path associated with this value.
+    hotKeys:     Array'KeyShortcut     // Hot keys associated with this value.
+    dirtyTheme:  u32                   // Dirty theme associated with this value.
 }
 
 private impl Application
@@ -584,10 +584,13 @@ impl Application
     {
         // Returns renderer.
         mtd getRenderer() => &.renderer
+
         // Returns keyboard.
         mtd getKeyboard() => &.keyb
+
         // Returns mouse.
-        mtd getMouse()    => &.mouse
+        mtd getMouse() => &.mouse
+
         // Returns dt.
         mtd const getDt() => .timing.dt
     }
@@ -930,7 +933,8 @@ impl Application
     }
 
     // Returns file icon.
-    mtd getFileIcon(name: string, small = true)->Icon      => .getFileDirectoryIcon(name, false, small)
+    mtd getFileIcon(name: string, small = true)->Icon => .getFileDirectoryIcon(name, false, small)
+
     // Returns directory icon.
     mtd getDirectoryIcon(name: string, small = true)->Icon => .getFileDirectoryIcon(name, true, small)
 

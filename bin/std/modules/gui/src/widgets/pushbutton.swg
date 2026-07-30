@@ -5,22 +5,22 @@ using Core, Pixel
 // Selects push button form.
 enum PushButtonForm
 {
-    Normal // Uses the normal form.
-    Default // Uses the default form.
-    Flat // Uses the flat form.
-    Strong // Uses the strong form.
+    Normal      // Uses the normal form.
+    Default     // Uses the default form.
+    Flat        // Uses the flat form.
+    Strong      // Uses the strong form.
 }
 
 // Represents push button.
 struct PushButton
 {
-    using button: Button // Embedded button state.
+    using button: Button     // Embedded button state.
 
-    form = PushButtonForm.Normal // Form associated with this value.
+    form = PushButtonForm.Normal     // Form associated with this value.
 
-    aniBk:     BlendColor // Ani bk associated with this value.
-    aniBorder: BlendColor // Ani border associated with this value.
-    aniText:   BlendColor // Ani text associated with this value.
+    aniBk:     BlendColor     // Ani bk associated with this value.
+    aniBorder: BlendColor     // Ani border associated with this value.
+    aniText:   BlendColor     // Ani text associated with this value.
 }
 
 impl IWnd for PushButton

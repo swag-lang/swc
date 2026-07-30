@@ -5,8 +5,8 @@ using Core, Ogl, Core.Math
 // Identifies the built-in shader selected when no custom shader is active.
 enum DefaultShaderId
 {
-    Default // Standard shape, texture, and text rendering.
-    Blur    // Separable blur pass used by layers and effects.
+    Default     // Standard shape, texture, and text rendering.
+    Blur        // Separable blur pass used by layers and effects.
 }
 
 // Antialiasing fringe half-width, in (untransformed) path-space pixels.
@@ -19,101 +19,101 @@ const AAHalf = 0.5'f32
 #[Swag.Pack(1)]
 struct VertexLayout
 {
-    pos:   Vector2 // Position in painter path-space pixels.
-    uv:    Vector2 // Normalized or tiled texture coordinates.
-    color: u32     // Vertex color packed for the renderer.
-    cov:   f32     // Antialiasing coverage: `1` is solid and `0` is the outer fringe edge.
+    pos:   Vector2     // Position in painter path-space pixels.
+    uv:    Vector2     // Normalized or tiled texture coordinates.
+    color: u32         // Vertex color packed for the renderer.
+    cov:   f32         // Antialiasing coverage: `1` is solid and `0` is the outer fringe edge.
 }
 
 // Identifies one command in the painter's deferred command stream.
 enum CommandId
 {
-    Clear                 // Clear the active rendering surface.
-    ColorMask             // Change writable color channels.
-    Transform             // Change the current two-dimensional transform.
-    DrawTriangles         // Draw a contiguous vertex-buffer range.
-    BindTexture0          // Bind the current brush texture or gradient.
-    ResetTexture0         // Restore the default brush texture.
-    StartFont             // Begin bitmap-font rendering.
-    StartMsdfFont         // Begin multi-channel signed-distance-field text rendering.
-    EndFont               // End the current font batch.
-    BindTextureFont       // Bind one font-atlas texture.
-    ResetTextureFont      // Unbind the current font atlas.
-    SetClippingRect       // Enable a rectangular scissor region.
-    ResetClippingRect     // Disable the rectangular scissor region.
-    StartClippingRegion   // Begin writing a stencil clipping region.
-    EndClippingRegion     // Finish writing a stencil clipping region.
-    ResetClippingRegion   // Clear stencil clipping.
-    SetClippingRegionMode // Change how subsequent shapes affect stencil clipping.
-    UpdateFont            // Upload pending font-atlas changes.
-    StartNoOverlap        // Begin overlap-safe alpha rendering.
-    StopNoOverlap         // Finish overlap-safe alpha rendering.
-    SetBlendingMode       // Change the framebuffer blend operation.
-    BindRenderTarget      // Redirect drawing to an off-screen target.
-    UnbindRenderTarget    // Restore the previous rendering target.
-    ReleaseRenderTarget   // Release a renderer-owned target.
-    SetShader             // Select a custom shader.
-    SetShaderParam        // Update one custom-shader uniform.
-    SetFontEffect         // Update MSDF font-effect uniforms.
+    Clear                     // Clear the active rendering surface.
+    ColorMask                 // Change writable color channels.
+    Transform                 // Change the current two-dimensional transform.
+    DrawTriangles             // Draw a contiguous vertex-buffer range.
+    BindTexture0              // Bind the current brush texture or gradient.
+    ResetTexture0             // Restore the default brush texture.
+    StartFont                 // Begin bitmap-font rendering.
+    StartMsdfFont             // Begin multi-channel signed-distance-field text rendering.
+    EndFont                   // End the current font batch.
+    BindTextureFont           // Bind one font-atlas texture.
+    ResetTextureFont          // Unbind the current font atlas.
+    SetClippingRect           // Enable a rectangular scissor region.
+    ResetClippingRect         // Disable the rectangular scissor region.
+    StartClippingRegion       // Begin writing a stencil clipping region.
+    EndClippingRegion         // Finish writing a stencil clipping region.
+    ResetClippingRegion       // Clear stencil clipping.
+    SetClippingRegionMode     // Change how subsequent shapes affect stencil clipping.
+    UpdateFont                // Upload pending font-atlas changes.
+    StartNoOverlap            // Begin overlap-safe alpha rendering.
+    StopNoOverlap             // Finish overlap-safe alpha rendering.
+    SetBlendingMode           // Change the framebuffer blend operation.
+    BindRenderTarget          // Redirect drawing to an off-screen target.
+    UnbindRenderTarget        // Restore the previous rendering target.
+    ReleaseRenderTarget       // Release a renderer-owned target.
+    SetShader                 // Select a custom shader.
+    SetShaderParam            // Update one custom-shader uniform.
+    SetFontEffect             // Update MSDF font-effect uniforms.
 }
 
 // Controls optional painter behaviors.
 #[Swag.EnumFlags]
 enum PaintParams
 {
-    Zero                  // Disable every optional behavior.
-    Antialiased           // Generate coverage fringes along vector edges.
-    Default = Antialiased // Use the normal antialiased configuration.
+    Zero                      // Disable every optional behavior.
+    Antialiased               // Generate coverage fringes along vector edges.
+    Default = Antialiased     // Use the normal antialiased configuration.
 }
 
 // Selects the geometric approximation quality used for curved paths.
 enum PaintQuality
 {
-    Draft  // Favor fewer segments and lower tessellation cost.
-    Normal // Balance visual quality and cost.
-    High   // Favor smoother curves at additional tessellation cost.
+    Draft      // Favor fewer segments and lower tessellation cost.
+    Normal     // Balance visual quality and cost.
+    High       // Favor smoother curves at additional tessellation cost.
 }
 
 // Selects how newly drawn geometry changes the stencil clipping region.
 enum ClippingMode
 {
-    Set   // Add drawn coverage to the clipping region.
-    Clear // Remove drawn coverage from the clipping region.
+    Set       // Add drawn coverage to the clipping region.
+    Clear     // Remove drawn coverage from the clipping region.
 }
 
 // Selects how source and destination colors are combined.
 enum BlendingMode
 {
-    Copy   // Replace the destination with the source.
-    Alpha  // Composite using source alpha.
-    Add    // Add source and destination components.
-    Sub    // Subtract destination components from the source.
-    SubDst // Subtract source components from the destination.
-    Min    // Keep the minimum source/destination component.
-    Max    // Keep the maximum source/destination component.
+    Copy       // Replace the destination with the source.
+    Alpha      // Composite using source alpha.
+    Add        // Add source and destination components.
+    Sub        // Subtract destination components from the source.
+    SubDst     // Subtract source components from the destination.
+    Min        // Keep the minimum source/destination component.
+    Max        // Keep the maximum source/destination component.
 }
 
 // Captures the complete mutable drawing state of a [[Pixel.Painter]].
 struct PaintState
 {
-    paintParams:       PaintParams       = Default // Enabled painter behaviors.
-    paintQuality:      PaintQuality      = Normal  // Curve tessellation quality.
-    transform:         Transform2                  // Current path-to-surface transform.
-    blendingMode:      BlendingMode      = Alpha   // Current color blend operation.
-    interpolationMode: InterpolationMode = .Pixel  // Current texture sampler mode.
-    clippingRect:      Math.Rectangle              // Active surface-space clipping rectangle.
-    stackClipRect:     Array'Math.Rectangle        // Saved nested clipping rectangles.
-    clippingRectOn:    bool                        // Whether `clippingRect` is active.
-    colorMask:         ColorMask                   // Channels currently writable by the renderer.
+    paintParams:       PaintParams       = Default     // Enabled painter behaviors.
+    paintQuality:      PaintQuality      = Normal      // Curve tessellation quality.
+    transform:         Transform2                      // Current path-to-surface transform.
+    blendingMode:      BlendingMode      = Alpha       // Current color blend operation.
+    interpolationMode: InterpolationMode = .Pixel      // Current texture sampler mode.
+    clippingRect:      Math.Rectangle                  // Active surface-space clipping rectangle.
+    stackClipRect:     Array'Math.Rectangle            // Saved nested clipping rectangles.
+    clippingRectOn:    bool                            // Whether `clippingRect` is active.
+    colorMask:         ColorMask                       // Channels currently writable by the renderer.
 }
 
 // Selects which framebuffer color channels may be written.
 struct ColorMask
 {
-    r: bool // Allow writes to the red channel.
-    g: bool // Allow writes to the green channel.
-    b: bool // Allow writes to the blue channel.
-    a: bool // Allow writes to the alpha channel.
+    r: bool     // Allow writes to the red channel.
+    g: bool     // Allow writes to the green channel.
+    b: bool     // Allow writes to the blue channel.
+    a: bool     // Allow writes to the alpha channel.
 }
 
 // Contains resolved MSDF font-effect values sent to the text shader.
@@ -122,17 +122,17 @@ struct ColorMask
 // low-level representation for the renderer.
 struct FontEffectParams
 {
-    enabled:      f32   // Nonzero when at least one effect is active.
-    faceDilate:   f32   // Signed expansion of the glyph face in distance-field units.
-    faceSoftness: f32   // Width of the softened face edge.
-    outlineWidth: f32   // Outline thickness in distance-field units.
-    outlineColor: Color // Straight-alpha outline color.
-    glowColor:    Color // Straight-alpha glow color.
-    glowOffset:   f32   // Signed glow displacement in distance-field units.
-    glowInner:    f32   // Inner glow boundary.
-    glowOuter:    f32   // Outer glow boundary.
-    glowPower:    f32   // Glow falloff exponent.
-    bevel:        f32   // Bevel intensity.
+    enabled:      f32       // Nonzero when at least one effect is active.
+    faceDilate:   f32       // Signed expansion of the glyph face in distance-field units.
+    faceSoftness: f32       // Width of the softened face edge.
+    outlineWidth: f32       // Outline thickness in distance-field units.
+    outlineColor: Color     // Straight-alpha outline color.
+    glowColor:    Color     // Straight-alpha glow color.
+    glowOffset:   f32       // Signed glow displacement in distance-field units.
+    glowInner:    f32       // Inner glow boundary.
+    glowOuter:    f32       // Outer glow boundary.
+    glowPower:    f32       // Glow falloff exponent.
+    bevel:        f32       // Bevel intensity.
 }
 
 // Stores one deferred painter command and its command-specific payload.
@@ -141,9 +141,9 @@ struct FontEffectParams
 // should use `Painter` methods instead of constructing commands directly.
 struct Command
 {
-    id: CommandId = undefined // Operation represented by the active union payload.
+    id: CommandId = undefined     // Operation represented by the active union payload.
 
-    using params: union // Command-specific payload selected by `id`; inactive members must not be read.
+    using params: union     // Command-specific payload selected by `id`; inactive members must not be read.
     {
         clear:          struct{ color: Color }
         drawTriangles:  struct{ start: u32, count: u32 }
@@ -206,51 +206,66 @@ struct Command
 // ```
 struct Painter
 {
-    commandBuffer:  Array'Command      // Deferred renderer command stream.
-    vertexBuffer:   Array'VertexLayout // Packed vertices referenced by draw commands.
-    triangulateIdx: Array's32          // Reusable tessellation index workspace.
-    fake:           bool               // Record layout without emitting render commands when true.
+    // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
+    // drawing methods append to it.
+    readonly
+    {
+        commandBuffer: Array'Command          // Deferred renderer command stream.
+        vertexBuffer:  Array'VertexLayout     // Packed vertices referenced by draw commands.
+    }
 
-    sharedLinePath:     LinePath                              // Reusable single-path workspace.
-    sharedLinePathList: LinePathList                          // Reusable multi-path workspace.
-    sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }  // Reusable stroke-rounding workspace.
+    curState: PaintState     // Current mutable drawing state.
+    fake:     bool           // Record layout without emitting render commands when true.
 
-    curState:         PaintState       // Current mutable drawing state.
-    stackState:       Array'PaintState // States saved by [[Painter.pushState]].
-    stackTransform:   Array'Transform2 // Transforms saved by [[Painter.pushTransform]].
-    lastTexture0Type: BrushType = SolidColor // Last brush type emitted to the command stream.
-    tess:             Poly2Tri.Tessellate    // Reusable polygon tessellator.
+    // Reusable workspaces. They only hold intermediate results of the call in progress.
+    private
+    {
+        triangulateIdx:     Array's32                               // Reusable tessellation index workspace.
+        sharedLinePath:     LinePath                                // Reusable single-path workspace.
+        sharedLinePathList: LinePathList                            // Reusable multi-path workspace.
+        sharedRoundTmp:     Array'{ factor: f32, pos: Vector2 }     // Reusable stroke-rounding workspace.
+        tess:               Poly2Tri.Tessellate                     // Reusable polygon tessellator.
 
-    stackRT: Array'#null *RenderTarget // Nested off-screen render targets.
-    curRT:   #null *RenderTarget       // Active off-screen target, or `null` for the surface.
+        // Reusable shaped run for the immediate drawString path, so per-frame text drawing
+        // shapes without allocating a fresh glyph buffer on every call.
+        scratchShaped: ShapedRun     // Reusable shaping result for immediate text drawing.
+    }
 
-    lastTexture0Handle: TextureHandle // Last brush texture handle emitted.
-    hasTextureFont:     bool          // Whether a glyph atlas is currently bound.
+    // Recording state: the saved-state stacks, the render-target stack, and the emitted-uniform
+    // memos that keep the command stream free of redundant state changes.
+    private
+    {
+        stackState:     Array'PaintState     // States saved by [[Painter.pushState]].
+        stackTransform: Array'Transform2     // Transforms saved by [[Painter.pushTransform]].
 
-    // The paintType / gradient uniforms live per shader program, but texture0 state
-    // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
-    // program's paint uniforms stale, so a program switch forces the next texture0
-    // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
-    texture0Dirty:  bool // Whether brush uniforms must be re-emitted.
-    curTextProgram: s32  // Active text program: `0` none, `1` bitmap, `2` MSDF.
+        stackRT: Array'#null *RenderTarget     // Nested off-screen render targets.
+        curRT:   #null *RenderTarget           // Active off-screen target, or `null` for the surface.
 
-    // Last MSDF font-effect uniforms emitted this frame, to skip redundant
-    // SetFontEffect commands (most text shares the same -- usually empty -- effect).
-    lastFontEffect: FontEffectParams // Last emitted MSDF effect values.
-    hasFontEffect:  bool             // Whether `lastFontEffect` is initialized.
+        lastTexture0Type:   BrushType = SolidColor     // Last brush type emitted to the command stream.
+        lastTexture0Handle: TextureHandle              // Last brush texture handle emitted.
+        hasTextureFont:     bool                       // Whether a glyph atlas is currently bound.
 
-    // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
-    // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
-    curTextureFont:      #null *Font // Font owning the currently bound glyph atlas.
-    curTextureFontAtlas: s32 = -1   // Zero-based bound atlas index, or `-1`.
+        // The paintType / gradient uniforms live per shader program, but texture0 state
+        // is tracked once. Switching program (AA <-> font <-> MSDF font) leaves the new
+        // program's paint uniforms stale, so a program switch forces the next texture0
+        // setup to re-emit. 0 = AA/non-text, 1 = bitmap font, 2 = MSDF font.
+        texture0Dirty:  bool     // Whether brush uniforms must be re-emitted.
+        curTextProgram: s32      // Active text program: `0` none, `1` bitmap, `2` MSDF.
 
-    // Reusable shaped run for the immediate drawString path, so per-frame text drawing
-    // shapes without allocating a fresh glyph buffer on every call.
-    scratchShaped: ShapedRun // Reusable shaping result for immediate text drawing.
+        // Last MSDF font-effect uniforms emitted this frame, to skip redundant
+        // SetFontEffect commands (most text shares the same -- usually empty -- effect).
+        lastFontEffect: FontEffectParams     // Last emitted MSDF effect values.
+        hasFontEffect:  bool                 // Whether `lastFontEffect` is initialized.
 
-    drawingBegin:   bool        // Whether a `begin`/`end` recording scope is active.
-    overlapMode:    bool        // Whether overlap-safe alpha rendering is active.
-    canSetTexture0: bool = true // Whether drawing operations may change the brush texture.
+        // Currently bound glyph atlas, to skip redundant per-glyph BindTextureFont commands
+        // (consecutive glyphs of a run share an atlas); this keeps their triangles in one batch.
+        curTextureFont:      #null *Font     // Font owning the currently bound glyph atlas.
+        curTextureFontAtlas: s32 = -1        // Zero-based bound atlas index, or `-1`.
+
+        drawingBegin:   bool            // Whether a `begin`/`end` recording scope is active.
+        overlapMode:    bool            // Whether overlap-safe alpha rendering is active.
+        canSetTexture0: bool = true     // Whether drawing operations may change the brush texture.
+    }
 }
 
 impl Painter
@@ -996,7 +1011,7 @@ impl Painter
     mtd setColorMaskColor() => .setColorMask(true, true, true, false)
 
     // Enables writes to all color channels.
-    mtd setColorMaskFull()  => .setColorMask(true, true, true, true)
+    mtd setColorMaskFull() => .setColorMask(true, true, true, true)
 
     // Enables writes only to alpha.
     mtd setColorMaskAlpha() => .setColorMask(false, false, false, true)

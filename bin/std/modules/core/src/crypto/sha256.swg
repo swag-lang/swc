@@ -4,10 +4,10 @@
 // Represents sha256.
 public struct Sha256
 {
-    data:    [64] u8 // Data associated with this value.
-    state:   [8] u32 // State associated with this value.
-    datalen: u32 // Datalen associated with this value.
-    bitlen:  u64 // Bitlen associated with this value.
+    data:    [64] u8     // Data associated with this value.
+    state:   [8] u32     // State associated with this value.
+    datalen: u32         // Datalen associated with this value.
+    bitlen:  u64         // Bitlen associated with this value.
 }
 
 impl Sha256

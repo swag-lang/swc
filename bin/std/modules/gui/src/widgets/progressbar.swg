@@ -6,17 +6,17 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum ProgressBarFlags
 {
-    Zero = 0 // No flags are enabled.
-    Infinite // Enables infinite.
+    Zero = 0     // No flags are enabled.
+    Infinite     // Enables infinite.
 }
 
 // Represents progress bar.
 struct ProgressBar
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    prgBarFlags = ProgressBarFlags.Zero // Prg bar flags associated with this value.
-    progression: f32 // Progression associated with this value.
+    prgBarFlags = ProgressBarFlags.Zero     // Prg bar flags associated with this value.
+    progression: f32                        // Progression associated with this value.
 }
 
 impl IWnd for ProgressBar

@@ -12,32 +12,32 @@ using Core, File, Directory
 // are simply ignored here.
 struct FileBrowserCtrl
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    treeCtrl:    #null *ListCtrl // Tree ctrl associated with this value.
-    treePathStr: Array'String // Tree path str associated with this value.
+    treeCtrl:    #null *ListCtrl     // Tree ctrl associated with this value.
+    treePathStr: Array'String        // Tree path str associated with this value.
     #[Swag.Late]
-    listCtrl: *ListCtrl // List ctrl associated with this value.
+    listCtrl: *ListCtrl     // List ctrl associated with this value.
     #[Swag.Late]
-    comboPath:    *ComboBox // Combo path associated with this value.
-    comboPathStr: Array'String // Combo path str associated with this value.
+    comboPath:    *ComboBox        // Combo path associated with this value.
+    comboPathStr: Array'String     // Combo path str associated with this value.
     #[Swag.Late]
-    editFile: *EditBox // Edit file associated with this value.
+    editFile: *EditBox     // Edit file associated with this value.
     #[Swag.Late]
-    comboType: *ComboBox // Combo type associated with this value.
-    options:   FileDlgOptions // Options associated with this value.
+    comboType: *ComboBox          // Combo type associated with this value.
+    options:   FileDlgOptions     // Options associated with this value.
 
-    curFolder: String // Cur folder associated with this value.
-    curList:   Array'FileInfo // Cur list associated with this value.
+    curFolder: String             // Cur folder associated with this value.
+    curList:   Array'FileInfo     // Cur list associated with this value.
 
     // A file/folder was activated (double-click or Enter on a non-directory).
-    sigAccept: SigArray'func||(*FileBrowserCtrl) // Signal emitted when accept.
+    sigAccept: SigArray'func||(*FileBrowserCtrl)     // Signal emitted when accept.
 
     // The current folder changed.
-    sigFolderChanged: SigArray'func||(*FileBrowserCtrl) // Signal emitted when folder changed.
+    sigFolderChanged: SigArray'func||(*FileBrowserCtrl)     // Signal emitted when folder changed.
 
     // The user requested the creation of a new folder (host shows the prompt).
-    sigNewFolder: SigArray'func||(*FileBrowserCtrl) // Signal emitted when new folder.
+    sigNewFolder: SigArray'func||(*FileBrowserCtrl)     // Signal emitted when new folder.
 }
 
 impl IWnd for FileBrowserCtrl

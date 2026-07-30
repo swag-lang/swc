@@ -8,13 +8,13 @@ public struct NativeRenderOgl {}
 // Describes a Windows device context, OpenGL context, drawable, and viewport.
 public struct RenderingContext
 {
-    hDC:    HDC   // Windows device context.
-    hRC:    HGLRC // OpenGL rendering context.
-    hWnd:   HWND  // Associated window, or `null` for an externally supplied device context.
-    width:  s32   // Drawable width, in pixels.
-    height: s32   // Drawable height, in pixels.
-    ownsDC: bool  // Whether dropping the context must release `hDC`.
-    ownsRC: bool  // Whether dropping the context must delete `hRC`.
+    hDC:    HDC       // Windows device context.
+    hRC:    HGLRC     // OpenGL rendering context.
+    hWnd:   HWND      // Associated window, or `null` for an externally supplied device context.
+    width:  s32       // Drawable width, in pixels.
+    height: s32       // Drawable height, in pixels.
+    ownsDC: bool      // Whether dropping the context must release `hDC`.
+    ownsRC: bool      // Whether dropping the context must delete `hRC`.
 }
 
 public impl NativeRenderOgl

@@ -5,8 +5,8 @@ using Core
 // Represents sig array.
 struct(T) SigArray
 {
-    arr:      Array'T // Arr associated with this value.
-    disabled: s32 // Disabled associated with this value.
+    arr:      Array'T     // Arr associated with this value.
+    disabled: s32         // Disabled associated with this value.
 }
 
 impl SigArray

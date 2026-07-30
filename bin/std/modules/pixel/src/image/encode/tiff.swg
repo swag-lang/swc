@@ -8,15 +8,15 @@ public struct Encoder {}
 // Selects the strip compression used by the TIFF encoder.
 public enum Compression
 {
-    None     // Store uncompressed pixel bytes.
-    PackBits // Use PackBits run-length encoding.
-    Lzw      // Use TIFF LZW compression with horizontal differencing.
+    None         // Store uncompressed pixel bytes.
+    PackBits     // Use PackBits run-length encoding.
+    Lzw          // Use TIFF LZW compression with horizontal differencing.
 }
 
 // Configures TIFF strip compression.
 public struct EncodeOptions
 {
-    compression: Compression // Compression applied to image strips; defaults to `.None`.
+    compression: Compression     // Compression applied to image strips; defaults to `.None`.
 }
 
 // Append one 12-byte IFD entry (little-endian).
@@ -138,9 +138,9 @@ public impl IImageEncoder for Encoder
             }
         }
 
-        var packedData: Array'u8
-        var storedData = cast(const [*] u8) (notnull rawData.buffer)
-        var storedLen  = rawData.count
+        var packedData:   Array'u8
+        var storedData     = cast(const [*] u8) (notnull rawData.buffer)
+        var storedLen      = rawData.count
         var compressionTag = COMPRESSION_NONE
         var hasPredictor: bool
         if userOptions.compression == .Lzw

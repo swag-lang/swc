@@ -4,8 +4,8 @@
 // Represents one keyboard state
 struct KeyboardState
 {
-    using native: KeyboardStateNative // Embedded native state.
-    pressed:      [Key] bool // Pressed associated with this value.
+    using native: KeyboardStateNative     // Embedded native state.
+    pressed:      [Key] bool              // Pressed associated with this value.
 }
 
 impl KeyboardState

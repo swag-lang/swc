@@ -319,7 +319,7 @@ impl Decoder
 
         var prefix:      [12] u8
         var prefixCount: u32
-        var inValue      = false
+        var inValue = false
         var meta:        ImageMetaData
         meta.sig = cast(u32) marker - cast(u32) Marker.M_APP0
 
@@ -331,7 +331,7 @@ impl Decoder
             if prefixCount < @countof(prefix)
             {
                 prefix[prefixCount] = c
-                prefixCount += 1
+                prefixCount         += 1
             }
 
             if .decOptions.decodeMetaDatas

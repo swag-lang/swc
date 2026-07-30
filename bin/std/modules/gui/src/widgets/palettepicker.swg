@@ -5,14 +5,14 @@ using Core, Pixel
 // Represents palette picker.
 struct PalettePicker
 {
-    using wnd:     Wnd // Embedded wnd state.
-    selectedColor: Color // Selected color associated with this value.
-    pal:           Array'Color // Pal associated with this value.
-    palPos:        Array'Math.Rectangle // Pal pos associated with this value.
-    boxSize:       s32 = 24 // Box size associated with this value.
-    boxMargin:     s32 = 3 // Box margin associated with this value.
-    sigChanged:    SigArray'func||(*PalettePicker) // Signal emitted when changed.
-    hotIdx:        s32 = Swag.S32.Max // Index of hot.
+    using wnd:     Wnd                                 // Embedded wnd state.
+    selectedColor: Color                               // Selected color associated with this value.
+    pal:           Array'Color                         // Pal associated with this value.
+    palPos:        Array'Math.Rectangle                // Pal pos associated with this value.
+    boxSize:       s32 = 24                            // Box size associated with this value.
+    boxMargin:     s32 = 3                             // Box margin associated with this value.
+    sigChanged:    SigArray'func||(*PalettePicker)     // Signal emitted when changed.
+    hotIdx:        s32 = Swag.S32.Max                  // Index of hot.
 }
 
 impl IWnd for PalettePicker

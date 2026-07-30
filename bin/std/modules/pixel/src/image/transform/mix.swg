@@ -5,8 +5,8 @@ impl Image
     // Selects how source pixels are combined with a destination image.
     public enum MixMode
     {
-        Copy       // Replace destination pixels with source pixels.
-        AlphaBlend // Interpolate color channels using source alpha.
+        Copy           // Replace destination pixels with source pixels.
+        AlphaBlend     // Interpolate color channels using source alpha.
     }
 
     mtd const doMix(dstImage: *Image, srcImage: Image, x, y: s32, mode = MixMode.Copy)

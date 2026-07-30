@@ -31,6 +31,7 @@ private func mathResolveFont(baseFont: *Font, variant: MathFontVariant, text: st
         bold, italic = true
 
     case .Default:
+
         // TeX sets single-letter variables in math italic, while numbers,
         // punctuation, operators and multi-letter text stay upright.
         if mathIsSingleLetter(text) do
@@ -70,6 +71,7 @@ private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
             hasPrev = true
             break
         }
+
         p -= 1
     }
 
@@ -83,6 +85,7 @@ private func mathNormalizedClass(row: *MathNode, index: u64)->MathAtomClass
             hasNext = true
             break
         }
+
         n += 1
     }
 
@@ -118,7 +121,7 @@ private func mathSpacingMu(left, right: MathAtomClass)->f32
 
 private func mathPrepareNode(node: *MathNode, style: MathStyle)
 {
-    node.style = style
+    node.style                                                    = style
     node.metrics.width, node.metrics.ascent, node.metrics.descent = 0
     node.offsets.clear()
     node.offsets.resize(node.children.count)
@@ -154,8 +157,8 @@ private func mathLayoutSymbol(node: *MathNode, font: *Font, style: MathStyle, va
 
 private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: const &MathLayoutOptions)
 {
-    let em = cast(f32) font.size * mathStyleScale(style, options)
-    var x  = 0.0'f32
+    let em            = cast(f32) font.size * mathStyleScale(style, options)
+    var x             = 0.0'f32
     var previousClass = MathAtomClass.Ord
     var hasPrevious   = false
 
@@ -167,13 +170,13 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
         {
             let cls = mathNormalizedClass(node, idx)
             if hasPrevious do
-                x += mathSpacingMu(previousClass, cls) / 18.0 * em
+                x         += mathSpacingMu(previousClass, cls) / 18.0 * em
             previousClass = cls
             hasPrevious   = true
         }
 
-        node.offsets[idx] = {x, 0}
-        x                += child.metrics.width
+        node.offsets[idx]    = {x, 0}
+        x                    += child.metrics.width
         node.metrics.ascent  = Math.max(node.metrics.ascent, child.metrics.ascent)
         node.metrics.descent = Math.max(node.metrics.descent, child.metrics.descent)
     }
@@ -203,10 +206,10 @@ private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, 
     mathLayoutNode(denominator, font, childStyle, variant, options)
 
     node.metrics.width = Math.max(numerator.metrics.width, denominator.metrics.width) + pad * 2
-    let numeratorY     = axisY - rule * 0.5 - gap - numerator.metrics.descent
-    let denominatorY   = axisY + rule * 0.5 + gap + denominator.metrics.ascent
-    node.offsets[0]    = {(node.metrics.width - numerator.metrics.width) * 0.5, numeratorY}
-    node.offsets[1]    = {(node.metrics.width - denominator.metrics.width) * 0.5, denominatorY}
+    let numeratorY   = axisY - rule * 0.5 - gap - numerator.metrics.descent
+    let denominatorY = axisY + rule * 0.5 + gap + denominator.metrics.ascent
+    node.offsets[0] = {(node.metrics.width - numerator.metrics.width) * 0.5, numeratorY}
+    node.offsets[1] = {(node.metrics.width - denominator.metrics.width) * 0.5, denominatorY}
 
     node.metrics.ascent  = Math.max(-axisY + rule * 0.5, -(numeratorY - numerator.metrics.ascent))
     node.metrics.descent = Math.max(axisY + rule * 0.5, denominatorY + denominator.metrics.descent)
@@ -236,26 +239,26 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
         contentX = Math.max(contentX, (notnull index).metrics.width * 0.72 + 0.08 * em)
     }
 
-    let rootTop      = -radicand.metrics.ascent - gap - rule * 0.5
-    let rootBottom   = Math.max(radicand.metrics.descent, 0.18 * em)
-    node.offsets[0] = {contentX, 0}
+    let rootTop    = -radicand.metrics.ascent - gap - rule * 0.5
+    let rootBottom = Math.max(radicand.metrics.descent, 0.18 * em)
+    node.offsets[0]    = {contentX, 0}
     node.metrics.width = contentX + radicand.metrics.width + 0.06 * em
     node.paths.add(MathDrawPath{
         kind:      MathPathKind.Radical,
         rect:      {0, rootTop, node.metrics.width, rootBottom - rootTop},
         lineWidth: rule,
         aux:       contentX
-    })
+        })
 
     node.metrics.ascent  = Math.max(radicand.metrics.ascent + gap + rule, -rootTop + rule * 0.5)
     node.metrics.descent = Math.max(radicand.metrics.descent, rootBottom + rule * 0.5)
 
     if index
     {
-        let value        = notnull index
-        let target       = rootBottom - rootTop
-        let indexY       = rootTop + value.metrics.ascent + 0.16 * target
-        node.offsets[1]  = {0, indexY}
+        let value  = notnull index
+        let target = rootBottom - rootTop
+        let indexY = rootTop + value.metrics.ascent + 0.16 * target
+        node.offsets[1]     = {0, indexY}
         node.metrics.ascent = Math.max(node.metrics.ascent, -(indexY - value.metrics.ascent))
     }
 }
@@ -267,15 +270,16 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
 
     let scriptStyle = mathNextStyle(style)
     var childIndex  = 1'u64
-    var sub, sup: #null *MathNode
+    var sub, sup:           #null *MathNode
     var subIndex, supIndex: u64
     if node.flag
     {
-        sub      = node.children[childIndex]
-        subIndex = childIndex
+        sub        = node.children[childIndex]
+        subIndex   = childIndex
         childIndex += 1
         mathLayoutNode(notnull sub, font, scriptStyle, variant, options)
     }
+
     if node.flag2
     {
         sup      = node.children[childIndex]
@@ -283,8 +287,8 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         mathLayoutNode(notnull sup, font, scriptStyle, variant, options)
     }
 
-    let scale = mathStyleScale(style, options)
-    let em    = cast(f32) font.size * scale
+    let scale      = mathStyleScale(style, options)
+    let em         = cast(f32) font.size * scale
     var limitsMode = node.limitsMode
     if limitsMode == .Automatic do
         limitsMode = base.limitsMode
@@ -299,21 +303,22 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         if sup do
             node.metrics.width = Math.max(node.metrics.width, (notnull sup).metrics.width)
 
-        node.offsets[0] = {(node.metrics.width - base.metrics.width) * 0.5, 0}
+        node.offsets[0]      = {(node.metrics.width - base.metrics.width) * 0.5, 0}
         node.metrics.ascent  = base.metrics.ascent
         node.metrics.descent = base.metrics.descent
 
         if sup
         {
-            let value      = notnull sup
-            let baselineY  = -base.metrics.ascent - gap - value.metrics.descent
+            let value     = notnull sup
+            let baselineY = -base.metrics.ascent - gap - value.metrics.descent
             node.offsets[supIndex] = {(node.metrics.width - value.metrics.width) * 0.5, baselineY}
             node.metrics.ascent    = Math.max(node.metrics.ascent, -(baselineY - value.metrics.ascent))
         }
+
         if sub
         {
-            let value      = notnull sub
-            let baselineY  = base.metrics.descent + gap + value.metrics.ascent
+            let value     = notnull sub
+            let baselineY = base.metrics.descent + gap + value.metrics.ascent
             node.offsets[subIndex] = {(node.metrics.width - value.metrics.width) * 0.5, baselineY}
             node.metrics.descent   = Math.max(node.metrics.descent, baselineY + value.metrics.descent)
         }
@@ -329,6 +334,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
             let value = notnull sup
             supY = -Math.max(0.48 * em, base.metrics.ascent * 0.72) + value.metrics.descent
         }
+
         if sub
         {
             let value = notnull sub
@@ -348,7 +354,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
             }
         }
 
-        node.offsets[0] = {0, 0}
+        node.offsets[0]      = {0, 0}
         node.metrics.width   = base.metrics.width
         node.metrics.ascent  = base.metrics.ascent
         node.metrics.descent = base.metrics.descent
@@ -359,6 +365,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
             node.metrics.width     = Math.max(node.metrics.width, scriptX + value.metrics.width)
             node.metrics.ascent    = Math.max(node.metrics.ascent, -(supY - value.metrics.ascent))
         }
+
         if sub
         {
             let value = notnull sub
@@ -413,24 +420,14 @@ private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHei
         result.height   = targetHeight
         switch path.kind
         {
-        case .LeftParenthesis, .RightParenthesis:
-            result.width = Math.clamp(targetHeight * 0.15, 0.28 * em, 0.50 * em)
-
-        case .LeftBrace, .RightBrace:
-            result.width = Math.clamp(targetHeight * 0.20, 0.38 * em, 0.68 * em)
-
-        case .LeftAngle, .RightAngle:
-            result.width = Math.clamp(targetHeight * 0.16, 0.30 * em, 0.52 * em)
-
-        case .Bar:
-            result.width = 0.14 * em
-
-        case .DoubleBar:
-            result.width = 0.30 * em
-
-        default:
-            result.width = 0.30 * em
+        case .LeftParenthesis, .RightParenthesis: result.width = Math.clamp(targetHeight * 0.15, 0.28 * em, 0.50 * em)
+        case .LeftBrace, .RightBrace:             result.width = Math.clamp(targetHeight * 0.20, 0.38 * em, 0.68 * em)
+        case .LeftAngle, .RightAngle:             result.width = Math.clamp(targetHeight * 0.16, 0.30 * em, 0.52 * em)
+        case .Bar:                                result.width = 0.14 * em
+        case .DoubleBar:                          result.width = 0.30 * em
+        default:                                  result.width = 0.30 * em
         }
+
         return result
     }
 
@@ -438,8 +435,8 @@ private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHei
     result.scale = minScale
     if measured.height > 0 do
         result.scale = Math.max(result.scale, targetHeight / measured.height)
-    result.width   = measured.width * result.scale
-    result.height  = measured.height * result.scale
+    result.width     = measured.width * result.scale
+    result.height    = measured.height * result.scale
     return result
 }
 
@@ -448,15 +445,15 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
     let body = node.children[0]
     mathLayoutNode(body, font, style, variant, options)
 
-    let scale        = mathStyleScale(style, options)
-    let em           = cast(f32) font.size * scale
-    let targetHeight = Math.max(em, body.metrics.height() + 0.16 * em)
+    let scale         = mathStyleScale(style, options)
+    let em            = cast(f32) font.size * scale
+    let targetHeight  = Math.max(em, body.metrics.height() + 0.16 * em)
     let delimiterFont = mathResolveFont(font, .Roman, "")
-    let left         = mathMeasureDelimiter(node.text.toString(), delimiterFont, scale, targetHeight, em)
-    let right        = mathMeasureDelimiter(node.text2.toString(), delimiterFont, scale, targetHeight, em)
-    let pad          = 0.08'f32 * em
-    let axisY        = -0.25'f32 * em
-    let rule         = mathRuleThickness(font, options, scale)
+    let left          = mathMeasureDelimiter(node.text.toString(), delimiterFont, scale, targetHeight, em)
+    let right         = mathMeasureDelimiter(node.text2.toString(), delimiterFont, scale, targetHeight, em)
+    let pad           = 0.08'f32 * em
+    let axisY         = -0.25'f32 * em
+    let rule          = mathRuleThickness(font, options, scale)
 
     var x = 0.0'f32
     if node.text.toString() != "."
@@ -469,11 +466,12 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
             let measured = Painter.measureString(node.text.toString(), delimiterFont)
             mathAddText(node, node.text.toString(), delimiterFont, left.scale, 0, top + measured.ascent * left.scale)
         }
+
         x += left.width + pad
     }
 
     node.offsets[0] = {x, 0}
-    x += body.metrics.width
+    x               += body.metrics.width
 
     if node.text2.toString() != "."
     {
@@ -486,6 +484,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
             let measured = Painter.measureString(node.text2.toString(), delimiterFont)
             mathAddText(node, node.text2.toString(), delimiterFont, right.scale, x, top + measured.ascent * right.scale)
         }
+
         x += right.width
     }
 
@@ -498,6 +497,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
         node.metrics.ascent  = Math.max(node.metrics.ascent, -top)
         node.metrics.descent = Math.max(node.metrics.descent, top + left.height)
     }
+
     if node.text2.toString() != "."
     {
         let top = axisY - right.height * 0.5
@@ -523,13 +523,13 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     elif accentText == "\u2192" do
         accentWidth = Math.max(accentWidth, 0.72 * em)
 
-    node.offsets[0] = {(accentWidth - base.metrics.width) * 0.5, 0}
-    node.metrics    = base.metrics
+    node.offsets[0]    = {(accentWidth - base.metrics.width) * 0.5, 0}
+    node.metrics       = base.metrics
     node.metrics.width = accentWidth
 
     if node.flag2
     {
-        let y    = node.flag ? base.metrics.descent + gap : -base.metrics.ascent - gap
+        let y = node.flag ? base.metrics.descent + gap : -base.metrics.ascent - gap
         node.rules.add({start: {0, y}, end: {accentWidth, y}, width: rule})
         if node.flag do
             node.metrics.descent = Math.max(node.metrics.descent, y + rule * 0.5)
@@ -546,7 +546,7 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
         return
     }
 
-    var pathKind = MathPathKind.Hat
+    var pathKind   = MathPathKind.Hat
     var pathHeight = 0.0'f32
     var usesPath: bool
     if accentText == "^"
@@ -585,6 +585,7 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
         node.metrics.width = drawnWidth
         node.offsets[0].x  = (drawnWidth - base.metrics.width) * 0.5
     }
+
     let accentX = (node.metrics.width - drawnWidth) * 0.5
     if node.flag
     {
@@ -627,7 +628,7 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
             columnWidths[column] = Math.max(columnWidths[column], child.metrics.width)
             rowAscents[row]      = Math.max(rowAscents[row], child.metrics.ascent)
             rowDescents[row]     = Math.max(rowDescents[row], child.metrics.descent)
-            childIndex += 1
+            childIndex           += 1
         }
     }
 
@@ -642,6 +643,7 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
         if idx + 1 < columnWidths.count do
             totalWidth += columnGap
     }
+
     for ascent, [idx] in rowAscents
     {
         totalHeight += ascent + rowDescents[idx]
@@ -660,9 +662,10 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
         {
             let child = node.children[childIndex]
             node.offsets[childIndex] = {x + (columnWidths[column] - child.metrics.width) * 0.5, baseline}
-            x += columnWidths[column] + columnGap
-            childIndex += 1
+            x                        += columnWidths[column] + columnGap
+            childIndex               += 1
         }
+
         y += rowAscents[row] + rowDescents[row] + rowGap
     }
 
@@ -733,7 +736,7 @@ private func mathDrawPath(painter: *Painter, draw: const &MathDrawPath, x, basel
     let h = draw.rect.height
     let m = (t + b) * 0.5
 
-    var path: LinePath
+    var path:      LinePath
     var roundJoin: bool
     switch draw.kind
     {

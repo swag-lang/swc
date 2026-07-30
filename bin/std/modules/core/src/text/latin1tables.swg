@@ -12,21 +12,21 @@
 #[Swag.EnumFlags]
 enum CharAttribute
 {
-    Zero = 0 // No flags are enabled.
-    Control // Selects control.
-    Punctuation // Selects punctuation.
-    BinDigit // Selects bin digit.
-    HexDigit // Selects hex digit.
-    Digit // Selects digit.
-    Symbol // Selects symbol.
-    Spacing // Selects spacing.
-    Upper // Selects upper.
-    Lower // Selects lower.
-    Printable // Selects printable.
-    LowerUtf8 // Selects lower utf8.
-    UpperUtf8 // Selects upper utf8.
-    Graphical = Printable | Spacing // Selects graphical.
-    Letter    = Lower | Upper // Selects letter.
+    Zero = 0                            // No flags are enabled.
+    Control                             // Selects control.
+    Punctuation                         // Selects punctuation.
+    BinDigit                            // Selects bin digit.
+    HexDigit                            // Selects hex digit.
+    Digit                               // Selects digit.
+    Symbol                              // Selects symbol.
+    Spacing                             // Selects spacing.
+    Upper                               // Selects upper.
+    Lower                               // Selects lower.
+    Printable                           // Selects printable.
+    LowerUtf8                           // Selects lower utf8.
+    UpperUtf8                           // Selects upper utf8.
+    Graphical = Printable | Spacing     // Selects graphical.
+    Letter    = Lower | Upper           // Selects letter.
 }
 
 // Defines char properties.

@@ -68,12 +68,12 @@ internal
 
     struct HuffmanTable
     {
-        fast:        [1 << FastBits] u16 // Fast associated with this value.
-        firstCode:   [16] u16 // First code associated with this value.
-        maxCode:     [17] s64 // Max code associated with this value.
-        firstSymbol: [16] u16 // First symbol associated with this value.
-        size:        [288] u8 // Size associated with this value.
-        value:       [288] u16 // Value associated with this value.
+        fast:        [1 << FastBits] u16     // Fast associated with this value.
+        firstCode:   [16] u16                // First code associated with this value.
+        maxCode:     [17] s64                // Max code associated with this value.
+        firstSymbol: [16] u16                // First symbol associated with this value.
+        size:        [288] u8                // Size associated with this value.
+        value:       [288] u16               // Value associated with this value.
     }
 
     impl HuffmanTable
@@ -146,8 +146,8 @@ public struct Inflate
     // them to parse their own trailer once the compressed block is consumed.
     internal
     {
-        stream: BitStream // Bit cursor over the compressed input.
-        adler:  Hash.Adler32 // Adler-32 checksum calculator.
+        stream: BitStream        // Bit cursor over the compressed input.
+        adler:  Hash.Adler32     // Adler-32 checksum calculator.
     }
 }
 

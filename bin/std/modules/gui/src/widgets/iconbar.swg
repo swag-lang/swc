@@ -6,22 +6,22 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum IconBarFlags
 {
-    Zero = 0 // No flags are enabled.
-    Vertical // Enables vertical.
+    Zero = 0     // No flags are enabled.
+    Vertical     // Enables vertical.
 }
 
 // Represents icon bar.
 struct IconBar
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    iconBarFlags     = IconBarFlags.Zero // Icon bar flags associated with this value.
-    iconSize:    f32 // Icon size associated with this value.
-    iconPadding: f32 = 4 // Icon padding associated with this value.
+    iconBarFlags     = IconBarFlags.Zero     // Icon bar flags associated with this value.
+    iconSize:    f32                         // Icon size associated with this value.
+    iconPadding: f32 = 4                     // Icon padding associated with this value.
 
-    sigUpdateState:  SigArray'func||(*CommandStateEvent) // Signal emitted when update state.
-    sigCheckChanged: SigArray'func||(*IconButton) // Signal emitted when check changed.
-    sigPressed:      SigArray'func||(*IconButton) // Signal emitted when pressed.
+    sigUpdateState:  SigArray'func||(*CommandStateEvent)     // Signal emitted when update state.
+    sigCheckChanged: SigArray'func||(*IconButton)            // Signal emitted when check changed.
+    sigPressed:      SigArray'func||(*IconButton)            // Signal emitted when pressed.
 }
 
 impl IWnd for IconBar

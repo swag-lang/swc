@@ -6,38 +6,38 @@ using Threading, Swag
 #[Swag.EnumFlags]
 public enum JobState
 {
-    Zero      = 0x00000000 // No flags are enabled.
-    InPending = 0x00000001 // Selects in pending.
-    Done      = 0x00000002 // Selects done.
+    Zero      = 0x00000000     // No flags are enabled.
+    InPending = 0x00000001     // Selects in pending.
+    Done      = 0x00000002     // Selects done.
 }
 
 // Represents job.
 public struct Job
 {
-    lambda: #null func(#null *void) // Lambda associated with this value.
-    data:   #null *void // Data associated with this value.
+    lambda: #null func(#null *void)     // Lambda associated with this value.
+    data:   #null *void                 // Data associated with this value.
 
     // Internal state
-    state:        JobState = .Zero // State associated with this value.
-    pendingIndex: u32      = Swag.U32.Max // Index of pending.
+    state:        JobState = .Zero            // State associated with this value.
+    pendingIndex: u32      = Swag.U32.Max     // Index of pending.
 }
 
 // Represents slice job.
 public struct(T) SliceJob
 {
-    using base:  Job // Embedded base state.
-    buffer:      #null const [..] T // Buffer associated with this value.
-    offset:      u32 // Offset associated with this value.
-    contextData: #null *void // Context data associated with this value.
+    using base:  Job                    // Embedded base state.
+    buffer:      #null const [..] T     // Buffer associated with this value.
+    offset:      u32                    // Offset associated with this value.
+    contextData: #null *void            // Context data associated with this value.
 }
 
 // Represents for job.
 public struct ForJob
 {
-    using base:  Job // Embedded base state.
-    startIndex:  u32 // Index of start.
-    endIndex:    u32 // Index of end.
-    contextData: #null *void // Context data associated with this value.
+    using base:  Job             // Embedded base state.
+    startIndex:  u32             // Index of start.
+    endIndex:    u32             // Index of end.
+    contextData: #null *void     // Context data associated with this value.
 }
 
 var g_Allocator:        #null Swag.IAllocator

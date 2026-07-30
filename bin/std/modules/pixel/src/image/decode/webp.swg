@@ -30,7 +30,7 @@ func vp8YuvToR(y, v: s32)->u8
 func vp8YuvToG(y, u, v: s32)->u8
 {
     return vp8Clip8((vp8MultiplyHigh(y, 19077) - vp8MultiplyHigh(u, 6419) -
-                     vp8MultiplyHigh(v, 13320) + 8708) >> WEBP_YUV_FIX)
+           vp8MultiplyHigh(v, 13320) + 8708) >> WEBP_YUV_FIX)
 }
 
 func vp8YuvToB(y, u: s32)->u8

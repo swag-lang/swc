@@ -6,37 +6,37 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum SplitterFlags
 {
-    Zero = 0 // No flags are enabled.
-    Vertical // Enables vertical.
-    HideBars // Enables hide bars.
+    Zero = 0     // No flags are enabled.
+    Vertical     // Enables vertical.
+    HideBars     // Enables hide bars.
 }
 
 // Represents splitter item.
 struct SplitterItem
 {
     #[Swag.Late]
-    view:            *Wnd // View associated with this value.
-    size:            f32 // Size associated with this value.
-    minSize:         f32 = 5 // Min size associated with this value.
-    maxSize:         f32 = 0 // Max size associated with this value.
-    label:           #null *Label // Label associated with this value.
-    tryPreserveSize: bool // Try preserve size associated with this value.
-    visible              = true // Visible associated with this value.
-    aniBar:          BlendColor // Ani bar associated with this value.
+    view:            *Wnd             // View associated with this value.
+    size:            f32              // Size associated with this value.
+    minSize:         f32 = 5          // Min size associated with this value.
+    maxSize:         f32 = 0          // Max size associated with this value.
+    label:           #null *Label     // Label associated with this value.
+    tryPreserveSize: bool             // Try preserve size associated with this value.
+    visible              = true       // Visible associated with this value.
+    aniBar:          BlendColor       // Ani bar associated with this value.
 }
 
 // Represents splitter ctrl.
 struct SplitterCtrl
 {
-    using frameWnd: FrameWnd // Embedded frame wnd state.
-    splitterFlags       = SplitterFlags.Zero // Splitter flags associated with this value.
-    titleSize:      f32 = 30 // Title size associated with this value.
+    using frameWnd: FrameWnd                     // Embedded frame wnd state.
+    splitterFlags       = SplitterFlags.Zero     // Splitter flags associated with this value.
+    titleSize:      f32 = 30                     // Title size associated with this value.
 
-    items:           ArrayPtr'SplitterItem // Items associated with this value.
-    correctMoving:   f32 // Correct moving associated with this value.
-    hotIdx = Swag.U32.Max // Index of hot.
-    moving:          bool // Moving associated with this value.
-    numVisiblePanes: s32 // Num visible panes associated with this value.
+    items:           ArrayPtr'SplitterItem     // Items associated with this value.
+    correctMoving:   f32                       // Correct moving associated with this value.
+    hotIdx = Swag.U32.Max                      // Index of hot.
+    moving:          bool                      // Moving associated with this value.
+    numVisiblePanes: s32                       // Num visible panes associated with this value.
 }
 
 impl IWnd for SplitterCtrl

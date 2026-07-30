@@ -43,20 +43,20 @@ struct TagBin
     convertValToArray: bool                                 // Flag indicating next value should be converted to array
     convertArrayToVal: bool                                 // Flag indicating next array should be converted to single value
 
-    outStack:  Array'{ buf: #null const [..] u8, seek: u64 } // Out stack associated with this value.
-    elemStack: Array'{ compressed: bool, tmpBuf: #null *Buffer } // Elem stack associated with this value.
-    tmpPool:   ArrayPtr'Buffer // Tmp pool associated with this value.
+    outStack:  Array'{ buf: #null const [..] u8, seek: u64 }         // Out stack associated with this value.
+    elemStack: Array'{ compressed: bool, tmpBuf: #null *Buffer }     // Elem stack associated with this value.
+    tmpPool:   ArrayPtr'Buffer                                       // Tmp pool associated with this value.
 }
 
 // Section information for tracking deserialization state within structured data.
 struct TagBinSection
 {
     // Map from field name CRC to stream position
-    mapSeek:      HashTable'(u32, u64) // Map seek associated with this value.
-    afterFatSeek: u64             // Stream position after the section's fat table
-    version:      u32             // Version number of this section
-    kind:         SectionKind     // Type of section (ordered, unordered, or raw)
-    skipFat:      bool            // Whether to skip reading the fat table for this section
+    mapSeek:      HashTable'(u32, u64)     // Map seek associated with this value.
+    afterFatSeek: u64                      // Stream position after the section's fat table
+    version:      u32                      // Version number of this section
+    kind:         SectionKind              // Type of section (ordered, unordered, or raw)
+    skipFat:      bool                     // Whether to skip reading the fat table for this section
 }
 
 // Configuration options for controlling deserialization behavior.

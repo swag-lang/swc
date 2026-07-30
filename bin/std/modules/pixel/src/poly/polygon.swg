@@ -2,7 +2,7 @@
 
 using Core.Math
 
-const ClipperScaleCoords = 1000.0'f64 // Scale from floating path pixels to integer Clipper coordinates.
+const ClipperScaleCoords = 1000.0'f64     // Scale from floating path pixels to integer Clipper coordinates.
 
 // Owns an ordered polygon contour and cached geometric properties.
 //
@@ -10,15 +10,15 @@ const ClipperScaleCoords = 1000.0'f64 // Scale from floating path pixels to inte
 // area, and bounds.
 struct Polygon
 {
-    points: Array'Vector2 // Ordered contour vertices in path-space pixels.
+    points: Array'Vector2     // Ordered contour vertices in path-space pixels.
 
-    isClockwise: bool         // Winding direction after `compute`.
-    isConvex:    bool         // Whether every turn has the same orientation.
-    isSimple:    bool         // Whether non-adjacent edges do not intersect.
-    area:        f32          // Unsigned enclosed area, in square pixels.
-    totalLen:    f32          // Closed-contour perimeter, in pixels.
-    bvMin:       Math.Vector2 // Minimum coordinate bound.
-    bvMax:       Math.Vector2 // Maximum coordinate bound.
+    isClockwise: bool             // Winding direction after `compute`.
+    isConvex:    bool             // Whether every turn has the same orientation.
+    isSimple:    bool             // Whether non-adjacent edges do not intersect.
+    area:        f32              // Unsigned enclosed area, in square pixels.
+    totalLen:    f32              // Closed-contour perimeter, in pixels.
+    bvMin:       Math.Vector2     // Minimum coordinate bound.
+    bvMax:       Math.Vector2     // Maximum coordinate bound.
 }
 
 impl Polygon

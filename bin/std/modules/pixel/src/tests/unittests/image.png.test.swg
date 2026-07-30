@@ -180,10 +180,10 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var channels: s32
     switch colorType
     {
-    case 0: channels = 1
-    case 2: channels = 3
-    case 4: channels = 2
-    case 6: channels = 4
+    case 0:  channels = 1
+    case 2:  channels = 3
+    case 4:  channels = 2
+    case 6:  channels = 4
     default: unreachable
     }
 

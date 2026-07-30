@@ -86,7 +86,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     var painter: Painter
     var cache:   FontCache
     let font = makeEffectTestFont(&cache, 16, .Msdf)
-    var effect: TextEffect
+    var effect:  TextEffect
     effect.outlineWidth = 0.2
     effect.outlineColor = Color.fromArgb(Argb.Blue)
 
@@ -101,7 +101,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     var painter: Painter
     var cache:   FontCache
     let font = makeEffectTestFont(&cache, 16, .Msdf)
-    var effect: TextEffect
+    var effect:  TextEffect
     effect.glowColor  = Color.fromArgb(Argb.Yellow)
     effect.glowOuter  = 0.6
     effect.glowOffset = 0.1
@@ -117,7 +117,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     var painter: Painter
     var cache:   FontCache
     let font = makeEffectTestFont(&cache, 16, .Msdf)
-    var effect: TextEffect
+    var effect:  TextEffect
     effect.faceDilate = 0.15
     effect.softness   = 0.05
     effect.bevel      = 0.4
@@ -135,7 +135,7 @@ private func makeEffectTestFont(cache: *FontCache, size: u32, mode: FontRenderMo
     var painter: Painter
     var cache:   FontCache
     let font = makeEffectTestFont(&cache, 16, .Msdf)
-    var effect: TextEffect
+    var effect:  TextEffect
     effect.outlineWidth = 0.2
 
     painter.begin()

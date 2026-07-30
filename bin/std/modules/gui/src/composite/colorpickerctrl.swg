@@ -5,52 +5,52 @@ using Core, Pixel
 // Selects color picker view mode.
 enum ColorPickerViewMode
 {
-    SaturationLightness // Selects saturation lightness mode.
-    HueSaturation // Selects hue saturation mode.
-    HueLightness // Selects hue lightness mode.
-    GreenBlue // Selects green blue mode.
-    RedBlue // Selects red blue mode.
-    RedGreen // Selects red green mode.
+    SaturationLightness     // Selects saturation lightness mode.
+    HueSaturation           // Selects hue saturation mode.
+    HueLightness            // Selects hue lightness mode.
+    GreenBlue               // Selects green blue mode.
+    RedBlue                 // Selects red blue mode.
+    RedGreen                // Selects red green mode.
 }
 
 // Selects color picker flags.
 #[Swag.EnumFlags]
 enum ColorPickerFlags
 {
-    Zero // No flags are enabled.
-    Alpha // Enables alpha.
-    All = Alpha // Enables all.
+    Zero            // No flags are enabled.
+    Alpha           // Enables alpha.
+    All = Alpha     // Enables all.
 }
 
 // Represents color picker ctrl.
 struct ColorPickerCtrl
 {
-    using frameWnd: FrameWnd // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-    sigChanged: SigArray'func||(*ColorPickerCtrl) // Signal emitted when changed.
-    oldColor:   Color // Old color associated with this value.
-    color:      Color // Color associated with this value.
-    pickerFlags = ColorPickerFlags.All // Picker flags associated with this value.
+    sigChanged: SigArray'func||(*ColorPickerCtrl)     // Signal emitted when changed.
+    oldColor:   Color                                 // Old color associated with this value.
+    color:      Color                                 // Color associated with this value.
+    pickerFlags = ColorPickerFlags.All                // Picker flags associated with this value.
 
-    oldColorDone: bool // Old color done associated with this value.
-    mode = ColorPickerViewMode.SaturationLightness // Mode associated with this value.
+    oldColorDone: bool                                 // Old color done associated with this value.
+    mode = ColorPickerViewMode.SaturationLightness     // Mode associated with this value.
     #[Swag.Late]
     {
-        staticRes: *Wnd // Static res associated with this value.
-        pickBox:   *ColorPicker // Pick box associated with this value.
-        pickBar:   *ColorPicker // Pick bar associated with this value.
-        pickAlpha: *ColorPicker // Pick alpha associated with this value.
-        editA:     *EditBox // Edit a associated with this value.
-        editR:     *EditBox // Edit r associated with this value.
-        editG:     *EditBox // Edit g associated with this value.
-        editB:     *EditBox // Edit b associated with this value.
-        editH:     *EditBox // Edit h associated with this value.
-        radioH:    *RadioButton // Radio h associated with this value.
-        radioL:    *RadioButton // Radio l associated with this value.
-        radioS:    *RadioButton // Radio s associated with this value.
-        radioR:    *RadioButton // Radio r associated with this value.
-        radioG:    *RadioButton // Radio g associated with this value.
-        radioB:    *RadioButton // Radio b associated with this value.
+        staticRes: *Wnd             // Static res associated with this value.
+        pickBox:   *ColorPicker     // Pick box associated with this value.
+        pickBar:   *ColorPicker     // Pick bar associated with this value.
+        pickAlpha: *ColorPicker     // Pick alpha associated with this value.
+        editA:     *EditBox         // Edit a associated with this value.
+        editR:     *EditBox         // Edit r associated with this value.
+        editG:     *EditBox         // Edit g associated with this value.
+        editB:     *EditBox         // Edit b associated with this value.
+        editH:     *EditBox         // Edit h associated with this value.
+        radioH:    *RadioButton     // Radio h associated with this value.
+        radioL:    *RadioButton     // Radio l associated with this value.
+        radioS:    *RadioButton     // Radio s associated with this value.
+        radioR:    *RadioButton     // Radio r associated with this value.
+        radioG:    *RadioButton     // Radio g associated with this value.
+        radioB:    *RadioButton     // Radio b associated with this value.
     }
 }
 

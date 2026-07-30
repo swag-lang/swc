@@ -15,8 +15,8 @@ impl Account
     mtd deposit(amount: s32)
     {
         .balance += amount
-        .ledger += 1
-        .secret += 1
+        .ledger  += 1
+        .secret  += 1
     }
 
     mtd total()->s32 => .id + .balance + .ledger + .secret
@@ -42,7 +42,7 @@ impl Account
 {
     // Writing 'public' and 'internal' from outside the type stays legal.
     var a: Account
-    a.id = 3
+    a.id     = 3
     a.ledger = 9
     @assert(a.id == 3)
     @assert(a.ledger == 9)
@@ -79,6 +79,46 @@ impl Grouped
     var g: Grouped
     @assert(g.sum() == 15)
     @assert(g.d == 5)
+}
+
+// A nested or anonymous aggregate declares its own members: it starts from the default
+// instead of inheriting the access of the field it sits in.
+struct Nested
+{
+    private
+    {
+        pair: { key: s32, value: s32 }
+
+        struct Inner
+        {
+            slot: s32
+        }
+
+        inner: Inner
+    }
+}
+
+impl Nested
+{
+    mtd fill()
+    {
+        .pair       = {1, 2}
+        .inner.slot = 3
+    }
+
+    mtd sum()->s32 => .pair.key + .pair.value + .inner.slot
+}
+
+#test
+{
+    var n: Nested
+    n.fill()
+    @assert(n.sum() == 6)
+
+    // The nested type declares its own members: only 'inner' is private, not 'slot'.
+    var p: Nested.Inner
+    p.slot = 7
+    @assert(p.slot == 7)
 }
 
 // Reflection reports the declared access, so generic walkers can skip implementation state.

@@ -4,19 +4,19 @@
 // Allows getting keystrokes from keyboard
 struct Keyboard
 {
-    previousState: KeyboardState // Previous state associated with this value.
-    currentState:  KeyboardState // Current state associated with this value.
-    pressedRepeat: [Key] bool // Pressed repeat associated with this value.
-    pressedTime:   [Key] u32 // Pressed time associated with this value.
+    previousState: KeyboardState     // Previous state associated with this value.
+    currentState:  KeyboardState     // Current state associated with this value.
+    pressedRepeat: [Key] bool        // Pressed repeat associated with this value.
+    pressedTime:   [Key] u32         // Pressed time associated with this value.
 
     // Delay, in milliseconds, before a repeated key stroke starts
-    pressedRepeatStartTimeMs: u32 = 400 // Pressed repeat start time ms associated with this value.
+    pressedRepeatStartTimeMs: u32 = 400     // Pressed repeat start time ms associated with this value.
 
     // Delay, in miliseconds, between two repeated key strokes
-    pressedRepeatTimeMs: u32 = 50 // Pressed repeat time ms associated with this value.
+    pressedRepeatTimeMs: u32 = 50     // Pressed repeat time ms associated with this value.
 
     // Allow key stroke repetition if true
-    canRepeat: bool = true // Can repeat associated with this value.
+    canRepeat: bool = true     // Can repeat associated with this value.
 }
 
 impl Keyboard

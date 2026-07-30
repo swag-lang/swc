@@ -9,14 +9,14 @@ public impl Image
     // or continuously toned content.
     enum ResizeMode
     {
-        Raw       // Nearest-neighbor sampling; preserves hard pixel edges.
-        Bilinear  // Linear interpolation over adjacent samples.
-        Bicubic   // Smooth cubic B-spline reconstruction.
-        Gaussian  // Wide Gaussian reconstruction.
-        Quadratic // Quadratic reconstruction.
-        Hermite   // Cubic Hermite reconstruction.
-        Hamming   // Windowed-sinc Hamming reconstruction.
-        Catrom    // Sharper Catmull–Rom cubic reconstruction.
+        Raw           // Nearest-neighbor sampling; preserves hard pixel edges.
+        Bilinear      // Linear interpolation over adjacent samples.
+        Bicubic       // Smooth cubic B-spline reconstruction.
+        Gaussian      // Wide Gaussian reconstruction.
+        Quadratic     // Quadratic reconstruction.
+        Hermite       // Cubic Hermite reconstruction.
+        Hamming       // Windowed-sinc Hamming reconstruction.
+        Catrom        // Sharper Catmull–Rom cubic reconstruction.
     }
 
     // Resize image

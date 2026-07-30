@@ -5,26 +5,26 @@ using Core
 // Selects horizontal placement of text inside its layout rectangle.
 enum StringHorzAlignment
 {
-    Center  // Center each line horizontally.
-    Left    // Align each line to the left edge.
-    Right   // Align each line to the right edge.
-    Justify // Expand eligible spaces to reach both edges.
+    Center      // Center each line horizontally.
+    Left        // Align each line to the left edge.
+    Right       // Align each line to the right edge.
+    Justify     // Expand eligible spaces to reach both edges.
 }
 
 // Selects vertical placement of text inside its layout rectangle.
 enum StringVertAlignment
 {
-    Center // Center the text block vertically.
-    Top    // Align the text block to the top edge.
-    Bottom // Align the text block to the bottom edge.
+    Center     // Center the text block vertically.
+    Top        // Align the text block to the top edge.
+    Bottom     // Align the text block to the bottom edge.
 }
 
 // Selects an optional decoration drawn along a text run.
 enum UnderlineStyle
 {
-    None      // Draw no decoration.
-    Underline // Draw a line below the baseline.
-    Strikeout // Draw a line through the glyphs.
+    None          // Draw no decoration.
+    Underline     // Draw a line below the baseline.
+    Strikeout     // Draw a line through the glyphs.
 }
 
 // Configures face, outline, glow, shadow, and bevel effects for MSDF text.
@@ -38,7 +38,7 @@ public struct TextEffect
 {
     // Outline drawn under the glyph face. 0 disables it; useful range ~0.05..0.35.
     outlineWidth: f32
-    outlineColor: Color = Color.fromArgb(Argb.Black) // Straight-alpha outline color.
+    outlineColor: Color = Color.fromArgb(Argb.Black)     // Straight-alpha outline color.
 
     // Grows (+) or shrinks (-) the glyph face; ~ -0.3..0.3.
     faceDilate: f32
@@ -48,19 +48,19 @@ public struct TextEffect
 
     // Soft halo around the glyph. A fully transparent color disables it.
     glowColor:  Color
-    glowOffset: f32     // shifts the glow band outward
-    glowInner:  f32 = 0.0  // Inner edge of the glow band.
-    glowOuter:  f32 = 0.45 // Outer edge of the glow band.
-    glowPower:  f32 = 1.0  // Glow falloff exponent.
+    glowOffset: f32            // shifts the glow band outward
+    glowInner:  f32 = 0.0      // Inner edge of the glow band.
+    glowOuter:  f32 = 0.45     // Outer edge of the glow band.
+    glowPower:  f32 = 1.0      // Glow falloff exponent.
 
     // Distance-field emboss amount, lit from the upper-left; 0 disables it (~0..1).
     bevel: f32
 
     // Soft drop shadow (offset second pass). A transparent color disables it.
     shadowColor:    Color
-    shadowOffset:   Math.Point // Shadow displacement in path-space pixels.
-    shadowDilate:   f32 = 0.0  // Signed expansion of the shadow silhouette.
-    shadowSoftness: f32 = 0.35 // Width of the softened shadow edge.
+    shadowOffset:   Math.Point     // Shadow displacement in path-space pixels.
+    shadowDilate:   f32 = 0.0      // Signed expansion of the shadow silhouette.
+    shadowSoftness: f32 = 0.35     // Width of the softened shadow edge.
 }
 
 public impl TextEffect
@@ -111,79 +111,79 @@ public impl TextEffect
     }
 }
 
-const DefaultTextTabSize: u32 = 4 // Default tab-stop width measured in space advances.
+const DefaultTextTabSize: u32 = 4     // Default tab-stop width measured in space advances.
 
 // Controls wrapping, clipping, and line-height adaptation during text layout.
 #[Swag.EnumFlags]
 enum StringFormatFlags
 {
-    Default                   // Use single-line, unclipped layout defaults.
-    WordWrap                  // Wrap at word boundaries within the layout width.
-    Clip                      // Clip drawing to the layout rectangle.
-    DontAdaptSingleLineHeight // Preserve configured line height for single-line text.
+    Default                       // Use single-line, unclipped layout defaults.
+    WordWrap                      // Wrap at word boundaries within the layout width.
+    Clip                          // Clip drawing to the layout rectangle.
+    DontAdaptSingleLineHeight     // Preserve configured line height for single-line text.
 }
 
 // Reports the logical dimensions of laid-out text.
 struct StringMetrics
 {
-    ascent:  f32 // Maximum extent above the baseline, in pixels.
-    descent: f32 // Maximum extent below the baseline, in pixels.
-    width:   f32 // Logical advance width, in pixels.
-    height:  f32 // Sum of ascent and descent, in pixels.
+    ascent:  f32     // Maximum extent above the baseline, in pixels.
+    descent: f32     // Maximum extent below the baseline, in pixels.
+    width:   f32     // Logical advance width, in pixels.
+    height:  f32     // Sum of ascent and descent, in pixels.
 }
 
 // Stores one positioned glyph in a shaped text run.
 struct ShapedGlyph
 {
-    desc:       const *GlyphDesc = undefined // Borrowed glyph metrics and atlas descriptor.
-    glyphIndex: u32                         // Typeface-specific glyph index.
-    cluster:    u64                         // Byte offset of the originating UTF-8 cluster.
-    advanceX:   f32                         // Horizontal advance in reference-font units.
-    advanceY:   f32                         // Vertical advance in reference-font units.
-    offsetX:    f32                         // Horizontal placement adjustment.
-    offsetY:    f32                         // Vertical placement adjustment.
-    isTab:      bool                        // Whether this glyph represents an expanded tab.
+    desc:       const *GlyphDesc = undefined     // Borrowed glyph metrics and atlas descriptor.
+    glyphIndex: u32                              // Typeface-specific glyph index.
+    cluster:    u64                              // Byte offset of the originating UTF-8 cluster.
+    advanceX:   f32                              // Horizontal advance in reference-font units.
+    advanceY:   f32                              // Vertical advance in reference-font units.
+    offsetX:    f32                              // Horizontal placement adjustment.
+    offsetY:    f32                              // Vertical placement adjustment.
+    isTab:      bool                             // Whether this glyph represents an expanded tab.
 }
 
 // Owns shaped glyphs and aggregate measurements for a single font run.
 struct ShapedRun
 {
-    font:          *Font = undefined // Borrowed font used for shaping.
-    glyphs:        Array'ShapedGlyph // Glyphs in logical text order.
-    metrics:       StringMetrics     // Logical run measurements.
-    inkBounds:     Math.Rectangle    // Bounds of visible glyph pixels.
-    hasInk:        bool              // Whether `inkBounds` contains visible glyphs.
-    tabSize:       u32   = DefaultTextTabSize // Tab-stop width in space advances.
-    letterSpacing: f32               // Additional spacing between glyphs, in pixels.
+    font:          *Font = undefined              // Borrowed font used for shaping.
+    glyphs:        Array'ShapedGlyph              // Glyphs in logical text order.
+    metrics:       StringMetrics                  // Logical run measurements.
+    inkBounds:     Math.Rectangle                 // Bounds of visible glyph pixels.
+    hasInk:        bool                           // Whether `inkBounds` contains visible glyphs.
+    tabSize:       u32   = DefaultTextTabSize     // Tab-stop width in space advances.
+    letterSpacing: f32                            // Additional spacing between glyphs, in pixels.
 }
 
 // Contains resolved font and scaling choices for one text draw.
 public struct TextDrawInfo
 {
-    drawFont:   *Font = undefined // Borrowed bitmap or MSDF font selected for drawing.
-    snapPixels: bool              // Whether glyph positions use integer pixel snapping.
-    scale:      f32               // Scale from reference glyph metrics to draw pixels.
+    drawFont:   *Font = undefined     // Borrowed bitmap or MSDF font selected for drawing.
+    snapPixels: bool                  // Whether glyph positions use integer pixel snapping.
+    scale:      f32                   // Scale from reference glyph metrics to draw pixels.
 }
 
 // Configures rich-text layout and drawing.
 struct RichStringFormat
 {
-    font:          FontFamily          // Fonts used for regular, bold, italic, and bold-italic runs.
-    fontStyle:     FontFamilyStyle     = Regular // Initial font style.
-    palette:       [4] Color                      // Colors selected by `<p?>` rich-text markers.
-    colorUrl:      Color               = Color.fromArgb(Argb.White) // Normal `<url>` text color.
-    colorHotUrl:   Color               = Color.fromArgb(Argb.Blue)  // Hovered `<url>` text color.
-    brush:         Brush                          // Default text paint source.
-    horzAlignment: StringHorzAlignment = Left    // Horizontal line alignment.
-    vertAlignment: StringVertAlignment = Top     // Vertical block alignment.
-    lineGap:       s32                            // Extra gap between baselines, in pixels.
-    flags:         StringFormatFlags   = Default // Wrapping and clipping behaviors.
-    justifyLimit:  f32                 = 2       // Maximum expansion factor for justified spaces.
-    tabSize:       u32                 = DefaultTextTabSize // Tab width in space advances.
-    letterSpacing: f32                            // Extra glyph spacing, in pixels.
-    minLineHeight: f32                            // Minimum line height, in pixels; `0` uses font metrics.
-    paragraphGap:  s32                            // Extra gap after paragraphs, in pixels.
-    maxLines:      u32                            // Maximum laid-out line count; `0` is unlimited.
+    font:          FontFamily                                           // Fonts used for regular, bold, italic, and bold-italic runs.
+    fontStyle:     FontFamilyStyle     = Regular                        // Initial font style.
+    palette:       [4] Color                                            // Colors selected by `<p?>` rich-text markers.
+    colorUrl:      Color               = Color.fromArgb(Argb.White)     // Normal `<url>` text color.
+    colorHotUrl:   Color               = Color.fromArgb(Argb.Blue)      // Hovered `<url>` text color.
+    brush:         Brush                                                // Default text paint source.
+    horzAlignment: StringHorzAlignment = Left                           // Horizontal line alignment.
+    vertAlignment: StringVertAlignment = Top                            // Vertical block alignment.
+    lineGap:       s32                                                  // Extra gap between baselines, in pixels.
+    flags:         StringFormatFlags   = Default                        // Wrapping and clipping behaviors.
+    justifyLimit:  f32                 = 2                              // Maximum expansion factor for justified spaces.
+    tabSize:       u32                 = DefaultTextTabSize             // Tab width in space advances.
+    letterSpacing: f32                                                  // Extra glyph spacing, in pixels.
+    minLineHeight: f32                                                  // Minimum line height, in pixels; `0` uses font metrics.
+    paragraphGap:  s32                                                  // Extra gap after paragraphs, in pixels.
+    maxLines:      u32                                                  // Maximum laid-out line count; `0` is unlimited.
 }
 
 private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cluster: u64, previousGlyphIndex: u32, customAdvanceX = 0.0'f32, isTab = false, letterSpacing = 0.0'f32)

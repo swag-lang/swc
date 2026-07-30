@@ -10,7 +10,7 @@
 // Represents city32.
 public struct City32
 {
-    crc: u32 // Crc associated with this value.
+    crc: u32     // Crc associated with this value.
 }
 
 impl City32

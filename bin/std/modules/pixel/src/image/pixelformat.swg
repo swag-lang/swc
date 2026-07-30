@@ -5,10 +5,10 @@ using Swag
 // Describes the byte order and channel set of one tightly packed 8-bit pixel.
 enum PixelFormat: u8
 {
-    BGR8  // Blue, green, then red; 24 bits per pixel.
-    BGRA8 // Blue, green, red, then alpha; 32 bits per pixel.
-    RGB8  // Red, green, then blue; 24 bits per pixel.
-    RGBA8 // Red, green, blue, then alpha; 32 bits per pixel.
+    BGR8      // Blue, green, then red; 24 bits per pixel.
+    BGRA8     // Blue, green, red, then alpha; 32 bits per pixel.
+    RGB8      // Red, green, then blue; 24 bits per pixel.
+    RGBA8     // Red, green, blue, then alpha; 32 bits per pixel.
 }
 
 impl PixelFormat

@@ -3,10 +3,10 @@ using Swag, Core
 // Identifies one operation in a decomposed glyph contour.
 public enum OutlineCommandKind
 {
-    MoveTo  // Starts a new contour at `p0`.
-    LineTo  // Adds a straight segment ending at `p0`.
-    ConicTo // Adds a quadratic Bézier with control `p0` and endpoint `p1`.
-    CubicTo // Adds a cubic Bézier with controls `p0`, `p1` and endpoint `p2`.
+    MoveTo      // Starts a new contour at `p0`.
+    LineTo      // Adds a straight segment ending at `p0`.
+    ConicTo     // Adds a quadratic Bézier with control `p0` and endpoint `p1`.
+    CubicTo     // Adds a cubic Bézier with controls `p0`, `p1` and endpoint `p2`.
 }
 
 // Represents one path operation produced by [[TrueType.Outline.decompose]].
@@ -15,10 +15,10 @@ public enum OutlineCommandKind
 // on `kind`; unused points remain zero.
 public struct OutlineCommand
 {
-    kind: OutlineCommandKind // Operation represented by this value.
-    p0:   Vector             // Destination or first control point.
-    p1:   Vector             // Destination or second control point when required.
-    p2:   Vector             // Cubic destination when required.
+    kind: OutlineCommandKind     // Operation represented by this value.
+    p0:   Vector                 // Destination or first control point.
+    p1:   Vector                 // Destination or second control point when required.
+    p2:   Vector                 // Cubic destination when required.
 }
 
 // Exposes the borrowed contours of the current scalable glyph.
@@ -29,12 +29,12 @@ public struct OutlineCommand
 // by the next glyph load.
 public struct Outline
 {
-    contourCount: s16               // Number of closed contours.
-    pointCount:   s16               // Total number of outline points.
-    points:       #null [*] Vector  // Borrowed point array, or null when empty.
-    tags:         #null [*] u8      // Borrowed point-tag array, or null when empty.
-    contours:     #null [*] s16     // Borrowed inclusive contour-end indices.
-    flags:        s32               // Reserved outline flags; currently zero.
+    contourCount: s16                  // Number of closed contours.
+    pointCount:   s16                  // Total number of outline points.
+    points:       #null [*] Vector     // Borrowed point array, or null when empty.
+    tags:         #null [*] u8         // Borrowed point-tag array, or null when empty.
+    contours:     #null [*] s16        // Borrowed inclusive contour-end indices.
+    flags:        s32                  // Reserved outline flags; currently zero.
 }
 
 public impl Outline

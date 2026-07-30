@@ -5,61 +5,83 @@ using Core, Pixel, Serialization
 // Represents surface state.
 struct SurfaceState
 {
-    position:             Math.Rectangle // Position associated with this value.
-    positionNotMaximized: Math.Rectangle // Position not maximized associated with this value.
-    isMaximized:          bool // Whether this value is maximized.
+    position:             Math.Rectangle     // Position associated with this value.
+    positionNotMaximized: Math.Rectangle     // Position not maximized associated with this value.
+    isMaximized:          bool               // Whether this value is maximized.
 }
 
 // Represents surface.
 struct Surface
 {
-    using native: NativeSurface // Embedded native state.
-    app:          *Application = undefined // App associated with this value.
-    wnd:          *SurfaceWnd  = undefined // Wnd associated with this value.
-    painter:      Painter // Painter associated with this value.
-    rt:           RenderTarget // Rt associated with this value.
-    userData:     #null *void // User data associated with this value.
-    surfaceID:    String // Surface id associated with this value.
+    using native: NativeSurface                // Embedded native state.
+    app:          *Application = undefined     // App associated with this value.
+    wnd:          *SurfaceWnd  = undefined     // Wnd associated with this value.
+    userData:     #null *void                  // User data associated with this value.
+    surfaceID:    String                       // Surface id associated with this value.
 
-    rc:      RenderingContext // Rc associated with this value.
-    minSize: Math.Point // Min size associated with this value.
-    maxSize: Math.Point // Max size associated with this value.
+    minSize: Math.Point     // Min size associated with this value.
+    maxSize: Math.Point     // Max size associated with this value.
 
-    flags:         SurfaceFlags   = Zero // Flags associated with this value.
-    dirtyRect:     Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0} // Dirty rect associated with this value.
-    colorDisabled: Color // Color disabled associated with this value.
+    flags:         SurfaceFlags = Zero     // Flags associated with this value.
+    colorDisabled: Color                   // Color disabled associated with this value.
 
-    isDirty:       bool // Whether this value is dirty.
-    isHidden:      bool = true // Whether this value is hidden.
-    isInitialized: bool // Whether this value is initialized.
-    isDisabled:    bool // Whether this value is disabled.
-    isMinimized:   bool // Whether this value is minimized.
-    using state:   SurfaceState // Embedded state state.
+    // What the surface is made of and where it stands. The application creates surfaces and
+    // the event loop moves them between these states; reading them tells what is on screen.
+    readonly
+    {
+        painter: Painter          // Painter recording the surface's frame.
+        rt:      RenderTarget     // Render target the frame is drawn into.
+
+        isHidden:      bool = true     // Whether the surface is hidden.
+        isInitialized: bool            // Whether the platform window exists.
+        isDisabled:    bool            // Whether input is refused, as under a modal.
+        isMinimized:   bool            // Whether the platform window is minimized.
+    }
+
+    // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
+    // the paint loop own them; callers reach the drawable with 'getRenderingContext'.
+    internal
+    {
+        rc:        RenderingContext                                        // Drawable and viewport the frame targets.
+        dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
+        isDirty:   bool                                                    // Whether a repaint is pending.
+    }
+
+    using state: SurfaceState     // Embedded state state.
 }
 
 // Selects surface flags.
 #[Swag.EnumFlags]
 enum SurfaceFlags
 {
-    Zero = 0 // No flags are enabled.
+    Zero = 0     // No flags are enabled.
 
-    BigCaption // Enables big caption.
-    SmallCaption // Enables small caption.
-    MinimizeBtn // Enables minimize btn.
-    MaximizeBtn // Enables maximize btn.
-    CloseBtn // Enables close btn.
-    Border // Enables border.
-    Sizeable // Enables sizeable.
+    BigCaption       // Enables big caption.
+    SmallCaption     // Enables small caption.
+    MinimizeBtn      // Enables minimize btn.
+    MaximizeBtn      // Enables maximize btn.
+    CloseBtn         // Enables close btn.
+    Border           // Enables border.
+    Sizeable         // Enables sizeable.
 
-    Secondary // Enables secondary.
-    TopMost // Enables top most.
-    NoShadow // Enables no shadow.
+    Secondary     // Enables secondary.
+    TopMost       // Enables top most.
+    NoShadow      // Enables no shadow.
 
-    OverlappedWindow = BigCaption | MinimizeBtn | MaximizeBtn | CloseBtn | Border | Sizeable // Enables overlapped window.
+    OverlappedWindow = BigCaption | MinimizeBtn | MaximizeBtn | CloseBtn | Border | Sizeable     // Enables overlapped window.
 }
 
 impl Surface
 {
+    // Returns the drawable and viewport of this surface.
+    //
+    // Pass it to [[Pixel.RenderOgl.begin]] to draw into this surface with an own painter, as a
+    // capture or an export pass does.
+    mtd const getRenderingContext()->Pixel.RenderingContext
+    {
+        return .rc
+    }
+
     // Change flag surfaces
     mtd setSurfaceFlags(add, remove = SurfaceFlags.Zero)
     {

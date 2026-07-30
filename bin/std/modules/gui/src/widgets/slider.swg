@@ -6,42 +6,42 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum SliderFlags
 {
-    Zero = 0 // No flags are enabled.
-    Range // Enables range.
-    HilightBar // Enables hilight bar.
-    Vertical // Enables vertical.
-    Integer // Enables integer.
-    ShowSteps     // Display steps if defined
+    Zero = 0       // No flags are enabled.
+    Range          // Enables range.
+    HilightBar     // Enables hilight bar.
+    Vertical       // Enables vertical.
+    Integer        // Enables integer.
+    ShowSteps      // Display steps if defined
 }
 
 // Represents slider.
 struct Slider
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    value1:         f32 // Value1 associated with this value.
-    value2:         f32 // Value2 associated with this value.
-    min:            f32 // Min associated with this value.
-    max:            f32 = 1.0 // Max associated with this value.
-    steps:          f32 // Steps associated with this value.
-    sliderFlags         = SliderFlags.HilightBar // Slider flags associated with this value.
-    sigStartChange: SigArray'func||(*Slider) // Signal emitted when start change.
-    sigChanged:     SigArray'func||(*Slider) // Signal emitted when changed.
-    sigEndChange:   SigArray'func||(*Slider) // Signal emitted when end change.
+    value1:         f32                              // Value1 associated with this value.
+    value2:         f32                              // Value2 associated with this value.
+    min:            f32                              // Min associated with this value.
+    max:            f32 = 1.0                        // Max associated with this value.
+    steps:          f32                              // Steps associated with this value.
+    sliderFlags         = SliderFlags.HilightBar     // Slider flags associated with this value.
+    sigStartChange: SigArray'func||(*Slider)         // Signal emitted when start change.
+    sigChanged:     SigArray'func||(*Slider)         // Signal emitted when changed.
+    sigEndChange:   SigArray'func||(*Slider)         // Signal emitted when end change.
 
-    isMoving:     bool // Whether this value is moving.
-    isPressed1:   bool // Whether this value is pressed1.
-    isPressed2:   bool // Whether this value is pressed2.
-    isHot1:       bool // Whether this value is hot1.
-    isHot2:       bool // Whether this value is hot2.
-    hasValue1:    bool // Whether this value has value1.
-    hasValue2:    bool // Whether this value has value2.
-    correcMoving: f32 // Correc moving associated with this value.
+    isMoving:     bool     // Whether this value is moving.
+    isPressed1:   bool     // Whether this value is pressed1.
+    isPressed2:   bool     // Whether this value is pressed2.
+    isHot1:       bool     // Whether this value is hot1.
+    isHot2:       bool     // Whether this value is hot2.
+    hasValue1:    bool     // Whether this value has value1.
+    hasValue2:    bool     // Whether this value has value2.
+    correcMoving: f32      // Correc moving associated with this value.
 
-    aniMark1: BlendColor // Ani mark1 associated with this value.
-    aniMark2: BlendColor // Ani mark2 associated with this value.
-    aniStep1: BlendColor // Ani step1 associated with this value.
-    aniStep2: BlendColor // Ani step2 associated with this value.
+    aniMark1: BlendColor     // Ani mark1 associated with this value.
+    aniMark2: BlendColor     // Ani mark2 associated with this value.
+    aniStep1: BlendColor     // Ani step1 associated with this value.
+    aniStep2: BlendColor     // Ani step2 associated with this value.
 }
 
 impl IWnd for Slider
@@ -549,9 +549,11 @@ impl Slider
     }
 
     // Returns value.
-    mtd const getValue()->f32      => .getValueLeft()
+    mtd const getValue()->f32 => .getValueLeft()
+
     // Returns value left.
-    mtd const getValueLeft()->f32  => .min + (.max - .min) * .value1
+    mtd const getValueLeft()->f32 => .min + (.max - .min) * .value1
+
     // Returns value right.
     mtd const getValueRight()->f32 => .min + (.max - .min) * .value2
 

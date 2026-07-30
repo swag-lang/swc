@@ -8,50 +8,67 @@ interface IDecoder
 {
     // Returns version.
     mtd getVersion()->u32
+
     // Returns whether textual.
     mtd isTextual()->bool
 
     // Starts the operation.
     mtd start(input: const [..] u8) fail
+
     // Finishes the operation.
     mtd end() fail
 
     // Begins field.
     mtd beginField(val: Swag.TypeValue)->bool fail
+
     // Performs the end field operation.
     mtd endField(val: Swag.TypeValue) fail
+
     // Begins section.
     mtd beginSection(kind: SectionKind) fail
+
     // Performs the end section operation.
     mtd endSection() fail
 
     // Performs the read operation.
     mtd read(data: *void, dataType: typeinfo) fail
+
     // Reads buffer u8.
     mtd readBufferU8(count: u64)->#null *u8 fail
 
     // Reads bool.
     mtd readBool()->bool fail
+
     // Reads s8.
     mtd readS8()->s8 fail
+
     // Reads s16.
     mtd readS16()->s16 fail
+
     // Reads s32.
     mtd readS32()->s32 fail
+
     // Reads s64.
     mtd readS64()->s64 fail
+
     // Reads u8.
     mtd readU8()->u8 fail
+
     // Reads u16.
     mtd readU16()->u16 fail
+
     // Reads u32.
     mtd readU32()->u32 fail
+
     // Reads u64.
     mtd readU64()->u64 fail
+
     // Reads f32.
     mtd readF32()->f32 fail
+
     // Reads f64.
     mtd readF64()->f64 fail
+
     // Reads string.
     mtd readString()->String fail
 }
@@ -60,8 +77,8 @@ interface IDecoder
 #[Swag.EnumFlags]
 enum DecoderFlags
 {
-    Zero // No flags are enabled.
-    IgnoreStructFieldError // Enables ignore struct field error.
+    Zero                       // No flags are enabled.
+    IgnoreStructFieldError     // Enables ignore struct field error.
 }
 
 /*
@@ -76,8 +93,8 @@ let myStruct = catch decoder.readAll'MyStruct(res.toSlice())
 */
 struct(T) Decoder
 {
-    serializer: T // Serializer associated with this value.
-    flags:      DecoderFlags = Zero // Flags associated with this value.
+    serializer: T                       // Serializer associated with this value.
+    flags:      DecoderFlags = Zero     // Flags associated with this value.
 }
 
 impl Decoder
@@ -420,27 +437,38 @@ impl IDecoder for Decoder
     }
 
     // Reads bool.
-    mtd impl readBool()->bool fail     => .serializer.readNative'bool()
+    mtd impl readBool()->bool fail => .serializer.readNative'bool()
+
     // Reads s8.
-    mtd impl readS8()->s8 fail         => .serializer.readNative's8()
+    mtd impl readS8()->s8 fail => .serializer.readNative's8()
+
     // Reads s16.
-    mtd impl readS16()->s16 fail       => .serializer.readNative's16()
+    mtd impl readS16()->s16 fail => .serializer.readNative's16()
+
     // Reads s32.
-    mtd impl readS32()->s32 fail       => .serializer.readNative's32()
+    mtd impl readS32()->s32 fail => .serializer.readNative's32()
+
     // Reads s64.
-    mtd impl readS64()->s64 fail       => .serializer.readNative's64()
+    mtd impl readS64()->s64 fail => .serializer.readNative's64()
+
     // Reads u8.
-    mtd impl readU8()->u8 fail         => .serializer.readNative'u8()
+    mtd impl readU8()->u8 fail => .serializer.readNative'u8()
+
     // Reads u16.
-    mtd impl readU16()->u16 fail       => .serializer.readNative'u16()
+    mtd impl readU16()->u16 fail => .serializer.readNative'u16()
+
     // Reads u32.
-    mtd impl readU32()->u32 fail       => .serializer.readNative'u32()
+    mtd impl readU32()->u32 fail => .serializer.readNative'u32()
+
     // Reads u64.
-    mtd impl readU64()->u64 fail       => .serializer.readNative'u64()
+    mtd impl readU64()->u64 fail => .serializer.readNative'u64()
+
     // Reads f32.
-    mtd impl readF32()->f32 fail       => .serializer.readNative'f32()
+    mtd impl readF32()->f32 fail => .serializer.readNative'f32()
+
     // Reads f64.
-    mtd impl readF64()->f64 fail       => .serializer.readNative'f64()
+    mtd impl readF64()->f64 fail => .serializer.readNative'f64()
+
     // Reads string.
     mtd impl readString()->String fail => .serializer.readNative'String()
 }

@@ -378,6 +378,7 @@ impl Decoder
             fail InvalidFormatError{"missing IDAT chunk"}
         if .header.colorType & .Paletted and !.seenPLTE do
             fail InvalidFormatError{"missing PLTE chunk"}
+
         // Initialize image depending on number of wanted channels. init() resets
         // the whole Image payload, so keep metadata parsed from pre-IDAT chunks.
         var metaDatas = #move result.metaDatas

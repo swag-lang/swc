@@ -4,30 +4,30 @@ using Core, Win32
 #[Swag.EnumFlags]
 public enum VoiceCreateFlags
 {
-    Zero = 0                            // Requests no optional capability.
-    AcceptPitch                         // Allows playback frequency changes.
-    AcceptFilters                       // Reserves backend support for voice filters.
-    Default = AcceptFilters | AcceptPitch // Enables all supported optional capabilities.
+    Zero = 0                                  // Requests no optional capability.
+    AcceptPitch                               // Allows playback frequency changes.
+    AcceptFilters                             // Reserves backend support for voice filters.
+    Default = AcceptFilters | AcceptPitch     // Enables all supported optional capabilities.
 }
 
 // Controls one playback run and its end-of-playback lifetime.
 #[Swag.EnumFlags]
 public enum VoicePlayFlags
 {
-    Zero = 0                // Plays once and leaves the voice allocated when it stops.
-    Loop                    // Restarts at the beginning when the source reaches its end.
-    DestroyOnStop           // Schedules the voice for destruction when playback stops.
-    Default = DestroyOnStop // Uses fire-and-forget lifetime without looping.
+    Zero = 0                    // Plays once and leaves the voice allocated when it stops.
+    Loop                        // Restarts at the beginning when the source reaches its end.
+    DestroyOnStop               // Schedules the voice for destruction when playback stops.
+    Default = DestroyOnStop     // Uses fire-and-forget lifetime without looping.
 }
 
 // Reports internal playback and destruction state.
 #[Swag.EnumFlags]
 public enum VoiceState
 {
-    Zero = 0       // The voice has not started playback.
-    PlayedOnce     // At least one playback run has initialized its source buffers.
-    Playing        // The backend is currently advancing this voice.
-    PendingDestroy // Destruction has been requested and will complete asynchronously.
+    Zero = 0           // The voice has not started playback.
+    PlayedOnce         // At least one playback run has initialized its source buffers.
+    Playing            // The backend is currently advancing this voice.
+    PendingDestroy     // Destruction has been requested and will complete asynchronously.
 }
 
 // Controls one playback instance of a sound file.
@@ -38,23 +38,29 @@ public enum VoiceState
 #[Swag.Opaque]
 public struct Voice
 {
-    handle: VoiceHandle
-    file:   #null *SoundFile
+    const StreamBufferSize  = 16 * 1024'u64     // Number of encoded bytes read per streaming step.
+    const NumDecodedBuffers = 3                 // Number of decoded buffers rotated during streaming.
+    const DecodedBufferSize = 65536'u64         // Capacity in bytes of each decoded streaming buffer.
 
-    requestedEncoding = SoundFileEncoding.Unknown
-    codec: #null ICodec
+    // Playback state, owned by the voice and by the driver that drains it. A caller drives a
+    // voice through its methods; touching this state from outside the module races the driver.
+    internal
+    {
+        handle: VoiceHandle          // Identity of the voice inside the driver.
+        file:   #null *SoundFile     // Borrowed source, alive for the voice's lifetime.
 
-    playFlags:        VoicePlayFlags
-    state:            VoiceState
-    idxInList:        u32
-    const StreamBufferSize  = 16 * 1024'u64 // Number of encoded bytes read per streaming step.
-    stream:           File.FileStream
-    streamCurSeek:    u64
-    streamBuffer:     Array'u8
-    const NumDecodedBuffers = 3         // Number of decoded buffers rotated during streaming.
-    const DecodedBufferSize = 65536'u64 // Capacity in bytes of each decoded streaming buffer.
-    decodedBuffers:   [NumDecodedBuffers] Array'u8
-    decodedBufferIdx: u32
+        requestedEncoding = SoundFileEncoding.Unknown     // Encoding the caller asked to decode to.
+        codec: #null ICodec                               // Decoder instance for a streamed source.
+
+        playFlags:        VoicePlayFlags                   // Flags 'play' was given.
+        state:            VoiceState                       // Where the voice is in its lifecycle.
+        idxInList:        u32                              // Slot of the voice in the driver's list.
+        stream:           File.FileStream                  // Reader over the encoded source.
+        streamCurSeek:    u64                              // Read position in the encoded source.
+        streamBuffer:     Array'u8                         // Encoded bytes waiting to be decoded.
+        decodedBuffers:   [NumDecodedBuffers] Array'u8     // Decoded buffers rotated while streaming.
+        decodedBufferIdx: u32                              // Buffer the mixing thread reads next.
+    }
 }
 
 private impl Voice

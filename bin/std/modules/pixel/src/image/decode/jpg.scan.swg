@@ -322,7 +322,7 @@ impl Decoder
         {
             let directRgb = (.hasAdobeMarker and .adobeTransform == 0) or
                             (!.hasAdobeMarker and !.hasJfifMarker and
-                             .compIdent[0] == 'R' and .compIdent[1] == 'G' and .compIdent[2] == 'B')
+                            .compIdent[0] == 'R' and .compIdent[1] == 'G' and .compIdent[2] == 'B')
             if directRgb
             {
                 for [i] in 3

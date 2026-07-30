@@ -28,7 +28,7 @@ private func initRng()
 // Provides RFC 4122 compliant UUID generation and manipulation.
 struct GUID128
 {
-    using guid: union // Embedded guid state.
+    using guid: union     // Embedded guid state.
     {
         val8:  [16] u8     // 16-byte array representation for byte-level operations
         val64: [2] u64     // 2 64-bit values for efficient comparison and storage

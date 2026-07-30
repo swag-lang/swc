@@ -4,7 +4,7 @@
 // Represents string builder.
 struct StringBuilder
 {
-    buffer: ConcatBuffer // Buffer associated with this value.
+    buffer: ConcatBuffer     // Buffer associated with this value.
 }
 
 impl StringBuilder

@@ -5,12 +5,12 @@ using Core
 // Represents wrap layout ctrl.
 struct WrapLayoutCtrl
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    spacing:      f32 = 5 // Spacing associated with this value.
-    wrapWidth:    f32 = 64 // Wrap width associated with this value.
-    wrapHeight:   f32 = 64 // Wrap height associated with this value.
-    resultHeight: f32 // Result height associated with this value.
+    spacing:      f32 = 5      // Spacing associated with this value.
+    wrapWidth:    f32 = 64     // Wrap width associated with this value.
+    wrapHeight:   f32 = 64     // Wrap height associated with this value.
+    resultHeight: f32          // Result height associated with this value.
 }
 
 impl IWnd for WrapLayoutCtrl

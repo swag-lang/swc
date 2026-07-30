@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
@@ -114,6 +115,24 @@ bool SemaAccess::canWriteMember(Sema& sema, const SymbolVariable& field, const S
         return true;
 
     return inDeclaringModule(sema, field, siteViewRef) && inDeclaringType(sema, *ownerStruct, siteViewRef);
+}
+
+void SemaAccess::markUnwritableMemberAccess(Sema& sema, const SymbolVariable& field, const AstNodeRef accessRef, const SourceViewRef siteViewRef)
+{
+    if (canWriteMember(sema, field, siteViewRef))
+        return;
+
+    // Const-ness of an lvalue reaches whatever it addresses, so marking a field that holds an
+    // address would freeze the pointed-to value too. Assigning such a field is still rejected,
+    // by the check that reports it by name.
+    if (field.typeRef().isValid())
+    {
+        const TypeRef unwrappedRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), field.typeRef());
+        if (unwrappedRef.isValid() && sema.typeMgr().get(unwrappedRef).isPointerOrReference())
+            return;
+    }
+
+    sema.setConstAssignTarget(accessRef);
 }
 
 Result SemaAccess::reportMemberWrite(Sema& sema, const SymbolVariable& field, AstNodeRef nodeRef)

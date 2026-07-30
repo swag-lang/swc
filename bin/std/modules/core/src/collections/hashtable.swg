@@ -24,17 +24,17 @@ struct(K, V) HashTable
     // Sizes are reported, never set: the table grows itself when it needs to.
     readonly
     {
-        count:    u64 // The number of valid key-value pairs currently in the table.
-        capacity: u64 // The total number of slots, always a power of two.
+        count:    u64     // The number of valid key-value pairs currently in the table.
+        capacity: u64     // The total number of slots, always a power of two.
     }
 
     // Open-addressing state. The layout is an implementation choice: reaching into it from
     // outside would tie callers to the probing scheme and the load factor.
     private
     {
-        table:         #null [*] HashTableEntry // Contiguous memory block for the slots.
-        deleted:       u64 // The number of slots marked as deleted.
-        growThreshold: u64 // Used slot count that triggers a resize, derived from 'capacity'.
+        table:         #null [*] HashTableEntry     // Contiguous memory block for the slots.
+        deleted:       u64                          // The number of slots marked as deleted.
+        growThreshold: u64                          // Used slot count that triggers a resize, derived from 'capacity'.
     }
 }
 
@@ -221,7 +221,7 @@ impl HashTable
         }
 
         Memory.free(table, .capacity * #sizeof(HashTableEntry'(K, V)), .allocator)
-        .table                                     = null
+        .table                                      = null
         .count, .capacity, .deleted, .growThreshold = 0
     }
 
@@ -259,8 +259,8 @@ impl HashTable
 
         // Copy the last me.table to the new me.table, removing me.deleted entries
         let oldCapacity = .capacity
-        .capacity       = reqCapacity
-        .growThreshold  = reqCapacity / 2
+        .capacity      = reqCapacity
+        .growThreshold = reqCapacity / 2
         let oldTablePtr = oldTable orelse cast([*] HashTableEntry'(K, V)) 1'u64
         for [i] in oldCapacity
         {

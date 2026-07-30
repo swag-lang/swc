@@ -4,10 +4,10 @@
 // Represents md5.
 public struct Md5
 {
-    padding: [64] u8 // Padding associated with this value.
-    state:   [4] u32 // State associated with this value.
-    count:   [2] u32 // Count associated with this value.
-    buffer:  [64] u8 // Buffer associated with this value.
+    padding: [64] u8     // Padding associated with this value.
+    state:   [4] u32     // State associated with this value.
+    count:   [2] u32     // Count associated with this value.
+    buffer:  [64] u8     // Buffer associated with this value.
 }
 
 public impl Md5

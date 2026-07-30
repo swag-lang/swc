@@ -109,7 +109,7 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 
     var source: [80] u8 = undefined
     for [i] in 80'u64 do
-        source[i] = cast(u8)((i * 7 + 13) & 0xFF)
+        source[i] = cast(u8) ((i * 7 + 13) & 0xFF)
 
     var seen: [@countof(Lengths)] u32 = undefined
 

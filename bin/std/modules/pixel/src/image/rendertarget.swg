@@ -7,10 +7,10 @@
 // release of the underlying graphics resources.
 struct RenderTarget
 {
-    handle:       RenderTargetHandle         // Renderer-owned target handle.
-    colorBuffer:  Texture                    // Texture receiving color output.
-    depthStencil: RenderTargetSurfaceHandle  // Renderer-owned depth/stencil surface, or the invalid handle.
+    handle:       RenderTargetHandle            // Renderer-owned target handle.
+    colorBuffer:  Texture                       // Texture receiving color output.
+    depthStencil: RenderTargetSurfaceHandle     // Renderer-owned depth/stencil surface, or the invalid handle.
 
-    paintAlpha:    bool // Whether alpha requires a separate resolve pass.
-    paintAlphaIdx: u64  // Renderer sequence number associated with the alpha resolve state.
+    paintAlpha:    bool     // Whether alpha requires a separate resolve pass.
+    paintAlphaIdx: u64      // Renderer sequence number associated with the alpha resolve state.
 }

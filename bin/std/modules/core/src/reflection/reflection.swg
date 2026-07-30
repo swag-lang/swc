@@ -6,34 +6,47 @@ using Swag
 #[ConstExpr, Inline]
 {
     // Returns whether native.
-    func isNative(t: #null typeinfo)      => t and t.kind == .Native
+    func isNative(t: #null typeinfo) => t and t.kind == .Native
+
     // Returns whether pointer.
-    func isPointer(t: typeinfo)           => t and t.kind == .Pointer
+    func isPointer(t: typeinfo) => t and t.kind == .Pointer
+
     // Returns whether enum.
-    func isEnum(t: #null typeinfo)        => t and t.kind == .Enum
+    func isEnum(t: #null typeinfo) => t and t.kind == .Enum
+
     // Returns whether struct.
-    func isStruct(t: #null typeinfo)      => t and t.kind == .Struct
+    func isStruct(t: #null typeinfo) => t and t.kind == .Struct
+
     // Returns whether static array.
     func isStaticArray(t: #null typeinfo) => t and t.kind == .Array
+
     // Returns whether slice.
-    func isSlice(t: typeinfo)             => t and t.kind == .Slice
+    func isSlice(t: typeinfo) => t and t.kind == .Slice
+
     // Returns whether type alias.
-    func isTypeAlias(t: #null typeinfo)   => t and t.kind == .Alias
+    func isTypeAlias(t: #null typeinfo) => t and t.kind == .Alias
+
     // Returns whether interface.
-    func isInterface(t: typeinfo)         => t and t.kind == .Interface
+    func isInterface(t: typeinfo) => t and t.kind == .Interface
 
     // Returns whether integer.
-    func isInteger(t: #null typeinfo)     => t and t.flags & .Integer
+    func isInteger(t: #null typeinfo) => t and t.flags & .Integer
+
     // Returns whether float.
-    func isFloat(t: #null typeinfo)       => t and t.flags & .Float
+    func isFloat(t: #null typeinfo) => t and t.flags & .Float
+
     // Returns whether generic.
-    func isGeneric(t: #null typeinfo)     => t and t.flags & .Generic
+    func isGeneric(t: #null typeinfo) => t and t.flags & .Generic
+
     // Returns whether tuple.
-    func isTuple(t: typeinfo)             => t and t.flags & .Tuple
+    func isTuple(t: typeinfo) => t and t.flags & .Tuple
+
     // Returns whether type.
-    func isType(t: typeinfo)              => t and t.flags & .PointerTypeInfo
+    func isType(t: typeinfo) => t and t.flags & .PointerTypeInfo
+
     // Returns whether pointer ref.
-    func isPointerRef(t: typeinfo)        => t and t.flags & .PointerRef
+    func isPointerRef(t: typeinfo) => t and t.flags & .PointerRef
+
     // Returns whether pointer arithmetic.
     func isPointerArithmetic(t: typeinfo) => t and t.flags & .PointerArithmetic
 

@@ -7,15 +7,15 @@ using Core, TrueType
 // multi-channel distance-field textures.
 public struct GlyphAtlas
 {
-    texture: Texture  // GPU texture associated with this atlas page.
-    width:   u32      // Row width in bytes.
-    height:  u32      // Page height in pixels.
-    bpp:     u32      // Bytes used by one atlas pixel.
-    datas:   Array'u8 // CPU-side pixel storage.
-    dirty:   bool     // Whether `datas` contains changes not uploaded to `texture`.
-    curX:    s32      // Byte offset of the next glyph in the current row.
-    curY:    s32      // Pixel offset of the current row.
-    nextY:   s32      // Pixel offset available for the following row.
+    texture: Texture      // GPU texture associated with this atlas page.
+    width:   u32          // Row width in bytes.
+    height:  u32          // Page height in pixels.
+    bpp:     u32          // Bytes used by one atlas pixel.
+    datas:   Array'u8     // CPU-side pixel storage.
+    dirty:   bool         // Whether `datas` contains changes not uploaded to `texture`.
+    curX:    s32          // Byte offset of the next glyph in the current row.
+    curY:    s32          // Pixel offset of the current row.
+    nextY:   s32          // Pixel offset available for the following row.
 }
 
 // Cached placement and metrics for one rendered glyph.
@@ -24,15 +24,15 @@ public struct GlyphAtlas
 // [[Pixel.Font.scale]] to obtain values for a particular font view.
 public struct GlyphDesc
 {
-    uv:         Math.Rectangle // Normalized texture coordinates in the atlas.
-    atlasIndex: s32 = -1       // Atlas page containing the glyph, or `-1` when it has no bitmap.
-    glyphIndex: u32            // Typeface glyph index, used for kerning lookups.
-    advanceX:   f32            // Horizontal pen advance in reference-size pixels.
-    advanceY:   f32            // Vertical pen advance in reference-size pixels.
-    shiftX:     f32            // Horizontal offset from the pen to the bitmap.
-    shiftY:     f32            // Vertical offset from the baseline to the bitmap.
-    width:      f32            // Bitmap width in reference-size pixels.
-    height:     f32            // Bitmap height in reference-size pixels.
+    uv:         Math.Rectangle     // Normalized texture coordinates in the atlas.
+    atlasIndex: s32 = -1           // Atlas page containing the glyph, or `-1` when it has no bitmap.
+    glyphIndex: u32                // Typeface glyph index, used for kerning lookups.
+    advanceX:   f32                // Horizontal pen advance in reference-size pixels.
+    advanceY:   f32                // Vertical pen advance in reference-size pixels.
+    shiftX:     f32                // Horizontal offset from the pen to the bitmap.
+    shiftY:     f32                // Vertical offset from the baseline to the bitmap.
+    width:      f32                // Bitmap width in reference-size pixels.
+    height:     f32                // Bitmap height in reference-size pixels.
 }
 
 // Selects the glyph rendering technique used by a [[Pixel.Font]].
@@ -42,9 +42,9 @@ public struct GlyphDesc
 // always uses a concrete mode; `Auto` belongs only to a font view.
 public enum FontRenderMode
 {
-    Auto   // Select bitmap or MSDF rendering from the effective on-screen size.
-    Bitmap // Rasterize crisp grayscale glyphs at the exact pixel size.
-    Msdf   // Use a size-independent multi-channel signed-distance-field atlas.
+    Auto       // Select bitmap or MSDF rendering from the effective on-screen size.
+    Bitmap     // Rasterize crisp grayscale glyphs at the exact pixel size.
+    Msdf       // Use a size-independent multi-channel signed-distance-field atlas.
 }
 
 public impl FontRenderMode
@@ -82,28 +82,28 @@ const AutoMsdfMinPx: f32 = 20.0
 // this cache. A typeface therefore needs only one MSDF atlas across draw sizes.
 public struct GlyphCache
 {
-    typeFace:    *TypeFace = undefined // Typeface borrowed for rasterization and metrics.
-    renderMode:  FontRenderMode        // Concrete atlas representation; never `Auto`.
-    refSize:     u32                   // Reference em size in pixels.
-    spread:      u32                   // Distance-field range in pixels, or zero for bitmap atlases.
-    forceBold:   bool                  // Whether glyph rasterization synthesizes bold weight.
-    forceItalic: bool                  // Whether glyph rasterization synthesizes italic slant.
-    hasKerning:  bool                  // Whether the typeface advertises kerning information.
+    typeFace:    *TypeFace = undefined     // Typeface borrowed for rasterization and metrics.
+    renderMode:  FontRenderMode            // Concrete atlas representation; never `Auto`.
+    refSize:     u32                       // Reference em size in pixels.
+    spread:      u32                       // Distance-field range in pixels, or zero for bitmap atlases.
+    forceBold:   bool                      // Whether glyph rasterization synthesizes bold weight.
+    forceItalic: bool                      // Whether glyph rasterization synthesizes italic slant.
+    hasKerning:  bool                      // Whether the typeface advertises kerning information.
 
     // Metrics at the reference size, in pixels.
-    ascent:        f32 // Distance from the baseline to the highest recommended extent.
-    descent:       f32 // Signed distance from the baseline to the lowest recommended extent.
-    height:        f32 // Recommended line height.
-    underlinePos:  f32 // Underline position relative to the baseline.
-    underlineSize: f32 // Recommended underline thickness.
+    ascent:        f32     // Distance from the baseline to the highest recommended extent.
+    descent:       f32     // Signed distance from the baseline to the lowest recommended extent.
+    height:        f32     // Recommended line height.
+    underlinePos:  f32     // Underline position relative to the baseline.
+    underlineSize: f32     // Recommended underline thickness.
 
-    atlases:  Array'GlyphAtlas            // Atlas pages populated on demand.
-    glyphRef: HashTable'(u32, *GlyphDesc) // Cached descriptors indexed by typeface glyph index.
+    atlases:  Array'GlyphAtlas                // Atlas pages populated on demand.
+    glyphRef: HashTable'(u32, *GlyphDesc)     // Cached descriptors indexed by typeface glyph index.
 
     // Kerning between two glyph indices, in reference-size pixels (lazily filled).
     // Key = (leftGlyphIndex << 32) | rightGlyphIndex.
-    kernRef: HashTable'(u64, f32) // Lazily populated kerning-pair cache.
-    dirty:   bool                 // Whether at least one atlas requires a GPU upload.
+    kernRef: HashTable'(u64, f32)     // Lazily populated kerning-pair cache.
+    dirty:   bool                     // Whether at least one atlas requires a GPU upload.
 }
 
 // Represents a lightweight view of a shared [[Pixel.GlyphCache]] at one draw size.
@@ -119,19 +119,30 @@ public struct GlyphCache
 // ```
 public struct Font
 {
-    owner:       *FontCache  = undefined // Cache that created this view and owns it.
-    cache:       *GlyphCache = undefined // Shared glyph storage borrowed by this font view.
-    mode:        FontRenderMode           // Creation intent; the underlying cache is always concrete.
-    size:        u32                      // Requested drawing size in pixels.
-    forceBold:   bool                     // Whether this view synthesizes bold glyphs.
-    forceItalic: bool                     // Whether this view synthesizes italic glyphs.
+    // A font view is what the cache hands out: everything it carries is a result to read.
+    // Ask the cache for another view instead of rewriting this one.
+    readonly
+    {
+        mode:        FontRenderMode     // Creation intent; the underlying cache is always concrete.
+        size:        u32                // Requested drawing size in pixels.
+        forceBold:   bool               // Whether this view synthesizes bold glyphs.
+        forceItalic: bool               // Whether this view synthesizes italic glyphs.
 
-    // Metrics scaled to 'size', in pixels.
-    ascent:        f32 // Distance from the baseline to the highest recommended extent.
-    descent:       f32 // Signed distance from the baseline to the lowest recommended extent.
-    height:        f32 // Recommended line height.
-    underlinePos:  f32 // Underline position relative to the baseline.
-    underlineSize: f32 // Recommended underline thickness.
+        // Metrics scaled to 'size', in pixels.
+        ascent:        f32     // Distance from the baseline to the highest recommended extent.
+        descent:       f32     // Signed distance from the baseline to the lowest recommended extent.
+        height:        f32     // Recommended line height.
+        underlinePos:  f32     // Underline position relative to the baseline.
+        underlineSize: f32     // Recommended underline thickness.
+    }
+
+    // Links back to the storage this view borrows. The text pipeline resolves glyphs through
+    // them; a caller has no use for either.
+    internal
+    {
+        owner: *FontCache  = undefined     // Cache that created this view and owns it.
+        cache: *GlyphCache = undefined     // Shared glyph storage borrowed by this font view.
+    }
 }
 
 // Owns the glyph storage and the font views created through it.
@@ -147,8 +158,12 @@ public struct Font
 #[Swag.NoCopy]
 public struct FontCache
 {
-    glyphCaches: ArrayPtr'GlyphCache // Glyph storage, one per typeface / reference size / style.
-    fonts:       ArrayPtr'Font       // Views handed out by this cache.
+    // The storage the cache owns. Views come out of 'create'; nothing else should reach in.
+    internal
+    {
+        glyphCaches: ArrayPtr'GlyphCache     // Glyph storage, one per typeface / reference size / style.
+        fonts:       ArrayPtr'Font           // Views handed out by this cache.
+    }
 }
 
 private func mulFix(a, b: s32)->s32
@@ -313,6 +328,15 @@ public impl Font
     mtd glyphIndex(c: rune)->u32
     {
         return .cache.typeFace.face.glyphIndex(c)
+    }
+
+    // Returns the horizontal kerning between two glyph indices, in pixels at the drawing size.
+    //
+    // Returns zero when the typeface carries no kerning for the pair. Pass the indices
+    // returned by [[Pixel.Font.glyphIndex]].
+    mtd kerning(leftIndex, rightIndex: u32)->f32
+    {
+        return .cache.kerning(leftIndex, rightIndex)
     }
 
     // Resolves the concrete font for an on-screen pixel size.

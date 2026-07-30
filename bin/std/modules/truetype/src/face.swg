@@ -4,17 +4,17 @@ using Swag, Core
 #[Swag.EnumFlags]
 public enum LoadFlag
 {
-    Default // Loads a scaled outline without rendering it.
-    Render  // Renders a grayscale bitmap after loading.
+    Default     // Loads a scaled outline without rendering it.
+    Render      // Renders a grayscale bitmap after loading.
 }
 
 // Describes style traits declared by a font face.
 #[Swag.EnumFlags]
 public enum StyleFlag
 {
-    None = 0 // The face declares no bold or italic trait.
-    Italic   // The face declares an italic style.
-    Bold     // The face declares a bold weight.
+    None = 0     // The face declares no bold or italic trait.
+    Italic       // The face declares an italic style.
+    Bold         // The face declares a bold weight.
 }
 
 // Owns one parsed TrueType font face and its reusable glyph workspace.
@@ -24,21 +24,21 @@ public enum StyleFlag
 // slot, outlines, and bitmaps all belong to the face.
 public struct Face
 {
-    style:              StyleFlag // Declared bold and italic traits.
-    glyphCount:         u32       // Number of glyphs in the face.
-    familyName:         String    // Owned font-family name.
-    styleName:          String    // Owned style name such as `Regular` or `Bold`.
-    bbox:               BBox      // Global bounding box in font design units.
-    unitsPerEm:         u16       // Number of font design units in one em.
-    ascender:           s16       // Typographic ascender in design units.
-    descender:          s16       // Typographic descender in design units.
-    height:             s16       // Recommended line height in design units.
-    maxAdvanceWidth:    s16       // Maximum horizontal advance in design units.
-    underlinePosition:  s16       // Underline center relative to the baseline.
-    underlineThickness: s16       // Recommended underline thickness in design units.
-    glyph:              GlyphSlot // Reusable slot for the current glyph.
-    size:               Size      // Active pixel size and scaled metrics.
-    charMap:            CharMap   // Selected Unicode character map.
+    style:              StyleFlag     // Declared bold and italic traits.
+    glyphCount:         u32           // Number of glyphs in the face.
+    familyName:         String        // Owned font-family name.
+    styleName:          String        // Owned style name such as `Regular` or `Bold`.
+    bbox:               BBox          // Global bounding box in font design units.
+    unitsPerEm:         u16           // Number of font design units in one em.
+    ascender:           s16           // Typographic ascender in design units.
+    descender:          s16           // Typographic descender in design units.
+    height:             s16           // Recommended line height in design units.
+    maxAdvanceWidth:    s16           // Maximum horizontal advance in design units.
+    underlinePosition:  s16           // Underline center relative to the baseline.
+    underlineThickness: s16           // Recommended underline thickness in design units.
+    glyph:              GlyphSlot     // Reusable slot for the current glyph.
+    size:               Size          // Active pixel size and scaled metrics.
+    charMap:            CharMap       // Selected Unicode character map.
 }
 
 public impl Face

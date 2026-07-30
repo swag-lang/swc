@@ -5,9 +5,9 @@ using Core, Pixel
 // Represents image rect.
 struct ImageRect
 {
-    using wnd:    Wnd // Embedded wnd state.
-    movie:        Movie // Movie associated with this value.
-    textureFrame: Texture // Texture frame associated with this value.
+    using wnd:    Wnd         // Embedded wnd state.
+    movie:        Movie       // Movie associated with this value.
+    textureFrame: Texture     // Texture frame associated with this value.
 }
 
 impl IWnd for ImageRect

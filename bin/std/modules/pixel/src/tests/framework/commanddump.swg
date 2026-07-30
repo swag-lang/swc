@@ -269,14 +269,9 @@ private
 
             switch p.type
             {
-            case .LinearGradient:
-                .body.appendFormat(" from=(%,%) to=(%,%)", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientEnd.x), fmtF(p.gradientEnd.y))
-
-            case .RadialGradient:
-                .body.appendFormat(" center=(%,%) radius=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientRadius0), fmtF(p.gradientRadius1))
-
-            case .SweepGradient:
-                .body.appendFormat(" center=(%,%) angle=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientAngle0), fmtF(p.gradientAngle1))
+            case .LinearGradient: .body.appendFormat(" from=(%,%) to=(%,%)", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientEnd.x), fmtF(p.gradientEnd.y))
+            case .RadialGradient: .body.appendFormat(" center=(%,%) radius=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientRadius0), fmtF(p.gradientRadius1))
+            case .SweepGradient:  .body.appendFormat(" center=(%,%) angle=%..%", fmtF(p.gradientStart.x), fmtF(p.gradientStart.y), fmtF(p.gradientAngle0), fmtF(p.gradientAngle1))
             }
 
             if p.gradientStopCount
@@ -325,9 +320,9 @@ private
             var uvMin = Vector2{Swag.F32.Max, Swag.F32.Max}
             var uvMax = Vector2{Swag.F32.Min, Swag.F32.Min}
 
-            var colors:  Array'u32
-            var solid   = true
-            var hasUv   = false
+            var colors:   Array'u32
+            var solid = true
+            var hasUv = false
             var extraCol: u32
 
             for [i] in count

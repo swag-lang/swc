@@ -9,59 +9,59 @@ struct RichEditLexerSwag
     // Identifies a syntax style emitted by the Swag lexer.
     enum Style: RichEditStyleRef
     {
-        Default // Selects default.
-        Comment // Selects comment.
-        Keyword // Selects keyword.
-        Control // Selects control.
-        Intrinsic // Selects intrinsic.
-        Buildin // Selects buildin.
-        Function // Selects function.
-        Preprocessor // Selects preprocessor.
-        CharEscape // Selects char escape.
-        Type // Selects type.
-        Class // Selects class.
-        String // Selects string.
-        Character // Selects character.
-        Numeric // Selects numeric.
-        Error // Selects error.
+        Default          // Selects default.
+        Comment          // Selects comment.
+        Keyword          // Selects keyword.
+        Control          // Selects control.
+        Intrinsic        // Selects intrinsic.
+        Buildin          // Selects buildin.
+        Function         // Selects function.
+        Preprocessor     // Selects preprocessor.
+        CharEscape       // Selects char escape.
+        Type             // Selects type.
+        Class            // Selects class.
+        String           // Selects string.
+        Character        // Selects character.
+        Numeric          // Selects numeric.
+        Error            // Selects error.
     }
 
     #[Swag.Incomplete]
     // Identifies the lexical state carried between lines.
     enum State: s32
     {
-        Default // Selects default.
-        LineComment // Selects line comment.
-        Comment // Selects comment.
-        Keyword // Selects keyword.
-        Declaration // Selects declaration.
-        Control // Selects control.
-        Intrinsic // Selects intrinsic.
-        Buildin // Selects buildin.
-        Compiler // Selects compiler.
-        CompilerFunction // Selects compiler function.
-        CompilerGlobal // Selects compiler global.
-        CompilerStatement // Selects compiler statement.
-        Modifier // Selects modifier.
-        FunctionCall // Selects function call.
-        FunctionSpecOp // Selects function spec op.
-        Type // Selects type.
-        StorageModifier // Selects storage modifier.
-        UserType // Selects user type.
-        Constant // Selects constant.
-        String // Selects string.
-        RawString // Selects raw string.
-        Character // Selects character.
-        Numeric // Selects numeric.
-        NumericHex // Selects numeric hex.
-        NumericBin // Selects numeric bin.
-        NumericFrac // Selects numeric frac.
-        Attribute // Selects attribute.
-        Error // Selects error.
+        Default               // Selects default.
+        LineComment           // Selects line comment.
+        Comment               // Selects comment.
+        Keyword               // Selects keyword.
+        Declaration           // Selects declaration.
+        Control               // Selects control.
+        Intrinsic             // Selects intrinsic.
+        Buildin               // Selects buildin.
+        Compiler              // Selects compiler.
+        CompilerFunction      // Selects compiler function.
+        CompilerGlobal        // Selects compiler global.
+        CompilerStatement     // Selects compiler statement.
+        Modifier              // Selects modifier.
+        FunctionCall          // Selects function call.
+        FunctionSpecOp        // Selects function spec op.
+        Type                  // Selects type.
+        StorageModifier       // Selects storage modifier.
+        UserType              // Selects user type.
+        Constant              // Selects constant.
+        String                // Selects string.
+        RawString             // Selects raw string.
+        Character             // Selects character.
+        Numeric               // Selects numeric.
+        NumericHex            // Selects numeric hex.
+        NumericBin            // Selects numeric bin.
+        NumericFrac           // Selects numeric frac.
+        Attribute             // Selects attribute.
+        Error                 // Selects error.
     }
 
-    mapStyles: [State] Style // Map styles associated with this value.
-    mapWords:  HashTable'(string, State) // Map words associated with this value.
+    mapStyles: [State] Style                 // Map styles associated with this value.
+    mapWords:  HashTable'(string, State)     // Map words associated with this value.
 }
 
 impl IRichEditLexer for RichEditLexerSwag

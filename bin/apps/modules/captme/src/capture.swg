@@ -313,7 +313,7 @@ impl Capture
 
         let render = g_App.getRenderer()
         let srf    = notnull (notnull .editView).surface
-        render.begin(srf.rc)
+        render.begin(srf.getRenderingContext())
         painter.begin()
 
         var layer: Layer

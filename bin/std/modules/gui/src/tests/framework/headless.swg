@@ -6,8 +6,8 @@ using Swag, Core
 // One labelled edit box of a modal to fill before accepting it.
 struct AutoEdit
 {
-    label: String // Label associated with this value.
-    text:  String // Text associated with this value.
+    label: String     // Label associated with this value.
+    text:  String     // Text associated with this value.
 }
 
 // Selects auto stage kind.
@@ -21,37 +21,37 @@ enum AutoStageKind
 // One step of the auto UI driver (see clickModalButtonWhenShown and friends).
 struct AutoStage
 {
-    kind:   AutoStageKind = ModalButton // Kind associated with this value.
-    folder: String // Folder associated with this value.
-    file:   String // File associated with this value.
-    label:  String // Label associated with this value.
-    edits:  Array'AutoEdit // Edits associated with this value.
-    button: WndId         = undefined // Button associated with this value.
+    kind:   AutoStageKind = ModalButton     // Kind associated with this value.
+    folder: String                          // Folder associated with this value.
+    file:   String                          // File associated with this value.
+    label:  String                          // Label associated with this value.
+    edits:  Array'AutoEdit                  // Edits associated with this value.
+    button: WndId         = undefined       // Button associated with this value.
 }
 
 // Represents headless host.
 struct HeadlessHost
 {
-    app:        Application // App associated with this value.
-    surface:    Surface // Surface associated with this value.
-    surfaceWnd: SurfaceWnd // Surface wnd associated with this value.
-    root:       Wnd // Root associated with this value.
+    app:        Application     // App associated with this value.
+    surface:    Surface         // Surface associated with this value.
+    surfaceWnd: SurfaceWnd      // Surface wnd associated with this value.
+    root:       Wnd             // Root associated with this value.
     #[Swag.Late]
-    theme:        *Theme // Theme associated with this value.
-    mousePos:     Math.Point // Mouse pos associated with this value.
-    closed:       bool // Closed associated with this value.
-    commandCount: u32 // Number of command entries.
-    lastCommand:  #null WndId // Last command associated with this value.
+    theme:        *Theme          // Theme associated with this value.
+    mousePos:     Math.Point      // Mouse pos associated with this value.
+    closed:       bool            // Closed associated with this value.
+    commandCount: u32             // Number of command entries.
+    lastCommand:  #null WndId     // Last command associated with this value.
 
     // Auto UI driver state (see clickModalButtonWhenShown and friends). 'autoHandled'
     // is true once every armed stage has completed.
-    autoHandled:       bool // Auto handled associated with this value.
-    autoArmed:         bool // Auto armed associated with this value.
-    autoHookInstalled: bool // Auto hook installed associated with this value.
-    autoFrames:        u32 // Auto frames associated with this value.
-    autoMaxFrames:     u32 // Auto max frames associated with this value.
-    autoStages:        Array'AutoStage // Auto stages associated with this value.
-    autoStage:         u32 // Auto stage associated with this value.
+    autoHandled:       bool                // Auto handled associated with this value.
+    autoArmed:         bool                // Auto armed associated with this value.
+    autoHookInstalled: bool                // Auto hook installed associated with this value.
+    autoFrames:        u32                 // Auto frames associated with this value.
+    autoMaxFrames:     u32                 // Auto max frames associated with this value.
+    autoStages:        Array'AutoStage     // Auto stages associated with this value.
+    autoStage:         u32                 // Auto stage associated with this value.
 }
 
 impl HeadlessHost
@@ -80,9 +80,9 @@ impl HeadlessHost
         .app.mainSurface   = &.surface
 
         let root = &.root
-        root.itf             = cast(IWnd) dref root
-        root.type            = Wnd
-        root.surface         = &.surface
+        root.itf     = cast(IWnd) dref root
+        root.type    = Wnd
+        root.surface = &.surface
         root.style.share(&.app.style)
         root.position        = {0, 0, width, height}
         root.backgroundStyle = .Dialog
@@ -92,9 +92,9 @@ impl HeadlessHost
         // Wire the surface root window so getTopView()/getTopWnd() resolve to the
         // root view. This enables popup-based widgets (combobox, menus, tabs)
         // which anchor their popups to the top view.
-        .surfaceWnd.itf           = cast(IWnd) &.surfaceWnd
-        .surfaceWnd.type          = SurfaceWnd
-        .surfaceWnd.surface       = &.surface
+        .surfaceWnd.itf     = cast(IWnd) &.surfaceWnd
+        .surfaceWnd.type    = SurfaceWnd
+        .surfaceWnd.surface = &.surface
         .surfaceWnd.style.share(&.app.style)
         .surfaceWnd.position      = {0, 0, width, height}
         .surfaceWnd.focusStrategy = .None

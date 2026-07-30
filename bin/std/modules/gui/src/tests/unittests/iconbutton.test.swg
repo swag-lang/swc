@@ -117,12 +117,12 @@ func iconButtonHeadlessReset()
     host.setup(120, 120)
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
-    btn.isHot                = true
-    btn.isIn                 = true
-    btn.isPressed            = true
-    btn.isPressing           = true
-    btn.aniBk.themeCrc       = 42'u32
-    host.app.mouseEnterWnd   = btn
+    btn.isHot              = true
+    btn.isIn               = true
+    btn.isPressed          = true
+    btn.isPressing         = true
+    btn.aniBk.themeCrc     = 42'u32
+    host.app.mouseEnterWnd = btn
     host.app.setMouseCaptureRaw(btn)
 
     btn.disable()

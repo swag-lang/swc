@@ -5,18 +5,18 @@ impl Image
     // Selects the HSL or RGB gradient written by [[Image.fillHsl]].
     public enum FillHslType
     {
-        HueVert            // Hue varies from top to bottom.
-        HueHorz            // Hue varies from left to right.
-        SaturationVert     // Saturation varies vertically at the supplied hue.
-        SaturationHorz     // Saturation varies horizontally at the supplied hue.
-        LightnessVert      // Lightness varies vertically at the supplied hue and saturation.
-        LightnessHorz      // Lightness varies horizontally at the supplied hue and saturation.
-        HueSaturation      // Hue and saturation span the two image axes.
-        HueLightness       // Hue and lightness span the two image axes.
-        SaturationLightness // Saturation and lightness span the two image axes.
-        GreenBlue          // Green and blue span the two image axes; red comes from `color`.
-        RedBlue            // Red and blue span the two image axes; green comes from `color`.
-        RedGreen           // Red and green span the two image axes; blue comes from `color`.
+        HueVert                 // Hue varies from top to bottom.
+        HueHorz                 // Hue varies from left to right.
+        SaturationVert          // Saturation varies vertically at the supplied hue.
+        SaturationHorz          // Saturation varies horizontally at the supplied hue.
+        LightnessVert           // Lightness varies vertically at the supplied hue and saturation.
+        LightnessHorz           // Lightness varies horizontally at the supplied hue and saturation.
+        HueSaturation           // Hue and saturation span the two image axes.
+        HueLightness            // Hue and lightness span the two image axes.
+        SaturationLightness     // Saturation and lightness span the two image axes.
+        GreenBlue               // Green and blue span the two image axes; red comes from `color`.
+        RedBlue                 // Red and blue span the two image axes; green comes from `color`.
+        RedGreen                // Red and green span the two image axes; blue comes from `color`.
     }
 
     // Replaces the image with a color-selection gradient.

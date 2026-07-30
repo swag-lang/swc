@@ -3,24 +3,24 @@
 // Selects cursor shape.
 enum CursorShape
 {
-    Arrow // Selects arrow.
-    SizeWE // Selects size we.
-    SizeNS // Selects size ns.
-    SizeNWSE // Selects size nwse.
-    SizeNESW // Selects size nesw.
-    SizeAll // Selects size all.
-    Cross // Selects cross.
-    Help // Selects help.
-    Hand // Selects hand.
-    IBeam // Selects i beam.
-    No // Selects no.
-    Wait // Selects wait.
+    Arrow        // Selects arrow.
+    SizeWE       // Selects size we.
+    SizeNS       // Selects size ns.
+    SizeNWSE     // Selects size nwse.
+    SizeNESW     // Selects size nesw.
+    SizeAll      // Selects size all.
+    Cross        // Selects cross.
+    Help         // Selects help.
+    Hand         // Selects hand.
+    IBeam        // Selects i beam.
+    No           // Selects no.
+    Wait         // Selects wait.
 }
 
 // Represents cursor.
 struct Cursor
 {
-    using native: NativeCursor // Embedded native state.
+    using native: NativeCursor     // Embedded native state.
 }
 
 impl Cursor

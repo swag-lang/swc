@@ -22,8 +22,8 @@ const LM       = 0x7FFFFFFF'u64
 // Represents mt64.
 public struct Mt64
 {
-    mt:  [NN] u64 // Mt associated with this value.
-    mti: u64 // Mti associated with this value.
+    mt:  [NN] u64     // Mt associated with this value.
+    mti: u64          // Mti associated with this value.
 }
 
 public impl Mt64

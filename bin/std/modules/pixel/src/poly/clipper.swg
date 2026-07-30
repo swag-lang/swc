@@ -15,49 +15,49 @@ const Unassigned    = -1
 const Skip          = -2
 const HorizontalVal = -1.0e+40
 
-public alias CInt = s64 // Signed integer coordinate used by clipping operations.
+public alias CInt = s64     // Signed integer coordinate used by clipping operations.
 alias ClipperPath  = Array'IntPoint
 alias ClipperPaths = Array'ClipperPath
 
 // Selects whether an input path belongs to the subject or clipping set.
 public enum PolyType
 {
-    Subject // Geometry being transformed.
-    Clip    // Geometry used to clip the subject.
+    Subject     // Geometry being transformed.
+    Clip        // Geometry used to clip the subject.
 }
 
 // Selects the Boolean operation applied to subject and clip paths.
 public enum ClipType
 {
-    Intersection // Keep regions present in both sets.
-    Union        // Keep regions present in either set.
-    Difference   // Remove clip regions from subject regions.
-    Xor          // Keep regions present in exactly one set.
+    Intersection     // Keep regions present in both sets.
+    Union            // Keep regions present in either set.
+    Difference       // Remove clip regions from subject regions.
+    Xor              // Keep regions present in exactly one set.
 }
 
 // Selects the winding rule used to determine polygon interiors.
 public enum PolyFillType
 {
-    EvenOdd  // Toggle interior state at every edge crossing.
-    NonZero  // Treat a nonzero winding count as interior.
-    Positive // Treat a positive winding count as interior.
-    Negative // Treat a negative winding count as interior.
+    EvenOdd      // Toggle interior state at every edge crossing.
+    NonZero      // Treat a nonzero winding count as interior.
+    Positive     // Treat a positive winding count as interior.
+    Negative     // Treat a negative winding count as interior.
 }
 
 // Defines optional initialization behavior for clipping transforms.
 public enum InitOptions
 {
-    ReverseSolution   = 1 // Reverse output winding.
-    StrictlySimple    = 2 // Split self-touching polygons into simple polygons.
-    PreserveCollinear = 4 // Retain collinear vertices where possible.
+    ReverseSolution   = 1     // Reverse output winding.
+    StrictlySimple    = 2     // Split self-touching polygons into simple polygons.
+    PreserveCollinear = 4     // Retain collinear vertices where possible.
 }
 
 // Selects how offset polygon corners are joined.
 public enum JoinType
 {
-    Square // Bevel the corner with a square join.
-    Round  // Approximate the corner with an arc.
-    Miter  // Extend edges to their intersection.
+    Square     // Bevel the corner with a square join.
+    Round      // Approximate the corner with an arc.
+    Miter      // Extend edges to their intersection.
 }
 
 enum EdgeSide
@@ -75,8 +75,8 @@ enum Direction
 // Stores one integer clipping coordinate.
 public struct IntPoint
 {
-    x: CInt // Horizontal coordinate.
-    y: CInt // Vertical coordinate.
+    x: CInt     // Horizontal coordinate.
+    y: CInt     // Vertical coordinate.
 }
 
 struct IntRect
@@ -199,25 +199,33 @@ struct Join
 #[Swag.Opaque]
 public struct Transform
 {
-    useFullRange:      bool
-    preserveCollinear: bool
-    usingPolyTree:     bool
-    strictSimple:      bool
-    reverseOutput:     bool
-    edgeList:          Array'{ edge: [*] Edge, rank: u64 }
-    minimaList:        Array'LocalMinimum
-    polyOuts:          Array'#null *OutRec
-    joinList:          Array'#null *Join
-    ghostJoinList:     Array'#null *Join
-    intersectList:     Array'#null *IntersectNode
-    scanBeamList:      Array'CInt
-    maximaList:        Array'CInt
-    clipFillType:      PolyFillType = undefined
-    subjFillType:      PolyFillType = undefined
-    clipType:          ClipType     = undefined
-    currentLM:         u64
-    activeEdges:       #null *Edge
-    sortedEdges:       #null *Edge
+    // Options of the operation, set before it runs.
+    strictSimple:  bool     // Whether self-intersections are resolved strictly.
+    reverseOutput: bool     // Whether output orientation is flipped.
+
+    // Sweep-line state of one clipping operation: the edge pool, the scanbeam schedule, and
+    // the output records being stitched. Set the operation up through the methods and read
+    // the outcome from the produced paths.
+    private
+    {
+        useFullRange:      bool                                    // Whether coordinates need the full integer range.
+        preserveCollinear: bool                                    // Whether collinear vertices survive the output.
+        usingPolyTree:     bool                                    // Whether the result is built as a hierarchy.
+        edgeList:          Array'{ edge: [*] Edge, rank: u64 }     // Edge pool of the input paths.
+        minimaList:        Array'LocalMinimum                      // Local minima, in scanbeam order.
+        polyOuts:          Array'#null *OutRec                     // Output records being stitched.
+        joinList:          Array'#null *Join                       // Pending joins between output points.
+        ghostJoinList:     Array'#null *Join                       // Joins deferred to a later scanbeam.
+        intersectList:     Array'#null *IntersectNode              // Intersections of the current scanbeam.
+        scanBeamList:      Array'CInt                              // Scanbeam boundaries still to process.
+        maximaList:        Array'CInt                              // Local maxima of the current scanbeam.
+        clipFillType:      PolyFillType = undefined                // Fill rule of the clip paths.
+        subjFillType:      PolyFillType = undefined                // Fill rule of the subject paths.
+        clipType:          ClipType     = undefined                // Boolean operation being performed.
+        currentLM:         u64                                     // Index of the next local minimum to enter.
+        activeEdges:       #null *Edge                             // Active edge list of the current scanbeam.
+        sortedEdges:       #null *Edge                             // Sorted edge list used while resolving intersections.
+    }
 }
 
 impl Transform

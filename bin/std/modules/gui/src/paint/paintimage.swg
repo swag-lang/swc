@@ -4,13 +4,19 @@ using Pixel
 #[Swag.Opaque]
 public struct PaintImage
 {
-    app:     Application // App associated with this value.
-    painter: Painter // Painter associated with this value.
-    #[Swag.Late]
-    surface: *Surface // Surface associated with this value.
-    image:   Image // Image associated with this value.
-    w, h:    s32 // W component.
-    paint:   #null func||(app: *Application, painter: *Painter) // Paint associated with this value.
+    // Called to paint one image. This is the only thing a caller sets.
+    paint: #null func||(app: *Application, painter: *Painter)
+
+    // The offscreen application, its painter and the surface backing the render target.
+    private
+    {
+        app:     Application     // Headless application driving the offscreen paint.
+        painter: Painter         // Painter the callback draws into.
+        #[Swag.Late]
+        surface: *Surface     // Surface owning the render target.
+        image:   Image        // Last painted result.
+        w, h:    s32          // Size of the render target, in pixels.
+    }
 }
 
 impl PaintImage

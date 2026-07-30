@@ -26,8 +26,8 @@ impl LzwBitReader
         {
             let byteIndex = .bitPosition >> 3
             let bitIndex  = 7 - (.bitPosition & 7)
-            result         = (result << 1) | ((cast(u32) .data[byteIndex] >> bitIndex) & 1)
-            .bitPosition  += 1
+            result       = (result << 1) | ((cast(u32) .data[byteIndex] >> bitIndex) & 1)
+            .bitPosition += 1
         }
 
         return result
@@ -44,8 +44,8 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
     reader.bitPosition = 0
 
     var prefixes: [4096] u16
-    var suffixes: [4096] u8  = undefined
-    var stack:    [4096] u8  = undefined
+    var suffixes: [4096] u8 = undefined
+    var stack:    [4096] u8 = undefined
 
     for 256 do
         suffixes[@index] = cast(u8) @index
@@ -75,7 +75,7 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
                 fail InvalidFormatError{"invalid lzw stream"}
 
             dst[output] = cast(u8) code
-            output     += 1
+            output      += 1
             oldCode     = code
             continue
         }
@@ -93,21 +93,21 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
                 fail InvalidFormatError{"invalid lzw stream"}
 
             stack[stackCount] = suffixes[current]
-            stackCount       += 1
+            stackCount        += 1
             current           = prefixes[current]
         }
 
         let first = cast(u8) current
         stack[stackCount] = first
-        stackCount       += 1
+        stackCount        += 1
 
         while stackCount
         {
             if output >= expected do
                 fail InvalidFormatError{"invalid lzw stream"}
 
-            stackCount -= 1
-            dst[output]  = stack[stackCount]
+            stackCount  -= 1
+            dst[output] = stack[stackCount]
             output      += 1
         }
 
@@ -116,13 +116,13 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
             if output >= expected do
                 fail InvalidFormatError{"invalid lzw stream"}
             dst[output] = first
-            output     += 1
+            output      += 1
         }
 
         if nextCode <= LZW_MAX_CODE
         {
             prefixes[nextCode] = cast(u16) oldCode
-            suffixes[nextCode]  = first
+            suffixes[nextCode] = first
             nextCode           += 1
 
             // The decoder is one dictionary entry behind the encoder. TIFF's

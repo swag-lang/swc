@@ -5,15 +5,15 @@ using Win32, Core, Pixel, Gdi32
 // Represents application native.
 public struct ApplicationNative
 {
-    fileSmallIconsImage:     Image // File small icons image associated with this value.
-    fileSmallIconsImageList: ImageList // File small icons image list associated with this value.
-    mapFileSmallIcons:       HashTable'(String, s32) // Map file small icons associated with this value.
+    fileSmallIconsImage:     Image                       // File small icons image associated with this value.
+    fileSmallIconsImageList: ImageList                   // File small icons image list associated with this value.
+    mapFileSmallIcons:       HashTable'(String, s32)     // Map file small icons associated with this value.
 
-    fileBigIconsImage:     Image // File big icons image associated with this value.
-    fileBigIconsImageList: ImageList // File big icons image list associated with this value.
-    mapFileBigIcons:       HashTable'(String, s32) // Map file big icons associated with this value.
+    fileBigIconsImage:     Image                       // File big icons image associated with this value.
+    fileBigIconsImageList: ImageList                   // File big icons image list associated with this value.
+    mapFileBigIcons:       HashTable'(String, s32)     // Map file big icons associated with this value.
 
-    hotKeysDisabled: bool // Hot keys disabled associated with this value.
+    hotKeysDisabled: bool     // Hot keys disabled associated with this value.
 }
 
 impl Application

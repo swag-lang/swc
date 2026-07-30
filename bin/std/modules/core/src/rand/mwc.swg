@@ -5,8 +5,8 @@
 // Represents mwc.
 struct MWC
 {
-    w: u32 = 521288629 // W component.
-    z: u32 = 362436069 // Z component.
+    w: u32 = 521288629     // W component.
+    z: u32 = 362436069     // Z component.
 }
 
 impl MWC

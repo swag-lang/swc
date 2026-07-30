@@ -271,6 +271,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     let decoded  = catch Image.decode("adobe-rgb.jpg", nnBytes(adobeRgb.toSlice()), {}) as decodeError
     @assert(decodeError == null)
     @assert(decoded.width == 8 and decoded.height == 8)
+
     // The source encoder's Y, Cb and Cr component samples become direct R, G and B.
     assertJpgPixelNear(decoded, 255, 85, 76, 4)
 }

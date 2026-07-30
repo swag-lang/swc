@@ -8,7 +8,7 @@ public struct Encoder {}
 // Configures TGA packet encoding.
 public struct EncodeOptions
 {
-    rle = false // Use TGA run-length encoded packets when true.
+    rle = false     // Use TGA run-length encoded packets when true.
 }
 
 func writeTgaPixel(result: *ConcatBuffer, src: const [*] u8, pixelFormat: PixelFormat)
@@ -48,7 +48,7 @@ func sameTgaPixel(left, right: const [*] u8, bytesPerPixel: u64)->bool
 func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 {
     var result: retval = 1
-    let first = src + index * bytesPerPixel
+    let first          = src + index * bytesPerPixel
     while result < 128 and index + result < pixelCount
     {
         if !sameTgaPixel(first, src + (index + result) * bytesPerPixel, bytesPerPixel) do

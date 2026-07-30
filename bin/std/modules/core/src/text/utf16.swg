@@ -3,14 +3,18 @@
 
 // Defines rune error.
 const RuneError = 0xFFFD'rune
+
 // Defines surr1.
-const Surr1     = 0xD800
+const Surr1 = 0xD800
+
 // Defines surr2.
-const Surr2     = 0xDC00
+const Surr2 = 0xDC00
+
 // Defines surr3.
-const Surr3     = 0xE000
+const Surr3 = 0xE000
+
 // Defines surr self.
-const SurrSelf  = 0x10000
+const SurrSelf = 0x10000
 
 // Get the unicode character pointed by 'buffer', and the number of u16 to encode it
 // Will return 'RuneError' for an invalid utf16 sequence

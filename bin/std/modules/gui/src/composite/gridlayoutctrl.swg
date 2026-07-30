@@ -6,46 +6,46 @@ using Core
 #[Swag.EnumFlags]
 enum GridLayoutCtrlFlags
 {
-    Zero = 0 // No flags are enabled.
-    AdaptSizeToContent // Enables adapt size to content.
-    AdaptColWidth // Enables adapt col width.
-    AdaptRowHeight // Enables adapt row height.
+    Zero = 0               // No flags are enabled.
+    AdaptSizeToContent     // Enables adapt size to content.
+    AdaptColWidth          // Enables adapt col width.
+    AdaptRowHeight         // Enables adapt row height.
 }
 
 // Selects grid track kind.
 enum GridTrackKind
 {
-    Fixed // Selects the fixed kind.
-    Content // Selects the content kind.
-    Fraction // Selects the fraction kind.
-    Fill // Selects the fill kind.
+    Fixed        // Selects the fixed kind.
+    Content      // Selects the content kind.
+    Fraction     // Selects the fraction kind.
+    Fill         // Selects the fill kind.
 }
 
 // Represents grid track.
 struct GridTrack
 {
-    kind       = GridTrackKind.Fixed // Kind associated with this value.
-    value: f32 = 100 // Value associated with this value.
-    min:   f32 // Min associated with this value.
-    max:   f32 // Max associated with this value.
+    kind       = GridTrackKind.Fixed     // Kind associated with this value.
+    value: f32 = 100                     // Value associated with this value.
+    min:   f32                           // Min associated with this value.
+    max:   f32                           // Max associated with this value.
 }
 
 // Represents grid layout ctrl.
 struct GridLayoutCtrl
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    gridLayoutFlags  = GridLayoutCtrlFlags.Zero // Grid layout flags associated with this value.
-    numColumns:  s32 // Num columns associated with this value.
-    numRows:     s32 // Num rows associated with this value.
-    spacingHorz: f32 = 5 // Spacing horz associated with this value.
-    spacingVert: f32 = 5 // Spacing vert associated with this value.
+    gridLayoutFlags  = GridLayoutCtrlFlags.Zero     // Grid layout flags associated with this value.
+    numColumns:  s32                                // Num columns associated with this value.
+    numRows:     s32                                // Num rows associated with this value.
+    spacingHorz: f32 = 5                            // Spacing horz associated with this value.
+    spacingVert: f32 = 5                            // Spacing vert associated with this value.
 
-    layout:    Array'(#null *Wnd) // Layout associated with this value.
-    colSizes:  Array'f32 // Col sizes associated with this value.
-    rowSizes:  Array'f32 // Row sizes associated with this value.
-    colTracks: Array'GridTrack // Col tracks associated with this value.
-    rowTracks: Array'GridTrack // Row tracks associated with this value.
+    layout:    Array'(#null *Wnd)     // Layout associated with this value.
+    colSizes:  Array'f32              // Col sizes associated with this value.
+    rowSizes:  Array'f32              // Row sizes associated with this value.
+    colTracks: Array'GridTrack        // Col tracks associated with this value.
+    rowTracks: Array'GridTrack        // Row tracks associated with this value.
 }
 
 impl IWnd for GridLayoutCtrl

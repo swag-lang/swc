@@ -569,7 +569,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     let prop = Properties.create(&host.root, {0, 0, 300, 180})
     prop.addStruct(data, "C")
 
-    prop.selItem = prop.items[1]     // as if 'origin' was just clicked
+    prop.setSelItem(prop.items[1])     // as if 'origin' was just clicked
     prop.focusNav()
     @assert(prop.selItem == prop.items[1])     // kept, not reset to the first row
 
@@ -1470,12 +1470,12 @@ impl IPropertyNotify for PropDefaultCustom
     @assert(countItem.editBox.position.width == editWidthClean)
 
     // Reset hides the arrow again; the editor width is still unchanged.
-    btn.isHot                = true
-    btn.isIn                 = true
-    btn.isPressed            = true
-    btn.isPressing           = true
-    btn.aniBk.themeCrc       = 42'u32
-    host.app.mouseEnterWnd   = btn
+    btn.isHot              = true
+    btn.isIn               = true
+    btn.isPressed          = true
+    btn.isPressing         = true
+    btn.aniBk.themeCrc     = 42'u32
+    host.app.mouseEnterWnd = btn
     host.app.setMouseCaptureRaw(btn)
     prop.resetItemDefault(countItem)
     @assert(!countItem.isModified and btn.isDisabled())

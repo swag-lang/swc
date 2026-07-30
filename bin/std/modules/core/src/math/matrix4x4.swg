@@ -5,7 +5,7 @@
 #[Serialization.Final]
 struct Matrix4x4
 {
-    m: [4, 4] f32 // M associated with this value.
+    m: [4, 4] f32     // M associated with this value.
 }
 
 impl Matrix4x4

@@ -40,45 +40,45 @@ const RuneInvert = cast(rune) 0x0400_0000
 
 struct NfaTable
 {
-    level: u32 // Level associated with this value.
-    nodes: Array'(*NfaNode) // Nodes associated with this value.
+    level: u32                  // Level associated with this value.
+    nodes: Array'(*NfaNode)     // Nodes associated with this value.
 }
 
 struct NfaNode
 {
-    transitions: HashTable'(rune, Array'(*NfaNode)) // Transitions associated with this value.
-    group:       u32 // Group associated with this value.
-    terminal:    bool // Terminal associated with this value.
+    transitions: HashTable'(rune, Array'(*NfaNode))     // Transitions associated with this value.
+    group:       u32                                    // Group associated with this value.
+    terminal:    bool                                   // Terminal associated with this value.
 }
 
 struct DfaNode
 {
-    table:       Array'(*NfaNode) // Table associated with this value.
-    transitions: HashTable'(rune, #null *DfaNode) // Transitions associated with this value.
-    rawGroup:    u32 // Raw group associated with this value.
-    group:       u32 // Group associated with this value.
-    terminal:    bool // Terminal associated with this value.
+    table:       Array'(*NfaNode)                     // Table associated with this value.
+    transitions: HashTable'(rune, #null *DfaNode)     // Transitions associated with this value.
+    rawGroup:    u32                                  // Raw group associated with this value.
+    group:       u32                                  // Group associated with this value.
+    terminal:    bool                                 // Terminal associated with this value.
 }
 
 struct RegExpGroup
 {
-    rank:  u32 // Rank associated with this value.
-    value: string // Value associated with this value.
+    rank:  u32        // Rank associated with this value.
+    value: string     // Value associated with this value.
 }
 
 struct ActiveGroup
 {
-    rawGroup: u32 // Raw group associated with this value.
-    rank:     u32 // Rank associated with this value.
-    startIdx: s32 // Index of start.
+    rawGroup: u32     // Raw group associated with this value.
+    rank:     u32     // Rank associated with this value.
+    startIdx: s32     // Index of start.
 }
 
 struct DfaState
 {
-    node:         #null *DfaNode // Node associated with this value.
-    parseIdx:     s32 // Index of parse.
-    activeGroups: Array'ActiveGroup // Active groups associated with this value.
-    groups:       Array'RegExpGroup // Groups associated with this value.
+    node:         #null *DfaNode        // Node associated with this value.
+    parseIdx:     s32                   // Index of parse.
+    activeGroups: Array'ActiveGroup     // Active groups associated with this value.
+    groups:       Array'RegExpGroup     // Groups associated with this value.
 }
 
 // Simple regular expression matcher.
@@ -127,27 +127,27 @@ public struct RegExp
     // 'compile' and 'match'; every field below is one step of that machinery.
     private
     {
-        nfaNodes:         ArrayPtr'(NfaNode) // Nodes of the non-deterministic automaton.
-        dfaNodes:         ArrayPtr'(DfaNode) // Nodes of the derived deterministic automaton.
-        nfaTables:        ArrayPtr'(NfaTable) // Transition tables of the automaton.
-        nfaStack:         Array'(*NfaTable) // Table stack used while building the automaton.
-        charSet:          HashSet'rune // Character class being accumulated.
-        groups:           Array'RegExpGroup // Capture groups of the pattern.
-        groupTransform:   Array'u32 // Maps a parsed group to its capture index.
-        groupParent:      Array'u32 // Enclosing group of each group.
-        captureRanks:     Array'u32 // Capture order of the groups.
-        captureRankStack: Array'u32 // Capture-order stack used while parsing.
-        openParen:        Array'u32 // Positions of the groups still open.
-        orOpStack:        Array'rune // Alternation operators still pending.
-        orOpLevel:        Array'u32 // Nesting level of each pending alternation.
-        group:            u32 // Number of groups seen so far.
-        captureRankMax:   u32 // Highest capture rank assigned.
-        captureRankIdx:   u64 // Next capture rank to assign.
-        hasStarted:       bool // Whether a match is in progress.
-        wasWord:          bool // Whether the previous rune was a word rune, for '\b'.
-        ignoreCase:       bool // Whether the pattern was compiled case-insensitive.
-        bufStart:         #null const [*] u8 // Start of the subject buffer of the current match.
-        bufLength:        u64 // Length of the subject buffer of the current match.
+        nfaNodes:         ArrayPtr'(NfaNode)      // Nodes of the non-deterministic automaton.
+        dfaNodes:         ArrayPtr'(DfaNode)      // Nodes of the derived deterministic automaton.
+        nfaTables:        ArrayPtr'(NfaTable)     // Transition tables of the automaton.
+        nfaStack:         Array'(*NfaTable)       // Table stack used while building the automaton.
+        charSet:          HashSet'rune            // Character class being accumulated.
+        groups:           Array'RegExpGroup       // Capture groups of the pattern.
+        groupTransform:   Array'u32               // Maps a parsed group to its capture index.
+        groupParent:      Array'u32               // Enclosing group of each group.
+        captureRanks:     Array'u32               // Capture order of the groups.
+        captureRankStack: Array'u32               // Capture-order stack used while parsing.
+        openParen:        Array'u32               // Positions of the groups still open.
+        orOpStack:        Array'rune              // Alternation operators still pending.
+        orOpLevel:        Array'u32               // Nesting level of each pending alternation.
+        group:            u32                     // Number of groups seen so far.
+        captureRankMax:   u32                     // Highest capture rank assigned.
+        captureRankIdx:   u64                     // Next capture rank to assign.
+        hasStarted:       bool                    // Whether a match is in progress.
+        wasWord:          bool                    // Whether the previous rune was a word rune, for '\b'.
+        ignoreCase:       bool                    // Whether the pattern was compiled case-insensitive.
+        bufStart:         #null const [*] u8      // Start of the subject buffer of the current match.
+        bufLength:        u64                     // Length of the subject buffer of the current match.
     }
 
     // Pattern after escape and class expansion. The preprocessing step is checked on its own,

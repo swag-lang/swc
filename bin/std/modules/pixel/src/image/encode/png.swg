@@ -125,30 +125,35 @@ private
 #[Swag.Opaque]
 public struct Encoder
 {
-    stream:              #null *ConcatBuffer
-    stored:              ChunkBitfield
-    ihdr:                Ihdr
-    currentChunk:        Chunk
-    tmpBuf:              [256] u8
-    writePtr:            #null [*] u8
-    crc:                 Hash.Crc32
-    subimage:            [7] SubImage
-    widestPass:          s32
-    lastPass:            s32
-    bytesPerPixel:       u32
-    scanlineBuf:         #null [*] u8
-    prevScanlineBuf:     #null [*] u8
-    row_buf:             #null [*] u8
-    filteredScanlineBuf: #null [*] u8
-    filteredScanline:    #null [*] u8
-    scanline:            #null [*] u8
-    prevScanline:        #null [*] u8
-    encodeFlags:         EncodeFlags
-    rowInfo:             RowInfo
-    pixelSize:           u32
-    bufferToCompress:    Array'u8
-    swapRB:              bool
-    userOptions:         EncodeOptions
+    // Encoding state: the chunk being written, the scanline filter windows, and the
+    // interlacing passes. Encode through the module entry points; none of this is a knob.
+    private
+    {
+        stream:              #null *ConcatBuffer     // Output buffer chunks are appended to.
+        stored:              ChunkBitfield           // Chunks already written, to keep their order legal.
+        ihdr:                Ihdr                    // Image header being written.
+        currentChunk:        Chunk                   // Chunk currently open.
+        tmpBuf:              [256] u8                // Scratch for small chunk payloads.
+        writePtr:            #null [*] u8            // Write cursor inside 'tmpBuf'.
+        crc:                 Hash.Crc32              // Running CRC of the chunk being written.
+        subimage:            [7] SubImage            // Geometry of the seven Adam7 passes.
+        widestPass:          s32                     // Widest pass, sizing the scanline buffers.
+        lastPass:            s32                     // Index of the last pass to write.
+        bytesPerPixel:       u32                     // Bytes per pixel of the output format.
+        scanlineBuf:         #null [*] u8            // Storage for the current scanline.
+        prevScanlineBuf:     #null [*] u8            // Storage for the previous scanline.
+        row_buf:             #null [*] u8            // Source row converted to the output format.
+        filteredScanlineBuf: #null [*] u8            // Storage for the filtered scanline.
+        filteredScanline:    #null [*] u8            // Filtered scanline being emitted.
+        scanline:            #null [*] u8            // Current scanline, aliasing 'scanlineBuf'.
+        prevScanline:        #null [*] u8            // Previous scanline, for the filter predictors.
+        encodeFlags:         EncodeFlags             // Flags derived from the requested options.
+        rowInfo:             RowInfo                 // Geometry of the row being filtered.
+        pixelSize:           u32                     // Size of one source pixel, in bytes.
+        bufferToCompress:    Array'u8                // Filtered image data handed to Deflate.
+        swapRB:              bool                    // Whether the source needs its red and blue swapped.
+        userOptions:         EncodeOptions           // Options the caller asked for.
+    }
 }
 
 impl Encoder
@@ -243,9 +248,9 @@ impl Encoder
 // Configures PNG filtering, Deflate behavior, and Adam7 interlacing.
 public struct EncodeOptions
 {
-    compressionLevel = Compress.Deflate.CompressionLevel.Default // Deflate compression level.
-    filtering        = true // Select adaptive PNG scanline filters.
-    interlace        = false // Encode seven-pass Adam7 interlacing.
+    compressionLevel = Compress.Deflate.CompressionLevel.Default     // Deflate compression level.
+    filtering        = true                                          // Select adaptive PNG scanline filters.
+    interlace        = false                                         // Encode seven-pass Adam7 interlacing.
 }
 
 public impl IImageEncoder for Encoder
@@ -275,7 +280,7 @@ public impl IImageEncoder for Encoder
 
         .stream = result
 
-        .stored.ihdr    = true
+        .stored.ihdr          = true
         .ihdr.width           = image.width
         .ihdr.height          = image.height
         .ihdr.bitDepth        = 8
@@ -303,7 +308,7 @@ public impl IImageEncoder for Encoder
         .prevScanline     = .prevScanlineBuf + 16
         .filteredScanline = .filteredScanlineBuf + 16
 
-        .pixelSize = image.bpp8
+        .pixelSize                = image.bpp8
         .encodeFlags.filterChoice = .Disabled
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All

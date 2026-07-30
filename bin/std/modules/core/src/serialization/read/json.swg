@@ -9,9 +9,9 @@ In the case of a struct, the JSON file must represent the structure layout (orde
 */
 public struct JSon
 {
-    stream:    ByteStream // Stream associated with this value.
-    line, col: u64 = 1 // Line associated with this value.
-    propName:  String // Prop name associated with this value.
+    stream:    ByteStream     // Stream associated with this value.
+    line, col: u64 = 1        // Line associated with this value.
+    propName:  String         // Prop name associated with this value.
 }
 
 public impl JSon

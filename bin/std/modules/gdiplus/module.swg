@@ -13,7 +13,7 @@
     cfg.backendKind     = .Export
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/gdiplus"
 
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputName      = "std.gdiplus"
-    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.kind       = .Api
+    cfg.genDoc.outputName = "std.gdiplus"
+    cfg.genDoc.css        = "css/style.css"
 }

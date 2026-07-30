@@ -31,26 +31,26 @@ func getExe()->string
 // Selects special directory.
 enum SpecialDirectory
 {
-    Temp // Selects temp.
-    Font // Selects font.
-    UserAppData // Selects user app data.
-    UserDocuments // Selects user documents.
-    CommonAppData // Selects common app data.
-    Desktop // Selects desktop.
-    UserPictures // Selects user pictures.
-    UserVideos // Selects user videos.
-    UserMusic // Selects user music.
-    CommonPictures // Selects common pictures.
-    CommonVideos // Selects common videos.
-    CommonMusic // Selects common music.
+    Temp               // Selects temp.
+    Font               // Selects font.
+    UserAppData        // Selects user app data.
+    UserDocuments      // Selects user documents.
+    CommonAppData      // Selects common app data.
+    Desktop            // Selects desktop.
+    UserPictures       // Selects user pictures.
+    UserVideos         // Selects user videos.
+    UserMusic          // Selects user music.
+    CommonPictures     // Selects common pictures.
+    CommonVideos       // Selects common videos.
+    CommonMusic        // Selects common music.
 }
 
 // Describes a physical monitor.
 #[Swag.Operators(opEquals, opCompare)]
 struct Monitor
 {
-    rect:     Math.Rectangle // Rect associated with this value.
-    work:     Math.Rectangle // Work associated with this value.
+    rect:     Math.Rectangle     // Rect associated with this value.
+    work:     Math.Rectangle     // Work associated with this value.
     scale:    f32                // Scale factor of this monitor
     rectReal: Math.Rectangle     // The real monitor rect, without scaling
     workReal: Math.Rectangle     // The real monitor work rect, without scaling

@@ -8,21 +8,21 @@ using Core
 // Its string view remains valid only while the owning rich string is unchanged.
 struct RichChunk
 {
-    slice:        string          = ""      // Borrowed UTF-8 slice represented by this run.
-    fontStyle:    FontFamilyStyle = Regular // Requested family style.
-    hasFontStyle: bool                      // Whether markup explicitly selected `fontStyle`.
-    isSpace:      bool                      // Whether the chunk is whitespace.
-    isEol:        bool                      // Whether the chunk terminates a line.
-    isUrl:        bool                      // Whether the chunk belongs to `<url>` markup.
-    isHotUrl:     bool                      // Whether pointer interaction currently highlights the URL.
-    visible:      bool                      // Whether layout retained the chunk for painting.
-    colorIdx:     s32                       // Palette color index selected by `<pN>` markup.
+    slice:        string          = ""          // Borrowed UTF-8 slice represented by this run.
+    fontStyle:    FontFamilyStyle = Regular     // Requested family style.
+    hasFontStyle: bool                          // Whether markup explicitly selected `fontStyle`.
+    isSpace:      bool                          // Whether the chunk is whitespace.
+    isEol:        bool                          // Whether the chunk terminates a line.
+    isUrl:        bool                          // Whether the chunk belongs to `<url>` markup.
+    isHotUrl:     bool                          // Whether pointer interaction currently highlights the URL.
+    visible:      bool                          // Whether layout retained the chunk for painting.
+    colorIdx:     s32                           // Palette color index selected by `<pN>` markup.
 
-    boundRect: Math.Rectangle          // Bounds local to `pos`, in pixels.
-    pos:       Math.Point              // Chunk origin in the containing layout.
-    font:      *Font          = undefined // Borrowed font selected for this chunk.
-    shaped:    ShapedRun               // Positioned glyphs for the chunk.
-    under:     UnderlineStyle = None    // Underline or strikeout decoration.
+    boundRect: Math.Rectangle                 // Bounds local to `pos`, in pixels.
+    pos:       Math.Point                     // Chunk origin in the containing layout.
+    font:      *Font          = undefined     // Borrowed font selected for this chunk.
+    shaped:    ShapedRun                      // Positioned glyphs for the chunk.
+    under:     UnderlineStyle = None          // Underline or strikeout decoration.
 }
 
 // Text with lightweight inline formatting for Pixel painting and layout.
@@ -42,12 +42,12 @@ struct RichChunk
 // See [[Pixel.RichString.set]] for the complete marker set.
 struct RichString
 {
-    raw:        String          // Original text, including formatting markers.
-    chunks:     Array'RichChunk // Styled runs produced by [[Pixel.RichString.compute]].
-    layoutRect: Math.Rectangle  // Rectangle used by the most recent layout.
-    boundRect:  Math.Rectangle  // Bounds of visible content from the most recent layout.
-    hasUrl:     bool            // Whether at least one chunk is a URL.
-    dirty:      bool            // Whether chunks must be rebuilt before layout or painting.
+    raw:        String              // Original text, including formatting markers.
+    chunks:     Array'RichChunk     // Styled runs produced by [[Pixel.RichString.compute]].
+    layoutRect: Math.Rectangle      // Rectangle used by the most recent layout.
+    boundRect:  Math.Rectangle      // Bounds of visible content from the most recent layout.
+    hasUrl:     bool                // Whether at least one chunk is a URL.
+    dirty:      bool                // Whether chunks must be rebuilt before layout or painting.
 }
 
 impl RichString
@@ -106,6 +106,7 @@ impl RichString
     // Returns the UTF-8 byte length of the original marked-up text.
     #[Swag.Inline]
     mtd opCount() => .raw.length
+
     // Replaces the original text and invalidates its parsed chunks.
     #[Swag.Inline]
     mtd opSet(str: string) => .set(str)

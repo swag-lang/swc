@@ -35,15 +35,15 @@ impl Decoder
 
             for result.width * result.height
             {
-                let gray = read16(src)
+                let gray  = read16(src)
                 let gray8 = reduce16(gray)
                 dst[0] = gray8
                 dst[1] = gray8
                 dst[2] = gray8
                 if .seenTRSN do
                     dst[3] = gray == transparent ? 0'u8 : 255'u8
-                src += 2
-                dst += result.bpp8
+                src        += 2
+                dst        += result.bpp8
             }
 
         case 2:
@@ -66,8 +66,8 @@ impl Decoder
                 dst[2] = reduce16(b)
                 if .seenTRSN do
                     dst[3] = r == transparentR and g == transparentG and b == transparentB ? 0'u8 : 255'u8
-                src += 6
-                dst += result.bpp8
+                src        += 6
+                dst        += result.bpp8
             }
 
         case 4:
@@ -78,8 +78,8 @@ impl Decoder
                 dst[1] = gray8
                 dst[2] = gray8
                 dst[3] = reduce16(read16(src + 2))
-                src += 4
-                dst += 4
+                src    += 4
+                dst    += 4
             }
 
         case 6:
@@ -89,8 +89,8 @@ impl Decoder
                 dst[1] = reduce16(read16(src + 2))
                 dst[2] = reduce16(read16(src + 4))
                 dst[3] = reduce16(read16(src + 6))
-                src += 8
-                dst += 4
+                src    += 8
+                dst    += 4
             }
         }
     }

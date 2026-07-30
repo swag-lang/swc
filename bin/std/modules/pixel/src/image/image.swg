@@ -15,18 +15,18 @@ using Swag, Core, Core.Serialization
 // ```
 struct Image
 {
-    pixels:    Array'u8             // Owned, row-major pixel bytes.
-    size:      u64                  // Total pixel-buffer size, in bytes.
-    width:     s32                  // Image width, in pixels.
-    height:    s32                  // Image height, in pixels.
-    width8:    s32                  // Byte stride of one tightly packed row.
-    pf:        PixelFormat          // Encoding of each pixel.
-    bpp:       u8                   // Number of bits per pixel.
-    bpp8:      u8                   // Number of bytes per pixel.
-    metaDatas: Array'ImageMetaData  // Format-specific metadata preserved by compatible codecs.
+    pixels:    Array'u8                // Owned, row-major pixel bytes.
+    size:      u64                     // Total pixel-buffer size, in bytes.
+    width:     s32                     // Image width, in pixels.
+    height:    s32                     // Image height, in pixels.
+    width8:    s32                     // Byte stride of one tightly packed row.
+    pf:        PixelFormat             // Encoding of each pixel.
+    bpp:       u8                      // Number of bits per pixel.
+    bpp8:      u8                      // Number of bytes per pixel.
+    metaDatas: Array'ImageMetaData     // Format-specific metadata preserved by compatible codecs.
 
     #[Core.Serialization.NoSerialize]
-    workingBuffer: #null *Image // Reusable scratch image owned by this image.
+    workingBuffer: #null *Image     // Reusable scratch image owned by this image.
 }
 
 impl Image

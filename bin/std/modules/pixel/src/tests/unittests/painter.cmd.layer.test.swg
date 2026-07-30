@@ -97,13 +97,13 @@ private func makeLayerRenderer(renderer: *RenderOgl)
     var draw:     LayerDrawInfo
 
     makeLayerRenderer(&renderer)
-    begin.width          = 64
-    begin.height         = 32
-    draw.dstRect         = {10, 10, 64, 32}
-    draw.shadow.enabled  = true
-    draw.shadow.radius   = 6
-    draw.shadow.offsetX  = 3
-    draw.shadow.offsetY  = 4
+    begin.width         = 64
+    begin.height        = 32
+    draw.dstRect        = {10, 10, 64, 32}
+    draw.shadow.enabled = true
+    draw.shadow.radius  = 6
+    draw.shadow.offsetX = 3
+    draw.shadow.offsetY = 4
 
     painter.begin()
     layer.begin(&renderer, &painter, begin)

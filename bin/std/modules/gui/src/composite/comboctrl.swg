@@ -5,14 +5,14 @@ using Core, Pixel
 // Represents combo ctrl.
 struct ComboCtrl
 {
-    using frameWnd: FrameWnd // Embedded frame wnd state.
-    labelSize:      f32 = 60 // Label size associated with this value.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
+    labelSize:      f32 = 60     // Label size associated with this value.
     comboSize:      f32 = 60     // 0 to fit to parent size
 
     #[Swag.Late]
-    label: *Label // Label associated with this value.
+    label: *Label     // Label associated with this value.
     #[Swag.Late]
-    combo: *ComboBox // Combo associated with this value.
+    combo: *ComboBox     // Combo associated with this value.
 }
 
 impl IWnd for ComboCtrl

@@ -3,20 +3,20 @@ using Core, Core.Math
 // Identifies the segment encoded by one [[Pixel.Element]].
 public enum ElementType
 {
-    Line    // Straight segment ending at `position`.
-    Arc     // Elliptical arc encoded by center, angle, and radius data.
-    Bezier1 // Quadratic Bézier segment with one control point.
-    Bezier2 // Cubic Bézier segment with two control points.
-    Curve   // Smoothed curve point interpreted with neighboring elements.
+    Line        // Straight segment ending at `position`.
+    Arc         // Elliptical arc encoded by center, angle, and radius data.
+    Bezier1     // Quadratic Bézier segment with one control point.
+    Bezier2     // Cubic Bézier segment with two control points.
+    Curve       // Smoothed curve point interpreted with neighboring elements.
 }
 
 // Stores one compact segment in a [[Pixel.LinePath]].
 public struct Element
 {
-    type:     ElementType = undefined // Segment representation.
-    position: Vector2                 // Endpoint, or center for an arc.
-    p1:       Vector2                 // First control point, or arc angle interval.
-    p2:       Vector2                 // Second control point, or arc radii.
+    type:     ElementType = undefined     // Segment representation.
+    position: Vector2                     // Endpoint, or center for an arc.
+    p1:       Vector2                     // First control point, or arc angle interval.
+    p2:       Vector2                     // Second control point, or arc radii.
 }
 
 // Builds a mutable vector path from lines, arcs, and Bézier curves.
@@ -36,21 +36,21 @@ public struct Element
 // ```
 public struct LinePath
 {
-    elements:   Array'Element // Ordered segments after the starting point.
-    startPoint: Vector2       // First point in path-space pixels.
-    endPoint:   Vector2       // Current last point in path-space pixels.
-    isClosed:   bool          // Whether the path forms a closed contour.
-    isDirty:    bool          // Whether cached flattened geometry is stale.
-    serial:     s32           // Caller-defined grouping identifier used by path lists.
+    elements:   Array'Element     // Ordered segments after the starting point.
+    startPoint: Vector2           // First point in path-space pixels.
+    endPoint:   Vector2           // Current last point in path-space pixels.
+    isClosed:   bool              // Whether the path forms a closed contour.
+    isDirty:    bool              // Whether cached flattened geometry is stale.
+    serial:     s32               // Caller-defined grouping identifier used by path lists.
 
-    flattenQuality: PaintQuality    // Quality used to build the current flattened cache.
-    isPolyOnly:     bool            // Whether every segment is already polygonal.
-    isFlatten:      bool            // Whether flattened geometry is available.
-    bvMin:          Vector2         // Minimum cached path bound.
-    bvMax:          Vector2         // Maximum cached path bound.
-    endPosBuffer:   Vector2         // Reusable endpoint workspace for flattening.
-    polygon:        Polygon         // Cached flattened contour.
-    triangles:      Poly2Tri.Result // Cached fill tessellation.
+    flattenQuality: PaintQuality        // Quality used to build the current flattened cache.
+    isPolyOnly:     bool                // Whether every segment is already polygonal.
+    isFlatten:      bool                // Whether flattened geometry is available.
+    bvMin:          Vector2             // Minimum cached path bound.
+    bvMax:          Vector2             // Maximum cached path bound.
+    endPosBuffer:   Vector2             // Reusable endpoint workspace for flattening.
+    polygon:        Polygon             // Cached flattened contour.
+    triangles:      Poly2Tri.Result     // Cached fill tessellation.
 }
 
 public impl LinePath

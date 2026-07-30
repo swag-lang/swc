@@ -5,58 +5,58 @@ using Core
 // Selects rich edit command.
 public enum RichEditCommand
 {
-    None // No option is selected.
-    CursorLeft // Selects cursor left.
-    CursorRight // Selects cursor right.
-    CursorUp // Selects cursor up.
-    CursorDown // Selects cursor down.
-    CursorStartLine // Selects cursor start line.
-    CursorEndLine // Selects cursor end line.
-    CursorStartFile // Selects cursor start file.
-    CursorEndFile // Selects cursor end file.
-    CursorWordLeft // Selects cursor word left.
-    CursorWordRight // Selects cursor word right.
-    CursorPageUp // Selects cursor page up.
-    CursorPageDown // Selects cursor page down.
+    None                // No option is selected.
+    CursorLeft          // Selects cursor left.
+    CursorRight         // Selects cursor right.
+    CursorUp            // Selects cursor up.
+    CursorDown          // Selects cursor down.
+    CursorStartLine     // Selects cursor start line.
+    CursorEndLine       // Selects cursor end line.
+    CursorStartFile     // Selects cursor start file.
+    CursorEndFile       // Selects cursor end file.
+    CursorWordLeft      // Selects cursor word left.
+    CursorWordRight     // Selects cursor word right.
+    CursorPageUp        // Selects cursor page up.
+    CursorPageDown      // Selects cursor page down.
 
     // CMD_CURSOR_MATCH_PAIR
-    ScrollLineUp // Selects scroll line up.
-    ScrollLineDown // Selects scroll line down.
-    DeleteLeft // Selects delete left.
-    DeleteRight // Selects delete right.
-    DeleteLine // Selects delete line.
+    ScrollLineUp       // Selects scroll line up.
+    ScrollLineDown     // Selects scroll line down.
+    DeleteLeft         // Selects delete left.
+    DeleteRight        // Selects delete right.
+    DeleteLine         // Selects delete line.
 
     // CMD_EDIT_DELETE_LINE
-    EditTabulation // Selects edit tabulation.
-    EditBackTabulation // Selects edit back tabulation.
-    DeleteWordLeft // Selects delete word left.
-    DeleteWordRight // Selects delete word right.
+    EditTabulation         // Selects edit tabulation.
+    EditBackTabulation     // Selects edit back tabulation.
+    DeleteWordLeft         // Selects delete word left.
+    DeleteWordRight        // Selects delete word right.
 
     // CMD_EDIT_DELETE_LINE_LEFT
     // CMD_EDIT_DELETE_LINE_RIGHT
-    ToggleOverwrite // Selects toggle overwrite.
-    ClipboardCopy // Selects clipboard copy.
-    ClipboardPaste // Selects clipboard paste.
-    ClipboardCut // Selects clipboard cut.
-    Undo // Selects undo.
-    Redo // Selects redo.
-    SelectRuneLeft // Selects select rune left.
-    SelectRuneRight // Selects select rune right.
-    SelectRuneUp // Selects select rune up.
-    SelectRuneDown // Selects select rune down.
-    SelectRectLeft // Selects select rect left.
-    SelectRectRight // Selects select rect right.
-    SelectRectUp // Selects select rect up.
-    SelectRectDown // Selects select rect down.
-    SelectStartLine // Selects select start line.
-    SelectEndLine // Selects select end line.
-    SelectStartFile // Selects select start file.
-    SelectEndFile // Selects select end file.
-    SelectAllFile // Selects select all file.
-    SelectWordLeft // Selects select word left.
-    SelectWordRight // Selects select word right.
-    SelectPageUp // Selects select page up.
-    SelectPageDown // Selects select page down.
+    ToggleOverwrite     // Selects toggle overwrite.
+    ClipboardCopy       // Selects clipboard copy.
+    ClipboardPaste      // Selects clipboard paste.
+    ClipboardCut        // Selects clipboard cut.
+    Undo                // Selects undo.
+    Redo                // Selects redo.
+    SelectRuneLeft      // Selects select rune left.
+    SelectRuneRight     // Selects select rune right.
+    SelectRuneUp        // Selects select rune up.
+    SelectRuneDown      // Selects select rune down.
+    SelectRectLeft      // Selects select rect left.
+    SelectRectRight     // Selects select rect right.
+    SelectRectUp        // Selects select rect up.
+    SelectRectDown      // Selects select rect down.
+    SelectStartLine     // Selects select start line.
+    SelectEndLine       // Selects select end line.
+    SelectStartFile     // Selects select start file.
+    SelectEndFile       // Selects select end file.
+    SelectAllFile       // Selects select all file.
+    SelectWordLeft      // Selects select word left.
+    SelectWordRight     // Selects select word right.
+    SelectPageUp        // Selects select page up.
+    SelectPageDown      // Selects select page down.
 }
 
 impl RichEditCtrl

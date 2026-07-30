@@ -5,29 +5,29 @@ using Core
 // Selects rich edit undo type.
 enum RichEditUndoType
 {
-    Delete // Selects delete.
-    Insert // Selects insert.
-    Selection // Selects selection.
-    Show // Selects show.
-    Hide // Selects hide.
+    Delete        // Selects delete.
+    Insert        // Selects insert.
+    Selection     // Selects selection.
+    Show          // Selects show.
+    Hide          // Selects hide.
 }
 
 // Represents rich edit undo.
 struct RichEditUndo
 {
-    type:        RichEditUndoType = Selection // Type associated with this value.
-    concatChars: bool // Concat chars associated with this value.
-    selBeg:      RichEditCursor // Sel beg associated with this value.
-    cursorPos:   RichEditCursor // Cursor pos associated with this value.
-    runes:       Array'rune // Runes associated with this value.
-    styles:      Array'u8 // Styles associated with this value.
-    serial:      u64 // Serial associated with this value.
-    hasSelRect:  bool // Whether this value has sel rect.
+    type:        RichEditUndoType = Selection     // Type associated with this value.
+    concatChars: bool                             // Concat chars associated with this value.
+    selBeg:      RichEditCursor                   // Sel beg associated with this value.
+    cursorPos:   RichEditCursor                   // Cursor pos associated with this value.
+    runes:       Array'rune                       // Runes associated with this value.
+    styles:      Array'u8                         // Styles associated with this value.
+    serial:      u64                              // Serial associated with this value.
+    hasSelRect:  bool                             // Whether this value has sel rect.
 
-    begSelectionBefore: RichEditCursor // Beg selection before associated with this value.
-    endSelectionBefore: RichEditCursor // End selection before associated with this value.
-    begSelectionAfter:  RichEditCursor // Beg selection after associated with this value.
-    endSelectionAfter:  RichEditCursor // End selection after associated with this value.
+    begSelectionBefore: RichEditCursor     // Beg selection before associated with this value.
+    endSelectionBefore: RichEditCursor     // End selection before associated with this value.
+    begSelectionAfter:  RichEditCursor     // Beg selection after associated with this value.
+    endSelectionAfter:  RichEditCursor     // End selection after associated with this value.
 }
 
 private impl RichEditCtrl

@@ -85,7 +85,10 @@ struct Counter
 impl Counter
 {
     // The declaring type reaches and writes every level.
-    mtd bump() { .count += .step }
+    mtd bump()
+    {
+        .count += .step
+    }
 }
 
 #test

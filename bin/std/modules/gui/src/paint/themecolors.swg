@@ -5,363 +5,363 @@ using Pixel
 // Represents theme colors.
 struct ThemeColors
 {
-    richColor1: Color // Semantic color used for rich color1.
-    richColor2: Color // Semantic color used for rich color2.
-    richColor3: Color // Semantic color used for rich color3.
+    richColor1: Color     // Semantic color used for rich color1.
+    richColor2: Color     // Semantic color used for rich color2.
+    richColor3: Color     // Semantic color used for rich color3.
 
-    surfaceDisabled: Color // Semantic color used for surface disabled.
+    surfaceDisabled: Color     // Semantic color used for surface disabled.
 
-    bk:     Color // Semantic color used for bk.
-    border: Color // Semantic color used for border.
-    text:   Color // Semantic color used for text.
+    bk:     Color     // Semantic color used for bk.
+    border: Color     // Semantic color used for border.
+    text:   Color     // Semantic color used for text.
 
-    hilight:              Color // Semantic color used for hilight.
-    hilightLight:         Color // Semantic color used for hilight light.
-    hilightDark:          Color // Semantic color used for hilight dark.
-    hilightLightContrast: Color // Semantic color used for hilight light contrast.
-    disabled:             Color // Semantic color used for disabled.
-    transparent:          Color // Semantic color used for transparent.
-    lighterSmall:         Color // Semantic color used for lighter small.
-    lighterMedium:        Color // Semantic color used for lighter medium.
-    lighterBig:           Color // Semantic color used for lighter big.
-    lighterVeryBig:       Color // Semantic color used for lighter very big.
+    hilight:              Color     // Semantic color used for hilight.
+    hilightLight:         Color     // Semantic color used for hilight light.
+    hilightDark:          Color     // Semantic color used for hilight dark.
+    hilightLightContrast: Color     // Semantic color used for hilight light contrast.
+    disabled:             Color     // Semantic color used for disabled.
+    transparent:          Color     // Semantic color used for transparent.
+    lighterSmall:         Color     // Semantic color used for lighter small.
+    lighterMedium:        Color     // Semantic color used for lighter medium.
+    lighterBig:           Color     // Semantic color used for lighter big.
+    lighterVeryBig:       Color     // Semantic color used for lighter very big.
 
-    wnd_Bk:                      Color // Semantic color used for wnd bk.
-    wnd_CaptionBk:               Color // Semantic color used for wnd caption bk.
-    wnd_CaptionBkNotActived:     Color // Semantic color used for wnd caption bk not actived.
-    wnd_CaptionText:             Color // Semantic color used for wnd caption text.
-    wnd_CaptionNotActivatedText: Color // Semantic color used for wnd caption not activated text.
-    wnd_Border:                  Color // Semantic color used for wnd border.
-    wnd_BtnCloseBk:              Color // Semantic color used for wnd btn close bk.
-    wnd_BtnCloseHotBk:           Color // Semantic color used for wnd btn close hot bk.
-    wnd_BtnCloseHotIcon:         Color // Semantic color used for wnd btn close hot icon.
-    wnd_BtnClosePressedIcon:     Color // Semantic color used for wnd btn close pressed icon.
-    wnd_Shadow:                  Color // Semantic color used for wnd shadow.
+    wnd_Bk:                      Color     // Semantic color used for wnd bk.
+    wnd_CaptionBk:               Color     // Semantic color used for wnd caption bk.
+    wnd_CaptionBkNotActived:     Color     // Semantic color used for wnd caption bk not actived.
+    wnd_CaptionText:             Color     // Semantic color used for wnd caption text.
+    wnd_CaptionNotActivatedText: Color     // Semantic color used for wnd caption not activated text.
+    wnd_Border:                  Color     // Semantic color used for wnd border.
+    wnd_BtnCloseBk:              Color     // Semantic color used for wnd btn close bk.
+    wnd_BtnCloseHotBk:           Color     // Semantic color used for wnd btn close hot bk.
+    wnd_BtnCloseHotIcon:         Color     // Semantic color used for wnd btn close hot icon.
+    wnd_BtnClosePressedIcon:     Color     // Semantic color used for wnd btn close pressed icon.
+    wnd_Shadow:                  Color     // Semantic color used for wnd shadow.
 
-    view_Bk: Color // Semantic color used for view bk.
+    view_Bk: Color     // Semantic color used for view bk.
 
-    dlg_Bk:       Color // Semantic color used for dlg bk.
-    dlg_BtnBarBk: Color // Semantic color used for dlg btn bar bk.
+    dlg_Bk:       Color     // Semantic color used for dlg bk.
+    dlg_BtnBarBk: Color     // Semantic color used for dlg btn bar bk.
 
-    btnPush_StrongText:   Color // Semantic color used for btn push strong text.
-    btnPush_StrongBorder: Color // Semantic color used for btn push strong border.
-    btnPush_StrongBk:     Color // Semantic color used for btn push strong bk.
+    btnPush_StrongText:   Color     // Semantic color used for btn push strong text.
+    btnPush_StrongBorder: Color     // Semantic color used for btn push strong border.
+    btnPush_StrongBk:     Color     // Semantic color used for btn push strong bk.
 
-    btnPush_Text:           Color // Semantic color used for btn push text.
-    btnPush_Border:         Color // Semantic color used for btn push border.
-    btnPush_Bk:             Color // Semantic color used for btn push bk.
-    btnPush_PressedText:    Color // Semantic color used for btn push pressed text.
-    btnPush_PressedBorder:  Color // Semantic color used for btn push pressed border.
-    btnPush_PressedBk:      Color // Semantic color used for btn push pressed bk.
-    btnPush_HotText:        Color // Semantic color used for btn push hot text.
-    btnPush_HotBorder:      Color // Semantic color used for btn push hot border.
-    btnPush_HotBk:          Color // Semantic color used for btn push hot bk.
-    btnPush_DisabledText:   Color // Semantic color used for btn push disabled text.
-    btnPush_DisabledBorder: Color // Semantic color used for btn push disabled border.
-    btnPush_DisabledBk:     Color // Semantic color used for btn push disabled bk.
+    btnPush_Text:           Color     // Semantic color used for btn push text.
+    btnPush_Border:         Color     // Semantic color used for btn push border.
+    btnPush_Bk:             Color     // Semantic color used for btn push bk.
+    btnPush_PressedText:    Color     // Semantic color used for btn push pressed text.
+    btnPush_PressedBorder:  Color     // Semantic color used for btn push pressed border.
+    btnPush_PressedBk:      Color     // Semantic color used for btn push pressed bk.
+    btnPush_HotText:        Color     // Semantic color used for btn push hot text.
+    btnPush_HotBorder:      Color     // Semantic color used for btn push hot border.
+    btnPush_HotBk:          Color     // Semantic color used for btn push hot bk.
+    btnPush_DisabledText:   Color     // Semantic color used for btn push disabled text.
+    btnPush_DisabledBorder: Color     // Semantic color used for btn push disabled border.
+    btnPush_DisabledBk:     Color     // Semantic color used for btn push disabled bk.
 
-    btnPushFlat_DisabledText:   Color // Semantic color used for btn push flat disabled text.
-    btnPushFlat_DisabledBorder: Color // Semantic color used for btn push flat disabled border.
-    btnPushFlat_DisabledBk:     Color // Semantic color used for btn push flat disabled bk.
-    btnPushFlat_Text:           Color // Semantic color used for btn push flat text.
-    btnPushFlat_Border:         Color // Semantic color used for btn push flat border.
-    btnPushFlat_Bk:             Color // Semantic color used for btn push flat bk.
-    btnPushFlat_PressedText:    Color // Semantic color used for btn push flat pressed text.
-    btnPushFlat_PressedBorder:  Color // Semantic color used for btn push flat pressed border.
-    btnPushFlat_PressedBk:      Color // Semantic color used for btn push flat pressed bk.
-    btnPushFlat_HotText:        Color // Semantic color used for btn push flat hot text.
-    btnPushFlat_HotBorder:      Color // Semantic color used for btn push flat hot border.
-    btnPushFlat_HotBk:          Color // Semantic color used for btn push flat hot bk.
+    btnPushFlat_DisabledText:   Color     // Semantic color used for btn push flat disabled text.
+    btnPushFlat_DisabledBorder: Color     // Semantic color used for btn push flat disabled border.
+    btnPushFlat_DisabledBk:     Color     // Semantic color used for btn push flat disabled bk.
+    btnPushFlat_Text:           Color     // Semantic color used for btn push flat text.
+    btnPushFlat_Border:         Color     // Semantic color used for btn push flat border.
+    btnPushFlat_Bk:             Color     // Semantic color used for btn push flat bk.
+    btnPushFlat_PressedText:    Color     // Semantic color used for btn push flat pressed text.
+    btnPushFlat_PressedBorder:  Color     // Semantic color used for btn push flat pressed border.
+    btnPushFlat_PressedBk:      Color     // Semantic color used for btn push flat pressed bk.
+    btnPushFlat_HotText:        Color     // Semantic color used for btn push flat hot text.
+    btnPushFlat_HotBorder:      Color     // Semantic color used for btn push flat hot border.
+    btnPushFlat_HotBk:          Color     // Semantic color used for btn push flat hot bk.
 
-    btnPushDefault_DisabledText:   Color // Semantic color used for btn push default disabled text.
-    btnPushDefault_DisabledBorder: Color // Semantic color used for btn push default disabled border.
-    btnPushDefault_DisabledBk:     Color // Semantic color used for btn push default disabled bk.
-    btnPushDefault_Text:           Color // Semantic color used for btn push default text.
-    btnPushDefault_Border:         Color // Semantic color used for btn push default border.
-    btnPushDefault_Bk:             Color // Semantic color used for btn push default bk.
-    btnPushDefault_PressedText:    Color // Semantic color used for btn push default pressed text.
-    btnPushDefault_PressedBorder:  Color // Semantic color used for btn push default pressed border.
-    btnPushDefault_PressedBk:      Color // Semantic color used for btn push default pressed bk.
-    btnPushDefault_HotText:        Color // Semantic color used for btn push default hot text.
-    btnPushDefault_HotBorder:      Color // Semantic color used for btn push default hot border.
-    btnPushDefault_HotBk:          Color // Semantic color used for btn push default hot bk.
+    btnPushDefault_DisabledText:   Color     // Semantic color used for btn push default disabled text.
+    btnPushDefault_DisabledBorder: Color     // Semantic color used for btn push default disabled border.
+    btnPushDefault_DisabledBk:     Color     // Semantic color used for btn push default disabled bk.
+    btnPushDefault_Text:           Color     // Semantic color used for btn push default text.
+    btnPushDefault_Border:         Color     // Semantic color used for btn push default border.
+    btnPushDefault_Bk:             Color     // Semantic color used for btn push default bk.
+    btnPushDefault_PressedText:    Color     // Semantic color used for btn push default pressed text.
+    btnPushDefault_PressedBorder:  Color     // Semantic color used for btn push default pressed border.
+    btnPushDefault_PressedBk:      Color     // Semantic color used for btn push default pressed bk.
+    btnPushDefault_HotText:        Color     // Semantic color used for btn push default hot text.
+    btnPushDefault_HotBorder:      Color     // Semantic color used for btn push default hot border.
+    btnPushDefault_HotBk:          Color     // Semantic color used for btn push default hot bk.
 
-    btnIcon_Icon:         Color // Semantic color used for btn icon icon.
-    btnIcon_Text:         Color // Semantic color used for btn icon text.
-    btnIcon_Bk:           Color // Semantic color used for btn icon bk.
-    btnIcon_DisabledIcon: Color // Semantic color used for btn icon disabled icon.
-    btnIcon_DisabledText: Color // Semantic color used for btn icon disabled text.
-    btnIcon_DisabledBk:   Color // Semantic color used for btn icon disabled bk.
-    btnIcon_PressedIcon:  Color // Semantic color used for btn icon pressed icon.
-    btnIcon_PressedText:  Color // Semantic color used for btn icon pressed text.
-    btnIcon_PressedBk:    Color // Semantic color used for btn icon pressed bk.
-    btnIcon_HotIcon:      Color // Semantic color used for btn icon hot icon.
-    btnIcon_HotText:      Color // Semantic color used for btn icon hot text.
-    btnIcon_HotBk:        Color // Semantic color used for btn icon hot bk.
+    btnIcon_Icon:         Color     // Semantic color used for btn icon icon.
+    btnIcon_Text:         Color     // Semantic color used for btn icon text.
+    btnIcon_Bk:           Color     // Semantic color used for btn icon bk.
+    btnIcon_DisabledIcon: Color     // Semantic color used for btn icon disabled icon.
+    btnIcon_DisabledText: Color     // Semantic color used for btn icon disabled text.
+    btnIcon_DisabledBk:   Color     // Semantic color used for btn icon disabled bk.
+    btnIcon_PressedIcon:  Color     // Semantic color used for btn icon pressed icon.
+    btnIcon_PressedText:  Color     // Semantic color used for btn icon pressed text.
+    btnIcon_PressedBk:    Color     // Semantic color used for btn icon pressed bk.
+    btnIcon_HotIcon:      Color     // Semantic color used for btn icon hot icon.
+    btnIcon_HotText:      Color     // Semantic color used for btn icon hot text.
+    btnIcon_HotBk:        Color     // Semantic color used for btn icon hot bk.
 
-    btnIcon_CheckedDisabledIcon: Color // Semantic color used for btn icon checked disabled icon.
-    btnIcon_CheckedDisabledText: Color // Semantic color used for btn icon checked disabled text.
-    btnIcon_CheckedPressedIcon:  Color // Semantic color used for btn icon checked pressed icon.
-    btnIcon_CheckedPressedText:  Color // Semantic color used for btn icon checked pressed text.
-    btnIcon_CheckedHotIcon:      Color // Semantic color used for btn icon checked hot icon.
-    btnIcon_CheckedHotText:      Color // Semantic color used for btn icon checked hot text.
-    btnIcon_CheckedIcon:         Color // Semantic color used for btn icon checked icon.
-    btnIcon_CheckedText:         Color // Semantic color used for btn icon checked text.
-    btnIcon_CheckedDisabledBk:   Color // Semantic color used for btn icon checked disabled bk.
-    btnIcon_CheckedPressedBk:    Color // Semantic color used for btn icon checked pressed bk.
-    btnIcon_CheckedHotBk:        Color // Semantic color used for btn icon checked hot bk.
-    btnIcon_CheckedBk:           Color // Semantic color used for btn icon checked bk.
-    btnIcon_CheckedMark:         Color // Semantic color used for btn icon checked mark.
-    btnIcon_CheckedPressedMark:  Color // Semantic color used for btn icon checked pressed mark.
-    btnIcon_CheckedHotMark:      Color // Semantic color used for btn icon checked hot mark.
-    btnIcon_CheckedDisabledMark: Color // Semantic color used for btn icon checked disabled mark.
+    btnIcon_CheckedDisabledIcon: Color     // Semantic color used for btn icon checked disabled icon.
+    btnIcon_CheckedDisabledText: Color     // Semantic color used for btn icon checked disabled text.
+    btnIcon_CheckedPressedIcon:  Color     // Semantic color used for btn icon checked pressed icon.
+    btnIcon_CheckedPressedText:  Color     // Semantic color used for btn icon checked pressed text.
+    btnIcon_CheckedHotIcon:      Color     // Semantic color used for btn icon checked hot icon.
+    btnIcon_CheckedHotText:      Color     // Semantic color used for btn icon checked hot text.
+    btnIcon_CheckedIcon:         Color     // Semantic color used for btn icon checked icon.
+    btnIcon_CheckedText:         Color     // Semantic color used for btn icon checked text.
+    btnIcon_CheckedDisabledBk:   Color     // Semantic color used for btn icon checked disabled bk.
+    btnIcon_CheckedPressedBk:    Color     // Semantic color used for btn icon checked pressed bk.
+    btnIcon_CheckedHotBk:        Color     // Semantic color used for btn icon checked hot bk.
+    btnIcon_CheckedBk:           Color     // Semantic color used for btn icon checked bk.
+    btnIcon_CheckedMark:         Color     // Semantic color used for btn icon checked mark.
+    btnIcon_CheckedPressedMark:  Color     // Semantic color used for btn icon checked pressed mark.
+    btnIcon_CheckedHotMark:      Color     // Semantic color used for btn icon checked hot mark.
+    btnIcon_CheckedDisabledMark: Color     // Semantic color used for btn icon checked disabled mark.
 
-    label_Text:         Color // Semantic color used for label text.
-    label_TextLight:    Color // Semantic color used for label text light.
-    label_Text1:        Color // Semantic color used for label text1.
-    label_Text2:        Color // Semantic color used for label text2.
-    label_Text3:        Color // Semantic color used for label text3.
-    label_DisabledText: Color // Semantic color used for label disabled text.
-    label_Icon:         Color // Semantic color used for label icon.
-    label_DisabledIcon: Color // Semantic color used for label disabled icon.
+    label_Text:         Color     // Semantic color used for label text.
+    label_TextLight:    Color     // Semantic color used for label text light.
+    label_Text1:        Color     // Semantic color used for label text1.
+    label_Text2:        Color     // Semantic color used for label text2.
+    label_Text3:        Color     // Semantic color used for label text3.
+    label_DisabledText: Color     // Semantic color used for label disabled text.
+    label_Icon:         Color     // Semantic color used for label icon.
+    label_DisabledIcon: Color     // Semantic color used for label disabled icon.
 
-    btnCheck_Text:           Color // Semantic color used for btn check text.
-    btnCheck_Border:         Color // Semantic color used for btn check border.
-    btnCheck_Mark:           Color // Semantic color used for btn check mark.
-    btnCheck_Bk:             Color // Semantic color used for btn check bk.
-    btnCheck_PressedText:    Color // Semantic color used for btn check pressed text.
-    btnCheck_PressedBorder:  Color // Semantic color used for btn check pressed border.
-    btnCheck_PressedMark:    Color // Semantic color used for btn check pressed mark.
-    btnCheck_PressedBk:      Color // Semantic color used for btn check pressed bk.
-    btnCheck_HotText:        Color // Semantic color used for btn check hot text.
-    btnCheck_HotBorder:      Color // Semantic color used for btn check hot border.
-    btnCheck_HotMark:        Color // Semantic color used for btn check hot mark.
-    btnCheck_HotBk:          Color // Semantic color used for btn check hot bk.
-    btnCheck_DisabledText:   Color // Semantic color used for btn check disabled text.
-    btnCheck_DisabledBorder: Color // Semantic color used for btn check disabled border.
-    btnCheck_DisabledMark:   Color // Semantic color used for btn check disabled mark.
-    btnCheck_DisabledBk:     Color // Semantic color used for btn check disabled bk.
-    btnCheck_CheckedText:    Color // Semantic color used for btn check checked text.
-    btnCheck_CheckedBk:      Color // Semantic color used for btn check checked bk.
-    btnCheck_CheckedBorder:  Color // Semantic color used for btn check checked border.
-    btnCheck_CheckedMark:    Color // Semantic color used for btn check checked mark.
+    btnCheck_Text:           Color     // Semantic color used for btn check text.
+    btnCheck_Border:         Color     // Semantic color used for btn check border.
+    btnCheck_Mark:           Color     // Semantic color used for btn check mark.
+    btnCheck_Bk:             Color     // Semantic color used for btn check bk.
+    btnCheck_PressedText:    Color     // Semantic color used for btn check pressed text.
+    btnCheck_PressedBorder:  Color     // Semantic color used for btn check pressed border.
+    btnCheck_PressedMark:    Color     // Semantic color used for btn check pressed mark.
+    btnCheck_PressedBk:      Color     // Semantic color used for btn check pressed bk.
+    btnCheck_HotText:        Color     // Semantic color used for btn check hot text.
+    btnCheck_HotBorder:      Color     // Semantic color used for btn check hot border.
+    btnCheck_HotMark:        Color     // Semantic color used for btn check hot mark.
+    btnCheck_HotBk:          Color     // Semantic color used for btn check hot bk.
+    btnCheck_DisabledText:   Color     // Semantic color used for btn check disabled text.
+    btnCheck_DisabledBorder: Color     // Semantic color used for btn check disabled border.
+    btnCheck_DisabledMark:   Color     // Semantic color used for btn check disabled mark.
+    btnCheck_DisabledBk:     Color     // Semantic color used for btn check disabled bk.
+    btnCheck_CheckedText:    Color     // Semantic color used for btn check checked text.
+    btnCheck_CheckedBk:      Color     // Semantic color used for btn check checked bk.
+    btnCheck_CheckedBorder:  Color     // Semantic color used for btn check checked border.
+    btnCheck_CheckedMark:    Color     // Semantic color used for btn check checked mark.
 
-    toolTip_Bk:     Color // Semantic color used for tool tip bk.
-    toolTip_Border: Color // Semantic color used for tool tip border.
-    toolTip_Text:   Color // Semantic color used for tool tip text.
+    toolTip_Bk:     Color     // Semantic color used for tool tip bk.
+    toolTip_Border: Color     // Semantic color used for tool tip border.
+    toolTip_Text:   Color     // Semantic color used for tool tip text.
 
-    url_Text:    Color // Semantic color used for url text.
-    url_HotText: Color // Semantic color used for url hot text.
+    url_Text:    Color     // Semantic color used for url text.
+    url_HotText: Color     // Semantic color used for url hot text.
 
-    edit_Border:         Color // Semantic color used for edit border.
-    edit_FocusBorder:    Color // Semantic color used for edit focus border.
-    edit_HotBorder:      Color // Semantic color used for edit hot border.
-    edit_DisabledBorder: Color // Semantic color used for edit disabled border.
-    edit_Bk:             Color // Semantic color used for edit bk.
-    edit_DisabledBk:     Color // Semantic color used for edit disabled bk.
-    edit_ErrorBk:        Color // Semantic color used for edit error bk.
-    edit_HotBk:          Color // Semantic color used for edit hot bk.
-    edit_FocusBk:        Color // Semantic color used for edit focus bk.
-    edit_Note:           Color // Semantic color used for edit note.
-    edit_Text:           Color // Semantic color used for edit text.
-    edit_TextUnit:       Color // Semantic color used for edit text unit.
-    edit_DisabledText:   Color // Semantic color used for edit disabled text.
-    edit_SelectedBk:     Color // Semantic color used for edit selected bk.
-    edit_ErrorBorder:    Color // Semantic color used for edit error border.
+    edit_Border:         Color     // Semantic color used for edit border.
+    edit_FocusBorder:    Color     // Semantic color used for edit focus border.
+    edit_HotBorder:      Color     // Semantic color used for edit hot border.
+    edit_DisabledBorder: Color     // Semantic color used for edit disabled border.
+    edit_Bk:             Color     // Semantic color used for edit bk.
+    edit_DisabledBk:     Color     // Semantic color used for edit disabled bk.
+    edit_ErrorBk:        Color     // Semantic color used for edit error bk.
+    edit_HotBk:          Color     // Semantic color used for edit hot bk.
+    edit_FocusBk:        Color     // Semantic color used for edit focus bk.
+    edit_Note:           Color     // Semantic color used for edit note.
+    edit_Text:           Color     // Semantic color used for edit text.
+    edit_TextUnit:       Color     // Semantic color used for edit text unit.
+    edit_DisabledText:   Color     // Semantic color used for edit disabled text.
+    edit_SelectedBk:     Color     // Semantic color used for edit selected bk.
+    edit_ErrorBorder:    Color     // Semantic color used for edit error border.
 
-    richEdit_Bk:             Color // Semantic color used for rich edit bk.
-    richEdit_TextSpecial:    Color // Semantic color used for rich edit text special.
-    richEdit_Text:           Color // Semantic color used for rich edit text.
-    richEdit_SelText:        Color // Semantic color used for rich edit sel text.
-    richEdit_SelTextNoFocus: Color // Semantic color used for rich edit sel text no focus.
-    richEdit_SelBk:          Color // Semantic color used for rich edit sel bk.
-    richEdit_SelBkNoFocus:   Color // Semantic color used for rich edit sel bk no focus.
-    richEdit_Caret:          Color // Semantic color used for rich edit caret.
-    richEdit_CurLineBorder:  Color // Semantic color used for rich edit cur line border.
+    richEdit_Bk:             Color     // Semantic color used for rich edit bk.
+    richEdit_TextSpecial:    Color     // Semantic color used for rich edit text special.
+    richEdit_Text:           Color     // Semantic color used for rich edit text.
+    richEdit_SelText:        Color     // Semantic color used for rich edit sel text.
+    richEdit_SelTextNoFocus: Color     // Semantic color used for rich edit sel text no focus.
+    richEdit_SelBk:          Color     // Semantic color used for rich edit sel bk.
+    richEdit_SelBkNoFocus:   Color     // Semantic color used for rich edit sel bk no focus.
+    richEdit_Caret:          Color     // Semantic color used for rich edit caret.
+    richEdit_CurLineBorder:  Color     // Semantic color used for rich edit cur line border.
 
-    btnToggle_DisabledBorder:   Color // Semantic color used for btn toggle disabled border.
-    btnToggle_DisabledMark:     Color // Semantic color used for btn toggle disabled mark.
-    btnToggle_DisabledBk:       Color // Semantic color used for btn toggle disabled bk.
-    btnToggle_OffBorder:        Color // Semantic color used for btn toggle off border.
-    btnToggle_OffMark:          Color // Semantic color used for btn toggle off mark.
-    btnToggle_OffBk:            Color // Semantic color used for btn toggle off bk.
-    btnToggle_OffHotBorder:     Color // Semantic color used for btn toggle off hot border.
-    btnToggle_OffHotMark:       Color // Semantic color used for btn toggle off hot mark.
-    btnToggle_OffHotBk:         Color // Semantic color used for btn toggle off hot bk.
-    btnToggle_OffPressedBorder: Color // Semantic color used for btn toggle off pressed border.
-    btnToggle_OffPressedMark:   Color // Semantic color used for btn toggle off pressed mark.
-    btnToggle_OffPressedBk:     Color // Semantic color used for btn toggle off pressed bk.
-    btnToggle_OnBorder:         Color // Semantic color used for btn toggle on border.
-    btnToggle_OnMark:           Color // Semantic color used for btn toggle on mark.
-    btnToggle_OnBk:             Color // Semantic color used for btn toggle on bk.
-    btnToggle_OnHotBorder:      Color // Semantic color used for btn toggle on hot border.
-    btnToggle_OnHotMark:        Color // Semantic color used for btn toggle on hot mark.
-    btnToggle_OnHotBk:          Color // Semantic color used for btn toggle on hot bk.
-    btnToggle_OnPressedBorder:  Color // Semantic color used for btn toggle on pressed border.
-    btnToggle_OnPressedMark:    Color // Semantic color used for btn toggle on pressed mark.
-    btnToggle_OnPressedBk:      Color // Semantic color used for btn toggle on pressed bk.
+    btnToggle_DisabledBorder:   Color     // Semantic color used for btn toggle disabled border.
+    btnToggle_DisabledMark:     Color     // Semantic color used for btn toggle disabled mark.
+    btnToggle_DisabledBk:       Color     // Semantic color used for btn toggle disabled bk.
+    btnToggle_OffBorder:        Color     // Semantic color used for btn toggle off border.
+    btnToggle_OffMark:          Color     // Semantic color used for btn toggle off mark.
+    btnToggle_OffBk:            Color     // Semantic color used for btn toggle off bk.
+    btnToggle_OffHotBorder:     Color     // Semantic color used for btn toggle off hot border.
+    btnToggle_OffHotMark:       Color     // Semantic color used for btn toggle off hot mark.
+    btnToggle_OffHotBk:         Color     // Semantic color used for btn toggle off hot bk.
+    btnToggle_OffPressedBorder: Color     // Semantic color used for btn toggle off pressed border.
+    btnToggle_OffPressedMark:   Color     // Semantic color used for btn toggle off pressed mark.
+    btnToggle_OffPressedBk:     Color     // Semantic color used for btn toggle off pressed bk.
+    btnToggle_OnBorder:         Color     // Semantic color used for btn toggle on border.
+    btnToggle_OnMark:           Color     // Semantic color used for btn toggle on mark.
+    btnToggle_OnBk:             Color     // Semantic color used for btn toggle on bk.
+    btnToggle_OnHotBorder:      Color     // Semantic color used for btn toggle on hot border.
+    btnToggle_OnHotMark:        Color     // Semantic color used for btn toggle on hot mark.
+    btnToggle_OnHotBk:          Color     // Semantic color used for btn toggle on hot bk.
+    btnToggle_OnPressedBorder:  Color     // Semantic color used for btn toggle on pressed border.
+    btnToggle_OnPressedMark:    Color     // Semantic color used for btn toggle on pressed mark.
+    btnToggle_OnPressedBk:      Color     // Semantic color used for btn toggle on pressed bk.
 
-    slider_BkLeft:            Color // Semantic color used for slider bk left.
-    slider_BkMiddle:          Color // Semantic color used for slider bk middle.
-    slider_BkRight:           Color // Semantic color used for slider bk right.
-    slider_HilightBk:         Color // Semantic color used for slider hilight bk.
-    slider_Mark:              Color // Semantic color used for slider mark.
-    slider_HotMark:           Color // Semantic color used for slider hot mark.
-    slider_PressedMark:       Color // Semantic color used for slider pressed mark.
-    slider_DisabledMark:      Color // Semantic color used for slider disabled mark.
-    slider_DisabledBk:        Color // Semantic color used for slider disabled bk.
-    slider_DisabledHilightBk: Color // Semantic color used for slider disabled hilight bk.
-    slider_StepBk:            Color // Semantic color used for slider step bk.
-    slider_HilightStepBk:     Color // Semantic color used for slider hilight step bk.
-    slider_HotStepBk:         Color // Semantic color used for slider hot step bk.
+    slider_BkLeft:            Color     // Semantic color used for slider bk left.
+    slider_BkMiddle:          Color     // Semantic color used for slider bk middle.
+    slider_BkRight:           Color     // Semantic color used for slider bk right.
+    slider_HilightBk:         Color     // Semantic color used for slider hilight bk.
+    slider_Mark:              Color     // Semantic color used for slider mark.
+    slider_HotMark:           Color     // Semantic color used for slider hot mark.
+    slider_PressedMark:       Color     // Semantic color used for slider pressed mark.
+    slider_DisabledMark:      Color     // Semantic color used for slider disabled mark.
+    slider_DisabledBk:        Color     // Semantic color used for slider disabled bk.
+    slider_DisabledHilightBk: Color     // Semantic color used for slider disabled hilight bk.
+    slider_StepBk:            Color     // Semantic color used for slider step bk.
+    slider_HilightStepBk:     Color     // Semantic color used for slider hilight step bk.
+    slider_HotStepBk:         Color     // Semantic color used for slider hot step bk.
 
-    circular_Bk:             Color // Semantic color used for circular bk.
-    circular_DisabledBk:     Color // Semantic color used for circular disabled bk.
-    circular_Circle:         Color // Semantic color used for circular circle.
-    circular_DisabledCircle: Color // Semantic color used for circular disabled circle.
-    circular_Mark:           Color // Semantic color used for circular mark.
-    circular_HotMark:        Color // Semantic color used for circular hot mark.
-    circular_PressedMark:    Color // Semantic color used for circular pressed mark.
-    circular_DisabledMark:   Color // Semantic color used for circular disabled mark.
-    circular_Step:           Color // Semantic color used for circular step.
-    circular_DisabledStep:   Color // Semantic color used for circular disabled step.
-    circular_RangeArc:       Color // Semantic color used for circular range arc.
+    circular_Bk:             Color     // Semantic color used for circular bk.
+    circular_DisabledBk:     Color     // Semantic color used for circular disabled bk.
+    circular_Circle:         Color     // Semantic color used for circular circle.
+    circular_DisabledCircle: Color     // Semantic color used for circular disabled circle.
+    circular_Mark:           Color     // Semantic color used for circular mark.
+    circular_HotMark:        Color     // Semantic color used for circular hot mark.
+    circular_PressedMark:    Color     // Semantic color used for circular pressed mark.
+    circular_DisabledMark:   Color     // Semantic color used for circular disabled mark.
+    circular_Step:           Color     // Semantic color used for circular step.
+    circular_DisabledStep:   Color     // Semantic color used for circular disabled step.
+    circular_RangeArc:       Color     // Semantic color used for circular range arc.
 
-    tabItem_DisabledText:             Color // Semantic color used for tab item disabled text.
-    tabItem_SelectedText:             Color // Semantic color used for tab item selected text.
-    tabItem_HotText:                  Color // Semantic color used for tab item hot text.
-    tabItem_Text:                     Color // Semantic color used for tab item text.
-    tabItem_FlatSelected:             Color // Semantic color used for tab item flat selected.
-    tabItem_FlatHot:                  Color // Semantic color used for tab item flat hot.
-    tabItem_RoundSelected:            Color // Semantic color used for tab item round selected.
-    tabItem_RoundHot:                 Color // Semantic color used for tab item round hot.
-    tabItem_ButtonSelected:           Color // Semantic color used for tab item button selected.
-    tabItem_ButtonHot:                Color // Semantic color used for tab item button hot.
-    tabItem_PushButtonSelected:       Color // Semantic color used for tab item push button selected.
-    tabItem_PushButtonSelectedText:   Color // Semantic color used for tab item push button selected text.
-    tabItem_PushButtonSelectedBorder: Color // Semantic color used for tab item push button selected border.
-    tabItem_PushButtonHot:            Color // Semantic color used for tab item push button hot.
-    tabItem_PushButtonHotText:        Color // Semantic color used for tab item push button hot text.
-    tabItem_PushButtonHotBorder:      Color // Semantic color used for tab item push button hot border.
-    tabItem_PushButtonText:           Color // Semantic color used for tab item push button text.
-    tabItem_PushButtonBk:             Color // Semantic color used for tab item push button bk.
-    tabItem_PushButtonBorder:         Color // Semantic color used for tab item push button border.
-    tabBar_FlatBk:                    Color // Semantic color used for tab bar flat bk.
-    tabBar_RoundBk:                   Color // Semantic color used for tab bar round bk.
-    tabView_FlatBk:                   Color // Semantic color used for tab view flat bk.
-    tabView_RoundBk:                  Color // Semantic color used for tab view round bk.
+    tabItem_DisabledText:             Color     // Semantic color used for tab item disabled text.
+    tabItem_SelectedText:             Color     // Semantic color used for tab item selected text.
+    tabItem_HotText:                  Color     // Semantic color used for tab item hot text.
+    tabItem_Text:                     Color     // Semantic color used for tab item text.
+    tabItem_FlatSelected:             Color     // Semantic color used for tab item flat selected.
+    tabItem_FlatHot:                  Color     // Semantic color used for tab item flat hot.
+    tabItem_RoundSelected:            Color     // Semantic color used for tab item round selected.
+    tabItem_RoundHot:                 Color     // Semantic color used for tab item round hot.
+    tabItem_ButtonSelected:           Color     // Semantic color used for tab item button selected.
+    tabItem_ButtonHot:                Color     // Semantic color used for tab item button hot.
+    tabItem_PushButtonSelected:       Color     // Semantic color used for tab item push button selected.
+    tabItem_PushButtonSelectedText:   Color     // Semantic color used for tab item push button selected text.
+    tabItem_PushButtonSelectedBorder: Color     // Semantic color used for tab item push button selected border.
+    tabItem_PushButtonHot:            Color     // Semantic color used for tab item push button hot.
+    tabItem_PushButtonHotText:        Color     // Semantic color used for tab item push button hot text.
+    tabItem_PushButtonHotBorder:      Color     // Semantic color used for tab item push button hot border.
+    tabItem_PushButtonText:           Color     // Semantic color used for tab item push button text.
+    tabItem_PushButtonBk:             Color     // Semantic color used for tab item push button bk.
+    tabItem_PushButtonBorder:         Color     // Semantic color used for tab item push button border.
+    tabBar_FlatBk:                    Color     // Semantic color used for tab bar flat bk.
+    tabBar_RoundBk:                   Color     // Semantic color used for tab bar round bk.
+    tabView_FlatBk:                   Color     // Semantic color used for tab view flat bk.
+    tabView_RoundBk:                  Color     // Semantic color used for tab view round bk.
 
-    menuPopup_Bk:         Color // Semantic color used for menu popup bk.
-    menuPopup_Border:     Color // Semantic color used for menu popup border.
-    menuPopup_Shadow:     Color // Semantic color used for menu popup shadow.
-    menuPopup_Separator:  Color // Semantic color used for menu popup separator.
-    menuBar_Bk:           Color // Semantic color used for menu bar bk.
-    menuBar_Border:       Color // Semantic color used for menu bar border.
-    menuBar_SelectedBk:   Color // Semantic color used for menu bar selected bk.
-    menuBar_SelectedText: Color // Semantic color used for menu bar selected text.
+    menuPopup_Bk:         Color     // Semantic color used for menu popup bk.
+    menuPopup_Border:     Color     // Semantic color used for menu popup border.
+    menuPopup_Shadow:     Color     // Semantic color used for menu popup shadow.
+    menuPopup_Separator:  Color     // Semantic color used for menu popup separator.
+    menuBar_Bk:           Color     // Semantic color used for menu bar bk.
+    menuBar_Border:       Color     // Semantic color used for menu bar border.
+    menuBar_SelectedBk:   Color     // Semantic color used for menu bar selected bk.
+    menuBar_SelectedText: Color     // Semantic color used for menu bar selected text.
 
-    popupItem_Text:         Color // Semantic color used for popup item text.
-    popupItem_RightText:    Color // Semantic color used for popup item right text.
-    popupItem_DisabledText: Color // Semantic color used for popup item disabled text.
-    popupItem_HotText:      Color // Semantic color used for popup item hot text.
-    popupItem_HotRightText: Color // Semantic color used for popup item hot right text.
-    popupItem_HotBk:        Color // Semantic color used for popup item hot bk.
+    popupItem_Text:         Color     // Semantic color used for popup item text.
+    popupItem_RightText:    Color     // Semantic color used for popup item right text.
+    popupItem_DisabledText: Color     // Semantic color used for popup item disabled text.
+    popupItem_HotText:      Color     // Semantic color used for popup item hot text.
+    popupItem_HotRightText: Color     // Semantic color used for popup item hot right text.
+    popupItem_HotBk:        Color     // Semantic color used for popup item hot bk.
 
-    scrollBar_Bk:         Color // Semantic color used for scroll bar bk.
-    scrollBar_HotBk:      Color // Semantic color used for scroll bar hot bk.
-    scrollBar_DisabledBk: Color // Semantic color used for scroll bar disabled bk.
-    scrollBar_Box:        Color // Semantic color used for scroll bar box.
-    scrollBar_HotBox:     Color // Semantic color used for scroll bar hot box.
-    scrollBar_PressedBox: Color // Semantic color used for scroll bar pressed box.
+    scrollBar_Bk:         Color     // Semantic color used for scroll bar bk.
+    scrollBar_HotBk:      Color     // Semantic color used for scroll bar hot bk.
+    scrollBar_DisabledBk: Color     // Semantic color used for scroll bar disabled bk.
+    scrollBar_Box:        Color     // Semantic color used for scroll bar box.
+    scrollBar_HotBox:     Color     // Semantic color used for scroll bar hot box.
+    scrollBar_PressedBox: Color     // Semantic color used for scroll bar pressed box.
 
-    comboBox_Border:           Color // Semantic color used for combo box border.
-    comboBox_HotBorder:        Color // Semantic color used for combo box hot border.
-    comboBox_DisabledBorder:   Color // Semantic color used for combo box disabled border.
-    comboBox_SelectedBorder:   Color // Semantic color used for combo box selected border.
-    comboBox_Bk:               Color // Semantic color used for combo box bk.
-    comboBox_HotBk:            Color // Semantic color used for combo box hot bk.
-    comboBox_DisabledBk:       Color // Semantic color used for combo box disabled bk.
-    comboBox_SelectedBk:       Color // Semantic color used for combo box selected bk.
-    comboBox_Text:             Color // Semantic color used for combo box text.
-    comboBox_HotText:          Color // Semantic color used for combo box hot text.
-    comboBox_DisabledText:     Color // Semantic color used for combo box disabled text.
-    comboBox_SelectedText:     Color // Semantic color used for combo box selected text.
-    comboBoxItem_Text:         Color // Semantic color used for combo box item text.
-    comboBoxItem_HotBk:        Color // Semantic color used for combo box item hot bk.
-    comboBoxItem_HotText:      Color // Semantic color used for combo box item hot text.
-    comboBoxItem_CheckMark:    Color // Semantic color used for combo box item check mark.
-    comboBoxItem_HotCheckMark: Color // Semantic color used for combo box item hot check mark.
+    comboBox_Border:           Color     // Semantic color used for combo box border.
+    comboBox_HotBorder:        Color     // Semantic color used for combo box hot border.
+    comboBox_DisabledBorder:   Color     // Semantic color used for combo box disabled border.
+    comboBox_SelectedBorder:   Color     // Semantic color used for combo box selected border.
+    comboBox_Bk:               Color     // Semantic color used for combo box bk.
+    comboBox_HotBk:            Color     // Semantic color used for combo box hot bk.
+    comboBox_DisabledBk:       Color     // Semantic color used for combo box disabled bk.
+    comboBox_SelectedBk:       Color     // Semantic color used for combo box selected bk.
+    comboBox_Text:             Color     // Semantic color used for combo box text.
+    comboBox_HotText:          Color     // Semantic color used for combo box hot text.
+    comboBox_DisabledText:     Color     // Semantic color used for combo box disabled text.
+    comboBox_SelectedText:     Color     // Semantic color used for combo box selected text.
+    comboBoxItem_Text:         Color     // Semantic color used for combo box item text.
+    comboBoxItem_HotBk:        Color     // Semantic color used for combo box item hot bk.
+    comboBoxItem_HotText:      Color     // Semantic color used for combo box item hot text.
+    comboBoxItem_CheckMark:    Color     // Semantic color used for combo box item check mark.
+    comboBoxItem_HotCheckMark: Color     // Semantic color used for combo box item hot check mark.
 
-    popupList_Separator:    Color // Semantic color used for popup list separator.
-    popupList_HotBk:        Color // Semantic color used for popup list hot bk.
-    popupList_Text:         Color // Semantic color used for popup list text.
-    popupList_HotText:      Color // Semantic color used for popup list hot text.
-    popupList_CheckMark:    Color // Semantic color used for popup list check mark.
-    popupList_HotCheckMark: Color // Semantic color used for popup list hot check mark.
+    popupList_Separator:    Color     // Semantic color used for popup list separator.
+    popupList_HotBk:        Color     // Semantic color used for popup list hot bk.
+    popupList_Text:         Color     // Semantic color used for popup list text.
+    popupList_HotText:      Color     // Semantic color used for popup list hot text.
+    popupList_CheckMark:    Color     // Semantic color used for popup list check mark.
+    popupList_HotCheckMark: Color     // Semantic color used for popup list hot check mark.
 
-    frameWnd_SmallShadow:    Color // Semantic color used for frame wnd small shadow.
-    frameWnd_Border:         Color // Semantic color used for frame wnd border.
-    frameWnd_PopupBorder:    Color // Semantic color used for frame wnd popup border.
-    frameWnd_FocusBorder:    Color // Semantic color used for frame wnd focus border.
-    frameWnd_DisabledBorder: Color // Semantic color used for frame wnd disabled border.
-    frameWnd_Bk:             Color // Semantic color used for frame wnd bk.
-    frameWnd_DisabledBk:     Color // Semantic color used for frame wnd disabled bk.
-    frameWnd_FocusBk:        Color // Semantic color used for frame wnd focus bk.
+    frameWnd_SmallShadow:    Color     // Semantic color used for frame wnd small shadow.
+    frameWnd_Border:         Color     // Semantic color used for frame wnd border.
+    frameWnd_PopupBorder:    Color     // Semantic color used for frame wnd popup border.
+    frameWnd_FocusBorder:    Color     // Semantic color used for frame wnd focus border.
+    frameWnd_DisabledBorder: Color     // Semantic color used for frame wnd disabled border.
+    frameWnd_Bk:             Color     // Semantic color used for frame wnd bk.
+    frameWnd_DisabledBk:     Color     // Semantic color used for frame wnd disabled bk.
+    frameWnd_FocusBk:        Color     // Semantic color used for frame wnd focus bk.
 
-    listItem_FocusSelectedBk:   Color // Semantic color used for list item focus selected bk.
-    listItem_FocusSelectedText: Color // Semantic color used for list item focus selected text.
-    listItem_SelectedBk:        Color // Semantic color used for list item selected bk.
-    listItem_SelectedText:      Color // Semantic color used for list item selected text.
-    listItem_HotBk:             Color // Semantic color used for list item hot bk.
-    listItem_DisabledText:      Color // Semantic color used for list item disabled text.
-    listItem_Text:              Color // Semantic color used for list item text.
-    listItem_Separator:         Color // Semantic color used for list item separator.
-    listItem_AlternateBk:       Color // Semantic color used for list item alternate bk.
-    listItem_Line:              Color // Semantic color used for list item line.
+    listItem_FocusSelectedBk:   Color     // Semantic color used for list item focus selected bk.
+    listItem_FocusSelectedText: Color     // Semantic color used for list item focus selected text.
+    listItem_SelectedBk:        Color     // Semantic color used for list item selected bk.
+    listItem_SelectedText:      Color     // Semantic color used for list item selected text.
+    listItem_HotBk:             Color     // Semantic color used for list item hot bk.
+    listItem_DisabledText:      Color     // Semantic color used for list item disabled text.
+    listItem_Text:              Color     // Semantic color used for list item text.
+    listItem_Separator:         Color     // Semantic color used for list item separator.
+    listItem_AlternateBk:       Color     // Semantic color used for list item alternate bk.
+    listItem_Line:              Color     // Semantic color used for list item line.
 
-    headerItem_DisabledText: Color // Semantic color used for header item disabled text.
-    headerItem_HotText:      Color // Semantic color used for header item hot text.
-    headerItem_HotBk:        Color // Semantic color used for header item hot bk.
-    headerItem_ClickedBk:    Color // Semantic color used for header item clicked bk.
-    headerItem_Text:         Color // Semantic color used for header item text.
-    headerItem_Separator:    Color // Semantic color used for header item separator.
-    header_Bk:               Color // Semantic color used for header bk.
+    headerItem_DisabledText: Color     // Semantic color used for header item disabled text.
+    headerItem_HotText:      Color     // Semantic color used for header item hot text.
+    headerItem_HotBk:        Color     // Semantic color used for header item hot bk.
+    headerItem_ClickedBk:    Color     // Semantic color used for header item clicked bk.
+    headerItem_Text:         Color     // Semantic color used for header item text.
+    headerItem_Separator:    Color     // Semantic color used for header item separator.
+    header_Bk:               Color     // Semantic color used for header bk.
 
-    splitView_TitleBk: Color // Semantic color used for split view title bk.
-    splitView_Bar:     Color // Semantic color used for split view bar.
-    splitView_BarHot:  Color // Semantic color used for split view bar hot.
+    splitView_TitleBk: Color     // Semantic color used for split view title bk.
+    splitView_Bar:     Color     // Semantic color used for split view bar.
+    splitView_BarHot:  Color     // Semantic color used for split view bar hot.
 
-    progressBar_DisabledBorder: Color // Semantic color used for progress bar disabled border.
-    progressBar_DisabledBk:     Color // Semantic color used for progress bar disabled bk.
-    progressBar_DisabledMark:   Color // Semantic color used for progress bar disabled mark.
-    progressBar_Border:         Color // Semantic color used for progress bar border.
-    progressBar_Bk:             Color // Semantic color used for progress bar bk.
-    progressBar_Mark:           Color // Semantic color used for progress bar mark.
+    progressBar_DisabledBorder: Color     // Semantic color used for progress bar disabled border.
+    progressBar_DisabledBk:     Color     // Semantic color used for progress bar disabled bk.
+    progressBar_DisabledMark:   Color     // Semantic color used for progress bar disabled mark.
+    progressBar_Border:         Color     // Semantic color used for progress bar border.
+    progressBar_Bk:             Color     // Semantic color used for progress bar bk.
+    progressBar_Mark:           Color     // Semantic color used for progress bar mark.
 
-    palPicker_Border:    Color // Semantic color used for pal picker border.
-    palPicker_HotBorder: Color // Semantic color used for pal picker hot border.
+    palPicker_Border:    Color     // Semantic color used for pal picker border.
+    palPicker_HotBorder: Color     // Semantic color used for pal picker hot border.
 
-    colorPicker_Border:    Color // Semantic color used for color picker border.
-    colorPicker_BackAlpha: Color // Semantic color used for color picker back alpha.
-    colorPicker_Mark:      Color // Semantic color used for color picker mark.
+    colorPicker_Border:    Color     // Semantic color used for color picker border.
+    colorPicker_BackAlpha: Color     // Semantic color used for color picker back alpha.
+    colorPicker_Mark:      Color     // Semantic color used for color picker mark.
 
-    imageRect_Fg: Color // Semantic color used for image rect fg.
+    imageRect_Fg: Color     // Semantic color used for image rect fg.
 
-    embInfo_CriticalBk:      Color // Semantic color used for emb info critical bk.
-    embInfo_CriticalText:    Color // Semantic color used for emb info critical text.
-    embInfo_InformationBk:   Color // Semantic color used for emb info information bk.
-    embInfo_InformationText: Color // Semantic color used for emb info information text.
-    embInfo_MessageBk:       Color // Semantic color used for emb info message bk.
-    embInfo_MessageText:     Color // Semantic color used for emb info message text.
+    embInfo_CriticalBk:      Color     // Semantic color used for emb info critical bk.
+    embInfo_CriticalText:    Color     // Semantic color used for emb info critical text.
+    embInfo_InformationBk:   Color     // Semantic color used for emb info information bk.
+    embInfo_InformationText: Color     // Semantic color used for emb info information text.
+    embInfo_MessageBk:       Color     // Semantic color used for emb info message bk.
+    embInfo_MessageText:     Color     // Semantic color used for emb info message text.
 
-    prop_FocusBk:     Color // Semantic color used for prop focus bk.
-    prop_FocusBorder: Color // Semantic color used for prop focus border.
-    prop_HotBk:       Color // Semantic color used for prop hot bk.
-    prop_HotBorder:   Color // Semantic color used for prop hot border.
-    prop_GridBorder:  Color // Semantic color used for prop grid border.
-    prop_GridColumn:  Color // Semantic color used for prop grid column.
-    prop_SectionBk:   Color // Semantic color used for prop section bk.
-    prop_CategBk:     Color // Semantic color used for prop categ bk.
+    prop_FocusBk:     Color     // Semantic color used for prop focus bk.
+    prop_FocusBorder: Color     // Semantic color used for prop focus border.
+    prop_HotBk:       Color     // Semantic color used for prop hot bk.
+    prop_HotBorder:   Color     // Semantic color used for prop hot border.
+    prop_GridBorder:  Color     // Semantic color used for prop grid border.
+    prop_GridColumn:  Color     // Semantic color used for prop grid column.
+    prop_SectionBk:   Color     // Semantic color used for prop section bk.
+    prop_CategBk:     Color     // Semantic color used for prop categ bk.
 }
 
 impl ThemeColors

@@ -6,7 +6,7 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum PropertiesCtrlFlags
 {
-    Zero = 0 // No flags are enabled.
+    Zero = 0          // No flags are enabled.
     FindBar           // Add a find bar at the top
     SectionPane       // Display all sections in a pane on the left
     SectionFilter     // Display a section filter bar
@@ -15,17 +15,17 @@ enum PropertiesCtrlFlags
 // Represents properties ctrl.
 struct PropertiesCtrl
 {
-    using frameWnd: FrameWnd // Embedded frame wnd state.
+    using frameWnd: FrameWnd     // Embedded frame wnd state.
 
     #[Swag.Late]
     {
-        splitter: *SplitterCtrl // Splitter associated with this value.
-        list:     *ListCtrl // List associated with this value.
-        tab:      *Tab // Tab associated with this value.
-        prop:     *Properties // Prop associated with this value.
+        splitter: *SplitterCtrl     // Splitter associated with this value.
+        list:     *ListCtrl         // List associated with this value.
+        tab:      *Tab              // Tab associated with this value.
+        prop:     *Properties       // Prop associated with this value.
     }
 
-    propFlags: PropertiesCtrlFlags // Prop flags associated with this value.
+    propFlags: PropertiesCtrlFlags     // Prop flags associated with this value.
 }
 
 impl PropertiesCtrl

@@ -6,32 +6,32 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum LabelFlags
 {
-    Zero = 0 // No flags are enabled.
-    WordWrap // Enables word wrap.
-    LightText // Enables light text.
-    AutoHeight // Enables auto height.
-    DontAdaptSingleLineHeight // Enables dont adapt single line height.
+    Zero = 0                      // No flags are enabled.
+    WordWrap                      // Enables word wrap.
+    LightText                     // Enables light text.
+    AutoHeight                    // Enables auto height.
+    DontAdaptSingleLineHeight     // Enables dont adapt single line height.
 }
 
 // Represents label.
 struct Label
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    sigUrlClicked: SigArray'func||(*Label, string) // Signal emitted when url clicked.
+    sigUrlClicked: SigArray'func||(*Label, string)     // Signal emitted when url clicked.
 
-    icon:        Icon // Icon associated with this value.
-    iconColor:   Color // Icon color associated with this value.
-    textColor:   Color // Text color associated with this value.
-    labelFlags        = LabelFlags.Zero // Label flags associated with this value.
-    horzAlignmentIcon = StringHorzAlignment.Center // Horz alignment icon associated with this value.
-    vertAlignmentIcon = StringVertAlignment.Center // Vert alignment icon associated with this value.
-    horzAlignmentText = StringHorzAlignment.Center // Horz alignment text associated with this value.
-    vertAlignmentText = StringVertAlignment.Center // Vert alignment text associated with this value.
-    paddingText: Math.Vector4 // Padding text associated with this value.
-    paddingIcon: Math.Vector4 // Padding icon associated with this value.
+    icon:        Icon                                  // Icon associated with this value.
+    iconColor:   Color                                 // Icon color associated with this value.
+    textColor:   Color                                 // Text color associated with this value.
+    labelFlags        = LabelFlags.Zero                // Label flags associated with this value.
+    horzAlignmentIcon = StringHorzAlignment.Center     // Horz alignment icon associated with this value.
+    vertAlignmentIcon = StringVertAlignment.Center     // Vert alignment icon associated with this value.
+    horzAlignmentText = StringHorzAlignment.Center     // Horz alignment text associated with this value.
+    vertAlignmentText = StringVertAlignment.Center     // Vert alignment text associated with this value.
+    paddingText: Math.Vector4                          // Padding text associated with this value.
+    paddingIcon: Math.Vector4                          // Padding icon associated with this value.
 
-    hotChunk: #null *RichChunk // Hot chunk associated with this value.
+    hotChunk: #null *RichChunk     // Hot chunk associated with this value.
 }
 
 impl IWnd for Label

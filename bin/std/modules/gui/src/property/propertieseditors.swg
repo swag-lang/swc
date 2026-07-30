@@ -35,8 +35,8 @@ public interface IPropertyEditor
 // ImageDecoder / ImageEncoder.
 struct PropertyEditorReg
 {
-    type: const *Swag.TypeInfoStruct // Type associated with this value.
-    itf:  IPropertyEditor // Itf associated with this value.
+    type: const *Swag.TypeInfoStruct     // Type associated with this value.
+    itf:  IPropertyEditor                // Itf associated with this value.
 }
 
 impl Properties

@@ -6,10 +6,10 @@ using Math
 // Allows reading position and button click information from mouse
 struct Mouse
 {
-    previousState: MouseState // Previous state associated with this value.
-    currentState:  MouseState // Current state associated with this value.
-    dblClk:        [MouseButton] bool // Dbl clk associated with this value.
-    dblClkTimeMs:  u32 = 300 // Dbl clk time ms associated with this value.
+    previousState: MouseState             // Previous state associated with this value.
+    currentState:  MouseState             // Current state associated with this value.
+    dblClk:        [MouseButton] bool     // Dbl clk associated with this value.
+    dblClkTimeMs:  u32 = 300              // Dbl clk time ms associated with this value.
 }
 
 impl Mouse

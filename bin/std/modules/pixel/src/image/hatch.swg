@@ -4,42 +4,42 @@
 // background colors.
 public enum HatchStyle
 {
-    Dot                   // Alternating one-pixel dots.
-    Horizontal            // Single horizontal line per tile.
-    HorizontalLight       // Widely spaced horizontal lines.
-    HorizontalNarrow      // Closely spaced horizontal lines.
-    Vertical              // Single vertical line per tile.
-    VerticalLight         // Widely spaced vertical lines.
-    VerticalNarrow        // Closely spaced vertical lines.
-    SolidDiamond          // Repeating filled diamonds.
-    OutlinedDiamond       // Repeating diamond outlines.
-    HorizontalDark        // Dense horizontal bands.
-    VerticalDark          // Dense vertical bands.
-    Grid                  // Horizontal and vertical grid.
-    GridLarge             // Coarse grid.
-    GridDotted            // Dotted grid.
-    Cross                 // Repeating small crosses.
-    CrossLarge            // Repeating large crosses.
-    Percent5              // Approximately 5% foreground coverage.
-    Percent10             // Approximately 10% foreground coverage.
-    Percent20             // Approximately 20% foreground coverage.
-    Percent25             // Approximately 25% foreground coverage.
-    Percent30             // Approximately 30% foreground coverage.
-    Percent40             // Approximately 40% foreground coverage.
-    Percent50             // Approximately 50% foreground coverage.
-    Percent60             // Approximately 60% foreground coverage.
-    Percent70             // Approximately 70% foreground coverage.
-    Percent75             // Approximately 75% foreground coverage.
-    Percent80             // Approximately 80% foreground coverage.
-    Percent90             // Approximately 90% foreground coverage.
-    CheckBoard            // Fine checkerboard.
-    CheckBoardLarge       // Coarse checkerboard.
-    Weave                 // Interlaced weave.
-    DiagonalForward       // Forward diagonal lines.
-    DiagonalForwardLight  // Widely spaced forward diagonal lines.
-    DiagonalBackward      // Backward diagonal lines.
-    DiagonalBackwardLight // Widely spaced backward diagonal lines.
-    DiagonalCross         // Crossed diagonal lines.
+    Dot                       // Alternating one-pixel dots.
+    Horizontal                // Single horizontal line per tile.
+    HorizontalLight           // Widely spaced horizontal lines.
+    HorizontalNarrow          // Closely spaced horizontal lines.
+    Vertical                  // Single vertical line per tile.
+    VerticalLight             // Widely spaced vertical lines.
+    VerticalNarrow            // Closely spaced vertical lines.
+    SolidDiamond              // Repeating filled diamonds.
+    OutlinedDiamond           // Repeating diamond outlines.
+    HorizontalDark            // Dense horizontal bands.
+    VerticalDark              // Dense vertical bands.
+    Grid                      // Horizontal and vertical grid.
+    GridLarge                 // Coarse grid.
+    GridDotted                // Dotted grid.
+    Cross                     // Repeating small crosses.
+    CrossLarge                // Repeating large crosses.
+    Percent5                  // Approximately 5% foreground coverage.
+    Percent10                 // Approximately 10% foreground coverage.
+    Percent20                 // Approximately 20% foreground coverage.
+    Percent25                 // Approximately 25% foreground coverage.
+    Percent30                 // Approximately 30% foreground coverage.
+    Percent40                 // Approximately 40% foreground coverage.
+    Percent50                 // Approximately 50% foreground coverage.
+    Percent60                 // Approximately 60% foreground coverage.
+    Percent70                 // Approximately 70% foreground coverage.
+    Percent75                 // Approximately 75% foreground coverage.
+    Percent80                 // Approximately 80% foreground coverage.
+    Percent90                 // Approximately 90% foreground coverage.
+    CheckBoard                // Fine checkerboard.
+    CheckBoardLarge           // Coarse checkerboard.
+    Weave                     // Interlaced weave.
+    DiagonalForward           // Forward diagonal lines.
+    DiagonalForwardLight      // Widely spaced forward diagonal lines.
+    DiagonalBackward          // Backward diagonal lines.
+    DiagonalBackwardLight     // Widely spaced backward diagonal lines.
+    DiagonalCross             // Crossed diagonal lines.
 }
 
 namespace Hatch

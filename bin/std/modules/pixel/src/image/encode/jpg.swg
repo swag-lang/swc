@@ -188,37 +188,42 @@ impl BitString
 #[Swag.Opaque]
 public struct Encoder
 {
-    imageX:    u16
-    imageY:    u16
-    bufferRGB: Array'ColorRGB
+    // Baseline JPEG encoding state: the padded source, the quantization and Huffman tables,
+    // and the 8x8 block being transformed. Encode through the module entry points.
+    private
+    {
+        imageX:    u16                // Width of the padded source, a multiple of eight.
+        imageY:    u16                // Height of the padded source, a multiple of eight.
+        bufferRGB: Array'ColorRGB     // Padded source pixels.
 
-    stream: #null *ConcatBuffer
+        stream: #null *ConcatBuffer     // Output buffer segments are appended to.
 
-    bytenew: u8
-    bytepos: s8
+        bytenew: u8     // Bit accumulator of the entropy coder.
+        bytepos: s8     // Free bit position inside 'bytenew'.
 
-    scaleFactor: u8 = 10
+        scaleFactor: u8 = 10     // Quality scale applied to the quantization tables.
 
-    dqtInfo: DQTInfoType
-    dhtInfo: DHTInfoType
-    htYDC:   [12] BitString
-    htCbDC:  [12] BitString
-    htYAC:   [256] BitString
-    htCbAC:  [256] BitString
+        dqtInfo: DQTInfoType         // Quantization table segment.
+        dhtInfo: DHTInfoType         // Huffman table segment.
+        htYDC:   [12] BitString      // Luma DC code table.
+        htCbDC:  [12] BitString      // Chroma DC code table.
+        htYAC:   [256] BitString     // Luma AC code table.
+        htCbAC:  [256] BitString     // Chroma AC code table.
 
-    fdtblY:  [64] f32
-    fdtblCb: [64] f32
+        fdtblY:  [64] f32     // Scaled luma quantization table.
+        fdtblCb: [64] f32     // Scaled chroma quantization table.
 
-    duY:   [64] s8
-    duCb:  [64] s8
-    duCr:  [64] s8
-    duDct: [64] s16
-    du:    [64] s16
+        duY:   [64] s8      // Luma samples of the current block.
+        duCb:  [64] s8      // Blue-chroma samples of the current block.
+        duCr:  [64] s8      // Red-chroma samples of the current block.
+        duDct: [64] s16     // Transformed coefficients of the current block.
+        du:    [64] s16     // Quantized coefficients of the current block.
 
-    categoryAlloc: Array'u8
-    category:      #null [*] u8
-    bitcodeAlloc:  Array'BitString
-    bitcode:       #null [*] BitString
+        categoryAlloc: Array'u8                // Storage for the magnitude-category table.
+        category:      #null [*] u8            // Magnitude-category table, biased to signed input.
+        bitcodeAlloc:  Array'BitString         // Storage for the magnitude-code table.
+        bitcode:       #null [*] BitString     // Magnitude-code table, biased to signed input.
+    }
 }
 
 impl Encoder

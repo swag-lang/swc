@@ -7,15 +7,15 @@ alias ProcessHandle = #null const *void
 // Represents start info.
 struct StartInfo
 {
-    fileName:  string // File name associated with this value.
-    arguments: #null string // Arguments associated with this value.
+    fileName:  string           // File name associated with this value.
+    arguments: #null string     // Arguments associated with this value.
 }
 
 // Represents process.
 #[Swag.NoCopy]
 struct Process
 {
-    handle: ProcessHandle // Handle associated with this value.
+    handle: ProcessHandle     // Handle associated with this value.
 }
 
 // Starts a new process with arguments

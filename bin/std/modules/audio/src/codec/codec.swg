@@ -68,8 +68,8 @@ func getCodec(dstEncoding, srcEncoding: SoundFileEncoding)->#null *CodecDesc
 // Stores the source, destination, and concrete type of a codec instance.
 public struct Codec
 {
-    srcEncoding: SoundFileEncoding // Encoding read from the sound file.
-    dstEncoding: SoundFileEncoding // Encoding requested by the active backend.
+    srcEncoding: SoundFileEncoding     // Encoding read from the sound file.
+    dstEncoding: SoundFileEncoding     // Encoding requested by the active backend.
     // Concrete codec type used for destruction.
     #[Swag.Late]
     type: const *Swag.TypeInfoStruct

@@ -12,8 +12,9 @@ public
 {
     // Returns whether latin1.
     func isLatin1(c: rune) => c <= 0xFF
+
     // Returns whether ascii.
-    func isAscii(c: rune)  => c <= 0x7F
+    func isAscii(c: rune) => c <= 0x7F
 }
 
 #[Swag.ConstExpr]
@@ -265,21 +266,21 @@ const UpperLower = Swag.S32.Max
 
 struct Range
 {
-    lo, hi: rune // Lo associated with this value.
-    stride: u32 // Stride associated with this value.
+    lo, hi: rune     // Lo associated with this value.
+    stride: u32      // Stride associated with this value.
 }
 
 enum WantedCase
 {
-    UpperCase // Selects upper case.
-    LowerCase // Selects lower case.
-    TitleCase // Selects title case.
+    UpperCase     // Selects upper case.
+    LowerCase     // Selects lower case.
+    TitleCase     // Selects title case.
 }
 
 struct CaseRange
 {
-    lo, hi: rune // Lo associated with this value.
-    delta:  [WantedCase] s32 // Delta associated with this value.
+    lo, hi: rune                 // Lo associated with this value.
+    delta:  [WantedCase] s32     // Delta associated with this value.
 }
 
 func isInTable(ranges: const [..] Range, r: rune)->bool

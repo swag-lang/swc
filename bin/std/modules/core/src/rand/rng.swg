@@ -9,8 +9,8 @@ struct(T = MWC) Rng
     // reading a raw state tells nothing, and writing one can produce a degenerate sequence.
     private
     {
-        rng:      T // State of the underlying generator.
-        seedDone: bool // Whether a seed was applied, so the first draw can seed lazily.
+        rng:      T        // State of the underlying generator.
+        seedDone: bool     // Whether a seed was applied, so the first draw can seed lazily.
     }
 }
 

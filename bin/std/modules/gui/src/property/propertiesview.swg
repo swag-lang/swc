@@ -4,9 +4,11 @@ using Core, Pixel
 #[Swag.Opaque]
 public struct PropertiesView
 {
-    using stackWnd: StackLayoutCtrl // Embedded stack wnd state.
+    using stackWnd: StackLayoutCtrl     // Embedded stack wnd state.
+
+    // The grid this view paints for. 'Properties' establishes it when it builds the view.
     #[Swag.Late]
-    ed: *Properties // Ed associated with this value.
+    internal ed: *Properties
 }
 
 impl IWnd for PropertiesView

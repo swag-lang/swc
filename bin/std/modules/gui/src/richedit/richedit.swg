@@ -6,80 +6,80 @@ using Core, Pixel
 #[Swag.EnumFlags]
 enum RichEditFlags
 {
-    Zero = 0 // No flags are enabled.
-    ReadOnly // Enables read only.
-    ShowFocusSel // Enables show focus sel.
-    CurLineBorder // Enables cur line border.
-    DrawBlanks // Enables draw blanks.
-    TabToSpaces // Enables tab to spaces.
-    WordWrap // Enables word wrap.
-    AutoLoseFocus // Enables auto lose focus.
+    Zero = 0          // No flags are enabled.
+    ReadOnly          // Enables read only.
+    ShowFocusSel      // Enables show focus sel.
+    CurLineBorder     // Enables cur line border.
+    DrawBlanks        // Enables draw blanks.
+    TabToSpaces       // Enables tab to spaces.
+    WordWrap          // Enables word wrap.
+    AutoLoseFocus     // Enables auto lose focus.
 }
 
 // Selects rich edit form.
 enum RichEditForm
 {
-    RichEditCtrl // Uses the rich edit ctrl form.
-    Edit // Uses the edit form.
+    RichEditCtrl     // Uses the rich edit ctrl form.
+    Edit             // Uses the edit form.
 }
 
 // Represents rich edit mapping.
 struct RichEditMapping
 {
-    key:       Input.Key          = undefined // Key associated with this value.
-    modifiers: Input.KeyModifiers = undefined // Modifiers associated with this value.
-    command:   RichEditCommand    = undefined // Command associated with this value.
+    key:       Input.Key          = undefined     // Key associated with this value.
+    modifiers: Input.KeyModifiers = undefined     // Modifiers associated with this value.
+    command:   RichEditCommand    = undefined     // Command associated with this value.
 }
 
 // Represents rich edit ctrl.
 struct RichEditCtrl
 {
-    using frameWnd: FrameWnd // Embedded frame wnd state.
-    richEdFlags         = RichEditFlags.Zero // Rich ed flags associated with this value.
-    lineSpacing:    f32 // Line spacing associated with this value.
-    overwriteMode:  bool // Overwrite mode associated with this value.
-    tabSize:        s32 = 4 // Tab size associated with this value.
-    marginLeft:     f32 // Margin left associated with this value.
-    marginRight:    f32 // Margin right associated with this value.
-    lexer:          #null IRichEditLexer // Lexer associated with this value.
-    form                = RichEditForm.RichEditCtrl // Form associated with this value.
-    sigIsReadOnly:  SigArray'func||(*bool) // Signal emitted when is read only.
-    sigChanged:     SigArray'func||(*RichEditCtrl) // Signal emitted when changed.
-    sigModified:    SigArray'func||(*RichEditCtrl) // Signal emitted when modified.
-    bkColorModel:   String // Bk color model associated with this value.
+    using frameWnd: FrameWnd                            // Embedded frame wnd state.
+    richEdFlags         = RichEditFlags.Zero            // Rich ed flags associated with this value.
+    lineSpacing:    f32                                 // Line spacing associated with this value.
+    overwriteMode:  bool                                // Overwrite mode associated with this value.
+    tabSize:        s32 = 4                             // Tab size associated with this value.
+    marginLeft:     f32                                 // Margin left associated with this value.
+    marginRight:    f32                                 // Margin right associated with this value.
+    lexer:          #null IRichEditLexer                // Lexer associated with this value.
+    form                = RichEditForm.RichEditCtrl     // Form associated with this value.
+    sigIsReadOnly:  SigArray'func||(*bool)              // Signal emitted when is read only.
+    sigChanged:     SigArray'func||(*RichEditCtrl)      // Signal emitted when changed.
+    sigModified:    SigArray'func||(*RichEditCtrl)      // Signal emitted when modified.
+    bkColorModel:   String                              // Bk color model associated with this value.
 
-    styles:       [256] RichEditRuneStyle // Styles associated with this value.
-    stylesSelect: [2] RichEditRuneStyle // Styles select associated with this value.
-    cursorPos:    RichEditCursor // Cursor pos associated with this value.
-    selBeg:       RichEditCursor // Sel beg associated with this value.
-    lines:        ArrayPtr'RichEditLine // Lines associated with this value.
-    freeLines:    ArrayPtr'RichEditLine // Free lines associated with this value.
+    styles:       [256] RichEditRuneStyle     // Styles associated with this value.
+    stylesSelect: [2] RichEditRuneStyle       // Styles select associated with this value.
+    cursorPos:    RichEditCursor              // Cursor pos associated with this value.
+    selBeg:       RichEditCursor              // Sel beg associated with this value.
+    lines:        ArrayPtr'RichEditLine       // Lines associated with this value.
+    freeLines:    ArrayPtr'RichEditLine       // Free lines associated with this value.
     #[Swag.Late]
-    scrollWnd: *ScrollWnd // Scroll wnd associated with this value.
+    scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
     #[Swag.Late]
-    edView:       *RichEditView // Ed view associated with this value.
-    selRectangle: Math.Rectangle // Sel rectangle associated with this value.
+    edView:       *RichEditView      // Ed view associated with this value.
+    selRectangle: Math.Rectangle     // Sel rectangle associated with this value.
 
-    hasSelRect:              bool // Whether this value has sel rect.
-    modified:                bool // Modified associated with this value.
-    recomputeScroll:         bool // Recompute scroll associated with this value.
-    dirtyFirstLineView:      bool // Dirty first line view associated with this value.
-    forceCaretVisible:       bool // Force caret visible associated with this value.
-    forceCaretVisibleCenter: bool // Force caret visible center associated with this value.
+    hasSelRect:              bool     // Whether this value has sel rect.
+    modified:                bool     // Modified associated with this value.
+    recomputeScroll:         bool     // Recompute scroll associated with this value.
+    dirtyFirstLineView:      bool     // Dirty first line view associated with this value.
+    forceCaretVisible:       bool     // Force caret visible associated with this value.
+    forceCaretVisibleCenter: bool     // Force caret visible center associated with this value.
 
-    undoMgr:              ArrayPtr'RichEditUndo // Undo mgr associated with this value.
-    toUndo:               ArrayPtr'RichEditUndo // To undo associated with this value.
-    mapping:              Array'RichEditMapping // Mapping associated with this value.
-    currentUndo:          u64 // Current undo associated with this value.
-    undoCounter:          u64 // Undo counter associated with this value.
-    modifiedUndoMarker:   u64 // Modified undo marker associated with this value.
-    serialUndo:           u64 // Serial undo associated with this value.
-    countVisibleLines:    u64 // Count visible lines associated with this value.
-    firstVisibleLineView: u64 // First visible line view associated with this value.
-    lastVisibleLineView:  u64 // Last visible line view associated with this value.
-    clipFormat:           Clipboard.ValueFormat // Clip format associated with this value.
-    cursorPosUndo:        RichEditCursor // Cursor pos undo associated with this value.
-    selBegUndo:           RichEditCursor // Sel beg undo associated with this value.
+    undoMgr:              ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
+    toUndo:               ArrayPtr'RichEditUndo     // To undo associated with this value.
+    mapping:              Array'RichEditMapping     // Mapping associated with this value.
+    currentUndo:          u64                       // Current undo associated with this value.
+    undoCounter:          u64                       // Undo counter associated with this value.
+    modifiedUndoMarker:   u64                       // Modified undo marker associated with this value.
+    serialUndo:           u64                       // Serial undo associated with this value.
+    countVisibleLines:    u64                       // Count visible lines associated with this value.
+    firstVisibleLineView: u64                       // First visible line view associated with this value.
+    lastVisibleLineView:  u64                       // Last visible line view associated with this value.
+    clipFormat:           Clipboard.ValueFormat     // Clip format associated with this value.
+    cursorPosUndo:        RichEditCursor            // Cursor pos undo associated with this value.
+    selBegUndo:           RichEditCursor            // Sel beg undo associated with this value.
 }
 
 private impl IWnd for RichEditCtrl

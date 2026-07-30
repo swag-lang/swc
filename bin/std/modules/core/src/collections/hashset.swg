@@ -23,16 +23,16 @@ struct(K) HashSet
     // Sizes are reported, never set: the set grows itself when it needs to.
     readonly
     {
-        count:    u64 // The number of valid elements currently in the set.
-        capacity: u64 // The total number of slots in the hash table.
+        count:    u64     // The number of valid elements currently in the set.
+        capacity: u64     // The total number of slots in the hash table.
     }
 
     // Open-addressing state. The layout is an implementation choice: reaching into it from
     // outside would tie callers to the probing scheme and the load factor.
     private
     {
-        table:   #null [*] HashSetEntry // Contiguous memory block for the slots.
-        deleted: u64 // The number of slots marked as deleted.
+        table:   #null [*] HashSetEntry     // Contiguous memory block for the slots.
+        deleted: u64                        // The number of slots marked as deleted.
     }
 }
 

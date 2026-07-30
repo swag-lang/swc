@@ -46,9 +46,9 @@ use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
     cfg.ignoreInWorkspace = false
     cfg.repoPath          = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui"
 
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputName      = "std.gui"
-    cfg.genDoc.titleContent    = "GUI"
-    cfg.genDoc.titleToc        = "GUI documentation"
-    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.kind         = .Api
+    cfg.genDoc.outputName   = "std.gui"
+    cfg.genDoc.titleContent = "GUI"
+    cfg.genDoc.titleToc     = "GUI documentation"
+    cfg.genDoc.css          = "css/style.css"
 }

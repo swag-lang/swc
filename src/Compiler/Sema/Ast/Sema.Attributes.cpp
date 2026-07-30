@@ -698,7 +698,7 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
 
     SemaFrame newFrame = sema.frame();
     if (hasFlag(AstAccessModifierFlagsE::Member))
-        newFrame.setCurrentMemberAccess(memberAccess);
+        newFrame.setCurrentMemberAccess(memberAccess, SemaFrame::currentSymMap(sema));
     newFrame.setCurrentAccess(access);
     sema.pushFramePopOnPostNode(newFrame);
 

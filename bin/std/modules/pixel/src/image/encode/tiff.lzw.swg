@@ -13,7 +13,7 @@ impl LzwBitWriter
 {
     mtd write(code, width: u32)
     {
-        .pending      = (.pending << width) | code
+        .pending     = (.pending << width) | code
         .pendingBits += width
 
         while .pendingBits >= 8
@@ -95,11 +95,11 @@ func applyHorizontalPredictor(data: [*] u8, rowBytes, rows, samples: u64)
 {
     for [y] in rows
     {
-        let row = data + y * rowBytes
+        let row    = data + y * rowBytes
         var offset = rowBytes
         while offset > samples
         {
-            offset     -= 1
+            offset      -= 1
             row[offset] -= #wrap row[offset - samples]
         }
     }

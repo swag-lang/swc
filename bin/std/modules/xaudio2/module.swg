@@ -13,7 +13,7 @@
     cfg.backendKind     = .Export
     cfg.repoPath        = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/xaudio2"
 
-    cfg.genDoc.kind            = .Api
-    cfg.genDoc.outputName      = "std.xaudio2"
-    cfg.genDoc.css             = "css/style.css"
+    cfg.genDoc.kind       = .Api
+    cfg.genDoc.outputName = "std.xaudio2"
+    cfg.genDoc.css        = "css/style.css"
 }

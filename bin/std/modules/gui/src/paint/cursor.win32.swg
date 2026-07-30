@@ -5,7 +5,7 @@ using Win32
 // Represents native cursor.
 public struct NativeCursor
 {
-    cursor: HCURSOR // Cursor associated with this value.
+    cursor: HCURSOR     // Cursor associated with this value.
 }
 
 impl NativeCursor

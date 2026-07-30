@@ -6,8 +6,8 @@ using Swag, Core
 // 26.6 fixed-point pixels.
 public struct BBox
 {
-    xMin, yMin: s32 // Inclusive lower bounds.
-    xMax, yMax: s32 // Inclusive upper bounds.
+    xMin, yMin: s32     // Inclusive lower bounds.
+    xMax, yMax: s32     // Inclusive upper bounds.
 }
 
 // Stores a two-dimensional point or displacement.
@@ -16,8 +16,8 @@ public struct BBox
 // declaration says otherwise.
 public struct Vector
 {
-    x: s32 // Horizontal component.
-    y: s32 // Vertical component.
+    x: s32     // Horizontal component.
+    y: s32     // Vertical component.
 }
 
 // Stores a 2x2 affine linear transform in 16.16 fixed-point form.
@@ -25,6 +25,6 @@ public struct Vector
 // The identity matrix is `{xx: 65536, yy: 65536}`.
 public struct Matrix
 {
-    xx, xy: s32 // Coefficients that produce the transformed x coordinate.
-    yx, yy: s32 // Coefficients that produce the transformed y coordinate.
+    xx, xy: s32     // Coefficients that produce the transformed x coordinate.
+    yx, yy: s32     // Coefficients that produce the transformed y coordinate.
 }

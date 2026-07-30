@@ -31,7 +31,7 @@ struct(T) IsSet
 // Result of the [parse] function
 struct(T) Result
 {
-    isSet: IsSet'T // Whether this value is set.
+    isSet: IsSet'T     // Whether this value is set.
 }
 
 // Returns true if 'oneArg' is a valid option (starting with a delimiter)
@@ -125,8 +125,8 @@ func splitArguments(args: const [..] string, options: ParseOptions)->Array'(stri
 // Represents field result.
 struct FieldResult
 {
-    field: #null const *Swag.TypeValue // Field associated with this value.
-    index: u64 = Swag.U64.Max // Index associated with this value.
+    field: #null const *Swag.TypeValue     // Field associated with this value.
+    index: u64 = Swag.U64.Max              // Index associated with this value.
 }
 
 // Returns field.

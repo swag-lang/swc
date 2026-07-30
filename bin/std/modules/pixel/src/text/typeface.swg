@@ -7,12 +7,12 @@ using Core, TrueType
 // release them with [[Pixel.TypeFace.release]] rather than deleting them directly.
 public struct TypeFace
 {
-    fullname:     string = ""        // Cache key or source filename.
-    buffer:       Array'u8           // Owned font bytes kept alive for the native face.
-    face:         *Face  = undefined // Borrowed TrueType face backed by `buffer`.
-    forceBoldDiv: u32    = 11        // Em-size divisor used for synthetic bold strength.
-    forceItalic:  bool               // Whether every rasterized glyph is synthetically slanted.
-    forceBold:    bool               // Whether every rasterized glyph is synthetically emboldened.
+    fullname:     string = ""            // Cache key or source filename.
+    buffer:       Array'u8               // Owned font bytes kept alive for the native face.
+    face:         *Face  = undefined     // Borrowed TrueType face backed by `buffer`.
+    forceBoldDiv: u32    = 11            // Em-size divisor used for synthetic bold strength.
+    forceItalic:  bool                   // Whether every rasterized glyph is synthetically slanted.
+    forceBold:    bool                   // Whether every rasterized glyph is synthetically emboldened.
 }
 
 var g_HashTypeFace: HashTable'(String, *TypeFace)

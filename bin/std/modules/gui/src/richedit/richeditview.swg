@@ -4,14 +4,18 @@ using Core, Pixel
 #[Swag.Opaque]
 public struct RichEditView
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    ed:               #null *RichEditCtrl // Ed associated with this value.
-    visibleCaret:     bool // Visible caret associated with this value.
-    selMode:          bool // Sel mode associated with this value.
-    timerCaret:       #null *Timer // Timer caret associated with this value.
-    firstLineSelMode: u64 // First line sel mode associated with this value.
-    lastClientRect:   Math.Rectangle // Last client rect associated with this value.
+    // The control this view paints for, and the transient state of one editing gesture.
+    internal
+    {
+        ed:               #null *RichEditCtrl     // Control owning the document.
+        visibleCaret:     bool                    // Whether the blinking caret is currently drawn.
+        selMode:          bool                    // Whether a mouse selection gesture is in progress.
+        timerCaret:       #null *Timer            // Timer driving the caret blink.
+        firstLineSelMode: u64                     // Line the current selection gesture started on.
+        lastClientRect:   Math.Rectangle          // Client rectangle of the last layout.
+    }
 }
 
 impl IWnd for RichEditView

@@ -5,52 +5,52 @@ using Core, Pixel
 // Selects header form.
 enum HeaderForm
 {
-    Transparent // Uses the transparent form.
-    Flat // Uses the flat form.
-    Round // Uses the round form.
+    Transparent     // Uses the transparent form.
+    Flat            // Uses the flat form.
+    Round           // Uses the round form.
 }
 
 // Represents header item.
 struct HeaderItem
 {
-    name:     RichString // Name associated with this value.
-    icon:     Icon // Icon associated with this value.
-    width:    f32 // Width in logical units.
-    minWidth: f32 // Min width associated with this value.
-    maxWidth: f32 // Max width associated with this value.
-    sizeable   = true // Sizeable associated with this value.
-    clickable  = true // Clickable associated with this value.
-    iconMargin = false // Icon margin associated with this value.
-    column:   u32 // Column associated with this value.
+    name:     RichString     // Name associated with this value.
+    icon:     Icon           // Icon associated with this value.
+    width:    f32            // Width in logical units.
+    minWidth: f32            // Min width associated with this value.
+    maxWidth: f32            // Max width associated with this value.
+    sizeable   = true        // Sizeable associated with this value.
+    clickable  = true        // Clickable associated with this value.
+    iconMargin = false       // Icon margin associated with this value.
+    column:   u32            // Column associated with this value.
 }
 
 // Selects header flags.
 #[Swag.EnumFlags]
 enum HeaderFlags
 {
-    Zero = 0 // No flags are enabled.
-    Clickable // Enables clickable.
+    Zero = 0      // No flags are enabled.
+    Clickable     // Enables clickable.
 }
 
 // Represents header.
 struct Header
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    form                  = HeaderForm.Flat // Form associated with this value.
-    headerFlags           = HeaderFlags.Clickable // Header flags associated with this value.
-    marginItems:      f32 = 5 // Margin items associated with this value.
-    sigLayoutChanged: #null func||(*Header) // Signal emitted when layout changed.
-    sigClicked:       #null func||(*Header, u32) // Signal emitted when clicked.
+    form                  = HeaderForm.Flat           // Form associated with this value.
+    headerFlags           = HeaderFlags.Clickable     // Header flags associated with this value.
+    marginItems:      f32 = 5                         // Margin items associated with this value.
+    sigLayoutChanged: #null func||(*Header)           // Signal emitted when layout changed.
+    sigClicked:       #null func||(*Header, u32)      // Signal emitted when clicked.
 
-    items:         ArrayPtr'HeaderItem // Items associated with this value.
-    hotIdx = Swag.U32.Max // Index of hot.
-    hotSeparator:  bool // Hot separator associated with this value.
-    moving:        bool // Moving associated with this value.
-    clicked:       bool // Clicked associated with this value.
-    correctMoving: f32 // Correct moving associated with this value.
-    sortColumn:    u32 // Sort column associated with this value.
-    sortMark:      s32 // Sort mark associated with this value.
+    items:         ArrayPtr'HeaderItem     // Items associated with this value.
+    hotIdx = Swag.U32.Max                  // Index of hot.
+    hotSeparator:  bool                    // Hot separator associated with this value.
+    moving:        bool                    // Moving associated with this value.
+    clicked:       bool                    // Clicked associated with this value.
+    correctMoving: f32                     // Correct moving associated with this value.
+    sortColumn:    u32                     // Sort column associated with this value.
+    sortMark:      s32                     // Sort mark associated with this value.
 }
 
 impl IWnd for Header

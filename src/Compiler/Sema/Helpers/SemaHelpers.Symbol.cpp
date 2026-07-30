@@ -1229,9 +1229,8 @@ namespace
         for (Symbol* memberSym : symbols)
         {
             SWC_RESULT(SemaAccess::checkMemberAccess(sema, *memberSym, codeRef));
-            const auto* fieldVar = memberSym->safeCast<SymbolVariable>();
-            if (fieldVar && !SemaAccess::canWriteMember(sema, *fieldVar, codeRef.srcViewRef))
-                sema.setConstAssignTarget(targetNodeRef);
+            if (const auto* fieldVar = memberSym->safeCast<SymbolVariable>())
+                SemaAccess::markUnwritableMemberAccess(sema, *fieldVar, targetNodeRef, codeRef.srcViewRef);
         }
         const bool                     throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
         bool                           canExtractConstantMember = !throughPointerOrRef;

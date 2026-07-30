@@ -5,9 +5,9 @@ using Core, Pixel
 // Selects combo box kind.
 enum ComboBoxKind
 {
-    Select // Selects the select kind.
-    Edit // Selects the edit kind.
-    CheckBox // Selects the check box kind.
+    Select       // Selects the select kind.
+    Edit         // Selects the edit kind.
+    CheckBox     // Selects the check box kind.
 }
 
 // Optional behaviour modifiers for the ComboBox.
@@ -21,31 +21,31 @@ enum ComboBoxFlags
 // Represents combo box item.
 struct ComboBoxItem
 {
-    using base:  Item // Embedded base state.
-    isSeparator: bool // Whether this value is separator.
+    using base:  Item     // Embedded base state.
+    isSeparator: bool     // Whether this value is separator.
 }
 
 // Represents combo box.
 struct ComboBox
 {
-    using wnd: Wnd // Embedded wnd state.
+    using wnd: Wnd     // Embedded wnd state.
 
-    kind                = ComboBoxKind.Select // Kind associated with this value.
-    comboBoxFlags       = ComboBoxFlags.Zero     // Active behaviour flags
-    minWidthPopup:  f32 = 100 // Min width popup associated with this value.
-    maxHeightPopup: f32 = 300 // Max height popup associated with this value.
-    sigChanged:     SigArray'func||(*ComboBox, u32) // Signal emitted when changed.
+    kind                = ComboBoxKind.Select           // Kind associated with this value.
+    comboBoxFlags       = ComboBoxFlags.Zero            // Active behaviour flags
+    minWidthPopup:  f32 = 100                           // Min width popup associated with this value.
+    maxHeightPopup: f32 = 300                           // Max height popup associated with this value.
+    sigChanged:     SigArray'func||(*ComboBox, u32)     // Signal emitted when changed.
 
-    editBox:     #null *EditBox // Edit box associated with this value.
-    isHot:       bool // Whether this value is hot.
-    popup:       #null *PopupListCtrl // Popup associated with this value.
-    items:       ArrayPtr'ComboBoxItem // Items associated with this value.
-    selectedIdx = Swag.U32.Max // Index of selected.
-    maxIconSize: s32 // Max icon size associated with this value.
+    editBox:     #null *EditBox            // Edit box associated with this value.
+    isHot:       bool                      // Whether this value is hot.
+    popup:       #null *PopupListCtrl      // Popup associated with this value.
+    items:       ArrayPtr'ComboBoxItem     // Items associated with this value.
+    selectedIdx = Swag.U32.Max             // Index of selected.
+    maxIconSize: s32                       // Max icon size associated with this value.
 
-    aniBk:     BlendColor // Ani bk associated with this value.
-    aniBorder: BlendColor // Ani border associated with this value.
-    aniText:   BlendColor // Ani text associated with this value.
+    aniBk:     BlendColor     // Ani bk associated with this value.
+    aniBorder: BlendColor     // Ani border associated with this value.
+    aniText:   BlendColor     // Ani text associated with this value.
 }
 
 impl IWnd for ComboBox

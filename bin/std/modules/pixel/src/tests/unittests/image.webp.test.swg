@@ -66,16 +66,16 @@ func checkLossyWebp(fileName, goldenName: string, width, height: s32, withAlpha:
     {
         for [x] in width
         {
-            let sourceY    = height - y - 1
-            let luma       = cast(s32) golden.getPixelColor(x, sourceY).r
-            let cb         = cast(s32) golden.getPixelColor(x / 2, height + sourceY / 2).r
-            let cr         = cast(s32) golden.getPixelColor(halfWidth + x / 2, height + sourceY / 2).r
-            let expectedR  = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cr, 26149) - 14234) >> 6)
-            let expectedG  = webpExpectedChannel((webpMultiplyHigh(luma, 19077) - webpMultiplyHigh(cb, 6419) -
-                                                  webpMultiplyHigh(cr, 13320) + 8708) >> 6)
-            let expectedB  = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cb, 33050) - 17685) >> 6)
-            let expectedA  = withAlpha ? golden.getPixelColor(x, height + halfHeight + sourceY).r : 0xFF
-            let got        = decoded.getPixelColor(x, y)
+            let sourceY   = height - y - 1
+            let luma      = cast(s32) golden.getPixelColor(x, sourceY).r
+            let cb        = cast(s32) golden.getPixelColor(x / 2, height + sourceY / 2).r
+            let cr        = cast(s32) golden.getPixelColor(halfWidth + x / 2, height + sourceY / 2).r
+            let expectedR = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cr, 26149) - 14234) >> 6)
+            let expectedG = webpExpectedChannel((webpMultiplyHigh(luma, 19077) - webpMultiplyHigh(cb, 6419) -
+                             webpMultiplyHigh(cr, 13320) + 8708) >> 6)
+            let expectedB = webpExpectedChannel((webpMultiplyHigh(luma, 19077) + webpMultiplyHigh(cb, 33050) - 17685) >> 6)
+            let expectedA = withAlpha ? golden.getPixelColor(x, height + halfHeight + sourceY).r : 0xFF
+            let got       = decoded.getPixelColor(x, y)
             @assert(got.r == expectedR)
             @assert(got.g == expectedG)
             @assert(got.b == expectedB)
@@ -223,6 +223,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 
     let decoded = catch Image.load(getTestDataPath("blue-purple-pink.lossy.webp")) as decodeError
     @assert(decodeError == null)
+
     // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
     assertWebpPixelFromTop(decoded, 0, 0, 16, 19, 15, 255)
     assertWebpPixelFromTop(decoded, 112, 58, 232, 107, 160, 255)
@@ -237,6 +238,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 
     let decoded = catch Image.load(getTestDataPath("yellow_rose.lossy-with-alpha.webp")) as decodeError
     @assert(decodeError == null)
+
     // Reference samples produced by libwebp 1.6.0 dwebp with -nofancy.
     assertWebpPixelFromTop(decoded, 106, 81, 241, 146, 3, 255)
     assertWebpPixelFromTop(decoded, 128, 47, 255, 90, 151, 255)

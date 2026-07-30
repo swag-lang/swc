@@ -117,8 +117,15 @@ public:
 
     SymbolAccess         currentAccess() const { return access_; }
     void                 setCurrentAccess(SymbolAccess access) { access_ = access; }
-    MemberAccess         currentMemberAccess() const { return memberAccess_; }
-    void                 setCurrentMemberAccess(MemberAccess access) { memberAccess_ = access; }
+    // An access modifier written in an aggregate body applies to the members of THAT aggregate.
+    // Recording the symbol map it was written in keeps it from reaching a nested or anonymous
+    // aggregate declared inside the same block, whose members are its own.
+    MemberAccess memberAccessFor(const SymbolMap* symMap) const { return symMap && symMap == memberAccessMap_ ? memberAccess_ : MemberAccess::Public; }
+    void         setCurrentMemberAccess(MemberAccess access, const SymbolMap* symMap)
+    {
+        memberAccess_    = access;
+        memberAccessMap_ = symMap;
+    }
     bool                 globalCompilerIfEnabled() const { return globalCompilerIfEnabled_; }
     void                 setGlobalCompilerIfEnabled(bool value) { globalCompilerIfEnabled_ = value; }
     AttributeList&       currentAttributes() { return attributes_; }
@@ -210,6 +217,7 @@ public:
 private:
     SymbolAccess                        access_                  = SymbolAccess::Internal;
     MemberAccess                        memberAccess_            = MemberAccess::Public;
+    const SymbolMap*                    memberAccessMap_         = nullptr;
     bool                                globalCompilerIfEnabled_ = true;
     AttributeList                       attributes_;
     SmallVector8<IdentifierRef>         nsPath_;

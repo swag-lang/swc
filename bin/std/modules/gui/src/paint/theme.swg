@@ -65,39 +65,42 @@ private func defaultThemeImages()->*DefaultThemeImages
 // Represents theme resources.
 struct ThemeResources
 {
-    imgWidgets: Texture // Img widgets associated with this value.
+    imgWidgets: Texture     // Img widgets associated with this value.
     #[Swag.Late]
     {
-        icons24:             *ImageList // Icons24 associated with this value.
-        icons64:             *ImageList // Icons64 associated with this value.
-        spin:                *ImageList // Spin associated with this value.
-        defaultTypeFaceR:    *TypeFace // Default type face r associated with this value.
-        defaultTypeFaceB:    *TypeFace // Default type face b associated with this value.
-        defaultTypeFaceI:    *TypeFace // Default type face i associated with this value.
-        defaultTypeFaceBI:   *TypeFace // Default type face bi associated with this value.
-        defaultFsTypeFaceR:  *TypeFace // Default fs type face r associated with this value.
-        defaultFsTypeFaceB:  *TypeFace // Default fs type face b associated with this value.
-        defaultFsTypeFaceI:  *TypeFace // Default fs type face i associated with this value.
-        defaultFsTypeFaceBI: *TypeFace // Default fs type face bi associated with this value.
+        icons24:             *ImageList     // Icons24 associated with this value.
+        icons64:             *ImageList     // Icons64 associated with this value.
+        spin:                *ImageList     // Spin associated with this value.
+        defaultTypeFaceR:    *TypeFace      // Default type face r associated with this value.
+        defaultTypeFaceB:    *TypeFace      // Default type face b associated with this value.
+        defaultTypeFaceI:    *TypeFace      // Default type face i associated with this value.
+        defaultTypeFaceBI:   *TypeFace      // Default type face bi associated with this value.
+        defaultFsTypeFaceR:  *TypeFace      // Default fs type face r associated with this value.
+        defaultFsTypeFaceB:  *TypeFace      // Default fs type face b associated with this value.
+        defaultFsTypeFaceI:  *TypeFace      // Default fs type face i associated with this value.
+        defaultFsTypeFaceBI: *TypeFace      // Default fs type face bi associated with this value.
     }
 
-    fontDefault:   FontFamily // Font default associated with this value.
-    fontDefaultFs: FontFamily // Font default fs associated with this value.
+    fontDefault:   FontFamily     // Font default associated with this value.
+    fontDefaultFs: FontFamily     // Font default fs associated with this value.
 }
 
 // Represents theme.
 struct Theme
 {
-    intialized: bool // Intialized associated with this value.
-    res:        ThemeResources // Res associated with this value.
-    rects:      ThemeImageRects // Rects associated with this value.
-    metrics:    ThemeMetrics // Metrics associated with this value.
-    colors:     ThemeColors // Colors associated with this value.
+    res:     ThemeResources      // Res associated with this value.
+    rects:   ThemeImageRects     // Rects associated with this value.
+    metrics: ThemeMetrics        // Metrics associated with this value.
+    colors:  ThemeColors         // Colors associated with this value.
+
+    // Whether the theme was set up. A theme is established once against a renderer, so the
+    // flag is a result to read, never a switch to flip.
+    readonly intialized: bool
 
     // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
     // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
     #[Swag.Late]
-    fonts: *Pixel.FontCache
+    internal fonts: *Pixel.FontCache
 }
 
 impl Theme

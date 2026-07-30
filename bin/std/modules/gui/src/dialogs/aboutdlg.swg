@@ -3,23 +3,23 @@ using Core, Pixel
 // Represents about dlg.
 public struct AboutDlg
 {
-    using dialog: Dialog // Embedded dialog state.
+    using dialog: Dialog     // Embedded dialog state.
     #[Swag.Late]
     {
-        labelIcon:         *Label // Label icon associated with this value.
-        labelMessageTitle: *Label // Label message title associated with this value.
-        labelMessage:      *Label // Label message associated with this value.
+        labelIcon:         *Label     // Label icon associated with this value.
+        labelMessageTitle: *Label     // Label message title associated with this value.
+        labelMessage:      *Label     // Label message associated with this value.
     }
 }
 
 // Represents about dlg params.
 public struct AboutDlgParams
 {
-    dlgTitle:     string // Dlg title associated with this value.
-    messageTitle: string // Message title associated with this value.
-    message:      string // Message associated with this value.
-    iconTitle:    Icon     // Icon that will be displayed in the title bar
-    bigIcon:      Icon     // Big icon, inside the dialog
+    dlgTitle:     string     // Dlg title associated with this value.
+    messageTitle: string     // Message title associated with this value.
+    message:      string     // Message associated with this value.
+    iconTitle:    Icon       // Icon that will be displayed in the title bar
+    bigIcon:      Icon       // Big icon, inside the dialog
 }
 
 public impl AboutDlg

@@ -5,14 +5,14 @@ using Core
 // Represents sel range.
 struct SelRange
 {
-    start: u32 // Start associated with this value.
-    end:   u32 // End associated with this value.
+    start: u32     // Start associated with this value.
+    end:   u32     // End associated with this value.
 }
 
 // Represents sel model.
 struct SelModel
 {
-    selection: Array'SelRange // Selection associated with this value.
+    selection: Array'SelRange     // Selection associated with this value.
 }
 
 impl SelModel
@@ -32,7 +32,8 @@ impl SelModel
     #[Swag.Inline]
     {
         // Returns whether empty.
-        mtd const isEmpty()            => .selection.isEmpty()
+        mtd const isEmpty() => .selection.isEmpty()
+
         // Returns whether selected.
         mtd const isSelected(idx: u32) => .getSelectedRangeIndex(idx) != Swag.U32.Max
     }

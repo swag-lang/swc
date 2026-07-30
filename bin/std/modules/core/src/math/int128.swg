@@ -34,8 +34,8 @@ func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
 // Represents int128.
 struct Int128
 {
-    lo: u64 // Lo associated with this value.
-    hi: s64 // Hi associated with this value.
+    lo: u64     // Lo associated with this value.
+    hi: s64     // Hi associated with this value.
 }
 
 impl Int128

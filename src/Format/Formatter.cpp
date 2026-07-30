@@ -39,7 +39,7 @@ void Formatter::prepare(const SourceFile& file)
         .options = &options_,
     };
 
-    AstSourceWriter writer(formatCtx);
+    const AstSourceWriter writer(formatCtx);
     writer.write();
 
     text_    = std::move(formatCtx.output);

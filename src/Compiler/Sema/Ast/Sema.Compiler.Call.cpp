@@ -78,11 +78,6 @@ namespace
         return nullptr;
     }
 
-    bool isMacroInlineContext(const Sema& sema)
-    {
-        return macroInlinePayload(sema) != nullptr;
-    }
-
     Result reportCompilerFileError(Sema& sema, DiagnosticId id, AstNodeRef nodeRef, const fs::path& path, const Utf8& because)
     {
         Diagnostic diag = SemaError::build(sema, id, nodeRef);

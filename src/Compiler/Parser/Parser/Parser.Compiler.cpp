@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Compiler/Parser/Parser/Parser.h"
-#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -414,8 +413,8 @@ AstNodeRef Parser::parseCompilerSwitch(TokenRef staticTokRef)
     const TokenRef openRef = ref();
     expectAndConsume(TokenId::SymLeftCurly, DiagnosticId::parser_err_expected_token_before);
 
-    SmallVector<AstNodeRef>    caseRefs;
-    const SmallVector<TokenId> caseEndIds = {TokenId::KwdCase, TokenId::KwdDefault, TokenId::SymRightCurly};
+    SmallVector<AstNodeRef> caseRefs;
+    const SmallVector       caseEndIds = {TokenId::KwdCase, TokenId::KwdDefault, TokenId::SymRightCurly};
     while (!atEnd() && isNot(TokenId::SymRightCurly))
     {
         if (!isAny(TokenId::KwdCase, TokenId::KwdDefault))

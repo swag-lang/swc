@@ -18,7 +18,7 @@ namespace
         {
         }
 
-        void run()
+        void run() const
         {
             if (options_->columnLimit == 0)
                 return;
@@ -227,7 +227,7 @@ namespace
         }
 
     public:
-        void runBinPack()
+        void runBinPack() const
         {
             const bool wantArgs   = options_->binPackArguments == FormatBinPackStyle::OnePerLine;
             const bool wantParams = options_->binPackParameters == FormatBinPackStyle::OnePerLine;

@@ -37,7 +37,6 @@ namespace
                     return;
                 segments.push_back({segmentStart, model.prevPiece(i)});
                 keys.push_back(std::move(key));
-                key.clear(); // a moved-from string is not guaranteed empty (SSO keeps its bytes)
                 segmentStart = INVALID_PIECE;
                 continue;
             }

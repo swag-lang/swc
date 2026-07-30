@@ -441,7 +441,7 @@ namespace
     // so the incoming argument would never be read and the spill would copy the still
     // uninitialized slot onto itself. Register parameters avoid this because
     // 'materializeRegisterParameters' loads them before any of that.
-    bool stackParameterNeedsEagerLoad(CodeGen& codeGen, const SymbolVariable& symVar)
+    bool stackParameterNeedsEagerLoad(const CodeGen& codeGen, const SymbolVariable& symVar)
     {
         return symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage) &&
                symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) &&

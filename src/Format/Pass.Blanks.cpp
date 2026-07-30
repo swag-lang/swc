@@ -110,10 +110,9 @@ namespace
     uint32_t declGroupStart(const FormatModel& model, const uint32_t declLineStart)
     {
         uint32_t target = declLineStart;
-        for (;;)
+        while (model.gapNewlineCount(target) == 1)
         {
-            if (model.gapNewlineCount(target) != 1)
-                break; // already blank-separated (or same-line): group ends here
+            // already blank-separated (or same-line): group ends here
             const uint32_t prev = model.prevPiece(target);
             if (prev == INVALID_PIECE)
                 break;

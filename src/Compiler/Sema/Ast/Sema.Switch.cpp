@@ -631,7 +631,7 @@ Result AstSwitchCaseStmt::semaPreNode(Sema& sema)
     return Result::Continue;
 }
 
-Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) const
+Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     const AstNodeRef switchRef = sema.frame().currentSwitch();
     SWC_ASSERT(switchRef.isValid());

@@ -1,6 +1,4 @@
-﻿#include <ranges>
-
-#include "pch.h"
+﻿#include "pch.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Ast/Sema.Switch.h"
@@ -1112,7 +1110,7 @@ namespace
 
                 case AstNodeId::ContinueStmt:
                 {
-                    for (auto& breakable : std::views::reverse(breakables_))
+                    for (const auto& breakable : std::views::reverse(breakables_))
                     {
                         if (breakable->acceptsContinue)
                         {

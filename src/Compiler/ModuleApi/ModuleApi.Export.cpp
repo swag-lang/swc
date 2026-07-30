@@ -307,7 +307,7 @@ namespace ModuleApi
     Result collectPublicEntries(TaskContext& ctx, std::unordered_map<SourceViewRef, ModuleApiFileEntry>& outEntries)
     {
         outEntries.clear();
-        CompilerInstance& compiler = ctx.compiler();
+        const CompilerInstance& compiler = ctx.compiler();
         for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
             mergeThreadData(outEntries, compiler.moduleApiPerThreadData(i));
 

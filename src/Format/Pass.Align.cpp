@@ -200,7 +200,7 @@ namespace
             flush();
         }
 
-        void runDeclarationFamily(const AlignCategory category, const FormatAlignMode mode, const bool grid)
+        void runDeclarationFamily(const AlignCategory category, const FormatAlignMode mode, const bool grid) const
         {
             if (grid)
                 runDeclarationGrid(category, mode);

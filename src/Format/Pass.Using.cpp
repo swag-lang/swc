@@ -152,7 +152,7 @@ namespace
         // Sorting permutes pieces and shifts line-start indices, so the merge
         // phase rescans the model from scratch.
         if (sortWanted)
-            forEachRun(model, [&](std::vector<UsingStatement>& run) { sortRun(model, run); });
+            forEachRun(model, [&](const std::vector<UsingStatement>& run) { sortRun(model, run); });
         if (mergeWanted)
             forEachRun(model, [&](const std::vector<UsingStatement>& run) { mergeRun(model, run); });
     }

@@ -66,7 +66,7 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
 Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds)
 {
-    SmallVector<TokenId> skipTokens = {TokenId::SymComma};
+    SmallVector skipTokens = {TokenId::SymComma};
     for (const TokenId tokenEndId : tokenEndIds)
         skipTokens.push_back(tokenEndId);
     if (depthParen_)

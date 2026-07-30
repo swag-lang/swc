@@ -601,7 +601,7 @@ Result AstCompilerSwitch::semaPreDeclChild(Sema& sema, const AstNodeRef& childRe
     return Result::Continue;
 }
 
-Result AstCompilerSwitch::semaPreNodeChild(Sema& sema, AstNodeRef& childRef) const
+Result AstCompilerSwitch::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     const AstNodeRef caseRef = compilerSwitchCaseRefFromBody(sema, *this, childRef);
     if (caseRef.isInvalid())

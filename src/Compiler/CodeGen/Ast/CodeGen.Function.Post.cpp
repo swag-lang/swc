@@ -1357,7 +1357,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
             return raiseInternalCodeGenError(codeGen, "missing runtime helper '__clearErr'", nodeRef);
         const MicroReg dstReg  = codeGen.resolveLocalStackPayload(*lowering->errBindingSym).reg;
         const MicroReg args[1] = {dstReg};
-        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *clearErr, std::span<const MicroReg>{args, 1}));
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *clearErr, std::span{args, 1}));
     }
 
     return Result::Continue;
@@ -1396,7 +1396,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     // retained it) on the failure path. The fat 'any' copy lives in '__bindErr'; here we only pass
     // the slot. Works for both the statement and the 'let x = catch f() as err' expression forms.
     const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(ownerRef);
-    SymbolVariable* const         errSym   = lowering ? lowering->errBindingSym : nullptr;
+    const SymbolVariable* const   errSym   = lowering ? lowering->errBindingSym : nullptr;
     if (errSym)
     {
         const SymbolFunction* bindErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::BindErr);
@@ -1405,7 +1405,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
             return raiseInternalCodeGenError(codeGen, "missing runtime helper '__bindErr'", nodeRef);
         const MicroReg dstReg  = codeGen.resolveLocalStackPayload(*errSym).reg;
         const MicroReg args[1] = {dstReg};
-        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, std::span<const MicroReg>{args, 1}));
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, std::span{args, 1}));
     }
 
     // 'catch e else { H }': the anonymous lazy handler runs here (failure path only).

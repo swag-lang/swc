@@ -4,8 +4,8 @@ func addJpgCard(card: *DecoderCard, source: const &Image, quality: u8) fail
 {
     var options: Jpg.EncodeOptions
     options.quality = quality
-    let title       = Format.toString("Quality %", quality)
-    let encoding    = Format.toString("baseline JPEG, quality %", quality)
+    let title    = Format.toString("Quality %", quality)
+    let encoding = Format.toString("baseline JPEG, quality %", quality)
     encodeCard'(Jpg.Encoder)(card, "variant.jpg", title, encoding, sourceVariant(source, .RGB8), options)
 }
 

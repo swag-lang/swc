@@ -8,12 +8,27 @@ using Core, Core.Math
 struct LinePathList
 {
     paths: Array'(*LinePath)     // Owned path pointers.
-    bvMin: Vector2               // Minimum combined bound after flattening.
-    bvMax: Vector2               // Maximum combined bound after flattening.
+
+    // Combined bounds of the paths, derived when the list is flattened.
+    readonly
+    {
+        bvMin: Vector2     // Minimum combined bound after flattening.
+        bvMax: Vector2     // Maximum combined bound after flattening.
+    }
 }
 
 impl LinePathList
 {
+    // Establishes the combined bounds of the list.
+    //
+    // The operations that build a list from an existing shape already know its bounds, so they
+    // carry them over instead of walking every path again.
+    internal mtd setBounds(min, max: Vector2)
+    {
+        .bvMin = min
+        .bvMax = max
+    }
+
     // Releases every owned path when the list leaves scope.
     mtd opDrop()
     {
@@ -177,7 +192,12 @@ impl LinePathList
 
         .clear()
         .paths = #move newList.paths
-        .bvMin = newList.bvMin
-        .bvMax = newList.bvMax
+
+        // An empty result has no bounds. Reporting the sentinels the loop starts from, or the
+        // bounds of the shape that was cleaned away, would describe geometry that is gone.
+        if .paths.isEmpty() do
+            .setBounds({}, {})
+        else do
+            .setBounds(newList.bvMin, newList.bvMax)
     }
 }

@@ -241,11 +241,6 @@ impl IForm for FormText
                 expect (notnull face).getStringOutline(pathl, t, cast() fSize, cast() sSize)
                 pathl.flatten(.High)
                 pathl.clean()
-                if !pathl.paths.count
-                {
-                    pathl.bvMin = {0, 0}
-                    pathl.bvMax = {0, 0}
-                }
 
                 let borderPath = &.borderPaths[idx]
                 if !Math.isZeroEpsilon(bSize) and .borderColor.a
@@ -257,13 +252,11 @@ impl IForm for FormText
                     borderPath.clean()
                 }
 
-                if !borderPath.paths.count
-                {
-                    borderPath.bvMin = pathl.bvMin
-                    borderPath.bvMax = pathl.bvMax
-                }
-
-                .totalY += (borderPath.bvMax.y - borderPath.bvMin.y)
+                // With no border, the line is as tall as the glyph outline itself.
+                if borderPath.paths.count do
+                    .totalY += (borderPath.bvMax.y - borderPath.bvMin.y)
+                else do
+                    .totalY += (pathl.bvMax.y - pathl.bvMin.y)
             }
         }
 

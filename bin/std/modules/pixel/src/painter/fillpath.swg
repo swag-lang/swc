@@ -241,7 +241,7 @@ public impl Painter
         }
         else
         {
-            path.polygon.isClockwise = true
+            path.polygon.assumeClockwise(true)
             let res = path.polygon.getClean()
             for p in res.paths do
                 .fillPath(p, brush)

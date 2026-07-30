@@ -12,13 +12,18 @@ struct Polygon
 {
     points: Array'Vector2     // Ordered contour vertices in path-space pixels.
 
-    isClockwise: bool             // Winding direction after `compute`.
-    isConvex:    bool             // Whether every turn has the same orientation.
-    isSimple:    bool             // Whether non-adjacent edges do not intersect.
-    area:        f32              // Unsigned enclosed area, in square pixels.
-    totalLen:    f32              // Closed-contour perimeter, in pixels.
-    bvMin:       Math.Vector2     // Minimum coordinate bound.
-    bvMax:       Math.Vector2     // Maximum coordinate bound.
+    // Everything [[Pixel.Polygon.compute]] derives from 'points'. Change the points and compute
+    // again; writing one of these on its own would describe a contour that is not there.
+    readonly
+    {
+        isClockwise: bool             // Winding direction after `compute`.
+        isConvex:    bool             // Whether every turn has the same orientation.
+        isSimple:    bool             // Whether non-adjacent edges do not intersect.
+        area:        f32              // Unsigned enclosed area, in square pixels.
+        totalLen:    f32              // Closed-contour perimeter, in pixels.
+        bvMin:       Math.Vector2     // Minimum coordinate bound.
+        bvMax:       Math.Vector2     // Maximum coordinate bound.
+    }
 }
 
 impl Polygon
@@ -128,6 +133,15 @@ impl Polygon
                 }
             }
         }
+    }
+
+    // Declares the winding direction of this contour without recomputing it.
+    //
+    // The fill passes build contours whose orientation they already know, so they state it
+    // instead of paying for a 'compute' that would only confirm it.
+    internal mtd assumeClockwise(value: bool)
+    {
+        .isClockwise = value
     }
 
     // Clear all points
@@ -344,8 +358,7 @@ impl Polygon
     mtd getOffset(value: f32, joinStyle: JoinStyle, toler: f32 = 0.5)->LinePathList
     {
         var result: retval
-        result.bvMin = .bvMin
-        result.bvMax = .bvMax
+        result.setBounds(.bvMin, .bvMax)
 
         var res: Clipper.ClipperPaths
         .offsetInto(&res, value, joinStyle, toler)
@@ -392,8 +405,7 @@ impl Polygon
     mtd getClean()->LinePathList
     {
         var result: retval
-        result.bvMin = .bvMin
-        result.bvMax = .bvMax
+        result.setBounds(.bvMin, .bvMax)
 
         var res: Clipper.ClipperPaths
         .cleanInto(&res)

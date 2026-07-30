@@ -10,11 +10,7 @@ using Swag, Core
 private func makeTestTexture(handle: u64, w, h: s32)->Texture
 {
     var result: retval
-    result.handle = cast(TextureHandle) handle
-    result.pf     = .BGRA8
-    result.width  = w
-    result.height = h
-    result.valid  = true
+    result.attach(cast(TextureHandle) handle, .BGRA8, w, h)
     return result
 }
 
@@ -146,17 +142,9 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     var outer:   RenderTarget
     var inner:   RenderTarget
 
-    outer.colorBuffer.handle = cast(TextureHandle) 21
-    outer.colorBuffer.pf     = .BGRA8
-    outer.colorBuffer.width  = 128
-    outer.colorBuffer.height = 128
-    outer.colorBuffer.valid  = true
+    outer.colorBuffer.attach(cast(TextureHandle) 21, .BGRA8, 128, 128)
 
-    inner.colorBuffer.handle = cast(TextureHandle) 22
-    inner.colorBuffer.pf     = .BGRA8
-    inner.colorBuffer.width  = 64
-    inner.colorBuffer.height = 64
-    inner.colorBuffer.valid  = true
+    inner.colorBuffer.attach(cast(TextureHandle) 22, .BGRA8, 64, 64)
 
     painter.begin()
     painter.bindRenderTarget(&outer)

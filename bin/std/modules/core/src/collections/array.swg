@@ -4,12 +4,17 @@ using Swag
 
 // A generic, dynamic array that can hold elements of any type.
 // It automatically manages memory and grows as needed.
+// An array is a header over a memory block, and that header is part of its contract: the
+// serializers, the reflection helpers and the formatters build one over storage they already
+// own. Writing 'count' is also how a caller truncates without dropping the elements, which
+// 'clear' and 'resize' deliberately do not do. So these fields stay writable, unlike the state
+// of a type that maintains an invariant across its fields.
 struct(T) Array
 {
     allocator: #null IAllocator     // The allocator used for memory operations.
     buffer:    #null [*] T          // Pointer to the contiguous memory block holding the elements.
     count:     u64                  // The number of valid elements currently in the array.
-    capacity:  u64                  // The total number of elements that can be stored in the allocated me.buffer.
+    capacity:  u64                  // The total number of elements that can be stored in the allocated buffer.
 }
 
 impl Array

@@ -11,11 +11,7 @@ using Swag, Core
 private func makeTestTexture(handle: u64, w, h: s32)->Texture
 {
     var result: retval
-    result.handle = cast(TextureHandle) handle
-    result.pf     = .BGRA8
-    result.width  = w
-    result.height = h
-    result.valid  = true
+    result.attach(cast(TextureHandle) handle, .BGRA8, w, h)
     return result
 }
 

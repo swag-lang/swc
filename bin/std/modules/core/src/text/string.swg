@@ -13,14 +13,19 @@ enum CharacterSet
     Unicode     // Selects unicode.
 }
 
-// Represents string.
+// Owns a growable UTF-8 buffer, with small strings stored inline.
+//
+// Like [[Core.Array]], a string is a header over a memory block and that header is part of its
+// contract: code that hands `buffer` to a C API then states how much was written sets `length`
+// itself. So these fields stay writable, unlike the state of a type that maintains an invariant
+// across its fields.
 struct String
 {
-    buffer:    #null [*] u8             // Buffer associated with this value.
-    length:    u64                      // Length associated with this value.
-    capacity:  u64                      // Capacity associated with this value.
-    allocator: #null IAllocator         // Allocator associated with this value.
-    padding:   [StringSmallSize] u8     // Padding associated with this value.
+    buffer:    #null [*] u8             // Storage of the string, inline for a small one.
+    length:    u64                      // Number of valid bytes in 'buffer'.
+    capacity:  u64                      // Number of bytes 'buffer' can hold.
+    allocator: #null IAllocator         // Allocator used to grow the storage.
+    padding:   [StringSmallSize] u8     // Inline storage of a small string.
 }
 
 impl String

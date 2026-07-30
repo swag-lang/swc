@@ -8,11 +8,17 @@ using Ogl, Core
 // only for the renderer that created it.
 struct Texture
 {
-    handle: TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
-    pf:     PixelFormat   = undefined                // Pixel encoding of the texture storage.
-    width:  s32           = 0                        // Width, in texels.
-    height: s32           = 0                        // Height, in texels.
-    valid:  bool          = false                    // Backend state flag retained for compatibility.
+    // What the renderer created. The four of them describe one resource, so they are established
+    // together when the texture is created and never on their own: a width that disagrees with
+    // the storage would silently corrupt every texture coordinate computed from it.
+    readonly
+    {
+        handle: TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
+        pf:     PixelFormat   = undefined                // Pixel encoding of the texture storage.
+        width:  s32           = 0                        // Width, in texels.
+        height: s32           = 0                        // Height, in texels.
+        valid:  bool          = false                    // Backend state flag retained for compatibility.
+    }
 }
 
 // Selects how samples are interpolated between neighboring texels.
@@ -42,5 +48,19 @@ impl Texture
     mtd clear()
     {
         .handle = InvalidTextureHandle
+        .valid  = false
+    }
+
+    // Describes the resource a renderer just created.
+    //
+    // Only a renderer calls this: it is the one that knows the handle, and the geometry the
+    // storage was really allocated with.
+    internal mtd attach(handle: TextureHandle, pf: PixelFormat, width, height: s32)
+    {
+        .handle = handle
+        .pf     = pf
+        .width  = width
+        .height = height
+        .valid  = handle != InvalidTextureHandle
     }
 }

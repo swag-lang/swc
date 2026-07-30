@@ -542,11 +542,18 @@ namespace Swag
     // Store a 'fail' error information
     struct ErrorValue
     {
-        value:          #null any     // Error value (or null)
-        pushUsedAlloc:  u32           // Internal
-        pushTraceIndex: u32           // Internal
-        pushHasError:   u32           // Internal
-        padding:        u32
+        value: #null any     // Error value (or null)
+
+        // What the error stack must restore when this entry is popped. The runtime writes it
+        // when an error is pushed and reads it back on 'catch'.
+        internal
+        {
+            pushUsedAlloc:  u32     // Error-allocator watermark at the push.
+            pushTraceIndex: u32     // Stack-trace depth at the push.
+            pushHasError:   u32     // Whether an error was already pending at the push.
+        }
+
+        padding: u32
     }
 
     // Thread context as returned by [@getcontext].

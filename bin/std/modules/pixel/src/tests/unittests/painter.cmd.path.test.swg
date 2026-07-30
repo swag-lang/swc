@@ -192,11 +192,7 @@ using Swag, Core
     var painter: Painter
     var target:  RenderTarget
 
-    target.colorBuffer.handle = cast(TextureHandle) 11
-    target.colorBuffer.pf     = .BGRA8
-    target.colorBuffer.width  = 128
-    target.colorBuffer.height = 64
-    target.colorBuffer.valid  = true
+    target.colorBuffer.attach(cast(TextureHandle) 11, .BGRA8, 128, 64)
 
     painter.begin()
     painter.setBlendingMode(.Add)

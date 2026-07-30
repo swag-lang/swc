@@ -368,8 +368,9 @@ impl RenderOgl
             let cache = notnull it
             for &atlas in cache.atlases where atlas.texture.handle != InvalidTextureHandle
             {
-                glDeleteTextures(1, cast(*GLuint) &atlas.texture.handle)
-                atlas.texture.handle = InvalidTextureHandle
+                var id: GLuint = cast() atlas.texture.handle
+                glDeleteTextures(1, &id)
+                atlas.texture.clear()
             }
         }
     }
@@ -636,12 +637,8 @@ impl RenderOgl
             var result: retval
             result.handle             = cast(RenderTargetHandle) .headlessNextHandle
             .headlessNextHandle       += 1
-            result.colorBuffer.handle = cast(TextureHandle) .headlessNextHandle
-            .headlessNextHandle       += 1
-            result.colorBuffer.width  = w
-            result.colorBuffer.height = h
-            result.colorBuffer.valid  = true
-            result.colorBuffer.pf     = .BGRA8
+            result.colorBuffer.attach(cast(TextureHandle) .headlessNextHandle, .BGRA8, w, h)
+            .headlessNextHandle += 1
             .addHeadlessTexture(result.colorBuffer, null)
             return result
         }
@@ -667,11 +664,7 @@ impl RenderOgl
 
         var result: retval
         result.handle             = cast(RenderTargetHandle) fbo
-        result.colorBuffer.handle = cast(TextureHandle) colorID
-        result.colorBuffer.width  = w
-        result.colorBuffer.height = h
-        result.colorBuffer.valid  = true
-        result.colorBuffer.pf     = .RGBA8
+        result.colorBuffer.attach(cast(TextureHandle) colorID, .RGBA8, w, h)
         result.depthStencil       = cast() rbo
         return result
     }
@@ -686,9 +679,9 @@ impl RenderOgl
         if .headless
         {
             .removeHeadlessTexture(rt.colorBuffer.handle)
-            rt.handle            = InvalidRenderTargetHandle
-            rt.depthStencil      = InvalidRenderTargetSurfaceHandle
-            rt.colorBuffer.valid = false
+            rt.handle       = InvalidRenderTargetHandle
+            rt.depthStencil = InvalidRenderTargetSurfaceHandle
+            rt.colorBuffer.clear()
             return
         }
 
@@ -701,9 +694,9 @@ impl RenderOgl
         var fb: GLuint = cast() rt.handle
         glDeleteFramebuffers(1, &fb)
 
-        rt.handle            = InvalidRenderTargetHandle
-        rt.depthStencil      = InvalidRenderTargetSurfaceHandle
-        rt.colorBuffer.valid = false
+        rt.handle       = InvalidRenderTargetHandle
+        rt.depthStencil = InvalidRenderTargetSurfaceHandle
+        rt.colorBuffer.clear()
     }
 
     // Load and register an image for rendering
@@ -719,23 +712,15 @@ impl RenderOgl
         if !image.isValid()
         {
             var result: Texture
-            result.handle = InvalidTextureHandle
-            result.pf     = .RGBA8
-            result.width  = 0
-            result.height = 0
-            result.valid  = false
+            result.attach(InvalidTextureHandle, .RGBA8, 0, 0)
             return result
         }
 
         if .headless
         {
             var result: retval
-            result.handle       = cast(TextureHandle) .headlessNextHandle
+            result.attach(cast(TextureHandle) .headlessNextHandle, image.pf, image.width, image.height)
             .headlessNextHandle += 1
-            result.width        = image.width
-            result.height       = image.height
-            result.pf           = image.pf
-            result.valid        = true
             .addHeadlessTexture(result, image.pixels.toSlice())
             return result
         }
@@ -767,11 +752,7 @@ impl RenderOgl
         glTexImage2D(GL_TEXTURE_2D, 0, tinternal, cast(s32) image.width, cast(s32) image.height, 0, fmt, GL_UNSIGNED_BYTE, cast([*] u8) (notnull image.pixels.buffer))
 
         var result: retval
-        result.handle = cast(TextureHandle) textureID
-        result.width  = image.width
-        result.height = image.height
-        result.pf     = image.pf
-        result.valid  = true
+        result.attach(cast(TextureHandle) textureID, image.pf, image.width, image.height)
         return result
     }
 
@@ -843,12 +824,13 @@ impl RenderOgl
         if .headless
         {
             .removeHeadlessTexture(texture.handle)
-            texture.valid = false
+            texture.clear()
             return
         }
 
-        glDeleteTextures(1, cast(*GLuint) &texture.handle)
-        texture.valid = false
+        var id: GLuint = cast() texture.handle
+        glDeleteTextures(1, &id)
+        texture.clear()
     }
 
     // Translate the world transform
@@ -1046,19 +1028,22 @@ impl RenderOgl
                     continue
                 atlas.dirty = false
 
-                atlas.texture.width  = atlas.width / atlas.bpp
-                atlas.texture.height = atlas.height
-                atlas.texture.pf     = atlas.bpp == 3 ? .RGB8 : .RGBA8
+                let isNew = atlas.texture.handle == InvalidTextureHandle
+
+                var textureID: GLuint
+                if isNew do
+                    glGenTextures(1, &textureID)
+                else do
+                    textureID = cast() atlas.texture.handle
+
+                atlas.texture.attach(cast(TextureHandle) textureID, atlas.bpp == 3 ? .RGB8 : .RGBA8, atlas.width / atlas.bpp, atlas.height)
 
                 // An atlas keeps fixed dimensions for its whole life, so allocate the
                 // texture storage once and stream new glyphs in with glTexSubImage2D.
                 // Re-uploading with glTexImage2D every time a glyph is appended forces
                 // the driver to reallocate and synchronize, which stalls the frame and
                 // is felt as a series of hitches while a font warms up its glyphs.
-                let isNew = atlas.texture.handle == InvalidTextureHandle
-                if isNew do
-                    glGenTextures(1, cast(*GLuint) &atlas.texture.handle)
-                glBindTexture(GL_TEXTURE_2D, cast(GLuint) atlas.texture.handle)
+                glBindTexture(GL_TEXTURE_2D, textureID)
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
 
                 if isNew

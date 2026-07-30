@@ -9,20 +9,31 @@ struct(K) HashSetEntry
     key:  K       // The key itself.
 }
 
-// A hash set implemented with an open-addressing hash me.table.
+// A hash set implemented with an open-addressing hash table.
 // It stores a collection of unique keys, providing fast lookups, additions, and removals.
 struct(K) HashSet
 {
-    // Special hash values to indicate the state of a slot in the me.table.
+    // Special hash values to indicate the state of a slot in the table.
     const HASH_FREE    = 0'u32     // The slot is empty and has never been used.
-    const HASH_DELETED = 1'u32     // The slot was previously occupied but has been me.deleted.
+    const HASH_DELETED = 1'u32     // The slot was previously occupied but has been deleted.
     const HASH_FIRST   = 2'u32     // The first possible valid hash value.
 
-    allocator: #null IAllocator           // The me.allocator used for memory operations.
-    table:     #null [*] HashSetEntry     // Pointer to the contiguous memory block for the hash me.table.
-    count:     u64                        // The number of valid elements currently in the set.
-    capacity:  u64                        // The total number of slots in the hash me.table.
-    deleted:   u64                        // The number of slots marked as deleted.
+    allocator: #null IAllocator     // The allocator used for memory operations.
+
+    // Sizes are reported, never set: the set grows itself when it needs to.
+    readonly
+    {
+        count:    u64 // The number of valid elements currently in the set.
+        capacity: u64 // The total number of slots in the hash table.
+    }
+
+    // Open-addressing state. The layout is an implementation choice: reaching into it from
+    // outside would tie callers to the probing scheme and the load factor.
+    private
+    {
+        table:   #null [*] HashSetEntry // Contiguous memory block for the slots.
+        deleted: u64 // The number of slots marked as deleted.
+    }
 }
 
 impl HashSet

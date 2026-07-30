@@ -73,6 +73,9 @@ public:
     void                  setGlobalStorage(DataSegmentKind kind, uint32_t offset);
     DataSegmentKind       globalStorageKind() const { return globalStorageKind_; }
 
+    MemberAccess memberAccess() const noexcept { return memberAccess_; }
+    void         setMemberAccess(MemberAccess access) noexcept { memberAccess_ = access; }
+
 private:
     uint32_t        offset_                = 0;
     uint32_t        parameterIndex_        = K_INVALID_PARAMETER_INDEX;
@@ -85,6 +88,7 @@ private:
     SymbolFunction* globalFunctionInit_    = nullptr;
     SymbolVariable* closureCapturedSource_ = nullptr;
     uint32_t        closureCaptureOffset_  = 0;
+    MemberAccess    memberAccess_          = MemberAccess::Public;
 };
 
 SWC_END_NAMESPACE();

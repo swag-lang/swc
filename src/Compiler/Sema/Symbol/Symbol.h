@@ -51,6 +51,18 @@ enum class SymbolAccess : uint8_t
     Private,  // Visible only in the file it is declared
 };
 
+// Access declared on an aggregate member. A top-level declaration belongs to its file, so
+// 'private' there means "this file"; a member belongs to its type, so 'private' here means
+// "the type's own bodies": the aggregate declaration and every 'impl' of it, in the module
+// that declares the type.
+enum class MemberAccess : uint8_t
+{
+    Public,   // Read and written from anywhere
+    ReadOnly, // Read from anywhere, written only by the declaring type
+    Internal, // Read and written only inside the declaring module
+    Private,  // Read and written only by the declaring type
+};
+
 enum class SymbolKind : uint8_t
 {
     Invalid,

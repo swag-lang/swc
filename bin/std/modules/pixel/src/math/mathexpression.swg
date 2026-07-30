@@ -188,9 +188,15 @@ internal struct MathNode
 #[Swag.Opaque]
 struct MathExpression
 {
-    source: String
-    nodes:  ArrayPtr'MathNode
-    root:   *MathNode = undefined
+    // The parsed expression tree. Build it with 'parse' and render it with the layout pass;
+    // the node pool owns every node, so a caller holding one would outlive its storage.
+    // The module reads the tree directly to check the parser.
+    internal
+    {
+        source: String // Expression text the tree was parsed from.
+        nodes:  ArrayPtr'MathNode // Pool owning every node of the tree.
+        root:   *MathNode = undefined // Root of the tree, set by 'parse'.
+    }
 }
 
 private struct MathSymbolSpec

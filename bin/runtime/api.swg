@@ -696,6 +696,9 @@ namespace Swag
         AutoName
         HasUsing
         LateInit     // 'Swag.Late' field: starts null, receives its value later
+        ReadOnly     // 'readonly' field: read anywhere, written only by the declaring type
+        Internal     // 'internal' field: reached only inside the declaring module
+        Private      // 'private' field: reached only by the declaring type
     }
 
     // Represents a value, like a function parameter or an enum value

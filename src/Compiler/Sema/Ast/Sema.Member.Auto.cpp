@@ -3,6 +3,7 @@
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaClone.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
@@ -819,12 +820,24 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         const std::span foundSymbols = matches.front().symbols.span();
         SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
 
+        // An auto member ('.field') resolves without the regular member-access path, so the
+        // member access rule has to be applied here as well.
+        for (const Symbol* memberSym : foundSymbols)
+            SWC_RESULT(SemaAccess::checkMemberAccess(sema, *memberSym, autoMemberCodeRef));
+
         AstMemberAccessExpr*     substituteNode = nullptr;
         const AstNodeRef         nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), autoMemberCodeRef, selected, nodeIdentRef, substituteNode);
         const std::span<Symbol*> symbols        = sema.curViewSymbolList().symList();
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
         sema.setSymbolList(substituteNode->nodeRightRef, symbols);
+
+        for (const Symbol* memberSym : symbols)
+        {
+            const auto* fieldVar = memberSym->safeCast<SymbolVariable>();
+            if (fieldVar && !SemaAccess::canWriteMember(sema, *fieldVar, autoMemberCodeRef.srcViewRef))
+                sema.setConstAssignTarget(nodeRef);
+        }
 
         AstNodeRef substituteRef = nodeRef;
         if (selected.resultTypeRef.isValid())

@@ -117,6 +117,8 @@ public:
 
     SymbolAccess         currentAccess() const { return access_; }
     void                 setCurrentAccess(SymbolAccess access) { access_ = access; }
+    MemberAccess         currentMemberAccess() const { return memberAccess_; }
+    void                 setCurrentMemberAccess(MemberAccess access) { memberAccess_ = access; }
     bool                 globalCompilerIfEnabled() const { return globalCompilerIfEnabled_; }
     void                 setGlobalCompilerIfEnabled(bool value) { globalCompilerIfEnabled_ = value; }
     AttributeList&       currentAttributes() { return attributes_; }
@@ -207,6 +209,7 @@ public:
 
 private:
     SymbolAccess                        access_                  = SymbolAccess::Internal;
+    MemberAccess                        memberAccess_            = MemberAccess::Public;
     bool                                globalCompilerIfEnabled_ = true;
     AttributeList                       attributes_;
     SmallVector8<IdentifierRef>         nsPath_;

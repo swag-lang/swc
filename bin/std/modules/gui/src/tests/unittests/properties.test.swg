@@ -1476,7 +1476,7 @@ impl IPropertyNotify for PropDefaultCustom
     btn.isPressing           = true
     btn.aniBk.themeCrc       = 42'u32
     host.app.mouseEnterWnd   = btn
-    host.app.mouseCaptureWnd = btn
+    host.app.setMouseCaptureRaw(btn)
     prop.resetItemDefault(countItem)
     @assert(!countItem.isModified and btn.isDisabled())
     @assert(countItem.editBox.position.width == editWidthClean)

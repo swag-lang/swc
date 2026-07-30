@@ -31,8 +31,28 @@ AstNodeRef Parser::parseImpl()
 
 AstNodeRef Parser::parseAggregateAccessModifier()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(consume());
-    nodePtr->nodeWhatRef    = parseAggregateValue();
+    const TokenRef tokModifier = consume();
+    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
+    nodePtr->addFlag(AstAccessModifierFlagsE::Member);
+
+    switch (id())
+    {
+        case TokenId::KwdPublic:
+        case TokenId::KwdInternal:
+        case TokenId::KwdPrivate:
+        case TokenId::KwdReadOnly:
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_duplicate_modifier, ref());
+            diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
+            diag.report(*ctx_);
+            skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
+            return AstNodeRef::invalid();
+        }
+        default:
+            break;
+    }
+
+    nodePtr->nodeWhatRef = parseAggregateValue();
     return nodeRef;
 }
 
@@ -75,7 +95,10 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdConst:
             return parseVarDecl();
 
+        case TokenId::KwdPublic:
         case TokenId::KwdInternal:
+        case TokenId::KwdPrivate:
+        case TokenId::KwdReadOnly:
             return parseAggregateAccessModifier();
 
         case TokenId::Identifier:

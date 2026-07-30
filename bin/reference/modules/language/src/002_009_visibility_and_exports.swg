@@ -51,6 +51,64 @@ module API:
 Visibility is independent of namespaces. A symbol can be public and qualified,
 or private and placed in a namespace for organization.
 
+# Member Access
+
+A declaration belongs to its file, so 'private' at the top level means "this file". A
+**member belongs to its type**, so on a field the same word grants the type: the file that
+declares the aggregate, and every 'impl' of that type in the module that declares it. One
+rule, one reading: 'private' grants the owner, 'internal' grants the module, 'public'
+grants everyone.
+
+Granting the declaring file matters in practice. A type keeps its declaration and its
+methods together, splits an 'impl' across platform files, and reaches its own state from a
+mixin or an inlined body without the access depending on where that body expands.
+
+A field takes a fourth level that a top-level declaration has no use for. 'readonly'
+splits reading from writing:
+
+| Modifier   | Read from        | Written from     |
+| ---------- | ---------------- | ---------------- |
+| 'public'   | anywhere         | anywhere         |
+| 'readonly' | anywhere         | declaring type   |
+| 'internal' | declaring module | declaring module |
+| 'private'  | declaring type   | declaring type   |
+
+'public' is the default: a field is part of the surface unless it says otherwise.
+*/
+
+struct Counter
+{
+    readonly count: s32
+    private  step:  s32 = 2
+}
+
+impl Counter
+{
+    // The declaring type reaches and writes every level.
+    mtd bump() { .count += .step }
+}
+
+#test
+{
+    var c: Counter
+    c.bump()
+    c.bump()
+
+    // 'readonly' reads from anywhere; only its own type writes it.
+    @assert(c.count == 4)
+}
+
+/**
+'readonly' restricts writing through the field's name; it does not freeze the whole
+value. Assigning the aggregate, copying it, and dropping it stay ordinary operations.
+
+Naming a field in a struct literal writes it, so the write rule applies there too: a
+literal can only initialize the fields the site could assign.
+
+Reflection reports the declared access through 'Swag.TypeValueFlags', so a generic
+walker such as a serializer or a property editor can leave implementation state alone
+instead of persisting it.
+
 # Exporting a File's API
 
 '#global export' is a fourth form. It sets the same access as '#global public', and

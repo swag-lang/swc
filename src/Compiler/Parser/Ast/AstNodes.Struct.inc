@@ -1275,7 +1275,13 @@ struct AstInterfaceBody : AstCompoundT<AstNodeId::InterfaceBody>
 };
 
 // -----------------------------------------------------------------------------
-struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier>
+enum class AstAccessModifierFlagsE : AstNode::ParserFlags
+{
+    Zero   = 0,
+    Member = 1 << 0, // written inside an aggregate body, so it sets member access instead of symbol visibility
+};
+
+struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier, AstAccessModifierFlagsE>
 {
     AstNodeRef nodeWhatRef;
 

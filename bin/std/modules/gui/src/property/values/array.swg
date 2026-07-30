@@ -27,14 +27,11 @@ impl Properties
 
         // Move all newly reconstructed items at the right place
         let numAddedChilds = cast(u32) (.items.count - countItemsBefore)
-        for [i] in numAddedChilds
-        {
+        for [i] in numAddedChilds do
             .items.insertAt(insertItemIdx + i, .items[.items.count - numAddedChilds + i])
-            .edView.childs.insertAt(insertItemIdx + i, .edView.childs[.edView.childs.count - numAddedChilds + i])
-        }
+        .items.count -= numAddedChilds
 
-        .items.count         -= numAddedChilds
-        .edView.childs.count -= numAddedChilds
+        .edView.moveLastChildsTo(insertItemIdx, numAddedChilds)
 
         // Remove all old items and childs
         for [i] in item.numChilds

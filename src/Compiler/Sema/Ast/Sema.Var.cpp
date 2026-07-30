@@ -1179,11 +1179,13 @@ Result AstSingleVarDecl::semaPreDecl(Sema& sema) const
     else
     {
         SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef, forcedIdentRef);
+        auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
         if (hasFlag(AstVarDeclFlagsE::Let))
-        {
-            auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
             symVar.addExtraFlag(SymbolVariableFlagsE::Let);
-        }
+
+        // Only an aggregate body can carry a member access modifier, so locals and parameters
+        // always end up 'Public' here and the stamp costs them nothing.
+        symVar.setMemberAccess(sema.frame().currentMemberAccess());
     }
 
     return Result::SkipChildren;
@@ -1289,11 +1291,10 @@ Result AstMultiVarDecl::semaPreDecl(Sema& sema) const
         {
             const Symbol& sym = SemaHelpers::registerSymbol<SymbolVariable>(sema, *this, tokNameRef);
             symbols.push_back(&sym);
+            auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
             if (hasFlag(AstVarDeclFlagsE::Let))
-            {
-                auto& symVar = sema.curViewSymbol().sym()->cast<SymbolVariable>();
                 symVar.addExtraFlag(SymbolVariableFlagsE::Let);
-            }
+            symVar.setMemberAccess(sema.frame().currentMemberAccess());
         }
     }
 

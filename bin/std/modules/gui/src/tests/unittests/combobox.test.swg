@@ -156,7 +156,7 @@ func comboHeadlessChanged(combo: *ComboBox, idx: u32)
     host.keyPress(Input.Key.Escape)
     host.pump()
     @assert(combo.popup == null)
-    host.app.mouseCaptureWnd = null
+    host.app.setMouseCaptureRaw(null)
 
     host.shutdown()
 }

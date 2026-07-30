@@ -522,6 +522,14 @@ AstNodeRef Parser::parseCompilerGlobal()
         nodePtr->nodeModeRef = AstNodeRef::invalid();
         consume();
     }
+    else if (is(TokenId::KwdReadOnly))
+    {
+        // 'readonly' restricts writes to one field; a file has no field to restrict.
+        raiseError(DiagnosticId::parser_err_readonly_outside_aggregate, ref());
+        nodePtr->mode        = AstCompilerGlobal::Mode::AccessInternal;
+        nodePtr->nodeModeRef = AstNodeRef::invalid();
+        consume();
+    }
     else if (is(TokenId::KwdNamespace))
     {
         nodePtr->mode = AstCompilerGlobal::Mode::Namespace;

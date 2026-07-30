@@ -9,8 +9,10 @@ page is an index; the surrounding chapters explain each active construct.
 
 ```swag
 alias  attr  const  enum  func  impl  interface  internal
-let  mtd  namespace  private  public  struct  union  using  var  with
+let  mtd  namespace  private  public  readonly  struct  union  using  var  with
 ```
+
+'readonly' applies to an aggregate field only.
 
 'me' names the receiver inside methods.
 

@@ -874,6 +874,11 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::KwdInternal:
             return parseAccessModifier();
 
+        case TokenId::KwdReadOnly:
+            raiseError(DiagnosticId::parser_err_readonly_outside_aggregate, ref());
+            consume();
+            return parseTopLevelDeclOrBlock();
+
         case TokenId::KwdUsing:
             return parseUsing();
 

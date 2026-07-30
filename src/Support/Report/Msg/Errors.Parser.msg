@@ -42,6 +42,7 @@ SWC_DIAG_DEF(parser_err_inject_instruction_done, Error, "replacement instruction
 SWC_DIAG_DEF(parser_err_inject_instruction_done, Error, "replacement instruction '{tok}' is already defined; [help] each instruction can be replaced at most once")
 SWC_DIAG_DEF(parser_err_inject_invalid_instruction, Error, "'#inject' cannot replace instruction '{tok}'; [help] only 'break' and 'continue' can be replaced")
 SWC_DIAG_DEF(parser_err_duplicate_modifier, Error, "access modifier '{tok}' conflicts with an earlier one; [help] a declaration may have at most one access modifier")
+SWC_DIAG_DEF(parser_err_readonly_outside_aggregate, Error, "'readonly' can only be used on a struct or union field; [help] use 'private' or 'internal' for a top-level declaration")
 SWC_DIAG_DEF(parser_err_duplicate_type_qualifier, Error, "type qualifier '{tok}' is already specified; [help] keep each type qualifier only once")
 SWC_DIAG_DEF(parser_err_misplace_type_qualifier, Error, "misplaced type qualifier '{tok}'; [help] write '#null' before 'const', as in '#null const *T'")
 SWC_DIAG_DEF(parser_err_expected_type_or_symbol, Error, "expected a type or qualified name after '=' in an alias declaration; found {tok-fam} '{tok}'; [help] aliases can only target a type or a qualified name")

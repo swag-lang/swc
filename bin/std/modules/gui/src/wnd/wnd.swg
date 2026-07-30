@@ -193,7 +193,10 @@ struct Wnd
 
     parent: #null *Wnd // Parent associated with this value.
     owner:  #null *Wnd // Owner associated with this value.
-    childs: Array'(*Wnd) // Childs associated with this value.
+
+    // The child list is maintained by the window itself: add and remove children through
+    // 'addChild' and 'removeChild' so parent links and layout state stay consistent.
+    readonly childs: Array'(*Wnd)
 
     name:    RichString // Name associated with this value.
     id:      #null WndId // Id associated with this value.
@@ -203,22 +206,32 @@ struct Wnd
     keyShortcuts: Array'KeyShortcut // Key shortcuts associated with this value.
     actions:      Array'IActionUI // Actions associated with this value.
 
-    margin:         Math.Vector4 // Margin associated with this value.
-    padding:        Math.Vector4 // Padding associated with this value.
-    dockStyle:      DockStyle   = None // Dock style associated with this value.
-    anchorStyle:    AnchorStyle = None // Anchor style associated with this value.
-    layoutSpec:     LayoutSpec // Layout spec associated with this value.
-    cachedSizeHint: SizeHint // Cached size hint associated with this value.
-    layoutDebug:    LayoutDebugInfo // Layout debug associated with this value.
+    margin:      Math.Vector4 // Margin associated with this value.
+    padding:     Math.Vector4 // Padding associated with this value.
+    dockStyle:   DockStyle   = None // Dock style associated with this value.
+    anchorStyle: AnchorStyle = None // Anchor style associated with this value.
+    layoutSpec:  LayoutSpec // Layout spec associated with this value.
 
     focusStrategy: FocusStategy = MousePressed // Focus strategy associated with this value.
 
-    backgroundStyle:  BackgroundStyle = Transparent // Background style associated with this value.
-    isAllocated:      bool // Whether this value is allocated.
-    isPendingDestroy: bool // Whether this value is pending destroy.
-    createEventDone:  bool // Create event done associated with this value.
-    layoutDirty:      bool            = true // Layout dirty associated with this value.
-    managedByLayout:  bool // Managed by layout associated with this value.
+    backgroundStyle: BackgroundStyle = Transparent // Background style associated with this value.
+    isAllocated:     bool // Whether this value is allocated.
+
+    // Layout bookkeeping. The layout pass owns it: reading it tells what the window is doing,
+    // writing it from outside would desynchronize the pass from the tree.
+    readonly
+    {
+        isPendingDestroy: bool // Whether the window is scheduled for destruction.
+        managedByLayout:  bool // Whether a layout container places this window.
+        layoutDebug:      LayoutDebugInfo // Last layout decision, for diagnostics.
+    }
+
+    private
+    {
+        cachedSizeHint:  SizeHint // Memoized measure result, refreshed by the layout pass.
+        createEventDone: bool // Whether the create event was already delivered.
+        layoutDirty:     bool = true // Whether the next frame must re-run layout.
+    }
 
     hookOnEvent:      #null HookEvent     // Will be called before processing the event of the window
     hookOnChildEvent: #null HookEvent     // Will be called before processing whatever event of a child window
@@ -1027,6 +1040,31 @@ impl Wnd
     mtd setAllPaddings(value: f32)          => .setPadding(value, value, value, value)
     // Sets all paddings.
     mtd setAllPaddings(value: Math.Vector4) => .setPadding(value.x, value.y, value.z, value.w)
+
+    // Removes a child from this window's child list without destroying it.
+    //
+    // The caller keeps ownership of `child`. Returns whether the child was in the list.
+    mtd detachChild(child: *Wnd)->bool
+    {
+        let idx = Slice.findLinear(.childs.toSlice(), child)
+        if idx == Swag.U64.Max do
+            return false
+        .childs.removeAtOrdered(idx)
+        return true
+    }
+
+    // Moves the last `count` children to `index`, keeping their relative order.
+    //
+    // Children built by appending can be placed at their final position in one step.
+    mtd moveLastChildsTo(index: u64, count: u64)
+    {
+        Debug.assert(count <= .childs.count)
+        Debug.assert(index + count <= .childs.count)
+
+        for [i] in count do
+            .childs.insertAt(index + i, .childs[.childs.count - count + i])
+        .childs.count -= count
+    }
 
     // Force the window to be the first painted (before all siblings)
     mtd bringToFront()

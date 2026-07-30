@@ -864,6 +864,23 @@ namespace
                 if (symField->hasExtraFlag(SymbolVariableFlagsE::LateInit))
                     tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::LateInit);
 
+                // Reflection reports the declared access so generic walkers (serialization, the
+                // property grid) can leave implementation state alone.
+                switch (symField->memberAccess())
+                {
+                    case MemberAccess::ReadOnly:
+                        tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::ReadOnly);
+                        break;
+                    case MemberAccess::Internal:
+                        tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::Internal);
+                        break;
+                    case MemberAccess::Private:
+                        tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::Private);
+                        break;
+                    case MemberAccess::Public:
+                        break;
+                }
+
                 entry.structFieldTypes.push_back(symField->typeRef());
 
                 if (!symField->isUsingField())

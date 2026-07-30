@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
+#include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
@@ -1222,6 +1223,16 @@ namespace
         const SemaNodeView             nodeRightView            = sema.viewSymbolList(node.nodeRightRef);
         const std::span<Symbol* const> symbols                  = nodeRightView.symList();
         const size_t                   finalSymCount            = symbols.size();
+
+        // Member access control is judged on the resolved member, before constant folding could
+        // read through a field this site cannot name.
+        for (Symbol* memberSym : symbols)
+        {
+            SWC_RESULT(SemaAccess::checkMemberAccess(sema, *memberSym, codeRef));
+            const auto* fieldVar = memberSym->safeCast<SymbolVariable>();
+            if (fieldVar && !SemaAccess::canWriteMember(sema, *fieldVar, codeRef.srcViewRef))
+                sema.setConstAssignTarget(targetNodeRef);
+        }
         const bool                     throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
         bool                           canExtractConstantMember = !throughPointerOrRef;
         if (throughPointerOrRef && nodeLeftView.cst())

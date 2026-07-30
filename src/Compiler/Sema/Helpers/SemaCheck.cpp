@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
@@ -657,6 +658,12 @@ Result SemaCheck::isAssignable(Sema& sema, AstNodeRef leftExprRef, const SemaNod
             diag.report(sema.ctx());
             return Result::Error;
         }
+
+        // A 'readonly' field is readable everywhere, so name that contract instead of falling
+        // through to the generic read-only-storage message the const path would produce.
+        const auto* field = leftView.sym()->safeCast<SymbolVariable>();
+        if (field && field->memberAccess() == MemberAccess::ReadOnly && !SemaAccess::canWriteMember(sema, *field, sema.node(leftExprRef).srcViewRef()))
+            return SemaAccess::reportMemberWrite(sema, *field, leftExprRef);
     }
 
     const SymbolVariable* readOnlyParameter = nonReassignableParameterIdentifier(sema, leftExprRef);

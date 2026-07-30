@@ -44,7 +44,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(PopupHeadlessChangedCount == 1)
     @assert(host.lastCommand == PopupHeadless_Item2)
 
-    host.app.mouseCaptureWnd = null
+    host.app.setMouseCaptureRaw(null)
     host.shutdown()
 }
 
@@ -69,7 +69,7 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(combo.popup == null)
     @assert(combo.selectedIdx == Swag.U32.Max)
 
-    host.app.mouseCaptureWnd = null
+    host.app.setMouseCaptureRaw(null)
     host.shutdown()
 }
 

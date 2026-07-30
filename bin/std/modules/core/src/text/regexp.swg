@@ -123,28 +123,36 @@ struct DfaState
 #[Swag.Opaque]
 public struct RegExp
 {
-    nfaNodes:         ArrayPtr'(NfaNode) // Nfa nodes associated with this value.
-    dfaNodes:         ArrayPtr'(DfaNode) // Dfa nodes associated with this value.
-    nfaTables:        ArrayPtr'(NfaTable) // Nfa tables associated with this value.
-    nfaStack:         Array'(*NfaTable) // Nfa stack associated with this value.
-    charSet:          HashSet'rune // Char set associated with this value.
-    groups:           Array'RegExpGroup // Groups associated with this value.
-    groupTransform:   Array'u32 // Group transform associated with this value.
-    groupParent:      Array'u32 // Group parent associated with this value.
-    captureRanks:     Array'u32 // Capture ranks associated with this value.
-    captureRankStack: Array'u32 // Capture rank stack associated with this value.
-    openParen:        Array'u32 // Open paren associated with this value.
-    orOpStack:        Array'rune // Or op stack associated with this value.
-    orOpLevel:        Array'u32 // Or op level associated with this value.
-    preprocessed:     Array'rune // Preprocessed associated with this value.
-    group:            u32 // Group associated with this value.
-    captureRankMax:   u32 // Capture rank max associated with this value.
-    captureRankIdx:   u64 // Index of capture rank.
-    hasStarted:       bool // Whether this value has started.
-    wasWord:          bool // Was word associated with this value.
-    ignoreCase:       bool // Ignore case associated with this value.
-    bufStart:         #null const [*] u8 // Buf start associated with this value.
-    bufLength:        u64 // Buf length associated with this value.
+    // The compiled automaton and the match cursor. Callers drive a regular expression through
+    // 'compile' and 'match'; every field below is one step of that machinery.
+    private
+    {
+        nfaNodes:         ArrayPtr'(NfaNode) // Nodes of the non-deterministic automaton.
+        dfaNodes:         ArrayPtr'(DfaNode) // Nodes of the derived deterministic automaton.
+        nfaTables:        ArrayPtr'(NfaTable) // Transition tables of the automaton.
+        nfaStack:         Array'(*NfaTable) // Table stack used while building the automaton.
+        charSet:          HashSet'rune // Character class being accumulated.
+        groups:           Array'RegExpGroup // Capture groups of the pattern.
+        groupTransform:   Array'u32 // Maps a parsed group to its capture index.
+        groupParent:      Array'u32 // Enclosing group of each group.
+        captureRanks:     Array'u32 // Capture order of the groups.
+        captureRankStack: Array'u32 // Capture-order stack used while parsing.
+        openParen:        Array'u32 // Positions of the groups still open.
+        orOpStack:        Array'rune // Alternation operators still pending.
+        orOpLevel:        Array'u32 // Nesting level of each pending alternation.
+        group:            u32 // Number of groups seen so far.
+        captureRankMax:   u32 // Highest capture rank assigned.
+        captureRankIdx:   u64 // Next capture rank to assign.
+        hasStarted:       bool // Whether a match is in progress.
+        wasWord:          bool // Whether the previous rune was a word rune, for '\b'.
+        ignoreCase:       bool // Whether the pattern was compiled case-insensitive.
+        bufStart:         #null const [*] u8 // Start of the subject buffer of the current match.
+        bufLength:        u64 // Length of the subject buffer of the current match.
+    }
+
+    // Pattern after escape and class expansion. The preprocessing step is checked on its own,
+    // so the module reads this result directly.
+    internal preprocessed: Array'rune
 }
 
 impl RegExp

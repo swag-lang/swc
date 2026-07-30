@@ -7,8 +7,12 @@ using Core.Errors
 #[Swag.Opaque]
 struct ZLib
 {
-    decoder: Inflate // Decoder associated with this value.
-    encoder: Deflate // Encoder associated with this value.
+    // One codec of each direction, reused across calls.
+    private
+    {
+        decoder: Inflate // Decompressor used by 'decompress'.
+        encoder: Deflate // Compressor used by 'compress'.
+    }
 }
 
 impl ZLib

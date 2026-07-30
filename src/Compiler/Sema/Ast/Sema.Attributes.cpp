@@ -672,22 +672,33 @@ Result AstAccessModifier::semaPreDecl(Sema& sema) const
     const Token& tok = sema.token(codeRef());
 
     SymbolAccess access;
+    MemberAccess memberAccess;
     switch (tok.id)
     {
         case TokenId::KwdInternal:
-            access = SymbolAccess::Internal;
+            access       = SymbolAccess::Internal;
+            memberAccess = MemberAccess::Internal;
             break;
         case TokenId::KwdPrivate:
-            access = SymbolAccess::Private;
+            access       = SymbolAccess::Private;
+            memberAccess = MemberAccess::Private;
             break;
         case TokenId::KwdPublic:
-            access = SymbolAccess::Public;
+            access       = SymbolAccess::Public;
+            memberAccess = MemberAccess::Public;
+            break;
+        case TokenId::KwdReadOnly:
+            // A read-only field stays part of the published surface: only writing is restricted.
+            access       = SymbolAccess::Public;
+            memberAccess = MemberAccess::ReadOnly;
             break;
         default:
             SWC_UNREACHABLE();
     }
 
     SemaFrame newFrame = sema.frame();
+    if (hasFlag(AstAccessModifierFlagsE::Member))
+        newFrame.setCurrentMemberAccess(memberAccess);
     newFrame.setCurrentAccess(access);
     sema.pushFramePopOnPostNode(newFrame);
 

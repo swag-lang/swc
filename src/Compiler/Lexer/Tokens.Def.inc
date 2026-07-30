@@ -148,6 +148,7 @@ SWC_TOKEN_DEF(KwdUndefined, "undefined",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdPublic, "public",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdPrivate, "private",  TokenIdKindE::Keyword)
 SWC_TOKEN_DEF(KwdInternal, "internal",  TokenIdKindE::Keyword)
+SWC_TOKEN_DEF(KwdReadOnly, "readonly",  TokenIdKindE::Keyword)
 
 // TYPE DEFINITIONS
 

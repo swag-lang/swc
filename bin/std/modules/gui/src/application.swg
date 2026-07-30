@@ -19,35 +19,55 @@ struct Application
     style:        ThemeStyle // Style associated with this value.
     keyb:         Input.Keyboard // Keyb associated with this value.
     mouse:        Input.Mouse // Mouse associated with this value.
-    mainSurface:  #null *Surface // Main surface associated with this value.
-    postedEvents: Array'(IEvent) // Posted events associated with this value.
-    surfaces:     Array'(*Surface) // Surfaces associated with this value.
-    postDestroy:  Array'(*Wnd) // Post destroy associated with this value.
-    hookOnEvent:  Array'(*Wnd) // Hook on event associated with this value.
-    frameCursor:  Cursor // Frame cursor associated with this value.
-    endModalExit: #null WndId // End modal exit associated with this value.
-    inModalLoop:  u32 // In modal loop associated with this value.
-    quitCode:     s32 // Quit code associated with this value.
-    timing:       Time.FrameTiming // Timing associated with this value.
+    mainSurface: #null *Surface // Main surface associated with this value.
 
-    mustQuit:    bool // Must quit associated with this value.
-    endModal:    bool // End modal associated with this value.
-    isActivated: bool // Whether this value is activated.
+    // The surface list is maintained by the application: create and destroy surfaces through
+    // its own API so the modal stack and the render loop stay consistent.
+    readonly surfaces: Array'(*Surface)
+
+    // Frame and input bookkeeping. Reading it tells what the application is doing this frame;
+    // writing it from outside would desynchronize the loop from the window tree.
+    readonly
+    {
+        timing:          Time.FrameTiming // Timing of the frame being run.
+        mouseCaptureWnd: #null *Wnd // Window currently holding the mouse capture.
+        isActivated:     bool // Whether the application window is active.
+    }
+
+    // Focus tracking, moved by the windows themselves as events are dispatched.
+    internal
+    {
+        keybFocusWnd:  #null *Wnd // Window currently holding the keyboard focus.
+        mouseEnterWnd: #null *Wnd // Window the mouse last entered.
+    }
+
+    frameCursor:         Cursor // Frame cursor associated with this value.
     fadeDisabledSurface = true // Fade disabled surface associated with this value.
 
-    mutexPostedEvents: Sync.Mutex // Mutex posted events associated with this value.
+    // Run-loop state. It only means something to the loop that owns it.
+    internal
+    {
+        postedEvents:      Array'(IEvent) // Events queued from any thread, drained each frame.
+        postDestroy:       Array'(*Wnd) // Windows to destroy once the frame is over.
+        hookOnEvent:       Array'(*Wnd) // Windows watching every event of the application.
+        endModalExit:      #null WndId // Result the innermost modal loop exits with.
+        inModalLoop:       u32 // Depth of the modal loop nesting.
+        quitCode:          s32 // Exit code the run loop returns.
+        mustQuit:          bool // Whether the run loop stops at the end of the frame.
+        endModal:          bool // Whether the innermost modal loop stops.
+        mutexPostedEvents: Sync.Mutex // Guards 'postedEvents' against other threads.
+        duringTimerEvents: bool // Whether timer callbacks are running, so lists defer.
+        timers:            Array'(*Timer) // Active timers.
+        timersToAdd:       Array'(*Timer) // Timers added while callbacks were running.
+        timersToDelete:    Array'(*Timer) // Timers removed while callbacks were running.
+        frameEvents:       Array'(*Wnd) // Windows asking for a per-frame event.
+        modalSurfaces:     Array'(*Surface) // Surface stack of the nested modal loops.
+        toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo } // Deferred deletions.
+    }
 
-    duringTimerEvents: bool // During timer events associated with this value.
-    timers:            Array'(*Timer) // Timers associated with this value.
-    timersToAdd:       Array'(*Timer) // Timers to add associated with this value.
-    timersToDelete:    Array'(*Timer) // Timers to delete associated with this value.
-    frameEvents:       Array'(*Wnd) // Frame events associated with this value.
-    modalSurfaces:     Array'(*Surface) // Modal surfaces associated with this value.
-    toDelete:          Array'{ ptr: #null *void, type: const *Swag.TypeInfo } // To delete associated with this value.
-    mouseEnterWnd:     #null *Wnd // Mouse enter wnd associated with this value.
-    mouseCaptureWnd:   #null *Wnd // Mouse capture wnd associated with this value.
-    keybFocusWnd:      #null *Wnd // Keyb focus wnd associated with this value.
-    maxRunFrame:       u32 // Max run frame associated with this value.
+    // Stops the run loop after this many frames, or never when zero. A test or a scripted
+    // run sets it to bound the loop without a user closing the window.
+    maxRunFrame: u32
     configPath:        String // Config path associated with this value.
     hotKeys:           Array'KeyShortcut // Hot keys associated with this value.
     dirtyTheme:        u32 // Dirty theme associated with this value.
@@ -737,6 +757,15 @@ impl Application
         return .mouseCaptureWnd
     }
 
+    // Sets the captured window without asking the platform for a real capture.
+    //
+    // 'captureMouse' is the way a window takes the mouse; this one exists for the headless
+    // host and its tests, which simulate the platform side themselves.
+    internal mtd setMouseCaptureRaw(wnd: #null *Wnd)
+    {
+        .mouseCaptureWnd = wnd
+    }
+
     // Destroy a window
     // To cleanly close a window, you should call wnd.destroy()
     mtd destroyWnd(wnd: *Wnd)
@@ -749,9 +778,8 @@ impl Application
         // Remove from parent
         if wnd.parent and !wnd.parent.isPendingDestroy
         {
-            let idx = Slice.findLinear(wnd.parent.childs.toSlice(), wnd)
-            Debug.assert(idx != Swag.U64.Max)
-            wnd.parent.childs.removeAtOrdered(idx)
+            let detached = wnd.parent.detachChild(wnd)
+            Debug.assert(detached)
             wnd.parent.invalidate()
         }
 

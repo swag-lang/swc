@@ -139,9 +139,16 @@ internal
 #[Swag.Opaque]
 public struct Inflate
 {
-    stream:     BitStream // Stream associated with this value.
-    windowSize: u32 // Window size associated with this value.
-    adler:      Hash.Adler32 // Adler associated with this value.
+    // Size of the back-reference window, fixed for the duration of one 'decompress' call.
+    private windowSize: u32
+
+    // Input cursor and running checksum. The container formats built on top of Inflate read
+    // them to parse their own trailer once the compressed block is consumed.
+    internal
+    {
+        stream: BitStream // Bit cursor over the compressed input.
+        adler:  Hash.Adler32 // Adler-32 checksum calculator.
+    }
 }
 
 impl Inflate

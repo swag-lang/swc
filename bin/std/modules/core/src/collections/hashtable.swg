@@ -10,21 +10,32 @@ struct(K, V) HashTableEntry
     value: V       // The value associated with the key.
 }
 
-// A hash me.table implemented with open-addressing that maps keys to values.
+// A hash table implemented with open-addressing that maps keys to values.
 // It provides fast lookups, additions, and removals of key-value pairs.
 struct(K, V) HashTable
 {
-    // Special hash values to indicate the state of a slot in the me.table.
+    // Special hash values to indicate the state of a slot in the table.
     const HASH_FREE    = 0'u32     // The slot is empty and has never been used.
-    const HASH_DELETED = 1'u32     // The slot was previously occupied but has been me.deleted.
+    const HASH_DELETED = 1'u32     // The slot was previously occupied but has been deleted.
     const HASH_FIRST   = 2'u32     // The first possible valid hash value.
 
-    allocator:     #null IAllocator             // The me.allocator used for memory operations.
-    table:         #null [*] HashTableEntry     // Pointer to the contiguous memory block for the hash me.table.
-    count:         u64                          // The number of valid key-value pairs currently in the me.table.
-    capacity:      u64                          // The total number of slots in the hash me.table.
-    deleted:       u64                          // The number of slots marked as me.deleted.
-    growThreshold: u64                          // Used slot count that triggers a resize, derived from me.capacity.
+    allocator: #null IAllocator     // The allocator used for memory operations.
+
+    // Sizes are reported, never set: the table grows itself when it needs to.
+    readonly
+    {
+        count:    u64 // The number of valid key-value pairs currently in the table.
+        capacity: u64 // The total number of slots, always a power of two.
+    }
+
+    // Open-addressing state. The layout is an implementation choice: reaching into it from
+    // outside would tie callers to the probing scheme and the load factor.
+    private
+    {
+        table:         #null [*] HashTableEntry // Contiguous memory block for the slots.
+        deleted:       u64 // The number of slots marked as deleted.
+        growThreshold: u64 // Used slot count that triggers a resize, derived from 'capacity'.
+    }
 }
 
 impl HashTable

@@ -123,7 +123,7 @@ func iconButtonHeadlessReset()
     btn.isPressing           = true
     btn.aniBk.themeCrc       = 42'u32
     host.app.mouseEnterWnd   = btn
-    host.app.mouseCaptureWnd = btn
+    host.app.setMouseCaptureRaw(btn)
 
     btn.disable()
 

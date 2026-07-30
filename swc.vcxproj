@@ -491,6 +491,7 @@
         <ClCompile Include="src\Compiler\Sema\Core\NodePayload.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaJob.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Core\SemaNodeView.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaAccess.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCheck.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaCycle.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaError.cpp"/>
@@ -752,6 +753,7 @@
         <ClInclude Include="src\Compiler\Sema\Core\SemaJob.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaNodeView.h"/>
         <ClInclude Include="src\Compiler\Sema\Core\SemaScope.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaAccess.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCheck.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCycle.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaError.h"/>

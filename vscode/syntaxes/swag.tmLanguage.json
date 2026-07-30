@@ -292,7 +292,7 @@
       "patterns": [
         {
           "name": "storage.modifier",
-          "match": "\\b(public|private|internal)\\b"
+          "match": "\\b(public|private|internal|readonly)\\b"
         }
       ]
     },

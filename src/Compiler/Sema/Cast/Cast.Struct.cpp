@@ -5,6 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -476,6 +477,18 @@ namespace
             srcToDst[i]                = dstIndex;
             dstUsed[dstIndex]          = true;
             dstFieldInitRefs[dstIndex] = fieldNodeRef;
+        }
+
+        // Naming a field in a literal writes it, so the write side of the member access rule
+        // applies here exactly as it would to 'value.field = ...'.
+        const SourceViewRef siteViewRef = args.castRequest->errorNodeRef.isValid() ? args.sema->node(args.castRequest->errorNodeRef).srcViewRef() : SourceViewRef::invalid();
+        for (size_t i = 0; i < srcTypes.size(); ++i)
+        {
+            const size_t dstIndex = srcToDst[i];
+            if (dstIndex == static_cast<size_t>(-1) || !dstFields[dstIndex])
+                continue;
+            if (!SemaAccess::canAccessMember(*args.sema, *dstFields[dstIndex], siteViewRef) || !SemaAccess::canWriteMember(*args.sema, *dstFields[dstIndex], siteViewRef))
+                return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_struct_cast_field_access, dstFields[dstIndex]->name(args.sema->ctx()));
         }
 
         if (dstStruct.isUnion() && !srcTypes.empty())

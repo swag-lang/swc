@@ -4,21 +4,15 @@
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/AttributeList.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
 #include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
-#include "Main/Version.h"
-#include "Support/Report/Diagnostic.h"
-#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -256,7 +250,7 @@ namespace DocInternal
             return result;
 
         const std::string_view source = range.srcView->stringView();
-        size_t                 start  = std::min<size_t>(range.offset + range.len, source.size());
+        const size_t                 start  = std::min<size_t>(range.offset + range.len, source.size());
         size_t                 end    = source.find_first_of("\r\n", start);
         if (end == std::string_view::npos)
             end = source.size();

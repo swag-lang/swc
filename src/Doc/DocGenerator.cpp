@@ -142,7 +142,7 @@ namespace DocInternal
         Utf8 baseName = defaultOutputBaseName(compiler, options);
         baseName.make_lower();
         baseName += ".html";
-        fs::path result = DocGenerator::outputDirectory(compiler) / fs::path(baseName.c_str());
+        const fs::path result = DocGenerator::outputDirectory(compiler) / fs::path(baseName.c_str());
         return result.lexically_normal();
     }
 
@@ -179,7 +179,7 @@ namespace DocInternal
         return Result::Continue;
     }
 
-    Utf8 renderExampleSource(TaskContext& ctx, const RenderContext& renderCtx, const std::string_view source)
+    Utf8 renderExampleSource(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view source)
     {
         const std::vector<Utf8> lines = splitLines(source);
         Utf8                    result;
@@ -344,7 +344,7 @@ namespace DocInternal
         }
 
         std::ranges::sort(paths);
-        paths.erase(std::unique(paths.begin(), paths.end()), paths.end());
+        paths.erase(std::ranges::unique(paths).begin(), paths.end());
         return Result::Continue;
     }
 
@@ -390,7 +390,7 @@ namespace DocInternal
         if (options.titleToc.empty())
             options.titleToc = "Table of Contents";
 
-        Utf8     runtimeFileName = "swag.runtime.html";
+        const Utf8     runtimeFileName = "swag.runtime.html";
         fs::path runtimePath     = outputDirectory / fs::path(runtimeFileName.c_str());
         runtimePath              = runtimePath.lexically_normal();
         const auto runtimeKey    = Utf8(FileSystem::normalizePath(runtimePath));
@@ -421,7 +421,7 @@ Result DocGenerator::generate(GenerateResult& outResult) const
     outResult = {};
 
     TaskContext&      ctx       = *ctx_;
-    CompilerInstance& compiler  = ctx.compiler();
+    const CompilerInstance& compiler  = ctx.compiler();
     PageOptions       options   = getPageOptions(compiler);
     const fs::path    outputDir = outputDirectory(compiler);
     if (ctx.cmdLine().outputDoc)

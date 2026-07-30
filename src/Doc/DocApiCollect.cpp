@@ -8,17 +8,12 @@
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
-#include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
 #include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
-#include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
-#include "Main/Version.h"
 #include "Support/Report/Diagnostic.h"
-#include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -28,15 +23,15 @@ namespace DocInternal
     Utf8 displayNameFor(const std::string_view fullName, const DocItemKind kind)
     {
         if (kind == DocItemKind::Namespace)
-            return Utf8(fullName);
+            return fullName;
 
         const size_t last = fullName.rfind('.');
         if (last == std::string_view::npos)
-            return Utf8(fullName);
+            return fullName;
         const size_t previous = last ? fullName.rfind('.', last - 1) : std::string_view::npos;
         if (previous == std::string_view::npos)
-            return Utf8(fullName);
-        return Utf8(fullName.substr(previous + 1));
+            return fullName;
+        return fullName.substr(previous + 1);
     }
 
     const char* itemKindName(const DocItemKind kind)
@@ -138,7 +133,7 @@ namespace DocInternal
                symbolStruct->decl()->is(AstNodeId::AnonymousUnionDecl);
     }
 
-    bool hasCompilerGeneratedIdentifier(TaskContext& ctx, const Symbol& symbol)
+    bool hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol& symbol)
     {
         // Source identifiers cannot use the reserved "__" prefix. Sema uses it for
         // unique anonymous aggregates, lambdas, inline temporaries, and other helpers.
@@ -289,7 +284,7 @@ namespace DocInternal
 
         const Token&           token  = srcView.token(endTokRef);
         const std::string_view source = srcView.stringView();
-        size_t                 start  = std::min<size_t>(ModuleApi::Export::sourceTokenByteEnd(srcView, token), source.size());
+        const size_t                 start  = std::min<size_t>(ModuleApi::Export::sourceTokenByteEnd(srcView, token), source.size());
         size_t                 end    = source.find_first_of("\r\n", start);
         if (end == std::string_view::npos)
             end = source.size();
@@ -380,7 +375,7 @@ namespace DocInternal
 
         const fs::path  sourceRoot = (compiler.cmdLine().modulePath / "src").lexically_normal();
         std::error_code ec;
-        fs::path        relative = fs::relative(file.path().parent_path(), sourceRoot, ec);
+        const fs::path        relative = fs::relative(file.path().parent_path(), sourceRoot, ec);
         if (ec || relative.empty() || relative == ".")
             return {};
 
@@ -438,7 +433,7 @@ namespace DocInternal
         return nullptr;
     }
 
-    Utf8 documentationNamespace(TaskContext& ctx, const Symbol& symbol, const Symbol* owner)
+    Utf8 documentationNamespace(const TaskContext& ctx, const Symbol& symbol, const Symbol* owner)
     {
         const Symbol*    scopedSymbol = owner ? owner : &symbol;
         const SymbolMap* scope        = scopedSymbol->ownerSymMap();

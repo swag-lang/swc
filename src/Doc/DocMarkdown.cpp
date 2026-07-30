@@ -1,23 +1,7 @@
 #include "pch.h"
 #include "Compiler/Lexer/SourceView.h"
-#include "Compiler/ModuleApi/ModuleApi.Export.h"
-#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Core/AttributeList.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
-#include "Compiler/Sema/Symbol/SymbolMap.h"
-#include "Compiler/Sema/Symbol/Symbols.h"
-#include "Compiler/Sema/Type/TypeInfo.h"
-#include "Compiler/SourceFile.h"
 #include "Doc/DocInternal.h"
-#include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
-#include "Main/CompilerInstance.h"
-#include "Main/FileSystem.h"
-#include "Main/TaskContext.h"
-#include "Main/Version.h"
-#include "Support/Report/Diagnostic.h"
 #include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -36,7 +20,7 @@ namespace DocInternal
 
     Utf8 trimCopy(std::string_view value)
     {
-        return Utf8(trimView(value));
+        return trimView(value);
     }
 
     std::vector<Utf8> splitLines(const std::string_view text)
@@ -111,8 +95,8 @@ namespace DocInternal
     {
         const size_t pos = value.rfind('.');
         if (pos == std::string_view::npos)
-            return Utf8(value);
-        return Utf8(value.substr(pos + 1));
+            return value;
+        return value.substr(pos + 1);
     }
 
     Utf8 resolveReference(const RenderContext& renderCtx, const std::string_view name)
@@ -321,7 +305,7 @@ namespace DocInternal
 
     void linkSyntaxClass(Utf8& html, const RenderContext& renderCtx, std::string_view cssClass);
 
-    Utf8 renderCodeBlock(TaskContext& ctx, const std::string_view code, const bool swagSyntax, const RenderContext* renderCtx)
+    Utf8 renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const RenderContext* renderCtx)
     {
         const Utf8 escaped = escapeHtml(code);
         Utf8       rendered;
@@ -707,7 +691,7 @@ namespace DocInternal
         }
     }
 
-    Utf8 codeHtml(TaskContext& ctx, const RenderContext& renderCtx, const std::string_view code)
+    Utf8 codeHtml(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view code)
     {
         if (code.empty())
             return {};

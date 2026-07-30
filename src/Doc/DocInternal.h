@@ -125,10 +125,10 @@ namespace DocInternal
     Utf8                       makeAnchor(std::string_view value);
     Utf8                       lastNamePart(std::string_view value);
     Utf8                       renderTypeName(const RenderContext& renderCtx, std::string_view typeName);
-    Utf8                       renderCodeBlock(TaskContext& ctx, std::string_view code, bool swagSyntax, const RenderContext* renderCtx = nullptr);
+    Utf8                       renderCodeBlock(const TaskContext& ctx, std::string_view code, bool swagSyntax, const RenderContext* renderCtx = nullptr);
     Utf8                       renderMarkdownLines(const RenderContext& renderCtx, std::span<const Utf8> lines, uint32_t headingOffset = 0);
     std::vector<Utf8>          summaryLines(std::span<const Utf8> lines);
-    Utf8                       codeHtml(TaskContext& ctx, const RenderContext& renderCtx, std::string_view code);
+    Utf8                       codeHtml(const TaskContext& ctx, const RenderContext& renderCtx, std::string_view code);
     Utf8                       documentationStyles();
     Utf8                       constructPage(const PageOptions& options, std::string_view toc, std::string_view content, bool pages);
     Utf8                       correctTitle(Utf8 title);
@@ -141,7 +141,7 @@ namespace DocInternal
     std::optional<DocItemKind> itemKind(const Symbol& symbol);
     bool                       hasNoDocAttribute(const Symbol& symbol);
     bool                       isAnonymousAggregateSymbol(const Symbol& symbol);
-    bool                       hasCompilerGeneratedIdentifier(TaskContext& ctx, const Symbol& symbol);
+    bool                       hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol& symbol);
     void                       appendNormalizedComment(std::vector<Utf8>& outLines, std::string_view text);
     std::vector<Utf8>          symbolCommentLines(TaskContext& ctx, const Symbol& symbol, const SourceFile& file, AstNodeRef declRef, AstNodeRef rootRef);
     void                       collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unordered_set<const Symbol*>& seen, const SymbolMap& symbolMap);

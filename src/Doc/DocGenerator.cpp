@@ -40,6 +40,7 @@ namespace
 
         PageOptions result;
         result.kind                = genDoc.kind;
+        result.theme               = genDoc.theme;
         result.outputName          = fromRuntimeString(genDoc.outputName);
         result.titleToc            = fromRuntimeString(genDoc.titleToc);
         result.titleContent        = fromRuntimeString(genDoc.titleContent);
@@ -56,8 +57,14 @@ namespace
         result.quoteTitleWarning   = fromRuntimeString(genDoc.quoteTitleWarning);
         result.quoteTitleAttention = fromRuntimeString(genDoc.quoteTitleAttention);
         result.quoteTitleExample   = fromRuntimeString(genDoc.quoteTitleExample);
+        result.brandName           = fromRuntimeString(genDoc.brandName);
+        result.brandUrl            = fromRuntimeString(genDoc.brandUrl);
+        result.navLinks            = fromRuntimeString(genDoc.navLinks);
+        result.footer              = fromRuntimeString(genDoc.footer);
         result.syntaxDefaultColor  = genDoc.syntaxDefaultColor;
+        result.accentColor         = genDoc.accentColor;
         result.hasSwagWatermark    = genDoc.hasSwagWatermark;
+        result.hasSymbolIndex      = genDoc.hasSymbolIndex;
 
         if (!compiler.cmdLine().docCss.empty())
             result.css = compiler.cmdLine().docCss;
@@ -213,11 +220,29 @@ namespace
 {
     using namespace DocInternal;
 
+    // The leading '#global' directives of a documented source file configure the module, not
+    // the example, so the reader gains nothing from seeing them repeated on every chapter.
+    bool isModulePreamble(const std::string_view code)
+    {
+        bool hasDirective = false;
+        for (const Utf8& line : splitLines(code))
+        {
+            const std::string_view value = trimView(line);
+            if (value.empty())
+                continue;
+            if (!value.starts_with("#global"))
+                return false;
+            hasDirective = true;
+        }
+        return hasDirective;
+    }
+
     Utf8 renderExampleSource(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view source)
     {
         const std::vector<Utf8> lines = splitLines(source);
         Utf8                    result;
-        size_t                  index = 0;
+        size_t                  index   = 0;
+        bool                    isFirst = true;
         while (index < lines.size())
         {
             Utf8 code;
@@ -226,7 +251,9 @@ namespace
                 code += lines[index++];
                 code += "\n";
             }
-            result += renderCodeBlock(ctx, code, true, &renderCtx);
+            if (!(isFirst && isModulePreamble(code)))
+                result += renderCodeBlock(ctx, code, true, &renderCtx);
+            isFirst = false;
             if (index == lines.size())
                 break;
 

@@ -174,12 +174,37 @@ namespace DocInternal
 
 namespace
 {
+    Utf8 renderInline(const RenderContext& renderCtx, std::string_view text);
+
+    // A bare URL ends at the first character that cannot belong to it. Trailing sentence
+    // punctuation is excluded so "see https://swag-lang.org." keeps its final period.
+    size_t bareUrlLength(const std::string_view text)
+    {
+        if (!text.starts_with("http://") && !text.starts_with("https://"))
+            return 0;
+
+        size_t end = 0;
+        while (end < text.size() && !std::isspace(static_cast<unsigned char>(text[end])) && text[end] != '<' && text[end] != '"' && text[end] != ')')
+            end++;
+        while (end && (text[end - 1] == '.' || text[end - 1] == ',' || text[end - 1] == ';' || text[end - 1] == ':' || text[end - 1] == '!' || text[end - 1] == '?'))
+            end--;
+        return end > 8 ? end : 0;
+    }
+
     Utf8 renderInline(const RenderContext& renderCtx, const std::string_view text)
     {
         Utf8   result;
         size_t pos = 0;
         while (pos < text.size())
         {
+            if (const size_t urlLength = bareUrlLength(text.substr(pos)))
+            {
+                const std::string_view url = text.substr(pos, urlLength);
+                result.append(std::format("<a href=\"{}\">{}</a>", escapeHtml(url, true), escapeHtml(url)));
+                pos += urlLength;
+                continue;
+            }
+
             if (text.substr(pos).starts_with("[["))
             {
                 const size_t end = text.find("]]", pos + 2);
@@ -236,12 +261,13 @@ namespace
                 std::string_view close;
                 std::string_view htmlOpen;
                 std::string_view htmlClose;
+                bool             nested;
             };
             constexpr Marker markers[] = {
-                {"***", "***", "<b><i>", "</i></b>"},
-                {"**", "**", "<b>", "</b>"},
-                {"~~", "~~", "<span class=\"strikethrough-text\">", "</span>"},
-                {"`", "`", "<span class=\"code-inline\">", "</span>"},
+                {"***", "***", "<b><i>", "</i></b>", true},
+                {"**", "**", "<b>", "</b>", true},
+                {"~~", "~~", "<span class=\"strikethrough-text\">", "</span>", true},
+                {"`", "`", "<span class=\"code-inline\">", "</span>", false},
             };
 
             bool matched = false;
@@ -253,8 +279,9 @@ namespace
                 if (end == std::string_view::npos)
                     continue;
 
+                const std::string_view inner = text.substr(pos + marker.open.size(), end - pos - marker.open.size());
                 result.append(marker.htmlOpen);
-                result += escapeHtml(text.substr(pos + marker.open.size(), end - pos - marker.open.size()));
+                result += marker.nested ? renderInline(renderCtx, inner) : escapeHtml(inner);
                 result.append(marker.htmlClose);
                 pos     = end + marker.close.size();
                 matched = true;
@@ -286,7 +313,7 @@ namespace
                 if (end != std::string_view::npos && end > pos + 1)
                 {
                     result += "<i>";
-                    result += escapeHtml(text.substr(pos + 1, end - pos - 1));
+                    result += renderInline(renderCtx, text.substr(pos + 1, end - pos - 1));
                     result += "</i>";
                     pos = end + 1;
                     continue;
@@ -313,6 +340,11 @@ namespace DocInternal
 {
     Utf8 renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const RenderContext* renderCtx)
     {
+        // A source file that opens or closes on a documentation comment produces an empty
+        // segment on each side of it; an empty frame on the page would only be noise.
+        if (trimView(code).empty())
+            return {};
+
         const Utf8 escaped = escapeHtml(code);
         Utf8       rendered;
         if (swagSyntax)
@@ -341,14 +373,51 @@ namespace
         return i > 0 && i + 1 < value.size() && value[i] == '.' && value[i + 1] == ' ';
     }
 
-    bool isTableSeparatorCell(std::string_view cell)
+    enum class TableAlign : uint8_t
     {
-        cell = trimView(cell);
-        if (!cell.empty() && cell.front() == ':')
+        Default,
+        Left,
+        Center,
+        Right,
+    };
+
+    const char* tableAlignClass(const TableAlign align)
+    {
+        switch (align)
+        {
+            case TableAlign::Left:
+                return " class=\"align-left\"";
+            case TableAlign::Center:
+                return " class=\"align-center\"";
+            case TableAlign::Right:
+                return " class=\"align-right\"";
+            case TableAlign::Default:
+                return "";
+        }
+        SWC_UNREACHABLE();
+    }
+
+    bool tryReadTableSeparatorCell(std::string_view cell, TableAlign& outAlign)
+    {
+        cell                = trimView(cell);
+        const bool leading  = cell.starts_with(':');
+        const bool trailing = cell.ends_with(':');
+        if (leading)
             cell.remove_prefix(1);
-        if (!cell.empty() && cell.back() == ':')
+        if (trailing && !cell.empty())
             cell.remove_suffix(1);
-        return cell.size() >= 3 && std::ranges::all_of(cell, [](const char c) { return c == '-'; });
+        if (cell.size() < 3 || !std::ranges::all_of(cell, [](const char c) { return c == '-'; }))
+            return false;
+
+        if (leading && trailing)
+            outAlign = TableAlign::Center;
+        else if (trailing)
+            outAlign = TableAlign::Right;
+        else if (leading)
+            outAlign = TableAlign::Left;
+        else
+            outAlign = TableAlign::Default;
+        return true;
     }
 
     std::vector<Utf8> splitTableRow(std::string_view line)
@@ -386,7 +455,7 @@ namespace
             return true;
         if (line.starts_with("<html>"))
             return true;
-        return line.starts_with("|") && index + 1 < lines.size();
+        return line.starts_with("|");
     }
 }
 
@@ -564,32 +633,63 @@ namespace DocInternal
                 continue;
             }
 
-            if (line.starts_with("|") && index + 1 < lines.size())
+            if (line.starts_with("|"))
             {
-                const std::vector<Utf8> header    = splitTableRow(line);
-                const std::vector<Utf8> separator = splitTableRow(lines[index + 1]);
-                const bool              isTable   = !header.empty() &&
-                                     separator.size() == header.size() &&
-                                     std::ranges::all_of(separator, [](const Utf8& cell) { return isTableSeparatorCell(cell); });
-                if (isTable)
+                std::vector<std::vector<Utf8>> rows;
+                while (index < lines.size() && trimView(lines[index]).starts_with("|"))
+                    rows.push_back(splitTableRow(lines[index++]));
+
+                // A separator on the second line promotes the first row to a header and fixes
+                // the column alignments. Without one the run is still a table, simply without
+                // a header row; that headerless form is a long-standing Swag spelling.
+                std::vector<TableAlign> aligns;
+                bool                    hasHeader = rows.size() > 1;
+                if (hasHeader)
                 {
-                    result += "<table class=\"table-markdown\">\n<tr>";
-                    for (const Utf8& cell : header)
-                        result.append(std::format("<th>{}</th>", renderInline(renderCtx, cell)));
-                    result += "</tr>\n";
-                    index += 2;
-                    while (index < lines.size() && trimView(lines[index]).starts_with("|"))
+                    for (const Utf8& cell : rows[1])
                     {
-                        std::vector<Utf8> cells = splitTableRow(lines[index++]);
-                        cells.resize(header.size());
-                        result += "<tr>";
-                        for (const Utf8& cell : cells)
-                            result.append(std::format("<td>{}</td>", renderInline(renderCtx, cell)));
-                        result += "</tr>\n";
+                        TableAlign align = TableAlign::Default;
+                        if (!tryReadTableSeparatorCell(cell, align))
+                        {
+                            hasHeader = false;
+                            break;
+                        }
+                        aligns.push_back(align);
                     }
-                    result += "</table>\n";
-                    continue;
+                    hasHeader &= aligns.size() == rows.front().size();
                 }
+                if (!hasHeader)
+                    aligns.clear();
+
+                size_t columnCount = 0;
+                for (const std::vector<Utf8>& row : rows)
+                    columnCount = std::max(columnCount, row.size());
+                aligns.resize(columnCount, TableAlign::Default);
+
+                const auto appendRow = [&](const std::vector<Utf8>& row, const std::string_view tag) {
+                    result += "<tr>";
+                    for (size_t column = 0; column < columnCount; ++column)
+                    {
+                        const Utf8 cell = column < row.size() ? row[column] : Utf8();
+                        result.append(std::format("<{}{}>{}</{}>", tag, tableAlignClass(aligns[column]), renderInline(renderCtx, cell), tag));
+                    }
+                    result += "</tr>\n";
+                };
+
+                result += "<table class=\"table-markdown\">\n";
+                size_t firstBodyRow = 0;
+                if (hasHeader)
+                {
+                    result += "<thead>\n";
+                    appendRow(rows.front(), "th");
+                    result += "</thead>\n";
+                    firstBodyRow = 2;
+                }
+                result += "<tbody>\n";
+                for (size_t row = firstBodyRow; row < rows.size(); ++row)
+                    appendRow(rows[row], "td");
+                result += "</tbody>\n</table>\n";
+                continue;
             }
 
             if (line.starts_with("* ") || line.starts_with("- ") || isOrderedListLine(line))

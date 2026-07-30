@@ -8,6 +8,7 @@
 <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
+<a class="skip-link" href="#content">Skip to content</a>
 <header class="site-header">
 <nav class="site-nav" aria-label="Main navigation">
 <a class="site-brand" href="index.html">SWAG</a>
@@ -22,7 +23,7 @@
 </nav>
 </header>
 <main class="container single-page">
-<section class="right"><article class="right-page">
+<section class="right"><article class="right-page" id="content">
 <h1 id="How_to_build_Swag">How to build Swag</h1>
 <h2 id="LLVM">LLVM</h2>
 <p>Swag has two backends, a <span class="code-inline">x86_64</span> custom backend written for fast compile, but with far from optimal generated code, and <span class="code-inline">llvm</span> for optimized builds.</p>
@@ -37,8 +38,11 @@
 <li>You can also launch <span class="code-inline">swag/build/vs_build_extern.bat</span>. This will build and update some external libraries in the standard workspace.</li>
 </ul>
 <p>If LLVM has been compiled once, you can also use the <span class="code-inline">Swag.sln</span> workspace in the <span class="code-inline">build</span> subfolder.</p>
+</article>
+<footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
-</article></section>
+</footer>
+</section>
 </main>
 </body>
 </html>

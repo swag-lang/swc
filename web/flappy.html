@@ -8,6 +8,7 @@
 <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
+<a class="skip-link" href="#content">Skip to content</a>
 <header class="site-header">
 <nav class="site-nav" aria-label="Main navigation">
 <a class="site-brand" href="index.html">SWAG</a>
@@ -22,8 +23,7 @@
 </nav>
 </header>
 <main class="container single-page">
-<section class="right"><article class="right-page">
-<div class="code-block"></div>
+<section class="right"><article class="right-page" id="content">
 <p><img src="imgs/flappy.png" alt="?"></p>
 <p>Here is a very simple script that implements the <a href="https://en.wikipedia.org/wiki/Flappy_Bird">Flappy Bird</a> game. To have some fun and play with it, go to the <span class="code-inline">bin/examples/scripts</span> folder, and type :</p>
 <div class="code-block"><span class="SCde">$ swag flappy.swgs
@@ -84,8 +84,6 @@
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>You might observe that there's no need to end the lines with a <span class="code-inline">;</span> like in C or C++. While it's still possible, this is not mandatory.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <p>Every module has its individual namespace. To avoid the necessity of mentioning it each time we wish to reference something, we include a global <span class="code-inline">using</span> statement immediately after the <span class="code-inline">#dependency</span> block.</p>
 <p>The <span class="code-inline">gui</span> module depends on <span class="code-inline">pixel</span> which depends on <span class="code-inline">core</span>. So we bring all the three namespaces into the file scope. Note that we keep <span class="code-inline">Audio</span> as it is.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst">Pixel</span>, <span class="SCst">Gui</span>
@@ -181,8 +179,6 @@
 <li><span class="code-inline">block</span> pointers, which points to multiple values. Declared with <span class="code-inline">^</span>.</li>
 </ul>
 <p>Pointer arithmetic is not enabled on value pointers, but it is on block pointers.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h4 id="Types">Types</h4>
 <div class="code-block"><span class="SCde">
 <span class="SCmt">// Defines the Bird</span>
@@ -515,12 +511,15 @@
     img.<span class="SFct">flip</span>()
     g_PipeTextureU = render.<span class="SFct">addImage</span>(img)
 
-    g_Font = <span class="SCst">Font</span>.<span class="SFct">create</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"FlappyBirdy.ttf"</span>), <span class="SNum">50</span>)
+    g_Font = render.fonts.<span class="SFct">createFont</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"FlappyBirdy.ttf"</span>), <span class="SNum">50</span>)
 }
 
 </span></div>
+</article>
+<footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
-</article></section>
+</footer>
+</section>
 </main>
 </body>
 </html>

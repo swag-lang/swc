@@ -8,6 +8,7 @@
 <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
+<a class="skip-link" href="#content">Skip to content</a>
 <header class="site-header">
 <nav class="site-nav" aria-label="Main navigation">
 <a class="site-brand" href="index.html">SWAG</a>
@@ -22,7 +23,7 @@
 </nav>
 </header>
 <main class="container single-page">
-<section class="right"><article class="right-page">
+<section class="right"><article class="right-page" id="content">
 <h1 id="Script_file">Script file</h1>
 <p>Swag can be used to build and run a simple script file, thanks to the fact that the compiler can run anything at compile time. No executable will be generated, the compiler will do all the job. To create a new script file with the special extension <span class="code-inline">swgs</span>:</p>
 <div class="code-block"><span class="SCde">$ swag new -f:myScript
@@ -81,8 +82,11 @@ Hello world !
 <h2 id="Debug">Debug</h2>
 <p>The compiler comes with a <b>bytecode debugger</b> that can be used to trace and debug compile time execution. Add <span class="code-inline">@breakpoint()</span> in your code when you want the debugger to trigger.</p>
 <p>The debugger command set is inspired by <a href="https://docs.python.org/3/library/pdb.html">Pdb</a>, the python debugger.</p>
+</article>
+<footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
-</article></section>
+</footer>
+</section>
 </main>
 </body>
 </html>

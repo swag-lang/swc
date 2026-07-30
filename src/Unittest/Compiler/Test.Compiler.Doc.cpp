@@ -87,13 +87,16 @@ SWC_TEST_BEGIN(Compiler_DocMarkdownRendersSupportedBlocks)
     static constexpr std::string_view SOURCE = R"(# Heading
 
 | Name | Meaning |
-|---|---|
+|:---|---:|
 | value | A value |
 
 > NOTE: Read this.
 
 ```swag
 const value = 1
+```
+
+```
 ```
 )";
 
@@ -102,9 +105,41 @@ const value = 1
         return Result::Error;
     if (!html.contains("<table class=\"table-markdown\">"))
         return Result::Error;
+    if (!html.contains("<thead>\n<tr><th class=\"align-left\">Name</th><th class=\"align-right\">Meaning</th></tr>"))
+        return Result::Error;
+    if (!html.contains("<tbody>\n<tr><td class=\"align-left\">value</td><td class=\"align-right\">A value</td></tr>"))
+        return Result::Error;
     if (!html.contains("blockquote-note"))
         return Result::Error;
     if (!html.contains("class=\"code-block\""))
+        return Result::Error;
+
+    // An empty fenced block carries nothing, so it never reaches the page.
+    if (html.contains("<span class=\"SCde\"></span>"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_DocMarkdownRendersHeaderlessTableAndNestedInline)
+{
+    // A pipe run without a separator row is a long-standing Swag spelling for a two column
+    // definition table; it stays a table instead of falling back to paragraphs.
+    static constexpr std::string_view SOURCE = R"(| pix   | address of the pixel
+| index | the pixel index
+
+Swag **does not require `break`** at the end of each case, and see https://swag-lang.org/index.php for more.
+)";
+
+    const Utf8 html = DocGenerator::renderMarkdownForTest(ctx, SOURCE);
+    if (!html.contains("<table class=\"table-markdown\">"))
+        return Result::Error;
+    if (html.contains("<thead>") || html.contains("<p>|"))
+        return Result::Error;
+    if (!html.contains("<tr><td>pix</td><td>address of the pixel</td></tr>"))
+        return Result::Error;
+    if (!html.contains("<b>does not require <span class=\"code-inline\">break</span></b>"))
+        return Result::Error;
+    if (!html.contains("<a href=\"https://swag-lang.org/index.php\">https://swag-lang.org/index.php</a>"))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -254,7 +289,7 @@ func hidden(value: s32)->s32
     const size_t documentedDetail  = content.find("The long description belongs only to the standalone symbol documentation.");
     if (documentedSummary == std::string::npos || documentedRowEnd == std::string::npos || documentedDetail == std::string::npos || documentedDetail < documentedRowEnd)
         return Result::Error;
-    if (!content.contains("id=\"Counter_increment\"") || !content.contains("Increase the counter by one."))
+    if (!content.contains("id=\"Compiler_doc_test_DocApi_Counter_increment\"") || !content.contains("Increase the counter by one."))
         return Result::Error;
     if (!content.contains("id=\"Compiler_doc_test_DocApi_Resettable_reset\"") || !content.contains("Reset the value to zero."))
         return Result::Error;
@@ -272,7 +307,7 @@ func hidden(value: s32)->s32
         return Result::Error;
     const size_t counterItem    = content.find("id=\"Compiler_doc_test_DocApi_Counter\"");
     const size_t counterSummary = content.find("id=\"Compiler_doc_test_DocApi_Counter_methods\"", counterItem);
-    const size_t counterMethod  = content.find("id=\"Counter_increment\"");
+    const size_t counterMethod  = content.find("id=\"Compiler_doc_test_DocApi_Counter_increment\"");
     const size_t opaqueItem     = content.find("id=\"Compiler_doc_test_DocApi_OpaqueRecord\"");
     if (counterItem == std::string::npos || counterSummary == std::string::npos || counterMethod == std::string::npos || opaqueItem == std::string::npos || counterSummary < counterItem || counterSummary > opaqueItem || counterMethod < opaqueItem)
         return Result::Error;
@@ -298,12 +333,20 @@ func hidden(value: s32)->s32
     const size_t orderedItem    = content.find("id=\"Compiler_doc_test_DocApi_ordered\"");
     const size_t orderedSummary = content.find("<p>Source-order summary for an overloaded function.</p>", orderedItem);
     const size_t orderedCode    = content.find("<div class=\"code-block\"", orderedItem);
-    const size_t nextItem       = content.find("<table class=\"api-item\"", orderedItem + 1);
+    const size_t nextItem       = content.find("<div class=\"api-item ", orderedItem + 1);
     if (orderedItem == std::string::npos || orderedSummary == std::string::npos || orderedCode == std::string::npos || orderedSummary > orderedCode || (nextItem != std::string::npos && orderedCode > nextItem))
         return Result::Error;
     if (!content.contains("<link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\">"))
         return Result::Error;
     if (content.contains("<script") || content.contains("<?php"))
+        return Result::Error;
+
+    // The kind of a symbol drives its accent, in the card and in the summary tables.
+    if (!content.contains("<div class=\"api-item api-item-struct\">") || !content.contains("class=\"kind-chip kind-struct\""))
+        return Result::Error;
+
+    // The sidebar indexes every documented symbol so a reader never has to guess a spelling.
+    if (!content.contains("<details class=\"toc-group\"") || !content.contains("<ul class=\"toc-symbols\">"))
         return Result::Error;
 
     const fs::path stylesheetPath = directory.root() / "style.css";

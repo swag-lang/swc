@@ -8,6 +8,7 @@
 <link rel="stylesheet" type="text/css" href="css/style.css">
 </head>
 <body>
+<a class="skip-link" href="#content">Skip to content</a>
 <header class="site-header">
 <nav class="site-nav" aria-label="Main navigation">
 <a class="site-brand" href="index.html">SWAG</a>
@@ -22,7 +23,7 @@
 </nav>
 </header>
 <main class="container">
-<aside class="left"><div class="left-page">
+<aside class="left"><nav class="left-page" aria-label="Contents">
 <h2>Table of Contents</h2>
 <ul>
 <li><a href="#_001_000_introduction_swg">Introduction</a></li>
@@ -159,19 +160,13 @@
 <li><a href="#_016_002_c_abi_data_swg">C Abi Data</a></li>
 </ul>
 </ul>
-</div></aside>
-<section class="right"><article class="right-page">
+</nav></aside>
+<section class="right"><article class="right-page" id="content">
 <h1>Swag Language Reference</h1>
 <h2 id="_001_000_introduction_swg">Introduction</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Start here if Swag is new to you. This chapter explains how to run the reference with <span class="code-inline">swc</span>, gives an executable tour of the language, and grows a minimal program from <span class="code-inline">#main</span> into compile-time code.</p>
 <p>The examples assume basic programming knowledge but no prior Swag experience.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_001_001_using_this_reference_swg">Using This Reference</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>This reference teaches Swag through small, executable examples. The compiler builds every <span class="code-inline">.swg</span> file in this module and runs each <span class="code-inline">#test</span> block, so the code beside the explanations is also the documentation's regression suite.</p>
 <h3 id="What_This_Reference_Covers">What This Reference Covers</h3>
 <p>The chapters progress from source organization and built-in types to control flow, user-defined types, functions, generics, reflection, safety, compile-time execution, metaprogramming, and foreign interoperability.</p>
@@ -204,12 +199,7 @@
 </div>
 <h3 id="Accuracy_and_Scope">Accuracy and Scope</h3>
 <p>Examples in this module deliberately avoid standard-library dependencies unless a chapter is specifically about integration. Passing tests prove that the shown syntax and runtime results agree with the compiler version that shipped them. Prose still explains constraints that cannot be expressed by a successful test, such as rejected syntax or platform-specific linking requirements.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_001_002_language_tour_swg">Language Tour</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Values_and_Mutability">Values and Mutability</h3>
 <p><span class="code-inline">const</span> declares a compile-time value, <span class="code-inline">let</span> binds a runtime value once, and <span class="code-inline">var</span> declares mutable storage. Types are inferred when the initializer is unambiguous and can be written explicitly when they are part of the contract.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -353,12 +343,7 @@
 
 </span></div>
 <p>The rest of this reference expands each idea, including memory and nullability, custom operators, interfaces, compile-time reflection, safety checks, and code generation.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_001_003_hello_world_and_beyond_swg">Hello World and Beyond</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The_Smallest_Executable">The Smallest Executable</h3>
 <p><span class="code-inline">#main</span> is the entry point of an executable module. <span class="code-inline">@print</span> is a compiler intrinsic available without importing a standard module.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#main</span>
@@ -417,11 +402,7 @@
 
 </span></div>
 <p>The progression is deliberate: start with normal runtime code, move pure work to compile time when it is useful, and generate source only when the program's structure itself must vary.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_001_004_swc_command_line_swg">Swc Command Line</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <h3 id="The__swc__Command_Line">The <span class="code-inline">swc</span> Command Line</h3>
 <p>The language is named Swag; the compiler executable is <span class="code-inline">swc</span>. Ask the installed binary for the authoritative option set:</p>
 <div class="code-block"><span class="SCde">swc help
@@ -429,7 +410,10 @@ swc help test
 </span></div>
 <p>The current commands are:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Command</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">build</span></td><td>Compile and emit native artifacts without running them</td></tr>
 <tr><td><span class="code-inline">run</span></td><td>Build, then run emitted executables</td></tr>
 <tr><td><span class="code-inline">test</span></td><td>Run source-driven tests and <span class="code-inline">#test</span> functions</td></tr>
@@ -438,28 +422,37 @@ swc help test
 <tr><td><span class="code-inline">sema</span></td><td>Parse and type-check source without backend code generation</td></tr>
 <tr><td><span class="code-inline">doc</span></td><td>Parse and type-check source, then generate configured documentation</td></tr>
 <tr><td><span class="code-inline">unittest</span></td><td>Run the compiler's internal C++ unit tests</td></tr>
+</tbody>
 </table>
 <p>There is no <span class="code-inline">new</span> project generator in the current CLI.</p>
 <h3 id="Selecting_Input">Selecting Input</h3>
 <p>Use one input model per invocation:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Option</th><th>Meaning</th></tr>
+</thead>
+<tbody>
 <tr><td>'--workspace PATH', '-w PATH'</td><td>Use a workspace containing <span class="code-inline">modules/&lt;name&gt;</span></td></tr>
 <tr><td>'--workspace-module NAME', '-m NAME'</td><td>Select one module inside that workspace</td></tr>
 <tr><td>'--module PATH', '-mf PATH'</td><td>Compile a module directly</td></tr>
 <tr><td>'--module-file PATH'</td><td>Run one module setup file, then compile its module</td></tr>
 <tr><td>'--directory PATH', '-d PATH'</td><td>Add a directory of source files</td></tr>
 <tr><td>'--file PATH', '-f PATH'</td><td>Add an individual source file</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">--workspace</span> and <span class="code-inline">--workspace-module</span> are available to <span class="code-inline">build</span>, <span class="code-inline">run</span>, <span class="code-inline">test</span>, <span class="code-inline">sema</span>, and <span class="code-inline">doc</span>. The <span class="code-inline">format</span>, <span class="code-inline">syntax</span>, and compiler-internal <span class="code-inline">unittest</span> commands use the direct module, module-file, directory, or file modes instead.</p>
 <p>Where workspace mode is accepted, it excludes the direct module, directory, and file input modes. <span class="code-inline">--workspace-module</span> is meaningful only with <span class="code-inline">--workspace</span>.</p>
 <h3 id="Build_Configurations">Build Configurations</h3>
 <p><span class="code-inline">--build-cfg</span> (or <span class="code-inline">-bc</span>) accepts:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Value</th><th>Intended use</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">debug</span></td><td>Full safety/sanity, allocation diagnostics, no optimization</td></tr>
 <tr><td><span class="code-inline">fast-debug</span></td><td>Default: full safety/sanity with optimized code and lighter allocation tracking</td></tr>
 <tr><td><span class="code-inline">release</span></td><td>Optimized code, static sanity on, runtime safety and tracking off</td></tr>
+</tbody>
 </table>
 <p>The target architecture currently exposed by <span class="code-inline">--arch</span> is <span class="code-inline">x86_64</span>. Select the artifact with <span class="code-inline">--artifact-kind</span> (<span class="code-inline">-ak</span>): <span class="code-inline">executable</span>, <span class="code-inline">shared-library</span>, <span class="code-inline">static-library</span>, or <span class="code-inline">export</span>.</p>
 <h3 id="Common_Workflows">Common Workflows</h3>
@@ -474,16 +467,23 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="Documentation_Generation">Documentation Generation</h3>
 <p><span class="code-inline">swc doc</span> uses the module's <span class="code-inline">BuildCfg.genDoc</span> configuration. The documentation kind can generate a public API page, a numbered examples document, or one page per source file.</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Option</th><th>Effect</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">--doc-output-dir PATH</span></td><td>Write generated pages under <span class="code-inline">PATH</span></td></tr>
 <tr><td><span class="code-inline">--css PATH</span></td><td>Override the generated stylesheet path</td></tr>
 <tr><td><span class="code-inline">--output-doc</span> / <span class="code-inline">--no-output-doc</span></td><td>Enable or suppress documentation files</td></tr>
+</tbody>
 </table>
 <p>The command also generates the public runtime API page once per output directory.</p>
 <h3 id="Test_Controls">Test Controls</h3>
 <p>By default, 'swc test' runs <span class="code-inline">#test</span> functions through both the JIT and native backend and emits native output. Narrow that behavior when diagnosing a layer:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Option</th><th>Effect</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">--test-jit</span>, <span class="code-inline">-tj</span> / <span class="code-inline">--no-test-jit</span></td><td>Enable or disable JIT tests</td></tr>
 <tr><td><span class="code-inline">--test-native</span>, <span class="code-inline">-tn</span> / <span class="code-inline">--no-test-native</span></td><td>Enable or disable native tests</td></tr>
 <tr><td><span class="code-inline">--output</span> / <span class="code-inline">--no-output</span></td><td>Enable or disable native artifact generation</td></tr>
@@ -491,20 +491,12 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <tr><td><span class="code-inline">--syntax-only</span></td><td>Stop after parsing</td></tr>
 <tr><td><span class="code-inline">--sema-only</span></td><td>Stop after semantic analysis</td></tr>
 <tr><td><span class="code-inline">--verbose-verify</span>, <span class="code-inline">-vv</span></td><td>Show diagnostics normally consumed by expected-error tests</td></tr>
+</tbody>
 </table>
 <p>The three <span class="code-inline">*-only</span> modes are mutually exclusive. For this reference, keep the default JIT and native paths enabled so examples verify both execution engines.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h2 id="_002_000_modules_and_source_code_swg">Modules and Source Code</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>A Swag program is organized as source files inside modules, and modules inside a workspace. This chapter covers setup files, dependencies, declaration order, comments, statement termination, identifiers, sigils, visibility, and module lifecycle hooks.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_002_001_workspaces_modules_and_dependencies_swg">Workspaces Modules and Dependencies</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Workspaces_and_Modules">Workspaces and Modules</h3>
 <p>A <b>workspace</b> is the unit selected by the command line. Its <span class="code-inline">modules</span> directory contains one folder per module. A <b>module</b> is the compilation and API boundary: it produces an executable, library, or exported API description.</p>
 <div class="code-block"><span class="SCde">my-workspace/
@@ -535,8 +527,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 }
 </span></div>
 <p>Common backend kinds are <span class="code-inline">.Executable</span>, <span class="code-inline">.SharedLibrary</span>, <span class="code-inline">.StaticLibrary</span>, and <span class="code-inline">.Export</span>. A module can also set <span class="code-inline">moduleNamespace</span> when its public API should live under an explicit root namespace.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Importing_Another_Module">Importing Another Module</h3>
 <p>Imports belong in <span class="code-inline">module.swg</span>. The following form imports the standard <span class="code-inline">core</span> module from the compiler's standard workspace:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
@@ -546,11 +536,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p><span class="code-inline">#load</span> includes source selected by the compiler, while <span class="code-inline">#import</span> establishes a module dependency. They solve different problems and are not interchangeable.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_002_002_source_files_swg">Source Files</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <h3 id="Source_Files">Source Files</h3>
 <p>Regular Swag source files use the <span class="code-inline">.swg</span> extension and UTF-8 encoding. A module compiles every <span class="code-inline">.swg</span> file below its <span class="code-inline">src</span> directory as one program. Directory names do not affect symbol names, declaration order, or visibility.</p>
 <p>Because module files are compiled together:</p>
@@ -567,12 +553,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>The compiler, not the host filesystem order, determines compilation. Never rely on file names to initialize runtime state; use <span class="code-inline">#init</span> and explicit dependencies between values instead.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_002_003_global_declaration_order_swg">Global Declaration Order</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Top-Level_Declaration_Order">Top-Level Declaration Order</h3>
 <p>The order of all <b>top-level</b> declarations in Swag does not matter. This means you can reference constants, variables, or functions before they are defined — either within the same file or across multiple files.</p>
 <p>This flexibility is especially useful in large codebases, where logical flow or readability may benefit from organizing code independently of declaration order.</p>
@@ -605,12 +586,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <p>This flexibility also applies across multiple files. For example, you can call a function in one file and define it in another. Swag's global declaration model is intentionally non-restrictive, allowing you to structure your code in the way that best supports clarity and maintainability.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_002_004_comments_swg">Comments</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Comments">Comments</h3>
 <p>Swag supports both single-line and multi-line comments, providing flexibility for inline documentation and explanations within your code. This helps maintain clarity and readability, especially in larger or more complex codebases.</p>
 <div class="code-block"><span class="SCde">
@@ -643,9 +619,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_002_005_semicolons_swg">Semicolons</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Statement_Termination_in_Swag">Statement Termination in Swag</h3>
 <p>Unlike languages such as C or C++, there is no strict requirement to end statements with a semicolon (<span class="code-inline">;</span>). In Swag, a statement naturally terminates at the end of a line ('end of line'). This allows for cleaner, more concise syntax and reduces visual clutter, making the code easier to read and maintain.</p>
 <div class="code-block"><span class="SCde">
@@ -694,9 +667,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_002_006_identifiers_swg">Identifiers</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Naming">Naming</h3>
 <p>User-defined identifiers, such as variables, constants, and function names, must begin with either an underscore (<span class="code-inline">_</span>) or an ASCII letter. Identifiers may then include underscores, ASCII letters, and digits.</p>
 <p>Examples:</p>
@@ -718,8 +688,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SFct">#run</span>
 <span class="SFct">#main</span>
 </span></div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Intrinsics">Intrinsics</h3>
 <p>Names beginning with <span class="code-inline">@</span> represent compiler-provided intrinsic values and operations. Availability depends on the intrinsic and context: <span class="code-inline">@compiler</span> is compile-time only, while math and memory intrinsics can also generate runtime code.</p>
 <p>Examples of intrinsic functions:</p>
@@ -728,17 +696,14 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SItr">@sqrt</span>()
 <span class="SItr">@print</span>()
 </span></div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_002_007_keywords_swg">Keywords</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <h3 id="Language_Keyword_Index">Language Keyword Index</h3>
 <p>Keywords are reserved bare words. They cannot be reused as identifiers. This page is an index; the surrounding chapters explain each active construct.</p>
 <h3 id="Declarations_and_Organization">Declarations and Organization</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span>  <span class="SKwd">attr</span>  <span class="SKwd">const</span>  <span class="SKwd">enum</span>  <span class="SKwd">func</span>  <span class="SKwd">impl</span>  <span class="SKwd">interface</span>  <span class="SKwd">internal</span>
-<span class="SKwd">let</span>  <span class="SKwd">mtd</span>  <span class="SKwd">namespace</span>  <span class="SKwd">private</span>  <span class="SKwd">public</span>  <span class="SKwd">struct</span>  <span class="SKwd">union</span>  <span class="SKwd">using</span>  <span class="SKwd">var</span>  <span class="SKwd">with</span>
+<span class="SKwd">let</span>  <span class="SKwd">mtd</span>  <span class="SKwd">namespace</span>  <span class="SKwd">private</span>  <span class="SKwd">public</span>  <span class="SKwd">readonly</span>  <span class="SKwd">struct</span>  <span class="SKwd">union</span>  <span class="SKwd">using</span>  <span class="SKwd">var</span>  <span class="SKwd">with</span>
 </span></div>
+<p><span class="code-inline">readonly</span> applies to an aggregate field only.</p>
 <p><span class="code-inline">me</span> names the receiver inside methods.</p>
 <h3 id="Control_Flow_and_Expressions">Control Flow and Expressions</h3>
 <div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
@@ -812,12 +777,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>The <span class="code-inline">#</span>-prefixed and <span class="code-inline">@</span>-prefixed names are reserved separately from bare identifiers. The next section explains why Swag uses both namespaces.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_002_008_sigils_swg">Sigils</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Compiler_Names______and____">Compiler Names: <span class="code-inline">#</span> and <span class="code-inline">@</span></h3>
 <p>Swag gives two prefixed name families special syntactic roles. They cannot collide with ordinary identifiers:</p>
 <ul>
@@ -835,12 +795,16 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p>An attribute is a named, parameterized annotation attached to a declaration, so it can be reflected (<span class="code-inline">TypeInfoStruct.attributes</span>), declared by user code with <span class="code-inline">attr</span>, and inherited by everything a block contains. A type, an operand, a conversion, a literal, or a statement carries no symbol: reflection could never report an annotation there, so those take a modifier instead.</p>
 <p>The rule fixes the properties of each family:</p>
 <table class="table-markdown">
+<thead>
 <tr><th></th><th>Modifier</th><th>Attribute</th></tr>
+</thead>
+<tbody>
 <tr><td>Set</td><td>closed, compiler-defined</td><td>open, <span class="code-inline">attr</span> declares more</td></tr>
 <tr><td>Target</td><td>type, operand, cast, literal, statement</td><td>declaration, lexical scope</td></tr>
 <tr><td>Parameters</td><td>never</td><td>yes</td></tr>
 <tr><td>Reflection</td><td>never</td><td>yes</td></tr>
 <tr><td>Inherited by a scope</td><td>never</td><td>yes</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">Swag.AttrUsage</span> names the declaration kinds an attribute accepts, and the compiler rejects the attribute anywhere else. A block is the exception: it broadcasts to the declarations it contains, and each of those is checked on its own.</p>
 <h3 id="Directives_and_Static_Queries">Directives and Static Queries</h3>
@@ -886,11 +850,15 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="Related_Names_with_Different_Semantics">Related Names with Different Semantics</h3>
 <p>Some concepts have both a directive and an intrinsic:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Compile-time form</th><th>Intrinsic form</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">#assert(condition)</span> rejects the build</td><td><span class="code-inline">@assert(condition)</span> checks in its execution context</td></tr>
 <tr><td><span class="code-inline">#print(text)</span> writes while compiling</td><td><span class="code-inline">@print(...)</span> writes when the containing code executes</td></tr>
 <tr><td>'#init { ... }' declares a module hook</td><td><span class="code-inline">@init(...)</span> initializes values or memory</td></tr>
 <tr><td>'#drop { ... }' declares a module hook</td><td><span class="code-inline">@drop(...)</span> drops values or memory</td></tr>
+</tbody>
 </table>
 <p>The pairs are related, not symmetrical. The compile-time diagnostics <span class="code-inline">#print</span>, <span class="code-inline">#assert</span>, <span class="code-inline">#error</span> and <span class="code-inline">#warning</span> each take exactly <b>one</b> compile-time expression, so several parts are joined with the <span class="code-inline">++</span> concatenation operator. Their intrinsic counterparts follow ordinary call rules, and <span class="code-inline">@print</span> is variadic:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#print</span>(<span class="SStr">"kind: "</span> ++ <span class="SItr">#nameof</span>(<span class="SItr">#typeof</span>(value)))     <span class="SCmt">// one expression, joined with '++'</span>
@@ -1007,16 +975,17 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_002_009_visibility_and_exports_swg">Visibility and Exports</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Visibility">Visibility</h3>
 <p>Top-level declarations use three visibility levels:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Modifier</th><th>Visible from the same file</th><th>Other files in the module</th><th>Importing modules</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">private</span></td><td>yes</td><td>no</td><td>no</td></tr>
 <tr><td><span class="code-inline">internal</span></td><td>yes</td><td>yes</td><td>no</td></tr>
 <tr><td><span class="code-inline">public</span></td><td>yes</td><td>yes</td><td>yes</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">internal</span> is the default. Use <span class="code-inline">public</span> deliberately for the supported module API and <span class="code-inline">private</span> for file-local implementation details.</p>
 <div class="code-block"><span class="SCde">
@@ -1045,26 +1014,71 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
 </span></div>
 <p>Visibility is independent of namespaces. A symbol can be public and qualified, or private and placed in a namespace for organization.</p>
+<h3 id="Member_Access">Member Access</h3>
+<p>A declaration belongs to its file, so <span class="code-inline">private</span> at the top level means "this file". A <b>member belongs to its type</b>, so on a field the same word grants the type: the file that declares the aggregate, and every file that declares an <span class="code-inline">impl</span> of it, inside the module that declares the type. One rule, one reading: <span class="code-inline">private</span> grants the owner, <span class="code-inline">internal</span> grants the module, <span class="code-inline">public</span> grants everyone.</p>
+<p>Granting those files, rather than the enclosing <span class="code-inline">impl</span> alone, is what makes the rule hold in practice. A type spreads its <span class="code-inline">impl</span> over platform or concern files, and reaches its own state from a mixin or an inlined body without the access depending on where that body expands.</p>
+<p>A field takes a fourth level that a top-level declaration has no use for. <span class="code-inline">readonly</span> splits reading from writing:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Modifier</th><th>Read from</th><th>Written from</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">public</span></td><td>anywhere</td><td>anywhere</td></tr>
+<tr><td><span class="code-inline">readonly</span></td><td>anywhere</td><td>declaring type</td></tr>
+<tr><td><span class="code-inline">internal</span></td><td>declaring module</td><td>declaring module</td></tr>
+<tr><td><span class="code-inline">private</span></td><td>declaring type</td><td>declaring type</td></tr>
+</tbody>
+</table>
+<p><span class="code-inline">public</span> is the default: a field is part of the surface unless it says otherwise.</p>
+<div class="code-block"><span class="SCde">
+<span class="SKwd">struct</span> <span class="SCst">Counter</span>
+{
+    <span class="SKwd">readonly</span> count: <span class="STpe">s32</span>
+    <span class="SKwd">private</span>  step:  <span class="STpe">s32</span> = <span class="SNum">2</span>
+}
+
+<span class="SKwd">impl</span> <span class="SCst">Counter</span>
+{
+    <span class="SCmt">// The declaring type reaches and writes every level.</span>
+    <span class="SKwd">mtd</span> <span class="SFct">bump</span>()
+    {
+        .count += .step
+    }
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> c: <span class="SCst">Counter</span>
+    c.<span class="SFct">bump</span>()
+    c.<span class="SFct">bump</span>()
+
+    <span class="SCmt">// 'readonly' reads from anywhere; only its own type writes it.</span>
+    <span class="SItr">@assert</span>(c.count == <span class="SNum">4</span>)
+}
+
+</span></div>
+<p><span class="code-inline">readonly</span> restricts writing through the field's name; it does not freeze the whole value. Assigning the aggregate, copying it, and dropping it stay ordinary operations.</p>
+<p>Naming a field in a struct literal writes it, so the write rule applies there too: a literal can only initialize the fields the site could assign.</p>
+<p>Reflection reports the declared access through <span class="code-inline">Swag.TypeValueFlags</span>, so a generic walker such as a serializer or a property editor can leave implementation state alone instead of persisting it.</p>
 <h3 id="Exporting_a_File_s_API">Exporting a File's API</h3>
 <p>'#global export' is a fourth form. It sets the same access as '#global public', and additionally marks the file as one whose declarations belong to the generated module API. Only the file's first <span class="code-inline">#global</span> directive is read for that marking, so it belongs on the very first line. The standard modules open their public source files with it:</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#global</span> export
 </span></div>
 <p>Use '#global public' when a file is public inside the workspace, and '#global export' when its declarations are the module's published surface.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_002_010_module_lifecycle_swg">Module Lifecycle</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Module_Entry_Points_and_Hooks">Module Entry Points and Hooks</h3>
 <p>Swag reserves <span class="code-inline">#</span>-prefixed functions for module lifecycle events. They are declarations, not ordinary functions, and the compiler invokes them at the appropriate phase.</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Hook</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">#init</span></td><td>Initialize module runtime state before entry points or tests</td></tr>
 <tr><td><span class="code-inline">#premain</span></td><td>Run after all module initializers and before an executable's <span class="code-inline">#main</span></td></tr>
 <tr><td><span class="code-inline">#main</span></td><td>Enter an executable module</td></tr>
 <tr><td><span class="code-inline">#test</span></td><td>Declare a test executed by the <span class="code-inline">test</span> command</td></tr>
 <tr><td><span class="code-inline">#drop</span></td><td>Release module state during shutdown</td></tr>
+</tbody>
 </table>
 <h3 id="Initialization">Initialization</h3>
 <p>A module may contain several <span class="code-inline">#init</span> hooks. Their relative order is unspecified, so each hook must establish its own invariants. Dependency modules initialize before modules that import them.</p>
@@ -1102,18 +1116,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Do not confuse <span class="code-inline">#init</span> and <span class="code-inline">#drop</span> module hooks with the <span class="code-inline">@init</span> and <span class="code-inline">@drop</span> intrinsics. The hooks manage a module's lifetime; the intrinsics operate on values and memory regions.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h2 id="_003_000_fundamentals_swg">Fundamentals</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>This chapter establishes the value model: built-in scalar types, literals, strings, constants, variables, operators, conversions, and aliases. Later chapters build aggregates and generic abstractions from these rules.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_003_001_basic_types_swg">Basic Types</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Signed_Integers">Signed Integers</h3>
 <p>Swag provides various signed integer types: <span class="code-inline">s8</span>, <span class="code-inline">s16</span>, <span class="code-inline">s32</span>, and <span class="code-inline">s64</span>. These types represent signed integers with different bit widths, allowing both positive and negative values within their respective ranges. Each type is designed for efficient integer operations at varying levels of precision.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1211,8 +1216,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="Type_Reflection">Type Reflection</h3>
 <p>Swag supports <b>type reflection</b> at both <b>compile time</b> and <b>runtime</b>. This allows inspection and manipulation of types dynamically, enabling powerful and introspective programming techniques.</p>
 <p>Further details about type reflection are explored in later sections.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Type_Creation_with___decltype_">Type Creation with <span class="code-inline">#decltype</span></h3>
 <p>You can use <span class="code-inline">#decltype</span> to create a type based on an existing expression. This is useful for inferring or mirroring the type of another variable dynamically, improving reusability and reducing redundancy.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1229,9 +1232,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_003_002_number_literals_swg">Number Literals</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Number_Representations">Number Representations</h3>
 <p>Integers can be written in multiple formats: <i>decimal</i>, <i>hexadecimal</i>, or <i>binary</i>. These representations allow you to express numbers in the format that best fits your use case or domain requirements.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1342,13 +1342,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_003_003_string_swg">String</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="UTF-8_Encoding">UTF-8 Encoding</h3>
 <p>Swag uses UTF-8 encoding for strings, allowing representation of characters from virtually all languages and symbol sets.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="String_Comparison">String Comparison</h3>
 <p>Strings can be compared directly for equality using the <span class="code-inline">==</span> operator.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1375,8 +1370,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Direct indexing of a string to retrieve a <span class="code-inline">rune</span> is not supported, except for ASCII strings. Swag avoids the runtime overhead of UTF-8 decoding. The <span class="code-inline">Std.Core</span> module provides utilities for working with UTF-8 strings.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="String_Indexing">String Indexing</h3>
 <p>When indexing a string, Swag returns a byte (<span class="code-inline">u8</span>), not a <span class="code-inline">rune</span>. This reflects the underlying UTF-8 encoding.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1507,8 +1500,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Escape_Sequences">Escape Sequences</h3>
 <p>Swag supports escape sequences in strings and character literals to represent special characters.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <p>An escape sequence starts with a backslash (<span class="code-inline">\</span>) followed by a specific character.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -1618,9 +1609,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_003_004_constants_swg">Constants</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Constants_with__const_">Constants with <span class="code-inline">const</span></h3>
 <p>Using <span class="code-inline">const</span> means the value must be <b>known by the compiler</b> at compile time. The compiler embeds the constant’s value directly into the compiled code, removing any runtime memory usage for simple types like integers or strings.</p>
 <p>In other words, the compiler replaces every occurrence of a constant with its literal value, leading to optimized and efficient code execution.</p>
@@ -1637,8 +1625,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Constants_with_Complex_Types">Constants with Complex Types</h3>
 <p>Swag also supports constants with complex data types, such as arrays and structures. When declared, the data is stored in the program's data segment, which occupies memory. The memory address of such constants can be accessed at runtime, allowing indirect manipulation through pointers.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h4 id="Static_Arrays">Static Arrays</h4>
 <p>A static array has a fixed size. In this example, the constant array <span class="code-inline">a</span> contains three elements of type <span class="code-inline">s32</span> (signed 32-bit integers).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -1674,17 +1660,12 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <li>A <span class="code-inline">let</span> value can be assigned <b>at runtime</b>, allowing computation before assignment.</li>
 </ul>
 <p>Despite this difference, both <span class="code-inline">let</span> and <span class="code-inline">const</span> enforce immutability — once a value is assigned, it cannot be changed.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_003_005_variables_swg">Variables</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Variable_Declaration">Variable Declaration</h3>
 <p>Variables are declared using the <span class="code-inline">let</span> or <span class="code-inline">var</span> keyword, followed by a <span class="code-inline">:</span> and the variable’s type.</p>
 <ul>
-<li><b>'let'</b> — Declares an immutable variable. Once assigned, its value cannot change.</li>
-<li><b>'var'</b> — Declares a mutable variable. Its value can be modified after initialization.</li>
+<li><b><span class="code-inline">let</span></b> — Declares an immutable variable. Once assigned, its value cannot change.</li>
+<li><b><span class="code-inline">var</span></b> — Declares a mutable variable. Its value can be modified after initialization.</li>
 </ul>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -1780,8 +1761,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Special_Variables">Special Variables</h3>
 <p>Swag provides attributes that modify how variables are stored or accessed.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h4 id="Thread-Local_Storage">Thread-Local Storage</h4>
 <p>Global variables marked with <span class="code-inline">#[Swag.Tls]</span> are stored in thread-local storage. Each thread has its own copy of the variable.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Tls]</span>
@@ -1819,9 +1798,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_003_006_operators_swg">Operators</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Arithmetic_Operators">Arithmetic Operators</h3>
 <p>Arithmetic operators perform basic mathematical operations such as addition, subtraction, multiplication, division, and modulus (remainder).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2099,9 +2075,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_003_007_cast_swg">Cast</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Explicit_Cast_with__cast_">Explicit Cast with <span class="code-inline">cast</span></h3>
 <p>Explicit casting converts a value from one type to another using the syntax 'cast(type) value'. This transformation changes the type of <span class="code-inline">value</span> to the specified <span class="code-inline">type</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2165,8 +2138,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Implicit_Casts">Implicit Casts</h3>
 <p>Swag supports <b>implicit casts</b>, automatically converting between compatible types when no data loss or precision loss can occur. These conversions happen without requiring an explicit <span class="code-inline">cast</span> statement.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h4 id="Implicit_Cast_Rules">Implicit Cast Rules</h4>
 <ol>
 <li><b>Widening conversions</b> — Allowed when converting from smaller to larger</li>
@@ -2215,13 +2186,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_003_008_alias_swg">Alias</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Type_Alias">Type Alias</h3>
 <p>An <span class="code-inline">alias</span> creates a shorthand or alternative name for an existing type. This can improve readability, reduce repetition, and simplify the use of complex types. A type alias does not create a new type — it simply provides a new name for an existing one.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Basic_Type_Alias">Basic Type Alias</h3>
 <p>Using <span class="code-inline">alias</span>, you can define a shorthand for any existing type. The alias can be used interchangeably with the original type throughout your code.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2265,8 +2231,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Name_Alias">Name Alias</h3>
 <p>The <span class="code-inline">alias</span> keyword can also create shortcuts for functions, variables, or namespaces. This helps simplify long names and improve code readability.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h4 id="Function_Name_Alias">Function Name Alias</h4>
 <p>A function can be aliased to a shorter or more convenient name, which is especially useful for lengthy or descriptive function names.</p>
 <div class="code-block"><span class="SCde">
@@ -2291,19 +2255,10 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_004_000_data_structures_swg">Data Structures</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Swag provides fixed arrays, slices, tuples, enums, unions, pointers, references, and the type-erased <span class="code-inline">any</span> value. Choose the representation that matches ownership and lifetime: arrays own inline storage, slices borrow a contiguous range, and pointers make indirection and nullability explicit.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_004_001_array_swg">Array</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Static_Arrays_in_Swag">Static Arrays in Swag</h3>
 <p>Static arrays are fixed-size arrays where the size is known at compile time. Unlike dynamic arrays from the <span class="code-inline">Std.Core</span> module, they cannot grow or shrink during execution. Static arrays are ideal when size and memory usage are deterministic.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Declaring_a_Static_Array">Declaring a Static Array</h3>
 <p>A static array is declared using the syntax '[N] type', where <span class="code-inline">N</span> is the number of elements.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2468,9 +2423,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_004_002_slice_swg">Slice</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Slices_in_Swag">Slices in Swag</h3>
 <p>A slice provides a dynamic view over a contiguous block of memory. Unlike static arrays, slices can point to different memory regions or subsets of existing data at runtime.</p>
 <p>A slice consists of a data pointer and a <span class="code-inline">u64</span> count representing the number of elements. This allows efficient access to large datasets without copying memory.</p>
@@ -2647,9 +2599,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_004_003_tuple_swg">Tuple</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Tuples_in_Swag">Tuples in Swag</h3>
 <p>A tuple represents an anonymous structure (a <i>struct literal</i>) that can group multiple values of different types together without defining a named structure. Tuples are enclosed in curly braces <span class="code-inline">{}</span> and can mix any combination of data types.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -2796,9 +2745,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_004_004_enum_swg">Enum</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Enums_in_Swag">Enums in Swag</h3>
 <p>Enums define a set of named constant values. Unlike C/C++, Swag allows enum values to end with <span class="code-inline">;</span>, <span class="code-inline">,</span>, or simply a new line.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -3104,9 +3050,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_004_005_impl_swg">Impl</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Implementing_Methods_for_Enums_in_Swag">Implementing Methods for Enums in Swag</h3>
 <p>Swag allows the use of the <span class="code-inline">impl</span> keyword with enums to define methods directly associated with them. This makes it possible to attach behavior to enum values, enhancing code organization and encapsulation.</p>
 <p>Within these methods, the <span class="code-inline">me</span> keyword refers to the current enum instance, similar to <span class="code-inline">this</span> in other languages.</p>
@@ -3166,9 +3109,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_004_006_union_swg">Union</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__union__Type_in_Swag">The <span class="code-inline">union</span> Type in Swag</h3>
 <p>A <span class="code-inline">union</span> is a special kind of struct where all fields share the same memory location. Each field starts at offset <span class="code-inline">0</span>, allowing multiple variables to overlap in memory.</p>
 <p>This makes it possible to represent different data types using the same storage space, which is particularly useful for optimizing memory when only one field is used at a time.</p>
@@ -3193,12 +3133,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="How_Unions_Work">How Unions Work</h3>
 <p>In this example, the <span class="code-inline">MyUnion</span> type defines three fields (<span class="code-inline">x</span>, <span class="code-inline">y</span>, and <span class="code-inline">z</span>) that occupy the same memory space. Writing to one field overwrites the others, since they are all stored at the same offset.</p>
 <p>This design is ideal for cases where different data types (or values) are stored alternately in the same memory area. Here, since all fields are of type <span class="code-inline">f32</span>, assigning a value to <span class="code-inline">x</span> automatically updates <span class="code-inline">y</span> and <span class="code-inline">z</span>, demonstrating the shared-memory behavior of unions.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_004_007_pointers_swg">Pointers</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Single-Value_Pointers">Single-Value Pointers</h3>
 <p>A pointer to a <b>single element</b> is declared using the <span class="code-inline">*</span> symbol. It represents the memory address of one instance of a given type.</p>
 <p>Pointers can reference any type of data and are fundamental for efficient memory access and manipulation.</p>
@@ -3405,9 +3340,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_004_008_references_swg">References</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="References_in_Swag">References in Swag</h3>
 <p>Swag supports <b>references</b>, which behave like pointers but act syntactically like values. References offer a safer and more convenient way to work with memory addresses, eliminating the need for explicit pointer dereferencing in most cases.</p>
 <div class="code-block"><span class="SCde">
@@ -3510,9 +3442,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_004_009_any_swg">Any</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__any__Type_in_Swag">The <span class="code-inline">any</span> Type in Swag</h3>
 <p><span class="code-inline">any</span> is a dynamically typed reference that can point to a value of any concrete type.</p>
 <div class="blockquote blockquote-warning">
@@ -3645,15 +3574,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_005_000_control_flow_swg">Control Flow</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Control flow is expression-oriented but explicit. The following sections cover conditional execution, every form of <span class="code-inline">for</span>, element destructuring, <span class="code-inline">while</span>, <span class="code-inline">switch</span>, fallthrough, and labeled <span class="code-inline">break</span>/<span class="code-inline">continue</span>.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_005_001_if_swg">If</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Basic_Usage_of__if_">Basic Usage of <span class="code-inline">if</span></h3>
 <p>A basic test with an <span class="code-inline">if</span> statement.</p>
 <p>In Swag, curly braces <span class="code-inline">{}</span> are optional for control structures like <span class="code-inline">if</span>. However, if you omit them, you must use <span class="code-inline">do</span>. This rule also applies to <span class="code-inline">while</span> and <span class="code-inline">for</span> loops.</p>
@@ -3752,13 +3674,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_005_002_for_swg">For</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__for__Loop">The <span class="code-inline">for</span> Loop</h3>
 <p>The <span class="code-inline">for</span> construct in Swag enables iteration, allowing a block of code to execute repeatedly. This guide explores its features: basic usage, indexing, naming, reverse loops, early exits, range iteration, and advanced filtering using the <span class="code-inline">where</span> clause.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Basic_Usage">Basic Usage</h3>
 <p>The <span class="code-inline">for</span> expression specifies the number of iterations and is evaluated <b>once</b> before the loop starts. This expression must yield a <b>positive integer</b>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -3850,8 +3767,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Using__break__and__continue_">Using <span class="code-inline">break</span> and <span class="code-inline">continue</span></h3>
 <p>The <span class="code-inline">break</span> and <span class="code-inline">continue</span> keywords control loop flow. <span class="code-inline">break</span> exits the loop, while <span class="code-inline">continue</span> skips to the next iteration.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Exiting_Early_with__break_">Exiting Early with <span class="code-inline">break</span></h3>
 <p><span class="code-inline">break</span> stops the loop before completing all iterations.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -3886,8 +3801,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Ranges">Ranges</h3>
 <p>The <span class="code-inline">for</span> loop supports signed integer ranges, offering flexible intervals.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Looping_Over_a_Range_with__to_">Looping Over a Range with <span class="code-inline">to</span></h3>
 <p><span class="code-inline">to</span> defines an inclusive range loop.</p>
 <div class="blockquote blockquote-note">
@@ -3977,8 +3890,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Using__where__Clause">Using <span class="code-inline">where</span> Clause</h3>
 <p>The <span class="code-inline">where</span> clause filters iterations based on conditions.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Basic__where__Clause">Basic <span class="code-inline">where</span> Clause</h3>
 <p>Attach <span class="code-inline">where</span> to apply a filter to the loop index or element. Only iterations meeting the condition are executed.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -4170,9 +4081,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_005_003_for_elements_swg">For Elements</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Element_Iteration_with__for_">Element Iteration with <span class="code-inline">for</span></h3>
 <p>Binding a name in a <span class="code-inline">for</span> statement iterates over all elements of a collection (arrays, slices, strings, and even structs), providing a streamlined and efficient way to process each item.</p>
 <div class="code-block"><span class="SCde">
@@ -4360,9 +4268,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_005_004_while_swg">While</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__while__Loop">The <span class="code-inline">while</span> Loop</h3>
 <p>A <span class="code-inline">while</span> loop repeatedly executes a block of code as long as its condition evaluates to <span class="code-inline">true</span>. Once the condition becomes <span class="code-inline">false</span>, the loop terminates.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -4457,11 +4362,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_005_005_switch_swg">Switch</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__switch__Statement">The <span class="code-inline">switch</span> Statement</h3>
-<p>The <span class="code-inline">switch</span> statement in Swag behaves similarly to C/C++, with one key difference: Swag <b>does not require `break`</b> at the end of each case. Unintentional fallthroughs are prevented by default, ensuring each <span class="code-inline">case</span> is isolated unless explicitly linked with <span class="code-inline">fallthrough</span>.</p>
+<p>The <span class="code-inline">switch</span> statement in Swag behaves similarly to C/C++, with one key difference: Swag <b>does not require <span class="code-inline">break</span></b> at the end of each case. Unintentional fallthroughs are prevented by default, ensuring each <span class="code-inline">case</span> is isolated unless explicitly linked with <span class="code-inline">fallthrough</span>.</p>
 <div class="code-block"><span class="SCde">
 <span class="SFct">#test</span>
 {
@@ -4717,8 +4619,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Switch_Statement_with_Type_Guard_and_Variable_Binding">Switch Statement with Type Guard and Variable Binding</h3>
 <p>You can bind a matched type or value to a variable using <span class="code-inline">as</span>, allowing direct access inside the <span class="code-inline">case</span> block. You may also use <span class="code-inline">where</span> for conditional refinement.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <p>Example 1: Simple Type Binding</p>
 <div class="code-block"><span class="SCde">
 <span class="SFct">#test</span>
@@ -4781,9 +4681,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_005_006_break_swg">Break</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__break__Statement">The <span class="code-inline">break</span> Statement</h3>
 <p>The <span class="code-inline">break</span> statement exits the nearest enclosing control structure. It works with <span class="code-inline">for</span>, <span class="code-inline">while</span>, and <span class="code-inline">switch</span>. Use it to stop a loop early or to leave a switch case.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -4911,15 +4808,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_006_000_structs_swg">Structs</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Structs combine data with behavior through separate <span class="code-inline">impl</span> blocks. This chapter moves from declaration and layout to methods, generated operators, custom lifecycle hooks, iteration protocols, literals, and interfaces.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_006_001_declaration_swg">Declaration</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Basic_Struct_Declaration">Basic Struct Declaration</h3>
 <p>This section illustrates a basic <span class="code-inline">struct</span> declaration in Swag. Notice that the <span class="code-inline">var</span> keyword is not required when declaring fields within the struct. Each field is defined with a specific type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -5097,9 +4987,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_002_impl_swg">Impl</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Struct_Methods_and_Constants">Struct Methods and Constants</h3>
 <p>In Swag, structs can encapsulate methods and constants within them using the <span class="code-inline">impl</span> block. This keeps related functionality close to the data it operates on.</p>
 <div class="code-block"><span class="SCde">
@@ -5193,9 +5080,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_003_offset_swg">Offset</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Custom_Field_Layout_with__Swag_Offset_">Custom Field Layout with <span class="code-inline">Swag.Offset</span></h3>
 <p>You can force the layout of a field within a struct using the <span class="code-inline">Swag.Offset</span> attribute. This lets you manually specify the memory offset of a field — useful for custom memory layouts, such as overlapping fields or sharing memory space between fields.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -5246,9 +5130,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_004_packing_swg">Packing</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Default_Struct_Packing">Default Struct Packing</h3>
 <p>By default, Swag aligns struct fields similarly to the C programming language. Each field is aligned based on the size of its type, ensuring optimal memory access. This default behavior can be explicitly specified using <span class="code-inline">#[Swag.Pack(0)]</span>, meaning no additional packing adjustments are applied. Below is an example illustrating this default alignment strategy.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -5380,9 +5261,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_005_operator_overloading_swg">Operator Overloading</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <p>A struct in Swag can define operator overloads within the <span class="code-inline">impl</span> block. These hooks are predefined and recognized by the compiler, which lets a struct customize operators and core interactions.</p>
 <p><span class="code-inline">opBinary</span>, <span class="code-inline">opBinaryRight</span>, <span class="code-inline">opUnary</span>, <span class="code-inline">opAssign</span> and <span class="code-inline">opIndexAssign</span> take the operator as a compile-time <span class="code-inline">Swag.Operator</span> value, so one hook covers a whole family and a misspelled member is reported instead of being a comparison that silently never matches. Each spelling has its own member: unary <span class="code-inline">-</span> arrives as <span class="code-inline">Neg</span>, binary <span class="code-inline">-</span> as <span class="code-inline">Sub</span>. <span class="code-inline">op.symbol()</span> returns the source spelling when generated code or a diagnostic needs it.</p>
 <p>An operator body is compiled for the requested operator with diagnostics on, with a single exception: <span class="code-inline">#error</span> is the sanctioned way to say "this overload does not handle that operator", so it is silenced and the overload is simply skipped. Every other failure in the body is reported where it occurs.</p>
@@ -5597,9 +5475,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_006_custom_assignment_swg">Custom Assignment</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Custom_Assignment_Behavior_with__opSet_">Custom Assignment Behavior with <span class="code-inline">opSet</span></h3>
 <p>The <span class="code-inline">opSet</span> method in Swag allows you to define custom assignment behaviors for your struct using the <span class="code-inline">=</span> operator. By overloading <span class="code-inline">opSet</span>, you can handle assignments of different types and control how your struct responds.</p>
 <div class="code-block"><span class="SCde">
@@ -5974,9 +5849,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_009_custom_copy_and_move_swg">Custom Copy and Move</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <p>Swag supports both copy and move semantics for structures. In this example, we demonstrate these concepts using a <span class="code-inline">Vector3</span> struct. Although a <span class="code-inline">Vector3</span> typically wouldn't require move semantics (no heap allocation), this illustrates how these features can be implemented and used in Swag.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">struct</span> <span class="SCst">Vector3</span>
@@ -6033,12 +5905,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Drop_Elision">Drop Elision</h3>
 <p>When the source of a <span class="code-inline">#move</span> is a plain local that is provably never used again — no read or write after the move, no taken address, no capture, and a move that always executes when its scope exits — the compiler elides both the reset of the source and its scope-exit drop: <span class="code-inline">opDrop</span> is then NOT called on the reset value. A program can therefore not rely on counting the drops of fully consumed locals. Any use after the move (or any use the compiler cannot prove harmless) keeps the documented reset-then-drop behavior.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Lifecycle_Safety">Lifecycle Safety</h3>
 <p>Reading a value abandoned by <span class="code-inline">#relocate</span> — or by <span class="code-inline">#move</span> when the type has no <span class="code-inline">opDrop</span>, which leaves the source unreset — reads stale bits. Under the <span class="code-inline">Swag.SafetyWhat.Lifecycle</span> safety guard (part of <span class="code-inline">All</span>, so enabled by default in debug configurations), the compiler reports proven reads of moved-from locals at compile time, and poisons abandoned or dropped storage with <span class="code-inline">0xDD</span> bytes at runtime so hidden violations fail deterministically instead of silently reading stale data. A <span class="code-inline">#move</span> of a type with <span class="code-inline">opDrop</span> is not concerned: the source is reset to its defaults, which is defined behavior.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Move_Semantics_in_Functions">Move Semantics in Functions</h3>
 <p>Move semantics can be expressed in function parameters by prefixing the parameter type with <span class="code-inline">#move</span>. At the call site, prefix the argument with <span class="code-inline">#move</span> to pass it as a move reference.</p>
 <p>A <span class="code-inline">#move</span> parameter also accepts a plain (copyable) value: the compiler then materializes a temporary copy at the call site and passes it as the move reference. A single <span class="code-inline">#move</span> function therefore serves both call styles — including through lambdas, function pointers and interface methods — at the price of one extra copy on the copy path. This works for structs, for plain scalar values (integers, floats, bool, rune, enums), and for untyped literals alike.</p>
@@ -6093,9 +5961,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_010_custom_literals_swg">Custom Literals</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="User-Defined_Literals">User-Defined Literals</h3>
 <p>User-defined literals extend literal meaning so custom types can be initialized directly with unit-like suffixes (e.g., <span class="code-inline">4</span>ms'). This example defines a <span class="code-inline">Duration</span> type that stores seconds and accepts seconds, milliseconds, minutes, and hours.</p>
 <h3 id="Literal_Suffixes">Literal Suffixes</h3>
@@ -6151,9 +6016,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_006_011_interface_swg">Interface</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <p>Interfaces in Swag are virtual tables (lists of function pointers) that can be associated with a struct.</p>
 <p>Unlike C++, the virtual table is not embedded in the struct; it is a separate object. This lets you implement an interface for a struct without changing the struct.</p>
 <div class="code-block"><span class="SCde">
@@ -6314,16 +6176,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_007_000_functions_swg">Functions</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Functions cover more than calls and returns: Swag supports expression bodies, lambdas, closures, variadic parameters, overloads, UFCS, intentionally discarded results, and the <span class="code-inline">retval</span> return-type placeholder.</p>
 <p>Macros, mixins, and foreign functions live in the metaprogramming and interoperability chapters because their execution model differs from an ordinary function call.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_007_001_declaration_swg">Declaration</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Function_Declarations">Function Declarations</h3>
 <p>A function declaration starts with the <span class="code-inline">func</span> keyword, followed by the function name and parentheses. If no parameters are needed, the parentheses remain empty.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toto</span>() {}
@@ -6432,9 +6287,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_007_002_lambda_swg">Lambda</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Lambdas">Lambdas</h3>
 <p>A lambda in Swag is a pointer to a function. This allows functions to be stored in variables, passed as arguments, or returned from other functions—enabling functional programming patterns.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -6545,14 +6397,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_007_003_closure_swg">Closure</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Closures">Closures</h3>
 <p>Swag supports limited closures, allowing functions to capture variables from their surrounding scope. Up to 64 bytes can be captured without heap allocation.</p>
 <p>A by-value capture is a plain byte copy into the closure: the closure never runs <span class="code-inline">opPostCopy</span> on the way in and never drops the captured value. Only simple types (without <span class="code-inline">opDrop</span>, <span class="code-inline">opPostCopy</span>, or <span class="code-inline">opPostMove</span>, and not marked <span class="code-inline">#[Swag.NoCopy]</span>) can therefore be captured by value; other types must be captured by reference with <span class="code-inline">&amp;</span>.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Declaring_a_Closure">Declaring a Closure</h3>
 <p>A closure is declared like a lambda, with captured variables listed between <span class="code-inline">|...|</span> before the parameter list. The type uses <span class="code-inline">func||(...)</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -6675,9 +6522,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_007_004_variadic_parameters_swg">Variadic Parameters</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Variadic_Functions">Variadic Functions</h3>
 <p>Variadic functions accept a variable number of arguments using <span class="code-inline">...</span>. They allow flexibility in cases where the number of arguments is not known in advance.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -6804,9 +6648,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_007_005_function_overloading_swg">Function Overloading</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Function_Overloading">Function Overloading</h3>
 <p>Swag allows multiple functions to share the same name when their parameter signatures differ. This feature, called <i>function overloading</i>, enables writing concise and intuitive APIs. The compiler chooses the correct overload from the call arguments.</p>
 <div class="code-block"><span class="SCde">
@@ -6827,9 +6668,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_007_006_ufcs_swg">Ufcs</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Uniform_Function_Call_Syntax__UFCS_">Uniform Function Call Syntax (UFCS)</h3>
 <p><i>UFCS</i> (Uniform Function Call Syntax) allows a function to be called in the <span class="code-inline">param.func()</span> form when the first parameter type of <span class="code-inline">func()</span> matches <span class="code-inline">param</span>. This enables calling standalone functions as if they were instance methods, improving readability.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -6932,9 +6770,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_007_007_discard_swg">Discard</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Return_Value_Usage">Return Value Usage</h3>
 <p>Swag enforces that all function return values must be used. If a function’s result is ignored, the compiler raises an error. This prevents accidental omission of important results and ensures deliberate handling of all return values.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -6962,9 +6797,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_007_008_retval_swg">Retval</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__retval__Special_Type">The <span class="code-inline">retval</span> Special Type</h3>
 <p>In Swag, <span class="code-inline">retval</span> represents the current function’s return type. It allows you to declare and manipulate the return value directly inside the function, without repeating the type declaration. This improves code readability and flexibility, especially when working with complex or generic return types.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -7027,9 +6859,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_008_000_intrinsics_swg">Intrinsics</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Intrinsics">Intrinsics</h3>
 <p>Intrinsics are operations implemented directly by the compiler or its runtime. Their names start with <span class="code-inline">@</span>, so they cannot collide with application APIs. They cover five broad areas:</p>
 <ul>
@@ -7060,16 +6889,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Intrinsics do not imply ownership. <span class="code-inline">@mkslice</span> and <span class="code-inline">@mkstring</span> create views; <span class="code-inline">@alloc</span> returns raw storage; <span class="code-inline">@memcpy</span> ignores value lifecycle hooks. The caller remains responsible for lifetime, bounds, alignment, and element semantics.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_008_001_init_swg">Init</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="__init__Intrinsic"><span class="code-inline">@init</span> Intrinsic</h3>
 <p>Reinitializes a variable or memory region to either its type default value or a provided custom value (tuple for aggregates).</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Scalars_-_Default_Initialization">Scalars - Default Initialization</h3>
 <p>Reinitialize a single variable to its default value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -7187,9 +7009,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_008_002_drop_swg">Drop</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="__drop__Intrinsic"><span class="code-inline">@drop</span> Intrinsic</h3>
 <p>The <span class="code-inline">@drop</span> intrinsic calls the <span class="code-inline">opDrop</span> method if it is defined for the struct. This ensures that any necessary cleanup operations (such as freeing resources) are performed before the variable is reinitialized. <span class="code-inline">@drop</span> is particularly useful in resource management, where explicit cleanup is required before resetting the variable.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -7211,9 +7030,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_008_003_value_and_type_intrinsics_swg">Value and Type Intrinsics</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Counts_and_Data_Pointers">Counts and Data Pointers</h3>
 <p><span class="code-inline">@countof</span> returns the logical number of elements in a string, array, slice, enum, or type that defines <span class="code-inline">opCount</span>. <span class="code-inline">@dataof</span> returns the underlying data pointer of strings, arrays, slices, <span class="code-inline">any</span> values, and interfaces.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -7254,12 +7070,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <p><span class="code-inline">@mkinterface</span> and <span class="code-inline">@tableof</span> are the corresponding low-level building blocks for interface values. Normal 'cast(MyInterface) value' syntax is safer and clearer; use the intrinsics only when implementing generic runtime machinery.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_008_004_math_and_bit_intrinsics_swg">Math and Bit Intrinsics</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Integer_Helpers">Integer Helpers</h3>
 <p><span class="code-inline">@min</span>, <span class="code-inline">@max</span>, and <span class="code-inline">@abs</span> preserve the operand type. Bit intrinsics operate on unsigned widths from <span class="code-inline">u8</span> through <span class="code-inline">u64</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -7304,12 +7115,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <p>The complete family is indexed in the keyword chapter. Domain checks such as a negative square root depend on the active safety and sanity configuration.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_008_005_memory_and_atomic_intrinsics_swg">Memory and Atomic Intrinsics</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Raw_Memory">Raw Memory</h3>
 <p><span class="code-inline">@memcpy</span> copies non-overlapping bytes, <span class="code-inline">@memmove</span> supports overlap, <span class="code-inline">@memset</span> writes one byte value repeatedly, and <span class="code-inline">@memcmp</span> compares byte sequences. Counts are expressed in bytes.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -7368,18 +7174,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Warning</span></div>
 <p>Raw memory operations bypass <span class="code-inline">opPostCopy</span>, <span class="code-inline">opPostMove</span>, and <span class="code-inline">opDrop</span>. Do not use them to copy or relocate lifecycle-bearing values unless the type's invariants explicitly permit it.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h2 id="_009_000_generics_swg">Generics</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Generics accept types and compile-time values. Swag specializes a generic when it is used, then applies <span class="code-inline">where</span> constraints to decide whether the candidate is valid. Prefer constraints that describe required capabilities rather than testing a concrete type name.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_009_001_functions_swg">Functions</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Generic_Functions">Generic Functions</h3>
 <p>Generic parameters appear between <span class="code-inline">func</span> and the function name. 'var T' declares a type parameter; 'const N: s32' declares a compile-time value parameter.</p>
 <p>The compiler normally deduces type parameters from call arguments:</p>
@@ -7466,12 +7263,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <p>A specialization is compiled when used. Its body must be valid for the selected arguments; use <span class="code-inline">where</span> constraints to exclude unsupported candidates with a clear overload contract.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_009_002_structs_swg">Structs</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Generic_Structs">Generic Structs</h3>
 <p>A generic struct uses the same parameter syntax as a generic function. Each specialization is a distinct type with its own layout.</p>
 <div class="code-block"><span class="SCde">
@@ -7557,14 +7349,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_009_003_where_constraints_swg">Where Constraints</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Generic__where__Constraints">Generic <span class="code-inline">where</span> Constraints</h3>
 <p>The <span class="code-inline">where</span> clause constrains generic functions and generic structs. It is evaluated at compile time from generic parameters and other constant data.</p>
 <p>For functions, a failing <span class="code-inline">where</span> removes that specialization from overload resolution. For generic structs, a failing <span class="code-inline">where</span> prevents the instantiation entirely because structs do not participate in overload selection.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Function_Specialization">Function Specialization</h3>
 <p>Different overloads can share the same generic signature and still be selected by different <span class="code-inline">where</span> clauses.</p>
 <div class="code-block"><span class="SCde">
@@ -7672,16 +7459,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_010_000_attributes_swg">Attributes</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Attributes attach structured metadata to declarations and to lexical scopes. User attributes support reflection and metaprogramming; predefined <span class="code-inline">Swag</span> attributes also control compiler behavior such as layout, safety, code generation, and native interoperability.</p>
 <p>An attribute annotates something that has a symbol. Everything without one — a type, an operand, a conversion, a literal, a statement — takes a <span class="code-inline">#</span> modifier instead. See the sigils chapter for the rule and its consequences.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_010_001_user_attributes_swg">User Attributes</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="User_Attributes">User Attributes</h3>
 <p>Attributes in Swag let you annotate code elements (functions, structs, etc.) with metadata. These annotations, defined with the <span class="code-inline">attr</span> keyword, can power code generation and reflection. By attaching attributes, you enrich code with extra information usable at compile time and at runtime.</p>
 <div class="code-block"><span class="SCde">
@@ -7717,8 +7497,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="Scopes_and_Broadcasting">Scopes and Broadcasting</h3>
 <p>An attribute written on a block applies to every declaration the block contains, and each of those declarations is checked against <span class="code-inline">AttrUsage</span> separately. A declaration the attribute does not accept simply does not receive it, so one block can carry an attribute meant for only some of its members.</p>
 <p><span class="code-inline">AttributeUsage.Scope</span> marks an attribute that acts on the lexical scope itself instead of on a declaration; <span class="code-inline">Swag.Safety</span>, <span class="code-inline">Swag.Sanity</span>, <span class="code-inline">Swag.Warning</span>, and <span class="code-inline">Swag.Optimize</span> are the predefined ones.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Applying_Attributes">Applying Attributes</h3>
 <p>Apply attributes with the syntax '#[attribute, attribute...]' placed immediately before the code element. Multiple attributes are comma-separated.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[AttributeA, AttributeB(0, 0, "string")]</span>
@@ -7759,22 +7537,28 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_010_002_predefined_attributes_swg">Predefined Attributes</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <h3 id="Predefined_Attributes">Predefined Attributes</h3>
 <p>The compiler runtime exports predefined attributes in the <span class="code-inline">Swag</span> namespace. This page follows the API shipped in <span class="code-inline">bin/runtime/api.swg</span>; it is the compact index, while the relevant language chapters demonstrate the attributes that change everyday program behavior.</p>
 <h3 id="Declaring_Attributes">Declaring Attributes</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">AttrUsage(usage)</span></td><td>Restrict the kinds of declarations an attribute accepts</td></tr>
 <tr><td><span class="code-inline">AttrMulti()</span></td><td>Allow the same attribute to appear more than once</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">Swag.AttributeUsage</span> is a flag enum. Combine values such as <span class="code-inline">.Function</span>, <span class="code-inline">.Struct</span>, <span class="code-inline">.Enum</span>, <span class="code-inline">.Alias</span>, and <span class="code-inline">.Variable</span> with <span class="code-inline">|</span>. <span class="code-inline">.Scope</span> marks an attribute that acts on a lexical scope instead of a declaration, and <span class="code-inline">.File</span> one that can be written with <span class="code-inline">#global</span>.</p>
 <p>The compiler enforces the declared usage: writing an attribute directly on another kind of declaration is an error. An attribute with no <span class="code-inline">AttrUsage</span> is unrestricted.</p>
 <h3 id="Name_Resolution">Name Resolution</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td>'Using(what: typeinfo...)'</td><td>Bring the named scopes into the annotated declaration's scope</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">Swag.Using</span> is the attribute form of the <span class="code-inline">using</span> statement: it opens the named namespaces or types inside the declaration it annotates, so their members resolve unqualified there. Annotating a struct with it is the usual way to let field attributes be written unqualified:</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.Using(Properties)]</span>
@@ -7787,7 +7571,10 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p>This one is declared in <span class="code-inline">bin/runtime/core.swg</span> rather than <span class="code-inline">api.swg</span>, because it needs <span class="code-inline">typeinfo</span> and cannot exist in the bootstrap.</p>
 <h3 id="Compile-Time_Execution_and_Code_Generation">Compile-Time Execution and Code Generation</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">ConstExpr()</span></td><td>Allow a function or struct operation to run in a constant expression</td></tr>
 <tr><td><span class="code-inline">Compiler()</span></td><td>Keep a function, global, or constant in the compile-time environment</td></tr>
 <tr><td>'PrintAst(stages: string...)'</td><td>Print the selected declaration's AST for compiler diagnostics</td></tr>
@@ -7797,21 +7584,29 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <tr><td><span class="code-inline">PlaceHolder()</span></td><td>Generate an empty function body</td></tr>
 <tr><td><span class="code-inline">NoPrint()</span></td><td>Disable <span class="code-inline">@print</span> in the annotated function</td></tr>
 <tr><td>'Optimize(level: bool)'</td><td>Enable or disable optimized code generation</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">PrintAst</span> and <span class="code-inline">PrintMicro</span> are development aids: they write compiler output and should not be used for program logic.</p>
 <h3 id="Metaprogramming_and_Call_Semantics">Metaprogramming and Call Semantics</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">Macro()</span></td><td>Inline a function while preserving the caller's expression context</td></tr>
 <tr><td><span class="code-inline">Mixin()</span></td><td>Inject declarations or statements at the call site</td></tr>
 <tr><td><span class="code-inline">CalleeReturn()</span></td><td>Make <span class="code-inline">return</span> in a macro or mixin return from the caller</td></tr>
 <tr><td><span class="code-inline">Implicit()</span></td><td>Permit an <span class="code-inline">opCast</span> overload as an implicit conversion</td></tr>
 <tr><td><span class="code-inline">Discardable()</span></td><td>Permit a function result to be ignored</td></tr>
 <tr><td>'Deprecated(msg: #null string = null)'</td><td>Mark an API as deprecated</td></tr>
+</tbody>
 </table>
 <h3 id="Operators__Matching__and_Enums">Operators, Matching, and Enums</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td>'Operators(operators: string...)'</td><td>Generate selected structural operators</td></tr>
 <tr><td><span class="code-inline">OperatorIgnore()</span></td><td>Exclude one field from generated operators</td></tr>
 <tr><td>'Commutative(operators: Operator...)'</td><td>Allow selected binary overloads with the receiver on the right</td></tr>
@@ -7820,12 +7615,16 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <tr><td><span class="code-inline">EnumFlags()</span></td><td>Define an enum whose values form a bit mask</td></tr>
 <tr><td><span class="code-inline">NoDuplicate()</span></td><td>Reject duplicate enum values</td></tr>
 <tr><td>'Match(what: MatchWhat, value: bool)'</td><td>Adjust compiler overload-matching rules</td></tr>
+</tbody>
 </table>
 <p>Exhaustive matching is not an attribute: a <span class="code-inline">switch</span> carries no symbol, so it is requested with the 'switch #complete' modifier.</p>
 <p><span class="code-inline">Swag.Match</span> is a low-level compiler contract. Application code should normally express overload selection with types and <span class="code-inline">where</span> constraints.</p>
 <h3 id="Layout__Ownership__and_Export">Layout, Ownership, and Export</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td>'Align(value: u8)'</td><td>Override alignment for a field or aggregate</td></tr>
 <tr><td>'Pack(value: u8)'</td><td>Set struct packing</td></tr>
 <tr><td>'Offset(name: string)'</td><td>Overlay a field on another named field</td></tr>
@@ -7836,15 +7635,20 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <tr><td><span class="code-inline">Global()</span></td><td>Give a local declaration static storage</td></tr>
 <tr><td><span class="code-inline">Late()</span></td><td>Defer the initialization of a non-null field or global</td></tr>
 <tr><td><span class="code-inline">Strict()</span></td><td>Keep an alias distinct for implicit-conversion purposes</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">Swag.ExportWhat</span> currently provides <span class="code-inline">.Methods</span> and <span class="code-inline">.NoZero</span> flags, plus <span class="code-inline">.None</span> and <span class="code-inline">.All</span>. Exporting methods makes <span class="code-inline">TypeInfoStruct.methods</span> available; it does not make a private method public in source code.</p>
 <h3 id="Safety_and_Diagnostics">Safety and Diagnostics</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td>'Safety(what: SafetyWhat, value: bool)'</td><td>Enable or disable runtime guards</td></tr>
 <tr><td>'Sanity(what: SafetyWhat, value: bool)'</td><td>Enable or disable static proven-fault checks</td></tr>
 <tr><td>'Warning(what: string, level: WarningLevel)'</td><td>Enable, disable, or promote diagnostic IDs</td></tr>
 <tr><td>'BorrowSummary(returns, stores = 0, into = 0, frees = 0)'</td><td>Describe pointer escape and invalidation behavior</td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">SafetyWhat</span> is shared by runtime safety and static sanity, although not every flag has meaningful behavior in both systems. See the dedicated safety and sanity chapters before overriding defaults.</p>
 <p><span class="code-inline">BorrowSummary</span> is emitted automatically for ordinary Swag functions. Write it manually only for a foreign declaration whose ownership behavior the compiler cannot inspect.</p>
@@ -7859,22 +7663,17 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <p><span class="code-inline">function</span> defaults to the local declaration name, <span class="code-inline">link</span> defaults to the module name, and <span class="code-inline">callconv</span> defaults to the target C ABI.</p>
 <h3 id="Documentation">Documentation</h3>
 <table class="table-markdown">
+<thead>
 <tr><th>Attribute</th><th>Purpose</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">NoDoc()</span></td><td>Exclude an otherwise public declaration from generated API documentation</td></tr>
+</tbody>
 </table>
 <p>Use <span class="code-inline">Swag.NoDoc</span> only for declarations that are intentionally public but unsuitable for the generated API reference. It does not change visibility or module API export.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h2 id="_011_000_scoping_swg">Scoping</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Scopes determine where a name is visible and when cleanup runs. Namespaces organize module-level symbols; <span class="code-inline">using</span> and <span class="code-inline">with</span> shorten access; <span class="code-inline">defer</span> schedules work at lexical-scope exit.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_011_001_namespace_swg">Namespace</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Namespaces">Namespaces</h3>
 <p>Namespaces in Swag provide a structured way to organize symbols such as functions, variables, and types within a specific scope. Grouping related symbols under a namespace helps prevent naming conflicts and makes the code more modular and maintainable.</p>
 <p>Symbols in a namespace are accessible only through that namespace unless they are explicitly imported or exposed.</p>
@@ -7929,12 +7728,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="Exporting_Symbols">Exporting Symbols</h3>
 <p>By default, all symbols in a Swag file are exported to other files within the same module. Using explicit namespaces or internal scopes provides protection against accidental symbol conflicts across files.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_011_002_defer_swg">Defer</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__defer__Statement">The <span class="code-inline">defer</span> Statement</h3>
 <p>The <span class="code-inline">defer</span> statement registers an expression that executes automatically when the current scope is exited. The registration is resolved at compile time, so there is no runtime bookkeeping: the compiler emits the deferred code on every exit path. This keeps cleanup and finalization close to the acquisition that needs them.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -8058,9 +7852,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_011_003_using_swg">Using</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="_using__with_Enums_and_Namespaces"><span class="code-inline">using</span> with Enums and Namespaces</h3>
 <p>The <span class="code-inline">using</span> statement can bring the scope of a namespace, struct, or enum into the current context. This removes the need for full qualification when accessing members. For enums, it simplifies code by avoiding repetitive type prefixes.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -8114,9 +7905,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_011_004_with_swg">With</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The__with__Statement">The <span class="code-inline">with</span> Statement</h3>
 <p>The <span class="code-inline">with</span> statement reduces repetition by letting you access fields and methods of a variable, struct, or namespace within a scoped block. Inside a <span class="code-inline">with</span> block, the <span class="code-inline">.</span> prefix refers to the selected object, yielding concise, readable code.</p>
 <div class="code-block"><span class="SCde">
@@ -8239,14 +8027,9 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_012_000_type_reflection_swg">Type Reflection</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Types_as_Values">Types as Values</h3>
 <p>In Swag, types are treated as first-class values that can be inspected and manipulated at both compile time and runtime. This enables powerful metaprogramming patterns for flexible, reusable code.</p>
 <p>The primary intrinsics for interacting with types are <span class="code-inline">#typeof</span> and <span class="code-inline">@kindof</span>, which let you introspect and work with types dynamically.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Using___typeof__to_Inspect_Types">Using <span class="code-inline">#typeof</span> to Inspect Types</h3>
 <p>The <span class="code-inline">#typeof</span> intrinsic retrieves the type information of an expression. When an expression explicitly represents a type, you can also use the type itself. This is useful for compile-time inspection and validation.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -8346,9 +8129,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_012_001_aggregate_reflection_swg">Aggregate Reflection</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Struct_and_Enum_Reflection">Struct and Enum Reflection</h3>
 <p>Every <span class="code-inline">typeinfo</span> begins with <span class="code-inline">Swag.TypeInfo</span>. Inspect its <span class="code-inline">kind</span> before casting to a specialized descriptor. A struct descriptor exposes layout, fields, interfaces, lifecycle hooks, generic arguments, and any methods requested with <span class="code-inline">Swag.ExportType</span>.</p>
 <div class="code-block"><span class="SCde">
@@ -8415,12 +8195,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <p>Reflection describes declarations; it does not bypass visibility, constness, or ownership. When writing a generic serializer or editor, validate <span class="code-inline">kind</span>, check nullable descriptor slices, and derive field addresses from a live instance plus <span class="code-inline">TypeValue.offset</span>.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_012_002_function_and_container_reflection_swg">Function and Container Reflection</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Function_Reflection">Function Reflection</h3>
 <p><span class="code-inline">#typeof</span> on a function yields <span class="code-inline">Swag.TypeInfoFunc</span>. Its parameter entries are <span class="code-inline">TypeValue</span> records, and <span class="code-inline">returnType</span> is <span class="code-inline">null</span> for a function with no return value.</p>
 <div class="code-block"><span class="SCde">
@@ -8474,8 +8249,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_013_000_error_management_and_safety_swg">Error Management and Safety</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Swag separates three concerns:</p>
 <ul>
 <li>fallible functions propagate error values with <span class="code-inline">fail</span>, <span class="code-inline">try</span>, and <span class="code-inline">catch</span>;</li>
@@ -8483,12 +8256,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <li>static sanity checks reject faults the compiler can prove.</li>
 </ul>
 <p>Build configuration selects defaults, and attributes can narrow them for a declaration or scope.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_013_001_error_management_swg">Error Management</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Error_Management">Error Management</h3>
 <p>Swag models errors as values. A function marked with <span class="code-inline">fail</span> can either return its normal result or exit early with 'fail errorValue'. The caller then chooses whether to propagate, catch, dismiss, or expect success.</p>
 <div class="code-block"><span class="SCde">
@@ -8687,15 +8455,10 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_013_002_safety_swg">Safety</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Runtime_Safety_Checks">Runtime Safety Checks</h3>
 <p>Swag provides safety checks that can be enabled at different granularity levels — module, function, or even individual instruction — via <span class="code-inline">#[Swag.Safety]</span>.</p>
 <p>These checks prevent common programming errors by triggering panics during unsafe operations (overflows, invalid math, out-of-bounds access, etc.).</p>
 <p>You can also configure safety checks globally from the build configuration with <span class="code-inline">buildCfg.safetyGuards</span>.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>Swag offers three predefined build configurations: <span class="code-inline">debug</span>, <span class="code-inline">fast-debug</span>, and <span class="code-inline">release</span>. Safety checks are enabled by default in <span class="code-inline">debug</span> and <span class="code-inline">fast-debug</span>, and disabled in <span class="code-inline">release</span> for performance.</p>
@@ -8704,8 +8467,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>Safety covers the RUNTIME guards. Their static, compile-time counterparts are controlled separately with <span class="code-inline">#[Swag.Sanity]</span> and stay enabled in <span class="code-inline">release</span>; see the dedicated 'Sanity Checks in Swag' section.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Overflow_Safety">Overflow Safety</h3>
 <p>Example: #[Swag.Safety(.Overflow, true)] When enabled, Swag panics on arithmetic overflow or when bits are lost during integer conversions.</p>
 <p>Operators that can overflow include '+ - <i> &lt;&lt; &gt;&gt;' and compound forms '+= -= </i>= &lt;&lt;= &gt;&gt;='.</p>
@@ -8793,8 +8554,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <p>Swag also panics if casting from an interface to a pointer-to-struct cannot be performed.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Array_Bounds_Checking">Array Bounds Checking</h3>
 <p>Example: #[Swag.Safety(.BoundCheck, true)] Swag panics if an index is out of range when dereferencing sized values (arrays, slices, strings).</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -8922,23 +8681,14 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <h3 id="NaN_Safety">NaN Safety</h3>
 <p>Example: #[Swag.Safety(.NaN, true)] Swag panics if a floating-point <span class="code-inline">NaN</span> participates in an operation, preventing propagation of invalid values.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_013_003_sanity_swg">Sanity</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Static_Sanity_Checks">Static Sanity Checks</h3>
 <p>Where <span class="code-inline">#[Swag.Safety]</span> adds <b>runtime</b> guards that panic on invalid operations, <span class="code-inline">#[Swag.Sanity]</span> controls the <b>static</b> checks: analyses that run at compile time and report errors before the program ever runs. They reuse the same <span class="code-inline">SafetyWhat</span> flags, cost nothing at runtime, and can be toggled at the same granularity levels — module, function, or file.</p>
 <p>You can also configure them globally from the build configuration with <span class="code-inline">buildCfg.sanityGuards</span>.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>Sanity checks are enabled by default in every build configuration. This differs from runtime safety, which is disabled in <span class="code-inline">release</span> for performance: the static checks stay on in <span class="code-inline">release</span> since they are free.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Proven_Runtime_Faults">Proven Runtime Faults</h3>
 <p>The compiler proves some runtime faults statically and reports them as errors instead of letting the (guaranteed) panic or crash happen at runtime: division by a value proven to be zero (<span class="code-inline">.Math</span>), proven integer overflow (<span class="code-inline">.Overflow</span>), dereferencing or calling a pointer proven to be null (<span class="code-inline">.Null</span>), and indexing a stack array with a provably out-of-range constant (<span class="code-inline">.BoundCheck</span>) — free coverage in <span class="code-inline">release</span>, where the runtime guard is off.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -9119,17 +8869,10 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h2 id="_014_000_compile-time_evaluation_swg">Compile-time Evaluation</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <h3 id="Compile-Time_Execution">Compile-Time Execution</h3>
 <p>Swag reuses the language for compile-time work. Constant expressions evaluate pure computations needed by types and declarations; <span class="code-inline">#run</span> executes arbitrary compile-time code; directives select or validate source; <span class="code-inline">#message</span> observes compiler events.</p>
 <p>Compile-time execution can generate runtime declarations, but it is still part of the build. Keep it deterministic, report errors at the source that caused them, and avoid unnecessary filesystem or environment dependencies.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_014_001_constexpr_swg">Constexpr</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Constant-Evaluable_Functions">Constant-Evaluable Functions</h3>
 <p><span class="code-inline">#[Swag.ConstExpr]</span> allows a function to participate in a constant expression. When the call and everything it depends on are constant, <span class="code-inline">swc</span> executes it during compilation. A call with runtime arguments remains an ordinary runtime call.</p>
 <p>Use this attribute for deterministic computation that belongs in array sizes, constants, static conditions, or generated declarations. Use <span class="code-inline">#run</span> when the operation should execute only as a build-time action.</p>
@@ -9225,12 +8968,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="Failure_Is_a_Compile-Time_Diagnostic">Failure Is a Compile-Time Diagnostic</h3>
 <p>If a constant context calls a <span class="code-inline">ConstExpr</span> function with an operation the compile-time engine cannot perform, the build fails at that call. The compiler does not silently defer a required constant to runtime.</p>
 <p>Do not mark a function <span class="code-inline">ConstExpr</span> merely as an optimization hint. The attribute is an API promise that callers may rely on in type-level and declaration-level expressions.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_014_002_run_swg">Run</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Forced_Compile-Time_Execution_with___run_">Forced Compile-Time Execution with <span class="code-inline">#run</span></h3>
 <p>The <span class="code-inline">#run</span> directive allows any function to execute at compile time, even if it’s not marked with <span class="code-inline">#[Swag.ConstExpr]</span>. This means you can trigger compile-time execution of regular, external, or system functions as part of your program.</p>
 <div class="code-block"><span class="SCde">
@@ -9289,8 +9027,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <p>Swag can act like a scripting language: if a project only contains <span class="code-inline">#run</span> blocks, it behaves like a compile-time script.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="The___run__Expression">The <span class="code-inline">#run</span> Expression</h3>
 <p><span class="code-inline">#run</span> can also be used as an expression block. Its return type is inferred from the <span class="code-inline">return</span> statement inside the block.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -9367,13 +9103,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>Complex structs that implement <span class="code-inline">opCount</span> and <span class="code-inline">opSlice</span> can be converted to static arrays at compile time. The compiler calls <span class="code-inline">opCount</span> for array size, <span class="code-inline">opSlice</span> for initialization, and <span class="code-inline">opDrop</span> after conversion if present.</p>
 </div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_014_003_compiler_instructions_swg">Compiler Instructions</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SLgc">if</span> <span class="SKwd">true</span>
-<span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The___assert__Directive">The <span class="code-inline">#assert</span> Directive</h3>
 <p>The <span class="code-inline">#assert</span> directive performs a static assertion during compilation. If the condition is false, compilation fails with an error message. Use it to enforce compile-time invariants and validate assumptions.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#assert</span>(<span class="SKwd">true</span>)     <span class="SCmt">// Always passes; no error.</span>
@@ -9458,8 +9188,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     <span class="SCmt">// Release-specific declarations.</span>
 }
 </span></div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="The___error__and___warning__Directives">The <span class="code-inline">#error</span> and <span class="code-inline">#warning</span> Directives</h3>
 <p><span class="code-inline">#error</span> raises a compile-time error with a custom message. <span class="code-inline">#warning</span> emits a compile-time warning without stopping compilation. Useful for enforcing checks and surfacing build-time information.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SKwd">false</span>
@@ -9472,18 +9200,11 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <h3 id="The___global__Directive">The <span class="code-inline">#global</span> Directive</h3>
 <p>Place <span class="code-inline">#global</span> at the top of a source file to apply global settings or attributes across the entire file. Controls compilation and symbol visibility.</p>
 <p>Examples (write these as top-level directives): #global if false            // Skip file content. #global if #command == Swag.CompilerCommand.Format // Include this file only when formatting. #global if #command == Swag.CompilerCommand.Test   // Include this file only when running tests. #global public                      // All symbols become public. #global private                    // All symbols are private to the module. #global namespace Toto              // Place all symbols in namespace <span class="code-inline">Toto</span>. #global if DEBUG == true     // Conditional compilation for the file. #global #[Swag.Safety(.All, true)]  // Apply an attribute to all declarations. #global export                      // Export the full file as-is into the module API output.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="The___foreignlib__Directive">The <span class="code-inline">#foreignlib</span> Directive</h3>
 <p>Register an external import library with the native linker. Pass the logical library name without a platform extension; the linker selects the appropriate file for the active toolchain.</p>
 <p>Example: #foreignlib("kernel32")</p>
 <p>This directive only supplies the native link dependency. Declare imported symbols separately with <span class="code-inline">#[Swag.Foreign]</span>.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_014_004_code_inspection_swg">Code Inspection</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Code_Inspection">Code Inspection</h3>
 <p><span class="code-inline">#message</span> registers a compile-time handler for compiler events. Inside the handler, <span class="code-inline">@compiler.getMessage()</span> describes the event and <span class="code-inline">@compiler.compileString()</span> adds generated Swag source to the current module.</p>
 <p>Use the narrowest message mask possible. Per-symbol masks such as <span class="code-inline">SemFunctions</span> may run many times; pass masks such as <span class="code-inline">PassAfterSemantic</span> run once for the module.</p>
@@ -9514,20 +9235,11 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <li>pass events identify a compilation phase rather than one declaration.</li>
 </ul>
 <p>Always check nullable payload fields before dereferencing them in a handler that subscribes to more than one event kind.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h2 id="_015_000_metaprogramming_swg">Metaprogramming</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <h3 id="Metaprogramming">Metaprogramming</h3>
 <p>Swag can transform code at the call site with mixins and macros, inject source from <span class="code-inline">#ast</span>, or add module-wide declarations through the compiler interface.</p>
 <p>Prefer the narrowest mechanism that fits the job: a generic for type-safe reuse, a macro for caller-context expressions, a mixin for injected statements or declarations, <span class="code-inline">#ast</span> for local generated syntax, and <span class="code-inline">compileString</span> for event-driven module generation.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_015_001_mixins_swg">Mixins</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Mixins">Mixins</h3>
 <p>A mixin in Swag is declared similarly to a function but with the attribute <span class="code-inline">#[Swag.Mixin]</span>. Mixins inject code into the caller's scope, manipulate variables, or execute as if written in that scope. This file provides a clear set of examples and tests.</p>
 <div class="code-block"><span class="SCde">
@@ -9673,9 +9385,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_015_002_macros_swg">Macros</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Macros">Macros</h3>
 <p>Macros in Swag are declared like functions, but with the <span class="code-inline">#[Swag.Macro]</span> attribute. They are expanded at compile time and can be reused to generate code.</p>
 <div class="code-block"><span class="SCde">
@@ -9962,13 +9671,8 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_015_003_generated_code_with_ast_swg">Generated Code with Ast</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="The___ast__Block">The <span class="code-inline">#ast</span> Block</h3>
 <p>The <span class="code-inline">#ast</span> block lets you dynamically generate and inject Swag code at compile time. It produces a string that the compiler treats as if it were written directly in the source. This allows for dynamic, context-dependent code generation.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="Basic___ast__Usage">Basic <span class="code-inline">#ast</span> Usage</h3>
 <p>A <span class="code-inline">#ast</span> block can return a simple string expression representing Swag code.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -10082,8 +9786,6 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
     }
 }
 </span></div>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="__ast__at_Global_Scope"><span class="code-inline">#ast</span> at Global Scope</h3>
 <p><span class="code-inline">#ast</span> can generate global declarations dynamically as well.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#ast</span>
@@ -10096,16 +9798,18 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 
 </span></div>
 <h3 id="_015_004_compiler_interface_swg">Compiler Interface</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <h3 id="The_Compiler_Interface">The Compiler Interface</h3>
 <p><span class="code-inline">@compiler</span> exposes <span class="code-inline">Swag.ICompiler</span> while code is executing at compile time. At runtime the intrinsic is <span class="code-inline">null</span>, so keep it inside <span class="code-inline">#run</span>, <span class="code-inline">#message</span>, macros, mixins, or other compile-time-only code.</p>
 <p>The current interface has three methods:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Method</th><th>Valid context</th><th>Result</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">getBuildCfg()</span></td><td>Compile-time code</td><td>Mutable configuration for the current module</td></tr>
 <tr><td><span class="code-inline">getMessage()</span></td><td>A <span class="code-inline">#message</span> handler</td><td>Payload for the event being handled</td></tr>
 <tr><td><span class="code-inline">compileString(source)</span></td><td>Compile-time code</td><td>Parse and add generated source to the module</td></tr>
+</tbody>
 </table>
 <h3 id="Reading_the_Build_Configuration">Reading the Build Configuration</h3>
 <p>A module setup file commonly uses <span class="code-inline">#run</span> to configure its build:</p>
@@ -10141,27 +9845,22 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </span></div>
 <p>Prefer <span class="code-inline">#ast</span> when an expression or a small declaration can be generated locally. Use <span class="code-inline">compileString</span> for module-wide generation driven by compiler events. Keep generated names deterministic and include a final newline so diagnostic locations remain readable.</p>
 <p>The runnable code-inspection section demonstrates a complete handler whose generated <span class="code-inline">#init</span> block is exercised by a test.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h2 id="_016_000_interoperability_swg">Interoperability</h2>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-</span></div>
 <p>Swag interoperates with native libraries through the target C ABI. Keep the boundary explicit: match the external declaration exactly, use fixed-width types, model nullability, and keep ownership rules in a small wrapper that presents ordinary Swag types to the rest of the program.</p>
 <p>The current native toolchain targets Windows x86-64. The examples in this chapter therefore use Windows system libraries while keeping the ABI guidance portable.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_016_001_foreign_functions_swg">Foreign Functions</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Foreign_Functions">Foreign Functions</h3>
 <p><span class="code-inline">#[Swag.Foreign]</span> declares a function implemented outside the Swag module. Its parameters are:</p>
 <table class="table-markdown">
+<thead>
 <tr><th>Parameter</th><th>Meaning</th></tr>
+</thead>
+<tbody>
 <tr><td><span class="code-inline">module</span></td><td>Dynamic module used to resolve the symbol</td></tr>
 <tr><td><span class="code-inline">function</span></td><td>External symbol name; defaults to the Swag declaration name</td></tr>
 <tr><td><span class="code-inline">link</span></td><td>Native import-library name when it differs from <span class="code-inline">module</span></td></tr>
 <tr><td><span class="code-inline">callconv</span></td><td>ABI: <span class="code-inline">.C</span> by default, <span class="code-inline">.WindowsX64</span>, or <span class="code-inline">.Swag</span></td></tr>
+</tbody>
 </table>
 <p><span class="code-inline">#foreignlib</span> registers the corresponding import library with the native linker. It does not declare functions by itself.</p>
 <div class="code-block"><span class="SCde">
@@ -10190,12 +9889,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 <span class="SKwd">func</span> <span class="SFct">openVendorHandle</span>(flags: <span class="STpe">u32</span>)-&gt;<span class="SItr">#null</span> *<span class="STpe">void</span>
 </span></div>
 <p>The declaration is an ABI contract, not a conversion layer. A mismatched parameter type, struct layout, calling convention, or nullability annotation can corrupt memory even when the code compiles.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
 <h3 id="_016_002_c_abi_data_swg">C Abi Data</h3>
-<div class="code-block"><span class="SCde"><span class="SCmp">#global</span> <span class="SKwd">private</span>
-
-</span></div>
 <h3 id="Data_at_a_C_ABI_Boundary">Data at a C ABI Boundary</h3>
 <p><span class="code-inline">cstring</span> represents a zero-terminated byte string. Swag's ordinary <span class="code-inline">string</span> stores an explicit byte count and may contain embedded zeroes, so crossing the ABI boundary should be an intentional conversion. String-literal storage has a trailing zero; take its data pointer before casting that pointer to <span class="code-inline">cstring</span>.</p>
 <div class="code-block"><span class="SCde">
@@ -10225,10 +9919,11 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
 </ul>
 <p>transfers ownership.</p>
 <p><span class="code-inline">cvarargs</span> and <span class="code-inline">@cvastart</span>/<span class="code-inline">@cvaarg</span>/<span class="code-inline">@cvaend</span> exist for implementing or forwarding C-style variadic boundaries. Prefer a typed Swag wrapper: C default argument promotions and format-string contracts are not checked by the foreign declaration.</p>
-<div class="code-block"><span class="SCde">
-</span></div>
+</article>
+<footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>
-</article></section>
+</footer>
+</section>
 </main>
 </body>
 </html>

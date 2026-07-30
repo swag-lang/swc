@@ -14,16 +14,16 @@ from urllib.parse import unquote
 
 
 API_ITEM_RE = re.compile(
-    r'<table class="api-item">.*?'
-    r'<span id="(?P<anchor>[^"]+)">.*?'
+    r'<div class="api-item[^"]*">.*?'
+    r'<span id="(?P<anchor>[^"]+)"[^>]*>.*?'
     r'<span class="api-item-title-kind">(?P<kind>[^<]+)</span>\s*'
     r'<span class="api-item-title-strong">(?P<name>.*?)</span>.*?'
-    r"</table>\s*(?P<body>.*?)"
-    r'(?=<table class="api-item">|</article>|</main>)',
+    r"</div>\s*(?P<body>.*?)"
+    r'(?=<div class="api-item[^"]*">|</article>|</main>)',
     re.DOTALL,
 )
 MEMBER_TABLE_RE = re.compile(
-    r"<h3>(?P<title>Fields|Cases)</h3>\s*"
+    r"<h3[^>]*>(?P<title>Fields|Cases)</h3>\s*"
     r'<table class="[^"]*\btable-enumeration\b[^"]*">(?P<body>.*?)</table>',
     re.DOTALL,
 )

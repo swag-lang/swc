@@ -131,6 +131,38 @@ namespace DocInternal
         // unique anonymous aggregates, lambdas, inline temporaries, and other helpers.
         return symbol.idRef().isValid() && symbol.name(ctx).starts_with("__");
     }
+
+    // The runtime page is shared by every module, but a runtime symbol is scoped by the module
+    // that happens to compile it. Dropping that prefix gives one stable anchor per runtime
+    // symbol, so a link written from any module page reaches it.
+    Utf8 documentationScopedName(TaskContext& ctx, const Symbol& symbol, const bool runtime)
+    {
+        Utf8 result = symbol.getFullScopedName(ctx);
+        if (!runtime)
+            return result;
+
+        Utf8 prefix = fromRuntimeString(ctx.compiler().buildCfg().moduleNamespace);
+        if (prefix.empty())
+            return result;
+        prefix += ".";
+        if (result.starts_with(prefix.view()))
+            result.erase(0, prefix.size());
+        return result;
+    }
+
+    bool isInCompilerGeneratedScope(const TaskContext& ctx, const Symbol& symbol)
+    {
+        // A declaration nested in a reserved scope is implementation state whatever its own
+        // spelling, so the whole subtree stays out of the page.
+        const Symbol* scan = &symbol;
+        while (scan)
+        {
+            if (hasCompilerGeneratedIdentifier(ctx, *scan))
+                return true;
+            scan = scan->ownerSymMap();
+        }
+        return false;
+    }
 }
 
 namespace
@@ -454,14 +486,14 @@ namespace
         return nullptr;
     }
 
-    Utf8 documentationNamespace(const TaskContext& ctx, const Symbol& symbol, const Symbol* owner)
+    Utf8 documentationNamespace(TaskContext& ctx, const Symbol& symbol, const Symbol* owner, const bool runtime)
     {
         const Symbol*    scopedSymbol = owner ? owner : &symbol;
         const SymbolMap* scope        = scopedSymbol->ownerSymMap();
         while (scope)
         {
             if (scope->isNamespace())
-                return scope->getFullScopedName(ctx);
+                return documentationScopedName(ctx, *scope, runtime);
             scope = scope->ownerSymMap();
         }
         return {};
@@ -527,7 +559,7 @@ namespace DocInternal
                 continue;
             if (runtime && !isDocumentationSymbol(compiler, *symbol, true))
                 continue;
-            if (isAnonymousAggregateSymbol(*symbol) || hasCompilerGeneratedIdentifier(ctx, *symbol))
+            if (isAnonymousAggregateSymbol(*symbol) || isInCompilerGeneratedScope(ctx, *symbol))
                 continue;
             if (const auto* function = symbol->safeCast<SymbolFunction>())
             {
@@ -563,9 +595,28 @@ namespace DocInternal
 
             const std::optional<DocItemKind> kind = itemKind(*symbol);
             SWC_ASSERT(kind.has_value());
-            const Utf8 fullName = symbol->getFullScopedName(ctx);
+            Utf8 fullName = documentationScopedName(ctx, *symbol, runtime);
             if (fullName.empty())
                 continue;
+
+            // A method declared in an 'impl' block is scoped by its type alone, while the
+            // same symbol seen from an importing module carries the whole path. Qualifying it
+            // here keeps one spelling, so a cross-module link reaches the anchor it names.
+            const Symbol* owner = documentationOwner(*symbol);
+            if (owner)
+            {
+                Utf8 qualified = documentationScopedName(ctx, *owner, runtime);
+                if (!qualified.empty())
+                {
+                    qualified += ".";
+                    if (!fullName.starts_with(qualified.view()))
+                    {
+                        const size_t lastPart = fullName.view().rfind('.');
+                        qualified.append(lastPart == std::string_view::npos ? fullName.view() : fullName.view().substr(lastPart + 1));
+                        fullName = std::move(qualified);
+                    }
+                }
+            }
 
             DocOverload overload;
             overload.symbol       = symbol;
@@ -593,14 +644,13 @@ namespace DocInternal
             if (inserted)
             {
                 DocItem item;
-                item.kind           = *kind;
-                item.fullName       = fullName;
-                item.displayName    = displayNameFor(fullName, *kind);
-                item.category       = sourceCategory(compiler, *file, runtime);
-                const Symbol* owner = documentationOwner(*symbol);
+                item.kind        = *kind;
+                item.fullName    = fullName;
+                item.displayName = displayNameFor(fullName, *kind);
+                item.category    = sourceCategory(compiler, *file, runtime);
                 if (owner)
-                    item.ownerName = owner->getFullScopedName(ctx);
-                item.namespaceName = documentationNamespace(ctx, *symbol, owner);
+                    item.ownerName = documentationScopedName(ctx, *owner, runtime);
+                item.namespaceName = documentationNamespace(ctx, *symbol, owner, runtime);
                 outItems.push_back(std::move(item));
             }
             outItems[it->second].overloads.push_back(std::move(overload));

@@ -35,25 +35,32 @@ namespace DocInternal
 
     struct PageOptions
     {
-        Runtime::BuildCfgDocKind kind = Runtime::BuildCfgDocKind::None;
-        Utf8                     outputName;
-        Utf8                     titleToc;
-        Utf8                     titleContent;
-        Utf8                     css;
-        Utf8                     icon;
-        Utf8                     morePages;
-        Utf8                     quoteIconNote;
-        Utf8                     quoteIconTip;
-        Utf8                     quoteIconWarning;
-        Utf8                     quoteIconAttention;
-        Utf8                     quoteIconExample;
-        Utf8                     quoteTitleNote;
-        Utf8                     quoteTitleTip;
-        Utf8                     quoteTitleWarning;
-        Utf8                     quoteTitleAttention;
-        Utf8                     quoteTitleExample;
-        uint32_t                 syntaxDefaultColor = 0x00222222;
-        bool                     hasSwagWatermark   = true;
+        Runtime::BuildCfgDocKind  kind  = Runtime::BuildCfgDocKind::None;
+        Runtime::BuildCfgDocTheme theme = Runtime::BuildCfgDocTheme::Auto;
+        Utf8                      outputName;
+        Utf8                      titleToc;
+        Utf8                      titleContent;
+        Utf8                      css;
+        Utf8                      icon;
+        Utf8                      morePages;
+        Utf8                      quoteIconNote;
+        Utf8                      quoteIconTip;
+        Utf8                      quoteIconWarning;
+        Utf8                      quoteIconAttention;
+        Utf8                      quoteIconExample;
+        Utf8                      quoteTitleNote;
+        Utf8                      quoteTitleTip;
+        Utf8                      quoteTitleWarning;
+        Utf8                      quoteTitleAttention;
+        Utf8                      quoteTitleExample;
+        Utf8                      brandName;
+        Utf8                      brandUrl;
+        Utf8                      navLinks;
+        Utf8                      footer;
+        uint32_t                  syntaxDefaultColor = 0x00222222;
+        uint32_t                  accentColor        = 0;
+        bool                      hasSwagWatermark   = true;
+        bool                      hasSymbolIndex     = true;
     };
 
     struct DocOverload
@@ -127,6 +134,8 @@ namespace DocInternal
     bool                       hasNoDocAttribute(const Symbol& symbol);
     bool                       isAnonymousAggregateSymbol(const Symbol& symbol);
     bool                       hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol& symbol);
+    bool                       isInCompilerGeneratedScope(const TaskContext& ctx, const Symbol& symbol);
+    Utf8                       documentationScopedName(TaskContext& ctx, const Symbol& symbol, bool runtime);
     void                       appendNormalizedComment(std::vector<Utf8>& outLines, std::string_view text);
     std::vector<Utf8>          symbolCommentLines(TaskContext& ctx, const Symbol& symbol, const SourceFile& file, AstNodeRef declRef, AstNodeRef rootRef);
     void                       collectSymbolTree(std::vector<const Symbol*>& outSymbols, std::unordered_set<const Symbol*>& seen, const SymbolMap& symbolMap);

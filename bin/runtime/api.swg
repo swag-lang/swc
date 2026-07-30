@@ -911,6 +911,14 @@ namespace Swag
         Pages        // Generate one page per file
     }
 
+    // How a generated documentation page picks between its light and dark palettes.
+    enum BuildCfgDocTheme
+    {
+        Auto      // Follow the reader's system preference
+        Light     // Always render the light palette
+        Dark      // Always render the dark palette
+    }
+
     // This contains all options when generating documentation.
     struct BuildCfgGenDoc
     {
@@ -931,9 +939,16 @@ namespace Swag
         quoteTitleWarning:   #null string                   // The title for the warning blockquote
         quoteTitleAttention: #null string                   // The title for the attention blockquote
         quoteTitleExample:   #null string                   // The title for the example blockquote
+        brandName:           #null string                   // The wordmark shown at the left of the page header
+        brandUrl:            #null string                   // The page the wordmark links to
+        navLinks:            #null string                   // Header navigation, as 'Label=Url' entries separated with ';'
+        footer:              #null string                   // Extra text placed in the page footer
         syntaxDefaultColor:  u32 = 0x00222222               // Code syntax default color (if not colorized)
         syntaxColorLum:      f32 = 0.5                      // Code syntax color luminosity in range ]0, 1]
+        accentColor:         u32 = 0                        // Accent color of the pages, as 0xRRGGBB; 0 keeps the swag accent
+        theme                    = BuildCfgDocTheme.Auto    // Which palette the generated pages use
         hasSwagWatermark         = true                     // Generate a swag watermark at the bottom of each page
+        hasSymbolIndex           = true                     // List every documented symbol in the sidebar of an 'api like' page
     }
 
     // The current module build configuration.

@@ -17,9 +17,12 @@ public struct Job
     lambda: #null func(#null *void)     // Lambda associated with this value.
     data:   #null *void                 // Data associated with this value.
 
-    // Internal state
-    state:        JobState = .Zero            // State associated with this value.
-    pendingIndex: u32      = Swag.U32.Max     // Index of pending.
+    // Scheduling state, owned by the job manager that runs the job.
+    internal
+    {
+        state:        JobState = .Zero            // Where the job is in its lifecycle.
+        pendingIndex: u32      = Swag.U32.Max     // Slot of the job in the pending list.
+    }
 }
 
 // Represents slice job.

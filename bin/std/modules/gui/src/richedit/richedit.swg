@@ -48,38 +48,47 @@ struct RichEditCtrl
     sigModified:    SigArray'func||(*RichEditCtrl)      // Signal emitted when modified.
     bkColorModel:   String                              // Bk color model associated with this value.
 
-    styles:       [256] RichEditRuneStyle     // Styles associated with this value.
-    stylesSelect: [2] RichEditRuneStyle       // Styles select associated with this value.
-    cursorPos:    RichEditCursor              // Cursor pos associated with this value.
-    selBeg:       RichEditCursor              // Sel beg associated with this value.
-    lines:        ArrayPtr'RichEditLine       // Lines associated with this value.
-    freeLines:    ArrayPtr'RichEditLine       // Free lines associated with this value.
-    #[Swag.Late]
-    scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
-    #[Swag.Late]
-    edView:       *RichEditView      // Ed view associated with this value.
-    selRectangle: Math.Rectangle     // Sel rectangle associated with this value.
+    // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill
+    // these in to give the control its syntax colors.
+    styles:       [256] RichEditRuneStyle     // Style of each index a lexer assigns.
+    stylesSelect: [2] RichEditRuneStyle       // Style of selected text, unfocused then focused.
 
-    hasSelRect:              bool     // Whether this value has sel rect.
-    modified:                bool     // Modified associated with this value.
-    recomputeScroll:         bool     // Recompute scroll associated with this value.
-    dirtyFirstLineView:      bool     // Dirty first line view associated with this value.
-    forceCaretVisible:       bool     // Force caret visible associated with this value.
-    forceCaretVisibleCenter: bool     // Force caret visible center associated with this value.
+    // The document and everything the control derives from it: the line pool, the cursor and
+    // selection, the visible window, and the undo timeline. Edit through the methods and
+    // connect to the signals; this state only makes sense together.
+    internal
+    {
+        cursorPos:    RichEditCursor              // Cursor pos associated with this value.
+        selBeg:       RichEditCursor              // Sel beg associated with this value.
+        lines:        ArrayPtr'RichEditLine       // Lines associated with this value.
+        freeLines:    ArrayPtr'RichEditLine       // Free lines associated with this value.
+        #[Swag.Late]
+        scrollWnd: *ScrollWnd     // Scroll wnd associated with this value.
+        #[Swag.Late]
+        edView:       *RichEditView      // Ed view associated with this value.
+        selRectangle: Math.Rectangle     // Sel rectangle associated with this value.
 
-    undoMgr:              ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
-    toUndo:               ArrayPtr'RichEditUndo     // To undo associated with this value.
-    mapping:              Array'RichEditMapping     // Mapping associated with this value.
-    currentUndo:          u64                       // Current undo associated with this value.
-    undoCounter:          u64                       // Undo counter associated with this value.
-    modifiedUndoMarker:   u64                       // Modified undo marker associated with this value.
-    serialUndo:           u64                       // Serial undo associated with this value.
-    countVisibleLines:    u64                       // Count visible lines associated with this value.
-    firstVisibleLineView: u64                       // First visible line view associated with this value.
-    lastVisibleLineView:  u64                       // Last visible line view associated with this value.
-    clipFormat:           Clipboard.ValueFormat     // Clip format associated with this value.
-    cursorPosUndo:        RichEditCursor            // Cursor pos undo associated with this value.
-    selBegUndo:           RichEditCursor            // Sel beg undo associated with this value.
+        hasSelRect:              bool     // Whether this value has sel rect.
+        modified:                bool     // Modified associated with this value.
+        recomputeScroll:         bool     // Recompute scroll associated with this value.
+        dirtyFirstLineView:      bool     // Dirty first line view associated with this value.
+        forceCaretVisible:       bool     // Force caret visible associated with this value.
+        forceCaretVisibleCenter: bool     // Force caret visible center associated with this value.
+
+        undoMgr:              ArrayPtr'RichEditUndo     // Undo mgr associated with this value.
+        toUndo:               ArrayPtr'RichEditUndo     // To undo associated with this value.
+        mapping:              Array'RichEditMapping     // Mapping associated with this value.
+        currentUndo:          u64                       // Current undo associated with this value.
+        undoCounter:          u64                       // Undo counter associated with this value.
+        modifiedUndoMarker:   u64                       // Modified undo marker associated with this value.
+        serialUndo:           u64                       // Serial undo associated with this value.
+        countVisibleLines:    u64                       // Count visible lines associated with this value.
+        firstVisibleLineView: u64                       // First visible line view associated with this value.
+        lastVisibleLineView:  u64                       // Last visible line view associated with this value.
+        clipFormat:           Clipboard.ValueFormat     // Clip format associated with this value.
+        cursorPosUndo:        RichEditCursor            // Cursor pos undo associated with this value.
+        selBegUndo:           RichEditCursor            // Sel beg undo associated with this value.
+    }
 }
 
 private impl IWnd for RichEditCtrl

@@ -64,16 +64,17 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
 
     // Read/Write mode
     var wAccess: DWORD
+    var canRead, canWrite: bool
     if access & FileAccess.Read
     {
-        result.canRead = true
-        wAccess        |= GENERIC_READ
+        canRead = true
+        wAccess |= GENERIC_READ
     }
 
     if access & FileAccess.Write
     {
-        result.canWrite = true
-        wAccess         |= GENERIC_WRITE
+        canWrite = true
+        wAccess  |= GENERIC_WRITE
     }
 
     // Share mode
@@ -89,9 +90,7 @@ func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare
     let hFile   = catch CreateFileW(@dataof(winPath), wAccess, wShare, null, wMode, FILE_ATTRIBUTE_NORMAL, null) as err
     Errors.transformWinErrors(err, fullName)
 
-    result.name    = fullName
-    result.handle  = cast(FileHandle) hFile
-    result.canSeek = true
+    result.open(fullName, cast(FileHandle) hFile, canRead, canWrite, true)
 
     if mode == FileMode.Append
     {

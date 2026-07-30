@@ -42,12 +42,18 @@ struct RichChunk
 // See [[Pixel.RichString.set]] for the complete marker set.
 struct RichString
 {
-    raw:        String              // Original text, including formatting markers.
-    chunks:     Array'RichChunk     // Styled runs produced by [[Pixel.RichString.compute]].
+    raw: String     // Original text, including formatting markers.
+
+    // Everything below comes out of [[Pixel.RichString.compute]] and the layout pass that
+    // follows it. Set 'raw' through the methods and compute again; these describe the last
+    // result. They stay writable because the layout engine lives in [[Pixel.Painter]].
+    chunks:     Array'RichChunk     // Styled runs produced by 'compute'.
     layoutRect: Math.Rectangle      // Rectangle used by the most recent layout.
     boundRect:  Math.Rectangle      // Bounds of visible content from the most recent layout.
     hasUrl:     bool                // Whether at least one chunk is a URL.
-    dirty:      bool                // Whether chunks must be rebuilt before layout or painting.
+
+    // Whether the chunks must be rebuilt before the next layout or paint.
+    internal dirty: bool
 }
 
 impl RichString

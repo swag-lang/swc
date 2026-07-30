@@ -15,7 +15,8 @@ struct StartInfo
 #[Swag.NoCopy]
 struct Process
 {
-    handle: ProcessHandle     // Handle associated with this value.
+    // Platform handle of the spawned process, owned by this value.
+    internal handle: ProcessHandle
 }
 
 // Starts a new process with arguments

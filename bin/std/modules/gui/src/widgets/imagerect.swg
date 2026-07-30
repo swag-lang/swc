@@ -77,36 +77,24 @@ impl ImageRect
     // Associate image
     mtd setImage(image: ImageList)
     {
-        .clear()
-        var tmp = image
-        tmp.totalFrames = 1
-        tmp.frameSizeX  = tmp.texture.width
-        tmp.frameSizeY  = tmp.texture.height
-        .movie.set(tmp)
+        .setImage(image.texture)
     }
 
     // Associate image
+    //
+    // The whole texture becomes one frame: an image rectangle shows a picture, not an animation.
     mtd setImage(image: Texture)
     {
         .clear()
         var tmp: ImageList
-        tmp.texture     = image
-        tmp.totalFrames = 1
-        tmp.frameSizeX  = tmp.texture.width
-        tmp.frameSizeY  = tmp.texture.height
+        tmp.set(image)
         .movie.set(tmp)
     }
 
     // Associate image
     mtd setImage(image: Image)
     {
-        .clear()
-        var tmp: ImageList
-        tmp.texture     = .getApp().renderer.addImage(image)
-        tmp.totalFrames = 1
-        tmp.frameSizeX  = tmp.texture.width
-        tmp.frameSizeY  = tmp.texture.height
-        .movie.set(tmp)
+        .setImage(.getApp().renderer.addImage(image))
     }
 
     // Load and set movie

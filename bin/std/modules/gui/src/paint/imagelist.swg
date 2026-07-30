@@ -5,10 +5,15 @@ using Pixel
 // Represents image list.
 struct ImageList
 {
-    texture:     Texture     // Texture associated with this value.
-    totalFrames: s32         // Total frames associated with this value.
-    frameSizeX:  s32         // Frame size x associated with this value.
-    frameSizeY:  s32         // Frame size y associated with this value.
+    // The atlas and how it is cut into frames. 'set' establishes all four together, so a frame
+    // index always addresses a region the texture really has.
+    readonly
+    {
+        texture:     Texture     // Atlas holding every frame.
+        totalFrames: s32         // Number of frames the atlas is cut into.
+        frameSizeX:  s32         // Width of one frame, in pixels.
+        frameSizeY:  s32         // Height of one frame, in pixels.
+    }
 }
 
 impl ImageList
@@ -29,5 +34,19 @@ impl ImageList
         .frameSizeX  = fsx != 0 ? fsx : texture.width
         .frameSizeY  = fsy != 0 ? fsy : texture.height
         .totalFrames = cpt != 0 ? cpt : (.texture.width / .frameSizeX) * (.texture.height / .frameSizeY)
+    }
+
+    // Releases the atlas back to the renderer that created it, and empties the list.
+    //
+    // Call this before pointing the list at another atlas, or the previous texture leaks in the
+    // renderer.
+    internal mtd releaseTexture(renderer: *RenderOgl)
+    {
+        if .texture.isValid() do
+            renderer.removeTexture(&.texture)
+        .texture     = {}
+        .totalFrames = 0
+        .frameSizeX  = 0
+        .frameSizeY  = 0
     }
 }

@@ -194,10 +194,7 @@ impl Encoder
         .crc.update(chunkType)
         .currentChunk.crc = .crc.crc
 
-        let dataPtr = stream.currentSP
-        stream.moveSeek(chunkLength)
-
-        return cast([*] u8) (notnull dataPtr)
+        return stream.reserveInPlace(chunkLength)
     }
 
     mtd finishChunk()

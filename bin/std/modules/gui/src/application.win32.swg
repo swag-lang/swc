@@ -177,8 +177,7 @@ impl Application
         nimage.mix(img, sizeIcon * index, 0)
         dref curImg = nimage
 
-        if curImgList.texture.isValid() do
-            .renderer.removeTexture(&curImgList.texture)
+        curImgList.releaseTexture(&.renderer)
         curImgList.set(.renderer.addImage(curImg), sizeIcon, sizeIcon)
 
         return Icon.from(curImgList, index)

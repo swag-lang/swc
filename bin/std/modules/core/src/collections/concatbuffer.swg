@@ -23,15 +23,20 @@ struct ConcatBufferSeek
 // making it efficient for building data piece by piece.
 struct ConcatBuffer
 {
-    allocator: #null Swag.IAllocator     // The allocator to use for all memory operations.
+    allocator:   #null Swag.IAllocator     // The allocator to use for all memory operations.
+    granularity: u64 = 1024                // The default size for newly allocated buckets.
 
-    firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.
-    curBucket:       #null *ConcatBufferBucket     // The bucket where the current seek pointer is located.
-    lastBucket:      #null *ConcatBufferBucket     // The last bucket in the chain.
-    currentSP:       #null [*] u8                  // The current read/write pointer in the `curBucket`.
-    granularity:     u64  = 1024                   // The default size for newly allocated buckets.
-    isAtEnd:         bool = true                   // 'true' if the seek pointer is at the very end of the buffer.
-    viewFirstBucket: ConcatBufferBucket            // A pre-allocated bucket used for views, to avoid a separate allocation.
+    // The bucket chain and the cursor inside it. Append and seek through the methods, which keep
+    // the chain, the per-bucket counts and the cursor consistent.
+    private
+    {
+        firstBucket:     #null *ConcatBufferBucket     // The first bucket in the chain.
+        curBucket:       #null *ConcatBufferBucket     // The bucket the cursor is located in.
+        lastBucket:      #null *ConcatBufferBucket     // The last bucket in the chain.
+        currentSP:       #null [*] u8                  // The cursor inside `curBucket`.
+        isAtEnd:         bool = true                   // Whether the cursor is at the very end.
+        viewFirstBucket: ConcatBufferBucket            // Bucket reused by views, to skip an allocation.
+    }
 }
 
 impl ConcatBuffer
@@ -349,6 +354,19 @@ impl ConcatBuffer
     }
 
     // Moves the current seek pointer forward by 'num' bytes.
+    // Reserves `count` bytes at the cursor and returns where to write them.
+    //
+    // The cursor moves past the reserved bytes, so the caller fills them in place and keeps
+    // appending afterwards. The returned pointer stays valid until the next call that grows the
+    // buffer. Reserve first and write later when the content depends on what follows, as a
+    // length or a checksum field does.
+    mtd reserveInPlace(count: u64)->[*] u8
+    {
+        let result = notnull .currentSP
+        .moveSeek(count)
+        return cast([*] u8) result
+    }
+
     mtd moveSeek(num: u64)
     {
         var total = num

@@ -24,9 +24,13 @@ struct Thread
     userParam: #null *void      // User param associated with this value.
 
     priority   = ThreadPriority.Normal     // Priority associated with this value.
-    handle: ThreadHandle                   // Handle associated with this value.
-    id:     u32                            // Id associated with this value.
-    requestEnd = false                     // Request end associated with this value.
+    requestEnd = false                     // Cooperative stop flag the thread body polls.
+
+    // Identity of the running thread, established when it starts.
+    readonly id: u32
+
+    // Platform handle of the thread, owned by this value.
+    internal handle: ThreadHandle
 }
 
 impl Thread

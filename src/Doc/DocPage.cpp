@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Doc/DocInternal.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -11,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
+#include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"

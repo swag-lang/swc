@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Doc/DocGenerator.h"
-#include "Doc/DocInternal.h"
 #include "Compiler/SourceFile.h"
+#include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -21,7 +21,7 @@ namespace DocInternal
     {
         if (!value.ptr || !value.length)
             return {};
-        return Utf8(value.ptr, static_cast<size_t>(value.length));
+        return Utf8(value.ptr, value.length);
     }
 
     PageOptions getPageOptions(const CompilerInstance& compiler)
@@ -56,10 +56,10 @@ namespace DocInternal
 
     PageOptions getRuntimePageOptions(const CompilerInstance& compiler)
     {
-        PageOptions result     = getPageOptions(compiler);
-        result.kind            = Runtime::BuildCfgDocKind::Api;
-        result.outputName      = "swag.runtime";
-        result.titleContent    = "Swag Runtime";
+        PageOptions result  = getPageOptions(compiler);
+        result.kind         = Runtime::BuildCfgDocKind::Api;
+        result.outputName   = "swag.runtime";
+        result.titleContent = "Swag Runtime";
         if (result.css.empty())
             result.css = "style.css";
         return result;
@@ -326,7 +326,7 @@ namespace DocInternal
             {
                 if (it->is_regular_file(ec))
                 {
-                    Utf8 extension = Utf8(it->path().extension().string());
+                    auto extension = Utf8(it->path().extension().string());
                     extension.make_lower();
                     if (extension == ".md" || extension == ".swg" || extension == ".swgs")
                         paths.push_back(it->path());
@@ -390,10 +390,10 @@ namespace DocInternal
         if (options.titleToc.empty())
             options.titleToc = "Table of Contents";
 
-        Utf8 runtimeFileName = "swag.runtime.html";
-        fs::path runtimePath  = outputDirectory / fs::path(runtimeFileName.c_str());
-        runtimePath           = runtimePath.lexically_normal();
-        const Utf8 runtimeKey = Utf8(FileSystem::normalizePath(runtimePath));
+        Utf8     runtimeFileName = "swag.runtime.html";
+        fs::path runtimePath     = outputDirectory / fs::path(runtimeFileName.c_str());
+        runtimePath              = runtimePath.lexically_normal();
+        const auto runtimeKey    = Utf8(FileSystem::normalizePath(runtimePath));
 
         {
             const std::scoped_lock lock(g_RuntimeDocMutex);

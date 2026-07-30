@@ -334,7 +334,7 @@ ScopedCommandLog::ScopedCommandLog(const TaskContext& ctx) :
     if (cmd.command == CommandKind::Build || cmd.command == CommandKind::Run || cmd.command == CommandKind::Test)
         parts.push_back(colorize(ctx, LogColor::Gray, cmd.buildCfg));
 
-    const LinePrefix prefix{.glyphColor = LogColor::BrightBlue, .glyph = LogSymbol::CommandMark, .labelColor = LogColor::BrightBlue};
+    constexpr LinePrefix prefix{.glyphColor = LogColor::BrightBlue, .glyph = LogSymbol::CommandMark, .labelColor = LogColor::BrightBlue};
     printLine(ctx, prefix, "swag", parts);
 }
 

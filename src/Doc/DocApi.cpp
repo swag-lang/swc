@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Doc/DocInternal.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -11,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
+#include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -35,7 +35,7 @@ namespace DocInternal
         if (!fs::is_directory(helpRoot, ec))
             return Result::Continue;
 
-        std::vector<fs::path> paths;
+        std::vector<fs::path>                  paths;
         fs::recursive_directory_iterator       it(helpRoot, ec);
         const fs::recursive_directory_iterator end;
         while (!ec && it != end)

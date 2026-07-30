@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Doc/DocInternal.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -11,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
+#include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -50,7 +50,7 @@ namespace DocInternal
 
     Utf8 externalModulePage(const PageOptions& options, Utf8 moduleName)
     {
-        Utf8 prefix;
+        Utf8         prefix;
         const size_t separator = options.outputName.rfind('.');
         if (separator != Utf8::npos)
             prefix = options.outputName.subView(0, separator + 1);
@@ -74,8 +74,8 @@ namespace DocInternal
             if (!importedModule)
                 continue;
 
-            Utf8 moduleName = importedModule->getFullScopedName(ctx);
-            const size_t separator = moduleName.find('.');
+            Utf8         moduleName = importedModule->getFullScopedName(ctx);
+            const size_t separator  = moduleName.find('.');
             if (separator != Utf8::npos)
                 moduleName = moduleName.subView(0, separator);
             if (moduleName.empty())
@@ -202,7 +202,7 @@ namespace DocInternal
             const size_t separator = docNamespace.fullName.rfind('.');
             if (separator != Utf8::npos)
             {
-                const Utf8 parent = docNamespace.fullName.subView(0, separator);
+                const Utf8 parent   = docNamespace.fullName.subView(0, separator);
                 const auto parentIt = indices.find(parent);
                 if (parentIt != indices.end())
                     namespaces[parentIt->second].children.push_back(docNamespace.fullName);
@@ -242,8 +242,8 @@ namespace DocInternal
             if (declRef.isInvalid())
                 return {};
         }
-        const AstNodeRef rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
-        std::vector<Utf8> result = symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
+        const AstNodeRef  rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
+        std::vector<Utf8> result  = symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
         if (!result.empty())
             return result;
 
@@ -595,7 +595,7 @@ namespace DocInternal
 
         for (size_t overloadIndex = 0; overloadIndex < item.overloads.size(); ++overloadIndex)
         {
-            const DocOverload& overload = item.overloads[overloadIndex];
+            const DocOverload& overload   = item.overloads[overloadIndex];
             renderCtx.headingAnchorPrefix = std::format("{}_{}", makeAnchor(item.fullName), overloadIndex);
             if (!overload.commentLines.empty())
                 content += renderMarkdownLines(renderCtx, overload.commentLines);

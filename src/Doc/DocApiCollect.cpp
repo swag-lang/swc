@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Doc/DocInternal.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -11,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
+#include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -453,9 +453,9 @@ namespace DocInternal
 
     void collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, const bool runtime)
     {
-        CompilerInstance&                 compiler = ctx.compiler();
-        std::vector<const Symbol*>        symbols;
-        std::unordered_set<const Symbol*> seen;
+        CompilerInstance&                             compiler = ctx.compiler();
+        std::vector<const Symbol*>                    symbols;
+        std::unordered_set<const Symbol*>             seen;
         std::unordered_map<const Symbol*, AstNodeRef> publicRootRefs;
         if (runtime)
         {
@@ -486,7 +486,7 @@ namespace DocInternal
                     // its own canonical, top-level documentation section.
                     if (entry.symbol->isSymMap())
                     {
-                        std::vector<const Symbol*> members;
+                        std::vector<const Symbol*>        members;
                         std::unordered_set<const Symbol*> nestedSeen;
                         collectSymbolTree(members, nestedSeen, *entry.symbol->asSymMap());
                         for (const Symbol* member : members)
@@ -574,10 +574,10 @@ namespace DocInternal
             if (inserted)
             {
                 DocItem item;
-                item.kind        = *kind;
-                item.fullName    = fullName;
-                item.displayName = displayNameFor(fullName, *kind);
-                item.category    = sourceCategory(compiler, *file, runtime);
+                item.kind           = *kind;
+                item.fullName       = fullName;
+                item.displayName    = displayNameFor(fullName, *kind);
+                item.category       = sourceCategory(compiler, *file, runtime);
                 const Symbol* owner = documentationOwner(*symbol);
                 if (owner)
                     item.ownerName = owner->getFullScopedName(ctx);

@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Doc/DocInternal.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -11,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
+#include "Doc/DocInternal.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -179,7 +179,7 @@ namespace DocInternal
             while (end > pos && typeName[end - 1] == '.')
                 end--;
 
-            const std::string_view token = typeName.substr(pos, end - pos);
+            const std::string_view token     = typeName.substr(pos, end - pos);
             const Utf8             reference = resolveReference(renderCtx, token);
             result += reference.empty() ? escapeHtml(token) : reference;
             pos = end;
@@ -487,7 +487,7 @@ namespace DocInternal
                 {
                     const std::string_view title     = trimView(line.substr(level + 1));
                     const uint32_t         htmlLevel = std::clamp<uint32_t>(static_cast<uint32_t>(level) + headingOffset, 1, 6);
-                    Utf8 anchor = makeAnchor(title);
+                    Utf8                   anchor    = makeAnchor(title);
                     if (!renderCtx.headingAnchorPrefix.empty())
                         anchor = std::format("{}_{}", renderCtx.headingAnchorPrefix, anchor);
                     result.append(std::format("<h{} id=\"{}\">{}</h{}>\n", htmlLevel, anchor, renderInline(renderCtx, title), htmlLevel));

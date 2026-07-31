@@ -45,7 +45,7 @@ operation that can reallocate that source.
 
     cfg.genDoc.kind         = .Api
     cfg.genDoc.outputName   = "std.core"
-    cfg.genDoc.icon         = "favicon.ico"
+    cfg.genDoc.icon         = "favicon.svg"
     cfg.genDoc.titleContent = "Swag Std.Core"
     cfg.genDoc.css          = "css/style.css"
 }

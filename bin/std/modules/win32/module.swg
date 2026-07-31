@@ -14,5 +14,6 @@
 
     cfg.genDoc.kind       = .Api
     cfg.genDoc.outputName = "std.win32"
+    cfg.genDoc.icon       = "favicon.svg"
     cfg.genDoc.css        = "css/style.css"
 }

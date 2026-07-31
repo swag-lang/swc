@@ -9,4 +9,5 @@ Visual Studio Code syntax highlighting and dark theme for the Swag programming l
 # Features
 
  - Syntax highlighting
- - Theme 'Swag Dark'
+ - Theme 'Swag Dark', which uses the same token colors as the generated documentation,
+   so code reads the same in the editor and on the language reference

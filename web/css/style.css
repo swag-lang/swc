@@ -37,6 +37,12 @@
 
     --swag-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --swag-font-mono: ui-monospace, "Cascadia Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+    /* The mark, as an alpha mask so it takes the accent wherever it is placed. */
+    --swag-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 116 116'%3E%3Cpath fill='%23fff' d='M46 8L96 8L106.08 20L104.48 30L42.48 30L39.76 47L101.76 47L95.52 86L70 108L20 108L9.92 96L11.52 86L73.52 86L76.24 69L14.24 69L20.48 30Z'/%3E%3C/svg%3E");
+
+    /* The 45 degree cut the mark opens on, repeated by the elements the interface owns. */
+    --swag-cut: 6px;
 }
 
 /* The reader's system preference only decides when the page did not commit to a palette. */
@@ -160,12 +166,17 @@ body {
     text-decoration: none;
 }
 
+/* The Swag mark, inlined so a page stays one self-contained file. Its geometry is cut
+   by 'web/tools/brand.swgs'; regenerate the assets and paste the path here when
+   the mark changes. */
 .site-brand::before {
     content: "";
-    width: 10px;
-    height: 22px;
+    flex: none;
+    width: 27px;
+    height: 27px;
     background: var(--swag-accent);
-    transform: skewX(-16deg);
+    -webkit-mask: var(--swag-mark) center/contain no-repeat;
+    mask: var(--swag-mark) center/contain no-repeat;
 }
 
 .site-links {
@@ -238,9 +249,10 @@ body {
 .left h3::before {
     content: "";
     flex: none;
-    width: 12px;
-    height: 2px;
+    width: 11px;
+    height: 3px;
     background: var(--swag-accent);
+    transform: skewX(-18deg);
 }
 
 .left ul {
@@ -380,9 +392,10 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    width: 34px;
-    height: 3px;
+    width: 32px;
+    height: 4px;
     background: var(--swag-accent);
+    transform: skewX(-18deg);
 }
 
 .right h3 {
@@ -473,9 +486,9 @@ body {
 .round-button {
     display: inline-block;
     margin: 10px 6px;
-    padding: 9px 16px;
+    padding: 9px 17px 9px 16px;
     border: 1px solid currentcolor;
-    border-radius: var(--swag-radius);
+    clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
     font-weight: 600;
     text-align: center;
     opacity: .82;
@@ -520,15 +533,16 @@ body {
     min-width: 0;
 }
 
+/* Every kind label carries the mark's cut, so the page is recognizable from its
+   smallest repeated element up. */
 .api-item-title-kind,
 .kind-chip {
     flex: none;
     display: inline-block;
-    padding: 2px 7px;
+    padding: 3px 8px 3px 7px;
     color: var(--swag-item-color, var(--swag-ink-soft));
-    background: color-mix(in srgb, var(--swag-item-color, #888) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--swag-item-color, #888) 32%, transparent);
-    border-radius: 999px;
+    background: color-mix(in srgb, var(--swag-item-color, #888) 15%, transparent);
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
     font-family: var(--swag-font-mono);
     font-size: .68rem;
     font-weight: 600;
@@ -802,6 +816,54 @@ body {
     margin: 0 0 12px 20px;
     padding-left: 16px;
     border-left: 1px solid var(--swag-line);
+}
+
+/* ------------------------------------------------------------------ hero -- */
+
+/* Used by a hand-written landing page; it belongs to the identity, so it is defined
+   here rather than inlined next to the content. */
+.hero {
+    margin: 8px 0 44px;
+    padding: 58px 40px 46px;
+    color: #fff;
+    background: #050505;
+    clip-path: polygon(0 0, calc(100% - 34px) 0, 100% 34px, 100% 100%, 34px 100%, 0 calc(100% - 34px));
+    text-align: center;
+}
+
+.hero-lockup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+}
+
+.hero-word {
+    color: var(--swag-accent);
+    font-size: clamp(2.6rem, 7vw, 4.2rem);
+    font-weight: 800;
+    letter-spacing: .2em;
+    line-height: 1;
+    text-indent: .2em;
+}
+
+.hero-line {
+    max-width: 46ch;
+    margin: 26px auto 0;
+    color: #c9c9cf;
+    font-size: 1.16rem;
+}
+
+.hero-actions {
+    margin-top: 34px;
+}
+
+.hero .round-button {
+    color: var(--swag-accent);
+}
+
+.hero .round-button a {
+    color: inherit;
 }
 
 /* ---------------------------------------------------------------- footer -- */

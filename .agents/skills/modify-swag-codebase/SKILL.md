@@ -41,7 +41,7 @@ When a compiler change affects only the `doc` command, including refactoring sha
 for its implementation:
 
 1. Compile a DevMode build.
-2. Regenerate the repository documentation with `tools/web.bat dm`.
+2. Regenerate the repository documentation with `web/tools/web.bat dm`.
 3. Inspect the generated HTML and its diff for correctness.
 
 Do not run `tests.bat`, `alltests.bat`, or the Release validation workflow for a

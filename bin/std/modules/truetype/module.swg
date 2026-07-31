@@ -44,5 +44,6 @@ fields.
 
     cfg.genDoc.kind       = .Api
     cfg.genDoc.outputName = "std.truetype"
+    cfg.genDoc.icon       = "favicon.svg"
     cfg.genDoc.css        = "css/style.css"
 }

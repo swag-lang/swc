@@ -1,7 +1,12 @@
 @echo off
 setlocal
 
-for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
+REM This tool publishes, so it lives beside what it produces. The shared batch helpers
+REM stay in the repository-level 'tools' directory, which is resolved from here.
+for %%I in ("%~f0") do set "PUBLISH_DIR=%%~dpI"
+for %%I in ("%PUBLISH_DIR%..\..") do set "ROOT=%%~fI"
+set "TOOLS_DIR=%ROOT%\tools\"
+
 call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 call "%TOOLS_DIR%_common.bat" :batch_begin "%~f0"

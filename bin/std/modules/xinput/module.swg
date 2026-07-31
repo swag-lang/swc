@@ -15,5 +15,6 @@
 
     cfg.genDoc.kind       = .Api
     cfg.genDoc.outputName = "std.xinput"
+    cfg.genDoc.icon       = "favicon.svg"
     cfg.genDoc.css        = "css/style.css"
 }

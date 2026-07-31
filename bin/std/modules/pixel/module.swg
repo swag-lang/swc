@@ -41,5 +41,6 @@ Swag's normal `fail` mechanism.
     cfg.genDoc.outputName   = "std.pixel"
     cfg.genDoc.titleContent = "Pixel"
     cfg.genDoc.titleToc     = "Pixel documentation"
+    cfg.genDoc.icon         = "favicon.svg"
     cfg.genDoc.css          = "css/style.css"
 }

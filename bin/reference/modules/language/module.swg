@@ -12,7 +12,7 @@
     cfg.genDoc.kind              = .Examples
     cfg.genDoc.titleContent      = "Swag Language Reference"
     cfg.genDoc.css               = "css/style.css"
-    cfg.genDoc.icon              = "favicon.ico"
+    cfg.genDoc.icon              = "favicon.svg"
     cfg.genDoc.outputName        = "language"
     cfg.genDoc.quoteTitleExample = "Result"
 }

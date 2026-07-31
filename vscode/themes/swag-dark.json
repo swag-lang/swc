@@ -1,171 +1,171 @@
 {
 	"$schema": "vscode://schemas/color-theme",
-	"name": "Dark Default Colors",
+	"name": "Swag Dark",
 	"colors": {
-		"editor.background": "#1E1E1E",
-		"editor.foreground": "#D4D4D4",
-		"editor.inactiveSelectionBackground": "#3A3D41",
-		"editorIndentGuide.background1": "#404040",
-		"editorIndentGuide.activeBackground1": "#707070",
-		"editor.selectionHighlightBackground": "#ADD6FF26",
-		"list.dropBackground": "#383B3D",
-		"activityBarBadge.background": "#007ACC",
-		"sideBarTitle.foreground": "#BBBBBB",
-		"input.placeholderForeground": "#A6A6A6",
-		"settings.textInputBackground": "#292929",
-		"settings.numberInputBackground": "#292929",
-		"menu.background": "#252526",
-		"menu.foreground": "#CCCCCC",
-		"statusBarItem.remoteForeground": "#FFF",
-		"statusBarItem.remoteBackground": "#16825D",
-		"editorBracketHighlight.foreground1": "#D4D4D4",
-		"editorBracketHighlight.foreground2": "#DFB976",
-		"editorBracketHighlight.foreground3": "#C172D9",
-		"editorBracketHighlight.foreground4": "#4FB1BC",
-		"editorBracketHighlight.foreground5": "#97C26C",
-		"editorBracketHighlight.foreground6": "#ABB2C0",		
+		"editor.background": "#0E0E11",
+		"editor.foreground": "#D5D5DD",
+		"editor.lineHighlightBackground": "#16161C",
+		"editor.selectionBackground": "#2B2B36",
+		"editor.selectionHighlightBackground": "#F7F90018",
+		"editor.inactiveSelectionBackground": "#1E1E26",
+		"editorCursor.foreground": "#F7F900",
+		"editorLineNumber.foreground": "#4A4A56",
+		"editorLineNumber.activeForeground": "#F7F900",
+		"editorIndentGuide.background1": "#20202A",
+		"editorIndentGuide.activeBackground1": "#3A3A48",
+		"editorWhitespace.foreground": "#26262E",
+		"editorRuler.foreground": "#20202A",
+		"editorBracketMatch.background": "#F7F90020",
+		"editorBracketMatch.border": "#F7F90070",
+		"editorError.foreground": "#FF6666",
+		"editorWarning.foreground": "#E0B464",
+		"sideBar.background": "#0B0B0D",
+		"sideBarTitle.foreground": "#9A9AA6",
+		"activityBar.background": "#0B0B0D",
+		"activityBar.foreground": "#E6E6EA",
+		"activityBarBadge.background": "#F7F900",
+		"activityBarBadge.foreground": "#050505",
+		"statusBar.background": "#050505",
+		"statusBar.foreground": "#C9C9CF",
+		"statusBarItem.remoteBackground": "#F7F900",
+		"statusBarItem.remoteForeground": "#050505",
+		"titleBar.activeBackground": "#050505",
+		"titleBar.activeForeground": "#E6E6EA",
+		"tab.activeBackground": "#0E0E11",
+		"tab.activeBorderTop": "#F7F900",
+		"tab.inactiveBackground": "#0B0B0D",
+		"list.dropBackground": "#1E1E26",
+		"list.activeSelectionBackground": "#20202A",
+		"focusBorder": "#F7F90080",
+		"input.placeholderForeground": "#7D7D89",
+		"settings.textInputBackground": "#16161C",
+		"settings.numberInputBackground": "#16161C",
+		"menu.background": "#16161C",
+		"menu.foreground": "#D5D5DD",
+		"editorBracketHighlight.foreground1": "#D5D5DD",
+		"editorBracketHighlight.foreground2": "#E0B464",
+		"editorBracketHighlight.foreground3": "#C48FD0",
+		"editorBracketHighlight.foreground4": "#56C2B3",
+		"editorBracketHighlight.foreground5": "#9EC98F",
+		"editorBracketHighlight.foreground6": "#9A9AA6"
 	},
 	"tokenColors": [
 		{
 			"scope": "comment",
 			"settings": {
-				"foreground": "#6A9955"
+				"foreground": "#7AA86A"
 			}
 		},
 		{
 			"scope": "constant.language",
 			"settings": {
-				"foreground": "#569cd6"
+				"foreground": "#74AAE0"
 			}
 		},
 		{
 			"scope": "entity.name.tag",
 			"settings": {
-				"foreground": "#d67f56"
+				"foreground": "#E8A06A"
 			}
 		},
 		{
 			"scope": "keyword",
 			"settings": {
-				"foreground": "#569cd6"
+				"foreground": "#74AAE0"
 			}
 		},
 		{
 			"scope": "keyword.control",
 			"settings": {
-				"foreground": "#D8A0DF"
+				"foreground": "#C48FD0"
 			}
 		},
 		{
 			"scope": "keyword.declaration",
 			"settings": {
-				"foreground": "#569cd6"
+				"foreground": "#74AAE0"
 			}
-		},		
+		},
 		{
 			"scope": "keyword.operator",
 			"settings": {
-				"foreground": "#d4d4d4"
+				"foreground": "#D5D5DD"
 			}
-		},	
+		},
 		{
 			"scope": [
 				"entity.name.function",
+				"entity.name.function.op"
 			],
 			"settings": {
-				"foreground": "#FF7411"
+				"foreground": "#E8A06A"
 			}
-		},	
+		},
 		{
-			"scope": [
-				"entity.name.function.op",
-			],
+			"scope": "entity.name.function.intrinsic",
 			"settings": {
-				"foreground": "#FF7411"
+				"foreground": "#CBB45C"
 			}
-		},		
-		{
-			"scope": [
-				"entity.name.function.intrinsic",
-			],
-			"settings": {
-				"foreground": "#DCDCAA"
-			}
-		},			
+		},
 		{
 			"scope": "invalid",
 			"settings": {
-				"foreground": "#f44747"
+				"foreground": "#FF6666"
 			}
 		},
 		{
 			"scope": [
 				"meta.preprocessor",
+				"entity.name.function.preprocessor"
 			],
 			"settings": {
-				"foreground": "#AAAAAA"
+				"foreground": "#9A9AA6"
 			}
-		},									
-		{
-			"scope": [
-				"entity.name.function.preprocessor",
-			],
-			"settings": {
-				"foreground": "#AAAAAA"
-			}
-		},	
+		},
 		{
 			"scope": [
 				"entity.name.type",
-				"entity.name.class",
+				"entity.name.class"
 			],
 			"settings": {
-				"foreground": "#4EC9B0"
+				"foreground": "#56C2B3"
 			}
-		},		
+		},
 		{
 			"scope": "storage.type",
 			"settings": {
-				"foreground": "#f6cc86"
+				"foreground": "#E0B464"
 			}
 		},
 		{
-			"scope": [
-				"storage.modifier",
-			],
+			"scope": "storage.modifier",
 			"settings": {
-				"foreground": "#569cd6"
+				"foreground": "#74AAE0"
 			}
 		},
 		{
-			"scope": [
-				"constant.numeric",
-			],
+			"scope": "constant.numeric",
 			"settings": {
-				"foreground": "#b5cea8"
+				"foreground": "#9EC98F"
 			}
-		},	
+		},
 		{
-			"scope": [
-				"string",
-			],
+			"scope": "string",
 			"settings": {
-				"foreground": "#ce9178"
+				"foreground": "#E0937C"
 			}
 		},
 		{
 			"scope": "constant.character.escape",
 			"settings": {
-				"foreground": "#d7ba7d"
+				"foreground": "#CBB45C"
 			}
-		},										
+		},
 		{
-			"scope": [
-				"source.code",
-			],
+			"scope": "source.code",
 			"settings": {
-				"foreground": "#CCCCCC"
+				"foreground": "#D5D5DD"
 			}
-		},			
-	]	
+		}
+	]
 }

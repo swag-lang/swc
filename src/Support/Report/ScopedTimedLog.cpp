@@ -150,8 +150,11 @@ namespace
         line.append(2, ' ');
         line += colorize(ctx, prefix.glyphColor, LogSymbolHelper::toString(ctx, prefix.glyph));
         line += "  ";
+        // Wide enough that the longest label ("documenting") still leaves a gap before the
+        // value; a column that exactly fits a label glues the two words together.
+        constexpr size_t LABEL_COLUMN = 12;
         if (!label.empty())
-            line += colorize(ctx, prefix.labelColor, std::format("{:<10}", label));
+            line += colorize(ctx, prefix.labelColor, std::format("{:<{}}", label, LABEL_COLUMN));
 
         const Utf8 bullet = colorize(ctx, LogColor::Gray, LogSymbolHelper::toString(ctx, LogSymbol::DotList));
         bool       first  = true;

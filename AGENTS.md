@@ -16,3 +16,8 @@ language reference and the VSCode extension must be updated to match.
 When the change adds or updates public declarations or documentation comments under `bin/`,
 also read and follow
 [write-swag-public-api-docs](.agents/skills/write-swag-public-api-docs/SKILL.md).
+
+When the change touches a brand asset, a stylesheet, a page layout, an icon, a color, or
+the editor theme, also read and follow
+[design-swag-identity](.agents/skills/design-swag-identity/SKILL.md): the mark, the
+palette, and the 45 degree cut are one system.

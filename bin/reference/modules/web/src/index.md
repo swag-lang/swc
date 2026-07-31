@@ -1,10 +1,13 @@
 <html>
-<div style="background-color:Black; border-radius: 5px;" align="center">
-    <p style="padding-top:30px;"><img src="imgs/swag_logo.png" width="50%"></p>
-    <p style="color:white; font-size:40px; line-height:1.3em;"><b>SWAG</b> Programming Language</p>
-    <div style="margin-top:50px; padding-bottom:20px; color:white; font-size:20px;">
-        <div class="round-button"><a href="getting-started.html" style="color:#F7F900; text-decoration:none;">Getting Started</a></div>
-        <div class="round-button"><a href="https://github.com/swag-lang/swag/releases" style="color:#F7F900; text-decoration:none;">Download the Compiler</a></div>
+<div class="hero">
+    <div class="hero-lockup">
+        <img src="imgs/swag_mark.svg" alt="" width="86" height="86">
+        <span class="hero-word">SWAG</span>
+    </div>
+    <p class="hero-line">A systems language that runs at compile time.</p>
+    <div class="hero-actions">
+        <div class="round-button"><a href="getting-started.html">Getting Started</a></div>
+        <div class="round-button"><a href="https://github.com/swag-lang/swag/releases">Download the Compiler</a></div>
     </div>
 </div>
 

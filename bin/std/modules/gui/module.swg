@@ -50,5 +50,6 @@ use [[Gui.Wnd.destroy]] for deferred destruction during event dispatch.
     cfg.genDoc.outputName   = "std.gui"
     cfg.genDoc.titleContent = "GUI"
     cfg.genDoc.titleToc     = "GUI documentation"
+    cfg.genDoc.icon         = "favicon.svg"
     cfg.genDoc.css          = "css/style.css"
 }

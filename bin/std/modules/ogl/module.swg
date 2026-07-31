@@ -18,5 +18,6 @@
 
     cfg.genDoc.kind       = .Api
     cfg.genDoc.outputName = "std.ogl"
+    cfg.genDoc.icon       = "favicon.svg"
     cfg.genDoc.css        = "css/style.css"
 }

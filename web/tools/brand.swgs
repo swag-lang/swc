@@ -1,0 +1,335 @@
+/**
+Generates every Swag brand asset from one geometric definition.
+
+The identity is machined: the mark is cut from a grid of 100 units, in one accent over
+one ink, and every corner it opens on is cut at 45 degrees. Nothing here is drawn by
+hand, so the mark, the favicon and the application icon can never drift apart. Run it
+from the repository root:
+
+    swc web/tools/brand.swgs
+
+It writes the vector master and its raster derivatives into 'web/'.
+*/
+#dependencies
+{
+    #import("pixel", location: "swag@std")
+}
+
+using Core, Pixel
+
+// #########################################################
+// Design grid
+// #########################################################
+
+/**
+The mark is cut from a square of `GRID` units. Every measurement is a whole number of
+units, so the form stays aligned at any size.
+
+The three bars and the two counters fill the height exactly: `3 * STROKE + 2 * GAP`
+is `GRID`. Changing one of them means changing another.
+*/
+const GRID:     f32 = 100.0     // Height of the mark.
+const WIDTH:    f32 = 84.0      // Width of the mark, before the lean.
+const STROKE:   f32 = 22.0      // Thickness of a bar and of a stem.
+const GAP:      f32 = 17.0      // Height of a counter.
+const SHOULDER: f32 = 22.0      // The two cuts that open the form; they make it an S.
+const TERMINAL: f32 = 12.0      // The two cuts that close a free end.
+const LEAN:     f32 = 0.16      // Horizontal shift per unit of height: the mark leans right.
+
+const VOLTAGE = Color.fromRgb(0xF7, 0xF9, 0x00)     // The one accent.
+const INK     = Color.fromRgb(0x0B, 0x0B, 0x0D)     // The one ground.
+
+const VOLTAGE_HEX = "#F7F900"
+const INK_HEX     = "#0B0B0D"
+
+// #########################################################
+// Geometry
+// #########################################################
+
+// A closed ring of points, filled with the nonzero rule.
+struct Ring
+{
+    pts: Array'(Math.Point)
+}
+
+/**
+The mark: a three-bar `S` cut out of a block.
+
+Two opposite corners are opened by a wide `SHOULDER` cut, which is what separates the
+form from a seven-segment `5`; the two free ends are closed by a narrow `TERMINAL`
+cut. Those four diagonals are the signature of the whole identity, and the interface
+repeats them on the elements it wants to mark as Swag's own.
+*/
+func markRing()->Ring
+{
+    var result: retval
+
+    let w  = WIDTH
+    let s  = STROKE
+    let m0 = s + GAP      // Top of the middle bar.
+    let m1 = m0 + s       // Bottom of the middle bar.
+    let b0 = GRID - s     // Top of the bottom bar.
+
+    let pts: [16] Math.Point = [
+        {SHOULDER, 0},     // Opened top-left shoulder.
+        {w - TERMINAL, 0},
+        {w, TERMINAL},     // Cut top-right terminal.
+        {w, s},
+        {s, s},
+        {s, m0},
+        {w, m0},
+        {w, GRID - SHOULDER},
+        {w - SHOULDER, GRID},     // Opened bottom-right shoulder.
+        {TERMINAL, GRID},
+        {0, GRID - TERMINAL},     // Cut bottom-left terminal.
+        {0, b0},
+        {w - s, b0},
+        {w - s, m1},
+        {0, m1},
+        {0, SHOULDER}]
+
+    for &p in pts do
+        result.pts.add(p)
+    return result
+}
+
+// Leans a point, then maps the design grid onto the canvas.
+#[Swag.Inline]
+func place(p: Math.Point, scale, originX, originY: f32)->Math.Point
+{
+    let leaned = p.x + (GRID - p.y) * LEAN
+    return {originX + leaned * scale, originY + p.y * scale}
+}
+
+// The mark, leaned and scaled onto a canvas.
+func markShape(scale, originX, originY: f32)->Ring
+{
+    var result: retval
+    for &p in markRing().pts do
+        result.pts.add(place(p, scale, originX, originY))
+    return result
+}
+
+// Width of the mark once leaned, in design units.
+#[Swag.Inline]
+func markWidth() => WIDTH + GRID * LEAN
+
+// #########################################################
+// Rasterizer
+// #########################################################
+
+// A scanline crossing, used to resolve the nonzero fill rule on one sub-row.
+struct Crossing
+{
+    x:   f32
+    dir: s32
+}
+
+// Fills a ring into an image with exact horizontal coverage and `samples` sub-rows of
+// vertical coverage. The identity has no curves, so this is all the rasterization the
+// brand ever needs.
+func fillRing(img: *Image, ring: Ring, color: Color, samples: s32)
+{
+    var coverage: Array'f32
+    coverage.resize(cast(u64) img.width)
+
+    var crossings: Array'Crossing
+    let count = @countof(ring.pts)
+
+    for [y] in img.height
+    {
+        for &c in coverage do
+            c = 0
+
+        for [sub] in samples
+        {
+            let sy = cast(f32) y + (cast(f32) sub + 0.5) / cast(f32) samples
+
+            crossings.clear()
+            for [i] in count
+            {
+                let p0 = ring.pts[i]
+                let p1 = ring.pts[(i + 1) % count]
+                if (p0.y <= sy) == (p1.y <= sy) do
+                    continue
+                let t = (sy - p0.y) / (p1.y - p0.y)
+                crossings.add({p0.x + t * (p1.x - p0.x), p1.y > p0.y ? 1 : -1})
+            }
+
+            if crossings.count < 2 do
+                continue
+
+            // Few crossings ever meet one sub-row, so a straight insertion keeps the
+            // inner loop free of any call.
+            for var i = 1'u64; i < crossings.count; i += 1
+            {
+                let key = crossings[i]
+                var j   = cast(s64) i - 1
+                while j >= 0 and crossings[cast(u64) j].x > key.x
+                {
+                    crossings[cast(u64) (j + 1)] = crossings[cast(u64) j]
+                    j                            -= 1
+                }
+
+                crossings[cast(u64) (j + 1)] = key
+            }
+
+            var winding = 0
+            for var i = 0'u64; i + 1 < crossings.count; i += 1
+            {
+                winding += crossings[i].dir
+                if winding == 0 do
+                    continue
+                addSpan(coverage.toSlice(), crossings[i].x, crossings[i + 1].x, 1.0 / cast(f32) samples)
+            }
+        }
+
+        blendRow(img, y, coverage.toSlice(), color)
+    }
+}
+
+// Accumulates the horizontal overlap of `[x0, x1)` into the per-pixel coverage row.
+func addSpan(coverage: [..] f32, x0, x1, weight: f32)
+{
+    let width = cast(s32) @countof(coverage)
+    let a     = Math.max(x0, 0'f32)
+    let b     = Math.min(x1, cast(f32) width)
+    if b <= a do
+        return
+
+    var first = cast(s32) a
+    let last  = Math.min(cast(s32) b, width - 1)
+    while first <= last
+    {
+        let pixL = cast(f32) first
+        let part = Math.min(b, pixL + 1) - Math.max(a, pixL)
+        if part > 0 do
+            coverage[first] += part * weight
+        first               += 1
+    }
+}
+
+// Composites one coverage row over the image, in straight alpha.
+func blendRow(img: *Image, y: s32, coverage: const [..] f32, color: Color)
+{
+    // The pixel buffer is stored bottom-up.
+    let row = (notnull img.pixels.buffer) + cast(u64) ((img.height - 1 - y) * img.width8)
+    for [x] in img.width
+    {
+        let cov = Math.min(coverage[x], 1'f32)
+        if cov <= 0 do
+            continue
+
+        let pix = row + cast(u64) (x * 4)
+        let sa  = cov
+        let da  = cast(f32) pix[3] / 255.0
+        let oa  = sa + da * (1 - sa)
+        if oa <= 0 do
+            continue
+
+        pix[0] = mixChannel(cast(f32) color.r, sa, cast(f32) pix[0], da, oa)
+        pix[1] = mixChannel(cast(f32) color.g, sa, cast(f32) pix[1], da, oa)
+        pix[2] = mixChannel(cast(f32) color.b, sa, cast(f32) pix[2], da, oa)
+        pix[3] = cast(u8) Math.min(oa * 255 + 0.5, 255'f32)
+    }
+}
+
+#[Swag.Inline]
+func mixChannel(src, srcAlpha, dst, dstAlpha, outAlpha: f32)->u8
+{
+    let value = (src * srcAlpha + dst * dstAlpha * (1 - srcAlpha)) / outAlpha
+    return cast(u8) Math.min(value + 0.5, 255'f32)
+}
+
+// #########################################################
+// Assets
+// #########################################################
+
+// Writes the mark as an SVG, so the vector master and every raster derivative come
+// from the same definition.
+func writeSvg(path: string, width, height: f32, ring: Ring, background: #null string) fail
+{
+    // 'currentColor' with a default on the root: an '<img>' gets the accent, and an
+    // inline placement can recolor the mark by setting 'color' on its container.
+    var svg: String
+    svg.appendFormat("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 %{f0} %{f0}\" width=\"%{f0}\" height=\"%{f0}\" color=\"%\" role=\"img\" aria-label=\"Swag\">\n", width, height, width, height, VOLTAGE_HEX)
+    if background != null do
+        svg.appendFormat("<rect width=\"%{f0}\" height=\"%{f0}\" fill=\"%\"/>\n", width, height, notnull background)
+
+    svg += "<path fill=\"currentColor\" d=\""
+    for &p, [i] in ring.pts do
+        svg.appendFormat("% %{f2} %{f2}", i == 0 ? "M" : "L", p.x, p.y)
+    svg += "Z\"/>\n</svg>\n"
+
+    try File.writeAllBytes(path, cast(const [..] u8) svg)
+    wrote(path)
+}
+
+// The mark alone, on nothing: the master every placement starts from.
+func writeMark(svgPath, pngPath: string, size: s32, samples: s32) fail
+{
+    let margin = 8'f32
+    let boxW   = markWidth() + margin * 2
+    let boxH   = GRID + margin * 2
+
+    try writeSvg(svgPath, boxW, boxH, markShape(1, margin, margin), null)
+
+    let scale = cast(f32) size / boxH
+    var img   = Image.create(cast(s32) (boxW * scale), size, .RGBA8)
+    img.fill(Color.fromArgb(0'u8, 0'u8, 0'u8, 0'u8))
+    fillRing(&img, markShape(scale, margin * scale, margin * scale), VOLTAGE, samples)
+    try img.save(pngPath)
+    wrote(pngPath)
+}
+
+// Centers the mark on a square field of ink: the form every icon uses.
+func tileRing(size: f32)->Ring
+{
+    let scale = size * 0.56 / GRID
+    return markShape(scale, (size - markWidth() * scale) * 0.5, (size - GRID * scale) * 0.5)
+}
+
+func writeIcon(path: string, size, samples: s32) fail
+{
+    var img = Image.create(size, size, .RGBA8)
+    img.fill(INK)
+    fillRing(&img, tileRing(cast(f32) size), VOLTAGE, samples)
+    try img.save(path)
+    wrote(path)
+}
+
+func writeFaviconSvg(path: string) fail
+{
+    try writeSvg(path, 100, 100, tileRing(100), INK_HEX)
+}
+
+// Reports one generated file, in the compiler's own step voice.
+func wrote(path: string)
+{
+    @print("  ✓  brand       ", path, "\n")
+}
+
+#main
+{
+    const SAMPLES = 16
+    const ROOT    = "web"
+
+    @print("  ◆  swag        brand • cutting\n")
+
+    catch
+    {
+        try writeMark(Path.combine(ROOT, "imgs/swag_mark.svg"), Path.combine(ROOT, "imgs/swag_mark.png"), 512, SAMPLES)
+        try writeIcon(Path.combine(ROOT, "imgs/swag_icon.png"), 256, SAMPLES)
+        try writeFaviconSvg(Path.combine(ROOT, "favicon.svg"))
+        try writeIcon(Path.combine(ROOT, "favicon.ico"), 48, SAMPLES)
+    }
+        as err
+
+    if err != null
+    {
+        @print("  ✖  brand       ", err, "\n")
+        return
+    }
+
+    @print("  ✓  brand       done\n")
+}

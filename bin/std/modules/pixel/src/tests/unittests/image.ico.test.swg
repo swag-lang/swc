@@ -534,3 +534,81 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     @assert((notnull img.pixels.buffer)[1] == 88'u8)
     @assert((notnull img.pixels.buffer)[2] == 99'u8)
 }
+
+// An icon can carry several sizes; the decoder picks the largest of them back.
+#test
+{
+    var small = Image.create(4, 4, .BGRA8)
+    small.clear()
+    (notnull small.pixels.buffer)[0] = 11'u8
+
+    var large = Image.create(8, 8, .BGRA8)
+    large.clear()
+    (notnull large.pixels.buffer)[0] = 22'u8
+
+    let entries: [2] Image = [small, large]
+
+    var cb: ConcatBuffer
+    catch Ico.encodeAll(&cb, entries) as errAll
+    @assert(errAll == null)
+
+    var img = catch decodeIco(nnBytes(cb.toSlice())) as errBack
+    @assert(errBack == null)
+    @assert(img.width == 8)
+    @assert(img.height == 8)
+    @assert((notnull img.pixels.buffer)[0] == 22'u8)
+}
+
+// Every entry keeps its own offset, so a later one is still readable on its own.
+#test
+{
+    var first = Image.create(2, 2, .BGRA8)
+    first.clear()
+    var second = Image.create(4, 4, .BGRA8)
+    second.clear()
+
+    let entries: [2] Image = [first, second]
+
+    var cb: ConcatBuffer
+    catch Ico.encodeAll(&cb, entries) as errTwo
+    @assert(errTwo == null)
+
+    let bytes = nnBytes(cb.toSlice())
+    @assert(bytes[4] == 2'u8)     // ICONDIR.count
+}
+
+// An icon needs at least one image.
+#test
+{
+    var empty: Array'Image
+    empty.reserve(1)
+
+    var cb: ConcatBuffer
+    catch Ico.encodeAll(&cb, empty.toSlice()) as errNone
+    @assert(errNone != null)
+}
+
+// The whole set reaches a file through the namespace entry point.
+#test
+{
+    let path = makeTempIcoPath()
+    defer
+    {
+        discard catch File.delete(path.toString())
+    }
+
+    var small = Image.create(4, 4, .BGRA8)
+    small.clear()
+    var large = Image.create(16, 16, .BGRA8)
+    large.clear()
+    (notnull large.pixels.buffer)[2] = 77'u8
+
+    let entries: [2] Image = [small, large]
+    catch Ico.save(path.toString(), entries) as errSave
+    @assert(errSave == null)
+
+    var img = catch Image.load(path.toString()) as errLoad
+    @assert(errLoad == null)
+    @assert(img.width == 16)
+    @assert((notnull img.pixels.buffer)[2] == 77'u8)
+}

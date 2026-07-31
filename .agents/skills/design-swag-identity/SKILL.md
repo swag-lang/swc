@@ -57,15 +57,23 @@ The mark is a three-bar `S` cut out of a block, leaning right.
 The two shoulder cuts are what separate the mark from a seven-segment `5`. Do not remove
 them, do not round anything, and do not add a container the mark has to sit inside.
 
-`web/tools/brand.swgs` is the single definition of that geometry. It rasterizes the
-mark itself, so the compiler draws its own identity. Regenerate every asset with:
+`web/tools/brand.swgs` is the single definition of that geometry. It builds the mark once
+as a `Pixel.LinePath` and hands it to the two writers that consume it — `Pixel.Svg.Document`
+for the vector masters and `Pixel.Image.fillPath` for the rasters — so no asset can disagree
+with another about where an edge is. The script owns the shape and nothing else; anything
+generic it needs belongs in `bin/std`, not in the script.
+
+`web/tools/web.bat` runs it before generating the pages, so the assets the pages link are
+always cut from the current definition. To regenerate them alone:
 
 ```
 swc web/tools/brand.swgs
 ```
 
 It writes `web/imgs/swag_mark.svg`, `web/imgs/swag_mark.png`, `web/imgs/swag_icon.png`,
-`web/favicon.svg`, and `web/favicon.ico`. Never edit those files by hand.
+`web/favicon.svg`, and `web/favicon.ico`. Never edit those files by hand. The favicon carries
+16, 32, and 48 pixel entries, each cut at its own size rather than downsampled, so the
+counters of the mark stay open in a browser tab.
 
 When the geometry changes, three places must be updated in the same change:
 

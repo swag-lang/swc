@@ -165,6 +165,9 @@
     <ClCompile Include="src\Unittest\Test.Compiler.ConstantManager.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandNew.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Doc.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
@@ -653,6 +656,9 @@
     </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Main\Command\Command.New.cpp">
+      <Filter>src\Main\Command</Filter>
     </ClCompile>
     <ClCompile Include="src\Main\Command\Command.Format.cpp">
       <Filter>src\Main\Command</Filter>

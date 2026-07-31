@@ -505,6 +505,8 @@ void CompilerInstance::processCommand()
 
     switch (cmdLine().command)
     {
+        case CommandKind::New:
+            return;
         case CommandKind::Format:
             Command::format(*this);
             break;

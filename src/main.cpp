@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -73,10 +74,18 @@ int main(int argc, char* argv[])
     swc::CommandLineParser parser(global, cmdLine);
     if (parser.parse(argc, argv) != swc::Result::Continue)
         return static_cast<int>(swc::ExitCode::ErrorCmdLine);
+    if (cmdLine.helpPrinted)
+        return static_cast<int>(swc::ExitCode::Success);
 
     global.initialize(cmdLine);
-    const swc::TaskContext      startupCtx(global, cmdLine);
+    swc::TaskContext            startupCtx(global, cmdLine);
     const swc::ScopedCommandLog commandLog(startupCtx);
+
+    if (cmdLine.command == swc::CommandKind::New)
+    {
+        const swc::Result result = swc::Command::createProject(startupCtx);
+        return static_cast<int>(result == swc::Result::Continue ? swc::ExitCode::Success : swc::ExitCode::ErrorCommand);
+    }
 
 #if SWC_HAS_UNITTEST
     if (cmdLine.command == swc::CommandKind::Unittest && !cmdLine.dryRun && !cmdLine.showConfig)

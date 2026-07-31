@@ -531,7 +531,7 @@ Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Ut
 bool CommandLineParser::commandMatches(const Utf8& commandList) const
 {
     if (commandList == "all")
-        return true;
+        return command_ != "new";
 
     std::istringstream iss(commandList);
     Utf8               cmd;
@@ -829,7 +829,8 @@ Result CommandLineParser::parse(int argc, char* argv[])
     {
         CommandLineParser parser(*global_, *cmdLine_);
         parser.printHelp(ctx);
-        return Result::Error;
+        cmdLine_->helpPrinted = true;
+        return Result::Continue;
     }
 
     if (!args.empty() && args[0] == "help")
@@ -847,7 +848,8 @@ Result CommandLineParser::parse(int argc, char* argv[])
         }
 
         parser.printHelp(ctx, command);
-        return Result::Error;
+        cmdLine_->helpPrinted = true;
+        return Result::Continue;
     }
 
     SWC_RESULT(applyConfigFile(ctx, args));
@@ -893,10 +895,56 @@ Result CommandLineParser::parse(int argc, char* argv[])
         return Result::Error;
     }
 
+    if (cmdLine_->command == CommandKind::New)
+    {
+        if (argStartIndex >= args.size() || (!args[argStartIndex].empty() && args[argStartIndex][0] == '-'))
+        {
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_new_kind_missing);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        const Utf8& projectKind = args[argStartIndex++];
+        if (projectKind == "script")
+        {
+            cmdLine_->newProjectKind = NewProjectKind::Script;
+            if (argStartIndex < args.size() && (args[argStartIndex].empty() || args[argStartIndex][0] != '-'))
+                cmdLine_->newScriptPath = args[argStartIndex++].c_str();
+        }
+        else if (projectKind == "module")
+        {
+            cmdLine_->newProjectKind = NewProjectKind::Module;
+            if (argStartIndex >= args.size() || (!args[argStartIndex].empty() && args[argStartIndex][0] == '-'))
+            {
+                const Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_new_module_name_missing);
+                diag.report(ctx);
+                return Result::Error;
+            }
+
+            cmdLine_->newProjectName = args[argStartIndex++];
+        }
+        else
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_new_kind_invalid);
+            diag.addArgument(Diagnostic::ARG_VALUE, projectKind);
+            diag.addDidYouMeanNote(Utf8Helper::bestMatch(projectKind, std::vector<Utf8>{"script", "module"}));
+            diag.report(ctx);
+            return Result::Error;
+        }
+    }
+
     bool endOfOptions = false;
     for (size_t i = argStartIndex; i < args.size(); i++)
     {
         const Utf8& raw = args[i];
+
+        if (cmdLine_->command == CommandKind::New && (raw.empty() || raw[0] != '-'))
+        {
+            Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_new_unexpected_positional);
+            setReportArguments(diag, raw);
+            diag.report(ctx);
+            return Result::Error;
+        }
 
         // `--` stops option processing. Anything after is positional, which we do not accept.
         if (!endOfOptions && raw == END_OF_OPTIONS)
@@ -945,6 +993,18 @@ Result CommandLineParser::parse(int argc, char* argv[])
 
 Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
 {
+    if (cmdLine_->command == CommandKind::New)
+    {
+        if (cmdLine_->newProjectKind == NewProjectKind::Script && !cmdLine_->workspacePath.empty())
+        {
+            const Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_new_script_workspace);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
     if (cmdLine_->command == CommandKind::Test)
     {
         struct StageOption

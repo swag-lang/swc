@@ -25,6 +25,7 @@ void CommandLineParser::registerCommands()
 
     configSchema_.addEnum("command", &cmdLine_->command,
                           {
+                              {"new", CommandKind::New},
                               {"format", CommandKind::Format},
                               {"syntax", CommandKind::Syntax},
                               {"sema", CommandKind::Sema},
@@ -58,9 +59,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
         &cmdLine_->moduleFilePath,
         "Run this module setup file before compiling the rest of the module; derive the module root and relative input paths from its parent directory");
-    add(HelpOptionGroup::Input, "sema doc test build run", "--workspace", "-w",
+    add(HelpOptionGroup::Input, "new sema doc test build run", "--workspace", "-w",
         &cmdLine_->workspacePath,
-        "Use a workspace containing modules/<module>/module.swg and modules/<module>/src; the workspace owns its .output and .tmp directories and excludes --module, --module-file, --directory, and --file");
+        "Use a workspace containing modules/<module>/module.swg and modules/<module>/src; new creates the workspace when absent, while compilation owns its .output and .tmp directories and excludes --module, --module-file, --directory, and --file");
     add(HelpOptionGroup::Input, "sema doc test build run", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
         "With --workspace, compile only this module and its internal workspace dependencies");

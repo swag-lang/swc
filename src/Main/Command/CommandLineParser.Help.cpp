@@ -130,6 +130,7 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     bool                            hasPrintedGroup = false;
 
     addInfoEntry(entries, "Version", std::format("swag compiler {}.{}.{}", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM), LogColor::BrightGreen);
+    addInfoEntry(entries, "Language", "A systems language that runs at compile time");
     if (!command.empty())
         addInfoEntry(entries, "Command", command, LogColor::BrightYellow);
 
@@ -141,8 +142,29 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
     if (command.empty())
     {
         addInfoEntry(entries, "swc", "<command> [options]", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "swc", "<script.swgs> [options]", LogColor::White, 0, helpArgumentLabelColor());
         addInfoEntry(entries, "swc help", "<command>", LogColor::White, 0, helpArgumentLabelColor());
         Logger::printFieldGroup(ctx, "Usage", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
+
+        entries.clear();
+        addInfoEntry(entries, "Create", "swc new script hello", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Run", "swc hello.swgs", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Source", "#main { @print(\"Hello, world!\\n\") }", LogColor::White, 0, LogColor::Dim);
+        Logger::printFieldGroup(ctx, "First Script", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
+
+        entries.clear();
+        addInfoEntry(entries, "Create", "swc new module hello", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Run", "swc run --workspace hello --workspace-module hello", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Add a module", "swc new module tools --workspace hello", LogColor::White, 0, helpArgumentLabelColor());
+        Logger::printFieldGroup(ctx, "First Workspace", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
+
+        entries.clear();
+        addInfoEntry(entries, "Getting started", "https://www.swag-lang.org/getting-started.php", LogColor::BrightBlue);
+        addInfoEntry(entries, "Language reference", "https://www.swag-lang.org/language.php", LogColor::BrightBlue);
+        addInfoEntry(entries, "Examples", "https://github.com/swag-lang/swc/tree/master/bin/examples", LogColor::BrightBlue);
+        addInfoEntry(entries, "Native setup", "Install the MSVC x64 build tools and the Windows SDK");
+        addInfoEntry(entries, "Command help", "swc help <command>", LogColor::White, 0, helpArgumentLabelColor());
+        Logger::printFieldGroup(ctx, "Learn", entries, nextHelpGroupStyle(hasPrintedGroup, 22));
 
         entries.clear();
         std::vector commands(std::begin(COMMANDS), std::end(COMMANDS));
@@ -153,8 +175,34 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         return;
     }
 
-    addInfoEntry(entries, std::format("swc {}", command), "[options]", LogColor::White, 0, helpArgumentLabelColor());
+    if (command == "new")
+    {
+        addInfoEntry(entries, "swc new script", "[path]", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "swc new module", "<name> [--workspace <path>]", LogColor::White, 0, helpArgumentLabelColor());
+    }
+    else
+    {
+        addInfoEntry(entries, std::format("swc {}", command), "[options]", LogColor::White, 0, helpArgumentLabelColor());
+    }
     Logger::printFieldGroup(ctx, "Usage", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
+
+    if (command == "new")
+    {
+        entries.clear();
+        addInfoEntry(entries, "script", "Create a runnable Hello World script; default path: hello.swgs", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "script path", "Add .swgs when the path has no extension", LogColor::White, 0, LogColor::Dim);
+        addInfoEntry(entries, "module", "Create an executable module in a new workspace named after the module", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "--workspace", "Create or extend the workspace at this path", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Existing paths", "Stop without overwriting files or modules", LogColor::White, 0, LogColor::Dim);
+        Logger::printFieldGroup(ctx, "Creates", entries, nextHelpGroupStyle(hasPrintedGroup, 20));
+
+        entries.clear();
+        addInfoEntry(entries, "Script", "swc new script hello", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "New workspace", "swc new module hello", LogColor::White, 0, helpArgumentLabelColor());
+        addInfoEntry(entries, "Existing workspace", "swc new module tools --workspace hello", LogColor::White, 0, helpArgumentLabelColor());
+        Logger::printFieldGroup(ctx, "Examples", entries, nextHelpGroupStyle(hasPrintedGroup, 20));
+        return;
+    }
 
     const Utf8 oldCommand = command_;
     command_              = command;

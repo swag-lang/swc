@@ -99,6 +99,7 @@ namespace
         const CommandLine&  cmdLine = compiler.cmdLine();
         switch (cmdLine.command)
         {
+            case CommandKind::New:
             case CommandKind::Format:
             case CommandKind::Syntax:
             case CommandKind::Sema:

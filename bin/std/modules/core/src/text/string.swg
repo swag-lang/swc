@@ -792,6 +792,9 @@ impl String
         // Return true if the string starts with 'str'
         mtd const startsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.startsWith(.toSlice(), str, comparisonType)
 
+        // Return true if the string ends with 'str'
+        mtd const endsWith(str: string, comparisonType = Utf8.ComparisonType.Latin1)->bool => Utf8.endsWith(.toSlice(), str, comparisonType)
+
         // Find 'what', and returns the byte index of it
         mtd const indexOf(what: string, startByteIndex = 0'u64, comparisonType = Utf8.ComparisonType.Latin1)->u64 => Utf8.indexOf(.toSlice(), what, startByteIndex, comparisonType)
         mtd const indexOf(what: rune, startByteIndex = 0'u64)->u64                                                => Utf8.indexOf(.toSlice(), what, startByteIndex)

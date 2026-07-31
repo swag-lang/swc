@@ -9,6 +9,7 @@ SWC_BEGIN_NAMESPACE();
 enum class CommandKind
 {
     Invalid = -1,
+    New,
     Format,
     Syntax,
     Sema,
@@ -19,6 +20,13 @@ enum class CommandKind
     Run,
 };
 
+enum class NewProjectKind
+{
+    Invalid,
+    Script,
+    Module,
+};
+
 struct CommandInfo
 {
     CommandKind kind;
@@ -27,6 +35,7 @@ struct CommandInfo
 };
 
 inline constexpr CommandInfo COMMANDS[] = {
+    {CommandKind::New, "new", "Create a runnable script or an executable workspace module"},
     {CommandKind::Format, "format", "Parse source files and write their canonical formatting back to disk"},
     {CommandKind::Syntax, "syntax", "Check source syntax without generating IR or backend code"},
     {CommandKind::Sema, "sema", "Analyze source semantics, including type checking"},
@@ -45,6 +54,8 @@ inline Runtime::CompilerCommand compilerCommandFromKind(const CommandKind comman
 {
     switch (command)
     {
+        case CommandKind::New:
+            return Runtime::CompilerCommand::Build;
         case CommandKind::Test:
             return Runtime::CompilerCommand::Test;
         case CommandKind::Format:
@@ -90,6 +101,7 @@ struct CommandLine
 
     Utf8                buildCfg = "fast-debug";
     Utf8                name;
+    Utf8                newProjectName;
     Utf8                moduleNamespace;
     Utf8                workspaceModuleFilter;
     Utf8                moduleNamespaceStorage;
@@ -109,6 +121,7 @@ struct CommandLine
     bool rebuild                 = false;
     bool dryRun                  = false;
     bool showConfig              = false;
+    bool helpPrinted             = false;
     bool verboseVerify           = false;
     bool scriptMode              = false;
     bool sourceDrivenTest        = false;
@@ -166,6 +179,7 @@ struct CommandLine
     std::set<fs::path> importApiFiles;
 
     fs::path          configFile;
+    fs::path          newScriptPath;
     fs::path          moduleFilePath;
     fs::path          modulePath;
     fs::path          workspacePath;
@@ -174,12 +188,15 @@ struct CommandLine
     fs::path          outDir;
     fs::path          workDir;
     Runtime::BuildCfg defaultBuildCfg{};
+    NewProjectKind    newProjectKind = NewProjectKind::Invalid;
 };
 
 constexpr std::string_view commandName(const CommandKind command)
 {
     switch (command)
     {
+        case CommandKind::New:
+            return "new";
         case CommandKind::Format:
             return "format";
         case CommandKind::Syntax:

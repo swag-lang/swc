@@ -158,6 +158,7 @@
         <ClCompile Include="src\Support\Math\Sha256.cpp"/>
         <ClCompile Include="src\Unittest\ABI\Test.ABI.FFI.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ConstantManager.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandNew.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Doc.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.GeneratedAst.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.InMemorySource.cpp"/>
@@ -366,6 +367,7 @@
         <ClCompile Include="src\Format\FormatOptionsLoader.cpp"/>
         <ClCompile Include="src\Format\Formatter.cpp"/>
         <ClCompile Include="src\main.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.New.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Format.cpp"/>
         <ClCompile Include="src\Main\Command\Command.DryRun.cpp"/>
         <ClCompile Include="src\Main\Command\Command.Sema.cpp"/>

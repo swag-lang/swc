@@ -47,6 +47,16 @@ if exist "%WEB_DIR%\html" (
     if errorlevel 1 exit /b 1
 )
 
+REM The brand assets come first: the pages link them, and cutting them again here is what
+REM keeps the mark, the icons and the favicons in step with their definition. The generator
+REM writes relative to the repository root, so it is run from there whatever the caller's
+REM own directory.
+pushd "%ROOT%" || exit /b 1
+call "%TOOLS_DIR%_common.bat" :run_swc "%PUBLISH_DIR%brand.swgs"%EXTRA_ARGS%
+set "BRAND_ERROR=%ERRORLEVEL%"
+popd
+if not "%BRAND_ERROR%"=="0" exit /b %BRAND_ERROR%
+
 call "%TOOLS_DIR%_common.bat" :run_swc doc --workspace "%ROOT%\bin\std" --doc-output-dir "%WEB_DIR%" --rebuild%EXTRA_ARGS% || exit /b 1
 call "%TOOLS_DIR%_common.bat" :run_swc doc --workspace "%ROOT%\bin\reference" --doc-output-dir "%WEB_DIR%" --rebuild%EXTRA_ARGS% || exit /b 1
 

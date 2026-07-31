@@ -114,6 +114,20 @@ namespace
     // What the command operates on: workspace / module / directory name.
     Utf8 scopeName(const CommandLine& cmd)
     {
+        if (cmd.command == CommandKind::New)
+        {
+            if (cmd.newProjectKind == NewProjectKind::Script)
+            {
+                fs::path scriptPath = cmd.newScriptPath.empty() ? fs::path{"hello.swgs"} : cmd.newScriptPath;
+                if (scriptPath.extension().empty())
+                    scriptPath += ".swgs";
+                return Utf8{scriptPath.string()};
+            }
+            if (!cmd.workspacePath.empty())
+                return Utf8{cmd.workspacePath.filename().string()};
+            return cmd.newProjectName;
+        }
+
         if (!cmd.workspacePath.empty())
         {
             Utf8 name{cmd.workspacePath.filename().string()};

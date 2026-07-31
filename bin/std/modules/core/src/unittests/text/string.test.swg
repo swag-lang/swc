@@ -248,6 +248,10 @@ func reverseIndexOfByteAtLeast(value: const &String, minByte: u8)->u64
     @assert(value.startsWith("core", Utf8.ComparisonType.Latin1NoCase))
     @assert(!value.startsWith("Cafe"))
 
+    @assert(value.endsWith("Café"))
+    @assert(!value.endsWith("Core"))
+    @assert(value.endsWith("café", Utf8.ComparisonType.Latin1NoCase))
+
     @assert(value.indexOf("Core") == 0)
     @assert(value.indexOf("Caf") == 5)
     @assert(value.indexOf("core", comparisonType: Utf8.ComparisonType.Latin1NoCase) == 0)

@@ -149,7 +149,7 @@ namespace
         table.ranks[name]   = rank;
     }
 
-    void buildReferences(DocApiDocument& document, ReferenceTable& table)
+    void buildReferences(const DocApiDocument& document, ReferenceTable& table)
     {
         for (const DocItem& item : document.items)
         {
@@ -273,7 +273,7 @@ namespace
         return ModuleApi::isCurrentModuleSourceFile(*file) && (symbol.isPublic() || symbol.isEnumValue());
     }
 
-    void buildMemberReferences(TaskContext& ctx, DocApiDocument& document, ReferenceTable& table, const bool runtime)
+    void buildMemberReferences(TaskContext& ctx, const DocApiDocument& document, ReferenceTable& table, const bool runtime)
     {
         for (const DocItem& item : document.items)
         {
@@ -298,7 +298,7 @@ namespace
         }
     }
 
-    void buildDocNamespaces(DocApiDocument& document, std::vector<DocNamespace>& namespaces, ReferenceTable& table)
+    void buildDocNamespaces(const DocApiDocument& document, std::vector<DocNamespace>& namespaces, ReferenceTable& table)
     {
         std::unordered_set<Utf8> names;
         for (const DocItem& item : document.items)
@@ -819,7 +819,7 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
 
     // A long list stays folded so the rail keeps showing every group at once; a short one
     // is more useful open, because it then works as the complete map of the module.
-    constexpr size_t TOC_OPEN_LIMIT = 24;
+    constexpr size_t tocOpenLimit = 24;
 
     const auto appendTocGroup = [&](const std::string_view title, const std::string_view anchor, const size_t count, const auto& appendEntries) {
         if (!count)
@@ -829,7 +829,7 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
             document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
             return;
         }
-        document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary>{}<span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= TOC_OPEN_LIMIT ? " open" : "", Utf8Helper::escapeHtml(title), count, anchor, Utf8Helper::escapeHtml(title)));
+        document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary>{}<span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= tocOpenLimit ? " open" : "", Utf8Helper::escapeHtml(title), count, anchor, Utf8Helper::escapeHtml(title)));
         appendEntries();
         document.toc += "</ul>\n</details>\n";
     };

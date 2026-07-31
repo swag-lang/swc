@@ -14,6 +14,7 @@ The current commands are:
 
 | Command | Purpose |
 |---|---|
+| 'new' | Create a runnable script or an executable workspace module |
 | 'build' | Compile and emit native artifacts without running them |
 | 'run' | Build, then run emitted executables |
 | 'test' | Run source-driven tests and '#test' functions |
@@ -23,7 +24,33 @@ The current commands are:
 | 'doc' | Parse and type-check source, then generate configured documentation |
 | 'unittest' | Run the compiler's internal C++ unit tests |
 
-There is no 'new' project generator in the current CLI.
+# Creating a Starter
+
+Create and run the smallest script:
+
+```text
+swc new script hello
+swc hello.swgs
+```
+
+The path defaults to 'hello.swgs'. When a path has no extension, 'new script'
+adds '.swgs'. Existing paths are never overwritten.
+
+Create an executable module in a new workspace:
+
+```text
+swc new module hello
+swc run --workspace hello --workspace-module hello
+```
+
+By default, the workspace and module share the requested name. Use
+'--workspace' to add a module to an existing workspace, or to create a
+workspace with a different name:
+
+```text
+swc new module tools --workspace hello
+swc new module app --workspace my-project
+```
 
 # Selecting Input
 
@@ -38,13 +65,15 @@ Use one input model per invocation:
 | '--directory PATH', '-d PATH' | Add a directory of source files |
 | '--file PATH', '-f PATH' | Add an individual source file |
 
-'--workspace' and '--workspace-module' are available to 'build', 'run', 'test',
-'sema', and 'doc'. The 'format', 'syntax', and compiler-internal 'unittest'
-commands use the direct module, module-file, directory, or file modes instead.
+'--workspace' is available to 'new', 'build', 'run', 'test', 'sema', and 'doc'.
+'--workspace-module' is available to the five compilation commands. The
+'format', 'syntax', and compiler-internal 'unittest' commands use the direct
+module, module-file, directory, or file modes instead.
 
 Where workspace mode is accepted, it excludes the direct module, directory,
 and file input modes. '--workspace-module' is meaningful only with
-'--workspace'.
+'--workspace'. For 'new module', '--workspace' names the workspace to create
+or extend.
 
 # Build Configurations
 
@@ -63,6 +92,8 @@ artifact with '--artifact-kind' ('-ak'): 'executable', 'shared-library',
 # Common Workflows
 
 ```text
+swc new script hello
+swc new module app --workspace my-project
 swc build -w <workspace> -m app -bc release
 swc run   -w <workspace> -m app --run-arg first --run-arg second
 swc sema  -w <workspace> -m app

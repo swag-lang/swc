@@ -1910,7 +1910,19 @@ void MicroRegisterAllocationPass::clearAllMappedVirtuals()
 
 void MicroRegisterAllocationPass::expireDeadMappings(uint32_t stamp)
 {
-    // Linear dead-expiry is only safe when the instruction stream has no control-flow joins.
+    // Eager expiry is an optimization of this pass's bookkeeping, not of the
+    // emitted code, so skipping it under control flow costs nothing: a dead
+    // mapping is already reclaimable for free on demand. isCandidateBetter
+    // ranks dead victims first, and allocatePhysical evicts one without
+    // emitting a spill, so the allocator never spills a live value while a dead
+    // one holds a register. flushAllMappedVirtuals and
+    // spillMappedVirtualsForConcreteTouches likewise skip dead values.
+    //
+    // Lifting the guard was measured (2026-07-31) on the six bench/ tasks: same
+    // instruction count, same stack-access count, only different register
+    // names. The real cost in those loops is the boundary flush in
+    // rewriteInstructions, which round-trips every live value through memory at
+    // each terminator and join.
     if (hasControlFlow_)
         return;
 

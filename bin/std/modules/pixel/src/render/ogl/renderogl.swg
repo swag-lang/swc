@@ -587,6 +587,28 @@ impl RenderOgl
             glViewport(0, 0, .curRT.colorBuffer.width, .curRT.colorBuffer.height)
     }
 
+    // Reads a rectangle of any render target back as an image.
+    //
+    // Unlike [[RenderOgl.unbindRenderTargetToImage]] this does not touch the target stack, so a
+    // target filled by a painter command stream, which binds and unbinds it as it runs, can
+    // still be read afterwards.
+    mtd readRenderTarget(rt: *RenderTarget, x, y, w, h: s32)->Image
+    {
+        if .headless
+        {
+            var result: retval = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, rt.colorBuffer.pf, .getTexturePixels(rt.colorBuffer, rt.colorBuffer.pf).toSlice())
+            result.crop(x, y, w, h)
+            return result
+        }
+
+        var result: retval = Image.create(w, h, .BGRA8)
+        glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) rt.handle)
+        glReadBuffer(GL_COLOR_ATTACHMENT0)
+        glReadPixels(x, rt.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (notnull result.pixels.buffer))
+        glBindFramebuffer(GL_FRAMEBUFFER, 0)
+        return result
+    }
+
     // Get current render target pixels
     mtd unbindRenderTargetToImage(x, y, w, h: s32)->Image
     {

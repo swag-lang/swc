@@ -45,11 +45,11 @@ using StructConfigTarget = std::variant<
 
 struct StructConfigEntry
 {
-    Utf8                   name;
+    std::string_view       name;
     StructConfigTarget     target = static_cast<bool*>(nullptr);
     std::vector<Utf8>      choices;
     std::vector<int>       choiceIntValues;
-    Utf8                   description;
+    std::string_view       description;
     StructConfigAssignHook afterSet{};
 
     bool isEnum() const { return !choices.empty(); }
@@ -63,17 +63,19 @@ struct StructConfigEntry
 class StructConfigSchema
 {
 public:
-    StructConfigEntry& add(const char* name, const StructConfigTarget& target, const char* description = nullptr, StructConfigAssignHook hook = {});
-    StructConfigEntry& addEnum(const char* name, Utf8* target, std::vector<Utf8> choices, const char* description = nullptr, StructConfigAssignHook hook = {});
+    StructConfigSchema() { entries_.reserve(64); }
+
+    StructConfigEntry& add(std::string_view name, const StructConfigTarget& target, std::string_view description = {}, StructConfigAssignHook hook = {});
+    StructConfigEntry& addEnum(std::string_view name, Utf8* target, std::vector<Utf8> choices, std::string_view description = {}, StructConfigAssignHook hook = {});
 
     template<typename T>
-    StructConfigEntry& add(const char* name, T* target, const char* description = nullptr, StructConfigAssignHook hook = {})
+    StructConfigEntry& add(std::string_view name, T* target, std::string_view description = {}, StructConfigAssignHook hook = {})
     {
         return addImpl(name, description, target, hook);
     }
 
     template<typename E>
-    StructConfigEntry& addEnum(const char* name, E* target, std::initializer_list<std::pair<const char*, E>> choices, const char* description = nullptr, StructConfigAssignHook hook = {})
+    StructConfigEntry& addEnum(std::string_view name, E* target, std::initializer_list<std::pair<const char*, E>> choices, std::string_view description = {}, StructConfigAssignHook hook = {})
     {
         StructConfigEnumIntTarget enumTarget;
         enumTarget.target = target;
@@ -106,10 +108,9 @@ private:
         return static_cast<int>(*static_cast<const E*>(target));
     }
 
-    StructConfigEntry& addImpl(const char* name, const char* description, const StructConfigTarget& target, StructConfigAssignHook hook);
+    StructConfigEntry& addImpl(std::string_view name, std::string_view description, const StructConfigTarget& target, StructConfigAssignHook hook);
 
-    std::vector<StructConfigEntry>      entries_;
-    std::map<Utf8, size_t, std::less<>> entriesMap_;
+    std::vector<StructConfigEntry> entries_;
 };
 
 class StructConfigReader

@@ -104,7 +104,30 @@ impl ImageCanvas
         renderer.end()
 
         canvas.painter.begin()
-        canvas.painter.setColorMaskFull()
+        canvas.beginFrame()
+    }
+
+    // Opens a frame on the target.
+    //
+    // The target is bound through the painter, with `paintAlpha`, because that is what tells
+    // the renderer to resolve alpha separately. Antialiased strokes reach the pixels through a
+    // pass that uses the destination alpha as scratch and leaves it at zero; without that
+    // resolve every antialiased stroke would read back fully transparent. The ground is laid
+    // with alpha writes enabled, and the content that follows draws color only, exactly as an
+    // off-screen layer does.
+    private mtd beginFrame()
+    {
+        .painter.bindRenderTarget(notnull .target, true)
+        .painter.setColorMaskFull()
+        .painter.clear(.background)
+        .painter.setColorMaskColor()
+
+        if .hasSource
+        {
+            .painter.setBlendingMode(.Copy)
+            .painter.drawTexture({0, 0, cast(f32) .width, cast(f32) .height}, .source)
+            .painter.setBlendingMode(.Alpha)
+        }
     }
 
     // Opens a canvas over an existing image, to draw on top of it.
@@ -134,13 +157,23 @@ impl ImageCanvas
         result.source = renderer.addImage(image)
         renderer.end()
         result.hasSource = true
+
+        result.painter.setBlendingMode(.Copy)
+        result.painter.drawTexture({0, 0, cast(f32) result.width, cast(f32) result.height}, result.source)
+        result.painter.setBlendingMode(.Alpha)
         return result
     }
 
-    // Sets the color the target is cleared with before the recorded drawing is rendered.
+    // Lays a solid ground under the drawing recorded so far.
+    //
+    // The ground is written with alpha enabled, so a canvas can produce either an opaque image
+    // or one that keeps its transparency, and it is remembered for the frames that follow.
     mtd clear(color: Color)
     {
         .background = color
+        .painter.setColorMaskFull()
+        .painter.clear(color)
+        .painter.setColorMaskColor()
     }
 
     // Renders everything recorded so far and returns the pixels.
@@ -152,43 +185,31 @@ impl ImageCanvas
         if !.isOpen do
             fail InvalidFormatError{"the canvas is closed"}
 
-        .painter.end()
-
-        let viewport   = Math.Rectangle{0, 0, cast(f32) .width, cast(f32) .height}
-        let hasGround  = .background.a != 0
-        let needsUnder = hasGround or .hasSource
-
-        // The ground and the source image belong under the frame, so they are recorded in their
-        // own pass rather than in the caller's painter, which would put them above whatever was
-        // drawn first.
-        var under: Painter
-        if needsUnder
+        // An antialiased pass uses the destination alpha as scratch and leaves only its own
+        // coverage there, which eats the ground laid at the start of the frame. An opaque
+        // ground is therefore stamped back over the whole surface, in alpha only, exactly as a
+        // window does before it presents. A transparent ground keeps the coverage instead:
+        // that is what makes a mark with a see-through background come out right.
+        if .background.a == 255
         {
-            under.begin()
-            under.setColorMaskFull()
-            under.setBlendingMode(.Copy)
-            if hasGround do
-                under.fillRect(viewport, .background)
-            if .hasSource do
-                under.drawTexture(viewport, .source)
-            under.end()
+            .painter.setBlendingMode(.Copy)
+            .painter.setColorMaskAlpha()
+            .painter.fillRect({0, 0, cast(f32) .width, cast(f32) .height}, .background)
+            .painter.setColorMaskColor()
+            .painter.setBlendingMode(.Alpha)
         }
 
-        var target   = viewport
+        .painter.unbindRenderTarget()
+        .painter.end()
+
         let renderer = notnull .renderer
         renderer.begin(.context)
-        renderer.bindRenderTarget(notnull .target, vp: &target)
-        renderer.setScissorRect(viewport)
-        renderer.clear()
-        if needsUnder do
-            renderer.draw(&under)
         renderer.draw(&.painter)
-
-        var result: retval = renderer.unbindRenderTargetToImage(0, 0, .width, .height)
+        var result: retval = renderer.readRenderTarget(notnull .target, 0, 0, .width, .height)
         renderer.end()
 
         .painter.begin()
-        .painter.setColorMaskFull()
+        .beginFrame()
         return result
     }
 

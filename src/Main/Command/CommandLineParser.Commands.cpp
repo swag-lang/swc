@@ -211,12 +211,15 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--show-config", nullptr,
         &cmdLine_->showConfig,
         "Show the resolved command, environment, toolchain, and native artifact configuration, then exit");
+
+#if SWC_DEV_MODE
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",
         &CompilerInstance::dbgDevStop,
         "Open a message box when the compiler reports an error");
     add(HelpOptionGroup::Development, "all", "--dev-full", "-df",
         &cmdLine_->devFull,
         "Enable every compiled-in development test and validator");
+#endif
 
 #if SWC_HAS_UNITTEST
     add(HelpOptionGroup::Development, "unittest", "--verbose-unittest", "-vu",

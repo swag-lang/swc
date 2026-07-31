@@ -71,6 +71,25 @@ namespace
         const void* target_ = nullptr;
         bool        slept_  = false;
     };
+
+    class CountJob final : public Job
+    {
+    public:
+        CountJob(const TaskContext& ctx, std::atomic<uint32_t>& count) :
+            Job(ctx, JobKind::Parser),
+            count_(&count)
+        {
+        }
+
+        JobResult exec() override
+        {
+            count_->fetch_add(1, std::memory_order_relaxed);
+            return JobResult::Done;
+        }
+
+    private:
+        std::atomic<uint32_t>* count_ = nullptr;
+    };
 }
 
 SWC_TEST_BEGIN(JobManager_DebugStateReportsSleepingJobs)
@@ -93,6 +112,34 @@ SWC_TEST_BEGIN(JobManager_DebugStateReportsSleepingJobs)
         return Result::Error;
 
     jobMgr.waitAll(clientId);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(JobManager_ProgressiveWorkersDrainQueuedJobs)
+{
+    CommandLine cmdLine;
+    cmdLine.numCores = 4;
+
+    JobManager jobMgr;
+    jobMgr.setup(cmdLine);
+    if (jobMgr.numWorkers() != 4 || jobMgr.isSingleThreaded())
+        return Result::Error;
+
+    const Global      global;
+    const TaskContext jobCtx(global, cmdLine);
+    const auto        clientId = jobMgr.newClientId();
+
+    std::atomic<uint32_t>              count{0};
+    std::vector<std::unique_ptr<Job>> jobs;
+    for (uint32_t index = 0; index < 16; ++index)
+    {
+        jobs.push_back(std::make_unique<CountJob>(jobCtx, count));
+        jobMgr.enqueue(*jobs.back(), JobPriority::Normal, clientId);
+    }
+
+    jobMgr.waitAll(clientId);
+    if (count.load(std::memory_order_relaxed) != jobs.size())
+        return Result::Error;
 }
 SWC_TEST_END()
 

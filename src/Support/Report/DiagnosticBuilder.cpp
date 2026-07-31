@@ -228,6 +228,41 @@ namespace
 
         return escaped;
     }
+
+    bool isPlaceholderCharacter(const char c)
+    {
+        return (c >= 'a' && c <= 'z') ||
+               (c >= 'A' && c <= 'Z') ||
+               (c >= '0' && c <= '9') ||
+               c == '_';
+    }
+
+    void removeUnexpandedPlaceholders(Utf8& text)
+    {
+        Utf8 cleaned;
+        cleaned.reserve(text.size());
+
+        size_t index = 0;
+        while (index < text.size())
+        {
+            if (text[index] == '{')
+            {
+                size_t end = index + 1;
+                while (end < text.size() && isPlaceholderCharacter(text[end]))
+                    ++end;
+
+                if (end > index + 1 && end < text.size() && text[end] == '}')
+                {
+                    index = end + 1;
+                    continue;
+                }
+            }
+
+            cleaned += text[index++];
+        }
+
+        text = std::move(cleaned);
+    }
 }
 
 DiagnosticBuilder::DiagnosticBuilder(const TaskContext& ctx, const Diagnostic& diag) :
@@ -866,7 +901,7 @@ Utf8 DiagnosticBuilder::buildMessage(const Utf8& msg, const DiagnosticElement* e
     replaceArgsInString(result, diag_->arguments());
 
     // Clean some stuff
-    result = std::regex_replace(result, std::regex{R"(\{\w+\})"}, "");
+    removeUnexpandedPlaceholders(result);
     removeRedundantEmptyQuotes(result);
     result.replace_loop(" , ", ", ");
     result.replace_loop("  ", " ", true);

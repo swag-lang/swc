@@ -528,18 +528,28 @@ Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Ut
     return reader.readFile(ctx, configPath);
 }
 
-bool CommandLineParser::commandMatches(const Utf8& commandList) const
+bool CommandLineParser::commandMatches(std::string_view commandList) const
 {
     if (commandList == "all")
         return command_ != "new";
 
-    std::istringstream iss(commandList);
-    Utf8               cmd;
-    while (iss >> cmd)
+    while (!commandList.empty())
     {
+        const size_t first = commandList.find_first_not_of(' ');
+        if (first == std::string_view::npos)
+            break;
+        commandList.remove_prefix(first);
+
+        const size_t end = commandList.find(' ');
+        const auto   cmd = commandList.substr(0, end);
         if (cmd == command_)
             return true;
+
+        if (end == std::string_view::npos)
+            break;
+        commandList.remove_prefix(end + 1);
     }
+
     return false;
 }
 
@@ -603,7 +613,7 @@ void CommandLineParser::registerConfigEntry(const ArgInfo& info, const StructCon
 
     SWC_ASSERT(info.longForm.substr(0, LONG_PREFIX_LEN) == LONG_PREFIX);
 
-    StructConfigEntry& entry = configSchema_.add(info.longForm.substr(LONG_PREFIX_LEN).c_str(), info.target, info.description.c_str(), hook);
+    StructConfigEntry& entry = configSchema_.add(info.longForm.substr(LONG_PREFIX_LEN), info.target, info.description, hook);
     entry.target             = info.target;
     entry.choices            = info.choices;
     entry.choiceIntValues    = info.choiceIntValues;
@@ -612,21 +622,19 @@ void CommandLineParser::registerConfigEntry(const ArgInfo& info, const StructCon
 ArgInfo& CommandLineParser::addImpl(HelpOptionGroup group, const char* commands, const char* longForm, const char* shortForm, const char* description, const ArgTarget& target)
 {
     ArgInfo info;
-    info.commands    = commands ? commands : "";
-    info.longForm    = longForm ? longForm : "";
-    info.shortForm   = shortForm ? shortForm : "";
-    info.description = description ? description : "";
+    info.commands    = commands ? std::string_view{commands} : std::string_view{};
+    info.longForm    = longForm ? std::string_view{longForm} : std::string_view{};
+    info.shortForm   = shortForm ? std::string_view{shortForm} : std::string_view{};
+    info.description = description ? std::string_view{description} : std::string_view{};
     info.group       = group;
     info.target      = target;
 
-    SWC_ASSERT(info.longForm.empty() || !longFormMap_.contains(info.longForm));
-    SWC_ASSERT(info.shortForm.empty() || !shortFormMap_.contains(info.shortForm));
+    for (const ArgInfo& existing : args_)
+    {
+        SWC_ASSERT(info.longForm.empty() || existing.longForm != info.longForm);
+        SWC_ASSERT(info.shortForm.empty() || existing.shortForm != info.shortForm);
+    }
 
-    const size_t idx = args_.size();
-    if (!info.longForm.empty())
-        longFormMap_[info.longForm] = idx;
-    if (!info.shortForm.empty())
-        shortFormMap_[info.shortForm] = idx;
     args_.push_back(std::move(info));
     return args_.back();
 }
@@ -648,9 +656,11 @@ const ArgInfo* CommandLineParser::findArgument(TaskContext& ctx, const Utf8& arg
     if (arg.substr(0, SHORT_PREFIX_LEN) == SHORT_PREFIX && arg.length() > SHORT_PREFIX_LEN)
     {
         SWC_UNUSED(ctx);
-        const auto it = shortFormMap_.find(arg);
-        if (it != shortFormMap_.end())
-            return &args_[it->second];
+        for (const ArgInfo& info : args_)
+        {
+            if (info.shortForm == arg)
+                return &info;
+        }
     }
 
     return nullptr;
@@ -658,9 +668,12 @@ const ArgInfo* CommandLineParser::findArgument(TaskContext& ctx, const Utf8& arg
 
 const ArgInfo* CommandLineParser::findLongFormArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
-    const auto it = longFormMap_.find(arg);
-    if (it != longFormMap_.end())
-        return &args_[it->second];
+    for (const ArgInfo& info : args_)
+    {
+        if (info.longForm == arg)
+            return &info;
+    }
+
     if (arg.substr(0, LONG_NO_PREFIX_LEN) == LONG_NO_PREFIX && arg.length() > LONG_NO_PREFIX_LEN)
         return findNegatedArgument(ctx, arg, invertBoolean);
     return nullptr;
@@ -669,25 +682,32 @@ const ArgInfo* CommandLineParser::findLongFormArgument(TaskContext& ctx, const U
 const ArgInfo* CommandLineParser::findNegatedArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean)
 {
     const Utf8 baseArg = Utf8(LONG_PREFIX) + arg.substr(LONG_NO_PREFIX_LEN);
-    const auto it      = longFormMap_.find(baseArg);
+    const ArgInfo* info = nullptr;
+    for (const ArgInfo& candidate : args_)
+    {
+        if (candidate.longForm == baseArg)
+        {
+            info = &candidate;
+            break;
+        }
+    }
 
-    if (it == longFormMap_.end())
+    if (!info)
     {
         reportInvalidArgument(ctx, arg);
         return nullptr;
     }
 
-    const ArgInfo& info = args_[it->second];
-    if (!info.isBoolLike())
+    if (!info->isBoolLike())
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_bool);
-        setReportArguments(diag, info, arg);
+        setReportArguments(diag, *info, arg);
         diag.report(ctx);
         return nullptr;
     }
 
     invertBoolean = true;
-    return &info;
+    return info;
 }
 
 void CommandLineParser::reportInvalidArgument(TaskContext& ctx, const Utf8& arg)
@@ -708,7 +728,11 @@ std::optional<Utf8> CommandLineParser::suggestArgument(const Utf8& query) const
         {
             candidates.push_back(a.longForm);
             if (a.isBoolLike())
-                candidates.emplace_back(Utf8(LONG_NO_PREFIX) + a.longForm.substr(LONG_PREFIX_LEN));
+            {
+                Utf8 negated = LONG_NO_PREFIX;
+                negated.append(a.longForm.substr(LONG_PREFIX_LEN));
+                candidates.push_back(std::move(negated));
+            }
         }
         if (!a.shortForm.empty())
             candidates.push_back(a.shortForm);
@@ -1160,6 +1184,7 @@ CommandLineParser::CommandLineParser(Global& global, CommandLine& cmdLine) :
     cmdLine_(&cmdLine),
     global_(&global)
 {
+    args_.reserve(64);
     updateDefaultBuildCfg(*cmdLine_);
     registerCommands();
 }

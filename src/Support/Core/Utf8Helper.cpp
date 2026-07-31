@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Support/Report/Assert.h"
+#include <cmath>
 
 SWC_BEGIN_NAMESPACE();
 
@@ -121,12 +122,12 @@ Utf8 Utf8Helper::toNiceSize(std::size_t size)
     if (size < 1024)
         return std::format("{} bytes", size);
     if (size < MB)
-        return std::format("{:.1f} KB", static_cast<double>(size) / KB);
+        return formatFixedDecimal(static_cast<double>(size) / KB, 1) + " KB";
     if (size < GB)
-        return std::format("{:.1f} MB", static_cast<double>(size) / MB);
+        return formatFixedDecimal(static_cast<double>(size) / MB, 1) + " MB";
     if (size < TB)
-        return std::format("{:.1f} GB", static_cast<double>(size) / GB);
-    return std::format("{:.1f} TB", static_cast<double>(size) / TB);
+        return formatFixedDecimal(static_cast<double>(size) / GB, 1) + " GB";
+    return formatFixedDecimal(static_cast<double>(size) / TB, 1) + " TB";
 }
 
 Utf8 Utf8Helper::toNiceBigNumber(std::size_t number)
@@ -182,6 +183,68 @@ Utf8 Utf8Helper::toNiceTime(double seconds)
     auto minutes          = static_cast<size_t>(seconds / MINUTE);
     auto remainingSeconds = static_cast<size_t>(seconds - (static_cast<double>(minutes) * MINUTE));
     return std::format("{} min {} s", minutes, remainingSeconds);
+}
+
+Utf8 Utf8Helper::formatFixedDecimal(const double value, const uint32_t precision, const bool showPositiveSign)
+{
+    static constexpr uint64_t POWERS_OF_TEN[] = {
+        1,
+        10,
+        100,
+        1'000,
+        10'000,
+        100'000,
+        1'000'000,
+        10'000'000,
+        100'000'000,
+        1'000'000'000,
+    };
+
+    SWC_ASSERT(precision < std::size(POWERS_OF_TEN));
+
+    const bool negative = std::signbit(value);
+    Utf8       result;
+    if (negative)
+        result += '-';
+    else if (showPositiveSign)
+        result += '+';
+
+    if (std::isnan(value))
+    {
+        result += "nan";
+        return result;
+    }
+
+    if (std::isinf(value))
+    {
+        result += "inf";
+        return result;
+    }
+
+    const uint64_t scale     = POWERS_OF_TEN[precision];
+    const double   magnitude = std::fabs(value);
+    const double   maxScaled = static_cast<double>(std::numeric_limits<uint64_t>::max() - scale);
+    if (magnitude > maxScaled / static_cast<double>(scale))
+    {
+        result += "overflow";
+        return result;
+    }
+
+    const uint64_t scaledValue = static_cast<uint64_t>(magnitude * static_cast<double>(scale) + 0.5);
+    const uint64_t wholePart   = scaledValue / scale;
+    const uint64_t decimalPart = scaledValue % scale;
+    result += std::to_string(wholePart);
+
+    if (precision)
+    {
+        result += '.';
+        const Utf8 decimal = std::to_string(decimalPart);
+        for (size_t index = decimal.size(); index < precision; ++index)
+            result += '0';
+        result += decimal;
+    }
+
+    return result;
 }
 
 Utf8 Utf8Helper::toLowerSnake(std::string_view s)

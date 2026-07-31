@@ -34,6 +34,7 @@ namespace Utf8Helper
     Utf8 toNiceSize(size_t size);
     Utf8 toNiceBigNumber(std::size_t number);
     Utf8 toNiceTime(double seconds);
+    Utf8 formatFixedDecimal(double value, uint32_t precision, bool showPositiveSign = false);
     Utf8 toLowerSnake(std::string_view s);
     bool isHexToken(std::string_view token);
     bool parseUInt(const LangSpec& langSpec, std::string_view s, size_t& p, int& out) noexcept;

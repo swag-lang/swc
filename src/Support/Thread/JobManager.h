@@ -34,7 +34,7 @@ public:
     void waitAll();
     void waitAll(JobClientId client);
 
-    uint32_t      numWorkers() const noexcept { return static_cast<uint32_t>(workers_.size()); }
+    uint32_t      numWorkers() const noexcept { return configuredWorkerCount_; }
     uint32_t      randSeed() const noexcept { return randSeed_; }
     static size_t threadIndex() noexcept { return threadIndex_; }
     bool          isSingleThreaded() const noexcept { return singleThreaded_; }
@@ -51,13 +51,15 @@ private:
     void                          workerLoop();
     static std::optional<WaitKey> computeWaitKey(const Job& job);
     void                          unregisterWaiterLocked(JobRecord* rec);
+    void                          growWorkersForLoadLocked();
 
     void shutdown() noexcept;
 
     // Setup
-    bool                       singleThreaded_ = false;
-    const CommandLine*         cmdLine_        = nullptr;
-    uint32_t                   randSeed_       = 0;
+    bool                       singleThreaded_        = false;
+    const CommandLine*         cmdLine_               = nullptr;
+    uint32_t                   randSeed_              = 0;
+    uint32_t                   configuredWorkerCount_ = 0;
     static thread_local size_t threadIndex_;
 
     // Ready queues per priority (store Record* for direct access).

@@ -25,6 +25,7 @@
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
 #include "Support/Report/SyntaxColor.h"
@@ -81,7 +82,7 @@ namespace
             gainPercent        = (delta * 100.0) / static_cast<double>(countBefore);
         }
 
-        return std::format("{} (instr: {} -> {}, gain: {:.2f}%)", optimize, countBefore, countAfter, gainPercent);
+        return std::format("{} (instr: {} -> {}, gain: {}%)", optimize, countBefore, countAfter, Utf8Helper::formatFixedDecimal(gainPercent, 2));
     }
 
     void printPassHeader(const MicroPassContext& context, const TaskContext& ctx, const MicroBuilder& builder, std::string_view stageName)

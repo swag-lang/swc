@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Support/Core/Utf8.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -26,6 +27,19 @@ SWC_TEST_BEGIN(Utf8_MoveOperationsTransferStorage)
     if (assigned.size() != 512 || assigned.front() != 'b')
         return Result::Error;
     if (assigned.data() != assignedSourceData || !assignedSource.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Utf8_FixedDecimalFormatting)
+{
+    if (Utf8Helper::formatFixedDecimal(12.345, 2) != "12.35")
+        return Result::Error;
+    if (Utf8Helper::formatFixedDecimal(-0.0, 2) != "-0.00")
+        return Result::Error;
+    if (Utf8Helper::formatFixedDecimal(0.0, 1, true) != "+0.0")
+        return Result::Error;
+    if (Utf8Helper::toNiceSize(1536) != "1.5 KB")
         return Result::Error;
 }
 SWC_TEST_END()

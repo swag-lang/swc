@@ -76,6 +76,9 @@ static PGetLargePageMinimum pGetLargePageMinimum = NULL;
 
 // Available after Windows XP
 typedef BOOL (__stdcall *PGetPhysicallyInstalledSystemMemory)( PULONGLONG TotalMemoryInKilobytes );
+typedef BOOL (__stdcall *POpenProcessToken)(HANDLE ProcessHandle, DWORD DesiredAccess, PHANDLE TokenHandle);
+typedef BOOL (__stdcall *PLookupPrivilegeValueW)(LPCWSTR SystemName, LPCWSTR Name, PLUID Luid);
+typedef BOOL (__stdcall *PAdjustTokenPrivileges)(HANDLE TokenHandle, BOOL DisableAllPrivileges, PTOKEN_PRIVILEGES NewState, DWORD BufferLength, PTOKEN_PRIVILEGES PreviousState, PDWORD ReturnLength);
 
 //---------------------------------------------
 // Enable large page support dynamically (if possible)
@@ -94,14 +97,27 @@ static bool win_enable_large_os_pages(size_t* large_page_size)
   // <https://devblogs.microsoft.com/oldnewthing/20110128-00/?p=11643>
   unsigned long err = 0;
   HANDLE token = NULL;
-  BOOL ok = OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token);
+  HINSTANCE advapi = LoadLibraryExW(L"advapi32.dll", NULL, LOAD_LIBRARY_SEARCH_SYSTEM32);
+  POpenProcessToken pOpenProcessToken = NULL;
+  PLookupPrivilegeValueW pLookupPrivilegeValueW = NULL;
+  PAdjustTokenPrivileges pAdjustTokenPrivileges = NULL;
+  if (advapi != NULL) {
+    pOpenProcessToken = (POpenProcessToken)(void (*)(void))GetProcAddress(advapi, "OpenProcessToken");
+    pLookupPrivilegeValueW = (PLookupPrivilegeValueW)(void (*)(void))GetProcAddress(advapi, "LookupPrivilegeValueW");
+    pAdjustTokenPrivileges = (PAdjustTokenPrivileges)(void (*)(void))GetProcAddress(advapi, "AdjustTokenPrivileges");
+  }
+
+  BOOL ok = (pOpenProcessToken != NULL && pLookupPrivilegeValueW != NULL && pAdjustTokenPrivileges != NULL);
+  if (ok) {
+    ok = (*pOpenProcessToken)(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token);
+  }
   if (ok) {
     TOKEN_PRIVILEGES tp;
-    ok = LookupPrivilegeValue(NULL, TEXT("SeLockMemoryPrivilege"), &tp.Privileges[0].Luid);
+    ok = (*pLookupPrivilegeValueW)(NULL, L"SeLockMemoryPrivilege", &tp.Privileges[0].Luid);
     if (ok) {
       tp.PrivilegeCount = 1;
       tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-      ok = AdjustTokenPrivileges(token, FALSE, &tp, 0, (PTOKEN_PRIVILEGES)NULL, 0);
+      ok = (*pAdjustTokenPrivileges)(token, FALSE, &tp, 0, (PTOKEN_PRIVILEGES)NULL, 0);
       if (ok) {
         err = GetLastError();
         ok = (err == ERROR_SUCCESS);
@@ -112,8 +128,9 @@ static bool win_enable_large_os_pages(size_t* large_page_size)
     }
     CloseHandle(token);
   }
+  if (!ok && err == 0) err = GetLastError();
+  if (advapi != NULL) FreeLibrary(advapi);
   if (!ok) {
-    if (err == 0) err = GetLastError();
     _mi_warning_message("cannot enable large OS page support, error %lu\n", err);
   }
   return (ok!=0);

@@ -311,8 +311,6 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     global_(&global),
     buildCfg_(cmdLine.defaultBuildCfg)
 {
-    (void) runtimeContextTlsId();
-
     // Headless test runs must never block on an interactive panic dialog. The test
     // command auto-injects the 'swag.test' run-arg (see effectiveGeneratedArtifactRunArgs),
     // so treat it as headless too even though the raw run-args don't list it yet.
@@ -327,8 +325,6 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     perThreadData_.resize(perThreadSlots);
     fileLookup_        = std::make_unique<LookupTable<SourceFile>>();
     srcViewLookup_     = std::make_unique<LookupTable<SourceView>>();
-    jitMemMgr_         = std::make_unique<JITMemoryManager>();
-    jitExecMgr_        = std::make_unique<JITExecManager>();
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
     setupRuntimeCompiler();
 }
@@ -349,6 +345,32 @@ void CompilerInstance::setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> 
 std::unique_ptr<NativeBackendBuilder> CompilerInstance::takeDeferredBuilder()
 {
     return std::move(deferredBuilder_);
+}
+
+JITMemoryManager& CompilerInstance::jitMemMgr()
+{
+    std::call_once(jitMemMgrOnce_, [this] {
+        jitMemMgr_ = std::make_unique<JITMemoryManager>();
+    });
+    return *jitMemMgr_;
+}
+
+const JITMemoryManager& CompilerInstance::jitMemMgr() const
+{
+    return const_cast<CompilerInstance*>(this)->jitMemMgr();
+}
+
+JITExecManager& CompilerInstance::jitExecMgr()
+{
+    std::call_once(jitExecMgrOnce_, [this] {
+        jitExecMgr_ = std::make_unique<JITExecManager>();
+    });
+    return *jitExecMgr_;
+}
+
+const JITExecManager& CompilerInstance::jitExecMgr() const
+{
+    return const_cast<CompilerInstance*>(this)->jitExecMgr();
 }
 
 std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind, const uint32_t offset)

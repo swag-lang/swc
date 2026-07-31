@@ -159,10 +159,10 @@ public:
     const Runtime::IAllocator&      runtimeAllocator() const { return runtimeAllocator_; }
     Runtime::CompilerMessage&       runtimeCompilerMessage() { return runtimeCompilerMessage_; }
     const Runtime::CompilerMessage& runtimeCompilerMessage() const { return runtimeCompilerMessage_; }
-    JITMemoryManager&               jitMemMgr() { return *(jitMemMgr_.get()); }
-    const JITMemoryManager&         jitMemMgr() const { return *(jitMemMgr_.get()); }
-    JITExecManager&                 jitExecMgr() { return *(jitExecMgr_.get()); }
-    const JITExecManager&           jitExecMgr() const { return *(jitExecMgr_.get()); }
+    JITMemoryManager&               jitMemMgr();
+    const JITMemoryManager&         jitMemMgr() const;
+    JITExecManager&                 jitExecMgr();
+    const JITExecManager&           jitExecMgr() const;
     ExternalModuleManager&          externalModuleMgr() { return *(externalModuleMgr_.get()); }
     const ExternalModuleManager&    externalModuleMgr() const { return *(externalModuleMgr_.get()); }
     void                            initPerThreadRuntimeContextForJit();
@@ -413,7 +413,8 @@ private:
     std::unique_ptr<TypeGen>                       typeGen_;
     std::unique_ptr<ConstantManager>               cstMgr_;
     std::unique_ptr<IdentifierManager>             idMgr_;
-    std::unique_ptr<JITMemoryManager>              jitMemMgr_;
+    mutable std::unique_ptr<JITMemoryManager>      jitMemMgr_;
+    mutable std::once_flag                         jitMemMgrOnce_;
     std::unique_ptr<ExternalModuleManager>         externalModuleMgr_;
     SymbolModule*                                  symModule_           = nullptr;
     SymbolNamespace*                               importRootNamespace_ = nullptr;
@@ -447,7 +448,8 @@ private:
     Runtime::ICompiler                             runtimeCompiler_{};
     Runtime::IAllocator                            runtimeAllocator_{};
     Runtime::CompilerMessage                       runtimeCompilerMessage_{};
-    std::unique_ptr<JITExecManager>                jitExecMgr_;
+    mutable std::unique_ptr<JITExecManager>        jitExecMgr_;
+    mutable std::once_flag                         jitExecMgrOnce_;
     void*                                          runtimeCompilerITable_[4]{};
     mutable std::shared_mutex                      sourceStorageMutex_;
     mutable std::shared_mutex                      nativeCodeSegmentMutex_;

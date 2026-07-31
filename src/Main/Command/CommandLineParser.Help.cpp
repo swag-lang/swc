@@ -216,11 +216,11 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
 
         HelpOptionEntry entry;
         entry.arg         = &arg;
-        entry.displayName = arg.longForm;
+        entry.displayName = Utf8(arg.longForm);
         if (!arg.shortForm.empty())
         {
             entry.displayName += ", ";
-            entry.displayName += arg.shortForm;
+            entry.displayName.append(arg.shortForm);
         }
 
         entry.group = arg.group;

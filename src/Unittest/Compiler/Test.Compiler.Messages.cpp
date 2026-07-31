@@ -201,6 +201,25 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentTicks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DiagnosticRemovesUnexpandedWordPlaceholders)
+{
+    CommandLine cmdLine;
+    cmdLine.command     = CommandKind::Test;
+    cmdLine.logColor    = false;
+    cmdLine.syntaxColor = false;
+
+    const TaskContext localCtx(ctx.global(), cmdLine);
+    Diagnostic        diag = Diagnostic::get(DiagnosticId::cmdline_err_invalid_enum);
+    diag.addArgument(Diagnostic::ARG_ARG, "--backend");
+
+    DiagnosticBuilder builder(localCtx, diag);
+    const Utf8        text = builder.build();
+
+    if (text.find("{value}") != Utf8::npos || text.find("{long}") != Utf8::npos || text.find("{values}") != Utf8::npos)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_NativeExitCodeDiagnosticShowsDecimalAndHex)
 {
     CommandLine cmdLine;

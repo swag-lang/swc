@@ -138,3 +138,35 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     var canvas = catch ImageCanvas.create(empty) as err
     @assert(err != null)
 }
+
+// An antialiased stroke reaches the pixels, opaque.
+//
+// Antialiased geometry goes through a pass that uses the destination alpha as scratch and
+// leaves it at zero. Without the separate alpha resolve the canvas asks for, every stroke
+// drawn off screen read back fully transparent while its color was perfectly correct.
+#test
+{
+    var canvas: ImageCanvas
+    if !openCanvas(32, 32, &canvas) do
+        return
+
+    var path: LinePath
+    path.start(4, 16)
+    path.lineTo(28, 16)
+
+    var pen: Pen
+    pen.size        = 8
+    pen.brush       = Brush.createSolid(Color.fromRgb(247, 249, 0))
+    pen.begCapStyle = .Round
+    pen.endCapStyle = .Round
+    canvas.painter.setAntialiased(true)
+    canvas.painter.drawPath(&path, pen)
+
+    var img = catch canvas.toImage() as err
+    @assert(err == null)
+
+    let hit = img.getPixelColor(16, 16)
+    @assert(hit.r == 247 and hit.g == 249 and hit.b == 0)
+    @assert(hit.a == 255)
+    @assert(img.getPixelColor(16, 2).a == 0)
+}

@@ -21,7 +21,6 @@
 #include <optional>
 #include <print>
 #include <ranges>
-#include <regex>
 #include <set>
 #include <shared_mutex>
 #include <span>

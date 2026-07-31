@@ -19,47 +19,103 @@ namespace
 {
     struct DiagnosticIdInfo // NOLINT(clang-diagnostic-padded)
     {
-        std::string_view              name;
-        std::vector<std::string_view> messages;
-        DiagnosticSeverity            severity;
-        DiagnosticId                  id = DiagnosticId::None;
+        std::string_view   name;
+        uint16_t           firstMessage = 0;
+        uint16_t           messageCount = 0;
+        DiagnosticSeverity severity     = DiagnosticSeverity::Error;
     };
 
-    template<size_t N>
-    void addDiagnosticInfo(std::array<DiagnosticIdInfo, N>& infos, DiagnosticId id, std::string_view name, DiagnosticSeverity severity, std::string_view msg)
-    {
-        DiagnosticIdInfo& info = infos[static_cast<size_t>(id)];
-        if (info.id == DiagnosticId::None)
-        {
-            info.id       = id;
-            info.name     = name;
-            info.severity = severity;
-        }
-        else
-        {
-            SWC_ASSERT(info.id == id);
-            SWC_ASSERT(info.name == name);
-            SWC_ASSERT(info.severity == severity);
-        }
-
-        info.messages.push_back(msg);
-    }
-
-    std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> makeDiagnosticInfos()
-    {
-        std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> arr{};
-
-#define SWC_DIAG_DEF(id, sev, msg) \
-    addDiagnosticInfo(arr, DiagnosticId::id, #id, DiagnosticSeverity::sev, msg);
+    constexpr size_t DIAGNOSTIC_MESSAGE_COUNT =
+        0
+#define SWC_DIAG_DEF(id, sev, msg) +1
 #include "Support/Report/Msg/Errors.msg"
-
 #include "Support/Report/Msg/Notes.msg"
-
 #undef SWC_DIAG_DEF
-        return arr;
+        ;
+
+    static_assert(DIAGNOSTIC_MESSAGE_COUNT <= std::numeric_limits<uint16_t>::max());
+
+    constexpr std::array<std::string_view, DIAGNOSTIC_MESSAGE_COUNT> DIAGNOSTIC_MESSAGES = {{
+#define SWC_DIAG_DEF(id, sev, msg) msg,
+#include "Support/Report/Msg/Errors.msg"
+#include "Support/Report/Msg/Notes.msg"
+#undef SWC_DIAG_DEF
+    }};
+
+    struct DiagnosticMessageDefinition
+    {
+        DiagnosticId       id;
+        std::string_view   name;
+        DiagnosticSeverity severity;
+    };
+
+    consteval std::array<DiagnosticMessageDefinition, DIAGNOSTIC_MESSAGE_COUNT> makeDiagnosticMessageDefinitions()
+    {
+        return {{
+#define SWC_DIAG_DEF(id, sev, msg) {DiagnosticId::id, #id, DiagnosticSeverity::sev},
+#include "Support/Report/Msg/Errors.msg"
+#include "Support/Report/Msg/Notes.msg"
+#undef SWC_DIAG_DEF
+        }};
     }
 
-    const std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> DIAGNOSTIC_INFOS = makeDiagnosticInfos();
+    constexpr auto DIAGNOSTIC_MESSAGE_DEFINITIONS = makeDiagnosticMessageDefinitions();
+
+    consteval bool validateDiagnosticMessageDefinitions()
+    {
+        std::array<bool, static_cast<size_t>(DiagnosticId::Count)> seen{};
+        const DiagnosticMessageDefinition* previous = nullptr;
+        for (const DiagnosticMessageDefinition& definition : DIAGNOSTIC_MESSAGE_DEFINITIONS)
+        {
+            const size_t idIndex = static_cast<size_t>(definition.id);
+            if (idIndex == 0 || idIndex >= seen.size())
+                return false;
+
+            if (!previous || definition.id != previous->id)
+            {
+                if (seen[idIndex])
+                    return false;
+                seen[idIndex] = true;
+            }
+            else if (definition.name != previous->name || definition.severity != previous->severity)
+            {
+                return false;
+            }
+
+            previous = &definition;
+        }
+
+        for (size_t idIndex = 1; idIndex < seen.size(); ++idIndex)
+        {
+            if (!seen[idIndex])
+                return false;
+        }
+        return true;
+    }
+
+    static_assert(validateDiagnosticMessageDefinitions(), "each diagnostic id needs one contiguous message group with a stable name and severity");
+
+    consteval std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> makeDiagnosticInfos()
+    {
+        std::array<DiagnosticIdInfo, static_cast<size_t>(DiagnosticId::Count)> result{};
+
+        for (size_t messageIndex = 0; messageIndex < DIAGNOSTIC_MESSAGE_DEFINITIONS.size(); ++messageIndex)
+        {
+            const DiagnosticMessageDefinition& definition = DIAGNOSTIC_MESSAGE_DEFINITIONS[messageIndex];
+            DiagnosticIdInfo&                  info       = result[static_cast<size_t>(definition.id)];
+            if (!info.messageCount)
+            {
+                info.name         = definition.name;
+                info.firstMessage = static_cast<uint16_t>(messageIndex);
+                info.severity     = definition.severity;
+            }
+            ++info.messageCount;
+        }
+
+        return result;
+    }
+
+    constexpr auto DIAGNOSTIC_INFOS = makeDiagnosticInfos();
 
     uint32_t codeRangeEndLine(const TaskContext& ctx, const SourceCodeRange& codeRange)
     {
@@ -164,28 +220,30 @@ Utf8 Diagnostic::tokenErrorString(const TaskContext& ctx, const SourceCodeRef& c
 
 std::string_view Diagnostic::diagIdMessage(DiagnosticId id)
 {
-    SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
-    const std::vector<std::string_view>& msgs = DIAGNOSTIC_INFOS[static_cast<size_t>(id)].messages;
-    SWC_ASSERT(!msgs.empty());
-    return msgs.front();
+    const DiagnosticIdInfo& info = DIAGNOSTIC_INFOS[static_cast<size_t>(id)];
+    SWC_ASSERT(info.messageCount);
+    return DIAGNOSTIC_MESSAGES[info.firstMessage];
 }
 
 std::span<const std::string_view> Diagnostic::diagIdMessages(DiagnosticId id)
 {
-    SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
-    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].messages;
+    const DiagnosticIdInfo& info = DIAGNOSTIC_INFOS[static_cast<size_t>(id)];
+    SWC_ASSERT(info.messageCount);
+    return {DIAGNOSTIC_MESSAGES.data() + info.firstMessage, info.messageCount};
 }
 
 std::string_view Diagnostic::diagIdName(DiagnosticId id)
 {
-    SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
-    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].name;
+    const DiagnosticIdInfo& info = DIAGNOSTIC_INFOS[static_cast<size_t>(id)];
+    SWC_ASSERT(info.messageCount);
+    return info.name;
 }
 
 DiagnosticSeverity Diagnostic::diagIdSeverity(DiagnosticId id)
 {
-    SWC_ASSERT(DIAGNOSTIC_INFOS[static_cast<size_t>(id)].id == id);
-    return DIAGNOSTIC_INFOS[static_cast<size_t>(id)].severity;
+    const DiagnosticIdInfo& info = DIAGNOSTIC_INFOS[static_cast<size_t>(id)];
+    SWC_ASSERT(info.messageCount);
+    return info.severity;
 }
 
 Diagnostic::Diagnostic(FileRef file) :

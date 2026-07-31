@@ -53,29 +53,27 @@ namespace
     }
 }
 
-StructConfigEntry& StructConfigSchema::addImpl(const char* name, const char* description, const StructConfigTarget& target, const StructConfigAssignHook hook)
+StructConfigEntry& StructConfigSchema::addImpl(const std::string_view name, const std::string_view description, const StructConfigTarget& target, const StructConfigAssignHook hook)
 {
     StructConfigEntry entry;
-    entry.name        = name ? name : "";
-    entry.description = description ? description : "";
+    entry.name        = name;
+    entry.description = description;
     entry.target      = target;
     entry.afterSet    = hook;
 
     SWC_ASSERT(!entry.name.empty());
-    SWC_ASSERT(!entriesMap_.contains(entry.name));
+    SWC_ASSERT(find(entry.name) == nullptr);
 
-    const size_t index      = entries_.size();
-    entriesMap_[entry.name] = index;
     entries_.push_back(std::move(entry));
     return entries_.back();
 }
 
-StructConfigEntry& StructConfigSchema::add(const char* name, const StructConfigTarget& target, const char* description, const StructConfigAssignHook hook)
+StructConfigEntry& StructConfigSchema::add(const std::string_view name, const StructConfigTarget& target, const std::string_view description, const StructConfigAssignHook hook)
 {
     return addImpl(name, description, target, hook);
 }
 
-StructConfigEntry& StructConfigSchema::addEnum(const char* name, Utf8* target, std::vector<Utf8> choices, const char* description, const StructConfigAssignHook hook)
+StructConfigEntry& StructConfigSchema::addEnum(const std::string_view name, Utf8* target, std::vector<Utf8> choices, const std::string_view description, const StructConfigAssignHook hook)
 {
     StructConfigEntry& entry = addImpl(name, description, target, hook);
     entry.choices            = std::move(choices);
@@ -84,11 +82,13 @@ StructConfigEntry& StructConfigSchema::addEnum(const char* name, Utf8* target, s
 
 const StructConfigEntry* StructConfigSchema::find(const std::string_view name) const
 {
-    const auto it = entriesMap_.find(name);
-    if (it == entriesMap_.end())
-        return nullptr;
+    for (const StructConfigEntry& entry : entries_)
+    {
+        if (entry.name == name)
+            return &entry;
+    }
 
-    return &entries_[it->second];
+    return nullptr;
 }
 
 std::optional<Utf8> StructConfigSchema::suggest(const std::string_view query) const

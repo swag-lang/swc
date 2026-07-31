@@ -143,7 +143,7 @@ namespace
         appendValuePart(parts, "peak ", LogColor::Gray);
         appendValuePart(parts, Utf8Helper::toNiceSize(peakBytes), LogColor::White);
         appendValuePart(parts, " (", LogColor::Gray);
-        appendValuePart(parts, std::format("{:.1f}%", peakPct), LogColor::White);
+        appendValuePart(parts, Utf8Helper::formatFixedDecimal(peakPct, 1) + "%", LogColor::White);
         appendValuePart(parts, ")", LogColor::Gray);
 
         if (totalBytes && totalBytes != peakBytes)
@@ -358,14 +358,14 @@ void Stats::print(const TaskContext& ctx) const
                 const char    sign  = delta >= 0 ? '+' : '-';
                 const size_t  abs   = static_cast<size_t>(std::abs(delta));
                 const double  pct   = transition.previousCount != 0 ? 100.0 * static_cast<double>(delta) / static_cast<double>(transition.previousCount) : 0.0;
-                addField(entries, transition.countLabel, std::format("{} ({}{} ({:+.2f}%))", Utf8Helper::toNiceBigNumber(transition.currentCount), sign, Utf8Helper::toNiceBigNumber(abs), pct));
+                addField(entries, transition.countLabel, std::format("{} ({}{} ({}%))", Utf8Helper::toNiceBigNumber(transition.currentCount), sign, Utf8Helper::toNiceBigNumber(abs), Utf8Helper::formatFixedDecimal(pct, 2, true)));
             }
 
             const int64_t pipelineDelta = static_cast<int64_t>(numMicroFinal) - static_cast<int64_t>(numMicroInitial);
             const char    pipelineSign  = pipelineDelta >= 0 ? '+' : '-';
             const size_t  pipelineAbs   = static_cast<size_t>(std::abs(pipelineDelta));
             const double  pipelinePct   = numMicroInitial != 0 ? 100.0 * static_cast<double>(pipelineDelta) / static_cast<double>(numMicroInitial) : 0.0;
-            addField(entries, "Initial to final delta", std::format("{}{} ({:+.2f}%)", pipelineSign, Utf8Helper::toNiceBigNumber(pipelineAbs), pipelinePct));
+            addField(entries, "Initial to final delta", std::format("{}{} ({}%)", pipelineSign, Utf8Helper::toNiceBigNumber(pipelineAbs), Utf8Helper::formatFixedDecimal(pipelinePct, 2, true)));
             addField(entries, "SSA builds", Utf8Helper::toNiceBigNumber(numMicroSsaBuilds.load()));
             addField(entries, "SSA invalidations", Utf8Helper::toNiceBigNumber(numMicroSsaInvalidations.load()));
             Logger::printFieldGroup(ctx, "Micro Pipeline", entries, nextInfoGroupStyle(hasPrintedGroup, 36));

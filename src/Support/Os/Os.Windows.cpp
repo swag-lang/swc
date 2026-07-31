@@ -13,7 +13,6 @@
 #include <dbghelp.h>
 #include <psapi.h>
 
-#pragma comment(lib, "Dbghelp.lib")
 #pragma comment(lib, "Psapi.lib")
 
 SWC_BEGIN_NAMESPACE();
@@ -102,9 +101,14 @@ namespace
 
     struct SymbolEngineState
     {
-        std::mutex mutex;
-        bool       attempted   = false;
-        bool       initialized = false;
+        std::mutex                      mutex;
+        HMODULE                         module               = nullptr;
+        decltype(&SymSetOptions)        symSetOptions        = nullptr;
+        decltype(&SymInitialize)        symInitialize        = nullptr;
+        decltype(&SymFromAddr)          symFromAddr          = nullptr;
+        decltype(&SymGetLineFromAddr64) symGetLineFromAddr64 = nullptr;
+        bool                            attempted            = false;
+        bool                            initialized          = false;
     };
 
     SymbolEngineState& symbolEngineState()
@@ -120,10 +124,30 @@ namespace
 
         if (!state.attempted)
         {
-            state.attempted      = true;
+            state.attempted = true;
+            state.module    = LoadLibraryExW(L"dbghelp.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+            if (!state.module)
+                return false;
+
+            state.symSetOptions        = reinterpret_cast<decltype(state.symSetOptions)>(GetProcAddress(state.module, "SymSetOptions"));
+            state.symInitialize        = reinterpret_cast<decltype(state.symInitialize)>(GetProcAddress(state.module, "SymInitialize"));
+            state.symFromAddr          = reinterpret_cast<decltype(state.symFromAddr)>(GetProcAddress(state.module, "SymFromAddr"));
+            state.symGetLineFromAddr64 = reinterpret_cast<decltype(state.symGetLineFromAddr64)>(GetProcAddress(state.module, "SymGetLineFromAddr64"));
+            if (!state.symSetOptions || !state.symInitialize || !state.symFromAddr || !state.symGetLineFromAddr64)
+            {
+                FreeLibrary(state.module);
+                state.module = nullptr;
+                return false;
+            }
+
             const HANDLE process = GetCurrentProcess();
-            SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
-            state.initialized = SymInitialize(process, nullptr, TRUE) == TRUE;
+            state.symSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+            state.initialized = state.symInitialize(process, nullptr, TRUE) == TRUE;
+            if (!state.initialized)
+            {
+                FreeLibrary(state.module);
+                state.module = nullptr;
+            }
         }
 
         return state.initialized;
@@ -486,7 +510,7 @@ namespace
         symbol->MaxNameLen   = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
-        if (SymFromAddr(process, address, &displacement, symbol))
+        if (state.symFromAddr(process, address, &displacement, symbol))
         {
             appendOsField(outMsg, "symbol", std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement)), leftPadding);
             hasInfo = true;
@@ -495,7 +519,7 @@ namespace
         IMAGEHLP_LINE64 lineInfo{};
         lineInfo.SizeOfStruct = sizeof(lineInfo);
         DWORD lineDisp        = 0;
-        if (SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
+        if (state.symGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
         {
             const Utf8 fileLoc = FileSystem::formatFileLocation(ctx, fs::path(lineInfo.FileName), lineInfo.LineNumber);
             appendOsField(outMsg, "source", std::format("{} (+{})", fileLoc, lineDisp), leftPadding);
@@ -671,7 +695,7 @@ namespace
         symbol->MaxNameLen   = MAX_SYM_NAME;
 
         DWORD64 displacement = 0;
-        if (SymFromAddr(process, address, &displacement, symbol))
+        if (state.symFromAddr(process, address, &displacement, symbol))
         {
             outAddress.symbolName = displacement ? Utf8(std::format("{} + 0x{:X}", symbol->Name, static_cast<uint64_t>(displacement))) : Utf8(symbol->Name);
             hasInfo               = true;
@@ -680,7 +704,7 @@ namespace
         IMAGEHLP_LINE64 lineInfo{};
         lineInfo.SizeOfStruct = sizeof(lineInfo);
         DWORD lineDisp        = 0;
-        if (SymGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
+        if (state.symGetLineFromAddr64(process, address, &lineDisp, &lineInfo))
         {
             outAddress.sourceLocation = FileSystem::formatFileLocation(ctx, fs::path(lineInfo.FileName), lineInfo.LineNumber);
             if (lineDisp)
@@ -871,6 +895,7 @@ namespace Os
         const Utf8 logMsg = std::format("panic: {}\n", expr.empty() ? "<null>" : expr);
         Logger::printStdErr(LogColor::Red, logMsg);
 
+#if SWC_DEV_MODE
         if (!CompilerInstance::dbgDevStop || CompilerInstance::headlessTestRun)
             exit(ExitCode::PanicBox);
 
@@ -888,6 +913,9 @@ namespace Os
             default:
                 break;
         }
+#else
+        exit(ExitCode::PanicBox);
+#endif
     }
 
     Utf8 systemError()

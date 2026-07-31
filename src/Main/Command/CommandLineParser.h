@@ -27,13 +27,13 @@ using ArgTarget     = StructConfigTarget;
 
 struct ArgInfo
 {
-    Utf8              commands;
-    Utf8              longForm;
-    Utf8              shortForm;
+    std::string_view  commands;
+    std::string_view  longForm;
+    std::string_view  shortForm;
     ArgTarget         target = static_cast<bool*>(nullptr);
     std::vector<Utf8> choices;         // for EnumString and EnumInt: validated choice names
     std::vector<int>  choiceIntValues; // only for EnumInt: parallel to choices
-    Utf8              description;
+    std::string_view  description;
     HelpOptionGroup   group = HelpOptionGroup::Other;
 
     bool isEnum() const { return !choices.empty(); }
@@ -65,14 +65,12 @@ private:
         return static_cast<int>(*static_cast<const E*>(target));
     }
 
-    std::vector<ArgInfo>   args_;
-    std::map<Utf8, size_t> longFormMap_;
-    std::map<Utf8, size_t> shortFormMap_;
-    StructConfigSchema     configSchema_;
-    CommandLine*           cmdLine_     = nullptr;
-    Global*                global_      = nullptr;
-    bool                   errorRaised_ = false;
-    Utf8                   command_;
+    std::vector<ArgInfo> args_;
+    StructConfigSchema   configSchema_;
+    CommandLine*         cmdLine_     = nullptr;
+    Global*              global_      = nullptr;
+    bool                 errorRaised_ = false;
+    Utf8                 command_;
 
     void                       printHelp(const TaskContext& ctx, const Utf8& command = "");
     static CommandKind         isAllowedCommand(const Utf8& cmd);
@@ -83,7 +81,7 @@ private:
     static Result              expandResponseFiles(TaskContext& ctx, const std::vector<Utf8>& in, std::vector<Utf8>& out);
     static Result              expandOneResponseFile(TaskContext& ctx, const fs::path& path, std::vector<Utf8>& out, std::set<fs::path>& visited, uint32_t depth);
     Result                     applyConfigFile(TaskContext& ctx, const std::vector<Utf8>& args);
-    bool                       commandMatches(const Utf8& commandList) const;
+    bool                       commandMatches(std::string_view commandList) const;
     bool                       parseEnumString(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, Utf8* target);
     bool                       parseEnumInt(TaskContext& ctx, const ArgInfo& info, const Utf8& arg, const Utf8& value, const EnumIntTarget& target);
     const ArgInfo*             findArgument(TaskContext& ctx, const Utf8& arg, bool& invertBoolean);

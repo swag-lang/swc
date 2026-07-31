@@ -8,6 +8,31 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    template<typename T>
+    Utf8 formatShortestFloat(const T value)
+    {
+        constexpr int MAX_PRECISION = std::numeric_limits<T>::max_digits10;
+        char          buffer[64];
+
+        for (int precision = 1; precision <= MAX_PRECISION; ++precision)
+        {
+            const int length = std::snprintf(buffer, sizeof(buffer), "%.*g", precision, static_cast<double>(value));
+            SWC_ASSERT(length > 0 && static_cast<size_t>(length) < sizeof(buffer));
+
+            char* end    = nullptr;
+            T     parsed = {};
+            if constexpr (std::same_as<T, float>)
+                parsed = std::strtof(buffer, &end);
+            else
+                parsed = std::strtod(buffer, &end);
+
+            if (end == buffer + length && parsed == value)
+                return Utf8{buffer, static_cast<size_t>(length)};
+        }
+
+        SWC_UNREACHABLE();
+    }
+
     long double apIntToLongDouble(const ApInt& value)
     {
         long double result = 0.0;
@@ -506,10 +531,7 @@ Utf8 ApFloat::toString() const
             if (value_.f32 == 0.0f && std::signbit(value_.f32))
                 return "-0";
 
-            std::array<char, 64> buffer;
-            auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value_.f32, std::chars_format::general);
-            SWC_ASSERT(ec == std::errc());
-            return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
+            return formatShortestFloat(value_.f32);
         }
 
         case 64:
@@ -522,10 +544,7 @@ Utf8 ApFloat::toString() const
             if (value_.f64 == 0.0 && std::signbit(value_.f64))
                 return "-0";
 
-            std::array<char, 64> buffer;
-            auto [ptr, ec] = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value_.f64, std::chars_format::general);
-            SWC_ASSERT(ec == std::errc());
-            return Utf8{buffer.data(), static_cast<size_t>(ptr - buffer.data())};
+            return formatShortestFloat(value_.f64);
         }
 
         default:

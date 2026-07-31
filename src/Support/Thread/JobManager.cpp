@@ -85,21 +85,14 @@ void JobManager::setup(const CommandLine& cmdLine)
     // Decide mode: one core => fully synchronous, no worker threads.
     singleThreaded_ = (count <= 1);
 
-    const size_t numThreads = singleThreaded_ ? 0 : count;
+    configuredWorkerCount_ = singleThreaded_ ? 0 : count;
 
     // Reserve a dedicated index for the setup/main thread when workers exist.
-    // Worker threads keep [0..numThreads-1], main thread gets numThreads.
-    threadIndex_ = singleThreaded_ ? 0 : numThreads;
+    // Worker threads keep [0..configuredWorkerCount_-1], main thread gets the last slot.
+    threadIndex_ = singleThreaded_ ? 0 : configuredWorkerCount_;
 
     accepting_ = true;
     joined_    = false;
-
-    workers_.reserve(numThreads);
-    for (size_t i = 0; i < numThreads; ++i)
-        workers_.emplace_back([&, i] {
-            threadIndex_ = i;
-            workerLoop();
-        });
 }
 
 JobClientId JobManager::newClientId()
@@ -129,6 +122,7 @@ void JobManager::enqueue(Job& job, JobPriority priority, JobClientId client)
     liveRecs_.insert(rec);
     bumpClientCountLocked(client, +1);
     pushReady(rec, priority);
+    growWorkersForLoadLocked();
     cv_.notify_one();
 }
 
@@ -223,6 +217,8 @@ void JobManager::wake(const WaitKey& key)
         pushReady(rec, rec->priority);
         ++woken;
     }
+
+    growWorkersForLoadLocked();
 
     // Wake only as many workers as we made jobs ready: a single readied job does not warrant a
     // thundering-herd notify_all across every parked worker.
@@ -411,7 +407,10 @@ bool JobManager::wakeAll(JobClientId client)
     }
 
     if (woken != 0)
+    {
+        growWorkersForLoadLocked();
         cv_.notify_all();
+    }
 
     return woken != 0;
 }
@@ -483,6 +482,29 @@ void JobManager::pushReady(JobRecord* rec, JobPriority priority)
 {
     readyQ_[static_cast<int>(priority)].push_back(rec);
     readyCount_.fetch_add(1, std::memory_order_release);
+}
+
+void JobManager::growWorkersForLoadLocked()
+{
+    if (singleThreaded_ || !accepting_)
+        return;
+
+    const size_t desiredWorkers = std::min<size_t>(
+        configuredWorkerCount_,
+        readyCount_.load(std::memory_order_acquire) + activeWorkers_.load(std::memory_order_acquire));
+
+    if (workers_.size() >= desiredWorkers)
+        return;
+
+    workers_.reserve(configuredWorkerCount_);
+    while (workers_.size() < desiredWorkers)
+    {
+        const size_t threadIndex = workers_.size();
+        workers_.emplace_back([this, threadIndex] {
+            threadIndex_ = threadIndex;
+            workerLoop();
+        });
+    }
 }
 
 namespace

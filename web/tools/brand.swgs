@@ -13,10 +13,7 @@ once as a [[Pixel.LinePath]] and handed to the two writers that consume it:
 [[Pixel.Svg.Document]] for the vector masters and [[Pixel.Image.fillPath]] for the
 rasters, so a file can never disagree with the others about where an edge is.
 */
-#dependencies
-{
-    #import("pixel", location: "swag@std")
-}
+#import("pixel", location: "swag@std")
 
 using Core, Pixel
 

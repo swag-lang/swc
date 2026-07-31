@@ -14,9 +14,9 @@ So, let's begin.
 
 # Dependencies
 
-Typically, you'd put module setup directly inside the 'module.swg' file of a module. However, if you're working with a script and there isn't a 'module.swg' file, simply put the '#dependencies' block at the beginning of the script file.
+Module setup directives normally go directly in a module's 'module.swg' file. A script has no 'module.swg' file, so put the same directives at the beginning of the script.
 
-This special '#dependencies' compiler block is used to specify :
+These directives can specify:
 
 + External dependencies
     Dependencies are other modules you depend on. For example for Flappy, we will use the 'gui' module.
@@ -29,33 +29,30 @@ This special '#dependencies' compiler block is used to specify :
 
 So in our case, we need to import the module 'gui'. This module is used to create windows and widgets, and will bring other modules like 'core' and 'pixel' (2D painting).
 */
-#dependencies
+// The location "swag@std" tells swag that 'gui' is a standard module that is located
+// with the compiler.
+#import("gui", location: "swag@std")
+
+// Import the audio module, from the same default location
+#import("audio", location: "swag@std")
+
+// This is the optional '#run' block executed by the compiler before compiling the script itself.
+// We define it just to make the point because Flappy does not really need one.
+#run
 {
-    // The location "swag@std" tells swag that 'gui' is a standard module that is located
-    // with the compiler.
-    #import("gui", location: "swag@std")
+    // Get the compiler interface to communicate with the compiler.
+    let itf = @compiler
 
-    // Import the audio module, from the same default location
-    #import("audio", location: "swag@std")
+    // Get the build configuration
+    let cfg = notnull itf.getBuildCfg()
 
-    // This is the optional '#run' block executed by the compiler before compiling the script itself.
-    // We define it just to make the point because Flappy does not really need one.
-    #run
-    {
-        // Get the compiler interface to communicate with the compiler.
-        let itf = @compiler
-
-        // Get the build configuration
-        let cfg = notnull itf.getBuildCfg()
-
-        // Change something...
-        // Here, for example, we force all safety guards to be present in 'debug', and we remove all
-        // of them in 'release'.
-        #static if #cfg == "debug" do
-            cfg.safetyGuards = Swag.SafetyWhat.All
-        else do
-            cfg.safetyGuards = Swag.SafetyWhat.None
-    }
+    // Change something...
+    // Here, for example, we force all safety guards to be present in 'debug', and we remove all
+    // of them in 'release'.
+    #static if #cfg == "debug" do
+        cfg.safetyGuards = Swag.SafetyWhat.All
+    else do
+        cfg.safetyGuards = Swag.SafetyWhat.None
 }
 
 /**
@@ -64,7 +61,7 @@ So in our case, we need to import the module 'gui'. This module is used to creat
 */
 
 /**
-Every module has its individual namespace. To avoid the necessity of mentioning it each time we wish to reference something, we include a global 'using' statement immediately after the '#dependency' block.
+Every module has its individual namespace. To avoid the necessity of mentioning it each time we wish to reference something, we include a global 'using' statement immediately after the module setup directives.
 
 The 'gui' module depends on 'pixel' which depends on 'core'. So we bring all the three namespaces into the file scope.
 Note that we keep 'Audio' as it is.

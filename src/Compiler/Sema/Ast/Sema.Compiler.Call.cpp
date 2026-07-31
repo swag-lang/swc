@@ -1684,14 +1684,6 @@ namespace
     }
 }
 
-Result AstDependenciesBlock::semaPreNode(Sema& sema)
-{
-    if (sema.compiler().isModuleSetupMode())
-        return Result::Continue;
-
-    return Result::SkipChildren;
-}
-
 Result AstCompilerImport::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(ensureModuleSetupDirectiveContext(sema, sema.curNodeRef()));

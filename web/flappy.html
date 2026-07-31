@@ -35,8 +35,8 @@
 </div>
 <p>So, let's begin.</p>
 <h3 id="Dependencies">Dependencies</h3>
-<p>Typically, you'd put module setup directly inside the <span class="code-inline">module.swg</span> file of a module. However, if you're working with a script and there isn't a <span class="code-inline">module.swg</span> file, simply put the <span class="code-inline">#dependencies</span> block at the beginning of the script file.</p>
-<p>This special <span class="code-inline">#dependencies</span> compiler block is used to specify :</p>
+<p>Module setup directives normally go directly in a module's <span class="code-inline">module.swg</span> file. A script has no <span class="code-inline">module.swg</span> file, so put the same directives at the beginning of the script.</p>
+<p>These directives can specify:</p>
 <div class="description-list-title"><p>External dependencies</p></div>
 <div class="description-list-block">
 <p>Dependencies are other modules you depend on. For example for Flappy, we will use the <span class="code-inline">gui</span> module.</p>
@@ -50,33 +50,30 @@
 <p>If present, a special <span class="code-inline">#run</span> block will be executed by the compiler at the very beginning of the compilation stage. It gives the opportunity to change some build configurations.</p>
 </div>
 <p>So in our case, we need to import the module <span class="code-inline">gui</span>. This module is used to create windows and widgets, and will bring other modules like <span class="code-inline">core</span> and <span class="code-inline">pixel</span> (2D painting).</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#dependencies</span>
+<div class="code-block"><span class="SCde"><span class="SCmt">// The location "swag@std" tells swag that 'gui' is a standard module that is located</span>
+<span class="SCmt">// with the compiler.</span>
+<span class="SCmp">#import</span>(<span class="SStr">"gui"</span>, location: <span class="SStr">"swag@std"</span>)
+
+<span class="SCmt">// Import the audio module, from the same default location</span>
+<span class="SCmp">#import</span>(<span class="SStr">"audio"</span>, location: <span class="SStr">"swag@std"</span>)
+
+<span class="SCmt">// This is the optional '#run' block executed by the compiler before compiling the script itself.</span>
+<span class="SCmt">// We define it just to make the point because Flappy does not really need one.</span>
+<span class="SFct">#run</span>
 {
-    <span class="SCmt">// The location "swag@std" tells swag that 'gui' is a standard module that is located</span>
-    <span class="SCmt">// with the compiler.</span>
-    <span class="SCmp">#import</span>(<span class="SStr">"gui"</span>, location: <span class="SStr">"swag@std"</span>)
+    <span class="SCmt">// Get the compiler interface to communicate with the compiler.</span>
+    <span class="SKwd">let</span> itf = <span class="SItr">@compiler</span>
 
-    <span class="SCmt">// Import the audio module, from the same default location</span>
-    <span class="SCmp">#import</span>(<span class="SStr">"audio"</span>, location: <span class="SStr">"swag@std"</span>)
+    <span class="SCmt">// Get the build configuration</span>
+    <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> itf.<span class="SFct">getBuildCfg</span>()
 
-    <span class="SCmt">// This is the optional '#run' block executed by the compiler before compiling the script itself.</span>
-    <span class="SCmt">// We define it just to make the point because Flappy does not really need one.</span>
-    <span class="SFct">#run</span>
-    {
-        <span class="SCmt">// Get the compiler interface to communicate with the compiler.</span>
-        <span class="SKwd">let</span> itf = <span class="SItr">@compiler</span>
-
-        <span class="SCmt">// Get the build configuration</span>
-        <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> itf.<span class="SFct">getBuildCfg</span>()
-
-        <span class="SCmt">// Change something...</span>
-        <span class="SCmt">// Here, for example, we force all safety guards to be present in 'debug', and we remove all</span>
-        <span class="SCmt">// of them in 'release'.</span>
-        <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"debug"</span> <span class="SLgc">do</span>
-            cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
-        <span class="SLgc">else</span> <span class="SLgc">do</span>
-            cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">None</span>
-    }
+    <span class="SCmt">// Change something...</span>
+    <span class="SCmt">// Here, for example, we force all safety guards to be present in 'debug', and we remove all</span>
+    <span class="SCmt">// of them in 'release'.</span>
+    <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"debug"</span> <span class="SLgc">do</span>
+        cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
+    <span class="SLgc">else</span> <span class="SLgc">do</span>
+        cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">None</span>
 }
 
 </span></div>
@@ -84,7 +81,7 @@
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
 <p>You might observe that there's no need to end the lines with a <span class="code-inline">;</span> like in C or C++. While it's still possible, this is not mandatory.</p>
 </div>
-<p>Every module has its individual namespace. To avoid the necessity of mentioning it each time we wish to reference something, we include a global <span class="code-inline">using</span> statement immediately after the <span class="code-inline">#dependency</span> block.</p>
+<p>Every module has its individual namespace. To avoid the necessity of mentioning it each time we wish to reference something, we include a global <span class="code-inline">using</span> statement immediately after the module setup directives.</p>
 <p>The <span class="code-inline">gui</span> module depends on <span class="code-inline">pixel</span> which depends on <span class="code-inline">core</span>. So we bring all the three namespaces into the file scope. Note that we keep <span class="code-inline">Audio</span> as it is.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst">Pixel</span>, <span class="SCst">Gui</span>
 

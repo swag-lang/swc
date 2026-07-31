@@ -1,10 +1,7 @@
 // This Swag script has been done thanks to "The Coding Train" youtube channel.
 // https://www.youtube.com/watch?v=4hA7G3gup-4
 
-#dependencies
-{
-    #import("gui", location: "swag@std")
-}
+#import("gui", location: "swag@std")
 
 using Core, Gui, Pixel, Core.Math
 

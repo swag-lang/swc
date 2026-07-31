@@ -171,7 +171,6 @@ private:
     AstNodeRef parseCompilerDiagnostic();
     AstNodeRef parseCompilerCall(uint32_t numParams);
     AstNodeRef parseCompilerCallOne();
-    AstNodeRef parseCompilerDependencies();
     AstNodeRef parseCompilerRun();
     AstNodeRef parseCompilerCode();
     bool       isCodeLiteralBinderAhead() const;

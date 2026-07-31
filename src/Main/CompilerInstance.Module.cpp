@@ -2458,7 +2458,7 @@ Result CompilerInstance::collectFiles(TaskContext& ctx)
 
     // Collect runtime files. The runtime bootstrap (which declares compiler intrinsics such
     // as `@compiler`) must always be part of the input set, including the module-setup pass
-    // that runs `#dependencies`/`#run` blocks, so those blocks can reach it too.
+    // that runs module-setup directives and `#run` blocks, so those blocks can reach it too.
     {
         fs::path runtimePath = FileSystem::compilerResourceRoot(exeFullName_) / "runtime";
         SWC_RESULT(FileSystem::resolveFolder(ctx, runtimePath));

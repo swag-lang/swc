@@ -4,10 +4,7 @@
 // Source code:
 // https://editor.p5js.org/codingtrain/sketches/HtEtm1vii
 
-#dependencies
-{
-    #import("gui", location: "swag@std")
-}
+#import("gui", location: "swag@std")
 
 using Core, Gui, Pixel, Core.Math
 

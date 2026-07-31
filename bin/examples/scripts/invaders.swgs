@@ -4,11 +4,8 @@
     Ressources (images/sounds) come from the corresponding https://github.com/clear-code-projects/Space-invaders.
 */
 
-#dependencies
-{
-    #import("gui", location: "swag@std")
-    #import("audio", location: "swag@std")
-}
+#import("gui", location: "swag@std")
+#import("audio", location: "swag@std")
 
 using Gui, Core, Pixel
 const W, H = 900

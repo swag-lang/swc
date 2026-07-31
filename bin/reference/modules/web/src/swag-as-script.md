@@ -8,16 +8,10 @@ To create a new script file with the special extension 'swgs':
     => script file 'myScript.swgs' has been created
     => type 'swag script -f:myScript.swgs' to run that script
 
-This will generate a simple file with a '#dependency' block and the program entry point '#main'.
+This will generate a simple file with the program entry point `#main`.
 
 ```swag
 // Swag script file
-#dependencies
-{
-    // Here you can add your external dependencies
-    // #import "core" location="swag@std"
-}
-
 #main
 {
     @print("Hello world !\n")
@@ -50,11 +44,8 @@ To run one of them from the console, go to the folder and type for example `swag
 You can add external dependencies, and they will be compiled and used as native code.
 
 ```swag
-#dependencies
-{
-    // Import the standard module `core` from the swag standard workspace (which comes with the compiler)
-    #import "core" location="swag@std"
-}
+// Import the standard module `core` from the Swag standard workspace that comes with the compiler
+#import("core", location: "swag@std")
 ```
 
 A special hidden workspace (in the Swag cache folder) will be created to contain all the corresponding native code.
@@ -64,14 +55,11 @@ A special hidden workspace (in the Swag cache folder) will be created to contain
 
 ## More than one script file
 
-If your script is divided in more than one single file, you can add `#load <filename>` in the `#dependencies` block.
+If your script is divided into multiple files, add each additional file with a top-level `#load` directive.
 
 ```swag
-#dependencies
-{
-    #load "myOtherFile.swgs"
-    #load "folder/myOtherOtherFile.swgs"
-}
+#load("myOtherFile.swgs")
+#load("folder/myOtherOtherFile.swgs")
 ```
 
 ## Debug

@@ -469,13 +469,6 @@ AstNodeRef Parser::parseCompilerSwitch(TokenRef staticTokRef)
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerDependencies()
-{
-    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::DependenciesBlock>(consume());
-    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
-    return nodeRef;
-}
-
 AstNodeRef Parser::parseCompilerGlobal()
 {
     auto [nodeRef, nodePtr]       = ast_->makeNode<AstNodeId::CompilerGlobal>(consume());

@@ -1321,14 +1321,6 @@ AstNodeRef AstAttributeList::semaClone(Sema& sema, const CloneContext& cloneCont
     return newRef;
 }
 
-AstNodeRef AstDependenciesBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const
-{
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::DependenciesBlock>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstDependenciesBlock>();
-    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
-    return newRef;
-}
-
 AstNodeRef AstUsingDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::UsingDecl>(sema, *this);

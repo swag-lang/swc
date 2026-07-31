@@ -324,7 +324,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#main", State.CompilerFunction)
         .mapWords.add("#message", State.CompilerFunction)
         .mapWords.add("#ast", State.CompilerFunction)
-        .mapWords.add("#dependencies", State.CompilerFunction)
 
         .mapWords.add("#global", State.CompilerGlobal)
         .mapWords.add("#load", State.CompilerStatement)

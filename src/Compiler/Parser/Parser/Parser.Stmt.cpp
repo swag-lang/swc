@@ -866,9 +866,6 @@ AstNodeRef Parser::parseTopLevelStmt()
         case TokenId::CompilerFuncMessage:
             return parseCompilerMessageFunc();
 
-        case TokenId::CompilerDependencies:
-            return parseCompilerDependencies();
-
         case TokenId::KwdPublic:
         case TokenId::KwdPrivate:
         case TokenId::KwdInternal:

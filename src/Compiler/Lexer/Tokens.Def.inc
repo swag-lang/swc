@@ -181,7 +181,6 @@ SWC_TOKEN_DEF(CompilerFuncDrop, "#drop",  TokenIdKindE::Compiler | TokenIdKindE:
 SWC_TOKEN_DEF(CompilerFuncMain, "#main",  TokenIdKindE::Compiler | TokenIdKindE::Func)
 SWC_TOKEN_DEF(CompilerFuncPreMain, "#premain",  TokenIdKindE::Compiler | TokenIdKindE::Func)
 SWC_TOKEN_DEF(CompilerFuncMessage, "#message",  TokenIdKindE::Compiler | TokenIdKindE::Func)
-SWC_TOKEN_DEF(CompilerDependencies, "#dependencies",  TokenIdKindE::Compiler | TokenIdKindE::Func)
 SWC_TOKEN_DEF(CompilerInclude, "#include",  TokenIdKindE::Compiler | TokenIdKindE::Intrinsic | TokenIdKindE::Return)
 SWC_TOKEN_DEF(CompilerLoad, "#load",  TokenIdKindE::Compiler)
 SWC_TOKEN_DEF(CompilerAssert, "#assert",  TokenIdKindE::Compiler)

@@ -11,6 +11,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -42,17 +43,14 @@ namespace
         scope.addUsingSymMap(usingSymMap);
     }
 
-    bool isScriptModuleSetupFile(const Sema& sema)
+    bool isScriptModuleFile(const Sema& sema)
     {
-        if (!sema.compiler().isModuleSetupMode() || !sema.ctx().cmdLine().scriptMode)
+        const CommandLine& cmdLine = sema.ctx().cmdLine();
+        if (!cmdLine.scriptMode || cmdLine.moduleFilePath.empty())
             return false;
 
-        // Only the script file itself (the module-setup file) keeps just its directive nodes
-        // during the setup pass. Other files pulled into the same setup unit - notably the
-        // always-present runtime bootstrap that declares `@compiler`, `@pinfos`, ... - must be
-        // processed in full so those declarations are visible to the script's `#run` blocks.
         const SourceFile* file = sema.file();
-        return file != nullptr && file->hasFlag(FileFlagsE::Module);
+        return file != nullptr && FileSystem::pathEquals(file->path(), cmdLine.moduleFilePath);
     }
 
     bool isScriptModuleSetupChild(Sema& sema, const AstNodeRef childRef)
@@ -60,7 +58,6 @@ namespace
         const AstNode& childNode = sema.node(childRef);
         switch (childNode.id())
         {
-            case AstNodeId::DependenciesBlock:
             case AstNodeId::CompilerImport:
                 return true;
 
@@ -77,11 +74,17 @@ namespace
 
     Result filterScriptModuleSetupChild(Sema& sema, const AstNodeRef childRef)
     {
-        if (!isScriptModuleSetupFile(sema))
+        if (!isScriptModuleFile(sema))
             return Result::Continue;
-        if (isScriptModuleSetupChild(sema, childRef))
-            return Result::Continue;
-        return Result::SkipChildren;
+
+        // The script file is both its module-setup file and its regular source file. Process
+        // setup directives only during the setup pass, and everything else only during the
+        // regular pass. Runtime bootstrap files still need full processing in the setup unit
+        // so declarations such as `@compiler` remain visible to setup `#run` blocks.
+        const bool setupDirective = isScriptModuleSetupChild(sema, childRef);
+        if (sema.compiler().isModuleSetupMode())
+            return setupDirective ? Result::Continue : Result::SkipChildren;
+        return setupDirective ? Result::SkipChildren : Result::Continue;
     }
 
     // Top-level symbols of an imported-API file are created under the shared import-root namespace

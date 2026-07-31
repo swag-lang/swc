@@ -1194,13 +1194,6 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
 };
 
 // -----------------------------------------------------------------------------
-struct AstDependenciesBlock : AstCompoundT<AstNodeId::DependenciesBlock>
-{
-    static Result semaPreNode(Sema& sema);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
-};
-
-// -----------------------------------------------------------------------------
 struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 {
     static Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef);

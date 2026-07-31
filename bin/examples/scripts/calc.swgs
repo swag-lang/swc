@@ -1,11 +1,7 @@
-#dependencies
-{
-    #import("gui", location: "swag@std")
-}
+#import("gui", location: "swag@std")
+#load("calc.symbols.swg")
 
 using Core, Gui, Pixel, Core.Math
-const Div = "\u00F7"
-const Mul = "\u00D7"
 
 var g_FontTxt:      #null *Font
 var g_FontBtn:      #null *Font

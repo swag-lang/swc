@@ -539,7 +539,6 @@ namespace
             switch (node.id())
             {
                 case AstNodeId::File:
-                case AstNodeId::DependenciesBlock:
                 case AstNodeId::FunctionBody:
                 case AstNodeId::AggregateBody:
                 case AstNodeId::EnumBody:

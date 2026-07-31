@@ -1,127 +1,132 @@
 /**
-![?](imgs/flappy.png)
+![Flappy Bird running in a Swag window](imgs/flappy.png)
 
-Here is a very simple script that implements the [Flappy Bird](https://en.wikipedia.org/wiki/Flappy_Bird) game. To have some fun and play with it, go to the `bin/examples/scripts` folder, and type :
+This single-file script implements a small [Flappy Bird](https://en.wikipedia.org/wiki/Flappy_Bird)
+game with the standard GUI, Pixel, Core, and Audio modules. From the repository
+root, run:
 
-    $ swag flappy.swgs
+```text
+swc bin/examples/scripts/flappy.swgs
+```
 
-The goal here is to comment a real-life example of Swag usage. However, it's better to read the basic language [documentation](language.html) first, as we will not go too deep into the details.
+The walkthrough focuses on how a complete script is assembled: module imports,
+compile-time configuration, lifecycle hooks, events, painting, audio, owned
+collections, and asset loading. Read the [language tour](language.html#_001_002_language_tour_swg)
+first if the syntax is new.
 
 > NOTE:
-> This page has been generated with Swag directly from the [source code](https://github.com/swag-lang/swag/blob/master/bin/examples/scripts/flappy.swgs).
-
-So, let's begin.
+> This page is generated directly from the
+> [executable source](https://github.com/swag-lang/swc/blob/master/bin/examples/scripts/flappy.swgs).
+> Documentation and program therefore use the same revision.
 
 # Dependencies
 
-Module setup directives normally go directly in a module's 'module.swg' file. A script has no 'module.swg' file, so put the same directives at the beginning of the script.
+Module setup directives normally live in 'module.swg'. A standalone script has
+no separate setup file, so it places those directives before ordinary source:
 
-These directives can specify:
+- '#import' establishes a compiled module dependency;
+- '#load' adds another source file to the same script module;
+- a top-level '#run' block updates the script build configuration.
 
-+ External dependencies
-    Dependencies are other modules you depend on. For example for Flappy, we will use the 'gui' module.
-
-+ Additional files
-    In case of scripts, you can add more files to compile with the '#load' directive.
-
-+ Module configuration
-    If present, a special '#run' block will be executed by the compiler at the very beginning of the compilation stage. It gives the opportunity to change some build configurations.
-
-So in our case, we need to import the module 'gui'. This module is used to create windows and widgets, and will bring other modules like 'core' and 'pixel' (2D painting).
+Flappy imports 'gui' for the application and window layer, and 'audio' for
+playback. Their transitive dependencies provide Core utilities and Pixel
+drawing, but application code should still import every module it uses
+directly when it owns a normal workspace module.
 */
-// The location "swag@std" tells swag that 'gui' is a standard module that is located
-// with the compiler.
+// 'swag@std' resolves 'gui' from the standard workspace under SWAG_PATH.
 #import("gui", location: "swag@std")
 
-// Import the audio module, from the same default location
+// Import Audio from the same standard workspace.
 #import("audio", location: "swag@std")
 
-// This is the optional '#run' block executed by the compiler before compiling the script itself.
-// We define it just to make the point because Flappy does not really need one.
+// This optional setup block runs before the rest of the script is compiled.
 #run
 {
-    // Get the compiler interface to communicate with the compiler.
+    // Obtain the compiler interface and this script's mutable build configuration.
     let itf = @compiler
-
-    // Get the build configuration
     let cfg = notnull itf.getBuildCfg()
 
-    // Change something...
-    // Here, for example, we force all safety guards to be present in 'debug', and we remove all
-    // of them in 'release'.
-    #static if #cfg == "debug" do
-        cfg.safetyGuards = Swag.SafetyWhat.All
-    else do
+    // Keep runtime safety guards outside release builds.
+    #static if #cfg == "release" do
         cfg.safetyGuards = Swag.SafetyWhat.None
+    else do
+        cfg.safetyGuards = Swag.SafetyWhat.All
 }
 
 /**
-> NOTE:
-> You might observe that there's no need to end the lines with a ';' like in C or C++. While it's still possible, this is not mandatory.
+Semicolons are optional. This script follows the canonical formatter and omits
+them.
 */
 
 /**
-Every module has its individual namespace. To avoid the necessity of mentioning it each time we wish to reference something, we include a global 'using' statement immediately after the module setup directives.
-
-The 'gui' module depends on 'pixel' which depends on 'core'. So we bring all the three namespaces into the file scope.
-Note that we keep 'Audio' as it is.
+Each standard module exposes its API in a namespace. File-scope 'using'
+declarations make the frequently used Core, Pixel, and Gui names available
+without a prefix. Audio remains qualified so sound operations stay visible at
+their call sites.
 */
 using Core, Pixel, Gui
 
 /**
 # Entry point
 
-The '#main' entry-point hook is usually the entry point of an executable. It's equivalent to the well known `main()` function, but without arguments. In the case of a script, this hook will be executed by the compiler as the program entry point.
+The '#main' hook is the entry point for an executable or script. In script mode,
+'swc' compiles the hook and calls it through the JIT.
 
 > NOTE:
-> You might observe that the arrangement of global declarations doesn't make a difference, as we're using the 'onEvent' function before even defining it. Swag does not bother about the global declaration order.
+> Global declaration order does not affect name resolution. '#main' can call
+> 'onEvent' before its declaration later in the file.
 */
 #main
 {
-    // Creates audio engine. 'assume' tells Swag that if the creation fails, we should panic.
+    // Start the process-wide audio engine. 'expect' turns failure into a panic.
     expect Audio.createEngine()
 
-    // Thanks to 'defer', the audio engine will be destroyed when
-    // leaving this scope, i.e. when exiting the '#main' function.
+    // Destroy the engine when '#main' leaves, including through an early exit.
     defer Audio.destroyEngine()
 
-    // Creates and run one surface (i.e. window) at the given position and with the given size and title.
-    // 'hook' defines a lambda that will receive and treat all gui events.
-    // When the script is run with '--arg:swag.test', 'runSurface' automatically exits after a few
-    // frames, which is usefull for batch testing.
+    // Create one application surface and dispatch its events to 'onEvent'.
+    // '--run-arg swag.test' makes runSurface exit after a bounded frame count,
+    // which keeps automated example tests non-interactive.
     Application.runSurface(100, 100, 254, 481, title: "Flappy Bird", hook: &onEvent)
 }
 
 /**
 # Global definitions
 ## Constants
-We declare global constants with 'const'. Note that we: not specify types for thoses constants. They will be deduced thanks to the affection.
+
+'const' declares compile-time values. The compiler infers their types from the
+initializers; the comments below call out the two default literal types used by
+this script.
 */
-const Gravity      = 2.5     // 2.5 is a 32 bits float, so the type of Gravity is 'f32'
+const Gravity      = 2.5     // An unsuffixed decimal literal defaults to 'f32'.
 const GroundHeight = 40.0
 const SpeedHorz    = 100.0
-const BirdImpulseY = 350     // 350 is an integer, so the type of BirdImpulseY is 's32'
+const BirdImpulseY = 350     // An unsuffixed integer literal defaults to 's32'.
 
 /**
 ## Variables
 */
 
-var g_Bird: Bird     // 'Bird' is a structure, and will be defined later
+var g_Bird: Bird     // 'Bird' is declared later; global order does not matter.
 
 /**
-'g_Pipes' is a **dynamic** and **generic array** where all the elements are of type 'Pipe'. In other languages, you would write 'Array<Pipe>'. 'Array' comes from the 'Core' module, but thanks to the global `using Core`, we: not need to write `Core.Array'Pipe`.
+'g_Pipes' owns a growable Core array of 'Pipe' values. Swag writes the generic
+argument with an apostrophe: `Array'Pipe`. The file-scope 'using Core' avoids
+the fully qualified `Core.Array'Pipe`.
 */
 
 var g_Pipes: Array'Pipe
 
 /**
-'Math' is a namespace part of the 'Core' module. We could have specified a global `using Core.Math` at the top of the script file, but here, we prefer the explicit reference.
+'Math' is a namespace inside Core. Keeping the prefix makes geometry and
+numeric helpers recognizable without importing every Math name.
 */
 
 var g_Rect: Math.Rectangle
 
 /**
-Here are a bunch of global variables. All of them are **initialized to 0** by default.
+These global scalars use their type defaults: zero for numbers and 'false' for
+booleans.
 */
 var g_Dt:       f32
 var g_Time:     f32
@@ -131,17 +136,14 @@ var g_GameOver: bool
 var g_Start:    bool
 
 /**
-Again, no need to specify the type of 'g_FirstStart'. It is deduced from the affectation to be 'bool'.
+The initializer makes the type of 'g_FirstStart' unambiguously 'bool'.
 */
 
 var g_FirstStart = true
 
-/**
-*/
-
 // Texture assets
-var g_DigitTexture: [10] Texture     // A static array of 10 textures
-var g_BirdTexture:  [3] Texture      // A static array of 3 textures
+var g_DigitTexture: [10] Texture     // Ten score-digit textures.
+var g_BirdTexture:  [3] Texture      // Three wing animation frames.
 var g_BackTexture:  Texture
 var g_OverTexture:  Texture
 var g_BaseTexture:  Texture
@@ -156,50 +158,46 @@ var g_SoundHit:   Audio.SoundFile
 var g_SoundFlap:  Audio.SoundFile
 
 /**
-'g_Font' is a **value** pointer to a Font structure.
+'g_Font' is a nullable pointer because font creation can return no font. Call
+sites use 'notnull' only after successful asset loading establishes the
+invariant.
 */
 
 var g_Font: #null *Font
 
 /**
-In Swag, their are two types of pointers.
-* 'value' pointers, which points to one single value. Declared with '*'
-* 'block' pointers, which points to multiple values. Declared with '^'.
-Pointer arithmetic is not enabled on value pointers, but it is on block pointers.
-*/
-
-/**
 ## Types
 */
 
-// Defines the Bird
+// State for the player sprite.
 struct Bird
 {
-    // Position of the bird. Full qualified name.
+    // A fully qualified name remains available despite 'using Core'.
     pos: Core.Math.Vector2
 
-    // Speed of the bird. In fact no need to specify 'Core' thanks to the global 'using'.
+    // The file-scope 'using Core' allows the shorter Math name.
     speed: Math.Vector2
 
-    // Sprite frame
+    // Fractional animation position; painting wraps it across three textures.
     frame: f32
 }
 
-// Defines one Pipe
+// One obstacle pair and its scoring state.
 struct Pipe
 {
-    rectUp:     Math.Rectangle     // Position of the up part of the Pipe
-    rectDown:   Math.Rectangle     // Position of the down part of the Pipe
-    distToNext: f32                // Distance to the next Pipe
-    scored:     bool               // 'true' if the Bird has passed that Pipe
+    rectUp:     Math.Rectangle     // Upper obstacle bounds.
+    rectDown:   Math.Rectangle     // Lower obstacle bounds.
+    distToNext: f32                // Horizontal gap before the next pair.
+    scored:     bool               // True after the bird passes this pair.
 }
 
 /**
 # The actual code
 
-This is the callback that will deal with all gui events. This feels like *Windows* API, but there are other ways of dealing with gui, in a more 'object like' way. You can look at the 'captme' tool for example, which does not use a callback but **interfaces** instead.
-
-For a simple script, this is more easy to process events in that way.
+'onEvent' receives GUI events for the surface. Pattern cases select the concrete
+event type and can bind the typed value with 'as', as the paint case does. A
+larger application can distribute this work across controls or interfaces; a
+single callback keeps this example local.
 */
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
@@ -208,8 +206,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case CreateEvent:
         g_Rect = wnd.getClientRect()
 
-        // 'loadAssets' can raise some errors (we'll see later). So here we 'assume' that
-        // everything will be fine. If an error is raised, a 'panic' will occur.
+        // 'loadAssets' can fail. 'expect' converts that recoverable error into a
+        // panic because the game cannot continue without its assets.
         expect loadAssets(wnd)
 
         start()
@@ -220,16 +218,14 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
 
-        // This is the elapsed time between two 'frames', in seconds.
+        // Elapsed time since the previous frame, in seconds.
         g_Dt = wnd.getApp().getDt()
 
-        input(wnd)         // IO (keyboard test)
-        paint(painter)     // Paint game
-        move()             // Update game
+        input(wnd)
+        paint(painter)
+        move()
 
-        // We force the window to be dirty, which means that the 'Paint' event will
-        // be sent again next frame.
-        // That way we have a cheap 'frame' update.
+        // Request another paint event to keep the frame loop active.
         wnd.invalidate()
     }
 
@@ -237,18 +233,17 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 }
 
 /**
-This is the function to paint the game. Here we are mostly using functions from the 'Pixel' module.
+'paint' draws one frame through the Pixel painter owned by the GUI renderer.
 */
 func paint(painter: *Painter)
 {
-    // Draw the background texture at position (0, 0). The size of the texture is preserved.
+    // Preserve the source dimensions when drawing the background at the origin.
     painter.drawTexture(0, 0, g_BackTexture)
 
     // Bird
     if !g_FirstStart
     {
-        // We save the state of the painter, in order to restore it at the end of the scope.
-        // The state contains various painting parameters, like the current transformation.
+        // Save the painter state and restore it automatically when this scope leaves.
         painter.pushState()
         defer painter.popState()
 
@@ -261,16 +256,15 @@ func paint(painter: *Painter)
 
         painter.translateTransform(g_Bird.pos.x + trf.tx, g_Bird.pos.y + trf.ty)
 
-        // This is the sprite frame of the bird
+        // Select one of the three wing animation frames.
         let frame = cast(s32) g_Bird.frame % 3
 
-        // No need to initialize the 'pt' variable here, as we will set both 'x' and 'y'
-        // just after. So we initialize it with 'undefined'.
+        // Both fields are assigned before use, so skip their default initialization.
         var pt: Math.Point = undefined
         pt.x = -g_BirdTexture[frame].width * 0.5
         pt.y = -g_BirdTexture[frame].height * 0.5
 
-        // Add a little position wave
+        // Add a small idle wave before the first flap.
         if !g_Start
         {
             pt.y   += 5 * Math.sin(g_Time)
@@ -280,16 +274,14 @@ func paint(painter: *Painter)
         painter.drawTexture(pt.x, pt.y, g_BirdTexture[frame])
     }
 
-    // Draw pipes.
-    // 'for' iterates on all the pipes stored in the dynamic array, and returns each value
-    // as a pointer/reference.
+    // Iterate over every stored pipe. This loop only reads each element.
     for pipe in g_Pipes
     {
         painter.drawTexture(pipe.rectUp, g_PipeTextureU)
         painter.drawTexture(pipe.rectDown, g_PipeTextureD)
     }
 
-    // Base
+    // Scroll two ground copies to form a seamless strip.
     painter.drawTexture(-g_BasePos, g_Rect.bottom() - GroundHeight, cast(f32) g_BaseTexture.width, GroundHeight, g_BaseTexture)
     painter.drawTexture(-g_BasePos + g_BaseTexture.width, g_Rect.bottom() - GroundHeight, cast(f32) g_BaseTexture.width, GroundHeight, g_BaseTexture)
     if !g_GameOver do
@@ -297,22 +289,22 @@ func paint(painter: *Painter)
     if g_BasePos >= g_BaseTexture.width do
         g_BasePos = 0
 
-    // Gameover text, centered
+    // Center the game-over texture.
     if g_GameOver
     {
-        // This is another way of initializing a struct variable or constant.
+        // Positional struct initialization supplies x and y in declaration order.
         let pt = Math.Point{g_Rect.horzCenter() - g_OverTexture.width / 2, g_Rect.vertCenter() - g_OverTexture.height / 2}
 
         painter.drawTexture(pt.x, pt.y, g_OverTexture)
     }
 
-    // Score
+    // Draw the score using the loaded game font.
     if !g_FirstStart
     {
         painter.drawStringCenter(g_Rect.horzCenter(), 50, Format.toString("%", g_Score), notnull g_Font, Argb.White)
     }
 
-    // Message
+    // Show the start prompt before the first round.
     if g_FirstStart
     {
         var pt: Math.Point = undefined
@@ -323,7 +315,7 @@ func paint(painter: *Painter)
 }
 
 /**
-Test IO.
+Read keyboard input for the current frame.
 */
 func input(wnd: *Wnd)
 {
@@ -349,7 +341,7 @@ func input(wnd: *Wnd)
 }
 
 /**
-Collision detection (kind of) between the bird and a given rectangle.
+Return whether the bird's sprite bounds intersect a rectangle.
 */
 func birdInRect(rect: Math.Rectangle)->bool
 {
@@ -362,7 +354,7 @@ func birdInRect(rect: Math.Rectangle)->bool
 }
 
 /**
-The 'update' part of the game.
+Advance gameplay by one frame.
 */
 func move()
 {
@@ -376,11 +368,11 @@ func move()
 
     g_Bird.frame += 10 * g_Dt
 
-    // Be sure to have at least one pipe
+    // Keep at least one obstacle pair alive.
     if g_Pipes.count == 0 do
         createPipe()
 
-    // Move each pipe, and test collisions against the bird
+    // '&pipe' binds a mutable reference so updates modify the stored array element.
     if g_Start
     {
         for &pipe in g_Pipes
@@ -388,15 +380,14 @@ func move()
             pipe.rectUp.x   -= SpeedHorz * g_Dt
             pipe.rectDown.x -= SpeedHorz * g_Dt
 
-            // Collision with the pipes
+            // A pipe collision ends the round.
             if birdInRect(pipe.rectUp) or birdInRect(pipe.rectDown)
             {
                 expect Audio.Voice.play(&g_SoundHit)
                 g_GameOver = true
             }
 
-            // If bird moves to the right of a pipe, then this is a win !
-            // Score up.
+            // Award one point when the bird passes a pipe for the first time.
             if g_Bird.pos.x > pipe.rectUp.right() and !pipe.scored
             {
                 expect Audio.Voice.play(&g_SoundScore)
@@ -406,28 +397,28 @@ func move()
         }
     }
 
-    // If the first pipe is out of screen, remove it
+    // Remove the oldest pair once it leaves the surface.
     if g_Pipes[0].rectUp.right() < 0 do
         g_Pipes.removeAt(0)
 
-    // If the last pipe is enough inside, create a new one
+    // Create the next pair after the configured horizontal gap appears.
     if g_Rect.width - g_Pipes.back().rectUp.right() > g_Pipes.back().distToNext do
         createPipe()
 
-    // Collision with the ground
+    // Touching the scrolling ground ends the round.
     if g_Bird.pos.y + g_BirdTexture[0].height > g_Rect.bottom() - GroundHeight
     {
         g_GameOver = true
         expect Audio.Voice.play(&g_SoundHit)
     }
 
-    // Play dying sound
+    // Play the death cue after either collision path.
     if g_GameOver do
         expect Audio.Voice.play(&g_SoundDie)
 }
 
 /**
-Creates a random up and down part of a new Pipe.
+Create one randomized upper/lower pipe pair at the right edge of the surface.
 */
 func createPipe()
 {
@@ -453,11 +444,11 @@ func createPipe()
 }
 
 /**
-Reinitialize the game.
+Reset mutable game state for a new round.
 */
 func start()
 {
-    // '@init' can be called to reinitialize a variable to its default value
+    // Reinitialize one Bird value to its declared defaults.
     @init(&g_Bird, 1)
 
     g_Bird.pos.x = g_Rect.horzCenter()
@@ -465,14 +456,16 @@ func start()
     g_Score      = 0
     g_Pipes.clear()
 
-    // Assign two variables with the same value
+    // A multi-assignment applies the same value to both booleans.
     g_GameOver, g_Start = false
 }
 
 /**
-Load all assets.
+Load textures, sounds, and the score font.
 
-You can notice that the function has 'fail' after its declaration. This indicated that it can return some errors, and that the caller will have to deal with it.
+The trailing 'fail' marks a function that can return a recoverable error. Calls
+inside this function propagate errors automatically; '#main' chooses to turn
+the final error into a panic with 'expect'.
 */
 func loadAssets(wnd: *Wnd) fail
 {
@@ -482,10 +475,8 @@ func loadAssets(wnd: *Wnd) fail
     dataPath = Path.combine(dataPath, "datas")
     dataPath = Path.combine(dataPath, "flappy")
 
-    // Load all sounds
-    //
-    // 'with' tells the compiler that what follows is in the 'context' of the namespace 'Audio.SoundFile'.
-    // So instead of having to write 'Audio.SoundFile.load(...)', we can now only write '.load(...)'.
+    // Load all sounds.
+    // 'with' makes Audio.SoundFile the implicit namespace inside the block.
     with Audio.SoundFile
     {
         g_SoundDie   = .load(Path.combine(dataPath, "die.wav"))
@@ -494,9 +485,8 @@ func loadAssets(wnd: *Wnd) fail
         g_SoundFlap  = .load(Path.combine(dataPath, "flap.wav"))
     }
 
-    // Load all textures
-    //
-    // 'with' can also be used with a variable.
+    // Load all textures.
+    // 'with' also accepts a value; leading-dot calls use 'render' as receiver.
     with render
     {
         g_BirdTexture[0] = .addImage(Path.combine(dataPath, "yellowbird-upflap.png"))

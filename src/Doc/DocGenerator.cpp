@@ -323,7 +323,8 @@ namespace
             outPath = outPath.lexically_normal();
 
             DocPageOptions pageOptions = options;
-            pageOptions.titleContent   = Utf8Helper::toTitle(path.stem().string());
+            if (path.stem() != "index")
+                pageOptions.titleContent = Utf8Helper::toTitle(path.stem().string());
             const Utf8 page            = DocPage::construct(pageOptions, {}, content, true);
             SWC_RESULT(DocFile::write(ctx, outPath, page));
             outPaths.push_back(std::move(outPath));

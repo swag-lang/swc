@@ -839,6 +839,7 @@ body {
 }
 
 .hero-word {
+    margin: 0;
     color: var(--swag-accent);
     font-size: clamp(2.6rem, 7vw, 4.2rem);
     font-weight: 800;
@@ -864,6 +865,85 @@ body {
 
 .hero .round-button a {
     color: inherit;
+}
+
+/* ---------------------------------------------------------- landing page -- */
+
+.feature-grid,
+.doc-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 28px;
+    margin: 24px 0 34px;
+}
+
+.feature-item {
+    padding: 2px 0 20px;
+    border-top: 1px solid var(--swag-line);
+}
+
+.feature-item h3 {
+    margin-top: 18px;
+}
+
+.feature-item p {
+    margin-bottom: 0;
+    color: var(--swag-ink-soft);
+}
+
+.doc-card {
+    position: relative;
+    display: grid;
+    gap: 7px;
+    padding: 20px 0 22px 18px;
+    border-top: 1px solid var(--swag-line);
+    text-decoration: none;
+}
+
+.container .doc-card {
+    color: var(--swag-ink);
+}
+
+.doc-card::before {
+    content: "";
+    position: absolute;
+    top: 20px;
+    bottom: 22px;
+    left: 0;
+    width: 3px;
+    background: var(--swag-link);
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 120ms ease-out;
+}
+
+.container .doc-card:hover,
+.container .doc-card:focus-visible {
+    text-decoration: none;
+}
+
+.doc-card:hover::before,
+.doc-card:focus-visible::before {
+    transform: scaleY(1);
+}
+
+.doc-card-label {
+    color: var(--swag-ink-faint);
+    font-family: var(--swag-font-mono);
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.doc-card strong {
+    line-height: 1.35;
+}
+
+.doc-card > span:last-child {
+    color: var(--swag-ink-soft);
+    font-size: .93rem;
+    line-height: 1.5;
 }
 
 /* ---------------------------------------------------------------- footer -- */
@@ -953,6 +1033,12 @@ body {
 
     .api-item {
         flex-wrap: wrap;
+    }
+
+    .feature-grid,
+    .doc-grid {
+        grid-template-columns: 1fr;
+        gap: 0;
     }
 }
 

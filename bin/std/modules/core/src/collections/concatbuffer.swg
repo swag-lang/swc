@@ -353,7 +353,6 @@ impl ConcatBuffer
         return result
     }
 
-    // Moves the current seek pointer forward by 'num' bytes.
     // Reserves `count` bytes at the cursor and returns where to write them.
     //
     // The cursor moves past the reserved bytes, so the caller fills them in place and keeps
@@ -367,6 +366,7 @@ impl ConcatBuffer
         return cast([*] u8) result
     }
 
+    // Advances the cursor by `num` bytes, growing the buffer when needed.
     mtd moveSeek(num: u64)
     {
         var total = num

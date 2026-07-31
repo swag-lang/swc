@@ -2,108 +2,100 @@
 <div class="hero">
     <div class="hero-lockup">
         <img src="imgs/swag_mark.svg" alt="" width="86" height="86">
-        <span class="hero-word">SWAG</span>
+        <h1 class="hero-word">SWAG</h1>
     </div>
     <p class="hero-line">A systems language that runs at compile time.</p>
     <div class="hero-actions">
-        <div class="round-button"><a href="getting-started.html">Getting Started</a></div>
-        <div class="round-button"><a href="https://github.com/swag-lang/swag/releases">Download the Compiler</a></div>
-    </div>
-</div>
-
-<div style="display:flex; flex-wrap:wrap; margin-bottom:30px;">
-    <div style="flex:200px; padding-left:30px; padding-right:30px;">
-        <h2>A Modern Playground</h2>
-        <p>Swag is a <b>systems</b> programming language crafted for fun, offering a fresh alternative to the increasingly cumbersome C++.</p>
-        <p>This is my third compiler project (the previous ones powered AAA <b>game engines</b>), but Swag represents a significant leap forward in terms of capability and design.</p>
-    </div>
-
-    <div style="flex:200px; padding-left:30px; padding-right:30px;">
-        <h2>Flexible and Powerful</h2>
-        <p>The Swag compiler can generate high-performance <b>native</b> code using a custom x64 backend or LLVM, and it can also function as an interpreter for <b>scripting</b> purposes.</p>
-        <p>Think of it as C++, but with the ability to make everything <i>constexpr</i>.</p>
-    </div>
-
-    <div style="flex:200px; padding-left:30px; padding-right:30px;">
-        <h2>Cutting-Edge Features</h2>
-        <p>Swag offers advanced features like full <b>compile-time</b> evaluation, <b>type reflection</b> at both runtime and compile time, <b>meta-programming</b>, <b>generics</b>, a powerful <b>macro system</b>, and much more.</p>
-        <p>It's designed to be both fun and highly productive.</p>
-    </div>
-</div>
-
-<div align="center">
-    <div class="round-button">
-        <a href="language.html" class="no-decoration">Documentation</a>
-    </div>
-    <div class="round-button">
-        <a href="swag-as-script.html" class="no-decoration">Scripting</a>
-    </div>
-    <div class="round-button">
-        <a href="std.html">Standard Modules</a>
-    </div>
-</div>
-</html>
-<html>
-<div align="center">
-    <p>Explore a detailed, single-script implementation of the <b>Flappy Bird</b> game.</p>
-    <div class="round-button">
-        <a href="flappy.html" class="no-decoration">Flappy Bird</a>
+        <div class="round-button"><a href="getting-started.html">Get Started</a></div>
+        <div class="round-button"><a href="https://github.com/swag-lang/swc">View the Source</a></div>
     </div>
 </div>
 </html>
 
-> WARNING:  
-> Swag is still under active development! Everything, including this website, is a **work in progress**. Features and details are subject to change until we officially reach version 1.0.0. Stay tuned and enjoy the ride!
+Swag compiles Windows x86-64 programs with its own native backend and executes
+the same language through a JIT during compilation, testing, and script runs.
+Runtime code and compile-time code share the same types, functions, reflection,
+error model, and metaprogramming tools.
 
-```swag
-// The 'IsSet' generic struct mirrors the user-defined struct,
-// with each field converted to a 'bool' type.
-// After command-line parsing, it indicates whether each argument
-// was provided by the user.
-struct(T) IsSet
-{
-    #ast
-    {
-        var str = StrConv.StringBuilder{}
-        let typeof = #typeof(T)
-        for f in typeof.fields
-            str.appendFormat("%: bool\n", f.name)
-        return str.toString()
-    }
-}
-```
-
-```swag
-#test
-{
-    const N = 4
-    const PowerOfTwo: [N] s32 = #run
-        {
-            var arr: [N] s32
-            for [i] in @countof(arr)
-                arr[i] = 1 << cast(u32) i
-            return arr
-        }
-
-    #assert PowerOfTwo[0] == 1
-    #assert PowerOfTwo[1] == 2
-    #assert PowerOfTwo[2] == 4
-    #assert PowerOfTwo[3] == 8
-}
-```
-
-Swag is **open source** and released under the [MIT license](https://github.com/swag-lang/swag/blob/master/LICENCE). The compiler source code is available on [GitHub](https://github.com/swag-lang/swag). Check out our [YouTube](https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q) channel for coding sessions.
-
-> WARNING:  
-> As the language evolves, some videos might show outdated syntax. However, the corresponding scripts on GitHub are always up-to-date and functional.
+## What the compiler does
 
 <html>
-<div style="display:flex; flex-wrap:wrap;">
-    <iframe style="width:200px; height:200px; flex:200px; padding:10px;" src="https://www.youtube.com/embed/Il0UuJCXTWI" title="Swag Live Coding - The Flappy Bird Game (silent)" frameborder="0" allowfullscreen></iframe>
-    <iframe style="width:200px; height:200px; flex:200px; padding:10px;" src="https://www.youtube.com/embed/Bqr1pakewaU" title="Swag Live Coding - The Pacman Game (silent)" frameborder="0" allowfullscreen></iframe>
-    <iframe style="width:200px; height:200px; flex:200px; padding:10px;" src="https://www.youtube.com/embed/f2rIXoH6H38" title="Swag Live Coding: The 2048 Game (silent)" frameborder="0" allowfullscreen></iframe>
+<div class="feature-grid">
+    <section class="feature-item">
+        <h3>Native output</h3>
+        <p>Build executables, shared libraries, and static libraries with a direct x86-64 backend. Release builds can emit Windows debug information alongside the artifact.</p>
+    </section>
+    <section class="feature-item">
+        <h3>Compile-time execution</h3>
+        <p>Evaluate ordinary functions with <code>#run</code>, inspect types, and generate declarations with <code>#ast</code>. Compile-time work uses the language rather than a separate template system.</p>
+    </section>
+    <section class="feature-item">
+        <h3>Executable documentation</h3>
+        <p>The language reference is a tested Swag module. Its examples are parsed, type-checked, and run by the compiler that publishes the site.</p>
+    </section>
 </div>
 </html>
 
-> NOTE:  
-> This website and all related documentation were generated using Swag. The compiler can also produce HTML from markdown files and source code.
+```swag
+func buildMask(bitCount: u32)->u32
+{
+    return (1'u32 << bitCount) - 1
+}
+
+const LowByteMask = #run buildMask(8)
+#assert(LowByteMask == 0xFF)
+```
+
+> WARNING:
+> Swag is a pre-1.0 project under active development. The current toolchain
+> targets Windows on x86-64, and source compatibility can change between
+> revisions.
+
+## Choose your path
+
+<html>
+<div class="doc-grid">
+    <a class="doc-card" href="getting-started.html">
+        <span class="doc-card-label">Start</span>
+        <strong>Install the toolchain and run a first program</strong>
+        <span>Build <code>swc</code>, configure its environment, then create a script or workspace.</span>
+    </a>
+    <a class="doc-card" href="language.html">
+        <span class="doc-card-label">Learn</span>
+        <strong>Read the executable language reference</strong>
+        <span>Follow the language tour, then use the full chapters as a syntax and behavior reference.</span>
+    </a>
+    <a class="doc-card" href="std.html">
+        <span class="doc-card-label">Build</span>
+        <strong>Explore the standard modules</strong>
+        <span>Find collections, files, graphics, audio, GUI support, and native Windows bindings.</span>
+    </a>
+    <a class="doc-card" href="swag-as-script.html">
+        <span class="doc-card-label">Automate</span>
+        <strong>Run Swag as a script</strong>
+        <span>Use a <code>.swgs</code> file, load companion sources, and import compiled dependencies.</span>
+    </a>
+    <a class="doc-card" href="how-to-build-swag.html">
+        <span class="doc-card-label">Contribute</span>
+        <strong>Build the compiler from source</strong>
+        <span>Use the pinned Visual Studio toolchain and the repository validation commands.</span>
+    </a>
+    <a class="doc-card" href="contribute-tests.html">
+        <span class="doc-card-label">Verify</span>
+        <strong>Add a compiler regression test</strong>
+        <span>Place the test at the lexer, parser, semantic, JIT, safety, sanity, or native boundary.</span>
+    </a>
+</div>
+</html>
+
+## See a complete program
+
+The [Flappy Bird walkthrough](flappy.html) explains a single-file application
+that imports the GUI, Pixel, Core, and Audio standard modules. More runnable
+programs live in the repository's
+[examples tree](https://github.com/swag-lang/swc/tree/master/bin/examples).
+
+> NOTE:
+> This website is generated by `swc doc` from Markdown, Swag source, and API
+> comments. The checked-in HTML is publication output; the maintained sources
+> live under `bin/reference`, `bin/runtime`, `bin/std`, and `bin/examples`.

@@ -24,116 +24,95 @@
 </header>
 <main class="container single-page">
 <section class="right"><article class="right-page" id="content">
-<p><img src="imgs/flappy.png" alt="?"></p>
-<p>Here is a very simple script that implements the <a href="https://en.wikipedia.org/wiki/Flappy_Bird">Flappy Bird</a> game. To have some fun and play with it, go to the <span class="code-inline">bin/examples/scripts</span> folder, and type :</p>
-<div class="code-block"><span class="SCde">$ swag flappy.swgs
+<p><img src="imgs/flappy.png" alt="Flappy Bird running in a Swag window"></p>
+<p>This single-file script implements a small <a href="https://en.wikipedia.org/wiki/Flappy_Bird">Flappy Bird</a> game with the standard GUI, Pixel, Core, and Audio modules. From the repository root, run:</p>
+<div class="code-block"><span class="SCde">swc bin/examples/scripts/flappy.swgs
 </span></div>
-<p>The goal here is to comment a real-life example of Swag usage. However, it's better to read the basic language <a href="language.html">documentation</a> first, as we will not go too deep into the details.</p>
+<p>The walkthrough focuses on how a complete script is assembled: module imports, compile-time configuration, lifecycle hooks, events, painting, audio, owned collections, and asset loading. Read the <a href="language.html#_001_002_language_tour_swg">language tour</a> first if the syntax is new.</p>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
-<p>This page has been generated with Swag directly from the <a href="https://github.com/swag-lang/swag/blob/master/bin/examples/scripts/flappy.swgs">source code</a>.</p>
+<p>This page is generated directly from the <a href="https://github.com/swag-lang/swc/blob/master/bin/examples/scripts/flappy.swgs">executable source</a>. Documentation and program therefore use the same revision.</p>
 </div>
-<p>So, let's begin.</p>
 <h3 id="Dependencies">Dependencies</h3>
-<p>Module setup directives normally go directly in a module's <span class="code-inline">module.swg</span> file. A script has no <span class="code-inline">module.swg</span> file, so put the same directives at the beginning of the script.</p>
-<p>These directives can specify:</p>
-<div class="description-list-title"><p>External dependencies</p></div>
-<div class="description-list-block">
-<p>Dependencies are other modules you depend on. For example for Flappy, we will use the <span class="code-inline">gui</span> module.</p>
-</div>
-<div class="description-list-title"><p>Additional files</p></div>
-<div class="description-list-block">
-<p>In case of scripts, you can add more files to compile with the <span class="code-inline">#load</span> directive.</p>
-</div>
-<div class="description-list-title"><p>Module configuration</p></div>
-<div class="description-list-block">
-<p>If present, a special <span class="code-inline">#run</span> block will be executed by the compiler at the very beginning of the compilation stage. It gives the opportunity to change some build configurations.</p>
-</div>
-<p>So in our case, we need to import the module <span class="code-inline">gui</span>. This module is used to create windows and widgets, and will bring other modules like <span class="code-inline">core</span> and <span class="code-inline">pixel</span> (2D painting).</p>
-<div class="code-block"><span class="SCde"><span class="SCmt">// The location "swag@std" tells swag that 'gui' is a standard module that is located</span>
-<span class="SCmt">// with the compiler.</span>
+<p>Module setup directives normally live in <span class="code-inline">module.swg</span>. A standalone script has no separate setup file, so it places those directives before ordinary source:</p>
+<ul>
+<li><span class="code-inline">#import</span> establishes a compiled module dependency;</li>
+<li><span class="code-inline">#load</span> adds another source file to the same script module;</li>
+<li>a top-level <span class="code-inline">#run</span> block updates the script build configuration.</li>
+</ul>
+<p>Flappy imports <span class="code-inline">gui</span> for the application and window layer, and <span class="code-inline">audio</span> for playback. Their transitive dependencies provide Core utilities and Pixel drawing, but application code should still import every module it uses directly when it owns a normal workspace module.</p>
+<div class="code-block"><span class="SCde"><span class="SCmt">// 'swag@std' resolves 'gui' from the standard workspace under SWAG_PATH.</span>
 <span class="SCmp">#import</span>(<span class="SStr">"gui"</span>, location: <span class="SStr">"swag@std"</span>)
 
-<span class="SCmt">// Import the audio module, from the same default location</span>
+<span class="SCmt">// Import Audio from the same standard workspace.</span>
 <span class="SCmp">#import</span>(<span class="SStr">"audio"</span>, location: <span class="SStr">"swag@std"</span>)
 
-<span class="SCmt">// This is the optional '#run' block executed by the compiler before compiling the script itself.</span>
-<span class="SCmt">// We define it just to make the point because Flappy does not really need one.</span>
+<span class="SCmt">// This optional setup block runs before the rest of the script is compiled.</span>
 <span class="SFct">#run</span>
 {
-    <span class="SCmt">// Get the compiler interface to communicate with the compiler.</span>
+    <span class="SCmt">// Obtain the compiler interface and this script's mutable build configuration.</span>
     <span class="SKwd">let</span> itf = <span class="SItr">@compiler</span>
-
-    <span class="SCmt">// Get the build configuration</span>
     <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> itf.<span class="SFct">getBuildCfg</span>()
 
-    <span class="SCmt">// Change something...</span>
-    <span class="SCmt">// Here, for example, we force all safety guards to be present in 'debug', and we remove all</span>
-    <span class="SCmt">// of them in 'release'.</span>
-    <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"debug"</span> <span class="SLgc">do</span>
-        cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
-    <span class="SLgc">else</span> <span class="SLgc">do</span>
+    <span class="SCmt">// Keep runtime safety guards outside release builds.</span>
+    <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"release"</span> <span class="SLgc">do</span>
         cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">None</span>
+    <span class="SLgc">else</span> <span class="SLgc">do</span>
+        cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
 }
 
 </span></div>
-<div class="blockquote blockquote-note">
-<div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
-<p>You might observe that there's no need to end the lines with a <span class="code-inline">;</span> like in C or C++. While it's still possible, this is not mandatory.</p>
-</div>
-<p>Every module has its individual namespace. To avoid the necessity of mentioning it each time we wish to reference something, we include a global <span class="code-inline">using</span> statement immediately after the module setup directives.</p>
-<p>The <span class="code-inline">gui</span> module depends on <span class="code-inline">pixel</span> which depends on <span class="code-inline">core</span>. So we bring all the three namespaces into the file scope. Note that we keep <span class="code-inline">Audio</span> as it is.</p>
+<p>Semicolons are optional. This script follows the canonical formatter and omits them.</p>
+<p>Each standard module exposes its API in a namespace. File-scope <span class="code-inline">using</span> declarations make the frequently used Core, Pixel, and Gui names available without a prefix. Audio remains qualified so sound operations stay visible at their call sites.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst">Pixel</span>, <span class="SCst">Gui</span>
 
 </span></div>
 <h3 id="Entry_point">Entry point</h3>
-<p>The <span class="code-inline">#main</span> entry-point hook is usually the entry point of an executable. It's equivalent to the well known <span class="code-inline">main()</span> function, but without arguments. In the case of a script, this hook will be executed by the compiler as the program entry point.</p>
+<p>The <span class="code-inline">#main</span> hook is the entry point for an executable or script. In script mode, <span class="code-inline">swc</span> compiles the hook and calls it through the JIT.</p>
 <div class="blockquote blockquote-note">
 <div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
-<p>You might observe that the arrangement of global declarations doesn't make a difference, as we're using the <span class="code-inline">onEvent</span> function before even defining it. Swag does not bother about the global declaration order.</p>
+<p>Global declaration order does not affect name resolution. <span class="code-inline">#main</span> can call <span class="code-inline">onEvent</span> before its declaration later in the file.</p>
 </div>
 <div class="code-block"><span class="SCde"><span class="SFct">#main</span>
 {
-    <span class="SCmt">// Creates audio engine. 'assume' tells Swag that if the creation fails, we should panic.</span>
+    <span class="SCmt">// Start the process-wide audio engine. 'expect' turns failure into a panic.</span>
     <span class="SKwd">expect</span> <span class="SCst">Audio</span>.<span class="SFct">createEngine</span>()
 
-    <span class="SCmt">// Thanks to 'defer', the audio engine will be destroyed when</span>
-    <span class="SCmt">// leaving this scope, i.e. when exiting the '#main' function.</span>
+    <span class="SCmt">// Destroy the engine when '#main' leaves, including through an early exit.</span>
     <span class="SLgc">defer</span> <span class="SCst">Audio</span>.<span class="SFct">destroyEngine</span>()
 
-    <span class="SCmt">// Creates and run one surface (i.e. window) at the given position and with the given size and title.</span>
-    <span class="SCmt">// 'hook' defines a lambda that will receive and treat all gui events.</span>
-    <span class="SCmt">// When the script is run with '--arg:swag.test', 'runSurface' automatically exits after a few</span>
-    <span class="SCmt">// frames, which is usefull for batch testing.</span>
+    <span class="SCmt">// Create one application surface and dispatch its events to 'onEvent'.</span>
+    <span class="SCmt">// '--run-arg swag.test' makes runSurface exit after a bounded frame count,</span>
+    <span class="SCmt">// which keeps automated example tests non-interactive.</span>
     <span class="SCst">Application</span>.<span class="SFct">runSurface</span>(<span class="SNum">100</span>, <span class="SNum">100</span>, <span class="SNum">254</span>, <span class="SNum">481</span>, title: <span class="SStr">"Flappy Bird"</span>, hook: &amp;onEvent)
 }
 
 </span></div>
 <h3 id="Global_definitions">Global definitions</h3>
 <h4 id="Constants">Constants</h4>
-<p>We declare global constants with <span class="code-inline">const</span>. Note that we: not specify types for thoses constants. They will be deduced thanks to the affection.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Gravity</span>      = <span class="SNum">2.5</span>     <span class="SCmt">// 2.5 is a 32 bits float, so the type of Gravity is 'f32'</span>
+<p><span class="code-inline">const</span> declares compile-time values. The compiler infers their types from the initializers; the comments below call out the two default literal types used by this script.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">Gravity</span>      = <span class="SNum">2.5</span>     <span class="SCmt">// An unsuffixed decimal literal defaults to 'f32'.</span>
 <span class="SKwd">const</span> <span class="SCst">GroundHeight</span> = <span class="SNum">40.0</span>
 <span class="SKwd">const</span> <span class="SCst">SpeedHorz</span>    = <span class="SNum">100.0</span>
-<span class="SKwd">const</span> <span class="SCst">BirdImpulseY</span> = <span class="SNum">350</span>     <span class="SCmt">// 350 is an integer, so the type of BirdImpulseY is 's32'</span>
+<span class="SKwd">const</span> <span class="SCst">BirdImpulseY</span> = <span class="SNum">350</span>     <span class="SCmt">// An unsuffixed integer literal defaults to 's32'.</span>
 
 </span></div>
 <h4 id="Variables">Variables</h4>
 <div class="code-block"><span class="SCde">
-<span class="SKwd">var</span> g_Bird: <span class="SCst">Bird</span>     <span class="SCmt">// 'Bird' is a structure, and will be defined later</span>
+<span class="SKwd">var</span> g_Bird: <span class="SCst">Bird</span>     <span class="SCmt">// 'Bird' is declared later; global order does not matter.</span>
 
 </span></div>
-<p><span class="code-inline">g_Pipes</span> is a <b>dynamic</b> and <b>generic array</b> where all the elements are of type <span class="code-inline">Pipe</span>. In other languages, you would write <span class="code-inline">Array&lt;Pipe&gt;</span>. <span class="code-inline">Array</span> comes from the <span class="code-inline">Core</span> module, but thanks to the global <span class="code-inline">using Core</span>, we: not need to write <span class="code-inline">Core.Array'Pipe</span>.</p>
+<p><span class="code-inline">g_Pipes</span> owns a growable Core array of <span class="code-inline">Pipe</span> values. Swag writes the generic argument with an apostrophe: <span class="code-inline">Array'Pipe</span>. The file-scope 'using Core' avoids the fully qualified <span class="code-inline">Core.Array'Pipe</span>.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">var</span> g_Pipes: <span class="SFct">Array</span>'<span class="SCst">Pipe</span>
 
 </span></div>
-<p><span class="code-inline">Math</span> is a namespace part of the <span class="code-inline">Core</span> module. We could have specified a global <span class="code-inline">using Core.Math</span> at the top of the script file, but here, we prefer the explicit reference.</p>
+<p><span class="code-inline">Math</span> is a namespace inside Core. Keeping the prefix makes geometry and numeric helpers recognizable without importing every Math name.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">var</span> g_Rect: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>
 
 </span></div>
-<p>Here are a bunch of global variables. All of them are <b>initialized to 0</b> by default.</p>
+<p>These global scalars use their type defaults: zero for numbers and <span class="code-inline">false</span> for booleans.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> g_Dt:       <span class="STpe">f32</span>
 <span class="SKwd">var</span> g_Time:     <span class="STpe">f32</span>
 <span class="SKwd">var</span> g_BasePos:  <span class="STpe">f32</span>
@@ -142,15 +121,13 @@
 <span class="SKwd">var</span> g_Start:    <span class="STpe">bool</span>
 
 </span></div>
-<p>Again, no need to specify the type of <span class="code-inline">g_FirstStart</span>. It is deduced from the affectation to be <span class="code-inline">bool</span>.</p>
+<p>The initializer makes the type of <span class="code-inline">g_FirstStart</span> unambiguously <span class="code-inline">bool</span>.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">var</span> g_FirstStart = <span class="SKwd">true</span>
 
-</span></div>
-<div class="code-block"><span class="SCde">
 <span class="SCmt">// Texture assets</span>
-<span class="SKwd">var</span> g_DigitTexture: [<span class="SNum">10</span>] <span class="SCst">Texture</span>     <span class="SCmt">// A static array of 10 textures</span>
-<span class="SKwd">var</span> g_BirdTexture:  [<span class="SNum">3</span>] <span class="SCst">Texture</span>      <span class="SCmt">// A static array of 3 textures</span>
+<span class="SKwd">var</span> g_DigitTexture: [<span class="SNum">10</span>] <span class="SCst">Texture</span>     <span class="SCmt">// Ten score-digit textures.</span>
+<span class="SKwd">var</span> g_BirdTexture:  [<span class="SNum">3</span>] <span class="SCst">Texture</span>      <span class="SCmt">// Three wing animation frames.</span>
 <span class="SKwd">var</span> g_BackTexture:  <span class="SCst">Texture</span>
 <span class="SKwd">var</span> g_OverTexture:  <span class="SCst">Texture</span>
 <span class="SKwd">var</span> g_BaseTexture:  <span class="SCst">Texture</span>
@@ -165,45 +142,38 @@
 <span class="SKwd">var</span> g_SoundFlap:  <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>
 
 </span></div>
-<p><span class="code-inline">g_Font</span> is a <b>value</b> pointer to a Font structure.</p>
+<p><span class="code-inline">g_Font</span> is a nullable pointer because font creation can return no font. Call sites use <span class="code-inline">notnull</span> only after successful asset loading establishes the invariant.</p>
 <div class="code-block"><span class="SCde">
 <span class="SKwd">var</span> g_Font: <span class="SItr">#null</span> *<span class="SCst">Font</span>
 
 </span></div>
-<p>In Swag, their are two types of pointers.</p>
-<ul>
-<li><span class="code-inline">value</span> pointers, which points to one single value. Declared with <span class="code-inline">*</span></li>
-<li><span class="code-inline">block</span> pointers, which points to multiple values. Declared with <span class="code-inline">^</span>.</li>
-</ul>
-<p>Pointer arithmetic is not enabled on value pointers, but it is on block pointers.</p>
 <h4 id="Types">Types</h4>
 <div class="code-block"><span class="SCde">
-<span class="SCmt">// Defines the Bird</span>
+<span class="SCmt">// State for the player sprite.</span>
 <span class="SKwd">struct</span> <span class="SCst">Bird</span>
 {
-    <span class="SCmt">// Position of the bird. Full qualified name.</span>
+    <span class="SCmt">// A fully qualified name remains available despite 'using Core'.</span>
     pos: <span class="SCst">Core</span>.<span class="SCst">Math</span>.<span class="SCst">Vector2</span>
 
-    <span class="SCmt">// Speed of the bird. In fact no need to specify 'Core' thanks to the global 'using'.</span>
+    <span class="SCmt">// The file-scope 'using Core' allows the shorter Math name.</span>
     speed: <span class="SCst">Math</span>.<span class="SCst">Vector2</span>
 
-    <span class="SCmt">// Sprite frame</span>
+    <span class="SCmt">// Fractional animation position; painting wraps it across three textures.</span>
     frame: <span class="STpe">f32</span>
 }
 
-<span class="SCmt">// Defines one Pipe</span>
+<span class="SCmt">// One obstacle pair and its scoring state.</span>
 <span class="SKwd">struct</span> <span class="SCst">Pipe</span>
 {
-    rectUp:     <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>     <span class="SCmt">// Position of the up part of the Pipe</span>
-    rectDown:   <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>     <span class="SCmt">// Position of the down part of the Pipe</span>
-    distToNext: <span class="STpe">f32</span>                <span class="SCmt">// Distance to the next Pipe</span>
-    scored:     <span class="STpe">bool</span>               <span class="SCmt">// 'true' if the Bird has passed that Pipe</span>
+    rectUp:     <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>     <span class="SCmt">// Upper obstacle bounds.</span>
+    rectDown:   <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>     <span class="SCmt">// Lower obstacle bounds.</span>
+    distToNext: <span class="STpe">f32</span>                <span class="SCmt">// Horizontal gap before the next pair.</span>
+    scored:     <span class="STpe">bool</span>               <span class="SCmt">// True after the bird passes this pair.</span>
 }
 
 </span></div>
 <h3 id="The_actual_code">The actual code</h3>
-<p>This is the callback that will deal with all gui events. This feels like <i>Windows</i> API, but there are other ways of dealing with gui, in a more 'object like' way. You can look at the <span class="code-inline">captme</span> tool for example, which does not use a callback but <b>interfaces</b> instead.</p>
-<p>For a simple script, this is more easy to process events in that way.</p>
+<p><span class="code-inline">onEvent</span> receives GUI events for the surface. Pattern cases select the concrete event type and can bind the typed value with <span class="code-inline">as</span>, as the paint case does. A larger application can distribute this work across controls or interfaces; a single callback keeps this example local.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">onEvent</span>(wnd: *<span class="SCst">Wnd</span>, evt: <span class="SCst">IEvent</span>)-&gt;<span class="STpe">bool</span>
 {
     <span class="SLgc">switch</span> evt
@@ -211,8 +181,8 @@
     <span class="SLgc">case</span> <span class="SCst">CreateEvent</span>:
         g_Rect = wnd.<span class="SFct">getClientRect</span>()
 
-        <span class="SCmt">// 'loadAssets' can raise some errors (we'll see later). So here we 'assume' that</span>
-        <span class="SCmt">// everything will be fine. If an error is raised, a 'panic' will occur.</span>
+        <span class="SCmt">// 'loadAssets' can fail. 'expect' converts that recoverable error into a</span>
+        <span class="SCmt">// panic because the game cannot continue without its assets.</span>
         <span class="SKwd">expect</span> <span class="SFct">loadAssets</span>(wnd)
 
         <span class="SFct">start</span>()
@@ -223,16 +193,14 @@
     <span class="SLgc">case</span> <span class="SCst">PaintEvent</span> <span class="SLgc">as</span> paintEvt:
         <span class="SKwd">let</span> painter = paintEvt.bc.painter
 
-        <span class="SCmt">// This is the elapsed time between two 'frames', in seconds.</span>
+        <span class="SCmt">// Elapsed time since the previous frame, in seconds.</span>
         g_Dt = wnd.<span class="SFct">getApp</span>().<span class="SFct">getDt</span>()
 
-        <span class="SFct">input</span>(wnd)         <span class="SCmt">// IO (keyboard test)</span>
-        <span class="SFct">paint</span>(painter)     <span class="SCmt">// Paint game</span>
-        <span class="SFct">move</span>()             <span class="SCmt">// Update game</span>
+        <span class="SFct">input</span>(wnd)
+        <span class="SFct">paint</span>(painter)
+        <span class="SFct">move</span>()
 
-        <span class="SCmt">// We force the window to be dirty, which means that the 'Paint' event will</span>
-        <span class="SCmt">// be sent again next frame.</span>
-        <span class="SCmt">// That way we have a cheap 'frame' update.</span>
+        <span class="SCmt">// Request another paint event to keep the frame loop active.</span>
         wnd.<span class="SFct">invalidate</span>()
     }
 
@@ -240,17 +208,16 @@
 }
 
 </span></div>
-<p>This is the function to paint the game. Here we are mostly using functions from the <span class="code-inline">Pixel</span> module.</p>
+<p><span class="code-inline">paint</span> draws one frame through the Pixel painter owned by the GUI renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">paint</span>(painter: *<span class="SCst">Painter</span>)
 {
-    <span class="SCmt">// Draw the background texture at position (0, 0). The size of the texture is preserved.</span>
+    <span class="SCmt">// Preserve the source dimensions when drawing the background at the origin.</span>
     painter.<span class="SFct">drawTexture</span>(<span class="SNum">0</span>, <span class="SNum">0</span>, g_BackTexture)
 
     <span class="SCmt">// Bird</span>
     <span class="SLgc">if</span> !g_FirstStart
     {
-        <span class="SCmt">// We save the state of the painter, in order to restore it at the end of the scope.</span>
-        <span class="SCmt">// The state contains various painting parameters, like the current transformation.</span>
+        <span class="SCmt">// Save the painter state and restore it automatically when this scope leaves.</span>
         painter.<span class="SFct">pushState</span>()
         <span class="SLgc">defer</span> painter.<span class="SFct">popState</span>()
 
@@ -263,16 +230,15 @@
 
         painter.<span class="SFct">translateTransform</span>(g_Bird.pos.x + trf.tx, g_Bird.pos.y + trf.ty)
 
-        <span class="SCmt">// This is the sprite frame of the bird</span>
+        <span class="SCmt">// Select one of the three wing animation frames.</span>
         <span class="SKwd">let</span> frame = <span class="SKwd">cast</span>(<span class="STpe">s32</span>) g_Bird.frame % <span class="SNum">3</span>
 
-        <span class="SCmt">// No need to initialize the 'pt' variable here, as we will set both 'x' and 'y'</span>
-        <span class="SCmt">// just after. So we initialize it with 'undefined'.</span>
+        <span class="SCmt">// Both fields are assigned before use, so skip their default initialization.</span>
         <span class="SKwd">var</span> pt: <span class="SCst">Math</span>.<span class="SCst">Point</span> = <span class="SKwd">undefined</span>
         pt.x = -g_BirdTexture[frame].width * <span class="SNum">0.5</span>
         pt.y = -g_BirdTexture[frame].height * <span class="SNum">0.5</span>
 
-        <span class="SCmt">// Add a little position wave</span>
+        <span class="SCmt">// Add a small idle wave before the first flap.</span>
         <span class="SLgc">if</span> !g_Start
         {
             pt.y   += <span class="SNum">5</span> * <span class="SCst">Math</span>.<span class="SFct">sin</span>(g_Time)
@@ -282,16 +248,14 @@
         painter.<span class="SFct">drawTexture</span>(pt.x, pt.y, g_BirdTexture[frame])
     }
 
-    <span class="SCmt">// Draw pipes.</span>
-    <span class="SCmt">// 'for' iterates on all the pipes stored in the dynamic array, and returns each value</span>
-    <span class="SCmt">// as a pointer/reference.</span>
+    <span class="SCmt">// Iterate over every stored pipe. This loop only reads each element.</span>
     <span class="SLgc">for</span> pipe <span class="SLgc">in</span> g_Pipes
     {
         painter.<span class="SFct">drawTexture</span>(pipe.rectUp, g_PipeTextureU)
         painter.<span class="SFct">drawTexture</span>(pipe.rectDown, g_PipeTextureD)
     }
 
-    <span class="SCmt">// Base</span>
+    <span class="SCmt">// Scroll two ground copies to form a seamless strip.</span>
     painter.<span class="SFct">drawTexture</span>(-g_BasePos, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>) g_BaseTexture.width, <span class="SCst">GroundHeight</span>, g_BaseTexture)
     painter.<span class="SFct">drawTexture</span>(-g_BasePos + g_BaseTexture.width, g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>, <span class="SKwd">cast</span>(<span class="STpe">f32</span>) g_BaseTexture.width, <span class="SCst">GroundHeight</span>, g_BaseTexture)
     <span class="SLgc">if</span> !g_GameOver <span class="SLgc">do</span>
@@ -299,22 +263,22 @@
     <span class="SLgc">if</span> g_BasePos &gt;= g_BaseTexture.width <span class="SLgc">do</span>
         g_BasePos = <span class="SNum">0</span>
 
-    <span class="SCmt">// Gameover text, centered</span>
+    <span class="SCmt">// Center the game-over texture.</span>
     <span class="SLgc">if</span> g_GameOver
     {
-        <span class="SCmt">// This is another way of initializing a struct variable or constant.</span>
+        <span class="SCmt">// Positional struct initialization supplies x and y in declaration order.</span>
         <span class="SKwd">let</span> pt = <span class="SCst">Math</span>.<span class="SCst">Point</span>{g_Rect.<span class="SFct">horzCenter</span>() - g_OverTexture.width / <span class="SNum">2</span>, g_Rect.<span class="SFct">vertCenter</span>() - g_OverTexture.height / <span class="SNum">2</span>}
 
         painter.<span class="SFct">drawTexture</span>(pt.x, pt.y, g_OverTexture)
     }
 
-    <span class="SCmt">// Score</span>
+    <span class="SCmt">// Draw the score using the loaded game font.</span>
     <span class="SLgc">if</span> !g_FirstStart
     {
         painter.<span class="SFct">drawStringCenter</span>(g_Rect.<span class="SFct">horzCenter</span>(), <span class="SNum">50</span>, <span class="SCst">Format</span>.<span class="SFct">toString</span>(<span class="SStr">"%"</span>, g_Score), <span class="SKwd">notnull</span> g_Font, <span class="SCst">Argb</span>.<span class="SCst">White</span>)
     }
 
-    <span class="SCmt">// Message</span>
+    <span class="SCmt">// Show the start prompt before the first round.</span>
     <span class="SLgc">if</span> g_FirstStart
     {
         <span class="SKwd">var</span> pt: <span class="SCst">Math</span>.<span class="SCst">Point</span> = <span class="SKwd">undefined</span>
@@ -325,7 +289,7 @@
 }
 
 </span></div>
-<p>Test IO.</p>
+<p>Read keyboard input for the current frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">input</span>(wnd: *<span class="SCst">Wnd</span>)
 {
     <span class="SKwd">let</span> kb = wnd.<span class="SFct">getApp</span>().<span class="SFct">getKeyboard</span>()
@@ -350,7 +314,7 @@
 }
 
 </span></div>
-<p>Collision detection (kind of) between the bird and a given rectangle.</p>
+<p>Return whether the bird's sprite bounds intersect a rectangle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">birdInRect</span>(rect: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span>)-&gt;<span class="STpe">bool</span>
 {
     <span class="SKwd">var</span> rectBird: <span class="SCst">Math</span>.<span class="SCst">Rectangle</span> = <span class="SKwd">undefined</span>
@@ -362,7 +326,7 @@
 }
 
 </span></div>
-<p>The <span class="code-inline">update</span> part of the game.</p>
+<p>Advance gameplay by one frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">move</span>()
 {
     <span class="SLgc">if</span> g_GameOver <span class="SLgc">do</span>
@@ -375,11 +339,11 @@
 
     g_Bird.frame += <span class="SNum">10</span> * g_Dt
 
-    <span class="SCmt">// Be sure to have at least one pipe</span>
+    <span class="SCmt">// Keep at least one obstacle pair alive.</span>
     <span class="SLgc">if</span> g_Pipes.count == <span class="SNum">0</span> <span class="SLgc">do</span>
         <span class="SFct">createPipe</span>()
 
-    <span class="SCmt">// Move each pipe, and test collisions against the bird</span>
+    <span class="SCmt">// '&amp;pipe' binds a mutable reference so updates modify the stored array element.</span>
     <span class="SLgc">if</span> g_Start
     {
         <span class="SLgc">for</span> &amp;pipe <span class="SLgc">in</span> g_Pipes
@@ -387,15 +351,14 @@
             pipe.rectUp.x   -= <span class="SCst">SpeedHorz</span> * g_Dt
             pipe.rectDown.x -= <span class="SCst">SpeedHorz</span> * g_Dt
 
-            <span class="SCmt">// Collision with the pipes</span>
+            <span class="SCmt">// A pipe collision ends the round.</span>
             <span class="SLgc">if</span> <span class="SFct">birdInRect</span>(pipe.rectUp) <span class="SLgc">or</span> <span class="SFct">birdInRect</span>(pipe.rectDown)
             {
                 <span class="SKwd">expect</span> <span class="SCst">Audio</span>.<span class="SCst">Voice</span>.<span class="SFct">play</span>(&amp;g_SoundHit)
                 g_GameOver = <span class="SKwd">true</span>
             }
 
-            <span class="SCmt">// If bird moves to the right of a pipe, then this is a win !</span>
-            <span class="SCmt">// Score up.</span>
+            <span class="SCmt">// Award one point when the bird passes a pipe for the first time.</span>
             <span class="SLgc">if</span> g_Bird.pos.x &gt; pipe.rectUp.<span class="SFct">right</span>() <span class="SLgc">and</span> !pipe.scored
             {
                 <span class="SKwd">expect</span> <span class="SCst">Audio</span>.<span class="SCst">Voice</span>.<span class="SFct">play</span>(&amp;g_SoundScore)
@@ -405,28 +368,28 @@
         }
     }
 
-    <span class="SCmt">// If the first pipe is out of screen, remove it</span>
+    <span class="SCmt">// Remove the oldest pair once it leaves the surface.</span>
     <span class="SLgc">if</span> g_Pipes[<span class="SNum">0</span>].rectUp.<span class="SFct">right</span>() &lt; <span class="SNum">0</span> <span class="SLgc">do</span>
         g_Pipes.<span class="SFct">removeAt</span>(<span class="SNum">0</span>)
 
-    <span class="SCmt">// If the last pipe is enough inside, create a new one</span>
+    <span class="SCmt">// Create the next pair after the configured horizontal gap appears.</span>
     <span class="SLgc">if</span> g_Rect.width - g_Pipes.<span class="SFct">back</span>().rectUp.<span class="SFct">right</span>() &gt; g_Pipes.<span class="SFct">back</span>().distToNext <span class="SLgc">do</span>
         <span class="SFct">createPipe</span>()
 
-    <span class="SCmt">// Collision with the ground</span>
+    <span class="SCmt">// Touching the scrolling ground ends the round.</span>
     <span class="SLgc">if</span> g_Bird.pos.y + g_BirdTexture[<span class="SNum">0</span>].height &gt; g_Rect.<span class="SFct">bottom</span>() - <span class="SCst">GroundHeight</span>
     {
         g_GameOver = <span class="SKwd">true</span>
         <span class="SKwd">expect</span> <span class="SCst">Audio</span>.<span class="SCst">Voice</span>.<span class="SFct">play</span>(&amp;g_SoundHit)
     }
 
-    <span class="SCmt">// Play dying sound</span>
+    <span class="SCmt">// Play the death cue after either collision path.</span>
     <span class="SLgc">if</span> g_GameOver <span class="SLgc">do</span>
         <span class="SKwd">expect</span> <span class="SCst">Audio</span>.<span class="SCst">Voice</span>.<span class="SFct">play</span>(&amp;g_SoundDie)
 }
 
 </span></div>
-<p>Creates a random up and down part of a new Pipe.</p>
+<p>Create one randomized upper/lower pipe pair at the right edge of the surface.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createPipe</span>()
 {
     <span class="SKwd">let</span> pos         = g_Rect.width
@@ -451,10 +414,10 @@
 }
 
 </span></div>
-<p>Reinitialize the game.</p>
+<p>Reset mutable game state for a new round.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">start</span>()
 {
-    <span class="SCmt">// '@init' can be called to reinitialize a variable to its default value</span>
+    <span class="SCmt">// Reinitialize one Bird value to its declared defaults.</span>
     <span class="SItr">@init</span>(&amp;g_Bird, <span class="SNum">1</span>)
 
     g_Bird.pos.x = g_Rect.<span class="SFct">horzCenter</span>()
@@ -462,13 +425,13 @@
     g_Score      = <span class="SNum">0</span>
     g_Pipes.<span class="SFct">clear</span>()
 
-    <span class="SCmt">// Assign two variables with the same value</span>
+    <span class="SCmt">// A multi-assignment applies the same value to both booleans.</span>
     g_GameOver, g_Start = <span class="SKwd">false</span>
 }
 
 </span></div>
-<p>Load all assets.</p>
-<p>You can notice that the function has <span class="code-inline">fail</span> after its declaration. This indicated that it can return some errors, and that the caller will have to deal with it.</p>
+<p>Load textures, sounds, and the score font.</p>
+<p>The trailing <span class="code-inline">fail</span> marks a function that can return a recoverable error. Calls inside this function propagate errors automatically; <span class="code-inline">#main</span> chooses to turn the final error into a panic with <span class="code-inline">expect</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAssets</span>(wnd: *<span class="SCst">Wnd</span>) <span class="SKwd">fail</span>
 {
     <span class="SKwd">let</span> render = &amp;wnd.<span class="SFct">getApp</span>().renderer
@@ -477,10 +440,8 @@
     dataPath = <span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"datas"</span>)
     dataPath = <span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"flappy"</span>)
 
-    <span class="SCmt">// Load all sounds</span>
-    <span class="SCmt">//</span>
-    <span class="SCmt">// 'with' tells the compiler that what follows is in the 'context' of the namespace 'Audio.SoundFile'.</span>
-    <span class="SCmt">// So instead of having to write 'Audio.SoundFile.load(...)', we can now only write '.load(...)'.</span>
+    <span class="SCmt">// Load all sounds.</span>
+    <span class="SCmt">// 'with' makes Audio.SoundFile the implicit namespace inside the block.</span>
     <span class="SKwd">with</span> <span class="SCst">Audio</span>.<span class="SCst">SoundFile</span>
     {
         g_SoundDie   = .<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"die.wav"</span>))
@@ -489,9 +450,8 @@
         g_SoundFlap  = .<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"flap.wav"</span>))
     }
 
-    <span class="SCmt">// Load all textures</span>
-    <span class="SCmt">//</span>
-    <span class="SCmt">// 'with' can also be used with a variable.</span>
+    <span class="SCmt">// Load all textures.</span>
+    <span class="SCmt">// 'with' also accepts a value; leading-dot calls use 'render' as receiver.</span>
     <span class="SKwd">with</span> render
     {
         g_BirdTexture[<span class="SNum">0</span>] = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-upflap.png"</span>))

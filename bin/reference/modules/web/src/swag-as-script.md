@@ -1,70 +1,92 @@
-# Script file
+# Scripting with Swag
 
-Swag can be used to build and run a simple script file, thanks to the fact that the compiler can run anything at compile time.
-No executable will be generated, the compiler will do all the job.
-To create a new script file with the special extension 'swgs':
+A `.swgs` file is a standalone Swag program. `swc` compiles the file and runs
+its lifecycle hooks through the JIT, which makes scripts useful for build tools,
+asset processing, experiments, and small applications without producing a
+native executable.
 
-    $ swag new -f:myScript
-    => script file 'myScript.swgs' has been created
-    => type 'swag script -f:myScript.swgs' to run that script
+## Create and run a script
 
-This will generate a simple file with the program entry point `#main`.
+```text
+swc new script hello
+swc hello.swgs
+```
+
+The generated file contains a `#main` hook:
 
 ```swag
-// Swag script file
 #main
 {
-    @print("Hello world !\n")
+    @print("Hello, world!\n")
 }
 ```
 
-You can then run your script with the 'script' command.
+The `.swgs` extension selects script mode, so there is no separate `script`
+command. Pass normal `run` options after the path. Repeat `--run-arg` to append
+arguments exposed through `@args` and the Core environment helpers:
 
-    $ swag script -f:myScript
-    Hello world !
+```text
+swc hello.swgs --run-arg first --run-arg second
+```
 
-You can also just specify the script file **with the extension** as a command.
+## Import compiled dependencies
 
-    $ swag myScript.swgs
-    Hello world !
-
-As examples, you will find a bunch of small scripts in `swag/bin/examples/scripts`.
-To run one of them from the console, go to the folder and type for example `swag flappy.swgs`.
-
-<html>
-<div align="center">
-    <div class="round-button">
-        <a href="flappy.html" class="no-decoration">Flappy Bird</a>
-    </div>
-</div>
-</html>
-
-## Dependencies
-
-You can add external dependencies, and they will be compiled and used as native code.
+Put module setup directives at the top level of the script. This imports the
+standard `core` module:
 
 ```swag
-// Import the standard module `core` from the Swag standard workspace that comes with the compiler
 #import("core", location: "swag@std")
+
+using Core
 ```
 
-A special hidden workspace (in the Swag cache folder) will be created to contain all the corresponding native code.
+`SWAG_PATH` must point to the compiler's `bin` directory so `swag@std` can
+resolve `bin/std`. The compiler builds imported dependencies as native modules
+and reuses compatible output on later runs.
 
-* To locate the Swag cache folder, add `--verbose-path` to the command line.
-* To force the build of dependencies, add `--rebuildall` to the command line.
+Script dependency state is cached under the system temporary directory in
+`swag/scripts`. Its directory key is derived from the build configuration,
+target architecture, and resolved imports, so compatible scripts can reuse the
+same dependency output. Use `--show-config` to inspect resolved paths and tools.
 
-## More than one script file
+## Split a script across files
 
-If your script is divided into multiple files, add each additional file with a top-level `#load` directive.
+Use top-level `#load` directives for companion source files:
 
 ```swag
-#load("myOtherFile.swgs")
-#load("folder/myOtherOtherFile.swgs")
+#load("symbols.swg")
+#load("render/helpers.swg")
 ```
 
-## Debug
+`#load` adds source to the current script module. It does not create a compiled
+module dependency; use `#import` for that boundary.
 
-The compiler comes with a **bytecode debugger** that can be used to trace and debug compile time execution.
-Add `@breakpoint()` in your code when you want the debugger to trigger.
+## Configure the script
 
-The debugger command set is inspired by [Pdb](https://docs.python.org/3/library/pdb.html), the python debugger.
+A top-level `#run` block can update the script's build configuration before the
+rest of the file is compiled:
+
+```swag
+#run
+{
+    let cfg = notnull @compiler.getBuildCfg()
+    cfg.safetyGuards = Swag.SafetyWhat.All
+}
+```
+
+Prefer command-line build configurations for ordinary runs and reserve setup
+code for properties the script owns.
+
+## Break into a debugger
+
+`@breakpoint()` emits a native breakpoint instruction in JIT or native code.
+Use it only while a native debugger is attached; Swag does not include the old
+interactive bytecode debugger.
+
+## Explore complete scripts
+
+The repository includes games, visualizations, utilities, and demonstrations
+under
+[`bin/examples/scripts`](https://github.com/swag-lang/swc/tree/master/bin/examples/scripts).
+The [Flappy Bird walkthrough](flappy.html) explains imports, compile-time module
+configuration, GUI events, graphics, audio, and asset loading in one file.

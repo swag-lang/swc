@@ -24,52 +24,48 @@
 </header>
 <main class="container single-page">
 <section class="right"><article class="right-page" id="content">
-<h1 id="Script_file">Script file</h1>
-<p>Swag can be used to build and run a simple script file, thanks to the fact that the compiler can run anything at compile time. No executable will be generated, the compiler will do all the job. To create a new script file with the special extension <span class="code-inline">swgs</span>:</p>
-<div class="code-block"><span class="SCde">$ swag new -f:myScript
-=&gt; script file 'myScript.swgs' has been created
-=&gt; type 'swag script -f:myScript.swgs' to run that script
+<h1 id="Scripting_with_Swag">Scripting with Swag</h1>
+<p>A <span class="code-inline">.swgs</span> file is a standalone Swag program. <span class="code-inline">swc</span> compiles the file and runs its lifecycle hooks through the JIT, which makes scripts useful for build tools, asset processing, experiments, and small applications without producing a native executable.</p>
+<h2 id="Create_and_run_a_script">Create and run a script</h2>
+<div class="code-block"><span class="SCde">swc new script hello
+swc hello.swgs
 </span></div>
-<p>This will generate a simple file with the program entry point <span class="code-inline">#main</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SCmt">// Swag script file</span>
-<span class="SFct">#main</span>
+<p>The generated file contains a <span class="code-inline">#main</span> hook:</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#main</span>
 {
-    <span class="SItr">@print</span>(<span class="SStr">"Hello world !\n"</span>)
+    <span class="SItr">@print</span>(<span class="SStr">"Hello, world!\n"</span>)
 }
 </span></div>
-<p>You can then run your script with the <span class="code-inline">script</span> command.</p>
-<div class="code-block"><span class="SCde">$ swag script -f:myScript
-Hello world !
+<p>The <span class="code-inline">.swgs</span> extension selects script mode, so there is no separate <span class="code-inline">script</span> command. Pass normal <span class="code-inline">run</span> options after the path. Repeat <span class="code-inline">--run-arg</span> to append arguments exposed through <span class="code-inline">@args</span> and the Core environment helpers:</p>
+<div class="code-block"><span class="SCde">swc hello.swgs --run-arg first --run-arg second
 </span></div>
-<p>You can also just specify the script file <b>with the extension</b> as a command.</p>
-<div class="code-block"><span class="SCde">$ swag myScript.swgs
-Hello world !
-</span></div>
-<p>As examples, you will find a bunch of small scripts in <span class="code-inline">swag/bin/examples/scripts</span>. To run one of them from the console, go to the folder and type for example <span class="code-inline">swag flappy.swgs</span>.</p>
-<div align="center">
-    <div class="round-button">
-        <a href="flappy.html" class="no-decoration">Flappy Bird</a>
-    </div>
-</div>
+<h2 id="Import_compiled_dependencies">Import compiled dependencies</h2>
+<p>Put module setup directives at the top level of the script. This imports the standard <span class="code-inline">core</span> module:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
 
-<h2 id="Dependencies">Dependencies</h2>
-<p>You can add external dependencies, and they will be compiled and used as native code.</p>
-<div class="code-block"><span class="SCde"><span class="SCmt">// Import the standard module `core` from the Swag standard workspace that comes with the compiler</span>
-<span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
+<span class="SKwd">using</span> <span class="SCst">Core</span>
 </span></div>
-<p>A special hidden workspace (in the Swag cache folder) will be created to contain all the corresponding native code.</p>
-<ul>
-<li>To locate the Swag cache folder, add <span class="code-inline">--verbose-path</span> to the command line.</li>
-<li>To force the build of dependencies, add <span class="code-inline">--rebuildall</span> to the command line.</li>
-</ul>
-<h2 id="More_than_one_script_file">More than one script file</h2>
-<p>If your script is divided into multiple files, add each additional file with a top-level <span class="code-inline">#load</span> directive.</p>
-<div class="code-block"><span class="SCde"><span class="SCmp">#load</span>(<span class="SStr">"myOtherFile.swgs"</span>)
-<span class="SCmp">#load</span>(<span class="SStr">"folder/myOtherOtherFile.swgs"</span>)
+<p><span class="code-inline">SWAG_PATH</span> must point to the compiler's <span class="code-inline">bin</span> directory so <span class="code-inline">swag@std</span> can resolve <span class="code-inline">bin/std</span>. The compiler builds imported dependencies as native modules and reuses compatible output on later runs.</p>
+<p>Script dependency state is cached under the system temporary directory in <span class="code-inline">swag/scripts</span>. Its directory key is derived from the build configuration, target architecture, and resolved imports, so compatible scripts can reuse the same dependency output. Use <span class="code-inline">--show-config</span> to inspect resolved paths and tools.</p>
+<h2 id="Split_a_script_across_files">Split a script across files</h2>
+<p>Use top-level <span class="code-inline">#load</span> directives for companion source files:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#load</span>(<span class="SStr">"symbols.swg"</span>)
+<span class="SCmp">#load</span>(<span class="SStr">"render/helpers.swg"</span>)
 </span></div>
-<h2 id="Debug">Debug</h2>
-<p>The compiler comes with a <b>bytecode debugger</b> that can be used to trace and debug compile time execution. Add <span class="code-inline">@breakpoint()</span> in your code when you want the debugger to trigger.</p>
-<p>The debugger command set is inspired by <a href="https://docs.python.org/3/library/pdb.html">Pdb</a>, the python debugger.</p>
+<p><span class="code-inline">#load</span> adds source to the current script module. It does not create a compiled module dependency; use <span class="code-inline">#import</span> for that boundary.</p>
+<h2 id="Configure_the_script">Configure the script</h2>
+<p>A top-level <span class="code-inline">#run</span> block can update the script's build configuration before the rest of the file is compiled:</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#run</span>
+{
+    <span class="SKwd">let</span> cfg = <span class="SKwd">notnull</span> <span class="SItr">@compiler</span>.<span class="SFct">getBuildCfg</span>()
+    cfg.safetyGuards = <span class="SCst">Swag</span>.<span class="SCst">SafetyWhat</span>.<span class="SCst">All</span>
+}
+</span></div>
+<p>Prefer command-line build configurations for ordinary runs and reserve setup code for properties the script owns.</p>
+<h2 id="Break_into_a_debugger">Break into a debugger</h2>
+<p><span class="code-inline">@breakpoint()</span> emits a native breakpoint instruction in JIT or native code. Use it only while a native debugger is attached; Swag does not include the old interactive bytecode debugger.</p>
+<h2 id="Explore_complete_scripts">Explore complete scripts</h2>
+<p>The repository includes games, visualizations, utilities, and demonstrations under <a href="https://github.com/swag-lang/swc/tree/master/bin/examples/scripts">`bin/examples/scripts`</a>. The <a href="flappy.html">Flappy Bird walkthrough</a> explains imports, compile-time module configuration, GUI events, graphics, audio, and asset loading in one file.</p>
 </article>
 <footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>

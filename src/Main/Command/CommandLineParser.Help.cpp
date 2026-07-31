@@ -159,8 +159,8 @@ void CommandLineParser::printHelp(const TaskContext& ctx, const Utf8& command)
         Logger::printFieldGroup(ctx, "First Workspace", entries, nextHelpGroupStyle(hasPrintedGroup, 18));
 
         entries.clear();
-        addInfoEntry(entries, "Getting started", "https://www.swag-lang.org/getting-started.php", LogColor::BrightBlue);
-        addInfoEntry(entries, "Language reference", "https://www.swag-lang.org/language.php", LogColor::BrightBlue);
+        addInfoEntry(entries, "Getting started", "https://www.swag-lang.org/getting-started.html", LogColor::BrightBlue);
+        addInfoEntry(entries, "Language reference", "https://www.swag-lang.org/language.html", LogColor::BrightBlue);
         addInfoEntry(entries, "Examples", "https://github.com/swag-lang/swc/tree/master/bin/examples", LogColor::BrightBlue);
         addInfoEntry(entries, "Native setup", "Install the MSVC x64 build tools and the Windows SDK");
         addInfoEntry(entries, "Command help", "swc help <command>", LogColor::White, 0, helpArgumentLabelColor());

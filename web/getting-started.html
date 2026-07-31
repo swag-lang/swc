@@ -24,84 +24,87 @@
 </header>
 <main class="container single-page">
 <section class="right"><article class="right-page" id="content">
-<h1 id="Your_first_install">Your first install</h1>
-<p><a href="https://github.com/swag-lang/swag/releases">Download</a> the latest release from github, and unzip it in a folder. Of course a <i>SSD</i> is better.</p>
-<h3 id="Note_for_Windows_10_11">Note for Windows 10/11</h3>
-<h4 id="Windows_SDK">Windows SDK</h4>
-<p>You must install the latest version of the <b>Windows 10 SFK</b> in order to be able to build an executable for Windows. Otherwhise the compiler will complain, and exit. You can try <a href="https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/">here</a></p>
-<h4 id="PATH">PATH</h4>
-<p>You should register the location of the swag compiler (<span class="code-inline">swag.exe</span>) in the <span class="code-inline">PATH</span> environment variable to be able to call it from everywhere.</p>
-<p>You can open a <i>Powershell</i> window, and run the following code :</p>
-<div class="code-block"><span class="SCde"># You must replace `c:\swag-lang\swag\bin` with your location of `swag.exe`
-[Environment]::SetEnvironmentVariable(
-    "Path",
-    [Environment]::GetEnvironmentVariable("Path", "User") + ";c:\swag-lang\swag\bin",
-    "User"
-)
+<h1 id="Getting_started">Getting started</h1>
+<p>The current Swag toolchain runs on Windows and targets x86-64. The compiler is named <span class="code-inline">swc</span>; <span class="code-inline">Swag</span> is the language name.</p>
+<div class="blockquote blockquote-note">
+<div class="blockquote-title-block"><span class="blockquote-title">Note</span></div>
+<p>The current <span class="code-inline">swc</span> repository does not publish binary releases. Build the compiler from source, then keep the repository's <span class="code-inline">bin</span> directory with its runtime and standard workspace.</p>
+</div>
+<h2 id="Install_the_compiler">Install the compiler</h2>
+<ol>
+<li>Clone <a href="https://github.com/swag-lang/swc">swag-lang/swc</a>.</li>
+<li>Follow <a href="how-to-build-swag.html">Build Swag from source</a>. The project pins the</li>
+</ol>
+<p>Visual Studio <span class="code-inline">v145</span> C++ toolset and Windows SDK <span class="code-inline">10.0.26100.0</span>.</p>
+<ol>
+<li>From the repository root, run <span class="code-inline">tools\register_swc_path.bat</span>.</li>
+<li>Open a new terminal and verify the installation with <span class="code-inline">swc help</span>.</li>
+</ol>
+<p>The registration script adds the repository's <span class="code-inline">bin</span> directory to the user <span class="code-inline">PATH</span> and sets <span class="code-inline">SWAG_PATH</span> to that directory. <span class="code-inline">PATH</span> locates <span class="code-inline">swc.exe</span>; <span class="code-inline">SWAG_PATH</span> lets the compiler find <span class="code-inline">bin/runtime</span> and <span class="code-inline">bin/std</span>.</p>
+<p>The compiler invokes the Microsoft x64 linker and Windows SDK tools when it produces native artifacts, so keep the Visual Studio C++ workload installed after building <span class="code-inline">swc</span>.</p>
+<h2 id="Run_a_first_script">Run a first script</h2>
+<p>Create a standalone script and run it directly:</p>
+<div class="code-block"><span class="SCde">swc new script hello
+swc hello.swgs
 </span></div>
-<h4 id="Windows_Defender">Windows Defender</h4>
-<p>The Windows Defender realtime protection is activated by default, and runs each time you launch an executable. This can increase the compile time of your project, so consider excluding your Swag folder from it !</p>
-<p><a href="https://support.microsoft.com/en-us/windows/add-an-exclusion-to-windows-security-811816c0-4dfd-af4a-47e4-c301afe13b26#:~:text=Go%20to%20Start%20%3E%20Settings%20%3E%20Update,%2C%20file%20types%2C%20or%20process">Reference</a></p>
-<p>Under Windows 11, there's also something called the <i>Smart App Control</i>, which can also have a great impact on execution time if it is activated (or in evaluation mode).</p>
-<p><a href="https://support.microsoft.com/en-us/topic/what-is-smart-app-control-285ea03d-fa88-4d56-882e-6698afdb7003">Reference</a></p>
-<h1 id="Your_first_project">Your first project</h1>
-<p>The compile unit of swag is a <b>workspace</b> which contains a variable number of <b>modules</b>. A module will compile to a dynamic library or an executable.</p>
-<p>To create a fresh new workspace named <i>first</i> :</p>
-<div class="code-block"><span class="SCde">$ swag new -w:first
-=&gt; workspace 'F:/first' has been created
-=&gt; module 'first' has been created
-=&gt; type 'swag run -w:F:\first' to build and run that module
-</span></div>
-<p>This will also create a simple executable module <i>first</i> to print "Hello world !".</p>
-<p><i>F:/first/modules/first/src/main.swg</i></p>
+<p><span class="code-inline">swc new script</span> adds the <span class="code-inline">.swgs</span> extension when it is omitted and never overwrites an existing path. The generated source is:</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#main</span>
 {
-    <span class="SItr">@print</span>(<span class="SStr">"Hello world!\n"</span>)
+    <span class="SItr">@print</span>(<span class="SStr">"Hello, world!\n"</span>)
 }
 </span></div>
-<p>A workspace contains a predefined number of sub folders:</p>
-<ul>
-<li><span class="code-inline">modules/</span> contains all the modules (sub folders) of that workspace.</li>
-<li><span class="code-inline">output/</span> (generated) contains the result of the build (this is where the executable will be located).</li>
-<li><span class="code-inline">tests/</span> (optional) contains a list of test modules.</li>
-<li><span class="code-inline">dependencies/</span> (generated) contains a list of external modules needed to compile the workspace.</li>
-</ul>
-<p>A module is also organized in a predefined way:</p>
-<ul>
-<li><span class="code-inline">moduleName/</span> the folder name of the module is used to create output files.</li>
-<li><span class="code-inline">src/</span> contains the source code.</li>
-<li><span class="code-inline">public/</span> (generated) will contain all the exports needed by other modules to use that one (in case of a dynamic library).</li>
-<li><span class="code-inline">publish/</span> contains additional files to use that module (like an external C dll).</li>
-</ul>
-<p>A module always contains a special file named <span class="code-inline">module.swg</span>. This file is used to configure the module, and is <b>mandatory</b>.</p>
-<h3 id="To_compile_your_workspace">To compile your workspace</h3>
-<div class="code-block"><span class="SCde">$ swag build -w:first
-            Workspace first [fast-debug-windows-x86_64]
-            Building first
-                Done 0.067s
+<p>A script is compiled and executed through the JIT. It does not leave an executable beside the source. See <a href="swag-as-script.html">Scripting with Swag</a> for imports, additional files, arguments, and the script cache.</p>
+<h2 id="Create_a_workspace_module">Create a workspace module</h2>
+<p>Use a workspace when the program has modules, produces a native artifact, or will be consumed by another module:</p>
+<div class="code-block"><span class="SCde">swc new module hello
+swc run --workspace hello --workspace-module hello
 </span></div>
-<p>You can omit the workspace name (<span class="code-inline">-w:first</span> or <span class="code-inline">--workspace:first</span>) if you call the compiler directly from the workspace folder. This command will compile all modules in <span class="code-inline">modules/</span>.</p>
-<p>You can also build and run your workspace.</p>
-<div class="code-block"><span class="SCde">$ swag run -w:first
-            Workspace first [fast-debug-windows-x86_64]
-            Building first
-    Running backend first
-Hello world!
-            Done 0.093s
+<p>The first command creates this maintained source tree:</p>
+<div class="code-block"><span class="SCde">hello/
+`-- modules/
+    `-- hello/
+        |-- module.swg
+        `-- src/
+            `-- main.swg
 </span></div>
-<h1 id="Content_of_the_Swag_folder">Content of the Swag folder</h1>
-<p>The Swag folder contains the compiler <span class="code-inline">swag.exe</span>, but also a bunch of sub folders.</p>
+<p><span class="code-inline">module.swg</span> executes at compile time and configures the module. The starter selects an executable backend; <span class="code-inline">src/main.swg</span> contains the same <span class="code-inline">#main</span> hook as the script example.</p>
+<p>Compilation owns three generated directories at the workspace root:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Directory</th><th>Contents</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">.output/</span></td><td>Native artifacts and exported module APIs, grouped by configuration</td></tr>
+<tr><td><span class="code-inline">.tmp/</span></td><td>Intermediate compiler and native-tool files</td></tr>
+<tr><td><span class="code-inline">.dep/</span></td><td>Materialized dependency APIs and native dependency artifacts</td></tr>
+</tbody>
+</table>
+<p>Add another module without replacing the workspace:</p>
+<div class="code-block"><span class="SCde">swc new module tools --workspace hello
+</span></div>
+<h2 id="Build_and_select_a_configuration">Build and select a configuration</h2>
+<div class="code-block"><span class="SCde">swc build -w hello -m hello
+swc build -w hello -m hello -bc debug
+swc build -w hello -m hello -bc release
+</span></div>
+<p><span class="code-inline">fast-debug</span> is the default configuration. It keeps safety and sanity checks while using optimized code. <span class="code-inline">debug</span> favors diagnostics, and <span class="code-inline">release</span> favors runtime performance. Use <span class="code-inline">swc help build</span> for the authoritative option list and <span class="code-inline">--show-config</span> to inspect the resolved toolchain and output paths.</p>
+<h2 id="Import_a_standard_module">Import a standard module</h2>
+<p>Module dependencies are declared at the top level of <span class="code-inline">module.swg</span>. This imports the standard <span class="code-inline">core</span> module:</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"core"</span>, location: <span class="SStr">"swag@std"</span>)
+</span></div>
+<p>Source files can then use qualified names such as <span class="code-inline">Core.String</span>, or bring selected names into scope with <span class="code-inline">using Core</span>.</p>
+<h2 id="Continue_learning">Continue learning</h2>
 <ul>
-<li><span class="code-inline">reference/</span> is a workspace which contains an overview of the language, in the form of small tests.</li>
-<li><span class="code-inline">testsuite/</span> is a workspace which contains all the tests to debug the compiler.</li>
-<li><span class="code-inline">runtime/</span> contains the compiler runtime, which is included in all user modules.</li>
-<li><span class="code-inline">std/</span> is the <a href="std.html">standard workspace</a> which contains all the standard modules that come with the compiler. A big work in progress.</li>
+<li>Start with the <a href="language.html#_001_002_language_tour_swg">language tour</a>.</li>
+<li>Use the <a href="language.html#The__swc__Command_Line">`swc` command-line reference</a>.</li>
+<li>Read about <a href="language.html#Workspaces_and_Modules">workspaces and modules</a>.</li>
+<li>Browse the <a href="std.html">standard library</a> and</li>
 </ul>
-<h1 id="The_Swag_language">The Swag language</h1>
-<p>You should take a look at the <span class="code-inline">reference/</span> sub folder in the Swag directory, or to the corresponding generated <a href="language.html">documentation</a>. It contains the list of all that can be done with the language, in the form of small tests (in fact it's not really exhaustive, but should be...).</p>
-<p>It's a good starting point to familiarize yourself with the language.</p>
-<p>And as this is a normal Swag workspace, you could also build and test it with <span class="code-inline">swag test -w swag/reference</span>.</p>
-<p>You will also find some small examples (mostly written for tests) in <span class="code-inline">swag/bin/examples/modules</span>. To build and run one of them from the console, go to the workspace folder (<span class="code-inline">/examples</span>) and type for example <span class="code-inline">swag run -m wnd</span>.</p>
+<p><a href="swag.runtime.html">runtime API</a>.</p>
+<ul>
+<li>Run the programs under</li>
+</ul>
+<p><a href="https://github.com/swag-lang/swc/tree/master/bin/examples">`bin/examples`</a>.</p>
 </article>
 <footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>

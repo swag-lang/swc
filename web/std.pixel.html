@@ -229,7 +229,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">397</span></summary>
+<summary>Functions<span class="toc-count">398</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Image_allocPixels">Image.allocPixels</a></li>
@@ -474,6 +474,7 @@
 <li><a href="#Pixel_RenderOgl_init">RenderOgl.init</a></li>
 <li><a href="#Pixel_RenderOgl_opDrop">RenderOgl.opDrop</a></li>
 <li><a href="#Pixel_RenderOgl_pixelFormatToNative">RenderOgl.pixelFormatToNative</a></li>
+<li><a href="#Pixel_RenderOgl_readRenderTarget">RenderOgl.readRenderTarget</a></li>
 <li><a href="#Pixel_RenderOgl_releaseRenderTarget">RenderOgl.releaseRenderTarget</a></li>
 <li><a href="#Pixel_RenderOgl_removeTexture">RenderOgl.removeTexture</a></li>
 <li><a href="#Pixel_RenderOgl_resetScissorRect">RenderOgl.resetScissorRect</a></li>
@@ -1182,7 +1183,7 @@ renderer.<span class="SFct">end</span>()
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_visitPixels">Image.visitPixels</a></td><td><p>Visits pixels in parallel using chunks separated by <span class="code-inline">stride</span> pixels.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_ImageCanvas_clear">ImageCanvas.clear</a></td><td><p>Sets the color the target is cleared with before the recorded drawing is rendered.</p>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_clear">ImageCanvas.clear</a></td><td><p>Lays a solid ground under the drawing recorded so far.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_ImageCanvas_create">ImageCanvas.create</a></td><td><p>Opens an off-screen canvas with positive dimensions.</p>
 </td></tr>
@@ -1619,6 +1620,8 @@ renderer.<span class="SFct">end</span>()
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_opDrop">RenderOgl.opDrop</a></td><td><p>Releases queued and currently bound render-target descriptors, and the glyph atlases.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_pixelFormatToNative">RenderOgl.pixelFormatToNative</a></td><td><p>Maps a Pixel byte layout to its OpenGL upload/readback format.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_readRenderTarget">RenderOgl.readRenderTarget</a></td><td><p>Reads a rectangle of any render target back as an image.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_releaseRenderTarget">RenderOgl.releaseRenderTarget</a></td><td><p>Release the given render target</p>
 </td></tr>
@@ -2696,7 +2699,7 @@ canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst">
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td class="code-type"><a href="#Pixel_ImageCanvas_clear">clear</a></td><td><p>Sets the color the target is cleared with before the recorded drawing is rendered.</p>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_clear">clear</a></td><td><p>Lays a solid ground under the drawing recorded so far.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_ImageCanvas_create">create</a></td><td><p>Opens an off-screen canvas with positive dimensions.</p>
 </td></tr>
@@ -4111,6 +4114,8 @@ tessellator.<span class="SFct">triangulate</span>()
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_opDrop">opDrop</a></td><td><p>Releases queued and currently bound render-target descriptors, and the glyph atlases.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_pixelFormatToNative">pixelFormatToNative</a></td><td><p>Maps a Pixel byte layout to its OpenGL upload/readback format.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOgl_readRenderTarget">readRenderTarget</a></td><td><p>Reads a rectangle of any render target back as an image.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_releaseRenderTarget">releaseRenderTarget</a></td><td><p>Release the given render target</p>
 </td></tr>
@@ -6559,8 +6564,9 @@ path.<span class="SFct">close</span>()
 <span class="SKwd">mtd</span> <span class="SFct">visitPixels</span>(pixelUserData: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, stride: <span class="STpe">s32</span> = <span class="SNum">1</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> pix, image, index: <span class="STpe">u64</span>, x: <span class="STpe">s32</span>, y: <span class="STpe">s32</span>, userData))</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.clear</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L142">src</a></div>
-<p>Sets the color the target is cleared with before the recorded drawing is rendered.</p>
+<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.clear</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L172">src</a></div>
+<p>Lays a solid ground under the drawing recorded so far.</p>
+<p>The ground is written with alpha enabled, so a canvas can produce either an opaque image or one that keeps its transparency, and it is remembered for the frames that follow.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>(color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -6579,12 +6585,12 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(image: <span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.opDrop</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L197">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.opDrop</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L218">src</a></div>
 <p>Releases the graphics resources when the canvas leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_toImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.toImage</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_toImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L151">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_toImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.toImage</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_toImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L184">src</a></div>
 <p>Renders everything recorded so far and returns the pixels.</p>
 <p>The painter is left ready to record the next frame, so a canvas can produce a series of images without being opened again.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
@@ -7724,7 +7730,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <span class="SKwd">mtd</span> <span class="SFct">swapBuffers</span>(rc: <span class="SCst"><a href="#Pixel_RenderingContext">RenderingContext</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_addImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.addImage</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_addImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L704">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_addImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.addImage</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_addImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L726">src</a></div>
 <p>Load and register an image for rendering</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addImage</span>(fullName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Pixel_Texture">Texture</a></span> <span class="SKwd">fail</span></span></div>
 <p>Register an image for rendering</p>
@@ -7748,30 +7754,30 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_computeMatrices" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.computeMatrices</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_computeMatrices" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L882">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_computeMatrices" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.computeMatrices</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_computeMatrices" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L904">src</a></div>
 <p>Uploads projection and model matrices for the current target.</p>
 <p><span class="code-inline">mvp</span> and <span class="code-inline">mdl</span> are uniform locations in the active shader.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">computeMatrices</span>(mvp, mdl: <span class="SCst"><a href="#Pixel_ShaderParamHandle">ShaderParamHandle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_createRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.createRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_createRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L634">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_createRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.createRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_createRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L656">src</a></div>
 <p>Create a render target</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">createRenderTarget</span>(w, h: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_createShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.createShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_createShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1353">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_createShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.createShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_createShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1375">src</a></div>
 <p>Create the given shader</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createShader</span>(base: *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span>, vertex, pixel: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_deleteRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.deleteRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_deleteRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L675">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_deleteRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.deleteRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_deleteRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L697">src</a></div>
 <p>Delete a render target</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">deleteRenderTarget</span>(rt: *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_draw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.draw</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_draw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1220">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_draw" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.draw</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_draw" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1242">src</a></div>
 <p>Draw the given painter</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">draw</span>(dc: *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>)</span></div>
 </section>
@@ -7781,7 +7787,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">end</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_getRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.getRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_getRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1314">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_getRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.getRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_getRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1336">src</a></div>
 <p>Get a render target of the given size releaseRenderTarget must be called to release it</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getRenderTarget</span>(w, h: <span class="STpe">s32</span>)-&gt;*<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span></span></div>
 </section>
@@ -7791,7 +7797,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">getTargetSize</span>()-&gt;{ width, height: <span class="STpe">s32</span> }</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_getTexturePixels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.getTexturePixels</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_getTexturePixels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L795">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_getTexturePixels" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.getTexturePixels</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_getTexturePixels" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L817">src</a></div>
 <p>Returns the pixels associated to a texture</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">getTexturePixels</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, pf: <span class="SCst"><a href="#Pixel_PixelFormat">PixelFormat</a></span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span></span></div>
@@ -7808,17 +7814,23 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_pixelFormatToNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.pixelFormatToNative</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_pixelFormatToNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L761">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_pixelFormatToNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.pixelFormatToNative</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_pixelFormatToNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L783">src</a></div>
 <p>Maps a Pixel byte layout to its OpenGL upload/readback format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">pixelFormatToNative</span>(pf: <span class="SCst"><a href="#Pixel_PixelFormat">PixelFormat</a></span>)-&gt;<span class="SCst"><a href="std.ogl.html#Ogl_GLenum">GLenum</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_releaseRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.releaseRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_releaseRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1345">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_readRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.readRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_readRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L596">src</a></div>
+<p>Reads a rectangle of any render target back as an image.</p>
+<p>Unlike <a href="#Pixel_RenderOgl_unbindRenderTargetToImage">RenderOgl.unbindRenderTargetToImage</a> this does not touch the target stack, so a target filled by a painter command stream, which binds and unbinds it as it runs, can still be read afterwards.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readRenderTarget</span>(rt: *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>, x, y, w, h: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_releaseRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.releaseRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_releaseRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1367">src</a></div>
 <p>Release the given render target</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseRenderTarget</span>(tgt: <span class="SItr">#null</span> *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_removeTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.removeTexture</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_removeTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L821">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_removeTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.removeTexture</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_removeTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L843">src</a></div>
 <p>Unregister a texture created with <span class="code-inline">addImage</span></p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">removeTexture</span>(texture: *<span class="SCst"><a href="#Pixel_Texture">Texture</a></span>)</span></div>
@@ -7830,19 +7842,19 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <span class="SKwd">mtd</span> <span class="SFct">resetScissorRect</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L873">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_resetTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.resetTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_resetTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L895">src</a></div>
 <p>Reset the world transform</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetTransform</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_rotateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.rotateTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_rotateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L845">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_rotateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.rotateTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_rotateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L867">src</a></div>
 <p>Rotate the world transform</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateTransform</span>(angle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>)</span></div>
 <p>Rotate the world transform</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">rotateTransform</span>(angle: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Angle">Angle</a></span>, centerX, centerY: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_scaleTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.scaleTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_scaleTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L859">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_scaleTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.scaleTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_scaleTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L881">src</a></div>
 <p>Scale the world transform</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">scaleTransform</span>(x, y: <span class="STpe">f32</span>)</span></div>
 <p>Scale the world transform</p>
@@ -7859,7 +7871,7 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setScissorRect</span>(rect: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst">Rectangle</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1298">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_setShader" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.setShader</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_setShader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L1320">src</a></div>
 <p>Set the current shader</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setShader</span>(shader: <span class="SItr">#null</span> *<span class="SCst"><a href="#Pixel_ShaderBase">ShaderBase</a></span> = <span class="SKwd">null</span>)</span></div>
 </section>
@@ -7870,22 +7882,22 @@ canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setupHeadless</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_translateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.translateTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_translateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L838">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_translateTransform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.translateTransform</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_translateTransform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L860">src</a></div>
 <p>Translate the world transform</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translateTransform</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_unbindRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.unbindRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_unbindRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L611">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_unbindRenderTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.unbindRenderTarget</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_unbindRenderTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L633">src</a></div>
 <p>Go back to the previous render target, or frame buffer</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unbindRenderTarget</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_unbindRenderTargetToImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.unbindRenderTargetToImage</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_unbindRenderTargetToImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L592">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_unbindRenderTargetToImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.unbindRenderTargetToImage</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_unbindRenderTargetToImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L614">src</a></div>
 <p>Get current render target pixels</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">unbindRenderTargetToImage</span>(x, y, w, h: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderOgl_updateTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.updateTexture</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_updateTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L776">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderOgl_updateTexture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOgl.updateTexture</span> <a class="api-item-permalink" href="#Pixel_RenderOgl_updateTexture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.swg#L798">src</a></div>
 <p>Update content of texture</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">updateTexture</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, pixels: <span class="SKwd">const</span> *<span class="STpe">u8</span>)</span></div>

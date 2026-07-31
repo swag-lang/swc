@@ -1,21 +1,90 @@
-# How to build Swag
+# Build Swag from source
 
-## LLVM
+The compiler is a Windows x86-64 C++ application built with MSBuild. The source
+tree no longer embeds LLVM or uses the old `build/vs_build_*.bat` scripts;
+`swc.sln` and the repository tools are the maintained build path.
 
-Swag has two backends, a `x86_64` custom backend written for fast compile, but with far from optimal generated code, and `llvm` for optimized builds.
+## Prerequisites
 
-The [LLVM](https://releases.llvm.org/download.html) source tree is included in the Swag source tree for convenience. Version is `17.0.6`.
+Install Visual Studio 2026 or its standalone Build Tools with:
 
-In order to build LLVM, you will have to install [cmake 3.23.2](https://cmake.org/download/) (or later) and [python 3](https://www.python.org/downloads/).
+- the Desktop development with C++ workload;
+- the MSVC `v145` x64/x86 toolset;
+- Windows SDK `10.0.26100.0`.
 
-## Build
+The exact toolset and SDK are pinned in `swc.vcxproj`. If MSBuild reports that
+either component is missing, install that component through Visual Studio
+Installer before changing the project target.
 
-You will need `Visual Studio 2022 17.1` or later.
+## Build the compiler
 
-* As there's no automatic detection, edit `vs_build_cfg.bat` to match your version of Visual Studio.
-* Launch `swag/build/vs_build_llvm_release.bat`. Note that building LLVM takes a crazy amount of time and memory.
-* Launch `swag/build/vs_build_swag_release.bat`.
-* You can also launch `swag/build/vs_build_extern.bat`. This will build and update some external libraries in the standard workspace.
+Open a Developer PowerShell for Visual Studio, change to the repository root,
+and build the release configuration:
 
-If LLVM has been compiled once, you can also use the `Swag.sln` workspace in the `build` subfolder.
+```text
+msbuild swc.sln /m /p:Configuration=Release /p:Platform=x64
+```
 
+The solution also opens directly in Visual Studio. Select `x64` and the desired
+configuration, then build the `swc` project.
+
+| Configuration | Output | Purpose |
+|---|---|---|
+| `Release` | `bin/swc.exe` | Compiler used by applications and normal repository tools |
+| `DevMode` | `bin/swc_devmode.exe` | Compiler with internal validation and C++ unit tests enabled |
+| `Stats` | `bin/swc_stats.exe` | Release-style compiler with internal statistics forced on |
+
+All intermediate C++ files stay under the repository's `.tmp/x64` tree.
+
+## Register the checkout
+
+Run this once from the repository root:
+
+```text
+tools\register_swc_path.bat
+```
+
+Open a new terminal afterward. The script adds `bin` to the user `PATH` and
+sets `SWAG_PATH`, which is required to locate the compiler runtime and standard
+workspace.
+
+Verify both the compiler and native toolchain:
+
+```text
+swc help
+swc new module hello
+swc run -w hello -m hello
+```
+
+## Validate repository changes
+
+Build `DevMode` before using the `dm` form of a tool. The narrow commands are
+useful while iterating:
+
+| Command | Scope |
+|---|---|
+| `tools\cpp.bat dm` | Internal C++ unit tests |
+| `tools\lexer.bat dm` | Lexer source tests and expected diagnostics |
+| `tools\parser.bat dm` | Parser source tests and expected diagnostics |
+| `tools\sema.bat dm` | Semantic source tests and expected diagnostics |
+| `tools\jit.bat dm` | JIT execution tests |
+| `tools\native.bat dm` | Native code generation and execution tests |
+| `tools\reference.bat dm test` | Executable language reference |
+| `tools\tests.bat dm` | Full default DevMode test suite |
+| `tools\alltests.bat dm` | Default suite in `release`, `debug`, and `fast-debug` |
+
+The repository's [agent guide](https://github.com/swag-lang/swc/blob/master/AGENTS.md)
+defines the required validation sequence for each change type.
+
+## Regenerate the website
+
+After a DevMode build, regenerate the complete documentation site with:
+
+```text
+web\tools\web.bat dm
+```
+
+The command rebuilds the brand assets, standard-library API pages, runtime API,
+language reference, and editorial pages. It deletes existing root HTML files in
+`web` first, so edit their sources under `bin/reference`, `bin/runtime`,
+`bin/std`, or `bin/examples` rather than editing generated HTML.

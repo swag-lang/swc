@@ -24,20 +24,66 @@
 </header>
 <main class="container single-page">
 <section class="right"><article class="right-page" id="content">
-<h1 id="How_to_build_Swag">How to build Swag</h1>
-<h2 id="LLVM">LLVM</h2>
-<p>Swag has two backends, a <span class="code-inline">x86_64</span> custom backend written for fast compile, but with far from optimal generated code, and <span class="code-inline">llvm</span> for optimized builds.</p>
-<p>The <a href="https://releases.llvm.org/download.html">LLVM</a> source tree is included in the Swag source tree for convenience. Version is <span class="code-inline">17.0.6</span>.</p>
-<p>In order to build LLVM, you will have to install <a href="https://cmake.org/download/">cmake 3.23.2</a> (or later) and <a href="https://www.python.org/downloads/">python 3</a>.</p>
-<h2 id="Build">Build</h2>
-<p>You will need <span class="code-inline">Visual Studio 2022 17.1</span> or later.</p>
+<h1 id="Build_Swag_from_source">Build Swag from source</h1>
+<p>The compiler is a Windows x86-64 C++ application built with MSBuild. The source tree no longer embeds LLVM or uses the old <span class="code-inline">build/vs_build_*.bat</span> scripts; <span class="code-inline">swc.sln</span> and the repository tools are the maintained build path.</p>
+<h2 id="Prerequisites">Prerequisites</h2>
+<p>Install Visual Studio 2026 or its standalone Build Tools with:</p>
 <ul>
-<li>As there's no automatic detection, edit <span class="code-inline">vs_build_cfg.bat</span> to match your version of Visual Studio.</li>
-<li>Launch <span class="code-inline">swag/build/vs_build_llvm_release.bat</span>. Note that building LLVM takes a crazy amount of time and memory.</li>
-<li>Launch <span class="code-inline">swag/build/vs_build_swag_release.bat</span>.</li>
-<li>You can also launch <span class="code-inline">swag/build/vs_build_extern.bat</span>. This will build and update some external libraries in the standard workspace.</li>
+<li>the Desktop development with C++ workload;</li>
+<li>the MSVC <span class="code-inline">v145</span> x64/x86 toolset;</li>
+<li>Windows SDK <span class="code-inline">10.0.26100.0</span>.</li>
 </ul>
-<p>If LLVM has been compiled once, you can also use the <span class="code-inline">Swag.sln</span> workspace in the <span class="code-inline">build</span> subfolder.</p>
+<p>The exact toolset and SDK are pinned in <span class="code-inline">swc.vcxproj</span>. If MSBuild reports that either component is missing, install that component through Visual Studio Installer before changing the project target.</p>
+<h2 id="Build_the_compiler">Build the compiler</h2>
+<p>Open a Developer PowerShell for Visual Studio, change to the repository root, and build the release configuration:</p>
+<div class="code-block"><span class="SCde">msbuild swc.sln /m /p:Configuration=Release /p:Platform=x64
+</span></div>
+<p>The solution also opens directly in Visual Studio. Select <span class="code-inline">x64</span> and the desired configuration, then build the <span class="code-inline">swc</span> project.</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Configuration</th><th>Output</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">Release</span></td><td><span class="code-inline">bin/swc.exe</span></td><td>Compiler used by applications and normal repository tools</td></tr>
+<tr><td><span class="code-inline">DevMode</span></td><td><span class="code-inline">bin/swc_devmode.exe</span></td><td>Compiler with internal validation and C++ unit tests enabled</td></tr>
+<tr><td><span class="code-inline">Stats</span></td><td><span class="code-inline">bin/swc_stats.exe</span></td><td>Release-style compiler with internal statistics forced on</td></tr>
+</tbody>
+</table>
+<p>All intermediate C++ files stay under the repository's <span class="code-inline">.tmp/x64</span> tree.</p>
+<h2 id="Register_the_checkout">Register the checkout</h2>
+<p>Run this once from the repository root:</p>
+<div class="code-block"><span class="SCde">tools\register_swc_path.bat
+</span></div>
+<p>Open a new terminal afterward. The script adds <span class="code-inline">bin</span> to the user <span class="code-inline">PATH</span> and sets <span class="code-inline">SWAG_PATH</span>, which is required to locate the compiler runtime and standard workspace.</p>
+<p>Verify both the compiler and native toolchain:</p>
+<div class="code-block"><span class="SCde">swc help
+swc new module hello
+swc run -w hello -m hello
+</span></div>
+<h2 id="Validate_repository_changes">Validate repository changes</h2>
+<p>Build <span class="code-inline">DevMode</span> before using the <span class="code-inline">dm</span> form of a tool. The narrow commands are useful while iterating:</p>
+<table class="table-markdown">
+<thead>
+<tr><th>Command</th><th>Scope</th></tr>
+</thead>
+<tbody>
+<tr><td><span class="code-inline">tools\cpp.bat dm</span></td><td>Internal C++ unit tests</td></tr>
+<tr><td><span class="code-inline">tools\lexer.bat dm</span></td><td>Lexer source tests and expected diagnostics</td></tr>
+<tr><td><span class="code-inline">tools\parser.bat dm</span></td><td>Parser source tests and expected diagnostics</td></tr>
+<tr><td><span class="code-inline">tools\sema.bat dm</span></td><td>Semantic source tests and expected diagnostics</td></tr>
+<tr><td><span class="code-inline">tools\jit.bat dm</span></td><td>JIT execution tests</td></tr>
+<tr><td><span class="code-inline">tools\native.bat dm</span></td><td>Native code generation and execution tests</td></tr>
+<tr><td><span class="code-inline">tools\reference.bat dm test</span></td><td>Executable language reference</td></tr>
+<tr><td><span class="code-inline">tools\tests.bat dm</span></td><td>Full default DevMode test suite</td></tr>
+<tr><td><span class="code-inline">tools\alltests.bat dm</span></td><td>Default suite in <span class="code-inline">release</span>, <span class="code-inline">debug</span>, and <span class="code-inline">fast-debug</span></td></tr>
+</tbody>
+</table>
+<p>The repository's <a href="https://github.com/swag-lang/swc/blob/master/AGENTS.md">agent guide</a> defines the required validation sequence for each change type.</p>
+<h2 id="Regenerate_the_website">Regenerate the website</h2>
+<p>After a DevMode build, regenerate the complete documentation site with:</p>
+<div class="code-block"><span class="SCde">web\tools\web.bat dm
+</span></div>
+<p>The command rebuilds the brand assets, standard-library API pages, runtime API, language reference, and editorial pages. It deletes existing root HTML files in <span class="code-inline">web</span> first, so edit their sources under <span class="code-inline">bin/reference</span>, <span class="code-inline">bin/runtime</span>, <span class="code-inline">bin/std</span>, or <span class="code-inline">bin/examples</span> rather than editing generated HTML.</p>
 </article>
 <footer class="site-footer">
 <div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1</div>

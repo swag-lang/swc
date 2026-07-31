@@ -2296,7 +2296,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_makeLinear">ConcatBuffer.makeLinear</a></td><td><p>Merges all buckets into a single, contiguous memory block.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveSeek">ConcatBuffer.moveSeek</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveSeek">ConcatBuffer.moveSeek</a></td><td><p>Advances the cursor by <span class="code-inline">num</span> bytes, growing the buffer when needed.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">ConcatBuffer.moveToString</a></td><td><p>Moves the buffer's content into a new <span class="code-inline">String</span>, invalidating the buffer.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_opCount">ConcatBuffer.opCount</a></td><td><p>Returns the total number of bytes in the buffer.</p>
@@ -2307,7 +2308,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_release">ConcatBuffer.release</a></td><td><p>Frees all memory associated with the buffer, including all buckets.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">ConcatBuffer.reserveInPlace</a></td><td><p>Moves the current seek pointer forward by <span class="code-inline">num</span> bytes.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">ConcatBuffer.reserveInPlace</a></td><td><p>Reserves <span class="code-inline">count</span> bytes at the cursor and returns where to write them.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setAllocator">ConcatBuffer.setAllocator</a></td><td><p>Associates a specific allocator with the buffer.</p>
 </td></tr>
@@ -6724,7 +6725,8 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_makeLinear">makeLinear</a></td><td><p>Merges all buckets into a single, contiguous memory block.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveSeek">moveSeek</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_moveSeek">moveSeek</a></td><td><p>Advances the cursor by <span class="code-inline">num</span> bytes, growing the buffer when needed.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_moveToString">moveToString</a></td><td><p>Moves the buffer's content into a new <span class="code-inline">String</span>, invalidating the buffer.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_opCount">opCount</a></td><td><p>Returns the total number of bytes in the buffer.</p>
@@ -6735,7 +6737,7 @@ scores.<span class="SFct">add</span>(<span class="SStr">"Grace"</span>, <span cl
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_release">release</a></td><td><p>Frees all memory associated with the buffer, including all buckets.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">reserveInPlace</a></td><td><p>Moves the current seek pointer forward by <span class="code-inline">num</span> bytes.</p>
+<tr><td class="code-type"><a href="#Core_ConcatBuffer_reserveInPlace">reserveInPlace</a></td><td><p>Reserves <span class="code-inline">count</span> bytes at the cursor and returns where to write them.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_ConcatBuffer_setAllocator">setAllocator</a></td><td><p>Associates a specific allocator with the buffer.</p>
 </td></tr>
@@ -12450,6 +12452,7 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_ConcatBuffer_moveSeek" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.moveSeek</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_moveSeek" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L371">src</a></div>
+<p>Advances the cursor by <span class="code-inline">num</span> bytes, growing the buffer when needed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">moveSeek</span>(num: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -12479,8 +12482,8 @@ encoder.<span class="SFct">writeAll</span>(&amp;buf, myStruct)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ConcatBuffer_reserveInPlace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.reserveInPlace</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_reserveInPlace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L364">src</a></div>
-<p>Moves the current seek pointer forward by <span class="code-inline">num</span> bytes. Reserves <span class="code-inline">count</span> bytes at the cursor and returns where to write them.</p>
+<div class="api-item api-item-func"><span id="Core_ConcatBuffer_reserveInPlace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ConcatBuffer.reserveInPlace</span> <a class="api-item-permalink" href="#Core_ConcatBuffer_reserveInPlace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/collections/concatbuffer.swg#L363">src</a></div>
+<p>Reserves <span class="code-inline">count</span> bytes at the cursor and returns where to write them.</p>
 <p>The cursor moves past the reserved bytes, so the caller fills them in place and keeps appending afterwards. The returned pointer stays valid until the next call that grows the buffer. Reserve first and write later when the content depends on what follows, as a length or a checksum field does.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reserveInPlace</span>(count: <span class="STpe">u64</span>)-&gt;[*] <span class="STpe">u8</span></span></div>
 </section>

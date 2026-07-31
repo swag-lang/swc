@@ -1,0 +1,715 @@
+<title>Banc swc &mdash; swag face à C++, Rust, Swift, C#, V8, LuaJIT, Lua, CPython</title>
+
+<style>
+/* ------------------------------------------------------------------ tokens */
+:root {
+    color-scheme: light dark;
+
+    --volt:  #F7F900;
+    --ink:   #0B0B0D;
+
+    --bg:    #FFFFFF;
+    --panel: #FAFAF7;
+    --fg:    #1B1B1D;
+    --soft:  #55555C;
+    --faint: #83838D;
+    --line:  #E2E2DF;
+
+    --g-swag:    #0B0B0D;
+    --g-native:  #6B6B62;
+    --g-managed: #9A9A90;
+    --g-dynamic: #C6C6BB;
+    --track:     #EFEFEA;
+
+    --sans: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg:    #0B0B0D;
+        --panel: #131317;
+        --fg:    #E6E6EA;
+        --soft:  #A9A9B4;
+        --faint: #7D7D89;
+        --line:  #26262E;
+
+        --g-swag:    #F7F900;
+        --g-native:  #7E7E8E;
+        --g-managed: #56565F;
+        --g-dynamic: #3B3B44;
+        --track:     #17171C;
+    }
+}
+
+:root[data-theme="light"] {
+    --bg:    #FFFFFF;
+    --panel: #FAFAF7;
+    --fg:    #1B1B1D;
+    --soft:  #55555C;
+    --faint: #83838D;
+    --line:  #E2E2DF;
+    --g-swag:    #0B0B0D;
+    --g-native:  #6B6B62;
+    --g-managed: #9A9A90;
+    --g-dynamic: #C6C6BB;
+    --track:     #EFEFEA;
+}
+
+:root[data-theme="dark"] {
+    --bg:    #0B0B0D;
+    --panel: #131317;
+    --fg:    #E6E6EA;
+    --soft:  #A9A9B4;
+    --faint: #7D7D89;
+    --line:  #26262E;
+    --g-swag:    #F7F900;
+    --g-native:  #7E7E8E;
+    --g-managed: #56565F;
+    --g-dynamic: #3B3B44;
+    --track:     #17171C;
+}
+
+/* ------------------------------------------------------------------- base */
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.62;
+    -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 28px;
+}
+
+p { margin: 0 0 14px; max-width: 68ch; }
+a { color: inherit; }
+
+code, .num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code { font-size: .88em; color: var(--soft); }
+
+.eyebrow {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+/* ----------------------------------------------------------------- header */
+.top {
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+}
+
+.top .wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 62px;
+}
+
+.top svg { display: block; width: 24px; height: 24px; }
+.top .mark path { fill: var(--g-swag); }
+
+.wordmark {
+    font-weight: 800;
+    letter-spacing: .2em;
+    font-size: .84rem;
+}
+
+.top .sep { flex: 1; }
+
+.top .meta {
+    font-family: var(--mono);
+    font-size: .72rem;
+    color: var(--faint);
+}
+
+/* ------------------------------------------------------------------- hero */
+.hero {
+    background: var(--ink);
+    color: #E6E6EA;
+    padding: 66px 0 52px;
+}
+
+.hero h1 {
+    margin: 0 0 18px;
+    font-size: clamp(2rem, 5.4vw, 3.3rem);
+    line-height: 1.06;
+    letter-spacing: -.028em;
+    font-weight: 800;
+    text-wrap: balance;
+    max-width: 20ch;
+}
+
+.hero h1 b { color: var(--volt); font-weight: 800; }
+
+.hero .lede { color: #A9A9B4; max-width: 62ch; font-size: 1.02rem; }
+.hero .eyebrow { color: #7D7D89; margin-bottom: 20px; }
+
+.hero .rule {
+    width: 44px;
+    height: 4px;
+    background: var(--volt);
+    transform: skewX(-18deg);
+    margin-bottom: 22px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1px;
+    margin-top: 42px;
+    background: #26262E;
+    border-top: 1px solid #26262E;
+    border-bottom: 1px solid #26262E;
+}
+
+.stat { background: var(--ink); padding: 22px 20px 20px; }
+
+.stat .sv {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 2.3rem;
+    line-height: 1;
+    letter-spacing: -.03em;
+    color: var(--volt);
+}
+
+.stat .sv em { font-style: normal; font-size: .95rem; margin-left: 3px; color: #7D7D89; }
+
+.stat .sl {
+    margin-top: 10px;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-family: var(--mono);
+    color: #E6E6EA;
+}
+
+.stat p { margin: 8px 0 0; font-size: .8rem; color: #7D7D89; line-height: 1.5; }
+
+/* ---------------------------------------------------------------- sections */
+main { padding: 8px 0 40px; }
+
+section { padding: 52px 0 8px; border-top: 1px solid var(--line); }
+section:first-of-type { border-top: 0; }
+
+.sh { position: relative; padding-top: 20px; margin-bottom: 10px; }
+
+.sh::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 32px;
+    height: 4px;
+    background: var(--volt);
+    transform: skewX(-18deg);
+}
+
+h2 {
+    margin: 0;
+    font-size: 1.58rem;
+    font-weight: 700;
+    letter-spacing: -.016em;
+    line-height: 1.18;
+    text-wrap: balance;
+}
+
+.lede { color: var(--soft); max-width: 68ch; }
+
+.cap {
+    margin: -6px 0 0;
+    font-size: .78rem;
+    color: var(--faint);
+    max-width: 46ch;
+    line-height: 1.5;
+}
+
+h3 {
+    margin: 34px 0 12px;
+    font-size: .78rem;
+    font-family: var(--mono);
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------------ chart */
+.chart {
+    --lw: 200px;
+    --vw: 96px;
+    position: relative;
+    margin: 22px 0 8px;
+    padding-top: 24px;
+}
+
+.axis {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--lw);
+    right: var(--vw);
+    pointer-events: none;
+}
+
+.tick { position: absolute; top: 0; bottom: 0; }
+.tick i { position: absolute; top: 24px; bottom: 0; left: 0; width: 1px; background: var(--line); }
+
+.tick b {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: .66rem;
+    font-weight: 400;
+    color: var(--faint);
+}
+
+.row {
+    display: grid;
+    grid-template-columns: var(--lw) 1fr var(--vw);
+    align-items: center;
+    min-height: 27px;
+}
+
+.row .rl {
+    padding-right: 14px;
+    font-size: .82rem;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.row .mode {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .06em;
+    color: var(--faint);
+}
+
+.track { position: relative; height: 11px; }
+
+.bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--g-native);
+    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 100%, 0 100%);
+}
+
+.row .rv {
+    padding-left: 12px;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    font-size: .78rem;
+    white-space: nowrap;
+}
+
+.row .rv em { font-style: normal; color: var(--faint); margin-left: 3px; font-size: .9em; }
+
+.f-swag    .bar { background: var(--g-swag); }
+.f-native  .bar { background: var(--g-native); }
+.f-managed .bar { background: var(--g-managed); }
+.f-dynamic .bar { background: var(--g-dynamic); }
+
+.row:hover .rl { color: var(--fg); }
+.row:hover .track { background: var(--track); }
+
+/* ----------------------------------------------------------------- legend */
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: .7rem;
+    color: var(--soft);
+    letter-spacing: .04em;
+}
+
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+
+.legend i {
+    width: 14px;
+    height: 9px;
+    display: block;
+    clip-path: polygon(0 0, calc(100% - 3px) 0, 100% 100%, 0 100%);
+}
+
+.legend .k-swag    { background: var(--g-swag); }
+.legend .k-native  { background: var(--g-native); }
+.legend .k-managed { background: var(--g-managed); }
+.legend .k-dynamic { background: var(--g-dynamic); }
+
+/* ------------------------------------------------------------------ table */
+.scroll { overflow-x: auto; margin: 18px 0 6px; }
+
+table { border-collapse: collapse; width: 100%; font-size: .82rem; }
+
+thead th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 400;
+    padding: 0 12px 8px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+}
+
+thead th.num { text-align: right; }
+
+tbody th {
+    text-align: left;
+    font-weight: 400;
+    padding: 7px 12px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--line);
+    border-left: 2px solid var(--g-native);
+}
+
+tbody td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--line);
+    color: var(--soft);
+}
+
+tbody td.num {
+    text-align: right;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+tbody td.num b { color: var(--fg); font-weight: 600; }
+
+tbody tr:hover td, tbody tr:hover th { background: var(--panel); }
+
+tbody tr.f-swag    th { border-left-color: var(--g-swag); }
+tbody tr.f-native  th { border-left-color: var(--g-native); }
+tbody tr.f-managed th { border-left-color: var(--g-managed); }
+tbody tr.f-dynamic th { border-left-color: var(--g-dynamic); }
+
+table.wide { min-width: 780px; }
+table.tasks { min-width: 560px; }
+table.tasks tbody th { border-left-color: var(--g-swag); width: 1%; }
+table.tasks tbody td { color: var(--soft); }
+
+/* ------------------------------------------------------------------- misc */
+.note {
+    border-left: 2px solid var(--volt);
+    padding: 2px 0 2px 16px;
+    margin: 26px 0;
+    color: var(--soft);
+    font-size: .88rem;
+}
+
+.note b { color: var(--fg); }
+
+.grid2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 30px;
+    align-items: start;
+}
+
+.method {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0 30px;
+}
+
+.method li { padding: 12px 0; border-top: 1px solid var(--line); }
+
+.method b {
+    display: block;
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    font-weight: 400;
+    margin-bottom: 3px;
+}
+
+.method span { font-size: .86rem; color: var(--soft); }
+
+/* ---------------------------------------------------------------- history */
+.hchart { width: 100%; height: auto; margin: 14px 0 4px; overflow: visible; }
+
+.hgrid { stroke: var(--line); stroke-width: 1; }
+
+.hlab, .hunit, .hend {
+    font-family: var(--mono);
+    font-size: 10px;
+    fill: var(--faint);
+}
+
+.hunit { font-size: 9px; letter-spacing: .1em; }
+.hend { font-size: 10px; }
+
+.hline { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+
+.hline.h-a { stroke: var(--g-swag); }
+.hline.h-b { stroke: var(--g-swag); stroke-dasharray: 5 4; }
+.hline.h-c { stroke: var(--g-native); }
+.hline.h-d { stroke: var(--g-native); stroke-dasharray: 5 4; }
+
+.hdot.h-a, .hdot.h-b { fill: var(--g-swag); }
+.hdot.h-c, .hdot.h-d { fill: var(--g-native); }
+
+.hend.h-a, .hend.h-b { fill: var(--fg); }
+.hend.h-c, .hend.h-d { fill: var(--faint); }
+
+.small-mult {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 8px 26px;
+    margin-top: 8px;
+}
+
+.sm { border-top: 1px solid var(--line); padding-top: 8px; }
+
+.sm b {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .08em;
+    color: var(--soft);
+    font-weight: 400;
+}
+
+footer {
+    border-top: 1px solid var(--line);
+    padding: 28px 0 60px;
+    color: var(--faint);
+    font-size: .78rem;
+    font-family: var(--mono);
+}
+
+@media (max-width: 720px) {
+    .chart { --lw: 132px; --vw: 76px; }
+    .row .rl { font-size: .74rem; }
+    .row .mode { display: none; }
+    .hero { padding: 44px 0 36px; }
+}
+</style>
+
+<header class="top">
+    <div class="wrap">
+        <svg class="mark" viewBox="0 0 116 116" role="img" aria-label="Swag"><path d="M46 8L96 8L106.08 20L104.48 30L42.48 30L39.76 47L101.76 47L95.52 86L70 108L20 108L9.92 96L11.52 86L73.52 86L76.24 69L14.24 69L20.48 30L46 8Z"/></svg>
+        <span class="wordmark">SWAG</span>
+        <span class="sep"></span>
+        <span class="meta">{{date}} &middot; <code>{{commit}}</code> &middot; campagne nº{{campaigns}}</span>
+    </div>
+</header>
+
+<div class="hero">
+    <div class="wrap">
+        <div class="rule"></div>
+        <span class="eyebrow">6 t&acirc;ches &middot; 14 runtimes &middot; checksums identiques</span>
+        <h1>swc produit du code <b>{{swag_geo}}&times;</b> plus lent, et le produit <b>{{build_edge}}&times;</b> plus vite.</h1>
+        <p class="lede">Six programmes r&eacute;alistes &eacute;crits &agrave; la main &agrave; l'identique en swag, C++, Rust,
+        Swift, C#, JavaScript, Lua et Python. M&ecirc;me algorithme, m&ecirc;me g&eacute;n&eacute;rateur al&eacute;atoire,
+        m&ecirc;me section chronom&eacute;tr&eacute;e. Les 84 binaires produisent le m&ecirc;me checksum &mdash; c'est la
+        preuve qu'on compare bien le m&ecirc;me travail.</p>
+        <div class="stats">{{stats}}</div>
+    </div>
+</div>
+
+<main class="wrap">
+
+<section id="taches">
+    <div class="sh"><span class="eyebrow">01</span><h2>Ce qui est mesur&eacute;</h2></div>
+    <p class="lede">Aucune biblioth&egrave;que : chaque t&acirc;che r&eacute;implante sa structure de donn&eacute;es
+    &agrave; la main, pour que le banc mesure le compilateur et non la qualit&eacute; d'une biblioth&egrave;que standard.
+    Le temps rapport&eacute; est celui de la section de calcul seule &mdash; la g&eacute;n&eacute;ration des
+    donn&eacute;es est exclue.</p>
+    {{task_table}}
+</section>
+
+<section id="execution">
+    <div class="sh"><span class="eyebrow">02</span><h2>Temps d'ex&eacute;cution</h2></div>
+    <p class="lede">Moyenne g&eacute;om&eacute;trique du rapport au meilleur de chaque t&acirc;che. L'&eacute;chelle est
+    logarithmique : chaque graduation double la pr&eacute;c&eacute;dente.</p>
+    {{ex_chart}}
+    <div class="legend">
+        <span><i class="k-swag"></i>swag</span>
+        <span><i class="k-native"></i>natif AOT</span>
+        <span><i class="k-managed"></i>.NET</span>
+        <span><i class="k-dynamic"></i>dynamique</span>
+    </div>
+
+    <div class="note">
+        <p>Deux choses se lisent d'un coup. <b>Le JIT de swc tourne &agrave; {{jit_gap_abs}}&nbsp;% du backend
+        natif</b> ({{jitswag_geo}}&times; contre {{swag_geo}}&times;) : ce n'est pas un mode d&eacute;grad&eacute;,
+        c'est le m&ecirc;me Micro IR et le m&ecirc;me encodeur x64. Et il devance LuaJIT ({{luajit_geo}}&times;),
+        qui est pourtant la r&eacute;f&eacute;rence du genre.</p>
+        <p>En face, swag release reste &agrave; {{swag_geo}}&times; du peloton C++/Rust/Swift/C#-AOT. Cet
+        &eacute;cart n'est pas imputable aux contr&ocirc;les de s&ucirc;ret&eacute; : Rust, Swift et C# gardent leurs
+        v&eacute;rifications de bornes en release, alors que swag release et C++ passent par des pointeurs bruts.</p>
+    </div>
+
+    <h3>Temps par t&acirc;che, en millisecondes</h3>
+    {{ex_table}}
+
+    <h3>Rapport au meilleur de chaque t&acirc;che</h3>
+    {{ra_table}}
+
+    <div class="note">
+        <p><b>O&ugrave; regarder en premier.</b> <code>sha256</code> est le signal le plus propre : une boucle
+        d'ALU enti&egrave;re, sans acc&egrave;s m&eacute;moire complexe, o&ugrave; il ne reste que l'allocation de
+        registres et la s&eacute;lection d'instructions. swag y met {{sha_swag}}&nbsp;ms contre
+        {{sha_best}}&nbsp;ms pour le meilleur. C'est aussi l&agrave; que <code>fast-debug</code> co&ucirc;te le plus
+        cher : {{sha_fd}}&nbsp;ms, soit {{sha_fd_ratio}}&times; le mode release &mdash; les gardes de s&ucirc;ret&eacute;
+        mordent exactement o&ugrave; l'arithm&eacute;tique est dense. Le pire cas global est
+        <code>{{worst_task}}</code> ({{worst_ratio}}&times;), le meilleur <code>{{best_task}}</code>
+        ({{best_ratio}}&times;).</p>
+    </div>
+</section>
+
+<section id="compilation">
+    <div class="sh"><span class="eyebrow">03</span><h2>Temps de compilation</h2></div>
+    <p class="lede">Dur&eacute;e d'une compilation &agrave; froid produisant un ex&eacute;cutable : sorties
+    supprim&eacute;es avant chaque mesure, minimum de trois. C'est l'autre moiti&eacute; du compromis.</p>
+    {{bu_chart}}
+    <div class="legend">
+        <span><i class="k-swag"></i>swag</span>
+        <span><i class="k-native"></i>natif AOT</span>
+        <span><i class="k-managed"></i>.NET</span>
+    </div>
+
+    <div class="note">
+        <p>swc compile en {{swag_build}}&nbsp;ms l&agrave; o&ugrave; rustc met {{rustc_edge}}&times; plus,
+        MSVC {{build_edge}}&times;, swiftc {{swiftc_edge}}&times; et NativeAOT {{aot_edge}}&times;. La colonne
+        <em>hello</em> isole le co&ucirc;t fixe de chaque compilateur : <code>dotnet publish</code> paie plusieurs
+        secondes avant m&ecirc;me de regarder le code, parce qu'il traverse MSBuild, la restauration NuGet puis ILC.</p>
+    </div>
+
+    <h3>D&eacute;tail par t&acirc;che, en millisecondes</h3>
+    {{bu_table}}
+</section>
+
+<section id="memoire">
+    <div class="sh"><span class="eyebrow">04</span><h2>M&eacute;moire</h2></div>
+    <p class="lede">Pic de m&eacute;moire valid&eacute;e sur l'arbre de processus complet du compilateur
+    (<code>PeakJobMemoryUsed</code>), donc &eacute;diteur de liens et n&oelig;uds MSBuild compris.</p>
+
+    <h3>Pic du compilateur</h3>
+    {{me_chart}}
+
+    <div class="note">
+        <p><b>Le pic de swc ne d&eacute;pend pas de l'entr&eacute;e.</b> V&eacute;rifi&eacute; s&eacute;par&eacute;ment :
+        192,7&nbsp;Mo sur un hello world contre 186,9&nbsp;Mo sur <code>wordfreq</code>. C'est un plancher fixe
+        d'environ 190&nbsp;Mo, pas une consommation proportionnelle au programme &mdash; rustc a exactement le
+        m&ecirc;me profil, alors que <code>cl.exe</code> seul tient dans 21&nbsp;Mo. Si l'empreinte doit baisser,
+        c'est ce plancher qu'il faut attaquer, pas le pipeline.</p>
+    </div>
+
+    <h3>Pic du programme compil&eacute;, &agrave; l'ex&eacute;cution</h3>
+    {{rm_chart}}
+    <div class="legend">
+        <span><i class="k-swag"></i>swag</span>
+        <span><i class="k-native"></i>natif AOT</span>
+        <span><i class="k-managed"></i>.NET</span>
+        <span><i class="k-dynamic"></i>dynamique</span>
+    </div>
+</section>
+
+<section id="demarrage">
+    <div class="sh"><span class="eyebrow">05</span><h2>Latence et taille</h2></div>
+    <p class="lede">Ce que l'ex&eacute;cutable ne montre pas : le d&eacute;lai avant la premi&egrave;re ligne de
+    sortie d'un hello world, et le poids de l'artefact produit.</p>
+
+    <div class="grid2">
+        <div>
+            <h3>Temps jusqu'&agrave; la premi&egrave;re sortie</h3>
+            <p class="cap">Runtimes qui compilent au lancement. Un ex&eacute;cutable natif d&eacute;j&agrave;
+            compil&eacute; d&eacute;marre en quelques millisecondes et ne figure pas ici.</p>
+            {{st_chart}}
+        </div>
+        <div>
+            <h3>Taille de l'ex&eacute;cutable</h3>
+            <p class="cap">Le C# CoreCLR est un assemblage IL de 7&nbsp;Ko qui exige le runtime .NET ;
+            les autres lignes sont des binaires lan&ccedil;ables tels quels.</p>
+            {{sz_chart}}
+        </div>
+    </div>
+
+    <div class="note">
+        <p>swc produit les plus petits binaires <b>autonomes</b> du lot. Les quelques dizaines de kilo-octets de
+        Swift sont trompeuses : l'ex&eacute;cutable ne d&eacute;marre pas sans les DLL du runtime Swift dans le
+        <code>PATH</code>. C&ocirc;t&eacute; latence, le JIT de swc r&eacute;pond en une soixantaine de
+        millisecondes ; en dessous d'environ 150&nbsp;ms de calcul r&eacute;el, un interpr&eacute;teur l&eacute;ger
+        rend la main avant lui.</p>
+    </div>
+</section>
+
+<section id="historique">
+    <div class="sh"><span class="eyebrow">06</span><h2>Historique</h2></div>
+    <p class="lede">Une entr&eacute;e par campagne, swc seul : les autres langages ne bougent pas
+    d'une campagne &agrave; l'autre, ils servent d'&eacute;talon. C'est justement pourquoi les
+    courbes sont normalis&eacute;es contre eux plut&ocirc;t que trac&eacute;es en millisecondes
+    brutes &mdash; la m&ecirc;me machine d&eacute;rive de plus de dix pour cent d'une session
+    &agrave; l'autre, ce qui suffirait &agrave; inventer un progr&egrave;s ou &agrave; en masquer un.</p>
+    {{history}}
+</section>
+
+<section id="methode">
+    <div class="sh"><span class="eyebrow">07</span><h2>M&eacute;thode et limites</h2></div>
+    <p class="lede">Deux d&eacute;fauts de mesure ont d&ucirc; &ecirc;tre corrig&eacute;s avant que ces chiffres
+    soient publiables. Ils sont list&eacute;s ici parce qu'ils changeaient les r&eacute;sultats.</p>
+
+    <ul class="method">
+        <li><b>Machine</b><span>Intel Core Ultra 9 185H, 16 c&oelig;urs / 22 threads, Windows 11, sur secteur.</span></li>
+        <li><b>Mesure</b><span><code>CreateProcess</code> suspendu, plac&eacute; dans un job object, puis repris.
+        Temps par <code>QueryPerformanceCounter</code>, m&eacute;moire par <code>QueryInformationJobObject</code>.</span></li>
+        <li><b>R&eacute;p&eacute;titions</b><span>Cinq passes en <em>round-robin</em> : passe 1 de tous les runtimes,
+        puis passe 2, etc. Minimum retenu.</span></li>
+        <li><b>Calibration</b><span>Charge de r&eacute;f&eacute;rence avant et apr&egrave;s la campagne :
+        {{calib_start}}&nbsp;ms puis {{calib_end}}&nbsp;ms, soit {{drift}}&nbsp;% de d&eacute;rive.</span></li>
+        <li><b>D&eacute;faut corrig&eacute; nº1</b><span>Des processus auxiliaires fuyaient entre les mesures
+        (46 <code>cl.exe</code> orphelins sur une campagne) et chargeaient la machine. Le job object les fauche
+        d&eacute;sormais.</span></li>
+        <li><b>D&eacute;faut corrig&eacute; nº2</b><span>Les r&eacute;p&eacute;titions &eacute;taient group&eacute;es
+        par runtime : une p&eacute;riode lente tombait enti&egrave;rement sur un seul langage. D'o&ugrave; le
+        round-robin.</span></li>
+    </ul>
+
+    <div class="note">
+        <p><b>Ce que ce banc ne dit pas.</b> Six t&acirc;ches ne sont pas un profil d'application. Tous les
+        compilateurs visent le jeu d'instructions x86-64 de base &mdash; aucun <code>-march=native</code>, aucun LTO.
+        Les mesures C# JIT incluent l'&eacute;chauffement du JIT &agrave; l'int&eacute;rieur de la section
+        chronom&eacute;tr&eacute;e, ce qui est la r&eacute;alit&eacute; d'un programme court mais p&eacute;nalise
+        CoreCLR sur un programme long. Enfin les portages Rust, Swift et C# gardent leurs v&eacute;rifications de
+        bornes ; swag release et C++ n'en ont pas.</p>
+    </div>
+</section>
+
+</main>
+
+<footer class="wrap">
+    <code>{{commit}}</code> &mdash; {{subject}}<br>
+    {{provenance}} &middot; toolchains absentes : {{skipped}} &middot;
+    page g&eacute;n&eacute;r&eacute;e par <code>mkpage.py</code> depuis
+    <code>results/</code> et <code>history.json</code>
+</footer>

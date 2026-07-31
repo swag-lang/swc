@@ -1,0 +1,6 @@
+out/
+results/*.tmp
+**/bin/
+**/obj/
+*.pyc
+__pycache__/

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Format/FormatPassUtil.h"
 #include "Format/FormatPasses.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,6 +18,7 @@ namespace
 
         // Segment boundaries: the commas at the list's own depth.
         std::vector<PieceRange> segments;
+        std::vector<uint32_t>   separators;
         std::vector<Utf8>       keys;
         uint32_t                segmentStart = INVALID_PIECE;
         Utf8                    key;
@@ -36,7 +38,9 @@ namespace
                 if (segmentStart == INVALID_PIECE)
                     return;
                 segments.push_back({segmentStart, model.prevPiece(i)});
+                separators.push_back(i);
                 keys.push_back(std::move(key));
+                key.clear();
                 segmentStart = INVALID_PIECE;
                 continue;
             }
@@ -54,11 +58,6 @@ namespace
         if (segments.size() < 2)
             return;
 
-        // The reorder helper needs contiguous segments: the separating commas
-        // stay in place because each segment ends right before a comma and the
-        // next segment starts right after it... which is NOT contiguous.
-        // Instead, extend each segment (but the last) to include its comma and
-        // sort on the attribute text only.
         std::vector<uint32_t> order(segments.size());
         for (uint32_t i = 0; i < order.size(); ++i)
             order[i] = i;
@@ -73,33 +72,60 @@ namespace
         if (identity)
             return;
 
-        // Snapshot each attribute's text, then rewrite the segments in sorted
-        // order. Pieces counts differ between attributes, so rebuild through
-        // the generic segment reorder on comma-extended ranges is unsound;
-        // instead, replace the text of a synthetic single piece per segment.
-        // Simplest robust rewrite: replace the whole list content by text.
-        Utf8 rebuilt;
-        for (size_t s = 0; s < order.size(); ++s)
+        // Keep separators at their positional boundaries while moving complete
+        // token sequences. Attribute names can contain different piece counts,
+        // so the destination comma indices can move after sorting.
+        struct SegmentSnapshot
         {
-            if (s != 0)
-                rebuilt += ", ";
-            const PieceRange& range = segments[order[s]];
+            std::vector<FormatPiece> pieces;
+            std::vector<FormatGap>   innerGaps;
+        };
+
+        std::vector<SegmentSnapshot> snapshots(segments.size());
+        std::vector<FormatGap>       leadingGaps(segments.size());
+        for (size_t s = 0; s < segments.size(); ++s)
+        {
+            const PieceRange& range = segments[s];
+            leadingGaps[s]          = model.gapBefore(range.first);
             for (uint32_t i = range.first; i <= range.last; ++i)
             {
-                if (model.piece(i).removed)
-                    continue;
-                if (i != range.first && model.gapColumns(i) > 0)
-                    rebuilt.append(model.gapColumns(i), ' ');
-                rebuilt += model.piece(i).text;
+                snapshots[s].pieces.push_back(model.piece(i));
+                if (i != range.first)
+                    snapshots[s].innerGaps.push_back(model.gapBefore(i));
             }
         }
 
-        // Collapse the content into the first piece and drop the others.
-        const uint32_t first = segments.front().first;
-        model.replaceText(first, std::move(rebuilt));
-        for (uint32_t i = model.nextPiece(first); i != INVALID_PIECE && i < closePiece; i = model.nextPiece(i))
-            model.removePiece(i);
-        model.setGapSpaces(closePiece, 0);
+        std::vector<FormatPiece> separatorPieces;
+        std::vector<FormatGap>   separatorGaps;
+        separatorPieces.reserve(separators.size());
+        separatorGaps.reserve(separators.size());
+        for (const uint32_t separator : separators)
+        {
+            separatorPieces.push_back(model.piece(separator));
+            separatorGaps.push_back(model.gapBefore(separator));
+        }
+
+        uint32_t writeIndex = segments.front().first;
+        for (size_t position = 0; position < order.size(); ++position)
+        {
+            const SegmentSnapshot& snapshot = snapshots[order[position]];
+            for (size_t pieceIndex = 0; pieceIndex < snapshot.pieces.size(); ++pieceIndex)
+            {
+                model.piece(writeIndex) = snapshot.pieces[pieceIndex];
+                model.gapBefore(writeIndex) =
+                    pieceIndex == 0 ? leadingGaps[position] : snapshot.innerGaps[pieceIndex - 1];
+                writeIndex++;
+            }
+
+            if (position < separatorPieces.size())
+            {
+                model.piece(writeIndex)     = separatorPieces[position];
+                model.gapBefore(writeIndex) = separatorGaps[position];
+                writeIndex++;
+            }
+        }
+
+        SWC_ASSERT(writeIndex == closePiece);
         model.computeBrackets();
     }
 

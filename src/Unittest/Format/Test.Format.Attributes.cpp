@@ -100,6 +100,22 @@ SWC_TEST_BEGIN(FormatAttributes_SortArguments)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatAttributes_SortArgumentsWithDifferentPieceCounts)
+{
+    static constexpr std::string_view SOURCE =
+        "#[Long.Namespace.Attribute, A]\n"
+        "func foo() {}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "#[A, Long.Namespace.Attribute]\n"
+        "func foo() {}\n";
+
+    FormatOptions options;
+    options.sortAttributeArguments = true;
+    return checkAttributesRewrite(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAttributes_SpaceAfterAttributeComma)
 {
     static constexpr std::string_view SOURCE =

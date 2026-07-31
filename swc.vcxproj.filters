@@ -246,6 +246,9 @@
     <ClCompile Include="src\Unittest\Support\Test.Support.AppendOnlyLookupTable.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>
+    <ClCompile Include="src\Unittest\Support\Test.Support.Utf8.cpp">
+      <Filter>src\Unittest</Filter>
+    </ClCompile>
     <ClCompile Include="src\Unittest\Test.Support.PagedStore.cpp">
       <Filter>src\Unittest</Filter>
     </ClCompile>

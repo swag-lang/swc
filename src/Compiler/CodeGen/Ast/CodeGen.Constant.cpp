@@ -821,6 +821,14 @@ namespace
             const MicroReg dstElementReg = aggregateElementAddressReg(codeGen, dstBaseReg, entry.offset);
             const TypeRef  sourceTypeRef = elementPayload.effectiveTypeRef(entry.typeRef);
             emitAggregateElementStore(codeGen, dstElementReg, elementPayload, sourceTypeRef, entry.typeRef, static_cast<uint32_t>(elementSize));
+
+            const AstNodeRef sourceRef = codeGen.viewZero(entry.valueRef).nodeRef();
+            if (sourceRef.isValid() &&
+                codeGen.sema().isLValueStored(sourceRef) &&
+                codeGen.hasLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostCopy))
+            {
+                SWC_RESULT(codeGen.emitLifecycle(entry.typeRef, CodeGen::LifecycleKind::PostCopy, dstElementReg));
+            }
         }
 
         codeGen.setPayloadAddressReg(nodeRef, dstBaseReg, aggregateTypeRef);

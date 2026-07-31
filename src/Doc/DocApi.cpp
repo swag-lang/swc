@@ -1,8 +1,11 @@
 #include "pch.h"
+#include "Doc/DocApi.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/SourceFile.h"
-#include "Doc/DocInternal.h"
+#include "Doc/DocFile.h"
+#include "Doc/DocMarkdown.h"
+#include "Doc/DocPage.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
@@ -13,8 +16,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using namespace DocInternal;
-
     Result collectApiGuides(TaskContext& ctx, std::vector<DocGuide>& guides)
     {
         if (ctx.cmdLine().modulePath.empty())
@@ -40,14 +41,14 @@ namespace
             it.increment(ec);
         }
         if (ec)
-            return reportDocFileError(ctx, helpRoot, FileSystem::normalizeSystemMessage(ec));
+            return DocFile::reportError(ctx, helpRoot, FileSystem::normalizeSystemMessage(ec));
         std::ranges::sort(paths);
 
         std::unordered_set<Utf8> anchors;
         for (const fs::path& path : paths)
         {
             std::string source;
-            SWC_RESULT(readDocumentationSource(ctx, path, source));
+            SWC_RESULT(DocFile::read(ctx, path, source));
 
             DocGuide guide;
             guide.lines = Utf8Helper::splitLines(source);
@@ -67,7 +68,7 @@ namespace
                 guide.title = Utf8Helper::toTitle(path.stem().string());
 
             guide.anchor = "guide_";
-            guide.anchor += makeAnchor(guide.title);
+            guide.anchor += DocMarkdown::makeAnchor(guide.title);
             const Utf8 anchorBase = guide.anchor;
             uint32_t   suffix     = 2;
             while (!anchors.insert(guide.anchor).second)
@@ -85,7 +86,7 @@ namespace
         {
             const size_t end = source.find("*/", 2);
             if (end != std::string_view::npos)
-                appendNormalizedComment(result, source.substr(0, end + 2));
+                DocApi::appendNormalizedComment(result, source.substr(0, end + 2));
         }
         else
         {
@@ -94,7 +95,7 @@ namespace
                 const std::string_view view = Utf8Helper::trim(line);
                 if (!view.starts_with("//"))
                     break;
-                appendNormalizedComment(result, view);
+                DocApi::appendNormalizedComment(result, view);
             }
         }
 
@@ -133,62 +134,58 @@ namespace
     }
 }
 
-namespace DocInternal
+Result DocApi::generate(TaskContext& ctx, DocPageOptions options, const bool runtime, fs::path& outPath)
 {
-    Result generateApi(TaskContext& ctx, PageOptions options, const bool runtime, fs::path& outPath)
+    if (options.titleContent.empty())
     {
-        if (options.titleContent.empty())
-        {
-            if (!ctx.cmdLine().modulePath.empty())
-                options.titleContent = Utf8Helper::toTitle(ctx.cmdLine().modulePath.filename().string());
-            else
-                options.titleContent = "API Reference";
-        }
-        if (options.titleToc.empty())
-            options.titleToc = options.titleContent;
-
-        ApiDocument document;
-        if (!runtime)
-            SWC_RESULT(collectApiGuides(ctx, document.guides));
-        collectDocItems(ctx, document.items, runtime);
-        renderApiDocument(ctx, document, options, runtime);
-
-        Utf8 moduleName = ctx.compiler().buildCfg().moduleNamespace;
-        if (moduleName.empty())
-            moduleName = options.titleContent;
-
-        RenderContext renderCtx = {
-            .ctx                = &ctx,
-            .options            = &options,
-            .references         = &document.references,
-            .externalReferences = &document.externalReferences,
-            .externalModules    = &document.externalModules,
-            .moduleName         = moduleName,
-        };
-
-        Utf8 content;
-        content.append(std::format("<section class=\"module-overview\"><h1 id=\"overview\">{}</h1>\n", Utf8Helper::escapeHtml(options.titleContent)));
-        if (!runtime)
-        {
-            const Utf8 moduleComment = defaultModuleDocComment(ctx.compiler());
-            if (!moduleComment.empty())
-            {
-                const std::vector<Utf8> lines = Utf8Helper::splitLines(moduleComment);
-                renderCtx.headingAnchorPrefix = "overview";
-                content += renderMarkdownLines(renderCtx, lines);
-            }
-        }
-        content += "</section>\n";
-        content += document.content;
-
-        Utf8 toc;
-        toc.append(std::format("<h2>{}</h2>\n", Utf8Helper::escapeHtml(options.titleToc)));
-        toc += document.toc;
-
-        outPath         = outputFilePath(ctx.compiler(), options);
-        const Utf8 page = constructPage(options, toc, content, false);
-        return writeDocumentationFile(ctx, outPath, page);
+        if (!ctx.cmdLine().modulePath.empty())
+            options.titleContent = Utf8Helper::toTitle(ctx.cmdLine().modulePath.filename().string());
+        else
+            options.titleContent = "API Reference";
     }
-}
+    if (options.titleToc.empty())
+        options.titleToc = options.titleContent;
 
+    DocApiDocument document;
+    if (!runtime)
+        SWC_RESULT(collectApiGuides(ctx, document.guides));
+    collectDocItems(ctx, document.items, runtime);
+    renderApiDocument(ctx, document, options, runtime);
+
+    Utf8 moduleName = ctx.compiler().buildCfg().moduleNamespace;
+    if (moduleName.empty())
+        moduleName = options.titleContent;
+
+    DocRenderContext renderCtx = {
+        .ctx                = &ctx,
+        .options            = &options,
+        .references         = &document.references,
+        .externalReferences = &document.externalReferences,
+        .externalModules    = &document.externalModules,
+        .moduleName         = moduleName,
+    };
+
+    Utf8 content;
+    content.append(std::format("<section class=\"module-overview\"><h1 id=\"overview\">{}</h1>\n", Utf8Helper::escapeHtml(options.titleContent)));
+    if (!runtime)
+    {
+        const Utf8 moduleComment = defaultModuleDocComment(ctx.compiler());
+        if (!moduleComment.empty())
+        {
+            const std::vector<Utf8> lines = Utf8Helper::splitLines(moduleComment);
+            renderCtx.headingAnchorPrefix = "overview";
+            content += DocMarkdown::renderLines(renderCtx, lines);
+        }
+    }
+    content += "</section>\n";
+    content += document.content;
+
+    Utf8 toc;
+    toc.append(std::format("<h2>{}</h2>\n", Utf8Helper::escapeHtml(options.titleToc)));
+    toc += document.toc;
+
+    outPath         = DocFile::outputPath(ctx.compiler(), options);
+    const Utf8 page = DocPage::construct(options, toc, content, false);
+    return DocFile::write(ctx, outPath, page);
+}
 SWC_END_NAMESPACE();

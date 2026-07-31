@@ -1,7 +1,10 @@
 #include "pch.h"
 #include "Doc/DocGenerator.h"
 #include "Compiler/SourceFile.h"
-#include "Doc/DocInternal.h"
+#include "Doc/DocApi.h"
+#include "Doc/DocFile.h"
+#include "Doc/DocMarkdown.h"
+#include "Doc/DocPage.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
@@ -14,22 +17,15 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using namespace DocInternal;
-
     std::mutex               g_RuntimeDocMutex;
     std::unordered_set<Utf8> g_GeneratedRuntimeDocs;
     std::mutex               g_StylesheetMutex;
-}
 
-namespace
-{
-    using namespace DocInternal;
-
-    PageOptions getPageOptions(const CompilerInstance& compiler)
+    DocPageOptions getPageOptions(const CompilerInstance& compiler)
     {
         const Runtime::BuildCfgGenDoc& genDoc = compiler.buildCfg().genDoc;
 
-        PageOptions result;
+        DocPageOptions result;
         result.kind                = genDoc.kind;
         result.theme               = genDoc.theme;
         result.outputName          = Utf8(genDoc.outputName);
@@ -62,12 +58,12 @@ namespace
         return result;
     }
 
-    PageOptions getRuntimePageOptions(const CompilerInstance& compiler)
+    DocPageOptions getRuntimePageOptions(const CompilerInstance& compiler)
     {
-        PageOptions result  = getPageOptions(compiler);
-        result.kind         = Runtime::BuildCfgDocKind::Api;
-        result.outputName   = "swag.runtime";
-        result.titleContent = "Swag Runtime";
+        DocPageOptions result = getPageOptions(compiler);
+        result.kind           = Runtime::BuildCfgDocKind::Api;
+        result.outputName     = "swag.runtime";
+        result.titleContent   = "Swag Runtime";
         if (result.css.empty())
             result.css = "style.css";
         return result;
@@ -80,22 +76,6 @@ namespace
         diag.report(ctx);
         return Result::Error;
     }
-}
-
-namespace DocInternal
-{
-    Result reportDocFileError(TaskContext& ctx, const fs::path& path, const Utf8& because)
-    {
-        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_doc_file_write_failed);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path, because);
-        diag.report(ctx);
-        return Result::Error;
-    }
-}
-
-namespace
-{
-    using namespace DocInternal;
 
     Result ensureOutputDirectory(TaskContext& ctx, const fs::path& path)
     {
@@ -105,27 +85,8 @@ namespace
             return reportDocDirectoryError(ctx, path, FileSystem::normalizeSystemMessage(ec));
         return Result::Continue;
     }
-}
 
-namespace DocInternal
-{
-    Result writeDocumentationFile(TaskContext& ctx, const fs::path& path, const std::string_view content)
-    {
-        if (!ctx.cmdLine().outputDoc)
-            return Result::Continue;
-
-        FileSystem::IoErrorInfo error;
-        if (FileSystem::writeBinaryFile(path, content.data(), content.size(), error) != Result::Continue)
-            return reportDocFileError(ctx, path, FileSystem::describeIoFailure(error));
-        return Result::Continue;
-    }
-}
-
-namespace
-{
-    using namespace DocInternal;
-
-    Result writeDocumentationStyles(TaskContext& ctx, const PageOptions& options)
+    Result writeDocumentationStyles(TaskContext& ctx, const DocPageOptions& options)
     {
         if (!ctx.cmdLine().outputDoc)
             return Result::Continue;
@@ -133,58 +94,17 @@ namespace
         const fs::path outputDir = DocGenerator::outputDirectory(ctx.compiler()).lexically_normal();
         const fs::path cssPath(options.css.c_str());
         if (cssPath.is_absolute() || options.css.contains("://"))
-            return reportDocFileError(ctx, cssPath, "the stylesheet path must be relative to the documentation output directory");
+            return DocFile::reportError(ctx, cssPath, "the stylesheet path must be relative to the documentation output directory");
 
         const fs::path path     = (outputDir / cssPath).lexically_normal();
         const fs::path relative = path.lexically_relative(outputDir);
         if (relative.empty() || (relative.begin() != relative.end() && *relative.begin() == ".."))
-            return reportDocFileError(ctx, cssPath, "the stylesheet path must stay inside the documentation output directory");
+            return DocFile::reportError(ctx, cssPath, "the stylesheet path must stay inside the documentation output directory");
 
         const std::scoped_lock lock(g_StylesheetMutex);
         SWC_RESULT(ensureOutputDirectory(ctx, path.parent_path()));
-        return writeDocumentationFile(ctx, path, documentationStyles());
+        return DocFile::write(ctx, path, DocPage::styles());
     }
-
-    Utf8 defaultOutputBaseName(const CompilerInstance& compiler, const PageOptions& options)
-    {
-        if (!options.outputName.empty())
-            return options.outputName;
-
-        if (!compiler.cmdLine().workspacePath.empty() && !compiler.cmdLine().modulePath.empty())
-        {
-            Utf8 result = compiler.cmdLine().workspacePath.filename();
-            result += ".";
-            result.append(compiler.cmdLine().modulePath.filename().string());
-            return result;
-        }
-
-        return defaultArtifactName(compiler.cmdLine());
-    }
-}
-
-namespace DocInternal
-{
-    fs::path outputFilePath(const CompilerInstance& compiler, const PageOptions& options)
-    {
-        Utf8 baseName = defaultOutputBaseName(compiler, options);
-        baseName.make_lower();
-        baseName += ".html";
-        const fs::path result = DocGenerator::outputDirectory(compiler) / fs::path(baseName.c_str());
-        return result.lexically_normal();
-    }
-
-    Result readDocumentationSource(TaskContext& ctx, const fs::path& path, std::string& outText)
-    {
-        FileSystem::IoErrorInfo error;
-        if (FileSystem::readTextFile(path, outText, error) != Result::Continue)
-            return reportDocFileError(ctx, path, FileSystem::describeIoFailure(error));
-        return Result::Continue;
-    }
-}
-
-namespace
-{
-    using namespace DocInternal;
 
     // The leading '#global' directives of a documented source file configure the module, not
     // the example, so the reader gains nothing from seeing them repeated on every chapter.
@@ -203,7 +123,7 @@ namespace
         return hasDirective;
     }
 
-    Utf8 renderExampleSource(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view source)
+    Utf8 renderExampleSource(const TaskContext& ctx, const DocRenderContext& renderCtx, const std::string_view source)
     {
         const std::vector<Utf8> lines = Utf8Helper::splitLines(source);
         Utf8                    result;
@@ -218,7 +138,7 @@ namespace
                 code += "\n";
             }
             if (!(isFirst && isModulePreamble(code)))
-                result += renderCodeBlock(ctx, code, true, &renderCtx);
+                result += DocMarkdown::renderCodeBlock(ctx, code, true, &renderCtx);
             isFirst = false;
             if (index == lines.size())
                 break;
@@ -229,7 +149,7 @@ namespace
                 comment.push_back(lines[index++]);
             if (index < lines.size())
                 index++;
-            result += renderMarkdownLines(renderCtx, comment, 2);
+            result += DocMarkdown::renderLines(renderCtx, comment, 2);
         }
         return result;
     }
@@ -246,14 +166,14 @@ namespace
         return result;
     }
 
-    Result generateExamples(TaskContext& ctx, PageOptions options, fs::path& outPath)
+    Result generateExamples(TaskContext& ctx, DocPageOptions options, fs::path& outPath)
     {
         if (options.titleContent.empty())
             options.titleContent = "Swag Examples";
         if (options.titleToc.empty())
             options.titleToc = "Table of Contents";
 
-        const RenderContext renderCtx = {
+        const DocRenderContext renderCtx = {
             .ctx        = &ctx,
             .options    = &options,
             .references = nullptr,
@@ -290,12 +210,12 @@ namespace
             }
 
             const Utf8 title  = Utf8Helper::toTitle(stem.substr(8));
-            const Utf8 anchor = makeAnchor(file->name());
+            const Utf8 anchor = DocMarkdown::makeAnchor(file->name());
             toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
             content.append(std::format("<h{} id=\"{}\">{}</h{}>\n", level + 1, anchor, Utf8Helper::escapeHtml(title), level + 1));
 
             if (file->path().extension() == ".md")
-                content += renderMarkdownLines(renderCtx, Utf8Helper::splitLines(file->sourceView()), level + 1);
+                content += DocMarkdown::renderLines(renderCtx, Utf8Helper::splitLines(file->sourceView()), level + 1);
             else
                 content += renderExampleSource(ctx, renderCtx, file->sourceView());
         }
@@ -306,12 +226,12 @@ namespace
         }
         toc += "</ul>\n";
 
-        outPath         = outputFilePath(ctx.compiler(), options);
-        const Utf8 page = constructPage(options, toc, content, false);
-        return writeDocumentationFile(ctx, outPath, page);
+        outPath         = DocFile::outputPath(ctx.compiler(), options);
+        const Utf8 page = DocPage::construct(options, toc, content, false);
+        return DocFile::write(ctx, outPath, page);
     }
 
-    Result appendAdditionalPages(TaskContext& ctx, const PageOptions& options, std::vector<fs::path>& paths)
+    Result appendAdditionalPages(TaskContext& ctx, const DocPageOptions& options, std::vector<fs::path>& paths)
     {
         if (options.morePages.empty())
             return Result::Continue;
@@ -331,7 +251,7 @@ namespace
 
                 Utf8 because;
                 if (FileSystem::resolveExistingFile(path, because) != Result::Continue)
-                    return reportDocFileError(ctx, path, because);
+                    return DocFile::reportError(ctx, path, because);
                 paths.push_back(path);
             }
             if (end == options.morePages.size())
@@ -362,7 +282,7 @@ namespace
             }
 
             if (ec)
-                return reportDocFileError(ctx, sourceRoot, FileSystem::normalizeSystemMessage(ec));
+                return DocFile::reportError(ctx, sourceRoot, FileSystem::normalizeSystemMessage(ec));
         }
         else
         {
@@ -375,13 +295,13 @@ namespace
         return Result::Continue;
     }
 
-    Result generatePages(TaskContext& ctx, const PageOptions& options, std::vector<fs::path>& outPaths)
+    Result generatePages(TaskContext& ctx, const DocPageOptions& options, std::vector<fs::path>& outPaths)
     {
         std::vector<fs::path> paths;
         SWC_RESULT(collectPageSourcePaths(ctx, paths));
         SWC_RESULT(appendAdditionalPages(ctx, options, paths));
 
-        const RenderContext renderCtx = {
+        const DocRenderContext renderCtx = {
             .ctx        = &ctx,
             .options    = &options,
             .references = nullptr,
@@ -390,11 +310,11 @@ namespace
         for (const fs::path& path : paths)
         {
             std::string source;
-            SWC_RESULT(readDocumentationSource(ctx, path, source));
+            SWC_RESULT(DocFile::read(ctx, path, source));
 
             Utf8 content;
             if (path.extension() == ".md")
-                content = renderMarkdownLines(renderCtx, Utf8Helper::splitLines(source));
+                content = DocMarkdown::renderLines(renderCtx, Utf8Helper::splitLines(source));
             else
                 content = renderExampleSource(ctx, renderCtx, source);
 
@@ -402,10 +322,10 @@ namespace
             outPath.replace_extension(".html");
             outPath = outPath.lexically_normal();
 
-            PageOptions pageOptions  = options;
-            pageOptions.titleContent = Utf8Helper::toTitle(path.stem().string());
-            const Utf8 page          = constructPage(pageOptions, {}, content, true);
-            SWC_RESULT(writeDocumentationFile(ctx, outPath, page));
+            DocPageOptions pageOptions = options;
+            pageOptions.titleContent   = Utf8Helper::toTitle(path.stem().string());
+            const Utf8 page            = DocPage::construct(pageOptions, {}, content, true);
+            SWC_RESULT(DocFile::write(ctx, outPath, page));
             outPaths.push_back(std::move(outPath));
         }
         return Result::Continue;
@@ -413,7 +333,7 @@ namespace
 
     Result generateRuntimeDocumentationOnce(TaskContext& ctx, const fs::path& outputDirectory, uint32_t& outNumFiles)
     {
-        PageOptions options = getRuntimePageOptions(ctx.compiler());
+        DocPageOptions options = getRuntimePageOptions(ctx.compiler());
         if (options.titleToc.empty())
             options.titleToc = "Table of Contents";
 
@@ -429,7 +349,7 @@ namespace
         }
 
         fs::path generatedPath;
-        if (generateApi(ctx, options, true, generatedPath) != Result::Continue)
+        if (DocApi::generate(ctx, options, true, generatedPath) != Result::Continue)
         {
             const std::scoped_lock lock(g_RuntimeDocMutex);
             g_GeneratedRuntimeDocs.erase(runtimeKey);
@@ -440,8 +360,6 @@ namespace
     }
 }
 
-using namespace DocInternal;
-
 Result DocGenerator::generate(GenerateResult& outResult) const
 {
     SWC_ASSERT(ctx_ != nullptr);
@@ -449,7 +367,7 @@ Result DocGenerator::generate(GenerateResult& outResult) const
 
     TaskContext&            ctx       = *ctx_;
     const CompilerInstance& compiler  = ctx.compiler();
-    PageOptions             options   = getPageOptions(compiler);
+    DocPageOptions          options   = getPageOptions(compiler);
     const fs::path          outputDir = outputDirectory(compiler);
     if (ctx.cmdLine().outputDoc)
         SWC_RESULT(ensureOutputDirectory(ctx, outputDir));
@@ -471,7 +389,7 @@ Result DocGenerator::generate(GenerateResult& outResult) const
             break;
 
         case Runtime::BuildCfgDocKind::Api:
-            SWC_RESULT(generateApi(ctx, options, false, outResult.primaryOutput));
+            SWC_RESULT(DocApi::generate(ctx, options, false, outResult.primaryOutput));
             outResult.numFiles++;
             break;
 
@@ -511,13 +429,13 @@ fs::path DocGenerator::outputDirectory(const CompilerInstance& compiler)
 
 Utf8 DocGenerator::renderMarkdownForTest(TaskContext& ctx, const std::string_view text)
 {
-    const PageOptions   options;
-    const RenderContext renderCtx = {
+    const DocPageOptions   options;
+    const DocRenderContext renderCtx = {
         .ctx        = &ctx,
         .options    = &options,
         .references = nullptr,
     };
-    return renderMarkdownLines(renderCtx, Utf8Helper::splitLines(text));
+    return DocMarkdown::renderLines(renderCtx, Utf8Helper::splitLines(text));
 }
 
 SWC_END_NAMESPACE();

@@ -135,10 +135,13 @@
     <ClCompile Include="src\Doc\DocApi.cpp">
       <Filter>src\Doc</Filter>
     </ClCompile>
-    <ClCompile Include="src\Doc\DocApiCollect.cpp">
+    <ClCompile Include="src\Doc\DocApi.Collect.cpp">
       <Filter>src\Doc</Filter>
     </ClCompile>
-    <ClCompile Include="src\Doc\DocApiRender.cpp">
+    <ClCompile Include="src\Doc\DocApi.Render.cpp">
+      <Filter>src\Doc</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Doc\DocFile.cpp">
       <Filter>src\Doc</Filter>
     </ClCompile>
     <ClCompile Include="src\Doc\DocGenerator.cpp">
@@ -1418,10 +1421,22 @@
     <ClInclude Include="src\Main\Command\Command.h">
       <Filter>src\Main\Command</Filter>
     </ClInclude>
+    <ClInclude Include="src\Doc\DocApi.h">
+      <Filter>src\Doc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Doc\DocFile.h">
+      <Filter>src\Doc</Filter>
+    </ClInclude>
     <ClInclude Include="src\Doc\DocGenerator.h">
       <Filter>src\Doc</Filter>
     </ClInclude>
-    <ClInclude Include="src\Doc\DocInternal.h">
+    <ClInclude Include="src\Doc\DocMarkdown.h">
+      <Filter>src\Doc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Doc\DocPage.h">
+      <Filter>src\Doc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\Doc\DocTypes.h">
       <Filter>src\Doc</Filter>
     </ClInclude>
     <ClInclude Include="src\Main\Stats.h">

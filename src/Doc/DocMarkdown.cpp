@@ -1,38 +1,33 @@
 #include "pch.h"
+#include "Doc/DocMarkdown.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Doc/DocInternal.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
-namespace DocInternal
+Utf8 DocMarkdown::makeAnchor(const std::string_view value)
 {
-    Utf8 makeAnchor(const std::string_view value)
+    Utf8 result;
+    result.reserve(value.size() + 1);
+    for (const char c : value)
     {
-        Utf8 result;
-        result.reserve(value.size() + 1);
-        for (const char c : value)
-        {
-            if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-')
-                result += c;
-            else
-                result += '_';
-        }
-        if (result.empty())
-            result = "_";
-        if (std::isdigit(static_cast<unsigned char>(result.front())))
-            result.insert(result.begin(), '_');
-        return result;
+        if (std::isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-')
+            result += c;
+        else
+            result += '_';
     }
+    if (result.empty())
+        result = "_";
+    if (std::isdigit(static_cast<unsigned char>(result.front())))
+        result.insert(result.begin(), '_');
+    return result;
 }
 
 namespace
 {
-    using namespace DocInternal;
-
-    Utf8 resolveReference(const RenderContext& renderCtx, const std::string_view name)
+    Utf8 resolveReference(const DocRenderContext& renderCtx, const std::string_view name)
     {
         if (renderCtx.references)
         {
@@ -57,7 +52,7 @@ namespace
 
         if (name.starts_with("Swag."))
         {
-            const Utf8 anchor = makeAnchor(name);
+            const Utf8 anchor = DocMarkdown::makeAnchor(name);
             return std::format("<a href=\"swag.runtime.html#{}\">{}</a>", anchor, Utf8Helper::escapeHtml(name));
         }
 
@@ -66,51 +61,47 @@ namespace
         {
             const auto it = renderCtx.externalModules->find(Utf8(name.substr(0, separator)));
             if (it != renderCtx.externalModules->end())
-                return std::format("<a href=\"{}#{}\">{}</a>", Utf8Helper::escapeHtml(it->second, true), makeAnchor(name), Utf8Helper::escapeHtml(name));
+                return std::format("<a href=\"{}#{}\">{}</a>", Utf8Helper::escapeHtml(it->second, true), DocMarkdown::makeAnchor(name), Utf8Helper::escapeHtml(name));
         }
         return {};
     }
 }
 
-namespace DocInternal
+Utf8 DocMarkdown::renderTypeName(const DocRenderContext& renderCtx, const std::string_view typeName)
 {
-    Utf8 renderTypeName(const RenderContext& renderCtx, const std::string_view typeName)
+    Utf8   result;
+    size_t pos = 0;
+    while (pos < typeName.size())
     {
-        Utf8   result;
-        size_t pos = 0;
-        while (pos < typeName.size())
+        const char c = typeName[pos];
+        if (!std::isalpha(static_cast<unsigned char>(c)) && c != '_')
         {
-            const char c = typeName[pos];
-            if (!std::isalpha(static_cast<unsigned char>(c)) && c != '_')
-            {
-                result += Utf8Helper::escapeHtml(typeName.substr(pos, 1));
-                pos++;
-                continue;
-            }
-
-            size_t end = pos + 1;
-            while (end < typeName.size())
-            {
-                const char tokenChar = typeName[end];
-                if (!std::isalnum(static_cast<unsigned char>(tokenChar)) && tokenChar != '_' && tokenChar != '.')
-                    break;
-                end++;
-            }
-            while (end > pos && typeName[end - 1] == '.')
-                end--;
-
-            const std::string_view token     = typeName.substr(pos, end - pos);
-            const Utf8             reference = resolveReference(renderCtx, token);
-            result += reference.empty() ? Utf8Helper::escapeHtml(token) : reference;
-            pos = end;
+            result += Utf8Helper::escapeHtml(typeName.substr(pos, 1));
+            pos++;
+            continue;
         }
-        return result;
-    }
-}
 
+        size_t end = pos + 1;
+        while (end < typeName.size())
+        {
+            const char tokenChar = typeName[end];
+            if (!std::isalnum(static_cast<unsigned char>(tokenChar)) && tokenChar != '_' && tokenChar != '.')
+                break;
+            end++;
+        }
+        while (end > pos && typeName[end - 1] == '.')
+            end--;
+
+        const std::string_view token     = typeName.substr(pos, end - pos);
+        const Utf8             reference = resolveReference(renderCtx, token);
+        result += reference.empty() ? Utf8Helper::escapeHtml(token) : reference;
+        pos = end;
+    }
+    return result;
+}
 namespace
 {
-    Utf8 renderInline(const RenderContext& renderCtx, std::string_view text);
+    Utf8 renderInline(const DocRenderContext& renderCtx, std::string_view text);
 
     // A bare URL ends at the first character that cannot belong to it. Trailing sentence
     // punctuation is excluded so "see https://swag-lang.org." keeps its final period.
@@ -127,7 +118,7 @@ namespace
         return end > 8 ? end : 0;
     }
 
-    Utf8 renderInline(const RenderContext& renderCtx, const std::string_view text)
+    Utf8 renderInline(const DocRenderContext& renderCtx, const std::string_view text)
     {
         Utf8   result;
         size_t pos = 0;
@@ -269,35 +260,31 @@ namespace
         return result;
     }
 
-    void linkSyntaxClass(Utf8& html, const RenderContext& renderCtx, std::string_view cssClass);
+    void linkSyntaxClass(Utf8& html, const DocRenderContext& renderCtx, std::string_view cssClass);
 }
 
-namespace DocInternal
+Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const DocRenderContext* renderCtx)
 {
-    Utf8 renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const RenderContext* renderCtx)
+    // A source file that opens or closes on a documentation comment produces an empty
+    // segment on each side of it; an empty frame on the page would only be noise.
+    if (Utf8Helper::trim(code).empty())
+        return {};
+
+    const Utf8 escaped = Utf8Helper::escapeHtml(code);
+    Utf8       rendered;
+    if (swagSyntax)
     {
-        // A source file that opens or closes on a documentation comment produces an empty
-        // segment on each side of it; an empty frame on the page would only be noise.
-        if (Utf8Helper::trim(code).empty())
-            return {};
-
-        const Utf8 escaped = Utf8Helper::escapeHtml(code);
-        Utf8       rendered;
-        if (swagSyntax)
+        rendered = SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForDoc, escaped.view(), true);
+        if (renderCtx)
         {
-            rendered = SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForDoc, escaped.view(), true);
-            if (renderCtx)
-            {
-                linkSyntaxClass(rendered, *renderCtx, SYN_CONSTANT);
-                linkSyntaxClass(rendered, *renderCtx, SYN_TYPE);
-            }
+            linkSyntaxClass(rendered, *renderCtx, SYN_CONSTANT);
+            linkSyntaxClass(rendered, *renderCtx, SYN_TYPE);
         }
-        else
-            rendered = std::format("<span class=\"{}\">{}</span>", SYN_CODE, escaped);
-        return std::format("<div class=\"code-block\">{}</div>\n", rendered);
     }
+    else
+        rendered = std::format("<span class=\"{}\">{}</span>", SYN_CODE, escaped);
+    return std::format("<div class=\"code-block\">{}</div>\n", rendered);
 }
-
 namespace
 {
     bool isOrderedListLine(const std::string_view line)
@@ -395,317 +382,313 @@ namespace
     }
 }
 
-namespace DocInternal
+Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const Utf8> lines, const uint32_t headingOffset)
 {
-    Utf8 renderMarkdownLines(const RenderContext& renderCtx, std::span<const Utf8> lines, const uint32_t headingOffset)
+    Utf8   result;
+    size_t index = 0;
+    while (index < lines.size())
     {
-        Utf8   result;
-        size_t index = 0;
-        while (index < lines.size())
+        const std::string_view raw  = lines[index];
+        const std::string_view line = Utf8Helper::trim(raw);
+        if (line.empty())
         {
-            const std::string_view raw  = lines[index];
-            const std::string_view line = Utf8Helper::trim(raw);
-            if (line.empty())
-            {
-                index++;
-                continue;
-            }
+            index++;
+            continue;
+        }
 
-            if (line.starts_with("<html>"))
+        if (line.starts_with("<html>"))
+        {
+            std::string_view first = line.substr(6);
+            if (!first.empty())
             {
-                std::string_view first = line.substr(6);
-                if (!first.empty())
+                result.append(first);
+                result += "\n";
+            }
+            index++;
+            while (index < lines.size())
+            {
+                const std::string_view rawLine = lines[index++];
+                const size_t           endPos  = rawLine.find("</html>");
+                if (endPos != std::string_view::npos)
                 {
-                    result.append(first);
+                    result.append(rawLine.substr(0, endPos));
                     result += "\n";
+                    break;
                 }
+                result.append(rawLine);
+                result += "\n";
+            }
+            continue;
+        }
+
+        if (line.starts_with("```"))
+        {
+            const bool swagSyntax = line == "```swag";
+            index++;
+            Utf8 code;
+            while (index < lines.size() && !Utf8Helper::trim(lines[index]).starts_with("```"))
+            {
+                code += lines[index++];
+                code += "\n";
+            }
+            if (index < lines.size())
                 index++;
-                while (index < lines.size())
-                {
-                    const std::string_view rawLine = lines[index++];
-                    const size_t           endPos  = rawLine.find("</html>");
-                    if (endPos != std::string_view::npos)
-                    {
-                        result.append(rawLine.substr(0, endPos));
-                        result += "\n";
-                        break;
-                    }
-                    result.append(rawLine);
-                    result += "\n";
-                }
-                continue;
-            }
+            result += renderCodeBlock(*renderCtx.ctx, code, swagSyntax, &renderCtx);
+            continue;
+        }
 
-            if (line.starts_with("```"))
+        if (raw.starts_with("    ") || raw.starts_with("\t"))
+        {
+            Utf8 code;
+            while (index < lines.size())
             {
-                const bool swagSyntax = line == "```swag";
+                std::string_view codeLine = lines[index];
+                if (codeLine.starts_with("    "))
+                    codeLine.remove_prefix(4);
+                else if (codeLine.starts_with("\t"))
+                    codeLine.remove_prefix(1);
+                else
+                    break;
+                code.append(codeLine);
+                code += "\n";
                 index++;
-                Utf8 code;
-                while (index < lines.size() && !Utf8Helper::trim(lines[index]).starts_with("```"))
-                {
-                    code += lines[index++];
-                    code += "\n";
-                }
-                if (index < lines.size())
-                    index++;
-                result += renderCodeBlock(*renderCtx.ctx, code, swagSyntax, &renderCtx);
-                continue;
             }
+            result += renderCodeBlock(*renderCtx.ctx, code, false);
+            continue;
+        }
 
-            if (raw.starts_with("    ") || raw.starts_with("\t"))
-            {
-                Utf8 code;
-                while (index < lines.size())
-                {
-                    std::string_view codeLine = lines[index];
-                    if (codeLine.starts_with("    "))
-                        codeLine.remove_prefix(4);
-                    else if (codeLine.starts_with("\t"))
-                        codeLine.remove_prefix(1);
-                    else
-                        break;
-                    code.append(codeLine);
-                    code += "\n";
-                    index++;
-                }
-                result += renderCodeBlock(*renderCtx.ctx, code, false);
-                continue;
-            }
+        if (line == "---")
+        {
+            result += "<hr>\n";
+            index++;
+            continue;
+        }
 
-            if (line == "---")
+        if (line.front() == '#')
+        {
+            size_t level = 0;
+            while (level < line.size() && line[level] == '#')
+                level++;
+            if (level < line.size() && line[level] == ' ')
             {
-                result += "<hr>\n";
+                const std::string_view title     = Utf8Helper::trim(line.substr(level + 1));
+                const uint32_t         htmlLevel = std::clamp<uint32_t>(static_cast<uint32_t>(level) + headingOffset, 1, 6);
+                Utf8                   anchor    = makeAnchor(title);
+                if (!renderCtx.headingAnchorPrefix.empty())
+                    anchor = std::format("{}_{}", renderCtx.headingAnchorPrefix, anchor);
+                result.append(std::format("<h{} id=\"{}\">{}</h{}>\n", htmlLevel, anchor, renderInline(renderCtx, title), htmlLevel));
                 index++;
                 continue;
             }
+        }
 
-            if (line.front() == '#')
+        if (line.starts_with(">"))
+        {
+            std::vector<Utf8> quoteLines;
+            while (index < lines.size())
             {
-                size_t level = 0;
-                while (level < line.size() && line[level] == '#')
-                    level++;
-                if (level < line.size() && line[level] == ' ')
-                {
-                    const std::string_view title     = Utf8Helper::trim(line.substr(level + 1));
-                    const uint32_t         htmlLevel = std::clamp<uint32_t>(static_cast<uint32_t>(level) + headingOffset, 1, 6);
-                    Utf8                   anchor    = makeAnchor(title);
-                    if (!renderCtx.headingAnchorPrefix.empty())
-                        anchor = std::format("{}_{}", renderCtx.headingAnchorPrefix, anchor);
-                    result.append(std::format("<h{} id=\"{}\">{}</h{}>\n", htmlLevel, anchor, renderInline(renderCtx, title), htmlLevel));
-                    index++;
-                    continue;
-                }
-            }
-
-            if (line.starts_with(">"))
-            {
-                std::vector<Utf8> quoteLines;
-                while (index < lines.size())
-                {
-                    std::string_view quoteLine = Utf8Helper::trim(lines[index]);
-                    if (!quoteLine.starts_with(">"))
-                        break;
+                std::string_view quoteLine = Utf8Helper::trim(lines[index]);
+                if (!quoteLine.starts_with(">"))
+                    break;
+                quoteLine.remove_prefix(1);
+                if (!quoteLine.empty() && quoteLine.front() == ' ')
                     quoteLine.remove_prefix(1);
-                    if (!quoteLine.empty() && quoteLine.front() == ' ')
-                        quoteLine.remove_prefix(1);
-                    quoteLines.emplace_back(quoteLine);
-                    index++;
-                }
+                quoteLines.emplace_back(quoteLine);
+                index++;
+            }
 
-                std::string_view kind;
-                std::string_view defaultTitle;
-                Utf8             icon;
-                Utf8             title;
-                if (!quoteLines.empty())
+            std::string_view kind;
+            std::string_view defaultTitle;
+            Utf8             icon;
+            Utf8             title;
+            if (!quoteLines.empty())
+            {
+                struct QuoteKind
                 {
-                    struct QuoteKind
+                    const char* marker;
+                    const char* css;
+                    const char* title;
+                    const Utf8* icon;
+                    const Utf8* configuredTitle;
+                };
+                const DocPageOptions& options = *renderCtx.options;
+                const QuoteKind       kinds[] = {
+                    {"NOTE:", "note", "Note", &options.quoteIconNote, &options.quoteTitleNote},
+                    {"TIP:", "tip", "Tip", &options.quoteIconTip, &options.quoteTitleTip},
+                    {"WARNING:", "warning", "Warning", &options.quoteIconWarning, &options.quoteTitleWarning},
+                    {"ATTENTION:", "attention", "Attention", &options.quoteIconAttention, &options.quoteTitleAttention},
+                    {"EXAMPLE:", "example", "Example", &options.quoteIconExample, &options.quoteTitleExample},
+                };
+                for (const QuoteKind& candidate : kinds)
+                {
+                    if (!Utf8Helper::trim(quoteLines.front()).starts_with(candidate.marker))
+                        continue;
+                    kind                   = candidate.css;
+                    defaultTitle           = candidate.title;
+                    icon                   = *candidate.icon;
+                    title                  = candidate.configuredTitle->empty() ? Utf8(defaultTitle) : *candidate.configuredTitle;
+                    std::string_view first = Utf8Helper::trim(quoteLines.front());
+                    first.remove_prefix(std::strlen(candidate.marker));
+                    quoteLines.front() = Utf8(Utf8Helper::trim(first));
+                    break;
+                }
+            }
+
+            if (kind.empty())
+            {
+                result += "<div class=\"blockquote blockquote-default\">\n";
+            }
+            else
+            {
+                result.append(std::format("<div class=\"blockquote blockquote-{}\">\n", kind));
+                result += "<div class=\"blockquote-title-block\">";
+                if (!icon.empty())
+                {
+                    result += icon;
+                    result += " ";
+                }
+                result.append(std::format("<span class=\"blockquote-title\">{}</span></div>\n", Utf8Helper::escapeHtml(title)));
+            }
+            result += renderLines(renderCtx, quoteLines, headingOffset);
+            result += "</div>\n";
+            continue;
+        }
+
+        if (line.starts_with("|"))
+        {
+            std::vector<std::vector<Utf8>> rows;
+            while (index < lines.size() && Utf8Helper::trim(lines[index]).starts_with("|"))
+                rows.push_back(splitTableRow(lines[index++]));
+
+            // A separator on the second line promotes the first row to a header and fixes
+            // the column alignments. Without one the run is still a table, simply without
+            // a header row; that headerless form is a long-standing Swag spelling.
+            std::vector<TableAlign> aligns;
+            bool                    hasHeader = rows.size() > 1;
+            if (hasHeader)
+            {
+                for (const Utf8& cell : rows[1])
+                {
+                    TableAlign align = TableAlign::Default;
+                    if (!tryReadTableSeparatorCell(cell, align))
                     {
-                        const char* marker;
-                        const char* css;
-                        const char* title;
-                        const Utf8* icon;
-                        const Utf8* configuredTitle;
-                    };
-                    const PageOptions& options = *renderCtx.options;
-                    const QuoteKind    kinds[] = {
-                        {"NOTE:", "note", "Note", &options.quoteIconNote, &options.quoteTitleNote},
-                        {"TIP:", "tip", "Tip", &options.quoteIconTip, &options.quoteTitleTip},
-                        {"WARNING:", "warning", "Warning", &options.quoteIconWarning, &options.quoteTitleWarning},
-                        {"ATTENTION:", "attention", "Attention", &options.quoteIconAttention, &options.quoteTitleAttention},
-                        {"EXAMPLE:", "example", "Example", &options.quoteIconExample, &options.quoteTitleExample},
-                    };
-                    for (const QuoteKind& candidate : kinds)
-                    {
-                        if (!Utf8Helper::trim(quoteLines.front()).starts_with(candidate.marker))
-                            continue;
-                        kind                   = candidate.css;
-                        defaultTitle           = candidate.title;
-                        icon                   = *candidate.icon;
-                        title                  = candidate.configuredTitle->empty() ? Utf8(defaultTitle) : *candidate.configuredTitle;
-                        std::string_view first = Utf8Helper::trim(quoteLines.front());
-                        first.remove_prefix(std::strlen(candidate.marker));
-                        quoteLines.front() = Utf8(Utf8Helper::trim(first));
+                        hasHeader = false;
                         break;
                     }
+                    aligns.push_back(align);
                 }
+                hasHeader &= aligns.size() == rows.front().size();
+            }
+            if (!hasHeader)
+                aligns.clear();
 
-                if (kind.empty())
+            size_t columnCount = 0;
+            for (const std::vector<Utf8>& row : rows)
+                columnCount = std::max(columnCount, row.size());
+            aligns.resize(columnCount, TableAlign::Default);
+
+            const auto appendRow = [&](const std::vector<Utf8>& row, const std::string_view tag) {
+                result += "<tr>";
+                for (size_t column = 0; column < columnCount; ++column)
                 {
-                    result += "<div class=\"blockquote blockquote-default\">\n";
+                    const Utf8 cell = column < row.size() ? row[column] : Utf8();
+                    result.append(std::format("<{}{}>{}</{}>", tag, tableAlignClass(aligns[column]), renderInline(renderCtx, cell), tag));
+                }
+                result += "</tr>\n";
+            };
+
+            result += "<table class=\"table-markdown\">\n";
+            size_t firstBodyRow = 0;
+            if (hasHeader)
+            {
+                result += "<thead>\n";
+                appendRow(rows.front(), "th");
+                result += "</thead>\n";
+                firstBodyRow = 2;
+            }
+            result += "<tbody>\n";
+            for (size_t row = firstBodyRow; row < rows.size(); ++row)
+                appendRow(rows[row], "td");
+            result += "</tbody>\n</table>\n";
+            continue;
+        }
+
+        if (line.starts_with("* ") || line.starts_with("- ") || isOrderedListLine(line))
+        {
+            const bool ordered = isOrderedListLine(line);
+            result += ordered ? "<ol>\n" : "<ul>\n";
+            while (index < lines.size())
+            {
+                std::string_view item = Utf8Helper::trim(lines[index]);
+                if (ordered)
+                {
+                    if (!isOrderedListLine(item))
+                        break;
+                    item.remove_prefix(item.find('.') + 1);
                 }
                 else
                 {
-                    result.append(std::format("<div class=\"blockquote blockquote-{}\">\n", kind));
-                    result += "<div class=\"blockquote-title-block\">";
-                    if (!icon.empty())
-                    {
-                        result += icon;
-                        result += " ";
-                    }
-                    result.append(std::format("<span class=\"blockquote-title\">{}</span></div>\n", Utf8Helper::escapeHtml(title)));
+                    if (!item.starts_with("* ") && !item.starts_with("- "))
+                        break;
+                    item.remove_prefix(1);
                 }
-                result += renderMarkdownLines(renderCtx, quoteLines, headingOffset);
-                result += "</div>\n";
-                continue;
-            }
-
-            if (line.starts_with("|"))
-            {
-                std::vector<std::vector<Utf8>> rows;
-                while (index < lines.size() && Utf8Helper::trim(lines[index]).starts_with("|"))
-                    rows.push_back(splitTableRow(lines[index++]));
-
-                // A separator on the second line promotes the first row to a header and fixes
-                // the column alignments. Without one the run is still a table, simply without
-                // a header row; that headerless form is a long-standing Swag spelling.
-                std::vector<TableAlign> aligns;
-                bool                    hasHeader = rows.size() > 1;
-                if (hasHeader)
-                {
-                    for (const Utf8& cell : rows[1])
-                    {
-                        TableAlign align = TableAlign::Default;
-                        if (!tryReadTableSeparatorCell(cell, align))
-                        {
-                            hasHeader = false;
-                            break;
-                        }
-                        aligns.push_back(align);
-                    }
-                    hasHeader &= aligns.size() == rows.front().size();
-                }
-                if (!hasHeader)
-                    aligns.clear();
-
-                size_t columnCount = 0;
-                for (const std::vector<Utf8>& row : rows)
-                    columnCount = std::max(columnCount, row.size());
-                aligns.resize(columnCount, TableAlign::Default);
-
-                const auto appendRow = [&](const std::vector<Utf8>& row, const std::string_view tag) {
-                    result += "<tr>";
-                    for (size_t column = 0; column < columnCount; ++column)
-                    {
-                        const Utf8 cell = column < row.size() ? row[column] : Utf8();
-                        result.append(std::format("<{}{}>{}</{}>", tag, tableAlignClass(aligns[column]), renderInline(renderCtx, cell), tag));
-                    }
-                    result += "</tr>\n";
-                };
-
-                result += "<table class=\"table-markdown\">\n";
-                size_t firstBodyRow = 0;
-                if (hasHeader)
-                {
-                    result += "<thead>\n";
-                    appendRow(rows.front(), "th");
-                    result += "</thead>\n";
-                    firstBodyRow = 2;
-                }
-                result += "<tbody>\n";
-                for (size_t row = firstBodyRow; row < rows.size(); ++row)
-                    appendRow(rows[row], "td");
-                result += "</tbody>\n</table>\n";
-                continue;
-            }
-
-            if (line.starts_with("* ") || line.starts_with("- ") || isOrderedListLine(line))
-            {
-                const bool ordered = isOrderedListLine(line);
-                result += ordered ? "<ol>\n" : "<ul>\n";
-                while (index < lines.size())
-                {
-                    std::string_view item = Utf8Helper::trim(lines[index]);
-                    if (ordered)
-                    {
-                        if (!isOrderedListLine(item))
-                            break;
-                        item.remove_prefix(item.find('.') + 1);
-                    }
-                    else
-                    {
-                        if (!item.starts_with("* ") && !item.starts_with("- "))
-                            break;
-                        item.remove_prefix(1);
-                    }
-                    item = Utf8Helper::trim(item);
-                    result.append(std::format("<li>{}</li>\n", renderInline(renderCtx, item)));
-                    index++;
-                }
-                result += ordered ? "</ol>\n" : "</ul>\n";
-                continue;
-            }
-
-            if (line.starts_with("+ "))
-            {
-                while (index < lines.size() && Utf8Helper::trim(lines[index]).starts_with("+ "))
-                {
-                    std::string_view title = Utf8Helper::trim(lines[index]);
-                    title.remove_prefix(2);
-                    result.append(std::format("<div class=\"description-list-title\"><p>{}</p></div>\n", renderInline(renderCtx, title)));
-                    index++;
-
-                    std::vector<Utf8> description;
-                    while (index < lines.size() && (lines[index].starts_with("    ") || lines[index].starts_with("\t") || Utf8Helper::trim(lines[index]).empty()))
-                    {
-                        std::string_view descriptionLine = lines[index++];
-                        if (descriptionLine.starts_with("    "))
-                            descriptionLine.remove_prefix(4);
-                        else if (descriptionLine.starts_with("\t"))
-                            descriptionLine.remove_prefix(1);
-                        description.emplace_back(descriptionLine);
-                    }
-                    result += "<div class=\"description-list-block\">\n";
-                    result += renderMarkdownLines(renderCtx, description, headingOffset);
-                    result += "</div>\n";
-                }
-                continue;
-            }
-
-            Utf8 paragraph;
-            while (index < lines.size())
-            {
-                if (!paragraph.empty() && isMarkdownBlockStart(lines, index))
-                    break;
-                const std::string_view paragraphLine = Utf8Helper::trim(lines[index]);
-                if (paragraphLine.empty())
-                    break;
-                if (!paragraph.empty())
-                    paragraph += " ";
-                paragraph.append(paragraphLine);
+                item = Utf8Helper::trim(item);
+                result.append(std::format("<li>{}</li>\n", renderInline(renderCtx, item)));
                 index++;
             }
-            if (!paragraph.empty())
-                result.append(std::format("<p>{}</p>\n", renderInline(renderCtx, paragraph)));
-            else
-                index++;
+            result += ordered ? "</ol>\n" : "</ul>\n";
+            continue;
         }
-        return result;
-    }
-}
 
+        if (line.starts_with("+ "))
+        {
+            while (index < lines.size() && Utf8Helper::trim(lines[index]).starts_with("+ "))
+            {
+                std::string_view title = Utf8Helper::trim(lines[index]);
+                title.remove_prefix(2);
+                result.append(std::format("<div class=\"description-list-title\"><p>{}</p></div>\n", renderInline(renderCtx, title)));
+                index++;
+
+                std::vector<Utf8> description;
+                while (index < lines.size() && (lines[index].starts_with("    ") || lines[index].starts_with("\t") || Utf8Helper::trim(lines[index]).empty()))
+                {
+                    std::string_view descriptionLine = lines[index++];
+                    if (descriptionLine.starts_with("    "))
+                        descriptionLine.remove_prefix(4);
+                    else if (descriptionLine.starts_with("\t"))
+                        descriptionLine.remove_prefix(1);
+                    description.emplace_back(descriptionLine);
+                }
+                result += "<div class=\"description-list-block\">\n";
+                result += renderLines(renderCtx, description, headingOffset);
+                result += "</div>\n";
+            }
+            continue;
+        }
+
+        Utf8 paragraph;
+        while (index < lines.size())
+        {
+            if (!paragraph.empty() && isMarkdownBlockStart(lines, index))
+                break;
+            const std::string_view paragraphLine = Utf8Helper::trim(lines[index]);
+            if (paragraphLine.empty())
+                break;
+            if (!paragraph.empty())
+                paragraph += " ";
+            paragraph.append(paragraphLine);
+            index++;
+        }
+        if (!paragraph.empty())
+            result.append(std::format("<p>{}</p>\n", renderInline(renderCtx, paragraph)));
+        else
+            index++;
+    }
+    return result;
+}
 namespace
 {
-    void linkSyntaxClass(Utf8& html, const RenderContext& renderCtx, const std::string_view cssClass)
+    void linkSyntaxClass(Utf8& html, const DocRenderContext& renderCtx, const std::string_view cssClass)
     {
         const Utf8 open = std::format("<span class=\"{}\">", cssClass);
         size_t     pos  = 0;

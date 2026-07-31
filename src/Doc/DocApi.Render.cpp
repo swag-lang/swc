@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Doc/DocApi.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Export.h"
 #include "Compiler/Parser/Ast/Ast.h"
@@ -8,7 +9,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
-#include "Doc/DocInternal.h"
+#include "Doc/DocMarkdown.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
@@ -18,8 +19,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    using namespace DocInternal;
-
     struct DocNamespace
     {
         Utf8                        fullName;
@@ -48,11 +47,11 @@ namespace
         return {};
     }
 
-    Utf8 codeHtml(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view code)
+    Utf8 codeHtml(const TaskContext& ctx, const DocRenderContext& renderCtx, const std::string_view code)
     {
         if (code.empty())
             return {};
-        return renderCodeBlock(ctx, code, true, &renderCtx);
+        return DocMarkdown::renderCodeBlock(ctx, code, true, &renderCtx);
     }
 
     // Drives the accent color of an item card; the displayed kind can carry a space.
@@ -150,11 +149,11 @@ namespace
         table.ranks[name]   = rank;
     }
 
-    void buildReferences(ApiDocument& document, ReferenceTable& table)
+    void buildReferences(DocApiDocument& document, ReferenceTable& table)
     {
         for (const DocItem& item : document.items)
         {
-            const Utf8          anchor    = makeAnchor(item.fullName);
+            const Utf8          anchor    = DocMarkdown::makeAnchor(item.fullName);
             const ReferenceRank shortRank = item.ownerName.empty() ? ReferenceRank::TopLevelName : ReferenceRank::OwnedName;
             addReference(table, item.fullName, anchor, ReferenceRank::QualifiedName);
             addReference(table, item.displayName, anchor, ReferenceRank::OwnerQualifiedName);
@@ -162,7 +161,7 @@ namespace
         }
     }
 
-    Utf8 externalModulePage(const PageOptions& options, Utf8 moduleName)
+    Utf8 externalModulePage(const DocPageOptions& options, Utf8 moduleName)
     {
         Utf8         prefix;
         const size_t separator = options.outputName.rfind('.');
@@ -174,7 +173,7 @@ namespace
         return prefix;
     }
 
-    void buildExternalReferences(TaskContext& ctx, ApiDocument& document, ReferenceTable& table, const PageOptions& options)
+    void buildExternalReferences(TaskContext& ctx, DocApiDocument& document, ReferenceTable& table, const DocPageOptions& options)
     {
         const SymbolMap* imports = ctx.compiler().importRootNamespace();
         if (!imports)
@@ -202,10 +201,10 @@ namespace
 
             std::vector<const Symbol*>        symbols;
             std::unordered_set<const Symbol*> seen;
-            collectSymbolTree(symbols, seen, *importedModule->asSymMap());
+            DocApi::collectSymbolTree(symbols, seen, *importedModule->asSymMap());
             for (const Symbol* symbol : symbols)
             {
-                if (!symbol || !itemKind(*symbol).has_value() || isAnonymousAggregateSymbol(*symbol) || isInCompilerGeneratedScope(ctx, *symbol))
+                if (!symbol || !DocApi::itemKind(*symbol).has_value() || DocApi::isAnonymousAggregateSymbol(*symbol) || DocApi::isInCompilerGeneratedScope(ctx, *symbol))
                     continue;
 
                 const Utf8 fullName = symbol->getFullScopedName(ctx);
@@ -215,9 +214,9 @@ namespace
                 href += "#";
                 if (symbol->isNamespace())
                     href += "namespace_";
-                href += makeAnchor(fullName);
+                href += DocMarkdown::makeAnchor(fullName);
                 addReference(table, fullName, href, ReferenceRank::QualifiedName);
-                addReference(table, displayNameFor(fullName, *itemKind(*symbol)), href, ReferenceRank::OwnerQualifiedName);
+                addReference(table, DocApi::displayNameFor(fullName, *DocApi::itemKind(*symbol)), href, ReferenceRank::OwnerQualifiedName);
                 addReference(table, lastNamePart(fullName), href, symbol->ownerSymMap() && !symbol->ownerSymMap()->isNamespace() ? ReferenceRank::OwnedName : ReferenceRank::TopLevelName);
             }
         }
@@ -262,7 +261,7 @@ namespace
 
     bool canDocumentMember(const CompilerInstance& compiler, const Symbol& symbol, const bool runtime)
     {
-        if (symbol.isIgnored() || hasNoDocAttribute(symbol) || !symbol.decl() || !symbol.tokRef().isValid())
+        if (symbol.isIgnored() || DocApi::hasNoDocAttribute(symbol) || !symbol.decl() || !symbol.tokRef().isValid())
             return false;
         if (isRestrictedField(symbol))
             return false;
@@ -274,7 +273,7 @@ namespace
         return ModuleApi::isCurrentModuleSourceFile(*file) && (symbol.isPublic() || symbol.isEnumValue());
     }
 
-    void buildMemberReferences(TaskContext& ctx, ApiDocument& document, ReferenceTable& table, const bool runtime)
+    void buildMemberReferences(TaskContext& ctx, DocApiDocument& document, ReferenceTable& table, const bool runtime)
     {
         for (const DocItem& item : document.items)
         {
@@ -288,18 +287,18 @@ namespace
                 if (!member || !canDocumentMember(ctx.compiler(), *member, runtime))
                     continue;
 
-                const Utf8 fullName = documentationScopedName(ctx, *member, runtime);
+                const Utf8 fullName = DocApi::documentationScopedName(ctx, *member, runtime);
                 if (fullName.empty())
                     continue;
-                const Utf8 anchor = makeAnchor(fullName);
+                const Utf8 anchor = DocMarkdown::makeAnchor(fullName);
                 addReference(table, fullName, anchor, ReferenceRank::QualifiedName);
-                addReference(table, displayNameFor(fullName, DocItemKind::Function), anchor, ReferenceRank::OwnerQualifiedName);
+                addReference(table, DocApi::displayNameFor(fullName, DocItemKind::Function), anchor, ReferenceRank::OwnerQualifiedName);
                 addReference(table, lastNamePart(fullName), anchor, ReferenceRank::MemberName);
             }
         }
     }
 
-    void buildDocNamespaces(ApiDocument& document, std::vector<DocNamespace>& namespaces, ReferenceTable& table)
+    void buildDocNamespaces(DocApiDocument& document, std::vector<DocNamespace>& namespaces, ReferenceTable& table)
     {
         std::unordered_set<Utf8> names;
         for (const DocItem& item : document.items)
@@ -347,7 +346,7 @@ namespace
 
         for (const DocNamespace& docNamespace : namespaces)
         {
-            const Utf8 anchor = std::format("namespace_{}", makeAnchor(docNamespace.fullName));
+            const Utf8 anchor = std::format("namespace_{}", DocMarkdown::makeAnchor(docNamespace.fullName));
             addReference(table, docNamespace.fullName, anchor, ReferenceRank::QualifiedName);
             addReference(table, lastNamePart(docNamespace.fullName), anchor, ReferenceRank::TopLevelName);
         }
@@ -369,7 +368,7 @@ namespace
                 return {};
         }
         const AstNodeRef  rootRef = ModuleApi::Internal::findExportDeclRoot(*file, declRef);
-        std::vector<Utf8> result  = symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
+        std::vector<Utf8> result  = DocApi::symbolCommentLines(ctx, symbol, *file, declRef, rootRef);
         if (!result.empty())
             return result;
 
@@ -398,7 +397,7 @@ namespace
         else
             commentPos = std::min(line, block);
         if (commentPos != std::string_view::npos)
-            appendNormalizedComment(result, suffix.substr(commentPos));
+            DocApi::appendNormalizedComment(result, suffix.substr(commentPos));
         return result;
     }
 
@@ -412,7 +411,7 @@ namespace
         {
             const SymbolStruct& symbolStruct = type.payloadSymStruct();
             const SymbolStruct* root         = symbolStruct.genericRootOrSelf();
-            if (root && (isAnonymousAggregateSymbol(*root) || hasCompilerGeneratedIdentifier(ctx, *root)))
+            if (root && (DocApi::isAnonymousAggregateSymbol(*root) || DocApi::hasCompilerGeneratedIdentifier(ctx, *root)))
             {
                 const Utf8 fullName    = root->getFullScopedName(ctx);
                 const Utf8 replacement = root->isUnion() ? "union { ... }" : "struct { ... }";
@@ -476,7 +475,7 @@ namespace
         }
     }
 
-    Utf8 documentationTypeName(const RenderContext& renderCtx, const Symbol& symbol)
+    Utf8 documentationTypeName(const DocRenderContext& renderCtx, const Symbol& symbol)
     {
         if (!symbol.typeRef().isValid())
             return {};
@@ -525,7 +524,7 @@ namespace
         return result;
     }
 
-    void renderMemberTable(Utf8& content, const RenderContext& renderCtx, const Symbol& owner, const bool runtime)
+    void renderMemberTable(Utf8& content, const DocRenderContext& renderCtx, const Symbol& owner, const bool runtime)
     {
         if (!owner.isSymMap())
             return;
@@ -550,7 +549,7 @@ namespace
 
             MemberRow row;
             row.name         = Utf8(member->name(*renderCtx.ctx));
-            row.anchor       = makeAnchor(documentationScopedName(*renderCtx.ctx, *member, runtime));
+            row.anchor       = DocMarkdown::makeAnchor(DocApi::documentationScopedName(*renderCtx.ctx, *member, runtime));
             row.commentLines = memberCommentLines(*renderCtx.ctx, *member);
             row.type         = documentationTypeName(renderCtx, *member);
 
@@ -578,14 +577,14 @@ namespace
         {
             content.append(std::format(R"(<tr><td id="{}" class="code-type">{}</td>)", row.anchor, Utf8Helper::escapeHtml(row.name)));
             if (!isEnum)
-                content.append(std::format("<td class=\"code-type\">{}</td>", renderTypeName(renderCtx, row.type)));
+                content.append(std::format("<td class=\"code-type\">{}</td>", DocMarkdown::renderTypeName(renderCtx, row.type)));
             const std::vector<Utf8> summary = summaryLines(row.commentLines);
-            content.append(std::format("<td>{}</td></tr>\n", renderMarkdownLines(renderCtx, summary)));
+            content.append(std::format("<td>{}</td></tr>\n", DocMarkdown::renderLines(renderCtx, summary)));
         }
         content += "</tbody>\n</table>\n";
     }
 
-    void renderSummaryTable(Utf8& content, const RenderContext& renderCtx, const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items, const bool showKind, const bool shortNames)
+    void renderSummaryTable(Utf8& content, const DocRenderContext& renderCtx, const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items, const bool showKind, const bool shortNames)
     {
         if (items.empty())
             return;
@@ -599,11 +598,11 @@ namespace
             if (!item || item->overloads.empty())
                 continue;
             const Utf8 name = shortNames ? lastNamePart(item->fullName) : item->displayName;
-            content.append(std::format(R"(<tr><td class="code-type"><a href="#{}">{}</a></td>)", makeAnchor(item->fullName), Utf8Helper::escapeHtml(name)));
+            content.append(std::format(R"(<tr><td class="code-type"><a href="#{}">{}</a></td>)", DocMarkdown::makeAnchor(item->fullName), Utf8Helper::escapeHtml(name)));
             if (showKind)
                 content.append(std::format(R"(<td><span class="kind-chip kind-{}">{}</span></td>)", itemKindClass(item->kind), itemKindName(item->kind)));
             const std::vector<Utf8> summary = summaryLines(item->overloads.front().commentLines);
-            content.append(std::format("<td>{}</td></tr>\n", renderMarkdownLines(renderCtx, summary)));
+            content.append(std::format("<td>{}</td></tr>\n", DocMarkdown::renderLines(renderCtx, summary)));
         }
         content += "</tbody>\n</table>\n";
     }
@@ -614,13 +613,13 @@ namespace
             return;
         content.append(std::format("<h3 id=\"{}\">{}</h3>\n<table class=\"api-summary\">\n<thead><tr><th>Namespace</th></tr></thead>\n<tbody>\n", anchor, Utf8Helper::escapeHtml(title)));
         for (const Utf8& name : namespaces)
-            content.append(std::format("<tr><td class=\"code-type\"><a href=\"#namespace_{}\">{}</a></td></tr>\n", makeAnchor(name), Utf8Helper::escapeHtml(name)));
+            content.append(std::format("<tr><td class=\"code-type\"><a href=\"#namespace_{}\">{}</a></td></tr>\n", DocMarkdown::makeAnchor(name), Utf8Helper::escapeHtml(name)));
         content += "</tbody>\n</table>\n";
     }
 
-    void renderNamespaceItem(Utf8& content, const RenderContext& renderCtx, const DocNamespace& docNamespace)
+    void renderNamespaceItem(Utf8& content, const DocRenderContext& renderCtx, const DocNamespace& docNamespace)
     {
-        const Utf8 anchor = std::format("namespace_{}", makeAnchor(docNamespace.fullName));
+        const Utf8 anchor = std::format("namespace_{}", DocMarkdown::makeAnchor(docNamespace.fullName));
         content += "<section class=\"api-symbol\">\n<div class=\"api-item api-item-namespace\">";
         content.append(std::format(R"(<span id="{}" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">{}</span> <a class="api-item-permalink" href="#{}" aria-label="Permalink">#</a></span>)", anchor, Utf8Helper::escapeHtml(docNamespace.fullName), anchor));
         content += "</div>\n";
@@ -662,7 +661,7 @@ namespace
         content += "</section>\n";
     }
 
-    void renderOwnedSymbolTables(Utf8& content, const RenderContext& renderCtx, const Utf8& ownerName, const DocItemsByOwner& itemsByOwner)
+    void renderOwnedSymbolTables(Utf8& content, const DocRenderContext& renderCtx, const Utf8& ownerName, const DocItemsByOwner& itemsByOwner)
     {
         const auto ownerIt = itemsByOwner.find(ownerName);
         if (ownerIt == itemsByOwner.end())
@@ -696,21 +695,21 @@ namespace
             }
         }
 
-        const Utf8 anchor = makeAnchor(ownerName);
+        const Utf8 anchor = DocMarkdown::makeAnchor(ownerName);
         renderSummaryTable(content, renderCtx, "Nested types", std::format("{}_types", anchor), types, true, true);
         renderSummaryTable(content, renderCtx, "Enumerations", std::format("{}_enumerations", anchor), enumerations, false, true);
         renderSummaryTable(content, renderCtx, "Constants", std::format("{}_constants", anchor), constants, false, true);
         renderSummaryTable(content, renderCtx, "Methods", std::format("{}_methods", anchor), functions, false, true);
     }
 
-    void renderDocItem(Utf8& content, RenderContext& renderCtx, const DocItem& item, const bool runtime)
+    void renderDocItem(Utf8& content, DocRenderContext& renderCtx, const DocItem& item, const bool runtime)
     {
         if (item.overloads.empty())
             return;
 
         const DocOverload& first  = item.overloads.front();
         const Utf8         link   = sourceLink(renderCtx.ctx->compiler(), first, runtime);
-        const Utf8         anchor = makeAnchor(item.fullName);
+        const Utf8         anchor = DocMarkdown::makeAnchor(item.fullName);
 
         content += "<section class=\"api-symbol\">\n";
         content.append(std::format("<div class=\"api-item api-item-{}\">", itemKindClass(item.kind)));
@@ -722,9 +721,9 @@ namespace
         for (size_t overloadIndex = 0; overloadIndex < item.overloads.size(); ++overloadIndex)
         {
             const DocOverload& overload   = item.overloads[overloadIndex];
-            renderCtx.headingAnchorPrefix = std::format("{}_{}", makeAnchor(item.fullName), overloadIndex);
+            renderCtx.headingAnchorPrefix = std::format("{}_{}", DocMarkdown::makeAnchor(item.fullName), overloadIndex);
             if (!overload.commentLines.empty())
-                content += renderMarkdownLines(renderCtx, overload.commentLines);
+                content += DocMarkdown::renderLines(renderCtx, overload.commentLines);
             if (!overload.signature.empty() && item.kind != DocItemKind::Namespace)
                 content += codeHtml(*renderCtx.ctx, renderCtx, overload.signature);
         }
@@ -732,176 +731,172 @@ namespace
     }
 }
 
-namespace DocInternal
+void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const DocPageOptions& options, const bool runtime)
 {
-    void renderApiDocument(TaskContext& ctx, ApiDocument& document, const PageOptions& options, const bool runtime)
+    ReferenceTable references;
+    buildReferences(document, references);
+    buildMemberReferences(ctx, document, references, runtime);
+    std::vector<DocNamespace> namespaces;
+    buildDocNamespaces(document, namespaces, references);
+    document.references = std::move(references.entries);
+
+    std::vector<const Symbol*>        symbols;
+    std::unordered_set<const Symbol*> seenSymbols;
+    if (ctx.compiler().symModule())
+        collectSymbolTree(symbols, seenSymbols, *ctx.compiler().symModule());
+    if (ctx.compiler().importRootNamespace())
+        collectSymbolTree(symbols, seenSymbols, *ctx.compiler().importRootNamespace());
+    ReferenceTable externalReferences;
+    buildExternalReferences(ctx, document, externalReferences, options);
+    document.externalReferences = std::move(externalReferences.entries);
+
+    std::vector<std::pair<Utf8, Utf8>> anonymousTypeNames;
+    std::unordered_set<Utf8>           seenNames;
+    for (const Symbol* symbol : symbols)
     {
-        ReferenceTable references;
-        buildReferences(document, references);
-        buildMemberReferences(ctx, document, references, runtime);
-        std::vector<DocNamespace> namespaces;
-        buildDocNamespaces(document, namespaces, references);
-        document.references = std::move(references.entries);
+        const auto* symbolStruct = symbol ? symbol->safeCast<SymbolStruct>() : nullptr;
+        if (!symbolStruct || (!isAnonymousAggregateSymbol(*symbolStruct) && !hasCompilerGeneratedIdentifier(ctx, *symbolStruct)))
+            continue;
 
-        std::vector<const Symbol*>        symbols;
-        std::unordered_set<const Symbol*> seenSymbols;
-        if (ctx.compiler().symModule())
-            collectSymbolTree(symbols, seenSymbols, *ctx.compiler().symModule());
-        if (ctx.compiler().importRootNamespace())
-            collectSymbolTree(symbols, seenSymbols, *ctx.compiler().importRootNamespace());
-        ReferenceTable externalReferences;
-        buildExternalReferences(ctx, document, externalReferences, options);
-        document.externalReferences = std::move(externalReferences.entries);
-
-        std::vector<std::pair<Utf8, Utf8>> anonymousTypeNames;
-        std::unordered_set<Utf8>           seenNames;
-        for (const Symbol* symbol : symbols)
-        {
-            const auto* symbolStruct = symbol ? symbol->safeCast<SymbolStruct>() : nullptr;
-            if (!symbolStruct || (!isAnonymousAggregateSymbol(*symbolStruct) && !hasCompilerGeneratedIdentifier(ctx, *symbolStruct)))
-                continue;
-
-            const Utf8 fullName = symbolStruct->getFullScopedName(ctx);
-            if (fullName.empty() || !seenNames.insert(fullName).second)
-                continue;
-            anonymousTypeNames.emplace_back(fullName, symbolStruct->isUnion() ? "union { ... }" : "struct { ... }");
-        }
-
-        Utf8 moduleName = ctx.compiler().buildCfg().moduleNamespace;
-        if (moduleName.empty())
-            moduleName = options.titleContent;
-
-        RenderContext renderCtx = {
-            .ctx                = &ctx,
-            .options            = &options,
-            .references         = &document.references,
-            .externalReferences = &document.externalReferences,
-            .externalModules    = &document.externalModules,
-            .anonymousTypeNames = &anonymousTypeNames,
-            .moduleName         = moduleName,
-        };
-
-        document.toc += "<h3>Start here</h3>\n<ul>\n<li><a href=\"#overview\">Overview</a></li>\n";
-        for (const DocGuide& guide : document.guides)
-            document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
-        document.toc += "</ul>\n<h3>API reference</h3>\n<ul>\n<li><a href=\"#api-reference\">At a glance</a></li>\n<li><a href=\"#detailed-reference\">Detailed reference</a></li>\n</ul>\n";
-
-        std::vector<const DocItem*> types;
-        std::vector<const DocItem*> enumerations;
-        std::vector<const DocItem*> constants;
-        std::vector<const DocItem*> functions;
-        std::vector<const DocItem*> other;
-        DocItemsByOwner             itemsByOwner;
-        for (const DocItem& item : document.items)
-        {
-            if (!item.ownerName.empty())
-                itemsByOwner[item.ownerName].push_back(&item);
-
-            switch (item.kind)
-            {
-                case DocItemKind::Struct:
-                case DocItemKind::Interface:
-                case DocItemKind::Alias:
-                    types.push_back(&item);
-                    break;
-                case DocItemKind::Enum:
-                    enumerations.push_back(&item);
-                    break;
-                case DocItemKind::Constant:
-                    constants.push_back(&item);
-                    break;
-                case DocItemKind::Function:
-                case DocItemKind::Attribute:
-                    functions.push_back(&item);
-                    break;
-                case DocItemKind::Namespace:
-                    other.push_back(&item);
-                    break;
-            }
-        }
-
-        // A long list stays folded so the rail keeps showing every group at once; a short one
-        // is more useful open, because it then works as the complete map of the module.
-        constexpr size_t TOC_OPEN_LIMIT = 24;
-
-        const auto appendTocGroup = [&](const std::string_view title, const std::string_view anchor, const size_t count, const auto& appendEntries) {
-            if (!count)
-                return;
-            if (!options.hasSymbolIndex)
-            {
-                document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
-                return;
-            }
-            document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary>{}<span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= TOC_OPEN_LIMIT ? " open" : "", Utf8Helper::escapeHtml(title), count, anchor, Utf8Helper::escapeHtml(title)));
-            appendEntries();
-            document.toc += "</ul>\n</details>\n";
-        };
-
-        if (!options.hasSymbolIndex)
-            document.toc += "<ul>\n";
-        appendTocGroup("Namespaces", "summary-namespaces", namespaces.size(), [&] {
-            for (const DocNamespace& docNamespace : namespaces)
-                document.toc.append(std::format("<li><a href=\"#namespace_{}\">{}</a></li>\n", makeAnchor(docNamespace.fullName), Utf8Helper::escapeHtml(docNamespace.fullName)));
-        });
-
-        const auto appendTocSymbols = [&](const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items) {
-            appendTocGroup(title, anchor, items.size(), [&] {
-                for (const DocItem* item : items)
-                    document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", makeAnchor(item->fullName), Utf8Helper::escapeHtml(item->displayName)));
-            });
-        };
-        appendTocSymbols("Types", "summary-types", types);
-        appendTocSymbols("Enumerations", "summary-enumerations", enumerations);
-        appendTocSymbols("Constants", "summary-constants", constants);
-        appendTocSymbols("Functions", "summary-functions", functions);
-        if (!options.hasSymbolIndex)
-            document.toc += "</ul>\n";
-
-        for (const DocGuide& guide : document.guides)
-        {
-            renderCtx.headingAnchorPrefix = guide.anchor;
-            document.content.append(std::format("<section class=\"api-guide\"><h2 id=\"{}\">{}</h2>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
-            document.content += renderMarkdownLines(renderCtx, guide.lines, 1);
-            document.content += "</section>\n";
-        }
-
-        document.content += "<section class=\"api-overview\">\n<h2 id=\"api-reference\">API reference</h2>\n<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>\n";
-        std::vector<Utf8> namespaceNames;
-        namespaceNames.reserve(namespaces.size());
-        for (const DocNamespace& docNamespace : namespaces)
-            namespaceNames.push_back(docNamespace.fullName);
-        renderNamespaceTable(document.content, "Namespaces", "summary-namespaces", namespaceNames);
-        renderSummaryTable(document.content, renderCtx, "Types", "summary-types", types, true, false);
-        renderSummaryTable(document.content, renderCtx, "Enumerations", "summary-enumerations", enumerations, false, false);
-        renderSummaryTable(document.content, renderCtx, "Constants", "summary-constants", constants, false, false);
-        renderSummaryTable(document.content, renderCtx, "Functions", "summary-functions", functions, false, false);
-        document.content += "</section>\n<h2 id=\"detailed-reference\">Detailed reference</h2>\n";
-
-        const auto renderGroup = [&](const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items) {
-            if (items.empty())
-                return;
-            document.content.append(std::format("<h3 id=\"{}\">{}</h3>\n", anchor, Utf8Helper::escapeHtml(title)));
-            for (const DocItem* item : items)
-            {
-                renderDocItem(document.content, renderCtx, *item, runtime);
-                const DocOverload& first = item->overloads.front();
-                renderMemberTable(document.content, renderCtx, *first.symbol, runtime);
-                renderOwnedSymbolTables(document.content, renderCtx, item->fullName, itemsByOwner);
-            }
-        };
-
-        if (!namespaces.empty())
-        {
-            document.content += "<h3 id=\"namespaces\">Namespaces</h3>\n";
-            for (const DocNamespace& docNamespace : namespaces)
-                renderNamespaceItem(document.content, renderCtx, docNamespace);
-        }
-        renderGroup("Types", "types", types);
-        renderGroup("Enumerations", "enumerations", enumerations);
-        renderGroup("Constants", "constants", constants);
-        renderGroup("Functions", "functions", functions);
-        renderGroup("Other symbols", "other-symbols", other);
+        const Utf8 fullName = symbolStruct->getFullScopedName(ctx);
+        if (fullName.empty() || !seenNames.insert(fullName).second)
+            continue;
+        anonymousTypeNames.emplace_back(fullName, symbolStruct->isUnion() ? "union { ... }" : "struct { ... }");
     }
-}
 
+    Utf8 moduleName = ctx.compiler().buildCfg().moduleNamespace;
+    if (moduleName.empty())
+        moduleName = options.titleContent;
+
+    DocRenderContext renderCtx = {
+        .ctx                = &ctx,
+        .options            = &options,
+        .references         = &document.references,
+        .externalReferences = &document.externalReferences,
+        .externalModules    = &document.externalModules,
+        .anonymousTypeNames = &anonymousTypeNames,
+        .moduleName         = moduleName,
+    };
+
+    document.toc += "<h3>Start here</h3>\n<ul>\n<li><a href=\"#overview\">Overview</a></li>\n";
+    for (const DocGuide& guide : document.guides)
+        document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
+    document.toc += "</ul>\n<h3>API reference</h3>\n<ul>\n<li><a href=\"#api-reference\">At a glance</a></li>\n<li><a href=\"#detailed-reference\">Detailed reference</a></li>\n</ul>\n";
+
+    std::vector<const DocItem*> types;
+    std::vector<const DocItem*> enumerations;
+    std::vector<const DocItem*> constants;
+    std::vector<const DocItem*> functions;
+    std::vector<const DocItem*> other;
+    DocItemsByOwner             itemsByOwner;
+    for (const DocItem& item : document.items)
+    {
+        if (!item.ownerName.empty())
+            itemsByOwner[item.ownerName].push_back(&item);
+
+        switch (item.kind)
+        {
+            case DocItemKind::Struct:
+            case DocItemKind::Interface:
+            case DocItemKind::Alias:
+                types.push_back(&item);
+                break;
+            case DocItemKind::Enum:
+                enumerations.push_back(&item);
+                break;
+            case DocItemKind::Constant:
+                constants.push_back(&item);
+                break;
+            case DocItemKind::Function:
+            case DocItemKind::Attribute:
+                functions.push_back(&item);
+                break;
+            case DocItemKind::Namespace:
+                other.push_back(&item);
+                break;
+        }
+    }
+
+    // A long list stays folded so the rail keeps showing every group at once; a short one
+    // is more useful open, because it then works as the complete map of the module.
+    constexpr size_t TOC_OPEN_LIMIT = 24;
+
+    const auto appendTocGroup = [&](const std::string_view title, const std::string_view anchor, const size_t count, const auto& appendEntries) {
+        if (!count)
+            return;
+        if (!options.hasSymbolIndex)
+        {
+            document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
+            return;
+        }
+        document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary>{}<span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= TOC_OPEN_LIMIT ? " open" : "", Utf8Helper::escapeHtml(title), count, anchor, Utf8Helper::escapeHtml(title)));
+        appendEntries();
+        document.toc += "</ul>\n</details>\n";
+    };
+
+    if (!options.hasSymbolIndex)
+        document.toc += "<ul>\n";
+    appendTocGroup("Namespaces", "summary-namespaces", namespaces.size(), [&] {
+        for (const DocNamespace& docNamespace : namespaces)
+            document.toc.append(std::format("<li><a href=\"#namespace_{}\">{}</a></li>\n", DocMarkdown::makeAnchor(docNamespace.fullName), Utf8Helper::escapeHtml(docNamespace.fullName)));
+    });
+
+    const auto appendTocSymbols = [&](const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items) {
+        appendTocGroup(title, anchor, items.size(), [&] {
+            for (const DocItem* item : items)
+                document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", DocMarkdown::makeAnchor(item->fullName), Utf8Helper::escapeHtml(item->displayName)));
+        });
+    };
+    appendTocSymbols("Types", "summary-types", types);
+    appendTocSymbols("Enumerations", "summary-enumerations", enumerations);
+    appendTocSymbols("Constants", "summary-constants", constants);
+    appendTocSymbols("Functions", "summary-functions", functions);
+    if (!options.hasSymbolIndex)
+        document.toc += "</ul>\n";
+
+    for (const DocGuide& guide : document.guides)
+    {
+        renderCtx.headingAnchorPrefix = guide.anchor;
+        document.content.append(std::format("<section class=\"api-guide\"><h2 id=\"{}\">{}</h2>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
+        document.content += DocMarkdown::renderLines(renderCtx, guide.lines, 1);
+        document.content += "</section>\n";
+    }
+
+    document.content += "<section class=\"api-overview\">\n<h2 id=\"api-reference\">API reference</h2>\n<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>\n";
+    std::vector<Utf8> namespaceNames;
+    namespaceNames.reserve(namespaces.size());
+    for (const DocNamespace& docNamespace : namespaces)
+        namespaceNames.push_back(docNamespace.fullName);
+    renderNamespaceTable(document.content, "Namespaces", "summary-namespaces", namespaceNames);
+    renderSummaryTable(document.content, renderCtx, "Types", "summary-types", types, true, false);
+    renderSummaryTable(document.content, renderCtx, "Enumerations", "summary-enumerations", enumerations, false, false);
+    renderSummaryTable(document.content, renderCtx, "Constants", "summary-constants", constants, false, false);
+    renderSummaryTable(document.content, renderCtx, "Functions", "summary-functions", functions, false, false);
+    document.content += "</section>\n<h2 id=\"detailed-reference\">Detailed reference</h2>\n";
+
+    const auto renderGroup = [&](const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items) {
+        if (items.empty())
+            return;
+        document.content.append(std::format("<h3 id=\"{}\">{}</h3>\n", anchor, Utf8Helper::escapeHtml(title)));
+        for (const DocItem* item : items)
+        {
+            renderDocItem(document.content, renderCtx, *item, runtime);
+            const DocOverload& first = item->overloads.front();
+            renderMemberTable(document.content, renderCtx, *first.symbol, runtime);
+            renderOwnedSymbolTables(document.content, renderCtx, item->fullName, itemsByOwner);
+        }
+    };
+
+    if (!namespaces.empty())
+    {
+        document.content += "<h3 id=\"namespaces\">Namespaces</h3>\n";
+        for (const DocNamespace& docNamespace : namespaces)
+            renderNamespaceItem(document.content, renderCtx, docNamespace);
+    }
+    renderGroup("Types", "types", types);
+    renderGroup("Enumerations", "enumerations", enumerations);
+    renderGroup("Constants", "constants", constants);
+    renderGroup("Functions", "functions", functions);
+    renderGroup("Other symbols", "other-symbols", other);
+}
 SWC_END_NAMESPACE();

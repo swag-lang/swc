@@ -2,6 +2,7 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Doc/DocInternal.h"
 #include "Main/Version.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -968,13 +969,13 @@ namespace
             if (end == std::string_view::npos)
                 end = value.size();
 
-            const std::string_view entry = trimView(value.substr(start, end - start));
+            const std::string_view entry = Utf8Helper::trim(value.substr(start, end - start));
             if (!entry.empty())
             {
                 const size_t separator = entry.find('=');
                 NavLink      link;
-                link.label = trimCopy(separator == std::string_view::npos ? entry : entry.substr(0, separator));
-                link.url   = separator == std::string_view::npos ? link.label : trimCopy(entry.substr(separator + 1));
+                link.label = Utf8(Utf8Helper::trim(separator == std::string_view::npos ? entry : entry.substr(0, separator)));
+                link.url   = separator == std::string_view::npos ? link.label : Utf8(Utf8Helper::trim(entry.substr(separator + 1)));
                 if (!link.label.empty() && !link.url.empty())
                     result.push_back(std::move(link));
             }
@@ -1015,21 +1016,21 @@ namespace DocInternal
     {
         Utf8 result = std::format("<!DOCTYPE html>\n<html lang=\"en\"{} style=\"{}\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n", themeAttribute(options.theme), rootStyle(options));
         if (!options.titleContent.empty())
-            result.append(std::format("<title>{}</title>\n", escapeHtml(options.titleContent)));
+            result.append(std::format("<title>{}</title>\n", Utf8Helper::escapeHtml(options.titleContent)));
         if (!options.icon.empty())
-            result.append(std::format("<link rel=\"icon\" type=\"image/x-icon\" href=\"{}\">\n", escapeHtml(options.icon, true)));
+            result.append(std::format("<link rel=\"icon\" type=\"image/x-icon\" href=\"{}\">\n", Utf8Helper::escapeHtml(options.icon, true)));
         if (!options.css.empty())
-            result.append(std::format("<link rel=\"stylesheet\" type=\"text/css\" href=\"{}\">\n", escapeHtml(options.css, true)));
+            result.append(std::format("<link rel=\"stylesheet\" type=\"text/css\" href=\"{}\">\n", Utf8Helper::escapeHtml(options.css, true)));
         result += "</head>\n<body>\n";
 
         const Utf8 brandName = options.brandName.empty() ? Utf8("SWAG") : options.brandName;
         const Utf8 brandUrl  = options.brandUrl.empty() ? Utf8("index.html") : options.brandUrl;
         result += "<a class=\"skip-link\" href=\"#content\">Skip to content</a>\n";
         result += "<header class=\"site-header\">\n<nav class=\"site-nav\" aria-label=\"Main navigation\">\n";
-        result.append(std::format("<a class=\"site-brand\" href=\"{}\">{}</a>\n", escapeHtml(brandUrl, true), escapeHtml(brandName)));
+        result.append(std::format("<a class=\"site-brand\" href=\"{}\">{}</a>\n", Utf8Helper::escapeHtml(brandUrl, true), Utf8Helper::escapeHtml(brandName)));
         result += "<div class=\"site-links\">\n";
         for (const NavLink& link : parseNavLinks(options.navLinks.empty() ? DEFAULT_NAV_LINKS : options.navLinks.view()))
-            result.append(std::format("<a href=\"{}\">{}</a>\n", escapeHtml(link.url, true), escapeHtml(link.label)));
+            result.append(std::format("<a href=\"{}\">{}</a>\n", Utf8Helper::escapeHtml(link.url, true), Utf8Helper::escapeHtml(link.label)));
         result += "</div>\n</nav>\n</header>\n";
 
         result += pages ? "<main class=\"container single-page\">\n" : "<main class=\"container\">\n";
@@ -1047,7 +1048,7 @@ namespace DocInternal
         {
             result += "<footer class=\"site-footer\">\n";
             if (!options.footer.empty())
-                result.append(std::format("<div class=\"swag-footer-note\">{}</div>\n", escapeHtml(options.footer)));
+                result.append(std::format("<div class=\"swag-footer-note\">{}</div>\n", Utf8Helper::escapeHtml(options.footer)));
             if (options.hasSwagWatermark)
                 result.append(std::format("<div class=\"swag-watermark\">Generated with <a href=\"https://github.com/swag-lang/swc\">swc</a> {}.{}.{}</div>\n", SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
             result += "</footer>\n";

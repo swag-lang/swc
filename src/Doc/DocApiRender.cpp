@@ -12,6 +12,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -40,7 +41,7 @@ namespace
     {
         for (const Utf8& line : lines)
         {
-            if (trimView(line).empty())
+            if (Utf8Helper::trim(line).empty())
                 continue;
             return {line};
         }
@@ -224,7 +225,7 @@ namespace
 
     Utf8 sourceLink(const CompilerInstance& compiler, const DocOverload& overload, const bool runtime)
     {
-        Utf8 repoPath = fromRuntimeString(compiler.buildCfg().repoPath);
+        Utf8 repoPath = compiler.buildCfg().repoPath;
         if (runtime)
             repoPath = "https://github.com/swag-lang/swc/blob/master/bin/runtime";
         if (repoPath.empty() || !overload.file)
@@ -575,7 +576,7 @@ namespace
         content += "<th>Description</th></tr></thead>\n<tbody>\n";
         for (const MemberRow& row : fields)
         {
-            content.append(std::format(R"(<tr><td id="{}" class="code-type">{}</td>)", row.anchor, escapeHtml(row.name)));
+            content.append(std::format(R"(<tr><td id="{}" class="code-type">{}</td>)", row.anchor, Utf8Helper::escapeHtml(row.name)));
             if (!isEnum)
                 content.append(std::format("<td class=\"code-type\">{}</td>", renderTypeName(renderCtx, row.type)));
             const std::vector<Utf8> summary = summaryLines(row.commentLines);
@@ -589,7 +590,7 @@ namespace
         if (items.empty())
             return;
 
-        content.append(std::format("<h3 id=\"{}\">{}</h3>\n<table class=\"api-summary\">\n<thead><tr><th>Name</th>", anchor, escapeHtml(title)));
+        content.append(std::format("<h3 id=\"{}\">{}</h3>\n<table class=\"api-summary\">\n<thead><tr><th>Name</th>", anchor, Utf8Helper::escapeHtml(title)));
         if (showKind)
             content += "<th>Kind</th>";
         content += "<th>Description</th></tr></thead>\n<tbody>\n";
@@ -598,7 +599,7 @@ namespace
             if (!item || item->overloads.empty())
                 continue;
             const Utf8 name = shortNames ? lastNamePart(item->fullName) : item->displayName;
-            content.append(std::format(R"(<tr><td class="code-type"><a href="#{}">{}</a></td>)", makeAnchor(item->fullName), escapeHtml(name)));
+            content.append(std::format(R"(<tr><td class="code-type"><a href="#{}">{}</a></td>)", makeAnchor(item->fullName), Utf8Helper::escapeHtml(name)));
             if (showKind)
                 content.append(std::format(R"(<td><span class="kind-chip kind-{}">{}</span></td>)", itemKindClass(item->kind), itemKindName(item->kind)));
             const std::vector<Utf8> summary = summaryLines(item->overloads.front().commentLines);
@@ -611,9 +612,9 @@ namespace
     {
         if (namespaces.empty())
             return;
-        content.append(std::format("<h3 id=\"{}\">{}</h3>\n<table class=\"api-summary\">\n<thead><tr><th>Namespace</th></tr></thead>\n<tbody>\n", anchor, escapeHtml(title)));
+        content.append(std::format("<h3 id=\"{}\">{}</h3>\n<table class=\"api-summary\">\n<thead><tr><th>Namespace</th></tr></thead>\n<tbody>\n", anchor, Utf8Helper::escapeHtml(title)));
         for (const Utf8& name : namespaces)
-            content.append(std::format("<tr><td class=\"code-type\"><a href=\"#namespace_{}\">{}</a></td></tr>\n", makeAnchor(name), escapeHtml(name)));
+            content.append(std::format("<tr><td class=\"code-type\"><a href=\"#namespace_{}\">{}</a></td></tr>\n", makeAnchor(name), Utf8Helper::escapeHtml(name)));
         content += "</tbody>\n</table>\n";
     }
 
@@ -621,9 +622,9 @@ namespace
     {
         const Utf8 anchor = std::format("namespace_{}", makeAnchor(docNamespace.fullName));
         content += "<section class=\"api-symbol\">\n<div class=\"api-item api-item-namespace\">";
-        content.append(std::format(R"(<span id="{}" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">{}</span> <a class="api-item-permalink" href="#{}" aria-label="Permalink">#</a></span>)", anchor, escapeHtml(docNamespace.fullName), anchor));
+        content.append(std::format(R"(<span id="{}" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">{}</span> <a class="api-item-permalink" href="#{}" aria-label="Permalink">#</a></span>)", anchor, Utf8Helper::escapeHtml(docNamespace.fullName), anchor));
         content += "</div>\n";
-        content.append(std::format("<p>Public API declared directly in <span class=\"code-inline\">{}</span>.</p>\n", escapeHtml(docNamespace.fullName)));
+        content.append(std::format("<p>Public API declared directly in <span class=\"code-inline\">{}</span>.</p>\n", Utf8Helper::escapeHtml(docNamespace.fullName)));
 
         std::vector<const DocItem*> types;
         std::vector<const DocItem*> enumerations;
@@ -713,9 +714,9 @@ namespace
 
         content += "<section class=\"api-symbol\">\n";
         content.append(std::format("<div class=\"api-item api-item-{}\">", itemKindClass(item.kind)));
-        content.append(std::format(R"(<span id="{}" class="api-item-title"><span class="api-item-title-kind">{}</span> <span class="api-item-title-strong">{}</span> <a class="api-item-permalink" href="#{}" aria-label="Permalink">#</a></span>)", anchor, itemKindName(item.kind), escapeHtml(item.displayName), anchor));
+        content.append(std::format(R"(<span id="{}" class="api-item-title"><span class="api-item-title-kind">{}</span> <span class="api-item-title-strong">{}</span> <a class="api-item-permalink" href="#{}" aria-label="Permalink">#</a></span>)", anchor, itemKindName(item.kind), Utf8Helper::escapeHtml(item.displayName), anchor));
         if (!link.empty())
-            content.append(std::format(R"(<a class="api-item-title-src-ref" href="{}">src</a>)", escapeHtml(link, true)));
+            content.append(std::format(R"(<a class="api-item-title-src-ref" href="{}">src</a>)", Utf8Helper::escapeHtml(link, true)));
         content += "</div>\n";
 
         for (size_t overloadIndex = 0; overloadIndex < item.overloads.size(); ++overloadIndex)
@@ -766,7 +767,7 @@ namespace DocInternal
             anonymousTypeNames.emplace_back(fullName, symbolStruct->isUnion() ? "union { ... }" : "struct { ... }");
         }
 
-        Utf8 moduleName = fromRuntimeString(ctx.compiler().buildCfg().moduleNamespace);
+        Utf8 moduleName = ctx.compiler().buildCfg().moduleNamespace;
         if (moduleName.empty())
             moduleName = options.titleContent;
 
@@ -782,7 +783,7 @@ namespace DocInternal
 
         document.toc += "<h3>Start here</h3>\n<ul>\n<li><a href=\"#overview\">Overview</a></li>\n";
         for (const DocGuide& guide : document.guides)
-            document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", guide.anchor, escapeHtml(guide.title)));
+            document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
         document.toc += "</ul>\n<h3>API reference</h3>\n<ul>\n<li><a href=\"#api-reference\">At a glance</a></li>\n<li><a href=\"#detailed-reference\">Detailed reference</a></li>\n</ul>\n";
 
         std::vector<const DocItem*> types;
@@ -828,10 +829,10 @@ namespace DocInternal
                 return;
             if (!options.hasSymbolIndex)
             {
-                document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, escapeHtml(title)));
+                document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
                 return;
             }
-            document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary>{}<span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= TOC_OPEN_LIMIT ? " open" : "", escapeHtml(title), count, anchor, escapeHtml(title)));
+            document.toc.append(std::format("<details class=\"toc-group\"{}>\n<summary>{}<span class=\"toc-count\">{}</span></summary>\n<ul class=\"toc-symbols\">\n<li><a href=\"#{}\">All {}</a></li>\n", count <= TOC_OPEN_LIMIT ? " open" : "", Utf8Helper::escapeHtml(title), count, anchor, Utf8Helper::escapeHtml(title)));
             appendEntries();
             document.toc += "</ul>\n</details>\n";
         };
@@ -840,13 +841,13 @@ namespace DocInternal
             document.toc += "<ul>\n";
         appendTocGroup("Namespaces", "summary-namespaces", namespaces.size(), [&] {
             for (const DocNamespace& docNamespace : namespaces)
-                document.toc.append(std::format("<li><a href=\"#namespace_{}\">{}</a></li>\n", makeAnchor(docNamespace.fullName), escapeHtml(docNamespace.fullName)));
+                document.toc.append(std::format("<li><a href=\"#namespace_{}\">{}</a></li>\n", makeAnchor(docNamespace.fullName), Utf8Helper::escapeHtml(docNamespace.fullName)));
         });
 
         const auto appendTocSymbols = [&](const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items) {
             appendTocGroup(title, anchor, items.size(), [&] {
                 for (const DocItem* item : items)
-                    document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", makeAnchor(item->fullName), escapeHtml(item->displayName)));
+                    document.toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", makeAnchor(item->fullName), Utf8Helper::escapeHtml(item->displayName)));
             });
         };
         appendTocSymbols("Types", "summary-types", types);
@@ -859,7 +860,7 @@ namespace DocInternal
         for (const DocGuide& guide : document.guides)
         {
             renderCtx.headingAnchorPrefix = guide.anchor;
-            document.content.append(std::format("<section class=\"api-guide\"><h2 id=\"{}\">{}</h2>\n", guide.anchor, escapeHtml(guide.title)));
+            document.content.append(std::format("<section class=\"api-guide\"><h2 id=\"{}\">{}</h2>\n", guide.anchor, Utf8Helper::escapeHtml(guide.title)));
             document.content += renderMarkdownLines(renderCtx, guide.lines, 1);
             document.content += "</section>\n";
         }
@@ -879,7 +880,7 @@ namespace DocInternal
         const auto renderGroup = [&](const std::string_view title, const std::string_view anchor, std::span<const DocItem* const> items) {
             if (items.empty())
                 return;
-            document.content.append(std::format("<h3 id=\"{}\">{}</h3>\n", anchor, escapeHtml(title)));
+            document.content.append(std::format("<h3 id=\"{}\">{}</h3>\n", anchor, Utf8Helper::escapeHtml(title)));
             for (const DocItem* item : items)
             {
                 renderDocItem(document.content, renderCtx, *item, runtime);

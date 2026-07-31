@@ -113,18 +113,12 @@ namespace DocInternal
         Utf8                           content;
     };
 
-    Utf8                       fromRuntimeString(const Runtime::String& value);
-    std::string_view           trimView(std::string_view value);
-    Utf8                       trimCopy(std::string_view value);
-    std::vector<Utf8>          splitLines(std::string_view text);
-    Utf8                       escapeHtml(std::string_view text, bool attribute = false);
     Utf8                       makeAnchor(std::string_view value);
     Utf8                       renderTypeName(const RenderContext& renderCtx, std::string_view typeName);
     Utf8                       renderCodeBlock(const TaskContext& ctx, std::string_view code, bool swagSyntax, const RenderContext* renderCtx = nullptr);
     Utf8                       renderMarkdownLines(const RenderContext& renderCtx, std::span<const Utf8> lines, uint32_t headingOffset = 0);
     Utf8                       documentationStyles();
     Utf8                       constructPage(const PageOptions& options, std::string_view toc, std::string_view content, bool pages);
-    Utf8                       correctTitle(Utf8 title);
     Result                     readDocumentationSource(TaskContext& ctx, const fs::path& path, std::string& outText);
     Result                     reportDocFileError(TaskContext& ctx, const fs::path& path, const Utf8& because);
     Result                     writeDocumentationFile(TaskContext& ctx, const fs::path& path, std::string_view content);

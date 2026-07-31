@@ -13,6 +13,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -141,7 +142,7 @@ namespace DocInternal
         if (!runtime)
             return result;
 
-        Utf8 prefix = fromRuntimeString(ctx.compiler().buildCfg().moduleNamespace);
+        Utf8 prefix = ctx.compiler().buildCfg().moduleNamespace;
         if (prefix.empty())
             return result;
         prefix += ".";
@@ -168,26 +169,6 @@ namespace DocInternal
 namespace
 {
     using namespace DocInternal;
-
-    uint32_t countLineBreaks(const std::string_view text)
-    {
-        uint32_t result = 0;
-        for (size_t i = 0; i < text.size(); ++i)
-        {
-            if (text[i] == '\n')
-            {
-                result++;
-                continue;
-            }
-            if (text[i] == '\r')
-            {
-                result++;
-                if (i + 1 < text.size() && text[i + 1] == '\n')
-                    i++;
-            }
-        }
-        return result;
-    }
 
     bool commentStartsOnItsOwnLine(const SourceView& srcView, const Token& token)
     {
@@ -221,7 +202,7 @@ namespace DocInternal
         if (text.ends_with("*/"))
             text.remove_suffix(2);
 
-        std::vector<Utf8> lines = splitLines(text);
+        std::vector<Utf8> lines = Utf8Helper::splitLines(text);
         for (Utf8& line : lines)
         {
             std::string_view view = line;
@@ -236,9 +217,9 @@ namespace DocInternal
             outLines.emplace_back(view);
         }
 
-        while (!outLines.empty() && trimView(outLines.front()).empty())
+        while (!outLines.empty() && Utf8Helper::trim(outLines.front()).empty())
             outLines.erase(outLines.begin());
-        while (!outLines.empty() && trimView(outLines.back()).empty())
+        while (!outLines.empty() && Utf8Helper::trim(outLines.back()).empty())
             outLines.pop_back();
     }
 }
@@ -260,7 +241,7 @@ namespace
             const SourceTrivia& trivia = srcView.trivia()[i];
             if (trivia.tok.id == TokenId::Whitespace)
             {
-                if (countLineBreaks(trivia.tok.string(srcView)) >= 2)
+                if (Utf8Helper::countLineBreaks(trivia.tok.string(srcView)) >= 2)
                 {
                     result.clear();
                     hasComment = false;

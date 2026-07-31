@@ -45,6 +45,10 @@ namespace Utf8Helper
     std::string_view trimLeft(std::string_view s);
     std::string_view trimRight(std::string_view s);
     std::string_view trim(std::string_view s);
+    std::vector<Utf8> splitLines(std::string_view text);
+    uint32_t          countLineBreaks(std::string_view text);
+    Utf8              escapeHtml(std::string_view text, bool attribute = false);
+    Utf8              toTitle(std::string_view text);
     Utf8             normalizePathForCompare(const fs::path& path);
     bool             startsWith(std::string_view s, std::string_view pfx, bool matchCase = false);
     Utf8             addArticleAAn(std::string_view s);

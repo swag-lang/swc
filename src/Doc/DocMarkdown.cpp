@@ -2,77 +2,13 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Doc/DocInternal.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/SyntaxColor.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace DocInternal
 {
-
-    std::string_view trimView(std::string_view value)
-    {
-        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.front())))
-            value.remove_prefix(1);
-        while (!value.empty() && std::isspace(static_cast<unsigned char>(value.back())))
-            value.remove_suffix(1);
-        return value;
-    }
-
-    Utf8 trimCopy(std::string_view value)
-    {
-        return trimView(value);
-    }
-
-    std::vector<Utf8> splitLines(const std::string_view text)
-    {
-        std::vector<Utf8> result;
-        size_t            start = 0;
-        while (start <= text.size())
-        {
-            size_t end = text.find_first_of("\r\n", start);
-            if (end == std::string_view::npos)
-                end = text.size();
-            result.emplace_back(text.substr(start, end - start));
-            if (end == text.size())
-                break;
-            if (text[end] == '\r' && end + 1 < text.size() && text[end + 1] == '\n')
-                end++;
-            start = end + 1;
-        }
-        return result;
-    }
-
-    Utf8 escapeHtml(const std::string_view text, const bool attribute)
-    {
-        Utf8 result;
-        result.reserve(text.size());
-        for (const char c : text)
-        {
-            switch (c)
-            {
-                case '&':
-                    result += "&amp;";
-                    break;
-                case '<':
-                    result += "&lt;";
-                    break;
-                case '>':
-                    result += "&gt;";
-                    break;
-                case '"':
-                    if (attribute)
-                        result += "&quot;";
-                    else
-                        result += c;
-                    break;
-                default:
-                    result += c;
-                    break;
-            }
-        }
-        return result;
-    }
-
     Utf8 makeAnchor(const std::string_view value)
     {
         Utf8 result;
@@ -102,13 +38,13 @@ namespace
         {
             const auto it = renderCtx.references->find(Utf8(name));
             if (it != renderCtx.references->end())
-                return std::format("<a href=\"#{}\">{}</a>", it->second, escapeHtml(name));
+                return std::format("<a href=\"#{}\">{}</a>", it->second, Utf8Helper::escapeHtml(name));
 
             if (!renderCtx.moduleName.empty() && name.starts_with(renderCtx.moduleName) && name.size() > renderCtx.moduleName.size() && name[renderCtx.moduleName.size()] == '.')
             {
                 const auto shortIt = renderCtx.references->find(Utf8(name.substr(renderCtx.moduleName.size() + 1)));
                 if (shortIt != renderCtx.references->end())
-                    return std::format("<a href=\"#{}\">{}</a>", shortIt->second, escapeHtml(name));
+                    return std::format("<a href=\"#{}\">{}</a>", shortIt->second, Utf8Helper::escapeHtml(name));
             }
         }
 
@@ -116,13 +52,13 @@ namespace
         {
             const auto it = renderCtx.externalReferences->find(Utf8(name));
             if (it != renderCtx.externalReferences->end())
-                return std::format("<a href=\"{}\">{}</a>", escapeHtml(it->second, true), escapeHtml(name));
+                return std::format("<a href=\"{}\">{}</a>", Utf8Helper::escapeHtml(it->second, true), Utf8Helper::escapeHtml(name));
         }
 
         if (name.starts_with("Swag."))
         {
             const Utf8 anchor = makeAnchor(name);
-            return std::format("<a href=\"swag.runtime.html#{}\">{}</a>", anchor, escapeHtml(name));
+            return std::format("<a href=\"swag.runtime.html#{}\">{}</a>", anchor, Utf8Helper::escapeHtml(name));
         }
 
         const size_t separator = name.find('.');
@@ -130,7 +66,7 @@ namespace
         {
             const auto it = renderCtx.externalModules->find(Utf8(name.substr(0, separator)));
             if (it != renderCtx.externalModules->end())
-                return std::format("<a href=\"{}#{}\">{}</a>", escapeHtml(it->second, true), makeAnchor(name), escapeHtml(name));
+                return std::format("<a href=\"{}#{}\">{}</a>", Utf8Helper::escapeHtml(it->second, true), makeAnchor(name), Utf8Helper::escapeHtml(name));
         }
         return {};
     }
@@ -147,7 +83,7 @@ namespace DocInternal
             const char c = typeName[pos];
             if (!std::isalpha(static_cast<unsigned char>(c)) && c != '_')
             {
-                result += escapeHtml(typeName.substr(pos, 1));
+                result += Utf8Helper::escapeHtml(typeName.substr(pos, 1));
                 pos++;
                 continue;
             }
@@ -165,7 +101,7 @@ namespace DocInternal
 
             const std::string_view token     = typeName.substr(pos, end - pos);
             const Utf8             reference = resolveReference(renderCtx, token);
-            result += reference.empty() ? escapeHtml(token) : reference;
+            result += reference.empty() ? Utf8Helper::escapeHtml(token) : reference;
             pos = end;
         }
         return result;
@@ -200,7 +136,7 @@ namespace
             if (const size_t urlLength = bareUrlLength(text.substr(pos)))
             {
                 const std::string_view url = text.substr(pos, urlLength);
-                result.append(std::format("<a href=\"{}\">{}</a>", escapeHtml(url, true), escapeHtml(url)));
+                result.append(std::format("<a href=\"{}\">{}</a>", Utf8Helper::escapeHtml(url, true), Utf8Helper::escapeHtml(url)));
                 pos += urlLength;
                 continue;
             }
@@ -231,7 +167,7 @@ namespace
                     {
                         const auto name = text.substr(pos + 2, nameEnd - pos - 2);
                         const auto link = text.substr(nameEnd + 2, linkEnd - nameEnd - 2);
-                        result.append(std::format(R"(<img src="{}" alt="{}">)", escapeHtml(link, true), escapeHtml(name, true)));
+                        result.append(std::format(R"(<img src="{}" alt="{}">)", Utf8Helper::escapeHtml(link, true), Utf8Helper::escapeHtml(name, true)));
                         pos = linkEnd + 1;
                         continue;
                     }
@@ -248,7 +184,7 @@ namespace
                     {
                         const auto name = text.substr(pos + 1, nameEnd - pos - 1);
                         const auto link = text.substr(nameEnd + 2, linkEnd - nameEnd - 2);
-                        result.append(std::format("<a href=\"{}\">{}</a>", escapeHtml(link, true), escapeHtml(name)));
+                        result.append(std::format("<a href=\"{}\">{}</a>", Utf8Helper::escapeHtml(link, true), Utf8Helper::escapeHtml(name)));
                         pos = linkEnd + 1;
                         continue;
                     }
@@ -281,7 +217,7 @@ namespace
 
                 const std::string_view inner = text.substr(pos + marker.open.size(), end - pos - marker.open.size());
                 result.append(marker.htmlOpen);
-                result += marker.nested ? renderInline(renderCtx, inner) : escapeHtml(inner);
+                result += marker.nested ? renderInline(renderCtx, inner) : Utf8Helper::escapeHtml(inner);
                 result.append(marker.htmlClose);
                 pos     = end + marker.close.size();
                 matched = true;
@@ -299,7 +235,7 @@ namespace
                     if (code.find_first_of(" \t\r\n") == std::string_view::npos)
                     {
                         result += "<span class=\"code-inline\">";
-                        result += escapeHtml(code);
+                        result += Utf8Helper::escapeHtml(code);
                         result += "</span>";
                         pos = end + 1;
                         continue;
@@ -322,12 +258,12 @@ namespace
 
             if (text[pos] == '\\' && pos + 1 < text.size())
             {
-                result += escapeHtml(text.substr(pos + 1, 1));
+                result += Utf8Helper::escapeHtml(text.substr(pos + 1, 1));
                 pos += 2;
                 continue;
             }
 
-            result += escapeHtml(text.substr(pos, 1));
+            result += Utf8Helper::escapeHtml(text.substr(pos, 1));
             pos++;
         }
         return result;
@@ -342,10 +278,10 @@ namespace DocInternal
     {
         // A source file that opens or closes on a documentation comment produces an empty
         // segment on each side of it; an empty frame on the page would only be noise.
-        if (trimView(code).empty())
+        if (Utf8Helper::trim(code).empty())
             return {};
 
-        const Utf8 escaped = escapeHtml(code);
+        const Utf8 escaped = Utf8Helper::escapeHtml(code);
         Utf8       rendered;
         if (swagSyntax)
         {
@@ -366,7 +302,7 @@ namespace
 {
     bool isOrderedListLine(const std::string_view line)
     {
-        const std::string_view value = trimView(line);
+        const std::string_view value = Utf8Helper::trim(line);
         size_t                 i     = 0;
         while (i < value.size() && std::isdigit(static_cast<unsigned char>(value[i])))
             i++;
@@ -399,7 +335,7 @@ namespace
 
     bool tryReadTableSeparatorCell(std::string_view cell, TableAlign& outAlign)
     {
-        cell                = trimView(cell);
+        cell                = Utf8Helper::trim(cell);
         const bool leading  = cell.starts_with(':');
         const bool trailing = cell.ends_with(':');
         if (leading)
@@ -422,7 +358,7 @@ namespace
 
     std::vector<Utf8> splitTableRow(std::string_view line)
     {
-        line = trimView(line);
+        line = Utf8Helper::trim(line);
         if (!line.empty() && line.front() == '|')
             line.remove_prefix(1);
         if (!line.empty() && line.back() == '|')
@@ -435,7 +371,7 @@ namespace
             size_t end = line.find('|', start);
             if (end == std::string_view::npos)
                 end = line.size();
-            cells.emplace_back(trimView(line.substr(start, end - start)));
+            cells.emplace_back(Utf8Helper::trim(line.substr(start, end - start)));
             if (end == line.size())
                 break;
             start = end + 1;
@@ -446,7 +382,7 @@ namespace
     bool isMarkdownBlockStart(std::span<const Utf8> lines, const size_t index)
     {
         const std::string_view raw  = lines[index];
-        const std::string_view line = trimView(raw);
+        const std::string_view line = Utf8Helper::trim(raw);
         if (line.empty() || line == "---" || line.starts_with("```") || line.starts_with(">") || line.starts_with("# ") || line.starts_with("## ") || line.starts_with("### ") || line.starts_with("#### ") || line.starts_with("##### ") || line.starts_with("###### "))
             return true;
         if (raw.starts_with("    ") || raw.starts_with("\t"))
@@ -468,7 +404,7 @@ namespace DocInternal
         while (index < lines.size())
         {
             const std::string_view raw  = lines[index];
-            const std::string_view line = trimView(raw);
+            const std::string_view line = Utf8Helper::trim(raw);
             if (line.empty())
             {
                 index++;
@@ -505,7 +441,7 @@ namespace DocInternal
                 const bool swagSyntax = line == "```swag";
                 index++;
                 Utf8 code;
-                while (index < lines.size() && !trimView(lines[index]).starts_with("```"))
+                while (index < lines.size() && !Utf8Helper::trim(lines[index]).starts_with("```"))
                 {
                     code += lines[index++];
                     code += "\n";
@@ -550,7 +486,7 @@ namespace DocInternal
                     level++;
                 if (level < line.size() && line[level] == ' ')
                 {
-                    const std::string_view title     = trimView(line.substr(level + 1));
+                    const std::string_view title     = Utf8Helper::trim(line.substr(level + 1));
                     const uint32_t         htmlLevel = std::clamp<uint32_t>(static_cast<uint32_t>(level) + headingOffset, 1, 6);
                     Utf8                   anchor    = makeAnchor(title);
                     if (!renderCtx.headingAnchorPrefix.empty())
@@ -566,7 +502,7 @@ namespace DocInternal
                 std::vector<Utf8> quoteLines;
                 while (index < lines.size())
                 {
-                    std::string_view quoteLine = trimView(lines[index]);
+                    std::string_view quoteLine = Utf8Helper::trim(lines[index]);
                     if (!quoteLine.starts_with(">"))
                         break;
                     quoteLine.remove_prefix(1);
@@ -600,15 +536,15 @@ namespace DocInternal
                     };
                     for (const QuoteKind& candidate : kinds)
                     {
-                        if (!trimView(quoteLines.front()).starts_with(candidate.marker))
+                        if (!Utf8Helper::trim(quoteLines.front()).starts_with(candidate.marker))
                             continue;
                         kind                   = candidate.css;
                         defaultTitle           = candidate.title;
                         icon                   = *candidate.icon;
                         title                  = candidate.configuredTitle->empty() ? Utf8(defaultTitle) : *candidate.configuredTitle;
-                        std::string_view first = trimView(quoteLines.front());
+                        std::string_view first = Utf8Helper::trim(quoteLines.front());
                         first.remove_prefix(std::strlen(candidate.marker));
-                        quoteLines.front() = trimCopy(first);
+                        quoteLines.front() = Utf8(Utf8Helper::trim(first));
                         break;
                     }
                 }
@@ -626,7 +562,7 @@ namespace DocInternal
                         result += icon;
                         result += " ";
                     }
-                    result.append(std::format("<span class=\"blockquote-title\">{}</span></div>\n", escapeHtml(title)));
+                    result.append(std::format("<span class=\"blockquote-title\">{}</span></div>\n", Utf8Helper::escapeHtml(title)));
                 }
                 result += renderMarkdownLines(renderCtx, quoteLines, headingOffset);
                 result += "</div>\n";
@@ -636,7 +572,7 @@ namespace DocInternal
             if (line.starts_with("|"))
             {
                 std::vector<std::vector<Utf8>> rows;
-                while (index < lines.size() && trimView(lines[index]).starts_with("|"))
+                while (index < lines.size() && Utf8Helper::trim(lines[index]).starts_with("|"))
                     rows.push_back(splitTableRow(lines[index++]));
 
                 // A separator on the second line promotes the first row to a header and fixes
@@ -698,7 +634,7 @@ namespace DocInternal
                 result += ordered ? "<ol>\n" : "<ul>\n";
                 while (index < lines.size())
                 {
-                    std::string_view item = trimView(lines[index]);
+                    std::string_view item = Utf8Helper::trim(lines[index]);
                     if (ordered)
                     {
                         if (!isOrderedListLine(item))
@@ -711,7 +647,7 @@ namespace DocInternal
                             break;
                         item.remove_prefix(1);
                     }
-                    item = trimView(item);
+                    item = Utf8Helper::trim(item);
                     result.append(std::format("<li>{}</li>\n", renderInline(renderCtx, item)));
                     index++;
                 }
@@ -721,15 +657,15 @@ namespace DocInternal
 
             if (line.starts_with("+ "))
             {
-                while (index < lines.size() && trimView(lines[index]).starts_with("+ "))
+                while (index < lines.size() && Utf8Helper::trim(lines[index]).starts_with("+ "))
                 {
-                    std::string_view title = trimView(lines[index]);
+                    std::string_view title = Utf8Helper::trim(lines[index]);
                     title.remove_prefix(2);
                     result.append(std::format("<div class=\"description-list-title\"><p>{}</p></div>\n", renderInline(renderCtx, title)));
                     index++;
 
                     std::vector<Utf8> description;
-                    while (index < lines.size() && (lines[index].starts_with("    ") || lines[index].starts_with("\t") || trimView(lines[index]).empty()))
+                    while (index < lines.size() && (lines[index].starts_with("    ") || lines[index].starts_with("\t") || Utf8Helper::trim(lines[index]).empty()))
                     {
                         std::string_view descriptionLine = lines[index++];
                         if (descriptionLine.starts_with("    "))
@@ -750,7 +686,7 @@ namespace DocInternal
             {
                 if (!paragraph.empty() && isMarkdownBlockStart(lines, index))
                     break;
-                const std::string_view paragraphLine = trimView(lines[index]);
+                const std::string_view paragraphLine = Utf8Helper::trim(lines[index]);
                 if (paragraphLine.empty())
                     break;
                 if (!paragraph.empty())

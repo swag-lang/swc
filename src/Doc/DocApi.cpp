@@ -7,6 +7,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -49,21 +50,21 @@ namespace
             SWC_RESULT(readDocumentationSource(ctx, path, source));
 
             DocGuide guide;
-            guide.lines = splitLines(source);
+            guide.lines = Utf8Helper::splitLines(source);
             for (auto lineIt = guide.lines.begin(); lineIt != guide.lines.end(); ++lineIt)
             {
-                const std::string_view line = trimView(*lineIt);
+                const std::string_view line = Utf8Helper::trim(*lineIt);
                 if (line.empty())
                     continue;
                 if (line.starts_with("# "))
                 {
-                    guide.title = trimCopy(line.substr(2));
+                    guide.title = Utf8(Utf8Helper::trim(line.substr(2)));
                     guide.lines.erase(lineIt);
                 }
                 break;
             }
             if (guide.title.empty())
-                guide.title = correctTitle(path.stem().string());
+                guide.title = Utf8Helper::toTitle(path.stem().string());
 
             guide.anchor = "guide_";
             guide.anchor += makeAnchor(guide.title);
@@ -78,7 +79,7 @@ namespace
 
     Utf8 extractModuleDocComment(std::string_view source)
     {
-        source = trimView(source);
+        source = Utf8Helper::trim(source);
         std::vector<Utf8> result;
         if (source.starts_with("/*"))
         {
@@ -88,9 +89,9 @@ namespace
         }
         else
         {
-            for (const Utf8& line : splitLines(source))
+            for (const Utf8& line : Utf8Helper::splitLines(source))
             {
-                const std::string_view view = trimView(line);
+                const std::string_view view = Utf8Helper::trim(line);
                 if (!view.starts_with("//"))
                     break;
                 appendNormalizedComment(result, view);
@@ -139,7 +140,7 @@ namespace DocInternal
         if (options.titleContent.empty())
         {
             if (!ctx.cmdLine().modulePath.empty())
-                options.titleContent = correctTitle(ctx.cmdLine().modulePath.filename().string());
+                options.titleContent = Utf8Helper::toTitle(ctx.cmdLine().modulePath.filename().string());
             else
                 options.titleContent = "API Reference";
         }
@@ -152,7 +153,7 @@ namespace DocInternal
         collectDocItems(ctx, document.items, runtime);
         renderApiDocument(ctx, document, options, runtime);
 
-        Utf8 moduleName = fromRuntimeString(ctx.compiler().buildCfg().moduleNamespace);
+        Utf8 moduleName = ctx.compiler().buildCfg().moduleNamespace;
         if (moduleName.empty())
             moduleName = options.titleContent;
 
@@ -166,13 +167,13 @@ namespace DocInternal
         };
 
         Utf8 content;
-        content.append(std::format("<section class=\"module-overview\"><h1 id=\"overview\">{}</h1>\n", escapeHtml(options.titleContent)));
+        content.append(std::format("<section class=\"module-overview\"><h1 id=\"overview\">{}</h1>\n", Utf8Helper::escapeHtml(options.titleContent)));
         if (!runtime)
         {
             const Utf8 moduleComment = defaultModuleDocComment(ctx.compiler());
             if (!moduleComment.empty())
             {
-                const std::vector<Utf8> lines = splitLines(moduleComment);
+                const std::vector<Utf8> lines = Utf8Helper::splitLines(moduleComment);
                 renderCtx.headingAnchorPrefix = "overview";
                 content += renderMarkdownLines(renderCtx, lines);
             }
@@ -181,7 +182,7 @@ namespace DocInternal
         content += document.content;
 
         Utf8 toc;
-        toc.append(std::format("<h2>{}</h2>\n", escapeHtml(options.titleToc)));
+        toc.append(std::format("<h2>{}</h2>\n", Utf8Helper::escapeHtml(options.titleToc)));
         toc += document.toc;
 
         outPath         = outputFilePath(ctx.compiler(), options);

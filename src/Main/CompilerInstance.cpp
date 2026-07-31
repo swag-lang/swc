@@ -146,28 +146,6 @@ namespace
         return last == '\n' || last == '\r';
     }
 
-    uint32_t countLineBreaks(const std::string_view text)
-    {
-        uint32_t count = 0;
-        for (size_t i = 0; i < text.size(); ++i)
-        {
-            if (text[i] == '\n')
-            {
-                count++;
-                continue;
-            }
-
-            if (text[i] != '\r')
-                continue;
-
-            count++;
-            if (i + 1 < text.size() && text[i + 1] == '\n')
-                i++;
-        }
-
-        return count;
-    }
-
     uint32_t effectiveSourceViewLineCount(const SourceView& srcView)
     {
         const auto& lines = srcView.lines();
@@ -1255,7 +1233,7 @@ Result CompilerInstance::appendGeneratedSource(GeneratedSourceAppendResult& outR
     if (!outResult.snapshot.empty())
     {
         generated.content += outResult.snapshot;
-        generated.nextLineOffset += countLineBreaks(outResult.snapshot.view());
+        generated.nextLineOffset += Utf8Helper::countLineBreaks(outResult.snapshot.view());
         generated.dirty = true;
     }
 

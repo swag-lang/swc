@@ -1,6 +1,6 @@
 ---
 name: modify-swag-codebase
-description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and the required DevMode and Release validation workflows.
+description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and scoped validation workflows.
 ---
 
 # Modify The Swag Codebase
@@ -23,7 +23,9 @@ Fix the root cause of every problem. Do not introduce hacks or workarounds.
 
 ## Validate C++ Changes
 
-After changing any compiler C++ file, complete this sequence. Fix every failure before continuing to the next step.
+Use one of the narrower workflows below when the change only affects the `doc` or `format`
+command. Otherwise, after changing any compiler C++ file, complete this sequence. Fix every
+failure before continuing to the next step.
 
 1. Compile a DevMode build.
 2. Run `tests.bat dm`.
@@ -32,6 +34,29 @@ After changing any compiler C++ file, complete this sequence. Fix every failure 
 5. Run `tests.bat`.
 
 Do not run `alltests.bat` in Release mode as part of the default workflow.
+
+## Validate Documentation-Only Changes
+
+When a compiler change affects only the `doc` command, including refactoring shared helpers
+for its implementation:
+
+1. Compile a DevMode build.
+2. Regenerate the repository documentation with `tools/web.bat dm`.
+3. Inspect the generated HTML and its diff for correctness.
+
+Do not run `tests.bat`, `alltests.bat`, or the Release validation workflow for a
+documentation-only change.
+
+## Validate Formatter-Only Changes
+
+When a compiler change affects only the `format` command:
+
+1. Compile a DevMode build.
+2. Format the repository with `tools/format.bat dm`.
+3. Inspect the resulting diff for correctness.
+
+Do not run `tests.bat`, `alltests.bat`, or the Release validation workflow for a
+formatter-only change.
 
 ## Validate Example-Only Changes
 

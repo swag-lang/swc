@@ -7,6 +7,7 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Diagnostic.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -20,16 +21,6 @@ namespace
     std::mutex               g_StylesheetMutex;
 }
 
-namespace DocInternal
-{
-    Utf8 fromRuntimeString(const Runtime::String& value)
-    {
-        if (!value.ptr || !value.length)
-            return {};
-        return {value.ptr, value.length};
-    }
-}
-
 namespace
 {
     using namespace DocInternal;
@@ -41,26 +32,26 @@ namespace
         PageOptions result;
         result.kind                = genDoc.kind;
         result.theme               = genDoc.theme;
-        result.outputName          = fromRuntimeString(genDoc.outputName);
-        result.titleToc            = fromRuntimeString(genDoc.titleToc);
-        result.titleContent        = fromRuntimeString(genDoc.titleContent);
-        result.css                 = fromRuntimeString(genDoc.css);
-        result.icon                = fromRuntimeString(genDoc.icon);
-        result.morePages           = fromRuntimeString(genDoc.morePages);
-        result.quoteIconNote       = fromRuntimeString(genDoc.quoteIconNote);
-        result.quoteIconTip        = fromRuntimeString(genDoc.quoteIconTip);
-        result.quoteIconWarning    = fromRuntimeString(genDoc.quoteIconWarning);
-        result.quoteIconAttention  = fromRuntimeString(genDoc.quoteIconAttention);
-        result.quoteIconExample    = fromRuntimeString(genDoc.quoteIconExample);
-        result.quoteTitleNote      = fromRuntimeString(genDoc.quoteTitleNote);
-        result.quoteTitleTip       = fromRuntimeString(genDoc.quoteTitleTip);
-        result.quoteTitleWarning   = fromRuntimeString(genDoc.quoteTitleWarning);
-        result.quoteTitleAttention = fromRuntimeString(genDoc.quoteTitleAttention);
-        result.quoteTitleExample   = fromRuntimeString(genDoc.quoteTitleExample);
-        result.brandName           = fromRuntimeString(genDoc.brandName);
-        result.brandUrl            = fromRuntimeString(genDoc.brandUrl);
-        result.navLinks            = fromRuntimeString(genDoc.navLinks);
-        result.footer              = fromRuntimeString(genDoc.footer);
+        result.outputName          = Utf8(genDoc.outputName);
+        result.titleToc            = Utf8(genDoc.titleToc);
+        result.titleContent        = Utf8(genDoc.titleContent);
+        result.css                 = Utf8(genDoc.css);
+        result.icon                = Utf8(genDoc.icon);
+        result.morePages           = Utf8(genDoc.morePages);
+        result.quoteIconNote       = Utf8(genDoc.quoteIconNote);
+        result.quoteIconTip        = Utf8(genDoc.quoteIconTip);
+        result.quoteIconWarning    = Utf8(genDoc.quoteIconWarning);
+        result.quoteIconAttention  = Utf8(genDoc.quoteIconAttention);
+        result.quoteIconExample    = Utf8(genDoc.quoteIconExample);
+        result.quoteTitleNote      = Utf8(genDoc.quoteTitleNote);
+        result.quoteTitleTip       = Utf8(genDoc.quoteTitleTip);
+        result.quoteTitleWarning   = Utf8(genDoc.quoteTitleWarning);
+        result.quoteTitleAttention = Utf8(genDoc.quoteTitleAttention);
+        result.quoteTitleExample   = Utf8(genDoc.quoteTitleExample);
+        result.brandName           = Utf8(genDoc.brandName);
+        result.brandUrl            = Utf8(genDoc.brandUrl);
+        result.navLinks            = Utf8(genDoc.navLinks);
+        result.footer              = Utf8(genDoc.footer);
         result.syntaxDefaultColor  = genDoc.syntaxDefaultColor;
         result.accentColor         = genDoc.accentColor;
         result.hasSwagWatermark    = genDoc.hasSwagWatermark;
@@ -182,31 +173,6 @@ namespace DocInternal
         return result.lexically_normal();
     }
 
-    Utf8 correctTitle(Utf8 title)
-    {
-        std::ranges::replace(title, '_', ' ');
-        const std::unordered_set<std::string_view> exceptions = {"and", "or", "in", "the", "of", "a", "an", "but", "for", "nor", "on", "at", "by", "with", "to"};
-
-        std::vector<Utf8>  words;
-        std::istringstream stream(title);
-        std::string        word;
-        while (stream >> word)
-            words.emplace_back(word);
-
-        Utf8 result;
-        for (size_t i = 0; i < words.size(); ++i)
-        {
-            Utf8 value = words[i];
-            value.make_lower();
-            if (i == 0 || i + 1 == words.size() || !exceptions.contains(value.view()))
-                value.front() = static_cast<char>(std::toupper(static_cast<unsigned char>(value.front())));
-            if (!result.empty())
-                result += " ";
-            result += value;
-        }
-        return result;
-    }
-
     Result readDocumentationSource(TaskContext& ctx, const fs::path& path, std::string& outText)
     {
         FileSystem::IoErrorInfo error;
@@ -225,9 +191,9 @@ namespace
     bool isModulePreamble(const std::string_view code)
     {
         bool hasDirective = false;
-        for (const Utf8& line : splitLines(code))
+        for (const Utf8& line : Utf8Helper::splitLines(code))
         {
-            const std::string_view value = trimView(line);
+            const std::string_view value = Utf8Helper::trim(line);
             if (value.empty())
                 continue;
             if (!value.starts_with("#global"))
@@ -239,14 +205,14 @@ namespace
 
     Utf8 renderExampleSource(const TaskContext& ctx, const RenderContext& renderCtx, const std::string_view source)
     {
-        const std::vector<Utf8> lines = splitLines(source);
+        const std::vector<Utf8> lines = Utf8Helper::splitLines(source);
         Utf8                    result;
         size_t                  index   = 0;
         bool                    isFirst = true;
         while (index < lines.size())
         {
             Utf8 code;
-            while (index < lines.size() && !trimView(lines[index]).starts_with("/**"))
+            while (index < lines.size() && !Utf8Helper::trim(lines[index]).starts_with("/**"))
             {
                 code += lines[index++];
                 code += "\n";
@@ -259,7 +225,7 @@ namespace
 
             index++;
             std::vector<Utf8> comment;
-            while (index < lines.size() && !trimView(lines[index]).starts_with("*/"))
+            while (index < lines.size() && !Utf8Helper::trim(lines[index]).starts_with("*/"))
                 comment.push_back(lines[index++]);
             if (index < lines.size())
                 index++;
@@ -293,8 +259,8 @@ namespace
             .references = nullptr,
         };
 
-        Utf8 toc     = std::format("<h2>{}</h2>\n<ul>\n", escapeHtml(options.titleToc));
-        Utf8 content = std::format("<h1>{}</h1>\n", escapeHtml(options.titleContent));
+        Utf8 toc     = std::format("<h2>{}</h2>\n<ul>\n", Utf8Helper::escapeHtml(options.titleToc));
+        Utf8 content = std::format("<h1>{}</h1>\n", Utf8Helper::escapeHtml(options.titleContent));
 
         uint32_t currentLevel = 1;
         for (const SourceFile* file : moduleSourceFiles(ctx.compiler()))
@@ -323,13 +289,13 @@ namespace
                 currentLevel--;
             }
 
-            const Utf8 title  = correctTitle(stem.substr(8));
+            const Utf8 title  = Utf8Helper::toTitle(stem.substr(8));
             const Utf8 anchor = makeAnchor(file->name());
-            toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, escapeHtml(title)));
-            content.append(std::format("<h{} id=\"{}\">{}</h{}>\n", level + 1, anchor, escapeHtml(title), level + 1));
+            toc.append(std::format("<li><a href=\"#{}\">{}</a></li>\n", anchor, Utf8Helper::escapeHtml(title)));
+            content.append(std::format("<h{} id=\"{}\">{}</h{}>\n", level + 1, anchor, Utf8Helper::escapeHtml(title), level + 1));
 
             if (file->path().extension() == ".md")
-                content += renderMarkdownLines(renderCtx, splitLines(file->sourceView()), level + 1);
+                content += renderMarkdownLines(renderCtx, Utf8Helper::splitLines(file->sourceView()), level + 1);
             else
                 content += renderExampleSource(ctx, renderCtx, file->sourceView());
         }
@@ -356,7 +322,7 @@ namespace
             size_t end = options.morePages.find(';', start);
             if (end == Utf8::npos)
                 end = options.morePages.size();
-            const std::string_view value = trimView(options.morePages.subView(start, end - start));
+            const std::string_view value = Utf8Helper::trim(options.morePages.subView(start, end - start));
             if (!value.empty())
             {
                 fs::path path(value);
@@ -428,7 +394,7 @@ namespace
 
             Utf8 content;
             if (path.extension() == ".md")
-                content = renderMarkdownLines(renderCtx, splitLines(source));
+                content = renderMarkdownLines(renderCtx, Utf8Helper::splitLines(source));
             else
                 content = renderExampleSource(ctx, renderCtx, source);
 
@@ -437,7 +403,7 @@ namespace
             outPath = outPath.lexically_normal();
 
             PageOptions pageOptions  = options;
-            pageOptions.titleContent = correctTitle(path.stem().string());
+            pageOptions.titleContent = Utf8Helper::toTitle(path.stem().string());
             const Utf8 page          = constructPage(pageOptions, {}, content, true);
             SWC_RESULT(writeDocumentationFile(ctx, outPath, page));
             outPaths.push_back(std::move(outPath));
@@ -551,7 +517,7 @@ Utf8 DocGenerator::renderMarkdownForTest(TaskContext& ctx, const std::string_vie
         .options    = &options,
         .references = nullptr,
     };
-    return renderMarkdownLines(renderCtx, splitLines(text));
+    return renderMarkdownLines(renderCtx, Utf8Helper::splitLines(text));
 }
 
 SWC_END_NAMESPACE();

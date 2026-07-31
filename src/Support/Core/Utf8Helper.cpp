@@ -298,14 +298,14 @@ std::optional<Utf8> Utf8Helper::bestMatch(const std::string_view query, const st
 // whitespace helpers
 std::string_view Utf8Helper::trimLeft(std::string_view s)
 {
-    while (!s.empty() && std::isspace(s.front()))
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
         s.remove_prefix(1);
     return s;
 }
 
 std::string_view Utf8Helper::trimRight(std::string_view s)
 {
-    while (!s.empty() && std::isspace(s.back()))
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
         s.remove_suffix(1);
     return s;
 }
@@ -313,6 +313,104 @@ std::string_view Utf8Helper::trimRight(std::string_view s)
 std::string_view Utf8Helper::trim(std::string_view s)
 {
     return trimRight(trimLeft(s));
+}
+
+std::vector<Utf8> Utf8Helper::splitLines(const std::string_view text)
+{
+    std::vector<Utf8> result;
+    size_t            start = 0;
+    while (start <= text.size())
+    {
+        size_t end = text.find_first_of("\r\n", start);
+        if (end == std::string_view::npos)
+            end = text.size();
+        result.emplace_back(text.substr(start, end - start));
+        if (end == text.size())
+            break;
+        if (text[end] == '\r' && end + 1 < text.size() && text[end + 1] == '\n')
+            end++;
+        start = end + 1;
+    }
+    return result;
+}
+
+uint32_t Utf8Helper::countLineBreaks(const std::string_view text)
+{
+    uint32_t count = 0;
+    for (size_t i = 0; i < text.size(); ++i)
+    {
+        if (text[i] == '\n')
+        {
+            count++;
+            continue;
+        }
+
+        if (text[i] != '\r')
+            continue;
+
+        count++;
+        if (i + 1 < text.size() && text[i + 1] == '\n')
+            i++;
+    }
+
+    return count;
+}
+
+Utf8 Utf8Helper::escapeHtml(const std::string_view text, const bool attribute)
+{
+    Utf8 result;
+    result.reserve(text.size());
+    for (const char c : text)
+    {
+        switch (c)
+        {
+            case '&':
+                result += "&amp;";
+                break;
+            case '<':
+                result += "&lt;";
+                break;
+            case '>':
+                result += "&gt;";
+                break;
+            case '"':
+                if (attribute)
+                    result += "&quot;";
+                else
+                    result += c;
+                break;
+            default:
+                result += c;
+                break;
+        }
+    }
+    return result;
+}
+
+Utf8 Utf8Helper::toTitle(const std::string_view text)
+{
+    Utf8 title = text;
+    std::ranges::replace(title, '_', ' ');
+    const std::unordered_set<std::string_view> exceptions = {"and", "or", "in", "the", "of", "a", "an", "but", "for", "nor", "on", "at", "by", "with", "to"};
+
+    std::vector<Utf8>  words;
+    std::istringstream stream(title);
+    std::string        word;
+    while (stream >> word)
+        words.emplace_back(word);
+
+    Utf8 result;
+    for (size_t i = 0; i < words.size(); ++i)
+    {
+        Utf8 value = words[i];
+        value.make_lower();
+        if (i == 0 || i + 1 == words.size() || !exceptions.contains(value.view()))
+            value.front() = static_cast<char>(std::toupper(static_cast<unsigned char>(value.front())));
+        if (!result.empty())
+            result += " ";
+        result += value;
+    }
+    return result;
 }
 
 Utf8 Utf8Helper::normalizePathForCompare(const fs::path& path)

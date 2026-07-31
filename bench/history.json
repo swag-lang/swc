@@ -154,5 +154,160 @@
     "hello_jit_ms": 69.7408,
     "hello_build_ms": 91.7343,
     "hello_build_peak_mb": 192.01171875
+  },
+  {
+    "meta": {
+      "stamp": "20260731-142125",
+      "date": "2026-07-31T14:21:25+00:00",
+      "label": "",
+      "commit": "5aa83e60a",
+      "subject": "Remove `arena-abandon.c` and `segment.c` from `mimalloc` implementation; cleanup unused code.",
+      "master": "5aa83e60a",
+      "dirty": false,
+      "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+      "swc_bytes": 4837888
+    },
+    "drift_pct": 16.6858097525321,
+    "calibration_ms": 1.9154,
+    "reference": {
+      "runtime": "cpp-clang-cl",
+      "run_ms": {
+        "wordfreq": 47.3652,
+        "csvagg": 16.1198,
+        "sha256": 2.3619,
+        "dijkstra": 42.3763,
+        "raytrace": 9.6592,
+        "leven": 13.5641
+      },
+      "build_ms": {
+        "wordfreq": 327.5914,
+        "csvagg": 376.9743,
+        "sha256": 337.661,
+        "dijkstra": 343.4272,
+        "raytrace": 331.4904,
+        "leven": 364.187
+      }
+    },
+    "runtimes": {
+      "swag-release": {
+        "run_ms": {
+          "wordfreq": 91.6666,
+          "csvagg": 59.0791,
+          "sha256": 6.29400001,
+          "dijkstra": 78.4027,
+          "raytrace": 20.7547,
+          "leven": 39.7006
+        },
+        "run_ratio": {
+          "wordfreq": 1.935315379223565,
+          "csvagg": 3.6650020471718006,
+          "sha256": 2.6648037639188793,
+          "dijkstra": 1.850154449539011,
+          "raytrace": 2.1486976147092927,
+          "leven": 2.9268878878805085
+        },
+        "run_geo_ratio": 2.456858225765155,
+        "build_ms": {
+          "wordfreq": 68.1903,
+          "csvagg": 76.9535,
+          "sha256": 76.6163,
+          "dijkstra": 72.5683,
+          "raytrace": 74.379,
+          "leven": 77.3538
+        },
+        "build_ratio": {
+          "wordfreq": 0.2081565633285855,
+          "csvagg": 0.2041346054624944,
+          "sha256": 0.22690301811580252,
+          "dijkstra": 0.21130620987504772,
+          "raytrace": 0.2243775385350526,
+          "leven": 0.21240132129922265
+        },
+        "build_geo_ms": 74.27201078258992,
+        "build_geo_ratio": 0.21438742674102043,
+        "build_peak_mb": 103.88671875,
+        "exe_kb": 126.74221150963677
+      },
+      "swc-jit-release": {
+        "run_ms": {
+          "wordfreq": 92.2136,
+          "csvagg": 57.3285,
+          "sha256": 6.9542,
+          "dijkstra": 80.8098,
+          "raytrace": 22.3381,
+          "leven": 41.8722
+        },
+        "run_ratio": {
+          "wordfreq": 1.946863942303632,
+          "csvagg": 3.5564026848968346,
+          "sha256": 2.9443244845251706,
+          "dijkstra": 1.9069574266748157,
+          "raytrace": 2.3126242338910057,
+          "leven": 3.086986972965401
+        },
+        "run_geo_ratio": 2.553987954687174
+      },
+      "swag-fast-debug": {
+        "run_ms": {
+          "wordfreq": 106.69639999,
+          "csvagg": 67.536,
+          "sha256": 20.04049999,
+          "dijkstra": 81.5405,
+          "raytrace": 27.30080001,
+          "leven": 84.22619999
+        },
+        "run_ratio": {
+          "wordfreq": 2.2526327343703816,
+          "csvagg": 4.189630144294594,
+          "sha256": 8.484906215335112,
+          "dijkstra": 1.9242005554991821,
+          "raytrace": 2.8264038440036443,
+          "leven": 6.209494178751262
+        },
+        "run_geo_ratio": 3.732578782109031,
+        "build_ms": {
+          "wordfreq": 81.5881,
+          "csvagg": 104.8342,
+          "sha256": 93.5522,
+          "dijkstra": 85.1497,
+          "raytrace": 88.2795,
+          "leven": 101.2796
+        },
+        "build_ratio": {
+          "wordfreq": 0.24905446235768092,
+          "csvagg": 0.2780937586461464,
+          "sha256": 0.2770595360435466,
+          "dijkstra": 0.24794104835027625,
+          "raytrace": 0.2663108795910832,
+          "leven": 0.2780977904208552
+        },
+        "build_geo_ms": 92.07141034575876,
+        "build_geo_ratio": 0.26576569736645383,
+        "build_peak_mb": 109.56640625,
+        "exe_kb": 160.60648662395354
+      },
+      "swc-jit-fast-debug": {
+        "run_ms": {
+          "wordfreq": 101.80739999,
+          "csvagg": 81.30780001,
+          "sha256": 20.7431,
+          "dijkstra": 86.3197,
+          "raytrace": 27.43179999,
+          "leven": 87.97400001
+        },
+        "run_ratio": {
+          "wordfreq": 2.1494134932397624,
+          "csvagg": 5.043970769488454,
+          "sha256": 8.782378593505229,
+          "dijkstra": 2.036980576407095,
+          "raytrace": 2.839966041701176,
+          "leven": 6.485797067995665
+        },
+        "run_geo_ratio": 3.9098612547555707
+      }
+    },
+    "hello_jit_ms": 51.2148,
+    "hello_build_ms": 60.7251,
+    "hello_build_peak_mb": 97.71484375
   }
 ]

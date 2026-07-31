@@ -6,6 +6,7 @@
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
+#include "Support/Memory/MemoryProfile.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/HardwareException.h"
 #include "Support/Report/ScopedTimedLog.h"
@@ -65,6 +66,8 @@ namespace
 
 int main(int argc, char* argv[])
 {
+    swc::MemoryProfile::configureAllocator();
+
 #ifdef _WIN32
     void* hostExceptionHandler = AddVectoredExceptionHandler(1, reportUnhandledHostException);
 #endif

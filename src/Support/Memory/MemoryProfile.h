@@ -16,6 +16,7 @@ namespace MemoryProfile
         ScopedSuppress& operator=(const ScopedSuppress&) = delete;
     };
 
+    void                configureAllocator();
     void                setTrackingEnabled(bool enabled);
     void                setDetailedTrackingEnabled(bool enabled);
     [[nodiscard]] bool  isTrackingEnabled();

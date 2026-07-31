@@ -186,6 +186,16 @@ namespace
 
 namespace MemoryProfile
 {
+    // mimalloc commits a page in full as soon as it hands it out. A compilation run spreads its
+    // allocations over one heap per worker thread, so on a machine with many cores that policy
+    // charges hundreds of megabytes of commit for pages the compiler never writes to. Asking for
+    // on-demand commit makes the commit charge follow what is actually touched. The value 2 keeps
+    // the full-commit policy on systems that overcommit, where the charge is free anyway.
+    void configureAllocator()
+    {
+        mi_option_set(mi_option_page_commit_on_demand, 2);
+    }
+
     void setTrackingEnabled(const bool enabled)
     {
 #if SWC_HAS_STATS

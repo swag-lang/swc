@@ -35,7 +35,7 @@ public:
     }
 
     Utf8(Utf8&& other) noexcept :
-        std::string(std::move(other))
+        std::string(static_cast<std::string&&>(other))
     {
     }
 
@@ -66,7 +66,7 @@ public:
     {
         if (this == &other)
             return *this;
-        std::string::operator=(std::move(other));
+        std::string::operator=(other);
         return *this;
     }
 
@@ -74,7 +74,7 @@ public:
     {
         if (this == &other)
             return *this;
-        std::string::operator=(other);
+        std::string::operator=(static_cast<std::string&&>(other));
         return *this;
     }
 

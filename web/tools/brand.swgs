@@ -127,25 +127,29 @@ func writeMark(svgPath, pngPath: string, size: s32) fail
     wrote(svgPath)
 
     let scale = cast(f32) size / boxHeight
-    var img   = Image.create(cast(s32) (boxWidth * scale), size, .RGBA8)
-    img.clear()
-    img.fillPath(buildMark(scale, MARGIN * scale, MARGIN * scale), VOLTAGE)
+    var path  = buildMark(scale, MARGIN * scale, MARGIN * scale)
+
+    var canvas = try ImageCanvas.create(cast(s32) (boxWidth * scale), size)
+    canvas.painter.fillPath(&path, VOLTAGE)
+
+    var img = try canvas.toImage()
     try img.save(pngPath)
     wrote(pngPath)
 }
 
 // The mark on a square field of ink, at one size.
-func renderIcon(size: s32)->Image
+func renderIcon(size: s32)->Image fail
 {
-    var result = Image.create(size, size, .RGBA8)
-    result.fill(INK)
-    result.fillPath(buildTileMark(cast(f32) size), VOLTAGE)
-    return result
+    var path   = buildTileMark(cast(f32) size)
+    var canvas = try ImageCanvas.create(size, size)
+    canvas.clear(INK)
+    canvas.painter.fillPath(&path, VOLTAGE)
+    return try canvas.toImage()
 }
 
 func writeIcon(path: string, size: s32) fail
 {
-    var img = renderIcon(size)
+    var img = try renderIcon(size)
     try img.save(path)
     wrote(path)
 }
@@ -165,7 +169,7 @@ func writeFavicon(svgPath, icoPath: string) fail
     try doc.save(svgPath)
     wrote(svgPath)
 
-    let entries: [3] Image = [renderIcon(16), renderIcon(32), renderIcon(48)]
+    let entries: [3] Image = [try renderIcon(16), try renderIcon(32), try renderIcon(48)]
     try Ico.save(icoPath, entries)
     wrote(icoPath)
 }

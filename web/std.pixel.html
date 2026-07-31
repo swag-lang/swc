@@ -64,6 +64,7 @@
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Pixel_Image">Pixel.Image</a></li>
+<li><a href="#Pixel_ImageCanvas">Pixel.ImageCanvas</a></li>
 <li><a href="#Pixel_ImageMetaData">Pixel.ImageMetaData</a></li>
 <li><a href="#Pixel_RenderTarget">Pixel.RenderTarget</a></li>
 <li><a href="#Pixel_Texture">Pixel.Texture</a></li>
@@ -89,7 +90,6 @@
 <li><a href="#Pixel_Tiff_EncodeOptions">Tiff.EncodeOptions</a></li>
 <li><a href="#Pixel_Tiff_Encoder">Tiff.Encoder</a></li>
 <li><a href="#Pixel_Webp_Encoder">Webp.Encoder</a></li>
-<li><a href="#Pixel_FillPathOptions">Pixel.FillPathOptions</a></li>
 <li><a href="#Pixel_ImageStatistics_HaarFeatures">ImageStatistics.HaarFeatures</a></li>
 <li><a href="#Pixel_Image_SmartCropSearchOpts">Image.SmartCropSearchOpts</a></li>
 <li><a href="#Pixel_MathExpression">Pixel.MathExpression</a></li>
@@ -168,7 +168,6 @@
 <li><a href="#Pixel_PixelFormat">Pixel.PixelFormat</a></li>
 <li><a href="#Pixel_UVMode">Pixel.UVMode</a></li>
 <li><a href="#Pixel_Tiff_Compression">Tiff.Compression</a></li>
-<li><a href="#Pixel_FillRule">Pixel.FillRule</a></li>
 <li><a href="#Pixel_Image_ChannelMode">Image.ChannelMode</a></li>
 <li><a href="#Pixel_Image_ChannelValueMode">Image.ChannelValueMode</a></li>
 <li><a href="#Pixel_Image_FillHslType">Image.FillHslType</a></li>
@@ -193,6 +192,7 @@
 <li><a href="#Pixel_Clipper_JoinType">Clipper.JoinType</a></li>
 <li><a href="#Pixel_Clipper_PolyFillType">Clipper.PolyFillType</a></li>
 <li><a href="#Pixel_Clipper_PolyType">Clipper.PolyType</a></li>
+<li><a href="#Pixel_Svg_FillRule">Svg.FillRule</a></li>
 <li><a href="#Pixel_Testing_DumpLevel">Testing.DumpLevel</a></li>
 <li><a href="#Pixel_FontFamilyStyle">Pixel.FontFamilyStyle</a></li>
 <li><a href="#Pixel_FontRenderMode">Pixel.FontRenderMode</a></li>
@@ -229,7 +229,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary>Functions<span class="toc-count">393</span></summary>
+<summary>Functions<span class="toc-count">397</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Image_allocPixels">Image.allocPixels</a></li>
@@ -255,6 +255,10 @@
 <li><a href="#Pixel_Image_safeWorkingBuffer">Image.safeWorkingBuffer</a></li>
 <li><a href="#Pixel_Image_toHICON">Image.toHICON</a></li>
 <li><a href="#Pixel_Image_visitPixels">Image.visitPixels</a></li>
+<li><a href="#Pixel_ImageCanvas_clear">ImageCanvas.clear</a></li>
+<li><a href="#Pixel_ImageCanvas_create">ImageCanvas.create</a></li>
+<li><a href="#Pixel_ImageCanvas_opDrop">ImageCanvas.opDrop</a></li>
+<li><a href="#Pixel_ImageCanvas_toImage">ImageCanvas.toImage</a></li>
 <li><a href="#Pixel_ImageMetaData_isTag">ImageMetaData.isTag</a></li>
 <li><a href="#Pixel_ImageMetaData_opCompare">ImageMetaData.opCompare</a></li>
 <li><a href="#Pixel_ImageMetaData_toSlice">ImageMetaData.toSlice</a></li>
@@ -291,7 +295,6 @@
 <li><a href="#Pixel_Image_fillGradient2">Image.fillGradient2</a></li>
 <li><a href="#Pixel_Image_fillGradient4">Image.fillGradient4</a></li>
 <li><a href="#Pixel_Image_fillHsl">Image.fillHsl</a></li>
-<li><a href="#Pixel_Image_fillPath">Image.fillPath</a></li>
 <li><a href="#Pixel_Image_gamma">Image.gamma</a></li>
 <li><a href="#Pixel_Image_grayScale">Image.grayScale</a></li>
 <li><a href="#Pixel_Image_invert">Image.invert</a></li>
@@ -451,6 +454,7 @@
 <li><a href="#Pixel_Polygon_normalizeDist">Polygon.normalizeDist</a></li>
 <li><a href="#Pixel_Polygon_offset">Polygon.offset</a></li>
 <li><a href="#Pixel_NativeRenderOgl_createContext">NativeRenderOgl.createContext</a></li>
+<li><a href="#Pixel_NativeRenderOgl_createOffscreenContext">NativeRenderOgl.createOffscreenContext</a></li>
 <li><a href="#Pixel_NativeRenderOgl_dropContext">NativeRenderOgl.dropContext</a></li>
 <li><a href="#Pixel_NativeRenderOgl_setCurrentContext">NativeRenderOgl.setCurrentContext</a></li>
 <li><a href="#Pixel_NativeRenderOgl_swapBuffers">NativeRenderOgl.swapBuffers</a></li>
@@ -814,6 +818,8 @@ renderer.<span class="SFct">end</span>()
 <tbody>
 <tr><td class="code-type"><a href="#Pixel_Image">Pixel.Image</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a two-dimensional, tightly packed pixel buffer.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas">Pixel.ImageCanvas</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Draws into an image with the full painter, without a window.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_ImageMetaData">Pixel.ImageMetaData</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one opaque metadata record associated with an image.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderTarget">Pixel.RenderTarget</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Identifies an off-screen color target and its optional depth/stencil surface.</p>
@@ -863,8 +869,6 @@ renderer.<span class="SFct">end</span>()
 <tr><td class="code-type"><a href="#Pixel_Tiff_Encoder">Tiff.Encoder</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Encodes little-endian baseline TIFF images.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Webp_Encoder">Webp.Encoder</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Encodes lossless VP8L WebP images in a RIFF container.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Pixel_FillPathOptions">Pixel.FillPathOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls how <a href="#Pixel_Image_fillPath">Pixel.Image.fillPath</a> resolves coverage.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_ImageStatistics_HaarFeatures">ImageStatistics.HaarFeatures</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Structure to store Haar coefficients</p>
 </td></tr>
@@ -1016,8 +1020,6 @@ renderer.<span class="SFct">end</span>()
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Tiff_Compression">Tiff.Compression</a></td><td><p>Selects the strip compression used by the TIFF encoder.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_FillRule">Pixel.FillRule</a></td><td><p>Decides which points a set of contours encloses.</p>
-</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_ChannelMode">Image.ChannelMode</a></td><td><p>Bit mask selecting destination channels for <a href="#Pixel_Image_setChannel">Image.setChannel</a>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_ChannelValueMode">Image.ChannelValueMode</a></td><td><p>Selects the value copied into channels by <a href="#Pixel_Image_setChannel">Image.setChannel</a>.</p>
@@ -1065,6 +1067,8 @@ renderer.<span class="SFct">end</span>()
 <tr><td class="code-type"><a href="#Pixel_Clipper_PolyFillType">Clipper.PolyFillType</a></td><td><p>Selects the winding rule used to determine polygon interiors.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Clipper_PolyType">Clipper.PolyType</a></td><td><p>Selects whether an input path belongs to the subject or clipping set.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_Svg_FillRule">Svg.FillRule</a></td><td><p>Decides which points a set of contours encloses.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Testing_DumpLevel">Testing.DumpLevel</a></td><td><p>Granularity of a <a href="#Pixel_Testing_dumpPainter">Testing.dumpPainter</a> snapshot.</p>
 </td></tr>
@@ -1178,6 +1182,14 @@ renderer.<span class="SFct">end</span>()
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_visitPixels">Image.visitPixels</a></td><td><p>Visits pixels in parallel using chunks separated by <span class="code-inline">stride</span> pixels.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_clear">ImageCanvas.clear</a></td><td><p>Sets the color the target is cleared with before the recorded drawing is rendered.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_create">ImageCanvas.create</a></td><td><p>Opens an off-screen canvas with positive dimensions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_opDrop">ImageCanvas.opDrop</a></td><td><p>Releases the graphics resources when the canvas leaves scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_toImage">ImageCanvas.toImage</a></td><td><p>Renders everything recorded so far and returns the pixels.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_ImageMetaData_isTag">ImageMetaData.isTag</a></td><td><p>Reports whether the tag exactly matches <span class="code-inline">val</span>, including its length.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_ImageMetaData_opCompare">ImageMetaData.opCompare</a></td><td><p>Compares metadata lexicographically by signature, tag, then value.</p>
@@ -1249,8 +1261,6 @@ renderer.<span class="SFct">end</span>()
 <tr><td class="code-type"><a href="#Pixel_Image_fillGradient4">Image.fillGradient4</a></td><td><p>Fill with a gradient with a different color at each corner</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_fillHsl">Image.fillHsl</a></td><td><p>Replaces the image with a color-selection gradient.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Pixel_Image_fillPath">Image.fillPath</a></td><td><p>Fills the contours of <span class="code-inline">paths</span> with a solid color, in place.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_gamma">Image.gamma</a></td><td><p>Change the gamma.</p>
 </td></tr>
@@ -1569,6 +1579,8 @@ renderer.<span class="SFct">end</span>()
 <tr><td class="code-type"><a href="#Pixel_Polygon_offset">Polygon.offset</a></td><td><p>Fast expand polygon by a given amount</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_NativeRenderOgl_createContext">NativeRenderOgl.createContext</a></td><td><p>Creates a rendering context for a window handle.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_NativeRenderOgl_createOffscreenContext">NativeRenderOgl.createOffscreenContext</a></td><td><p>Creates a rendering context that never reaches the screen.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_NativeRenderOgl_dropContext">NativeRenderOgl.dropContext</a></td><td><p>Releases native resources owned by <span class="code-inline">rc</span>.</p>
 </td></tr>
@@ -1951,6 +1963,8 @@ renderer.<span class="SFct">end</span>()
 <tbody>
 <tr><td class="code-type"><a href="#Pixel_Image">Pixel.Image</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a two-dimensional, tightly packed pixel buffer.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas">Pixel.ImageCanvas</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Draws into an image with the full painter, without a window.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_ImageMetaData">Pixel.ImageMetaData</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores one opaque metadata record associated with an image.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderTarget">Pixel.RenderTarget</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Identifies an off-screen color target and its optional depth/stencil surface.</p>
@@ -1958,8 +1972,6 @@ renderer.<span class="SFct">end</span>()
 <tr><td class="code-type"><a href="#Pixel_Texture">Pixel.Texture</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Describes a renderer-owned two-dimensional texture.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_DecodeOptions">Pixel.DecodeOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls which parts of an encoded image are materialized.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Pixel_FillPathOptions">Pixel.FillPathOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Controls how <a href="#Pixel_Image_fillPath">Pixel.Image.fillPath</a> resolves coverage.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_MathExpression">Pixel.MathExpression</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores a parsed, reusable mathematical expression.</p>
 </td></tr>
@@ -2086,8 +2098,6 @@ renderer.<span class="SFct">end</span>()
 <tr><td class="code-type"><a href="#Pixel_PixelFormat">Pixel.PixelFormat</a></td><td><p>Describes the byte order and channel set of one tightly packed 8-bit pixel.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_UVMode">Pixel.UVMode</a></td><td><p>Selects how source texture coordinates cover a destination shape.</p>
-</td></tr>
-<tr><td class="code-type"><a href="#Pixel_FillRule">Pixel.FillRule</a></td><td><p>Decides which points a set of contours encloses.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_MathStyle">Pixel.MathStyle</a></td><td><p>Selects sizing and limit placement for a mathematical expression.</p>
 </td></tr>
@@ -2359,6 +2369,14 @@ renderer.<span class="SFct">end</span>()
 </td></tr>
 </tbody>
 </table>
+<h3 id="namespace_Pixel_Svg_enumerations">Enumerations</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pixel_Svg_FillRule">Svg.FillRule</a></td><td><p>Decides which points a set of contours encloses.</p>
+</td></tr>
+</tbody>
+</table>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-namespace"><span id="namespace_Pixel_Testing" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Pixel.Testing</span> <a class="api-item-permalink" href="#namespace_Pixel_Testing" aria-label="Permalink">#</a></span></div>
@@ -2581,8 +2599,6 @@ image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">C
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_fillHsl">fillHsl</a></td><td><p>Replaces the image with a color-selection gradient.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Pixel_Image_fillPath">fillPath</a></td><td><p>Fills the contours of <span class="code-inline">paths</span> with a solid color, in place.</p>
-</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_gamma">gamma</a></td><td><p>Change the gamma.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_grayScale">grayScale</a></td><td><p>Transform image to grayscale, with a given factor</p>
@@ -2640,6 +2656,53 @@ image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">C
 <tr><td class="code-type"><a href="#Pixel_Image_toTurn">toTurn</a></td><td><p>Turn image by a given predefined angle</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Image_turn">turn</a></td><td><p>Turn image by a given predefined angle</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pixel_ImageCanvas" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.ImageCanvas</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L32">src</a></div>
+<p>Draws into an image with the full painter, without a window.</p>
+<p>A canvas owns an off-screen rendering context and the render target behind it, so a program that only writes files reaches every painter capability — paths, brushes, gradients, textures, text, clipping, blending, transforms — and reads the result back as pixels. It is the same pipeline a window paints through, pointed at an image instead of a screen.</p>
+<p>Record into <a href="#Pixel_ImageCanvas_painter">Pixel.ImageCanvas.painter</a>, then call <a href="#Pixel_ImageCanvas_toImage">Pixel.ImageCanvas.toImage</a>. A canvas can be reused: drawing again after a read starts a new frame over a cleared target.</p>
+<h2 id="Pixel_ImageCanvas_0_Example">Example</h2>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> canvas = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span>.<span class="SFct">create</span>(<span class="SNum">256</span>, <span class="SNum">256</span>)
+canvas.<span class="SFct">clear</span>(<span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">11</span>, <span class="SNum">11</span>, <span class="SNum">13</span>))
+
+<span class="SKwd">var</span> path: <span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span>
+path.<span class="SFct">start</span>(<span class="SNum">32</span>, <span class="SNum">32</span>)
+path.<span class="SFct">lineTo</span>(<span class="SNum">224</span>, <span class="SNum">32</span>)
+path.<span class="SFct">lineTo</span>(<span class="SNum">128</span>, <span class="SNum">224</span>)
+path.<span class="SFct">close</span>()
+canvas.painter.<span class="SFct">fillPath</span>(&amp;path, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">247</span>, <span class="SNum">249</span>, <span class="SNum">0</span>))
+
+<span class="SKwd">var</span> image = <span class="SKwd">try</span> canvas.<span class="SFct">toImage</span>()
+<span class="SKwd">try</span> image.<span class="SFct">save</span>(<span class="SStr">"triangle.png"</span>)
+</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pixel_ImageCanvas_height" class="code-type">height</td><td class="code-type">s32</td><td><p>Canvas height, in pixels.</p>
+</td></tr>
+<tr><td id="Pixel_ImageCanvas_painter" class="code-type">painter</td><td class="code-type"><a href="#Pixel_Painter">Pixel.Painter</a></td><td><p>Records the drawing; every painter operation is available.</p>
+</td></tr>
+<tr><td id="Pixel_ImageCanvas_width" class="code-type">width</td><td class="code-type">s32</td><td><p>Canvas width, in pixels.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="Pixel_ImageCanvas_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_clear">clear</a></td><td><p>Sets the color the target is cleared with before the recorded drawing is rendered.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_create">create</a></td><td><p>Opens an off-screen canvas with positive dimensions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_opDrop">opDrop</a></td><td><p>Releases the graphics resources when the canvas leaves scope.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_ImageCanvas_toImage">toImage</a></td><td><p>Renders everything recorded so far and returns the pixels.</p>
 </td></tr>
 </tbody>
 </table>
@@ -2941,23 +3004,6 @@ image.<span class="SFct">fill</span>(<span class="SCst"><a href="#Pixel_Color">C
 <p>Encodes lossless VP8L WebP images in a RIFF container.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="std.core.html#Core_Serialization_Encoder">Encoder</a></span></span></div>
 </section>
-<section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_FillPathOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.FillPathOptions</span> <a class="api-item-permalink" href="#Pixel_FillPathOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/filter/fillpath.swg#L14">src</a></div>
-<p>Controls how <a href="#Pixel_Image_fillPath">Pixel.Image.fillPath</a> resolves coverage.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_FillPathOptions">FillPathOptions</a></span></span></div>
-</section>
-<h3>Fields</h3>
-<table class="table-enumeration api-summary">
-<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td id="Pixel_FillPathOptions_quality" class="code-type">quality</td><td class="code-type"><a href="#Pixel_PaintQuality">Pixel.PaintQuality</a></td><td><p>Flattening quality applied to curved segments.</p>
-</td></tr>
-<tr><td id="Pixel_FillPathOptions_rule" class="code-type">rule</td><td class="code-type"><a href="#Pixel_FillRule">Pixel.FillRule</a></td><td><p>How the contours decide what is inside.</p>
-</td></tr>
-<tr><td id="Pixel_FillPathOptions_verticalSamples" class="code-type">verticalSamples</td><td class="code-type">s32</td><td><p>Scanline samples per pixel row; higher softens near-horizontal edges.</p>
-</td></tr>
-</tbody>
-</table>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Pixel_ImageStatistics_HaarFeatures" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">ImageStatistics.HaarFeatures</span> <a class="api-item-permalink" href="#Pixel_ImageStatistics_HaarFeatures" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/stats/haar.swg#L104">src</a></div>
 <p>Structure to store Haar coefficients</p>
@@ -3989,6 +4035,8 @@ tessellator.<span class="SFct">triangulate</span>()
 <tbody>
 <tr><td class="code-type"><a href="#Pixel_NativeRenderOgl_createContext">createContext</a></td><td><p>Creates a rendering context for a window handle.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_NativeRenderOgl_createOffscreenContext">createOffscreenContext</a></td><td><p>Creates a rendering context that never reaches the screen.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_NativeRenderOgl_dropContext">dropContext</a></td><td><p>Releases native resources owned by <span class="code-inline">rc</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_NativeRenderOgl_setCurrentContext">setCurrentContext</a></td><td><p>Makes <span class="code-inline">rc</span> current on the calling thread.</p>
@@ -4114,6 +4162,8 @@ tessellator.<span class="SFct">triangulate</span>()
 <tr><td id="Pixel_RenderingContext_ownsDC" class="code-type">ownsDC</td><td class="code-type">bool</td><td><p>Whether dropping the context must release <span class="code-inline">hDC</span>.</p>
 </td></tr>
 <tr><td id="Pixel_RenderingContext_ownsRC" class="code-type">ownsRC</td><td class="code-type">bool</td><td><p>Whether dropping the context must delete <span class="code-inline">hRC</span>.</p>
+</td></tr>
+<tr><td id="Pixel_RenderingContext_ownsWindow" class="code-type">ownsWindow</td><td class="code-type">bool</td><td><p>Whether dropping the context must destroy <span class="code-inline">hWnd</span>.</p>
 </td></tr>
 <tr><td id="Pixel_RenderingContext_width" class="code-type">width</td><td class="code-type">s32</td><td><p>Drawable width, in pixels.</p>
 </td></tr>
@@ -4263,7 +4313,7 @@ tessellator.<span class="SFct">triangulate</span>()
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Pixel_Svg_Document" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Svg.Document</span> <a class="api-item-permalink" href="#Pixel_Svg_Document" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L28">src</a></div>
+<div class="api-item api-item-struct"><span id="Pixel_Svg_Document" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Svg.Document</span> <a class="api-item-permalink" href="#Pixel_Svg_Document" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L35">src</a></div>
 <p>Builds a vector document and writes it as SVG text.</p>
 <p>The document holds filled paths in the coordinate space it was created with; nothing is rasterized, so the result stays sharp at any size. Straight and Bézier segments are written as their exact SVG commands, while a path holding an arc or a smoothed curve is written from its flattened contour, so the file always describes the same shape the rasterizer draws.</p>
 <h2 id="Pixel_Svg_Document_0_Example">Example</h2>
@@ -5352,21 +5402,6 @@ path.<span class="SFct">close</span>()
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="Pixel_FillRule" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Pixel.FillRule</span> <a class="api-item-permalink" href="#Pixel_FillRule" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/filter/fillpath.swg#L7">src</a></div>
-<p>Decides which points a set of contours encloses.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_FillRule">FillRule</a></span></span></div>
-</section>
-<h3>Cases</h3>
-<table class="table-enumeration api-summary">
-<thead><tr><th>Name</th><th>Description</th></tr></thead>
-<tbody>
-<tr><td id="Pixel_FillRule_EvenOdd" class="code-type">EvenOdd</td><td><p>Inside where the crossing count is odd; overlapping contours punch holes.</p>
-</td></tr>
-<tr><td id="Pixel_FillRule_NonZero" class="code-type">NonZero</td><td><p>Inside where the signed crossing count differs from zero; overlapping contours merge.</p>
-</td></tr>
-</tbody>
-</table>
-<section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Pixel_Image_ChannelMode" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Image.ChannelMode</span> <a class="api-item-permalink" href="#Pixel_Image_ChannelMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/filter/setchannel.swg#L8">src</a></div>
 <p>Bit mask selecting destination channels for <a href="#Pixel_Image_setChannel">Image.setChannel</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Swag.EnumFlags]</span>
@@ -5889,6 +5924,21 @@ path.<span class="SFct">close</span>()
 <tr><td id="Pixel_Clipper_PolyType_Clip" class="code-type">Clip</td><td><p>Geometry used to clip the subject.</p>
 </td></tr>
 <tr><td id="Pixel_Clipper_PolyType_Subject" class="code-type">Subject</td><td><p>Geometry being transformed.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-enum"><span id="Pixel_Svg_FillRule" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Svg.FillRule</span> <a class="api-item-permalink" href="#Pixel_Svg_FillRule" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L8">src</a></div>
+<p>Decides which points a set of contours encloses.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Pixel_Svg_FillRule">FillRule</a></span></span></div>
+</section>
+<h3>Cases</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Pixel_Svg_FillRule_EvenOdd" class="code-type">EvenOdd</td><td><p>Inside where the crossing count is odd; overlapping contours punch holes.</p>
+</td></tr>
+<tr><td id="Pixel_Svg_FillRule_NonZero" class="code-type">NonZero</td><td><p>Inside where the signed crossing count differs from zero; overlapping contours merge.</p>
 </td></tr>
 </tbody>
 </table>
@@ -6509,6 +6559,37 @@ path.<span class="SFct">close</span>()
 <span class="SKwd">mtd</span> <span class="SFct">visitPixels</span>(pixelUserData: <span class="SItr">#null</span> *<span class="STpe">void</span> = <span class="SKwd">null</span>, stride: <span class="STpe">s32</span> = <span class="SNum">1</span>, stmt: <span class="SItr">#code</span>(<span class="SKwd">var</span> pix, image, index: <span class="STpe">u64</span>, x: <span class="STpe">s32</span>, y: <span class="STpe">s32</span>, userData))</span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.clear</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L142">src</a></div>
+<p>Sets the color the target is cleared with before the recorded drawing is rendered.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>(color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.create</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L67">src</a></div>
+<p>Opens an off-screen canvas with positive dimensions.</p>
+<p>Fails when the platform cannot provide a rendering context. The canvas starts cleared to fully transparent.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span> <span class="SKwd">fail</span></span></div>
+<p>Opens a canvas over an existing image, to draw on top of it.</p>
+<p>The image is uploaded once and laid down under every frame, so the recorded drawing composites over it exactly as it would over a window's previous content. The source image itself is never modified; each read returns a new one.</p>
+<h2 id="Pixel_ImageCanvas_create_1_Example">Example</h2>
+<div class="code-block"><span class="SCde"><span class="SKwd">var</span> photo  = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">load</span>(<span class="SStr">"photo.png"</span>)
+<span class="SKwd">var</span> canvas = <span class="SKwd">try</span> <span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span>.<span class="SFct">create</span>(photo)
+canvas.painter.<span class="SFct">drawString</span>(&amp;font, <span class="SNum">8</span>, <span class="SNum">8</span>, <span class="SStr">"caption"</span>, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">255</span>, <span class="SNum">255</span>, <span class="SNum">255</span>))
+<span class="SKwd">var</span> stamped = <span class="SKwd">try</span> canvas.<span class="SFct">toImage</span>()
+</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(image: <span class="SCst"><a href="#Pixel_Image">Image</a></span>)-&gt;<span class="SCst"><a href="#Pixel_ImageCanvas">ImageCanvas</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.opDrop</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L197">src</a></div>
+<p>Releases the graphics resources when the canvas leaves scope.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_ImageCanvas_toImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageCanvas.toImage</span> <a class="api-item-permalink" href="#Pixel_ImageCanvas_toImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagecanvas.swg#L151">src</a></div>
+<p>Renders everything recorded so far and returns the pixels.</p>
+<p>The painter is left ready to record the next frame, so a canvas can produce a series of images without being opened again.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_ImageMetaData_isTag" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ImageMetaData.isTag</span> <a class="api-item-permalink" href="#Pixel_ImageMetaData_isTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/imagemetadata.swg#L51">src</a></div>
 <p>Reports whether the tag exactly matches <span class="code-inline">val</span>, including its length.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isTag</span>(val: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -6701,26 +6782,6 @@ path.<span class="SFct">close</span>()
 <p>Replaces the image with a color-selection gradient.</p>
 <p><span class="code-inline">color</span> supplies channels held constant by the selected gradient. The operation supports 8-bit RGB/BGR images with or without alpha; unsupported formats are left unchanged. Existing alpha is replaced with full opacity.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillHsl</span>(fillType: <span class="SCst"><a href="#Pixel_Image_FillHslType">FillHslType</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span> = <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromArgb</span>(<span class="SCst"><a href="#Pixel_Argb">Argb</a></span>.<span class="SCst"><a href="#Pixel_Argb_White">White</a></span>))</span></div>
-</section>
-<section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Image_fillPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.fillPath</span> <a class="api-item-permalink" href="#Pixel_Image_fillPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/filter/fillpath.swg#L55">src</a></div>
-<p>Fills the contours of <span class="code-inline">paths</span> with a solid color, in place.</p>
-<p>This joins <a href="#Pixel_Image_fill">Pixel.Image.fill</a> and <a href="#Pixel_Image_fillGradient2">Pixel.Image.fillGradient2</a> in the family that writes an owned pixel buffer immediately, with no renderer and no graphics context, which is what an offline tool needs. <a href="#Pixel_Painter_fillPath">Pixel.Painter.fillPath</a> answers the other layer: it tessellates the same path into geometry for a renderer to draw later, and reaches pixels only through one. Neither replaces the other, and they share no code.</p>
-<p>Coverage is exact horizontally and sampled <span class="code-inline">FillPathOptions.verticalSamples</span> times per row vertically, then composited over the existing pixels in straight alpha. Only 8-bit color formats are filled; anything else is left untouched.</p>
-<h2 id="Pixel_Image_fillPath_0_Example">Example</h2>
-<div class="code-block"><span class="SCde"><span class="SKwd">var</span> path: <span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span>
-path.<span class="SFct">start</span>(<span class="SNum">8</span>, <span class="SNum">8</span>)
-path.<span class="SFct">lineTo</span>(<span class="SNum">56</span>, <span class="SNum">8</span>)
-path.<span class="SFct">lineTo</span>(<span class="SNum">32</span>, <span class="SNum">56</span>)
-path.<span class="SFct">close</span>()
-
-<span class="SKwd">var</span> image = <span class="SCst"><a href="#Pixel_Image">Image</a></span>.<span class="SFct">create</span>(<span class="SNum">64</span>, <span class="SNum">64</span>, .<span class="SCst"><a href="#Pixel_PixelFormat_RGBA8">RGBA8</a></span>)
-image.<span class="SFct">clear</span>()
-image.<span class="SFct">fillPath</span>(path, <span class="SCst"><a href="#Pixel_Color">Color</a></span>.<span class="SFct">fromRgb</span>(<span class="SNum">247</span>, <span class="SNum">249</span>, <span class="SNum">0</span>))
-</span></div>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillPath</span>(paths: <span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, options: <span class="SCst"><a href="#Pixel_FillPathOptions">FillPathOptions</a></span> = {})</span></div>
-<p>Fills one contour with a solid color.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">fillPath</span>(path: <span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, options: <span class="SCst"><a href="#Pixel_FillPathOptions">FillPathOptions</a></span> = {})</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Image_gamma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Image.gamma</span> <a class="api-item-permalink" href="#Pixel_Image_gamma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/image/filter/gamma.swg#L7">src</a></div>
@@ -7624,7 +7685,7 @@ image.<span class="SFct">fillPath</span>(path, <span class="SCst"><a href="#Pixe
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">offset</span>(value: <span class="STpe">f32</span>, joinStyle: <span class="SCst"><a href="#Pixel_JoinStyle">JoinStyle</a></span>, toler: <span class="STpe">f32</span> = <span class="SNum">0.5</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_createContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.createContext</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_createContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L27">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_createContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.createContext</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_createContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L28">src</a></div>
 <p>Creates a rendering context for a window handle.</p>
 <p>When <span class="code-inline">mainRC</span> is provided, it is borrowed instead of creating a new context.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
@@ -7638,19 +7699,26 @@ image.<span class="SFct">fillPath</span>(path, <span class="SCst"><a href="#Pixe
 <span class="SKwd">mtd</span> <span class="SFct">createContext</span>(hdc: <span class="SCst"><a href="std.win32.html#Win32_HDC">HDC</a></span>, width, height: <span class="STpe">s32</span>, mainRC: <span class="SCst"><a href="std.ogl.html#Ogl_HGLRC">HGLRC</a></span> = <span class="SKwd">null</span>)-&gt;<span class="SCst"><a href="#Pixel_RenderingContext">RenderingContext</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_dropContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.dropContext</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_dropContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_createOffscreenContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.createOffscreenContext</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_createOffscreenContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L89">src</a></div>
+<p>Creates a rendering context that never reaches the screen.</p>
+<p>The context is backed by a window that is created but never shown. The screen device context would be simpler, but Windows answers it with a legacy context that has neither framebuffer objects nor shaders, so nothing would render. The window costs one handle and buys the same accelerated context an application gets.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
+<span class="SKwd">mtd</span> <span class="SFct">createOffscreenContext</span>(width, height: <span class="STpe">s32</span>)-&gt;<span class="SCst"><a href="#Pixel_RenderingContext">RenderingContext</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_dropContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.dropContext</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_dropContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L112">src</a></div>
 <p>Releases native resources owned by <span class="code-inline">rc</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">dropContext</span>(rc: <span class="SCst"><a href="#Pixel_RenderingContext">RenderingContext</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_setCurrentContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.setCurrentContext</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_setCurrentContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L83">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_setCurrentContext" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.setCurrentContext</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_setCurrentContext" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L125">src</a></div>
 <p>Makes <span class="code-inline">rc</span> current on the calling thread.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">setCurrentContext</span>(rc: <span class="SCst"><a href="#Pixel_RenderingContext">RenderingContext</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_swapBuffers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.swapBuffers</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_swapBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L90">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_NativeRenderOgl_swapBuffers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">NativeRenderOgl.swapBuffers</span> <a class="api-item-permalink" href="#Pixel_NativeRenderOgl_swapBuffers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderogl.win32.swg#L132">src</a></div>
 <p>Presents the current back buffer for <span class="code-inline">rc</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Warning("Wrn0006", WarningLevel.Disable)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">swapBuffers</span>(rc: <span class="SCst"><a href="#Pixel_RenderingContext">RenderingContext</a></span>)</span></div>
@@ -7823,35 +7891,35 @@ image.<span class="SFct">fillPath</span>(path, <span class="SCst"><a href="#Pixe
 <span class="SKwd">mtd</span> <span class="SFct">updateTexture</span>(texture: <span class="SCst"><a href="#Pixel_Texture">Texture</a></span>, pixels: <span class="SKwd">const</span> *<span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Document_addPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.addPath</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_addPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L74">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Document_addPath" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.addPath</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_addPath" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L81">src</a></div>
 <p>Appends one filled shape built from every contour of <span class="code-inline">paths</span>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPath</span>(paths: <span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, rule = <span class="SCst"><a href="#Pixel_FillRule">FillRule</a></span>.<span class="SCst">NonZero</span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPath</span>(paths: <span class="SCst"><a href="#Pixel_LinePathList">LinePathList</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, rule = <span class="SCst"><a href="#Pixel_Svg_FillRule">FillRule</a></span>.<span class="SCst">NonZero</span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
 <p>Appends one filled shape built from a single contour.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPath</span>(path: <span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, rule = <span class="SCst"><a href="#Pixel_FillRule">FillRule</a></span>.<span class="SCst">NonZero</span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addPath</span>(path: <span class="SCst"><a href="#Pixel_LinePath">LinePath</a></span>, color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>, rule = <span class="SCst"><a href="#Pixel_Svg_FillRule">FillRule</a></span>.<span class="SCst">NonZero</span>, quality = <span class="SCst"><a href="#Pixel_PaintQuality">PaintQuality</a></span>.<span class="SCst"><a href="#Pixel_PaintQuality_Normal">Normal</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Document_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.create</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L47">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Document_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.create</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L54">src</a></div>
 <p>Creates an empty document with positive dimensions.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">f32</span>)-&gt;<span class="SCst"><a href="#Pixel_Svg_Document">Document</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Document_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.save</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L123">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Document_save" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.save</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_save" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L130">src</a></div>
 <p>Writes the document next to the other publication assets.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">save</span>(fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Document_setBackground" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.setBackground</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_setBackground" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L58">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Document_setBackground" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.setBackground</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_setBackground" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L65">src</a></div>
 <p>Paints a solid ground over the whole view box, before every shape.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setBackground</span>(color: <span class="SCst"><a href="#Pixel_Color">Color</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Document_setTitle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.setTitle</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_setTitle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L68">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Document_setTitle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.setTitle</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_setTitle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L75">src</a></div>
 <p>Sets the accessible name reported by the document.</p>
 <p>A reader that cannot see the image is told this instead. Without one, the document declares itself decorative.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setTitle</span>(title: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Document_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.toString</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L105">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Document_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Document.toString</span> <a class="api-item-permalink" href="#Pixel_Svg_Document_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/svgdocument.swg#L112">src</a></div>
 <p>Returns the document as SVG text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>

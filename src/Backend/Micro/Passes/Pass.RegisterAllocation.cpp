@@ -354,6 +354,47 @@ bool MicroRegisterAllocationPass::isLiveInAt(MicroReg key, uint32_t instructionI
     return DenseBits::contains(liveInRow, denseIndex);
 }
 
+void MicroRegisterAllocationPass::computeConcreteLoopCarried()
+{
+    // A concrete register whose value is live-in at a loop header crosses that
+    // loop's back-edge, so its uses can precede the point that wants it.
+    concreteLoopCarried_.assign(denseConcreteRegs_.regs().size(), 0);
+
+    const uint32_t wordCount = denseConcreteRegs_.wordCount();
+    if (!wordCount)
+        return;
+
+    for (uint32_t header = 0; header < instructionCount_; ++header)
+    {
+        bool isLoopHeader = false;
+        for (const uint32_t pred : predecessors_[header])
+            isLoopHeader = isLoopHeader || pred >= header;
+        if (!isLoopHeader)
+            continue;
+
+        const std::span<const uint64_t> liveRow = DenseBits::row(liveInConcreteBits_, header, wordCount);
+        for (size_t wordIndex = 0; wordIndex < liveRow.size(); ++wordIndex)
+        {
+            uint64_t wordBits = liveRow[wordIndex];
+            while (wordBits)
+            {
+                const size_t denseIndex = wordIndex * 64ull + std::countr_zero(wordBits);
+                wordBits &= wordBits - 1ull;
+                if (denseIndex >= concreteLoopCarried_.size())
+                    break;
+
+                concreteLoopCarried_[denseIndex] = 1;
+            }
+        }
+    }
+}
+
+bool MicroRegisterAllocationPass::isConcreteLoopCarried(const MicroReg physReg) const
+{
+    const uint32_t denseIndex = denseConcreteRegs_.find(physReg);
+    return denseIndex != MicroDenseRegIndex::K_INVALID_INDEX && denseIndex < concreteLoopCarried_.size() && concreteLoopCarried_[denseIndex] != 0;
+}
+
 bool MicroRegisterAllocationPass::isConcreteLiveInAt(MicroReg key, uint32_t instructionIndex) const
 {
     if (instructionIndex >= instructionCount_)
@@ -399,6 +440,18 @@ bool MicroRegisterAllocationPass::canUsePhysical(MicroReg virtKey, uint32_t inst
         return false;
     if (!allowConcreteLive && hasFutureConcreteTouchConflict(virtKey, physReg, instructionIndex))
         return false;
+
+    // The scan above walks forward in layout order, so it is blind to a value
+    // a loop carries around its back-edge: every touch of it lies behind the
+    // point that wants the register, and the register looks free. Taking it is
+    // unrecoverable — a value living under a register's own name has no home to
+    // be spilled to, so no later repair can put it back. For those registers
+    // only, ask the liveness fixpoint, which answers for the CFG instead of for
+    // the listing, and refuse even on the relaxed paths that otherwise tolerate
+    // a live concrete register.
+    if (isConcreteLoopCarried(physReg) && isConcreteLiveInAt(physReg, instructionIndex))
+        return false;
+
     return true;
 }
 
@@ -1017,6 +1070,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             inWorklist_[predIdx] = 1;
         }
     }
+
+    computeConcreteLoopCarried();
 
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
@@ -2410,6 +2465,7 @@ void MicroRegisterAllocationPass::clearState()
     liveInConcreteBits_.clear();
     predecessors_.clear();
     loopDepth_.clear();
+    concreteLoopCarried_.clear();
     pinnedPhysRegs_.clear();
     reachableInstructions_.clear();
     worklist_.clear();

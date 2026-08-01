@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
@@ -17,7 +18,8 @@
 // An instruction is a candidate when:
 //   - it is not a terminator, jump, call, or label,
 //   - it does not write memory,
-//   - it does not define CPU flags (flag liveness is not tracked here),
+//   - if it defines CPU flags, it defines only virtual integer registers and
+//     the flags are provably redefined before the next control-flow boundary,
 //   - it defines at least one virtual register, and
 //   - every defined virtual register is dead after the instruction.
 
@@ -25,9 +27,37 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    bool hasObservableSideEffect(const MicroInstr& inst, const MicroInstrUseDef& useDef)
+    bool hasObservableSideEffect(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroInstrRef instRef)
     {
-        return useDef.isCall || MicroInstrInfo::hasObservableSideEffect(inst);
+        if (useDef.isCall)
+            return true;
+        if (!MicroInstrInfo::hasObservableSideEffect(inst))
+            return false;
+
+        // A dead integer compute whose only side effect is the CPU flags it
+        // defines is still removable when the flags are provably redefined in
+        // the same straight-line window. Duplicated two-address chains that
+        // value numbering rewires leave exactly this shape behind: a
+        // flag-writing arithmetic prefix whose register result no longer has
+        // a consumer. Float destinations stay untouchable: a float clear_reg
+        // is the upper-bits-zeroing half of a clear+partial-insert idiom the
+        // use/def model reads as two independent full definitions.
+        for (const MicroReg def : useDef.defs)
+        {
+            if (!def.isVirtualInt())
+                return true;
+        }
+
+        const MicroInstrDef& info = MicroInstr::info(inst.op);
+        if (inst.op == MicroInstrOpcode::Label ||
+            info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+            info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+            info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+            info.flags.has(MicroInstrFlagsE::WritesMemory))
+            return true;
+
+        SWC_ASSERT(info.flags.has(MicroInstrFlagsE::DefinesCpuFlags));
+        return !MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(storage, operands, instRef);
     }
 
     bool allDefsAreDeadVirtualRegs(const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, MicroInstrRef instRef)
@@ -46,15 +76,15 @@ namespace
         return true;
     }
 
-    bool canEraseInstruction(const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, MicroInstrRef instRef)
+    bool canEraseInstruction(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstr& inst, const MicroInstrUseDef& useDef, const MicroSsaState& ssaState, MicroInstrRef instRef)
     {
-        if (hasObservableSideEffect(inst, useDef))
+        if (hasObservableSideEffect(storage, operands, inst, useDef, instRef))
             return false;
 
         return allDefsAreDeadVirtualRegs(useDef, ssaState, instRef);
     }
 
-    bool eliminateDeadInstructions(MicroStorage& storage, const MicroSsaState& ssaState)
+    bool eliminateDeadInstructions(MicroStorage& storage, const MicroOperandStorage& operands, const MicroSsaState& ssaState)
     {
         bool       changed = false;
         const auto view    = storage.view();
@@ -69,7 +99,7 @@ namespace
             if (!useDef)
                 continue;
 
-            if (!canEraseInstruction(inst, *useDef, ssaState, instRef))
+            if (!canEraseInstruction(storage, operands, inst, *useDef, ssaState, instRef))
                 continue;
 
             changed |= storage.erase(instRef);
@@ -92,7 +122,9 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
 
-    if (!eliminateDeadInstructions(storage, *ssaState))
+    MicroOperandStorage& operands = *context.operands;
+
+    if (!eliminateDeadInstructions(storage, operands, *ssaState))
         return Result::Continue;
 
     context.passChanged = true;
@@ -110,7 +142,7 @@ Result MicroDeadCodeEliminationPass::run(MicroPassContext& context)
         if (!ssaState || !ssaState->isValid())
             break;
 
-        if (!eliminateDeadInstructions(storage, *ssaState))
+        if (!eliminateDeadInstructions(storage, operands, *ssaState))
             break;
     }
 

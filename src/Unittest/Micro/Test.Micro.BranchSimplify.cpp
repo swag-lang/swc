@@ -368,6 +368,90 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsMultiInstructionBranchBody)
 }
 SWC_TEST_END()
 
+// A short-circuit `and` exit is threaded straight to the join's target and
+// the join label, once unreferenced, is erased.
+SWC_TEST_BEGIN(BranchSimplify_ThreadsShortCircuitExit)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    const MicroReg vC = MicroReg::virtualIntReg(12);
+    const MicroReg vT = MicroReg::virtualIntReg(13);
+    const MicroReg vR = MicroReg::virtualIntReg(14);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef join = builder.createLabel();
+    const MicroLabelRef exit = builder.createLabel();
+
+    builder.emitCmpRegReg(vA, vB, MicroOpBits::B64);
+    builder.emitSetCondReg(vT, MicroCond::Below);
+    builder.emitLoadZeroExtendRegReg(vT, vT, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadRegReg(vR, vT, MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, join);
+    builder.emitCmpRegImm(vC, ApInt(0x2C, 64), MicroOpBits::B32);
+    builder.emitSetCondReg(vT, MicroCond::NotEqual);
+    builder.emitLoadZeroExtendRegReg(vT, vT, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadRegReg(vR, vT, MicroOpBits::B8);
+    builder.placeLabel(join);
+    builder.emitCmpRegImm(vR, ApInt(0, 64), MicroOpBits::B8);
+    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+    builder.emitOpBinaryRegImm(vA, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.placeLabel(exit);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    // Every remaining conditional jump lands on the exit label; the join is gone.
+    const MicroOperandStorage& operands = builder.operands();
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::JumpCond)
+        {
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (ops && ops[0].cpuCond != MicroCond::Unconditional && ops[2].valueU64 != exit.get())
+                return Result::Error;
+        }
+        if (inst.op == MicroInstrOpcode::Label)
+        {
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (ops && ops[0].valueU64 == join.get())
+                return Result::Error;
+        }
+    }
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A label some jump still targets is never collected.
+SWC_TEST_BEGIN(BranchSimplify_KeepsReferencedLabel)
+{
+    const MicroReg vA = MicroReg::virtualIntReg(10);
+    const MicroReg vB = MicroReg::virtualIntReg(11);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef target = builder.createLabel();
+
+    builder.emitCmpRegReg(vA, vB, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, target);
+    builder.emitOpBinaryRegImm(vA, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.placeLabel(target);
+    builder.emitRet();
+
+    SWC_RESULT(runBranchSimplifyPass(builder));
+
+    uint32_t labelCount = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op == MicroInstrOpcode::Label)
+            ++labelCount;
+    }
+    if (labelCount != 1)
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // cmov has no 8/16-bit forms: a narrow select keeps its branch.
 SWC_TEST_BEGIN(BranchSimplify_KeepsByteSelectBranch)
 {

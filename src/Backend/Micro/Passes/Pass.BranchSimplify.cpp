@@ -648,6 +648,190 @@ namespace
         return changed;
     }
 
+    // Threads a short-circuit exit through the boolean merge it decides.
+    //
+    // The `and`/`or` lowering materializes its result and branches around the
+    // rhs on the lhs comparison flags:
+    //
+    //     cmp   a, b                          cmp   a, b
+    //     setcc CC, B                         setcc CC, B     (left for DCE)
+    //     [zext B] [mov B', ..]               ...
+    //     j(~CC) .JOIN                        j(~CC) .EXIT    ; B is 0 there
+    //     <rhs>                               <rhs>
+    //     .JOIN:                       ->     .JOIN:
+    //     cmp   B, 0                          cmp   B, 0
+    //     je    .EXIT                         je    .EXIT
+    //
+    // On the taken edge the boolean's value is pinned by the branch condition
+    // itself, so the join's test is already decided: the jump goes straight to
+    // the join's own target. Once the threaded edge no longer reaches the
+    // join, the remaining single-definition chain is the shape
+    // fuseMaterializedBoolBranches folds, and the loop condition ends up as
+    // two plain compare-and-branch pairs.
+    bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands)
+    {
+        ProgramLayout layout;
+        buildProgramLayout(layout, storage, operands);
+
+        bool changed = false;
+        for (const MicroInstrRef jumpRef : layout.order)
+        {
+            MicroInstr* jumpInst = storage.ptr(jumpRef);
+            if (!jumpInst || jumpInst->op != MicroInstrOpcode::JumpCond)
+                continue;
+            MicroInstrOperand* jumpOps = jumpInst->ops(operands);
+            if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
+                continue;
+            uint32_t joinLabelId = 0;
+            if (!tryGetJumpTargetLabelId(joinLabelId, *jumpInst, jumpOps))
+                continue;
+
+            // Walk the boolean chain immediately preceding the jump:
+            // an optional plain copy, an optional self zero-extend, then the
+            // setcc that consumed the same flags the jump reads. None of these
+            // touch the flags, so the jump still observes the setcc's compare.
+            MicroInstrRef     curRef  = storage.findPreviousInstructionRef(jumpRef);
+            const MicroInstr* curInst = curRef.isValid() ? storage.ptr(curRef) : nullptr;
+            if (!curInst)
+                continue;
+
+            MicroReg boolReg = MicroReg::invalid();
+            MicroReg chainReg;
+            if (curInst->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const MicroInstrOperand* copyOps = curInst->ops(operands);
+                if (!copyOps || !copyOps[0].reg.isVirtual())
+                    continue;
+                boolReg  = copyOps[0].reg;
+                chainReg = copyOps[1].reg;
+                curRef   = storage.findPreviousInstructionRef(curRef);
+                curInst  = curRef.isValid() ? storage.ptr(curRef) : nullptr;
+                if (!curInst)
+                    continue;
+            }
+            if (curInst->op == MicroInstrOpcode::LoadZeroExtRegReg)
+            {
+                const MicroInstrOperand* extOps = curInst->ops(operands);
+                if (!extOps || extOps[0].reg != extOps[1].reg)
+                    continue;
+                if (boolReg.isValid() && extOps[0].reg != chainReg)
+                    continue;
+                if (!boolReg.isValid())
+                    boolReg = extOps[0].reg, chainReg = extOps[0].reg;
+                curRef  = storage.findPreviousInstructionRef(curRef);
+                curInst = curRef.isValid() ? storage.ptr(curRef) : nullptr;
+                if (!curInst)
+                    continue;
+            }
+            if (curInst->op != MicroInstrOpcode::SetCondReg)
+                continue;
+            const MicroInstrOperand* setOps = curInst->ops(operands);
+            if (!setOps)
+                continue;
+            if (boolReg.isValid() && setOps[0].reg != chainReg)
+                continue;
+            if (!boolReg.isValid())
+                boolReg = setOps[0].reg;
+            if (!boolReg.isVirtual())
+                continue;
+
+            // The branch condition pins the boolean's value on the taken edge.
+            const MicroCond setCond = setOps[1].cpuCond;
+            MicroCond       invCond = MicroCond::Unconditional;
+            bool            boolOne = false;
+            if (setCond == jumpOps[0].cpuCond)
+                boolOne = true;
+            else if (!invertBranchCondition(setCond, invCond) || invCond != jumpOps[0].cpuCond)
+                continue;
+
+            // The join must be exactly `cmp boolReg, 0` + a conditional jump.
+            const auto labelIt = layout.labelOrdinalById.find(joinLabelId);
+            if (labelIt == layout.labelOrdinalById.end() || labelIt->second + 2 >= layout.order.size())
+                continue;
+            const MicroInstr* joinCmp = storage.ptr(layout.order[labelIt->second + 1]);
+            if (!joinCmp || joinCmp->op != MicroInstrOpcode::CmpRegImm)
+                continue;
+            const MicroInstrOperand* joinCmpOps = joinCmp->ops(operands);
+            if (!joinCmpOps || joinCmpOps[0].reg != boolReg || joinCmpOps[2].hasWideImmediateValue() || joinCmpOps[2].valueU64 != 0)
+                continue;
+            const MicroInstr* joinJump = storage.ptr(layout.order[labelIt->second + 2]);
+            if (!joinJump || joinJump->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const MicroInstrOperand* joinJumpOps = joinJump->ops(operands);
+            if (!joinJumpOps)
+                continue;
+
+            const MicroCond joinCond = joinJumpOps[0].cpuCond;
+            const bool      joinTakenOnZero =
+                joinCond == MicroCond::Equal || joinCond == MicroCond::Zero;
+            const bool joinTakenOnOne =
+                joinCond == MicroCond::NotEqual || joinCond == MicroCond::NotZero;
+            if (!(boolOne ? joinTakenOnOne : joinTakenOnZero))
+                continue;
+
+            uint32_t joinTargetId = 0;
+            if (!tryGetJumpTargetLabelId(joinTargetId, *joinJump, joinJumpOps) || joinTargetId == joinLabelId)
+                continue;
+
+            jumpOps[2].valueU64 = joinTargetId;
+            changed             = true;
+        }
+
+        return changed;
+    }
+
+    // Labels no jump references are pure fall-through markers, but they stop
+    // every straight-line pattern walk (the materialized-boolean fusion in
+    // particular). The sweep collects the targets of every label-consuming
+    // jump form and stands down entirely next to computed jumps or
+    // instruction-anchored relocations, whose targets it cannot see.
+    bool eraseUnreferencedLabels(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
+    {
+        std::unordered_set<uint64_t> referencedLabels;
+        std::unordered_set<uint32_t> relocInstrRefs;
+        SmallVector<MicroInstrRef>   labelRefs;
+
+        if (context.builder)
+        {
+            for (const MicroRelocation& reloc : context.builder->codeRelocations())
+            {
+                if (reloc.instructionRef.isValid())
+                    relocInstrRefs.insert(reloc.instructionRef.get());
+            }
+        }
+
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+        {
+            const MicroInstr& inst = *it;
+            if (inst.op == MicroInstrOpcode::JumpReg)
+                return false;
+            if (inst.op == MicroInstrOpcode::Label)
+            {
+                if (!relocInstrRefs.contains(it.current.get()))
+                    labelRefs.push_back(it.current);
+                continue;
+            }
+            if (inst.op != MicroInstrOpcode::JumpCond && inst.op != MicroInstrOpcode::JumpCondImm)
+                continue;
+            const MicroInstrOperand* ops = inst.ops(operands);
+            if (!ops || inst.numOperands < 3)
+                return false;
+            referencedLabels.insert(ops[2].valueU64);
+        }
+
+        bool changed = false;
+        for (const MicroInstrRef labelRef : labelRefs)
+        {
+            const MicroInstr*        labelInst = storage.ptr(labelRef);
+            const MicroInstrOperand* labelOps  = labelInst ? labelInst->ops(operands) : nullptr;
+            if (!labelOps || referencedLabels.contains(labelOps[0].valueU64))
+                continue;
+            changed |= storage.erase(labelRef);
+        }
+
+        return changed;
+    }
+
     bool redirectJumpChains(MicroStorage& storage, MicroOperandStorage& operands)
     {
         ProgramLayout layout;
@@ -958,6 +1142,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
         changed |= foldKnownBranches(storage, operands, *ssaState, knownValues, knownFlags);
 
     changed |= fuseMaterializedBoolBranches(storage, operands);
+    changed |= threadShortCircuitExits(storage, operands);
+    changed |= eraseUnreferencedLabels(storage, operands, context);
 
     if (convertBranchesToConditionalMoves(storage, operands, context))
     {

@@ -11,6 +11,7 @@ that solves the problem.
 | Draw shapes, paths, textures, or text | [[Pixel.Painter]] |
 | Build reusable vector geometry | [[Pixel.LinePath]] and [[Pixel.LinePathList]] |
 | Render recorded commands with OpenGL | [[Pixel.RenderOgl]] |
+| Render deterministic pixels without a GPU | [[Pixel.RenderCpu]] |
 | Load and lay out fonts | [[Pixel.TypeFace]], [[Pixel.Font]], and [[Pixel.RichString]] |
 
 ## A first image

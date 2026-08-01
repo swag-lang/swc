@@ -98,8 +98,8 @@ impl HeadlessHost
         .surfaceWnd.style.share(&.app.style)
         .surfaceWnd.position      = {0, 0, width, height}
         .surfaceWnd.focusStrategy = .None
-        .surfaceWnd.view          = root
         .surface.wnd              = &.surfaceWnd
+        .surfaceWnd.view          = root
     }
 
     // Destroys the hosted window tree, drains queued work, and restores the system clipboard backend.
@@ -360,6 +360,18 @@ impl HeadlessHost
             .app.sendFrameEvents()
             .pump()
         }
+    }
+
+    // Paints the complete hosted tree with the software renderer and returns owned BGRA pixels.
+    //
+    // Pending events are drained first so layout and widget state match the image. The returned
+    // image has the requested host dimensions; callers own it and may compare, encode, or inspect it.
+    mtd render()->Pixel.Image
+    {
+        .pump()
+        .surface.invalidate()
+        .surface.paintWnd(&.root)
+        return .app.renderer.readRenderTarget(&.surface.rt, 0, 0, .surface.rc.width, .surface.rc.height)
     }
 
     // Fires one active timer immediately and drains resulting queues.

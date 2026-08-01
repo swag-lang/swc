@@ -15,7 +15,7 @@ enum DefaultShaderId
 // outside), giving a 1px transition with 50% coverage on the true edge.
 const AAHalf = 0.5'f32
 
-// Defines the packed vertex format consumed by [[Pixel.RenderOgl]].
+// Defines the packed vertex format consumed by [[Pixel.RenderOgl]] and [[Pixel.RenderCpu]].
 #[Swag.Pack(1)]
 struct VertexLayout
 {
@@ -137,7 +137,7 @@ struct FontEffectParams
 
 // Stores one deferred painter command and its command-specific payload.
 //
-// This is the transport format consumed by [[Pixel.RenderOgl]]. Applications
+// This is the transport format consumed by Pixel renderers. Applications
 // should use `Painter` methods instead of constructing commands directly.
 struct Command
 {

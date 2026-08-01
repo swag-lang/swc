@@ -1,6 +1,7 @@
 /*
 Pixel provides owned image buffers, image codecs and transforms, vector-style
-drawing primitives, text layout, colors, brushes, paths, and an OpenGL renderer.
+drawing primitives, text layout, colors, brushes, paths, and OpenGL or software
+renderers.
 
 Most image operations mutate an [[Pixel.Image]] in place. Pixel coordinates use
 an origin at the top-left; `x` grows to the right and `y` grows downward.

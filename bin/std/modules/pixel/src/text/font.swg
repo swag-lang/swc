@@ -151,10 +151,10 @@ public struct Font
 
 // Owns the glyph storage and the font views created through it.
 //
-// A glyph atlas carries a GPU texture, so it has the lifetime of a graphics context, not of the
-// process: [[Pixel.RenderOgl]] owns one cache and every font it hands out lives and dies with it.
-// Code that only measures or lays out text can own a bare cache with no renderer at all -- atlases
-// then simply never get a texture.
+// Each renderer owns one cache and every font it hands out lives and dies with it. An OpenGL
+// renderer also uploads atlas pixels to context-owned textures; [[Pixel.RenderCpu]] samples the
+// atlas bytes directly. Code that only measures or lays out text can own a bare cache with no
+// renderer at all.
 //
 // A cache holds a handful of entries (one per typeface, size and style actually drawn), so lookups
 // walk them rather than hashing a key. That keeps font creation allocation-free on the draw path,
@@ -180,7 +180,7 @@ public impl FontCache
 {
     // Drops every glyph cache and font view created through this cache.
     //
-    // A renderer must release the GPU textures of the atlases before this runs; see
+    // An OpenGL renderer must release the GPU textures of the atlases before this runs; see
     // [[Pixel.RenderOgl.opDrop]].
     mtd clear()
     {

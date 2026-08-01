@@ -6,6 +6,8 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
@@ -218,7 +220,71 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         return reg == frameBase || addrRegOffset.contains(reg);
     };
 
-    // ---- Pass 2: classify accesses; bail the whole function on any escape. ----
+    // ---- Local-variable extents: escapes poison one variable, not the function. ----
+    //
+    // Taking a slot's address exposes the whole OBJECT behind it, and the micro
+    // level cannot see object boundaries — which used to force abandoning the
+    // entire function on the first escape (one `&local` passed to a call kept
+    // every hot scalar of the function in memory). The front end knows every
+    // local's frame extent, so when the lowered function is available an escape
+    // at a known offset only poisons the variable that contains it, and every
+    // other slot stays promotable. The fallback (no function symbol, a frame
+    // base that is not the local-stack base, or an escape outside any known
+    // variable) is the old whole-function bail.
+    struct FrameVarRange
+    {
+        uint64_t lo       = 0;
+        uint64_t hi       = 0;
+        bool     poisoned = false;
+    };
+    std::vector<FrameVarRange> varRanges;
+
+    bool rangesUsable = context.sanitizerFunction != nullptr &&
+                        (!context.debugStackBaseVirtualReg.isValid() || context.debugStackBaseVirtualReg == frameBase);
+    if (rangesUsable)
+    {
+        for (const SymbolVariable* localVar : context.sanitizerFunction->localVariables())
+        {
+            if (!localVar || !localVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+                continue;
+            const uint64_t size = localVar->codeGenLocalSize();
+            if (!size)
+                continue;
+            varRanges.push_back({.lo = localVar->offset(), .hi = localVar->offset() + size});
+        }
+    }
+
+    // Poison the variable containing 'offset'; false when the offset belongs to
+    // no known variable and the caller must fall back to the whole-function bail.
+    auto poisonEscapedOffset = [&](const uint64_t offset) -> bool {
+        if (!rangesUsable)
+            return false;
+        bool found = false;
+        for (FrameVarRange& range : varRanges)
+        {
+            if (offset >= range.lo && offset < range.hi)
+            {
+                range.poisoned = true;
+                found          = true;
+            }
+        }
+        return found;
+    };
+
+    // The escaped offset of a tracked register, when it has a single known one.
+    auto trackedEscapeOffset = [&](const MicroReg reg, uint64_t& outOffset) -> bool {
+        if (reg == frameBase || badAddrReg.contains(reg))
+            return false;
+        const auto found = addrRegOffset.find(reg);
+        if (found == addrRegOffset.end())
+            return false;
+        outOffset = found->second;
+        return true;
+    };
+
+    // ---- Pass 2: classify accesses; an unexplained escape poisons the
+    //      containing variable, or bails the whole function when it cannot be
+    //      pinned to one. ----
     std::unordered_map<uint64_t, SlotInfo> slots;
     bool                                   bail = false;
 
@@ -310,12 +376,19 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         // Moving a tracked pointer as a value means the address escapes.
         if (baseValid && valueReg.isValid() && isTracked(valueReg))
         {
-            bail = true;
-            break;
+            uint64_t escapedOffset = 0;
+            if (!trackedEscapeOffset(valueReg, escapedOffset) || !poisonEscapedOffset(escapedOffset))
+            {
+                bail = true;
+                break;
+            }
+            // The destination slot access stays valid: it holds the pointer as
+            // a plain value, and only the pointed-to variable is poisoned.
         }
 
         // Any tracked register appearing anywhere other than as the base of a
-        // recognized scalar access is an escape we cannot reason about.
+        // recognized scalar access is an escape the scalar analysis cannot
+        // explain: poison the variable it points into.
         SmallVector<MicroInstrRegOperandRef> regRefs;
         inst.collectRegOperands(operands, regRefs, context.encoder);
         for (const auto& rref : regRefs)
@@ -323,7 +396,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             if (!rref.reg || !isTracked(*rref.reg))
                 continue;
             const bool isExplainedBase = baseValid && *rref.reg == baseReg && isHandledScalarMemOp(inst.op);
-            if (!isExplainedBase)
+            if (isExplainedBase)
+                continue;
+            uint64_t escapedOffset = 0;
+            if (!trackedEscapeOffset(*rref.reg, escapedOffset) || !poisonEscapedOffset(escapedOffset))
             {
                 bail = true;
                 break;
@@ -349,9 +425,32 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     //      any other accessed slot. ----
     SmallVector<Promotion> promotions;
 
+    auto overlapsPoisonedVariable = [&](const uint64_t lo, const uint64_t hi) -> bool {
+        for (const FrameVarRange& range : varRanges)
+        {
+            if (range.poisoned && lo < range.hi && range.lo < hi)
+                return true;
+        }
+        return false;
+    };
+
     for (auto& [offset, slot] : slots)
     {
         if (slot.accesses.empty() || !slot.hasWrite)
+            continue;
+
+        // A slot inside an escaped variable can be written behind the scalar
+        // analysis's back through the escaped pointer.
+        bool touchesPoisoned = false;
+        for (const SlotAccess& acc : slot.accesses)
+        {
+            if (overlapsPoisonedVariable(acc.offset, acc.offset + getNumBytes(acc.bits)))
+            {
+                touchesPoisoned = true;
+                break;
+            }
+        }
+        if (touchesPoisoned)
             continue;
 
         const MicroOpBits bits       = slot.accesses[0].bits;

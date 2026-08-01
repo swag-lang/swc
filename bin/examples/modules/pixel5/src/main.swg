@@ -40,8 +40,9 @@ struct TextureCard
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
+var g_Render:   Pixel.IRenderer = undefined
 var g_Painter:  Pixel.Painter
-var g_RC:       Pixel.RenderingContext
+var g_RC:       Pixel.RenderContext
 var g_Keyboard: Input.Keyboard
 
 var g_FontPath:     String
@@ -110,7 +111,7 @@ func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Textur
 
 func setImageCard(card: *TextureCard, title, subtitle: string, image: const &Image, options: CardOptions = {})
 {
-    setTextureCard(card, title, subtitle, g_Renderer.addImage(image), options)
+    setTextureCard(card, title, subtitle, g_Render.addImage(image), options)
 }
 
 func loadShowcase() fail
@@ -118,7 +119,7 @@ func loadShowcase() fail
     let loaded = Image.load(dataPath("balloon.jpg"))
     let source = normalizeShowcaseImage(loaded)
 
-    g_SourceTexture = g_Renderer.addImage(source)
+    g_SourceTexture = g_Render.addImage(source)
 
     buildTonalCards(source)
     buildKernelCards(source)
@@ -287,7 +288,7 @@ func display()
 {
     let layout = computeSceneLayout(g_RC.width, g_RC.height)
 
-    g_Renderer.begin(g_RC)
+    g_Render.begin(g_RC)
     g_Painter.begin()
     g_Painter.pushClippingSurfaceRect(layout.rect)
     g_Painter.pushTransform()
@@ -297,8 +298,8 @@ func display()
     g_Painter.popTransform()
     g_Painter.popClippingRect()
     g_Painter.end()
-    g_Renderer.draw(&g_Painter)
-    g_Renderer.end()
+    g_Painter.render()
+    g_Render.end()
 }
 
 func onResize(_window: *Env.Window, width, height: s32)
@@ -334,9 +335,11 @@ func updateTestMode()
 {
     try Env.createWindow(&g_Window, {className: "PIXEL5_CLASS_NAME", title: "Pixel filters and transforms showcase", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
-    g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
-    g_Renderer.setCurrentContext(g_RC)
-    g_Renderer.init()
+    g_Render  = &g_Renderer
+    g_Painter = Pixel.Painter.create(g_Render)
+    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_Render.setCurrentContext(g_RC)
+    g_Render.init()
 
     try Jobs.initialize()
     try loadFonts()
@@ -355,5 +358,5 @@ func updateTestMode()
         updateTestMode()
     }
 
-    g_Renderer.native.dropContext(g_RC)
+    g_Render.deleteContext(&g_RC)
 }

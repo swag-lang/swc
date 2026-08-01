@@ -44,7 +44,7 @@ struct LayerDrawInfo
 // `resolve`/`buildShadow`/`draw`.
 struct Layer
 {
-    renderer:      #null *PainterRenderer  // Borrowed renderer used to allocate targets.
+    renderer:      #null IRenderer         // Borrowed renderer used to allocate targets.
     painter:       #null *Painter          // Borrowed painter receiving layer commands.
     paintTarget:   #null *RenderTarget     // Supersampled recording target, if allocated.
     contentTarget: #null *RenderTarget     // Resolved content target, if allocated.
@@ -60,15 +60,15 @@ impl Layer
 {
     // Begins recording into a newly acquired off-screen target.
     //
-    // `renderer` and `painter` are borrowed until release. Dimensions must be positive.
-    mtd begin(renderer: *PainterRenderer, painter: *Painter, info: LayerBeginInfo)
+    // The painter and its selected renderer are borrowed until release. Dimensions must be positive.
+    mtd begin(painter: *Painter, info: LayerBeginInfo)
     {
         Debug.assert(!.active)
-        Debug.assert(renderer != null)
         Debug.assert(painter != null)
         Debug.assert(info.width > 0 and info.height > 0)
 
         .release()
+        let renderer   = painter.renderer()
         .renderer      = renderer
         .painter       = painter
         .width         = info.width

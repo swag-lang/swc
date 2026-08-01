@@ -4,10 +4,10 @@ using Core, Core.Errors, Core.Math
 
 // Draws into an image with the full painter, without a window.
 //
-// A canvas owns an off-screen rendering context and the render target behind it, so a program
-// that only writes files reaches every painter capability — paths, brushes, gradients,
-// textures, text, clipping, blending, transforms — and reads the result back as pixels. It is
-// the same pipeline a window paints through, pointed at an image instead of a screen.
+// A canvas owns a CPU renderer and the render target behind it, so a program
+// that only writes files can render paths, brushes, gradients, textures, text, clipping,
+// blending, and transforms and read the result back as pixels.
+// The same backend powers display-independent image generation and pixel tests.
 //
 // Record into [[Pixel.ImageCanvas.painter]], then call [[Pixel.ImageCanvas.toImage]]. A canvas
 // can be reused: drawing again after a read starts a new frame over a cleared target.
@@ -39,7 +39,7 @@ struct ImageCanvas
         height: s32     // Canvas height, in pixels.
     }
 
-    // The graphics resources behind the canvas. They are opened by 'create' and released when
+    // The rendering resources behind the canvas. They are opened by 'create' and released when
     // the canvas leaves scope.
     //
     // The renderer and the target live on the heap because the renderer keeps a pointer to the
@@ -47,9 +47,8 @@ struct ImageCanvas
     // pointer behind. On the heap their addresses outlive every move of the canvas itself.
     internal
     {
-        renderer:   #null *RenderOgl        // Owns the target and issues the draw calls.
+        renderer:   #null *RenderCpu        // Owns the target and executes painter commands.
         target:     #null *RenderTarget     // Color target the painter draws into.
-        context:    RenderingContext        // Off-screen rendering context.
         source:     Texture                 // Existing pixels drawn under every frame, if any.
         hasSource:  bool                    // Whether the canvas was opened over an image.
         background: Color                   // Color the target is cleared with.
@@ -61,8 +60,7 @@ impl ImageCanvas
 {
     // Opens an off-screen canvas with positive dimensions.
     //
-    // Fails when the platform cannot provide a rendering context. The canvas starts cleared to
-    // fully transparent.
+    // The canvas starts cleared to fully transparent.
     func create(width, height: s32)->ImageCanvas fail
     {
         var result: retval
@@ -83,26 +81,18 @@ impl ImageCanvas
         canvas.height     = height
         canvas.background = Color.fromArgb(0'u8, 0'u8, 0'u8, 0'u8)
 
-        canvas.renderer = Memory.new'RenderOgl()
+        canvas.renderer = Memory.new'RenderCpu()
         canvas.target   = Memory.new'RenderTarget()
 
         let renderer = notnull canvas.renderer
-        canvas.context = catch renderer.native.createOffscreenContext(width, height) as err
-        if err != null
-        {
-            Memory.delete(canvas.renderer)
-            Memory.delete(canvas.target)
-            canvas.renderer = null
-            canvas.target   = null
-            fail err
-        }
-
         canvas.isOpen = true
-        renderer.begin(canvas.context)
-        renderer.init()
-        dref notnull canvas.target = renderer.createRenderTarget(width, height)
-        renderer.end()
+        renderer.begin(width, height)
+        let rendererItf = cast(IRenderer) renderer
+        rendererItf.init()
+        dref notnull canvas.target = rendererItf.createRenderTarget(width, height)
+        rendererItf.end()
 
+        canvas.painter = Painter.create(renderer)
         canvas.painter.begin()
         canvas.beginFrame()
     }
@@ -153,9 +143,10 @@ impl ImageCanvas
         try open(&result, image.width, image.height)
 
         let renderer = notnull result.renderer
-        renderer.begin(result.context)
-        result.source = renderer.addImage(image)
-        renderer.end()
+        renderer.begin(result.width, result.height)
+        let rendererItf = cast(IRenderer) renderer
+        result.source = rendererItf.addImage(image)
+        rendererItf.end()
         result.hasSource = true
 
         result.painter.setBlendingMode(.Copy)
@@ -203,10 +194,11 @@ impl ImageCanvas
         .painter.end()
 
         let renderer = notnull .renderer
-        renderer.begin(.context)
-        renderer.draw(&.painter)
-        var result: retval = renderer.readRenderTarget(notnull .target, 0, 0, .width, .height)
-        renderer.end()
+        renderer.begin(.width, .height)
+        let rendererItf = cast(IRenderer) renderer
+        .painter.render()
+        var result: retval = rendererItf.readRenderTarget(notnull .target, 0, 0, .width, .height)
+        rendererItf.end()
 
         .painter.begin()
         .beginFrame()
@@ -221,10 +213,10 @@ impl ImageCanvas
         .isOpen = false
 
         let renderer = notnull .renderer
-        renderer.begin(.context)
-        renderer.deleteRenderTarget(notnull .target)
-        renderer.end()
-        renderer.native.dropContext(.context)
+        renderer.begin(.width, .height)
+        let rendererItf = cast(IRenderer) renderer
+        rendererItf.deleteRenderTarget(notnull .target)
+        rendererItf.end()
 
         Memory.delete(.renderer)
         Memory.delete(.target)

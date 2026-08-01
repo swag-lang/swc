@@ -107,7 +107,7 @@ impl Application
 
     internal mtd sendSystemEvents()
     {
-        if .renderer.isSoftware() do
+        if !.renderer.needsNativeWindow() do
             return
 
         var msg: MSG
@@ -125,7 +125,7 @@ impl Application
 
     internal mtd surfaceAt(x, y: f32)->#null *Surface
     {
-        if .renderer.isSoftware()
+        if !.renderer.needsNativeWindow()
         {
             for s in .surfaces
             {
@@ -197,7 +197,7 @@ impl Application
         nimage.mix(img, sizeIcon * index, 0)
         dref curImg = nimage
 
-        curImgList.release(&.renderer)
+        curImgList.release(.renderer)
         curImgList.set(.renderer.addImage(curImg), sizeIcon, sizeIcon)
 
         return Icon.from(curImgList, index)

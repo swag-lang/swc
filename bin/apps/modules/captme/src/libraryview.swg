@@ -276,8 +276,8 @@ impl LibraryView
             {
                 if it.capture and it.texture.isValid()
                 {
-                    .app().rendererRef().removeTexture(&it.texture)
-                    it.texture = .app().rendererRef().addImage(capture.preview)
+                    .app().renderer.removeTexture(&it.texture)
+                    it.texture = .app().renderer.addImage(capture.preview)
                 }
 
                 break
@@ -521,7 +521,7 @@ impl LibraryView
             res = catch Directory.enumerateFiles(cf, ".captme")
         }
 
-        let renderer = .app().rendererRef()
+        let renderer = .app().renderer
 
         // Release textures over the full set, not just the filtered '.items': items
         // filtered out are absent from '.items' and would leak their GPU texture

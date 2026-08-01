@@ -116,7 +116,7 @@ impl Theme
             Memory.delete(.res.spin)
     }
 
-    private mtd setupDefault(renderer: *PainterRenderer)
+    private mtd setupDefault(renderer: IRenderer)
     {
         .initialized = true
         .fonts       = renderer.fontCache()

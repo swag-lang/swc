@@ -41,7 +41,7 @@ func drawLayerCard(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitl
     painter.fillRoundRect(insetRect(body, 18, 14, 18, 14), 18, 18, Brush.createTiled(g_TileTexture))
 
     var layer: Layer
-    layer.begin(&g_Renderer, painter, {width: layerWidth, height: layerHeight, renderScale: renderScale})
+    layer.begin(painter, {width: layerWidth, height: layerHeight, renderScale: renderScale})
     painter.pushTransform()
     painter.scaleTransform(cast(f32) renderScale)
     drawLayerArtwork(painter, layerWidth, layerHeight, title, accent)

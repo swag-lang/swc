@@ -26,8 +26,9 @@ struct TextCase
 
 var g_Window:    Env.Window
 var g_Renderer:  Pixel.RenderOgl
+var g_Render:    Pixel.IRenderer = undefined
 var g_Painter:   Pixel.Painter
-var g_RC:        Pixel.RenderingContext
+var g_RC:        Pixel.RenderContext
 var g_TypeFace:  #null *Pixel.TypeFace
 var g_TitleFont: #null *Pixel.Font
 var g_LabelFont: #null *Pixel.Font
@@ -195,7 +196,7 @@ func loadGdiReferences()
     for sample, [idx] in Samples
     {
         let image = renderGdiPlusOutlineImage("Captme", sample.scale)
-        g_GdiText[idx] = g_Renderer.addImage(image)
+        g_GdiText[idx] = g_Render.addImage(image)
     }
 }
 
@@ -289,9 +290,9 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     let textX      = cast(f32) OutlineShadowMargin
     let textY      = cast(f32) OutlineShadowMargin
 
-    let rtText   = g_Renderer.acquireRenderTarget(localW, localH)
-    let rtShadow = g_Renderer.acquireRenderTarget(localW, localH)
-    let rtBlur   = g_Renderer.acquireRenderTarget(localW, localH)
+    let rtText   = g_Render.acquireRenderTarget(localW, localH)
+    let rtShadow = g_Render.acquireRenderTarget(localW, localH)
+    let rtBlur   = g_Render.acquireRenderTarget(localW, localH)
 
     if superSample <= 1
     {
@@ -300,7 +301,7 @@ func drawShadowedOutline(painter: *Pixel.Painter, area: Math.Rectangle, text: st
     else
     {
         let ss      = cast(f32) superSample
-        let rtSuper = g_Renderer.acquireRenderTarget(localW * superSample, localH * superSample)
+        let rtSuper = g_Render.acquireRenderTarget(localW * superSample, localH * superSample)
         renderOutlineToTarget(painter, rtSuper, &outline, textX * ss, textY * ss, scale * ss, mode)
 
         with painter
@@ -363,8 +364,8 @@ func drawShadowedTexture(painter: *Pixel.Painter, area: Math.Rectangle, texture:
 {
     let localW = texture.width
     let localH = texture.height
-    let rtText = g_Renderer.acquireRenderTarget(localW, localH)
-    let rtBlur = g_Renderer.acquireRenderTarget(localW, localH)
+    let rtText = g_Render.acquireRenderTarget(localW, localH)
+    let rtBlur = g_Render.acquireRenderTarget(localW, localH)
     let src    = Math.Rectangle{0, 0, cast(f32) localW, cast(f32) localH}
 
     with painter
@@ -462,12 +463,12 @@ func drawScene(painter: *Pixel.Painter)
 
 func display()
 {
-    g_Renderer.begin(g_RC)
+    g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter)
     g_Painter.end()
-    g_Renderer.draw(&g_Painter)
-    g_Renderer.end()
+    g_Painter.render()
+    g_Render.end()
 }
 
 func onResize(_window: *Env.Window, width, height: s32)
@@ -480,9 +481,11 @@ func onResize(_window: *Env.Window, width, height: s32)
 {
     try Env.createWindow(&g_Window, {className: "PIXEL6_CLASS_NAME", title: "Pixel example - Captme text outline quality", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
-    g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
-    g_Renderer.setCurrentContext(g_RC)
-    g_Renderer.init()
+    g_Render  = &g_Renderer
+    g_Painter = Pixel.Painter.create(g_Render)
+    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_Render.setCurrentContext(g_RC)
+    g_Render.init()
 
     try loadFonts()
     loadGdiReferences()
@@ -498,6 +501,6 @@ func onResize(_window: *Env.Window, width, height: s32)
         display()
     }
 
-    g_Renderer.native.dropContext(g_RC)
+    g_Render.deleteContext(&g_RC)
     shutdownGdiPlus()
 }

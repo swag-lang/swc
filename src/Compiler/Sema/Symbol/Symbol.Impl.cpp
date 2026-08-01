@@ -130,11 +130,13 @@ namespace
 {
     // Interface methods may share a name ('#fwd' variants, overloads). Parameters are
     // compared positionally, skipping the receiver (the interface method sees an
-    // interface 'me', the implementation a concrete struct 'me'); a parameter matches
-    // on move-reference-ness, so the copy and move variants land in their own slots
-    // even when the interface types are still generic.
+    // interface 'me', the implementation a concrete struct 'me'). The complete type is
+    // part of the slot identity: checking only move-reference-ness aliases unrelated
+    // overloads with the same arity to the first implementation method.
     bool implMethodMatchesInterfaceMethod(const TaskContext& ctx, const SymbolFunction& implMethod, const SymbolFunction& interfaceMethod)
     {
+        SWC_UNUSED(ctx);
+
         // An implementation method carries its receiver as a leading parameter; an
         // interface prototype does not.
         const auto&  implParams = implMethod.parameters();
@@ -146,9 +148,7 @@ namespace
         for (size_t i = 0; i < itfParams.size(); ++i)
         {
             SWC_ASSERT(implParams[i + implOffset] != nullptr && itfParams[i] != nullptr);
-            const TypeInfo& implType = ctx.typeMgr().get(implParams[i + implOffset]->typeRef());
-            const TypeInfo& itfType  = ctx.typeMgr().get(itfParams[i]->typeRef());
-            if (implType.isMoveReference() != itfType.isMoveReference())
+            if (implParams[i + implOffset]->typeRef() != itfParams[i]->typeRef())
                 return false;
         }
 

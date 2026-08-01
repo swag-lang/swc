@@ -6,7 +6,9 @@ the same shape: begin, issue commands, end, then submit the painter to a rendere
 ```swag
 using Pixel
 
-var painter: Painter
+var cpu: RenderCpu
+let renderer: IRenderer = &cpu
+var painter = Painter.create(renderer)
 painter.begin()
 painter.clear(Color.fromRgb(18, 20, 28))
 painter.fillRoundRect(24, 24, 220, 96, 14, 14, Color.fromRgb(62, 132, 220))
@@ -15,7 +17,10 @@ painter.end()
 ```
 
 `begin` clears previously recorded vertices and commands and restores the default
-drawing state. Nothing is presented until a renderer consumes the finished painter.
+drawing state. [[Pixel.Painter.render]] submits the finished stream to the renderer
+selected by [[Pixel.Painter.create]]. A default-initialized painter remains useful
+for command inspection and goldens, but it cannot render or allocate a
+[[Pixel.Layer]] until [[Pixel.Painter.setRenderer]] is called.
 
 ## Paths
 

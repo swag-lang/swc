@@ -48,13 +48,11 @@ const InvalidRenderTargetSurfaceHandle: RenderTargetSurfaceHandle = cast() 0    
 // Executes [[Pixel.Painter]] command streams through OpenGL.
 //
 // A renderer is non-copyable and owns its shaders, textures, buffers, and queued
-// render targets. On Windows, create a [[Pixel.RenderingContext]], call `init`,
-// then bracket frames with `begin` and `end`.
+// render targets. Create it as an [[Pixel.IRenderer]], create a
+// [[Pixel.RenderContext]], call `init`, then bracket frames with `begin` and `end`.
 #[Swag.NoCopy]
 struct RenderOgl
 {
-    using native: NativeRenderOgl     // Platform-specific context operations.
-
     // Glyph storage and font views of this renderer. A glyph atlas carries a GPU texture created
     // in this renderer's context, so it must not outlive it: fonts are created through this cache
     // and released with the renderer.
@@ -73,6 +71,7 @@ struct RenderOgl
     // OpenGL context this renderer owns; reaching in from outside would desynchronize the mirror.
     private
     {
+        using native: NativeRenderOgl              // Platform-specific context operations.
         vertexbuffer:   GLuint                    // OpenGL streaming vertex buffer.
         worldTransform: Transform2                // Current painter world transform.
         orthoMatrix:    Matrix4x4                 // Current surface projection matrix.
@@ -80,18 +79,26 @@ struct RenderOgl
         whiteTexture:   GLuint                    // Built-in one-pixel white texture.
         hatchTextures:  [HatchStyle] GLuint       // Built-in hatch texture handles.
         blendingMode:   BlendingMode = .Alpha     // Active OpenGL blending mode.
-        curRC:          RenderingContext          // Active drawable and viewport.
+        curRC:          RenderContext              // Active drawable and viewport.
 
         stackReleasedRT: Array'#null *RenderTarget     // Targets queued for deferred release.
         stackRT:         Array'#null *RenderTarget     // Nested bound render targets.
         curRT:           #null *RenderTarget           // Active off-screen target, if any.
         curShader:       #null *ShaderBase             // Active shader, or the default shader.
         overlapMode:     bool                          // Whether overlap-safe alpha drawing is active.
+        nativeContext:   #null const *void             // Shared native OpenGL context owned by interface-created drawables.
+        contextCount:    u32                           // Number of live interface-created drawables.
     }
 }
 
 private impl RenderOgl
 {
+    func oglContext(rc: RenderContext)->*OglContext
+    {
+        Debug.assert(rc.data != null, "OpenGL render context has no backend state")
+        return cast(*OglContext) notnull rc.data
+    }
+
     func setShaderCompileError(shaderID: GLuint) fail
     {
         var result:        GLint
@@ -294,6 +301,7 @@ impl RenderOgl
     // Releases queued and currently bound render-target descriptors, and the glyph atlases.
     mtd opDrop()
     {
+        Debug.assert(.contextCount == 0, "renderer contexts must be deleted before the renderer")
         .releaseFontTextures()
 
         for rt in .stackReleasedRT do
@@ -307,7 +315,7 @@ impl RenderOgl
     //
     // The atlases themselves are plain CPU pixels and go away with the cache; only the texture
     // names belong to the graphics context and have to be handed back to it here.
-    private mtd releaseFontTextures()
+    internal mtd releaseFontTextures()
     {
         for it in .fonts.glyphCaches
         {
@@ -322,15 +330,15 @@ impl RenderOgl
     }
 
     // Makes `rc` current and starts a frame.
-    mtd begin(rc: RenderingContext)
+    internal mtd beginImpl(rc: RenderContext)
     {
         .curRC = rc
-        .native.setCurrentContext(.curRC)
-        .resetTransform()
+        .native.setCurrentContext(dref oglContext(.curRC))
+        .resetTransformImpl()
     }
 
     // Finishes and presents the current frame.
-    mtd end()
+    internal mtd endImpl()
     {
         // The surface renders into a persistent FBO and then samples it to blit
         // onscreen, so the frame must be fully resolved and presented before we
@@ -341,18 +349,18 @@ impl RenderOgl
         // in lockstep with what was just drawn.
         glFlush()
         glFinish()
-        .native.swapBuffers(.curRC)
+        .native.swapBuffers(dref oglContext(.curRC))
     }
 
     // Set the current rendering context
-    mtd setCurrentContext(rc: RenderingContext)
+    internal mtd setCurrentContextImpl(rc: RenderContext)
     {
-        .native.setCurrentContext(rc)
+        .native.setCurrentContext(dref oglContext(rc))
     }
 
     // Clear current render buffers
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd clear()
+    internal mtd clearImpl()
     {
         glClearStencil(0)
         glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE)
@@ -361,7 +369,7 @@ impl RenderOgl
     }
 
     // Returns the active render-target size in pixels.
-    mtd targetSize()->{ width, height: s32 }
+    internal mtd targetSizeImpl()->{ width, height: s32 }
     {
         if .curRT do
             return {.curRT.colorBuffer.width, .curRT.colorBuffer.height}
@@ -369,16 +377,16 @@ impl RenderOgl
     }
 
     // Force the scissor
-    mtd setScissorRect(rect: Math.Rectangle)
+    internal mtd setScissorRectImpl(rect: Math.Rectangle)
     {
         glEnable(GL_SCISSOR_TEST)
-        let {?, h} = .targetSize()
+        let {?, h} = .targetSizeImpl()
         glScissor(cast(GLint) rect.x, cast(GLint) (h - rect.y - rect.height), cast(GLint) rect.width, cast(GLint) rect.height)
     }
 
     // Reset the scissor
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd resetScissorRect()
+    internal mtd resetScissorRectImpl()
     {
         glDisable(GL_SCISSOR_TEST)
     }
@@ -392,7 +400,7 @@ impl RenderOgl
     // Initializes OpenGL extensions, built-in shaders, buffers, and hatch textures.
     //
     // Call this once after a native context is current.
-    mtd init()
+    internal mtd initImpl()
     {
         glInitExtensions()
         .createShaders()
@@ -458,7 +466,7 @@ impl RenderOgl
     }
 
     // Set the current render target
-    mtd bindRenderTarget(rt: *RenderTarget, vp: #null *Math.Rectangle = null)
+    internal mtd bindRenderTargetImpl(rt: *RenderTarget, vp: #null *Math.Rectangle = null)
     {
         Debug.assert(rt != null)
         if !rt.colorBuffer.isValid() do
@@ -480,7 +488,7 @@ impl RenderOgl
     // Unlike [[RenderOgl.unbindRenderTargetToImage]] this does not touch the target stack, so a
     // target filled by a painter command stream, which binds and unbinds it as it runs, can
     // still be read afterwards.
-    mtd readRenderTarget(rt: const *RenderTarget, x, y, w, h: s32)->Image
+    internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, w, h: s32)->Image
     {
         var result: retval = Image.create(w, h, .BGRA8)
         glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint) rt.handle)
@@ -491,19 +499,19 @@ impl RenderOgl
     }
 
     // Get current render target pixels
-    mtd unbindRenderTargetToImage(x, y, w, h: s32)->Image
+    internal mtd unbindRenderTargetToImageImpl(x, y, w, h: s32)->Image
     {
         let curRT = notnull .curRT
 
         var result: retval = Image.create(w, h, .BGRA8)
         glReadBuffer(GL_COLOR_ATTACHMENT0)
         glReadPixels(x, curRT.colorBuffer.height - h - y, w, h, GL_BGRA, GL_UNSIGNED_BYTE, cast([*] u8) (notnull result.pixels.buffer))
-        .unbindRenderTarget()
+        .unbindRenderTargetImpl()
         return result
     }
 
     // Go back to the previous render target, or frame buffer
-    mtd unbindRenderTarget()
+    internal mtd unbindRenderTargetImpl()
     {
         if .stackRT.count
         {
@@ -522,7 +530,7 @@ impl RenderOgl
 
     // Create a render target
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd createRenderTarget(w, h: s32)->RenderTarget
+    internal mtd createRenderTargetImpl(w, h: s32)->RenderTarget
     {
         Debug.assert(w > 0 and h > 0)
         var colorID: GLuint
@@ -551,7 +559,7 @@ impl RenderOgl
 
     // Delete a render target
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd deleteRenderTarget(rt: *RenderTarget)
+    internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
         if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.isValid() do
             return
@@ -569,14 +577,15 @@ impl RenderOgl
     }
 
     // Load and register an image for rendering
-    mtd addImage(fullName: string)->Texture fail
+    internal mtd addImageImpl(fullName: string)->Texture fail
     {
-        return .addImage(Image.load(fullName))
+        let image = Image.load(fullName)
+        return .addImageImpl(&image)
     }
 
     // Register an image for rendering
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd addImage(image: Image)->Texture
+    internal mtd addImageImpl(image: const *Image)->Texture
     {
         if !image.isValid()
         {
@@ -630,7 +639,7 @@ impl RenderOgl
 
     // Update content of texture
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd updateTexture(texture: Texture, pixels: const *u8)
+    internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
     {
         let fmt       = pixelFormatToNative(texture.pixelFormat)
         let textureID = cast(GLuint) texture.handle
@@ -640,7 +649,7 @@ impl RenderOgl
 
     // Reads a texture into owned CPU memory in `pixelFormat`.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
         var result: retval
         glEnable(GL_TEXTURE_2D)
@@ -654,7 +663,7 @@ impl RenderOgl
 
     // Unregister a texture created with 'addImage'
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd removeTexture(texture: *Texture)
+    internal mtd removeTextureImpl(texture: *Texture)
     {
         if !texture.isValid() do
             return
@@ -664,42 +673,42 @@ impl RenderOgl
     }
 
     // Translate the world transform
-    mtd translateTransform(x, y: f32)
+    internal mtd translateTransformImpl(x, y: f32)
     {
         let tr = Transform2.createTranslation(x, y)
         .worldTransform.multiply(tr)
     }
 
     // Rotate the world transform
-    mtd rotateTransform(angle: Math.Angle)
+    internal mtd rotateTransformImpl(angle: Math.Angle)
     {
         let tr = Transform2.createRotation(angle.radians, 0, 0)
         .worldTransform.multiply(tr)
     }
 
     // Rotate the world transform
-    mtd rotateTransform(angle: Math.Angle, centerX, centerY: f32)
+    internal mtd rotateTransformImpl(angle: Math.Angle, centerX, centerY: f32)
     {
         let tr = Transform2.createRotation(angle.radians, centerX, centerY)
         .worldTransform.multiply(tr)
     }
 
     // Scale the world transform
-    mtd scaleTransform(x, y: f32)
+    internal mtd scaleTransformImpl(x, y: f32)
     {
         let tr = Transform2.createScale(x, y, 0, 0)
         .worldTransform.multiply(tr)
     }
 
     // Scale the world transform
-    mtd scaleTransform(x: f32)
+    internal mtd scaleTransformImpl(x: f32)
     {
         let tr = Transform2.createScale(x, x, 0, 0)
         .worldTransform.multiply(tr)
     }
 
     // Reset the world transform
-    mtd resetTransform()
+    internal mtd resetTransformImpl()
     {
         .worldTransform.setIdentity()
         .modelMatrix.setIdentity()
@@ -710,7 +719,7 @@ impl RenderOgl
     // `mvp` and `mdl` are uniform locations in the active shader.
     internal mtd computeMatrices(mvp, mdl: ShaderParamHandle)
     {
-        let {width, height} = .targetSize()
+        let {width, height} = .targetSizeImpl()
 
         // View, ortho projection
         .orthoMatrix = ortho(cast(f32) height, 0, 0, cast(f32) width, 0, 1.0)
@@ -973,7 +982,7 @@ impl RenderOgl
             }
 
         case .BindRenderTarget:
-            .bindRenderTarget(cmd.renderTgt.tgt)
+            .bindRenderTargetImpl(cmd.renderTgt.tgt)
             let curRT = notnull .curRT
             curRT.paintAlpha    = cmd.renderTgt.paintAlpha
             curRT.paintAlphaIdx = cmdIdx
@@ -1003,12 +1012,12 @@ impl RenderOgl
                 }
             }
 
-            .unbindRenderTarget()
+            .unbindRenderTargetImpl()
             let curShader = notnull .curShader
             .computeMatrices(curShader.mvp, curShader.mdl)
 
         case .ReleaseRenderTarget:
-            .releaseRenderTarget(cmd.renderTgt.tgt)
+            .releaseRenderTargetImpl(cmd.renderTgt.tgt)
 
         case .SetDefaultShader:
             let params = &cmd.defaultShader
@@ -1066,9 +1075,9 @@ impl RenderOgl
     }
 
     // Draw the given painter
-    mtd draw(dc: *Painter)
+    internal mtd drawImpl(dc: *Painter)
     {
-        let {width, height} = .targetSize()
+        let {width, height} = .targetSizeImpl()
         if width <= 0 or height <= 0 do
             return
 
@@ -1122,7 +1131,7 @@ impl RenderOgl
     // Acquires a pooled render target at least as large as the requested size.
     //
     // Return it with [[Pixel.RenderOgl.releaseRenderTarget]].
-    mtd acquireRenderTarget(width, height: s32)->*RenderTarget
+    internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
         Debug.assert(width > 0 and height > 0)
         let w2 = Math.roundUpToPowerOf2(cast(u32) width)
@@ -1149,12 +1158,12 @@ impl RenderOgl
         }
 
         var rt = Memory.new'RenderTarget()
-        dref rt = .createRenderTarget(cast(s32) w2, cast(s32) h2)
+        dref rt = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
         return rt
     }
 
     // Release the given render target
-    mtd releaseRenderTarget(tgt: #null *RenderTarget)
+    internal mtd releaseRenderTargetImpl(tgt: #null *RenderTarget)
     {
         if !tgt do
             return

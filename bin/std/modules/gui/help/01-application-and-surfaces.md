@@ -13,10 +13,10 @@ var app: Application
 #main
 {
     let surface = notnull (try app.createSurface(
-        100, 100, 640, 420, SurfaceFlags.OverlappedWindow))
+        100, 100, 640, 420, SurfaceFlags.StandardWindow))
     surface.setTitle("Tasks")
 
-    let view = surface.getView()
+    let view = surface.view()
     PushButton.create(view, "Add task")
 
     surface.show()
@@ -24,9 +24,21 @@ var app: Application
 }
 ```
 
-The first surface initializes the shared Pixel renderer and default theme.
-Additional surfaces belong to the same application and participate in the same
-event loop.
+The first surface initializes the selected [[Pixel.IRenderer]] and default theme.
+OpenGL is selected by default. To use the CPU renderer or a third-party backend,
+select it before creating the first surface; the concrete renderer must outlive
+the application:
+
+```swag
+var cpu: Pixel.RenderCpu
+var app: Application
+app.setRenderer(&cpu)
+let surface = notnull (try app.createSurface(0, 0, 640, 420))
+```
+
+Additional surfaces use the same renderer and participate in the same event loop.
+Their painters are bound automatically; paint handlers use the renderer exposed
+by [[Gui.PaintContext]].
 
 Use [[Gui.Application.postEvent]] to enqueue work for the UI loop.
 [[Gui.Application.sendEvent]] dispatches immediately and should only be used when

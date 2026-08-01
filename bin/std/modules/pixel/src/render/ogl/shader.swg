@@ -12,7 +12,7 @@ const InvalidShaderParamHandle: ShaderParamHandle = cast() -1     // Sentinel fo
 
 // Stores a shader program and the uniform locations shared by Pixel shaders.
 //
-// Handles are initialized by [[RenderOgl.init]] and remain owned by that renderer.
+// Handles are initialized by [[Pixel.IRenderer.init]] and remain owned by that renderer.
 struct ShaderBase
 {
     handle:            ShaderHandle          // OpenGL program handle.

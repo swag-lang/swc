@@ -10,9 +10,10 @@ that solves the problem.
 | Express a color | [[Pixel.Color]] and [[Pixel.Argb]] |
 | Draw shapes, paths, textures, or text | [[Pixel.Painter]] |
 | Build reusable vector geometry | [[Pixel.LinePath]] and [[Pixel.LinePathList]] |
+| Write backend-independent rendering code | [[Pixel.IRenderer]] |
 | Render recorded commands with OpenGL | [[Pixel.RenderOgl]] |
 | Render deterministic pixels without a GPU | [[Pixel.RenderCpu]] |
-| Route painter and layer work to either backend | [[Pixel.PainterRenderer]] |
+| Draw into an image without managing a frame | [[Pixel.ImageCanvas]] |
 | Load and lay out fonts | [[Pixel.TypeFace]], [[Pixel.Font]], and [[Pixel.RichString]] |
 
 ## A first image
@@ -30,6 +31,12 @@ try image.save("preview.png")
 
 Image operations that change dimensions or encoding update the same value. Copying
 an image copies its owned bytes; it does not create a shared view.
+
+For vector drawing, create a concrete renderer, borrow it as an
+[[Pixel.IRenderer]], and pass that interface to [[Pixel.Painter.create]]. The
+renderer owns textures and targets; the painter only records the commands that
+refer to them. See [Rendering recorded commands](#guide_Rendering_recorded_commands)
+for complete CPU and OpenGL lifecycles.
 
 ## Coordinate and color conventions
 

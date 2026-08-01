@@ -22,7 +22,7 @@ private func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = 
     var bc:      PaintContext
 
     bc.painter  = &painter
-    bc.renderer = host.app.rendererRef()
+    bc.renderer = host.app.renderer
 
     painter.begin()
     host.root.paint(&bc)

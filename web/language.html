@@ -4769,7 +4769,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
         cpt += <span class="SNum">1</span>
         <span class="SLgc">if</span> cpt == <span class="SNum">5</span> <span class="SLgc">do</span>
             <span class="SLgc">break</span>     <span class="SCmt">// End the 'Loop' scope</span>
-        <span class="SLgc">continue</span>      <span class="SCmt">// Jump back to the start of 'Loop'</span>
+        <span class="SLgc">continue</span>     <span class="SCmt">// Jump back to the start of 'Loop'</span>
     }
 
     <span class="SItr">@assert</span>(cpt == <span class="SNum">5</span>)
@@ -6506,7 +6506,7 @@ swc format -mf &lt;workspace&gt;/modules/app --dry-run
         <span class="SKwd">var</span> res = <span class="SNum">0</span>
         <span class="SLgc">for</span> v <span class="SLgc">in</span> x <span class="SLgc">do</span>
             res += v
-        res     += toAdd
+        res += toAdd
         <span class="SLgc">return</span> res
     }
     <span class="SKwd">let</span> result = <span class="SFct">fct</span>(<span class="SNum">4</span>)

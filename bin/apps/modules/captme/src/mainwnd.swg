@@ -163,7 +163,7 @@ impl IWnd for MainWnd
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         .saveAppState()
-        let renderer = .app().rendererRef()
+        let renderer = .app().renderer
         .icons24.release(renderer)
         .icons48.release(renderer)
         .appIcon.release(renderer)
@@ -304,7 +304,7 @@ impl MainWnd
         // toImage() may have uploaded the background as a GPU texture on this transient
         // capture; opDrop only frees the forms, so release it explicitly to avoid a leak.
         if loaded.backTexture.isValid() do
-            .editWnd.editView.app().rendererRef().removeTexture(&loaded.backTexture)
+            .editWnd.editView.app().renderer.removeTexture(&loaded.backTexture)
         Memory.delete(loaded)
     }
 
@@ -775,7 +775,7 @@ impl MainWnd
             imgApp = expect Image.decode(".png", AppIcon)
         }
 
-        let renderer = parent.app().rendererRef()
+        let renderer = parent.app().renderer
 
         with let res = Wnd.create'MainWnd(parent, "captme.mainwnd")
         {

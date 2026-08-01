@@ -320,7 +320,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 func loadBindTextures()
 {
-    func loadAndBindTexture(name: string)->Texture fail => (notnull g_Wnd).app().rendererRef().addImage(Path.combine(g_DataPath, name))
+    func loadAndBindTexture(name: string)->Texture fail => (notnull g_Wnd).app().renderer.addImage(Path.combine(g_DataPath, name))
     func loadSound(name: string)->Audio.SoundFile fail  => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
 
     g_DataPath = Path.directoryName(#curlocation.fileName)
@@ -340,7 +340,7 @@ func loadBindTextures()
         g_SoundLaser     = loadSound("laser.wav")
         g_SoundMusic     = loadSound("music.wav")
 
-        g_Font = (notnull g_Wnd).app().rendererRef().fonts.createFont(Path.combine(g_DataPath, "pixeled.ttf"), 40)
+        g_Font = (notnull g_Wnd).app().renderer.fontCache().createFont(Path.combine(g_DataPath, "pixeled.ttf"), 40)
     }
 }
 

@@ -179,7 +179,7 @@
     <span class="SLgc">switch</span> evt
     {
     <span class="SLgc">case</span> <span class="SCst">CreateEvent</span>:
-        g_Rect = wnd.<span class="SFct">getClientRect</span>()
+        g_Rect = wnd.<span class="SFct">clientRect</span>()
 
         <span class="SCmt">// 'loadAssets' can fail. 'expect' converts that recoverable error into a</span>
         <span class="SCmt">// panic because the game cannot continue without its assets.</span>
@@ -188,13 +188,13 @@
         <span class="SFct">start</span>()
 
     <span class="SLgc">case</span> <span class="SCst">ResizeEvent</span>:
-        g_Rect = wnd.<span class="SFct">getClientRect</span>()
+        g_Rect = wnd.<span class="SFct">clientRect</span>()
 
     <span class="SLgc">case</span> <span class="SCst">PaintEvent</span> <span class="SLgc">as</span> paintEvt:
-        <span class="SKwd">let</span> painter = paintEvt.bc.painter
+        <span class="SKwd">let</span> painter = paintEvt.paintContext.painter
 
         <span class="SCmt">// Elapsed time since the previous frame, in seconds.</span>
-        g_Dt = wnd.<span class="SFct">getApp</span>().<span class="SFct">getDt</span>()
+        g_Dt = wnd.<span class="SFct">app</span>().<span class="SFct">deltaSeconds</span>()
 
         <span class="SFct">input</span>(wnd)
         <span class="SFct">paint</span>(painter)
@@ -221,7 +221,7 @@
         painter.<span class="SFct">pushState</span>()
         <span class="SLgc">defer</span> painter.<span class="SFct">popState</span>()
 
-        <span class="SKwd">let</span> trf = painter.<span class="SFct">getTransform</span>()
+        <span class="SKwd">let</span> trf = painter.<span class="SFct">transform</span>()
 
         painter.<span class="SFct">resetTransform</span>()
         <span class="SKwd">let</span> speed = <span class="SCst">Math</span>.<span class="SFct">clamp</span>(g_Bird.speed.y, -<span class="SNum">200</span>, <span class="SNum">200</span>)
@@ -292,7 +292,7 @@
 <p>Read keyboard input for the current frame.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">input</span>(wnd: *<span class="SCst">Wnd</span>)
 {
-    <span class="SKwd">let</span> kb = wnd.<span class="SFct">getApp</span>().<span class="SFct">getKeyboard</span>()
+    <span class="SKwd">let</span> kb = wnd.<span class="SFct">app</span>().<span class="SFct">keyboardRef</span>()
 
     <span class="SLgc">if</span> g_GameOver <span class="SLgc">or</span> g_FirstStart
     {
@@ -322,7 +322,7 @@
     rectBird.y      = g_Bird.pos.y - g_BirdTexture[<span class="SNum">0</span>].height / <span class="SNum">2</span>
     rectBird.width  = g_BirdTexture[<span class="SNum">0</span>].width
     rectBird.height = g_BirdTexture[<span class="SNum">0</span>].height
-    <span class="SLgc">return</span> rect.<span class="SFct">intersectWith</span>(rectBird)
+    <span class="SLgc">return</span> rect.<span class="SFct">intersects</span>(rectBird)
 }
 
 </span></div>
@@ -434,9 +434,9 @@
 <p>The trailing <span class="code-inline">fail</span> marks a function that can return a recoverable error. Calls inside this function propagate errors automatically; <span class="code-inline">#main</span> chooses to turn the final error into a panic with <span class="code-inline">expect</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAssets</span>(wnd: *<span class="SCst">Wnd</span>) <span class="SKwd">fail</span>
 {
-    <span class="SKwd">let</span> render = &amp;wnd.<span class="SFct">getApp</span>().renderer
+    <span class="SKwd">let</span> render = &amp;wnd.<span class="SFct">app</span>().renderer
 
-    <span class="SKwd">var</span> dataPath: <span class="SCst">String</span> = <span class="SCst">Path</span>.<span class="SFct">getDirectoryName</span>(<span class="SCmp">#curlocation</span>.fileName)
+    <span class="SKwd">var</span> dataPath: <span class="SCst">String</span> = <span class="SCst">Path</span>.<span class="SFct">directoryName</span>(<span class="SCmp">#curlocation</span>.fileName)
     dataPath = <span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"datas"</span>)
     dataPath = <span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"flappy"</span>)
 

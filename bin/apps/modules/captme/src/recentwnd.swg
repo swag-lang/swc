@@ -268,8 +268,8 @@ impl IWnd for RecentWnd
             {
                 capture.computePreview()
                 let item = notnull .recentView.items[.recentView.selected]
-                .app().rendererRef().removeTexture(&item.preview)
-                item.preview = .app().rendererRef().addImage(capture.preview)
+                .app().renderer.removeTexture(&item.preview)
+                item.preview = .app().renderer.addImage(capture.preview)
                 .invalidate()
 
                 .main.libWnd.view.updateRecent(capture)
@@ -439,7 +439,7 @@ impl RecentWnd
         {
             let back = notnull .recentView.items.back()
             if back.preview.isValid() do
-                .app().rendererRef().removeTexture(&back.preview)
+                .app().renderer.removeTexture(&back.preview)
             .recentView.items.destroy(back)
             .recentView.items.count -= 1
         }
@@ -476,7 +476,7 @@ impl RecentWnd
         }
 
         let item = .recentView.items.allocate()
-        item.preview        = .app().rendererRef().addImage(preview)
+        item.preview        = .app().renderer.addImage(preview)
         item.file           = file
         item.linked         = linked
         item.linkedUpToDate = linkedUpToDate

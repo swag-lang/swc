@@ -309,5 +309,160 @@
     "hello_jit_ms": 51.2148,
     "hello_build_ms": 60.7251,
     "hello_build_peak_mb": 97.71484375
+  },
+  {
+    "meta": {
+      "stamp": "20260801-160251",
+      "date": "2026-08-01T16:02:51+00:00",
+      "label": "",
+      "commit": "11ae6899b",
+      "subject": "Introduce `PainterRenderer` for backend-agnostic rendering and replace headless GPU support with a unified CPU and OpenGL backend implementation.",
+      "master": "11ae6899b",
+      "dirty": false,
+      "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
+      "swc_bytes": 4873216
+    },
+    "drift_pct": 4.578165671413254,
+    "calibration_ms": 1.9593,
+    "reference": {
+      "runtime": "cpp-clang-cl",
+      "run_ms": {
+        "wordfreq": 49.6701,
+        "csvagg": 16.1798,
+        "sha256": 2.1917,
+        "dijkstra": 38.2181,
+        "raytrace": 8.9227,
+        "leven": 12.0678
+      },
+      "build_ms": {
+        "wordfreq": 385.3205,
+        "csvagg": 370.8955,
+        "sha256": 337.9876,
+        "dijkstra": 343.2697,
+        "raytrace": 319.2982,
+        "leven": 337.5508
+      }
+    },
+    "runtimes": {
+      "swag-release": {
+        "run_ms": {
+          "wordfreq": 94.56500001,
+          "csvagg": 61.73729998,
+          "sha256": 5.67419999,
+          "dijkstra": 50.99839999,
+          "raytrace": 22.42620001,
+          "leven": 33.72090001
+        },
+        "run_ratio": {
+          "wordfreq": 1.9038616795617487,
+          "csvagg": 3.8157022942187173,
+          "sha256": 2.588949212939727,
+          "dijkstra": 1.3344043788152735,
+          "raytrace": 2.513387204545709,
+          "leven": 2.794287277714248
+        },
+        "run_geo_ratio": 2.36787380485438,
+        "build_ms": {
+          "wordfreq": 82.7113,
+          "csvagg": 87.949,
+          "sha256": 75.9205,
+          "dijkstra": 79.3792,
+          "raytrace": 81.4319,
+          "leven": 78.5797
+        },
+        "build_ratio": {
+          "wordfreq": 0.21465585142757782,
+          "csvagg": 0.23712609077219862,
+          "sha256": 0.22462510458963586,
+          "dijkstra": 0.23124441219251218,
+          "raytrace": 0.2550340089609024,
+          "leven": 0.23279370097774915
+        },
+        "build_geo_ms": 80.90854863728302,
+        "build_geo_ratio": 0.23225771867033923,
+        "build_peak_mb": 102.8046875,
+        "exe_kb": 126.07073678255306
+      },
+      "swc-jit-release": {
+        "run_ms": {
+          "wordfreq": 96.44220001,
+          "csvagg": 61.3425,
+          "sha256": 5.65529999,
+          "dijkstra": 49.761,
+          "raytrace": 24.00799998,
+          "leven": 35.8484
+        },
+        "run_ratio": {
+          "wordfreq": 1.9416550401549422,
+          "csvagg": 3.791301499400487,
+          "sha256": 2.580325769950267,
+          "dijkstra": 1.3020270500103355,
+          "raytrace": 2.6906653793134363,
+          "leven": 2.970582873431777
+        },
+        "run_geo_ratio": 2.4135671407620642
+      },
+      "swag-fast-debug": {
+        "run_ms": {
+          "wordfreq": 101.7036,
+          "csvagg": 68.264,
+          "sha256": 17.33239999,
+          "dijkstra": 59.34460001,
+          "raytrace": 25.37320001,
+          "leven": 62.57440001
+        },
+        "run_ratio": {
+          "wordfreq": 2.047581945677581,
+          "csvagg": 4.219087998615557,
+          "sha256": 7.908199110279691,
+          "dijkstra": 1.5527878154591672,
+          "raytrace": 2.8436683974581682,
+          "leven": 5.185236746548666
+        },
+        "run_geo_ratio": 3.4070841054387317,
+        "build_ms": {
+          "wordfreq": 100.4399,
+          "csvagg": 107.0568,
+          "sha256": 91.9336,
+          "dijkstra": 81.1757,
+          "raytrace": 83.6289,
+          "leven": 96.8544
+        },
+        "build_ratio": {
+          "wordfreq": 0.26066586127652175,
+          "csvagg": 0.28864410595437257,
+          "sha256": 0.2720028782121001,
+          "dijkstra": 0.23647790643916433,
+          "raytrace": 0.261914724229576,
+          "leven": 0.28693281129832904
+        },
+        "build_geo_ms": 93.07136778056264,
+        "build_geo_ratio": 0.2671725536834137,
+        "build_peak_mb": 109.859375,
+        "exe_kb": 159.2768518446879
+      },
+      "swc-jit-fast-debug": {
+        "run_ms": {
+          "wordfreq": 101.5969,
+          "csvagg": 70.42470001,
+          "sha256": 18.04359999,
+          "dijkstra": 59.46310001,
+          "raytrace": 26.3457,
+          "leven": 60.69090002
+        },
+        "run_ratio": {
+          "wordfreq": 2.04543377202784,
+          "csvagg": 4.352631059098382,
+          "sha256": 8.232696076105306,
+          "dijkstra": 1.555888440555653,
+          "raytrace": 2.952660069261546,
+          "leven": 5.029160246275212
+        },
+        "run_geo_ratio": 3.4524531204561253
+      }
+    },
+    "hello_jit_ms": 55.6103,
+    "hello_build_ms": 74.0253,
+    "hello_build_peak_mb": 98.16015625
   }
 ]

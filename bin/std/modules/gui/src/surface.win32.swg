@@ -279,7 +279,7 @@ private impl Surface
     }
 
     // Creates a new (invisible) surface
-    func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags, mainSurface: #null *Surface) fail
+    func createNative(app: *Application, result: *Surface, x, y, width, height: s32, flags: SurfaceFlags) fail
     {
         // Create class
         #[Swag.Global]
@@ -321,24 +321,28 @@ private impl Surface
 
         // Create window
         result.hWnd = cast(#null const *void) CreateWindowExW(winFlagsEx, className, surfaceName, winFlags, x, y, width, height, null, null, GetModuleHandleW(null), result)
+        if !result.hWnd do
+            failWinError(GetLastError())
 
         result.applyNativeDwmStyle()
-
-        result.rc = try app.rendererOgl.native.createContext(result.hWnd, width, height, mainSurface ? mainSurface.rc.hRC : null)
     }
 
     mtd destroyNative()
     {
-        if .app.renderer.isSoftware() or !.hWnd do
+        .destroyRendering()
+        if !.hWnd do
             return
 
         .removeTrayIcon()
         catch DestroyWindow(.hWnd)
+        .hWnd = null
     }
 }
 
 impl Surface
 {
+    internal mtd const nativeRenderHandle()->#null const *void => cast(#null const *void) .hWnd
+
     // Returns the Win32 window handle owned by this surface.
     mtd const win32Handle()->HWND => .hWnd
 
@@ -363,7 +367,7 @@ impl Surface
     // layout and is intentionally not used.
     mtd setTrayIcon(icon: Pixel.Image, tip: #null string = null)
     {
-        if .app.renderer.isSoftware() do
+        if !.app.renderer.needsNativeWindow() do
             return
 
         var img     = icon
@@ -398,7 +402,7 @@ impl Surface
         if !.trayIcon do
             return
 
-        if !.app.renderer.isSoftware()
+        if .app.renderer.needsNativeWindow()
         {
             var tnid: NOTIFYICONDATAA
             tnid.cbSize = #sizeof(NOTIFYICONDATAA)
@@ -414,7 +418,7 @@ impl Surface
     // Requests a close through the regular system-command event path.
     mtd requestClose()
     {
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             postSurfaceSysCommand(me, .Close)
             return
@@ -426,7 +430,7 @@ impl Surface
     // Requests minimization through the regular system-command event path.
     mtd requestMinimize()
     {
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             postSurfaceSysCommand(me, .Minimize)
             return
@@ -438,7 +442,7 @@ impl Surface
     // Requests maximization through the regular system-command event path.
     mtd requestMaximize()
     {
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             postSurfaceSysCommand(me, .Maximize)
             return
@@ -450,7 +454,7 @@ impl Surface
     // Requests restoration through the regular system-command event path.
     mtd requestRestore()
     {
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             postSurfaceSysCommand(me, .Restore)
             return
@@ -464,7 +468,7 @@ impl Surface
         let shouldBeTopMost = .flags.has(.TopMost)
         .topMost = shouldBeTopMost
 
-        if .app.renderer.isSoftware() or !.hWnd do
+        if !.app.renderer.needsNativeWindow() or !.hWnd do
             return
 
         var exStyle = cast #bit (u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)
@@ -506,7 +510,7 @@ impl Surface
             clampPos.height = Math.min(clampPos.height, .maxSize.y)
 
         .position = clampPos
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             .sendResizeEvent(clampPos.width, clampPos.height)
             return
@@ -534,7 +538,7 @@ impl Surface
     // Brings the surface to the front of its current Z-order group.
     mtd bringToFront()
     {
-        if .app.renderer.isSoftware() do
+        if !.app.renderer.needsNativeWindow() do
             return
 
         BringWindowToTop(.hWnd)
@@ -546,7 +550,7 @@ impl Surface
         if !.isDisabled do
             return
         .isDisabled = false
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             .invalidate()
             return
@@ -561,7 +565,7 @@ impl Surface
         if .isDisabled do
             return
         .isDisabled = true
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             .invalidate()
             return
@@ -599,7 +603,7 @@ impl Surface
         // window appears already showing correct content.
         .paint()
 
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             let curFocus = .wnd.view.focusedWindow()
             if !curFocus or !.wnd.isAncestorOf(curFocus) do
@@ -627,7 +631,7 @@ impl Surface
             return
         .isHidden = true
 
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             .wnd.view.sendStateEvent(.Hide)
             return
@@ -645,7 +649,7 @@ impl Surface
         .isMaximized      = true
         .isMinimized      = false
         .restoredPosition = .position
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             .invalidate()
             return
@@ -662,7 +666,7 @@ impl Surface
             return
         .isMaximized = false
         .isMinimized = false
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             .setPosition(.restoredPosition)
             .invalidate()
@@ -679,7 +683,7 @@ impl Surface
         if .isMinimized do
             return
         .isMinimized = true
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             .invalidate()
             return
@@ -691,7 +695,7 @@ impl Surface
     // Converts `pt` in place from screen coordinates to surface coordinates.
     mtd screenToSurface(pt: *Math.Point)
     {
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             pt.x -= .position.x
             pt.y -= .position.y
@@ -707,7 +711,7 @@ impl Surface
     // Converts `pt` in place from surface coordinates to screen coordinates.
     mtd surfaceToScreen(pt: *Math.Point)
     {
-        if .app.renderer.isSoftware()
+        if !.app.renderer.needsNativeWindow()
         {
             pt.x += .position.x
             pt.y += .position.y

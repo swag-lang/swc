@@ -38,7 +38,7 @@ impl PaintImage
         paint(wnd.app(), painter)
         painter.end()
 
-        let r  = &wnd.app().renderer
+        let r  = wnd.app().renderer
         let rt = r.acquireRenderTarget(pt.w, pt.h)
         r.bindRenderTarget(rt)
         r.draw(painter)

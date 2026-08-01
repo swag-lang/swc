@@ -516,10 +516,56 @@ namespace
     // sweep once `Rb` has no remaining users, which keeps this rewrite free of
     // liveness reasoning while still folding the common case.
     //
-    // Matching is by strict program-order adjacency so the flag chain is
-    // provably uninterrupted; a copy or unrelated instruction between the
-    // setcc and the branch simply prevents the fold until earlier cleanups
-    // (copy elimination) make the sequence contiguous.
+    // Chain members do not need to be adjacent: a boolean produced for a
+    // short-circuit condition typically also feeds a copy or a spill store for
+    // its consumer at the join, and those sit inside the chain. Instructions in
+    // between are skipped as long as they leave the CPU flags, the boolean
+    // register and the control flow alone; anything else ends the search and
+    // blocks the fold.
+
+    // Previous instruction that either touches the CPU flags, redefines
+    // `trackedReg`, or (when `stopOnFlagUse`) reads the flags. Control-flow
+    // boundaries (labels, terminators, jumps, calls) report failure.
+    MicroInstrRef previousFlagChainInstruction(MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef fromRef, MicroReg trackedReg, bool stopOnFlagUse)
+    {
+        for (MicroInstrRef scanRef = storage.findPreviousInstructionRef(fromRef); scanRef.isValid(); scanRef = storage.findPreviousInstructionRef(scanRef))
+        {
+            const MicroInstr* scanInst = storage.ptr(scanRef);
+            if (!scanInst)
+                return MicroInstrRef::invalid();
+
+            const MicroInstrFlags flags = MicroInstr::info(scanInst->op).flags;
+            if (scanInst->op == MicroInstrOpcode::Label ||
+                flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+                flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return MicroInstrRef::invalid();
+
+            if (flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+                return scanRef;
+            if (stopOnFlagUse && flags.has(MicroInstrFlagsE::UsesCpuFlags))
+                return scanRef;
+
+            if (trackedReg.isValid())
+            {
+                const MicroInstrUseDef useDef = scanInst->collectUseDef(operands, nullptr);
+                bool                   definesTracked = false;
+                for (const MicroReg def : useDef.defs)
+                {
+                    if (def == trackedReg)
+                    {
+                        definesTracked = true;
+                        break;
+                    }
+                }
+                if (definesTracked)
+                    return scanRef;
+            }
+        }
+
+        return MicroInstrRef::invalid();
+    }
+
     bool fuseMaterializedBoolBranches(MicroStorage& storage, MicroOperandStorage& operands)
     {
         bool changed = false;
@@ -545,7 +591,9 @@ namespace
             else
                 continue;
 
-            const MicroInstrRef cmpRef = storage.findPreviousInstructionRef(jumpRef);
+            // The next flag-relevant instruction upstream must be the boolean
+            // test; a flag reader in between would lose the erased compare.
+            const MicroInstrRef cmpRef = previousFlagChainInstruction(storage, operands, jumpRef, MicroReg::invalid(), true);
             if (!cmpRef.isValid())
                 continue;
             const MicroInstr* cmpInst = storage.ptr(cmpRef);
@@ -559,7 +607,14 @@ namespace
             if (!boolReg.isVirtual())
                 continue;
 
-            MicroInstrRef     defRef  = storage.findPreviousInstructionRef(cmpRef);
+            // The fall-through path keeps observing the flags at the jump, so
+            // the compare can only go when nothing downstream reads them.
+            if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, jumpRef))
+                continue;
+
+            // Readers between the setcc and the compare still see the original
+            // comparison's flags, so only flag writers end the walk here.
+            MicroInstrRef     defRef  = previousFlagChainInstruction(storage, operands, cmpRef, boolReg, false);
             const MicroInstr* defInst = defRef.isValid() ? storage.ptr(defRef) : nullptr;
             if (!defInst)
                 continue;
@@ -569,7 +624,7 @@ namespace
                 const MicroInstrOperand* extOps = defInst->ops(operands);
                 if (!extOps || extOps[0].reg != boolReg || extOps[1].reg != boolReg)
                     continue;
-                defRef  = storage.findPreviousInstructionRef(defRef);
+                defRef  = previousFlagChainInstruction(storage, operands, defRef, boolReg, false);
                 defInst = defRef.isValid() ? storage.ptr(defRef) : nullptr;
                 if (!defInst)
                     continue;

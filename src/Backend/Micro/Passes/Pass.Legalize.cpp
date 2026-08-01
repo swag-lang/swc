@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Memory/MemoryProfile.h"
 #include "Support/Report/Assert.h"
@@ -126,47 +127,6 @@ namespace
             if (isRegUsedBeforeDefinitionWithinLocalFlowAfterInstruction(context, instRef, reg))
                 addVirtualForbiddenReg(context, virtualReg, reg);
         }
-    }
-
-    uint32_t computeNextVirtualRegIndex(const MicroPassContext& context, bool isFloat, uint32_t nextIndex)
-    {
-        SWC_ASSERT(context.instructions);
-        SWC_ASSERT(context.operands);
-
-        for (const MicroInstr& inst : context.instructions->view())
-        {
-            SmallVector<MicroInstrRegOperandRef> refs;
-            inst.collectRegOperands(*context.operands, refs, context.encoder);
-            for (const auto& ref : refs)
-            {
-                if (!ref.reg)
-                    continue;
-
-                const MicroReg reg = *ref.reg;
-                if (isFloat ? !reg.isVirtualFloat() : !reg.isVirtualInt())
-                    continue;
-
-                if (reg.index() < MicroReg::K_MAX_INDEX)
-                    nextIndex = std::max(nextIndex, reg.index() + 1);
-                else
-                    nextIndex = MicroReg::K_MAX_INDEX;
-            }
-        }
-
-        return nextIndex;
-    }
-
-    uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context)
-    {
-        uint32_t hint = 1;
-        if (context.builder)
-            hint = std::max(hint, (context.builder)->nextVirtualIntRegIndexHint());
-        return computeNextVirtualRegIndex(context, false, hint);
-    }
-
-    uint32_t computeNextVirtualFloatRegIndex(const MicroPassContext& context)
-    {
-        return computeNextVirtualRegIndex(context, true, 1);
     }
 
     MicroReg allocateVirtualIntReg(const MicroPassContext& context, uint32_t& nextVirtualIntRegIndex)
@@ -1004,8 +964,8 @@ Result MicroLegalizePass::run(MicroPassContext& context)
     SWC_ASSERT(context.operands);
     const auto& encoder                  = *(context.encoder);
     uint64_t    stackScratchFrameSize    = 0;
-    uint32_t    nextVirtualIntRegIndex   = computeNextVirtualIntRegIndex(context);
-    uint32_t    nextVirtualFloatRegIndex = computeNextVirtualFloatRegIndex(context);
+    uint32_t    nextVirtualIntRegIndex   = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+    uint32_t    nextVirtualFloatRegIndex = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
     {
         const MicroInstr&        inst = *it;

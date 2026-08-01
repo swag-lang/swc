@@ -100,6 +100,34 @@ namespace InstructionCombine
             return emitLoadRegImm(ctx, ref, dst, opBits, absorbed);
         }
 
+        // and dst, 0xFF / 0xFFFF / 0xFFFFFFFF == a zero-extending self move. The
+        // move needs no immediate at all (0xFFFFFFFF cannot even encode as a
+        // sign-extended imm32, so the AND form costs a 10-byte materialization),
+        // but it also drops the AND's flag write, so flags must be dead after.
+        if (op == MicroOp::And && (opBits == MicroOpBits::B64 || opBits == MicroOpBits::B32))
+        {
+            MicroOpBits maskBits = MicroOpBits::Zero;
+            if (imm == 0xFF)
+                maskBits = MicroOpBits::B8;
+            else if (imm == 0xFFFF)
+                maskBits = MicroOpBits::B16;
+            else if (imm == 0xFFFFFFFF && opBits == MicroOpBits::B64)
+                maskBits = MicroOpBits::B32;
+
+            if (maskBits != MicroOpBits::Zero &&
+                MicroPassHelpers::areCpuFlagsDeadAfter(*ctx.storage, *ctx.operands, ref) &&
+                ctx.claimAll({ref}))
+            {
+                MicroInstrOperand extendOps[4];
+                extendOps[0].reg    = dst;
+                extendOps[1].reg    = dst;
+                extendOps[2].opBits = opBits;
+                extendOps[3].opBits = maskBits;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadZeroExtRegReg, extendOps);
+                return true;
+            }
+        }
+
         if (!ctx.ssa)
             return false;
 

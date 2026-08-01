@@ -14,6 +14,11 @@ namespace MicroPassHelpers
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
     bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef);
 
+    // First virtual register index not used by any operand, starting above the
+    // builder's hint. Passes that synthesize registers allocate upward from here.
+    uint32_t computeNextVirtualIntRegIndex(const MicroPassContext& context);
+    uint32_t computeNextVirtualFloatRegIndex(const MicroPassContext& context);
+
     // Replace all uses of 'fromReg' with 'toReg' in instructions after 'afterInstRef',
     // within the same local flow region (stops at redefinition of either register, calls,
     // labels, branches). Returns the number of uses replaced.

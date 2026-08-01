@@ -131,6 +131,170 @@ namespace
         builder.emitRet();
     }
 
+    struct ConstantDivisionCase
+    {
+        uint64_t    dividend;
+        uint64_t    divisor;
+        MicroOp     op;
+        MicroOpBits opBits;
+    };
+
+    // Exercises the strength-reduction expansion of division by a constant: unsigned
+    // magic with and without the add-fixup, signed magic, signed powers of two, and
+    // the matching modulo reconstructions, over both operand widths and including
+    // the boundary dividends. The baseline (unoptimized) run of the same program
+    // cross-checks the C++ reference against the hardware divide.
+    constexpr ConstantDivisionCase CONSTANT_DIVISION_CASES[] = {
+        {0, 10, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {1, 10, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {9, 10, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {123456789, 10, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {0xFFFFFFFFFFFFFFFFull, 10, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {0, 7, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {6, 7, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {49, 7, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {(1ull << 63) + 12345, 7, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {0xFFFFFFFFFFFFFFFFull, 7, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {999999999999999989ull, 641, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {0xFFFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFBull, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {12345, 800, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {639999, 800, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {640000, 800, MicroOp::DivideUnsigned, MicroOpBits::B64},
+        {0xFFFFFFFFFFFFFFFFull, 10, MicroOp::ModuloUnsigned, MicroOpBits::B64},
+        {123, 10, MicroOp::ModuloUnsigned, MicroOpBits::B64},
+        {(1ull << 63) + 9, 7, MicroOp::ModuloUnsigned, MicroOpBits::B64},
+        {639999, 800, MicroOp::ModuloUnsigned, MicroOpBits::B64},
+        {1000002, 1000003, MicroOp::ModuloUnsigned, MicroOpBits::B64},
+        {1000003, 1000003, MicroOp::ModuloUnsigned, MicroOpBits::B64},
+        {2000007, 1000003, MicroOp::ModuloUnsigned, MicroOpBits::B64},
+        {0xFFFFFFFF, 7, MicroOp::DivideUnsigned, MicroOpBits::B32},
+        {0xFFFFFFFF, 10, MicroOp::DivideUnsigned, MicroOpBits::B32},
+        {99, 10, MicroOp::DivideUnsigned, MicroOpBits::B32},
+        {1ull << 31, 800, MicroOp::DivideUnsigned, MicroOpBits::B32},
+        {0xFFFFFFFF, 10, MicroOp::ModuloUnsigned, MicroOpBits::B32},
+        {801, 800, MicroOp::ModuloUnsigned, MicroOpBits::B32},
+        {static_cast<uint64_t>(INT64_MIN), 2, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(INT64_MIN), 4096, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-37), 8, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-8), 8, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-7), 8, MicroOp::DivideSigned, MicroOpBits::B64},
+        {7, 8, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(INT64_MAX), 2, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(INT64_MIN), 7, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(INT64_MAX), 7, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-1000003), 10, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-37), 3, MicroOp::DivideSigned, MicroOpBits::B64},
+        {999999, 1000003, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-999999999999ll), 800, MicroOp::DivideSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(INT64_MIN), 7, MicroOp::ModuloSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-37), 10, MicroOp::ModuloSigned, MicroOpBits::B64},
+        {37, 10, MicroOp::ModuloSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-4096), 4096, MicroOp::ModuloSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(INT64_MIN), 4096, MicroOp::ModuloSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(-1), 3, MicroOp::ModuloSigned, MicroOpBits::B64},
+        {static_cast<uint64_t>(INT32_MIN), 7, MicroOp::DivideSigned, MicroOpBits::B32},
+        {static_cast<uint64_t>(-5), 7, MicroOp::DivideSigned, MicroOpBits::B32},
+        {6, 7, MicroOp::DivideSigned, MicroOpBits::B32},
+        {static_cast<uint64_t>(INT32_MIN), 8, MicroOp::DivideSigned, MicroOpBits::B32},
+        {static_cast<uint64_t>(-5), 8, MicroOp::ModuloSigned, MicroOpBits::B32},
+        {0x7FFFFFFF, 7, MicroOp::ModuloSigned, MicroOpBits::B32},
+    };
+
+    uint64_t g_constantDivisionDividends[std::size(CONSTANT_DIVISION_CASES)];
+
+    uint64_t foldConstantDivision(const ConstantDivisionCase& divisionCase)
+    {
+        const uint64_t n = divisionCase.dividend;
+        const uint64_t d = divisionCase.divisor;
+
+        if (divisionCase.opBits == MicroOpBits::B64)
+        {
+            switch (divisionCase.op)
+            {
+                case MicroOp::DivideUnsigned:
+                    return n / d;
+                case MicroOp::ModuloUnsigned:
+                    return n % d;
+                case MicroOp::DivideSigned:
+                    return static_cast<uint64_t>(static_cast<int64_t>(n) / static_cast<int64_t>(d));
+                case MicroOp::ModuloSigned:
+                    return static_cast<uint64_t>(static_cast<int64_t>(n) % static_cast<int64_t>(d));
+                default:
+                    SWC_UNREACHABLE();
+            }
+        }
+
+        const auto n32 = static_cast<uint32_t>(n);
+        const auto d32 = static_cast<uint32_t>(d);
+        switch (divisionCase.op)
+        {
+            case MicroOp::DivideUnsigned:
+                return n32 / d32;
+            case MicroOp::ModuloUnsigned:
+                return n32 % d32;
+            case MicroOp::DivideSigned:
+                return static_cast<uint32_t>(static_cast<int32_t>(n32) / static_cast<int32_t>(d32));
+            case MicroOp::ModuloSigned:
+                return static_cast<uint32_t>(static_cast<int32_t>(n32) % static_cast<int32_t>(d32));
+            default:
+                SWC_UNREACHABLE();
+        }
+    }
+
+    uint64_t constantDivisionChecksum()
+    {
+        uint64_t checksum = 0;
+        for (const auto& divisionCase : CONSTANT_DIVISION_CASES)
+            checksum = checksum * 31 + foldConstantDivision(divisionCase);
+        return checksum;
+    }
+
+    void buildConstantDivisionChecksum(MicroBuilder& builder, const CallConv& callConv, bool optimize)
+    {
+        Runtime::BuildCfgBackend buildCfg{};
+        buildCfg.optimize = optimize;
+        builder.setBackendBuildCfg(buildCfg);
+
+        constexpr MicroReg checksumReg = MicroReg::virtualIntReg(1);
+        constexpr MicroReg valueReg    = MicroReg::virtualIntReg(2);
+        constexpr MicroReg tableReg    = MicroReg::virtualIntReg(3);
+
+        // The dividends are read from memory so constant folding cannot collapse the
+        // divisions before the strength-reduction expansion runs.
+        for (size_t i = 0; i < std::size(CONSTANT_DIVISION_CASES); ++i)
+            g_constantDivisionDividends[i] = CONSTANT_DIVISION_CASES[i].dividend;
+
+        builder.emitLoadRegImm(checksumReg, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+        builder.emitLoadRegPtrImm(tableReg, reinterpret_cast<uint64_t>(g_constantDivisionDividends));
+
+        for (size_t i = 0; i < std::size(CONSTANT_DIVISION_CASES); ++i)
+        {
+            const ConstantDivisionCase& divisionCase = CONSTANT_DIVISION_CASES[i];
+            const uint32_t              bits         = getNumBits(divisionCase.opBits);
+
+            builder.emitLoadRegMem(valueReg, tableReg, i * 8, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(valueReg, ApInt(divisionCase.divisor, bits), divisionCase.op, divisionCase.opBits);
+            if (divisionCase.opBits == MicroOpBits::B32)
+                builder.emitLoadZeroExtendRegReg(valueReg, valueReg, MicroOpBits::B64, MicroOpBits::B32);
+
+            builder.emitOpBinaryRegImm(checksumReg, ApInt(31, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(checksumReg, valueReg, MicroOp::Add, MicroOpBits::B64);
+        }
+
+        builder.emitLoadRegReg(callConv.intReturn, checksumReg, MicroOpBits::B64);
+        builder.emitRet();
+    }
+
+    void buildConstantDivisionChecksumOptimized(MicroBuilder& builder, const CallConv& callConv)
+    {
+        buildConstantDivisionChecksum(builder, callConv, true);
+    }
+
+    void buildConstantDivisionChecksumBaseline(MicroBuilder& builder, const CallConv& callConv)
+    {
+        buildConstantDivisionChecksum(builder, callConv, false);
+    }
+
     void buildReturnOneAfterB32LoadAndZeroExtend(MicroBuilder& builder, const CallConv& callConv)
     {
         Runtime::BuildCfgBackend buildCfg{};
@@ -176,6 +340,20 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(JIT_B32LoadAndZeroExtendKeepsUpperBitsClear)
 {
     SWC_RESULT(runCase(ctx, &buildReturnOneAfterB32LoadAndZeroExtend, 1));
+}
+SWC_TEST_END()
+
+// Hardware divides only: validates the C++ reference checksum itself.
+SWC_TEST_BEGIN(JIT_ConstantDivisionBaseline)
+{
+    SWC_RESULT(runCase(ctx, &buildConstantDivisionChecksumBaseline, constantDivisionChecksum()));
+}
+SWC_TEST_END()
+
+// Optimized pipeline: the same divisions go through the multiply-high expansion.
+SWC_TEST_BEGIN(JIT_ConstantDivisionStrengthReduced)
+{
+    SWC_RESULT(runCase(ctx, &buildConstantDivisionChecksumOptimized, constantDivisionChecksum()));
 }
 SWC_TEST_END()
 

@@ -502,7 +502,9 @@ SWC_TEST_BEGIN(InstCombine_MaskBeforeLeftShift_KeptWhenMaskTooNarrow)
 
     SWC_RESULT(runInstCombinePass(builder));
 
-    if (countBinaryMicroOp(builder, MicroOp::And) != 1)
+    // The mask itself must survive; the byte-mask AND canonicalizes into the
+    // equivalent zero-extending move, which keeps the masking effect.
+    if (countBinaryMicroOp(builder, MicroOp::And) + countOpcode(builder, MicroInstrOpcode::LoadZeroExtRegReg) != 1)
         return Result::Error;
     return Result::Continue;
 }

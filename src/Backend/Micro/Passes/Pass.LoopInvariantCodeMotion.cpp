@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/SmallVector.h"
@@ -49,6 +50,17 @@ namespace
             default:
                 return false;
         }
+    }
+
+    // Two-address compute opcodes (the destination is read-modify-write). They
+    // never qualify alone: the incoming destination value is a use that changes
+    // every iteration through the re-copy. They hoist only as the second half of
+    // an adjacent copy+compute pair whose copy is hoisted with them, and since
+    // they define CPU flags they additionally need flags to be dead both after
+    // the compute and at the preheader insertion point.
+    bool isEligiblePairedComputeOpcode(MicroInstrOpcode op)
+    {
+        return op == MicroInstrOpcode::OpBinaryRegImm || op == MicroInstrOpcode::OpBinaryRegReg;
     }
 
     // The subset of eligible opcodes that dereference memory. Hoisting these
@@ -382,15 +394,22 @@ namespace
         std::vector<Clone> clones; // in preheader emission order
     };
 
-    // Order a loop's hoist set so a producer precedes every consumer.
-    bool topoOrderHoistSet(const MicroSsaState&                ssaState,
-                           std::span<const MicroInstrRef>      instrRefs,
-                           const std::unordered_set<uint32_t>& hoistSet,
-                           std::vector<uint32_t>&              outOrder)
+    // Order a loop's hoist set so a producer precedes every consumer. For a
+    // copy+compute pair both instructions define the same register: consumers
+    // must depend on the compute (the final value), while the compute itself
+    // depends on its copy through the explicit pair edge.
+    bool topoOrderHoistSet(const MicroSsaState&                          ssaState,
+                           std::span<const MicroInstrRef>                instrRefs,
+                           const std::unordered_set<uint32_t>&           hoistSet,
+                           const std::unordered_map<uint32_t, uint32_t>& pairedCopyOf,
+                           const std::unordered_map<uint32_t, uint32_t>& pairedComputeOf,
+                           std::vector<uint32_t>&                        outOrder)
     {
         std::unordered_map<MicroReg, uint32_t> regToNode;
         for (const uint32_t i : hoistSet)
         {
+            if (pairedComputeOf.contains(i))
+                continue;
             const MicroInstrUseDef* useDef = ssaState.instrUseDef(instrRefs[i]);
             if (useDef && useDef->defs.size() == 1)
                 regToNode[useDef->defs[0]] = i;
@@ -414,6 +433,13 @@ namespace
                     ++indegree[i];
                 }
             }
+        }
+        for (const auto& [compute, copy] : pairedCopyOf)
+        {
+            if (!hoistSet.contains(compute) || !hoistSet.contains(copy))
+                continue;
+            dependents[copy].push_back(compute);
+            ++indegree[compute];
         }
 
         std::vector<uint32_t> ready;
@@ -575,6 +601,11 @@ namespace
             if (prevIsUncondJump || prevIsUncondTerm)
                 continue;
 
+            // Pure loads/copies never touch CPU flags, but a hoisted copy+compute
+            // pair inserts a flag-writing instruction at the preheader insertion
+            // point, which is only sound when no flags are live across it.
+            const bool preheaderFlagsDead = MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, prevRef);
+
             // Classify the loop's memory writers. A call or an opaque pointer
             // store may alias anything and blocks load hoisting; a store to a
             // private frame slot only aliases frame-derived loads.
@@ -625,9 +656,53 @@ namespace
                     defsInLoop.insert(def);
             }
 
-            std::unordered_set<uint32_t> hoistSet;
-            std::unordered_set<MicroReg> hoistedRegs;
-            bool                         progress = true;
+            std::unordered_set<uint32_t>           hoistSet;
+            std::unordered_set<MicroReg>           hoistedRegs;
+            std::unordered_map<uint32_t, uint32_t> pairedCopyOf;    // compute slot -> its copy slot
+            std::unordered_map<uint32_t, uint32_t> pairedComputeOf; // copy slot -> its compute slot
+
+            // A copy whose destination has exactly two defs qualifies when the
+            // second def is the immediately adjacent two-address compute over the
+            // same register: both then move together, so every use still reads the
+            // same (invariant) final value. Returns the compute's slot, K_INVALID
+            // when the shape or one of its guards does not hold.
+            const auto findAdjacentPairCompute = [&](MicroInstrRef copyRef, MicroReg destReg) -> uint32_t {
+                if (!preheaderFlagsDead)
+                    return K_INVALID;
+
+                const MicroInstrRef computeRef = storage.findNextInstructionRef(copyRef);
+                if (!computeRef.isValid() || relocRefs.contains(computeRef.get()) || claimed.contains(computeRef.get()))
+                    return K_INVALID;
+                const auto computeIdxIt = refToIndex.find(computeRef.get());
+                if (computeIdxIt == refToIndex.end())
+                    return K_INVALID;
+                const uint32_t computeIdx = computeIdxIt->second;
+                if (!inBody[computeIdx] || computeIdx == header || hoistSet.contains(computeIdx))
+                    return K_INVALID;
+
+                const MicroInstr* computeInst = storage.ptr(computeRef);
+                if (!computeInst || !isEligiblePairedComputeOpcode(computeInst->op))
+                    return K_INVALID;
+
+                const MicroInstrUseDef* computeUseDef = ssaState->instrUseDef(computeRef);
+                if (!computeUseDef || computeUseDef->isCall || computeUseDef->defs.size() != 1 || computeUseDef->defs[0] != destReg)
+                    return K_INVALID;
+
+                for (const MicroReg use : computeUseDef->uses)
+                {
+                    if (use == destReg)
+                        continue;
+                    if (defsInLoop.contains(use) && !hoistedRegs.contains(use))
+                        return K_INVALID;
+                }
+
+                if (!MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, computeRef))
+                    return K_INVALID;
+
+                return computeIdx;
+            };
+
+            bool progress = true;
             while (progress)
             {
                 progress = false;
@@ -652,7 +727,17 @@ namespace
                     if (!destReg.isVirtual())
                         continue;
                     const auto dc = defCount.find(destReg);
-                    if (dc == defCount.end() || dc->second != 1)
+                    if (dc == defCount.end())
+                        continue;
+
+                    uint32_t pairComputeIndex = K_INVALID;
+                    if (dc->second == 2)
+                    {
+                        pairComputeIndex = findAdjacentPairCompute(ref, destReg);
+                        if (pairComputeIndex == K_INVALID)
+                            continue;
+                    }
+                    else if (dc->second != 1)
                         continue;
 
                     bool allInvariant = true;
@@ -714,6 +799,12 @@ namespace
                     }
 
                     hoistSet.insert(i);
+                    if (pairComputeIndex != K_INVALID)
+                    {
+                        hoistSet.insert(pairComputeIndex);
+                        pairedCopyOf[pairComputeIndex] = i;
+                        pairedComputeOf[i]             = pairComputeIndex;
+                    }
                     hoistedRegs.insert(destReg);
                     progress = true;
                 }
@@ -744,6 +835,10 @@ namespace
                 std::unordered_map<MicroReg, uint32_t> hoistedDef;
                 for (const uint32_t i : hoistSet)
                 {
+                    // For a pair, consumers must pull the compute (the final value),
+                    // never the copy; the copy is reached through the pair link.
+                    if (pairedComputeOf.contains(i))
+                        continue;
                     const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
                     if (ud && ud->defs.size() == 1)
                         hoistedDef[ud->defs[0]] = i;
@@ -769,6 +864,17 @@ namespace
                 {
                     const uint32_t i = worklist.back();
                     worklist.pop_back();
+
+                    // A pair moves or stays as a unit: a hoisted copy without its
+                    // compute (or the reverse) would compound the two-address
+                    // update across iterations.
+                    const auto pairCopy = pairedCopyOf.find(i);
+                    if (pairCopy != pairedCopyOf.end() && keep.insert(pairCopy->second).second)
+                        worklist.push_back(pairCopy->second);
+                    const auto pairCompute = pairedComputeOf.find(i);
+                    if (pairCompute != pairedComputeOf.end() && keep.insert(pairCompute->second).second)
+                        worklist.push_back(pairCompute->second);
+
                     const MicroInstrUseDef* ud = ssaState->instrUseDef(instrRefs[i]);
                     if (!ud)
                         continue;
@@ -786,7 +892,7 @@ namespace
                 continue;
 
             std::vector<uint32_t> order;
-            if (!topoOrderHoistSet(*ssaState, instrRefs, hoistSet, order))
+            if (!topoOrderHoistSet(*ssaState, instrRefs, hoistSet, pairedCopyOf, pairedComputeOf, order))
                 continue; // dependency cycle (should not happen) — skip defensively.
 
             HoistPlan plan;

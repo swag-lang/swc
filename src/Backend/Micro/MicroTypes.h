@@ -104,6 +104,8 @@ enum class MicroOp : uint8_t
     Move,
     MoveSignExtend,
     MultiplyAdd,
+    MultiplyHighSigned,
+    MultiplyHighUnsigned,
     MultiplySigned,
     MultiplyUnsigned,
     Negate,

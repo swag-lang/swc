@@ -1,8 +1,10 @@
 #include "pch.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Math/ApsInt.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -30,6 +32,50 @@ bool MicroPassHelpers::instructionActuallyUsesCpuFlags(const MicroInstr& inst, c
     }
 
     return true;
+}
+
+namespace
+{
+    uint32_t computeNextVirtualRegIndex(const MicroPassContext& context, bool isFloat, uint32_t nextIndex)
+    {
+        SWC_ASSERT(context.instructions);
+        SWC_ASSERT(context.operands);
+
+        for (const MicroInstr& inst : context.instructions->view())
+        {
+            SmallVector<MicroInstrRegOperandRef> refs;
+            inst.collectRegOperands(*context.operands, refs, context.encoder);
+            for (const auto& ref : refs)
+            {
+                if (!ref.reg)
+                    continue;
+
+                const MicroReg reg = *ref.reg;
+                if (isFloat ? !reg.isVirtualFloat() : !reg.isVirtualInt())
+                    continue;
+
+                if (reg.index() < MicroReg::K_MAX_INDEX)
+                    nextIndex = std::max(nextIndex, reg.index() + 1);
+                else
+                    nextIndex = MicroReg::K_MAX_INDEX;
+            }
+        }
+
+        return nextIndex;
+    }
+}
+
+uint32_t MicroPassHelpers::computeNextVirtualIntRegIndex(const MicroPassContext& context)
+{
+    uint32_t hint = 1;
+    if (context.builder)
+        hint = std::max(hint, context.builder->nextVirtualIntRegIndexHint());
+    return computeNextVirtualRegIndex(context, false, hint);
+}
+
+uint32_t MicroPassHelpers::computeNextVirtualFloatRegIndex(const MicroPassContext& context)
+{
+    return computeNextVirtualRegIndex(context, true, 1);
 }
 
 bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef afterRef)

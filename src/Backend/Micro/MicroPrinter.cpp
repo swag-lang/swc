@@ -164,6 +164,10 @@ namespace
                 return "movsx";
             case MicroOp::MultiplyAdd:
                 return "madd";
+            case MicroOp::MultiplyHighSigned:
+                return "imulhi";
+            case MicroOp::MultiplyHighUnsigned:
+                return "mulhi";
             case MicroOp::MultiplySigned:
                 return "imul";
             case MicroOp::MultiplyUnsigned:

@@ -256,6 +256,13 @@ impl Surface
 
     internal mtd paint()
     {
+        .paintWnd(.wnd)
+    }
+
+    // Paints an explicit root through the surface pipeline. Headless tests use their detached
+    // deterministic root; native surfaces use the SurfaceWnd selected by paint().
+    internal mtd paintWnd(root: *Wnd)
+    {
         .createRT()
 
         if !.isDirty do
@@ -279,9 +286,9 @@ impl Surface
         .paintShadow()
 
         // Hierarchy paint
-        .painter.pushClippingRect(.wnd.surfaceRect())
+        .painter.pushClippingRect(root.surfaceRect())
         .painter.setColorMaskColor()
-        .wnd.paint(&cxt)
+        root.paint(&cxt)
         .painter.resetTransform()
         .painter.popClippingRect()
 

@@ -1,7 +1,7 @@
 # Painting and themes
 
 Paint handlers receive a [[Gui.PaintEvent]] whose [[Gui.PaintContext]] connects
-the current Pixel painter and OpenGL renderer. Drawing uses the same logical-pixel
+the current Pixel painter and renderer. Drawing uses the same logical-pixel
 coordinate system as the window.
 
 The theme is separated into:
@@ -27,3 +27,26 @@ Paint only inside the invalidated region when possible. Call
 [[Gui.Wnd.invalidateRect]] when only a bounded region changed.
 [[Gui.Application.notifyThemeChanged]] recomputes styles and invalidates the
 interface after editing shared theme data.
+
+## Headless paint tests
+
+[[Gui.Testing.HeadlessHost]] builds a deterministic application and widget tree
+without creating an OS window. [[Gui.Testing.HeadlessHost.render]] runs the normal
+surface paint pipeline through Pixel's software renderer and returns owned pixels.
+
+```swag
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 80)
+    discard PushButton.create(&host.root, "Continue", {20, 20, 120, 32})
+
+    let image = host.render()
+    Pixel.Testing.assertImageGolden(&image, "continue-button")
+}
+```
+
+Use structural and event assertions for behavior, command goldens for emitted
+paint operations, and PNG goldens for the final composition. A small OpenGL
+integration suite remains necessary for context, shader compiler, and driver
+coverage.

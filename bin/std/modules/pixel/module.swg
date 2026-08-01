@@ -18,6 +18,30 @@ image.fill(Color.fromRgb(24, 32, 48))
 try image.save("preview.png")
 ```
 
+## Record and render with the CPU backend
+
+Create the concrete backend first, borrow it as an [[Pixel.IRenderer]], then
+create the [[Pixel.Painter]] with that renderer. The painter records commands;
+[[Pixel.Painter.render]] submits them to the renderer selected at creation.
+
+```swag
+var cpu: RenderCpu
+let renderer: IRenderer = &cpu
+var painter = Painter.create(renderer)
+var context = try renderer.createContext(null, 320, 180)
+defer renderer.deleteContext(&context)
+
+renderer.begin(context)
+painter.begin()
+painter.clear(Color.fromRgb(24, 32, 48))
+painter.fillCircle(160, 90, 48, Color.fromRgb(72, 149, 239))
+painter.end()
+painter.render()
+renderer.end()
+
+let image = cpu.surfaceImage()
+```
+
 The filename extension selects the encoder when loading or saving. Operations
 that can reject malformed data, fail to access a file, or fail in a backend use
 Swag's normal `fail` mechanism.

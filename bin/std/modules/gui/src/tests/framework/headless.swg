@@ -65,19 +65,22 @@ impl HeadlessHost
         // not clobber the user's own clipboard.
         Clipboard.setFake(true)
 
-        .app.renderer.setBackend(&.renderer)
+        .app.setRenderer(&.renderer)
+
+        .surface.rc      = expect .app.renderer.createContext(null, cast(s32) width, cast(s32) height)
+        .surface.bindPainterToRenderer(.app.renderer)
+        .app.renderer.setCurrentContext(.surface.rc)
+        .app.renderer.init()
 
         .theme = Memory.new'Theme()
         .theme.colors.setDark()
-        .theme.setupDefault(&.app.renderer)
+        .theme.setupDefault(.app.renderer)
 
         .app.theme = .theme
         .app.style.own(.theme)
 
         .surface.app       = &.app
         .surface.position  = {0, 0, width, height}
-        .surface.rc.width  = cast(s32) width
-        .surface.rc.height = cast(s32) height
         .app.mainSurface   = &.surface
 
         let root = &.root
@@ -109,6 +112,7 @@ impl HeadlessHost
         if !.root.isPendingDestroy do
             .root.destroy()
         .pump()
+        .surface.destroyRendering()
         Clipboard.setFake(false)
     }
 
@@ -118,7 +122,7 @@ impl HeadlessHost
     // style instead of rebuilding resources.
     mtd bindApplication(app: *Application)
     {
-        app.renderer = .app.renderer
+        app.setRenderer(.app.renderer)
         app.theme = .theme
 
         app.style.share(&.app.style)

@@ -9,10 +9,10 @@ using Swag, Core, Pixel
 {
     var cpu: RenderCpu
     var app: Application
-    app.renderer.setBackend(&cpu)
+    app.setRenderer(&cpu)
 
     let surface = notnull (expect app.createSurface(0, 0, 160, 96))
-    @assert(app.renderer.isSoftware())
+    @assert(!app.renderer.needsNativeWindow())
     @assert(!surface.hWnd)
 
     surface.show()

@@ -309,15 +309,14 @@ impl Capture
         var result: retval
 
         let rect = Math.Rectangle{width: .width * zoom, height: .height * zoom}
-        var painter: Pixel.Painter
-
-        let render = g_App.rendererRef()
+        let render = g_App.renderer
+        var painter = Pixel.Painter.create(render)
         let srf    = notnull (notnull .editView).surface
         render.begin(srf.renderingContext())
         painter.begin()
 
         var layer: Layer
-        layer.begin(render, &painter, {width: cast(s32) rect.width, height: cast(s32) rect.height, paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
+        layer.begin(&painter, {width: cast(s32) rect.width, height: cast(s32) rect.height, paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
 
         .paintBackImage(&painter, 0, 0, zoom)
         with painter
@@ -576,8 +575,6 @@ impl Capture
 
     func paintForm(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false)
     {
-        let render = &g_App.renderer
-
         var boundRect = f.boundRect()
         boundRect.width  = Math.max(boundRect.width, 1)
         boundRect.height = Math.max(boundRect.height, 1)
@@ -624,7 +621,7 @@ impl Capture
 
         let textSuperSample = (!quickMode and @kindof(f) == FormText) ? TextFormSuperSample : 1
         var layer: Layer
-        layer.begin(render, painter, {width: wt2, height: ht2, renderScale: textSuperSample})
+        layer.begin(painter, {width: wt2, height: ht2, renderScale: textSuperSample})
 
         with painter
         {
@@ -693,7 +690,7 @@ impl Capture
     mtd paintBackImage(painter: *Painter, x, y: f32, z: f32)
     {
         let editView = notnull .editView
-        let renderer = editView.app().rendererRef()
+        let renderer = editView.app().renderer
 
         // Background image
         if !.backTexture.isValid() and .backImg.width > 0

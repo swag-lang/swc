@@ -9,27 +9,21 @@ using Swag, Core
 // Every step is invisible to the other suites and reaches the renderer only as a command sequence,
 // which is exactly what a golden records. See [[Testing.assertGolden]].
 //
-// The renderer uses the CPU backend, so no graphics context is involved and resource handles are
+// The painter uses the CPU backend, so no graphics context is involved and resource handles are
 // allocated in a deterministic order. Built-in effects remain explicit painter commands.
-private func makeLayerRenderer(cpu: *RenderCpu, renderer: *PainterRenderer)
-{
-    renderer.setBackend(cpu)
-}
 
 #test
 {
-    var painter:  Painter
-    var cpu:      RenderCpu
-    var renderer: PainterRenderer
+    var cpu: RenderCpu
+    var painter = Painter.create(&cpu)
     var layer:    Layer
     var begin:    LayerBeginInfo
 
-    makeLayerRenderer(&cpu, &renderer)
     begin.width  = 64
     begin.height = 32
 
     painter.begin()
-    layer.begin(&renderer, &painter, begin)
+    layer.begin(&painter, begin)
     painter.fillRect(0, 0, 64, 32, Color.fromArgb(Argb.Red))
     layer.end()
     layer.release()
@@ -41,19 +35,17 @@ private func makeLayerRenderer(cpu: *RenderCpu, renderer: *PainterRenderer)
 // size; without renderScale the resolve is a no-op.
 #test
 {
-    var painter:  Painter
-    var cpu:      RenderCpu
-    var renderer: PainterRenderer
+    var cpu: RenderCpu
+    var painter = Painter.create(&cpu)
     var layer:    Layer
     var begin:    LayerBeginInfo
 
-    makeLayerRenderer(&cpu, &renderer)
     begin.width       = 64
     begin.height      = 32
     begin.renderScale = 2
 
     painter.begin()
-    layer.begin(&renderer, &painter, begin)
+    layer.begin(&painter, begin)
     painter.fillRect(0, 0, 64, 32, Color.fromArgb(Argb.Red))
     layer.end()
     layer.resolve()
@@ -65,20 +57,18 @@ private func makeLayerRenderer(cpu: *RenderCpu, renderer: *PainterRenderer)
 // Compositing a layer binds its content texture and draws one quad.
 #test
 {
-    var painter:  Painter
-    var cpu:      RenderCpu
-    var renderer: PainterRenderer
+    var cpu: RenderCpu
+    var painter = Painter.create(&cpu)
     var layer:    Layer
     var begin:    LayerBeginInfo
     var draw:     LayerDrawInfo
 
-    makeLayerRenderer(&cpu, &renderer)
     begin.width  = 64
     begin.height = 32
     draw.dstRect = {10, 10, 64, 32}
 
     painter.begin()
-    layer.begin(&renderer, &painter, begin)
+    layer.begin(&painter, begin)
     painter.fillRect(0, 0, 64, 32, Color.fromArgb(Argb.Red))
     layer.end()
     layer.resolve()
@@ -91,14 +81,12 @@ private func makeLayerRenderer(cpu: *RenderCpu, renderer: *PainterRenderer)
 // exercises the built-in blur program and its parameters.
 #test
 {
-    var painter:  Painter
-    var cpu:      RenderCpu
-    var renderer: PainterRenderer
+    var cpu: RenderCpu
+    var painter = Painter.create(&cpu)
     var layer:    Layer
     var begin:    LayerBeginInfo
     var draw:     LayerDrawInfo
 
-    makeLayerRenderer(&cpu, &renderer)
     begin.width         = 64
     begin.height        = 32
     draw.dstRect        = {10, 10, 64, 32}
@@ -108,7 +96,7 @@ private func makeLayerRenderer(cpu: *RenderCpu, renderer: *PainterRenderer)
     draw.shadow.offsetY = 4
 
     painter.begin()
-    layer.begin(&renderer, &painter, begin)
+    layer.begin(&painter, begin)
     painter.fillRect(0, 0, 64, 32, Color.fromArgb(Argb.Red))
     layer.end()
     layer.resolve()

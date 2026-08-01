@@ -469,7 +469,7 @@ the final error into a panic with 'expect'.
 */
 func loadAssets(wnd: *Wnd) fail
 {
-    let render = &wnd.app().renderer
+    let render = wnd.app().renderer
 
     var dataPath: String = Path.directoryName(#curlocation.fileName)
     dataPath = Path.combine(dataPath, "datas")
@@ -485,23 +485,19 @@ func loadAssets(wnd: *Wnd) fail
         g_SoundFlap  = .load(Path.combine(dataPath, "flap.wav"))
     }
 
-    // Load all textures.
-    // 'with' also accepts a value; leading-dot calls use 'render' as receiver.
-    with render
-    {
-        g_BirdTexture[0] = .addImage(Path.combine(dataPath, "yellowbird-upflap.png"))
-        g_BirdTexture[1] = .addImage(Path.combine(dataPath, "yellowbird-midflap.png"))
-        g_BirdTexture[2] = .addImage(Path.combine(dataPath, "yellowbird-downflap.png"))
-        g_OverTexture    = .addImage(Path.combine(dataPath, "gameover.png"))
-        g_BaseTexture    = .addImage(Path.combine(dataPath, "base.png"))
-        g_BackTexture    = .addImage(Path.combine(dataPath, "background-day.png"))
-        g_MsgTexture     = .addImage(Path.combine(dataPath, "message.png"))
-    }
+    // Load all textures through the application's selected renderer.
+    g_BirdTexture[0] = render.addImage(Path.combine(dataPath, "yellowbird-upflap.png"))
+    g_BirdTexture[1] = render.addImage(Path.combine(dataPath, "yellowbird-midflap.png"))
+    g_BirdTexture[2] = render.addImage(Path.combine(dataPath, "yellowbird-downflap.png"))
+    g_OverTexture    = render.addImage(Path.combine(dataPath, "gameover.png"))
+    g_BaseTexture    = render.addImage(Path.combine(dataPath, "base.png"))
+    g_BackTexture    = render.addImage(Path.combine(dataPath, "background-day.png"))
+    g_MsgTexture     = render.addImage(Path.combine(dataPath, "message.png"))
 
     var img = Image.load(Path.combine(dataPath, "pipe-green.png"))
     g_PipeTextureD = render.addImage(img)
     img.flip()
     g_PipeTextureU = render.addImage(img)
 
-    g_Font = render.fonts.createFont(Path.combine(dataPath, "FlappyBirdy.ttf"), 50)
+    g_Font = render.fontCache().createFont(Path.combine(dataPath, "FlappyBirdy.ttf"), 50)
 }

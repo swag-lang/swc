@@ -11,10 +11,14 @@ struct Application
     using native: ApplicationNative                 // Platform-specific application state.
     sigFrame:     SigArray'func||(*Application)     // Emitted after each processed frame.
 
-    options:  ApplicationOptions          // Diagnostics and development options.
-    appIcon:  Pixel.Image                 // Icon used for native windows created by the application.
-    renderer: Pixel.PainterRenderer       // Shared painter renderer used by every surface.
-    internal rendererOgl: Pixel.RenderOgl // Native OpenGL backend borrowed by `renderer`.
+    options: ApplicationOptions     // Diagnostics and development options.
+    appIcon: Pixel.Image            // Icon used for native windows created by the application.
+    readonly
+    {
+        #[Swag.Late]
+        renderer: Pixel.IRenderer     // Renderer selected before the first surface is created.
+    }
+    internal rendererOgl: Pixel.RenderOgl     // Default OpenGL renderer used when none is selected.
     #[Swag.Late]
     theme:       *Theme             // Active application theme.
     style:       ThemeStyle         // Root style inherited by surface window trees.
@@ -600,15 +604,13 @@ impl Application
         }
 
         .deletePointers()
-        .theme.freeDefault()
+        if @isset(.theme) do
+            .theme.freeDefault()
     }
 
     // Frequently queried application services and per-frame input state.
     #[Swag.Inline]
     {
-        // Returns a mutable borrow of the application renderer.
-        mtd rendererRef() => &.renderer
-
         // Returns a mutable borrow of the keyboard state.
         mtd keyboardRef() => &.keyboard
 
@@ -617,6 +619,16 @@ impl Application
 
         // Returns the duration of the current frame, in seconds.
         mtd const deltaSeconds() => .timing.deltaSeconds
+    }
+
+    // Selects the renderer borrowed by every painter and surface of this application.
+    //
+    // Call this before [[Gui.Application.createSurface]]. The concrete renderer must outlive the
+    // application. When omitted, the first surface selects [[Pixel.RenderOgl]].
+    mtd setRenderer(renderer: Pixel.IRenderer)
+    {
+        Debug.assert(!.mainSurface, "renderer must be selected before creating a surface")
+        .renderer = renderer
     }
 
     internal mtd clearWndInputState(wnd: *Wnd)
@@ -665,25 +677,35 @@ impl Application
     mtd createSurface(x, y, width, height: s32, flags = SurfaceFlags.StandardWindow, view: #null *Wnd = null, hook: #null HookEvent = null, surfaceId: #null string = null)->#null *Surface fail
     {
         let surface = Memory.new'Surface()
+        var surfaceCreated: bool
+        defer if !surfaceCreated
+        {
+            surface.destroyNative()
+            Memory.delete(surface.wnd)
+            Memory.delete(surface)
+        }
+
         surface.app       = me
         surface.position  = {x, y, width, height}
         surface.surfaceId = surfaceId
 
         if !.mainSurface
         {
-            if !.renderer.hasBackend() do
-                .renderer.setBackend(&.rendererOgl)
-            .theme = Memory.new'Theme()
+            if !@isset(.renderer) do
+                .setRenderer(&.rendererOgl)
+            if !@isset(.theme) do
+                .theme = Memory.new'Theme()
             .style.set(.theme)
         }
 
         try Surface.create(surface, x, y, width, height, flags, .mainSurface)
+        surfaceCreated = true
 
         if !.mainSurface
         {
             .renderer.setCurrentContext(surface.rc)
             .renderer.init()
-            .theme.setupDefault(&.renderer)
+            .theme.setupDefault(.renderer)
             .mainSurface = surface
 
             // Spin up the shared worker pool so the parallel rasterizers (glyph MSDF

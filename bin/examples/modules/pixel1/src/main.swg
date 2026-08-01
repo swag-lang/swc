@@ -97,12 +97,12 @@ func drawScene(painter: *Pixel.Painter)
 
 func display()
 {
-    g_Renderer.begin(g_RC)
+    g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter)
     g_Painter.end()
-    g_Renderer.draw(&g_Painter)
-    g_Renderer.end()
+    g_Painter.render()
+    g_Render.end()
 }
 
 func onResize(_window: *Env.Window, width, height: s32)
@@ -113,16 +113,19 @@ func onResize(_window: *Env.Window, width, height: s32)
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
+var g_Render:   Pixel.IRenderer = undefined
 var g_Painter:  Pixel.Painter
-var g_RC:       Pixel.RenderingContext
+var g_RC:       Pixel.RenderContext
 
 #main
 {
     try Env.createWindow(&g_Window, {className: "PIXEL1_CLASS_NAME", title: "Pixel example - antialiasing comparison", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
-    g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
-    g_Renderer.setCurrentContext(g_RC)
-    g_Renderer.init()
+    g_Render  = &g_Renderer
+    g_Painter = Pixel.Painter.create(g_Render)
+    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_Render.setCurrentContext(g_RC)
+    g_Render.init()
 
     g_Window.callbacks.onResize = &onResize
 
@@ -134,5 +137,5 @@ var g_RC:       Pixel.RenderingContext
         display()
     }
 
-    g_Renderer.native.dropContext(g_RC)
+    g_Render.deleteContext(&g_RC)
 }

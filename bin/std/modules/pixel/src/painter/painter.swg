@@ -195,14 +195,16 @@ struct Command
 
 // Records drawing operations as a deferred command and vertex stream.
 //
-// Call [[Painter.begin]], issue drawing operations, and call [[Painter.end]]
-// before handing the painter to a renderer. Coordinates are in path-space pixels
-// and are transformed by the current [[Core.Math.Transform2]].
+// Create it with an [[Pixel.IRenderer]], call [[Painter.begin]], issue drawing
+// operations, call [[Painter.end]], then call [[Painter.render]]. Coordinates are
+// in path-space pixels and are transformed by the current [[Core.Math.Transform2]].
 //
 // ## Example
 //
 // ```swag
-// var painter: Painter
+// var cpu: RenderCpu
+// let renderer: IRenderer = &cpu
+// var painter = Painter.create(renderer)
 // painter.begin()
 // painter.clear(Color.fromRgb(24, 32, 48))
 // painter.fillCircle(48, 48, 24, Color.fromRgb(72, 149, 239))
@@ -210,6 +212,10 @@ struct Command
 // ```
 struct Painter
 {
+    // Optional backend selected for [[Painter.render]]. It is borrowed and may
+    // remain unset when the painter is used only to inspect recorded commands.
+    private rendererItf: #null IRenderer
+
     // The recorded frame. A renderer, a golden test or a bounds pass reads it; only the
     // drawing methods append to it.
     readonly
@@ -273,6 +279,45 @@ struct Painter
 
 impl Painter
 {
+    // Creates a painter that borrows `renderer` for resource ownership and submission.
+    //
+    // The concrete renderer must outlive this painter and every resource referenced
+    // by its command stream.
+    func create(renderer: IRenderer)->Painter
+    {
+        var result: retval
+        result.rendererItf = renderer
+        return result
+    }
+
+    // Selects the renderer used by [[Painter.render]].
+    //
+    // Change it only when no recording is active and no renderer-owned resource is
+    // referenced by the painter.
+    mtd setRenderer(renderer: IRenderer)
+    {
+        Debug.assert(!.drawingBegin)
+        .rendererItf = renderer
+    }
+
+    // Returns the renderer selected for this painter.
+    //
+    // The returned interface borrows the concrete renderer.
+    mtd renderer()->IRenderer
+    {
+        Debug.assert(.rendererItf != null, "painter has no renderer")
+        return notnull .rendererItf
+    }
+
+    // Submits the completed command stream to the selected renderer.
+    //
+    // Rendering is synchronous. Call [[Painter.end]] before this method.
+    mtd render()
+    {
+        Debug.assert(!.drawingBegin)
+        .renderer().draw(me)
+    }
+
     private func getTextureSize(brush: Brush)->{ w: s32, h: s32 }
     {
         var result: retval

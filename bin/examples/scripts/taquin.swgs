@@ -45,7 +45,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         dataPath = Path.combine(dataPath, "taquin")
 
         g_Image   = expect Image.load(Path.combine(dataPath, "lighthouse.jpg"))
-        g_Texture = wnd.app().rendererRef().addImage(g_Image)
+        g_Texture = wnd.app().renderer.addImage(g_Image)
         g_Rect    = wnd.clientRect()
 
         // List of tiles to pick from

@@ -5,9 +5,10 @@ using Swag, Core
 #test
 {
     var renderer: RenderOgl
+    let render = cast(IRenderer) &renderer
 
     var image: Image
-    let texture = renderer.addImage(image)
+    let texture = render.addImage(image)
     @assert(!texture.isValid())
     @assert(texture.width == 0 and texture.height == 0)
 }

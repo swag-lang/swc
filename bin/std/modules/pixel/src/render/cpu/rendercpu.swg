@@ -899,7 +899,7 @@ private impl RenderCpu
             .paintOn      = true
 
         case .BindRenderTarget:
-            .bindRenderTarget(cmd.renderTgt.tgt)
+            .bindRenderTargetImpl(cmd.renderTgt.tgt)
             let target = notnull .curRT
             target.paintAlpha    = cmd.renderTgt.paintAlpha
             target.paintAlphaIdx = 0
@@ -908,10 +908,10 @@ private impl RenderCpu
             let target = notnull .curRT
             if target.paintAlpha do
                 .replayTargetAlpha(painter, target.paintAlphaIdx, cmdIdx)
-            .unbindRenderTarget()
+            .unbindRenderTargetImpl()
 
         case .ReleaseRenderTarget:
-            .releaseRenderTarget(cmd.renderTgt.tgt)
+            .releaseRenderTargetImpl(cmd.renderTgt.tgt)
 
         case .SetDefaultShader:
             switch #complete cmd.defaultShader.id
@@ -969,13 +969,13 @@ impl RenderCpu
     {
         Debug.assert(width > 0 and height > 0, "RenderCpu.begin needs positive width and height")
         .ensureSurface(width, height)
-        .resetTransform()
+        .resetTransformImpl()
     }
 
     // Finishes a CPU frame.
     //
     // CPU rendering is synchronous, so this operation does not present or wait for work.
-    mtd end()
+    internal mtd endImpl()
     {
     }
 
@@ -989,13 +989,13 @@ impl RenderCpu
     // Clears the active target, or the frame surface, to transparent black.
     //
     // All color channels are written; an active direct scissor rectangle still limits the clear.
-    mtd clear()
+    internal mtd clearImpl()
     {
         .clearCurrent(Color.fromArgb(Argb.Zero), true)
     }
 
     // Returns the active target size in pixels.
-    mtd targetSize()->{ width, height: s32 }
+    internal mtd targetSizeImpl()->{ width, height: s32 }
     {
         let image = .currentImage()
         if image do
@@ -1004,14 +1004,14 @@ impl RenderCpu
     }
 
     // Restricts following writes to a surface-space rectangle.
-    mtd setScissorRect(rect: Math.Rectangle)
+    internal mtd setScissorRectImpl(rect: Math.Rectangle)
     {
         .scissorOn   = true
         .scissorRect = rect
     }
 
     // Disables the surface-space scissor rectangle.
-    mtd resetScissorRect()
+    internal mtd resetScissorRectImpl()
     {
         .scissorOn = false
     }
@@ -1019,7 +1019,7 @@ impl RenderCpu
     // Executes a completed painter command stream synchronously.
     //
     // The painter must have been ended and must remain unchanged until this call returns.
-    mtd draw(painter: *Painter)
+    internal mtd drawImpl(painter: *Painter)
     {
         .resetDrawState()
         for &cmd, [idx] in painter.commandBuffer do
@@ -1029,7 +1029,7 @@ impl RenderCpu
     // Binds an off-screen target for following direct operations or painter submission.
     //
     // The target is borrowed until [[Pixel.RenderCpu.unbindRenderTarget]] restores its parent.
-    mtd bindRenderTarget(rt: *RenderTarget)
+    internal mtd bindRenderTargetImpl(rt: *RenderTarget)
     {
         Debug.assert(rt != null, "bindRenderTarget needs a target")
         if !rt.colorBuffer.isValid() do
@@ -1044,7 +1044,7 @@ impl RenderCpu
     // Reads a rectangle of an off-screen target into a new image.
     //
     // The rectangle is clamped to the target and must retain at least one pixel.
-    mtd readRenderTarget(rt: const *RenderTarget, x, y, width, height: s32)->Image
+    internal mtd readRenderTargetImpl(rt: const *RenderTarget, x, y, width, height: s32)->Image
     {
         Debug.assert(rt != null and width > 0 and height > 0, "readRenderTarget needs a target and positive dimensions")
         let storage = .findTexture(rt.colorBuffer.handle)
@@ -1056,16 +1056,16 @@ impl RenderCpu
     }
 
     // Reads the active target into a new image, then restores the previous target.
-    mtd unbindRenderTargetToImage(x, y, width, height: s32)->Image
+    internal mtd unbindRenderTargetToImageImpl(x, y, width, height: s32)->Image
     {
         let rt = notnull .curRT
-        var result = .readRenderTarget(rt, x, y, width, height)
-        .unbindRenderTarget()
+        var result = .readRenderTargetImpl(rt, x, y, width, height)
+        .unbindRenderTargetImpl()
         return result
     }
 
     // Restores the previous render target, or the frame surface.
-    mtd unbindRenderTarget()
+    internal mtd unbindRenderTargetImpl()
     {
         if .stackRT.count do
             .curRT = .stackRT.popBack()
@@ -1074,7 +1074,7 @@ impl RenderCpu
     }
 
     // Creates a transparent off-screen BGRA target with positive dimensions.
-    mtd createRenderTarget(width, height: s32)->RenderTarget
+    internal mtd createRenderTargetImpl(width, height: s32)->RenderTarget
     {
         Debug.assert(width > 0 and height > 0, "createRenderTarget needs positive width and height")
 
@@ -1095,7 +1095,7 @@ impl RenderCpu
     }
 
     // Releases an off-screen target and invalidates its descriptor.
-    mtd deleteRenderTarget(rt: *RenderTarget)
+    internal mtd deleteRenderTargetImpl(rt: *RenderTarget)
     {
         if rt.handle == InvalidRenderTargetHandle or !rt.colorBuffer.isValid() do
             return
@@ -1104,13 +1104,14 @@ impl RenderCpu
     }
 
     // Loads an image file and registers an owned CPU texture.
-    mtd addImage(fullName: string)->Texture fail
+    internal mtd addImageImpl(fullName: string)->Texture fail
     {
-        return .addImage(Image.load(fullName))
+        let image = Image.load(fullName)
+        return .addImageImpl(&image)
     }
 
     // Copies an image into a renderer-owned CPU texture.
-    mtd addImage(image: Image)->Texture
+    internal mtd addImageImpl(image: const *Image)->Texture
     {
         if !image.isValid() do
             return {}
@@ -1121,7 +1122,7 @@ impl RenderCpu
 
         var storage: CpuTexture
         storage.handle = result.handle
-        storage.image  = image
+        storage.image  = dref image
         .textures.add(#move storage)
         return result
     }
@@ -1129,7 +1130,7 @@ impl RenderCpu
     // Replaces all bytes of a renderer-owned texture.
     //
     // `pixels` must address at least [[Pixel.Texture.byteCount]] readable bytes.
-    mtd updateTexture(texture: Texture, pixels: const *u8)
+    internal mtd updateTextureImpl(texture: Texture, pixels: const *u8)
     {
         let storage = .findTexture(texture.handle)
         Debug.assert(storage != null, "texture is not owned by this renderer")
@@ -1138,7 +1139,7 @@ impl RenderCpu
     }
 
     // Reads a renderer-owned texture into the requested tightly packed format.
-    mtd readTexturePixels(texture: Texture, pixelFormat: PixelFormat)->Array'u8
+    internal mtd readTexturePixelsImpl(texture: Texture, pixelFormat: PixelFormat)->Array'u8
     {
         var result: retval
         if !texture.isValid() do
@@ -1152,7 +1153,7 @@ impl RenderCpu
     }
 
     // Releases a renderer-owned texture and invalidates its descriptor.
-    mtd removeTexture(texture: *Texture)
+    internal mtd removeTextureImpl(texture: *Texture)
     {
         if !texture.isValid() do
             return
@@ -1161,37 +1162,37 @@ impl RenderCpu
     }
 
     // Translates following painter submissions in surface pixels.
-    mtd translateTransform(x, y: f32)
+    internal mtd translateTransformImpl(x, y: f32)
     {
         .worldTransform.multiply(Transform2.createTranslation(x, y))
     }
 
     // Rotates following painter submissions around the surface origin.
-    mtd rotateTransform(angle: Math.Angle)
+    internal mtd rotateTransformImpl(angle: Math.Angle)
     {
         .worldTransform.multiply(Transform2.createRotation(angle.radians, 0, 0))
     }
 
     // Rotates following painter submissions around a surface-space center.
-    mtd rotateTransform(angle: Math.Angle, centerX, centerY: f32)
+    internal mtd rotateTransformImpl(angle: Math.Angle, centerX, centerY: f32)
     {
         .worldTransform.multiply(Transform2.createRotation(angle.radians, centerX, centerY))
     }
 
     // Scales following painter submissions independently on both axes.
-    mtd scaleTransform(x, y: f32)
+    internal mtd scaleTransformImpl(x, y: f32)
     {
         .worldTransform.multiply(Transform2.createScale(x, y, 0, 0))
     }
 
     // Scales following painter submissions uniformly.
-    mtd scaleTransform(scale: f32)
+    internal mtd scaleTransformImpl(scale: f32)
     {
-        .scaleTransform(scale, scale)
+        .scaleTransformImpl(scale, scale)
     }
 
     // Restores the identity world transform.
-    mtd resetTransform()
+    internal mtd resetTransformImpl()
     {
         .worldTransform = Transform2.Identity
     }
@@ -1200,7 +1201,7 @@ impl RenderCpu
     //
     // The renderer owns the returned descriptor. Return it with
     // [[Pixel.RenderCpu.releaseRenderTarget]] after unbinding it.
-    mtd acquireRenderTarget(width, height: s32)->*RenderTarget
+    internal mtd acquireRenderTargetImpl(width, height: s32)->*RenderTarget
     {
         Debug.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
         let w2 = Math.roundUpToPowerOf2(cast(u32) width)
@@ -1217,7 +1218,7 @@ impl RenderCpu
         }
 
         let result = Memory.new'RenderTarget()
-        dref result = .createRenderTarget(cast(s32) w2, cast(s32) h2)
+        dref result = .createRenderTargetImpl(cast(s32) w2, cast(s32) h2)
         return result
     }
 
@@ -1225,7 +1226,7 @@ impl RenderCpu
     //
     // `target` must be a currently unbound pointer returned by
     // [[Pixel.RenderCpu.acquireRenderTarget]]. Ownership transfers back to the renderer.
-    mtd releaseRenderTarget(target: #null *RenderTarget)
+    internal mtd releaseRenderTargetImpl(target: #null *RenderTarget)
     {
         if target do
             .stackReleasedRT.add(target)

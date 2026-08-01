@@ -577,7 +577,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     dataPath = Path.combine(dataPath, "pieces.png")
     let img = expect Image.load(dataPath)
 
-    let rdr = surface.app.rendererRef()
+    let rdr = surface.app.renderer
     var y   = 0
     for [i] in 2
     {

@@ -84,8 +84,8 @@ func drawRenderTargetPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter, "Pixel render targets", "Page 9 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
 
-    let tgt = g_Renderer.acquireRenderTarget(360, 220)
-    defer g_Renderer.releaseRenderTarget(tgt)
+    let tgt = g_Render.acquireRenderTarget(360, 220)
+    defer g_Render.releaseRenderTarget(tgt)
 
     painter.bindRenderTarget(tgt, true)
     drawRenderTargetContent(painter, tgt.colorBuffer.width, tgt.colorBuffer.height)

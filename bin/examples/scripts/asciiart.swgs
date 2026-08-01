@@ -36,7 +36,7 @@ func openImage(surface: #null *Surface)
         MessageDlg.error(notnull surface, "Failed to load image", err)
 }
 
-func compute(render: *RenderOgl)
+func compute(render: IRenderer)
 {
     if !g_Img.isValid() do
         return
@@ -56,7 +56,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         btn.sigPressed += func|wnd|(btn)
         {
             openImage(btn.surface)
-            compute(&btn.app().renderer)
+            compute(btn.app().renderer)
             wnd.invalidate()
         }
 

@@ -118,7 +118,7 @@ public struct GlyphCache
 // ## Example
 //
 // ```swag
-// let font = try renderer.fonts.createFont("Inter-Regular.ttf", 18)
+// let font = try renderer.fontCache().createFont("Inter-Regular.ttf", 18)
 // painter.drawString(20, 32, "Hello, Pixel", font, Pixel.Argb.White)
 // ```
 public struct Font

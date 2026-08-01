@@ -10,8 +10,9 @@ const FixedWindowStyle = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBO
 
 var g_Window:   Env.Window
 var g_Renderer: Pixel.RenderOgl
+var g_Render:   Pixel.IRenderer = undefined
 var g_Painter:  Pixel.Painter
-var g_RC:       Pixel.RenderingContext
+var g_RC:       Pixel.RenderContext
 var g_Keyboard: Input.Keyboard
 
 var g_FontPath:     String
@@ -125,8 +126,8 @@ func buildTileBrushImage()->Image
 func loadBrushTextures()
 {
     // Keep the showcase self-contained by generating brush textures on the fly.
-    g_FillTexture = g_Renderer.addImage(buildFillBrushImage())
-    g_TileTexture = g_Renderer.addImage(buildTileBrushImage())
+    g_FillTexture = g_Render.addImage(buildFillBrushImage())
+    g_TileTexture = g_Render.addImage(buildTileBrushImage())
 }
 
 func loadTextShowcase()
@@ -326,12 +327,12 @@ func drawScene(painter: *Pixel.Painter)
 
 func display()
 {
-    g_Renderer.begin(g_RC)
+    g_Render.begin(g_RC)
     g_Painter.begin()
     drawScene(&g_Painter)
     g_Painter.end()
-    g_Renderer.draw(&g_Painter)
-    g_Renderer.end()
+    g_Painter.render()
+    g_Render.end()
 }
 
 func onResize(_window: *Env.Window, width, height: s32)
@@ -367,9 +368,11 @@ func updateTestMode()
 {
     try Env.createWindow(&g_Window, {className: "PIXEL4_CLASS_NAME", title: "Pixel path and brush drawing showcase", width: W, height: H, style: FixedWindowStyle})
     try g_Window.setClientSize(W, H)
-    g_RC = try g_Renderer.native.createContext(&g_Window, W, H)
-    g_Renderer.setCurrentContext(g_RC)
-    g_Renderer.init()
+    g_Render  = &g_Renderer
+    g_Painter = Pixel.Painter.create(g_Render)
+    g_RC      = try g_Render.createContext(cast(#null const *void) g_Window.nativeHandle, W, H)
+    g_Render.setCurrentContext(g_RC)
+    g_Render.init()
 
     try loadFonts()
     loadBrushTextures()
@@ -388,5 +391,5 @@ func updateTestMode()
         updateTestMode()
     }
 
-    g_Renderer.native.dropContext(g_RC)
+    g_Render.deleteContext(&g_RC)
 }

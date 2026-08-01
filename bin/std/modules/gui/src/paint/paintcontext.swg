@@ -3,7 +3,7 @@ using Core, Pixel
 // Supplies the painter, renderer, and inherited disabled state for one paint event.
 public struct PaintContext
 {
-    painter:    *Painter         = undefined     // Painter receiving draw commands.
-    renderer:   *PainterRenderer = undefined     // Renderer that will execute the commands.
-    isDisabled: bool                             // Whether an ancestor disables the painted window.
+    painter:    *Painter  = undefined     // Painter receiving draw commands.
+    renderer:   IRenderer = undefined     // Renderer that will execute the commands.
+    isDisabled: bool                      // Whether an ancestor disables the painted window.
 }

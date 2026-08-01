@@ -2118,7 +2118,7 @@ func loadBindTextures()
 {
     func loadAndBindTexture(name: string)->Texture
     {
-        return expect theWnd().app().rendererRef().addImage(Path.combine(g_DataPath, name))
+        return expect theWnd().app().renderer.addImage(Path.combine(g_DataPath, name))
     }
 
     // Assets are located in the 'datas/pacman' sub folder

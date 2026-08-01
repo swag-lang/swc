@@ -42,7 +42,7 @@ struct Surface
     // the paint loop own them; callers reach the drawable with 'renderingContext'.
     internal
     {
-        rc:        RenderingContext                                        // Drawable and viewport the frame targets.
+        rc:        RenderContext                                           // Drawable and viewport the frame targets.
         dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
         isDirty:   bool                                                    // Whether a repaint is pending.
     }
@@ -73,11 +73,16 @@ enum SurfaceFlags
 
 impl Surface
 {
+    internal mtd bindPainterToRenderer(renderer: IRenderer)
+    {
+        .painter.setRenderer(renderer)
+    }
+
     // Returns the drawable and viewport of this surface.
     //
-    // Pass it to [[Pixel.PainterRenderer.begin]] to draw into this surface with an own painter,
+    // Pass it to [[Pixel.IRenderer.begin]] to draw into this surface with an own painter,
     // as a capture or an export pass does.
-    mtd const renderingContext()->Pixel.RenderingContext
+    mtd const renderingContext()->Pixel.RenderContext
     {
         return .rc
     }
@@ -141,14 +146,28 @@ impl Surface
         }
 
         let app = surface.app
-        if !app.renderer.isSoftware() do
-            try createNative(app, surface, x, y, width, height, flags, mainSurface)
+        if app.renderer.needsNativeWindow() do
+            try createNative(app, surface, x, y, width, height, flags)
+
+        surface.rc      = try app.renderer.createContext(surface.nativeRenderHandle(), width, height, mainSurface ? &mainSurface.rc : null)
+        surface.painter = Painter.create(app.renderer)
 
         surface.minSize = {128, 128}
         let w = cast(f32) Math.max(surface.minSize.x, cast(f32) width)
         let h = cast(f32) Math.max(surface.minSize.y, cast(f32) height)
 
         surface.sendResizeEvent(w, h)
+    }
+
+    internal mtd destroyRendering()
+    {
+        if .rt.colorBuffer.isValid()
+        {
+            .app.renderer.setCurrentContext(.rc)
+            .app.renderer.deleteRenderTarget(&.rt)
+        }
+
+        .app.renderer.deleteContext(&.rc)
     }
 
     // Schedules the surface and its complete window tree for destruction.
@@ -274,7 +293,7 @@ impl Surface
         with var cxt: PaintContext
         {
             .painter  = &me.painter
-            .renderer = &me.app.renderer
+            .renderer = me.app.renderer
             .renderer.begin(me.rc)
             .painter.begin()
         }

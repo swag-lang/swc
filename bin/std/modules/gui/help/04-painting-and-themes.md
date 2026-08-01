@@ -3,8 +3,9 @@
 Paint handlers receive a [[Gui.PaintEvent]] whose [[Gui.PaintContext]] connects
 the current Pixel painter and renderer. Drawing uses the same logical-pixel
 coordinate system as the window. [[Gui.Application.renderer]] is a
-[[Pixel.PainterRenderer]], so the same paint path can target OpenGL in the native
-application and [[Pixel.RenderCpu]] in deterministic tests.
+[[Pixel.IRenderer]], so the same paint path can target OpenGL in a native
+application, [[Pixel.RenderCpu]] in deterministic tests, or another renderer
+selected through [[Gui.Application.setRenderer]].
 
 The theme is separated into:
 

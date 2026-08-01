@@ -73,6 +73,8 @@ struct PackedImageLike
     pf:      u32
     bpp:     u8
     bpp8:    u8
+    bytesPerPixel: u64
+    rowStride:     u64
     meta:    MiniArrayLike
     work:    *PackedImageLike
     storage: [16] u8

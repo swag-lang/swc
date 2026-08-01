@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Support/Core/SmallVector.h"
@@ -101,6 +102,32 @@ bool MicroPassHelpers::areCpuFlagsDeadAfter(const MicroStorage& storage, const M
     }
 
     return true;
+}
+
+bool MicroPassHelpers::areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& storage, const MicroOperandStorage& operands, const MicroInstrRef instRef)
+{
+    for (MicroInstrRef scanRef = storage.findNextInstructionRef(instRef); scanRef.isValid(); scanRef = storage.findNextInstructionRef(scanRef))
+    {
+        const MicroInstr* scanInst = storage.ptr(scanRef);
+        if (!scanInst)
+            return false;
+
+        const MicroInstrOperand* scanOps = scanInst->ops(operands);
+        if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+            return false;
+
+        const MicroInstrDef& scanInfo = MicroInstr::info(scanInst->op);
+        if (scanInst->op == MicroInstrOpcode::Label ||
+            scanInfo.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
+            scanInfo.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+            scanInfo.flags.has(MicroInstrFlagsE::IsCallInstruction))
+            return false;
+
+        if (scanInfo.flags.has(MicroInstrFlagsE::DefinesCpuFlags))
+            return true;
+    }
+
+    return false;
 }
 
 uint32_t MicroPassHelpers::replaceRegInLocalUses(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef afterInstRef, MicroReg fromReg, MicroReg toReg)
@@ -326,6 +353,106 @@ bool MicroPassHelpers::tryReassociateBinaryImmediate(MicroOp firstOp, uint64_t f
         default:
             return false;
     }
+}
+
+uint32_t MicroPassHelpers::findSingleCfgEntry(const MicroControlFlowGraph& cfg)
+{
+    const uint32_t n     = cfg.instructionCount();
+    uint32_t       entry = MicroDomTree::K_INVALID_NODE;
+    for (uint32_t i = 0; i < n; ++i)
+    {
+        if (cfg.predecessors(i).empty())
+        {
+            if (entry != MicroDomTree::K_INVALID_NODE)
+                return MicroDomTree::K_INVALID_NODE;
+            entry = i;
+        }
+    }
+    return entry;
+}
+
+MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(const MicroControlFlowGraph& cfg, const uint32_t entry)
+{
+    const uint32_t n = cfg.instructionCount();
+    MicroDomTree   dom;
+    dom.idom.assign(n, MicroDomTree::K_INVALID_NODE);
+    dom.rpoPos.assign(n, MicroDomTree::K_INVALID_NODE);
+    if (entry >= n)
+        return dom;
+
+    std::vector<uint32_t> postorder;
+    postorder.reserve(n);
+    std::vector<uint8_t>  visited(n, 0);
+    std::vector<uint32_t> childCursor(n, 0);
+    std::vector<uint32_t> stack;
+    stack.push_back(entry);
+    visited[entry] = 1;
+    while (!stack.empty())
+    {
+        const uint32_t u    = stack.back();
+        const auto&    succ = cfg.successors(u);
+        if (childCursor[u] < succ.size())
+        {
+            const uint32_t v = succ[childCursor[u]++];
+            if (v < n && !visited[v])
+            {
+                visited[v] = 1;
+                stack.push_back(v);
+            }
+        }
+        else
+        {
+            postorder.push_back(u);
+            stack.pop_back();
+        }
+    }
+
+    const uint32_t        count = static_cast<uint32_t>(postorder.size());
+    std::vector<uint32_t> rpo;
+    rpo.reserve(count);
+    for (uint32_t i = count; i-- > 0;)
+    {
+        const uint32_t node = postorder[i];
+        dom.rpoPos[node]    = static_cast<uint32_t>(rpo.size());
+        rpo.push_back(node);
+    }
+
+    auto intersect = [&](uint32_t a, uint32_t b) {
+        while (a != b)
+        {
+            while (dom.rpoPos[a] > dom.rpoPos[b])
+                a = dom.idom[a];
+            while (dom.rpoPos[b] > dom.rpoPos[a])
+                b = dom.idom[b];
+        }
+        return a;
+    };
+
+    dom.idom[entry] = entry;
+    bool changed    = true;
+    while (changed)
+    {
+        changed = false;
+        for (const uint32_t node : rpo)
+        {
+            if (node == entry)
+                continue;
+            uint32_t newIdom = MicroDomTree::K_INVALID_NODE;
+            for (const uint32_t pred : cfg.predecessors(node))
+            {
+                if (pred >= n || dom.idom[pred] == MicroDomTree::K_INVALID_NODE)
+                    continue;
+                newIdom = (newIdom == MicroDomTree::K_INVALID_NODE) ? pred : intersect(pred, newIdom);
+            }
+            if (newIdom != MicroDomTree::K_INVALID_NODE && newIdom != dom.idom[node])
+            {
+                dom.idom[node] = newIdom;
+                changed        = true;
+            }
+        }
+    }
+
+    return dom;
 }
 
 SWC_END_NAMESPACE();

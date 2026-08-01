@@ -234,108 +234,13 @@ namespace
         return fp;
     }
 
-    //===-- Dominators (Cooper-Harvey-Kennedy) on the per-instruction CFG --===//
+    //===-- Dominators on the per-instruction CFG (shared implementation) --===//
 
-    struct DomTree
+    using DomTree = MicroPassHelpers::MicroDomTree;
+
+    DomTree computeDominators(const MicroControlFlowGraph& cfg, const uint32_t entry)
     {
-        std::vector<uint32_t> idom;   // idom[entry] == entry; K_INVALID if unreachable
-        std::vector<uint32_t> rpoPos; // position in reverse-postorder; K_INVALID if unreachable
-
-        bool reachable(uint32_t node) const { return node < idom.size() && idom[node] != K_INVALID; }
-
-        bool dominates(uint32_t a, uint32_t b) const
-        {
-            if (!reachable(a) || !reachable(b))
-                return false;
-            uint32_t x = b;
-            while (x != a && x != idom[x])
-                x = idom[x];
-            return x == a;
-        }
-    };
-
-    DomTree computeDominators(const MicroControlFlowGraph& cfg, uint32_t entry)
-    {
-        const uint32_t n = cfg.instructionCount();
-        DomTree        dom;
-        dom.idom.assign(n, K_INVALID);
-        dom.rpoPos.assign(n, K_INVALID);
-        if (entry >= n)
-            return dom;
-
-        std::vector<uint32_t> postorder;
-        postorder.reserve(n);
-        std::vector<uint8_t>  visited(n, 0);
-        std::vector<uint32_t> childCursor(n, 0);
-        std::vector<uint32_t> stack;
-        stack.push_back(entry);
-        visited[entry] = 1;
-        while (!stack.empty())
-        {
-            const uint32_t u    = stack.back();
-            const auto&    succ = cfg.successors(u);
-            if (childCursor[u] < succ.size())
-            {
-                const uint32_t v = succ[childCursor[u]++];
-                if (v < n && !visited[v])
-                {
-                    visited[v] = 1;
-                    stack.push_back(v);
-                }
-            }
-            else
-            {
-                postorder.push_back(u);
-                stack.pop_back();
-            }
-        }
-
-        const uint32_t        count = static_cast<uint32_t>(postorder.size());
-        std::vector<uint32_t> rpo;
-        rpo.reserve(count);
-        for (uint32_t i = count; i-- > 0;)
-        {
-            const uint32_t node = postorder[i];
-            dom.rpoPos[node]    = static_cast<uint32_t>(rpo.size());
-            rpo.push_back(node);
-        }
-
-        auto intersect = [&](uint32_t a, uint32_t b) {
-            while (a != b)
-            {
-                while (dom.rpoPos[a] > dom.rpoPos[b])
-                    a = dom.idom[a];
-                while (dom.rpoPos[b] > dom.rpoPos[a])
-                    b = dom.idom[b];
-            }
-            return a;
-        };
-
-        dom.idom[entry] = entry;
-        bool changed    = true;
-        while (changed)
-        {
-            changed = false;
-            for (const uint32_t node : rpo)
-            {
-                if (node == entry)
-                    continue;
-                uint32_t newIdom = K_INVALID;
-                for (const uint32_t pred : cfg.predecessors(node))
-                {
-                    if (pred >= n || dom.idom[pred] == K_INVALID)
-                        continue;
-                    newIdom = (newIdom == K_INVALID) ? pred : intersect(pred, newIdom);
-                }
-                if (newIdom != K_INVALID && newIdom != dom.idom[node])
-                {
-                    dom.idom[node] = newIdom;
-                    changed        = true;
-                }
-            }
-        }
-
-        return dom;
+        return MicroPassHelpers::computeInstructionDominators(cfg, entry);
     }
 
     struct NaturalLoop

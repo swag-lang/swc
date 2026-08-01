@@ -7,12 +7,51 @@
 SWC_BEGIN_NAMESPACE();
 
 struct MicroPassContext;
+class MicroControlFlowGraph;
 
 namespace MicroPassHelpers
 {
+    // Immediate-dominator tree over the per-instruction CFG
+    // (Cooper-Harvey-Kennedy). Shared by the passes that reason about
+    // dominance on the linear instruction stream (LICM, value numbering).
+    struct MicroDomTree
+    {
+        static constexpr uint32_t K_INVALID_NODE = std::numeric_limits<uint32_t>::max();
+
+        std::vector<uint32_t> idom;   // idom[entry] == entry; K_INVALID_NODE if unreachable
+        std::vector<uint32_t> rpoPos; // position in reverse-postorder; K_INVALID_NODE if unreachable
+
+        bool reachable(uint32_t node) const { return node < idom.size() && idom[node] != K_INVALID_NODE; }
+
+        bool dominates(uint32_t a, uint32_t b) const
+        {
+            if (!reachable(a) || !reachable(b))
+                return false;
+            uint32_t x = b;
+            while (x != a && x != idom[x])
+                x = idom[x];
+            return x == a;
+        }
+    };
+
+    MicroDomTree computeInstructionDominators(const MicroControlFlowGraph& cfg, uint32_t entry);
+
+    // The unique entry instruction of the per-instruction CFG, or
+    // K_INVALID_NODE when there is no entry or more than one.
+    uint32_t findSingleCfgEntry(const MicroControlFlowGraph& cfg);
+
     bool violatesEncoderConformance(const MicroPassContext& context, const MicroInstr& inst, const MicroInstrOperand* ops);
     bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
     bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef);
+
+    // True when the CPU flags are redefined after 'instRef' before any label,
+    // jump, call, or terminator. Stricter than areCpuFlagsDeadAfter, whose
+    // callers replace one flag definition with another in place: a transform
+    // that REMOVES a flag definition outright must not lean on the "no flags
+    // across control flow" convention — branch fusion does keep flags live
+    // across a jump to the branches it fused — so only the straight-line
+    // window up to the next boundary is trusted.
+    bool areCpuFlagsRedefinedBeforeBoundary(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef instRef);
 
     // First virtual register index not used by any operand, starting above the
     // builder's hint. Passes that synthesize registers allocate upward from here.

@@ -27,12 +27,12 @@ impl ICodec for CodecPcmToPcm16
         return false
     }
 
-    mtd impl initialize(source: [*] void, sourceSize: u64)->u64 fail
+    mtd impl initialize(source: const [*] void, sourceSize: u64)->u64 fail
     {
         return 0
     }
 
-    mtd impl decode(destination: [*] void, destinationSize: u64, source: [*] void, sourceSize: u64)->CodecProgress fail
+    mtd impl decode(destination: [*] void, destinationSize: u64, source: const [*] void, sourceSize: u64)->CodecProgress fail
     {
         if .sourceEncoding == .destinationEncoding
         {
@@ -41,10 +41,10 @@ impl ICodec for CodecPcmToPcm16
             return {length, length}
         }
 
-        func(TS: s32, EN: SoundFileEncoding) doIt(destination: [*] void, destinationSize: u64, source: [*] void, sourceSize: u64)->CodecProgress
+        func(TS: s32, EN: SoundFileEncoding) doIt(destination: [*] void, destinationSize: u64, source: const [*] void, sourceSize: u64)->CodecProgress
         {
             var dst = cast([*] s16) destination
-            var src = cast([*] u8) source
+            var src = cast(const [*] u8) source
 
             var bytesWritten, bytesRead = 0
             for [i] in sourceSize / TS
@@ -64,11 +64,11 @@ impl ICodec for CodecPcmToPcm16
                     dst[0] = cast(s16) (cast #wrap (s32) sample >> 8)
 
                 case .Pcm32:
-                    let input = cast([*] s32) src
+                    let input = cast(const [*] s32) src
                     dst[0] = cast(s16) (input[0] >> 16)
 
                 case .Float32:
-                    let input  = cast([*] f32) src
+                    let input  = cast(const [*] f32) src
                     let sample = input[0] * 32768.0
                     let intS   = Math.clamp(cast #wrap (s32) sample, -32768, 32767)
                     dst[0] = cast(s16) intS

@@ -754,9 +754,9 @@ impl Application
             return
 
         var buf:  ConcatBuffer
-        let save: Encoder'Write.TagBin
+        var save: Encoder'Write.TagBin
         var ser:  Serializer
-        ser.startWrite(save, &buf)
+        ser.startWrite(&save, &buf)
         .serializeState(&ser)
         ser.end()
 
@@ -771,9 +771,9 @@ impl Application
 
         var buf = File.readAllBytes(.statePath)
 
-        let load: Decoder'Read.TagBin
+        var load: Decoder'Read.TagBin
         var ser:  Serializer
-        ser.startRead(load, buf.toSlice())
+        ser.startRead(&load, buf.toSlice())
         .serializeState(&ser)
         ser.end()
     }

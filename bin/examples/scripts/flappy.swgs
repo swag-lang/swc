@@ -216,7 +216,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         g_Rect = wnd.clientRect()
 
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
+        let painter = paintEvt.paintContext.painter
 
         // Elapsed time since the previous frame, in seconds.
         g_Dt = wnd.app().deltaSeconds()

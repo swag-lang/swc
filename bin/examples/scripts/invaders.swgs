@@ -309,7 +309,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         g_Rect = wnd.clientRect()
 
     case PaintEvent as ptr:
-        g_Painter = ptr.bc.painter
+        g_Painter = ptr.paintContext.painter
         gameLoop()
         display()
         wnd.invalidate()

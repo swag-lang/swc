@@ -19,13 +19,13 @@ public interface ICodec
     //
     // `srcBuffer` contains up to `srcLength` bytes from the start of the encoded
     // stream. Implementations may consume headers or initial sample data.
-    mtd initialize(source: [*] void, sourceSize: u64)->u64 fail
+    mtd initialize(source: const [*] void, sourceSize: u64)->u64 fail
 
     // Decodes one chunk and reports produced and consumed byte counts.
     //
     // At most `destinationSize` bytes may be written to `destination`, and at most
     // `sourceSize` bytes may be read from `source`.
-    mtd decode(destination: [*] void, destinationSize: u64, source: [*] void, sourceSize: u64)->CodecProgress fail
+    mtd decode(destination: [*] void, destinationSize: u64, source: const [*] void, sourceSize: u64)->CodecProgress fail
 }
 
 // Reports the byte-level progress of one incremental codec operation.
@@ -82,11 +82,30 @@ func findCodec(destinationEncoding, sourceEncoding: SoundFileEncoding)->#null *C
 // Stores the source, destination, and concrete type of a codec instance.
 public struct Codec
 {
-    sourceEncoding:      SoundFileEncoding     // Encoding read from the sound file.
-    destinationEncoding: SoundFileEncoding     // Encoding requested by the active backend.
-    // Concrete codec type used for destruction.
-    #[Swag.Late]
-    type: const *Swag.TypeInfoStruct
+    readonly
+    {
+        sourceEncoding:      SoundFileEncoding     // Encoding read from the sound file.
+        destinationEncoding: SoundFileEncoding     // Encoding requested by the active backend.
+    }
+
+    internal
+    {
+        // Concrete codec type used for destruction.
+        #[Swag.Late]
+        type:                const *Swag.TypeInfoStruct
+        allocationAllocator: IAllocator = undefined
+    }
+}
+
+impl Codec
+{
+    internal mtd configure(sourceEncoding, destinationEncoding: SoundFileEncoding, type: const *Swag.TypeInfoStruct, allocator: IAllocator)
+    {
+        .sourceEncoding      = sourceEncoding
+        .destinationEncoding = destinationEncoding
+        .type                = type
+        .allocationAllocator = allocator
+    }
 }
 
 // Initialize predefined codecs

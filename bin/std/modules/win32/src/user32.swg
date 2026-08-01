@@ -16,7 +16,7 @@ using Swag
 }
 
 alias WPARAM   = u64
-alias LPARAM   = u64
+alias LPARAM   = s64
 alias COLORREF = DWORD
 
 const MOD_ALT      = 0x0001
@@ -1033,8 +1033,8 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func SendMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
     func SendMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 
-    func GetWindowLongPtrA(hWnd: HWND, nIndex: s32)->#null *LONG
-    func GetWindowLongPtrW(hWnd: HWND, nIndex: s32)->#null *LONG
+    func GetWindowLongPtrA(hWnd: HWND, nIndex: s32)->LONG_PTR
+    func GetWindowLongPtrW(hWnd: HWND, nIndex: s32)->LONG_PTR
     func WindowFromPoint(pt: POINT)->HWND
     func ChildWindowFromPoint(hWnd: HWND, pt: POINT)->HWND
     func ChildWindowFromPointEx(hwnd: HWND, pt: POINT, flags: UINT)->HWND
@@ -1105,8 +1105,8 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func DispatchMessageA(lpMsg: const *MSG)->LRESULT
     func DispatchMessageW(lpMsg: const *MSG)->LRESULT
 
-    func SetWindowLongPtrA(hWnd: HWND, nIndex: s32, dwNewLong: #null *LONG)->#null *LONG
-    func SetWindowLongPtrW(hWnd: HWND, nIndex: s32, dwNewLong: #null *LONG)->#null *LONG
+    func SetWindowLongPtrA(hWnd: HWND, nIndex: s32, dwNewLong: LONG_PTR)->LONG_PTR
+    func SetWindowLongPtrW(hWnd: HWND, nIndex: s32, dwNewLong: LONG_PTR)->LONG_PTR
 
     func EnumDisplayMonitors(hdc: HDC, lprcClip: #null *RECT, lpfnEnum: MONITORENUMPROC, dwData: LPARAM)->BOOL
     func EnumWindows(lpEnumFunc: WNDENUMPROC, lParam: LPARAM)->BOOL

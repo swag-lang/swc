@@ -13,7 +13,11 @@ public struct Bus
         parent:       #null *Bus     // Parent bus, or `null` for the mastering output.
     }
 
-    internal handle: #null *void     // Backend-owned submix handle.
+    internal
+    {
+        allocationAllocator: IAllocator = undefined     // Allocator that owns this bus.
+        handle:              #null *void                // Backend-owned submix handle.
+    }
 }
 
 public impl Bus
@@ -33,8 +37,10 @@ public impl Bus
         if parent and !parent.handle do
             fail BadParameterError{"parent bus is not valid"}
 
-        let bus = Memory.new'Bus()
-        defer #fail Memory.delete(bus)
+        let allocator = g_Driver.allocationAllocator
+        let bus       = Memory.new'Bus(allocator)
+        bus.allocationAllocator = allocator
+        defer #fail Memory.delete(bus, allocator)
         createNative(bus, channelCount, parent)
         bus.channelCount = channelCount
         bus.parent       = parent
@@ -54,7 +60,8 @@ public impl Bus
 
         Sync.scopedLock(&g_Driver.mutexBuses)
         g_Driver.buses.remove(me)
-        Memory.delete(&me)
+        let allocator = .allocationAllocator
+        Memory.delete(&me, allocator)
     }
 
     // Sets the bus gain in decibels.

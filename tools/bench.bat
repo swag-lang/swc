@@ -7,20 +7,20 @@ rem   bench.bat --label "what changed"      the same, with a note in the history
 rem   bench.bat --quick                     smoke test, one repetition, not recorded
 rem   bench.bat --report-only               regenerate the page, measure nothing
 rem
-rem See README.md before changing anything about how it measures.
+rem See ..\bench\README.md before changing anything about how it measures.
 
 setlocal
-for %%I in ("%~f0") do set "BENCH_DIR=%%~dpI"
+for %%I in ("%~dp0..\bench") do set "BENCH_DIR=%%~fI"
 
 where py >nul 2>&1
 if "%ERRORLEVEL%"=="0" (
-    py -3 "%BENCH_DIR%campaign.py" %*
+    py -3 "%BENCH_DIR%\campaign.py" %*
     exit /b %ERRORLEVEL%
 )
 
 where python >nul 2>&1
 if "%ERRORLEVEL%"=="0" (
-    python "%BENCH_DIR%campaign.py" %*
+    python "%BENCH_DIR%\campaign.py" %*
     exit /b %ERRORLEVEL%
 )
 

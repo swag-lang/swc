@@ -40,13 +40,12 @@ public func activeDriverKind()->DriverKind => g_Driver.kind
 
 // Sets the mastering output gain.
 //
-// `volume` is a linear gain. Backend implementations may clamp it to their
-// supported range.
+// `volume` is a linear gain and is clamped to the range `0` through `1`.
 public func setOutputVolume(volume: f32) fail
 {
     if !g_Driver.isCreated do
         fail BadParameterError{"audio engine is not created"}
-    g_Driver.setOutputVolume(volume)
+    g_Driver.setOutputVolume(Math.clamp(volume, 0, 1))
 }
 
 // Returns the current mastering output gain as a linear value.
@@ -55,4 +54,16 @@ public func outputVolume()->f32 fail
     if !g_Driver.isCreated do
         fail BadParameterError{"audio engine is not created"}
     return g_Driver.outputVolume()
+}
+
+// Sets the mastering output gain in decibels.
+public func setOutputVolumeDb(decibels: f32) fail
+{
+    setOutputVolume(decibelsToLinearGain(decibels))
+}
+
+// Returns the mastering output gain in decibels.
+public func outputVolumeDb()->f32 fail
+{
+    return linearGainToDecibels(outputVolume())
 }

@@ -697,3 +697,83 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
 
     Memory.delete(decoded)
 }
+
+func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncompressed: u64, compressed: u64 }
+{
+    let seek   = findTagBinFieldSeek(bytes, fieldName)
+    var stream = ByteStream.openRead(bytes)
+    stream.setPosition(seek + #sizeof(u32) + #sizeof(u32) + #sizeof(Serialization.Write.TagBinValueFlags))
+
+    var result: retval
+    result.uncompressed = catch stream.readNative'u64()
+    result.compressed   = catch stream.readNative'u64() as err23
+    @assert(err23 == null)
+    return result
+}
+
+func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed, compressed: u64)->Array'u8
+{
+    var result: retval
+    result.add(bytes.toSlice())
+
+    let seek   = findTagBinFieldSeek(result.toSlice(), fieldName)
+    var writer = ByteStream.openWrite(&result)
+    writer.setPosition(seek + #sizeof(u32) + #sizeof(u32) + #sizeof(Serialization.Write.TagBinValueFlags))
+    writer.writeNative(uncompressed)
+    writer.writeNative(compressed)
+    return result
+}
+
+// A compressed run that claims more bytes than the stream holds is refused before
+// anything is reserved for it.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
+    let patched = corruptTagBinCompressedSizes(bytes, "blob", sizes.uncompressed, bytes.length + 1)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = catch decoder.readAll'TagBinPayload(patched.toSlice()) as err24
+    @assert(err24 != null)
+    @assert(decoded == null)
+}
+
+// The announced uncompressed size is a sizing hint only: an implausible one is
+// ignored and the payload still decodes from the compressed bytes themselves.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
+    let patched = corruptTagBinCompressedSizes(bytes, "blob", Swag.U64.Max, sizes.compressed)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = notnull catch decoder.readAll'TagBinPayload(patched.toSlice()) as err25
+    @assert(err25 == null)
+    @assert(assertCompressedBlob(decoded.blob))
+
+    Memory.delete(decoded)
+}
+
+// A field whose header does not decode is skipped without unbalancing the element
+// stack, so the fields around it still read back.
+#test
+{
+    let payload = makeTagBinPayload()
+    let bytes   = encodeTagBin(payload)
+    let sizes   = readTagBinCompressedSizes(bytes.toSlice(), "blob")
+    let patched = corruptTagBinCompressedSizes(bytes, "blob", sizes.uncompressed, bytes.length + 1)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    decoder.flags |= .IgnoreStructFieldError
+
+    let decoded = notnull catch decoder.readAll'TagBinPayload(patched.toSlice()) as err26
+    @assert(err26 == null)
+    @assert(decoded.id == 17)
+    @assert(decoded.name == "tagbin")
+    @assert(assertS32Array(decoded.counts, [-8, 0, 7, 42]))
+    @assert(decoded.blob.isEmpty())
+
+    Memory.delete(decoded)
+}

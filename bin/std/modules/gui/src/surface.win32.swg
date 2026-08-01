@@ -84,12 +84,12 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     // Associate pointer to surface with 'hWnd'
     if msg == WM_CREATE
     {
-        let lpcs = cast(*CREATESTRUCTW) cast(u64) lParam
-        SetWindowLongPtrW(hWnd, GWLP_USERDATA, lpcs.lpCreateParams)
+        let lpcs = cast(*CREATESTRUCTW) cast #bit (u64) lParam
+        SetWindowLongPtrW(hWnd, GWLP_USERDATA, cast #bit (LONG_PTR) cast(u64) lpcs.lpCreateParams)
     }
 
     // Get 'Surface' pointer
-    let surface = cast(#null *Surface) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
+    let surface = cast(#null *Surface) cast #bit (u64) GetWindowLongPtrW(hWnd, GWLP_USERDATA)
     if surface
     {
         if msg >= WM_USER
@@ -109,7 +109,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_NCDESTROY:
-            SetWindowLongPtrW(hWnd, GWLP_USERDATA, null)
+            SetWindowLongPtrW(hWnd, GWLP_USERDATA, 0)
             break
 
         case WM_SYSKEYDOWN, WM_SYSKEYUP, WM_SYSCHAR:
@@ -203,7 +203,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             return 0
 
         case WM_GETMINMAXINFO:
-            let mm = cast(*MINMAXINFO) cast(u64) lParam
+            let mm = cast(*MINMAXINFO) cast #bit (u64) lParam
 
             // Enforce the surface min/max size during interactive (border-drag) resizing,
             // which is handled by the OS sizing loop and only honours the track sizes.
@@ -467,7 +467,7 @@ impl Surface
         if .app.renderer.headless or !.hWnd do
             return
 
-        var exStyle = cast(u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)
+        var exStyle = cast #bit (u64) GetWindowLongPtrA(.hWnd, GWL_EXSTYLE)
         if .flags & .ToolWindow do
             exStyle |= WS_EX_TOOLWINDOW
         else do
@@ -476,7 +476,7 @@ impl Surface
             exStyle |= WS_EX_TOPMOST
         else do
             exStyle &= ~WS_EX_TOPMOST
-        SetWindowLongPtrA(.hWnd, GWL_EXSTYLE, cast(LONG_PTR) exStyle)
+        SetWindowLongPtrA(.hWnd, GWL_EXSTYLE, cast #bit (LONG_PTR) exStyle)
         catch SetWindowPos(.hWnd, shouldBeTopMost ? HWND_TOPMOST : HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
         .applyNativeDwmStyle()
     }

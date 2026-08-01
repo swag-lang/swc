@@ -49,22 +49,22 @@ impl Voice
         let desc = findCodec(.requestedEncoding, file.encoding)
         if !desc do
             fail UnsupportedFormatError{"unsupported encoding"}
-        let decoderData = notnull Memory.new(desc.type)
+        let allocator   = g_Driver.allocationAllocator
+        let decoderData = notnull Memory.new(desc.type, allocator)
         let decoder     = cast(*Codec) decoderData
-        decoder.sourceEncoding      = file.encoding
-        decoder.destinationEncoding = .requestedEncoding
-        decoder.type                = desc.type
-        .codec                      = @mkinterface(decoder, desc.type, ICodec)
+        decoder.configure(file.encoding, .requestedEncoding, desc.type, allocator)
+        .codec = @mkinterface(decoder, desc.type, ICodec)
     }
 
     mtd destroyCodec()
     {
         if !.codec do
             return
-        let decoder = cast(*Codec) (notnull @dataof(.codec))
+        let decoder   = cast(*Codec) (notnull @dataof(.codec))
+        let allocator = decoder.allocationAllocator
         if decoder.type.opDrop do
             decoder.type.opDrop(decoder)
-        Memory.free(decoder, cast(u64) decoder.type.sizeof)
+        Memory.free(decoder, cast(u64) decoder.type.sizeof, allocator)
         .codec = null
     }
 

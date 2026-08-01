@@ -14,7 +14,7 @@ func compute()
     using Math
 
     let slider = notnull g_Slider
-    var data   = {minS: slider.valueLeft(), maxS: slider.valueRight()}
+    var data   = {minS: slider.lowerValue(), maxS: slider.upperValue()}
     g_Image.visitPixels(&data)
     {
         var params = cast(*#decltype(data)) notnull userData
@@ -75,8 +75,8 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         return true
 
     case PaintEvent as paintEvt:
-        let painter  = paintEvt.bc.painter
-        let renderer = paintEvt.bc.renderer
+        let painter  = paintEvt.paintContext.painter
+        let renderer = paintEvt.paintContext.renderer
         renderer.updateTexture(g_Texture, notnull g_Image.pixels.buffer)
         painter.drawTexture(0, 0, cast(f32) w, cast(f32) h, g_Texture)
         return true
@@ -87,6 +87,6 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    try Jobs.setNumWorkers(4)
+    try Jobs.initialize(4)
     Application.runSurface(100, 100, 466, 481, title: "Mandelbrot", hook: &onEvent)
 }

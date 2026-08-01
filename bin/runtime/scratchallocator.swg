@@ -16,7 +16,8 @@ impl ScratchAllocator
     {
         @assert(!alignment or !(alignment & (alignment - 1)))
         let toAlign = alignment != 0 ? alignment : #sizeof(*void)
-        var result  = value & ~(toAlign - 1)
+        let mask    = cast(u64) (toAlign - 1)
+        var result  = value & ~mask
         if result < value do
             result += toAlign
         return result

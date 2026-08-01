@@ -42,6 +42,10 @@ struct XINPUT_VIBRATION
     wRightMotorSpeed: WORD
 }
 
+#assert(#sizeof(XINPUT_GAMEPAD) == 12)
+#assert(#sizeof(XINPUT_STATE) == 16)
+#assert(#sizeof(XINPUT_VIBRATION) == 4)
+
 #[Foreign(module: "xinput1_4", link: "xinput")]
 {
     func XInputGetState(dwUserIndex: DWORD, pState: *XINPUT_STATE)->DWORD

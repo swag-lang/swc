@@ -48,7 +48,7 @@ impl Voice
 {
     func createNoSound(voice: *Voice, createFlags = VoiceCreateFlags.Default) fail
     {
-        voice.handle = cast(#null *void) Memory.new'NoSoundVoice()
+        voice.handle = cast(#null *void) Memory.new'NoSoundVoice(voice.allocationAllocator)
         let file = notnull voice.file
         voice.requestedEncoding = file.encoding
         if !voice.handle do
@@ -59,7 +59,8 @@ impl Voice
     {
         if !.handle do
             return
-        Memory.delete(cast(*NoSoundVoice) .handle)
+        let allocator = .allocationAllocator
+        Memory.delete(cast(*NoSoundVoice) .handle, allocator)
         .handle = null
     }
 
@@ -175,7 +176,7 @@ impl Bus
         if parent and !parent.handle do
             fail BadParameterError{"parent bus invalid"}
 
-        let handle = Memory.new'NoSoundBus()
+        let handle = Memory.new'NoSoundBus(bus.allocationAllocator)
         bus.handle         = cast(#null *void) handle
         handle.numChannels = numChannels
         handle.parent      = parent
@@ -185,7 +186,8 @@ impl Bus
     {
         if !.handle do
             return
-        Memory.delete(cast(*NoSoundBus) .handle)
+        let allocator = .allocationAllocator
+        Memory.delete(cast(*NoSoundBus) .handle, allocator)
         .handle = null
     }
 }

@@ -3,7 +3,7 @@
 using Swag
 
 alias GLintptr   = s64
-alias GLsizeiptr = u64
+alias GLsizeiptr = s64
 
 #[Extension, Swag.PlaceHolder]
 {

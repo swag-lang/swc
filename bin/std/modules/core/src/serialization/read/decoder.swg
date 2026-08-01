@@ -268,10 +268,17 @@ impl Decoder
                 {
                     let fieldData = cast([*] u8) data + field.offset
                     let doIt      = catch .serializer.beginElement(field) as beginErr
-                    defer #nofail .serializer.endElement(field)
 
-                    if beginErr != null and !(.flags & .IgnoreStructFieldError) do
-                        fail beginErr
+                    // A failed 'beginElement' has already unwound itself, so there is
+                    // no element left open to close. Only pair the two once it returned.
+                    if beginErr != null
+                    {
+                        if !(.flags & .IgnoreStructFieldError) do
+                            fail beginErr
+                        continue
+                    }
+
+                    defer #nofail .serializer.endElement(field)
                     if !doIt do
                         continue
 

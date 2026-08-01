@@ -34,6 +34,8 @@ var g_Functions: Array'OneFunc
     let itf = @compiler
     var builderInit: StringBuilder
 
+    builderInit.appendString("// Resolves post-OpenGL-1.1 entry points for the current context.\n")
+    builderInit.appendString("// Call this again after switching to a context with different capabilities.\n")
     builderInit.appendString("public func glInitExtensions()\n{\n")
 
     for e in g_Functions

@@ -156,7 +156,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         startGame()
 
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
+        let painter = paintEvt.paintContext.painter
         g_Rect = wnd.clientRect()
 
         updateSnakePosition()

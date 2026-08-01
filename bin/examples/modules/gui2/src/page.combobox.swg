@@ -49,7 +49,7 @@ func createComboBoxPage(parent: *Wnd)
 
         combo = ComboBox.create(bottom, {190, 98, 240})
         fillFlavorCombo(combo)
-        combo.setSelectedIndex(3)
+        combo.setSelectedIndex(4)
 
         combo = ComboBox.create(bottom, {480, 98, 360})
         combo.addItem("A much longer selected label for clipping checks", "long")

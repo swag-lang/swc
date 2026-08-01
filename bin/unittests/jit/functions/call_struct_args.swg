@@ -65,19 +65,17 @@ struct MiniArrayLike
 
 struct PackedImageLike
 {
-    pixels:  MiniArrayLike
-    size:    u64
-    width:   s32
-    height:  s32
-    width8:  s32
-    pf:      u32
-    bpp:     u8
-    bpp8:    u8
-    bytesPerPixel: u64
-    rowStride:     u64
-    meta:    MiniArrayLike
-    work:    *PackedImageLike
-    storage: [16] u8
+    pixels:        MiniArrayLike
+    size:          u64
+    width:         s32
+    height:        s32
+    rowStride:     s32
+    pf:            u32
+    bpp:           u8
+    bytesPerPixel: u8
+    meta:          MiniArrayLike
+    work:          *PackedImageLike
+    storage:       [16] u8
 }
 
 func PackedPointerAfterHeader(result: *PackedPointerTarget, header: PackedHeader18, pixelIndex: u64)->u8

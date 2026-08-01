@@ -10,12 +10,13 @@ public struct TypeFace
 {
     internal
     {
-        fullname:     string = ""            // Cache key or source filename.
-        buffer:       Array'u8               // Owned font bytes kept alive for the native face.
-        face:         *Face  = undefined     // Borrowed TrueType face backed by `buffer`.
-        forceBoldDiv: u32    = 11            // Em-size divisor used for synthetic bold strength.
-        forceItalic:  bool                   // Whether every rasterized glyph is synthetically slanted.
-        forceBold:    bool                   // Whether every rasterized glyph is synthetically emboldened.
+        fullname:            string     = ""            // Cache key or source filename.
+        allocationAllocator: IAllocator = undefined     // Allocator that owns this cached value.
+        buffer:              Array'u8                   // Owned font bytes kept alive for the native face.
+        face:                *Face      = undefined     // Borrowed TrueType face backed by `buffer`.
+        forceBoldDiv:        u32        = 11            // Em-size divisor used for synthetic bold strength.
+        forceItalic:         bool                       // Whether every rasterized glyph is synthetically slanted.
+        forceBold:           bool                       // Whether every rasterized glyph is synthetically emboldened.
     }
 }
 
@@ -23,8 +24,12 @@ var g_HashTypeFace: HashTable'(String, *TypeFace)
 
 #drop
 {
-    for k, [v] in g_HashTypeFace do
-        Memory.delete(v)
+    for k, [v] in g_HashTypeFace
+    {
+        let allocator = v.allocationAllocator
+        Memory.delete(v, allocator)
+    }
+
     g_HashTypeFace.free()
 }
 
@@ -85,12 +90,14 @@ public impl TypeFace
         if here do
             return notnull here.value
 
-        let tf = Memory.new'TypeFace()
-        defer #fail Memory.delete(tf)
+        let allocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
+        let tf        = Memory.new'TypeFace(allocator)
+        tf.allocationAllocator = allocator
+        defer #fail Memory.delete(tf, allocator)
         tf.fullname = fullname
         tf.buffer   = bytes
 
-        let face = try Face.load(tf.buffer.toSlice())
+        let face = try Face.load(tf.buffer.toSlice(), allocator)
         tf.face = notnull face
 
         g_HashTypeFace.add(fullname, tf)
@@ -106,8 +113,10 @@ public impl TypeFace
         if here do
             return notnull here.value
 
-        let tf = Memory.new'TypeFace()
-        defer #fail Memory.delete(tf)
+        let allocator = notnull (@getcontext().defaultAllocator orelse @getcontext().allocator)
+        let tf        = Memory.new'TypeFace(allocator)
+        tf.allocationAllocator = allocator
+        defer #fail Memory.delete(tf, allocator)
         tf.fullname = fullname
 
         // If file does not exist, try the system folder
@@ -121,7 +130,7 @@ public impl TypeFace
             tf.buffer = File.readAllBytes(fullname)
         }
 
-        let face = try Face.load(tf.buffer.toSlice())
+        let face = try Face.load(tf.buffer.toSlice(), allocator)
         tf.face = notnull face
 
         g_HashTypeFace.add(fullname, tf)

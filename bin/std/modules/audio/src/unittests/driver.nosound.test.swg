@@ -54,8 +54,15 @@ func audioStartNoSoundEngine()
 
     discard catch setOutputVolume(2) as err6
     @assert(err6 == null)
-    audioAssertFloat(catch outputVolume() as err7, 2)
+    audioAssertFloat(catch outputVolume() as err7, 1)
     @assert(err7 == null)
+
+    discard catch setOutputVolumeDb(-6.0206) as errDb
+    @assert(errDb == null)
+    audioAssertFloat(catch outputVolume() as errLinear, 0.5, 0.0002)
+    @assert(errLinear == null)
+    audioAssertFloat(catch outputVolumeDb() as errReadDb, -6.0206, 0.0002)
+    @assert(errReadDb == null)
 }
 
 #test
@@ -180,6 +187,62 @@ func audioStartNoSoundEngine()
     @assert(!handle.isPlaying)
     @assert(voice.streamCurSeek == 0)
 
+    voice.destroy()
+}
+
+// Audio resources retain the engine allocator even when callers temporarily
+// install a different allocator before constructing them.
+#test
+{
+    audioStartNoSoundEngine()
+    defer destroyEngine()
+
+    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false) as errFile
+    @assert(errFile == null)
+
+    let context           = @getcontext()
+    let originalAllocator = notnull context.allocator
+    var scratch: ScratchAllocator
+    scratch.setCapacity(1024 * 1024, originalAllocator)
+    defer scratch.release()
+    defer context.allocator = originalAllocator
+
+    let scratchAllocator = @mkinterface(&scratch, #typeof(scratch), IAllocator)
+    context.allocator = scratchAllocator
+
+    let busResult   = catch Bus.create(2) as errBus
+    let voiceResult = catch Voice.create(&file) as errVoice
+    @assert(errBus == null)
+    @assert(errVoice == null)
+    @assert(busResult != null)
+    @assert(voiceResult != null)
+
+    context.allocator = originalAllocator
+    destroyEngine()
+    @assert(!isEngineCreated())
+}
+
+// A full stop closes a lazily opened streaming file and rewinds the source.
+#test
+{
+    audioStartNoSoundEngine()
+    defer destroyEngine()
+
+    var file = catch SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false) as errFile
+    @assert(errFile == null)
+    let voice = notnull (catch Voice.create(&file) as errVoice)
+    @assert(errVoice == null)
+
+    discard catch voice.play() as errPlay
+    @assert(errPlay == null)
+    discard catch voice.updateNoSound() as errUpdate
+    @assert(errUpdate == null)
+    @assert(voice.stream.isOpen())
+
+    discard catch voice.stop() as errStop
+    @assert(errStop == null)
+    @assert(!voice.stream.isOpen())
+    @assert(voice.streamCurSeek == 0)
     voice.destroy()
 }
 

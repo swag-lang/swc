@@ -18,6 +18,7 @@ internal namespace PrivOgl
     {
         func wglCreateContext(hDc: HDC)->HGLRC
         func wglDeleteContext(hRc: HGLRC)->BOOL
+        func wglGetCurrentContext()->HGLRC
         func wglMakeCurrent(hDc: HDC, hRc: HGLRC)->BOOL
         func wglShareLists(hRc0, hRc1: HGLRC)->BOOL
     }
@@ -39,6 +40,8 @@ internal namespace PrivOgl
             failWinError(GetLastError())
     }
 
+    func wglGetCurrentContext()->HGLRC => PrivOgl.wglGetCurrentContext()
+
     func wglMakeCurrent(hDc: HDC, hRc: HGLRC) fail
     {
         if !PrivOgl.wglMakeCurrent(hDc, hRc) do
@@ -54,6 +57,11 @@ internal namespace PrivOgl
 
 namespace Platform.Win32
 {
+    // Owns a Windows OpenGL context and the window device context paired with it.
+    //
+    // Create this value with [[Ogl.Platform.Win32.createContext]] and release it
+    // exactly once with [[Ogl.Platform.Win32.Context.destroy]].
+    #[Swag.Opaque]
     public struct Context
     {
         hDC:    HDC
@@ -61,16 +69,22 @@ namespace Platform.Win32
         window: #null *Env.Window
     }
 
+    // Creates an OpenGL context for `window`.
+    //
+    // `colorBits` selects the requested color-buffer depth. When `makeCurrent`
+    // is true, the new context becomes current on the calling thread before the
+    // function returns. Failure releases every partially acquired native handle.
     public func createContext(window: &Env.Window, colorBits: u8 = 32, makeCurrent = true)->Context fail
     {
         var result: retval
         result.window = &window
         result.hDC    = window.acquireDeviceContext()
+        defer #fail result.destroy()
 
         var pfd: PIXELFORMATDESCRIPTOR
         pfd.nSize      = #sizeof(pfd)
         pfd.nVersion   = 1
-        pfd.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL
+        pfd.dwFlags    = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER
         pfd.iPixelType = PFD_TYPE_RGBA
         pfd.cColorBits = colorBits
 
@@ -87,32 +101,44 @@ namespace Platform.Win32
 
     public impl Context
     {
+        // Returns whether this value owns a native rendering context.
+        mtd const isValid()->bool => .hRC != null
+
+        // Makes this context current on the calling thread.
         mtd makeCurrent() fail
         {
             try wglMakeCurrent(.hDC, .hRC)
         }
 
+        // Clears the current OpenGL context from the calling thread.
         mtd clearCurrent() fail
         {
             try wglMakeCurrent(null, null)
         }
 
+        // Presents the back buffer for this context's window.
         mtd swapBuffers()
         {
             expect SwapBuffers(.hDC)
         }
 
+        // Releases the rendering context and its acquired device context.
+        //
+        // Repeated calls are harmless. Destroying a context that is not current
+        // does not disturb another context currently bound to the thread.
         mtd destroy()
         {
-            catch .clearCurrent()
-            catch wglDeleteContext(.hRC)
+            if .hRC
+            {
+                if wglGetCurrentContext() == .hRC do
+                    catch .clearCurrent()
+                catch wglDeleteContext(.hRC)
+            }
 
             if .window and .hDC do
                 .window.releaseDeviceContext(.hDC)
 
-            .hRC    = null
-            .hDC    = null
-            .window = null
+            @init(me, 1)
         }
     }
 }

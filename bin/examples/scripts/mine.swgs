@@ -150,7 +150,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         return true
 
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
+        let painter = paintEvt.paintContext.painter
 
         painter.fillRect(wnd.clientRect(), wnd.themeColors().wnd_Bk)
         let bk = Math.Rectangle{CellSize, CellSize, GridSize * CellSize, GridSize * CellSize}

@@ -66,7 +66,7 @@ direct consumers reviewed together.
 ## Other standard modules
 
 - [x] audio product API
-- [ ] OpenGL product wrapper
+- [x] OpenGL product wrapper
 - [ ] Win32, GDI32, GDI+, XAudio2, and XInput native bindings
 
 ## Applications and examples

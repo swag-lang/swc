@@ -36,7 +36,7 @@ impl C
         steer.setLengthOrZero(d)
         .acc += steer
 
-        var pm = app.mouseRef().getPosition()
+        var pm = app.mouseRef().position()
         pm = wnd.screenToSurface(pm)
         pm = wnd.surfaceToLocal(pm)
         v  = .pos - Vector2{pm.x, pm.y}
@@ -74,7 +74,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         }
 
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
+        let painter = paintEvt.paintContext.painter
         let rect    = wnd.clientRect()
 
         painter.fillRect(rect, Argb.Black)

@@ -53,7 +53,7 @@ namespace
 
         conv.intRegs = SmallVector{MicroReg::intReg(0), MicroReg::intReg(1), MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(5), MicroReg::intReg(6), MicroReg::intReg(7), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11), MicroReg::intReg(12), MicroReg::intReg(13), MicroReg::intReg(14), MicroReg::intReg(15)};
 
-        conv.floatRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3)};
+        conv.floatRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5)};
 
         conv.intArgRegs = SmallVector{MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(8), MicroReg::intReg(9)};
 
@@ -63,8 +63,19 @@ namespace
 
         conv.intPersistentRegs = SmallVector{MicroReg::intReg(1), MicroReg::intReg(5), MicroReg::intReg(6), MicroReg::intReg(7), MicroReg::intReg(12), MicroReg::intReg(13), MicroReg::intReg(14), MicroReg::intReg(15)};
 
-        conv.floatTransientRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3)};
+        // xmm4/xmm5 are volatile in the Win64 ABI too, so widening the scratch
+        // pool costs no prologue saves and stays interop-safe in both
+        // directions; the argument registers remain xmm0-xmm3.
+        conv.floatTransientRegs = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5)};
 
+        // xmm6-xmm15 follow the Win64 nonvolatile contract: the prologue saves
+        // the ones a function defines (movaps slots + UWOP_SAVE_XMM128), so
+        // float values finally survive calls in registers.
+        // xmm6-xmm15 stay out of the pools for now: they are Win64 nonvolatile,
+        // and although the prologue/epilogue and UWOP_SAVE_XMM128 support below
+        // is in place, exception dispatch through JIT frames that save them
+        // still dies (see the fp_panic repro) — to be root-caused before the
+        // persistent float pool is enabled.
         conv.floatPersistentRegs.clear();
         conv.stackAlignment                            = 16;
         conv.stackParamAlignment                       = 8;

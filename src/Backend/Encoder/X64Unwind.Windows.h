@@ -15,6 +15,7 @@ private:
         PushNonVol,
         AllocateStack,
         SetFramePointer,
+        SaveXmm128,
     };
 
     struct UnwindOp
@@ -28,6 +29,7 @@ private:
     bool tryTrackPush(const MicroInstrOperand* ops, uint32_t codeEndOffset);
     bool tryTrackAllocateStack(const MicroInstrOperand* ops, uint32_t codeEndOffset);
     bool tryTrackSetFramePointer(const MicroInstr& inst, const MicroInstrOperand* ops, uint32_t codeEndOffset);
+    bool tryTrackSaveXmm128(const MicroInstrOperand* ops, uint32_t codeEndOffset);
     void closeProlog();
     bool canTrackInstruction(uint32_t codeEndOffset);
 

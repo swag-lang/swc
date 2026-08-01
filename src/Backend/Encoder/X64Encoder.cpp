@@ -36,27 +36,39 @@ namespace
 
     enum class X64Reg : uint8_t
     {
-        Rax  = 0b000000,
-        Rbx  = 0b000011,
-        Rcx  = 0b000001,
-        Rdx  = 0b000010,
-        Rsp  = 0b000100,
-        Rbp  = 0b000101,
-        Rsi  = 0b000110,
-        Rdi  = 0b000111,
-        R8   = 0b001000,
-        R9   = 0b001001,
-        R10  = 0b001010,
-        R11  = 0b001011,
-        R12  = 0b001100,
-        R13  = 0b001101,
-        R14  = 0b001110,
-        R15  = 0b001111,
-        Xmm0 = 0b100000,
-        Xmm1 = 0b100001,
-        Xmm2 = 0b100010,
-        Xmm3 = 0b100011,
-        Rip  = 0b110000
+        Rax   = 0b000000,
+        Rbx   = 0b000011,
+        Rcx   = 0b000001,
+        Rdx   = 0b000010,
+        Rsp   = 0b000100,
+        Rbp   = 0b000101,
+        Rsi   = 0b000110,
+        Rdi   = 0b000111,
+        R8    = 0b001000,
+        R9    = 0b001001,
+        R10   = 0b001010,
+        R11   = 0b001011,
+        R12   = 0b001100,
+        R13   = 0b001101,
+        R14   = 0b001110,
+        R15   = 0b001111,
+        Xmm0  = 0b100000,
+        Xmm1  = 0b100001,
+        Xmm2  = 0b100010,
+        Xmm3  = 0b100011,
+        Xmm4  = 0b100100,
+        Xmm5  = 0b100101,
+        Xmm6  = 0b100110,
+        Xmm7  = 0b100111,
+        Xmm8  = 0b101000,
+        Xmm9  = 0b101001,
+        Xmm10 = 0b101010,
+        Xmm11 = 0b101011,
+        Xmm12 = 0b101100,
+        Xmm13 = 0b101101,
+        Xmm14 = 0b101110,
+        Xmm15 = 0b101111,
+        Rip   = 0b110000
     };
 
     constexpr X64Reg K_INT_REG_MAP[] = {
@@ -83,6 +95,18 @@ namespace
         X64Reg::Xmm1,
         X64Reg::Xmm2,
         X64Reg::Xmm3,
+        X64Reg::Xmm4,
+        X64Reg::Xmm5,
+        X64Reg::Xmm6,
+        X64Reg::Xmm7,
+        X64Reg::Xmm8,
+        X64Reg::Xmm9,
+        X64Reg::Xmm10,
+        X64Reg::Xmm11,
+        X64Reg::Xmm12,
+        X64Reg::Xmm13,
+        X64Reg::Xmm14,
+        X64Reg::Xmm15,
     };
 
     constexpr size_t K_INT_REG_COUNT   = std::size(K_INT_REG_MAP);
@@ -132,6 +156,30 @@ namespace
                 return MicroReg::floatReg(2);
             case X64Reg::Xmm3:
                 return MicroReg::floatReg(3);
+            case X64Reg::Xmm4:
+                return MicroReg::floatReg(4);
+            case X64Reg::Xmm5:
+                return MicroReg::floatReg(5);
+            case X64Reg::Xmm6:
+                return MicroReg::floatReg(6);
+            case X64Reg::Xmm7:
+                return MicroReg::floatReg(7);
+            case X64Reg::Xmm8:
+                return MicroReg::floatReg(8);
+            case X64Reg::Xmm9:
+                return MicroReg::floatReg(9);
+            case X64Reg::Xmm10:
+                return MicroReg::floatReg(10);
+            case X64Reg::Xmm11:
+                return MicroReg::floatReg(11);
+            case X64Reg::Xmm12:
+                return MicroReg::floatReg(12);
+            case X64Reg::Xmm13:
+                return MicroReg::floatReg(13);
+            case X64Reg::Xmm14:
+                return MicroReg::floatReg(14);
+            case X64Reg::Xmm15:
+                return MicroReg::floatReg(15);
             case X64Reg::Rip:
                 return MicroReg::instructionPointer();
             default:
@@ -183,6 +231,30 @@ namespace
                 return "xmm2";
             case X64Reg::Xmm3:
                 return "xmm3";
+            case X64Reg::Xmm4:
+                return "xmm4";
+            case X64Reg::Xmm5:
+                return "xmm5";
+            case X64Reg::Xmm6:
+                return "xmm6";
+            case X64Reg::Xmm7:
+                return "xmm7";
+            case X64Reg::Xmm8:
+                return "xmm8";
+            case X64Reg::Xmm9:
+                return "xmm9";
+            case X64Reg::Xmm10:
+                return "xmm10";
+            case X64Reg::Xmm11:
+                return "xmm11";
+            case X64Reg::Xmm12:
+                return "xmm12";
+            case X64Reg::Xmm13:
+                return "xmm13";
+            case X64Reg::Xmm14:
+                return "xmm14";
+            case X64Reg::Xmm15:
+                return "xmm15";
             case X64Reg::Rip:
                 return "rip";
             default:
@@ -1268,6 +1340,7 @@ void X64Encoder::encodeLoadRegReg(MicroReg regDst, MicroReg regSrc, MicroOpBits 
     if (regDst.isFloat() && regSrc.isFloat())
     {
         emitSpecF64(store_, 0xF3, opBits);
+        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x10);
         emitModRm(store_, regDst, regSrc);
@@ -1766,6 +1839,7 @@ void X64Encoder::encodeClearReg(MicroReg reg, MicroOpBits opBits)
     if (reg.isFloat())
     {
         emitPrefixF64(store_, opBits);
+        emitRex(store_, MicroOpBits::Zero, reg, reg);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, MicroOp::FloatXor);
         emitModRm(store_, reg, reg);
@@ -1910,6 +1984,7 @@ void X64Encoder::encodeCmpRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBit
         SWC_ASSERT(!reg1.isInt());
 
         emitPrefixF64(store_, opBits);
+        emitRex(store_, MicroOpBits::Zero, reg0, reg1);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, 0x2F);
         emitModRm(store_, reg0, reg1);
@@ -2202,6 +2277,7 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
         else
         {
             emitPrefixF64(store_, opBits);
+            emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
         }
 
         emitCpuOp(store_, 0x0F);
@@ -3067,11 +3143,13 @@ void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg
     {
         SWC_ASSERT(reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
         emitSpecF64(store_, 0xF3, opBits);
+        emitRex(store_, MicroOpBits::Zero, reg0, reg1);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, MicroOp::FloatMultiply);
         emitModRm(store_, reg0, reg1);
 
         emitSpecF64(store_, 0xF3, opBits);
+        emitRex(store_, MicroOpBits::Zero, reg0, reg2);
         emitCpuOp(store_, 0x0F);
         emitCpuOp(store_, MicroOp::FloatAdd);
         emitModRm(store_, reg0, reg2);

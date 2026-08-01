@@ -3,7 +3,7 @@
 This directory answers one question over time: **is the compiler getting better?**
 
 ```
-bench.bat --label "what changed since last time"
+tools\bench.bat --label "what changed since last time"
 ```
 
 That rebuilds `swc.exe` in Release, measures it against every other toolchain, appends the
@@ -11,9 +11,9 @@ result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
 
 | | |
 |---|---|
-| `bench.bat --quick` | one repetition, no cooldown; proves the plumbing works and is **not** recorded |
-| `bench.bat --report-only` | regenerate the page from the existing history, measure nothing |
-| `bench.bat --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
+| `tools\bench.bat --quick` | one repetition, no cooldown; proves the plumbing works and is **not** recorded |
+| `tools\bench.bat --report-only` | regenerate the page from the existing history, measure nothing |
+| `tools\bench.bat --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
 
 A full campaign takes roughly twenty-five minutes, most of it in the two-minute cooldown,
 the NativeAOT publishes and CPython.
@@ -68,7 +68,7 @@ an asterisk in the report, because its commit alone will not reproduce it.
 
 | | |
 |---|---|
-| `bench.bat` | the entry point |
+| `../tools/bench.bat` | the entry point |
 | `campaign.py` | rebuild, measure, report |
 | `driver.py` | the sweep itself |
 | `toolchains.py` | where each toolchain lives and how it builds a task |

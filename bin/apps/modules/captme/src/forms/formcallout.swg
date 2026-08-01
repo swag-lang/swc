@@ -217,7 +217,7 @@ impl IForm for FormCallout
         .tailX = cast(f32) .x + cast(f32) .w * 0.3
         .tailY = cast(f32) (.y + .h) + Math.max(cast(f32) .h * 0.6, 36)
 
-        if evt.kind == .MouseReleased and evt.button == .Left do
+        if evt.kind == .Released and evt.button == .Left do
             return false
         return true
     }

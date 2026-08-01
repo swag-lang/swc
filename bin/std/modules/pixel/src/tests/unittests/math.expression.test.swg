@@ -44,7 +44,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
 {
     var expression = expect MathExpression.parse(#raw "x^2 + y_1 = \alpha")
 
-    @assert(expression.getSource() == #raw "x^2 + y_1 = \alpha")
+    @assert(expression.sourceText() == #raw "x^2 + y_1 = \alpha")
     @assert(expression.nodeCount() >= 10)
     @assert(expression.root.kind == .Row)
     @assert(expression.root.children.count == 5)
@@ -97,7 +97,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     @assert(copied.root != original.root)
     @assert(copied.nodes[0] != original.nodes[0])
     @assert(copied.nodeCount() == original.nodeCount())
-    @assert(copied.getSource() == original.getSource())
+    @assert(copied.sourceText() == original.sourceText())
     var originalPathCount, copiedPathCount = 0'u64
     for nodeRef in original.nodes do
         originalPathCount += (notnull nodeRef).paths.count

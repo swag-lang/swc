@@ -1,11 +1,14 @@
 #global namespace Time
 
-// Provides a set of methods and properties that you can use to accurately measure elapsed time
+// Measures elapsed monotonic time across one or more start/stop periods.
 public struct Stopwatch
 {
-    isStarted:      bool     // True if the stopwatch is currently running
-    startTimeStamp: u64      // Timestamp when the stopwatch was last started
-    elapsedTicks:   u64      // Accumulated elapsed time in ticks
+    internal
+    {
+        running:        bool
+        startTimestamp: u64
+        accumulated:    u64
+    }
 }
 
 public impl Stopwatch
@@ -13,67 +16,59 @@ public impl Stopwatch
     // Starts or resumes measuring elapsed time
     mtd start()
     {
-        if !.isStarted
+        if !.running
         {
-            .isStarted      = true
-            .startTimeStamp = nowPrecise()
+            .running        = true
+            .startTimestamp = monotonicTicks()
         }
     }
 
     // Stops measuring elapsed time and accumulates the result
     mtd stop()
     {
-        if .isStarted
+        if .running
         {
-            let endTimeStamp       = nowPrecise()
-            let elapsedTicksPeriod = endTimeStamp - .startTimeStamp
-            .elapsedTicks += elapsedTicksPeriod
-            .isStarted    = false
+            .accumulated += monotonicTicks() - .startTimestamp
+            .running      = false
         }
     }
 
     // Resets the stopwatch and clears the elapsed time
     mtd reset()
     {
-        .elapsedTicks   = 0
-        .startTimeStamp = 0
-        .isStarted      = false
+        @init(me, 1)
     }
 
     // Resets the stopwatch and immediately starts measuring elapsed time
     mtd restart()
     {
-        .elapsedTicks   = 0
-        .startTimeStamp = nowPrecise()
-        .isStarted      = true
+        @init(me, 1)
+        .start()
     }
 
-    // Returns the current elapsed time in milliseconds since the last start
-    mtd elapsedMillisecondsNow()->u32
+    // Returns whether the stopwatch is currently running.
+    mtd const isRunning() => .running
+
+    // Returns elapsed ticks, including the current running period.
+    mtd const elapsedTicks()->u64
     {
-        let endTimeStamp       = nowPrecise()
-        let elapsedTicksPeriod = endTimeStamp - .startTimeStamp
-        return cast() ((elapsedTicksPeriod * 1000) / preciseFrequency())
+        return .running ? .accumulated + monotonicTicks() - .startTimestamp : .accumulated
     }
 
-    // Returns the current elapsed time in microseconds since the last start
-    mtd elapsedMicrosecondsNow()->u32
+    // Returns total elapsed time in milliseconds.
+    mtd const elapsedMilliseconds()->u64
     {
-        let endTimeStamp       = nowPrecise()
-        let elapsedTicksPeriod = endTimeStamp - .startTimeStamp
-        return cast() ((elapsedTicksPeriod * 1000000) / preciseFrequency())
+        let ticks     = .elapsedTicks()
+        let frequency = monotonicFrequency()
+        return (ticks / frequency) * 1000 + ((ticks % frequency) * 1000) / frequency
     }
 
-    // Returns the total elapsed time in milliseconds, after calling `stop`
-    mtd elapsedMilliseconds()->u32
+    // Returns total elapsed time in microseconds.
+    mtd const elapsedMicroseconds()->u64
     {
-        return cast() ((.elapsedTicks * 1000) / preciseFrequency())
-    }
-
-    // Returns the total elapsed time in microseconds, after calling `stop`
-    mtd elapsedMicroseconds()->u32
-    {
-        return cast() ((.elapsedTicks * 1000000) / preciseFrequency())
+        let ticks     = .elapsedTicks()
+        let frequency = monotonicFrequency()
+        return (ticks / frequency) * 1000000 + ((ticks % frequency) * 1000000) / frequency
     }
 
     // Measures elapsed time for the current scope and prints the result when the scope ends

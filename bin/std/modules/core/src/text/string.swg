@@ -358,7 +358,7 @@ impl String
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
-            Memory.copyOver(.buffer + idx + byLength, .buffer + idx + 1, .length - idx)
+            Memory.copyOverlapping(.buffer + idx + byLength, .buffer + idx + 1, .length - idx)
             Memory.copy(.buffer + idx, @dataof(by), byLength)
             .length -= 1
             .length += byLength
@@ -403,7 +403,7 @@ impl String
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
-            Memory.copyOver(.buffer + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
+            Memory.copyOverlapping(.buffer + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
             Memory.copy(.buffer + idx, @dataof(by), byLength)
             .length -= whatLength
             .length += byLength
@@ -433,7 +433,7 @@ impl String
             return
         Debug.safetyBoundCheck(byteIndex + byteCount <= .length, "index out of range")
         let buffer = notnull .buffer
-        Memory.copyOver(buffer + byteIndex, buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
+        Memory.copyOverlapping(buffer + byteIndex, buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
         .length         -= byteCount
         buffer[.length] = 0
     }
@@ -463,7 +463,7 @@ impl String
 
         .grow(.length + 2)
         let buffer = notnull .buffer
-        Memory.copyOver(buffer + byteIndex + 1, buffer + byteIndex, .length - byteIndex + 1)
+        Memory.copyOverlapping(buffer + byteIndex + 1, buffer + byteIndex, .length - byteIndex + 1)
         buffer[byteIndex] = value
         .length           += 1
     }
@@ -493,7 +493,7 @@ impl String
         }
 
         .grow(.length + countof + 1)
-        Memory.copyOver(.buffer + byteIndex + countof, .buffer + byteIndex, .length - byteIndex + 1)
+        Memory.copyOverlapping(.buffer + byteIndex + countof, .buffer + byteIndex, .length - byteIndex + 1)
         Memory.copy(.buffer + byteIndex, @dataof(value), countof)
         .length += countof
     }

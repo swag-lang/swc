@@ -3,7 +3,32 @@
 
 using Swag, Core
 
-// setText/getText round-trips; addText appends; clear empties.
+// The default shortcut table contains one command per key/modifier pair.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    @assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
+    @assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
+
+    let mappingCount = ed.mapping.count
+    ed.setDefaultMapping()
+    @assert(ed.mapping.count == mappingCount)
+
+    for [i] in ed.mapping.count
+    {
+        for var j = i + 1; j < ed.mapping.count; j += 1
+        {
+            @assert(ed.mapping[i].key != ed.mapping[j].key or ed.mapping[i].modifiers != ed.mapping[j].modifiers)
+        }
+    }
+
+    host.shutdown()
+}
+
+// setText/text round-trips; addText appends; clear empties.
 #test
 {
     var host: Testing.HeadlessHost
@@ -11,13 +36,13 @@ using Swag, Core
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Hello")
-    @assert(ed.getText() == "Hello")
+    @assert(ed.text() == "Hello")
 
     ed.addText(" World")
-    @assert(ed.getText() == "Hello World")
+    @assert(ed.text() == "Hello World")
 
     ed.clear()
-    @assert(ed.getText() == "")
+    @assert(ed.text() == "")
 
     host.shutdown()
 }
@@ -31,7 +56,7 @@ using Swag, Core
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Selectable")
     ed.selectAll()
-    @assert(ed.getSelectedText() == "Selectable")
+    @assert(ed.selectedText() == "Selectable")
 
     host.shutdown()
 }
@@ -49,13 +74,13 @@ using Swag, Core
     ed.pushUndo()
     ed.insertText("X")
     ed.popUndo()
-    @assert(ed.getText() == "Xabc")
+    @assert(ed.text() == "Xabc")
 
     ed.undo()
-    @assert(ed.getText() == "abc")
+    @assert(ed.text() == "abc")
 
     ed.redo()
-    @assert(ed.getText() == "Xabc")
+    @assert(ed.text() == "Xabc")
 
     host.shutdown()
 }

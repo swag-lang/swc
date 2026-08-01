@@ -15,15 +15,61 @@ func triCount(pts: [..] Vector2)->u64
         poly.add(p)
     let first = pts[0]
     poly.add(first)     // close the ring
-    poly.compute()
+    poly.recompute()
 
     var tess: Pixel.Poly2Tri.Tessellate
     tess.addPolyLine(poly)
     tess.triangulate()
-    let res = tess.getResult()
-    let n   = res.triIndices.count
+    let res = tess.takeResult()
+    let n   = res.triangleCount()
     tess.clear()
     return n
+}
+
+// Cached geometry is identical whether the caller stores a conventional contour
+// or repeats the first point as an explicit closing vertex.
+#test
+{
+    var open: Pixel.Polygon
+    open.add({0, 0})
+    open.add({4, 0})
+    open.add({0, 3})
+    open.recompute()
+
+    @assert(Math.isEqualEpsilon(open.area, 6, 0.001))
+    @assert(Math.isEqualEpsilon(open.perimeter, 12, 0.001))
+    @assert(open.minBounds == Vector2{0, 0})
+    @assert(open.maxBounds == Vector2{4, 3})
+    @assert(open.isClockwise)
+    @assert(open.isConvex)
+    @assert(open.isSimple)
+
+    var explicitlyClosed = open
+    let closingPoint = explicitlyClosed.points[0]
+    explicitlyClosed.add(closingPoint)
+    explicitlyClosed.recompute()
+
+    @assert(Math.isEqualEpsilon(explicitlyClosed.area, open.area, 0.001))
+    @assert(Math.isEqualEpsilon(explicitlyClosed.perimeter, open.perimeter, 0.001))
+    @assert(explicitlyClosed.minBounds == open.minBounds)
+    @assert(explicitlyClosed.maxBounds == open.maxBounds)
+}
+
+// Degenerate contours remain well-defined and never inherit stale cached bounds.
+#test
+{
+    var poly: Pixel.Polygon
+    poly.add({7, 9})
+    poly.recompute()
+    @assert(poly.area == 0)
+    @assert(poly.perimeter == 0)
+    @assert(poly.minBounds == Vector2{7, 9})
+    @assert(poly.maxBounds == Vector2{7, 9})
+
+    poly.clear()
+    poly.recompute()
+    @assert(poly.minBounds == Vector2{})
+    @assert(poly.maxBounds == Vector2{})
 }
 
 // Regular convex N-gon centered at (cx,cy).

@@ -9,9 +9,9 @@ using Swag, Core
     @assert(img.isValid())
     @assert(img.width == 4)
     @assert(img.height == 4)
-    @assert(img.pf == .BGR8)
-    @assert(img.bpp == 24)
-    @assert(img.bpp8 == 3)
+    @assert(img.pixelFormat == .BGR8)
+    @assert(img.bitsPerPixel == 24)
+    @assert(img.bytesPerPixel == 3)
     @assert(img.pixels.count == 48)
 }
 
@@ -51,7 +51,7 @@ using Swag, Core
     @assert(img.isValid())
     @assert(img.width == 4)
     @assert(img.height == 4)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
 }
 
 // Load a 4x4 24-bit BMP from disk and verify image metadata.
@@ -64,9 +64,9 @@ using Swag, Core
     @assert(img.isValid())
     @assert(img.width == 4)
     @assert(img.height == 4)
-    @assert(img.pf == .BGR8)
-    @assert(img.bpp == 24)
-    @assert(img.bpp8 == 3)
+    @assert(img.pixelFormat == .BGR8)
+    @assert(img.bitsPerPixel == 24)
+    @assert(img.bytesPerPixel == 3)
     @assert(img.pixels.count == 48)
 }
 
@@ -79,7 +79,7 @@ using Swag, Core
     @assert(rgb.isValid())
     @assert(rgb.width == 660)
     @assert(rgb.height == 441)
-    @assert(rgb.pf == .BGR8)
+    @assert(rgb.pixelFormat == .BGR8)
     @assert(rgb.pixels.count == 873180)
     @assert((notnull rgb.pixels.buffer)[0] == 201'u8)
     @assert((notnull rgb.pixels.buffer)[1] == 205'u8)
@@ -91,7 +91,7 @@ using Swag, Core
     @assert(rgba.isValid())
     @assert(rgba.width == 660)
     @assert(rgba.height == 441)
-    @assert(rgba.pf == .BGRA8)
+    @assert(rgba.pixelFormat == .BGRA8)
     @assert(rgba.pixels.count == 1164240)
     @assert((notnull rgba.pixels.buffer)[0] == 201'u8)
     @assert((notnull rgba.pixels.buffer)[1] == 205'u8)
@@ -185,9 +185,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err8 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
-    @assert(img.pf     == .BGRA8)
-    @assert(img.bpp    == 32)
-    @assert(img.bpp8   == 4)
+    @assert(img.pixelFormat     == .BGRA8)
+    @assert(img.bitsPerPixel    == 32)
+    @assert(img.bytesPerPixel   == 4)
     @assert(img.pixels.count == 16)
     @assert((notnull img.pixels.buffer)[0]  == 10'u8)
     @assert((notnull img.pixels.buffer)[1]  == 20'u8)
@@ -236,8 +236,8 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err10 == null)
     @assert(img.width  == 5)
     @assert(img.height == 5)
-    @assert(img.pf     == .BGR8)
-    @assert(img.bpp    == 24)
+    @assert(img.pixelFormat     == .BGR8)
+    @assert(img.bitsPerPixel    == 24)
     @assert(img.pixels.count == 75)     // 5x5x3 = 75, no padding in decoded result
     @assert((notnull img.pixels.buffer)[0] == 100'u8)
     @assert((notnull img.pixels.buffer)[1] == 150'u8)
@@ -285,7 +285,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err12 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
-    @assert(img.pf     == .BGR8)
+    @assert(img.pixelFormat     == .BGR8)
     @assert(img.pixels.count == 12)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
@@ -334,7 +334,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err14 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
-    @assert(img.pf     == .BGR8)
+    @assert(img.pixelFormat     == .BGR8)
     @assert((notnull img.pixels.buffer)[0] == 55'u8)
     @assert((notnull img.pixels.buffer)[1] == 66'u8)
     @assert((notnull img.pixels.buffer)[2] == 77'u8)
@@ -426,7 +426,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     var img: Image
     img = catch Image.load(path.toString()) as err18
     @assert(err18 == null)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert((notnull img.pixels.buffer)[3] == 10'u8)
     @assert((notnull img.pixels.buffer)[4] == 20'u8)
     @assert((notnull img.pixels.buffer)[5] == 30'u8)
@@ -721,7 +721,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err32 == null)
     @assert(img.width  == 4)
     @assert(img.height == 4)
-    @assert(img.pf     == .BGR8)
+    @assert(img.pixelFormat     == .BGR8)
     @assert(!img.isValid())
 }
 
@@ -854,9 +854,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err41 == null)
     @assert(img.width        == 4)
     @assert(img.height       == 4)
-    @assert(img.pf           == .BGR8)
-    @assert(img.bpp          == 24)
-    @assert(img.bpp8         == 3)
+    @assert(img.pixelFormat           == .BGR8)
+    @assert(img.bitsPerPixel          == 24)
+    @assert(img.bytesPerPixel         == 3)
     @assert(img.pixels.count == 48)
 }
 
@@ -883,7 +883,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err44 == null)
     @assert(img.width        == 5)
     @assert(img.height       == 5)
-    @assert(img.pf           == .BGR8)
+    @assert(img.pixelFormat           == .BGR8)
     @assert(img.pixels.count == 75)
 }
 
@@ -943,9 +943,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err50 == null)
     @assert(img.width        == 2)
     @assert(img.height       == 2)
-    @assert(img.pf           == .BGRA8)
-    @assert(img.bpp          == 32)
-    @assert(img.bpp8         == 4)
+    @assert(img.pixelFormat           == .BGRA8)
+    @assert(img.bitsPerPixel          == 32)
+    @assert(img.bytesPerPixel         == 4)
     @assert(img.pixels.count == 16)
 }
 
@@ -1013,7 +1013,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err56 == null)
     @assert(img.width  == 4)
     @assert(img.height == 4)
-    @assert(img.pf     == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
+    @assert(img.pixelFormat     == .BGR8)     // RGB8 saved as 24-bit BGR, loads as BGR8
     // Encoder writes [B=200, G=150, R=100]; decoder stores as BGR8 bytes verbatim
     @assert((notnull img.pixels.buffer)[0] == 200'u8)     // B
     @assert((notnull img.pixels.buffer)[1] == 150'u8)     // G
@@ -1049,7 +1049,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     @assert(err59 == null)
     @assert(img.width  == 2)
     @assert(img.height == 2)
-    @assert(img.pf     == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
+    @assert(img.pixelFormat     == .BGRA8)     // RGBA8 saved as 32-bit BGRA, loads as BGRA8
     // Encoder writes [B=30, G=20, R=10, A=255]; decoder stores as BGRA8 bytes verbatim
     @assert((notnull img.pixels.buffer)[0] == 30'u8)      // B
     @assert((notnull img.pixels.buffer)[1] == 20'u8)      // G

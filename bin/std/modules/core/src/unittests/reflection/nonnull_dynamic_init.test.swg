@@ -52,7 +52,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let preservedReset = resetSentinel == &item
 
     var rejectedArray: Array'(*CoreNonNullDynamicItem)
-    let rejectedAppend = Reflection.appendValueStructArray(&rejectedArray, requiredType)
+    let rejectedAppend = Reflection.appendDynamicArrayElement(&rejectedArray, requiredType)
     let preservedArray = rejectedAppend == null and rejectedArray.buffer == null and !rejectedArray.count and !rejectedArray.capacity
 
     let zeroType       = #typeof(CoreNonNullZeroUnion)
@@ -79,7 +79,7 @@ func testCoreNonNullDynamicInitialization()->bool
     let preservedZeroReset = resetZero.bits == 0xFFFF
 
     var zeroArray: Array'CoreNonNullZeroUnion
-    let appendedZero       = Reflection.appendValueStructArray(&zeroArray, zeroType)
+    let appendedZero       = Reflection.appendDynamicArrayElement(&zeroArray, zeroType)
     let rejectedZeroAppend = appendedZero == null and zeroArray.buffer == null and !zeroArray.count and !zeroArray.capacity
 
     let defaultArrayType = #typeof([2] CoreNonNullRuntimeDefault)
@@ -132,14 +132,14 @@ func testCoreNonNullDynamicInitialization()->bool
     let initializedResetAlias = resetAlias.value == "fallback"
 
     var appendedDefaults: Array'CoreNonNullRuntimeDefaultPair
-    let appendedDefaultsPtr    = Reflection.appendValueStructArray(&appendedDefaults, defaultArrayType)
+    let appendedDefaultsPtr    = Reflection.appendDynamicArrayElement(&appendedDefaults, defaultArrayType)
     let appendedDefaultValues  = cast(#null *[2] CoreNonNullRuntimeDefault) appendedDefaultsPtr
     let initializedAppendArray = appendedDefaultValues != null and
                                  (dref appendedDefaultValues)[0].value == "fallback" and
                                  (dref appendedDefaultValues)[1].value == "fallback"
 
     var appendedAliases: Array'CoreNonNullRuntimeDefaultAlias
-    let appendedAliasPtr       = Reflection.appendValueStructArray(&appendedAliases, defaultAliasType)
+    let appendedAliasPtr       = Reflection.appendDynamicArrayElement(&appendedAliases, defaultAliasType)
     let appendedAliasValue     = cast(#null *CoreNonNullRuntimeDefault) appendedAliasPtr
     let initializedAppendAlias = appendedAliasValue != null and appendedAliasValue.value == "fallback"
 

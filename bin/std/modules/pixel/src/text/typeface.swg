@@ -3,16 +3,20 @@ using Core, TrueType
 // Loaded font-face data used to create fonts and rasterize glyphs.
 //
 // Use [[Pixel.TypeFace.load]] for a font file or [[Pixel.TypeFace.create]] for
-// bytes already in memory. Returned pointers are shared by Pixel's typeface cache;
-// release them with [[Pixel.TypeFace.release]] rather than deleting them directly.
+// bytes already in memory. Returned pointers are shared by Pixel's process-wide
+// typeface cache and remain valid until module shutdown; never delete them.
+#[Swag.Opaque]
 public struct TypeFace
 {
-    fullname:     string = ""            // Cache key or source filename.
-    buffer:       Array'u8               // Owned font bytes kept alive for the native face.
-    face:         *Face  = undefined     // Borrowed TrueType face backed by `buffer`.
-    forceBoldDiv: u32    = 11            // Em-size divisor used for synthetic bold strength.
-    forceItalic:  bool                   // Whether every rasterized glyph is synthetically slanted.
-    forceBold:    bool                   // Whether every rasterized glyph is synthetically emboldened.
+    internal
+    {
+        fullname:     string = ""            // Cache key or source filename.
+        buffer:       Array'u8               // Owned font bytes kept alive for the native face.
+        face:         *Face  = undefined     // Borrowed TrueType face backed by `buffer`.
+        forceBoldDiv: u32    = 11            // Em-size divisor used for synthetic bold strength.
+        forceItalic:  bool                   // Whether every rasterized glyph is synthetically slanted.
+        forceBold:    bool                   // Whether every rasterized glyph is synthetically emboldened.
+    }
 }
 
 var g_HashTypeFace: HashTable'(String, *TypeFace)
@@ -69,18 +73,8 @@ public impl TypeFace
     // Returns true if the typeface is italic
     mtd const isItalic()->bool => .face.isItalic()
 
-    // Returns the underlying font family name
-    mtd const getFamilyName()->string => .face.familyName
-
-    // Release the given typeface
-    func release(typeface: *TypeFace)
-    {
-        if !typeface do
-            return
-        Sync.scopedLock(&lock)
-        g_HashTypeFace.remove(typeface.fullname)
-        Memory.delete(typeface)
-    }
+    // Returns the family name stored in the font.
+    mtd const familyName()->string => .face.familyName
 
     // Get or create a new typeface from a memory buffer
     func create(fullname: string, bytes: const [..] u8)->*TypeFace fail
@@ -92,6 +86,7 @@ public impl TypeFace
             return notnull here.value
 
         let tf = Memory.new'TypeFace()
+        defer #fail Memory.delete(tf)
         tf.fullname = fullname
         tf.buffer   = bytes
 
@@ -112,6 +107,7 @@ public impl TypeFace
             return notnull here.value
 
         let tf = Memory.new'TypeFace()
+        defer #fail Memory.delete(tf)
         tf.fullname = fullname
 
         // If file does not exist, try the system folder
@@ -188,9 +184,9 @@ public impl TypeFace
         return &.face.glyph.bitmap
     }
 
-    // Convert a rune to its outline, at a given size
+    // Replaces `pathList` with the outline of one rune at the requested size.
     #[Swag.Discardable]
-    mtd getRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 fail
+    mtd buildRuneOutline(pathList: *LinePathList, c: rune, size: u32, embolden: u32 = 0)->f32 fail
     {
         pathList.clear()
 
@@ -205,14 +201,14 @@ public impl TypeFace
         if prevIdx != pathList.paths.count
         {
             for [i] in prevIdx until pathList.paths.count do
-                pathList.paths[i].isClosed = true
+                pathList.paths[i].assumeClosed()
         }
 
         return embolden + (.face.glyph.advance.x / 64.0)
     }
 
-    // Convert a string to its outline, at a given size
-    mtd getStringOutline(pathList: *LinePathList, text: string, size: u32, embolden: u32 = 0) fail
+    // Replaces `pathList` with the outlines of a UTF-8 string at the requested size.
+    mtd buildStringOutline(pathList: *LinePathList, text: string, size: u32, embolden: u32 = 0) fail
     {
         pathList.clear()
 
@@ -236,7 +232,7 @@ public impl TypeFace
             {
                 for [i] in prevIdx until pathList.paths.count
                 {
-                    pathList.paths[i].isClosed = true
+                    pathList.paths[i].assumeClosed()
                     pathList.paths[i].serial   = serial
                 }
 

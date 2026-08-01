@@ -30,8 +30,14 @@ func assertStringArray(values: const &Array'(string), expected: const [..] strin
     @assert(Tokenize.eatSpaces(" \t\r\ncore") == "core")
     @assert(Tokenize.eatSpaces("core") == "core")
 
-    @assert(Tokenize.getToSpace("core value") == "core")
-    @assert(Tokenize.getWhileAlnum("abc123!?") == "abc123")
+    @assert(Tokenize.prefixToWhitespace("core value") == "core")
+    @assert(Tokenize.alphanumericPrefix("abc123!?") == "abc123")
+
+    @assert(Tokenize.sliceToDelimiter("a,b,c", ','u8) == "a,")
+    @assert(Tokenize.sliceToDelimiter("a,b,c", ','u8, includeDelimiter: false) == "a")
+    @assert(Tokenize.sliceToDelimiter("a,b,c", ','u8, startByteIndex: 2) == "b,")
+    @assert(Tokenize.sliceToDelimiter("abc", ','u8) == "abc")
+    @assert(Tokenize.sliceToDelimiter("abc", ','u8, startByteIndex: 3) == "")
 }
 
 #test

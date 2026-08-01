@@ -12,7 +12,7 @@ using Swag, Core
     img.colorize(0.3, 0.0, 1.0)
     assertImage(img, 2, 1, .RGBA8)
 
-    let brightPixel = img.getPixelColor(0, 0)
+    let brightPixel = img.pixelColor(0, 0)
     @assert(brightPixel.a == 77)
     @assert(brightPixel.r > 200)
     @assert(brightPixel.r == brightPixel.g)

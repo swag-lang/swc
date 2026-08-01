@@ -20,7 +20,7 @@ using Core
 
 func day7B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var folder:  String
@@ -39,7 +39,7 @@ func day7B()
             if cmd[1] == "/" do
                 folder = ""
             elif cmd[1] == ".." do
-                folder = Path.getDirectoryName(folder)
+                folder = Path.directoryName(folder)
             else do
                 folder = Path.combine(folder, cmd[1])
 
@@ -54,7 +54,7 @@ func day7B()
                 folders.findOrAdd(tmp).value += size
                 if !tmp.length do
                     break
-                tmp = Path.getDirectoryName(tmp)
+                tmp = Path.directoryName(tmp)
             }
         }
     }

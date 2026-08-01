@@ -4,14 +4,15 @@
 
 // Test if a point is inside an ellipse.
 // Uses the standard ellipse equation: (x-cx)²/rx² + (y-cy)²/ry² ≤ 1.
-func isInEllipse(self, center: Vector2, radiusX, radiusY: f32)->bool
+func ellipseContainsPoint(point, center: Vector2, radiusX, radiusY: f32)->bool
 {
-    return (pow((self.x - center.x), 2) / pow(radiusX, 2)) + (pow((self.y - center.y), 2) / pow(radiusY, 2)) <= 1
+    Debug.assert(radiusX > 0 and radiusY > 0)
+    return (pow((point.x - center.x), 2) / pow(radiusX, 2)) + (pow((point.y - center.y), 2) / pow(radiusY, 2)) <= 1
 }
 
 // Test if a point is inside a triangle using cross product method.
 // Uses barycentric coordinates by checking if all cross products have the same sign.
-func isInTriangle(self, a, b, c: Vector2)->bool
+func triangleContainsPoint(point, a, b, c: Vector2)->bool
 {
     let ax  = c.x - b.x
     let ay  = c.y - b.y
@@ -19,12 +20,12 @@ func isInTriangle(self, a, b, c: Vector2)->bool
     let by  = a.y - c.y
     let cx  = b.x - a.x
     let cy  = b.y - a.y
-    let apx = self.x - a.x
-    let apy = self.y - a.y
-    let bpx = self.x - b.x
-    let bpy = self.y - b.y
-    let cpx = self.x - c.x
-    let cpy = self.y - c.y
+    let apx = point.x - a.x
+    let apy = point.y - a.y
+    let bpx = point.x - b.x
+    let bpy = point.y - b.y
+    let cpx = point.x - c.x
+    let cpy = point.y - c.y
 
     let aCROSSbp = ax * bpy - ay * bpx
     let cCROSSap = cx * apy - cy * apx
@@ -35,11 +36,11 @@ func isInTriangle(self, a, b, c: Vector2)->bool
 
 // Calculate the perpendicular distance from a point to an infinite line.
 // Projects the point onto the line and returns the distance to the projection.
-func distanceToLine(self, a, b: Vector2)->f32
+func distanceFromPointToLine(point, lineStart, lineEnd: Vector2)->f32
 {
-    let toPt = self - a
-    var seg  = b - a
-    seg.normalizeSafe()
+    let toPt = point - lineStart
+    var seg  = lineEnd - lineStart
+    seg.normalizeOrZero()
     let dot = toPt.dot(seg)
     seg *= dot
     let cross = toPt - seg
@@ -48,14 +49,14 @@ func distanceToLine(self, a, b: Vector2)->f32
 
 // Calculate the shortest distance from a point to a line segment.
 // Handles endpoints by clamping the projection to the segment bounds.
-func distanceToSegment(self, a, b: Vector2)->f32
+func distanceFromPointToSegment(point, segmentStart, segmentEnd: Vector2)->f32
 {
-    let ab = b - a
+    let ab = segmentEnd - segmentStart
     if Math.isZeroEpsilon(ab.lengthSquared(), ConstF32.Epsilon * ConstF32.Epsilon) do
-        return (self - a).length()
+        return (point - segmentStart).length()
 
-    let be = self - b
-    let ae = self - a
+    let be = point - segmentEnd
+    let ae = point - segmentStart
 
     let abbe = ab.dot(be)
     if abbe > 0 do
@@ -85,17 +86,45 @@ func distanceToSegment(self, a, b: Vector2)->f32
 // https://www.geometrictools.com/Documentation/DistanceSegments3D.pdf
 // https://www.geometrictools.com/GTE/Mathematics/DistSegmentSegment.h
 // ---
-func nearestPointsSegSeg(p0, p1, q0, q1: Math.Vector2)->{ a: Math.Vector2, b: Math.Vector2, dist: f32 }
+func closestPointsBetweenSegments(firstStart, firstEnd, secondStart, secondEnd: Math.Vector2)->{ first: Math.Vector2, second: Math.Vector2, distance: f32 }
 {
-    let p1p0 = p1 - p0
-    let q1q0 = q1 - q0
-    let p0q0 = p0 - q0
+    let p1p0 = firstEnd - firstStart
+    let q1q0 = secondEnd - secondStart
+    let p0q0 = firstStart - secondStart
     let a    = p1p0.dot(p1p0)
     let b    = p1p0.dot(q1q0)
     let c    = q1q0.dot(q1q0)
     let d    = p1p0.dot(p0q0)
     let e    = q1q0.dot(p0q0)
     let det  = a * c - b * b
+
+    var result: retval
+    let epsilonSquared = ConstF32.Epsilon * ConstF32.Epsilon
+    if a <= epsilonSquared and c <= epsilonSquared
+    {
+        result.first    = firstStart
+        result.second   = secondStart
+        result.distance = (firstStart - secondStart).length()
+        return result
+    }
+
+    if a <= epsilonSquared
+    {
+        let t           = Math.clamp(e / c, 0'f32, 1'f32)
+        result.first    = firstStart
+        result.second   = secondStart + t * q1q0
+        result.distance = (result.first - result.second).length()
+        return result
+    }
+
+    if c <= epsilonSquared
+    {
+        let s           = Math.clamp(-d / a, 0'f32, 1'f32)
+        result.first    = firstStart + s * p1p0
+        result.second   = secondStart
+        result.distance = (result.first - result.second).length()
+        return result
+    }
 
     var s, t: f32 = undefined
     if det > 0
@@ -227,17 +256,16 @@ func nearestPointsSegSeg(p0, p1, q0, q1: Math.Vector2)->{ a: Math.Vector2, b: Ma
         }
     }
 
-    var result: retval
-    result.a = p0 + s * p1p0
-    result.b = q0 + t * q1q0
-    let diff = result.a - result.b
-    result.dist = diff.length()
+    result.first  = firstStart + s * p1p0
+    result.second = secondStart + t * q1q0
+    let diff      = result.first - result.second
+    result.distance = diff.length()
     return result
 }
 
 // Calculate intersection coefficients for two infinite lines.
 // Returns parametric coefficients 'd0' and 'd1' where intersection = start + d * (end - start).
-private func getLineLineIntersectCoefs(start0, end0, start1, end1: Vector2, epsilon: f32)->{ yes: bool, d0: f32, d1: f32 }
+private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilon: f32)->{ intersects: bool, firstFactor: f32, secondFactor: f32 }
 {
     var result: retval
 
@@ -248,35 +276,34 @@ private func getLineLineIntersectCoefs(start0, end0, start1, end1: Vector2, epsi
     // Parallel lines
     if Math.abs(d) < epsilon
     {
-        result.yes = Math.abs(ua) < epsilon and Math.abs(ub) < epsilon
         return result
     }
 
-    result.yes = true
-    result.d0  = ua / d
-    result.d1  = ub / d
+    result.intersects  = true
+    result.firstFactor = ua / d
+    result.secondFactor = ub / d
     return result
 }
 
 // Find the intersection point of two infinite lines.
 // Returns the intersection point if lines are not parallel, otherwise returns failure.
-func lineLineIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ yes: bool, pos: Vector2 }
+func intersectLines(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ intersects: bool, point: Vector2 }
 {
     var result: retval
 
-    let {yes, d0, ?} = getLineLineIntersectCoefs(start0, end0, start1, end1, epsilon)
-    if !yes do
+    let {intersects, firstFactor, ?} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
+    if !intersects do
         return result
 
-    result.yes   = true
-    result.pos.x = start0.x + d0 * (end0.x - start0.x)
-    result.pos.y = start0.y + d0 * (end0.y - start0.y)
+    result.intersects = true
+    result.point.x    = start0.x + firstFactor * (end0.x - start0.x)
+    result.point.y    = start0.y + firstFactor * (end0.y - start0.y)
     return result
 }
 
 // Find the intersection point of two line segments.
 // Returns the intersection point only if it lies within both segment bounds.
-func segSegIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ yes: bool, pos: Vector2 }
+func intersectSegments(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF32.Epsilon)->{ intersects: bool, point: Vector2 }
 {
     var result: retval
 
@@ -292,20 +319,20 @@ func segSegIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF3
         {
             if Math.isZeroEpsilon(s.lengthSquared(), epsilonSq)
             {
-                result.yes = start0.isEqualEpsilon(start1, epsilon)
-                result.pos = start0
+                result.intersects = start0.isEqualEpsilon(start1, epsilon)
+                result.point      = start0
                 return result
             }
 
-            result.yes = Math.isZeroEpsilon(distanceToSegment(start0, start1, end1), epsilon)
-            result.pos = start0
+            result.intersects = Math.isZeroEpsilon(distanceFromPointToSegment(start0, start1, end1), epsilon)
+            result.point      = start0
             return result
         }
 
         if Math.isZeroEpsilon(s.lengthSquared(), epsilonSq)
         {
-            result.yes = Math.isZeroEpsilon(distanceToSegment(start1, start0, end0), epsilon)
-            result.pos = start1
+            result.intersects = Math.isZeroEpsilon(distanceFromPointToSegment(start1, start0, end0), epsilon)
+            result.point      = start1
             return result
         }
 
@@ -348,45 +375,45 @@ func segSegIntersect(start0, end0, start1, end1: Vector2, epsilon: f32 = ConstF3
         let origin = Math.abs(r.x) >= Math.abs(r.y) ? start0.x : start0.y
         let t      = (overlapStart - origin) / denom
 
-        result.yes = true
-        result.pos = start0 + r * t
+        result.intersects = true
+        result.point      = start0 + r * t
         return result
     }
 
-    let {yes, d0, d1} = getLineLineIntersectCoefs(start0, end0, start1, end1, epsilon)
-    if !yes do
+    let {intersects, firstFactor, secondFactor} = lineIntersectionFactors(start0, end0, start1, end1, epsilon)
+    if !intersects do
         return result
 
-    if d0 < -epsilon or d0 > 1 + epsilon or d1 < -epsilon or d1 > 1 + epsilon do
+    if firstFactor < -epsilon or firstFactor > 1 + epsilon or secondFactor < -epsilon or secondFactor > 1 + epsilon do
         return result
 
-    result.yes   = true
-    result.pos.x = start0.x + d0 * (end0.x - start0.x)
-    result.pos.y = start0.y + d0 * (end0.y - start0.y)
+    result.intersects = true
+    result.point.x    = start0.x + firstFactor * (end0.x - start0.x)
+    result.point.y    = start0.y + firstFactor * (end0.y - start0.y)
     return result
 }
 
 // Test if a point is inside a polygon using ray casting algorithm.
 // Implementation of the PNPoly algorithm by W. Randolph Franklin.
-func polyContains(poly: Array'Math.Vector2, pt: Math.Vector2)->bool
+func polygonContainsPoint(polygon: Array'Math.Vector2, point: Math.Vector2)->bool
 {
-    var c = false
-    if !poly.count do
-        return c
-    let buffer = notnull poly.buffer
+    var contains = false
+    if !polygon.count do
+        return contains
+    let buffer = notnull polygon.buffer
     var verti  = buffer
-    var vertj  = buffer + cast(s32) poly.count - 1
-    for poly.count
+    var vertj  = buffer + cast(s32) polygon.count - 1
+    for polygon.count
     {
-        if ((verti.y > pt.y) != (vertj.y > pt.y)) and
-           (pt.x < (vertj.x - verti.x) * (pt.y - verti.y) / (vertj.y - verti.y) + verti.x)
+        if ((verti.y > point.y) != (vertj.y > point.y)) and
+           (point.x < (vertj.x - verti.x) * (point.y - verti.y) / (vertj.y - verti.y) + verti.x)
         {
-            c = !c
+            contains = !contains
         }
 
         vertj = verti
         verti += 1
     }
 
-    return c
+    return contains
 }

@@ -3,14 +3,14 @@ using Core
 impl Image
 {
     // Transform image to grayscale, with a given factor
-    public mtd grayScale(factor: f32 = 1)
+    public mtd grayscale(factor: f32 = 1)
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         var f = Math.saturate(factor)
-        if .pf == .BGR8 or .pf == .BGRA8
+        if .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
         {
             .visitPixels(&f)
             {
@@ -21,7 +21,7 @@ impl Image
                 pix[2] = cast(u8) Math.lerp(cast(f32) pix[2], ncol, f)
             }
         }
-        elif .pf == .RGB8 or .pf == .RGBA8
+        elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
         {
             .visitPixels(&f)
             {

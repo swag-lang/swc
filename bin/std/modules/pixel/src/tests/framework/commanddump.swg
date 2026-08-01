@@ -95,7 +95,7 @@ private
     func(T) fmtEnum(value: T)->String
     {
         var v = value
-        return Reflection.getEnumName(T, &v, fullname: false)
+        return Reflection.enumName(T, &v, fullyQualified: false)
     }
 
     #[Swag.NoCopy]
@@ -123,7 +123,7 @@ private
 
             .textures.add(texture.handle)
             let idx = .textures.count - 1
-            .legend.appendFormat("# tex#% %x% %\n", idx, texture.width, texture.height, fmtEnum(texture.pf))
+            .legend.appendFormat("# tex#% %x% %\n", idx, texture.width, texture.height, fmtEnum(texture.pixelFormat))
             return Format.toString("tex#%", idx)
         }
 
@@ -137,7 +137,7 @@ private
 
             // A typeface loaded from a file is named by its path. Keeping only the file name makes
             // the label identical whatever the checkout directory is.
-            let label = Path.getFileName(font.cache.typeFace.fullname)
+            let label = Path.fileName(font.cache.typeFace.fullname)
             .legend.appendFormat("# font#% % size=% mode=%\n", idx, label, font.size, fmtEnum(font.mode))
             return Format.toString("font#%", idx)
         }

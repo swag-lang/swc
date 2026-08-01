@@ -1,7 +1,8 @@
 using Core, Pixel
 
-// Represents properties view.
+// Hosts layout, painting, and keyboard navigation for property rows.
 #[Swag.Opaque]
+#[Swag.NoDoc]
 public struct PropertiesView
 {
     using stackWnd: StackLayoutCtrl     // Embedded stack wnd state.
@@ -11,7 +12,7 @@ public struct PropertiesView
     internal ed: *Properties
 }
 
-impl IWnd for PropertiesView
+internal impl IWnd for PropertiesView
 {
     // The edView owns the keyboard focus while navigating the grid; forward keys
     // to the owning Properties so it can move the selection and start edition.
@@ -56,9 +57,9 @@ impl IWnd for PropertiesView
         {
             let item = notnull itemIt
             if @isset(item.label) do
-                item.label.autoHeight()
+                item.label.updateAutomaticHeight()
             if @isset(item.labelDesc) do
-                item.labelDesc.autoHeight()
+                item.labelDesc.updateAutomaticHeight()
             item.sigResize.call(item)
             item.line.applyLayout()
 

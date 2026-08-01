@@ -5,17 +5,21 @@ using Core, TrueType
 // Applications normally obtain atlas data through a [[Pixel.GlyphCache]]. Atlas
 // dimensions are expressed in pixels, while `width` and `curX` count bytes for
 // multi-channel distance-field textures.
+#[Swag.Opaque]
 public struct GlyphAtlas
 {
-    texture: Texture      // GPU texture associated with this atlas page.
-    width:   u32          // Row width in bytes.
-    height:  u32          // Page height in pixels.
-    bpp:     u32          // Bytes used by one atlas pixel.
-    datas:   Array'u8     // CPU-side pixel storage.
-    dirty:   bool         // Whether `datas` contains changes not uploaded to `texture`.
-    curX:    s32          // Byte offset of the next glyph in the current row.
-    curY:    s32          // Pixel offset of the current row.
-    nextY:   s32          // Pixel offset available for the following row.
+    internal
+    {
+        texture:       Texture      // GPU texture associated with this atlas page.
+        width:         u32          // Row width in bytes.
+        height:        u32          // Page height in pixels.
+        bytesPerPixel: u32          // Bytes used by one atlas pixel.
+        data:          Array'u8     // CPU-side pixel storage.
+        dirty:         bool         // Whether `data` contains changes not uploaded to `texture`.
+        curX:          s32          // Byte offset of the next glyph in the current row.
+        curY:          s32          // Pixel offset of the current row.
+        nextY:         s32          // Pixel offset available for the following row.
+    }
 }
 
 // Cached placement and metrics for one rendered glyph.
@@ -80,30 +84,30 @@ const AutoMsdfMinPx: f32 = 20.0
 //
 // Fonts with the same typeface, style, render mode, reference size, and spread share
 // this cache. A typeface therefore needs only one MSDF atlas across draw sizes.
+#[Swag.Opaque]
 public struct GlyphCache
 {
-    typeFace:    *TypeFace = undefined     // Typeface borrowed for rasterization and metrics.
-    renderMode:  FontRenderMode            // Concrete atlas representation; never `Auto`.
-    refSize:     u32                       // Reference em size in pixels.
-    spread:      u32                       // Distance-field range in pixels, or zero for bitmap atlases.
-    forceBold:   bool                      // Whether glyph rasterization synthesizes bold weight.
-    forceItalic: bool                      // Whether glyph rasterization synthesizes italic slant.
-    hasKerning:  bool                      // Whether the typeface advertises kerning information.
+    internal
+    {
+        typeFace:    *TypeFace = undefined     // Typeface borrowed for rasterization and metrics.
+        renderMode:  FontRenderMode            // Concrete atlas representation; never `Auto`.
+        refSize:     u32                       // Reference em size in pixels.
+        spread:      u32                       // Distance-field range in pixels, or zero for bitmap atlases.
+        forceBold:   bool                      // Whether glyph rasterization synthesizes bold weight.
+        forceItalic: bool                      // Whether glyph rasterization synthesizes italic slant.
+        hasKerning:  bool                      // Whether the typeface advertises kerning information.
 
-    // Metrics at the reference size, in pixels.
-    ascent:        f32     // Distance from the baseline to the highest recommended extent.
-    descent:       f32     // Signed distance from the baseline to the lowest recommended extent.
-    height:        f32     // Recommended line height.
-    underlinePos:  f32     // Underline position relative to the baseline.
-    underlineSize: f32     // Recommended underline thickness.
+        ascent:        f32     // Distance from the baseline to the highest recommended extent.
+        descent:       f32     // Signed distance from the baseline to the lowest recommended extent.
+        height:        f32     // Recommended line height.
+        underlinePos:  f32     // Underline position relative to the baseline.
+        underlineSize: f32     // Recommended underline thickness.
 
-    atlases:  Array'GlyphAtlas                // Atlas pages populated on demand.
-    glyphRef: HashTable'(u32, *GlyphDesc)     // Cached descriptors indexed by typeface glyph index.
-
-    // Kerning between two glyph indices, in reference-size pixels (lazily filled).
-    // Key = (leftGlyphIndex << 32) | rightGlyphIndex.
-    kernRef: HashTable'(u64, f32)     // Lazily populated kerning-pair cache.
-    dirty:   bool                     // Whether at least one atlas requires a GPU upload.
+        atlases:  Array'GlyphAtlas                // Atlas pages populated on demand.
+        glyphRef: HashTable'(u32, *GlyphDesc)     // Cached descriptors indexed by typeface glyph index.
+        kernRef:  HashTable'(u64, f32)            // Kerning cache keyed by two glyph indices.
+        dirty:    bool                            // Whether at least one atlas requires a GPU upload.
+    }
 }
 
 // Represents a lightweight view of a shared [[Pixel.GlyphCache]] at one draw size.
@@ -199,14 +203,14 @@ public impl FontCache
                 return cache
         }
 
-        let cache = .glyphCaches.addNewPtr()
+        let cache = .glyphCaches.addNew()
         cache.typeFace    = typeFace
         cache.renderMode  = renderMode
         cache.refSize     = refSize
         cache.spread      = spread
         cache.forceBold   = forceBold
         cache.forceItalic = forceItalic
-        cache.hasKerning  = expect typeFace.face.hasKerning()
+        cache.hasKerning  = typeFace.face.hasKerning()
 
         expect typeFace.face.setPixelSize(0, refSize)
         let metrics = &typeFace.face.size.metrics
@@ -244,7 +248,7 @@ public impl FontCache
         }
 
         let cache = .acquireGlyphCache(typeFace, refSize, spread, atlasMode, forceBold, forceItalic)
-        let font  = .fonts.addNewPtr()
+        let font  = .fonts.addNew()
         font.owner       = me
         font.cache       = cache
         font.mode        = intent
@@ -357,7 +361,7 @@ public impl Font
     }
 }
 
-public impl GlyphCache
+impl GlyphCache
 {
     // Releases atlas descriptors and cached kerning data owned by this cache.
     mtd opDrop()
@@ -384,7 +388,7 @@ public impl GlyphCache
 
         // 'kern' is scaled to the current pixel size, so query it at the reference size.
         expect .typeFace.face.setPixelSize(0, .refSize)
-        let kv = expect .typeFace.face.getKerning(leftIndex, rightIndex)
+        let kv = .typeFace.face.getKerning(leftIndex, rightIndex)
         let px = kv.x / 64.0
         .kernRef.add(key, px)
         return px
@@ -446,13 +450,13 @@ public impl GlyphCache
         if !atlas
         {
             var newAtlas: GlyphAtlas
-            newAtlas.bpp = bpp
+            newAtlas.bytesPerPixel = bpp
             let atlasSide = Math.roundUpToPowerOf2(Math.max(.refSize * 4, Math.max(bmpRef.width, bmpRef.rows) * 2))
-            newAtlas.width  = atlasSide * newAtlas.bpp
+            newAtlas.width  = atlasSide * newAtlas.bytesPerPixel
             newAtlas.height = atlasSide
-            newAtlas.datas.resize(cast(u64) newAtlas.width * newAtlas.height)
-            let datas = notnull newAtlas.datas.buffer
-            Memory.clear(datas, newAtlas.datas.count)
+            newAtlas.data.resize(cast(u64) newAtlas.width * newAtlas.height)
+            let data = notnull newAtlas.data.buffer
+            Memory.clear(data, newAtlas.data.count)
             .atlases.add(newAtlas)
             atlas = &(notnull .atlases.buffer)[.atlases.count - 1]
         }
@@ -464,7 +468,7 @@ public impl GlyphCache
         ca.nextY = Math.max(ca.nextY, ca.curY + bmpRef.rows)
 
         // Copy the rendered glyph to the atlas datas
-        var buffer = (notnull ca.datas.buffer) + x + (ca.width * (ca.height - 1))
+        var buffer = (notnull ca.data.buffer) + x + (ca.width * (ca.height - 1))
         buffer -= (y * ca.width)
         var src = bmpRef.buffer
         for [j] in bmpRef.rows

@@ -204,7 +204,7 @@ private func appendShapedGlyph(run: *ShapedRun, font: *Font, glyphIndex: u32, cl
     {
         let bounds = Math.Rectangle{glyphX + desc.shiftX, glyph.offsetY - desc.shiftY, desc.width, desc.height}
         if run.hasInk do
-            run.inkBounds.setUnion(bounds)
+            run.inkBounds.combine(bounds)
         else
         {
             run.inkBounds = bounds
@@ -275,7 +275,7 @@ impl Painter
     //
     // `zoom` and `transformScale` are multiplicative and must be positive for
     // meaningful output.
-    func getTextDrawInfo(font: *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
+    func computeTextDrawInfo(font: *Font, zoom = 1.0'f32, transformScale = 1.0'f32)->TextDrawInfo
     {
         var result: retval
         result.drawFont   = Font.resolveDrawFont(font, cast(f32) font.size * zoom * transformScale)
@@ -399,8 +399,8 @@ impl Painter
         return result
     }
 
-    // Returns all the glyphs for a given string and font
-    func getGlyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
+    // Resolves the glyph descriptors for a UTF-8 string and font.
+    func glyphs(text: string, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
         result.reserve(@countof(text))
@@ -412,8 +412,8 @@ impl Painter
         return result
     }
 
-    // Returns all the glyphs for a given string and font
-    func getGlyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
+    // Resolves the glyph descriptors for a rune array and font.
+    func glyphs(text: Array'rune, font: *Font)->Array'(const *GlyphDesc)
     {
         var result: retval
         result.reserve(@countof(text))
@@ -457,7 +457,7 @@ impl Painter
     // anchors. The default `atByte` measures the whole run.
     func measureStringSnapped(run: const *ShapedRun, atByte: u64 = Swag.U64.Max)->f32
     {
-        let info = getTextDrawInfo(run.font)
+        let info = computeTextDrawInfo(run.font)
 
         // drawString re-shapes onto the resolved draw font; mirror that so the
         // advances use the same glyph metrics it will actually draw with.
@@ -562,14 +562,14 @@ impl Painter
     {
         if shaped.glyphs.isEmpty() do
             return
-        if .fake do
+        if .layoutOnly do
             return
 
         // Nothing visible: no face fill and no outline/glow/shadow either.
         if !brush.hasVisibleAlpha() and effect.outlineColor.a == 0 and effect.glowColor.a == 0 and !effect.hasShadow() do
             return
 
-        let info       = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
+        let info       = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
         let drawFont   = info.drawFont
         let snapPixels = info.snapPixels
         let isMsdf     = drawFont.cache.renderMode == .Msdf
@@ -668,14 +668,14 @@ impl Painter
     {
         if @countof(text) == 0 or !brush.hasVisibleAlpha() do
             return
-        if .fake do
+        if .layoutOnly do
             return
 
         // Shape directly on the resolved draw font. For an 'Auto' font drawn small
         // this is the crisp bitmap, so we avoid rasterizing the (unused) MSDF glyph
         // and the subsequent re-shape that drawShapedRun would otherwise do. Shaping
         // into the painter's reusable scratch run avoids a per-call glyph allocation.
-        let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
+        let info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
         Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
         .drawShapedRun(left, top, &.scratchShaped, font, brush, under, zoom)
     }
@@ -694,10 +694,10 @@ impl Painter
     {
         if @countof(text) == 0 do
             return
-        if .fake do
+        if .layoutOnly do
             return
 
-        let info = Painter.getTextDrawInfo(font, zoom, .textTransformScale())
+        let info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
         Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
         .drawShapedRun(left, top, &.scratchShaped, font, brush, effect, under, zoom)
     }

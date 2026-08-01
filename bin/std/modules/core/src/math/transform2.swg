@@ -23,12 +23,7 @@ impl Transform2
     // Set transform to identity
     mtd setIdentity()
     {
-        .m11 = 1
-        .m12 = 0
-        .m21 = 0
-        .m22 = 1
-        .m31 = 0
-        .m32 = 0
+        me = Identity
     }
 
     // Checks if the transform is the identity matrix
@@ -107,8 +102,8 @@ impl Transform2
         .ty = translation.y
     }
 
-    // Gets the translation components
-    mtd const getTranslation()->Vector2
+    // Returns the translation components.
+    mtd const translation()->Vector2
     {
         return Vector2{.tx, .ty}
     }

@@ -34,7 +34,7 @@ const PHOTO_RGB           = 2
 const PHOTO_PALETTE       = 3
 
 // Decodes baseline TIFF images with uncompressed, PackBits, or LZW strips.
-public struct Decoder {}
+internal struct Decoder {}
 
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
@@ -174,11 +174,11 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
     }
 }
 
-public impl IImageDecoder for Decoder
+internal impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool
     {
-        let ext = Path.getExtensionLowerCase(fileName)
+        let ext = Path.lowercaseExtension(fileName)
         return ext == ".tif" or ext == ".tiff"
     }
 
@@ -380,7 +380,7 @@ public impl IImageDecoder for Decoder
         {
             let srcRow = (notnull decoded.buffer) + cast(u64) y * rowBytes
             let dstY   = result.height - y - 1
-            var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.width8
+            var dst    = cast([*] u8) (notnull result.pixels.buffer) + cast(u64) dstY * result.rowStride
 
             for [x] in cast(s32) width
             {

@@ -157,16 +157,16 @@ func assertReverseIntSetIteration(values: const &HashSet's32)->bool
 {
     var values: HashSet's32
 
-    @assert(values.toggleKey(10))
+    @assert(values.toggle(10))
     @assert(values.contains(10))
     @assert(values.count == 1)
 
-    @assert(!values.toggleKey(10))
+    @assert(!values.toggle(10))
     @assert(!values.contains(10))
     @assert(values.count == 0)
 
     values.add(42)
-    @assert(!values.toggleKey(42))
+    @assert(!values.toggle(42))
     @assert(!values.contains(42))
     @assert(values.count == 0)
 }

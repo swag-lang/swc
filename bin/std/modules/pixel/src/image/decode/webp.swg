@@ -56,7 +56,7 @@ struct Container
 }
 
 // Decodes lossless VP8L WebP images from a RIFF container.
-public struct Decoder {}
+internal struct Decoder {}
 
 func readU24(data: const [*] u8)->u32
 {
@@ -361,11 +361,11 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
     return result
 }
 
-public impl IImageDecoder for Decoder
+internal impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".webp"
+        return Path.lowercaseExtension(fileName) == ".webp"
     }
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail

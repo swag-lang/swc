@@ -30,7 +30,7 @@ using Core
 
 func day10B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     var nums     = expect File.readAllText(dataPath)
     nums += [17, 31, 73, 47, 23]
 

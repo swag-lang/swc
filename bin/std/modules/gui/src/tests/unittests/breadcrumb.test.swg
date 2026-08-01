@@ -23,14 +23,19 @@ func breadcrumbPressed(bc: *BreadcrumbCtrl, idx: u64)
     bc.addItem("Home", {}, 1)
     bc.addItem("Docs", {}, 2)
     bc.addItem("captMe", {}, 3, hasArrow: false)
+    bc.setLayoutMetrics(8, 4, 5)
     bc.layout()
 
     @assert(bc.items.count == 3)
+    @assert(bc.itemAt(1).name == "Docs")
     @assert(bc.items[0].bodyRect.x == 0)
     @assert(bc.items[0].arrowRect.width > 0)
     @assert(bc.items[1].bodyRect.x >= bc.items[0].arrowRect.right())
     @assert(bc.items[2].bodyRect.x >= bc.items[1].arrowRect.right())
     @assert(bc.items[2].arrowRect.width == 0)
+
+    bc.removeItemsFrom(2)
+    @assert(bc.items.count == 2)
 
     host.shutdown()
 }

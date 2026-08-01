@@ -90,7 +90,7 @@ using Swag, Core
 
     var evt = Gui.Testing.commandState(ActionToolMode.Selection)
     @assert(Gui.Testing.actionUpdate'ActionToolMode(f.main, ActionToolMode.Selection, &evt))
-    @assert(evt.setFlags.has(CommandStateEvent.SetFlags.Checked))
+    @assert(evt.updatedFields.has(CommandStateEvent.UpdatedFields.Checked))
     @assert(evt.checked)
 
     evt = Gui.Testing.commandState(ActionToolMode.Text)
@@ -150,7 +150,7 @@ using Swag, Core
 
     var capEvt = Gui.Testing.commandState(ActionCapture.ToClipboard)
     @assert(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ToClipboard, &capEvt))
-    @assert(capEvt.setFlags.has(CommandStateEvent.SetFlags.Checked))
+    @assert(capEvt.updatedFields.has(CommandStateEvent.UpdatedFields.Checked))
     @assert(capEvt.checked == f.main.captureOptions.sendToClipboard)
 
     let clip = f.main.editorOptions.clipToSelection

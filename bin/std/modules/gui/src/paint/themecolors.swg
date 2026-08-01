@@ -2,7 +2,7 @@
 
 using Pixel
 
-// Represents theme colors.
+// Defines the semantic color palette consumed by GUI controls and painters.
 struct ThemeColors
 {
     richColor1: Color     // Semantic color used for rich color1.
@@ -394,9 +394,9 @@ impl ThemeColors
         .surfaceDisabled = Color.fromArgb(0xFFBBBBBB)
 
         .hilight              = Blue
-        .hilightLight         = Color.getLighter(Color.fromArgb(Blue), 0.2)
-        .hilightDark          = Color.getDarker(Color.fromArgb(Blue), 0.2)
-        .hilightLightContrast = Color.getContrasting(Color.fromArgb(Blue))
+        .hilightLight         = Color.lighter(Color.fromArgb(Blue), 0.2)
+        .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
+        .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
         .disabled             = Disabled
         .transparent          = Transparent
         .lighterSmall         = LighterSmall
@@ -493,9 +493,9 @@ impl ThemeColors
         .btnIcon_CheckedPressedBk    = LighterBig
         .btnIcon_CheckedHotBk        = Transparent
         .btnIcon_CheckedBk           = Transparent
-        .btnIcon_CheckedMark         = Color.getLighter(Color.fromArgb(Blue), 0.2)
+        .btnIcon_CheckedMark         = Color.lighter(Color.fromArgb(Blue), 0.2)
         .btnIcon_CheckedPressedMark  = Blue
-        .btnIcon_CheckedHotMark      = Color.getLighter(Color.fromArgb(Blue), 0.1)
+        .btnIcon_CheckedHotMark      = Color.lighter(Color.fromArgb(Blue), 0.1)
         .btnIcon_CheckedDisabledMark = Disabled
 
         .label_Text         = Gray1
@@ -533,7 +533,7 @@ impl ThemeColors
         .toolTip_Text   = 0xFF222222
 
         .url_Text    = Blue
-        .url_HotText = Color.getLighter(Color.fromArgb(Blue), 0.2)
+        .url_HotText = Color.lighter(Color.fromArgb(Blue), 0.2)
 
         .edit_Border         = Gray3
         .edit_FocusBorder    = Blue
@@ -556,7 +556,7 @@ impl ThemeColors
         .richEdit_Text           = White
         .richEdit_SelText        = Transparent
         .richEdit_SelTextNoFocus = Transparent
-        .richEdit_SelBk          = Color.getDarker(Color.fromArgb(Blue), 0.5)
+        .richEdit_SelBk          = Color.darker(Color.fromArgb(Blue), 0.5)
         .richEdit_SelBkNoFocus   = Gray6
         .richEdit_Caret          = White
         .richEdit_CurLineBorder  = Gray4
@@ -612,7 +612,7 @@ impl ThemeColors
         .tabItem_DisabledText             = Gray4
         .tabItem_SelectedText             = White
         .tabItem_HotText                  = White
-        .tabItem_Text                     = Color.getDarker(Color.fromArgb(White), 0.3)
+        .tabItem_Text                     = Color.darker(Color.fromArgb(White), 0.3)
         .tabItem_FlatSelected             = Blue
         .tabItem_FlatHot                  = White
         .tabItem_RoundSelected            = Gray6
@@ -634,9 +634,9 @@ impl ThemeColors
         .tabView_RoundBk                  = Gray6
 
         .menuPopup_Bk         = Gray6
-        .menuPopup_Border     = Color.getLighter(Color.fromArgb(Gray6), 0.2)
+        .menuPopup_Border     = Color.lighter(Color.fromArgb(Gray6), 0.2)
         .menuPopup_Shadow     = 0xFF000000
-        .menuPopup_Separator  = Color.getLighter(Color.fromArgb(Gray6), 0.2)
+        .menuPopup_Separator  = Color.lighter(Color.fromArgb(Gray6), 0.2)
         .menuBar_Bk           = Gray4
         .menuBar_Border       = 0
         .menuBar_SelectedBk   = 0x1F000000
@@ -661,7 +661,7 @@ impl ThemeColors
         .comboBox_DisabledBorder   = Gray3
         .comboBox_SelectedBorder   = Gray2
         .comboBox_Bk               = Gray6
-        .comboBox_HotBk            = Color.getDarker(Color.fromArgb(Gray5), 0.05)
+        .comboBox_HotBk            = Color.darker(Color.fromArgb(Gray5), 0.05)
         .comboBox_DisabledBk       = Gray5
         .comboBox_SelectedBk       = Gray6
         .comboBox_Text             = Gray1
@@ -697,7 +697,7 @@ impl ThemeColors
         .listItem_HotBk             = Gray5
         .listItem_DisabledText      = Gray3
         .listItem_Text              = White
-        .listItem_Separator         = Color.getDarker(Color.fromArgb(White), 0.3)
+        .listItem_Separator         = Color.darker(Color.fromArgb(White), 0.3)
         .listItem_AlternateBk       = 0x08FFFFFF
         .listItem_Line              = Gray4
 
@@ -706,7 +706,7 @@ impl ThemeColors
         .headerItem_HotBk        = 0x10FFFFFF
         .headerItem_ClickedBk    = 0x20FFFFFF
         .headerItem_Text         = White
-        .headerItem_Separator    = Color.getLighter(Color.fromArgb(Gray4), 0.2)
+        .headerItem_Separator    = Color.lighter(Color.fromArgb(Gray4), 0.2)
         .header_Bk               = Gray4
 
         .splitView_TitleBk = Gray6
@@ -738,9 +738,9 @@ impl ThemeColors
         .embInfo_MessageBk       = 0xFF46402A
         .embInfo_MessageText     = 0xFFE6D2A2
 
-        .prop_FocusBk     = Color.getLighter(Color.fromArgb(Gray5), 0.05)
+        .prop_FocusBk     = Color.lighter(Color.fromArgb(Gray5), 0.05)
         .prop_FocusBorder = Gray3
-        .prop_HotBk       = Color.getDarker(Color.fromArgb(Gray5), 0.03)
+        .prop_HotBk       = Color.darker(Color.fromArgb(Gray5), 0.03)
         .prop_HotBorder   = Transparent
         .prop_GridBorder  = Gray7
         .prop_GridColumn  = Gray7
@@ -781,9 +781,9 @@ impl ThemeColors
         .surfaceDisabled = Color.fromArgb(0xFFEEEEEE)
 
         .hilight              = Blue
-        .hilightLight         = Color.getLighter(Color.fromArgb(Blue), 0.2)
-        .hilightDark          = Color.getDarker(Color.fromArgb(Blue), 0.2)
-        .hilightLightContrast = Color.getContrasting(Color.fromArgb(Blue))
+        .hilightLight         = Color.lighter(Color.fromArgb(Blue), 0.2)
+        .hilightDark          = Color.darker(Color.fromArgb(Blue), 0.2)
+        .hilightLightContrast = Color.contrasting(Color.fromArgb(Blue))
         .disabled             = Disabled
         .transparent          = Transparent
         .lighterSmall         = LighterSmall
@@ -880,9 +880,9 @@ impl ThemeColors
         .btnIcon_CheckedPressedBk    = AccentPressedBk
         .btnIcon_CheckedHotBk        = AccentHotBk
         .btnIcon_CheckedBk           = Transparent
-        .btnIcon_CheckedMark         = Color.getLighter(Color.fromArgb(Blue), 0.2)
+        .btnIcon_CheckedMark         = Color.lighter(Color.fromArgb(Blue), 0.2)
         .btnIcon_CheckedPressedMark  = Blue
-        .btnIcon_CheckedHotMark      = Color.getLighter(Color.fromArgb(Blue), 0.1)
+        .btnIcon_CheckedHotMark      = Color.lighter(Color.fromArgb(Blue), 0.1)
         .btnIcon_CheckedDisabledMark = Disabled
 
         .label_Text         = Gray1
@@ -920,7 +920,7 @@ impl ThemeColors
         .toolTip_Text   = Gray1
 
         .url_Text    = Blue
-        .url_HotText = Color.getLighter(Color.fromArgb(Blue), 0.2)
+        .url_HotText = Color.lighter(Color.fromArgb(Blue), 0.2)
 
         .edit_Border         = Gray6
         .edit_FocusBorder    = Blue
@@ -935,7 +935,7 @@ impl ThemeColors
         .edit_Text           = Gray1
         .edit_TextUnit       = Gray4
         .edit_DisabledText   = Gray5
-        .edit_SelectedBk     = Color.getLighter(Color.fromArgb(Blue), 0.5)
+        .edit_SelectedBk     = Color.lighter(Color.fromArgb(Blue), 0.5)
         .edit_ErrorBorder    = 0xFFFF0000
 
         .richEdit_Bk             = Gray8
@@ -943,7 +943,7 @@ impl ThemeColors
         .richEdit_Text           = Gray1
         .richEdit_SelText        = White
         .richEdit_SelTextNoFocus = Gray1
-        .richEdit_SelBk          = Color.getDarker(Color.fromArgb(Blue), 0.2)
+        .richEdit_SelBk          = Color.darker(Color.fromArgb(Blue), 0.2)
         .richEdit_SelBkNoFocus   = Gray7
         .richEdit_Caret          = Gray1
         .richEdit_CurLineBorder  = Gray7
@@ -980,8 +980,8 @@ impl ThemeColors
         .slider_DisabledMark      = Gray5
         .slider_DisabledBk        = Gray7
         .slider_DisabledHilightBk = Gray6
-        .slider_StepBk            = Color.getDarker(Color.fromArgb(Gray6), 0.08)
-        .slider_HilightStepBk     = Color.getDarker(Color.fromArgb(Blue), 0.1)
+        .slider_StepBk            = Color.darker(Color.fromArgb(Gray6), 0.08)
+        .slider_HilightStepBk     = Color.darker(Color.fromArgb(Blue), 0.1)
         .slider_HotStepBk         = LightBlue
 
         .circular_Bk             = Transparent
@@ -999,7 +999,7 @@ impl ThemeColors
         .tabItem_DisabledText             = Gray5
         .tabItem_SelectedText             = Gray1
         .tabItem_HotText                  = Gray1
-        .tabItem_Text                     = Color.getDarker(Color.fromArgb(Gray1), 0.3)
+        .tabItem_Text                     = Color.darker(Color.fromArgb(Gray1), 0.3)
         .tabItem_FlatSelected             = Blue
         .tabItem_FlatHot                  = AccentHotBk
         .tabItem_RoundSelected            = Gray7
@@ -1084,7 +1084,7 @@ impl ThemeColors
         .listItem_HotBk             = AccentHotBk
         .listItem_DisabledText      = Gray5
         .listItem_Text              = Gray1
-        .listItem_Separator         = Color.getLighter(Color.fromArgb(Gray1), 0.12)
+        .listItem_Separator         = Color.lighter(Color.fromArgb(Gray1), 0.12)
         .listItem_AlternateBk       = 0x08000000
         .listItem_Line              = Gray7
 

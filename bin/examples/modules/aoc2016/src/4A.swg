@@ -21,7 +21,7 @@ func day4A()
 {
     expect
     {
-        let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
+        let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
         let lines    = File.readAllLines(dataPath)
 
         var total = 0's64

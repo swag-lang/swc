@@ -35,12 +35,12 @@ using Core
 
 func appendNumbers(a, b: u64)->u64
 {
-    return a * Math.powerOf10(cast(f32) b) + b
+    return a * cast(s64) Math.nextPowerOfTen(cast(f64) b) + b
 }
 
 func day7B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var total = 0'u64

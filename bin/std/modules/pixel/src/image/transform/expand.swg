@@ -19,27 +19,23 @@ impl Image
         let srcX = l < 0 ? -l : 0
         let srcY = t < 0 ? -t : 0
 
-        var srcW = .width8
-        if l < 0 do
-            srcW += l * .bpp8
-        if r < 0 do
-            srcW += r * .bpp8
+        let retainedWidth  = .width + Math.min(l, 0) + Math.min(r, 0)
+        let retainedHeight = .height + Math.min(t, 0) + Math.min(b, 0)
+        if retainedWidth <= 0 or retainedHeight <= 0 do
+            return
 
-        var srcH = .height
-        if t < 0 do
-            srcH += t
-        if b < 0 do
-            srcH += b
+        let srcW = retainedWidth * .bytesPerPixel
+        let srcH = retainedHeight
 
-        var dstPix = dstImage.pixels.buffer + dstY * dstImage.width8
-        dstPix += dstX * .bpp8
+        var dstPix = dstImage.pixels.buffer + dstY * dstImage.rowStride
+        dstPix += dstX * .bytesPerPixel
 
         for [cy] in srcH
         {
-            var srcPix = .pixels.buffer + (srcY + cy) * .width8
-            srcPix += cast(u64) (srcX * .bpp8)
+            var srcPix = .pixels.buffer + (srcY + cy) * .rowStride
+            srcPix += cast(u64) (srcX * .bytesPerPixel)
             Memory.copy(dstPix, srcPix, srcW)
-            dstPix += dstImage.width8
+            dstPix += dstImage.rowStride
         }
     }
 
@@ -47,16 +43,16 @@ impl Image
     public mtd expand(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))
     {
         let {cw, ch} = .getWH(l, t, r, b)
-        .allocWorkingBuffer(cw, ch, .pf)
+        .allocWorkingBuffer(cw, ch, .pixelFormat)
         .doExpand(.safeWorkingBuffer(), l, t, r, b, color)
         .applyWorkingBuffer()
     }
 
     // Crop image
-    public mtd const toExpand(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))->Image
+    public mtd const expanded(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))->Image
     {
         let {cw, ch}       = .getWH(l, t, r, b)
-        var result: retval = create(cw, ch, .pf)
+        var result: retval = create(cw, ch, .pixelFormat)
         .doExpand(&result, l, t, r, b, color)
         return result
     }

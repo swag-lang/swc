@@ -75,7 +75,7 @@ impl IForm for FormShape
 
         .setBaseForm(xa, ya, xb - xa, yb - ya)
 
-        if evt.kind == .MouseReleased and evt.button == .Left do
+        if evt.kind == .Released and evt.button == .Left do
             return false
         return true
     }
@@ -136,7 +136,7 @@ impl IForm for FormShape
             let br  = .boundRect()
             let pos = Math.Vector2{pt.x, pt.y}
             let cen = Math.Vector2{br.horzCenter(), br.vertCenter()}
-            return Math.Geometry.isInEllipse(pos, cen, br.width * 0.5, br.height * 0.5)
+            return Math.Geometry.ellipseContainsPoint(pos, cen, br.width * 0.5, br.height * 0.5)
 
         default:
             return true

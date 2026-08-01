@@ -18,17 +18,17 @@ func editHeadlessEscape(eb: *EditBox)
     EditHeadlessEscapeCount += 1
 }
 
-// setText/getText round-trips the content.
+// setText/text round-trips the content.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
-    @assert(edit.getText() == "Hello")
+    @assert(edit.text() == "Hello")
 
     edit.setText("World")
-    @assert(edit.getText() == "World")
+    @assert(edit.text() == "World")
 
     host.shutdown()
 }
@@ -44,7 +44,7 @@ func editHeadlessEscape(eb: *EditBox)
 
     host.sendRune(Input.Key.A, 'H')
     host.sendRune(Input.Key.A, 'i')
-    @assert(edit.getText() == "Hi")
+    @assert(edit.text() == "Hi")
 
     host.shutdown()
 }
@@ -60,10 +60,10 @@ func editHeadlessEscape(eb: *EditBox)
 
     host.sendRune(Input.Key.A, 'A')
     host.sendRune(Input.Key.A, 'B')
-    @assert(edit.getText() == "AB")
+    @assert(edit.text() == "AB")
 
     host.keyPress(Input.Key.Back)
-    @assert(edit.getText() == "A")
+    @assert(edit.text() == "A")
 
     host.shutdown()
 }
@@ -77,7 +77,7 @@ func editHeadlessEscape(eb: *EditBox)
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
     edit.selectAll()
     edit.deleteSelection()
-    @assert(edit.getText() == "")
+    @assert(edit.text() == "")
 
     host.shutdown()
 }
@@ -92,26 +92,26 @@ func editHeadlessEscape(eb: *EditBox)
     host.focus(edit)
 
     host.sendRune(Input.Key.A, 'Z')
-    @assert(edit.getText() == "lock")
+    @assert(edit.text() == "lock")
 
     host.shutdown()
 }
 
-// maxLength caps the number of runes.
+// maximum length caps the number of runes.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
 
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
-    edit.maxLength = 3
+    edit.setMaximumLength(3)
     host.focus(edit)
 
     host.sendRune(Input.Key.A, '1')
     host.sendRune(Input.Key.A, '2')
     host.sendRune(Input.Key.A, '3')
     host.sendRune(Input.Key.A, '4')
-    @assert(edit.getText() == "123")
+    @assert(edit.text() == "123")
 
     host.shutdown()
 }
@@ -126,14 +126,14 @@ func editHeadlessEscape(eb: *EditBox)
     host.setup(400, 60)
 
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
-    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.Zero)
+    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.getText())
+    let len = @countof(edit.text())
     edit.setSelection(len, len)
 
-    let fontR    = nnFont(edit.getFont().regular)
-    let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR)
+    let fontR    = nnFont(edit.font().regular)
+    let expected = Pixel.Painter.measureStringSnapped(edit.text(), fontR)
     let drift    = Math.abs(edit.posSelEnd - expected)
 
     // Caret must land within a pixel of the drawn glyph edge regardless of length.
@@ -150,14 +150,14 @@ func editHeadlessEscape(eb: *EditBox)
     host.setup(400, 60)
 
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
-    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAlign)
+    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAligned)
     host.focus(edit)
 
-    let len = @countof(edit.getText())
+    let len = @countof(edit.text())
     edit.setSelection(len, len)
 
-    let fontR    = nnFont(edit.getFont().regular)
-    let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR)
+    let fontR    = nnFont(edit.font().regular)
+    let expected = Pixel.Painter.measureStringSnapped(edit.text(), fontR)
     let drift    = Math.abs(edit.posSelEnd - expected)
     @assert(drift <= 1.0)
 
@@ -172,10 +172,10 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(420, 60)
 
-    let edit = EditBox.create(&host.root, "Hello world example text", {0, 0, 400, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "Hello world example text", {0, 0, 400, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let rect = edit.getSurfaceRect()
+    let rect = edit.surfaceRect()
     let yc   = rect.vertCenter()
 
     // Far left clamps to the first byte.
@@ -195,7 +195,7 @@ func editHeadlessEscape(eb: *EditBox)
 
     // Far right clamps to the end of the text.
     host.click({rect.right() - 1, yc})
-    @assert(edit.selEnd == @countof(edit.getText()))
+    @assert(edit.selEnd == @countof(edit.text()))
 
     host.shutdown()
 }
@@ -207,18 +207,18 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(420, 60)
 
-    let edit = EditBox.create(&host.root, "Monotonic caret round trip", {0, 0, 400, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "Monotonic caret round trip", {0, 0, 400, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let fontR = nnFont(edit.getFont().regular)
-    let len   = @countof(edit.getText())
+    let fontR = nnFont(edit.font().regular)
+    let len   = @countof(edit.text())
 
     // For every caret index, the cached offset must equal the snapped advance to that
     // byte (what the renderer would place the glyph edge at).
     for [idx] in 0 to len
     {
         edit.setSelection(idx, idx)
-        let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR, idx)
+        let expected = Pixel.Painter.measureStringSnapped(edit.text(), fontR, idx)
         @assert(Math.abs(edit.posSelEnd - expected) <= 0.5)
     }
 
@@ -231,7 +231,7 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(300, 60)
 
-    let edit = EditBox.create(&host.root, "abcdef", {0, 0, 260, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "abcdef", {0, 0, 260, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     host.keyPress(Input.Key.End)
@@ -259,7 +259,7 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(300, 60)
 
-    let edit = EditBox.create(&host.root, "selection", {0, 0, 260, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "selection", {0, 0, 260, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     host.keyPress(Input.Key.Home)
@@ -268,9 +268,9 @@ func editHeadlessEscape(eb: *EditBox)
     host.keyPress(Input.Key.Right, Input.KeyModifiers.Shift)
     @assert(edit.selBeg == 0 and edit.selEnd == 3)
 
-    let fontR = nnFont(edit.getFont().regular)
-    @assert(Math.abs(edit.posSelBeg - Pixel.Painter.measureStringSnapped(edit.getText(), fontR, 0)) <= 0.5)
-    @assert(Math.abs(edit.posSelEnd - Pixel.Painter.measureStringSnapped(edit.getText(), fontR, 3)) <= 0.5)
+    let fontR = nnFont(edit.font().regular)
+    @assert(Math.abs(edit.posSelBeg - Pixel.Painter.measureStringSnapped(edit.text(), fontR, 0)) <= 0.5)
+    @assert(Math.abs(edit.posSelEnd - Pixel.Painter.measureStringSnapped(edit.text(), fontR, 3)) <= 0.5)
 
     host.shutdown()
 }
@@ -281,7 +281,7 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(360, 60)
 
-    let edit = EditBox.create(&host.root, "one two three", {0, 0, 320, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "one two three", {0, 0, 320, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     host.keyPress(Input.Key.Home)
@@ -308,14 +308,14 @@ func editHeadlessEscape(eb: *EditBox)
     host.setup(160, 60)
 
     // Narrow box, long text -> horizontal scroll kicks in.
-    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.getText())
+    let len = @countof(edit.text())
     edit.setSelection(len, len)
 
-    let fontR    = nnFont(edit.getFont().regular)
-    let expected = Pixel.Painter.measureStringSnapped(edit.getText(), fontR, len)
+    let fontR    = nnFont(edit.font().regular)
+    let expected = Pixel.Painter.measureStringSnapped(edit.text(), fontR, len)
     @assert(Math.abs(edit.posSelEnd - expected) <= 0.5)
 
     host.shutdown()
@@ -329,10 +329,10 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(160, 60)
 
-    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.getText())
+    let len = @countof(edit.text())
     edit.setSelection(len, len)
     edit.updateScroll()
 
@@ -353,10 +353,10 @@ func editHeadlessEscape(eb: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(160, 60)
 
-    let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.Zero)
+    let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
-    let len = @countof(edit.getText())
+    let len = @countof(edit.text())
     for [idx] in 0 to len
     {
         edit.setSelection(idx, idx)
@@ -370,7 +370,7 @@ func editHeadlessEscape(eb: *EditBox)
 }
 
 // Enter and Escape emit their dedicated signals.
-// (EditBoxFlags.Zero avoids AutoLoseFocus, which would re-focus the top view.)
+// (EditBoxFlags.None keeps focus on the edit box after submit or cancel.)
 #test
 {
     var host: Testing.HeadlessHost
@@ -378,9 +378,9 @@ func editHeadlessEscape(eb: *EditBox)
     EditHeadlessEnterCount  = 0
     EditHeadlessEscapeCount = 0
 
-    let edit = EditBox.create(&host.root, "x", {20, 20, 200, 26}, null, EditBoxFlags.Zero)
-    edit.sigEnterPressed  += &editHeadlessEnter
-    edit.sigEscapePressed += &editHeadlessEscape
+    let edit = EditBox.create(&host.root, "x", {20, 20, 200, 26}, null, EditBoxFlags.None)
+    edit.sigSubmitted  += &editHeadlessEnter
+    edit.sigCancelled += &editHeadlessEscape
 
     host.focus(edit)
     host.keyPress(Input.Key.Return)

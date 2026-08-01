@@ -6,40 +6,40 @@ impl Image
     #[Swag.Incomplete]
     public enum Kernel: const [..] s32
     {
-        GaussianBlur3x3A = [3, 8, 0, 1, 0, 1, 4, 1, 0, 1, 0]
-        GaussianBlur3x3B = [3, 20, 1, 2, 1, 2, 8, 2, 1, 2, 1]
-        GaussianBlur5x5A = [5, 159, 2, 4, 5, 4, 2, 4, 9, 12, 9, 4, 5, 12, 15, 12, 5, 4, 9, 12, 9, 4, 2, 4, 5, 4, 2]
-        BoxBlur3x3A      = [3, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        BoxBlur5x5A      = [5, 25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-        Sharpen3x3A      = [3, 8, -1, -1, -1, -1, 16, -1, -1, -1, -1]
-        Sharpen3x3B      = [3, 1, 0, -1, 0, -1, 5, -1, 0, -1, 0]
-        Soften3x3A       = [3, 20, 0, 1, 0, 1, 16, 1, 0, 1, 0]
+        GaussianBlur3x3Light  = [3, 8, 0, 1, 0, 1, 4, 1, 0, 1, 0]     // Light 3-by-3 Gaussian blur.
+        GaussianBlur3x3Strong = [3, 20, 1, 2, 1, 2, 8, 2, 1, 2, 1]     // Stronger 3-by-3 Gaussian blur.
+        GaussianBlur5x5       = [5, 159, 2, 4, 5, 4, 2, 4, 9, 12, 9, 4, 5, 12, 15, 12, 5, 4, 9, 12, 9, 4, 2, 4, 5, 4, 2]     // Smooth 5-by-5 Gaussian blur.
+        BoxBlur3x3            = [3, 9, 1, 1, 1, 1, 1, 1, 1, 1, 1]     // Uniform 3-by-3 box blur.
+        BoxBlur5x5            = [5, 25, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]     // Uniform 5-by-5 box blur.
+        Sharpen3x3Strong      = [3, 8, -1, -1, -1, -1, 16, -1, -1, -1, -1]     // Strong all-neighbor sharpening.
+        Sharpen3x3Cross       = [3, 1, 0, -1, 0, -1, 5, -1, 0, -1, 0]     // Cross-shaped sharpening.
+        Soften3x3             = [3, 20, 0, 1, 0, 1, 16, 1, 0, 1, 0]     // Mild cross-shaped softening.
 
-        EmbossLeft3x3A  = [3, 0, -1, -1, 0, -1, 3, 0, 0, 0, 0]
-        EmbossLeft3x3B  = [3, 0, -2, -2, 0, -2, 6, 0, 0, 0, 0]
-        EmbossLeft3x3C  = [3, 0, -4, -4, 0, -4, 12, 0, 0, 0, 0]
-        EmbossRight3x3A = [3, 0, 0, 0, 0, 0, -3, 1, 0, 1, 1]
-        EmbossRight3x3B = [3, 0, 0, 0, 0, 0, -6, 2, 0, 2, 2]
-        EmbossRight3x3C = [3, 0, 0, 0, 0, 0, -12, 4, 0, 4, 4]
+        EmbossLeft3x3Light    = [3, 0, -1, -1, 0, -1, 3, 0, 0, 0, 0]     // Light emboss illuminated from the left.
+        EmbossLeft3x3Medium   = [3, 0, -2, -2, 0, -2, 6, 0, 0, 0, 0]     // Medium emboss illuminated from the left.
+        EmbossLeft3x3Strong   = [3, 0, -4, -4, 0, -4, 12, 0, 0, 0, 0]     // Strong emboss illuminated from the left.
+        EmbossRight3x3Light   = [3, 0, 0, 0, 0, 0, -3, 1, 0, 1, 1]     // Light emboss illuminated from the right.
+        EmbossRight3x3Medium  = [3, 0, 0, 0, 0, 0, -6, 2, 0, 2, 2]     // Medium emboss illuminated from the right.
+        EmbossRight3x3Strong  = [3, 0, 0, 0, 0, 0, -12, 4, 0, 4, 4]     // Strong emboss illuminated from the right.
 
-        EdgeDetect3x3A = [3, 0, -1, -1, -1, -1, 8, -1, -1, -1, -1]
-        EdgeDetect3x3B = [3, 0, -5, 0, 0, 0, 0, 0, 0, 0, 5]
-        EdgeDetect3x3C = [3, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1]
-        EdgeDetect3x3D = [3, 0, -1, -1, -1, 2, 2, 2, -1, -1, -1]
-        EdgeDetect3x3E = [3, 0, -5, -5, -5, -5, 40, -5, -5, -5, -5]
-        EdgeDetect3x3F = [3, 0, 0, 1, 0, 1, -4, 1, 0, 1, 0]
+        Laplacian8         = [3, 0, -1, -1, -1, -1, 8, -1, -1, -1, -1]     // Eight-neighbor Laplacian edge detector.
+        DiagonalGradient   = [3, 0, -5, 0, 0, 0, 0, 0, 0, 0, 5]     // Diagonal gradient edge detector.
+        HorizontalGradient = [3, 0, -1, -1, -1, 0, 0, 0, 1, 1, 1]     // Horizontal gradient edge detector.
+        HorizontalLine     = [3, 0, -1, -1, -1, 2, 2, 2, -1, -1, -1]     // Horizontal line detector.
+        Laplacian8Strong   = [3, 0, -5, -5, -5, -5, 40, -5, -5, -5, -5]     // Strong eight-neighbor Laplacian edge detector.
+        Laplacian4         = [3, 0, 0, 1, 0, 1, -4, 1, 0, 1, 0]     // Four-neighbor Laplacian edge detector.
 
-        SobelHorizontal3x3A  = [3, 0, 1, 2, 1, 0, 0, 0, -1, -2, -1]
-        SobelVertical3x3A    = [3, 0, 1, 0, -1, 2, 0, -2, 1, 0, -1]
-        PrevitHorizontal3x3A = [3, 0, 1, 1, 1, 0, 0, 0, -1, -1, -1]
-        PrevitVertical3x3A   = [3, 0, 1, 0, -1, 1, 0, -1, 1, 0, -1]
+        SobelHorizontal3x3   = [3, 0, 1, 2, 1, 0, 0, 0, -1, -2, -1]     // Sobel horizontal-edge detector.
+        SobelVertical3x3     = [3, 0, 1, 0, -1, 2, 0, -2, 1, 0, -1]     // Sobel vertical-edge detector.
+        PrewittHorizontal3x3 = [3, 0, 1, 1, 1, 0, 0, 0, -1, -1, -1]     // Prewitt horizontal-edge detector.
+        PrewittVertical3x3   = [3, 0, 1, 0, -1, 1, 0, -1, 1, 0, -1]     // Prewitt vertical-edge detector.
     }
 
     #[Swag.Safety(.All, false)]
     mtd doKernel(dstImage: *Image, kernel: Kernel)
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         var f = {kernel: cast(const [..] s32) kernel, dstImage: dstImage}
@@ -47,8 +47,8 @@ impl Image
         {
             let params     = cast(*#decltype(f)) (notnull userData)
             let kernelSize = params.kernel[0] / 2
-            let b8         = image.bpp8
-            let w8         = image.width8
+            let b8         = image.bytesPerPixel
+            let w8         = image.rowStride
             let w          = image.width
             let h          = image.height
             let px         = cast([*] u8) (notnull image.pixels.buffer)
@@ -105,7 +105,7 @@ impl Image
             dpix[0] = cast(u8) Math.clamp(bs, 0, 255)
             dpix[1] = cast(u8) Math.clamp(gs, 0, 255)
             dpix[2] = cast(u8) Math.clamp(rs, 0, 255)
-            if image.bpp == 32 do
+            if image.bitsPerPixel == 32 do
                 dpix[3] = pix[3]
         }
     }
@@ -120,10 +120,10 @@ impl Image
     }
 
     // Apply a kernel to the image
-    public mtd toApplyKernel(kernel: Kernel)->Image
+    public mtd withKernelApplied(kernel: Kernel)->Image
     {
         Debug.assert(.pixels.buffer != null)
-        var result: retval = create(.width, .height, .pf)
+        var result: retval = create(.width, .height, .pixelFormat)
         .doKernel(&result, kernel)
         return result
     }

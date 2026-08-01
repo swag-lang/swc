@@ -5,8 +5,8 @@ using Swag
 
 #test
 {
-    let culture0 = Globalization.getCultureInfo()
-    let culture1 = Globalization.getCultureInfo()
+    let culture0 = Globalization.currentCulture()
+    let culture1 = Globalization.currentCulture()
     @assert(culture0 == culture1)
 
     let oldNegativeSign     = culture0.numberFormat.negativeSign

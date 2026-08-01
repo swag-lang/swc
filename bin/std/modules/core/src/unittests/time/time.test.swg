@@ -5,16 +5,16 @@ using Swag
 
 #test
 {
-    @assert(Time.TicksPerMilliSecond == 10000)
+    @assert(Time.TicksPerMillisecond == 10000)
     @assert(Time.TicksPerSecond == 10000000)
     @assert(Time.TicksPerMinute == 600000000)
     @assert(Time.TicksPerHour == 36000000000)
     @assert(Time.TicksPerDay == 864000000000)
 
-    @assert(Time.MillisPerSecond == 1000)
-    @assert(Time.MillisPerMinute == 60000)
-    @assert(Time.MillisPerHour == 3600000)
-    @assert(Time.MillisPerDay == 86400000)
+    @assert(Time.MillisecondsPerSecond == 1000)
+    @assert(Time.MillisecondsPerMinute == 60000)
+    @assert(Time.MillisecondsPerHour == 3600000)
+    @assert(Time.MillisecondsPerDay == 86400000)
 
     @assert(Time.DaysPerYear == 365)
     @assert(Time.DaysPer4Years == 1461)
@@ -50,12 +50,12 @@ using Swag
 #test
 {
     @assert(Time.timeToTicks(0, 0, 0, 0) == 0)
-    @assert(Time.timeToTicks(0, 0, 0, 1) == Time.TicksPerMilliSecond)
+    @assert(Time.timeToTicks(0, 0, 0, 1) == Time.TicksPerMillisecond)
     @assert(Time.timeToTicks(0, 0, 1, 0) == Time.TicksPerSecond)
     @assert(Time.timeToTicks(0, 1, 0, 0) == Time.TicksPerMinute)
     @assert(Time.timeToTicks(1, 0, 0, 0) == Time.TicksPerHour)
     @assert(Time.timeToTicks(1, 2, 3, 4) == 37230040000)
-    @assert(Time.timeToTicks(23, 59, 59, 999) == Time.TicksPerDay - Time.TicksPerMilliSecond)
+    @assert(Time.timeToTicks(23, 59, 59, 999) == Time.TicksPerDay - Time.TicksPerMillisecond)
 
     let midnight = Time.ticksToTime(0)
     @assert(midnight.hour == 0)

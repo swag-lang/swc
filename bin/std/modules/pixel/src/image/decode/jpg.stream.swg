@@ -185,7 +185,7 @@ impl Decoder
             fail InvalidFormatError{"bad variable marker"}
         left -= 2
 
-        @assert(!.acceptMetaDatas)
+        @assert(!.acceptMetadata)
         while left
         {
             .getBits1(8)
@@ -320,8 +320,8 @@ impl Decoder
         var prefix:      [12] u8
         var prefixCount: u32
         var inValue = false
-        var meta:        ImageMetaData
-        meta.sig = cast(u32) marker - cast(u32) Marker.M_APP0
+        var meta: ImageMetadata
+        meta.signature = cast(u32) marker - cast(u32) Marker.M_APP0
 
         while left
         {
@@ -334,7 +334,7 @@ impl Decoder
                 prefixCount         += 1
             }
 
-            if .decOptions.decodeMetaDatas
+            if .decOptions.decodeMetadata
             {
                 if !inValue and c == 0 do
                     inValue = true
@@ -358,8 +358,8 @@ impl Decoder
             .adobeTransform = prefix[11]
         }
 
-        if .decOptions.decodeMetaDatas do
-            .metaDatas.add(meta)
+        if .decOptions.decodeMetadata do
+            .metadata.add(meta)
     }
 
     mtd readSosMarker() fail

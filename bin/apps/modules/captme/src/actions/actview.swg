@@ -18,7 +18,7 @@ impl IActionUI for ActionView
         switch cxt.id
         {
         case .Clip:
-            evt.setFlags |= .Name | .Disabled | .Checked
+            evt.updatedFields |= .Name | .Disabled | .Checked
             evt.name     = "Hide Outside Box"
             evt.checked  = main.editorOptions.clipToSelection
 

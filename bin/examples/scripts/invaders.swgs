@@ -74,7 +74,7 @@ var g_Obstacles: Array'Obstacle
 
 func updatePlayer()
 {
-    let kb = (notnull g_Wnd).getApp().getKeyboard()
+    let kb = (notnull g_Wnd).app().keyboardRef()
 
     // Move
     if kb.isKeyPressed(.Left) do
@@ -295,18 +295,18 @@ func display()
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    g_Dt = wnd.getApp().getDt()
+    g_Dt = wnd.app().deltaSeconds()
 
     switch evt
     {
     case CreateEvent:
         g_Wnd  = wnd
-        g_Rect = wnd.getClientRect()
+        g_Rect = wnd.clientRect()
         loadBindTextures()
         startGame()
 
     case ResizeEvent:
-        g_Rect = wnd.getClientRect()
+        g_Rect = wnd.clientRect()
 
     case PaintEvent as ptr:
         g_Painter = ptr.bc.painter
@@ -320,10 +320,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 func loadBindTextures()
 {
-    func loadAndBindTexture(name: string)->Texture fail => (notnull g_Wnd).getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
+    func loadAndBindTexture(name: string)->Texture fail => (notnull g_Wnd).app().rendererRef().addImage(Path.combine(g_DataPath, name))
     func loadSound(name: string)->Audio.SoundFile fail  => Audio.SoundFile.load(Path.combine(g_DataPath, name), true)
 
-    g_DataPath = Path.getDirectoryName(#curlocation.fileName)
+    g_DataPath = Path.directoryName(#curlocation.fileName)
     g_DataPath = Path.combine(g_DataPath, "datas")
     g_DataPath = Path.combine(g_DataPath, "invaders")
 
@@ -340,7 +340,7 @@ func loadBindTextures()
         g_SoundLaser     = loadSound("laser.wav")
         g_SoundMusic     = loadSound("music.wav")
 
-        g_Font = (notnull g_Wnd).getApp().getRenderer().fonts.createFont(Path.combine(g_DataPath, "pixeled.ttf"), 40)
+        g_Font = (notnull g_Wnd).app().rendererRef().fonts.createFont(Path.combine(g_DataPath, "pixeled.ttf"), 40)
     }
 }
 
@@ -351,7 +351,7 @@ func loadBindTextures()
 
     func muteForTest(app: *Application)
     {
-        if Env.hasArg("swag.test") do expect Audio.setOutputVolume(0)
+        if Env.hasArgument("swag.test") do expect Audio.setOutputVolume(0)
     }
 
     Application.runSurface(100, 100, W - 46, H - 31, title: "Space-invaders", hook: &onEvent, init: &muteForTest)

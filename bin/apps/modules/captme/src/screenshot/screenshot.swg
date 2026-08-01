@@ -53,15 +53,15 @@ func waitForCapture()->bool
 
 func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fail
 {
-    g_App.disableHotKeys()
-    defer g_App.enableHotKeys()
+    g_App.setGlobalHotKeysEnabled(false)
+    defer g_App.setGlobalHotKeysEnabled()
 
     var result: retval = undefined
     result.img       = getDesktopImage(main.captureOptions.captureCursor)
     g_DesktopTexture = g_App.renderer.addImage(result.img)
     defer g_App.renderer.removeTexture(&g_DesktopTexture)
 
-    result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .Secondary | .TopMost | .NoShadow)
+    result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, g_ScreenWidth, g_ScreenHeight, .ToolWindow | .TopMost | .NoShadow)
     let sf         = notnull result.sf
     let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     captureWnd.main   = main
@@ -71,7 +71,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: #null *Surface } fa
 
     sf.setView(captureWnd)
     sf.show()
-    sf.bringToTop()
+    sf.bringToFront()
 
     if !waitForCapture()
     {
@@ -153,7 +153,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode)->bool
         let idx = cast(s32) captureMode - cast(s32) CaptureMode.Screen0
         if cast(u64) idx >= main.monitors.count do
             return false
-        let rect = screenToDesktopRect(main.monitors[idx].rectReal)
+        let rect = screenToDesktopRect(main.monitors[idx].physicalBounds)
         g_StartGrabX = rect.x
         g_StartGrabY = rect.y
         g_EndGrabX   = rect.x + rect.width
@@ -183,12 +183,12 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode) fail
 
     // Force a delay
     if main.captureOptions.delay do
-        Threading.Thread.sleep(main.captureOptions.delay * 1000)
+        Threading.Thread.sleep(Time.Duration.fromSeconds(main.captureOptions.delay))
 
-    g_DesktopX     = Env.getMetric(.DesktopX)
-    g_DesktopY     = Env.getMetric(.DesktopY)
-    g_ScreenWidth  = Env.getMetric(.DesktopWidth)
-    g_ScreenHeight = Env.getMetric(.DesktopHeight)
+    g_DesktopX     = Env.getSystemMetric(.DesktopX)
+    g_DesktopY     = Env.getSystemMetric(.DesktopY)
+    g_ScreenWidth  = Env.getSystemMetric(.DesktopWidth)
+    g_ScreenHeight = Env.getSystemMetric(.DesktopHeight)
 
     // Capture
     var capture: #null *Capture

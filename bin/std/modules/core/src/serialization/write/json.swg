@@ -5,25 +5,29 @@
 using Swag
 
 // Options for customizing JSON formatting.
-struct JSonOptions
+struct JsonOptions
 {
     indentLevel: u32 = 4     // Number of spaces per indentation level.
     saveBlanks:  bool        // Whether to include indentation and line breaks.
 }
 
 // A JSON writer.
-struct JSon
+struct Json
 {
-    options:        JSonOptions                                   // Formatting options.
-    output:         *ConcatBuffer              = undefined        // Output buffer for generated JSON.
-    indent:         u32                                           // Current indentation level.
-    containerDepth: u32                                           // Current logical nesting depth for arrays/objects.
-    fmtInt:         StrConv.ConvertFormatInt                      // Format used for converting integers.
-    fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g'u8}     // Format used for converting floating-point numbers.
-    lastSeekValue:  ConcatBufferSeek                              // Seek position used for rollback of trailing commas.
+    options: JsonOptions     // Formatting options.
+
+    internal
+    {
+        output:         *ConcatBuffer              = undefined        // Output buffer for generated JSON.
+        indent:         u32                                           // Current indentation level.
+        containerDepth: u32                                           // Current logical nesting depth for arrays/objects.
+        fmtInt:         StrConv.ConvertFormatInt                      // Format used for converting integers.
+        fmtFloat:       StrConv.ConvertFormatFloat = {fmt: 'g'u8}     // Format used for converting floating-point numbers.
+        lastSeekValue:  ConcatBufferPosition                          // Position used for rollback of trailing commas.
+    }
 }
 
-impl JSon
+impl Json
 {
     // Returns true indicating this writer produces textual output.
     #[Warning("Wrn0006", WarningLevel.Disable)]
@@ -32,8 +36,7 @@ impl JSon
         return true
     }
 
-    // Writes indentation based on the current indent level and settings.
-    mtd writeIndent()
+    internal mtd writeIndent()
     {
         if !.options.saveBlanks do
             return
@@ -41,10 +44,43 @@ impl JSon
             .output.addNative(' 'u8)
     }
 
+    internal mtd writeString(value: #null string)
+    {
+        const Hex = "0123456789ABCDEF"
+
+        .output.addNative('"'u8)
+        for c in value
+        {
+            switch c
+            {
+            case '"':  .output.addBytes("\\\"")
+            case '\\': .output.addBytes("\\\\")
+            case '\b': .output.addBytes("\\b")
+            case '\f': .output.addBytes("\\f")
+            case '\n': .output.addBytes("\\n")
+            case '\r': .output.addBytes("\\r")
+            case '\t': .output.addBytes("\\t")
+            default:
+                if c < 0x20
+                {
+                    .output.addBytes("\\u00")
+                    .output.addNative(Hex[c >> 4])
+                    .output.addNative(Hex[c & 0x0F])
+                }
+                else do
+                    .output.addNative(c)
+            }
+        }
+        .output.addNative('"'u8)
+    }
+
     // Initializes the JSON writer with the given output buffer.
     mtd startWrite(buf: *ConcatBuffer)
     {
-        .output = buf
+        .output         = buf
+        .indent         = 0
+        .containerDepth = 0
+        .lastSeekValue  = {}
     }
 
     // Begins the root element (no-op for JSON).
@@ -59,7 +95,7 @@ impl JSon
     mtd beginSequence(_typeElem: #null typeinfo, _data: #null const *void, _countElem: u64)->bool
     {
         .output.addBytes("[")
-        .lastSeekValue  = .output.getSeek()
+        .lastSeekValue  = .output.position()
         .containerDepth += 1
         if .options.saveBlanks
         {
@@ -74,7 +110,7 @@ impl JSon
     // Ends a JSON array.
     mtd endSequence()
     {
-        .output.setEndSeek(.lastSeekValue)
+        .output.truncate(.lastSeekValue)
         if .options.saveBlanks
         {
             .output.addBytes("\n")
@@ -84,14 +120,14 @@ impl JSon
 
         .containerDepth -= 1
         .output.addBytes("]")
-        .lastSeekValue = .output.getSeek()
+        .lastSeekValue = .output.position()
     }
 
     // Begins a JSON object section.
     mtd beginSection(_kind: SectionKind)
     {
         .output.addBytes("{")
-        .lastSeekValue  = .output.getSeek()
+        .lastSeekValue  = .output.position()
         .containerDepth += 1
         if .options.saveBlanks
         {
@@ -104,7 +140,7 @@ impl JSon
     // Ends a JSON object section.
     mtd endSection()
     {
-        .output.setEndSeek(.lastSeekValue)
+        .output.truncate(.lastSeekValue)
         if .options.saveBlanks
         {
             .output.addBytes("\n")
@@ -114,7 +150,7 @@ impl JSon
 
         .containerDepth -= 1
         .output.addBytes("}")
-        .lastSeekValue = .output.getSeek()
+        .lastSeekValue = .output.position()
     }
 
     // Begins writing a struct (treated as a JSON object).
@@ -133,9 +169,8 @@ impl JSon
     // Begins a named JSON element (a key-value pair).
     mtd beginElement(val: TypeValue)
     {
-        .output.addNative('"'u8)
-        .output.addBytes(val.name)
-        .output.addBytes("\":")
+        .writeString(val.name)
+        .output.addNative(':'u8)
         if .options.saveBlanks do
             .output.addBytes(" ")
     }
@@ -154,7 +189,7 @@ impl JSon
         if .containerDepth == 0 do
             return
 
-        .lastSeekValue = .output.getSeek()
+        .lastSeekValue = .output.position()
         .output.addBytes(",")
         if .options.saveBlanks do
             .output.addBytes("\n")
@@ -182,9 +217,7 @@ impl JSon
         }
         elif Reflection.isString(NT)
         {
-            .output.addNative('"'u8)
-            .output.addBytes(value)
-            .output.addNative('"'u8)
+            .writeString(value)
         }
         else
         {

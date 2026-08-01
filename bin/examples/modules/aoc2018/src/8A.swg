@@ -38,7 +38,7 @@ internal var metadataTotal = 0
 
 func day8A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "8.txt")
     let values   = Tokenize.split(expect File.readAllText(dataPath), ' 'u8)
     let nums     = Slice.map(values.toSlice(), func(v) => expect StrConv.toS32(v))
 

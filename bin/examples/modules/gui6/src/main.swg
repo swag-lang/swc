@@ -88,11 +88,10 @@ var g_StatusText:    String
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
-    label.horzAlignmentText = horizontal
-    label.vertAlignmentText = vertical
+    label.setTextAlignment(horizontal, vertical)
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
@@ -101,8 +100,8 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
 
 func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
-    let label = createText(parent, text, rect, .WordWrap | .LightText)
-    label.vertAlignmentText = .Top
+    let label = createText(parent, text, rect, .WordWrap | .SecondaryText)
+    label.setTextVerticalAlignment(.Top)
     return label
 }
 
@@ -121,19 +120,19 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
     let label = createText(parent, text, {x, y, width, 22})
-    label.labelFlags.add(.LightText)
+    label.updateFlags(.SecondaryText)
 }
 
 func createActionButton(parent: *Wnd, text: string, rect: Math.Rectangle, id: WndId, icon: ThemeIcons24)->*PushButton
 {
     let btn = PushButton.create(parent, text, rect, id)
-    btn.icon = app.theme.getIcon24(icon, 18)
+    btn.setIcon(app.theme.icon24(icon, 18))
     return btn
 }
 
 func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
 {
-    let rect         = parent.getClientRect()
+    let rect         = parent.clientRect()
     let width        = Math.max(rect.width, 1.0)
     let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let halfWidth    = (width - PanelGap) * 0.5
@@ -249,7 +248,7 @@ func applyTheme()
         app.theme.colors.setLight()
 
     updateThemeButton()
-    app.themeHasChanged()
+    app.notifyThemeChanged()
 }
 
 func toggleTheme(_btn: *Button)
@@ -277,25 +276,25 @@ func destroyPageMenus()
 
 func addDocumentItems(menu: *MenuCtrl)
 {
-    menu.addItem("New document", MenuCmd.NewFile, app.theme.getIcon24(.Plus, 18))
-    menu.addItem("Open...", MenuCmd.OpenFile, app.theme.getIcon24(.OpenFile, 18))
+    menu.addItem("New document", MenuCmd.NewFile, app.theme.icon24(.Plus, 18))
+    menu.addItem("Open...", MenuCmd.OpenFile, app.theme.icon24(.OpenFile, 18))
     menu.addSeparator()
-    menu.addItem("Save", MenuCmd.SaveFile, app.theme.getIcon24(.Save, 18))
-    menu.addItem("Save as...", MenuCmd.SaveAs, app.theme.getIcon24(.SaveAs, 18))
-    menu.addItem("Export package", MenuCmd.Export, app.theme.getIcon24(.Export, 18))
+    menu.addItem("Save", MenuCmd.SaveFile, app.theme.icon24(.Save, 18))
+    menu.addItem("Save as...", MenuCmd.SaveAs, app.theme.icon24(.SaveAs, 18))
+    menu.addItem("Export package", MenuCmd.Export, app.theme.icon24(.Export, 18))
     menu.addSeparator()
-    menu.addItem("Quit", MenuCmd.Quit, app.theme.getIcon24(.Quit, 18))
+    menu.addItem("Quit", MenuCmd.Quit, app.theme.icon24(.Quit, 18))
 }
 
 func addEditItems(menu: *MenuCtrl)
 {
-    menu.addItem("Undo", MenuCmd.Undo, app.theme.getIcon24(.Undo, 18))
-    menu.addItem("Redo", MenuCmd.Redo, app.theme.getIcon24(.Redo, 18))
+    menu.addItem("Undo", MenuCmd.Undo, app.theme.icon24(.Undo, 18))
+    menu.addItem("Redo", MenuCmd.Redo, app.theme.icon24(.Redo, 18))
     menu.addSeparator()
-    menu.addItem("Cut", MenuCmd.Cut, app.theme.getIcon24(.Cut, 18))
-    menu.addItem("Copy", MenuCmd.Copy, app.theme.getIcon24(.Copy, 18))
-    menu.addItem("Paste", MenuCmd.Paste, app.theme.getIcon24(.Paste, 18))
-    menu.addItem("Duplicate", MenuCmd.Duplicate, app.theme.getIcon24(.Duplicate, 18))
+    menu.addItem("Cut", MenuCmd.Cut, app.theme.icon24(.Cut, 18))
+    menu.addItem("Copy", MenuCmd.Copy, app.theme.icon24(.Copy, 18))
+    menu.addItem("Paste", MenuCmd.Paste, app.theme.icon24(.Paste, 18))
+    menu.addItem("Duplicate", MenuCmd.Duplicate, app.theme.icon24(.Duplicate, 18))
 }
 
 func addViewItems(menu: *MenuCtrl)
@@ -340,7 +339,7 @@ func createOptionsMenu(parent: *Wnd)->*MenuCtrl
     let menu = createTrackedPopup(parent)
     addThemeItems(menu)
     menu.addSeparator()
-    menu.addItem("About menus", MenuCmd.About, app.theme.getIcon24(.About, 18))
+    menu.addItem("About menus", MenuCmd.About, app.theme.icon24(.About, 18))
     return menu
 }
 
@@ -385,11 +384,11 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case PaintEvent as paintEvt:
-        let painter   = paintEvt.bc.painter
-        let rect      = view.getClientRect()
-        let colors    = view.getThemeColors()
-        let font      = view.getTheme().createDefaultFont(14)
-        let titleFont = view.getTheme().createDefaultFont(20, .Bold)
+        let painter   = paintEvt.paintContext.painter
+        let rect      = view.clientRect()
+        let colors    = view.themeColors()
+        let font      = view.theme().createDefaultFont(14)
+        let titleFont = view.theme().createDefaultFont(20, .Bold)
 
         painter.fillRect(rect, colors.view_Bk)
         let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 48, 1.0)}
@@ -600,56 +599,56 @@ func computeMenuCommandState(evt: *CommandStateEvent)->bool
     switch evt.id
     {
     case MenuCmd.SaveFile:
-        evt.setFlags |= .Disabled
+        evt.updatedFields |= .Disabled
         evt.disabled = !g_DocumentDirty
 
     case MenuCmd.Undo:
-        evt.setFlags |= .Disabled
+        evt.updatedFields |= .Disabled
         evt.disabled = !g_DocumentDirty
 
     case MenuCmd.Redo:
-        evt.setFlags |= .Disabled
+        evt.updatedFields |= .Disabled
         evt.disabled = g_DocumentDirty
 
     case MenuCmd.ToggleGrid:
-        evt.setFlags |= .Checked
+        evt.updatedFields |= .Checked
         evt.checked  = g_ShowGrid
 
     case MenuCmd.ToggleGuides:
-        evt.setFlags |= .Checked
+        evt.updatedFields |= .Checked
         evt.checked  = g_ShowGuides
 
     case MenuCmd.ModeCompact:
-        evt.setFlags      |= .Checked | .RenderingHint
+        evt.updatedFields      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Compact
 
     case MenuCmd.ModeDetailed:
-        evt.setFlags      |= .Checked | .RenderingHint
+        evt.updatedFields      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Detailed
 
     case MenuCmd.ModeColumns:
-        evt.setFlags      |= .Checked | .RenderingHint
+        evt.updatedFields      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_Mode == .Columns
 
     case MenuCmd.ThemeLight:
-        evt.setFlags      |= .Checked | .RenderingHint
+        evt.updatedFields      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = !g_DarkTheme
 
     case MenuCmd.ThemeDark:
-        evt.setFlags      |= .Checked | .RenderingHint
+        evt.updatedFields      |= .Checked | .RenderingHint
         evt.renderingHint = .ExclusiveGroup
         evt.checked       = g_DarkTheme
 
     case MenuCmd.ContextPin:
-        evt.setFlags |= .Checked
+        evt.updatedFields |= .Checked
         evt.checked  = g_ContextPinned
 
     case MenuCmd.ContextDelete:
-        evt.setFlags |= .Disabled
+        evt.updatedFields |= .Disabled
         evt.disabled = g_ContextPinned
 
     default:
@@ -669,7 +668,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
             return true
         }
     }
-    elif let state = evt as CommandStateEvent where state.kind == .ComputeCommandState
+    elif let state = evt as CommandStateEvent where state.kind == .Compute
     {
         if computeMenuCommandState(state)
         {
@@ -709,7 +708,7 @@ func clearPage()
     g_Preview     = null
 
     let pageView0 = notnull g_PageView
-    for child in pageView0.childs
+    for child in pageView0.children
     {
         let c = notnull child
         c.destroy()
@@ -744,7 +743,7 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect         = view.getClientRect()
+    let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
@@ -777,7 +776,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") or !g_Surface do
+    if !Env.hasArgument("swag.test") or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -802,11 +801,11 @@ func canUsePageArrows()->bool
     let view2     = notnull g_View
     let pageView2 = notnull g_PageView
 
-    let focus = view2.getFocus()
+    let focus = view2.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView2.isParentOf(notnull focus)
+    return !pageView2.isAncestorOf(notnull focus)
 }
 
 func onFrame(app: *Application)
@@ -814,7 +813,7 @@ func onFrame(app: *Application)
     if !g_Surface or !g_View or !g_PageView do
         return
 
-    if app.keyb.isKeyJustPressed(.F1) do
+    if app.keyboard.isKeyJustPressed(.F1) do
         nextPage()
 
     updateTestMode()
@@ -838,23 +837,23 @@ func registerMenuShortcuts()
 
 func createRootView()
 {
-    let view = (notnull g_Surface).getView()
+    let view = (notnull g_Surface).view()
     g_View               = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
-    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
+    title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton          = themeButton
-    themeButton.form       = .Flat
-    themeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    themeButton.setForm(.Flat)
+    themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -864,7 +863,7 @@ func createRootView()
     let footer = Label.create(view, "", {})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
-    footer.labelFlags.add(.LightText)
+    footer.updateFlags(.SecondaryText)
 
     registerMenuShortcuts()
     layoutRootView()
@@ -873,18 +872,18 @@ func createRootView()
 
 #main
 {
-    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 80, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI6 menu showcase")
-    surface.setIcon(app.theme.getIcon24(ThemeIcons24.More, 18))
+    surface.setIcon(app.theme.icon24(ThemeIcons24.More, 18))
     g_StatusText = "Open a menu or use shortcuts to exercise command dispatch."
 
     createRootView()
     buildPage()
 
     app.sigFrame += &onFrame
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
     surface.show()

@@ -3,19 +3,25 @@
 // Represents a single memory block (a bucket) within a ConcatBuffer.
 struct ConcatBufferBucket
 {
-    datas:       #null [*] u8                  // Pointer to the raw memory of the bucket.
-    next:        #null *ConcatBufferBucket     // Pointer to the next bucket in the chain.
-    count:       u64                           // Number of bytes used in this bucket.
-    size:        u64                           // Total allocated size of this bucket in bytes.
-    countBefore: u64                           // Total number of bytes in all preceding buckets.
+    readonly
+    {
+        data:        #null [*] u8                  // Pointer to the raw memory of the bucket.
+        next:        #null *ConcatBufferBucket     // Pointer to the next bucket in the chain.
+        count:       u64                           // Number of bytes used in this bucket.
+        size:        u64                           // Total allocated size of this bucket in bytes.
+        countBefore: u64                           // Total number of bytes in all preceding buckets.
+    }
 }
 
 // Represents a position (seek) within a ConcatBuffer.
 // It holds both the bucket and the specific pointer within that bucket.
-struct ConcatBufferSeek
+struct ConcatBufferPosition
 {
-    bucket: #null *ConcatBufferBucket     // The bucket where the position is located.
-    sp:     #null [*] u8                  // The exact memory address of the position.
+    readonly
+    {
+        bucket:  #null *ConcatBufferBucket     // The bucket containing the position.
+        pointer: #null [*] u8                  // The exact memory address of the position.
+    }
 }
 
 // Represents a growable buffer that is divided into buckets (chunks of memory).
@@ -99,6 +105,7 @@ impl ConcatBuffer
 
     // Ensures that there is enough room to store at least 'numBytes' more bytes.
     // If the current bucket is full, a new one is allocated.
+    #[Swag.NoDoc]
     mtd grow(numBytes: u64)
     {
         Debug.assert(.isAtEnd)
@@ -107,10 +114,10 @@ impl ConcatBuffer
         {
             let lastBucket = .lastBucket
             let currentSP  = notnull .currentSP
-            let datas      = notnull lastBucket.datas
+            let data       = notnull lastBucket.data
 
             // Enough room in the last bucket
-            let seek = cast(u64) (currentSP - datas)
+            let seek = cast(u64) (currentSP - data)
             if seek + numBytes <= lastBucket.size do
                 return
 
@@ -123,7 +130,7 @@ impl ConcatBuffer
                 nextBucket.count       = 0
 
                 .curBucket, .lastBucket = nextBucket
-                .currentSP              = nextBucket.datas
+                .currentSP              = nextBucket.data
                 return
             }
         }
@@ -152,9 +159,9 @@ impl ConcatBuffer
 
         let bsize      = Math.max(.granularity, numBytes)
         let lastBucket = notnull .lastBucket
-        lastBucket.datas = Memory.alloc(bsize, .allocator)
+        lastBucket.data  = Memory.alloc(bsize, .allocator)
         lastBucket.size  = bsize
-        .currentSP       = lastBucket.datas
+        .currentSP       = lastBucket.data
     }
 
     // Associates a specific allocator with the buffer.
@@ -183,7 +190,7 @@ impl ConcatBuffer
         {
             let bucket  = ptr
             let nextPtr = bucket.next
-            Memory.free(bucket.datas, bucket.size, .allocator)
+            Memory.free(bucket.data, bucket.size, .allocator)
             if bucket != &.viewFirstBucket do
                 Memory.free(bucket, #sizeof(ConcatBufferBucket), .allocator)
             ptr = nextPtr
@@ -202,7 +209,7 @@ impl ConcatBuffer
 
         let firstBucket = .firstBucket
         .curBucket, .lastBucket                    = firstBucket
-        .currentSP                                 = firstBucket.datas
+        .currentSP                                 = firstBucket.data
         firstBucket.countBefore, firstBucket.count = 0
         .isAtEnd                                   = true
     }
@@ -214,12 +221,12 @@ impl ConcatBuffer
         {
             let curBucket = notnull .curBucket
             let currentSP = notnull .currentSP
-            let datas     = notnull curBucket.datas
+            let data      = notnull curBucket.data
 
             // If not enough room in the current bucket, then we
             // have to split the content with the next bucket
             if #sizeof(T) > curBucket.count or
-               currentSP > datas + curBucket.count - #sizeof(T)
+               currentSP > data + curBucket.count - #sizeof(T)
             {
                 var v = val
                 .addBytes(@mkslice(cast([*] u8) &v, #sizeof(T)), false)
@@ -268,7 +275,7 @@ impl ConcatBuffer
             if !.isAtEnd
             {
                 var curBucket = notnull .curBucket
-                let curCount  = cast(u64) (.currentSP - curBucket.datas)
+                let curCount  = cast(u64) (.currentSP - curBucket.data)
                 var remain    = curBucket.count - curCount
                 while num > remain
                 {
@@ -289,7 +296,7 @@ impl ConcatBuffer
 
                     curBucket  = notnull curBucket.next
                     .curBucket = curBucket
-                    .currentSP = curBucket.datas
+                    .currentSP = curBucket.data
                     remain     = curBucket.count
                 }
 
@@ -309,7 +316,7 @@ impl ConcatBuffer
             else
             {
                 var lastBucket = notnull .lastBucket
-                let curCount   = cast(u64) (.currentSP - lastBucket.datas)
+                let curCount   = cast(u64) (.currentSP - lastBucket.data)
                 var remain     = lastBucket.size - curCount
                 while num > remain
                 {
@@ -338,18 +345,18 @@ impl ConcatBuffer
         lastBucket.count += num
     }
 
-    // Calculates the absolute byte offset of a given seek position.
-    func getOffset(seek: ConcatBufferSeek)->u64
+    // Returns the absolute byte offset represented by `position`.
+    func offsetOf(position: ConcatBufferPosition)->u64
     {
-        return seek.bucket ? seek.bucket.countBefore + cast(u64) (seek.sp - seek.bucket.datas) : 0
+        return position.bucket ? position.bucket.countBefore + cast(u64) (position.pointer - position.bucket.data) : 0
     }
 
-    // Returns a 'ConcatBufferSeek' representing the current position in the buffer.
-    mtd getSeek()->ConcatBufferSeek
+    // Returns the current write position.
+    mtd position()->ConcatBufferPosition
     {
         var result: retval
         result.bucket = .lastBucket
-        result.sp     = .currentSP
+        result.pointer = .currentSP
         return result
     }
 
@@ -362,19 +369,19 @@ impl ConcatBuffer
     mtd reserveInPlace(count: u64)->[*] u8
     {
         let result = notnull .currentSP
-        .moveSeek(count)
+        .advance(count)
         return cast([*] u8) result
     }
 
     // Advances the cursor by `num` bytes, growing the buffer when needed.
-    mtd moveSeek(num: u64)
+    mtd advance(num: u64)
     {
         var total = num
 
         if !.isAtEnd
         {
             var curBucket = notnull .curBucket
-            var seek      = cast(u64) (.currentSP - curBucket.datas)
+            var seek      = cast(u64) (.currentSP - curBucket.data)
             while curBucket.next and seek + total > curBucket.count
             {
                 total -= (curBucket.count - seek)
@@ -382,7 +389,7 @@ impl ConcatBuffer
                     break
                 curBucket  = notnull curBucket.next
                 .curBucket = curBucket
-                .currentSP = curBucket.datas
+                .currentSP = curBucket.data
                 seek       = 0
             }
 
@@ -406,44 +413,44 @@ impl ConcatBuffer
     private mtd setIsAtEnd()
     {
         let lastBucket = notnull .lastBucket
-        .isAtEnd = .currentSP == lastBucket.datas + lastBucket.count
+        .isAtEnd = .currentSP == lastBucket.data + lastBucket.count
     }
 
-    // Sets the current read/write position to a given 'seek'.
-    mtd setSeek(seek: ConcatBufferSeek)
+    // Sets the current read/write position.
+    mtd setPosition(position: ConcatBufferPosition)
     {
-        if !seek.bucket
+        if !position.bucket
         {
             let firstBucket = notnull .firstBucket
             .curBucket = firstBucket
-            .currentSP = firstBucket.datas
+            .currentSP = firstBucket.data
         }
         else
         {
-            .curBucket = seek.bucket
-            .currentSP = seek.sp
+            .curBucket = position.bucket
+            .currentSP = position.pointer
         }
 
         .setIsAtEnd()
     }
 
-    // Sets the end of the buffer to a given 'seek' position, effectively truncating it.
-    mtd setEndSeek(seek: ConcatBufferSeek)
+    // Truncates the buffer at `position` and moves the cursor there.
+    mtd truncate(position: ConcatBufferPosition)
     {
-        if !seek.bucket
+        if !position.bucket
         {
             let firstBucket = notnull .firstBucket
             .curBucket, .lastBucket = firstBucket
-            .currentSP              = firstBucket.datas
+            .currentSP              = firstBucket.data
             firstBucket.count       = 0
             .isAtEnd                = true
         }
         else
         {
-            let bucket = seek.bucket
+            let bucket = position.bucket
             .curBucket, .lastBucket = bucket
-            .currentSP              = seek.sp
-            bucket.count            = cast(u64) (seek.sp - bucket.datas)
+            .currentSP              = position.pointer
+            bucket.count            = cast(u64) (position.pointer - bucket.data)
             .isAtEnd                = true
         }
     }
@@ -456,7 +463,7 @@ impl ConcatBuffer
         if .lastBucket == .firstBucket
         {
             let firstBucket = notnull .firstBucket
-            return @mkslice(firstBucket.datas, firstBucket.count)
+            return @mkslice(firstBucket.data, firstBucket.count)
         }
 
         return null
@@ -468,10 +475,10 @@ impl ConcatBuffer
     {
         Debug.assert(.firstBucket == null)
         @init(&.viewFirstBucket, 1)
-        .viewFirstBucket.datas                = @dataof(data)
+        .viewFirstBucket.data                 = @dataof(data)
         .viewFirstBucket.size                 = @countof(data)
         .firstBucket, .lastBucket, .curBucket = &.viewFirstBucket
-        .currentSP                            = .viewFirstBucket.datas
+        .currentSP                            = .viewFirstBucket.data
     }
 
     // Converts the buffer to a [[Core.String]] by copying its content.
@@ -492,7 +499,7 @@ impl ConcatBuffer
         while ptr != lastBucket.next
         {
             let b = notnull ptr
-            result.append(@mkstring(b.datas, b.count))
+            result.append(@mkstring(b.data, b.count))
             ptr = b.next
         }
 
@@ -505,7 +512,7 @@ impl ConcatBuffer
         Debug.assert(.lastBucket == .firstBucket)
 
         let firstBucket = notnull .firstBucket
-        let rdata       = notnull firstBucket.datas
+        let rdata       = notnull firstBucket.data
         let rcount      = firstBucket.count
         let rcapacity   = firstBucket.size
 
@@ -558,7 +565,7 @@ impl ConcatBuffer
         var curPtr = newDatas
         for b in me
         {
-            Memory.copy(curPtr, b.datas, b.count)
+            Memory.copy(curPtr, b.data, b.count)
             curPtr += b.count
         }
 
@@ -567,11 +574,11 @@ impl ConcatBuffer
 
         // Make one single bucket
         .firstBucket            = Memory.new'ConcatBufferBucket(.allocator)
-        .firstBucket.datas      = newDatas
+        .firstBucket.data       = newDatas
         .firstBucket.size       = total
         .firstBucket.count      = total
         .curBucket, .lastBucket = .firstBucket
-        .currentSP              = .firstBucket.datas + .firstBucket.count
+        .currentSP              = .firstBucket.data + .firstBucket.count
         .isAtEnd                = true
     }
 }

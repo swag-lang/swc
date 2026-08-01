@@ -19,7 +19,7 @@ enum Orientation
 // Owns the working state for constrained Delaunay triangulation.
 //
 // Treat this type as opaque and use its tessellation entry points. The returned
-// [[Poly2Tri.Result]] owns the public points, edges, and triangle descriptors.
+// [[Poly2Tri.Result]] owns the flattened triangle vertices.
 //
 // ## Example
 //
@@ -29,14 +29,15 @@ enum Orientation
 // polygon.add({100, 0})
 // polygon.add({50, 80})
 // polygon.add({0, 0}) // Close the ring.
-// polygon.compute()
+// polygon.recompute()
 //
 // var tessellator: Pixel.Poly2Tri.Tessellate
 // tessellator.addPolyLine(polygon)
 // tessellator.triangulate()
-// let triangles = tessellator.getResult().triIndices
+// let triangles = tessellator.takeResult().triIndices
 // ```
 #[Swag.Opaque]
+#[Swag.NoCopy]
 public struct Tessellate
 {
     // Sweep-line state of one tessellation: the advancing front, the node pool, and the
@@ -64,18 +65,14 @@ public struct Tessellate
     }
 }
 
-// Owns the graph and index output of one tessellation.
+// Owns the triangle vertices produced by one tessellation.
 public struct Result
 {
-    triangles:  Array'(*Triangle)     // Owned triangle descriptors.
-    edges:      Array'(*Edge)         // Owned constrained-edge descriptors.
-    points:     Array'(*Point)        // Owned point descriptors.
-    triIndices: Array'u64             // Flat triples indexing `points`.
-    tess:       #null *Tessellate     // Tessellator associated with this result, if retained.
+    vertices: Array'Math.Vector2     // Triangle vertices stored as consecutive triples.
 }
 
 // Stores one tessellation point and its incident constrained edges.
-public struct Point
+struct Point
 {
     using v: Math.Vector2        // Point coordinates in path space.
     edges:   Array'(*Edge)       // Incident constrained edges.
@@ -83,14 +80,14 @@ public struct Point
 }
 
 // Connects two tessellation points with a constrained edge.
-public struct Edge
+struct Edge
 {
     p: *Point = undefined     // Lower endpoint according to Poly2Tri ordering.
     q: *Point = undefined     // Upper endpoint according to Poly2Tri ordering.
 }
 
 // Stores one triangle and its adjacency/classification state.
-public struct Triangle
+struct Triangle
 {
     constrainedEdge: [3] bool                   // Whether each opposite edge is constrained.
     delaunayEdge:    [3] bool                   // Temporary Delaunay edge markers.
@@ -148,26 +145,13 @@ func nnTriangle(t: #null *Triangle)->*Triangle
 
 impl Result
 {
+    // Returns the number of triangles in the result.
+    public mtd triangleCount()->u64 => .vertices.count / 3
+
+    // Removes all triangle vertices.
     mtd clear()
     {
-        .points.clear()
-        .edges.clear()
-        .triangles.clear()
-        .triIndices.clear()
-    }
-
-    mtd release()
-    {
-        for t in .points do
-            Memory.delete(t)
-        for t in .edges do
-            Memory.delete(t)
-        for t in .triangles do
-            Memory.delete(t)
-        .points.clear()
-        .edges.clear()
-        .triangles.clear()
-        .triIndices.clear()
+        .vertices.clear()
     }
 }
 
@@ -763,14 +747,23 @@ impl Tessellate
         .freeNodes.clear()
     }
 
-    // Get the triangulation result
-    public mtd getResult()->Result
+    // Transfers the triangulation result out of this tessellator.
+    //
+    // The tessellator remains reusable after the transfer. Its point, edge,
+    // triangle, and index arrays are empty until new input is added.
+    public mtd takeResult()->Result
     {
         var result: retval
-        result.points     = #move .points
-        result.edges      = #move .edges
-        result.triangles  = #move .triangles
-        result.triIndices = #move .triIndices
+        result.vertices.reserve(.triIndices.count * 3)
+        for triangleIndex in .triIndices
+        {
+            let triangle = .triangles[triangleIndex]
+            result.vertices.add(triangle.points[0].v)
+            result.vertices.add(triangle.points[1].v)
+            result.vertices.add(triangle.points[2].v)
+        }
+
+        .clear()
         return result
     }
 
@@ -819,7 +812,7 @@ impl Tessellate
         for [i] in 0 until poly.points.count - 1
         {
             let p  = newPoint()
-            let pt = poly.getPoint(i)
+            let pt = poly.pointAt(i)
             p.x = pt.x
             p.y = pt.y
             .points.add(p)

@@ -58,6 +58,8 @@ func parseNames(faceData: *FaceImpl) fail
 
     var bestFamilyScore = -1
     var bestStyleScore  = -1
+    var familyName: String
+    var styleName:  String
 
     for count
     {
@@ -70,20 +72,21 @@ func parseNames(faceData: *FaceImpl) fail
 
         if nameID == NAME_ID_FAMILY and score > bestFamilyScore
         {
-            faceData.face.familyName = decodeNameRecord(nameTable, stringOffset, base)
-            bestFamilyScore          = score
+            familyName     = decodeNameRecord(nameTable, stringOffset, base)
+            bestFamilyScore = score
         }
         elif nameID == NAME_ID_STYLE and score > bestStyleScore
         {
-            faceData.face.styleName = decodeNameRecord(nameTable, stringOffset, base)
-            bestStyleScore          = score
+            styleName      = decodeNameRecord(nameTable, stringOffset, base)
+            bestStyleScore = score
         }
     }
 
-    if faceData.face.familyName.length == 0 do
-        faceData.face.familyName = "Unknown"
-    if faceData.face.styleName.length == 0 do
-        faceData.face.styleName = "Regular"
+    if familyName.length == 0 do
+        familyName = "Unknown"
+    if styleName.length == 0 do
+        styleName = "Regular"
+    faceData.face.setNames(familyName, styleName)
 }
 
 func parsePost(faceData: *FaceImpl) fail
@@ -93,8 +96,7 @@ func parsePost(faceData: *FaceImpl) fail
     if format != 0x00010000 and format != 0x00020000 and format != 0x00025000 and format != 0x00030000 do
         fault(0x9A)
 
-    faceData.face.underlinePosition  = readS16(postTable, 8)
-    faceData.face.underlineThickness = readS16(postTable, 10)
+    faceData.face.setUnderline(readS16(postTable, 8), readS16(postTable, 10))
 }
 
 // Parse x-height / cap-height from OS/2 (version >= 2). Missing or older tables
@@ -148,6 +150,7 @@ func parseCMap(faceData: *FaceImpl) fail
             bestSlice = subTable
             bestScore = score
             bestFmt   = format
+            faceData.face.selectCharMap(platformID, encodingID)
         }
     }
 
@@ -257,16 +260,7 @@ func parseKern(faceData: *FaceImpl) fail
 
 func initFaceRecords(faceData: *FaceImpl)
 {
-    faceData.face.glyph.face             = &faceData.face
-    faceData.face.glyph.format           = .None
-    faceData.face.glyph.bitmap.pixelMode = .Gray
-    faceData.face.glyph.bitmap.grayCount = 256
-
-    faceData.face.size.face = &faceData.face
-
-    faceData.face.charMap.face       = &faceData.face
-    faceData.face.charMap.platformID = 3
-    faceData.face.charMap.encodingID = 1
+    faceData.face.initializeRecords()
 }
 
 func parseFace(faceData: *FaceImpl) fail
@@ -294,11 +288,7 @@ func parseFace(faceData: *FaceImpl) fail
         fault(0xB9)
 
     faceData.unitsPerEm       = readU16(head, 18)
-    faceData.face.unitsPerEm  = faceData.unitsPerEm
-    faceData.face.bbox.xMin   = readS16(head, 36)
-    faceData.face.bbox.yMin   = readS16(head, 38)
-    faceData.face.bbox.xMax   = readS16(head, 40)
-    faceData.face.bbox.yMax   = readS16(head, 42)
+    faceData.face.setHeader(faceData.unitsPerEm, readS16(head, 36), readS16(head, 38), readS16(head, 40), readS16(head, 42))
     faceData.macStyle         = readU16(head, 44)
     faceData.indexToLocFormat = readS16(head, 50)
 
@@ -306,18 +296,17 @@ func parseFace(faceData: *FaceImpl) fail
     if @countof(hhea) < 36 do
         fault(0x8F)
 
-    faceData.face.ascender        = readS16(hhea, 4)
-    faceData.face.descender       = readS16(hhea, 6)
-    faceData.lineGap              = readS16(hhea, 8)
-    faceData.face.height          = cast(s16) (faceData.face.ascender - faceData.face.descender + faceData.lineGap)
-    faceData.face.maxAdvanceWidth = readS16(hhea, 10)
+    let ascender                   = readS16(hhea, 4)
+    let descender                  = readS16(hhea, 6)
+    faceData.lineGap               = readS16(hhea, 8)
+    faceData.face.setHorizontalMetrics(ascender, descender, faceData.lineGap, readS16(hhea, 10))
     faceData.numLongMetrics       = readU16(hhea, 34)
 
     let maxp = getTableSlice(faceData, TAG_MAXP, 0x8E)
     if @countof(maxp) < 6 do
         fault(0x8E)
 
-    faceData.face.glyphCount = readU16(maxp, 4)
+    faceData.face.setGlyphCount(readU16(maxp, 4))
 
     buildGlyphMetrics(faceData)
     buildGlyphLocations(faceData)
@@ -327,11 +316,12 @@ func parseFace(faceData: *FaceImpl) fail
     parseKern(faceData)
     parseOS2(faceData)
 
-    faceData.face.style = .None
+    var style = StyleFlag.None
     if (faceData.macStyle & 0x0001) != 0 or faceData.face.styleName.contains(cast(string) "Bold") do
-        faceData.face.style |= .Bold
+        style |= .Bold
     if (faceData.macStyle & 0x0002) != 0 or faceData.face.styleName.contains(cast(string) "Italic") do
-        faceData.face.style |= .Italic
+        style |= .Italic
+    faceData.face.setStyle(style)
 
     initFaceRecords(faceData)
 }

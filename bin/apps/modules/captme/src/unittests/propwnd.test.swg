@@ -11,14 +11,14 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
 
     with f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
     {
-        .splitterFlags.add(.HideBars)
+        .flags.add(.HideDividers)
     }
 
     let splitter = f.main.quickStyleBar
     f.main.quickWnd = QuickWnd.create(splitter, f.main)
     f.main.propWnd  = PropWnd.create(splitter, f.main)
-    discard f.main.quickStyleBar.addPane(f.main.quickWnd, title: true)
-    discard f.main.quickStyleBar.addPane(f.main.propWnd, title: true)
+    discard f.main.quickStyleBar.addPane(f.main.quickWnd, showTitle: true)
+    discard f.main.quickStyleBar.addPane(f.main.propWnd, showTitle: true)
     f.main.quickStyleBar.setPaneSize(0, 300)
     f.main.quickWnd.setDefault()
     return f.main.propWnd
@@ -66,15 +66,15 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     let border = notnull testFindItem(prop, #nameof(BaseForm.borderSize))
     @assert(@isset(border.sliderBox))
     @assert(border.sliderBox.label.name == "Outline")
-    @assert(border.sliderBox.slider.min == MinTextBorderSize)
-    @assert(border.sliderBox.slider.max == MaxTextBorderSize)
+    @assert(border.sliderBox.slider.minimum() == MinTextBorderSize)
+    @assert(border.sliderBox.slider.maximum() == MaxTextBorderSize)
 
     // The joins row is a generated combo omitting JoinStyle.None: Round selects index 1
     let joins = notnull testFindItem(prop, #nameof(BaseForm.joinStyle))
     @assert(@isset(joins.comboBox))
     @assert(joins.comboBox.items.count == 4)
     @assert(tf.joinStyle == .Round)
-    @assert(joins.comboBox.selectedIdx == 1)
+    @assert(joins.comboBox.selectedIndex == 1)
 
     // Most specific first: the text form's own fields come before the shared BaseForm
     // block, even though the language declares 'using base' first
@@ -92,7 +92,7 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
     @assert((notnull prop.grid.items[n - 2]).typeValue.name == "position")
     @assert((notnull prop.grid.items[n - 3]).typeValue.name == "Position")
 
-    // Rows span the whole panel width (they used to be clamped to sizeEditValue)
+    // Rows span the whole panel width (they used to be clamped to editorWidth)
     @assert(border.line.position.width > 250)
     @assert(border.line.position.width >= prop.grid.position.width - 24)
 
@@ -124,30 +124,30 @@ func testItemIndex(prop: *PropWnd, name: string)->u64
 
     // Scroll all the way down (content is taller than the prop pane)
     prop.grid.scrollWnd.setScrollPos(0, 10000)
-    let sc = prop.grid.scrollWnd.getScrollPos()
+    let sc = prop.grid.scrollWnd.scrollPosition()
     @assert(sc.y > 0)
 
-    let stack = posItem.line.childs[0]
-    f.gui.clickWnd(notnull (cast(*EditCtrl) stack.childs[0]).edit)
+    let stack = posItem.line.children[0]
+    f.gui.clickWnd(notnull (cast(*EditCtrl) stack.children[0]).edit)
     f.gui.pump()
-    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+    @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
-    f.gui.clickWnd(notnull (cast(*EditCtrl) stack.childs[1]).edit)
+    f.gui.clickWnd(notnull (cast(*EditCtrl) stack.children[1]).edit)
     f.gui.pump()
-    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+    @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     f.gui.clickWnd(notnull posItem.line)
     f.gui.pump()
-    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+    @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     // Dead zone just above the row (inside the separator margin)
-    var pt = posItem.line.getSurfaceRect().center()
-    pt.y = posItem.line.getSurfaceRect().y - 8
+    var pt = posItem.line.surfaceRect().center()
+    pt.y = posItem.line.surfaceRect().y - 8
     let lineSrf = notnull posItem.line.surface
     lineSrf.surfaceToScreen(&pt)
     f.gui.click(pt)
     f.gui.pump()
-    @assert(prop.grid.scrollWnd.getScrollPos().y == sc.y)
+    @assert(prop.grid.scrollWnd.scrollPosition().y == sc.y)
 
     f.shutdown()
 }

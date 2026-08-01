@@ -21,24 +21,24 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case .ShowEditor:
-            evt.setFlags |= .Name
+            evt.updatedFields |= .Name
             evt.name     = "Show Editor"
 
         case .ShowLibrary:
-            evt.setFlags |= .Name | .ToolTip | .Checked
+            evt.updatedFields |= .Name | .ToolTip | .Checked
             evt.name     = "Library"
             evt.toolTip  = "Display captures library"
             evt.checked  = main.libraryMode
 
         case .Exit:
-            evt.setFlags |= .Name | .Icon
+            evt.updatedFields |= .Name | .Icon
             evt.name     = "Quit"
-            evt.icon     = main.getTheme().getIcon24(.Quit)
+            evt.icon     = main.theme().icon24(.Quit)
 
         case .Minimize:
-            evt.setFlags |= .Name | .Icon
+            evt.updatedFields |= .Name | .Icon
             evt.name     = "Minimize"
-            evt.icon     = main.getTheme().getIcon24(.Minimize)
+            evt.icon     = main.theme().icon24(.Minimize)
         }
 
         return true
@@ -53,7 +53,7 @@ impl IActionUI for ActionGlobal
         case .ShowEditor:
             let srf = notnull main.surface
             srf.show()
-            srf.bringToTop()
+            srf.bringToFront()
 
         case .ShowLibrary:
             main.swapLibraryMode()

@@ -3,11 +3,10 @@
 
 using Swag
 
-// An angle representation struct that stores angles in radians.
-// Provides convenient conversion between radians and degrees with literal suffix support.
+// Represents an angle stored in radians.
 struct Angle
 {
-    rad: f32     // The angle value stored in radians
+    readonly radians: f32     // The angle value in radians.
 }
 
 impl Angle
@@ -15,9 +14,9 @@ impl Angle
     // Assign a radian value directly to the angle.
     // Allows implicit conversion from floating-point values representing radians.
     #[ConstExpr, Implicit, Inline]
-    mtd opSet(valueRad: f32)
+    mtd opSet(valueRadians: f32)
     {
-        .rad = valueRad
+        .radians = valueRadians
     }
 
     // Assign angle values with unit suffixes (rad or deg).
@@ -27,14 +26,22 @@ impl Angle
     {
         #static switch suffix
         {
-        case "rad": .rad = value
-        case "deg": .rad = toRadians(value)
+        case "rad": .radians = value
+        case "deg": .radians = Math.toRadians(value)
         default:    #error("invalid angle literal suffix [[" ++ suffix ++ "]]")
         }
     }
 
+    // Creates an angle from a value in radians.
+    #[ConstExpr, Inline]
+    func fromRadians(value: f32)->Angle => {radians: value}
+
+    // Creates an angle from a value in degrees.
+    #[ConstExpr, Inline]
+    func fromDegrees(value: f32)->Angle => {radians: Math.toRadians(value)}
+
     // Convert the angle from radians to degrees.
     // Returns the angle value in degrees as a floating-point number.
     #[Inline]
-    mtd const toDegrees()->f32 => toDegrees(.rad)
+    mtd const toDegrees()->f32 => Math.toDegrees(.radians)
 }

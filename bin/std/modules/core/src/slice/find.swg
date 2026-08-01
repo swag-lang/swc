@@ -6,30 +6,23 @@
 // Returns Swag.U64.Max if not found.
 func(T, V) findSorted(values: #null const [..] T, value: V)->u64
 {
-    var result: retval
-
-    var min     = 0'u64
-    let countof = @countof(values)
-    var max     = @countof(values)
-    if !countof do
+    var lower = 0'u64
+    var upper = @countof(values)
+    if !upper do
         return Swag.U64.Max
     let vals = notnull values
 
-    while min <= max
+    while lower < upper
     {
-        let mid = (max + min) / 2
-        if mid >= countof do
-            break
+        let mid = lower + (upper - lower) / 2
 
         let res = vals[mid] <=> value
         if res == 0 do
             return mid
         if res < 0 do
-            min = mid + 1
-        elif mid == 0 do
-            break
+            lower = mid + 1
         else do
-            max = mid - 1
+            upper = mid
     }
 
     return Swag.U64.Max
@@ -45,20 +38,20 @@ func(T, V) findLinear(values: #null const [..] T, value: V)->u64
     return Swag.U64.Max
 }
 
-// Returns true if the given slice contains the sub slice 'value'
-func(T) findSlice(values: const [..] T, value: const [..] T)->u32
+// Returns the first index of `subslice`, or `Swag.U64.Max` when it is absent.
+func(T) findSubslice(values: const [..] T, subslice: const [..] T)->u64
 {
-    if !@countof(values) do
-        return Swag.U32.Max
-    if @countof(value) > @countof(values) do
-        return Swag.U32.Max
+    if !@countof(subslice) do
+        return 0
+    if @countof(subslice) > @countof(values) do
+        return Swag.U64.Max
 
-    for [it0] in 0 to @countof(values) - @countof(value)
+    for [it0] in 0 to @countof(values) - @countof(subslice)
     {
         var ok = true
-        for c, [it1] in value
+        for item, [it1] in subslice
         {
-            if values[it0 + it1] != c
+            if values[it0 + it1] != item
             {
                 ok = false
                 break
@@ -66,10 +59,10 @@ func(T) findSlice(values: const [..] T, value: const [..] T)->u32
         }
 
         if ok do
-            return cast() it0
+            return it0
     }
 
-    return Swag.U32.Max
+    return Swag.U64.Max
 }
 
 // Returns true if the given slice contains the 'value'.

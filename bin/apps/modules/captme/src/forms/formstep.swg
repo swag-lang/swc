@@ -164,8 +164,8 @@ impl IForm for FormStep
                 t = Format.toString("%", cast(rune) ('a'rune + (curIndex - 1) % 26))
             }
 
-            expect face.getStringOutline(&.pathl, t, cast() fSize)
-            .pathl.flatten(painter.curState.paintQuality)
+            expect face.buildStringOutline(&.pathl, t, cast() fSize)
+            .pathl.flatten(painter.quality())
             .pathl.offset(1, JoinStyle.Round, 0.5)
             .pathl.clean()
         }
@@ -198,20 +198,22 @@ impl IForm for FormStep
             painter.fillRoundRect(pp, round, round, .backColor)
         }
 
-        let wt = (.pathl.bvMax.x - .pathl.bvMin.x) * z
-        let ht = (.pathl.bvMax.y - .pathl.bvMin.y) * z
+        let wt = (.pathl.maxBounds.x - .pathl.minBounds.x) * z
+        let ht = (.pathl.maxBounds.y - .pathl.minBounds.y) * z
         let x0 = pp.horzCenter() - (wt * 0.5)
         let y0 = pp.vertCenter() - (ht * 0.5)
 
-        let tt = painter.curState.transform
+        let tt = painter.transform()
         with painter
         {
             .pushTransform()
-            .curState.transform.tx = 0
-            .curState.transform.ty = 0
+            var localTransform = tt
+            localTransform.tx = 0
+            localTransform.ty = 0
+            .setTransform(localTransform)
             .scaleTransform(z, z)
             .translateTransform(tt.tx, tt.ty)
-            .translateTransform(x0 - me.pathl.bvMin.x * z, y0 - me.pathl.bvMin.y * z)
+            .translateTransform(x0 - me.pathl.minBounds.x * z, y0 - me.pathl.minBounds.y * z)
             .fillPath(&me.pathl, me.borderColor)
             .popTransform()
         }

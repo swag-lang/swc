@@ -64,7 +64,7 @@ var g_PainterCards:   [CardsPerPage] TextureCard
 
 func dataPath(fileName: string, loc = #callerlocation)->String
 {
-    let srcPath = Path.getDirectoryName(loc.fileName) orelse ""
+    let srcPath = Path.directoryName(loc.fileName) orelse ""
     return Path.combine(Path.combine(srcPath, "data"), fileName)
 }
 
@@ -82,7 +82,7 @@ func loadFonts() fail
 
 func cloneImage(image: const &Image)->Image
 {
-    return Image.create(image.width, image.height, image.pf, image.pixels.toSlice())
+    return Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
 }
 
 func normalizeShowcaseImage(image: const &Image)->Image
@@ -197,8 +197,8 @@ func getCardRect(index: s32)->Math.Rectangle
 
 func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angle: Math.Angle)->Math.Rectangle
 {
-    let absCos        = Math.abs(Math.cos(angle.rad))
-    let absSin        = Math.abs(Math.sin(angle.rad))
+    let absCos        = Math.abs(Math.cos(angle.radians))
+    let absSin        = Math.abs(Math.sin(angle.radians))
     let rotatedWidth  = sourceWidth * absCos + sourceHeight * absSin
     let rotatedHeight = sourceWidth * absSin + sourceHeight * absCos
     let fitScale      = Math.min(bounds.width / rotatedWidth, bounds.height / rotatedHeight)
@@ -227,7 +227,7 @@ func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: const 
 
     painter.pushClippingRect(rect)
     painter.setInterpolationMode(card.options.interpolation)
-    if !Math.isZeroEpsilon(card.options.angle.rad)
+    if !Math.isZeroEpsilon(card.options.angle.radians)
     {
         painter.pushTransform()
         painter.rotateTransform(card.options.angle, textureRect.horzCenter(), textureRect.vertCenter())
@@ -316,7 +316,7 @@ func updateShortcuts()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") do
+    if !Env.hasArgument("swag.test") do
         return
 
     g_TestFrame += 1
@@ -338,7 +338,7 @@ func updateTestMode()
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
 
-    try Jobs.setNumWorkers()
+    try Jobs.initialize()
     try loadFonts()
     try loadShowcase()
 
@@ -346,7 +346,7 @@ func updateTestMode()
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         loop.maxTestFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
     while loop.next()
     {

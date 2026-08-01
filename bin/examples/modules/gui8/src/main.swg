@@ -32,11 +32,10 @@ var g_DarkTheme:   bool
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
-    label.horzAlignmentText = horizontal
-    label.vertAlignmentText = vertical
+    label.setTextAlignment(horizontal, vertical)
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
@@ -45,8 +44,8 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
 
 func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 {
-    let label = createText(parent, text, rect, .WordWrap | .LightText)
-    label.vertAlignmentText = .Top
+    let label = createText(parent, text, rect, .WordWrap | .SecondaryText)
+    label.setTextVerticalAlignment(.Top)
     return label
 }
 
@@ -69,7 +68,7 @@ func refreshLayoutTree(wnd: *Wnd)
 
     wnd.sendResizeEvent()
     wnd.applyLayout()
-    for child in wnd.childs do
+    for child in wnd.children do
         refreshLayoutTree(child)
     wnd.invalidate()
 }
@@ -78,27 +77,25 @@ func sampleIcon(index: s32, size = 16'f32)->Icon
 {
     switch index % 8
     {
-    case 0:  return app.theme.getIcon24(.Search, size)
-    case 1:  return app.theme.getIcon24(.OpenFile, size)
-    case 2:  return app.theme.getIcon24(.Edit, size)
-    case 3:  return app.theme.getIcon24(.Filter, size)
-    case 4:  return app.theme.getIcon24(.Options, size)
-    case 5:  return app.theme.getIcon24(.Download, size)
-    case 6:  return app.theme.getIcon24(.Link, size)
-    default: return app.theme.getIcon24(.Sort, size)
+    case 0:  return app.theme.icon24(.Search, size)
+    case 1:  return app.theme.icon24(.OpenFile, size)
+    case 2:  return app.theme.icon24(.Edit, size)
+    case 3:  return app.theme.icon24(.Filter, size)
+    case 4:  return app.theme.icon24(.Options, size)
+    case 5:  return app.theme.icon24(.Download, size)
+    case 6:  return app.theme.icon24(.Link, size)
+    default: return app.theme.icon24(.Sort, size)
     }
 }
 
 func addListFlags(list: *ListCtrl)
 {
-    list.listFlags.add(.AlternateLines)
-    list.listFlags.add(.HorzLines)
-    list.listFlags.add(.VertLines)
+    list.updateFlags(.AlternateLines | .HorizontalLines | .VerticalLines)
 }
 
 func getPageLayout(parent: *Wnd)->PageLayout
 {
-    let rect    = parent.getClientRect()
+    let rect    = parent.clientRect()
     let gap     = 20.0
     let bottomH = Math.max(190.0, rect.height * 0.31)
     let topH    = Math.max(rect.height - bottomH - gap, 260.0)
@@ -166,7 +163,7 @@ func applyTheme()
         app.theme.colors.setLight()
 
     updateThemeButton()
-    app.themeHasChanged()
+    app.notifyThemeChanged()
 }
 
 func toggleTheme(_btn: *Button)
@@ -178,7 +175,7 @@ func toggleTheme(_btn: *Button)
 func clearPage()
 {
     let pageView0 = notnull g_PageView
-    for child in pageView0.childs
+    for child in pageView0.children
     {
         let c = notnull child
         c.destroy()
@@ -212,7 +209,7 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect         = view.getClientRect()
+    let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, 360.0)
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
@@ -245,7 +242,7 @@ func previousPage()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") or !g_Surface do
+    if !Env.hasArgument("swag.test") or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -270,11 +267,11 @@ func canUsePageArrows()->bool
     let view2     = notnull g_View
     let pageView2 = notnull g_PageView
 
-    let focus = view2.getFocus()
+    let focus = view2.focusedWindow()
     if !focus or focus == g_View do
         return true
 
-    return !pageView2.isParentOf(notnull focus)
+    return !pageView2.isAncestorOf(notnull focus)
 }
 
 func onFrame(app: *Application)
@@ -282,7 +279,7 @@ func onFrame(app: *Application)
     if !g_Surface or !g_View or !g_PageView do
         return
 
-    if app.keyb.isKeyJustPressed(.F1) do
+    if app.keyboard.isKeyJustPressed(.F1) do
         nextPage()
 
     updateTestMode()
@@ -314,23 +311,23 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    let view = (notnull g_Surface).getView()
+    let view = (notnull g_Surface).view()
     g_View               = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
-    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
+    title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton          = themeButton
-    themeButton.form       = .Flat
-    themeButton.icon       = app.theme.getIcon24(.Picker, 18)
+    themeButton.setForm(.Flat)
+    themeButton.setIcon(app.theme.icon24(.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -340,7 +337,7 @@ func createRootView()
     let footer = Label.create(view, "", {})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
-    footer.labelFlags.add(.LightText)
+    footer.updateFlags(.SecondaryText)
 
     layoutRootView()
     view.hookOnEvent = &onRootEvent
@@ -348,17 +345,17 @@ func createRootView()
 
 #main
 {
-    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
+    let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
     let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI8 list showcase")
-    surface.setIcon(app.theme.getIcon24(.Sort, 18))
+    surface.setIcon(app.theme.icon24(.Sort, 18))
 
     createRootView()
     buildPage()
 
     app.sigFrame += &onFrame
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         app.maxRunFrame = cast(u32) MaxPages * cast(u32) TestFramesPerPage + 10
 
     surface.show()

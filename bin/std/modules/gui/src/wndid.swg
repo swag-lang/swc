@@ -1,9 +1,11 @@
 #global public
 
-// Names the wnd id type.
-alias WndId = #null string
+// Stable, non-null identifier used by windows, commands, and modal results.
+//
+// Use `#null WndId` when absence is meaningful.
+alias WndId = string
 
-// Performs the new cmd id operation.
+// Declares a command identifier whose value is qualified by the current scope name.
 #[Swag.Mixin]
 func newCmdId(val: string)
 {

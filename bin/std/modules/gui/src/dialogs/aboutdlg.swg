@@ -1,79 +1,82 @@
 using Core, Pixel
 
-// Represents about dlg.
+// Displays application identity, title, descriptive rich text, and optional icons.
 public struct AboutDlg
 {
     using dialog: Dialog     // Embedded dialog state.
-    #[Swag.Late]
+    readonly
     {
-        labelIcon:         *Label     // Label icon associated with this value.
-        labelMessageTitle: *Label     // Label message title associated with this value.
-        labelMessage:      *Label     // Label message associated with this value.
+        #[Swag.Late]
+        {
+            labelIcon:         *Label     // Optional large application icon.
+            labelMessageTitle: *Label     // Prominent application or product title.
+            labelMessage:      *Label     // Rich descriptive message.
+        }
     }
 }
 
-// Represents about dlg params.
+// Configures the content and icons of an [[Gui.AboutDlg]].
 public struct AboutDlgParams
 {
-    dlgTitle:     string     // Dlg title associated with this value.
-    messageTitle: string     // Message title associated with this value.
-    message:      string     // Message associated with this value.
-    iconTitle:    Icon       // Icon that will be displayed in the title bar
-    bigIcon:      Icon       // Big icon, inside the dialog
+    surfaceTitle: string     // Native surface title.
+    contentTitle: string     // Prominent application or product title.
+    message:      string     // Rich descriptive text.
+    surfaceIcon:  Icon       // Optional title-bar icon.
+    contentIcon:  Icon       // Optional large content icon.
 }
 
 public impl AboutDlg
 {
-    // Creates the message box
+    // Creates an about dialog; zero dimensions use the standard 500 by 300 size.
+    #[Swag.Discardable]
     func create(from: *Surface, params: AboutDlgParams, width, height: s32 = 0)->*AboutDlg
     {
+        Debug.assert(from != null)
+        Debug.assert(width >= 0 and height >= 0, "dialog dimensions cannot be negative")
         let dlg = Wnd.create'AboutDlg()
         let w   = width != 0 ? cast(s32) width : 500
         let h   = height != 0 ? cast(s32) height : 300
-        let srf = dlg.createSurface(from, 0, 0, w, h, .CloseBtn)
-        srf.setTitle(params.dlgTitle)
+        let srf = dlg.createSurface(from, 0, 0, w, h, .CloseButton)
+        srf.setTitle(params.surfaceTitle)
+        srf.center(from)
 
-        with let stackLayout = StackLayoutCtrl.create(srf.getView())
+        with let stackLayout = StackLayoutCtrl.create(srf.view())
         {
             .dockStyle = .Center
-            .padding.y = params.bigIcon.sizeY * 0.25
+            .padding.y = params.contentIcon.sizeY * 0.25
         }
 
-        with dlg.labelMessageTitle = Label.create(stackLayout, params.messageTitle)
+        with dlg.labelMessageTitle = Label.create(stackLayout, params.contentTitle)
         {
-            let fontSize = cast(s32) (dlg.getThemeMetrics().defaultFontSize * 1.5)
-            .style.setFont(dlg.getTheme().createDefaultFontfamily(fontSize))
-            .dockStyle         = .Top
-            .vertAlignmentText = .Top
-            .horzAlignmentText = .Left
-            .labelFlags.add(.AutoHeight)
-            .autoHeight()
+            let fontSize = cast(s32) (dlg.themeMetrics().defaultFontSize * 1.5)
+            .style.setFont(dlg.theme().createDefaultFontfamily(fontSize))
+            .dockStyle = .Top
+            .setTextAlignment(.Left, .Top)
+            .updateFlags(.AutoHeight)
         }
 
         with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap)
         {
-            .dockStyle         = .Top
-            .vertAlignmentText = .Top
-            .horzAlignmentText = .Left
+            .dockStyle = .Top
+            .setTextAlignment(.Left, .Top)
         }
 
-        if params.iconTitle.isValid()
+        if params.surfaceIcon.isValid()
         {
-            var cpyIcon = params.iconTitle
-            cpyIcon.sizeX, cpyIcon.sizeY = dlg.getThemeMetrics().wnd_BigCaptionCY * 0.7
+            var cpyIcon = params.surfaceIcon
+            cpyIcon.sizeX, cpyIcon.sizeY = dlg.themeMetrics().wnd_BigCaptionCY * 0.7
             srf.setIcon(cpyIcon)
         }
 
-        if params.bigIcon.isValid()
+        if params.contentIcon.isValid()
         {
-            let widthIconPanel = params.bigIcon.sizeX + params.bigIcon.sizeX * 0.5
+            let widthIconPanel = params.contentIcon.sizeX + params.contentIcon.sizeX * 0.5
             with dlg.labelIcon = Label.create(srf.wnd.view, "", {0, 0, widthIconPanel, 0})
             {
-                .dockStyle         = .Left
-                .padding.y         = params.bigIcon.sizeY * 0.25
-                .icon              = params.bigIcon
-                .horzAlignmentIcon = .Center
-                .vertAlignmentIcon = .Top
+                .dockStyle = .Left
+                .padding.y = params.contentIcon.sizeY * 0.25
+                .setIcon(params.contentIcon)
+                .setIconAlignment(.Center, .Top)
             }
         }
 
@@ -82,11 +85,4 @@ public impl AboutDlg
         return dlg
     }
 
-    // Display the box, centered, and returns the id of the pressed button
-    mtd doModal(from: *Surface)
-    {
-        let srf = notnull .surface
-        srf.center(from)
-        discard Dialog.doModal(me)
-    }
 }

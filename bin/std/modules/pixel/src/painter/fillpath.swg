@@ -25,10 +25,10 @@ public impl Painter
         for [i] in count
         {
             let j      = (i + 1) % count
-            let innerA = polygon.getPoint(i, innerOff)
-            let outerA = polygon.getPoint(i, outerOff)
-            let innerB = polygon.getPoint(j, innerOff)
-            let outerB = polygon.getPoint(j, outerOff)
+            let innerA = polygon.offsetPointAt(i, innerOff)
+            let outerA = polygon.offsetPointAt(i, outerOff)
+            let innerB = polygon.offsetPointAt(j, innerOff)
+            let outerB = polygon.offsetPointAt(j, outerOff)
             .pushFringeQuad(innerA, outerA, innerB, outerB, argb)
         }
     }
@@ -39,11 +39,11 @@ public impl Painter
         .resetTextureFont()
 
         // Triangulation
-        if p.triangles.triIndices.isEmpty()
+        if p.triangles.vertices.isEmpty()
         {
             let tess = notnull t
             tess.triangulate()
-            p.triangles = tess.getResult()
+            p.triangles = tess.takeResult()
             tess.clear()
         }
 
@@ -52,10 +52,10 @@ public impl Painter
         // its inner half overlaps the solid, which is harmless for opaque fills (same
         // colour over same colour). Convex fills inset the solid to avoid the overlap
         // entirely; non-convex fills accept a faint rim on translucent colours.
-        for i in p.triangles.triIndices
+        for [i] in p.triangles.triangleCount()
         {
-            let tri = p.triangles.triangles[i]
-            discard .pushTriangle(tri.points[0].v, tri.points[1].v, tri.points[2].v, brush.color)
+            let vertexIndex = i * 3
+            discard .pushTriangle(p.triangles.vertices[vertexIndex], p.triangles.vertices[vertexIndex + 1], p.triangles.vertices[vertexIndex + 2], brush.color)
         }
 
         // Solid sits on the true contour (the triangulation is cached and must not be
@@ -80,7 +80,7 @@ public impl Painter
     mtd fillPath(path: *LinePath, brush: Brush)
     {
         path.flatten(.curState.paintQuality)
-        if Math.isZeroEpsilon(path.polygon.totalLen) do
+        if Math.isZeroEpsilon(path.polygon.perimeter) do
             return
 
         let polygon = &path.polygon
@@ -88,7 +88,7 @@ public impl Painter
         // Convex shape : faster
         if polygon.isConvex
         {
-            .setTexture0(path.bvMin, path.bvMax, brush)
+            .setTexture0(path.minBounds, path.maxBounds, brush)
             .resetTextureFont()
 
             let count = path.polygon.points.count - 1
@@ -104,16 +104,16 @@ public impl Painter
             // Convex shape : 1 triangle
             if count == 3
             {
-                discard .pushTriangle(polygon.getPoint(0, so), polygon.getPoint(1, so), polygon.getPoint(2, so), brush.color)
+                discard .pushTriangle(polygon.offsetPointAt(0, so), polygon.offsetPointAt(1, so), polygon.offsetPointAt(2, so), brush.color)
             }
 
             // Convex shape : 2 triangles
             elif count == 4
             {
-                let v0 = polygon.getPoint(0, so)
-                let v1 = polygon.getPoint(1, so)
-                let v2 = polygon.getPoint(2, so)
-                let v3 = polygon.getPoint(3, so)
+                let v0 = polygon.offsetPointAt(0, so)
+                let v1 = polygon.offsetPointAt(1, so)
+                let v2 = polygon.offsetPointAt(2, so)
+                let v3 = polygon.offsetPointAt(3, so)
                 discard .pushTriangle(v0, v1, v2, brush.color)
                 discard .pushTriangle(v0, v2, v3, brush.color)
             }
@@ -122,11 +122,11 @@ public impl Painter
             // vertices
             else
             {
-                let center = Vector2{path.bvMin.x + (path.bvMax.x - path.bvMin.x) * 0.5, path.bvMin.y + (path.bvMax.y - path.bvMin.y) * 0.5}
+                let center = Vector2{path.minBounds.x + (path.maxBounds.x - path.minBounds.x) * 0.5, path.minBounds.y + (path.maxBounds.y - path.minBounds.y) * 0.5}
                 for [i] in count
                 {
-                    let v0 = polygon.getPoint(i, so)
-                    let v1 = polygon.getPoint((i + 1) % count, so)
+                    let v0 = polygon.offsetPointAt(i, so)
+                    let v1 = polygon.offsetPointAt((i + 1) % count, so)
                     discard .pushTriangle(center, v0, v1, brush.color)
                 }
             }
@@ -146,7 +146,7 @@ public impl Painter
             }
             else
             {
-                var res = path.polygon.getClean()
+                var res = path.polygon.cleanedPaths()
                 .fillPath(&res, brush)
             }
         }
@@ -174,7 +174,7 @@ public impl Painter
         {
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
-                if !flush.triangles.triIndices.count
+                if !flush.triangles.vertices.count
                 {
                     dirty = true
                     break
@@ -191,7 +191,7 @@ public impl Painter
         }
 
         // If everything has been computed, then just paint them (no need to generate polylines as 'triangulate' will not use them)
-        if flush and !flush.triangles.triIndices.count do
+        if flush and !flush.triangles.vertices.count do
             dirty = true
 
         serial = 0
@@ -202,7 +202,7 @@ public impl Painter
             if (p.polygon.isClockwise or serial != p.serial) and flush
             {
                 serial = p.serial
-                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.bvMin, pathList.bvMax, brush)
+                .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush)
                 flush = null
             }
 
@@ -215,7 +215,7 @@ public impl Painter
         }
 
         if flush do
-            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.bvMin, pathList.bvMax, brush)
+            .fillPathTriangulated(dirty ? &.tess : null, flush, pathList.minBounds, pathList.maxBounds, brush)
     }
 
     // Fill the polygon with the given color
@@ -242,7 +242,7 @@ public impl Painter
         else
         {
             path.polygon.assumeClockwise(true)
-            let res = path.polygon.getClean()
+            let res = path.polygon.cleanedPaths()
             for p in res.paths do
                 .fillPath(p, brush)
         }

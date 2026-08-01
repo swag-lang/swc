@@ -39,7 +39,7 @@ func day6A()
 /////////////////////////////////////////////////////////////////
 func day6A0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var freq: [8, 26] u32
@@ -72,7 +72,7 @@ func day6A0()
 
 func day6A1()
 {
-    let dataPath     = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let dataPath     = Path.combine(Path.directoryName(#file), "6.txt")
     let lines        = expect File.readAllLines(dataPath)
     var freq: [8, 26] u32
     var best: [8] u32

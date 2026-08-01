@@ -1,36 +1,58 @@
 #global public
 #global namespace Compress
 
-// A structure for reading a bit stream, useful for decompressors or parsers
+// Reads little-endian bit fields from a borrowed byte slice.
+//
+// The source slice must remain valid until the stream is reset or discarded.
 struct BitStream
 {
-    stream:     #null const [..] u8     // Input byte stream
-    curByte:    u64                     // Index of current byte being processed
-    codeBuffer: u64                     // Bit buffer holding bits to be consumed
-    numBits:    u8                      // Number of bits currently in the buffer
-    eof:        bool                    // Flag to signal end-of-stream
+    internal
+    {
+        stream:     #null const [..] u8     // Borrowed input bytes.
+        curByte:    u64                     // Current byte index.
+        codeBuffer: u64                     // Buffered low-order bits.
+        numBits:    u8                      // Number of buffered bits.
+        eof:        bool                    // Whether refill reached the end.
+    }
 }
 
 impl BitStream
 {
-    // Initializes the bit stream with an input buffer
-    mtd init(buf: const [..] u8)
+    // Resets the stream over `buffer`.
+    mtd reset(buffer: const [..] u8)
     {
         @init(me, 1)
-        .stream = buf
+        .stream = buffer
     }
 
-    // Returns a pointer to the beginning of the stream
+    // Returns a borrowed pointer to the first source byte.
     #[Swag.Inline]
-    mtd startPtr() => @dataof(.stream)
+    internal mtd startPointer() => @dataof(.stream)
 
-    // Returns a pointer to the current byte in the stream
+    // Returns a borrowed pointer to the current source byte.
     #[Swag.Inline]
-    mtd curPtr() => @dataof(.stream) + .curByte
+    mtd currentPointer() => @dataof(.stream) + .curByte
 
-    // Returns the total size of the stream
+    // Returns the source size in bytes.
     #[Swag.Inline]
     mtd size() => @countof(.stream)
+
+    // Returns the current source byte index.
+    #[Swag.Inline]
+    mtd bytePosition()->u64 => .curByte
+
+    // Returns whether a refill reached the end of the source.
+    #[Swag.Inline]
+    mtd isEof()->bool => .eof
+
+    // Advances by whole source bytes while no bits are buffered.
+    mtd advanceBytes(count: u64)
+    {
+        Debug.assert(.numBits == 0)
+        Debug.assert(count <= .size() - .curByte)
+        .curByte += count
+        .eof = .curByte == .size()
+    }
 
     // Refills the bit buffer until at least 'width' bits are available
     mtd refill(width = 24'u8)
@@ -40,7 +62,7 @@ impl BitStream
         // This avoids the per-byte loop for the bulk of the stream.
         if .numBits <= 56 and .curByte + 8 <= @countof(.stream)
         {
-            let chunk = dref notnull cast(#null const *u64) .curPtr()
+            let chunk = dref notnull cast(#null const *u64) .currentPointer()
             .codeBuffer |= chunk << #wrap .numBits
             let nbytes = (64 - cast(u64) .numBits) >> 3
             .curByte += nbytes
@@ -93,7 +115,7 @@ impl BitStream
     }
 
     // Like peekBits, but assumes enough bits are already available
-    mtd peekBitsNoRefill(width: u8)->u32
+    mtd peekBitsUnchecked(width: u8)->u32
     {
         Debug.assert(.numBits >= width)
         return cast(u32) (.codeBuffer & ((1'u64 << width) - 1))
@@ -109,9 +131,9 @@ impl BitStream
     }
 
     // Reads and consumes 'width' bits without checking buffer availability
-    mtd readBitsNoRefill(width: u8)->u32
+    mtd readBitsUnchecked(width: u8)->u32
     {
-        let k = .peekBitsNoRefill(width)
+        let k = .peekBitsUnchecked(width)
         .consumeBits(width)
         return k
     }

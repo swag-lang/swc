@@ -12,18 +12,18 @@ var g_App: Application
     Reflection.registerType(#typeof(FormText))
     Reflection.registerType(#typeof(FormCallout))
 
-    Reflection.registerCrcToTypeAlias(0x0A77C1A5, #typeof(FormPolygon))
-    Reflection.registerCrcToTypeAlias(0x0B61E593, #typeof(FormLine))
-    Reflection.registerCrcToTypeAlias(0xAA87EC6A, #typeof(FormDraw))
-    Reflection.registerCrcToTypeAlias(0xE0321F5E, #typeof(FormShape))
-    Reflection.registerCrcToTypeAlias(0xE1FEF6A2, #typeof(FormText))
-    Reflection.registerCrcToTypeAlias(0xE5350EB8, #typeof(FormArrow))
-    Reflection.registerCrcToTypeAlias(0xF83FE4D9, #typeof(FormImage))
+    Reflection.registerTypeAlias(0x0A77C1A5, #typeof(FormPolygon))
+    Reflection.registerTypeAlias(0x0B61E593, #typeof(FormLine))
+    Reflection.registerTypeAlias(0xAA87EC6A, #typeof(FormDraw))
+    Reflection.registerTypeAlias(0xE0321F5E, #typeof(FormShape))
+    Reflection.registerTypeAlias(0xE1FEF6A2, #typeof(FormText))
+    Reflection.registerTypeAlias(0xE5350EB8, #typeof(FormArrow))
+    Reflection.registerTypeAlias(0xF83FE4D9, #typeof(FormImage))
 }
 
 #main
 {
-    let args = Env.getArgs()
+    let args = Env.arguments()
     for arg in args
     {
         if !Path.isValidPathName(arg) do
@@ -35,23 +35,23 @@ var g_App: Application
             return
     }
 
-    try Jobs.setNumWorkers()
+    try Jobs.initialize()
     try Library.init()
 
     let path = Path.combine(Library.getFolder(), "captme.cfg")
-    g_App.setConfigPath(path)
+    g_App.setStatePath(path)
 
     var img = expect Image.decode(".png", Icons48)
     img.crop(48, 48, 48, 48)
-    img.setPixelFormat(.BGRA8)
+    img.convertTo(.BGRA8)
     g_App.setAppIcon(img)
 
-    let surface = notnull (try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.OverlappedWindow, surfaceID: "Captme"))
+    let surface = notnull (try g_App.createSurface(0, 0, 10, 10, SurfaceFlags.StandardWindow, surfaceId: "Captme"))
     let mainWnd = MainWnd.create(surface.wnd)
 
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         g_App.maxRunFrame = 50
-    if !Env.hasArg("--hide") do
+    if !Env.hasArgument("--hide") do
         surface.show()
 
     // Show the app icon in the notification area (system tray). Right-clicking it
@@ -62,8 +62,8 @@ var g_App: Application
     with Env
     {
         .registerApplication("Captme", "Captme")
-        .associateFileExtension(".png", "Captme", Env.getExe())
-        .associateFileExtension(".jpg", "Captme", Env.getExe())
+        .associateFileExtension(".png", "Captme", Env.executablePath())
+        .associateFileExtension(".jpg", "Captme", Env.executablePath())
     }
 
     for arg in args

@@ -27,11 +27,11 @@ impl Image
     public mtd fillHsl(fillType: FillHslType, color: Color = Color.fromArgb(Argb.White))
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         let hsl    = color.toHsl()
-        var swapRB = .pf == .RGB8 or .pf == .RGBA8
+        var swapRB = .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
 
         switch #complete fillType
         {
@@ -54,7 +54,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -77,14 +77,14 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if .pf.hasAlpha() do
+                if .pixelFormat.hasAlpha() do
                     pix[3] = 255
-                pix        += .bpp8
+                pix        += .bytesPerPixel
             }
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
+                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .SaturationVert:
@@ -108,7 +108,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -131,14 +131,14 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if .pf.hasAlpha() do
+                if .pixelFormat.hasAlpha() do
                     pix[3] = 255
-                pix        += .bpp8
+                pix        += .bytesPerPixel
             }
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
+                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .LightnessVert:
@@ -162,7 +162,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -185,14 +185,14 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if .pf.hasAlpha() do
+                if .pixelFormat.hasAlpha() do
                     pix[3] = 255
-                pix        += .bpp8
+                pix        += .bytesPerPixel
             }
 
             .visitPixels(stride: .width)
             {
-                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bpp8)
+                Memory.copy(pix, cast([*] u8) (notnull image.pixels.buffer), cast(u64) image.width * image.bytesPerPixel)
             }
 
         case .HueSaturation:
@@ -216,7 +216,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -241,7 +241,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -268,7 +268,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -279,7 +279,7 @@ impl Image
                 let params  = dref cast(*#decltype(pms)) (notnull userData)
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
-                let col     = Color.fromRgbf(params.fixedRed, factor0, factor1)
+                let col     = Color.fromRgbF32(params.fixedRed, factor0, factor1)
                 if params.swapRB
                 {
                     pix[0] = col.r
@@ -293,7 +293,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -304,7 +304,7 @@ impl Image
                 let params  = dref cast(*#decltype(pms)) (notnull userData)
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
-                let col     = Color.fromRgbf(factor0, params.fixedGreen, factor1)
+                let col     = Color.fromRgbF32(factor0, params.fixedGreen, factor1)
                 if params.swapRB
                 {
                     pix[0] = col.r
@@ -318,7 +318,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
 
@@ -329,7 +329,7 @@ impl Image
                 let params  = dref cast(*#decltype(pms)) (notnull userData)
                 let factor0 = x / cast(f32) image.width
                 let factor1 = 1 - (y / cast(f32) image.height)
-                let col     = Color.fromRgbf(factor0, factor1, params.fixedBlue)
+                let col     = Color.fromRgbF32(factor0, factor1, params.fixedBlue)
                 if params.swapRB
                 {
                     pix[0] = col.r
@@ -343,7 +343,7 @@ impl Image
                     pix[2] = col.r
                 }
 
-                if image.pf.hasAlpha() do
+                if image.pixelFormat.hasAlpha() do
                     pix[3] = 255
             }
         }

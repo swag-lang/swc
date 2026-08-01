@@ -173,12 +173,12 @@ public impl Image
         let mec = cast #unconst (*Image) me
         mec.visitPixels(&f)
         {
-            let p      = image.getPixelColor(x, y)
+            let p      = image.pixelColor(x, y)
             let params = cast(*#decltype(f)) (notnull userData)
 
             // linear luminance
             let lumBuf = notnull params.lum.buffer
-            lumBuf[index] = p.getRelativeLuminance()
+            lumBuf[index] = p.relativeLuminance()
 
             // saturation in sRGB
             let rs     = p.r / 255.0
@@ -844,7 +844,7 @@ public impl Image
                 let w2    = Math.max(1, Math.roundS32(scale * w0))
                 let h2    = Math.max(1, Math.roundS32(scale * h0))
 
-                let work = .toResize(w2, h2)
+                let work = .resized(w2, h2)
 
                 // Scale the input rect down to the working copy
                 var rs: Math.Rectangle
@@ -889,7 +889,7 @@ public impl Image
                 let h2    = Math.max(1, Math.roundS32(scale * h0))
 
                 // Working copy (resized) — use it only to compute the rectangle
-                let work = .toResize(w2, h2)
+                let work = .resized(w2, h2)
 
                 let rSmall = work.calculateReframeRect(rect.width, rect.height, opts)
 

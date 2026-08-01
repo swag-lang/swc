@@ -3,24 +3,24 @@
 using Core, Core.Errors
 
 // Encodes 24-bit or 32-bit uncompressed Windows BMP images.
-public struct Encoder {}
+internal struct Encoder {}
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".bmp"
+        return Path.lowercaseExtension(fileName) == ".bmp"
     }
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
     {
         if image.width <= 0 or image.height <= 0 or !image.pixels.buffer do
             fail InvalidFormatError{"invalid image"}
-        if image.width > Swag.S32.Max / image.bpp8 or image.height > Swag.S32.Max / image.width do
+        if image.width > Swag.S32.Max / image.bytesPerPixel or image.height > Swag.S32.Max / image.width do
             fail UnsupportedFormatError{"image is too big"}
 
-        let rowBytes  = cast(u64) image.width * image.bpp8
-        let stride    = rowStride(image.width, image.bpp)
+        let rowBytes  = cast(u64) image.width * image.bytesPerPixel
+        let stride    = rowStride(image.width, image.bitsPerPixel)
         let imageSize = stride * cast(u64) image.height
         let fileSize  = cast(u64) #sizeof(FileHeader) + #sizeof(Header) + imageSize
         if fileSize > Swag.U32.Max do
@@ -37,7 +37,7 @@ public impl IImageEncoder for Encoder
         header.biWidth       = image.width
         header.biHeight      = image.height
         header.biPlanes      = 1
-        header.biBitCount    = image.bpp
+        header.biBitCount    = image.bitsPerPixel
         header.biCompression = BI_RGB
         header.biSizeImage   = cast(u32) imageSize
         result.addStruct(header)
@@ -45,7 +45,7 @@ public impl IImageEncoder for Encoder
         var psrc = image.pixels.buffer
         for image.height
         {
-            switch image.pf
+            switch image.pixelFormat
             {
             case .BGR8, .BGRA8:
                 result.addBytes(@mkslice(psrc, rowBytes))

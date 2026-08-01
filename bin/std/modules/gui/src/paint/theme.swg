@@ -62,7 +62,7 @@ private func defaultThemeImages()->*DefaultThemeImages
     return cache
 }
 
-// Represents theme resources.
+// Owns decoded theme textures, icon atlases, typefaces, and derived font families.
 struct ThemeResources
 {
     imgWidgets: Texture     // Img widgets associated with this value.
@@ -85,7 +85,7 @@ struct ThemeResources
     fontDefaultFs: FontFamily     // Font default fs associated with this value.
 }
 
-// Represents theme.
+// Groups all render resources, colors, metrics, and atlas rectangles for one GUI theme.
 struct Theme
 {
     res:     ThemeResources      // Res associated with this value.
@@ -95,7 +95,7 @@ struct Theme
 
     // Whether the theme was set up. A theme is established once against a renderer, so the
     // flag is a result to read, never a switch to flip.
-    readonly intialized: bool
+    readonly initialized: bool
 
     // Font storage of the renderer this theme was set up against; borrowed, never owned. Every
     // font the theme hands out therefore lives exactly as long as the renderer that will draw it.
@@ -118,7 +118,7 @@ impl Theme
 
     private mtd setupDefault(renderer: *RenderOgl)
     {
-        .intialized = true
+        .initialized = true
         .fonts      = &renderer.fonts
         .colors.setDark()
 

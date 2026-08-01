@@ -5,7 +5,7 @@
 
 using Core, Gui, Pixel, Core.Math
 
-var g_Rng:    Random.Rng
+var g_Rng:    Random.Generator
 var g_Points: Array'C
 
 struct C
@@ -20,10 +20,10 @@ impl C
 {
     mtd update(wnd: *Wnd)
     {
-        let app = wnd.getApp()
+        let app = wnd.app()
 
         .speed += .acc
-        .pos   += .speed * app.getDt()
+        .pos   += .speed * app.deltaSeconds()
         .acc.setZero()
 
         var v = .target - .pos
@@ -33,10 +33,10 @@ impl C
         v.setLength(d)
         var steer = v - .speed
         d = min(steer.length(), 80)
-        steer.setLengthSafe(d)
+        steer.setLengthOrZero(d)
         .acc += steer
 
-        var pm = app.getMouse().getPosition()
+        var pm = app.mouseRef().getPosition()
         pm = wnd.screenToSurface(pm)
         pm = wnd.surfaceToLocal(pm)
         v  = .pos - Vector2{pm.x, pm.y}
@@ -57,12 +57,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
     case CreateEvent:
         var pl: LinePathList
-        expect wnd.getTheme().res.defaultTypeFaceR.getStringOutline(&pl, "Swag", 200)
-        for path in pl.paths
+        expect wnd.theme().res.defaultTypeFaceR.buildStringOutline(&pl, "Swag", 200)
+        for path in pl.toSlice()
         {
             path.flatten()
             let flattened = path.flattenedPolygon()
-            flattened.normalizeDist(10)
+            flattened.subdivideEdges(10)
             for &el in flattened.points
             {
                 var c: C
@@ -75,7 +75,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
-        let rect    = wnd.getClientRect()
+        let rect    = wnd.clientRect()
 
         painter.fillRect(rect, Argb.Black)
 
@@ -84,7 +84,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             p.update(wnd)
             let v = p.target - p.pos
             let d = map(Math.min(v.length(), 100), 0, 100, 0, 1)
-            let c = Color.getBlend(Argb.White, Argb.Black, d)
+            let c = Color.lerp(Argb.White, Argb.Black, d)
             painter.fillCircle(p.pos.x, p.pos.y, 4, c)
         }
 

@@ -28,11 +28,11 @@ impl IActionUI for ActionMoveSel
         switch cxt.id
         {
         case .Left, .Top, .Right, .Bottom:
-            evt.setFlags |= .Disabled
+            evt.updatedFields |= .Disabled
             evt.disabled = !hasSel
 
         case .Left1, .Top1, .Right1, .Bottom1:
-            evt.setFlags |= .Disabled
+            evt.updatedFields |= .Disabled
             evt.disabled = !hasSel
         }
 

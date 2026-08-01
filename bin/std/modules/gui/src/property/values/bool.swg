@@ -1,4 +1,4 @@
-impl Properties
+internal impl Properties
 {
     mtd refreshBool(item: *PropertiesItem)
     {
@@ -6,18 +6,18 @@ impl Properties
         {
             // Multi-selection: a disagreeing bool shows as the indeterminate (mixed) mark.
             if .fieldIsMixed(item) do
-                item.checkBox.checked = .Undefined
+                item.checkBox.setState(.Indeterminate)
             else do
-                item.checkBox.checked = (dref notnull cast(#null *bool) item.data) ? .Checked : .UnChecked
+                item.checkBox.setState((dref notnull cast(#null *bool) item.data) ? .Checked : .Unchecked)
             item.checkBox.invalidate()
         }
         elif @isset(item.comboBox)
         {
             // Multi-selection: clear the selection when the instances disagree.
             if .fieldIsMixed(item) do
-                item.comboBox.selectItem(Swag.U32.Max)
+                item.comboBox.clearSelection(notify: false)
             else do
-                item.comboBox.selectItem((dref notnull cast(#null *bool) item.data) ? 1 : 0)
+                item.comboBox.setSelectedIndex((dref notnull cast(#null *bool) item.data) ? 1 : 0, notify: false)
         }
     }
 
@@ -25,17 +25,17 @@ impl Properties
     {
         var data = notnull cast(#null *bool) item.data
         if @isset(item.checkBox) do
-            dref data = item.checkBox.checked == .Checked ? true : false
+            dref data = item.checkBox.isChecked()
         elif @isset(item.comboBox)
         {
             // A deselected combo means "mixed" was just shown: nothing to write.
-            let sel = item.comboBox.selectedIdx
+            let sel = item.comboBox.selectedIndex
             if sel > 1 do
                 return
             dref data = sel == 1
         }
 
-        .hasChanged(item)
+        .commitItemChange(item)
     }
 
     // Bool shown as a two-entries combo (the BoolCombo attribute): 'off' labels false,
@@ -48,18 +48,18 @@ impl Properties
         {
             with let ctrl = ComboCtrl.create(item.line, itemDisplayName(value).toString())
             {
-                .anchorStyle = .X
-                .comboSize   = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", 0)
+                .anchorStyle = .Right
+                .setLayoutMetrics(.labelWidth, cast(f32) Reflection.attributeValue(value, me.EditSize, "size", 0))
             }
 
-            item.comboBox = ctrl.combo
+            item.assignComboBox(ctrl.combo)
         }
         else
         {
-            var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+            var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
             if !.isGridLike() do
                 editWidth = .listContentWidthFromUseful(editWidth)
-            with let ed = ComboBox.create(item.line, kind: .CheckBox)
+            with let ed = ComboBox.create(item.line)
             {
                 .maxSize.x = editWidth
                 if me.isGridLike() do
@@ -67,15 +67,15 @@ impl Properties
                 else do
                     .preferredSize.x = editWidth
                 if me.kind == .Condensed do
-                    .comboBoxFlags.add(.Flat)
+                    .updateFlags(.Flat)
             }
 
             me.adaptCondensedControl(ed)
-            item.comboBox = ed
+            item.assignComboBox(ed)
         }
 
-        item.comboBox.addItem(cast(string) (notnull Reflection.getAttributeValue(value, .BoolCombo, "off")))
-        item.comboBox.addItem(cast(string) (notnull Reflection.getAttributeValue(value, .BoolCombo, "on")))
+        item.comboBox.addItem(cast(string) (notnull Reflection.attributeValue(value, .BoolCombo, "off")))
+        item.comboBox.addItem(cast(string) (notnull Reflection.attributeValue(value, .BoolCombo, "on")))
 
         .refreshBool(item)
         item.comboBox.sigChanged += func|prop = me, item|(ed, n) { prop.validateBool(item) }
@@ -95,23 +95,23 @@ impl Properties
             let itemP = .addItem(value, data, parentItem)
             with let ed = CheckButton.create(notnull itemP.line, itemDisplayName(value).toString())
             {
-                .anchorStyle = .X
+                .anchorStyle = .Right
             }
 
-            itemP.checkBox = ed
+            itemP.assignCheckBox(ed)
             ed.sigChanged  += func|prop = me, itemP|(ed) { prop.validateBool(itemP) }
 
             .refreshBool(itemP)
             return
         }
 
-        let dispDesc = Reflection.getAttributeValue(value, Properties.Description, "desc")
-        let item     = .addItem(value, data, parentItem, flags: AddItemFlags.Name)
+        let dispDesc = Reflection.attributeValue(value, Properties.Description, "desc")
+        let item     = .addItem(value, data, parentItem, flags: PropertiesAddItemFlags.Name)
 
-        var editWidth = cast(f32) Reflection.getAttributeValue(value, me.EditSize, "size", me.sizeEditValue)
+        var editWidth = cast(f32) Reflection.attributeValue(value, me.EditSize, "size", me.editorWidth)
         if !.isGridLike() do
             editWidth = .listContentWidthFromUseful(editWidth)
-        let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().btnPush_Height
+        let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().btnPush_Height
         let line       = Wnd.create'Wnd(item.line, {0, 0, editWidth, lineHeight})
 
         // Grid cell: the check line is capped to the value column. List rows let it span
@@ -143,8 +143,8 @@ impl Properties
             with let label = Label.create(line, "", {lineHeight, 0, Math.max(editWidth - lineHeight, 1.0)})
             {
                 .dockStyle         = .Center
-                .labelFlags        |= .WordWrap | .AutoHeight
-                .horzAlignmentText = .Left
+                .updateFlags(.WordWrap | .AutoHeight)
+                .setTextHorizontalAlignment(.Left)
                 .setText(dispDesc == null ? "" : cast(string) (dispDesc))
             }
 
@@ -156,17 +156,17 @@ impl Properties
                 // so its visual center lines up with the box. Deriving the amount from the
                 // font metrics keeps it correct at any font size; the equal +top/-bottom
                 // padding translates the text rect without clipping wrapped lines.
-                let font = label.getFont().regular
+                let font = label.font().regular
                 if font do
-                    label.paddingText = {0, -font.descent * 0.5, 0, font.descent * 0.5}
+                    label.setTextPadding({0, -font.descent * 0.5, 0, font.descent * 0.5})
 
-                label.autoHeight()
+                label.updateAutomaticHeight()
                 line.position.height = Math.max(lineHeight, label.position.height)
                 line.preferredSize.y = line.position.height
             }
         }
 
-        item.checkBox = ed
+        item.assignCheckBox(ed)
         ed.sigChanged += func|prop = me, item|(ed) { prop.validateBool(item) }
 
         .refreshBool(item)

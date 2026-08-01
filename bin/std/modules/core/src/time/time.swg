@@ -1,11 +1,11 @@
 #global public
 #global namespace Time
 
-// Defines ticks per milli second.
-const TicksPerMilliSecond: u64 = 10000
+// Number of 100-nanosecond ticks in one millisecond.
+const TicksPerMillisecond: u64 = 10000
 
 // Defines ticks per second.
-const TicksPerSecond: u64 = TicksPerMilliSecond * 1000
+const TicksPerSecond: u64 = TicksPerMillisecond * 1000
 
 // Defines ticks per minute.
 const TicksPerMinute: u64 = TicksPerSecond * 60
@@ -16,17 +16,17 @@ const TicksPerHour: u64 = TicksPerMinute * 60
 // Defines ticks per day.
 const TicksPerDay: u64 = TicksPerHour * 24
 
-// Defines millis per second.
-const MillisPerSecond = 1000'u64
+// Number of milliseconds in one second.
+const MillisecondsPerSecond = 1000'u64
 
 // Defines millis per minute.
-const MillisPerMinute = MillisPerSecond * 60
+const MillisecondsPerMinute = MillisecondsPerSecond * 60
 
 // Defines millis per hour.
-const MillisPerHour = MillisPerMinute * 60
+const MillisecondsPerHour = MillisecondsPerMinute * 60
 
 // Defines millis per day.
-const MillisPerDay = MillisPerHour * 24
+const MillisecondsPerDay = MillisecondsPerHour * 24
 
 // Defines days per year.
 const DaysPerYear = 365
@@ -40,37 +40,30 @@ const DaysPer100Years = (DaysPer4Years * 25) - 1
 // Defines days per400 years.
 const DaysPer400Years = (DaysPer100Years * 4) + 1
 
-// Defines days to month365.
-const DaysToMonth365 = [0'u16, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
+internal const DaysToMonth365 = [0'u16, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365]
 
-// Defines days to month366.
-const DaysToMonth366 = [0'u16, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
+internal const DaysToMonth366 = [0'u16, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335, 366]
 
-// Defines max milli seconds.
-const MaxMilliSeconds = Swag.U64.Max / TicksPerMilliSecond
+internal const MaxMilliseconds = Swag.U64.Max / TicksPerMillisecond
 
-const DaysTo1601:  u64 = (DaysPer400Years * 4)                                                                  // Number of days from 1/1/0001 to 12/31/1600
-const DaysTo1899:  u64 = ((DaysPer400Years * 4) + (DaysPer100Years * 3)) - 367                                  // Number of days from 1/1/0001 to 12/30/1899
-const DaysTo1970:  u64 = (DaysPer400Years * 4) + (DaysPer100Years * 3) + (DaysPer4Years * 17) + DaysPerYear     // Number of days from 1/1/0001 to 12/31/1969
-const DaysTo10000: u64 = (DaysPer400Years * 25) - 366                                                           // Number of days from 1/1/0001 to 12/31/9999
-// Defines max ticks.
-const MaxTicks: u64 = (DaysTo10000 * TicksPerDay) - 1
+internal const DaysTo1601:  u64 = (DaysPer400Years * 4)                                                                  // Number of days from 1/1/0001 to 12/31/1600
+internal const DaysTo1899:  u64 = ((DaysPer400Years * 4) + (DaysPer100Years * 3)) - 367                                  // Number of days from 1/1/0001 to 12/30/1899
+internal const DaysTo1970:  u64 = (DaysPer400Years * 4) + (DaysPer100Years * 3) + (DaysPer4Years * 17) + DaysPerYear     // Number of days from 1/1/0001 to 12/31/1969
+internal const DaysTo10000: u64 = (DaysPer400Years * 25) - 366                                                           // Number of days from 1/1/0001 to 12/31/9999
+internal const MaxTicks: u64 = (DaysTo10000 * TicksPerDay) - 1
 
-// Defines max millis.
-const MaxMillis: u64 = (DaysTo10000 * MillisPerDay)
+internal const MaxMillisecondsToYear10000: u64 = DaysTo10000 * MillisecondsPerDay
 
-// Returns the current time expressed in milliseconds
-func nowMilliseconds()->u32
+// Returns monotonic milliseconds from an unspecified origin.
+func monotonicMilliseconds()->u64
 {
-    let ticks = nowPrecise() / (preciseFrequency() / 1000)
-    return cast #bit (u32) ticks
+    return monotonicTicks() / (monotonicFrequency() / 1000)
 }
 
-// Returns the current time expressed in microseconds
-func nowMicroseconds()->u32
+// Returns monotonic microseconds from an unspecified origin.
+func monotonicMicroseconds()->u64
 {
-    let ticks = nowPrecise() / (preciseFrequency() / 1000000)
-    return cast #bit (u32) ticks
+    return monotonicTicks() / (monotonicFrequency() / 1000000)
 }
 
 // Names the ticks type.
@@ -88,8 +81,8 @@ func timeToTicks(hour, minute, second, millisecond: u16)->Ticks
     // which is less than 2^44, meaning we won't overflow totalSeconds.
     var totalMilli = (hour * 3600'u32 + minute * 60'u32 + second) * 1000'u64
     totalMilli += millisecond
-    Debug.assert(totalMilli <= MaxMilliSeconds)
-    return totalMilli * TicksPerMilliSecond
+    Debug.assert(totalMilli <= MaxMilliseconds)
+    return totalMilli * TicksPerMillisecond
 }
 
 // Convert a 64 bits tick value to a time
@@ -99,7 +92,7 @@ func ticksToTime(ticks: Ticks)->{ hour: u16, minute: u16, second: u16, milliseco
     result.hour        = cast() ((ticks / TicksPerHour) % 24)
     result.minute      = cast() ((ticks / TicksPerMinute) % 60)
     result.second      = cast() ((ticks / TicksPerSecond) % 60)
-    result.millisecond = cast() ((ticks / TicksPerMilliSecond) % 1000)
+    result.millisecond = cast() ((ticks / TicksPerMillisecond) % 1000)
     return result
 }
 

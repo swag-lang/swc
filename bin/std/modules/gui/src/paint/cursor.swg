@@ -1,23 +1,23 @@
 #global public
 
-// Selects cursor shape.
+// Selects a standard system cursor shape.
 enum CursorShape
 {
-    Arrow        // Selects arrow.
-    SizeWE       // Selects size we.
-    SizeNS       // Selects size ns.
-    SizeNWSE     // Selects size nwse.
-    SizeNESW     // Selects size nesw.
-    SizeAll      // Selects size all.
-    Cross        // Selects cross.
-    Help         // Selects help.
-    Hand         // Selects hand.
-    IBeam        // Selects i beam.
-    No           // Selects no.
-    Wait         // Selects wait.
+    Arrow                       // Default pointing arrow.
+    ResizeHorizontal            // Horizontal resize indicator.
+    ResizeVertical              // Vertical resize indicator.
+    ResizeNorthwestSoutheast    // Diagonal resize from northwest to southeast.
+    ResizeNortheastSouthwest    // Diagonal resize from northeast to southwest.
+    Move                        // Four-direction move indicator.
+    Cross                       // Crosshair selection cursor.
+    Help                        // Context-help cursor.
+    Hand                        // Link or direct-manipulation hand.
+    IBeam                       // Text insertion cursor.
+    No                          // Operation-not-allowed cursor.
+    Wait                        // Busy or waiting cursor.
 }
 
-// Represents cursor.
+// Lightweight descriptor for a shared system cursor.
 struct Cursor
 {
     using native: NativeCursor     // Embedded native state.
@@ -25,10 +25,10 @@ struct Cursor
 
 impl Cursor
 {
-    // Force the wait cursor
-    func wait()
+    // Activates the standard wait cursor.
+    func activateWait()
     {
-        apply(Cursor.from(CursorShape.Wait))
+        activate(Cursor.from(CursorShape.Wait))
     }
 
     // Returns true if the cursor is defined
@@ -37,9 +37,4 @@ impl Cursor
         return .native.cursor != null
     }
 
-    // Destroy the cursor
-    mtd destroy()
-    {
-        .native.cursor = null
-    }
 }

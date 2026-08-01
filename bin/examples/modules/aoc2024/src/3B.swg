@@ -22,7 +22,7 @@ using Core
 
 func day3B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "3.txt")
     let line     = expect File.readAllText(dataPath)
 
     var r      = expect Parser.RegExp.create(#raw "(mul\(\d+,\d+\))|(do\(\))|(don't\(\))")

@@ -23,8 +23,7 @@ enum FontFamilyStyle
 
 impl FontFamily
 {
-    // Get the font corresponding to the style.
-    // If not evailable, get another one.
+    // Returns the requested style, falling back to the closest available face.
     mtd const getFont(style: FontFamilyStyle)->#null *Font
     {
         switch style
@@ -59,7 +58,7 @@ impl FontFamily
         return null
     }
 
-    // Set the font corresponding to a given style.
+    // Assigns a font to the given style slot.
     mtd setFont(fnt: *Font, style: FontFamilyStyle)
     {
         switch style

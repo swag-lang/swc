@@ -1,13 +1,17 @@
-// Represents button.
+// Provides shared pointer state, command-state integration, icons, and activation signals for buttons.
 public struct Button
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
-    icon:            Icon                         // Icon associated with this value.
-    iconSizeX:       f32                          // Icon size x associated with this value.
-    iconSizeY:       f32                          // Icon size y associated with this value.
-    sigPressed:      SigArray'func||(*Button)     // Signal emitted when pressed.
-    sigRightPressed: SigArray'func||(*Button)     // Signal emitted when right pressed.
+    readonly
+    {
+        icon:       Icon     // Optional icon displayed by the concrete button.
+        iconWidth:  f32      // Explicit icon width, or zero to preserve the icon width.
+        iconHeight: f32      // Explicit icon height, or zero to preserve the icon height.
+    }
+
+    sigPressed:      SigArray'func||(*Button)     // Emitted after a completed primary activation.
+    sigRightPressed: SigArray'func||(*Button)     // Emitted when the secondary button is pressed inside the control.
 
     // Hover and press state, moved by the mouse events the button receives. Connect to
     // 'sigPressed' to react to a press instead of polling it.
@@ -33,21 +37,21 @@ impl IWnd for Button
         if evt.id != .id do
             return
 
-        if evt.setFlags & .Icon and (.icon.imageList != evt.icon.imageList or .icon.index != evt.icon.index)
+        if evt.updatedFields & .Icon and (.icon.imageList != evt.icon.imageList or .icon.index != evt.icon.index)
         {
             evt.accepted = true
             .icon        = evt.icon
             .invalidate()
         }
 
-        if evt.setFlags & .Name and .name != evt.name
+        if evt.updatedFields & .Name and .name != evt.name
         {
             evt.accepted = true
             .name        = evt.name
             .invalidate()
         }
 
-        if evt.setFlags & .Disabled
+        if evt.updatedFields & .Disabled
         {
             evt.accepted = true
             .enable(!evt.disabled)
@@ -57,7 +61,34 @@ impl IWnd for Button
 
 impl Button
 {
-    mtd clearPointerState()
+    // Replaces the displayed icon and repaints the button.
+    mtd setIcon(icon: Icon)
+    {
+        .icon = icon
+        .invalidate()
+    }
+
+    // Removes the displayed icon and repaints the button.
+    mtd clearIcon()
+    {
+        if !.icon.isValid() do
+            return
+        .icon.clear()
+        .invalidate()
+    }
+
+    // Overrides the icon draw size; zero on either axis preserves that axis from the icon descriptor.
+    mtd setIconSize(width, height: f32)
+    {
+        Debug.assert(width >= 0 and height >= 0, "icon size cannot be negative")
+        if .iconWidth == width and .iconHeight == height do
+            return
+        .iconWidth  = width
+        .iconHeight = height
+        .invalidate()
+    }
+
+    internal mtd clearPointerState()
     {
         if !.isHot and !.isIn and !.isPressed and !.isPressing do
             return
@@ -66,26 +97,27 @@ impl Button
         .invalidate()
     }
 
-    mtd processMouseEvent(evt: *MouseEvent)->bool
+    // Updates shared pointer state and reports a completed primary activation.
+    internal mtd processMouseEvent(evt: *MouseEvent)->bool
     {
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
         {
-        case .MouseWheel:
+        case .Wheel:
             evt.accepted = false
 
-        case .MouseEnter:
+        case .Enter:
             .isHot, .isIn = true
             .invalidate()
 
-        case .MouseLeave:
+        case .Leave:
             .isHot, .isIn = false
             .invalidate()
 
-        case .MouseMove:
+        case .Move:
             if !.isPressing do
                 break
-            let rect = .getClientRect()
+            let rect = .clientRect()
             if !rect.contains(pos)
             {
                 .isPressed, .isIn = false
@@ -101,7 +133,7 @@ impl Button
                 }
             }
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left
             {
                 .isPressed, .isPressing = true
@@ -114,7 +146,7 @@ impl Button
                     .sigRightPressed.call(me)
             }
 
-        case .MouseReleased:
+        case .Released:
             if evt.button == .Left
             {
                 let notifyPressed = .isPressed and .isIn

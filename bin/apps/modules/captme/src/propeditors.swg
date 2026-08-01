@@ -21,12 +21,12 @@ impl IPropertyEditor for AlignEditor
         let vert  = value.name == #nameof(FormText.alignVert)
 
         const BtnW = 34
-        let lineH = list.getThemeMetrics().btnPush_Height
+        let lineH = list.themeMetrics().btnPush_Height
 
         // Centered as its own full-width row in the panel; packed left in a grid cell.
-        with let line = StackLayoutCtrl.create(notnull item.line, list.isGridLike() ? .HorzFit : .HorzCenter, {0, 0, 0, lineH})
+        with let line = StackLayoutCtrl.create(notnull item.line, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, {0, 0, 0, lineH})
         {
-            .anchorStyle = .X
+            .anchorStyle = .Right
             .spacing     = 4
         }
 
@@ -39,13 +39,13 @@ impl IPropertyEditor for AlignEditor
         {
             with let btn = IconButton.create(line, {}, {0, 0, BtnW, lineH})
             {
-                .setForm(.RoundSquare)
-                .iconBtnFlags.add(.Checkable)
+                .setForm(.RoundedRectangle)
+                .updateFlags(.Radio)
 
                 // The captme toolbar icons when the app is there, letter fallbacks otherwise
                 // (the headless fixtures build panels without a full application).
                 if g_Main do
-                    .icon = Icon.from(&(notnull g_Main).icons24, cast(s32) ((vert ? 11 : 8) + i))
+                    .setIcon(Icon.from(&(notnull g_Main).icons24, cast(s32) ((vert ? 11 : 8) + i)))
                 else do
                     .name = Labels[i]
             }
@@ -55,18 +55,17 @@ impl IPropertyEditor for AlignEditor
 
         for [i] in 3
         {
-            btns[i].sigCheckChanged += func|list, item, align, i|(btn)
+            btns[i].sigCheckedChanged += func|list, item, align, i|(btn)
             {
                 if !btn.isChecked
                 {
                     // The selected alignment cannot be untoggled, only replaced
-                    btn.isChecked = dref align == Values[i]
-                    btn.invalidate()
+                    btn.setChecked(dref align == Values[i])
                     return
                 }
 
                 dref align = Values[i]
-                list.hasChanged(item)
+                list.commitItemChange(item)
             }
         }
 
@@ -74,8 +73,7 @@ impl IPropertyEditor for AlignEditor
         {
             for [i] in 3
             {
-                btns[i].isChecked = dref align == Values[i]
-                btns[i].invalidate()
+                btns[i].setChecked(dref align == Values[i])
             }
         }
 

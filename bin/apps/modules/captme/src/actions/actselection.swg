@@ -27,40 +27,40 @@ impl IActionUI for ActionSelection
         switch cxt.id
         {
         case .SelectAll:
-            evt.setFlags |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name
             evt.disabled = !capture or !capture.forms.count or isLib
             evt.name     = "Select All Objects"
 
         case .SelectSameAll:
-            evt.setFlags |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name
             evt.disabled = !capture or !capture.forms.count or !hasSel or isLib
             evt.name     = "Select Similar Objects"
 
         case .DeSelectAll:
-            evt.setFlags |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name
             evt.disabled = !capture or !hasSel or isLib
             evt.name     = "Deselect All Objects"
 
         case .InvertSelection:
-            evt.setFlags |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name
 
             // Nothing to invert when there are no forms (matches SelectAll).
             evt.disabled = !capture or !capture.forms.count or isLib
             evt.name     = "Invert Selection"
 
         case .DeleteSelection:
-            evt.setFlags |= .Disabled | .Name | .Icon
+            evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled = !hasSel
             evt.name     = "Delete"
-            evt.icon     = main.getTheme().getIcon24(.Remove)
+            evt.icon     = main.theme().icon24(.Remove)
 
         case .Snap:
-            evt.setFlags |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked
             evt.name     = "Snap To Forms"
             evt.checked  = main.snap
 
         case .Freeze:
-            evt.setFlags |= .Name | .Checked | .Disabled
+            evt.updatedFields |= .Name | .Checked | .Disabled
             evt.name     = "Freeze Selection"
             evt.checked  = main.freezeSel
             evt.disabled = !capture or isLib

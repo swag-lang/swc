@@ -168,14 +168,14 @@ using Swag, Core
     @assert(b.x == 35)
     @assert(b.y == 37)
     @assert(f.capture.undoMgr.count() == 2)
-    @assert(f.capture.undoMgr.next == 2)
+    @assert(f.capture.undoMgr.appliedCount() == 2)
 
     f.capture.undo()
     @assert(a.x == 10)
     @assert(a.y == 10)
     @assert(b.x == 30)
     @assert(b.y == 30)
-    @assert(f.capture.undoMgr.next == 0)
+    @assert(f.capture.undoMgr.appliedCount() == 0)
 
     f.capture.redo()
     @assert(a.x == 15)

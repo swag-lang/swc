@@ -6,23 +6,23 @@ const ClipperScaleCoords = 1000.0'f64     // Scale from floating path pixels to 
 
 // Owns an ordered polygon contour and cached geometric properties.
 //
-// Call `compute` after mutating `points` to refresh winding, convexity, length,
+// Call `recompute` after mutating `points` to refresh winding, convexity, length,
 // area, and bounds.
 struct Polygon
 {
     points: Array'Vector2     // Ordered contour vertices in path-space pixels.
 
-    // Everything [[Pixel.Polygon.compute]] derives from 'points'. Change the points and compute
+    // Everything [[Pixel.Polygon.recompute]] derives from `points`. Change the points and recompute
     // again; writing one of these on its own would describe a contour that is not there.
     readonly
     {
-        isClockwise: bool             // Winding direction after `compute`.
+        isClockwise: bool             // Winding direction after `recompute`.
         isConvex:    bool             // Whether every turn has the same orientation.
         isSimple:    bool             // Whether non-adjacent edges do not intersect.
         area:        f32              // Unsigned enclosed area, in square pixels.
-        totalLen:    f32              // Closed-contour perimeter, in pixels.
-        bvMin:       Math.Vector2     // Minimum coordinate bound.
-        bvMax:       Math.Vector2     // Maximum coordinate bound.
+        perimeter:   f32              // Closed-contour perimeter, in pixels.
+        minBounds:   Math.Vector2     // Minimum coordinate bound.
+        maxBounds:   Math.Vector2     // Maximum coordinate bound.
     }
 }
 
@@ -31,7 +31,7 @@ impl Polygon
     internal mtd appendClipperPath(path: *Clipper.ClipperPath)
     {
         var count = .points.count
-        if count > 1 and .points[0].distanceToSquared(.points[count - 1]) < 0.5 * 0.5 do
+        if count > 1 and .points[0].distanceSquaredTo(.points[count - 1]) < 0.5 * 0.5 do
             count -= 1
 
         for [i] in count
@@ -43,68 +43,69 @@ impl Polygon
 
     internal func setupGeneratedPath(path: *LinePath)
     {
-        path.isPolyOnly = true
-        path.isClosed   = true
-        path.isDirty    = false
-        path.isFlatten  = true
-        path.bvMin      = path.polygon.bvMin
-        path.bvMax      = path.polygon.bvMax
-
-        if path.polygon.points.count
-        {
-            path.startPoint = path.polygon.getPoint(0)
-            path.endPoint   = path.startPoint
-        }
+        path.adoptGeneratedPolygon()
     }
 
     // Borrows the point at zero-based index `i`.
     #[Swag.Inline]
-    mtd getPoint(i: u64)->&Vector2
+    mtd pointAt(i: u64)->&Vector2
     {
+        Debug.assert(i < .points.count)
         let points = notnull .points.buffer
         return points + i
     }
 
     // Borrows the point at zero-based index `i` as read-only.
     #[Swag.Inline]
-    mtd const getPoint(i: u64)->const &Vector2
+    mtd const pointAt(i: u64)->const &Vector2
     {
+        Debug.assert(i < .points.count)
         let points = notnull .points.buffer
         return points + i
     }
 
     // Returns point `i`, optionally offset along the averaged edge normal.
-    mtd const getPoint(i: u64, offset: f32 = 0)->Vector2
+    mtd const offsetPointAt(i: u64, offset: f32)->Vector2
     {
+        Debug.assert(.points.count)
         let points = notnull .points.buffer
-        if Math.isZeroEpsilon(offset) do
+        if Math.isZeroEpsilon(offset)
+        {
+            Debug.assert(i < .points.count)
             return points[i]
+        }
 
-        let count = .points.count - 1
+        var count = .points.count
+        if count > 1 and points[0].distanceSquaredTo(points[count - 1]) < 0.5 * 0.5 do
+            count -= 1
+        Debug.assert(count)
+        let pointIndex = i % count
+        if count < 3 do
+            return points[pointIndex]
 
-        let v0 = points[(i + count - 1) % count]
-        let v1 = points[i]
-        let v2 = points[(i + 1) % count]
+        let v0 = points[(pointIndex + count - 1) % count]
+        let v1 = points[pointIndex]
+        let v2 = points[(pointIndex + 1) % count]
 
-        let tmp0 = Vector2.toNormalizedSafe(v1 - v0)
+        let tmp0 = Vector2.normalizedOrZero(v1 - v0)
         let n0   = tmp0.cross(1)
-        let tmp1 = Vector2.toNormalizedSafe(v2 - v1)
+        let tmp1 = Vector2.normalizedOrZero(v2 - v1)
         let n1   = tmp1.cross(1)
 
         let vva1          = v1 + n0
         let vva0          = v0 + n0
         let vvb1          = v2 + n1
         let vvb0          = v1 + n1
-        let {yes, intPos} = Geometry.lineLineIntersect(vva0, vva1, vvb0, vvb1)
+        let {intersects, intersectionPoint} = Geometry.intersectLines(vva0, vva1, vvb0, vvb1)
 
         var result: retval = v1
-        if yes
+        if intersects
         {
-            result += ((intPos - v1) * offset)
+            result += ((intersectionPoint - v1) * offset)
         }
         else
         {
-            let n = Vector2.toNormalizedSafe(n0 + n1)
+            let n = Vector2.normalizedOrZero(n0 + n1)
             result += (n * offset)
         }
 
@@ -112,15 +113,19 @@ impl Polygon
     }
 
     // Divide by adding points if two points are too far away
-    mtd normalizeDist(dist: f32, closed: bool = true)
+    mtd subdivideEdges(maxDistance: f32, closed: bool = true)
     {
+        Debug.assert(maxDistance > 0)
+        if .points.count < 2 do
+            return
+
         var i = 0'u64
         while i < (closed ? .points.count : .points.count - 1)
         {
             defer i += 1
             var v      = .points[(i + 1) % .points.count] - .points[i]
             let d      = v.length()
-            var divide = cast(s32) (d / dist)
+            var divide = cast(s32) (d / maxDistance)
             if divide > 0
             {
                 v /= cast(f32) (divide + 1)
@@ -138,7 +143,7 @@ impl Polygon
     // Declares the winding direction of this contour without recomputing it.
     //
     // The fill passes build contours whose orientation they already know, so they state it
-    // instead of paying for a 'compute' that would only confirm it.
+    // instead of paying for a `recompute` that would only confirm it.
     internal mtd assumeClockwise(value: bool)
     {
         .isClockwise = value
@@ -151,7 +156,9 @@ impl Polygon
         .isClockwise = false
         .isConvex    = true
         .isSimple    = true
-        .totalLen    = 0
+        .perimeter   = 0
+        .minBounds   = {}
+        .maxBounds   = {}
         .points.clear()
     }
 
@@ -190,7 +197,7 @@ impl Polygon
                     let b1 = .points[nextJ]
                     if b0.isEqualEpsilon(b1) do
                         continue
-                    if Geometry.segSegIntersect(a0, a1, b0, b1, 0.01).yes do
+                    if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects do
                         return false
                 }
             }
@@ -205,12 +212,12 @@ impl Polygon
         // while for the dense, short edges produced by flattening this runs in ~O(n)
         // instead of the O(n^2) brute-force all-pairs test. That test dominated the
         // entire vector pipeline (it runs in every non-convex path flatten).
-        // 'bvMin'/'bvMax' are already filled by the compute() loop above.
+        // `minBounds` and `maxBounds` are already filled by the `recompute` loop.
         var res = cast(s32) Math.sqrt(cast(f32) count)
         res = Math.clamp(res, 1, 1024)
 
-        let w     = .bvMax.x - .bvMin.x
-        let h     = .bvMax.y - .bvMin.y
+        let w     = .maxBounds.x - .minBounds.x
+        let h     = .maxBounds.y - .minBounds.y
         let invCw = w > Math.ConstF32.Epsilon ? cast(f32) res / w : 0'f32
         let invCh = h > Math.ConstF32.Epsilon ? cast(f32) res / h : 0'f32
 
@@ -225,10 +232,10 @@ impl Polygon
             if a0.isEqualEpsilon(a1) do
                 continue
 
-            let cx0 = Math.clamp(cast(s32) ((Math.min(a0.x, a1.x) - .bvMin.x) * invCw), 0, res - 1)
-            let cx1 = Math.clamp(cast(s32) ((Math.max(a0.x, a1.x) - .bvMin.x) * invCw), 0, res - 1)
-            let cy0 = Math.clamp(cast(s32) ((Math.min(a0.y, a1.y) - .bvMin.y) * invCh), 0, res - 1)
-            let cy1 = Math.clamp(cast(s32) ((Math.max(a0.y, a1.y) - .bvMin.y) * invCh), 0, res - 1)
+            let cx0 = Math.clamp(cast(s32) ((Math.min(a0.x, a1.x) - .minBounds.x) * invCw), 0, res - 1)
+            let cx1 = Math.clamp(cast(s32) ((Math.max(a0.x, a1.x) - .minBounds.x) * invCw), 0, res - 1)
+            let cy0 = Math.clamp(cast(s32) ((Math.min(a0.y, a1.y) - .minBounds.y) * invCh), 0, res - 1)
+            let cy1 = Math.clamp(cast(s32) ((Math.max(a0.y, a1.y) - .minBounds.y) * invCh), 0, res - 1)
 
             // Test against edges already registered in #null any cell this edge overlaps.
             for [cy] in cy0 to cy1
@@ -245,7 +252,7 @@ impl Polygon
                         let b1 = .points[nextJ]
                         if b0.isEqualEpsilon(b1) do
                             continue
-                        if Geometry.segSegIntersect(a0, a1, b0, b1, 0.01).yes do
+                        if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects do
                             return false
                     }
                 }
@@ -274,9 +281,10 @@ impl Polygon
         copy.reserve(.points.count)
 
         for [i] in .points.count do
-            copy.add(.getPoint(i, value))
+            copy.add(.offsetPointAt(i, value))
 
         .points = #move copy
+        .recompute()
     }
 
     internal mtd storeClipperResult(res: Clipper.ClipperPath)
@@ -292,12 +300,12 @@ impl Polygon
         }
 
         // Closed path needs last point to be the same as the first one
-        let v0 = .getPoint(0)
+        let v0 = .pointAt(0)
         .add(v0)
 
         // Clipper output contours never self-intersect, so the O(n^2) simplicity
-        // test in compute() is redundant here.
-        .compute(knownSimple: true)
+        // test in `recompute` is redundant here.
+        .recompute(knownSimple: true)
     }
 
     internal mtd addOffsetInputs(off: *Clipper.Offset, joinType: Clipper.JoinType)
@@ -355,19 +363,22 @@ impl Polygon
     }
 
     // Slow but quality offset with a joinStyle
-    mtd getOffset(value: f32, joinStyle: JoinStyle, toler: f32 = 0.5)->LinePathList
+    mtd offsetPaths(value: f32, joinStyle: JoinStyle, tolerance: f32 = 0.5)->LinePathList
     {
         var result: retval
-        result.setBounds(.bvMin, .bvMax)
 
         var res: Clipper.ClipperPaths
-        .offsetInto(&res, value, joinStyle, toler)
+        .offsetInto(&res, value, joinStyle, tolerance)
 
-        for p in res
+        for p, [i] in res
         {
             let np = result.newPath()
             np.polygon.storeClipperResult(p)
             setupGeneratedPath(np)
+            if i == 0 do
+                result.setBounds(np.minBounds, np.maxBounds)
+            else do
+                result.setBounds(Vector2.min(result.minBounds, np.minBounds), Vector2.max(result.maxBounds, np.maxBounds))
         }
 
         return result
@@ -402,19 +413,22 @@ impl Polygon
     }
 
     // Clean polygon by removing bad/unecessary points
-    mtd getClean()->LinePathList
+    mtd cleanedPaths()->LinePathList
     {
         var result: retval
-        result.setBounds(.bvMin, .bvMax)
 
         var res: Clipper.ClipperPaths
         .cleanInto(&res)
 
-        for p in res
+        for p, [i] in res
         {
             let np = result.newPath()
             np.polygon.storeClipperResult(p)
             setupGeneratedPath(np)
+            if i == 0 do
+                result.setBounds(np.minBounds, np.maxBounds)
+            else do
+                result.setBounds(Vector2.min(result.minBounds, np.minBounds), Vector2.max(result.maxBounds, np.maxBounds))
             if !.isClockwise do
                 break
         }
@@ -428,59 +442,55 @@ impl Polygon
     // guarantees the polygon does not
     // self-intersect (e.g. the output of a Clipper union/clean/offset) skip the
     // O(n^2) self-intersection test, which otherwise dominates for large contours.
-    mtd compute(knownSimple = false)
+    mtd recompute(knownSimple = false)
     {
         .area        = 0
         .isClockwise = false
         .isConvex    = true
         .isSimple    = true
-        .totalLen    = 0
+        .perimeter   = 0
+        .minBounds   = {}
+        .maxBounds   = {}
 
         if !.points.count do
             return
 
-        let n        = .points.count - 1
-        let isClosed = .points[0].distanceToSquared(.points.back()) < 0.5 * 0.5
-        if isClosed do
-            .points.count -= 1
+        var count = .points.count
+        if count > 1 and .points[0].distanceSquaredTo(.points[count - 1]) < 0.5 * 0.5 do
+            count -= 1
 
-        var q = 0
-        var p = n - 1
+        .minBounds = .points[0]
+        .maxBounds = .points[0]
+        if count == 1 do
+            return
 
-        .bvMin = .points[0]
-        .bvMax = .points[0]
-
-        var first = true
-        var lastC = 0'f32
-        let pbuf  = notnull .points.buffer
-        while q < n
+        var signedTwiceArea = 0'f32
+        var firstTurnSign   = 0'f32
+        for [i] in count
         {
-            // Convex
-            let v  = pbuf[(q + 2) % .points.count] - pbuf[(q + 1) % .points.count]
-            let v1 = pbuf[(q + 1) % .points.count] - pbuf[(q + 0) % .points.count]
-            let c  = v.cross(v1)
-            if first
-            {
-                lastC = c
-                first = false
-            }
-            elif !Math.isZeroEpsilon(c) and !Math.isZeroEpsilon(lastC) and Math.sign(c) != Math.sign(lastC)
-            {
-                .isConvex = false
-            }
+            let current = .points[i]
+            let next    = .points[(i + 1) % count]
+            .minBounds  = Vector2.min(.minBounds, current)
+            .maxBounds  = Vector2.max(.maxBounds, current)
+            .perimeter += current.distanceTo(next)
+            signedTwiceArea += current.x * next.y - next.x * current.y
 
-            .bvMin = Vector2.min(.bvMin, .points[p])
-            .bvMax = Vector2.max(.bvMax, .points[p])
-
-            // Area
-            .area     += .points[p].x * .points[q].y - .points[q].x * .points[p].y
-            .totalLen += v1.length()
-            p         = q
-            q         += 1
+            if count >= 3
+            {
+                let afterNext = .points[(i + 2) % count]
+                let turn      = (next - current).cross(afterNext - next)
+                if !Math.isZeroEpsilon(turn)
+                {
+                    if Math.isZeroEpsilon(firstTurnSign) do
+                        firstTurnSign = Math.sign(turn)
+                    elif Math.sign(turn) != firstTurnSign do
+                        .isConvex = false
+                }
+            }
         }
 
-        if isClosed do
-            .points.count += 1
+        .area        = Math.abs(signedTwiceArea) * 0.5
+        .isClockwise = count >= 3 and signedTwiceArea >= 0
 
         // A convex polygon never self-intersects, so it is simple by construction.
         // Skip the O(n^2) self-intersection test in that case — it covers the common
@@ -490,8 +500,6 @@ impl Polygon
         if .isConvex or knownSimple do
             .isSimple = true
         else do
-            .isSimple = .computeIsSimple(n)
-
-        .isClockwise = .area >= 0
+            .isSimple = .computeIsSimple(count)
     }
 }

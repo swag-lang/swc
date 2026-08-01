@@ -24,9 +24,9 @@ func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
     @assert(img.isValid())
     @assert(img.width == width)
     @assert(img.height == height)
-    @assert(img.pf == .BGR8)
-    @assert(img.bpp == 24)
-    @assert(img.bpp8 == 3)
+    @assert(img.pixelFormat == .BGR8)
+    @assert(img.bitsPerPixel == 24)
+    @assert(img.bytesPerPixel == 3)
     @assert(img.pixels.count == cast(u64) width * height * 3)
     assertJpgPixelNear(img, b, g, r, 8'u8)
 }
@@ -82,7 +82,7 @@ func fillSolidImage(img: *Image, b, g, r, a: u8)
     var pix = notnull img.pixels.buffer
     for img.width * img.height
     {
-        switch img.pf
+        switch img.pixelFormat
         {
         case .BGR8:
             pix[0] = b
@@ -107,7 +107,7 @@ func fillSolidImage(img: *Image, b, g, r, a: u8)
             pix[3] = a
         }
 
-        pix += img.bpp8
+        pix += img.bytesPerPixel
     }
 }
 
@@ -134,7 +134,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     @assert(err3 == null)
     @assert(img.width == src.width)
     @assert(img.height == src.height)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert(img.pixels.count == cast(u64) src.width * src.height * 3)
     assertJpgPixelNear(img, expectedB, expectedG, expectedR, tolerance)
 }
@@ -179,7 +179,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     @assert(err5 == null)
     @assert(img.width == 660)
     @assert(img.height == 441)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     assertJpgPixelNear(img, 202'u8, 200'u8, 192'u8, 8'u8)
 }
 
@@ -197,7 +197,7 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     @assert(err7 == null)
     @assert(img.width == 1024)
     @assert(img.height == 768)
-    @assert(img.pf == .BGR8)
+    @assert(img.pixelFormat == .BGR8)
     @assert(!img.isValid())
 }
 

@@ -21,7 +21,7 @@ using Core
 
 func day9A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let line     = expect File.readAllText(dataPath)
 
     var decode: String

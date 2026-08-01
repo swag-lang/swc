@@ -4,8 +4,8 @@
 
 using Win32
 
-// Returns various file informations
-func getInfo(fullname: string)->FileInfo fail
+// Returns metadata for a file or directory.
+func info(fullname: string)->FileInfo fail
 {
     var result:    retval
     var attrDatas: WIN32_FILE_ATTRIBUTE_DATA
@@ -19,11 +19,11 @@ func getInfo(fullname: string)->FileInfo fail
 
     var fileTime: SYSTEMTIME
     catch FileTimeToSystemTime(&attrDatas.ftCreationTime, &fileTime)
-    result.creationTime.setSYSTEMTIME(fileTime)
+    result.creationTime.setSystemTime(fileTime)
     catch FileTimeToSystemTime(&attrDatas.ftLastAccessTime, &fileTime)
-    result.lastAccessTime.setSYSTEMTIME(fileTime)
+    result.lastAccessTime.setSystemTime(fileTime)
     catch FileTimeToSystemTime(&attrDatas.ftLastWriteTime, &fileTime)
-    result.lastWriteTime.setSYSTEMTIME(fileTime)
+    result.lastWriteTime.setSystemTime(fileTime)
 
     return result
 }

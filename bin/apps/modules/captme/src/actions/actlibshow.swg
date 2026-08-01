@@ -21,22 +21,22 @@ impl IActionUI for ActionLibFilter
         switch cxt.id
         {
         case .UpToDateLinkedImage:
-            evt.setFlags |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked
             evt.name     = "Up To Date Linked Image"
             evt.checked  = libWnd.showUpToDateLinkedImage
 
         case .UnSavedLinkedImage:
-            evt.setFlags |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked
             evt.name     = "UnSaved Linked Image"
             evt.checked  = libWnd.showUnSavedLinkedImage
 
         case .LinkedImage:
-            evt.setFlags |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked
             evt.name     = "Has Linked Image"
             evt.checked  = libWnd.showLinkedImage
 
         case .UnLinkedImage:
-            evt.setFlags |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked
             evt.name     = "Doesn't Have Linked Image"
             evt.checked  = libWnd.showUnLinkedImage
         }

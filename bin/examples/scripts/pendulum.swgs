@@ -69,7 +69,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        let rect = wnd.getClientRect()
+        let rect = wnd.clientRect()
         cx = rect.width / 3
         cy = 50
         restartPendulum()
@@ -81,23 +81,23 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
         {
             let slider = SliderCtrl.create(panel, "r1")
-            slider.setMinMaxU64(50, 200)
+            slider.setUnsignedBounds(50, 200)
             slider.setValue(r1)
-            slider.slider.sigChanged += func(slider) { r1 = slider.getValue() }
+            slider.slider.sigChanged += func(slider) { r1 = slider.value() }
         }
 
         {
             let slider = SliderCtrl.create(panel, "r2")
-            slider.setMinMaxU64(50, 200)
+            slider.setUnsignedBounds(50, 200)
             slider.setValue(r2)
-            slider.slider.sigChanged += func(slider) { r2 = slider.getValue() }
+            slider.slider.sigChanged += func(slider) { r2 = slider.value() }
         }
 
         {
             let slider = SliderCtrl.create(panel, "friction")
-            slider.setMinMaxU64(0, 100)
+            slider.setUnsignedBounds(0, 100)
             slider.setValue(0)
-            slider.slider.sigChanged += func(slider) { friction = 1 - (slider.getValue() * 0.0001) }
+            slider.slider.sigChanged += func(slider) { friction = 1 - (slider.value() * 0.0001) }
         }
 
         {
@@ -109,7 +109,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
 
-        var remaining = Math.min(wnd.getApp().getDt() * SimulationSpeed, MaxFrameStep)
+        var remaining = Math.min(wnd.app().deltaSeconds() * SimulationSpeed, MaxFrameStep)
         var valid     = Math.isFinite(remaining)
         while valid and remaining > 0
         {

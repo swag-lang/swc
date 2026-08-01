@@ -44,7 +44,7 @@ func iconButtonHeadlessReset()
     host.shutdown()
 }
 
-// A CheckableToggle button flips its checked state on every click.
+// A Toggle button flips its checked state on every click.
 #test
 {
     var host: Testing.HeadlessHost
@@ -53,8 +53,8 @@ func iconButtonHeadlessReset()
     iconButtonHeadlessReset()
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, IconButtonHeadless_Command)
-    btn.iconBtnFlags.add(.CheckableToggle)
-    btn.sigCheckChanged += &iconButtonHeadlessChecked
+    btn.updateFlags(.Toggle)
+    btn.sigCheckedChanged += &iconButtonHeadlessChecked
 
     host.click({40, 40})
     @assert(btn.isChecked)
@@ -67,7 +67,7 @@ func iconButtonHeadlessReset()
     host.shutdown()
 }
 
-// A Checkable button can only be set, never unset, by clicking.
+// A radio button can only be set, never unset, by user activation.
 #test
 {
     var host: Testing.HeadlessHost
@@ -76,8 +76,8 @@ func iconButtonHeadlessReset()
     iconButtonHeadlessReset()
 
     let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
-    btn.iconBtnFlags.add(.Checkable)
-    btn.sigCheckChanged += &iconButtonHeadlessChecked
+    btn.updateFlags(.Radio)
+    btn.sigCheckedChanged += &iconButtonHeadlessChecked
 
     host.click({40, 40})
     @assert(btn.isChecked)
@@ -86,6 +86,54 @@ func iconButtonHeadlessReset()
     host.click({40, 40})
     @assert(btn.isChecked)
     @assert(IconButtonHeadlessCheckCount == 1)
+
+    host.shutdown()
+}
+
+// Programmatic checked-state changes support both stateful modes and remain silent.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(180, 120)
+    iconButtonHeadlessReset()
+
+    let toggle = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    toggle.sigCheckedChanged += &iconButtonHeadlessChecked
+    toggle.setChecked(true)
+    @assert(toggle.isChecked)
+    @assert(IconButtonHeadlessCheckCount == 0)
+
+    toggle.setChecked(false)
+    @assert(!toggle.isChecked)
+    @assert(IconButtonHeadlessCheckCount == 0)
+
+    let radio = IconButton.create(&host.root, {}, {80, 20, 40, 40}, flags: .Radio)
+    radio.sigCheckedChanged += &iconButtonHeadlessChecked
+    radio.setChecked(true)
+    @assert(radio.isChecked)
+    @assert(IconButtonHeadlessCheckCount == 0)
+
+    host.shutdown()
+}
+
+// Space and Enter activate a focused toggle with the same state, signal, and command contract as a click.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(180, 120)
+    host.recordCommands()
+    iconButtonHeadlessReset()
+
+    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, IconButtonHeadless_Command, .Toggle)
+    btn.sigCheckedChanged += &iconButtonHeadlessChecked
+    host.focus(btn)
+
+    host.keyPress(Input.Key.Space)
+    @assert(btn.isChecked)
+    host.keyPress(Input.Key.Return)
+    @assert(!btn.isChecked)
+    @assert(IconButtonHeadlessCheckCount == 2)
+    @assert(host.commandCount == 2 and host.lastCommand == IconButtonHeadless_Command)
 
     host.shutdown()
 }

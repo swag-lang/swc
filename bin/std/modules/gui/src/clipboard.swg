@@ -4,7 +4,7 @@ using Serialization
 
 var g_ValueFormat: ValueFormat
 
-// Add whatever value with a given 'type'
+// Copies a supported value or serializable typed value to the clipboard.
 public func addTypedValue(value: *void, type: typeinfo)
 {
     switch type
@@ -33,7 +33,7 @@ public func addTypedValue(value: *void, type: typeinfo)
     addTypedData(g_ValueFormat, type, notnull buf.toSlice())
 }
 
-// Get whatever value with a given 'type'
+// Reports whether the clipboard contains a value compatible with `type`.
 public func hasTypedValue(type: typeinfo)->bool
 {
     switch type
@@ -45,7 +45,7 @@ public func hasTypedValue(type: typeinfo)->bool
     return hasTypedData(g_ValueFormat, type)
 }
 
-// Get whatever value with a given 'type'
+// Decodes a clipboard value into initialized storage and reports success.
 public func getTypedValue(value: *void, type: typeinfo)->bool
 {
     if !hasTypedValue(type) do
@@ -70,7 +70,11 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
         decoder.start(data.toSlice())
         decoder.readTypedContent(value, type)
         decoder.end()
-    } else {}
+    }
+    else
+    {
+        return false
+    }
 
     return true
 }

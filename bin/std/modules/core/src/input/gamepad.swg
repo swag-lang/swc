@@ -3,25 +3,33 @@
 
 using Math
 
-// Represents a gamepad
-struct GamePad
+// Tracks one gamepad and its transitions across updates.
+struct Gamepad
 {
-    previousState: GamePadState     // Previous state associated with this value.
-    currentState:  GamePadState     // Current state associated with this value.
+    readonly
+    {
+        previousState: GamepadState     // State captured before the latest update.
+        currentState:  GamepadState     // State captured by the latest update.
+        connected:     bool             // Whether the indexed gamepad is currently connected.
+    }
 
-    // The pad index associated with that GamePad instance
-    padIndex: u32     // Index of pad.
-
-    // true if the corresponding padIndex is connected
-    connected: bool     // Connected associated with this value.
+    index: u32     // Zero-based platform gamepad index.
 }
 
-impl GamePad
+impl Gamepad
 {
-    // Update the GamePad current state
+    internal mtd setControlStates(control: GamepadButton, previousPressed, currentPressed: bool, previousPosition, currentPosition: Point)
+    {
+        .previousState.setPressed(control, previousPressed)
+        .currentState.setPressed(control, currentPressed)
+        .previousState.setPosition(control, previousPosition)
+        .currentState.setPosition(control, currentPosition)
+    }
+
+    // Refreshes connection and control state for [[Core.Input.Gamepad.index]].
     mtd update() fail
     {
-        let newConnected = isConnected(.padIndex)
+        let newConnected = isConnected(.index)
         if !newConnected
         {
             if .connected do
@@ -32,7 +40,7 @@ impl GamePad
         {
             .connected     = true
             .previousState = .currentState
-            try .currentState.update(.padIndex)
+            try .currentState.update(.index)
         }
     }
 
@@ -44,38 +52,38 @@ impl GamePad
     }
 
     // Determines whether specified input device button is pressed
-    mtd isButtonPressed(button: GamePadButton)->bool
+    mtd isButtonPressed(button: GamepadButton)->bool
     {
         return .currentState.pressed[button]
     }
 
     // Determines whether specified input device button has just been pressed
-    mtd isButtonJustPressed(button: GamePadButton)->bool
+    mtd isButtonJustPressed(button: GamepadButton)->bool
     {
         return .currentState.pressed[button] and !.previousState.pressed[button]
     }
 
     // Determines whether specified input device button is released (not pressed)
-    mtd isButtonReleased(button: GamePadButton)->bool
+    mtd isButtonReleased(button: GamepadButton)->bool
     {
         return !.currentState.pressed[button]
     }
 
     // Determines whether specified input device button has just been released
-    mtd isButtonJustReleased(button: GamePadButton)->bool
+    mtd isButtonJustReleased(button: GamepadButton)->bool
     {
         return !.currentState.pressed[button] and .previousState.pressed[button]
     }
 
-    // Get the analog position of the given button
-    mtd getPosition(button: GamePadButton)->Point
+    // Returns the normalized analog position of `control`.
+    mtd position(control: GamepadButton)->Point
     {
-        return .currentState.position[button]
+        return .currentState.position[control]
     }
 
     // Set the vibration motor speeds
     mtd setVibration(left, right: f32) fail
     {
-        try setVibration(.padIndex, left, right)
+        try setVibration(.index, left, right)
     }
 }

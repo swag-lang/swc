@@ -5,22 +5,37 @@ using Swag
 // Represents a single node in a doubly-linked 'List'.
 struct(T) ListEntry
 {
-    prev:  #null *ListEntry     // Pointer to the previous node in the list.
-    next:  #null *ListEntry     // Pointer to the next node in the list.
-    value: T                    // The value stored in the node.
+    readonly
+    {
+        prev: #null *ListEntry     // Pointer to the previous node in the list.
+        next: #null *ListEntry     // Pointer to the next node in the list.
+    }
+
+    value: T     // The value stored in the node.
 }
 
 // A generic, doubly-linked list.
 // Provides efficient insertion and deletion of elements.
 struct(T) List
 {
-    head:  #null *ListEntry     // Pointer to the first node in the list.
-    tail:  #null *ListEntry     // Pointer to the last node in the list.
-    count: u64                  // The total number of elements in the list.
+    readonly
+    {
+        head:  #null *ListEntry     // Pointer to the first node in the list.
+        tail:  #null *ListEntry     // Pointer to the last node in the list.
+        count: u64                  // The total number of elements in the list.
+    }
 }
 
 impl List
 {
+    // Returns the number of elements in the list.
+    #[Swag.Inline]
+    mtd const opCount()->u64 => .count
+
+    // Returns whether the list contains no elements.
+    #[Swag.Inline]
+    mtd const isEmpty()->bool => .count == 0
+
     mtd opPostCopy()
     {
         if !.head do
@@ -94,6 +109,23 @@ impl List
 
         .head, .tail = null
         .count       = 0
+    }
+
+    // Removes and deallocates `node`.
+    mtd remove(node: *ListEntry)
+    {
+        if node.prev do
+            node.prev.next = node.next
+        else do
+            .head = node.next
+
+        if node.next do
+            node.next.prev = node.prev
+        else do
+            .tail = node.prev
+
+        .count -= 1
+        Memory.delete(node)
     }
 
     // Adds a new element to the front of the list.

@@ -16,7 +16,7 @@ using Swag, Core
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 0)
     @assert(f.capture.mouseMode == .None)
-    @assert(f.gui.app.mouseCaptureWnd == null)
+    @assert(f.gui.app.mouseCapture() == null)
 
     let shape = cast(*FormShape) @dataof(f.capture.forms[0])
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
@@ -161,14 +161,14 @@ using Swag, Core
     f.main.editMode = .Polygon
     f.gui.drag({30, 30}, {100, 30})
     @assert(f.capture.mouseMode == .Creating)
-    @assert(f.gui.app.mouseCaptureWnd == f.editView)
+    @assert(f.gui.app.mouseCapture() == f.editView)
 
     f.gui.click({100, 95})
     @assert(f.capture.mouseMode == .Creating)
 
     f.gui.doubleClick({30, 95})
     @assert(f.capture.mouseMode == .None)
-    @assert(f.gui.app.mouseCaptureWnd == null)
+    @assert(f.gui.app.mouseCapture() == null)
     @assert(f.capture.forms.count == 1)
     @assert(@kindof(f.capture.forms[0]) == FormPolygon)
     @assert((cast(*FormPolygon) @dataof(f.capture.forms[0])).points.count == 3)
@@ -322,7 +322,7 @@ using Swag, Core
     f.gui.shortcut(Input.Key.Y, Input.KeyModifiers.Control)
     @assert(a.x == 11)
 
-    f.gui.shortcut(Input.Key.Delete, Input.KeyModifiers.Zero)
+    f.gui.shortcut(Input.Key.Delete, Input.KeyModifiers.None)
     @assert(f.capture.forms.count == 2)
     f.gui.shortcut(Input.Key.Z, Input.KeyModifiers.Control)
     @assert(f.capture.forms.count == 3)
@@ -342,13 +342,13 @@ using Swag, Core
     discard testAddText(f.capture, 50, 10, 20, 20)
     f.capture.selection.add(0)
 
-    f.gui.shortcut(Input.Key.Left, Input.KeyModifiers.Zero)
+    f.gui.shortcut(Input.Key.Left, Input.KeyModifiers.None)
     @assert(a.x == 5)
 
     f.gui.shortcut(Input.Key.Down, Input.KeyModifiers.Shift)
     @assert(a.y == 11)
 
-    f.gui.shortcut(Input.Key.PageUp, Input.KeyModifiers.Zero)
+    f.gui.shortcut(Input.Key.PageUp, Input.KeyModifiers.None)
     @assert(@dataof(f.capture.forms[1]) == a)
     @assert(f.capture.selection.count == 1)
     @assert(f.capture.selection[0] == 1)

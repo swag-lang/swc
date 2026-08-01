@@ -17,6 +17,7 @@ using Swag, Core
     @assert(face.glyph.bitmap.width > 0)
     @assert(face.glyph.bitmap.rows > 0)
     @assert(face.glyph.bitmap.pitch == cast(s32) face.glyph.bitmap.width)
+    @assert(face.glyph.bitmap.pixelMode.bytesPerPixel() == 1)
     @assert(countBitmapCoverage(&face.glyph.bitmap) > 0)
 
     discard catch face.loadChar(' ', .Default) as err3
@@ -157,6 +158,7 @@ using Swag, Core
 
     // MTSDF: 4 bytes per pixel (RGB multi-channel field + true SDF in alpha).
     @assert(msdf.pitch == cast(s32) msdf.width * 4)
+    @assert(msdf.pixelMode.bytesPerPixel() == 4)
     @assert(face.glyph.bitmapLeft == normalLeft - cast(s32) spread)
     @assert(face.glyph.bitmapTop == normalTop + cast(s32) spread)
 

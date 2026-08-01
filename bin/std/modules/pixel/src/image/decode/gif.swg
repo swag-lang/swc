@@ -104,10 +104,20 @@ impl Decoder
 
 public impl Decoder
 {
-    // Initialize the decoder
-    mtd init(buffer: const [..] u8, decodePixels: bool) fail
+    // Opens an animated GIF for sequential frame decoding.
+    //
+    // The decoder borrows `buffer`; its storage must remain valid until the decoder
+    // is no longer used or another buffer is opened.
+    mtd open(buffer: const [..] u8) fail
     {
-        .initDone             = true
+        .init(buffer, true)
+    }
+
+    internal mtd init(buffer: const [..] u8, decodePixels: bool) fail
+    {
+        @drop(me, 1)
+        @init(me, 1)
+
         .streamStart, .stream = @dataof(buffer)
         .streamLen            = @countof(buffer)
 
@@ -166,12 +176,12 @@ public impl Decoder
 
         .animStart  = cast(u64) (.stream - .streamStart)
         .animRemain = .streamLen
+        .initDone   = true
 
         discard .getFrame(decodePixels)
     }
 
-    // Create an image for the current frame
-    mtd getFrame(image: *Image, decodePixels = true)
+    internal mtd prepareFrameImage(image: *Image, decodePixels = true)
     {
         Debug.assert(.initDone)
         image.init(.width, .height, .gce.transparency ? PixelFormat.RGBA8 : PixelFormat.RGB8)
@@ -180,7 +190,10 @@ public impl Decoder
         image.allocPixels()
     }
 
-    // Get the next frame. Returns false if we have reached the end
+    // Decodes the next composited frame into `image`.
+    //
+    // The image is allocated or reconfigured as needed. Returns false after the GIF
+    // trailer has been reached.
     mtd nextFrame(img: *Image)->bool fail
     {
         Debug.assert(.initDone)
@@ -193,13 +206,17 @@ public impl Decoder
             return false
         }
 
-        .renderFrame(cast([*] u8) (notnull img.pixels.buffer), img.pf)
+        let pixelFormat = .gce.transparency ? PixelFormat.RGBA8 : PixelFormat.RGB8
+        if !img.isValid() or img.width != .width or img.height != .height or img.pixelFormat != pixelFormat do
+            .prepareFrameImage(img)
+        .renderFrame(cast([*] u8) (notnull img.pixels.buffer), img.pixelFormat)
         return true
     }
 
-    // Returns the number of frames
-    // As Gif does not store it, we need to go threw all images (!)
-    mtd getNumFrames()->s32 fail
+    // Counts the frames in the GIF and rewinds the decoder.
+    //
+    // GIF does not store this count, so the first call scans the remaining stream.
+    mtd frameCount()->s32 fail
     {
         Debug.assert(.initDone)
         if .numFrames do
@@ -213,7 +230,7 @@ public impl Decoder
         return .numFrames
     }
 
-    // Restart at frame 0
+    // Rewinds frame iteration to the first frame.
     mtd rewind()
     {
         Debug.assert(.initDone)
@@ -227,7 +244,7 @@ public impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool
     {
-        let ext = Path.getExtensionLowerCase(fileName)
+        let ext = Path.lowercaseExtension(fileName)
         return ext == ".gif"
     }
 
@@ -236,11 +253,11 @@ public impl IImageDecoder for Decoder
         .init(buffer, options.decodePixels)
 
         var result: retval
-        .getFrame(&result, options.decodePixels)
+        .prepareFrameImage(&result, options.decodePixels)
         if !options.decodePixels do
             return result
 
-        .renderFrame(cast([*] u8) (notnull result.pixels.buffer), result.pf)
+        .renderFrame(cast([*] u8) (notnull result.pixels.buffer), result.pixelFormat)
         return result
     }
 }

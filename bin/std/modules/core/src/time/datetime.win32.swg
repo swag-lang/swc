@@ -5,7 +5,7 @@ using Win32
 
 impl DateTime
 {
-    mtd setSYSTEMTIME(systemTime: SYSTEMTIME)
+    mtd setSystemTime(systemTime: SYSTEMTIME)
     {
         .day         = systemTime.wDay
         .month       = systemTime.wMonth
@@ -26,7 +26,7 @@ public impl DateTime
         GetLocalTime(&systemTime)
 
         var result: retval = undefined
-        result.setSYSTEMTIME(systemTime)
+        result.setSystemTime(systemTime)
         return result
     }
 
@@ -35,6 +35,6 @@ public impl DateTime
     {
         var systemTime: SYSTEMTIME = undefined
         GetLocalTime(&systemTime)
-        .setSYSTEMTIME(systemTime)
+        .setSystemTime(systemTime)
     }
 }

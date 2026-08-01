@@ -55,7 +55,7 @@ using Core
 
 func day5A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "5.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var stacks: Array'String

@@ -5,45 +5,43 @@ using Swag
 
 #test
 {
-    var pad: Input.GamePad
+    var pad: Input.Gamepad
 
-    for [i] in @countof(Input.GamePadButton)
+    for [i] in @countof(Input.GamepadButton)
     {
-        let button = cast(Input.GamePadButton) i
+        let button = cast(Input.GamepadButton) i
         @assert(!pad.isButtonPressed(button))
         @assert(pad.isButtonReleased(button))
         @assert(!pad.isButtonJustPressed(button))
         @assert(!pad.isButtonJustReleased(button))
-        @assert(pad.getPosition(button) == Math.Point.Zero)
+        @assert(pad.position(button) == Math.Point.Zero)
     }
 }
 
 #test
 {
-    var pad: Input.GamePad
+    var pad: Input.Gamepad
 
-    for [i] in @countof(Input.GamePadButton)
+    for [i] in @countof(Input.GamepadButton)
     {
-        let button = cast(Input.GamePadButton) i
+        let button = cast(Input.GamepadButton) i
         let pos    = Math.Point{cast(f32) i + 1.0, cast(f32) i + 2.0}
 
-        pad.currentState.pressed[button]  = true
-        pad.previousState.pressed[button] = false
-        pad.currentState.position[button] = pos
+        pad.setControlStates(button, false, true, Math.Point.Zero, pos)
 
         @assert(pad.isButtonPressed(button))
         @assert(!pad.isButtonReleased(button))
         @assert(pad.isButtonJustPressed(button))
         @assert(!pad.isButtonJustReleased(button))
-        @assert(pad.getPosition(button) == pos)
+        @assert(pad.position(button) == pos)
 
-        pad.previousState.pressed[button] = true
+        pad.setControlStates(button, true, true, Math.Point.Zero, pos)
         @assert(pad.isButtonPressed(button))
         @assert(!pad.isButtonReleased(button))
         @assert(!pad.isButtonJustPressed(button))
         @assert(!pad.isButtonJustReleased(button))
 
-        pad.currentState.pressed[button] = false
+        pad.setControlStates(button, true, false, Math.Point.Zero, pos)
         @assert(!pad.isButtonPressed(button))
         @assert(pad.isButtonReleased(button))
         @assert(!pad.isButtonJustPressed(button))
@@ -53,22 +51,19 @@ using Swag
 
 #test
 {
-    var pad: Input.GamePad
+    var pad: Input.Gamepad
 
-    for [i] in @countof(Input.GamePadButton)
+    for [i] in @countof(Input.GamepadButton)
     {
-        let button = cast(Input.GamePadButton) i
-        pad.previousState.pressed[button]  = true
-        pad.currentState.pressed[button]   = true
-        pad.previousState.position[button] = Math.Point{1, 2}
-        pad.currentState.position[button]  = Math.Point{3, 4}
+        let button = cast(Input.GamepadButton) i
+        pad.setControlStates(button, true, true, {1, 2}, {3, 4})
     }
 
     pad.clear()
 
-    for [i] in @countof(Input.GamePadButton)
+    for [i] in @countof(Input.GamepadButton)
     {
-        let button = cast(Input.GamePadButton) i
+        let button = cast(Input.GamepadButton) i
         @assert(!pad.previousState.pressed[button])
         @assert(!pad.currentState.pressed[button])
         @assert(pad.previousState.position[button] == Math.Point.Zero)

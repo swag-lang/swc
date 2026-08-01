@@ -147,7 +147,7 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fa
     if chunkSize < #sizeof(WAVEFORMAT) do
         fail InvalidFormatError{"invalid wav"}
 
-    let chunkStart = stream.getPosition()
+    let chunkStart = stream.position()
 
     var wf: WAVEFORMAT
     if !stream.readValue(&wf) do
@@ -205,8 +205,8 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fa
                 {
                     switch
                     {
-                    case Memory.equals(&wfex.subFormat, GUID_PCM):        file.setEncodingFormat(WAVE_FORMAT_PCM)
-                    case Memory.equals(&wfex.subFormat, GUID_IEEE_FLOAT): file.setEncodingFormat(WAVE_FORMAT_IEEE_FLOAT)
+                    case Memory.bytesEqual(&wfex.subFormat, GUID_PCM):        file.setEncodingFormat(WAVE_FORMAT_PCM)
+                    case Memory.bytesEqual(&wfex.subFormat, GUID_IEEE_FLOAT): file.setEncodingFormat(WAVE_FORMAT_IEEE_FLOAT)
                     default:                                              fail UnsupportedFormatError{"unsupported wav format"}
                     }
                 }
@@ -217,15 +217,15 @@ func readChunkFmt(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fa
     if wf.wFormatTag == WAVE_FORMAT_EXTENSIBLE and chunkSize < #sizeof(WAVEFORMATEXTENSIBLE) do
         fail InvalidFormatError{"invalid wav"}
 
-    let readSize = stream.getPosition() - chunkStart
+    let readSize = stream.position() - chunkStart
     if readSize < chunkSize do
-        stream.skipPosition(chunkSize - readSize)
+        stream.skip(chunkSize - readSize)
 }
 
 func readChunkData(file: *SoundFile, stream: *File.FileStream, chunkSize: u32) fail
 {
     file.validity |= .Data
-    file.dataSeek = stream.getPosition()
+    file.dataSeek = stream.position()
     file.dataSize = chunkSize
 
     file.validity    |= .SampleCount
@@ -257,8 +257,8 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
 
     for
     {
-        let seek = stream.getPosition()
-        if seek >= stream.getSize()
+        let seek = stream.position()
+        if seek >= stream.size()
         {
             if file.validity.has(.Data) do
                 return
@@ -266,7 +266,7 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
         }
 
         if seek & 1 do
-            stream.skipPosition(1)
+            stream.skip(1)
 
         if !stream.readValue(&header) do
             fail InvalidFormatError{"invalid wav"}
@@ -302,7 +302,7 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
                 }
                 elif loadMetaDatas
                 {
-                    stream.skipPosition(header.chunkSize)
+                    stream.skip(header.chunkSize)
                 }
 
                 if !loadMetaDatas do
@@ -310,29 +310,29 @@ public func loadFile(file: *SoundFile, stream: *File.FileStream, loadDatas = tru
             }
 
         case .SND_WAV_FOURCC_fact:
-            stream.skipPosition(header.chunkSize)
+            stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_cue:
-            stream.skipPosition(header.chunkSize)
+            stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_LIST:
-            stream.skipPosition(header.chunkSize)
+            stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_labl:
-            stream.skipPosition(header.chunkSize)
+            stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_note:
-            stream.skipPosition(header.chunkSize)
+            stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_ltxt:
-            stream.skipPosition(header.chunkSize)
+            stream.skip(header.chunkSize)
 
         case .SND_WAV_FOURCC_bext:
-            stream.skipPosition(header.chunkSize)
+            stream.skip(header.chunkSize)
 
         default:
             if header.chunkSize do
-                stream.skipPosition(header.chunkSize)
+                stream.skip(header.chunkSize)
             else do
                 fail InvalidFormatError{"invalid wav"}
         }

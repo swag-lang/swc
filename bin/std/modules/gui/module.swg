@@ -17,10 +17,10 @@ var app: Application
 #main
 {
     let surface = notnull (try app.createSurface(
-        100, 100, 640, 420, SurfaceFlags.OverlappedWindow))
+        100, 100, 640, 420, SurfaceFlags.StandardWindow))
     surface.setTitle("My application")
 
-    let button = PushButton.create(surface.getView(), "Continue")
+    let button = PushButton.create(surface.view(), "Continue")
     button.dockStyle = .CenterKeepSizeVert
 
     surface.show()

@@ -11,7 +11,7 @@ using Swag, Core
         ]
 
     let src = makeImage(3, 3, .RGBA8, pixels)
-    let out = src.toApplyKernel(.BoxBlur3x3A)
+    let out = src.withKernelApplied(.BoxBlur3x3)
     assertImage(out, 3, 3, .RGBA8)
 
     assertPixel(out, 0, 2, Color.fromArgb(101'u8, 23'u8, 23'u8, 23'u8))

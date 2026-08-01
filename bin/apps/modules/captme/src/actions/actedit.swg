@@ -33,13 +33,13 @@ impl IActionUI for ActionEdit
         switch cxt.id
         {
         case .EditText:
-            evt.setFlags |= .Disabled | .Name | .Hidden
+            evt.updatedFields |= .Disabled | .Name | .Hidden
             evt.disabled = !hasSel or !lastSelType or (lastSelType != FormText and lastSelType != FormCallout)
             evt.hidden   = evt.disabled
             evt.name     = "Edit"
 
         case .ClearImageInside:
-            evt.setFlags             |= .Disabled | .Name | .Hidden
+            evt.updatedFields             |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
             evt.name                 = "Clear Inside Image"
 
@@ -63,7 +63,7 @@ impl IActionUI for ActionEdit
             }
 
         case .ResetRotation:
-            evt.setFlags             |= .Disabled | .Name | .Hidden
+            evt.updatedFields             |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
             evt.name                 = "Reset Rotation"
 

@@ -28,10 +28,11 @@ impl ZLib
         .encoder.init(level)
         try .encoder.compress(&result, buffer)
 
-        result.add(cast(u8) ((.encoder.adler.adler >> 24) & 0xFF))
-        result.add(cast(u8) ((.encoder.adler.adler >> 16) & 0xFF))
-        result.add(cast(u8) ((.encoder.adler.adler >> 8) & 0xFF))
-        result.add(cast(u8) (.encoder.adler.adler & 0xFF))
+        let checksum = .encoder.adler.value()
+        result.add(cast(u8) ((checksum >> 24) & 0xFF))
+        result.add(cast(u8) ((checksum >> 16) & 0xFF))
+        result.add(cast(u8) ((checksum >> 8) & 0xFF))
+        result.add(cast(u8) (checksum & 0xFF))
 
         return result
     }
@@ -68,7 +69,7 @@ impl ZLib
         var result: Array'u8
         if hintSize do
             result.grow(hintSize)
-        try .decoder.decompress(&result, notnull bs.remainReadToSlice(), winSize)
+        try .decoder.decompress(&result, notnull bs.remainingBytes(), winSize)
 
         // Now we should have the checksum
         .decoder.stream.discardToNextByte()
@@ -76,7 +77,7 @@ impl ZLib
                       .decoder.stream.readBits(8) << 16 |
                       .decoder.stream.readBits(8) << 8 |
                       .decoder.stream.readBits(8)
-        if adler32 != .decoder.adler.adler do
+        if adler32 != .decoder.adler.value() do
             fail InvalidFormatError{"invalid checksum"}
 
         return result

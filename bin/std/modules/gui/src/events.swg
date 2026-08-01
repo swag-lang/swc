@@ -2,20 +2,20 @@
 
 using Core
 
-// Defines the operations supported by i event.
+// Marker interface implemented by every GUI event.
 interface IEvent {}
 
-// Represents event.
+// Common routing state embedded by every GUI event.
 struct Event
 {
-    type:     #null typeinfo     // Type associated with this value.
-    target:   #null *Wnd         // Target associated with this value.
-    accepted: bool               // Accepted associated with this value.
+    internal type: #null typeinfo     // Concrete allocation type used for owned posted events.
+    target:   #null *Wnd              // Current routing target; changes while an event bubbles.
+    accepted: bool                    // Whether propagation has been handled and must stop.
 }
 
 impl Event
 {
-    // Performs the create operation.
+    // Allocates an owned event for `Wnd.postEvent`; the event queue releases it after dispatch.
     func(T) create()->*T
     {
         let res = Memory.new'T()
@@ -26,88 +26,88 @@ impl Event
 
 impl IEvent for Event {}
 
-// Represents command event.
+// Requests execution of a command identified by `id`.
 struct CommandEvent
 {
     using base: Event                 // Embedded base state.
-    id:         WndId = undefined     // Id associated with this value.
-    source:     #null *Wnd            // Source associated with this value.
+    id:         WndId = undefined     // Command identifier.
+    source:     #null *Wnd            // Window that originated the command, when known.
 }
 
 impl IEvent for CommandEvent {}
 
-// Represents command state event.
+// Carries computed presentation state for a command between handlers and presenters.
 struct CommandStateEvent
 {
     // Selects which command-state fields carry an updated value.
     #[Swag.EnumFlags]
-    enum SetFlags
+    enum UpdatedFields
     {
-        Zero = 0          // No flags are enabled.
-        Disabled          // Enables disabled.
-        Icon              // Enables icon.
-        Shortcut          // Enables shortcut.
-        Checked           // Enables checked.
-        Name              // Enables name.
-        LongName          // Enables long name.
-        ToolTip           // Enables tool tip.
-        Hidden            // Enables hidden.
-        RenderingHint     // Enables rendering hint.
+        None = 0          // No flags are enabled.
+        Disabled          // `disabled` contains an updated value.
+        Icon              // `icon` contains an updated value.
+        Shortcut          // `shortcut` contains an updated value.
+        Checked           // `checked` contains an updated value.
+        Name              // `name` contains an updated value.
+        LongName          // `longName` contains an updated value.
+        ToolTip           // `toolTip` contains an updated value.
+        Hidden            // `hidden` contains an updated value.
+        RenderingHint     // `renderingHint` contains an updated value.
     }
 
     // Provides presentation hints for a command.
     #[Swag.EnumFlags]
     enum RenderingHint
     {
-        Zero = 0           // No flags are enabled.
-        ExclusiveGroup     // Selects exclusive group.
+        None = 0           // No flags are enabled.
+        ExclusiveGroup     // The command belongs to a mutually exclusive group.
     }
 
     // Selects whether command state is being computed or applied.
     enum Kind
     {
-        ComputeCommandState     // Selects the compute command state kind.
-        ApplyCommandState       // Selects the apply command state kind.
+        Compute     // A handler must provide the command's current presentation state.
+        Apply       // Computed state is being applied to command presenters.
     }
 
     using base: Event                 // Embedded base state.
-    kind:       Kind                  // Kind associated with this value.
-    id:         WndId = undefined     // Id associated with this value.
-    source:     #null *Wnd            // Source associated with this value.
+    kind:       Kind                  // Whether state is being computed or applied.
+    id:         WndId = undefined     // Command identifier.
+    source:     #null *Wnd            // Window that requested the state, when known.
 
-    icon:          Icon              // Icon associated with this value.
-    name:          String            // Name associated with this value.
-    longName:      String            // Long name associated with this value.
-    shortcut:      String            // Shortcut associated with this value.
-    toolTip:       String            // Tool tip associated with this value.
-    setFlags:      SetFlags          // Set flags associated with this value.
-    renderingHint: RenderingHint     // Rendering hint associated with this value.
-    disabled:      bool              // Disabled associated with this value.
-    checked:       bool              // Checked associated with this value.
-    hidden:        bool              // Hidden associated with this value.
+    icon:          Icon              // Command icon when [UpdatedFields.Icon] is present.
+    name:          String            // Compact command label when [UpdatedFields.Name] is present.
+    longName:      String            // Expanded command label when [UpdatedFields.LongName] is present.
+    shortcut:      String            // Display-form shortcut when [UpdatedFields.Shortcut] is present.
+    toolTip:       String            // Explanatory tooltip when [UpdatedFields.ToolTip] is present.
+    updatedFields: UpdatedFields     // Identifies which presentation fields contain authoritative values.
+    renderingHint: RenderingHint     // Presenter hints when [UpdatedFields.RenderingHint] is present.
+    disabled:      bool              // Disabled state when [UpdatedFields.Disabled] is present.
+    checked:       bool              // Checked state when [UpdatedFields.Checked] is present.
+    hidden:        bool              // Hidden state when [UpdatedFields.Hidden] is present.
 }
 
 impl IEvent for CommandStateEvent {}
 
-// Represents timer event.
+// Signals that a registered timer has elapsed.
 struct TimerEvent
 {
     using base: Event                  // Embedded base state.
-    timer:      *Timer = undefined     // Timer associated with this value.
+    timer:      *Timer = undefined     // Timer that elapsed.
 }
 
 impl IEvent for TimerEvent {}
 
-// Represents frame event.
+// Signals one application frame.
 struct FrameEvent
 {
     using base: Event     // Embedded base state.
-    firstFrame: bool      // First frame associated with this value.
+    firstFrame: bool      // Whether this is the first frame after startup.
 }
 
 impl IEvent for FrameEvent {}
 
-// Represents create event.
+// Signals creation of a window.
 struct CreateEvent
 {
     using base: Event     // Embedded base state.
@@ -115,7 +115,7 @@ struct CreateEvent
 
 impl IEvent for CreateEvent {}
 
-// Represents state event.
+// Signals a window-state transition.
 struct StateEvent
 {
     // Identifies the window-state transition.
@@ -126,19 +126,19 @@ struct StateEvent
         // (restoring state, loading content, resizing): the surface is
         // guaranteed not to be displayed until this returns and a first frame
         // has been rendered, so there is no black/empty flash on startup.
-        Init        // Selects the init kind.
-        Show        // Selects the show kind.
-        Hide        // Selects the hide kind.
-        Disable     // Selects the disable kind.
+        Init        // Performs first-show initialization before the surface becomes visible.
+        Show        // Signals transition to locally visible state.
+        Hide        // Signals transition to locally hidden state.
+        Disable     // Signals transition to locally disabled state.
     }
 
     using base: Event     // Embedded base state.
-    kind:       Kind      // Kind associated with this value.
+    kind:       Kind      // State transition being reported.
 }
 
 impl IEvent for StateEvent {}
 
-// Represents destroy event.
+// Signals destruction of a window.
 struct DestroyEvent
 {
     using base: Event     // Embedded base state.
@@ -146,168 +146,168 @@ struct DestroyEvent
 
 impl IEvent for DestroyEvent {}
 
-// Represents paint event.
+// Carries the context for one phase of window painting.
 struct PaintEvent
 {
     // Identifies the phase of window painting.
     enum Kind
     {
-        PrePaint      // Selects the pre paint kind.
-        Paint         // Selects the paint kind.
-        PostPaint     // Selects the post paint kind.
+        Before      // Paint before the window's children.
+        Content     // Paint the window's own content.
+        After       // Paint after the window's children.
     }
 
     using base: Event                         // Embedded base state.
-    kind:       Kind          = .Paint        // Kind associated with this value.
-    bc:         *PaintContext = undefined     // Bc associated with this value.
+    kind:         Kind          = .Content      // Painting phase.
+    paintContext: *PaintContext = undefined     // Active painting context.
 }
 
 impl IEvent for PaintEvent {}
 
-// Represents resize event.
+// Signals a window resize.
 struct ResizeEvent
 {
     using base: Event          // Embedded base state.
-    oldSize:    Math.Point     // Old size associated with this value.
+    oldSize:    Math.Point     // Size before the resize.
 }
 
 impl IEvent for ResizeEvent {}
 
-// Represents move event.
+// Signals a window move.
 struct MoveEvent
 {
     using base: Event          // Embedded base state.
-    oldPos:     Math.Point     // Old pos associated with this value.
+    oldPos:     Math.Point     // Position before the move.
 }
 
 impl IEvent for MoveEvent {}
 
-// Represents key event.
+// Carries a key transition or character input.
 struct KeyEvent
 {
     // Identifies a keyboard transition.
     enum Kind
     {
-        KeyPressed      // Selects the key pressed kind.
-        KeyReleased     // Selects the key released kind.
-        Rune            // Selects the rune kind.
+        Pressed       // A key transitioned to the pressed state.
+        Released      // A key transitioned to the released state.
+        Character     // Text input produced one Unicode character.
     }
 
     using base: Event                              // Embedded base state.
-    kind:       Kind                               // Kind associated with this value.
-    modifiers:  Input.KeyModifiers = Zero          // Modifiers associated with this value.
-    key:        Input.Key          = undefined     // Key associated with this value.
-    char:       rune                               // Char associated with this value.
+    kind:       Kind                               // Keyboard event kind.
+    modifiers:  Input.KeyModifiers = None          // Modifiers held during the event.
+    key:        Input.Key          = undefined     // Physical or logical key, when applicable.
+    character:  rune                               // Input character for `Kind.Character`.
 }
 
 impl IEvent for KeyEvent {}
 
-// Represents mouse event.
+// Carries a mouse transition, motion, wheel delta, or cursor query.
 struct MouseEvent
 {
     // Identifies a mouse action or transition.
     enum Kind
     {
-        MouseAccept          // Selects the mouse accept kind.
-        MousePressed         // Selects the mouse pressed kind.
-        MouseReleased        // Selects the mouse released kind.
-        MouseDoubleClick     // Selects the mouse double click kind.
-        MouseMove            // Selects the mouse move kind.
-        MouseEnter           // Selects the mouse enter kind.
-        MouseLeave           // Selects the mouse leave kind.
-        MouseWheel           // Selects the mouse wheel kind.
-        MouseSetCursor       // Selects the mouse set cursor kind.
+        Accept          // Queries whether this target accepts pointer routing.
+        Pressed         // A mouse button transitioned to the pressed state.
+        Released        // A mouse button transitioned to the released state.
+        DoubleClick     // A mouse button completed a double-click gesture.
+        Move            // The pointer moved.
+        Enter           // The pointer entered the window.
+        Leave           // The pointer left the window.
+        Wheel           // The mouse wheel moved.
+        SetCursor       // The target must choose the active cursor.
     }
 
     using base: Event                              // Embedded base state.
-    kind:       Kind                               // Kind associated with this value.
-    button:     Input.MouseButton  = undefined     // Button associated with this value.
-    surfacePos: Math.Point                         // Surface pos associated with this value.
-    move:       Math.Point                         // Move associated with this value.
-    modifiers:  Input.KeyModifiers = Zero          // Modifiers associated with this value.
+    kind:       Kind                               // Mouse event kind.
+    button:     Input.MouseButton  = undefined     // Button involved in the transition.
+    surfacePos: Math.Point                         // Pointer position in surface coordinates.
+    delta:      Math.Point                         // Motion or wheel delta for this event.
+    modifiers:  Input.KeyModifiers = None          // Modifiers held during the event.
 }
 
 impl IEvent for MouseEvent {}
 
-// Represents quit event.
+// Requests application termination.
 struct QuitEvent
 {
     using base: Event     // Embedded base state.
-    quitCode:   s32       // Quit code associated with this value.
+    quitCode:   s32       // Process exit code requested by the application.
 }
 
 impl IEvent for QuitEvent {}
 
-// Represents focus event.
+// Carries a keyboard-focus transition or validation request.
 struct FocusEvent
 {
     // Identifies a keyboard-focus transition.
     enum Kind
     {
-        SetFocus         // Selects the set focus kind.
-        KillFocus        // Selects the kill focus kind.
-        CanSetFocus      // Selects the can set focus kind.
-        CanKillFocus     // Selects the can kill focus kind.
+        Gained      // The window gained keyboard focus.
+        Lost        // The window lost keyboard focus.
+        CanGain     // Queries whether the window may gain keyboard focus.
+        CanLose     // Queries whether the window may lose keyboard focus.
     }
 
     using base: Event          // Embedded base state.
-    kind:       Kind           // Kind associated with this value.
-    other:      #null *Wnd     // Other associated with this value.
-    canChangeFocus = true      // Can change focus associated with this value.
+    kind:       Kind           // Focus event kind.
+    other:      #null *Wnd     // Window at the other end of the focus transition.
+    canChangeFocus = true      // Whether the queried focus transition is allowed.
 }
 
 impl IEvent for FocusEvent {}
 
-// Represents sys user event.
+// Carries an application-defined message received from the host window system.
 struct SysUserEvent
 {
     using base: Event     // Embedded base state.
-    userMsg:    u64       // User msg associated with this value.
-    param0:     u64       // Param0 associated with this value.
-    param1:     u64       // Param1 associated with this value.
+    message:    u64       // Application-defined message identifier.
+    param0:     u64       // First message parameter.
+    param1:     u64       // Second message parameter.
 }
 
 impl IEvent for SysUserEvent {}
 
-// Represents sys command event.
+// Carries a command requested by the host window system.
 struct SysCommandEvent
 {
     // Identifies a command requested by the host window system.
     enum Kind
     {
-        Minimize     // Selects the minimize kind.
-        Maximize     // Selects the maximize kind.
-        Restore      // Selects the restore kind.
-        Close        // Selects the close kind.
-        User         // Selects the user kind.
+        Minimize     // Requests minimizing the host surface.
+        Maximize     // Requests maximizing the host surface.
+        Restore      // Requests restoring the host surface.
+        Close        // Requests closing the host surface.
+        User         // Carries a host-specific command not covered above.
     }
 
     using base: Event     // Embedded base state.
-    kind:       Kind      // Kind associated with this value.
+    kind:       Kind      // Host command being requested.
 }
 
 impl IEvent for SysCommandEvent {}
 
-// Represents theme event.
+// Signals a theme-style change.
 struct ThemeEvent
 {
     using base: Event                       // Embedded base state.
-    style:      *ThemeStyle = undefined     // Style associated with this value.
-    parent:     #null *ThemeStyle           // Parent associated with this value.
+    style:      *ThemeStyle = undefined     // Style being updated.
+    parent:     #null *ThemeStyle           // Parent style inherited by `style`, when any.
 }
 
 impl IEvent for ThemeEvent {}
 
-// Represents serialize state event.
+// Requests serialization or restoration of window state.
 struct SerializeStateEvent
 {
     using base: Event                                     // Embedded base state.
-    ser:        *Serialization.Serializer = undefined     // Ser associated with this value.
+    serializer: *Serialization.Serializer = undefined     // Serializer that defines the current read/write mode.
 }
 
 impl IEvent for SerializeStateEvent {}
 
-// Represents notify event.
+// Carries a semantic notification emitted by a control.
 struct NotifyEvent
 {
     using base: Event     // Embedded base state.
@@ -315,17 +315,17 @@ struct NotifyEvent
     // Identifies the semantic notification sent by a control.
     enum Kind
     {
-        ChildFocusChanged     // Selects the child focus changed kind.
-        ThemeChanged          // Selects the theme changed kind.
+        ChildFocusChanged     // A descendant gained or lost keyboard focus.
+        ThemeChanged          // The resolved theme or inherited style changed.
     }
 
-    ntfyKind: Kind = undefined     // Ntfy kind associated with this value.
-    from:     #null *Wnd           // From associated with this value.
+    kind: Kind = undefined     // Notification kind.
+    from: #null *Wnd           // Control that originated the notification.
 }
 
 impl IEvent for NotifyEvent {}
 
-// Represents invalidate event.
+// Requests repainting of a window.
 struct InvalidateEvent
 {
     using base: Event     // Embedded base state.

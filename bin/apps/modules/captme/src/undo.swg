@@ -300,7 +300,7 @@ impl Undo
                 if !.acceptsType(@kindof(itf)) do
                     continue
                 var val: u32
-                Reflection.getFieldValue(&val, .valRef, form, true)
+                Reflection.readFieldValue(&val, .valRef, form)
                 .oldU32.add(val)
             }
 
@@ -480,7 +480,7 @@ impl Undo
             {
                 if !.acceptsType(@kindof(itf)) do
                     continue
-                Reflection.setFieldValue(form, .valRef, &.valU32, true)
+                Reflection.writeFieldValue(form, .valRef, &.valU32)
             }
 
             capture.updateModelFromSelection()
@@ -701,7 +701,7 @@ impl Undo
                 if !.acceptsType(@kindof(itf)) do
                     continue
                 var val = .oldU32[idx]
-                Reflection.setFieldValue(form, .valRef, &val, true)
+                Reflection.writeFieldValue(form, .valRef, &val)
             }
 
             capture.updateModelFromSelection()

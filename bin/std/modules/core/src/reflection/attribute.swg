@@ -3,9 +3,9 @@
 
 using Swag
 
-// Performs the same attribute type operation.
+// Returns whether two reflected attribute types identify the same declaration.
 #[ConstExpr]
-func sameAttributeType(left: #null typeinfo, right: #null typeinfo)->bool
+private func sameAttributeType(left: #null typeinfo, right: #null typeinfo)->bool
 {
     if left == null or right == null do
         return false
@@ -18,40 +18,40 @@ func sameAttributeType(left: #null typeinfo, right: #null typeinfo)->bool
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func getAttributeValue(type: #null const *Swag.TypeValue, attribute: #null typeinfo, value: #null string)->#null any
+func attributeValue(type: #null const *Swag.TypeValue, attribute: #null typeinfo, value: #null string)->#null any
 {
-    let attrib = getAttribute(type, attribute)
+    let attrib = Reflection.attribute(type, attribute)
     if !attrib do
         return null
-    return getAttributeValue(attrib, value)
+    return attributeValue(attrib, value)
 }
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func(T) getAttributeValue(type: #null const *Swag.TypeValue, attribute: #null typeinfo, value: #null string, def: T)->T
+func(T) attributeValue(type: #null const *Swag.TypeValue, attribute: #null typeinfo, value: #null string, defaultValue: T)->T
 {
-    let attrib = getAttribute(type, attribute)
+    let attrib = Reflection.attribute(type, attribute)
     if !attrib do
-        return def
-    let attribVal = getAttributeValue(attrib, value)
+        return defaultValue
+    let attribVal = attributeValue(attrib, value)
     if attribVal == null do
-        return def
+        return defaultValue
     return cast(T) attribVal
 }
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func getAttributeValue(type: #null typeinfo, attribute: #null typeinfo, value: #null string)->#null any
+func attributeValue(type: #null typeinfo, attribute: #null typeinfo, value: #null string)->#null any
 {
-    let attrib = getAttribute(type, attribute)
+    let attrib = Reflection.attribute(type, attribute)
     if !attrib do
         return null
-    return getAttributeValue(attrib, value)
+    return attributeValue(attrib, value)
 }
 
 // Returns the given attribute value, or null
 #[ConstExpr]
-func getAttributeValue(attribute: #null const *Swag.Attribute, value: #null string)->#null any
+func attributeValue(attribute: #null const *Swag.Attribute, value: #null string)->#null any
 {
     if !attribute do
         return null
@@ -62,7 +62,7 @@ func getAttributeValue(attribute: #null const *Swag.Attribute, value: #null stri
 
 // Returns the given associated attributes to 'value'
 #[ConstExpr]
-func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(const *Swag.Attribute)
+func attributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
     if !value do
@@ -74,7 +74,7 @@ func getAttributes(value: const *Swag.TypeValue, attribute: typeinfo)->Array'(co
 
 // Returns the given associated 'attribute' to 'value' or null
 #[ConstExpr]
-func getAttribute(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->#null const *Swag.Attribute
+func attribute(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->#null const *Swag.Attribute
 {
     if !value do
         return null
@@ -87,12 +87,12 @@ func getAttribute(value: #null const *Swag.TypeValue, attribute: #null typeinfo)
 #[ConstExpr]
 func hasAttribute(value: #null const *Swag.TypeValue, attribute: #null typeinfo)->bool
 {
-    return getAttribute(value, attribute) != null
+    return Reflection.attribute(value, attribute) != null
 }
 
 // Returns the given associated attributes to 'type'
 #[ConstExpr]
-func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(const *Swag.Attribute)
+func attributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(const *Swag.Attribute)
 {
     var result: retval
     if !type do
@@ -122,7 +122,7 @@ func getAttributes(type: #null typeinfo, attribute: #null typeinfo)->Array'(cons
 
 // Returns the given associated 'attribute' to 'type' or null
 #[ConstExpr]
-func getAttribute(type: #null typeinfo, attribute: #null typeinfo)->#null const *Swag.Attribute
+func attribute(type: #null typeinfo, attribute: #null typeinfo)->#null const *Swag.Attribute
 {
     if !type do
         return null
@@ -153,5 +153,5 @@ func getAttribute(type: #null typeinfo, attribute: #null typeinfo)->#null const 
 #[ConstExpr]
 func hasAttribute(type: #null typeinfo, attribute: #null typeinfo)->bool
 {
-    return getAttribute(type, attribute) != null
+    return Reflection.attribute(type, attribute) != null
 }

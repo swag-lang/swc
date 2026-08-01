@@ -1,7 +1,7 @@
 #global namespace Input
 
-// Enumerates gamepad buttons
-public enum GamePadButton
+// Identifies digital buttons and analog controls on a gamepad.
+public enum GamepadButton
 {
     A                        // Selects a.
     B                        // Selects b.

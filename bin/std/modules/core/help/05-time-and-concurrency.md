@@ -1,8 +1,8 @@
 # Time and concurrency
 
 [[Core.Time.Duration]] represents an interval expressed in seconds.
-[[Core.Time.TimeSpan]] provides calendar-style components, while
-[[Core.Time.DateTime]] represents a date and time. Use
+[[Core.Time.Timestamp]] represents a wall-clock instant as ticks, while
+[[Core.Time.DateTime]] exposes its calendar components. Use
 [[Core.Time.Stopwatch]] for elapsed-time measurement and
 [[Core.Time.FrameTiming]] for frame loops.
 

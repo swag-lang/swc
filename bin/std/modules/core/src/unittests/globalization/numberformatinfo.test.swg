@@ -18,7 +18,7 @@ using Swag
     @assert(info.positiveSign == '^')
     @assert(info.decimalSeparator == ',')
 
-    let culture = Globalization.getCultureInfo()
+    let culture = Globalization.currentCulture()
     @assert(culture.numberFormat.negativeSign == '-')
     @assert(culture.numberFormat.positiveSign == '+')
     @assert(culture.numberFormat.decimalSeparator == '.')

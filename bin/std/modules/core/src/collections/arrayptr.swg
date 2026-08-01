@@ -42,7 +42,7 @@ impl ArrayPtr
     }
 
     // Checks if the array is empty (i.e., has no elements).
-    mtd isEmpty()->bool
+    mtd const isEmpty()->bool
     {
         return .count == 0
     }
@@ -60,43 +60,43 @@ impl ArrayPtr
     // Use this when ownership of the objects has been transferred elsewhere
     // (e.g. the pointers were moved into a free list / pool).
     // The capacity is not changed.
-    mtd clearNoDelete()
+    mtd detachAll()
     {
         .count = 0
     }
 
     // Deallocates the memory for a single given pointer.
     // The pointer is expected to have been allocated using this array's allocator.
-    mtd deletePtr(item: #null *T)
+    mtd destroy(item: #null *T)
     {
         Memory.delete(item, .allocator)
     }
 
     // Allocates memory for a new object of type T using the array's allocator.
     // Returns a pointer to the newly allocated memory.
-    mtd newPtr()->*T
+    mtd allocate()->*T
     {
         return Memory.new'T(.allocator)
     }
 
     // Allocates a new object, adds its pointer to the end of the array, and returns the pointer.
-    mtd addNewPtr()->*T
+    mtd addNew()->*T
     {
-        let ptr = .newPtr()
+        let ptr = .allocate()
         .add(ptr)
         return ptr
     }
 
     // Allocates a new object and inserts its pointer at 'index', returning the pointer.
-    mtd insertNewPtr(index: u64)->*T
+    mtd insertNew(index: u64)->*T
     {
-        let ptr = .newPtr()
+        let ptr = .allocate()
         .insertAt(index, ptr)
         return ptr
     }
 
     // Returns the first pointer in the array, or null if the array is empty.
-    mtd getFirst()->#null *T
+    mtd const first()->#null *T
     {
         if .count == 0 do
             return null
@@ -105,7 +105,7 @@ impl ArrayPtr
     }
 
     // Returns the last pointer in the array, or null if the array is empty.
-    mtd getLast()->#null *T
+    mtd const last()->#null *T
     {
         if .count == 0 do
             return null
@@ -114,7 +114,7 @@ impl ArrayPtr
     }
 
     // Returns the index of the given pointer (by identity), or 'Swag.U64.Max' if not present.
-    mtd indexOf(item: #null *T)->u64
+    mtd const indexOf(item: #null *T)->u64
     {
         if .count
         {
@@ -130,7 +130,7 @@ impl ArrayPtr
     }
 
     // True if the given pointer (by identity) is in the array.
-    mtd contains(item: #null *T)->bool
+    mtd const contains(item: #null *T)->bool
     {
         return .indexOf(item) != Swag.U64.Max
     }

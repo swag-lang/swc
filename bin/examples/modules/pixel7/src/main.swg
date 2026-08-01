@@ -52,7 +52,7 @@ var g_Cards:     [PageCount][CardsPerPage] DecoderCard
 
 func dataPath(fileName: string, loc = #callerlocation)->String
 {
-    let srcPath = Path.getDirectoryName(loc.fileName) orelse ""
+    let srcPath = Path.directoryName(loc.fileName) orelse ""
     return Path.combine(Path.combine(srcPath, "data"), fileName)
 }
 
@@ -68,12 +68,12 @@ func normalizeSource(image: const &Image)->Image
 {
     let maxSide = cast(f32) Math.max(image.width, image.height)
     if maxSide <= MaxSourceSide do
-        return Image.create(image.width, image.height, image.pf, image.pixels.toSlice())
+        return Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
 
     let scale     = MaxSourceSide / maxSide
     let newWidth  = Math.max(cast(s32) Math.round(cast(f32) image.width * scale), 1)
     let newHeight = Math.max(cast(s32) Math.round(cast(f32) image.height * scale), 1)
-    return image.toResize(newWidth, newHeight, .Quadratic)
+    return image.resized(newWidth, newHeight, .Quadratic)
 }
 
 func loadSource(fileName: string)->Image fail
@@ -84,8 +84,8 @@ func loadSource(fileName: string)->Image fail
 
 func sourceVariant(source: const &Image, pixelFormat: PixelFormat, withAlphaBorder = false)->Image
 {
-    let converted = source.toSetPixelFormat(pixelFormat)
-    var result    = Image.create(converted.width, converted.height, converted.pf, converted.pixels.toSlice())
+    let converted = source.convertedTo(pixelFormat)
+    var result    = Image.create(converted.width, converted.height, converted.pixelFormat, converted.pixels.toSlice())
     if !withAlphaBorder do
         return result
 
@@ -124,7 +124,7 @@ func paletteVariant(source: const &Image, withAlpha: bool)->Image
                     pixel[3] = 0
             }
 
-            pixel += result.bpp8
+            pixel += result.bytesPerPixel
         }
     }
 
@@ -144,13 +144,9 @@ func setCard(card: *DecoderCard, title, encoding: string, image: Image, encodedS
     card.texture = g_Renderer.addImage(image)
 }
 
-func(T) encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: Image, options: #null any = null) fail
+func encodeCard(card: *DecoderCard, fileName, title, encoding: string, source: Image, options: #null any = null) fail
 {
-    var encoder: T
-    let itf = @mkinterface(&encoder, #typeof(T), IImageEncoder)
-
-    var encoded: ConcatBuffer
-    itf.encode(&encoded, source, options)
+    var encoded = source.encode(fileName, options)
     encoded.makeLinear()
 
     let bytes   = nonNullBytes(encoded.toSlice())
@@ -326,7 +322,7 @@ func updateShortcuts()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") do
+    if !Env.hasArgument("swag.test") do
         return
 
     g_TestFrame += 1
@@ -348,7 +344,7 @@ func updateTestMode()
     g_Renderer.setCurrentContext(g_RC)
     g_Renderer.init()
 
-    try Jobs.setNumWorkers()
+    try Jobs.initialize()
     try loadFonts()
     try buildPages()
 
@@ -356,7 +352,7 @@ func updateTestMode()
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         loop.maxTestFrames = cast(u32) PageCount * cast(u32) TestFramesPerPage
     while loop.next()
     {

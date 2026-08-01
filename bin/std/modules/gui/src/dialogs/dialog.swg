@@ -1,13 +1,19 @@
 #global public
 
-// Represents dialog.
+// Owns a modal surface, a content view, and an optional validated action bar.
 struct Dialog
 {
-    using wnd:        Wnd                                    // Embedded wnd state.
-    wndBottom:        *StackLayoutCtrl = undefined           // Wnd bottom associated with this value.
-    buttons:          Array'(*PushButton)                    // Buttons associated with this value.
-    sigPressedButton: #null func||(*Dialog, WndId)->bool     // Signal emitted when pressed button.
-    fromSurface:      #null *Surface                         // From surface associated with this value.
+    using wnd: Wnd     // Embedded window behavior and presentation.
+
+    // Called before a button result closes the dialog; return false to keep it open.
+    validateResult: #null func||(*Dialog, WndId)->bool
+
+    readonly
+    {
+        buttonBar:     *StackLayoutCtrl = undefined     // Bottom action bar owned by the dialog.
+        buttons:       Array'(*PushButton)              // Buttons in insertion order.
+        parentSurface: #null *Surface                   // Surface that owns the modal dialog.
+    }
 }
 
 impl IWnd for Dialog
@@ -15,13 +21,13 @@ impl IWnd for Dialog
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
         if evt.kind == .Close do
-            .validateId(BtnCancel)
+            .closeWithResult(BtnCancel)
         evt.accepted = true
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .KeyPressed
+        if evt.kind == .Pressed
         {
             // Pressing enter validates the default button
             switch evt.key
@@ -31,10 +37,10 @@ impl IWnd for Dialog
                 {
                     if btn.form == .Default
                     {
-                        btn.form = .Normal
+                        btn.setForm(.Normal)
                         btn.invalidate()
                         let nextBtn = .buttons[(idx + 1) % .buttons.count]
-                        nextBtn.form = .Default
+                        nextBtn.setForm(.Default)
                         nextBtn.invalidate()
                         break
                     }
@@ -45,10 +51,10 @@ impl IWnd for Dialog
                 {
                     if btn.form == .Default
                     {
-                        btn.form = .Normal
+                        btn.setForm(.Normal)
                         btn.invalidate()
                         let prevBtn = idx ? .buttons[idx - 1] : .buttons.back()
-                        prevBtn.form = .Default
+                        prevBtn.setForm(.Default)
                         prevBtn.invalidate()
                         break
                     }
@@ -59,15 +65,15 @@ impl IWnd for Dialog
                 {
                     if btn.form == .Default
                     {
-                        .validateId(btn.id)
+                        .closeWithResult(btn.id)
                         break
                     }
                 }
 
             case .Escape:
-                if (notnull .surface).flags.has(.CloseBtn)
+                if (notnull .surface).flags.has(.CloseButton)
                 {
-                    .validateId(BtnCancel)
+                    .closeWithResult(BtnCancel)
                     break
                 }
 
@@ -75,7 +81,7 @@ impl IWnd for Dialog
                 {
                     if btn.id == BtnNo or btn.id == BtnCancel
                     {
-                        .validateId(btn.id)
+                        .closeWithResult(btn.id)
                         break
                     }
                 }
@@ -93,31 +99,33 @@ impl Dialog
     newCmdId("BtnOk")
     newCmdId("BtnCancel")
 
-    // Creates a simple dialog box
-    func createDialog(from: *Surface, width = 512, height = 300, title: #null string = null, flags = SurfaceFlags.Zero)->*Dialog
+    // Creates and centers a dialog surface owned by `from`.
+    #[Swag.Discardable]
+    func create(from: *Surface, width = 512, height = 300, title: #null string = null, flags = SurfaceFlags.None)->*Dialog
     {
         let dlg = Wnd.create'Dialog()
         let srf = dlg.createSurface(from, 0, 0, width, height, flags)
         srf.setTitle(title)
         srf.center(from)
-        dlg.fromSurface = from
         return dlg
     }
 
-    // Creates an associated surface
-    mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.Zero)->*Surface
+    // Creates and attaches the native surface used by this dialog.
+    mtd createSurface(from: *Surface, x, y: s32, width = 512, height = 300, flags = SurfaceFlags.None)->*Surface
     {
-        let surfaceFlags = SurfaceFlags.BigCaption | SurfaceFlags.Secondary | flags
+        Debug.assert(from != null)
+        .parentSurface    = from
+        let surfaceFlags = SurfaceFlags.LargeCaption | SurfaceFlags.ToolWindow | flags
         let srf          = notnull (expect from.app.createSurface(x, y, width, height, surfaceFlags, me))
         srf.wnd.view.backgroundStyle = .Dialog
 
-        let metrics = .getThemeMetrics()
+        let metrics = .themeMetrics()
         var h       = metrics.btnPush_Height
         h += 2 * metrics.dialog_Padding
-        with me.wndBottom = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", {0, 0, 0, h})
+        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", {0, 0, 0, h})
         {
             .spacing         = 10
-            .layoutKind      = .HorzCenterVertCenter
+            .mode      = .Center
             .dockStyle       = .Bottom
             .backgroundStyle = .DialogBar
             .setAllPaddings(metrics.dialog_Padding)
@@ -127,36 +135,40 @@ impl Dialog
         return srf
     }
 
-    // Returns the view where stuff can be put.
-    mtd getView()->*Wnd
+    // Returns the content view above the action bar.
+    mtd view()->*Wnd
     {
         return (notnull .surface).wnd.view
     }
 
-    // Display dialog as modal, and returns the user selected window id
+    // Runs the dialog modally and returns the accepted button identifier.
     mtd doModal()->WndId
     {
         let surface = notnull .surface
-        surface.bringToTop()
+        surface.bringToFront()
         surface.show()
-        if .fromSurface and .fromSurface.isTopMost() do
+        if .parentSurface and .parentSurface.isTopMost() do
             surface.setTopMost()
         return surface.app.doModalLoop(surface)
     }
 
-    // Add a button
+    // Adds an action button and optionally makes it the default keyboard action.
     #[Swag.Discardable]
     mtd addButton(str: string, id: WndId, isDefault: bool = false)->*PushButton
     {
-        with let btn = PushButton.create(me.wndBottom, str, {}, id)
+        Debug.assert(@countof(str) != 0, "dialog button text cannot be empty")
+        if isDefault
         {
-            .form = isDefault ? .Default : .Strong
+            for button in .buttons where button.form == .Default do
+                button.setForm(.Normal)
+        }
+        with let btn = PushButton.create(me.buttonBar, str, {}, id)
+        {
+            .setForm(isDefault ? .Default : .Strong)
 
             .sigPressed += func|dlg = me|(btn)
             {
-                let sig = dlg.sigPressedButton
-                if !sig or sig(dlg, btn.id) do
-                    btn.getApp().exitModal(btn.id orelse "")
+                dlg.closeWithResult(btn.id)
             }
 
             me.buttons.add(btn)
@@ -165,18 +177,21 @@ impl Dialog
         if id == BtnCancel or id == BtnNo
         {
             let srf = notnull .surface
-            srf.setSurfaceFlags(add: .CloseBtn)
+            srf.updateFlags(add: .CloseButton)
         }
 
         return btn
     }
 
-    // Performs the validate id operation.
-    mtd validateId(btnId: #null WndId)
+    // Validates and submits a modal result, returning whether the dialog was allowed to close.
+    #[Swag.Discardable]
+    mtd closeWithResult(result: #null WndId)->bool
     {
-        let safeBtnId = btnId orelse ""
-        let sig       = .sigPressedButton
-        if !sig or sig(me, safeBtnId) do
-            .getApp().exitModal(safeBtnId)
+        let safeResult = result orelse ""
+        let validator  = .validateResult
+        if validator and !validator(me, safeResult) do
+            return false
+        .app().exitModal(safeResult)
+        return true
     }
 }

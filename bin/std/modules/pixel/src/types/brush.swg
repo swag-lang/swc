@@ -97,7 +97,7 @@ impl Brush
             return .color.a == 255
 
         case .Texture:
-            return .color.a == 255 and !.texture.pf.hasAlpha()
+            return .color.a == 255 and !.texture.pixelFormat.hasAlpha()
 
         case .LinearGradient, .RadialGradient, .SweepGradient:
             if .color.a != 255 do
@@ -162,16 +162,16 @@ impl Brush
     }
 
     // Set the paint opacity while preserving the current tint.
-    mtd setOpacityf(alpha: f32)
+    mtd setOpacityF32(alpha: f32)
     {
-        .color = .color.withAlphaf(alpha)
+        .color = .color.withAlphaF32(alpha)
     }
 
     // Multiply the current paint opacity while preserving the current tint.
     mtd multiplyOpacity(alpha: f32)
     {
         let factor = Math.saturate(alpha)
-        .color = .color.withAlphaf((cast(f32) .color.a / 255.0) * factor)
+        .color = .color.withAlphaF32((cast(f32) .color.a / 255.0) * factor)
     }
 
     // Creates a uniform straight-alpha color brush.
@@ -266,8 +266,8 @@ impl Brush
         result.type           = .SweepGradient
         result.gradientStart  = center
         result.gradientEnd    = center
-        result.gradientAngle0 = startAngle.rad
-        result.gradientAngle1 = endAngle.rad
+        result.gradientAngle0 = startAngle.radians
+        result.gradientAngle1 = endAngle.radians
         result.gradientSpread = spread
         result.addGradientStop(0, color0)
         result.addGradientStop(1, color1)

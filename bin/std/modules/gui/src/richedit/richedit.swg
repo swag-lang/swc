@@ -2,51 +2,52 @@
 
 using Core, Pixel
 
-// Selects rich edit flags.
+// Configures editing, selection display, wrapping, and keyboard behavior.
 #[Swag.EnumFlags]
 enum RichEditFlags
 {
-    Zero = 0          // No flags are enabled.
-    ReadOnly          // Enables read only.
-    ShowFocusSel      // Enables show focus sel.
-    CurLineBorder     // Enables cur line border.
-    DrawBlanks        // Enables draw blanks.
-    TabToSpaces       // Enables tab to spaces.
-    WordWrap          // Enables word wrap.
-    AutoLoseFocus     // Enables auto lose focus.
+    None = 0          // No flags are enabled.
+    ReadOnly          // Rejects operations that would modify the document.
+    ShowFocusSel      // Keeps the selection visible while the editor is unfocused.
+    CurLineBorder     // Draws a border around the line containing the caret.
+    DrawBlanks        // Draws visible markers for spaces and tab characters.
+    TabToSpaces       // Inserts spaces instead of a tab character.
+    WordWrap          // Wraps long logical lines to the available view width.
+    AutoLoseFocus     // Releases focus when an unmodified Enter key is pressed.
 }
 
-// Selects rich edit form.
+// Selects the editor's theme treatment.
 enum RichEditForm
 {
-    RichEditCtrl     // Uses the rich edit ctrl form.
-    Edit             // Uses the edit form.
+    RichEditCtrl     // Uses the framed rich-text-editor appearance.
+    Edit             // Uses the compact single-field editor appearance.
 }
 
-// Represents rich edit mapping.
+// Associates one keyboard shortcut with an editor command.
+#[Swag.Opaque, Swag.NoDoc]
 struct RichEditMapping
 {
-    key:       Input.Key          = undefined     // Key associated with this value.
-    modifiers: Input.KeyModifiers = undefined     // Modifiers associated with this value.
-    command:   RichEditCommand    = undefined     // Command associated with this value.
+    key:       Input.Key          = undefined
+    modifiers: Input.KeyModifiers = undefined
+    command:   RichEditCommand    = undefined
 }
 
-// Represents rich edit ctrl.
+// Provides a multiline rich-text editor with styling, selection, undo, and pluggable lexing.
 struct RichEditCtrl
 {
     using frameWnd: FrameWnd                            // Embedded frame wnd state.
-    richEdFlags         = RichEditFlags.Zero            // Rich ed flags associated with this value.
-    lineSpacing:    f32                                 // Line spacing associated with this value.
-    overwriteMode:  bool                                // Overwrite mode associated with this value.
-    tabSize:        s32 = 4                             // Tab size associated with this value.
-    marginLeft:     f32                                 // Margin left associated with this value.
-    marginRight:    f32                                 // Margin right associated with this value.
-    lexer:          #null IRichEditLexer                // Lexer associated with this value.
-    form                = RichEditForm.RichEditCtrl     // Form associated with this value.
-    sigIsReadOnly:  SigArray'func||(*bool)              // Signal emitted when is read only.
-    sigChanged:     SigArray'func||(*RichEditCtrl)      // Signal emitted when changed.
-    sigModified:    SigArray'func||(*RichEditCtrl)      // Signal emitted when modified.
-    bkColorModel:   String                              // Bk color model associated with this value.
+    flags               = RichEditFlags.None            // Active editor behavior flags.
+    lineSpacing:    f32                                 // Extra vertical spacing, in logical pixels, between display lines.
+    overwriteMode:  bool                                // Whether typed text replaces the rune under the caret.
+    tabSize:        s32 = 4                             // Width of a tab stop in space advances.
+    marginLeft:     f32                                 // Blank space between the view and the left text edge.
+    marginRight:    f32                                 // Blank space between the right text edge and the view.
+    lexer:          #null IRichEditLexer                // Optional lexer responsible for assigning style indices.
+    form                = RichEditForm.RichEditCtrl     // Current theme treatment.
+    sigIsReadOnly:  SigArray'func||(*bool)              // Lets owners impose read-only state in addition to `flags`.
+    sigChanged:     SigArray'func||(*RichEditCtrl)      // Emitted after document content changes.
+    sigModified:    SigArray'func||(*RichEditCtrl)      // Emitted when the modified state toggles.
+    backgroundColorModel: String                        // Optional theme color expression used for the editor background.
 
     // Appearance of each style index a lexer can assign to a rune, and of the selection. Fill
     // these in to give the control its syntax colors.
@@ -95,7 +96,7 @@ private impl IWnd for RichEditCtrl
 {
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.ntfyKind == .ThemeChanged
+        if evt.kind == .ThemeChanged
         {
             .setDefaultStyles()
             if .lexer do
@@ -106,19 +107,19 @@ private impl IWnd for RichEditCtrl
 
 private impl RichEditCtrl
 {
-    mtd getMarginLeft()->f32
+    mtd leftMargin()->f32
     {
         return .marginLeft
     }
 
-    mtd getMarginRight()->f32
+    mtd rightMargin()->f32
     {
         return .marginRight
     }
 
     mtd setDefaultStyles()
     {
-        let colors = .getThemeColors()
+        let colors = .themeColors()
         for [i] in @countof(.styles) do
             .styles[i].colFg = colors.richEdit_Text
         .setForm(.RichEditCtrl)
@@ -126,7 +127,7 @@ private impl RichEditCtrl
 
     mtd computeScrollY()
     {
-        let size = .getXExtent()
+        let size = .xGlyphSize()
         if !.recomputeScroll do
             return
 
@@ -157,13 +158,13 @@ private impl RichEditCtrl
         }
     }
 
-    mtd setModified(mdf: bool)
+    mtd setModified(modifiers: bool)
     {
-        if mdf do
+        if modifiers do
             .sigChanged.call(me)
-        if .modified == mdf do
+        if .modified == modifiers do
             return
-        .modified = mdf
+        .modified = modifiers
         .sigModified.call(me)
     }
 
@@ -173,8 +174,7 @@ private impl RichEditCtrl
         .modifiedUndoMarker = .currentUndo
     }
 
-    // Performs the create operation.
-    // Performs the create operation.
+    // Creates an empty rich text editor.
     #[Swag.Discardable]
     mtd newLine(index: u64)->*RichEditLine
     {
@@ -208,14 +208,14 @@ private impl RichEditCtrl
         .recomputeScroll = true
     }
 
-    mtd getFirstVisibleLine()->u64
+    mtd firstVisibleLine()->u64
     {
         for [i] in .lines.count where (notnull .lines[i]).isVisible() do
             return i
         return 0
     }
 
-    mtd getLastVisibleLine()->u64
+    mtd lastVisibleLine()->u64
     {
         if !.lines.count do
             return 0
@@ -228,7 +228,7 @@ private impl RichEditCtrl
         return 0
     }
 
-    mtd getPreviousVisibleLine(lineIndex: u64)->u64
+    mtd previousVisibleLine(lineIndex: u64)->u64
     {
         if !lineIndex do
             return 0
@@ -245,7 +245,7 @@ private impl RichEditCtrl
         return lineIndex
     }
 
-    mtd getNextVisibleLine(lineIndex: u64)->u64
+    mtd nextVisibleLine(lineIndex: u64)->u64
     {
         let count = .lines.count
         if lineIndex == count - 1 do
@@ -273,9 +273,9 @@ impl RichEditCtrl
     {
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().editBox_Height
+            pos.height = parent.themeMetrics().editBox_Height
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().editBox_Width
+            pos.width = parent.themeMetrics().editBox_Width
 
         let ed = Wnd.create'RichEditCtrl(parent, "", pos, id)
 
@@ -284,8 +284,8 @@ impl RichEditCtrl
             .scrollWnd               = .createView'ScrollWnd()
             .scrollWnd.dockStyle     = .Center
             .scrollWnd.focusStrategy = .None
-            .scrollWnd.setAllPaddings(.getThemeMetrics().richEdit_Padding)
-            .scrollWnd.sigScrollPosChanged += func|ed|(scrollWnd, op, np)
+            .scrollWnd.setAllPaddings(.themeMetrics().richEdit_Padding)
+            .scrollWnd.sigScrollPositionChanged += func|ed|(scrollWnd, op, np)
             {
                 if op.y != np.y do
                     ed.dirtyFirstLineView = true
@@ -302,33 +302,33 @@ impl RichEditCtrl
         return ed
     }
 
-    // Sets focus.
+    // Gives keyboard focus to the editable view.
     mtd setFocus()
     {
         .edView.setFocus()
     }
 
-    // Set richedit flags
-    mtd setRichEdFlags(flags: RichEditFlags)
+    // Replaces the behavior flags and refreshes layout and painting.
+    mtd setFlags(flags: RichEditFlags)
     {
-        .richEdFlags.set(flags)
+        .flags.set(flags)
         .recomputeScroll = true
         .invalidate()
     }
 
-    // Set form
+    // Applies one of the predefined editor theme treatments.
     mtd setForm(form: RichEditForm)
     {
         .form = form
-        let colors = .getThemeColors()
+        let colors = .themeColors()
 
         switch .form
         {
         case .RichEditCtrl:
-            .style.setFont((notnull .parent).getTheme().res.fontDefaultFs)
+            .style.setFont((notnull .parent).theme().res.fontDefaultFs)
 
-            var mdlBk = .bkColorModel
-            if .bkColorModel.length == 0 do
+            var mdlBk = .backgroundColorModel
+            if .backgroundColorModel.length == 0 do
                 mdlBk = String.from("$richEdit_Bk")
 
             .frameWnd.style.clearStyleSheetColors()
@@ -346,8 +346,8 @@ impl RichEditCtrl
         case .Edit:
             .style.clearFont()
 
-            var mdlBk = .bkColorModel
-            if .bkColorModel.length == 0 do
+            var mdlBk = .backgroundColorModel
+            if .backgroundColorModel.length == 0 do
                 mdlBk = String.from("$edit_Bk")
 
             .frameWnd.style.clearStyleSheetColors()
@@ -371,20 +371,20 @@ impl RichEditCtrl
     {
         var ro = false
         .sigIsReadOnly.call(&ro)
-        return ro or .richEdFlags.has(.ReadOnly)
+        return ro or .flags.has(.ReadOnly)
     }
 
     // Simulate a keyboard character pressed
-    mtd charPressed(key: Input.Key, ch: rune, mdf: Input.KeyModifiers)
+    mtd charPressed(key: Input.Key, ch: rune, modifiers: Input.KeyModifiers)
     {
         var isChar = false
-        if mdf == .Zero and ch >= '0' and ch <= '9' do
+        if modifiers == .None and ch >= '0' and ch <= '9' do
             isChar = true
 
         // If there is a corresponding command,: nothing
         if !isChar
         {
-            let cmd = .getMappingCommand(key, mdf)
+            let cmd = .commandForShortcut(key, modifiers)
             if cmd != .None do
                 return
         }
@@ -396,7 +396,7 @@ impl RichEditCtrl
         if c == '\r' do
             c = '\n'
 
-        if c == '\n' and mdf.equals(.Zero) and .richEdFlags.has(.AutoLoseFocus) do
+        if c == '\n' and modifiers.equals(.None) and .flags.has(.AutoLoseFocus) do
             return
 
         if .lexer and .lexer.insertRune(me, c) do
@@ -407,9 +407,9 @@ impl RichEditCtrl
     }
 
     // Simulate a keyboard pressed
-    mtd keyPressed(key: Input.Key, mdf: Input.KeyModifiers)
+    mtd keyPressed(key: Input.Key, modifiers: Input.KeyModifiers)
     {
-        let cmd = .getMappingCommand(key, mdf)
+        let cmd = .commandForShortcut(key, modifiers)
         if cmd == .None do
             return
         .executeCommand(cmd)

@@ -25,10 +25,10 @@ using Swag
 #test
 {
     @assert(Math.sign(-2'f32) == -1'f32)
-    @assert(Math.sign(0'f32) == 1'f32)
+    @assert(Math.sign(0'f32) == 0'f32)
     @assert(Math.sign(2'f32) == 1'f32)
     @assert(Math.sign(-2'f64) == -1'f64)
-    @assert(Math.sign(0'f64) == 1'f64)
+    @assert(Math.sign(0'f64) == 0'f64)
     @assert(Math.sign(2'f64) == 1'f64)
 
     @assert(Math.saturate(-2'f32) == 0'f32)
@@ -138,14 +138,16 @@ using Swag
     @assert(Math.map(5'f64, 0'f64, 10'f64, 0'f64, 100'f64) == 50'f64)
     @assert(Math.map(0'f64, -1'f64, 1'f64, 10'f64, 20'f64) == 15'f64)
 
-    @assert(Math.powerOf10(0'f32) == 1)
-    @assert(Math.powerOf10(1'f32) == 10)
-    @assert(Math.powerOf10(99'f32) == 100)
-    @assert(Math.powerOf10(100'f32) == 1000)
-    @assert(Math.powerOf10(0'f64) == 1)
-    @assert(Math.powerOf10(1'f64) == 10)
-    @assert(Math.powerOf10(99'f64) == 100)
-    @assert(Math.powerOf10(100'f64) == 1000)
+    @assert(Math.nextPowerOfTen(-1'f32) == 1)
+    @assert(Math.nextPowerOfTen(0'f32) == 1)
+    @assert(Math.nextPowerOfTen(1'f32) == 10)
+    @assert(Math.nextPowerOfTen(99'f32) == 100)
+    @assert(Math.nextPowerOfTen(100'f32) == 1000)
+    @assert(Math.nextPowerOfTen(-1'f64) == 1)
+    @assert(Math.nextPowerOfTen(0'f64) == 1)
+    @assert(Math.nextPowerOfTen(1'f64) == 10)
+    @assert(Math.nextPowerOfTen(99'f64) == 100)
+    @assert(Math.nextPowerOfTen(100'f64) == 1000)
 }
 
 #test

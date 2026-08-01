@@ -2,18 +2,22 @@
 
 using Core
 
-// Represents timer.
+// Repeating timer that sends [[Gui.TimerEvent]] values to one target window.
+#[Swag.Opaque]
 struct Timer
 {
-    timeMs:    s32                  // Time ms associated with this value.
-    target:    *Wnd = undefined     // Target associated with this value.
-    stopwatch: Time.Stopwatch       // Stopwatch associated with this value.
-    toDelete:  bool                 // To delete associated with this value.
+    internal
+    {
+        periodMilliseconds: u64                  // Timer period in milliseconds.
+        target:             *Wnd = undefined     // Window receiving timer events.
+        stopwatch:          Time.Stopwatch       // Elapsed time since the previous event.
+        isPendingRemoval:    bool                 // Whether removal is deferred until event dispatch ends.
+    }
 }
 
 impl Timer
 {
-    // Performs the restart operation.
+    // Restarts the period from the current instant.
     #[Swag.Inline]
     mtd restart()
     {

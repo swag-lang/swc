@@ -171,7 +171,7 @@ func onResize(_window: *Env.Window, width, height: s32)
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         loop.maxTestFrames = TestFrames
     while loop.next() do
         display()

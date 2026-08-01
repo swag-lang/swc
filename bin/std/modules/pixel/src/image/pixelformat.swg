@@ -15,7 +15,7 @@ impl PixelFormat
 {
     // Returns the number of bits occupied by one pixel.
     #[ConstExpr]
-    func bpp(me)->u8
+    func bitsPerPixel(me)->u8
     {
         switch #complete me
         {

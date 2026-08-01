@@ -264,23 +264,23 @@ func(T) encodeTagBin(value: T)->String
 func findTagBinFieldSeek(bytes: const [..] u8, fieldName: string)->u64
 {
     var stream = ByteStream.openRead(bytes)
-    @assert((catch stream.readNative'u32() as err2) == Serialization.Write.TagBinSignatures.Root)
+    @assert((catch stream.readNative'u32() as err2) == Serialization.Write.TagBinSignature.Root)
     @assert(err2 == null)
     discard catch stream.readNative'u32() as err3
     @assert(err3 == null)
-    @assert((catch stream.readNative'u32() as err4) == Serialization.Write.TagBinSignatures.Version)
+    @assert((catch stream.readNative'u32() as err4) == Serialization.Write.TagBinSignature.Version)
     @assert(err4 == null)
     discard catch stream.readNative'u32() as err5
     @assert(err5 == null)
-    @assert((catch stream.readNative'u32() as err6) == Serialization.Write.TagBinSignatures.Fat)
+    @assert((catch stream.readNative'u32() as err6) == Serialization.Write.TagBinSignature.Fat)
     @assert(err6 == null)
 
     let fatSeek  = catch stream.readNative'u64()
     let fatCount = catch stream.readNative'u64() as err7
     @assert(err7 == null)
 
-    stream.setSeek(fatSeek)
-    @assert((catch stream.readNative'u32() as err8) == Serialization.Write.TagBinSignatures.Fat)
+    stream.setPosition(fatSeek)
+    @assert((catch stream.readNative'u32() as err8) == Serialization.Write.TagBinSignature.Fat)
     @assert(err8 == null)
 
     let fieldCrc = Hash.Crc32.compute(fieldName)
@@ -304,7 +304,7 @@ func corruptTagBinFieldType(bytes: String, fieldName: string, typeCrc: u32)->Arr
 
     let seek   = findTagBinFieldSeek(result.toSlice(), fieldName)
     var writer = ByteStream.openWrite(&result)
-    writer.setSeek(seek + #sizeof(u32))
+    writer.setPosition(seek + #sizeof(u32))
     writer.writeNative(typeCrc)
     return result
 }
@@ -316,7 +316,7 @@ func corruptTagBinInterfaceObjectType(bytes: String, fieldName: string, typeCrc:
 
     let seek   = findTagBinFieldSeek(result.toSlice(), fieldName)
     var writer = ByteStream.openWrite(&result)
-    writer.setSeek(seek + #sizeof(u32) + #sizeof(u32) + #sizeof(Serialization.Write.TagBinValueFlags))
+    writer.setPosition(seek + #sizeof(u32) + #sizeof(u32) + #sizeof(Serialization.Write.TagBinValueFlags))
     writer.writeNative(typeCrc)
     return result
 }
@@ -387,7 +387,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     @assert(Reflection.hasAttribute(#typeof(TagBinFinalPoint), Serialization.Final))
     @assert(!Reflection.hasAttribute(#typeof(TagBinFinalPoint), Serialization.NoSerialize))
 
-    let blobField = Reflection.getField(#typeof(TagBinPayload), "blob")
+    let blobField = Reflection.findField(#typeof(TagBinPayload), "blob")
     @assert(blobField != null)
     @assert(Reflection.hasAttribute(blobField, Serialization.Compress))
     @assert(!Reflection.hasAttribute(blobField, Serialization.NoSerialize))
@@ -667,7 +667,7 @@ func releaseTagBinInterface(value: *#null ITagBinScore)
     source.nested = TagBinLegacyNested{left: -5, right: 23}
 
     Reflection.registerType(#typeof(TagBinConversionSource))
-    @assert(Reflection.crcToType(#typeof(#type [3] u8).crc) == #typeof(#type [3] u8))
+    @assert(Reflection.typeFromCrc(#typeof(#type [3] u8).crc) == #typeof(#type [3] u8))
 
     let bytes = encodeTagBin(source)
 

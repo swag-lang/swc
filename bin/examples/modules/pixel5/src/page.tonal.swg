@@ -3,7 +3,7 @@ using Core, Pixel
 func buildGrayScaleImage(source: const &Image, factor: f32)->Image
 {
     var result = cloneImage(source)
-    result.grayScale(factor)
+    result.grayscale(factor)
     return result
 }
 
@@ -38,8 +38,8 @@ func buildInvertImage(source: const &Image)->Image
 func buildTonalCards(source: const &Image)
 {
     setTextureCard(&g_TonalCards[0], "Original load", "Image.load + addImage", g_SourceTexture)
-    setImageCard(&g_TonalCards[1], "Grayscale", "grayScale()", buildGrayScaleImage(source, 1.0))
-    setImageCard(&g_TonalCards[2], "Gray blend", "grayScale(0.55)", buildGrayScaleImage(source, 0.55))
+    setImageCard(&g_TonalCards[1], "Grayscale", "grayscale()", buildGrayScaleImage(source, 1.0))
+    setImageCard(&g_TonalCards[2], "Gray blend", "grayscale(0.55)", buildGrayScaleImage(source, 0.55))
     setImageCard(&g_TonalCards[3], "Contrast +", "contrast(0.22)", buildContrastImage(source, 0.22))
     setImageCard(&g_TonalCards[4], "Contrast -", "contrast(-0.18)", buildContrastImage(source, -0.18))
     setImageCard(&g_TonalCards[5], "Lightness +", "lightness(0.18)", buildLightnessImage(source, 0.18))

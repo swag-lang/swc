@@ -5,61 +5,64 @@ using Core, Pixel
 // Specifies the visual geometry of the EditBox.
 enum EditBoxForm
 {
-    Square          // Square corners and standard border
-    Round           // Rounded corners
-    Flat            // Flat borderless style
-    Transparent     // No background, transparent style
+    Rectangle          // Uses a rectangular background and standard border.
+    RoundedRectangle   // Uses a rounded rectangular background and border.
+    Flat               // Uses a flat background and border.
+    Transparent        // Draws no background unless validation fails.
 }
 
 // Defines the type of input that the EditBox should accept and validate.
 enum EditBoxInputMode
 {
-    String     // Free‑form UTF‑8 text
-    S64        // Signed 64‑bit integer
-    U64        // Unsigned 64‑bit integer
-    F64        // 64‑bit floating‑point number
-    X64        // Unsigned 64‑bit hexadecimal
+    Text               // Accepts unrestricted UTF-8 text.
+    SignedInteger      // Accepts a signed 64-bit integer in the configured range.
+    UnsignedInteger    // Accepts an unsigned 64-bit integer in the configured range.
+    FloatingPoint      // Accepts a 64-bit floating-point value in the configured range.
+    Hexadecimal        // Accepts an unsigned 64-bit hexadecimal value in the configured range.
 }
 
 // Possible outcomes when validating the EditBox content.
 enum EditBoxCheckResult
 {
-    Incomplete         // Text is incomplete (e.g. "-" or "0x")
-    Valid              // Content is valid
-    InvalidDismiss     // Invalid but silently dismissed
-    InvalidShow        // Invalid and must be visually highlighted
+    Incomplete       // Allows an incomplete prefix, such as "-" or "0x", while editing.
+    Valid            // Accepts the content.
+    InvalidSilent    // Rejects the latest edit without showing an error state.
+    InvalidVisible   // Keeps the content and shows an error state.
 }
 
 #[Swag.EnumFlags]
 // Optional behaviour modifiers for the EditBox.
 enum EditBoxFlags
 {
-    Zero = 0          // No flags
-    AutoLoseFocus     // Automatically lose focus after Enter or Escape
-    ReadOnly          // Content cannot be edited
-    RightAlign        // Text is right‑aligned
-    ClearButton       // Show a clear ("x") button when content is not empty
+    None = 0                        // Uses editable left-aligned text without a clear button.
+    ReleaseFocusOnEnterOrEscape     // Releases focus after Enter or Escape.
+    ReadOnly                        // Prevents edits while preserving focus and selection.
+    RightAligned                    // Aligns text to the trailing edge.
+    ClearButton                     // Shows a clear button while content is non-empty.
 }
 
-// Represents edit box.
+// Edits and validates a single line of text, optionally as a bounded numeric value.
 struct EditBox
 {
-    using wnd: Wnd     // Base window interface
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
-    icon:        Icon                             // Optional icon shown on the left
-    text:        String                           // Current UTF‑8 text content
-    unit:        String                           // Suffix unit (e.g. "kg")
-    form         = EditBoxForm.Square             // Visual form of the EditBox
-    editBoxFlags = EditBoxFlags.AutoLoseFocus     // Active behaviour flags
-    inputMode    = EditBoxInputMode.String        // Current input mode
-    maxLength:   s32                              // Maximum number of runes (0 = unlimited)
-    rightMargin: f32                              // Extra right margin inside the client rectangle
+    internal textStorage: String     // Current UTF-8 text content.
 
-    sigChanged:       SigArray'func||(*EditBox)                      // Emitted when the text changes
-    sigLoseFocus:     SigArray'func||(*EditBox)                      // Emitted when the EditBox loses focus
-    sigEnterPressed:  SigArray'func||(*EditBox)                      // Emitted when Enter is pressed
-    sigEscapePressed: SigArray'func||(*EditBox)                      // Emitted when Escape is pressed
-    sigCheckContent:  #null func||(*EditBox)->EditBoxCheckResult     // Optional custom validator
+    sigTextChanged: SigArray'func||(*EditBox)                      // Emitted once after text changes.
+    sigFocusLost:   SigArray'func||(*EditBox)                      // Emitted after keyboard focus is lost.
+    sigSubmitted:   SigArray'func||(*EditBox)                      // Emitted when Enter is pressed.
+    sigCancelled:   SigArray'func||(*EditBox)                      // Emitted when Escape is pressed.
+    readonly
+    {
+        icon:           Icon                                                   // Optional leading icon.
+        unit:           String                                                 // Optional trailing unit, such as "kg".
+        form            = EditBoxForm.Rectangle                               // Current background geometry.
+        flags           = EditBoxFlags.ReleaseFocusOnEnterOrEscape            // Active interaction and presentation options.
+        inputMode       = EditBoxInputMode.Text                                // Current built-in validation mode.
+        maximumLength:  s32                                                    // Maximum rune count, or zero for no limit.
+        trailingMargin: f32                                                    // Extra trailing inset in logical units.
+        validator: #null func||(*EditBox)->EditBoxCheckResult                  // Custom validator, or null for built-in validation.
+    }
 
     internal
     {
@@ -98,17 +101,17 @@ impl IWnd for EditBox
     {
         switch evt.kind
         {
-        case .SetFocus:
-            .originalText = .text
+        case .Gained:
+            .originalText = .textStorage
             .timerCaret   = (notnull .surface).app.addTimer(500'ms, me)
             .visibleCaret = true
             .computeCaretPos()
             .invalidate()
 
-        case .KillFocus:
-            .sigLoseFocus.call(me)
+        case .Lost:
+            .sigFocusLost.call(me)
             let srf = notnull .surface
-            srf.app.deleteTimer(notnull .timerCaret)
+            srf.app.removeTimer(notnull .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -116,17 +119,17 @@ impl IWnd for EditBox
     }
 
     // Renders the EditBox, including background, border, text, selection and caret.
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
         .syncClearButton()
 
-        let bc      = evt.bc
-        let painter = evt.bc.painter
+        let bc      = evt.paintContext
+        let painter = evt.paintContext.painter
 
-        let theme   = .getTheme()
-        let colors  = .getThemeColors()
-        let metrics = .getThemeMetrics()
-        let rects   = .getThemeRects()
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let metrics = .themeMetrics()
+        let rects   = .themeRects()
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
@@ -137,11 +140,11 @@ impl IWnd for EditBox
 
         switch .form
         {
-        case .Square, .Transparent:
+        case .Rectangle, .Transparent:
             subRectBk     = &rects.edit_SquareBk
             subRectBorder = &rects.edit_SquareBorder
 
-        case .Round:
+        case .RoundedRectangle:
             subRectBk     = &rects.edit_RoundBk
             subRectBorder = &rects.edit_RoundBorder
 
@@ -164,7 +167,7 @@ impl IWnd for EditBox
             colorBorder = colors.edit_ErrorBorder
             colorBk     = colors.edit_ErrorBk
 
-        case .editBoxFlags.has(.ReadOnly):
+        case .flags.has(.ReadOnly):
 
             // Shown but not editable: render like a disabled box so it reads as read-only,
             // while the widget stays focusable (it can be navigated to and copied from).
@@ -188,13 +191,13 @@ impl IWnd for EditBox
         .aniBk.apply(me, colorBk)
         .aniBorder.apply(me, colorBorder)
 
-        var clientRect = .getClientRect()
+        var clientRect = .clientRect()
         if .form != .Transparent do
             theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
         if .form != .Transparent or .isInvalid do
             theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
 
-        clientRect = .getEditRect()
+        clientRect = .editRect()
 
         // Icon
         if .icon.isValid()
@@ -205,13 +208,13 @@ impl IWnd for EditBox
         }
 
         // Placeholder note
-        if !.name.isEmpty() and .text.isEmpty()
+        if !.name.isEmpty() and .textStorage.isEmpty()
         {
             var format: RichStringFormat
             format.palette[0]    = colors.edit_Note
             format.vertAlignment = .Center
             format.flags         = .Clip
-            format.font          = .getFont()
+            format.font          = .font()
             Theme.drawIconText(bc.painter, clientRect, {}, &.name, format, metrics.iconText_Margin)
         }
 
@@ -219,12 +222,12 @@ impl IWnd for EditBox
         // selection, the content and the caret. Text is measured with the same pixel
         // snapping it is drawn with, otherwise the drawn run is a touch wider than
         // measured and the last glyph spills past the clip (or the trailing unit sits
-        // a few pixels off). This must match getCaretPos/computeCaretPos so the caret
+        // a few pixels off). This must match caretRect/computeCaretPos so the caret
         // tracks the scrolled text. The scroll offset itself is computed by
         // updateScroll (which mirrors this clientRect) so it can be unit-tested.
-        let fontR    = nnFont(.getFont().regular)
-        let caretPos = .getCaretPos()
-        let sizeX    = Painter.measureStringSnapped(.text.toString(), fontR)
+        let fontR    = nnFont(.font().regular)
+        let caretPos = .caretRect()
+        let sizeX    = Painter.measureStringSnapped(.textStorage.toString(), fontR)
         .updateScroll()
 
         painter.pushClippingRect(clientRect)
@@ -234,11 +237,11 @@ impl IWnd for EditBox
         if .selBeg != .selEnd and .hasFocus()
         {
             var pos = clientRect
-            if .editBoxFlags.has(.RightAlign) do
+            if .flags.has(.RightAligned) do
                 pos.x = pos.right() - sizeX + .posSelBeg
             else do
                 pos.x  += .posSelBeg
-            pos.x      -= .getTextMarginRight()
+            pos.x      -= .rightTextMargin()
             pos.y      = clientRect.vertCenter() - fontR.height * 0.5
             pos.height = fontR.height
             pos.width  = .posSelEnd - .posSelBeg
@@ -248,15 +251,15 @@ impl IWnd for EditBox
         // Content
         let y         = clientRect.vertCenter() - fontR.height * 0.5
         let editRight = clientRect.right()
-        if .editBoxFlags.has(.RightAlign)
+        if .flags.has(.RightAligned)
         {
-            clientRect.x = clientRect.right() - sizeX - .getTextMarginRight()
+            clientRect.x = clientRect.right() - sizeX - .rightTextMargin()
         }
 
-        bc.painter.drawString(clientRect.x, y, .text, fontR, colorText)
+        bc.painter.drawString(clientRect.x, y, .textStorage, fontR, colorText)
 
         // Left-aligned boxes let the unit trail the value inside the scrolled content.
-        if !.unit.isEmpty() and !.editBoxFlags.has(.RightAlign)
+        if !.unit.isEmpty() and !.flags.has(.RightAligned)
         {
             bc.painter.drawString(clientRect.x + sizeX + metrics.editBox_UnitMargin, y, .unit, fontR, colorUnit)
         }
@@ -272,7 +275,7 @@ impl IWnd for EditBox
 
         // Right-aligned boxes pin the unit to the right edge, outside the scroll
         // transform, so it stays put while the value text scrolls underneath.
-        if !.unit.isEmpty() and .editBoxFlags.has(.RightAlign)
+        if !.unit.isEmpty() and .flags.has(.RightAligned)
         {
             let unitW = Painter.measureString(.unit, fontR).width
             bc.painter.drawString(editRight - unitW, y, .unit, fontR, colorUnit)
@@ -285,28 +288,28 @@ impl IWnd for EditBox
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
         {
-        case .MouseWheel:
+        case .Wheel:
             evt.accepted = false
             return
 
-        case .MouseDoubleClick:
+        case .DoubleClick:
             if evt.button != .Left do
                 break
             let x = .moveCaretLeftStartWord(.selBeg)
             let y = .moveCaretRightEndWord(.selEnd)
             .setSelection(x, y)
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button != .Left do
                 break
-            let x = .getByteIndexAtPos(pos.x)
+            let x = .byteIndexAt(pos.x)
             .setSelection(x, x)
             .forceVisibleCaret()
             evt.accepted = true
             .isDragging  = true
             .captureMouse()
 
-        case .MouseReleased:
+        case .Released:
             if evt.button != .Left do
                 break
             if .isDragging do
@@ -314,18 +317,18 @@ impl IWnd for EditBox
             .isDragging  = false
             evt.accepted = true
 
-        case .MouseMove:
+        case .Move:
             if !.isDragging do
                 break
             evt.accepted = true
-            let x = .getByteIndexAtPos(pos.x)
+            let x = .byteIndexAt(pos.x)
             .setSelection(.selBeg, x)
 
-        case .MouseEnter:
+        case .Enter:
             .isHot = true
             .invalidate()
 
-        case .MouseLeave:
+        case .Leave:
             .isHot = false
             .invalidate()
         }
@@ -348,21 +351,21 @@ impl IWnd for EditBox
     // Handles keyboard input (navigation, edition, clipboard shortcuts, etc.).
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind == .KeyPressed
+        if evt.kind == .Pressed
         {
             evt.accepted = .keyPressed(evt.key, evt.modifiers)
             if evt.accepted do
                 .forceVisibleCaret()
         }
-        elif evt.kind == .Rune and !.editBoxFlags.has(.ReadOnly)
+        elif evt.kind == .Character and !.flags.has(.ReadOnly)
         {
-            if evt.char < 32 do
+            if evt.character < 32 do
                 evt.accepted = false
             else
             {
                 .forceVisibleCaret()
                 .deleteSelectionPrivate()
-                .insertRune(evt.char)
+                .insertRune(evt.character)
             }
         }
     }
@@ -373,7 +376,7 @@ private impl EditBox
     // Keeps the optional clear button in sync with the current flags and text.
     mtd syncClearButton()
     {
-        let mustShow = .editBoxFlags.has(.ClearButton) and .text != null and @countof(.text)
+        let mustShow = .flags.has(.ClearButton) and .textStorage != null and @countof(.textStorage)
         if !mustShow
         {
             if .clearBtn
@@ -389,34 +392,34 @@ private impl EditBox
 
         if !.clearBtn
         {
-            .clearBtn           = IconButton.create(me, .getTheme().getIcon24(ThemeIcons24.WndClose, 18), {0, 0, 24, 24})
+            .clearBtn           = IconButton.create(me, .theme().icon24(ThemeIcons24.WndClose, 18), {0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
-            .clearBtn.setForm(IconButtonForm.Round)
+            .clearBtn.setForm(IconButtonForm.Circle)
             .clearBtn.sigPressed += func|edit = me|(btn) { edit.setText(null); }
-            .clearBtnTextMargin  = .clearBtn.position.width + .getThemeMetrics().iconText_Margin
+            .clearBtnTextMargin  = .clearBtn.position.width + .themeMetrics().iconText_Margin
             .applyLayout()
         }
     }
 
     // Handles individual key presses as well as shortcut combinations.
-    mtd keyPressed(key: Input.Key, mdf: Input.KeyModifiers)->bool
+    mtd keyPressed(key: Input.Key, modifiers: Input.KeyModifiers)->bool
     {
-        let ctrl  = mdf & .Control
-        let shift = mdf & .Shift
+        let ctrl  = modifiers & .Control
+        let shift = modifiers & .Shift
 
         switch key
         {
         case .A:
             if ctrl and !shift
             {
-                .setSelection(0, .text.length)
+                .setSelection(0, .textStorage.length)
                 return true
             }
 
         case .Insert:
             if ctrl and !shift and .selBeg != .selEnd
             {
-                Clipboard.addString(@mkstring(.text.buffer + .getSelBeg(), .getSelEnd() - .getSelBeg()))
+                Clipboard.addString(@mkstring(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 return true
             }
             elif shift and !ctrl
@@ -429,14 +432,14 @@ private impl EditBox
         case .C:
             if ctrl and .selBeg != .selEnd
             {
-                Clipboard.addString(@mkstring(.text.buffer + .getSelBeg(), .getSelEnd() - .getSelBeg()))
+                Clipboard.addString(@mkstring(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 return true
             }
 
         case .X:
             if ctrl and .selBeg != .selEnd
             {
-                Clipboard.addString(@mkstring(.text.buffer + .getSelBeg(), .getSelEnd() - .getSelBeg()))
+                Clipboard.addString(@mkstring(.textStorage.buffer + .selectionStartIndex(), .selectionEndIndex() - .selectionStartIndex()))
                 .deleteSelection()
                 return true
             }
@@ -450,15 +453,15 @@ private impl EditBox
             }
 
         case .Return:
-            .sigEnterPressed.call(me)
-            if .editBoxFlags.has(.AutoLoseFocus) do
-                .getTopView().setFocus()
+            .sigSubmitted.call(me)
+            if .flags.has(.ReleaseFocusOnEnterOrEscape) do
+                .topView().setFocus()
             return true
 
         case .Escape:
-            .sigEscapePressed.call(me)
-            if .editBoxFlags.has(.AutoLoseFocus) do
-                .getTopView().setFocus()
+            .sigCancelled.call(me)
+            if .flags.has(.ReleaseFocusOnEnterOrEscape) do
+                .topView().setFocus()
             return true
 
         case .Left:
@@ -492,9 +495,9 @@ private impl EditBox
 
         case .End:
             if shift do
-                .setSelection(.selBeg, .text.length)
+                .setSelection(.selBeg, .textStorage.length)
             else do
-                .setSelection(.text.length, .text.length)
+                .setSelection(.textStorage.length, .textStorage.length)
             return true
 
         case .Back:
@@ -535,7 +538,7 @@ private impl EditBox
     mtd insertUtf8(s: string)
     {
         .deleteSelectionPrivate()
-        .text.insert(.selEnd, s)
+        .textStorage.insert(.selEnd, s)
         .setSelection(.selEnd + @countof(s), .selEnd + @countof(s))
         .countRunes += 1
     }
@@ -544,9 +547,9 @@ private impl EditBox
     mtd checkContent()->EditBoxCheckResult
     {
         var res = EditBoxCheckResult.Valid
-        if .sigCheckContent
+        if .validator
         {
-            res = .sigCheckContent(me)
+            res = .validator(me)
         }
         else
         {
@@ -554,33 +557,33 @@ private impl EditBox
             var parseErr: #null any
             switch .inputMode
             {
-            case .S64:
-                let val = catch StrConv.parseS64(.text) as err
+            case .SignedInteger:
+                let val = catch StrConv.parseS64(.textStorage) as err
                 parseErr = err
                 eat      = val.eat
-                if err == null and eat == .text.length and (val.value < .minMaxS64.min or val.value > .minMaxS64.max) do
-                    res = .InvalidShow
+                if err == null and eat == .textStorage.length and (val.value < .minMaxS64.min or val.value > .minMaxS64.max) do
+                    res = .InvalidVisible
 
-            case .U64:
-                let val = catch StrConv.parseU64(.text) as err
+            case .UnsignedInteger:
+                let val = catch StrConv.parseU64(.textStorage) as err
                 parseErr = err
                 eat      = val.eat
-                if err == null and eat == .text.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
-                    res = .InvalidShow
+                if err == null and eat == .textStorage.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
+                    res = .InvalidVisible
 
-            case .X64:
-                let val = catch StrConv.parseX64(.text) as err
+            case .Hexadecimal:
+                let val = catch StrConv.parseX64(.textStorage) as err
                 parseErr = err
                 eat      = val.eat
-                if err == null and eat == .text.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
-                    res = .InvalidShow
+                if err == null and eat == .textStorage.length and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
+                    res = .InvalidVisible
 
-            case .F64:
-                let val = catch StrConv.parseF64(.text) as err
+            case .FloatingPoint:
+                let val = catch StrConv.parseF64(.textStorage) as err
                 parseErr = err
                 eat      = val.eat
-                if err == null and eat == .text.length and (val.value < .minMaxF64.min or val.value > .minMaxF64.max) do
-                    res = .InvalidShow
+                if err == null and eat == .textStorage.length and (val.value < .minMaxF64.min or val.value > .minMaxF64.max) do
+                    res = .InvalidVisible
             }
 
             if res == .Valid
@@ -588,24 +591,21 @@ private impl EditBox
                 if parseErr == Errors.ParseIncompleteError do
                     res = .Incomplete
                 elif parseErr == Errors.OverflowError do
-                    res = .InvalidShow
-                elif parseErr != null or eat != @countof(.text) do
-                    res = .InvalidDismiss
+                    res = .InvalidVisible
+                elif parseErr != null or eat != @countof(.textStorage) do
+                    res = .InvalidSilent
             }
         }
 
-        if res == .Valid do
-            .isInvalid = false
-        elif res == .InvalidShow do
-            .isInvalid = true
+        .isInvalid = res == .InvalidVisible
 
         return res
     }
 
-    // Inserts a single Unicode rune, performing maxLength and validation checks.
+    // Inserts a single Unicode rune, enforcing maximum length and validation.
     mtd insertRune(r: rune)
     {
-        if .maxLength and .countRunes == .maxLength do
+        if .maximumLength and .countRunes == .maximumLength do
             return
 
         // Convert rune to UTF‑8.
@@ -616,7 +616,7 @@ private impl EditBox
         utf8[cpt] = 0
 
         // Determine whether we need to validate the content.
-        let mustValidate = .sigCheckContent or .inputMode != .String
+        let mustValidate = .validator or .inputMode != .Text
         if !mustValidate
         {
             .insertUtf8(@mkstring(&utf8[0], cpt))
@@ -624,15 +624,15 @@ private impl EditBox
             return
         }
 
-        let saveText   = .text
+        let saveText   = .textStorage
         let saveSelBeg = .selBeg
         let saveSelEnd = .selEnd
         .insertUtf8(@mkstring(&utf8[0], cpt))
 
         let res = .checkContent()
-        if res == .InvalidDismiss
+        if res == .InvalidSilent
         {
-            .text = saveText
+            .textStorage = saveText
             .setSelection(saveSelBeg, saveSelEnd)
             .countRunes -= 1
         }
@@ -643,10 +643,10 @@ private impl EditBox
     #[Swag.Inline]
     {
         // Returns the first byte of the current selection.
-        mtd getSelBeg() => .selBeg <= .selEnd ? .selBeg : .selEnd
+        mtd selectionStartIndex() => .selBeg <= .selEnd ? .selBeg : .selEnd
 
         // Returns the last byte of the current selection.
-        mtd getSelEnd() => .selBeg <= .selEnd ? .selEnd : .selBeg
+        mtd selectionEndIndex() => .selBeg <= .selEnd ? .selEnd : .selBeg
     }
 
     #[Swag.Discardable]
@@ -658,13 +658,13 @@ private impl EditBox
 
         .checkSelection()
 
-        let selB = .getSelBeg()
-        let selE = .getSelEnd()
-        if selB == .text.length do
+        let selB = .selectionStartIndex()
+        let selE = .selectionEndIndex()
+        if selB == .textStorage.length do
             return false
 
-        .countRunes -= cast(s32) Utf8.countRunes(.text[selB to selE - 1])
-        .text.remove(selB, selE - selB)
+        .countRunes -= cast(s32) Utf8.countRunes(.textStorage[selB to selE - 1])
+        .textStorage.remove(selB, selE - selB)
         discard .checkContent()
 
         .setSelection(selB, selB)
@@ -672,41 +672,41 @@ private impl EditBox
     }
 
     // Returns the client rectangle adjusted by padding and right margin.
-    mtd getEditRect()->Math.Rectangle
+    mtd editRect()->Math.Rectangle
     {
-        var rect = .getClientRectPadding()
-        rect.moveRight(-.rightMargin - .clearBtnTextMargin)
+        var rect = .paddedClientRect()
+        rect.moveRight(-.trailingMargin - .clearBtnTextMargin)
         return rect
     }
 
     // Returns the left padding for text rendering (accounts for icon).
-    mtd getTextMarginLeft()->f32
+    mtd leftTextMargin()->f32
     {
-        var rect = .getEditRect()
+        var rect = .editRect()
         if .icon.isValid() do
-            rect.x += .icon.sizeX + .getThemeMetrics().iconText_Margin
+            rect.x += .icon.sizeX + .themeMetrics().iconText_Margin
         return rect.x
     }
 
     // Returns the right padding for text rendering (accounts for 'unit').
-    mtd getTextMarginRight()->f32
+    mtd rightTextMargin()->f32
     {
-        if !.editBoxFlags.has(.RightAlign) do
+        if !.flags.has(.RightAligned) do
             return 0
         if .unit.isEmpty() do
             return 0
-        let font = nnFont(.getFont().regular)
-        return Painter.measureString(.unit, font).width + .getThemeMetrics().editBox_UnitMargin
+        let font = nnFont(.font().regular)
+        return Painter.measureString(.unit, font).width + .themeMetrics().editBox_UnitMargin
     }
 
     // Returns the padding vector for the current visual form.
-    mtd getFormPadding()->Math.Vector4
+    mtd formPadding()->Math.Vector4
     {
         switch #complete .form
         {
-        case .Square:      return .getThemeMetrics().editBox_SquarePadding
-        case .Round:       return .getThemeMetrics().editBox_RoundPadding
-        case .Flat:        return .getThemeMetrics().editBox_FlatPadding
+        case .Rectangle:        return .themeMetrics().editBox_SquarePadding
+        case .RoundedRectangle: return .themeMetrics().editBox_RoundPadding
+        case .Flat:        return .themeMetrics().editBox_FlatPadding
         case .Transparent: break
         }
 
@@ -718,7 +718,7 @@ private impl EditBox
     // non-numeric modes. Adapts automatically to the value range, font and theme.
     mtd numericPreferredWidth()->f32
     {
-        let fontR = .getFont().regular
+        let fontR = .font().regular
         if !fontR do
             return 0
         let font = nnFont(fontR)
@@ -726,15 +726,15 @@ private impl EditBox
         var lo, hi: String
         switch .inputMode
         {
-        case .U64:
+        case .UnsignedInteger:
             lo = Format.toString("%", .minMaxU64.min)
             hi = Format.toString("%", .minMaxU64.max)
 
-        case .S64:
+        case .SignedInteger:
             lo = Format.toString("%", .minMaxS64.min)
             hi = Format.toString("%", .minMaxS64.max)
 
-        case .F64:
+        case .FloatingPoint:
             lo = Format.toString("%{f2}", .minMaxF64.min)
             hi = Format.toString("%{f2}", .minMaxF64.max)
 
@@ -747,7 +747,7 @@ private impl EditBox
         // Derive the box width from the box's *actual* text area (so border, form
         // padding, right margin, unit and clear button are all accounted for),
         // plus one extra digit of breathing room for the caret.
-        let chrome = Math.max(.position.width - .getEditRect().width, 0.0) + .getTextMarginRight()
+        let chrome = Math.max(.position.width - .editRect().width, 0.0) + .rightTextMargin()
         return Math.ceil(textW) + chrome + Painter.measureString("00", font).width
     }
 
@@ -762,33 +762,33 @@ private impl EditBox
     }
 
     // Computes the caret rectangle in surface coordinates.
-    mtd getCaretPos()->Math.Rectangle
+    mtd caretRect()->Math.Rectangle
     {
         var result: retval = undefined
 
-        var clientRect = .getEditRect()
+        var clientRect = .editRect()
         if .icon.isValid() do
             clientRect.x += .icon.sizeX + 4
 
         result = clientRect
-        let fontR = .getFont().regular
+        let fontR = .font().regular
         let font  = nnFont(fontR)
-        if !.text.isEmpty()
+        if !.textStorage.isEmpty()
         {
-            if .editBoxFlags.has(.RightAlign)
+            if .flags.has(.RightAligned)
             {
-                let sizeX = Painter.measureStringSnapped(.text.toString(), font)
+                let sizeX = Painter.measureStringSnapped(.textStorage.toString(), font)
                 result.x = clientRect.right() - sizeX + .posSelEnd - 2
             }
             else do
                 result.x += .posSelEnd
         }
-        elif .editBoxFlags.has(.RightAlign)
+        elif .flags.has(.RightAligned)
         {
             result.x = clientRect.right() - .posSelEnd - 2
         }
 
-        result.x      -= .getTextMarginRight()
+        result.x      -= .rightTextMargin()
         result.height = font.height
         result.y      = clientRect.vertCenter() - result.height * 0.5
 
@@ -797,32 +797,32 @@ private impl EditBox
     }
 
     // Converts an X mouse position into a byte index inside "text".
-    mtd getByteIndexAtPos(xmouse: f32)->u64
+    mtd byteIndexAt(xmouse: f32)->u64
     {
-        if !.text.length do
+        if !.textStorage.length do
             return 0
 
         var x = xmouse
         x += .scrollPosX
 
-        let fontR = .getFont().regular
+        let fontR = .font().regular
         let font  = nnFont(fontR)
 
         // Naïve incremental search. Could be improved for performance.
-        if .editBoxFlags.has(.RightAlign)
+        if .flags.has(.RightAligned)
         {
-            if .text.length == 1 do
+            if .textStorage.length == 1 do
                 return 0
 
-            var clientRect = .getEditRect()
-            clientRect.x -= .getTextMarginRight()
+            var clientRect = .editRect()
+            clientRect.x -= .rightTextMargin()
 
             // Hit-test against the same snapped advances the glyphs are drawn with.
-            let shaped    = Painter.shapeRun(.text.toString(), font)
+            let shaped    = Painter.shapeRun(.textStorage.toString(), font)
             let base      = clientRect.right() - Painter.measureStringSnapped(&shaped)
             var lastWidth = 0'f32
             var diff      = 0'f32
-            for [idx] in 1 until .text.length
+            for [idx] in 1 until .textStorage.length
             {
                 let met = Painter.measureStringSnapped(&shaped, idx)
                 diff = (met - lastWidth) * 0.5
@@ -837,18 +837,18 @@ private impl EditBox
             }
 
             if x < base + lastWidth + diff do
-                return .text.length - 1
+                return .textStorage.length - 1
         }
         else
         {
-            x -= .getTextMarginLeft()
+            x -= .leftTextMargin()
 
             // Hit-test against the same snapped advances the glyphs are drawn with,
             // so a click lands on the glyph the caret will be painted next to.
-            let shaped    = Painter.shapeRun(.text.toString(), font)
+            let shaped    = Painter.shapeRun(.textStorage.toString(), font)
             var lastWidth = 0'f32
             var diff      = 0'f32
-            for [idx] in 1 until .text.length
+            for [idx] in 1 until .textStorage.length
             {
                 let met = Painter.measureStringSnapped(&shaped, idx)
                 diff = (met - lastWidth) * 0.5
@@ -863,19 +863,19 @@ private impl EditBox
             }
 
             if x < lastWidth + diff do
-                return .text.length - 1
+                return .textStorage.length - 1
         }
 
-        return .text.length
+        return .textStorage.length
     }
 
     // Updates cached caret and selection pixel positions.
     mtd computeCaretPos()
     {
-        if .getFocus() != me do
+        if .focusedWindow() != me do
             return
 
-        let fontR = .getFont().regular
+        let fontR = .font().regular
         let font  = nnFont(fontR)
 
         // Carets and selection rectangles must sit on the same pixel-snapped advances
@@ -883,7 +883,7 @@ private impl EditBox
         // raw, unsnapped advances lets a per-glyph rounding error accumulate, so the
         // caret drifts further from the real glyph edge the longer the text is. This
         // holds for both alignments, so both use the snapped measure.
-        let text = .text.toString()
+        let text = .textStorage.toString()
         .posSelBeg, .posSelEnd = Painter.measureStringSnapped(text, font, .selEnd)
         if .selBeg != .selEnd do
             .posSelBeg = Painter.measureStringSnapped(text, font, .selBeg)
@@ -900,13 +900,13 @@ private impl EditBox
         if s == sel do
             return sel
 
-        let test = !Latin1.isSpace((notnull .text.buffer)[s])
+        let test = !Latin1.isSpace((notnull .textStorage.buffer)[s])
         for
         {
             let ns = .moveCaretLeft(s)
             if ns == s do
                 break
-            if Latin1.isSpace((notnull .text.buffer)[ns]) == test do
+            if Latin1.isSpace((notnull .textStorage.buffer)[ns]) == test do
                 return s
             s = ns
         }
@@ -917,19 +917,19 @@ private impl EditBox
     // Moves caret right to the end of the current/next word.
     mtd moveCaretRightEndWord(sel: u64)->u64
     {
-        if sel == .text.length do
+        if sel == .textStorage.length do
             return sel
 
-        let test = !Latin1.isSpace((notnull .text.buffer)[sel])
+        let test = !Latin1.isSpace((notnull .textStorage.buffer)[sel])
         var s    = sel
-        while s != .text.length
+        while s != .textStorage.length
         {
             s = .moveCaretRight(s)
-            if Latin1.isSpace((notnull .text.buffer)[s]) == test do
+            if Latin1.isSpace((notnull .textStorage.buffer)[s]) == test do
                 return s
         }
 
-        return .text.length
+        return .textStorage.length
     }
 
     // Moves caret left by one rune.
@@ -937,7 +937,7 @@ private impl EditBox
     {
         if !sel do
             return sel
-        let str      = @mkstring(.text.buffer, sel)
+        let str      = @mkstring(.textStorage.buffer, sel)
         let {?, eat} = Utf8.decodeLastRune(str)
         return sel - eat
     }
@@ -945,9 +945,9 @@ private impl EditBox
     // Moves caret right by one rune.
     mtd moveCaretRight(sel: u64)->u64
     {
-        if sel == .text.length do
+        if sel == .textStorage.length do
             return sel
-        let str      = @mkstring(.text.buffer + sel, .text.length - sel)
+        let str      = @mkstring(.textStorage.buffer + sel, .textStorage.length - sel)
         let {?, eat} = Utf8.decodeRune(str)
         return sel + eat
     }
@@ -955,15 +955,15 @@ private impl EditBox
     // Clamps selection indices and triggers repaint.
     mtd checkSelection()
     {
-        .selBeg = Math.min(.selBeg, .text.length)
-        .selEnd = Math.min(.selEnd, .text.length)
+        .selBeg = Math.min(.selBeg, .textStorage.length)
+        .selEnd = Math.min(.selEnd, .textStorage.length)
         .invalidate()
     }
 
-    // Emits sigChanged, recomputes caret, updates clear button and repaints.
+    // Emits sigTextChanged, recomputes caret, updates the clear button, and repaints.
     mtd notifyChanged()
     {
-        .sigChanged.call(me)
+        .sigTextChanged.call(me)
         .computeCaretPos()
         .syncClearButton()
         .invalidate()
@@ -973,24 +973,24 @@ private impl EditBox
 internal impl EditBox
 {
     // Recomputes the horizontal scroll offset so the caret stays inside the visible
-    // edit rectangle. Driven by onPaintEvent (it mirrors the exact clientRect paint
+    // edit rectangle. Driven by onPaint (it mirrors the exact clientRect paint
     // uses), and exposed at module scope so the scroll/clip behaviour can be
     // exercised headlessly — painting needs a renderer, this does not.
     mtd updateScroll()
     {
-        let fontR   = nnFont(.getFont().regular)
-        let metrics = .getThemeMetrics()
+        let fontR   = nnFont(.font().regular)
+        let metrics = .themeMetrics()
 
-        var clientRect = .getEditRect()
+        var clientRect = .editRect()
         if .icon.isValid()
         {
             clientRect.x     += .icon.sizeX + metrics.iconText_Margin
             clientRect.width -= .icon.sizeX + metrics.iconText_Margin
         }
 
-        let caretPos  = .getCaretPos()
+        let caretPos  = .caretRect()
         let decalX    = Math.min(Painter.measureString("X", fontR).width * 10, clientRect.width * 0.5)
-        let sizeX     = Painter.measureStringSnapped(.text.toString(), fontR)
+        let sizeX     = Painter.measureStringSnapped(.textStorage.toString(), fontR)
         let maxDecalX = sizeX - decalX
 
         if caretPos.x - clientRect.x < .scrollPosX do
@@ -1003,7 +1003,7 @@ internal impl EditBox
         // caret leaving the visible window, not to the box growing back. Clamp the
         // scroll to the content extent so a box that regains room shows its text from
         // a natural position instead of staying half-scrolled with empty space.
-        if .editBoxFlags.has(.RightAlign)
+        if .flags.has(.RightAligned)
         {
             let maxScroll = Math.max(sizeX - clientRect.width, 0)
             .scrollPosX = Math.max(Math.min(.scrollPosX, 0), -maxScroll)
@@ -1040,36 +1040,37 @@ internal impl EditBox
     // and clips). Exposed for tests asserting the caret is not clipped at either edge.
     mtd caretClip()->{ caret: Math.Rectangle, view: Math.Rectangle }
     {
-        var caret = .getCaretPos()
+        var caret = .caretRect()
         caret.x -= .scrollPosX
-        return {caret, .getEditRect()}
+        return {caret, .editRect()}
     }
 }
 
 impl EditBox
 {
-    // Factory method that creates a new EditBox instance.
+    // Creates a single-line edit box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = EditBoxFlags.AutoLoseFocus)->*EditBox
+    func create(parent: *Wnd, content: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: EditBoxFlags = .ReleaseFocusOnEnterOrEscape)->*EditBox
     {
+        Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().editBox_Height
+            pos.height = parent.themeMetrics().editBox_Height
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().editBox_Width
+            pos.width = parent.themeMetrics().editBox_Width
 
-        let res = Wnd.create'EditBox(parent, null, pos, id)
-        res.setForm(.Square)
-        res.editBoxFlags  = flags
-        res.focusStrategy = .MousePressed
-        res.setText(content)
-        return res
+        let result = Wnd.create'EditBox(parent, null, pos, id)
+        result.setAllPaddings(result.themeMetrics().editBox_SquarePadding)
+        result.flags         = flags
+        result.focusStrategy = .OnMousePress
+        result.setText(content, false)
+        return result
     }
 
     // Deletes the selected text.
     mtd deleteSelection()
     {
-        if .editBoxFlags.has(.ReadOnly) do
+        if .flags.has(.ReadOnly) do
             return
         if .deleteSelectionPrivate() do
             .notifyChanged()
@@ -1087,97 +1088,174 @@ impl EditBox
     // Selects the whole content.
     mtd selectAll()
     {
-        .setSelection(0, .text.length)
+        .setSelection(0, .textStorage.length)
     }
 
-    // Defines the placeholder (note) text.
-    mtd setNote(note: string)
+    // Changes the placeholder displayed while content is empty.
+    mtd setPlaceholder(placeholder: #null string)
     {
-        .name = note
+        .name.set(placeholder)
         .invalidate()
     }
 
-    // Assigns the EditBox content without emitting change notifications.
-    mtd setTextSilent(str: string)
+    // Replaces the content and optionally emits one `sigTextChanged` notification.
+    mtd setText(str: #null string, notify = true)
     {
-        .sigChanged.disable()
-        .setText(str)
-        .sigChanged.enable()
-    }
-
-    // Assigns the EditBox content and emits change notifications.
-    mtd setText(str: #null string)
-    {
-        if .text == str do
+        if .textStorage == str do
             return
-        .text.clear()
+        .sigTextChanged.disable()
+        .textStorage.clear()
         .selBeg, .selEnd = 0
         .countRunes      = 0
         .insertString(str)
-        .syncClearButton()
-        .notifyChanged()
+        .sigTextChanged.enable()
+        if notify do
+            .notifyChanged()
+        else
+        {
+            .computeCaretPos()
+            .syncClearButton()
+            .invalidate()
+        }
     }
 
-    // Returns the current text as a String.
-    mtd getText()->string
+    // Returns the current text.
+    mtd const text()->string
     {
-        return .text.toString()
+        return .textStorage.toString()
     }
 
-    // Restores the text captured on focus gain.
-    mtd restoreText()
+    // Restores the text captured when focus was gained.
+    mtd restoreOriginalText()
     {
         .setText(.originalText)
     }
 
-    // Configures the EditBox to accept signed 64‑bit integers.
-    mtd setInputS64(min = Swag.S64.Min, max = Swag.S64.Max)
+    // Selects unrestricted built-in text input; a custom validator still applies.
+    mtd setTextInput()
     {
-        .inputMode     = .S64
+        .inputMode = .Text
+        .isInvalid = false
+        .invalidate()
+    }
+
+    // Accepts signed 64-bit integers in the inclusive range.
+    mtd setSignedIntegerRange(min = Swag.S64.Min, max = Swag.S64.Max)
+    {
+        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        .inputMode     = .SignedInteger
         .minMaxS64.min = min
         .minMaxS64.max = max
+        discard .checkContent()
+        .invalidate()
     }
 
-    // Configures the EditBox to accept unsigned 64‑bit integers.
-    mtd setInputU64(min = 0'u64, max = Swag.U64.Max)
+    // Accepts unsigned 64-bit integers in the inclusive range.
+    mtd setUnsignedIntegerRange(min = 0'u64, max = Swag.U64.Max)
     {
-        .inputMode     = .U64
+        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        .inputMode     = .UnsignedInteger
         .minMaxU64.min = min
         .minMaxU64.max = max
+        discard .checkContent()
+        .invalidate()
     }
 
-    // Configures the EditBox to accept hexadecimal unsigned 64‑bit integers.
-    mtd setInputX64(min = 0'u64, max = Swag.U64.Max)
+    // Accepts unsigned hexadecimal integers in the inclusive range.
+    mtd setHexadecimalRange(min = 0'u64, max = Swag.U64.Max)
     {
-        .inputMode     = .X64
+        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        .inputMode     = .Hexadecimal
         .minMaxU64.min = min
         .minMaxU64.max = max
+        discard .checkContent()
+        .invalidate()
     }
 
-    // Configures the EditBox to accept 64‑bit floating‑point numbers.
-    mtd setInputF64(min = -Swag.F64.Max, max = Swag.F64.Max)
+    // Accepts 64-bit floating-point values in the inclusive range.
+    mtd setFloatingPointRange(min = -Swag.F64.Max, max = Swag.F64.Max)
     {
-        .inputMode     = .F64
+        Debug.assert(min <= max, "minimum cannot exceed maximum")
+        .inputMode     = .FloatingPoint
         .minMaxF64.min = min
         .minMaxF64.max = max
+        discard .checkContent()
+        .invalidate()
     }
 
     // Sets the visual form of the EditBox.
     mtd setForm(form: EditBoxForm)
     {
+        if .form == form do
+            return
         .form = form
 
         switch #complete .form
         {
-        case .Square:      .setAllPaddings(.getThemeMetrics().editBox_SquarePadding)
-        case .Round:       .setAllPaddings(.getThemeMetrics().editBox_RoundPadding)
-        case .Flat:        .setAllPaddings(.getThemeMetrics().editBox_FlatPadding)
-        case .Transparent: .setAllPaddings(0)
+        case .Rectangle:        .setAllPaddings(.themeMetrics().editBox_SquarePadding)
+        case .RoundedRectangle: .setAllPaddings(.themeMetrics().editBox_RoundPadding)
+        case .Flat:             .setAllPaddings(.themeMetrics().editBox_FlatPadding)
+        case .Transparent:      .setAllPaddings(0)
         }
 
         .invalidate()
     }
 
+    // Adds and removes interaction options.
+    mtd updateFlags(add: EditBoxFlags = .None, remove = EditBoxFlags.None)
+    {
+        var newFlags = .flags
+        newFlags.add(add)
+        newFlags.remove(remove)
+        if .flags == newFlags do
+            return
+        .flags = newFlags
+        .syncClearButton()
+        .invalidate()
+    }
+
+    // Changes the leading icon.
+    mtd setIcon(icon: Icon)
+    {
+        .icon = icon
+        .invalidate()
+    }
+
+    // Changes the trailing unit.
+    mtd setUnit(unit: #null string)
+    {
+        .unit = unit orelse ""
+        .invalidate()
+    }
+
+    // Changes the maximum rune count; zero removes the limit.
+    mtd setMaximumLength(length: s32)
+    {
+        Debug.assert(length >= 0, "maximum length cannot be negative")
+        .maximumLength = length
+    }
+
+    // Changes the extra trailing inset.
+    mtd setTrailingMargin(margin: f32)
+    {
+        Debug.assert(margin >= 0, "trailing margin cannot be negative")
+        if .trailingMargin == margin do
+            return
+        .trailingMargin = margin
+        .invalidate()
+    }
+
+    // Changes the custom validator; null restores built-in validation.
+    mtd setValidator(validator: #null func||(*EditBox)->EditBoxCheckResult)
+    {
+        .validator = validator
+        discard .checkContent()
+        .invalidate()
+    }
+
+    // Returns the selected byte range.
+    mtd const selection()->{ start: u64, end: u64 } => {.selBeg, .selEnd}
+
     // Returns true when the current content is valid.
-    mtd isValid()->bool => !.isInvalid
+    mtd const isValid()->bool => !.isInvalid
 }

@@ -50,7 +50,7 @@ using Core
 
 func day2A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "2.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var op: Array's32

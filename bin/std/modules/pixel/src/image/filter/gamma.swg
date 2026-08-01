@@ -6,7 +6,7 @@ impl Image
     public mtd gamma(level: f32 = 2.2)
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         let g = 1.0 / Math.clamp(level, Math.ConstF32.Epsilon, 5.0)

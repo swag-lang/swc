@@ -133,7 +133,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     @assert(err == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -206,7 +206,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     let buf = buildIco(2, 2, 24, 0, nnBytes(body.toSlice()))
     var img = catch decodeIco(nnBytes(buf.toSlice())) as err2
     @assert(err2 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -239,7 +239,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     let buf = buildIco(2, 2, 8, 4, nnBytes(body.toSlice()))
     var img = catch decodeIco(nnBytes(buf.toSlice())) as err3
     @assert(err3 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -391,7 +391,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     @assert(err8 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert(!img.isValid())
 }
 
@@ -441,7 +441,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     @assert(err12 == null)
     @assert(img.width == 2)
     @assert(img.height == 2)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0]  == 10'u8)
     @assert((notnull img.pixels.buffer)[1]  == 20'u8)
     @assert((notnull img.pixels.buffer)[2]  == 30'u8)
@@ -464,7 +464,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 
     var img = catch decodeIco(nnBytes(cb.toSlice())) as err14
     @assert(err14 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)
     @assert((notnull img.pixels.buffer)[1] == 20'u8)
     @assert((notnull img.pixels.buffer)[2] == 30'u8)
@@ -487,7 +487,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
 
     var img = catch decodeIco(nnBytes(cb.toSlice())) as err16
     @assert(err16 == null)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 10'u8)     // B
     @assert((notnull img.pixels.buffer)[1] == 20'u8)     // G
     @assert((notnull img.pixels.buffer)[2] == 30'u8)     // R
@@ -529,7 +529,7 @@ func encodePng(result: *ConcatBuffer, image: Image) fail
     @assert(err19 == null)
     @assert(img.width == 4)
     @assert(img.height == 4)
-    @assert(img.pf == .BGRA8)
+    @assert(img.pixelFormat == .BGRA8)
     @assert((notnull img.pixels.buffer)[0] == 77'u8)
     @assert((notnull img.pixels.buffer)[1] == 88'u8)
     @assert((notnull img.pixels.buffer)[2] == 99'u8)

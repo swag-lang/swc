@@ -11,19 +11,19 @@ using Core, Pixel
 
 struct FakeTypedData
 {
-    fmt:  ValueFormat     // Fmt associated with this value.
-    crc:  u32             // Crc associated with this value.
-    data: Array'u8        // Data associated with this value.
+    fmt:  ValueFormat     // Registered clipboard format.
+    crc:  u32             // Type fingerprint stored with the payload.
+    data: Array'u8        // Serialized payload bytes.
 }
 
 struct FakeStore
 {
-    enabled: bool                    // Enabled associated with this value.
-    hasStr:  bool                    // Whether this value has str.
-    str:     String                  // Str associated with this value.
-    hasImg:  bool                    // Whether this value has img.
-    img:     Image                   // Img associated with this value.
-    typed:   Array'FakeTypedData     // Typed associated with this value.
+    enabled: bool                    // Whether clipboard calls use this process-local store.
+    hasStr:  bool                    // Whether text is available.
+    str:     String                  // Stored UTF-8 text.
+    hasImg:  bool                    // Whether an image is available.
+    img:     Image                   // Stored image copy.
+    typed:   Array'FakeTypedData     // Stored typed payloads by registered format.
 }
 
 var g_Fake: FakeStore
@@ -38,11 +38,10 @@ public func setFake(enable: bool)
 
 func fakeClear()
 {
-    g_Fake.hasStr = false
-    g_Fake.str.clear()
-    g_Fake.hasImg = false
-    g_Fake.img    = Image{}
-    g_Fake.typed.clear()
+    let enabled = g_Fake.enabled
+    @drop(&g_Fake, 1)
+    @init(&g_Fake, 1)
+    g_Fake.enabled = enabled
 }
 
 func fakeFind(fmt: ValueFormat)->#null *FakeTypedData

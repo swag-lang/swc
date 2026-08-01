@@ -3,40 +3,40 @@
 
 using Swag
 
-func assertGamePadButton(button: Input.GamePadButton, index: u32)
+func assertGamepadButton(button: Input.GamepadButton, index: u32)
 {
     @assert(cast(u32) button == index)
 }
 
 #test
 {
-    using Input.GamePadButton
+    using Input.GamepadButton
 
-    @assert(@countof(Input.GamePadButton) == 25)
+    @assert(@countof(Input.GamepadButton) == 25)
 
-    assertGamePadButton(A, 0)
-    assertGamePadButton(B, 1)
-    assertGamePadButton(Back, 2)
-    assertGamePadButton(BigButton, 3)
-    assertGamePadButton(DPadDown, 4)
-    assertGamePadButton(DPadLeft, 5)
-    assertGamePadButton(DPadRight, 6)
-    assertGamePadButton(DPadUp, 7)
-    assertGamePadButton(LeftShoulder, 8)
-    assertGamePadButton(LeftStick, 9)
-    assertGamePadButton(LeftThumbstickDown, 10)
-    assertGamePadButton(LeftThumbstickLeft, 11)
-    assertGamePadButton(LeftThumbstickRight, 12)
-    assertGamePadButton(LeftThumbstickUp, 13)
-    assertGamePadButton(LeftTrigger, 14)
-    assertGamePadButton(RightShoulder, 15)
-    assertGamePadButton(RightStick, 16)
-    assertGamePadButton(RightThumbstickDown, 17)
-    assertGamePadButton(RightThumbstickLeft, 18)
-    assertGamePadButton(RightThumbstickRight, 19)
-    assertGamePadButton(RightThumbstickUp, 20)
-    assertGamePadButton(RightTrigger, 21)
-    assertGamePadButton(Start, 22)
-    assertGamePadButton(X, 23)
-    assertGamePadButton(Y, 24)
+    assertGamepadButton(A, 0)
+    assertGamepadButton(B, 1)
+    assertGamepadButton(Back, 2)
+    assertGamepadButton(BigButton, 3)
+    assertGamepadButton(DPadDown, 4)
+    assertGamepadButton(DPadLeft, 5)
+    assertGamepadButton(DPadRight, 6)
+    assertGamepadButton(DPadUp, 7)
+    assertGamepadButton(LeftShoulder, 8)
+    assertGamepadButton(LeftStick, 9)
+    assertGamepadButton(LeftThumbstickDown, 10)
+    assertGamepadButton(LeftThumbstickLeft, 11)
+    assertGamepadButton(LeftThumbstickRight, 12)
+    assertGamepadButton(LeftThumbstickUp, 13)
+    assertGamepadButton(LeftTrigger, 14)
+    assertGamepadButton(RightShoulder, 15)
+    assertGamepadButton(RightStick, 16)
+    assertGamepadButton(RightThumbstickDown, 17)
+    assertGamepadButton(RightThumbstickLeft, 18)
+    assertGamepadButton(RightThumbstickRight, 19)
+    assertGamepadButton(RightThumbstickUp, 20)
+    assertGamepadButton(RightTrigger, 21)
+    assertGamepadButton(Start, 22)
+    assertGamepadButton(X, 23)
+    assertGamepadButton(Y, 24)
 }

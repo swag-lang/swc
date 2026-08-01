@@ -15,9 +15,9 @@ func openImage(surface: #null *Surface)
     var opt: FileDlgOptions
     with opt
     {
-        .mode      = .SelectOneFile
-        .title     = "Load Image"
-        .btnOkName = "Load"
+        .mode              = .SelectFile
+        .title             = "Load Image"
+        .confirmButtonText = "Load"
         .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
         .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
         .shortcuts.add({Env.SpecialDirectory.CommonPictures, "Images"})
@@ -31,7 +31,7 @@ func openImage(surface: #null *Surface)
     if dlg.doModal() != Dialog.BtnOk do
         return
 
-    g_Img = catch Image.load(dlg.getSelectedName()) as err
+    g_Img = catch Image.load(dlg.selectedPath()) as err
     if err != null do
         MessageDlg.error(notnull surface, "Failed to load image", err)
 }
@@ -42,7 +42,7 @@ func compute(render: *RenderOgl)
         return
 
     g_Img.resize(128, 128)
-    g_Img.grayScale()
+    g_Img.grayscale()
 
     g_Texture = render.addImage(g_Img)
 }
@@ -56,11 +56,11 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         btn.sigPressed += func|wnd|(btn)
         {
             openImage(btn.surface)
-            compute(&btn.getApp().renderer)
+            compute(&btn.app().renderer)
             wnd.invalidate()
         }
 
-        g_Font = wnd.getTheme().createDefaultFont(10)
+        g_Font = wnd.theme().createDefaultFont(10)
 
     case PaintEvent as paintEvt:
         if !g_Img.isValid() do
@@ -76,7 +76,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         {
             for [y] in g_Img.height
             {
-                let col = g_Img.getPixelColor(x, y)
+                let col = g_Img.pixelColor(x, y)
                 let idx = Math.map(cast(f32) col.r, 0, 255, 0, cast(f32) @countof(GrayRamp))
                 let v   = @mkstring(@dataof(GrayRamp) + cast(s32) idx, 1)
                 painter.drawString(x * size, y * size, v, g_Font, Argb.White)

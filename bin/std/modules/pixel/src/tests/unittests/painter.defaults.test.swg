@@ -6,15 +6,15 @@ using Swag, Core
 {
     var painter: Painter
 
-    @assert(painter.getParams().has(.Antialiased))
+    @assert(painter.params().has(.Antialiased))
 
     painter.setAntialiased(false)
-    @assert(!painter.getParams().has(.Antialiased))
+    @assert(!painter.params().has(.Antialiased))
 
     painter.setAntialiased()
-    @assert(painter.getParams().has(.Antialiased))
+    @assert(painter.params().has(.Antialiased))
 
-    @assert(painter.getInterpolationMode() == .Pixel)
+    @assert(painter.interpolationMode() == .Pixel)
     painter.setInterpolationMode(.Linear)
-    @assert(painter.getInterpolationMode() == .Linear)
+    @assert(painter.interpolationMode() == .Linear)
 }

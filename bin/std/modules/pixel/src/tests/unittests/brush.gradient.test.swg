@@ -42,7 +42,7 @@ using Swag, Core
     @assert(!tinted.isOpaque())
 
     var transparent = radial
-    transparent.setOpacityf(0)
+    transparent.setOpacityF32(0)
     @assert(!transparent.hasVisibleAlpha())
     @assert(!transparent.isOpaque())
 

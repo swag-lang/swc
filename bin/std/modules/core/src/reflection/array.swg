@@ -3,8 +3,8 @@
 
 using Swag
 
-// Returns true if the type 't' is a 'Core.Array' type
-func isStructArray(t: #null typeinfo)->bool
+// Returns whether the type is a Core dynamic array.
+func isDynamicArray(t: #null typeinfo)->bool
 {
     if !t or !isStruct(t) do
         return false
@@ -16,11 +16,10 @@ func isStructArray(t: #null typeinfo)->bool
     return tt.fromGeneric.fullname == arrayGeneric.fullname
 }
 
-// Returns the generic type of the 'Core.Array' typeinfo.
-// If 't' is not a 'Core.Array', returns null
-func getStructArrayType(t: #null typeinfo)->#null typeinfo
+// Returns a dynamic array's element type, or null for another kind of type.
+func dynamicArrayElementType(t: #null typeinfo)->#null typeinfo
 {
-    if !isStructArray(t) do
+    if !isDynamicArray(t) do
         return null
 
     let tt       = cast(const *TypeInfoStruct) notnull t
@@ -28,14 +27,14 @@ func getStructArrayType(t: #null typeinfo)->#null typeinfo
     return generics[0].pointedType
 }
 
-// Used to clear a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType)
-func clearStructArray(arrayPtr: #null *void, valueType: #null typeinfo)
+// Removes every element from a runtime-typed dynamic array.
+func clearDynamicArray(arrayPointer: #null *void, elementType: #null typeinfo)
 {
-    if !arrayPtr or !valueType do
+    if !arrayPointer or !elementType do
         return
 
-    let arr    = cast(*Array'u8) arrayPtr
-    let nnType = valueType
+    let arr    = cast(*Array'u8) arrayPointer
+    let nnType = elementType
 
     if hasDrop(nnType)
     {
@@ -50,48 +49,55 @@ func clearStructArray(arrayPtr: #null *void, valueType: #null typeinfo)
     arr.count = 0
 }
 
-// Remove an element in a 'Core.Array' without knowing the type of the element at compile time but knowing it at runtime (valueType)
-func removeValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, index: u64)
+// Removes an element from a runtime-typed dynamic array while preserving value lifecycles.
+func removeDynamicArrayElement(arrayPointer: #null *void, elementType: #null typeinfo, index: u64)
 {
-    if !arrayPtr or !valueType do
+    if !arrayPointer or !elementType do
         return
 
-    // We will treat the array as a buffer of bytes, just to be able to access the fields
-    let arr       = cast(*Array'u8) arrayPtr
-    let nnType    = valueType
+    let arr       = cast(*Array'u8) arrayPointer
+    let nnType    = elementType
     let sizeValue = nnType.sizeof
 
-    Debug.assert(index < arr.count)
+    if index >= arr.count
+    {
+        Debug.assert(false)
+        return
+    }
 
-    // Move all elements at the remove position
+    let removed = arr.buffer + index * sizeValue
+    Memory.dropType(removed, nnType)
+
     if index != arr.count - 1
     {
         let countMove = arr.count - index - 1
-        Memory.copy(arr.buffer + (index * sizeValue), arr.buffer + (index + 1) * sizeValue, countMove * sizeValue)
-        if Reflection.hasPostMove(nnType)
+        if hasPostMove(nnType)
         {
-            for [i] in index until arr.count - 1 do
+            for [i] in index until arr.count - 1
+            {
+                Memory.copy(arr.buffer + i * sizeValue, arr.buffer + (i + 1) * sizeValue, sizeValue)
                 Memory.postMoveType(arr.buffer + (i * sizeValue), nnType)
+            }
         }
+        else do
+            Memory.copyOverlapping(removed, removed + sizeValue, countMove * sizeValue)
     }
 
-    // Drop the last element
-    Memory.dropType(arr.buffer + (arr.count - 1) * sizeValue, nnType)
-
     arr.count -= 1
+    Memory.clear(notnull arr.buffer + arr.count * sizeValue, sizeValue)
 }
 
 // Swap two elements (by index) inside a contiguous buffer of 'valueType'. Works for both a
 // static array buffer and a 'Core.Array' buffer (pass arr.buffer), handling structs that need
 // a post-move fixup after their bytes are relocated.
-func swapValues(basePtr: #null *void, valueType: #null typeinfo, indexA, indexB: u64)
+func swapRuntimeValues(basePointer: #null *void, valueType: #null typeinfo, indexA, indexB: u64)
 {
-    if !basePtr or !valueType or indexA == indexB do
+    if !basePointer or !valueType or indexA == indexB do
         return
 
     let nnType = valueType
     let size   = nnType.sizeof
-    let base   = cast([*] u8) basePtr
+    let base   = cast([*] u8) basePointer
     let pa     = base + indexA * size
     let pb     = base + indexB * size
 
@@ -115,23 +121,23 @@ func swapValues(basePtr: #null *void, valueType: #null typeinfo, indexA, indexB:
 // With 'defaultInitSlot' false, the new slot is only zeroed and the CALLER must fully
 // initialize it (deserialization does): this supports element types that have no
 // implicit default, like non-null interfaces.
-func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, defaultInitSlot: bool = true)->#null *void
+func appendDynamicArrayElement(arrayPointer: #null *void, elementType: #null typeinfo, initialize: bool = true)->#null *void
 {
-    if !arrayPtr or !valueType
+    if !arrayPointer or !elementType
     {
-        @panic("Reflection.appendValueStructArray cannot append to a null array or null type", #curlocation)
+        @panic("Reflection.appendDynamicArrayElement cannot append to a null array or null type", #curlocation)
         return null
     }
 
-    let nnType = valueType
-    if defaultInitSlot and !Memory.canDefaultInit(nnType)
+    let nnType = elementType
+    if initialize and !Memory.canDefaultInit(nnType)
     {
-        @panic("Reflection.appendValueStructArray cannot default-initialize this type", #curlocation)
+        @panic("Reflection.appendDynamicArrayElement cannot default-initialize this type", #curlocation)
         return null
     }
 
     // We will treat the array as a buffer of bytes, just to be able to access the fields
-    let arr       = cast(*Array'u8) arrayPtr
+    let arr       = cast(*Array'u8) arrayPointer
     let sizeValue = nnType.sizeof
 
     // If we need to reallocate the buffer, we will also have to deal with
@@ -166,7 +172,7 @@ func appendValueStructArray(arrayPtr: #null *void, valueType: #null typeinfo, de
 
     let result = arr.buffer + (arr.count * nnType.sizeof)
     arr.count += 1
-    if defaultInitSlot do
+    if initialize do
         Memory.defaultInit(result, nnType)
     else do
         Memory.clear(notnull result, nnType.sizeof)

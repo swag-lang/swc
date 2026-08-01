@@ -158,8 +158,8 @@ using Swag, Core
     cf.borderColor = Argb.White
     cf.textColor   = Argb.White
 
-    var painter = Painter{fake: true}
-    painter.begin()
+    var painter: Painter
+    painter.begin(layoutOnly: true)
     var cxt: FormPaintContext
     cxt.z = 1
     cf.IForm.paint(&painter, cxt)

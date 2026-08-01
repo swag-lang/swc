@@ -3,45 +3,50 @@
 
 using Swag
 
-// CRC-64 implementation as described in ECMA-182, Annex B.
+// Computes a CRC-64 checksum incrementally.
 public struct Crc64
 {
-    crc: u64     // Crc associated with this value.
+    internal
+    {
+        currentValue: u64
+        kind:         Crc64Kind
+    }
 }
 
-// Selects crc64 kind.
+// Selects the CRC-64 polynomial and reflection convention.
 public enum Crc64Kind
 {
-    ECMA182     // Selects the ecma182 kind.
-    ISO         // Selects the iso kind.
-    ISOXZ       // Selects the isoxz kind.
+    Ecma182     // CRC-64/ECMA-182.
+    Iso         // CRC-64/ISO.
+    IsoXz       // CRC-64/XZ.
 }
 
 impl Crc64
 {
-    // Initialize the hashing sequence
-    mtd init(kind: Crc64Kind)
+    // Resets the checksum and selects the algorithm used by subsequent updates.
+    public mtd reset(kind = Crc64Kind.Ecma182)
     {
-        switch #complete kind
+        @init(me, 1)
+        switch #complete .kind
         {
-        case .ECMA182, .ISO, .ISOXZ: .crc = 0
+        case .Ecma182, .Iso, .IsoXz: .kind = kind
         }
     }
 
-    // Computes the CRC-64 hash of the provided data.
+    // Includes `data` in the running checksum.
     #[ConstExpr, Swag.Safety(.All, false)]
-    public mtd update(data: #null const [..] u8, kind: Crc64Kind)
+    public mtd update(data: #null const [..] u8)
     {
         let length = @countof(data)
         if length == 0 do
             return
 
         let bytes = notnull cast(#null const [*] u8) @dataof(data)
-        var cur   = .crc
+        var cur   = .currentValue
         var i     = 0'u64
         switch #complete kind
         {
-        case .ECMA182:
+        case .Ecma182:
             const POLY: u64 = 0x42F0_E1EB_A9EA_3693
             while i < length
             {
@@ -57,9 +62,9 @@ impl Crc64
                 i += 1
             }
 
-            .crc = cur
+            .currentValue = cur
 
-        case .ISO:
+        case .Iso:
             const POLY: u64 = 0xD800_0000_0000_0000
             cur = ~cur
             while i < length
@@ -76,9 +81,9 @@ impl Crc64
                 i += 1
             }
 
-            .crc = ~cur
+            .currentValue = ~cur
 
-        case .ISOXZ:
+        case .IsoXz:
             const POLY: u64 = 0xC96C_5795_D787_0F42
             cur = ~cur
             while i < length
@@ -95,17 +100,20 @@ impl Crc64
                 i += 1
             }
 
-            .crc = ~cur
+            .currentValue = ~cur
         }
     }
 
-    // Returns the hash value for the given buffer
+    // Returns the checksum accumulated since construction or the latest [[reset]].
+    public mtd value() => .currentValue
+
+    // Computes a CRC-64 checksum in one operation.
     #[Swag.ConstExpr]
-    public func compute(buffer: const [..] u8, kind = Crc64Kind.ECMA182)->u64
+    public func compute(buffer: const [..] u8, kind = Crc64Kind.Ecma182)->u64
     {
         var v: Crc64
-        v.init(kind)
-        v.update(buffer, kind)
-        return v.crc
+        v.reset(kind)
+        v.update(buffer)
+        return v.value()
     }
 }

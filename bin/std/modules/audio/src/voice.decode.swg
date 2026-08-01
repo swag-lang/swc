@@ -132,7 +132,7 @@ impl Voice
             .stream = File.open(file.fullname, File.FileMode.Open, File.FileAccess.Read, File.FileShare.Read)
 
         // Read from file
-        .stream.setPosition(.Begin, file.dataSeek + .streamCurSeek)
+        .stream.seek(.Begin, file.dataSeek + .streamCurSeek)
         wantedLength = Math.min(wantedLength, file.dataSize - .streamCurSeek)
         return .stream.read(destBuffer, wantedLength)
     }
@@ -143,7 +143,7 @@ impl Voice
         if .stream.isOpen()
         {
             let file = notnull .file
-            .stream.setPosition(.Begin, file.dataSeek)
+            .stream.seek(.Begin, file.dataSeek)
         }
     }
 

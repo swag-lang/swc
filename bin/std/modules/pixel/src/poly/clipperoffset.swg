@@ -182,7 +182,7 @@ impl Offset
     }
 
     // Calculate the unit normal vector perpendicular to the line segment from 'pt1' to 'pt2'.
-    // The normal points to the left of the line direction (counter-clockwise 90Â° rotation).
+    // The normal points to the left of the line direction (a 90-degree counter-clockwise rotation).
     func getUnitNormal(pt1, pt2: const &IntPoint)->DoublePoint
     {
         var result: retval

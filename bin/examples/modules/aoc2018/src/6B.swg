@@ -36,7 +36,7 @@ using Core
 
 func day6B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "6.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     const W = 700

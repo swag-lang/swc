@@ -9,13 +9,13 @@ alias ValueFormat = u64
 
 private var g_PngFormat: UINT
 
-// Register a new format
+// Registers a named native clipboard format.
 func registerFormat(name: string)->ValueFormat fail
 {
     return try RegisterClipboardFormatA(@dataof(name))
 }
 
-// Returns true if the clipboard contains the given format
+// Reports whether the clipboard contains `fmt`.
 func hasFormat(fmt: ValueFormat)->bool
 {
     if g_Fake.enabled do
@@ -28,8 +28,7 @@ func hasFormat(fmt: ValueFormat)->bool
     return IsClipboardFormatAvailable(cast(UINT) fmt) ? true : false
 }
 
-// Returns true if the clipboard contains the given format of the given 'type'.
-// 'type' can be null to just check for the given clipboard format.
+// Reports whether `fmt` exists and, when provided, carries the requested type fingerprint.
 func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
 {
     if g_Fake.enabled
@@ -55,8 +54,7 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo)->bool
     return dref pz == type.crc
 }
 
-// Add data of a given format of the given 'type' to the clipboard
-// 'type' can be null to just check for the given clipboard format.
+// Adds or replaces a raw payload and optional type fingerprint without clearing other formats.
 func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
 {
     if g_Fake.enabled do
@@ -65,7 +63,6 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
     if !OpenClipboard(GetDesktopWindow()) do
         return
     defer discard CloseClipboard()
-
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, @countof(data) + #sizeof(u32) + #sizeof(u64))
     let pz    = notnull cast(#null [*] u8) GlobalLock(hglob)
     defer discard GlobalUnlock(pz)
@@ -85,8 +82,7 @@ func addTypedData(fmt: ValueFormat, type: #null typeinfo, data: const [..] u8)
     discard SetClipboardData(cast(UINT) fmt, hglob)
 }
 
-// Get data of the given format and 'type'
-// 'type' can be null to just check for the given clipboard format.
+// Returns a copy of the raw payload stored under `fmt`, when its optional type matches.
 func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
 {
     if g_Fake.enabled do
@@ -125,7 +121,7 @@ func getTypedData(fmt: ValueFormat, type: #null typeinfo)->Array'u8
     return result
 }
 
-// Returns true if the clipbboard contains an image
+// Reports whether the clipboard contains a decodable image.
 func hasImage()->bool
 {
     if g_Fake.enabled do
@@ -143,7 +139,7 @@ func hasImage()->bool
     return false
 }
 
-// Add an image
+// Replaces the clipboard contents with `image` in native bitmap and PNG formats.
 func addImage(image: Image)
 {
     // Mirrors the OS path below: adding an image empties the clipboard first
@@ -153,7 +149,7 @@ func addImage(image: Image)
         if !image.isValid() do
             return
         g_Fake.hasImg = true
-        g_Fake.img    = Image.create(image.width, image.height, image.pf, image.pixels.toSlice())
+        g_Fake.img    = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice())
         return
     }
 
@@ -165,7 +161,7 @@ func addImage(image: Image)
     // BITMAP
     #scope
     {
-        let size  = #sizeof(Bmp.Header) + image.size
+        let size  = #sizeof(Bmp.Header) + image.byteCount
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
         let buf   = notnull cast(#null [*] u8) GlobalLock(hglob)
 
@@ -175,10 +171,10 @@ func addImage(image: Image)
         header.biHeight      = image.height
         header.biPlanes      = 1
         header.biCompression = Bmp.BI_RGB
-        header.biBitCount    = image.bpp
+        header.biBitCount    = image.bitsPerPixel
 
         let datas = buf + #sizeof(Bmp.Header)
-        Memory.copy(datas, image.pixels.buffer, image.size)
+        Memory.copy(datas, image.pixels.buffer, image.byteCount)
 
         discard GlobalUnlock(buf)
         discard SetClipboardData(CF_DIB, hglob)
@@ -187,12 +183,11 @@ func addImage(image: Image)
     // PNG
     #scope
     {
-        var png:    Png.Encoder
-        var buffer: ConcatBuffer
-        var opt:    Png.EncodeOptions
+        var opt: Png.EncodeOptions
 
         opt.compressionLevel = .NoCompression     // We want best speed
-        catch png.IImageEncoder.encode(&buffer, image, opt) else do
+        var buffer = catch image.encode("clipboard.png", opt) as encodeError
+        if encodeError != null do
             break
 
         let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, buffer.count())
@@ -201,7 +196,7 @@ func addImage(image: Image)
         var bufCur = buf
         for b in buffer
         {
-            Memory.copy(bufCur, b.datas, b.count)
+            Memory.copy(bufCur, b.data, b.count)
             bufCur += b.count
         }
 
@@ -210,7 +205,7 @@ func addImage(image: Image)
     }
 }
 
-// Get image from clipboard
+// Returns a decoded copy of the clipboard image, or an invalid image when unavailable.
 func getImage()->Image
 {
     var result: retval
@@ -235,8 +230,7 @@ func getImage()->Image
             let size = GlobalSize(hglob)
             let pz   = notnull cast(#null [*] u8) GlobalLock(hglob)
             defer discard GlobalUnlock(pz)
-            var png: Png.Decoder
-            return catch png.IImageDecoder.decode(@mkslice(pz, size), {})
+            return catch Image.decode("clipboard.png", @mkslice(pz, size), {})
         }
     }
 
@@ -246,21 +240,17 @@ func getImage()->Image
         let hglob = GetClipboardData(CF_DIB)
         if hglob
         {
-            let pz = notnull cast(#null [*] u8) GlobalLock(hglob)
+            let size = GlobalSize(hglob)
+            let pz   = notnull cast(#null [*] u8) GlobalLock(hglob)
             defer discard GlobalUnlock(pz)
-
-            let header = cast(*Bmp.Header) pz
-            let size   = #sizeof(Bmp.Header) + (header.biWidth * header.biHeight * header.biBitCount)
-
-            var bmp: Bmp.Decoder
-            return catch bmp.IImageDecoder.decode(@mkslice(pz, size), {})
+            return catch Image.decode("clipboard.bmp", @mkslice(pz, size), {})
         }
     }
 
     return result
 }
 
-// Returns true if the clipboard contains a string
+// Reports whether the clipboard contains text.
 func hasString()->bool
 {
     if g_Fake.enabled do
@@ -278,7 +268,7 @@ func hasString()->bool
     return false
 }
 
-// Add string to clipboard
+// Adds or replaces UTF-8 text in UTF-16 and legacy formats without clearing other formats.
 func addString(str: string)
 {
     if g_Fake.enabled
@@ -314,7 +304,7 @@ func addString(str: string)
     }
 }
 
-// Get utf8 string from clipboard
+// Returns clipboard text converted to UTF-8, or an empty string when unavailable.
 func getString()->String
 {
     var result: retval
@@ -357,6 +347,21 @@ func getString()->String
     }
 
     return result
+}
+
+// Removes every value from the clipboard.
+func clear()
+{
+    if g_Fake.enabled
+    {
+        fakeClear()
+        return
+    }
+
+    if !OpenClipboard(GetDesktopWindow()) do
+        return
+    defer discard CloseClipboard()
+    discard EmptyClipboard()
 }
 
 #init

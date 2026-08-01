@@ -2,56 +2,61 @@
 
 using Core
 
-// Represents wrap layout ctrl.
+// Flows visible children left to right and wraps them into additional rows.
 struct WrapLayoutCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    spacing:      f32 = 5      // Spacing associated with this value.
-    wrapWidth:    f32 = 64     // Wrap width associated with this value.
-    wrapHeight:   f32 = 64     // Wrap height associated with this value.
-    resultHeight: f32          // Result height associated with this value.
+    spacing:    f32 = 5      // Horizontal and vertical gap between items.
+    itemWidth:  f32 = 64     // Fallback width when a child has no preferred width.
+    itemHeight: f32 = 64     // Fallback height when a child has no preferred height.
+    readonly contentHeight: f32     // Height occupied by the latest layout pass.
 }
 
 impl IWnd for WrapLayoutCtrl
 {
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        if !.childs.count
+        .contentHeight = 0
+        if !.children.count
         {
             .wnd.IWnd.onResizeEvent(evt)
             return
         }
 
-        let client = .getClientRectPadding()
+        let client = .paddedClientRect()
 
-        var x = .padding.x
-        var y = .padding.y
-        for c in .childs
+        var x         = client.x
+        var y         = client.y
+        var rowHeight = 0'f32
+        for c in .children
         {
             if c.wndFlags & .Hidden do
                 continue
 
-            let margin = c.getLayoutMargin()
+            let margin = c.layoutMargin()
             let hint   = c.measure({client.width, client.height})
-            var width  = .wrapWidth
-            var height = .wrapHeight
+            var width  = .itemWidth
+            var height = .itemHeight
             if hint.preferred.x > 0 do
                 width = hint.preferred.x
             if hint.preferred.y > 0 do
                 height = hint.preferred.y
 
             let outerWidth = width + margin.x + margin.z
-            if x != .padding.x and x + outerWidth > client.right()
+            let outerHeight = height + margin.y + margin.w
+            if x != client.x and x + outerWidth > client.right()
             {
-                x = .padding.x
-                y += height + margin.y + margin.w + .spacing
+                x = client.x
+                y += rowHeight + .spacing
+                rowHeight = 0
             }
 
-            .resultHeight = y + height + margin.y + margin.w
             var rect = Math.Rectangle{x + margin.x, y + margin.y, width, height}
             c.arrange(rect)
             x += outerWidth + .spacing
+            rowHeight = Math.max(rowHeight, outerHeight)
+            .contentHeight = y + rowHeight + .padding.w
         }
 
         .wnd.IWnd.onResizeEvent(evt)
@@ -60,14 +65,14 @@ impl IWnd for WrapLayoutCtrl
 
 impl WrapLayoutCtrl
 {
-    // Create a layout control
+    // Creates an empty wrapping layout.
     func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl
     {
         let res = Wnd.create'WrapLayoutCtrl(parent, position)
         return res
     }
 
-    // Recompute layout of all childs
+    // Recomputes the flow of all visible children.
     mtd computeLayout()
     {
         .sendResizeEvent()

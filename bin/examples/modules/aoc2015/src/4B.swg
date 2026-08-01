@@ -15,7 +15,7 @@ func day4B()
             return
 
         // Time.Stopwatch.scopeMeasure()
-        expect Jobs.setNumWorkers()
+        expect Jobs.initialize()
 
         struct ForJob
         {
@@ -25,13 +25,13 @@ func day4B()
         }
 
         var sliceJobs: Array'ForJob
-        sliceJobs.resize(Jobs.getNumWorkers())
+        sliceJobs.resize(Jobs.workerCount())
 
         func jobEntry(jobData: #null *void)
         {
             let oneJob = cast(*ForJob) notnull jobData
             var index  = oneJob.start
-            let offset = Jobs.getNumWorkers()
+            let offset = Jobs.workerCount()
             var buffer: [16] u8
             day4InitBuffer(&buffer)
             for
@@ -57,13 +57,13 @@ func day4B()
             j.base.lambda = &jobEntry
             j.data        = j
             j.start       = @index
-            Jobs.scheduleJob(j)
+            Jobs.schedule(j)
         }
 
         var total: u64 = Swag.U64.Max
         for &j in sliceJobs
         {
-            Jobs.waitJob(j)
+            Jobs.wait(j)
             total = Math.min(total, j.result)
         }
 

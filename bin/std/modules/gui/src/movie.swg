@@ -2,27 +2,27 @@
 
 using Core, Core.Errors, Pixel
 
-// Selects movie source.
+// Identifies the backing source of a [[Gui.Movie]].
 enum MovieSource
 {
-    None            // No option is selected.
-    SpriteSheet     // Selects sprite sheet.
-    Gif             // Selects gif.
+    None            // No source is loaded.
+    SpriteSheet     // Frames are cells of an image-list atlas.
+    Gif             // Frames are decoded from an animated GIF.
 }
 
-// Represents movie.
+// Plays a sprite sheet or animated GIF as a sequence of image frames.
 struct Movie
 {
-    enableCache:     bool = true                 // Enable cache associated with this value.
-    mustLoop:        bool = true                 // Must loop associated with this value.
-    inPause:         bool                        // In pause associated with this value.
-    playFreq:        f32  = 0.05                 // Play freq associated with this value.
-    sigFrameChanged: SigArray'func||(*Movie)     // Signal emitted when frame changed.
+    cachesFrames:         bool = true                 // Cache decoded GIF frames for later playback and seeking.
+    loops:                bool = true                 // Restart at the first frame after the last frame.
+    isPaused:             bool                        // Suspend time-based frame advancement.
+    frameDurationSeconds: f32  = 0.05                 // Display duration of each frame, in seconds.
+    sigFrameChanged:      SigArray'func||(*Movie)     // Signal emitted after the visible frame changes.
 
     // Where the movie is. The playback advances all three; seek with 'setFrame'.
     readonly
     {
-        numFrames:  s32       // Number of frames of the source.
+        frameCount: s32       // Number of frames exposed by the source.
         frameIndex: s32       // Frame currently decoded.
         frame:      Image     // Pixels of the current frame.
     }
@@ -34,25 +34,26 @@ struct Movie
         imgList:     ImageList              // Frames of an image-list source.
         gif:         Gif.Decoder            // Decoder of a GIF source.
         bytes:       Array'u8               // Encoded bytes of the source.
-        cacheFrames: Array'Image            // Decoded frames kept when caching is on.
-        currentTime: f32                    // Time accumulated toward the next frame.
-        dirtyFrame:  bool                   // Whether the current frame must be decoded again.
+        cachedFrames:       Array'Image     // Decoded GIF frames retained when caching is enabled.
+        elapsedFrameSeconds: f32            // Time accumulated toward the next frame.
+        dirtyFrame:         bool            // Whether a seek changed the current frame.
     }
 }
 
 private impl Movie
 {
-    mtd nextFrame()
+    mtd nextFrame()->bool
     {
-        if .frameIndex == .numFrames - 1
+        if .frameCount <= 1 do
+            return false
+
+        var nextIndex = .frameIndex + 1
+        if nextIndex == .frameCount
         {
-            if .mustLoop do
-                .frameIndex = 0
-            else do
-                return
+            if !.loops do
+                return false
+            nextIndex = 0
         }
-        else do
-            .frameIndex += 1
 
         switch #complete .source
         {
@@ -63,26 +64,44 @@ private impl Movie
             break
 
         case .Gif:
-            if .frameIndex < .cacheFrames.count
+            if nextIndex < .cachedFrames.count
             {
-                .frame = .cacheFrames[.frameIndex]
+                .frame = .cachedFrames[nextIndex]
             }
-            elif expect .gif.nextFrame(&.frame) == false
+            else
             {
-                if .mustLoop
-                {
+                if nextIndex == 0 do
                     .gif.rewind()
-                    .frameIndex = 0
-                    discard expect .gif.nextFrame(&.frame)
-                }
-            }
-            elif .enableCache
-            {
-                .cacheFrames.add(.frame)
+                if expect .gif.nextFrame(&.frame) == false do
+                    return false
+                if .cachesFrames do
+                    .cachedFrames.add(.frame)
             }
         }
 
+        .frameIndex = nextIndex
         .sigFrameChanged.call(me)
+        return true
+    }
+
+    mtd clearContent()
+    {
+        @drop(&.imgList, 1)
+        @init(&.imgList, 1)
+        @drop(&.gif, 1)
+        @init(&.gif, 1)
+        @drop(&.bytes, 1)
+        @init(&.bytes, 1)
+        @drop(&.cachedFrames, 1)
+        @init(&.cachedFrames, 1)
+        @drop(&.frame, 1)
+        @init(&.frame, 1)
+
+        .source              = .None
+        .frameCount          = 0
+        .frameIndex          = 0
+        .elapsedFrameSeconds = 0
+        .dirtyFrame          = false
     }
 }
 
@@ -91,64 +110,67 @@ impl Movie
     // Removes all content.
     mtd clear()
     {
-        .cacheFrames.clear()
-        .bytes.clear()
-        .source = .None
-        .frame.release()
-        .numFrames   = 0
-        .frameIndex  = 0
-        .currentTime = 0
+        .clearContent()
     }
 
-    // Associate an image list
-    mtd set(imageList: ImageList)
+    // Uses a borrowed image-list atlas as the frame source.
+    mtd setSpriteSheet(imageList: ImageList)
     {
+        Debug.assert(imageList.isValid(), "image list is invalid")
         .clear()
-        .source    = .SpriteSheet
-        .imgList   = imageList
-        .numFrames = .imgList.totalFrames
+        .source     = .SpriteSheet
+        .imgList    = imageList
+        .frameCount = .imgList.frameCount
     }
 
-    // Associate a filename
-    mtd set(fileName: string) fail
+    // Loads an animated GIF from a file without changing the movie on failure.
+    mtd load(fileName: string) fail
     {
-        .clear()
-        if .gif.IImageDecoder.canDecode(fileName)
-        {
-            .source = .Gif
-            .bytes  = File.readAllBytes(fileName)
-            .gif.init(.bytes.toSlice(), true)
-            .numFrames = .gif.getNumFrames()
-            .gif.getFrame(&.frame)
-            discard .gif.nextFrame(&.frame)
-            if .enableCache do
-                .cacheFrames.add(.frame)
-        }
-        else
-        {
+        var validator: Gif.Decoder
+        if !validator.IImageDecoder.canDecode(fileName) do
             fail UnsupportedFormatError{"unsupported format"}
-        }
+
+        var bytes = File.readAllBytes(fileName)
+        validator.open(bytes.toSlice())
+        let frameCount = validator.frameCount()
+        if frameCount <= 0 do
+            fail InvalidFormatError{"GIF contains no image frame"}
+        var firstFrame: Image
+        if !validator.nextFrame(&firstFrame) do
+            fail InvalidFormatError{"GIF contains no image frame"}
+
+        .clear()
+        .source = .Gif
+        .bytes  = #move bytes
+        expect .gif.open(.bytes.toSlice())
+        .frameCount = expect .gif.frameCount()
+        discard expect .gif.nextFrame(&.frame)
+        if .cachesFrames do
+            .cachedFrames.add(.frame)
     }
 
-    // Returns true if the movie has valid content
-    mtd isValid()->bool
+    // Reports whether a playable source is loaded.
+    mtd const isValid()->bool
     {
         switch #complete .source
         {
         case .None:        return false
-        case .SpriteSheet: return .imgList.texture.valid
-        case .Gif:         return .frame.pixels.buffer != null
+        case .SpriteSheet: return .imgList.isValid()
+        case .Gif:         return .frame.isValid()
         }
 
         return false
     }
 
-    // Set the current video frame
-    mtd setFrameIndex(idx: s32)
+    // Selects a frame, clamping the index to the loaded frame range.
+    mtd setFrameIndex(index: s32)
     {
-        if idx == .frameIndex do
+        if !.isValid() do
             return
-        .frameIndex = Math.min(idx, .numFrames)
+
+        let targetIndex = Math.clamp(index, 0, .frameCount - 1)
+        if targetIndex == .frameIndex do
+            return
 
         switch #complete .source
         {
@@ -156,42 +178,61 @@ impl Movie
             break
 
         case .Gif:
-            .frameIndex = Math.min(idx, .numFrames)
-            if .frameIndex < .cacheFrames.count
+            if targetIndex < .cachedFrames.count
             {
-                .frame      = .cacheFrames[.frameIndex]
-                .dirtyFrame = true
+                .frame = .cachedFrames[targetIndex]
+            }
+            else
+            {
+                .gif.rewind()
+                if .cachesFrames do
+                    .cachedFrames.clear()
+                for targetIndex + 1
+                {
+                    discard expect .gif.nextFrame(&.frame)
+                    if .cachesFrames do
+                        .cachedFrames.add(.frame)
+                }
             }
 
         case .SpriteSheet:
             break
         }
 
+        .frameIndex = targetIndex
+        .dirtyFrame = true
         .sigFrameChanged.call(me)
     }
 
-    // Set/Reset pause state
-    mtd pause(state: bool)
+    // Pauses or resumes time-based playback.
+    mtd setPaused(paused: bool)
     {
-        .inPause = state
+        .isPaused = paused
     }
 
-    // Update timing and change frames
-    mtd update(dt: f32)->bool
+    // Advances playback by `deltaSeconds` and reports whether the frame changed.
+    mtd update(deltaSeconds: f32)->bool
     {
+        Debug.assert(deltaSeconds >= 0, "frame delta cannot be negative")
+        Debug.assert(.frameDurationSeconds > 0, "frame duration must be positive")
+
         let wasDirty = .dirtyFrame
         .dirtyFrame = false
 
-        if .inPause do
+        if .isPaused do
             return wasDirty
 
         var hasChanged = false
-        .currentTime += dt
-        while .currentTime > .playFreq
+        .elapsedFrameSeconds += deltaSeconds
+        while .elapsedFrameSeconds >= .frameDurationSeconds
         {
-            hasChanged   = true
-            .currentTime -= .playFreq
-            .nextFrame()
+            .elapsedFrameSeconds -= .frameDurationSeconds
+            if !.nextFrame()
+            {
+                .elapsedFrameSeconds = 0
+                break
+            }
+            hasChanged = true
         }
 
         return hasChanged or wasDirty

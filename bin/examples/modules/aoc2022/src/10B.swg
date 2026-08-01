@@ -125,7 +125,7 @@ using Core
 
 func day10B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     #[Swag.Mixin]

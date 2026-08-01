@@ -3,17 +3,53 @@
 
 using Math
 
-// Allows reading position and button click information from mouse
+// Tracks mouse position, buttons, transitions, and double-clicks across updates.
 struct Mouse
 {
-    previousState: MouseState             // Previous state associated with this value.
-    currentState:  MouseState             // Current state associated with this value.
-    dblClk:        [MouseButton] bool     // Dbl clk associated with this value.
-    dblClkTimeMs:  u32 = 300              // Dbl clk time ms associated with this value.
+    readonly
+    {
+        previousState: MouseState            // State captured before the latest update.
+        currentState:  MouseState            // State captured by the latest update.
+    }
+
+    doubleClickTimeMs: u32 = 300     // Maximum interval recognized as a double-click.
+
+    internal
+    {
+        doubleClicked: [MouseButton] bool
+    }
 }
 
 impl Mouse
 {
+    // Test and backend hook kept out of the documented product surface.
+    #[Swag.NoDoc]
+    mtd setCurrentButtonState(button: MouseButton, pressed: bool)
+    {
+        .currentState.setPressed(button, pressed)
+    }
+
+    internal mtd setButtonStates(button: MouseButton, previousPressed, currentPressed, doubleClicked: bool)
+    {
+        .previousState.setPressed(button, previousPressed)
+        .currentState.setPressed(button, currentPressed)
+        .doubleClicked[button] = doubleClicked
+    }
+
+    // Test and backend hook kept out of the documented product surface.
+    #[Swag.NoDoc]
+    mtd setPositions(previous, current: Point)
+    {
+        .previousState.setPosition(previous)
+        .currentState.setPosition(current)
+    }
+
+    internal mtd setPressMetadata(button: MouseButton, previousTimeMs, currentTimeMs: u64, previousPosition, currentPosition: Point)
+    {
+        .previousState.setPressMetadata(button, previousTimeMs, previousPosition)
+        .currentState.setPressMetadata(button, currentTimeMs, currentPosition)
+    }
+
     // Compute the current state of the mouse
     mtd update()
     {
@@ -23,13 +59,13 @@ impl Mouse
         // Dbl click
         for v in MouseButton
         {
-            .dblClk[v] = false
+            .doubleClicked[v] = false
             if .currentState.pressed[v] and !.previousState.pressed[v] and .previousState.pressedTime[v]
             {
-                if .currentState.pressedTime[v] - .previousState.pressedTime[v] < .dblClkTimeMs
+                if .currentState.pressedTime[v] - .previousState.pressedTime[v] < .doubleClickTimeMs
                 {
                     if .currentState.pressedPos[v] == .previousState.pressedPos[v] do
-                        .dblClk[v] = true
+                        .doubleClicked[v] = true
                 }
             }
         }
@@ -40,15 +76,16 @@ impl Mouse
     {
         .previousState.clear()
         .currentState.clear()
+        Memory.clear(&.doubleClicked, #sizeof(.doubleClicked))
     }
 
-    // Returns whether button double click.
+    // Returns whether `button` completed a double-click during the latest update.
     mtd isButtonDoubleClick(button: MouseButton)->bool
     {
-        return .dblClk[button]
+        return .doubleClicked[button]
     }
 
-    // Determins if one given mouse button is pressed or not
+    // Returns whether `button` is currently pressed according to the operating system.
     func isButtonPressed(button: MouseButton)->bool
     {
         using MouseButton
@@ -88,20 +125,20 @@ impl Mouse
         return !.currentState.pressed[button] and .previousState.pressed[button]
     }
 
-    // Returns the previous mouse position, before the last update
-    mtd getPreviousPos()->Point
+    // Returns the cursor position before the latest update.
+    mtd previousPosition()->Point
     {
         return .previousState.position
     }
 
-    // Returns the mouse position
-    mtd getPosition()->Point
+    // Returns the current cursor position.
+    mtd position()->Point
     {
         return .currentState.position
     }
 
-    // Returns the move between the current position and the previous one
-    mtd getMove()->Point
+    // Returns the cursor movement since the previous update.
+    mtd movement()->Point
     {
         return .currentState.position - .previousState.position
     }

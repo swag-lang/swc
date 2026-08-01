@@ -2,34 +2,37 @@
 
 using Core, Pixel
 
-// Selects label flags.
+// Configures label text layout and theme emphasis.
 #[Swag.EnumFlags]
 enum LabelFlags
 {
-    Zero = 0                      // No flags are enabled.
-    WordWrap                      // Enables word wrap.
-    LightText                     // Enables light text.
-    AutoHeight                    // Enables auto height.
-    DontAdaptSingleLineHeight     // Enables dont adapt single line height.
+    None = 0                     // Uses a single line, primary text color, and caller-controlled height.
+    WordWrap                     // Wraps text to the available width.
+    SecondaryText                // Uses the theme's lower-emphasis text color.
+    AutoHeight                   // Fits the window height to laid-out text.
+    PreserveSingleLineHeight     // Preserves the font line box instead of adapting it to visible glyphs.
 }
 
-// Represents label.
+// Displays rich text and an optional icon, and reports activated links.
 struct Label
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
-    sigUrlClicked: SigArray'func||(*Label, string)     // Signal emitted when url clicked.
+    sigLinkActivated: SigArray'func||(*Label, string)     // Emitted when the user activates a rich-text link.
 
-    icon:        Icon                                  // Icon associated with this value.
-    iconColor:   Color                                 // Icon color associated with this value.
-    textColor:   Color                                 // Text color associated with this value.
-    labelFlags        = LabelFlags.Zero                // Label flags associated with this value.
-    horzAlignmentIcon = StringHorzAlignment.Center     // Horz alignment icon associated with this value.
-    vertAlignmentIcon = StringVertAlignment.Center     // Vert alignment icon associated with this value.
-    horzAlignmentText = StringHorzAlignment.Center     // Horz alignment text associated with this value.
-    vertAlignmentText = StringVertAlignment.Center     // Vert alignment text associated with this value.
-    paddingText: Math.Vector4                          // Padding text associated with this value.
-    paddingIcon: Math.Vector4                          // Padding icon associated with this value.
+    readonly
+    {
+        icon:                    Icon                               // Optional displayed icon.
+        iconColor:               Color                              // Explicit icon color, or transparent for the icon or theme color.
+        textColor:               Color                              // Explicit text color, or transparent for theme colors.
+        flags                    = LabelFlags.None                  // Active text layout and presentation options.
+        iconHorizontalAlignment  = StringHorzAlignment.Center       // Horizontal icon alignment.
+        iconVerticalAlignment    = StringVertAlignment.Center       // Vertical icon alignment.
+        textHorizontalAlignment  = StringHorzAlignment.Center       // Horizontal text alignment.
+        textVerticalAlignment    = StringVertAlignment.Center       // Vertical text alignment.
+        textPadding: Math.Vector4                                   // Insets applied to the text layout rectangle.
+        iconPadding: Math.Vector4                                   // Insets applied to the icon layout rectangle.
+    }
 
     // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
     internal hotChunk: #null *RichChunk
@@ -42,17 +45,17 @@ impl IWnd for Label
         let pos = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
         {
-        case .MouseWheel:
+        case .Wheel:
             evt.accepted = false
             return
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left and .hotChunk do
-                .sigUrlClicked.call(me, .hotChunk.slice)
+                .sigLinkActivated.call(me, .hotChunk.slice)
             else do
                 evt.accepted = false
 
-        case .MouseMove:
+        case .Move:
             let chunk = .name.getUrlChunkAt(pos)
             if chunk != .hotChunk
             {
@@ -60,7 +63,7 @@ impl IWnd for Label
                 if chunk
                 {
                     chunk.isHotUrl = true
-                    .getApp().setFrameCursor(Cursor.from(.Hand))
+                    .app().setFrameCursor(Cursor.from(.Hand))
                 }
                 elif .hotChunk
                 {
@@ -70,7 +73,7 @@ impl IWnd for Label
                 .hotChunk = chunk
             }
 
-        case .MouseLeave:
+        case .Leave:
             if .hotChunk
             {
                 .hotChunk.isHotUrl = false
@@ -80,13 +83,13 @@ impl IWnd for Label
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc      = evt.bc
-        let theme   = .getTheme()
-        let painter = evt.bc.painter
+        let bc      = evt.paintContext
+        let theme   = .theme()
+        let painter = evt.paintContext.painter
 
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         var pos        = clientRect
         pos.applyPadding(.padding)
 
@@ -94,15 +97,15 @@ impl IWnd for Label
         if .icon.isValid()
         {
             var posIcon = pos
-            posIcon.applyPadding(.paddingIcon)
+            posIcon.applyPadding(.iconPadding)
 
-            switch .horzAlignmentIcon
+            switch .iconHorizontalAlignment
             {
             case .Right:  posIcon.x = posIcon.right() - .icon.sizeX
             case .Center: posIcon.x = posIcon.horzCenter() - (.icon.sizeX * 0.5)
             }
 
-            switch .vertAlignmentIcon
+            switch .iconVerticalAlignment
             {
             case .Bottom: posIcon.y = posIcon.bottom() - .icon.sizeY
             case .Center: posIcon.y = posIcon.vertCenter() - (.icon.sizeY * 0.5)
@@ -121,17 +124,17 @@ impl IWnd for Label
         if !.name.isEmpty()
         {
             var posText = pos
-            posText.applyPadding(.paddingText)
+            posText.applyPadding(.textPadding)
 
             // Optically center the text against a vertically-centered icon. A glyph line box is
             // descent-heavy, so geometric centering leaves the visible text sitting slightly high of
             // a centered icon. When an icon is present, the text is vertically centered, and the
-            // caller has not already nudged it by hand (paddingText.y == 0), shift the text down by
+            // caller has not already nudged it by hand (textPadding.y == 0), shift the text down by
             // half the (negative) descent. This is the general fix for the recurring icon+text
-            // vertical-alignment mismatch — callers no longer need to hand-tune paddingText.
-            if .icon.isValid() and .vertAlignmentText == .Center and .paddingText.y == 0
+            // vertical-alignment mismatch — callers no longer need to hand-tune textPadding.
+            if .icon.isValid() and .textVerticalAlignment == .Center and .textPadding.y == 0
             {
-                let font = .getFont().regular
+                let font = .font().regular
                 if font do
                     posText.y -= font.descent * 0.5
             }
@@ -146,17 +149,17 @@ impl Label
 {
     private mtd getStringFormat(isDisabled: bool)->RichStringFormat
     {
-        let theme = .getTheme()
+        let theme = .theme()
 
         var sf: retval
         sf.flags |= .Clip
-        if .labelFlags.has(.WordWrap) do
+        if .flags.has(.WordWrap) do
             sf.flags.add(.WordWrap)
-        if .labelFlags.has(.DontAdaptSingleLineHeight) do
+        if .flags.has(.PreserveSingleLineHeight) do
             sf.flags.add(.DontAdaptSingleLineHeight)
-        sf.font          = .getFont()
-        sf.horzAlignment = .horzAlignmentText
-        sf.vertAlignment = .vertAlignmentText
+        sf.font          = .font()
+        sf.horzAlignment = .textHorizontalAlignment
+        sf.vertAlignment = .textVerticalAlignment
 
         if .textColor.a
         {
@@ -178,7 +181,7 @@ impl Label
         }
         else
         {
-            if .labelFlags.has(.LightText) do
+            if .flags.has(.SecondaryText) do
                 sf.palette[0] = theme.colors.label_TextLight
             else do
                 sf.palette[0] = theme.colors.label_Text
@@ -192,39 +195,138 @@ impl Label
         return sf
     }
 
-    // Performs the create operation.
+    // Creates a label with optional wrapping, sizing, and link behavior.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: LabelFlags = .Zero)->*Label
+    func create(parent: *Wnd, name: #null string, position: Math.Rectangle = {}, id: #null WndId = null, flags: LabelFlags = .None)->*Label
     {
         Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().label_Height
+            pos.height = parent.themeMetrics().label_Height
         let lbl = Wnd.create'Label(parent, "", pos, id)
-        lbl.labelFlags = flags
+        lbl.flags = flags
         lbl.setText(name)
         return lbl
     }
 
-    // Change the text
+    // Replaces the displayed rich text and reapplies automatic sizing.
     mtd setText(text: #null string)
     {
         .name.set(text)
         .invalidate()
-        .autoHeight()
+        .updateAutomaticHeight()
     }
 
-    // Get the text
-    mtd getText()->string
+    // Returns the displayed plain text.
+    mtd text()->string
     {
         return .name.raw
     }
 
-    // Recompute widget height.
-    // The widget must have the flag 'AutoHeight'.
-    mtd autoHeight()
+    // Adds and removes label options, then updates layout and presentation.
+    mtd updateFlags(add: LabelFlags = .None, remove = LabelFlags.None)
     {
-        if .labelFlags.has(.AutoHeight)
+        var newFlags = .flags
+        newFlags.add(add)
+        newFlags.remove(remove)
+        if .flags == newFlags do
+            return
+        .flags = newFlags
+        .invalidate()
+        .updateAutomaticHeight()
+    }
+
+    // Changes text alignment and updates automatic height when needed.
+    mtd setTextAlignment(horizontal: StringHorzAlignment, vertical: StringVertAlignment)
+    {
+        if .textHorizontalAlignment == horizontal and .textVerticalAlignment == vertical do
+            return
+        .textHorizontalAlignment = horizontal
+        .textVerticalAlignment   = vertical
+        .invalidate()
+        .updateAutomaticHeight()
+    }
+
+    // Changes horizontal text alignment.
+    mtd setTextHorizontalAlignment(alignment: StringHorzAlignment)
+    {
+        .setTextAlignment(alignment, .textVerticalAlignment)
+    }
+
+    // Changes vertical text alignment.
+    mtd setTextVerticalAlignment(alignment: StringVertAlignment)
+    {
+        .setTextAlignment(.textHorizontalAlignment, alignment)
+    }
+
+    // Changes icon alignment.
+    mtd setIconAlignment(horizontal: StringHorzAlignment, vertical: StringVertAlignment)
+    {
+        if .iconHorizontalAlignment == horizontal and .iconVerticalAlignment == vertical do
+            return
+        .iconHorizontalAlignment = horizontal
+        .iconVerticalAlignment   = vertical
+        .invalidate()
+    }
+
+    // Changes horizontal icon alignment.
+    mtd setIconHorizontalAlignment(alignment: StringHorzAlignment)
+    {
+        .setIconAlignment(alignment, .iconVerticalAlignment)
+    }
+
+    // Changes vertical icon alignment.
+    mtd setIconVerticalAlignment(alignment: StringVertAlignment)
+    {
+        .setIconAlignment(.iconHorizontalAlignment, alignment)
+    }
+
+    // Changes text insets and updates automatic height when needed.
+    mtd setTextPadding(padding: Math.Vector4)
+    {
+        if .textPadding == padding do
+            return
+        .textPadding = padding
+        .invalidate()
+        .updateAutomaticHeight()
+    }
+
+    // Changes icon insets.
+    mtd setIconPadding(padding: Math.Vector4)
+    {
+        if .iconPadding == padding do
+            return
+        .iconPadding = padding
+        .invalidate()
+    }
+
+    // Changes the displayed icon.
+    mtd setIcon(icon: Icon)
+    {
+        .icon = icon
+        .invalidate()
+    }
+
+    // Changes the explicit icon color; transparent restores automatic coloring.
+    mtd setIconColor(color: Color)
+    {
+        .iconColor = color
+        .invalidate()
+    }
+
+    // Changes the explicit text color; transparent restores theme coloring.
+    mtd setTextColor(color: Color)
+    {
+        .textColor = color
+        .invalidate()
+    }
+
+    // Recomputes height from current text, width, font, flags, and text padding.
+    //
+    // This method has no effect unless [[LabelFlags.AutoHeight]] is active.
+    mtd updateAutomaticHeight()
+    {
+        if .flags.has(.AutoHeight)
         {
             let sf   = .getStringFormat(false)
             var rect = .position
@@ -235,9 +337,9 @@ impl Label
             if rect.height <= 0 do
                 rect.height = (notnull sf.font.regular).height
 
-            // The text is drawn inside paddingText, so wrap against that inset width (else a
+            // The text is drawn inside textPadding, so wrap against that inset width (else a
             // padded label under-measures and clips), and add the vertical inset back in.
-            rect.applyPadding(.paddingText)
+            rect.applyPadding(.textPadding)
 
             .name.compute()
             Painter.computeLayout(rect, &.name, sf)
@@ -245,7 +347,7 @@ impl Label
             var height = .name.boundRect.height
             if !.name.isEmpty() do
                 height       = Math.max(height, (notnull sf.font.regular).height)
-            height           += .paddingText.y + .paddingText.w
+            height           += .textPadding.y + .textPadding.w
             .position.height = height
             .preferredSize.y = height
         }

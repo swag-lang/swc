@@ -2,16 +2,16 @@ using Core
 
 impl Image
 {
-    // Clockwise quarter-turn applied by [[Image.turn]] and [[Image.toTurn]].
-    public enum TurnAngle
+    // Clockwise rotation applied by [[Image.rotate]] and [[Image.rotated]].
+    public enum Rotation
     {
-        T90      // Rotate clockwise by 90 degrees.
-        T180     // Rotate by 180 degrees.
-        T270     // Rotate clockwise by 270 degrees.
+        Clockwise90      // Rotate clockwise by 90 degrees.
+        HalfTurn         // Rotate by 180 degrees.
+        Clockwise270     // Rotate clockwise by 270 degrees.
     }
 
     #[Swag.Safety(.All, false)]
-    mtd const doTurn(dstImage: *Image, angle: TurnAngle)
+    mtd const doTurn(dstImage: *Image, angle: Rotation)
     {
         #[Swag.Mixin]
         func(BPP: u8) doIt()
@@ -19,42 +19,42 @@ impl Image
             var f = {img: me}
             switch angle
             {
-            case .T90:
+            case .Clockwise90:
                 dstImage.visitPixels(&f)
                 {
                     let data     = cast(*#decltype(f)) (notnull userData)
                     let srcImage = cast(const *Image) data.img
                     let nx       = srcImage.width - y - 1
                     let ny       = x
-                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bpp8) + (ny * srcImage.width8)
+                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
                     copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
                 }
 
-            case .T180:
+            case .HalfTurn:
                 dstImage.visitPixels(&f)
                 {
                     let data     = cast(*#decltype(f)) (notnull userData)
                     let srcImage = cast(const *Image) data.img
                     let nx       = srcImage.width - x - 1
                     let ny       = srcImage.height - y - 1
-                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bpp8) + (ny * srcImage.width8)
+                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
                     copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
                 }
 
-            case .T270:
+            case .Clockwise270:
                 dstImage.visitPixels(&f)
                 {
                     let data     = cast(*#decltype(f)) (notnull userData)
                     let srcImage = cast(const *Image) data.img
                     let nx       = y
                     let ny       = srcImage.height - x - 1
-                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bpp8) + (ny * srcImage.width8)
+                    let pixSrc   = srcImage.pixels.buffer + (nx * srcImage.bytesPerPixel) + (ny * srcImage.rowStride)
                     copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
                 }
             }
         }
 
-        switch .bpp
+        switch .bitsPerPixel
         {
         case 24: doIt'24()
         case 32: doIt'32()
@@ -62,28 +62,28 @@ impl Image
         }
     }
 
-    // Turn image by a given predefined angle
-    public mtd turn(angle: TurnAngle)
+    // Rotates the image clockwise by a predefined angle.
+    public mtd rotate(angle: Rotation)
     {
         Debug.assert(.pixels.buffer != null)
-        if angle == .T180 do
+        if angle == .HalfTurn do
             .allocWorkingBuffer()
         else do
-            .allocWorkingBuffer(.height, .width, .pf)
+            .allocWorkingBuffer(.height, .width, .pixelFormat)
         .doTurn(.safeWorkingBuffer(), angle)
         .applyWorkingBuffer()
     }
 
-    // Turn image by a given predefined angle
-    public mtd const toTurn(angle: TurnAngle)->Image
+    // Returns a clockwise-rotated copy of the image.
+    public mtd const rotated(angle: Rotation)->Image
     {
         Debug.assert(.pixels.buffer != null)
 
         var result: retval
-        if angle == .T180 do
-            result = create(.width, .height, .pf)
+        if angle == .HalfTurn do
+            result = create(.width, .height, .pixelFormat)
         else do
-            result = create(.height, .width, .pf)
+            result = create(.height, .width, .pixelFormat)
         .doTurn(&result, angle)
         return result
     }

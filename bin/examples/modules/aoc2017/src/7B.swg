@@ -21,7 +21,7 @@ using Core
 internal struct Pile
 {
     val:    s32
-    childs: Array'(string)
+    children: Array'(string)
 }
 
 internal struct ChildTotal
@@ -32,7 +32,7 @@ internal struct ChildTotal
 
 func day7B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
     var set:    HashTable'(string, Pile)
     var result: s64
@@ -52,7 +52,7 @@ func day7B()
             continue
         let self = set.find(n[0])
         for v in n[1 to] do
-            self.value.childs.add(v)
+            self.value.children.add(v)
     }
 
     func sum(set: &HashTable'(string, Pile), result: &s64, w: Pile)->u64
@@ -63,7 +63,7 @@ func day7B()
         var total: u64
         var sums:  Array'ChildTotal
 
-        for v, [i] in w.childs
+        for v, [i] in w.children
         {
             let s = sum(set, result, set.find(v).value)
             sums.add({i, s})
@@ -75,7 +75,7 @@ func day7B()
             sums.sort(func(x, y) => x.total <=> y.total)
             if sums[sums.count - 2].total != sums[sums.count - 1].total
             {
-                let v = set.find(w.childs[sums[sums.count - 1].rank])
+                let v = set.find(w.children[sums[sums.count - 1].rank])
                 result = sums[sums.count - 2].total - sums[sums.count - 1].total + v.value.val
             }
         }

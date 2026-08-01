@@ -31,7 +31,7 @@ var g_TestFrame: s32
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {
-    let srcPath = Path.getDirectoryName(loc.fileName)
+    let srcPath = Path.directoryName(loc.fileName)
     return Path.combine(Path.combine(srcPath, "data"), fileName)
 }
 
@@ -53,7 +53,7 @@ func buildFillBrushImage()->Image
     var img = Image.create(96, 96, .RGBA8)
     for [y] in img.height
     {
-        var pix = (notnull img.pixels.buffer) + y * img.width8
+        var pix = (notnull img.pixels.buffer) + y * img.rowStride
         for [x] in img.width
         {
             if ((x / 12 + y / 12) & 1) == 0
@@ -78,7 +78,7 @@ func buildFillBrushImage()->Image
                 pix[2] = 228
             }
 
-            pix += img.bpp8
+            pix += img.bytesPerPixel
         }
     }
 
@@ -90,7 +90,7 @@ func buildTileBrushImage()->Image
     var img = Image.create(48, 48, .RGBA8)
     for [y] in img.height
     {
-        var pix = (notnull img.pixels.buffer) + y * img.width8
+        var pix = (notnull img.pixels.buffer) + y * img.rowStride
         for [x] in img.width
         {
             if ((x / 8 + y / 8) & 1) == 0
@@ -115,7 +115,7 @@ func buildTileBrushImage()->Image
                 pix[2] = 26
             }
 
-            pix += img.bpp8
+            pix += img.bytesPerPixel
         }
     }
 
@@ -131,7 +131,7 @@ func loadBrushTextures()
 
 func loadTextShowcase()
 {
-    expect (notnull g_TypeFace).getStringOutline(&g_OutlineText, "PIXEL", 84)
+    expect (notnull g_TypeFace).buildStringOutline(&g_OutlineText, "PIXEL", 84)
 }
 
 func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectangle
@@ -349,7 +349,7 @@ func updateShortcuts()
 
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") do
+    if !Env.hasArgument("swag.test") do
         return
 
     g_TestFrame += 1
@@ -379,7 +379,7 @@ func updateTestMode()
     try g_Window.show()
 
     var loop: Env.WindowLoop
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         loop.maxTestFrames = cast(u32) MaxPages * cast(u32) TestFramesPerPage
     while loop.next()
     {

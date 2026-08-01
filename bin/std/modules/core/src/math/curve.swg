@@ -81,7 +81,7 @@ internal func solveQuadratic(a: f32, b: f32, c: f32)->Array'f32
 
 // Calculate the axis-aligned bounding box of a cubic Bézier curve.
 // Finds extrema by solving the derivative equation and evaluating the curve at critical points.
-func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
+func bezierBounds(start, end, ctrl0, ctrl1: Vector2)->Rectangle
 {
     // Start with endpoints
     var minX = Math.min(start.x, end.x)
@@ -125,7 +125,7 @@ func getBezierBoundingBox(start, end, ctrl0, ctrl1: Vector2)->Rectangle
 
 // Calculate the axis-aligned bounding box of a quadratic Bézier curve.
 // Finds extrema by solving the linear derivative equation for critical points.
-func getBezierBoundingBox(start, end, ctrl: Vector2)->Rectangle
+func bezierBounds(start, end, ctrl: Vector2)->Rectangle
 {
     // Start with endpoints
     var minX = Math.min(start.x, end.x)

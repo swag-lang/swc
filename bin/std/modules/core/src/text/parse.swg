@@ -331,7 +331,7 @@ func parseBool(str: string)->{ value: bool, eat: u32 } fail
 {
     var result: retval
 
-    let sub = Tokenize.getWhileAlnum(str)
+    let sub = Tokenize.alphanumericPrefix(str)
     switch sub
     {
     case "1", "true", "TRUE", "True":    result.value = true

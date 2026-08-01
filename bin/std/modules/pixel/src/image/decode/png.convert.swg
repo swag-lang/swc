@@ -43,7 +43,7 @@ impl Decoder
                 if .seenTRSN do
                     dst[3] = gray == transparent ? 0'u8 : 255'u8
                 src        += 2
-                dst        += result.bpp8
+                dst        += result.bytesPerPixel
             }
 
         case 2:
@@ -67,7 +67,7 @@ impl Decoder
                 if .seenTRSN do
                     dst[3] = r == transparentR and g == transparentG and b == transparentB ? 0'u8 : 255'u8
                 src        += 6
-                dst        += result.bpp8
+                dst        += result.bytesPerPixel
             }
 
         case 4:
@@ -118,7 +118,7 @@ impl Decoder
                 dst[1] = cast() ((color >> 8) & 0xFF)
                 dst[2] = cast() (color & 0xFF)
                 src    += 1
-                dst    += result.bpp8
+                dst    += result.bytesPerPixel
             }
         }
 
@@ -136,7 +136,7 @@ impl Decoder
                 dst[2] = cast() (color & 0xFF)
                 dst[3] = pal < @countof(.safeTRNSData()) ? .safeTRNSData()[pal] : 255
                 src    += 1
-                dst    += result.bpp8
+                dst    += result.bytesPerPixel
             }
         }
 
@@ -151,7 +151,7 @@ impl Decoder
                 dst[1] = src[0]
                 dst[2] = src[0]
                 src    += 1
-                dst    += result.bpp8
+                dst    += result.bytesPerPixel
             }
         }
 
@@ -170,7 +170,7 @@ impl Decoder
                 dst[2] = src[0]
                 dst[3] = src[0] == key ? 0 : 255
                 src    += 1
-                dst    += result.bpp8
+                dst    += result.bytesPerPixel
             }
         }
 
@@ -186,7 +186,7 @@ impl Decoder
                 dst[2] = src[0]
                 dst[3] = src[1]
                 src    += 2
-                dst    += result.bpp8
+                dst    += result.bytesPerPixel
             }
         }
 
@@ -209,7 +209,7 @@ impl Decoder
                 else do
                     dst[3] = 255
                 src        += 3
-                dst        += result.bpp8
+                dst        += result.bytesPerPixel
             }
         }
     }

@@ -1,29 +1,5 @@
 using Core, Gui, Pixel
 
-func bindRadioGroup(r0, r1, r2: *RadioButton)
-{
-    r0.sigChanged += func|r0, r1, r2|(btn)
-    {
-        r0.setChecked(true)
-        r1.setChecked(false)
-        r2.setChecked(false)
-    }
-
-    r1.sigChanged += func|r0, r1, r2|(btn)
-    {
-        r0.setChecked(false)
-        r1.setChecked(true)
-        r2.setChecked(false)
-    }
-
-    r2.sigChanged += func|r0, r1, r2|(btn)
-    {
-        r0.setChecked(false)
-        r1.setChecked(false)
-        r2.setChecked(true)
-    }
-}
-
 func createRadioButtonPage(parent: *Wnd)
 {
     let layout = getPagePanelLayout(parent)
@@ -32,21 +8,21 @@ func createRadioButtonPage(parent: *Wnd)
         let r0 = RadioButton.create(left, "Compact", {24, 90, 180})
         let r1 = RadioButton.create(left, "Comfortable", {24, 128, 180})
         let r2 = RadioButton.create(left, "Expanded", {24, 166, 180})
+        r0.groupId, r1.groupId, r2.groupId = "density"
         r1.setChecked(true)
-        bindRadioGroup(r0, r1, r2)
     }
 
     let right = createPanel(parent, "Alignment", "Radio buttons can also put the marker on the right side.", layout.right)
     {
         var radio = RadioButton.create(right, "Marker right", {24, 90, 250})
-        radio.radioButtonFlags |= .RightAlign
+        radio.updateFlags(.RightAligned)
 
         radio                  = RadioButton.create(right, "Selected right", {24, 128, 250})
-        radio.radioButtonFlags |= .RightAlign
+        radio.updateFlags(.RightAligned)
         radio.setChecked(true)
 
         radio                  = RadioButton.create(right, "Disabled selected", {24, 166, 250})
-        radio.radioButtonFlags |= .RightAlign
+        radio.updateFlags(.RightAligned)
         radio.setChecked(true)
         radio.disable()
     }

@@ -31,15 +31,15 @@ func reusedJobEntry(data: #null *void)
 func waitJobThread(th: Threading.Thread)
 {
     let data = cast(*WaitJobThreadData) (notnull th.userParam)
-    Jobs.waitJob(data.job)
+    Jobs.wait(data.job)
     Atomic.add(data.waitReturned, 1)
 }
 
 #test
 {
-    if Jobs.getNumWorkers() == 0
+    if Jobs.workerCount() == 0
     {
-        discard catch Jobs.setNumWorkers(1) as err
+        discard catch Jobs.initialize(1) as err
         @assert(err == null)
     }
 
@@ -51,11 +51,11 @@ func waitJobThread(th: Threading.Thread)
     job.lambda = &reusedJobEntry
     job.data   = &jobData
 
-    Jobs.scheduleJob(&job)
-    Jobs.waitJob(&job)
+    Jobs.schedule(&job)
+    Jobs.wait(&job)
     @assert(Atomic.get(&jobData.executionCount) == 1)
 
-    Jobs.scheduleJob(&job)
+    Jobs.schedule(&job)
     jobData.startedSecondRun.wait()
 
     var waitReturned: s32 = 0
@@ -78,7 +78,7 @@ func waitJobThread(th: Threading.Thread)
 
     jobData.allowSecondRun.signal()
     waitThread.wait()
-    Jobs.waitDone()
+    Jobs.waitAll()
 
     @assert(returnedWhileBlocked == 0)
     @assert(Atomic.get(&jobData.executionCount) == 2)

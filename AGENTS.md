@@ -5,6 +5,11 @@ All AI instructions for modifying this repository live in `.agents/skills/`.
 Before changing code, tests, examples, or build files, read and follow
 [modify-swag-codebase](.agents/skills/modify-swag-codebase/SKILL.md).
 
+When adding, changing, reviewing, or normalizing a public module API under `bin/`, also read
+and follow [design-swag-bin-modules](.agents/skills/design-swag-bin-modules/SKILL.md): module
+boundaries, naming, ownership, failure behavior, operation families, and compatibility must be
+reviewed as one contract.
+
 When the change affects English text emitted to users, also read and follow
 [write-swag-compiler-messages](.agents/skills/write-swag-compiler-messages/SKILL.md).
 

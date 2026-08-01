@@ -40,7 +40,7 @@ using Core
 
 func day10A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     let slice    = Tokenize.split(expect File.readAllText(dataPath), ",")
     let nums     = Slice.map(slice[to], func(x) => expect StrConv.toS32(x))
 

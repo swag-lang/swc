@@ -3,16 +3,16 @@
 // Represents a virtual system key
 public alias VirtualKey = u32
 
-// Selects key modifiers.
+// Combines keyboard modifiers used by shortcuts and input events.
 #[Swag.EnumFlags]
 public enum KeyModifiers
 {
-    Zero = 0                        // No flags are enabled.
-    Shift                           // Selects shift.
-    Control                         // Selects control.
-    Alt                             // Selects alt.
-    CtrlShift = Control | Shift     // Selects ctrl shift.
-    CtrlAlt   = Control | Alt       // Selects ctrl alt.
+    None = 0                        // No modifier is active.
+    Shift                           // Either Shift key.
+    Control                         // Either Control key.
+    Alt                             // Either Alt key.
+    CtrlShift = Control | Shift     // Control and Shift.
+    CtrlAlt   = Control | Alt       // Control and Alt.
 }
 
 // Defines the keys on a keyboard
@@ -89,17 +89,15 @@ public enum Key
     FinalMode              // Selects final mode.
     G                      // Selects g.
     H                      // Selects h.
-    HanguelMode            // Selects hanguel mode.
     HangulMode             // Selects hangul mode.
     HanjaMode              // Selects hanja mode.
     Help                   // Selects help.
     Home                   // Selects home.
     I                      // Selects i.
-    IMEAccept              // Selects ime accept.
-    IMEAceept              // Selects ime aceept.
-    IMEConvert             // Selects ime convert.
-    IMEModeChange          // Selects ime mode change.
-    IMENonConvert          // Selects ime non convert.
+    ImeAccept              // Selects IME input acceptance.
+    ImeConvert             // Selects IME conversion.
+    ImeModeChange          // Selects an IME mode change.
+    ImeNonConvert          // Selects IME input without conversion.
     Insert                 // Selects insert.
     J                      // Selects j.
     JunjaMode              // Selects junja mode.
@@ -208,22 +206,22 @@ public enum Key
     Zoom                   // Selects zoom.
 }
 
-// Returns a "shortcut" display name
-public func getKeyName(mdf: KeyModifiers, key: Key)->String
+// Formats `modifiers` and `key` as a display-ready shortcut such as `Ctrl+S`.
+public func formatKeyShortcut(modifiers: KeyModifiers, key: Key)->String
 {
     var result: retval
 
-    if mdf & .Alt do
+    if modifiers & .Alt do
         result += "Alt"
 
-    if mdf & .Control
+    if modifiers & .Control
     {
         if result.length do
             result += "+"
         result     += "Ctrl"
     }
 
-    if mdf & .Shift
+    if modifiers & .Shift
     {
         if result.length do
             result += "+"
@@ -248,7 +246,7 @@ public func getKeyName(mdf: KeyModifiers, key: Key)->String
     case .NumPad9:  result += "9"
     case .Add:      result += "+"
     case .Subtract: result += "-"
-    default:        result += Reflection.getEnumName(Input.Key, &k, fullname: false)
+    default:        result += Reflection.enumName(Input.Key, &k, fullyQualified: false)
     }
 
     return result

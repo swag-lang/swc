@@ -26,7 +26,7 @@ using Core
 
 func day1B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "1.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "1.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var values: Array's64

@@ -7,7 +7,7 @@ using Core
 
 func day8B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var re = expect Parser.RegExp.create(#raw "(\w+) (\w+) (-?\d+) if (\w+) ([[:ascii:]]+) (-?\d+)")

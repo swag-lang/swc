@@ -85,7 +85,7 @@ using Core
 
 func day10A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "10.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "10.txt")
     let lines    = expect File.readAllLines(dataPath)
     var vals     = Slice.map(lines[to], func(x) => expect StrConv.toS64(x))
 

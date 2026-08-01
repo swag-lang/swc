@@ -3,22 +3,25 @@
 
 using Swag, Core.Errors
 
-/*
-A simple XML reader.
-In the case of a struct, the XML file must represent the structure layout (order of fields matters).
-*/
+// Reads XML whose element order matches the serialized Swag type.
+//
+// Unknown, missing, and reordered elements fail. The input slice is borrowed
+// until decoding completes.
 public struct Xml
 {
-    stream:    ByteStream         // Stream associated with this value.
-    line, col: u64 = 1            // Line associated with this value.
-    stackTags: Array'(string)     // Stack tags associated with this value.
+    internal
+    {
+        stream:    ByteStream         // Input cursor.
+        line, col: u64 = 1            // One-based source position.
+        stackTags: Array'(string)     // Borrowed open element names.
+    }
 }
 
 public impl Xml
 {
     // Returns version.
     #[Warning("Wrn0006", WarningLevel.Disable)]
-    mtd getVersion()->u32
+    mtd version()->u32
     {
         return 0
     }
@@ -30,8 +33,7 @@ public impl Xml
         return true
     }
 
-    // Reads tag.
-    mtd readTag()->string fail
+    internal mtd readTag()->string fail
     {
         .zapBlanks()
 
@@ -39,27 +41,25 @@ public impl Xml
         if c != '<' do
             fail .getError("malformed tag, missing opening [[<]]")
 
-        let start = .stream.getSeek()
+        let start = .stream.position()
         c = .stream.readU8()
         while c and c != '>' do
             c = .stream.readU8()
         if c != '>' do
             fail .getError("malformed tag, missing closing [[>]]")
 
-        let end = .stream.getSeek() - 1
+        let end = .stream.position() - 1
         return Latin1.trim(cast(string) (notnull .stream.readBuffer)[start until end])
     }
 
-    // Reads start tag.
-    mtd readStartTag()->string fail
+    internal mtd readStartTag()->string fail
     {
         let tag = .readTag()
         .stackTags.add(tag)
         return tag
     }
 
-    // Reads end tag.
-    mtd readEndTag() fail
+    internal mtd readEndTag() fail
     {
         let tag   = .readTag()
         let start = .stackTags.popBack()
@@ -67,8 +67,7 @@ public impl Xml
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
     }
 
-    // Returns error.
-    mtd getError(val: string)->SyntaxError
+    internal mtd getError(val: string)->SyntaxError
     {
         var err: retval
         err.message = Errors.mkString(val)
@@ -78,13 +77,12 @@ public impl Xml
         return err
     }
 
-    // Performs the zap blanks operation.
-    mtd zapBlanks()
+    internal mtd zapBlanks()
     {
         var c = .stream.peekU8()
         while c and Latin1.isSpace(c)
         {
-            .stream.moveSeek()
+            .stream.advance()
             if c == '\n'
             {
                 .line += 1
@@ -99,10 +97,13 @@ public impl Xml
         }
     }
 
-    // Defines start read.
+    // Starts decoding from borrowed XML bytes and resets reusable state.
     mtd startRead(input: const [..] u8)
     {
         .stream = ByteStream.openRead(input)
+        .line   = 1
+        .col    = 1
+        .stackTags.clear()
     }
 
     // Converts this value to next sequence element.
@@ -189,58 +190,58 @@ public impl Xml
         #static switch NT
         {
         case bool:
-            let val = StrConv.parseBool(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseBool(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case f32:
-            let val = StrConv.parseF32(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseF32(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case f64:
-            let val = StrConv.parseF64(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseF64(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s8:
-            let val = StrConv.parseS8(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS8(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s16:
-            let val = StrConv.parseS16(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS16(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s32:
-            let val = StrConv.parseS32(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS32(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case s64:
-            let val = StrConv.parseS64(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseS64(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u8:
-            let val = StrConv.parseU8(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU8(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u16:
-            let val = StrConv.parseU16(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU16(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u32:
-            let val = StrConv.parseU32(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU32(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case u64:
-            let val = StrConv.parseU64(.stream.remainReadToString())
-            .stream.moveSeek(val.eat)
+            let val = StrConv.parseU64(.stream.remainingString())
+            .stream.advance(val.eat)
             return val.value
 
         case Core.String:

@@ -3,7 +3,7 @@
 using Core, Core.Errors
 
 // Encodes true-color TGA images with optional run-length encoding.
-public struct Encoder {}
+internal struct Encoder {}
 
 // Configures TGA packet encoding.
 public struct EncodeOptions
@@ -62,7 +62,7 @@ func tgaRunLength(src: const [*] u8, index, pixelCount, bytesPerPixel: u64)->u64
 func writeTgaRle(result: *ConcatBuffer, image: Image)
 {
     let src           = cast(const [*] u8) (notnull image.pixels.buffer)
-    let bytesPerPixel = cast(u64) image.bpp8
+    let bytesPerPixel = cast(u64) image.bytesPerPixel
     let pixelCount    = cast(u64) image.width * cast(u64) image.height
 
     var index: u64
@@ -72,7 +72,7 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
         if runLength >= 2
         {
             result.addNative(cast(u8) (0x80 | (runLength - 1)))
-            writeTgaPixel(result, src + index * bytesPerPixel, image.pf)
+            writeTgaPixel(result, src + index * bytesPerPixel, image.pixelFormat)
             index += runLength
             continue
         }
@@ -89,15 +89,15 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
         let rawCount = index - rawStart
         result.addNative(cast(u8) (rawCount - 1))
         for [i] in rawCount do
-            writeTgaPixel(result, src + (rawStart + i) * bytesPerPixel, image.pf)
+            writeTgaPixel(result, src + (rawStart + i) * bytesPerPixel, image.pixelFormat)
     }
 }
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".tga"
+        return Path.lowercaseExtension(fileName) == ".tga"
     }
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
@@ -120,8 +120,8 @@ public impl IImageEncoder for Encoder
         header.imageTypeCode  = cast(u8) (userOptions.rle ? TYPE_RLE_RGB : TYPE_RGB)
         header.width          = cast(u16) image.width
         header.height         = cast(u16) image.height
-        header.bpp            = image.bpp
-        header.descriptorByte = image.pf.hasAlpha() ? 8'u8 : 0'u8
+        header.bitsPerPixel            = image.bitsPerPixel
+        header.descriptorByte = image.pixelFormat.hasAlpha() ? 8'u8 : 0'u8
         result.addStruct(header)
 
         if userOptions.rle
@@ -131,16 +131,16 @@ public impl IImageEncoder for Encoder
         }
 
         let src           = cast(const [*] u8) (notnull image.pixels.buffer)
-        let bytesPerPixel = cast(u64) image.bpp8
+        let bytesPerPixel = cast(u64) image.bytesPerPixel
         let pixelCount    = cast(u64) image.width * cast(u64) image.height
 
-        if image.pf == .BGR8 or image.pf == .BGRA8
+        if image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
         {
             result.addBytes(image.pixels.toSlice())
             return
         }
 
         for [i] in pixelCount do
-            writeTgaPixel(result, src + i * bytesPerPixel, image.pf)
+            writeTgaPixel(result, src + i * bytesPerPixel, image.pixelFormat)
     }
 }

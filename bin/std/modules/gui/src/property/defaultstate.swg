@@ -25,6 +25,7 @@ public enum PropDefaultState
 }
 
 // One default-constructed instance backing a struct added to the grid (owned; freed on destroy).
+#[Swag.NoDoc]
 public struct PropDefaultRoot
 {
     base: #null *u8          // Base associated with this value.
@@ -36,11 +37,11 @@ public struct PropDefaultRoot
 const PropRevertIconSize = 18'f32
 const PropRevertGap      = 4'f32
 
-impl Properties
+internal impl Properties
 {
     mtd revertButtonSize()->f32
     {
-        return .kind == .Condensed ? PropCondensedControlHeight : .getThemeMetrics().editBox_Height
+        return .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().editBox_Height
     }
 
     mtd revertIconSize(buttonSize: f32)->f32
@@ -99,7 +100,7 @@ impl Properties
     // comparable default, is not read-only, and its type is one the grid can copy back safely.
     mtd canReset(item: *PropertiesItem)->bool
     {
-        if !.showReverts or !item.defaultData or !item.data or !item.type do
+        if !.revertButtonsVisible or !item.defaultData or !item.data or !item.type do
             return false
         if .isItemReadOnly(item) do
             return false
@@ -165,7 +166,7 @@ impl Properties
             if scan.ntfyItf and scan.ntfyItf.resetItemToDefault(me, item)
             {
                 .refreshItem(item)
-                .hasChanged(item)
+                .commitItemChange(item)
                 return
             }
 
@@ -176,7 +177,7 @@ impl Properties
             return
 
         // Write the default into every instance ourselves (composite editors set selfPropagate,
-        // so hasChanged would not propagate a whole-field write for us).
+        // so commitItemChange would not propagate a whole-field write for us).
         let n = .instanceCount(item)
         if item.type == Core.String
         {
@@ -191,7 +192,7 @@ impl Properties
         }
 
         .refreshItem(item)
-        .hasChanged(item)
+        .commitItemChange(item)
     }
 
     // Recompute every row's modified state and sync its revert button. Returns true when a
@@ -210,7 +211,7 @@ impl Properties
     }
 }
 
-impl Properties
+internal impl Properties
 {
     // Types the grid knows how to compare and copy back for the default feature: dynamic strings
     // (compared/assigned by content) and any POD value (native, enum, bool, color, vector, a POD
@@ -236,7 +237,7 @@ impl Properties
     mtd updateItemDefaultState(item: *PropertiesItem)->bool
     {
         let wasModified = item.isModified
-        item.isModified = .computeItemModified(item)
+        item.assignModified(.computeItemModified(item))
 
         if !.isGridLike()
         {
@@ -254,12 +255,12 @@ impl Properties
         if item.isModified
         {
             if !btn.icon.isValid() do
-                btn.icon = .getTheme().getIcon24(.Undo, .revertIconSize(btn.position.height))
+                btn.setIcon(.theme().icon24(.Undo, .revertIconSize(btn.position.height)))
             btn.enable(true)
         }
         else
         {
-            btn.icon.clear()     // hide the arrow; the docked button still holds the column
+            btn.clearIcon()     // hide the arrow; the docked button still holds the column
             btn.enable(false)
         }
 
@@ -282,10 +283,10 @@ impl Properties
             return
 
         let h = .revertButtonSize()
-        with item.revertButton = IconButton.create(host, .getTheme().getIcon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
+        with item.revertButton = IconButton.create(host, .theme().icon24(.Undo, .revertIconSize(h)), {0, 0, h, h})
         {
-            .setForm(.Round)
-            .iconBtnFlags.add(.Overlay)     // elegant translucent hover, no opaque box
+            .setForm(.Circle)
+            .updateFlags(.Overlay)     // Elegant translucent hover without an opaque box.
             .maxSize       = {h, h}         // square: symmetric horizontally and vertically
             .minSize       = {h, h}
             .focusStrategy = .None     // stays out of the keyboard nav order
@@ -296,7 +297,7 @@ impl Properties
             .sigPressed += func|prop = me, item|(b) { prop.resetItemDefault(item) }
         }
 
-        item.revertButton.icon.clear()     // reserved column, arrow hidden until modified
+        item.revertButton.clearIcon()     // reserved column, arrow hidden until modified
         item.revertButton.enable(false)
     }
 }

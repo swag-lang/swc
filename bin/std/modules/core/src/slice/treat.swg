@@ -1,46 +1,47 @@
 #global export
 #global namespace Slice
 
-// Transform in place the content of a slice with a given lambda
+// Applies `action` to the address of every element.
 #[Swag.Inline]
-func(T) modify(values: [..] T, cb: func||(*T))
+func(T) forEachMutable(values: [..] T, action: func||(*T))
 {
     for [i] in @countof(values) do
-        cb(&values[i])
+        action(&values[i])
 }
 
 // Map the content of a slice to an array of type 'R'.
 // The lambda must return the value of 'R' for each element of the slice.
-func(T, R) map(values: const [..] T, cb: func||(T)->R)->Array'R
+func(T, R) map(values: const [..] T, transform: func||(T)->R)->Array'R
 {
     var result: retval
     for v in values do
-        result.add(cb(v))
+        result.add(transform(v))
     return result
 }
 
 // Reduce the content of a slice to one single value.
 // The lambda is called with the previous reduced value and each element of the slice.
 // The first reduced value is the first element of the slice.
-func(T) reduce(values: const [..] T, cb: func||(T, T)->T)->T
+func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
 {
+    Debug.assert(@countof(values) > 0, "cannot reduce an empty slice")
     var result = values[0]
     if @countof(values) == 1 do
         return result
     for [i] in 1 to @countof(values) - 1 do
-        result = cb(result, values[i])
+        result = combine(result, values[i])
     return result
 }
 
 // Get the minimum value of a slice, and the corresponding value index.
 func(T) min(values: const [..] T)->{ value: T, index: u64 }
 {
+    Debug.assert(@countof(values) > 0, "cannot get the minimum of an empty slice")
     var result: retval
     result.value = values[0]
     if @countof(values) == 1 do
         return result
 
-    var index = 0'u64
     for [i] in 1 to @countof(values) - 1
     {
         if values[i] < result.value
@@ -56,12 +57,12 @@ func(T) min(values: const [..] T)->{ value: T, index: u64 }
 // Get the maximum value of a slice, and the corresponding value index.
 func(T) max(values: const [..] T)->{ value: T, index: u64 }
 {
+    Debug.assert(@countof(values) > 0, "cannot get the maximum of an empty slice")
     var result: retval
     result.value = values[0]
     if @countof(values) == 1 do
         return result
 
-    var index = 0'u64
     for [i] in 1 to @countof(values) - 1
     {
         if values[i] > result.value
@@ -75,11 +76,11 @@ func(T) max(values: const [..] T)->{ value: T, index: u64 }
 }
 
 // Returns true if 'cb' returns true for all values
-func(T) allOf(values: const [..] T, cb: func||(T)->bool)->bool
+func(T) allOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
     for v in values
     {
-        if !cb(v) do
+        if !predicate(v) do
             return false
     }
 
@@ -87,11 +88,11 @@ func(T) allOf(values: const [..] T, cb: func||(T)->bool)->bool
 }
 
 // Returns true if 'cb' returns true for at least one value
-func(T) anyOf(values: const [..] T, cb: func||(T)->bool)->bool
+func(T) anyOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
     for v in values
     {
-        if cb(v) do
+        if predicate(v) do
             return true
     }
 
@@ -99,11 +100,11 @@ func(T) anyOf(values: const [..] T, cb: func||(T)->bool)->bool
 }
 
 // Returns true if 'cb' returns false for all values
-func(T) noneOf(values: const [..] T, cb: func||(T)->bool)->bool
+func(T) noneOf(values: const [..] T, predicate: func||(T)->bool)->bool
 {
     for v in values
     {
-        if cb(v) do
+        if predicate(v) do
             return false
     }
 
@@ -129,23 +130,27 @@ func(T) reverse(values: [..] T)
 // Get a permutation of the slice
 // Shuffle the slice until no more permutation is possible, and then returns 'false'.
 // To obtain all permutations, the slice must be sorted the first time.
-func(T) nextPermutation(arr: [..] T)->bool
+func(T) nextPermutation(values: [..] T)->bool
 {
-    let size = cast(s32) @countof(arr)
-
-    var i = size - 2
-    while i >= 0 and arr[i] >= arr[i + 1] do
-        i -= 1
-    if i < 0 do
+    let count = @countof(values)
+    if count < 2 do
         return false
 
-    var j = size - 1
-    while arr[j] <= arr[i] do
-        j -= 1
+    var pivot = count - 2
+    while values[pivot] >= values[pivot + 1]
+    {
+        if !pivot do
+            return false
+        pivot -= 1
+    }
 
-    swap(&arr[i], &arr[j])
-    if i + 1 != size - 1 do
-        reverse(arr[i + 1 to size - 1])
+    var successor = count - 1
+    while values[successor] <= values[pivot] do
+        successor -= 1
+
+    swap(&values[pivot], &values[successor])
+    if pivot + 1 != count - 1 do
+        reverse(values[pivot + 1 to count - 1])
 
     return true
 }

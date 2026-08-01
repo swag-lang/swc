@@ -16,7 +16,7 @@ impl IActionUI for ActionQuickStyle
         switch cxt.id
         {
         case .Reset:
-            evt.setFlags |= .Name
+            evt.updatedFields |= .Name
             evt.name     = "Restore Default Styles"
         }
 

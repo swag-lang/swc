@@ -84,7 +84,7 @@ func simulate(dt: f32)
 
 const PositionC = Math.Vector2{400, 300}
 const RadC      = 200.0
-var g_Rng:  Random.Rng
+var g_Rng:  Random.Generator
 var g_Objs: Array'Verlet
 var g_Time: f32
 
@@ -98,7 +98,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         painter.setParams(.Antialiased)
         painter.fillCircle(PositionC.x, PositionC.y, RadC, Argb.Black)
 
-        let dt = wnd.getApp().getDt()
+        let dt = wnd.app().deltaSeconds()
         g_Time += dt
 
         if g_Time > 0.2 and g_Objs.count < 50

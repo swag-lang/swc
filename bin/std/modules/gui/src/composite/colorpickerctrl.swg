@@ -2,77 +2,85 @@
 
 using Core, Pixel
 
-// Selects color picker view mode.
+// Selects the two-dimensional plane and the companion channel slider shown by a color picker control.
 enum ColorPickerViewMode
 {
-    SaturationLightness     // Selects saturation lightness mode.
-    HueSaturation           // Selects hue saturation mode.
-    HueLightness            // Selects hue lightness mode.
-    GreenBlue               // Selects green blue mode.
-    RedBlue                 // Selects red blue mode.
-    RedGreen                // Selects red green mode.
+    SaturationLightness     // Edits saturation and lightness in the plane, with hue in the slider.
+    HueSaturation           // Edits hue and saturation in the plane, with lightness in the slider.
+    HueLightness            // Edits hue and lightness in the plane, with saturation in the slider.
+    GreenBlue               // Edits green and blue in the plane, with red in the slider.
+    RedBlue                 // Edits red and blue in the plane, with green in the slider.
+    RedGreen                // Edits red and green in the plane, with blue in the slider.
 }
 
-// Selects color picker flags.
+// Configures the channels available in a color picker control.
 #[Swag.EnumFlags]
 enum ColorPickerFlags
 {
-    Zero            // No flags are enabled.
-    Alpha           // Enables alpha.
-    All = Alpha     // Enables all.
+    None                   // Edits opaque RGB colors only.
+    AllowAlpha             // Enables alpha editing and ARGB hexadecimal input.
+    All = AllowAlpha       // Enables every optional channel.
 }
 
-// Represents color picker ctrl.
+// Combines color planes, channel editors, an eyedropper, and an optional palette into one picker.
 struct ColorPickerCtrl
 {
     using frameWnd: FrameWnd     // Embedded frame wnd state.
 
-    sigChanged: SigArray'func||(*ColorPickerCtrl)     // Signal emitted when changed.
-    oldColor:   Color                                 // Old color associated with this value.
-    color:      Color                                 // Color associated with this value.
-    pickerFlags = ColorPickerFlags.All                // Picker flags associated with this value.
+    sigColorChanged: SigArray'func||(*ColorPickerCtrl)     // Emitted once after the selected color changes.
 
-    oldColorDone: bool                                 // Old color done associated with this value.
-    mode = ColorPickerViewMode.SaturationLightness     // Mode associated with this value.
-    #[Swag.Late]
+    readonly
     {
-        staticRes: *Wnd             // Static res associated with this value.
-        pickBox:   *ColorPicker     // Pick box associated with this value.
-        pickBar:   *ColorPicker     // Pick bar associated with this value.
-        pickAlpha: *ColorPicker     // Pick alpha associated with this value.
-        editA:     *EditBox         // Edit a associated with this value.
-        editR:     *EditBox         // Edit r associated with this value.
-        editG:     *EditBox         // Edit g associated with this value.
-        editB:     *EditBox         // Edit b associated with this value.
-        editH:     *EditBox         // Edit h associated with this value.
-        radioH:    *RadioButton     // Radio h associated with this value.
-        radioL:    *RadioButton     // Radio l associated with this value.
-        radioS:    *RadioButton     // Radio s associated with this value.
-        radioR:    *RadioButton     // Radio r associated with this value.
-        radioG:    *RadioButton     // Radio g associated with this value.
-        radioB:    *RadioButton     // Radio b associated with this value.
+        originalColor: Color                                      // Color captured by the first `setColor` call.
+        selectedColor: Color                                      // Current selected color.
+        flags         = ColorPickerFlags.All                      // Available optional channels.
+        mode          = ColorPickerViewMode.SaturationLightness   // Active plane and slider arrangement.
+
+        #[Swag.Late]
+        {
+            preview:   *Wnd             // Side-by-side original and selected color preview.
+            pickBox:   *ColorPicker     // Two-dimensional channel picker.
+            pickBar:   *ColorPicker     // Companion one-dimensional channel picker.
+            pickAlpha: *ColorPicker     // Alpha channel picker.
+            editA:     *EditBox         // Alpha numeric editor.
+            editR:     *EditBox         // Red numeric editor.
+            editG:     *EditBox         // Green numeric editor.
+            editB:     *EditBox         // Blue numeric editor.
+            editHex:   *EditBox         // RGB or ARGB hexadecimal editor.
+            radioH:    *RadioButton     // Hue mode selector.
+            radioL:    *RadioButton     // Lightness mode selector.
+            radioS:    *RadioButton     // Saturation mode selector.
+            radioR:    *RadioButton     // Red mode selector.
+            radioG:    *RadioButton     // Green mode selector.
+            radioB:    *RadioButton     // Blue mode selector.
+        }
+    }
+
+    internal
+    {
+        hasOriginalColor: bool     // Whether the first assigned color has been captured.
     }
 }
 
 impl IWnd for ColorPickerCtrl
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        .frameWnd.IWnd.onPaintEvent(evt)
+        .frameWnd.IWnd.onPaint(evt)
 
-        var rect    = .staticRes.position
-        let painter = evt.bc.painter
+        var rect    = .preview.position
+        let painter = evt.paintContext.painter
 
-        let brush = Brush.createHatch(.CheckBoardLarge, .getThemeColors().colorPicker_BackAlpha)
+        let brush = Brush.createHatch(.CheckBoardLarge, .themeColors().colorPicker_BackAlpha)
 
-        if .oldColor.a != 255 do
+        if .originalColor.a != 255 do
             painter.fillRect(rect, brush)
-        painter.fillRect(rect, .oldColor)
+        painter.fillRect(rect, .originalColor)
 
         rect.x += rect.width
-        if .color.a != 255 do
+        if .selectedColor.a != 255 do
             painter.fillRect(rect, brush)
-        painter.fillRect(rect, .color)
+        painter.fillRect(rect, .selectedColor)
     }
 }
 
@@ -90,38 +98,31 @@ private impl ColorPickerCtrl
 
     mtd updatePickers()
     {
-        .pickBox.sigChanged.disable()
-        .pickBox.setColor(.color)
-        .pickBox.sigChanged.enable()
-
-        .pickBar.sigChanged.disable()
-        .pickBar.setColor(.color)
-        .pickBar.sigChanged.enable()
-
-        .pickAlpha.sigChanged.disable()
-        .pickAlpha.setColor(.color)
-        .pickAlpha.sigChanged.enable()
+        .pickBox.setColor(.selectedColor, false)
+        .pickBar.setColor(.selectedColor, false)
+        .pickAlpha.setColor(.selectedColor, false)
     }
 
-    mtd updateEdits()
+    mtd updateEdits(notify = false)
     {
-        var t = Format.toString("%", .color.r)
-        .editR.setText(t)
-        t = Format.toString("%", .color.g)
-        .editG.setText(t)
-        t = Format.toString("%", .color.b)
-        .editB.setText(t)
-        t = Format.toString("%", .color.a)
-        .editA.setText(t)
+        var t = Format.toString("%", .selectedColor.r)
+        .editR.setText(t, false)
+        t = Format.toString("%", .selectedColor.g)
+        .editG.setText(t, false)
+        t = Format.toString("%", .selectedColor.b)
+        .editB.setText(t, false)
+        t = Format.toString("%", .selectedColor.a)
+        .editA.setText(t, false)
 
-        if .pickerFlags.has(.Alpha) do
-            t = Format.toString("%{X08}", .color.argb)
+        if .flags.has(.AllowAlpha) do
+            t = Format.toString("%{X08}", .selectedColor.argb)
         else do
-            t = Format.toString("%{X02}%{X02}%{X02}", .color.r, .color.g, .color.b)
-        .editH.setText(t)
+            t = Format.toString("%{X02}%{X02}%{X02}", .selectedColor.r, .selectedColor.g, .selectedColor.b)
+        .editHex.setText(t, false)
 
-        .staticRes.invalidate()
-        .sigChanged.call(me)
+        .preview.invalidate()
+        if notify do
+            .sigColorChanged.call(me)
     }
 
     mtd updateAll()
@@ -134,10 +135,11 @@ private impl ColorPickerCtrl
 
 impl ColorPickerCtrl
 {
-    // Performs the create operation.
+    // Creates a color picker with channel planes, numeric editors, and an eyedropper.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
     {
+        Debug.assert(parent != null)
         var pos = position
         if pos.width == 0 do
             pos.width = 340
@@ -146,14 +148,14 @@ impl ColorPickerCtrl
 
         with let v = Wnd.create'ColorPickerCtrl(parent, "", pos, id)
         {
-            .pickerFlags = flags
+            .flags = flags
 
             .pickBox   = ColorPicker.create(v, {10, 10, 260, 185})
             .pickBar   = ColorPicker.create(v, {10, 215, 220, 16})
             .pickAlpha = ColorPicker.create(v, {10, 240, 220, 16})
 
-            .staticRes = Wnd.create'Wnd(v, "", {245, 215, 40, 40})
-            var icon = v.getTheme().getIcon24(.Picker)
+            .preview = Wnd.create'Wnd(v, "", {245, 215, 40, 40})
+            var icon = v.theme().icon24(.Picker)
             icon.color = Argb.White
             let picker = IconButton.create(v, icon, {245, 215, 40, 40})
 
@@ -161,19 +163,19 @@ impl ColorPickerCtrl
             .editR = EditBox.create(v, "", {70, 265, 50})
             .editG = EditBox.create(v, "", {125, 265, 50})
             .editB = EditBox.create(v, "", {180, 265, 50})
-            .editH = EditBox.create(v, "", {240, 265, 90})
+            .editHex = EditBox.create(v, "", {240, 265, 90})
 
             var l = Label.create(v, "A", {.editA.position.x, .editA.position.bottom() + 0, .editA.position.width})
-            l.labelFlags |= .LightText
+            l.updateFlags(.SecondaryText)
             l            = Label.create(v, "R", {.editR.position.x, .editR.position.bottom() + 0, .editR.position.width})
-            l.labelFlags |= .LightText
+            l.updateFlags(.SecondaryText)
             l            = Label.create(v, "G", {.editG.position.x, .editG.position.bottom() + 0, .editG.position.width})
-            l.labelFlags |= .LightText
+            l.updateFlags(.SecondaryText)
             l            = Label.create(v, "B", {.editB.position.x, .editB.position.bottom() + 0, .editB.position.width})
-            l.labelFlags |= .LightText
+            l.updateFlags(.SecondaryText)
 
-            l            = Label.create(v, flags.has(.Alpha) ? "ARGB" : "RGB", {.editH.position.x, .editH.position.bottom() + 0, .editH.position.width})
-            l.labelFlags |= .LightText
+            l            = Label.create(v, flags.has(.AllowAlpha) ? "ARGB" : "RGB", {.editHex.position.x, .editHex.position.bottom() + 0, .editHex.position.width})
+            l.updateFlags(.SecondaryText)
 
             .radioH = RadioButton.create(v, "H", {280, 10, 40})
             .radioS = RadioButton.create(v, "S", {280, 40, 40})
@@ -184,8 +186,8 @@ impl ColorPickerCtrl
 
             picker.sigPressed += func|v|(cb)
             {
-                var app   = cb.getApp()
-                var save  = v.getColor()
+                var app   = cb.app()
+                var save  = v.color()
                 var sfade = app.fadeDisabledSurface
                 app.fadeDisabledSurface = false
                 discard app.doModalLoop(null, func|v, save|(app)
@@ -209,156 +211,159 @@ impl ColorPickerCtrl
                 app.fadeDisabledSurface = sfade
             }
 
-            .pickBox.sigChanged += func|v|(cb)
+            .pickBox.sigColorChanged += func|v|(cb)
             {
-                if !v.pickerFlags.has(.Alpha) do
-                    v.color.a = 255
+                if !v.flags.has(.AllowAlpha) do
+                    v.selectedColor.a = 255
                 switch v.mode
                 {
                 case .SaturationLightness:
-                    let c = Color.fromHsl(v.pickBar.hue, cb.sat, cb.lum)
-                    v.color.setArgb(v.color.a, c.r, c.g, c.b)
-                    v.pickAlpha.change(s: cb.sat, l: cb.lum)
+                    let c = Color.fromHsl(v.pickBar.hue, cb.saturation, cb.lightness)
+                    v.selectedColor.setArgb(v.selectedColor.a, c.r, c.g, c.b)
+                    v.pickAlpha.setHsl(v.pickAlpha.hue, cb.saturation, cb.lightness, false)
 
                 case .HueSaturation:
-                    let c = Color.fromHsl(cb.hue, cb.sat, v.pickBar.lum)
-                    v.color.setArgb(v.color.a, c.r, c.g, c.b)
-                    v.pickBar.change(h: cb.hue, s: cb.sat)
-                    v.pickAlpha.change(h: cb.hue, s: cb.sat)
+                    let c = Color.fromHsl(cb.hue, cb.saturation, v.pickBar.lightness)
+                    v.selectedColor.setArgb(v.selectedColor.a, c.r, c.g, c.b)
+                    v.pickBar.setHsl(cb.hue, cb.saturation, v.pickBar.lightness, false)
+                    v.pickAlpha.setHsl(cb.hue, cb.saturation, v.pickAlpha.lightness, false)
 
                 case .HueLightness:
-                    let c = Color.fromHsl(cb.hue, v.pickBar.sat, cb.lum)
-                    v.color.setArgb(v.color.a, c.r, c.g, c.b)
-                    v.pickBar.change(h: cb.hue, l: cb.lum)
-                    v.pickAlpha.change(h: cb.hue, l: cb.lum)
+                    let c = Color.fromHsl(cb.hue, v.pickBar.saturation, cb.lightness)
+                    v.selectedColor.setArgb(v.selectedColor.a, c.r, c.g, c.b)
+                    v.pickBar.setHsl(cb.hue, v.pickBar.saturation, cb.lightness, false)
+                    v.pickAlpha.setHsl(cb.hue, v.pickAlpha.saturation, cb.lightness, false)
 
                 case .GreenBlue:
-                    v.color.g = cast(u8) (cb.g * 255)
-                    v.color.b = cast(u8) (cb.b * 255)
+                    v.selectedColor.g = cast(u8) (cb.green * 255)
+                    v.selectedColor.b = cast(u8) (cb.blue * 255)
                     v.updatePickers()
 
                 case .RedBlue:
-                    v.color.r = cast(u8) (cb.r * 255)
-                    v.color.b = cast(u8) (cb.b * 255)
+                    v.selectedColor.r = cast(u8) (cb.red * 255)
+                    v.selectedColor.b = cast(u8) (cb.blue * 255)
                     v.updatePickers()
 
                 case .RedGreen:
-                    v.color.r = cast(u8) (cb.r * 255)
-                    v.color.g = cast(u8) (cb.g * 255)
+                    v.selectedColor.r = cast(u8) (cb.red * 255)
+                    v.selectedColor.g = cast(u8) (cb.green * 255)
                     v.updatePickers()
                 }
 
-                v.updateEdits()
+                v.updateEdits(true)
             }
 
-            .pickBar.sigChanged += func|v|(cb)
+            .pickBar.sigColorChanged += func|v|(cb)
             {
                 switch v.mode
                 {
                 case .SaturationLightness:
-                    let c = Color.fromHsl(v.pickBar.hue, v.pickBox.sat, v.pickBox.lum)
-                    v.color.setArgb(v.color.a, c.r, c.g, c.b)
-                    v.pickBox.change(h: cb.hue)
-                    v.pickAlpha.change(h: cb.hue)
+                    let c = Color.fromHsl(v.pickBar.hue, v.pickBox.saturation, v.pickBox.lightness)
+                    v.selectedColor.setArgb(v.selectedColor.a, c.r, c.g, c.b)
+                    v.pickBox.setHsl(cb.hue, v.pickBox.saturation, v.pickBox.lightness, false)
+                    v.pickAlpha.setHsl(cb.hue, v.pickAlpha.saturation, v.pickAlpha.lightness, false)
 
                 case .HueSaturation:
-                    let c = Color.fromHsl(v.pickBox.hue, v.pickBox.sat, v.pickBar.lum)
-                    v.color.setArgb(v.color.a, c.r, c.g, c.b)
-                    v.pickBox.change(l: cb.lum)
-                    v.pickAlpha.change(l: cb.lum)
+                    let c = Color.fromHsl(v.pickBox.hue, v.pickBox.saturation, v.pickBar.lightness)
+                    v.selectedColor.setArgb(v.selectedColor.a, c.r, c.g, c.b)
+                    v.pickBox.setHsl(v.pickBox.hue, v.pickBox.saturation, cb.lightness, false)
+                    v.pickAlpha.setHsl(v.pickAlpha.hue, v.pickAlpha.saturation, cb.lightness, false)
 
                 case .HueLightness:
-                    let c = Color.fromHsl(v.pickBox.hue, v.pickBar.sat, v.pickBox.lum)
-                    v.color.setArgb(v.color.a, c.r, c.g, c.b)
-                    v.pickBox.change(s: cb.sat)
-                    v.pickAlpha.change(s: cb.sat)
+                    let c = Color.fromHsl(v.pickBox.hue, v.pickBar.saturation, v.pickBox.lightness)
+                    v.selectedColor.setArgb(v.selectedColor.a, c.r, c.g, c.b)
+                    v.pickBox.setHsl(v.pickBox.hue, cb.saturation, v.pickBox.lightness, false)
+                    v.pickAlpha.setHsl(v.pickAlpha.hue, cb.saturation, v.pickAlpha.lightness, false)
 
                 case .GreenBlue:
-                    v.color.r = cast(u8) (cb.r * 255)
+                    v.selectedColor.r = cast(u8) (cb.red * 255)
                     v.updatePickers()
 
                 case .RedBlue:
-                    v.color.g = cast(u8) (cb.g * 255)
+                    v.selectedColor.g = cast(u8) (cb.green * 255)
                     v.updatePickers()
 
                 case .RedGreen:
-                    v.color.b = cast(u8) (cb.b * 255)
+                    v.selectedColor.b = cast(u8) (cb.blue * 255)
                     v.updatePickers()
                 }
 
-                v.updateEdits()
+                v.updateEdits(true)
             }
 
-            .pickAlpha.setMode(.AlphaHorz)
-            .pickAlpha.sigChanged += func|v|(cb)
+            .pickAlpha.setMode(.AlphaHorizontal)
+            .pickAlpha.sigColorChanged += func|v|(cb)
             {
-                v.color.a = cast(u8) (cb.a * 255)
-                v.updateEdits()
+                v.selectedColor.a = cast(u8) (cb.alpha * 255)
+                v.updateEdits(true)
             }
 
-            .editR.setInputU64(0, 255)
-            .editR.maxLength    = 3
-            .editR.sigLoseFocus += func|v|(ed)
+            .editR.setUnsignedIntegerRange(0, 255)
+            .editR.setMaximumLength(3)
+            .editR.sigFocusLost += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text)
-                v.color.r = cast() Math.clamp(res.value, 0, 255)
+                var res = catch StrConv.parseU32(ed.text())
+                v.selectedColor.r = cast() Math.clamp(res.value, 0, 255)
                 v.updateAll()
+                v.sigColorChanged.call(v)
             }
 
-            .editG.setInputU64(0, 255)
-            .editG.maxLength    = 3
-            .editG.sigLoseFocus += func|v|(ed)
+            .editG.setUnsignedIntegerRange(0, 255)
+            .editG.setMaximumLength(3)
+            .editG.sigFocusLost += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text)
-                v.color.g = cast() Math.clamp(res.value, 0, 255)
+                var res = catch StrConv.parseU32(ed.text())
+                v.selectedColor.g = cast() Math.clamp(res.value, 0, 255)
                 v.updateAll()
+                v.sigColorChanged.call(v)
             }
 
-            .editB.setInputU64(0, 255)
-            .editB.maxLength    = 3
-            .editB.sigLoseFocus += func|v|(ed)
+            .editB.setUnsignedIntegerRange(0, 255)
+            .editB.setMaximumLength(3)
+            .editB.sigFocusLost += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text)
-                v.color.b = cast() Math.clamp(res.value, 0, 255)
+                var res = catch StrConv.parseU32(ed.text())
+                v.selectedColor.b = cast() Math.clamp(res.value, 0, 255)
                 v.updateAll()
+                v.sigColorChanged.call(v)
             }
 
-            .editA.setInputU64(0, 255)
-            .editA.maxLength    = 3
-            .editA.sigLoseFocus += func|v|(ed)
+            .editA.setUnsignedIntegerRange(0, 255)
+            .editA.setMaximumLength(3)
+            .editA.sigFocusLost += func|v|(ed)
             {
-                var res = catch StrConv.parseU32(ed.text)
-                v.color.a = cast() Math.clamp(res.value, 0, 255)
-                v.pickAlpha.setColor(v.color)
-                v.updateEdits()
+                var res = catch StrConv.parseU32(ed.text())
+                v.selectedColor.a = cast() Math.clamp(res.value, 0, 255)
+                v.pickAlpha.setColor(v.selectedColor, false)
+                v.updateEdits(true)
             }
 
-            .editH.setInputX64(0, 0xFFFFFFFF)
-            .editH.maxLength    = 8
-            .editH.sigLoseFocus += func|v|(ed)
+            .editHex.setHexadecimalRange(0, 0xFFFFFFFF)
+            .editHex.setMaximumLength(8)
+            .editHex.sigFocusLost += func|v|(ed)
             {
-                var res = catch StrConv.parseX64(ed.text)
-                if !v.pickerFlags.has(.Alpha) do
+                var res = catch StrConv.parseX64(ed.text())
+                if !v.flags.has(.AllowAlpha) do
                     res.value |= 0xFF000000
-                v.color.argb  = cast(u32) res.value
-                v.pickAlpha.setColor(v.color)
+                v.selectedColor.argb = cast(u32) res.value
                 v.updateAll()
+                v.sigColorChanged.call(v)
             }
 
-            .radioH.sigChanged += func|v|(bt) { v.setMode(.SaturationLightness); v.updateAll(); }
-            .radioS.sigChanged += func|v|(bt) { v.setMode(.HueLightness); v.updateAll(); }
-            .radioL.sigChanged += func|v|(bt) { v.setMode(.HueSaturation); v.updateAll(); }
-            .radioR.sigChanged += func|v|(bt) { v.setMode(.GreenBlue); v.updateAll(); }
-            .radioG.sigChanged += func|v|(bt) { v.setMode(.RedBlue); v.updateAll(); }
-            .radioB.sigChanged += func|v|(bt) { v.setMode(.RedGreen); v.updateAll(); }
+            .radioH.sigChanged += func|v|(bt) { v.setMode(.SaturationLightness); }
+            .radioS.sigChanged += func|v|(bt) { v.setMode(.HueLightness); }
+            .radioL.sigChanged += func|v|(bt) { v.setMode(.HueSaturation); }
+            .radioR.sigChanged += func|v|(bt) { v.setMode(.GreenBlue); }
+            .radioG.sigChanged += func|v|(bt) { v.setMode(.RedBlue); }
+            .radioB.sigChanged += func|v|(bt) { v.setMode(.RedGreen); }
 
-            if !.pickerFlags.has(.Alpha)
+            if !.flags.has(.AllowAlpha)
             {
                 .editA.enable(false)
                 .pickAlpha.hide()
                 .pickBar.position.height = 40
-                .editH.setInputX64(0, 0x00FFFFFF)
-                .editH.maxLength = 6
+                .editHex.setHexadecimalRange(0, 0x00FFFFFF)
+                .editHex.setMaximumLength(6)
             }
         }
 
@@ -366,9 +371,8 @@ impl ColorPickerCtrl
         return v
     }
 
-    // Creates a color picker with a palette on the top.
-    // 'pal' should contain the palette colors. Maximum is 9 colors.
-    // If less colors are provided, then default colors will be added instead (so if you keep 'pal' empty, all defaults colors will be added).
+    // Creates a color picker with a nine-item palette above it.
+    // Missing entries are completed with the built-in default colors.
     #[Swag.Discardable]
     func createWithPalette(parent: *Wnd, position: Math.Rectangle, pal: Array'Color, flags = ColorPickerFlags.All, id: #null WndId = null)->*ColorPickerCtrl
     {
@@ -408,7 +412,7 @@ impl ColorPickerCtrl
                         .addColor(Argb.Purple)
 
                     case 8:
-                        if flags.has(.Alpha) do
+                        if flags.has(.AllowAlpha) do
                             .addColor(Color.fromArgb(0))
                         else do
                             .addColor(Argb.Gold)
@@ -420,20 +424,20 @@ impl ColorPickerCtrl
                 }
             }
 
-            .boxSize    = 32
-            .sigChanged += func|picker|(pal)
+            .setItemMetrics(32, 3)
+            .sigSelectionChanged += func|picker|(pal)
             {
-                if !pal.selectedColor.a or !picker.color.a do
+                if !pal.selectedColor.a or !picker.selectedColor.a do
                     picker.setColor(pal.selectedColor)
                 else do
-                    picker.setColorKeepAlpha(pal.selectedColor)
+                    picker.setColorPreservingAlpha(pal.selectedColor)
             }
         }
 
         return picker
     }
 
-    // Change the display mode
+    // Changes the channel plane and companion slider while preserving the selected color.
     mtd setMode(mode: ColorPickerViewMode)
     {
         .mode = mode
@@ -441,65 +445,82 @@ impl ColorPickerCtrl
         {
         case .SaturationLightness:
             .pickBox.setMode(.SaturationLightness)
-            .pickBar.setMode(.HueHorz)
+            .pickBar.setMode(.HueHorizontal)
 
         case .HueSaturation:
             .pickBox.setMode(.HueSaturation)
-            .pickBar.setMode(.LightnessHorz)
+            .pickBar.setMode(.LightnessHorizontal)
 
         case .HueLightness:
             .pickBox.setMode(.HueLightness)
-            .pickBar.setMode(.SaturationHorz)
+            .pickBar.setMode(.SaturationHorizontal)
 
         case .GreenBlue:
             .pickBox.setMode(.GreenBlue)
-            .pickBar.setMode(.RedHorz)
+            .pickBar.setMode(.RedHorizontal)
 
         case .RedBlue:
             .pickBox.setMode(.RedBlue)
-            .pickBar.setMode(.GreenHorz)
+            .pickBar.setMode(.GreenHorizontal)
 
         case .RedGreen:
             .pickBox.setMode(.RedGreen)
-            .pickBar.setMode(.BlueHorz)
+            .pickBar.setMode(.BlueHorizontal)
         }
+
+        .updateMode()
+        .updatePickers()
     }
 
-    // Returns the selected color
+    // Changes the comparison color shown in the original-color preview.
+    mtd setOriginalColor(color: Color)
+    {
+        var col = color
+        if !.flags.has(.AllowAlpha) do
+            col.a = 255
+        if .hasOriginalColor and .originalColor == col do
+            return
+        .originalColor    = col
+        .hasOriginalColor = true
+        .preview.invalidate()
+    }
+
+    // Returns the selected color.
     #[Swag.Inline]
-    mtd getColor()->Color
+    mtd color()->Color
     {
-        return .color
+        return .selectedColor
     }
 
-    // Set the selected color but does not change alpha
-    mtd setColorKeepAlpha(color: Color)
+    // Changes the selected RGB channels while preserving alpha.
+    mtd setColorPreservingAlpha(color: Color, notify = true)
     {
         var col = color
-        col.a = .color.a
-        .setColor(col)
+        col.a = .selectedColor.a
+        .setColor(col, notify)
     }
 
-    // Set the selected color
-    mtd setColor(color: Color)
+    // Changes the selected color and optionally emits `sigColorChanged` once.
+    // The first assigned color is also captured in `originalColor` for the preview.
+    mtd setColor(color: Color, notify = true)
     {
         var col = color
-        if !.pickerFlags.has(.Alpha) do
+        if !.flags.has(.AllowAlpha) do
             col.a = 255
 
-        if !.oldColorDone
+        if !.hasOriginalColor
         {
-            .oldColor     = col
-            .oldColorDone = true
+            .originalColor    = col
+            .hasOriginalColor = true
         }
-        elif .color == col
+        elif .selectedColor == col
         {
             return
         }
 
-        .color = col
-        .sigChanged.call(me)
-
+        .selectedColor = col
         .updateAll()
+        if notify do
+            .sigColorChanged.call(me)
     }
 }

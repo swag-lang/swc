@@ -21,31 +21,31 @@ func createSplitterPage(parent: *Wnd)
 
     let nav     = createSplitterPane(rootSplit, "Navigator", "Preserved side pane. min 170, max 280.")
     let navItem = rootSplit.addPane(nav, 230)
-    navItem.minSize         = 170
-    navItem.maxSize         = 280
-    navItem.tryPreserveSize = true
+    navItem.minimumSize         = 170
+    navItem.maximumSize         = 280
+    navItem.preserveSize = true
 
     let work     = Wnd.create'Wnd(rootSplit, {})
     let workItem = rootSplit.addPane(work, 520)
-    workItem.minSize = 320
+    workItem.minimumSize = 320
 
     let inspector     = createSplitterPane(rootSplit, "Inspector", "Right pane tries to preserve its width.")
     let inspectorItem = rootSplit.addPane(inspector, 250)
-    inspectorItem.minSize         = 190
-    inspectorItem.maxSize         = 340
-    inspectorItem.tryPreserveSize = true
+    inspectorItem.minimumSize         = 190
+    inspectorItem.maximumSize         = 340
+    inspectorItem.preserveSize = true
 
     let vertical = SplitterCtrl.create(work, {}, vertical: true)
     vertical.dockStyle = .Center
 
     let editor     = createSplitterPane(vertical, "Document", "Center region nested inside a vertical splitter.")
     let editorItem = vertical.addPane(editor, 330)
-    editorItem.minSize = 190
+    editorItem.minimumSize = 190
 
     let console     = createSplitterPane(vertical, "Output", "Bottom pane has a compact min size.")
     let consoleItem = vertical.addPane(console, 150)
-    consoleItem.minSize         = 92
-    consoleItem.tryPreserveSize = true
+    consoleItem.minimumSize         = 92
+    consoleItem.preserveSize = true
 
     rootSplit.sendResizeEvent()
     vertical.sendResizeEvent()

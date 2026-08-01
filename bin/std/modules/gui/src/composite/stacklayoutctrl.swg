@@ -2,28 +2,28 @@
 
 using Core
 
-// Selects stack layout kind.
-enum StackLayoutKind
+// Selects the direction and distribution policy of a stack layout.
+enum StackLayoutMode
 {
-    Top                      // From top to bottom
-    Bottom                   // From bottom to top
-    Left                     // From left to right
-    Right                    // From right to left
-    HorzCenter               // Center horizontally
-    HorzCenterVertCenter     // Selects the horz center vert center kind.
-    VertCenter               // Center vertically
-    HorzFit                  // From left to right; fit the available room
-    VertFit                  // From top to bottom; fit the available room
+    Top                  // Stacks vertically from top to bottom.
+    Bottom               // Stacks vertically from bottom to top.
+    Left                 // Stacks horizontally from left to right.
+    Right                // Stacks horizontally from right to left.
+    HorizontalCenter     // Centers a left-to-right stack horizontally.
+    Center               // Centers a left-to-right stack on both axes.
+    VerticalCenter       // Centers a top-to-bottom stack vertically.
+    HorizontalFit        // Divides horizontal space evenly between children.
+    VerticalFit          // Divides vertical space evenly between children.
 }
 
-// Represents stack layout ctrl.
+// Arranges visible children as a one-dimensional stack.
 struct StackLayoutCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    layoutKind:   StackLayoutKind = Top     // Layout kind associated with this value.
-    spacing:      f32             = 5       // Spacing associated with this value.
-    fitToContent: bool                      // Fit to content associated with this value.
+    mode:         StackLayoutMode = Top     // Direction and distribution policy.
+    spacing:      f32             = 5       // Gap between adjacent children.
+    fitToContent: bool                      // Whether the control resizes along the stacking axis to its content.
 }
 
 impl IWnd for StackLayoutCtrl
@@ -39,9 +39,9 @@ private impl StackLayoutCtrl
 {
     mtd isHorizontal()->bool
     {
-        switch .layoutKind
+        switch .mode
         {
-        case .Left, .Right, .HorzCenter, .HorzCenterVertCenter, .HorzFit: return true
+        case .Left, .Right, .HorizontalCenter, .Center, .HorizontalFit: return true
         }
 
         return false
@@ -49,17 +49,17 @@ private impl StackLayoutCtrl
 
     mtd isReverse()->bool
     {
-        return .layoutKind == .Bottom or .layoutKind == .Right
+        return .mode == .Bottom or .mode == .Right
     }
 
     mtd isCenteringMain()->bool
     {
-        return .layoutKind == .HorzCenter or .layoutKind == .HorzCenterVertCenter or .layoutKind == .VertCenter
+        return .mode == .HorizontalCenter or .mode == .Center or .mode == .VerticalCenter
     }
 
     mtd isFitMain()->bool
     {
-        return .layoutKind == .HorzFit or .layoutKind == .VertFit
+        return .mode == .HorizontalFit or .mode == .VerticalFit
     }
 
     mtd mainFromPoint(pt: Math.Point)->f32
@@ -130,7 +130,7 @@ private impl StackLayoutCtrl
     mtd canShrinkMain(wnd: *Wnd)->bool
     {
         let pol = .mainPolicy(wnd)
-        return pol == SizePolicy.Fill or pol == SizePolicy.Expand
+        return pol == SizePolicy.Expand
     }
 
     mtd setRectMain(rect: *Math.Rectangle, pos, size: f32)
@@ -170,16 +170,16 @@ private impl StackLayoutCtrl
 
     mtd arrangeLinear()
     {
-        let client         = .getClientRectPadding()
+        let client         = .paddedClientRect()
         let availableMain  = .mainFromRect(client)
         let availableCross = .crossFromRect(client)
 
         var visible:  Array'(*Wnd)
         var hints:    Array'SizeHint
         var oldSizes: Array'Math.Point
-        for c in .childs
+        for c in .children
         {
-            if !c.isVisibleState() do
+            if !c.isLocallyVisible() do
                 continue
             visible.add(c)
             hints.add(c.measure({client.width, client.height}))
@@ -199,7 +199,7 @@ private impl StackLayoutCtrl
         var shrinkPool     = 0'f32
         for c, [idx] in visible
         {
-            let margin     = c.getLayoutMargin()
+            let margin     = c.layoutMargin()
             let marginMain = .mainMargin(margin)
             totalMargins   += marginMain
             totalPreferred += .preferredMain(hints[idx]) + marginMain
@@ -207,7 +207,7 @@ private impl StackLayoutCtrl
             if .canShrinkMain(c) do
                 shrinkPool += Math.max(.preferredMain(hints[idx]) - .minimumMain(hints[idx]), 0)
             let pol = .mainPolicy(c)
-            if pol == SizePolicy.Expand or pol == SizePolicy.Fill or .isFitMain()
+            if pol == SizePolicy.Expand or .isFitMain()
             {
                 var itemWeight = 1'f32
                 if !.isFitMain() do
@@ -245,7 +245,7 @@ private impl StackLayoutCtrl
             let idx    = idxLoop
             let c      = visible[idx]
             let hint   = hints[idx]
-            let margin = c.getLayoutMargin()
+            let margin = c.layoutMargin()
 
             var mainSize = .preferredMain(hint)
             if .isFitMain()
@@ -256,7 +256,7 @@ private impl StackLayoutCtrl
             elif extra > 0 and totalWeight > 0
             {
                 let pol = .mainPolicy(c)
-                if pol == SizePolicy.Expand or pol == SizePolicy.Fill
+                if pol == SizePolicy.Expand
                 {
                     let w = .mainWeight(c)
                     mainSize += extra * w / totalWeight
@@ -277,7 +277,7 @@ private impl StackLayoutCtrl
             let crossAvailable = Math.max(availableCross - .crossMargin(margin), 0)
             let polCross       = .crossPolicy(c)
             let align          = .isHorizontal() ? c.layoutSpec.alignY : c.layoutSpec.alignX
-            if !.isCenteringMain() and (align == LayoutAlign.Stretch or polCross == SizePolicy.Fill or polCross == SizePolicy.Expand) do
+            if !.isCenteringMain() and (align == LayoutAlign.Stretch or polCross == SizePolicy.Expand) do
                 crossSize = crossAvailable
             else do
                 crossSize = .preferredCross(hint)
@@ -298,7 +298,7 @@ private impl StackLayoutCtrl
 
             let crossBase = .isHorizontal() ? client.y : client.x
             var crossPos  = crossBase + .crossStartMargin(margin)
-            if .layoutKind == .HorzCenterVertCenter or .layoutKind == .VertCenter or align == LayoutAlign.Center do
+            if .mode == .Center or .mode == .VerticalCenter or align == LayoutAlign.Center do
                 crossPos = crossBase + (availableCross - crossSize) * 0.5
             elif align == LayoutAlign.End do
                 crossPos = crossBase + availableCross - .crossEndMargin(margin) - crossSize
@@ -350,27 +350,27 @@ private impl StackLayoutCtrl
 
 impl StackLayoutCtrl
 {
-    // Create a layout control
-    func create(parent: *Wnd, kind: StackLayoutKind = .Top, position: Math.Rectangle = {})->*StackLayoutCtrl
+    // Creates an empty stack using `mode`.
+    func create(parent: *Wnd, mode: StackLayoutMode = .Top, position: Math.Rectangle = {})->*StackLayoutCtrl
     {
         let res = Wnd.create'StackLayoutCtrl(parent, position)
-        res.layoutKind = kind
+        res.mode = mode
         return res
     }
 
-    // Recompute layout of all childs
+    // Recomputes the arrangement of all visible children.
     mtd computeLayout()
     {
         .arrangeLinear()
     }
 
-    // Applies layout.
+    // Recomputes the arrangement after a parent layout pass.
     mtd applyLayout()
     {
         .computeLayout()
     }
 
-    // Applies layout.
+    // Recomputes the arrangement after a parent resize.
     mtd applyLayout(oldSize: Math.Point)
     {
         discard oldSize

@@ -81,11 +81,11 @@ impl IWnd for RecentView
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .MouseWheel do
+        if evt.kind == .Wheel do
             evt.accepted = false
 
         var pos = .surfaceToLocal(evt.surfacePos)
-        pos += .recentWnd.getScrollPos()
+        pos += .recentWnd.scrollPosition()
 
         // Hit test
         var ht = Swag.U64.Max
@@ -104,7 +104,7 @@ impl IWnd for RecentView
             .hotItem = ht
         }
 
-        if evt.kind == .MousePressed and .hotItem != Swag.U64.Max
+        if evt.kind == .Pressed and .hotItem != Swag.U64.Max
         {
             if evt.button == .Left or evt.button == .Right
             {
@@ -135,7 +135,7 @@ impl IWnd for RecentView
 
     func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
     {
-        let colors = parent.getThemeColors()
+        let colors = parent.themeColors()
 
         painter.setParams(.Antialiased)
         painter.fillRoundRect(rect, 8, 8, colors.wnd_Bk)
@@ -170,11 +170,11 @@ impl IWnd for RecentView
 
             var icon12 = Icon.from(&(notnull g_Main).icons48, 22)
             icon12.sizeX, icon12.sizeY = 24
-            icon12.paint(painter, rect.x + 4, rect.y + 4, backColor.getContrasting())
+            icon12.paint(painter, rect.x + 4, rect.y + 4, backColor.contrasting())
 
-            var icon = parent.getTheme().getIcon24(.Link)
+            var icon = parent.theme().icon24(.Link)
             icon.sizeX, icon.sizeY = 16
-            icon.paint(painter, rect.x + 8, rect.y + 8, backColor.getContrasting())
+            icon.paint(painter, rect.x + 8, rect.y + 8, backColor.contrasting())
         }
 
         if infos.hot do
@@ -183,10 +183,10 @@ impl IWnd for RecentView
             painter.drawRoundRect(rect, 8, 8, colors.hilightLight, 4)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let painter    = evt.bc.painter
-        let clientRect = .getClientRectPadding()
+        let painter    = evt.paintContext.painter
+        let clientRect = .paddedClientRect()
 
         var x = clientRect.x
         for item, [idx] in .items
@@ -233,16 +233,16 @@ impl IWnd for RecentWnd
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         if .timer do
-            .getApp().deleteTimer(.timer)
+            .app().removeTimer(.timer)
         if .loadTimer do
-            .getApp().deleteTimer(.loadTimer)
+            .app().removeTimer(.loadTimer)
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         if evt.timer == .loadTimer
         {
-            .getApp().deleteTimer(evt.timer)
+            .app().removeTimer(evt.timer)
             .loadTimer = null
             if .prepareLoadRecent
             {
@@ -268,8 +268,8 @@ impl IWnd for RecentWnd
             {
                 capture.computePreview()
                 let item = notnull .recentView.items[.recentView.selected]
-                .getApp().getRenderer().removeTexture(&item.preview)
-                item.preview = .getApp().getRenderer().addImage(capture.preview)
+                .app().rendererRef().removeTexture(&item.preview)
+                item.preview = .app().rendererRef().addImage(capture.preview)
                 .invalidate()
 
                 .main.libWnd.view.updateRecent(capture)
@@ -278,7 +278,7 @@ impl IWnd for RecentWnd
             }
         }
 
-        .getApp().deleteTimer(evt.timer)
+        .app().removeTimer(evt.timer)
         .timer = null
     }
 }
@@ -289,7 +289,7 @@ impl RecentWnd
     {
         with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
-            .scrollWndFlags  |= .SmallBar | .ForceHorizontal
+            .updateFlags(.CompactBars | .AlwaysShowHorizontal)
             .backgroundStyle = .Window
             .main            = main
             .style.addStyleSheetColors("scrollBar_Bk $view_Bk")
@@ -309,7 +309,7 @@ impl RecentWnd
         if .loadDone or .loadTimer do
             return
         .prepareLoadRecent = true
-        .loadTimer         = .getApp().addTimer(100'ms, me)
+        .loadTimer         = .app().addTimer(100'ms, me)
     }
 
     mtd loadRecent()
@@ -327,7 +327,7 @@ impl RecentWnd
                 if (notnull it).file == file
                 {
                     // Remove from recent
-                    self.recentView.items.deletePtr(it)
+                    self.recentView.items.destroy(it)
                     self.recentView.items.removeAtOrdered(i)
 
                     // Select new one
@@ -367,7 +367,7 @@ impl RecentWnd
         if .loadTimer or .pendingRecentIndex >= .pendingRecentFiles.count do
             return
         .prepareLoadRecent = false
-        .loadTimer         = .getApp().addTimer(1'ms, me)
+        .loadTimer         = .app().addTimer(1'ms, me)
     }
 
     mtd loadNextRecent()
@@ -399,8 +399,8 @@ impl RecentWnd
             return
 
         if .timer do
-            .getApp().deleteTimer(.timer)
-        .timer = .getApp().addTimer(1's, me)
+            .app().removeTimer(.timer)
+        .timer = .app().addTimer(1's, me)
 
         let capture = .main.getCapture()
         if !capture do
@@ -421,7 +421,7 @@ impl RecentWnd
 
         // Be sure there's no pending save
         if .timer do
-            .getApp().deleteTimer(.timer)
+            .app().removeTimer(.timer)
         .timer = null
 
         // Delete file
@@ -439,8 +439,8 @@ impl RecentWnd
         {
             let back = notnull .recentView.items.back()
             if back.preview.isValid() do
-                .getApp().getRenderer().removeTexture(&back.preview)
-            .recentView.items.deletePtr(back)
+                .app().rendererRef().removeTexture(&back.preview)
+            .recentView.items.destroy(back)
             .recentView.items.count -= 1
         }
 
@@ -475,8 +475,8 @@ impl RecentWnd
             }
         }
 
-        let item = .recentView.items.newPtr()
-        item.preview        = .getApp().getRenderer().addImage(preview)
+        let item = .recentView.items.allocate()
+        item.preview        = .app().rendererRef().addImage(preview)
         item.file           = file
         item.linked         = linked
         item.linkedUpToDate = linkedUpToDate

@@ -6,7 +6,7 @@ using XInput, Win32, Core.Errors
 
 #run
 {
-    using GamePadState, GamePadButton
+    using GamepadState, GamepadButton
     mapButtons[Math.trailingZeros(XINPUT_GAMEPAD_A)]              = A
     mapButtons[Math.trailingZeros(XINPUT_GAMEPAD_B)]              = B
     mapButtons[Math.trailingZeros(XINPUT_GAMEPAD_X)]              = X
@@ -23,9 +23,9 @@ using XInput, Win32, Core.Errors
     mapButtons[Math.trailingZeros(XINPUT_GAMEPAD_DPAD_RIGHT)]     = DPadRight
 }
 
-impl GamePadState
+impl GamepadState
 {
-    private var mapButtons: [16] GamePadButton = undefined
+    private var mapButtons: [16] GamepadButton = undefined
 
     // Compute the current state of the given pad index
     mtd update(padIndex: u32) fail
@@ -39,12 +39,12 @@ impl GamePadState
         default:                         Win32.failWinError(res)
         }
 
-        // GamePadButton pressed state
+        // Gamepad button state
         for [i] in 16'u16 do
             .pressed[mapButtons[i]] = state.Gamepad.wButtons & cast(u16) (1 << i)
 
         // Move
-        using GamePadButton
+        using GamepadButton
         .position[LeftStick].x    = state.Gamepad.sThumbLX / 32767.0'f32
         .position[LeftStick].y    = state.Gamepad.sThumbLY / 32767.0'f32
         .position[RightStick].x   = state.Gamepad.sThumbRX / 32767.0'f32
@@ -54,24 +54,24 @@ impl GamePadState
 
         // Simulate pressed with #move
         #[Swag.Inline]
-        mtd getToler(btn: GamePadButton)->f32
+        mtd activationThreshold(button: GamepadButton)->f32
         {
             const SmallToler = 0.7'f32
             const BigToler   = 0.9'f32
-            return .pressed[btn] ? SmallToler : BigToler
+            return .pressed[button] ? SmallToler : BigToler
         }
 
-        .pressed[LeftThumbstickDown]  = .position[LeftStick].y < -getToler(me, LeftThumbstickDown)
-        .pressed[LeftThumbstickUp]    = .position[LeftStick].y > getToler(me, LeftThumbstickUp)
-        .pressed[LeftThumbstickLeft]  = .position[LeftStick].x < -getToler(me, LeftThumbstickLeft)
-        .pressed[LeftThumbstickRight] = .position[LeftStick].x > getToler(me, LeftThumbstickRight)
+        .pressed[LeftThumbstickDown]  = .position[LeftStick].y < -activationThreshold(me, LeftThumbstickDown)
+        .pressed[LeftThumbstickUp]    = .position[LeftStick].y > activationThreshold(me, LeftThumbstickUp)
+        .pressed[LeftThumbstickLeft]  = .position[LeftStick].x < -activationThreshold(me, LeftThumbstickLeft)
+        .pressed[LeftThumbstickRight] = .position[LeftStick].x > activationThreshold(me, LeftThumbstickRight)
 
-        .pressed[RightThumbstickDown]  = .position[RightStick].y < -getToler(me, RightThumbstickDown)
-        .pressed[RightThumbstickUp]    = .position[RightStick].y > getToler(me, RightThumbstickUp)
-        .pressed[RightThumbstickLeft]  = .position[RightStick].x < -getToler(me, RightThumbstickLeft)
-        .pressed[RightThumbstickRight] = .position[RightStick].x > getToler(me, RightThumbstickRight)
+        .pressed[RightThumbstickDown]  = .position[RightStick].y < -activationThreshold(me, RightThumbstickDown)
+        .pressed[RightThumbstickUp]    = .position[RightStick].y > activationThreshold(me, RightThumbstickUp)
+        .pressed[RightThumbstickLeft]  = .position[RightStick].x < -activationThreshold(me, RightThumbstickLeft)
+        .pressed[RightThumbstickRight] = .position[RightStick].x > activationThreshold(me, RightThumbstickRight)
 
-        .pressed[LeftTrigger]  = .position[LeftTrigger].y > getToler(me, LeftTrigger)
-        .pressed[RightTrigger] = .position[RightTrigger].y > getToler(me, RightTrigger)
+        .pressed[LeftTrigger]  = .position[LeftTrigger].y > activationThreshold(me, LeftTrigger)
+        .pressed[RightTrigger] = .position[RightTrigger].y > activationThreshold(me, RightTrigger)
     }
 }

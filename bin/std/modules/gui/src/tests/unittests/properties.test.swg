@@ -98,6 +98,37 @@ impl IPropertyNotify for PropHeadlessRoData
     host.shutdown()
 }
 
+// Public configuration methods keep their observable state synchronized, and clear makes the
+// control reusable without retaining rows or selection state.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 320)
+
+    var data: PropHeadlessData
+    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    prop.setEditorWidth(280)
+    prop.setUsingFieldsLast(true)
+    prop.setRevertButtonsVisible(false)
+    prop.addStruct(data)
+
+    @assert(prop.editorWidth == 280)
+    @assert(prop.usingFieldsLast)
+    @assert(!prop.revertButtonsVisible)
+    @assert(prop.items.count == 4)
+
+    prop.focusNavigation()
+    @assert(prop.selItem != null)
+    prop.setFilter("no matching property")
+    @assert(!(notnull prop.items[1]).line.isVisible())
+
+    prop.clear()
+    @assert(prop.items.count == 0)
+    @assert(!prop.selItem)
+
+    host.shutdown()
+}
+
 // PropertiesCtrl keeps visible grid rows after the same staged layout sequence
 // used by the gui4 example: create at a placeholder height, add structs, then
 // dock into its final parent.
@@ -109,15 +140,15 @@ impl IPropertyNotify for PropHeadlessRoData
     let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
 
     var data: PropHeadlessGroupedData
-    let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionFilter | .SectionPane | .FindBar)
+    let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionTabs | .SectionNavigation | .SearchBar)
     ctrl.dockStyle          = .Left
     ctrl.margin.z           = 24
-    ctrl.prop.sizeEditValue = 300
-    ctrl.prop.setColumnSize(150)
+    ctrl.properties.setEditorWidth(300)
+    ctrl.properties.setNameColumnWidth(150)
     ctrl.addStruct(data, "Settings")
     ctrl.splitter.setPaneSize(0, 160)
     let paneIt = notnull ctrl.splitter.items[0]
-    paneIt.tryPreserveSize = true
+    paneIt.preserveSize = true
 
     let preview = Wnd.create'FrameWnd(page, {})
     preview.dockStyle = .Center
@@ -127,20 +158,20 @@ impl IPropertyNotify for PropHeadlessRoData
     @assert(ctrl.position == Math.Rectangle{0, 0, 560, 666})
     @assert(ctrl.splitter.position.width > 0)
     @assert(ctrl.splitter.position.height > 0)
-    @assert(ctrl.prop.position.width > 0)
-    @assert(ctrl.prop.position.height > 0)
-    @assert(ctrl.prop.edView.position.width > 0)
-    @assert(ctrl.prop.edView.position.height > 0)
-    @assert(ctrl.prop.items.count == 6)
-    @assert((notnull ctrl.prop.items[0]).line.isVisible())
-    @assert((notnull ctrl.prop.items[1]).line.isVisible())
-    @assert((notnull ctrl.prop.items[1]).line.position.height == ctrl.prop.gridLineHeight)
-    @assert((notnull ctrl.prop.items[1]).line.position.y >= ctrl.prop.gridLineHeight)
+    @assert(ctrl.properties.position.width > 0)
+    @assert(ctrl.properties.position.height > 0)
+    @assert(ctrl.properties.edView.position.width > 0)
+    @assert(ctrl.properties.edView.position.height > 0)
+    @assert(ctrl.properties.items.count == 6)
+    @assert((notnull ctrl.properties.items[0]).line.isVisible())
+    @assert((notnull ctrl.properties.items[1]).line.isVisible())
+    @assert((notnull ctrl.properties.items[1]).line.position.height == ctrl.properties.gridLineHeight)
+    @assert((notnull ctrl.properties.items[1]).line.position.y >= ctrl.properties.gridLineHeight)
 
     host.shutdown()
 }
 
-// Keyboard navigation: focusNav selects the first navigable row, arrows move the
+// Keyboard navigation: focusNavigation selects the first navigable row, arrows move the
 // highlight over the editable rows (clamped), Home/End jump to the ends.
 #test
 {
@@ -151,9 +182,9 @@ impl IPropertyNotify for PropHeadlessRoData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)     // [0]=section [1]=count [2]=label [3]=enabled
 
-    prop.focusNav()
+    prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])     // section row is skipped
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     host.keyPress(Input.Key.Down)
     @assert(prop.selItem == prop.items[2])
@@ -183,12 +214,12 @@ impl IPropertyNotify for PropHeadlessRoData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    prop.focusNav()     // selItem = count row
+    prop.focusNavigation()     // selItem = count row
     host.keyPress(Input.Key.Return)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
 
     host.keyPress(Input.Key.Escape)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     host.shutdown()
 }
@@ -204,13 +235,13 @@ impl IPropertyNotify for PropHeadlessRoData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    prop.focusNav()                     // count row
+    prop.focusNavigation()                     // count row
     host.keyPress(Input.Key.Return)     // edit count
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[1]).editBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to label row
     @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     host.shutdown()
 }
@@ -225,11 +256,11 @@ impl IPropertyNotify for PropHeadlessRoData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    prop.focusNav()
+    prop.focusNavigation()
     host.keyPress(Input.Key.Return)     // edit count
     host.keyPress(Input.Key.Tab)        // -> edit label row
     @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) (notnull prop.items[2]).editBox)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) (notnull prop.items[2]).editBox)
 
     host.shutdown()
 }
@@ -268,7 +299,7 @@ struct PropHeadlessArrayData
     func assertBelowLabel(item: *PropertiesItem)
     {
         let labelBottom = item.label.position.bottom()
-        for c in item.line.childs
+        for c in item.line.children
         {
             if c == cast(#null *Wnd) item.label do
                 continue
@@ -283,12 +314,12 @@ struct PropHeadlessArrayData
     // Rows and labels span the whole control (the value editors keep their own cap)
     let originItem = notnull prop.items[1]
     let rowWidth   = originItem.line.position.width
-    @assert(rowWidth > cast(f32) prop.sizeEditValue)
+    @assert(rowWidth > cast(f32) prop.editorWidth)
     @assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32) prop.leftMargin, 0.01))
     @assert(Math.isEqualEpsilon(originItem.label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
 
     let actionsItem = notnull prop.items[2]
-    let actionRight = cast(f32) prop.sizeEditValue - prop.rightMargin - PropRevertGap
+    let actionRight = cast(f32) prop.editorWidth - prop.rightMargin - PropRevertGap
     @assert(@isset(actionsItem.arrayAddButton))
     @assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
 
@@ -297,12 +328,12 @@ struct PropHeadlessArrayData
     let chk    = (notnull prop.items[4]).checkBox
     let chkRow = notnull chk.parent
     var desc: #null *Label
-    for c in chkRow.childs do
+    for c in chkRow.children do
         if c != cast(#null *Wnd) chk do
             desc = cast(*Label) c
     let descLbl = notnull desc
-    @assert(descLbl.paddingText.y > 0)
-    @assert(Math.abs(descLbl.paddingText.y + descLbl.paddingText.w) < 0.01)     // pure translation, no height loss
+    @assert(descLbl.textPadding.y > 0)
+    @assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
     @assert(chkRow.position.height >= descLbl.position.bottom())                // wrapped info text is not clipped
 
     host.shutdown()
@@ -332,35 +363,35 @@ struct PropHeadlessColorData
 
     func sendWheel(p: *Properties, deltaY: f32)
     {
-        var wheel = MouseEvent{kind: .MouseWheel}
-        wheel.move.y     = deltaY
+        var wheel = MouseEvent{kind: .Wheel}
+        wheel.delta.y     = deltaY
         wheel.surfacePos = {20, 90}
         p.edView.sendEvent(&wheel)
     }
 
     // Control: with no popup, the wheel scrolls the list.
-    let y0 = prop.scrollWnd.getScrollPos().y
+    let y0 = prop.scrollWnd.scrollPosition().y
     sendWheel(prop, -6)     // scroll down
-    let y1 = prop.scrollWnd.getScrollPos().y
+    let y1 = prop.scrollWnd.scrollPosition().y
     @assert(y1 != y0)
 
     // Modal: with a popup open, the same wheel is swallowed and the list stays put.
     let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
     sendWheel(prop, -6)
-    @assert(prop.scrollWnd.getScrollPos().y == y1)
+    @assert(prop.scrollWnd.scrollPosition().y == y1)
 
     // Clearing the popup restores scrolling.
     prop.editPopup = null
     sendWheel(prop, 6)     // scroll back up
-    @assert(prop.scrollWnd.getScrollPos().y != y1)
+    @assert(prop.scrollWnd.scrollPosition().y != y1)
 
     host.shutdown()
 }
 
 private func findIconButton(w: *Wnd)->#null *IconButton
 {
-    for c in w.childs
+    for c in w.children
     {
         if c.type == IconButton do
             return cast(*IconButton) c
@@ -388,13 +419,13 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     let btn = notnull findIconButton((notnull prop.items[9]).line)     // the color swatch button
 
     // Hover the button (no popup yet) -> hot.
-    host.sendMouseEvent(btn, .MouseEnter, {0, 0}, .Left, .Zero)
+    host.sendMouseEvent(btn, .Enter, {0, 0}, .Left, .None)
     @assert(btn.isHot)
 
     // With a popup open, a MouseLeave must still reach the button and clear the hover.
     let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
-    host.sendMouseEvent(btn, .MouseLeave, {0, 0}, .Left, .Zero)
+    host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
     @assert(!btn.isHot)
 
     host.shutdown()
@@ -410,7 +441,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    prop.focusNav()
+    prop.focusNavigation()
     host.keyPress(Input.Key.End)     // enabled (checkbox) row
     let chk = (notnull prop.items[3]).checkBox
     @assert(chk.isChecked())
@@ -435,26 +466,26 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
     prop.edView.sendResizeEvent()
 
-    prop.focusNav()
+    prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])     // section is not navigable in list mode
 
     // The very first Right in navigation steps the slider and focuses it (so the
     // value changes immediately, not only on the second press).
     host.keyPress(Input.Key.Right)
     let volumeSlider = (notnull prop.items[1]).sliderBox
-    @assert(volumeSlider.getValue() > 50)
+    @assert(volumeSlider.value() > 50)
     @assert(data.volume > 50)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) volumeSlider.slider)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) volumeSlider.slider)
 
     // A further Right keeps stepping (now in edit mode on the focused slider).
-    let v1 = volumeSlider.getValue()
+    let v1 = volumeSlider.value()
     host.keyPress(Input.Key.Right)
-    @assert(volumeSlider.getValue() > v1)
+    @assert(volumeSlider.value() > v1)
 
     // Down auto-commits and moves to the next row, back in navigation mode.
     host.keyPress(Input.Key.Down)
     @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     host.shutdown()
 }
@@ -471,16 +502,16 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
     prop.edView.sendResizeEvent()
 
-    prop.focusNav()
+    prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])
 
     let edit = (notnull prop.items[1]).sliderBox.edit
 
     // Enter focuses the value box (not the slider track) and selects its whole text.
     host.keyPress(Input.Key.Return)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) edit)
-    @assert(edit.selBeg == 0 and edit.selEnd == edit.text.length)
-    @assert(edit.text.length > 0)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) edit)
+    @assert(edit.selBeg == 0 and edit.selEnd == @countof(edit.text()))
+    @assert(@countof(edit.text()) > 0)
 
     host.shutdown()
 }
@@ -497,16 +528,16 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "E")     // [0]=section [1]=choice
     prop.edView.sendResizeEvent()
 
-    prop.focusNav()
+    prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])
     let combo = (notnull prop.items[1]).comboBox
-    @assert(combo.selectedIdx == 1)     // Mid
+    @assert(combo.selectedIndex == 1)     // Mid
 
     // Enter opens the drop-down popup. The grid keeps the keyboard focus and forwards
     // the keys to the popup (so they never leak to page navigation outside the grid).
     host.keyPress(Input.Key.Return)
     @assert(combo.popup != null)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     let pview = notnull cast(#null *PopupListView) (notnull combo.popup).scrollWnd.view
     @assert(pview.hotIdx == 1)     // highlight starts on the current value
@@ -514,20 +545,20 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     // Down moves the highlight only; the committed value stays until Enter.
     host.keyPress(Input.Key.Down)     // highlight Mid -> High
     @assert(pview.hotIdx == 2)
-    @assert(combo.selectedIdx == 1)     // not committed yet
+    @assert(combo.selectedIndex == 1)     // not committed yet
     @assert(data.choice == .Mid)
 
     // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
-    host.sendMouseEvent(notnull cast(#null *Wnd) pview, MouseEvent.Kind.MouseMove, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.Zero)
+    host.sendMouseEvent(notnull cast(#null *Wnd) pview, MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
     @assert(pview.hotIdx == 2)
 
     // Enter commits the highlighted item (writes the data) and closes the edit.
     host.keyPress(Input.Key.Return)
     host.pump()
-    @assert(combo.selectedIdx == 2)
+    @assert(combo.selectedIndex == 2)
     @assert(data.choice == .High)
     @assert(combo.popup == null)
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     host.shutdown()
 }
@@ -544,21 +575,21 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "C")     // [0]=section [1]=origin [2]=count
     prop.edView.sendResizeEvent()
 
-    prop.focusNav()
+    prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])     // the custom 'origin' row is selectable
 
     host.keyPress(Input.Key.Return)     // edit -> focus the first inner editbox
-    let f = notnull host.app.keybFocusWnd
+    let f = notnull host.app.keyboardFocusWnd
     @assert(f.type == EditBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to the next row
     @assert(prop.selItem == prop.items[2])
-    @assert(host.app.keybFocusWnd == cast(#null *Wnd) prop.edView)
+    @assert(host.app.keyboardFocusWnd == cast(#null *Wnd) prop.edView)
 
     host.shutdown()
 }
 
-// focusNav keeps the already-selected row (so clicking a header/custom row does not
+// focusNavigation keeps the already-selected row (so clicking a header/custom row does not
 // jump the selection to the first item).
 #test
 {
@@ -570,7 +601,7 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     prop.addStruct(data, "C")
 
     prop.setSelItem(prop.items[1])     // as if 'origin' was just clicked
-    prop.focusNav()
+    prop.focusNavigation()
     @assert(prop.selItem == prop.items[1])     // kept, not reset to the first row
 
     host.shutdown()
@@ -600,15 +631,15 @@ private func findIconButton(w: *Wnd)->#null *IconButton
     host.setup(360, 180)
 
     var data: PropHeadlessData
-    let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 320, 120}, .Grid, .Zero)
+    let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 320, 120}, .Grid, .None)
     ctrl.addStruct(data, "Settings")
-    ctrl.prop.edView.sendResizeEvent()
+    ctrl.properties.edView.sendResizeEvent()
 
-    @assert(ctrl.prop.items.count == 4)
-    let it0 = notnull ctrl.prop.items[0]
-    let it1 = notnull ctrl.prop.items[1]
-    let it2 = notnull ctrl.prop.items[2]
-    let it3 = notnull ctrl.prop.items[3]
+    @assert(ctrl.properties.items.count == 4)
+    let it0 = notnull ctrl.properties.items[0]
+    let it1 = notnull ctrl.properties.items[1]
+    let it2 = notnull ctrl.properties.items[2]
+    let it3 = notnull ctrl.properties.items[3]
     @assert(it0.line.position.y == 6)
     @assert(it1.line.position.y == 53)
     @assert(it2.line.position.y == 100)
@@ -621,9 +652,9 @@ private func findIconButton(w: *Wnd)->#null *IconButton
 
     let countItem = it1
     @assert(countItem.label.position == Math.Rectangle{0, 0, 150, 35})
-    @assert(countItem.editBox.position.height == ctrl.prop.getThemeMetrics().editBox_Height)
+    @assert(countItem.editBox.position.height == ctrl.properties.themeMetrics().editBox_Height)
     @assert(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
-    @assert(ctrl.prop.scrollWnd.scrollSize.y > ctrl.prop.position.height)
+    @assert(ctrl.properties.scrollWnd.scrollSize.y > ctrl.properties.position.height)
 
     host.shutdown()
 }
@@ -741,7 +772,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 
     // Enum selection propagates to all.
     let choiceItem = notnull findFieldItem(prop, "choice")
-    choiceItem.comboBox.selectItem(2)     // High
+    choiceItem.comboBox.setSelectedIndex(2)     // High
     @assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
 
     host.shutdown()
@@ -769,18 +800,18 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 
     let countItem = notnull findFieldItem(prop, "count")
     @assert(prop.fieldIsMixed(countItem))
-    @assert(countItem.editBox.getText() == "")     // blank when mixed
+    @assert(countItem.editBox.text() == "")     // blank when mixed
 
     let flagItem = notnull findFieldItem(prop, "flag")
     @assert(prop.fieldIsMixed(flagItem))
-    @assert(flagItem.checkBox.checked == .Undefined)     // indeterminate when mixed
+    @assert(flagItem.checkBox.state == .Indeterminate)     // indeterminate when mixed
 
     // Editing the mixed native field sets both instances and clears the mixed state.
     countItem.editBox.setText("7")
     prop.validateNative(countItem)
     @assert(t0.count == 7 and t1.count == 7)
     @assert(!prop.fieldIsMixed(countItem))
-    @assert(countItem.editBox.getText() == "7")
+    @assert(countItem.editBox.text() == "7")
 
     host.shutdown()
 }
@@ -802,7 +833,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
     let countItem = notnull findFieldItem(prop, "count")
     @assert(prop.instanceCount(countItem) == 1)
     @assert(!prop.fieldIsMixed(countItem))
-    @assert(countItem.editBox.getText() == "3")
+    @assert(countItem.editBox.text() == "3")
 
     countItem.editBox.setText("8")
     prop.validateNative(countItem)
@@ -813,7 +844,7 @@ private func findFieldItem(prop: *Properties, name: string)->#null *PropertiesIt
 
 private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 {
-    for c in w.childs
+    for c in w.children
     {
         if c.type == EditBox do
             out.add(cast(*EditBox) c)
@@ -852,7 +883,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
     // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
     let box0 = notnull boxes[0]
     box0.setText("5")
-    box0.sigLoseFocus.call(box0)
+    box0.sigFocusLost.call(box0)
     @assert(t0.pos.x == 5 and t1.pos.x == 5)
     @assert(t0.pos.y == 10 and t1.pos.y == 10)     // untouched
     @assert(!prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
@@ -920,7 +951,7 @@ private func collectEditBoxes(w: *Wnd, out: *Array'(#null *EditBox))
 
     let nameItem = notnull findFieldItem(prop, "name")
     @assert(prop.fieldIsMixed(nameItem))
-    @assert(nameItem.editBox.getText() == "")
+    @assert(nameItem.editBox.text() == "")
 
     nameItem.editBox.setText("shared")
     prop.validateDynamicString(nameItem)
@@ -1010,8 +1041,8 @@ impl Gui.IPropertyNotify for ValData
     @assert(nameItem.validationMsg == "Name is required.")
     @assert(countItem.validation == .None)
     @assert(@isset(nameItem.validationLabel) and nameItem.validationLabel.isVisible())
-    @assert(nameItem.validationLabel.paddingText.y > 0)
-    @assert(Math.abs(nameItem.validationLabel.paddingText.y + nameItem.validationLabel.paddingText.w) < 0.01)
+    @assert(nameItem.validationLabel.textPadding.y > 0)
+    @assert(Math.abs(nameItem.validationLabel.textPadding.y + nameItem.validationLabel.textPadding.w) < 0.01)
 
     // Editing into an invalid range raises a warning.
     countItem.editBox.setText("150")
@@ -1074,9 +1105,9 @@ impl Gui.IPropertyNotify for ValData
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
     // read-only fields (attribute + dynamic) are. They are not changeable either.
-    @assert(!normalItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
-    @assert(dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(!normalItem.editBox.flags.has(.ReadOnly))
+    @assert(lockedItem.editBox.flags.has(.ReadOnly))
+    @assert(dynamicItem.editBox.flags.has(.ReadOnly))
     @assert(prop.canChangeItem(normalItem))
     @assert(!prop.canChangeItem(lockedItem))
     @assert(!prop.canChangeItem(dynamicItem))
@@ -1084,9 +1115,9 @@ impl Gui.IPropertyNotify for ValData
     // Clearing the dynamic flag releases only that field; the attribute one stays locked.
     g_PropRoDynamic = false
     prop.setCurrentSection(Swag.U32.Max)
-    @assert(!dynamicItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(!dynamicItem.editBox.flags.has(.ReadOnly))
     @assert(prop.canChangeItem(dynamicItem))
-    @assert(lockedItem.editBox.editBoxFlags.has(.ReadOnly))
+    @assert(lockedItem.editBox.flags.has(.ReadOnly))
     @assert(!prop.canChangeItem(lockedItem))
 
     host.shutdown()
@@ -1177,10 +1208,10 @@ impl Gui.IPropertyNotify for ValData
     // update(): Move Up is disabled on the first element, enabled on the second.
     prop.menuItem = elems[0]
     var st = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
-    @assert(st.setFlags.has(.Disabled) and st.disabled)
+    @assert(st.updatedFields.has(.Disabled) and st.disabled)
     prop.menuItem = elems[1]
     st            = prop.sendComputeCommandStateEvent(ActionProperties.MoveUp)
-    @assert(st.setFlags.has(.Disabled) and !st.disabled)
+    @assert(st.updatedFields.has(.Disabled) and !st.disabled)
 
     // execute(): Move Up on element 1 reorders the underlying array, dispatched through the real
     // CommandEvent path (sendCommandEvent updates state first, then sends the command).
@@ -1229,10 +1260,10 @@ impl IPropertyEditor for PropAngleEditor
         {
             // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
             // writer parses the leading number out of the free text.
-            .sigLoseFocus += func|list, item, angle|(ed)
+            .sigFocusLost += func|list, item, angle|(ed)
             {
-                angle.deg = cast(s32) (catch StrConv.toNum's64(ed.getText()))
-                list.hasChanged(item)
+                angle.deg = cast(s32) (catch StrConv.toNum's64(ed.text()))
+                list.commitItemChange(item)
             }
         }
 
@@ -1270,7 +1301,7 @@ impl IPropertyEditor for PropAngleEditor
     let rot = notnull findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
     @assert(@isset(rot.editBox))
     @assert(rot.numChilds == 0)
-    @assert(rot.editBox.getText() == "45 deg")
+    @assert(rot.editBox.text() == "45 deg")
 
     // A plain field next to it still uses the built-in editor.
     let name = findFieldItem(prop, #nameof(PropHeadlessAngleData.name))
@@ -1359,7 +1390,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.updateStates()
     @assert(enabledItem.isModified)
     @assert(!@isset(enabledItem.revertButton))
-    let contentWidth = cast(f32) prop.sizeEditValue - prop.leftMargin - prop.rightMargin
+    let contentWidth = cast(f32) prop.editorWidth - prop.leftMargin - prop.rightMargin
     @assert((notnull enabledItem.checkBox.parent).position.width > contentWidth)
 
     // Edit the value away from its default: the row becomes modified (no button either).
@@ -1393,14 +1424,14 @@ impl IPropertyNotify for PropDefaultCustom
 
     // At default: the command exists but is disabled.
     var st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
-    @assert(st.setFlags.has(.Disabled) and st.disabled)
+    @assert(st.updatedFields.has(.Disabled) and st.disabled)
 
     // After a change: enabled, and executing it restores the default.
     data.count = 7
     prop.updateStates()
     @assert(countItem.isModified)
     st = prop.sendComputeCommandStateEvent(ActionProperties.ResetDefault)
-    @assert(st.setFlags.has(.Disabled) and !st.disabled)
+    @assert(st.updatedFields.has(.Disabled) and !st.disabled)
 
     prop.sendCommandEvent(ActionProperties.ResetDefault)
     @assert(data.count == 42 and !countItem.isModified)
@@ -1508,13 +1539,13 @@ impl IPropertyNotify for PropDefaultCustom
 
     let btn = countItem.revertButton
     @assert(btn.position.height == PropCondensedControlHeight)
-    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.getClientRect().vertCenter(), 0.01))
+    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
 
     data.count = 5
     prop.updateStates()
     @assert(countItem.isModified and !btn.isDisabled())
     @assert(btn.position.height == PropCondensedControlHeight)
-    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.getClientRect().vertCenter(), 0.01))
+    @assert(Math.isEqualEpsilon(btn.position.vertCenter(), countItem.line.clientRect().vertCenter(), 0.01))
 
     host.shutdown()
 }
@@ -1563,16 +1594,16 @@ impl IPropertyNotify for PropDefaultCustom
 
     // Writing the same value back records nothing.
     dref notnull cast(#null *s32) it.data = 42
-    prop.hasChanged(it)
+    prop.commitItemChange(it)
     @assert(!prop.canUndo())
 
     // Two real edits.
     dref notnull cast(#null *s32) it.data = 100
-    prop.hasChanged(it)
+    prop.commitItemChange(it)
     @assert(data.count == 100 and prop.canUndo() and !prop.canRedo())
 
     dref notnull cast(#null *s32) it.data = 7
-    prop.hasChanged(it)
+    prop.commitItemChange(it)
     @assert(data.count == 7)
 
     prop.undo()
@@ -1589,7 +1620,7 @@ impl IPropertyNotify for PropDefaultCustom
     prop.undo()     // -> 100
     prop.undo()     // -> 42
     dref notnull cast(#null *s32) it.data = 55
-    prop.hasChanged(it)
+    prop.commitItemChange(it)
     @assert(data.count == 55 and !prop.canRedo())
     prop.undo()
     @assert(data.count == 42)
@@ -1611,7 +1642,7 @@ impl IPropertyNotify for PropDefaultCustom
     let it = notnull findFieldItem(prop, #nameof(MultiTile.name))
 
     dref notnull cast(#null *String) it.data = "beta"
-    prop.hasChanged(it)
+    prop.commitItemChange(it)
     @assert(data.name == "beta")
 
     prop.undo()
@@ -1638,7 +1669,7 @@ impl IPropertyNotify for PropDefaultCustom
     let it = notnull findFieldItem(prop, #nameof(PropHeadlessData.count))
 
     dref notnull cast(#null *s32) it.data = 100     // edit instance 0; hasChanged propagates
-    prop.hasChanged(it)
+    prop.commitItemChange(it)
     @assert(t0.count == 100 and t1.count == 100)
 
     prop.undo()
@@ -1658,11 +1689,11 @@ impl IPropertyNotify for PropDefaultCustom
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
-    prop.focusNav()
+    prop.focusNavigation()
 
     let it = notnull findFieldItem(prop, #nameof(PropHeadlessData.count))
     dref notnull cast(#null *s32) it.data = 100
-    prop.hasChanged(it)
+    prop.commitItemChange(it)
     @assert(data.count == 100)
 
     host.keyPress(Input.Key.Z, Input.KeyModifiers.Control)
@@ -1759,7 +1790,7 @@ struct PropHeadlessFontStyleData
 }
 
 // The bold/italic buttons of the FontFamilyStyle editor are independent toggles: a
-// second click on a checked button must uncheck it (regression: with Checkable the
+// second click on a checked button must uncheck it (regression: with Radio the
 // click on a checked button was swallowed, so bold/italic could never be removed).
 #test
 {
@@ -1774,9 +1805,9 @@ struct PropHeadlessFontStyleData
 
     // items[0] is the implicit section; the editor stacks the B and I buttons in a sub-line
     let item      = notnull prop.items[1]
-    let stack     = item.line.childs[0]
-    let btnBold   = cast(*IconButton) stack.childs[0]
-    let btnItalic = cast(*IconButton) stack.childs[1]
+    let stack     = item.line.children[0]
+    let btnBold   = cast(*IconButton) stack.children[0]
+    let btnItalic = cast(*IconButton) stack.children[1]
 
     host.clickWnd(btnBold)
     @assert(data.style == .Bold)
@@ -1829,7 +1860,7 @@ struct PropHeadlessUsingDerived
 
     // Most specific first with usingFieldsLast
     let prop1 = Properties.create(&host.root, {0, 0, 240, 300})
-    prop1.usingFieldsLast = true
+    prop1.setUsingFieldsLast(true)
     prop1.addStruct(data)
     @assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
 
@@ -1877,12 +1908,12 @@ impl IPropertyNotify for PropFilterHost
     @assert(item.comboBox.items.count == 3)
 
     // Medium is enum value 2 but combo slot 1 (Hidden is filtered out)
-    @assert(item.comboBox.selectedIdx == 1)
+    @assert(item.comboBox.selectedIndex == 1)
 
     // Selecting the last combo slot writes the matching enum value back
-    item.comboBox.selectItem(2)
+    item.comboBox.setSelectedIndex(2)
     @assert(data.choice == .High)
-    item.comboBox.selectItem(0)
+    item.comboBox.setSelectedIndex(0)
     @assert(data.choice == .Low)
 
     host.shutdown()
@@ -1906,7 +1937,7 @@ struct PropSameCategData
     host.setup(800, 600)
 
     var data: PropSameCategData
-    let opt = PropertiesCtrl.create(&host.root, flags: .SectionFilter | .FindBar)
+    let opt = PropertiesCtrl.create(&host.root, flags: .SectionTabs | .SearchBar)
     opt.dockStyle = .Center
     opt.addStruct(data, "Application")
 
@@ -1915,18 +1946,18 @@ struct PropSameCategData
 
     // One section + one category header + the three fields
     var categs = 0
-    for item in opt.prop.items
+    for item in opt.properties.items
     {
         if (notnull item).flags.has(.Category) do
             categs += 1
     }
 
     @assert(categs == 1)
-    @assert(opt.prop.items.count == 5)
+    @assert(opt.properties.items.count == 5)
 
     // The bool description spans the control width, not the value column
     var descItem: #null *PropertiesItem
-    for item in opt.prop.items
+    for item in opt.properties.items
     {
         if (notnull item).typeValue.name == "first" do
             descItem = item
@@ -1934,7 +1965,7 @@ struct PropSameCategData
 
     let descIt = notnull descItem
     @assert(@isset(descIt.checkBox))
-    @assert((notnull descIt.checkBox.parent).position.width > cast(f32) opt.prop.sizeEditValue)
+    @assert((notnull descIt.checkBox.parent).position.width > cast(f32) opt.properties.editorWidth)
 
     host.shutdown()
 }

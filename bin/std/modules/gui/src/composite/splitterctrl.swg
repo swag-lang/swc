@@ -2,37 +2,37 @@
 
 using Core, Pixel
 
-// Selects splitter flags.
+// Configures splitter orientation and divider painting.
 #[Swag.EnumFlags]
 enum SplitterFlags
 {
-    Zero = 0     // No flags are enabled.
-    Vertical     // Enables vertical.
-    HideBars     // Enables hide bars.
+    None = 0         // Arranges panes horizontally and paints dividers.
+    Vertical         // Arranges panes vertically.
+    HideDividers     // Hides idle dividers while preserving drag interaction.
 }
 
-// Represents splitter item.
+// Configures one pane managed by a [[SplitterCtrl]].
 struct SplitterItem
 {
     #[Swag.Late]
-    view:            *Wnd             // View associated with this value.
-    size:            f32              // Size associated with this value.
-    minSize:         f32 = 5          // Min size associated with this value.
-    maxSize:         f32 = 0          // Max size associated with this value.
-    label:           #null *Label     // Label associated with this value.
-    tryPreserveSize: bool             // Try preserve size associated with this value.
-    visible              = true       // Visible associated with this value.
+    view:         *Wnd             // Pane content window.
+    size:         f32              // Current size along the splitting axis.
+    minimumSize:  f32 = 5          // Minimum size along the splitting axis.
+    maximumSize:  f32 = 0          // Maximum size, or zero for no upper bound.
+    label:        #null *Label     // Optional pane title managed by the splitter.
+    preserveSize: bool             // Whether other panes absorb resize changes first.
+    internal visible = true        // Whether the pane participates in layout.
 
     // Color animation of the bar that follows this pane.
     internal aniBar: BlendColor
 }
 
-// Represents splitter ctrl.
+// Arranges resizable panes separated by draggable dividers.
 struct SplitterCtrl
 {
     using frameWnd: FrameWnd                     // Embedded frame wnd state.
-    splitterFlags       = SplitterFlags.Zero     // Splitter flags associated with this value.
-    titleSize:      f32 = 30                     // Title size associated with this value.
+    flags              = SplitterFlags.None     // Orientation and divider options.
+    titleSize: f32 = 30                         // Title extent along the splitting axis.
 
     // The panes the splitter manages, in order. Add them through the methods so the bars and
     // the layout follow.
@@ -57,17 +57,17 @@ impl IWnd for SplitterCtrl
 
         switch evt.kind
         {
-        case .MouseLeave:
+        case .Leave:
             if .hotIdx != Swag.U32.Max
             {
                 .hotIdx = Swag.U32.Max
                 .invalidate()
             }
 
-        case .MouseMove:
+        case .Move:
             if .moving
             {
-                let rect = .getBarRect(.hotIdx)
+                let rect = .barRectAt(.hotIdx)
                 if .isVertical()
                 {
                     let diff = local.y - (rect.y + .correctMoving)
@@ -89,10 +89,10 @@ impl IWnd for SplitterCtrl
                 .hotIdx = newHot
             }
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left and .hotIdx != Swag.U32.Max
             {
-                let rect = .getBarRect(.hotIdx)
+                let rect = .barRectAt(.hotIdx)
                 .moving = true
                 let srf = notnull .surface
                 srf.app.captureMouse(me)
@@ -102,7 +102,7 @@ impl IWnd for SplitterCtrl
                     .correctMoving = local.x - rect.x
             }
 
-        case .MouseReleased:
+        case .Released:
             if .moving
             {
                 .moving = false
@@ -112,7 +112,7 @@ impl IWnd for SplitterCtrl
         }
 
         if .hotIdx != Swag.U32.Max do
-            .cursor = .isVertical() ? Cursor.from(CursorShape.SizeNS) : Cursor.from(CursorShape.SizeWE)
+            .cursor = .isVertical() ? Cursor.from(CursorShape.ResizeVertical) : Cursor.from(CursorShape.ResizeHorizontal)
         else do
             .cursor.clear()
     }
@@ -121,10 +121,10 @@ impl IWnd for SplitterCtrl
     {
         .computeLayout()
 
-        let client  = .getClientRectPadding()
+        let client  = .paddedClientRect()
         var x       = client.x
         var y       = client.y
-        let barSize = .getThemeMetrics().splitView_BarSize
+        let barSize = .themeMetrics().splitView_BarSize
 
         for item in .items
         {
@@ -171,25 +171,29 @@ impl IWnd for SplitterCtrl
         }
     }
 
-    mtd impl onPostPaintEvent(evt: *PaintEvent)
+    mtd impl onAfterPaint(evt: *PaintEvent)
     {
         if !.items.count do
             return
 
-        let painter = evt.bc.painter
-        let theme   = .getTheme()
-        let rects   = .getThemeRects()
-        let colors  = .getThemeColors()
+        let painter = evt.paintContext.painter
+        let theme   = .theme()
+        let rects   = .themeRects()
+        let colors  = .themeColors()
 
-        for [idx] in .items.count - 1
+        var visibleIndex = 0
+        for item, [idx] in .items
         {
-            let it = notnull .items[idx]
+            let it = notnull item
             if !it.visible do
                 continue
+            visibleIndex += 1
+            if visibleIndex == .numVisiblePanes do
+                break
 
-            let rect  = .getBarRect(cast(u32) idx)
+            let rect  = .barRectAt(cast(u32) idx)
             let isHot = .hotIdx == idx
-            if isHot or !.splitterFlags.has(.HideBars)
+            if isHot or !.flags.has(.HideDividers)
             {
                 let colorBar = isHot ? colors.splitView_BarHot : colors.splitView_Bar
                 it.aniBar.apply(me, colorBar)
@@ -206,7 +210,7 @@ impl IWnd for SplitterCtrl
             }
         }
 
-        .frameWnd.IWnd.onPostPaintEvent(evt)
+        .frameWnd.IWnd.onAfterPaint(evt)
     }
 }
 
@@ -214,11 +218,14 @@ private impl SplitterCtrl
 {
     mtd computeLayout()
     {
-        let rect = .getClientRectPadding()
-        if rect.width <= .items.count or rect.height <= .items.count do
+        let rect = .paddedClientRect()
+        if .numVisiblePanes <= 0 do
+            return
+        let available = .isVertical() ? rect.height : rect.width
+        if available <= .numVisiblePanes do
             return
 
-        let barSize = .getThemeMetrics().splitView_BarSize
+        let barSize = .themeMetrics().splitView_BarSize
 
         var dispatch: f32
         if !.items.isEmpty()
@@ -233,8 +240,8 @@ private impl SplitterCtrl
                     continue
 
                 totalSize        += it.size
-                countPreserve    += it.tryPreserveSize ? 1 : 0
-                countNotPreserve += it.tryPreserveSize ? 0 : 1
+                countPreserve    += it.preserveSize ? 1 : 0
+                countNotPreserve += it.preserveSize ? 0 : 1
             }
 
             totalSize += cast(f32) ((.numVisiblePanes - 1) * barSize)
@@ -252,18 +259,18 @@ private impl SplitterCtrl
                 for item, [idx] in .items
                 {
                     let it = notnull item
-                    if it.tryPreserveSize do
+                    if it.preserveSize do
                         continue
                     if !it.visible do
                         continue
 
                     countNotPreserve -= 1
 
-                    var realDiff = countNotPreserve ? diff : dispatch
-                    if it.maxSize > 0 and realDiff > 0 and it.size + realDiff > it.maxSize do
-                        realDiff = it.maxSize - it.size
-                    elif realDiff < 0 and it.size + realDiff < it.minSize do
-                        realDiff = it.minSize - it.size
+                    var realDiff = countPreserve ? diff : dispatch
+                    if it.maximumSize > 0 and realDiff > 0 and it.size + realDiff > it.maximumSize do
+                        realDiff = it.maximumSize - it.size
+                    elif realDiff < 0 and it.size + realDiff < it.minimumSize do
+                        realDiff = it.minimumSize - it.size
 
                     it.size  += realDiff
                     dispatch -= realDiff
@@ -277,7 +284,7 @@ private impl SplitterCtrl
                 for item, [idx] in .items
                 {
                     let it = notnull item
-                    if !it.tryPreserveSize do
+                    if !it.preserveSize do
                         continue
                     if !it.visible do
                         continue
@@ -285,10 +292,10 @@ private impl SplitterCtrl
                     countPreserve -= 1
 
                     var realDiff = countNotPreserve ? diff : dispatch
-                    if it.maxSize > 0 and realDiff > 0 and it.size + realDiff > it.maxSize do
-                        realDiff = it.maxSize - it.size
-                    elif realDiff < 0 and it.size + realDiff < it.minSize do
-                        realDiff = it.minSize - it.size
+                    if it.maximumSize > 0 and realDiff > 0 and it.size + realDiff > it.maximumSize do
+                        realDiff = it.maximumSize - it.size
+                    elif realDiff < 0 and it.size + realDiff < it.minimumSize do
+                        realDiff = it.minimumSize - it.size
 
                     it.size  += realDiff
                     dispatch -= realDiff
@@ -308,18 +315,22 @@ private impl SplitterCtrl
 
     mtd hitTest(surfacePos: Math.Point)->u32
     {
-        let client = .getClientRectPadding()
+        let client = .paddedClientRect()
         let local  = .surfaceToLocal(surfacePos)
 
         var x       = client.x
         var y       = client.y
-        let barSize = .getThemeMetrics().splitView_BarSize
+        let barSize = .themeMetrics().splitView_BarSize
 
+        var visibleIndex = 0
         for item, [idx] in .items
         {
             let it = notnull item
             if !it.visible do
                 continue
+            visibleIndex += 1
+            if visibleIndex == .numVisiblePanes do
+                break
             var rect = client
             if .isVertical()
             {
@@ -342,87 +353,102 @@ private impl SplitterCtrl
         return Swag.U32.Max
     }
 
-    mtd getBarRect(idx: u32)->Math.Rectangle
+    mtd barRectAt(idx: u32)->Math.Rectangle
     {
-        var result: retval = .getClientRectPadding()
+        var result: retval = .paddedClientRect()
 
-        let barSize = .getThemeMetrics().splitView_BarSize
-        for [i] in 0 to idx
+        let barSize = .themeMetrics().splitView_BarSize
+        for item, [i] in .items
         {
+            let pane = notnull item
+            if !pane.visible do
+                continue
+
             if .isVertical()
             {
-                result.y += (notnull .items[i]).size
-                if i != idx do
-                    result.y  += barSize
+                result.y += pane.size
                 result.height = barSize
             }
             else
             {
-                result.x += (notnull .items[i]).size
-                if i != idx do
-                    result.x += barSize
+                result.x += pane.size
                 result.width = barSize
             }
+
+            if i == idx do
+                return result
+
+            if .isVertical() do
+                result.y += barSize
+            else do
+                result.x += barSize
         }
 
+        Debug.assert(false, "splitter pane index is not visible")
         return result
     }
 
     mtd setPaneSizePrivate(idx: u32, newSize: f32)
     {
         let curPane = notnull .items[idx]
+        Debug.assert(curPane.visible)
 
-        var reqSize = Math.max(curPane.minSize, newSize)
-        if curPane.maxSize > 0 do
-            reqSize = Math.min(curPane.maxSize, reqSize)
+        var reqSize = Math.max(curPane.minimumSize, newSize)
+        if curPane.maximumSize > 0 do
+            reqSize = Math.min(curPane.maximumSize, reqSize)
 
-        var diff = reqSize - curPane.size
-        if .items.count == 1
+        let requestedChange = reqSize - curPane.size
+        if .numVisiblePanes == 1
         {
-            curPane.size += diff
+            curPane.size = reqSize
             return
         }
 
-        let scanLeft = idx == .items.count - 1
-        var i        = cast(s32) idx
+        var hasVisibleRight = false
+        var scan = cast(u64) idx + 1
+        while scan < .items.count
+        {
+            if (notnull .items[scan]).visible
+            {
+                hasVisibleRight = true
+                break
+            }
+            scan += 1
+        }
+
+        let direction = hasVisibleRight ? 1 : -1
+        var i         = cast(s32) idx
+        var remaining = requestedChange
 
         for
         {
-            if scanLeft and i == 0 do
-                break
-            if !scanLeft and i == .items.count - 1 do
+            i += direction
+            if i < 0 or i >= .items.count do
                 break
 
-            let otherPane = notnull (scanLeft ? .items[i - 1] : .items[i + 1])
-            i += scanLeft ? -1 : 1
+            let otherPane = notnull .items[i]
+            if !otherPane.visible do
+                continue
 
-            var realDiff = diff
-            if realDiff > 0 and otherPane.size - realDiff < otherPane.minSize
-            {
-                realDiff       = otherPane.size - otherPane.minSize
-                otherPane.size = otherPane.minSize
-            }
-            elif realDiff < 0 and otherPane.maxSize > 0 and otherPane.size - realDiff > otherPane.maxSize
-            {
-                realDiff       = otherPane.maxSize - otherPane.size
-                otherPane.size = otherPane.maxSize
-            }
-            else
-            {
-                otherPane.size -= realDiff
+            var transfer = remaining
+            if transfer > 0 do
+                transfer = Math.min(transfer, Math.max(otherPane.size - otherPane.minimumSize, 0))
+            elif transfer < 0 and otherPane.maximumSize > 0 do
+                transfer = Math.max(transfer, otherPane.size - otherPane.maximumSize)
+
+            otherPane.size -= transfer
+            remaining      -= transfer
+            if Math.abs(remaining) <= 0.001 do
                 break
-            }
-
-            diff -= realDiff
         }
 
-        curPane.size += diff
+        curPane.size += requestedChange - remaining
     }
 }
 
 impl SplitterCtrl
 {
-    // Creates a new SplitterCtrl instance
+    // Creates an empty horizontal or vertical splitter.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, vertical = false, id: #null WndId = null)->*SplitterCtrl
     {
@@ -431,26 +457,26 @@ impl SplitterCtrl
         let pos = position
         let res = Wnd.create'SplitterCtrl(parent, null, pos, id)
         res.focusStrategy = .None
-        res.wndFlags      |= .PostChildsPaint
+        res.wndFlags      |= .AfterChildrenPaint
         if vertical do
-            res.splitterFlags.add(.Vertical)
+            res.flags.add(.Vertical)
         return res
     }
 
-    // Returns whether vertical.
+    // Reports whether panes are stacked vertically.
     #[Swag.Inline]
-    mtd isVertical() => .splitterFlags.has(.Vertical)
+    mtd const isVertical() => .flags.has(.Vertical)
 
-    // Add a new pane
+    // Adds `pane` and optionally creates a title label for it.
     #[Swag.Discardable]
-    mtd addPane(pane: *Wnd, paneSize: f32 = 100, title = false)->*SplitterItem
+    mtd addPane(pane: *Wnd, paneSize: f32 = 100, showTitle = false)->*SplitterItem
     {
         pane.setParent(me)
         .numVisiblePanes += 1
 
-        let item = .items.newPtr()
+        let item = .items.allocate()
         item.view = pane
-        if title
+        if showTitle
         {
             with let label = Label.create(me, "")
             {
@@ -465,7 +491,7 @@ impl SplitterCtrl
 
         if .items.count == 1
         {
-            let rect = .getClientRectPadding()
+            let rect = .paddedClientRect()
             if .isVertical() do
                 item.size = rect.height
             else do
@@ -479,7 +505,7 @@ impl SplitterCtrl
         return item
     }
 
-    // Set the pane size (size of the first view)
+    // Sets a pane size while respecting its limits and resizing adjacent visible panes.
     mtd setPaneSize(idx: u32, newSize: f32)
     {
         Debug.assert(idx < .items.count)
@@ -487,21 +513,23 @@ impl SplitterCtrl
         .sendResizeEvent()
     }
 
-    // Show or hide a given pane.
-    mtd showPane(idx: u32, show: bool)
+    // Shows or hides a pane and its optional title.
+    mtd setPaneVisible(idx: u32, visible: bool)
     {
         Debug.assert(idx < .items.count)
         let pane = notnull .items[idx]
 
-        if pane.visible == show do
+        if pane.visible == visible do
             return
 
-        .numVisiblePanes += show ? 1 : -1
-        pane.visible     = show
+        .numVisiblePanes += visible ? 1 : -1
+        pane.visible     = visible
         if @isset(pane.view) do
-            pane.view.show(show)
+            pane.view.show(visible)
+        if pane.label do
+            pane.label.show(visible)
 
-        if show
+        if visible
         {
             let mem = pane.size
             pane.size = 0
@@ -511,8 +539,8 @@ impl SplitterCtrl
         .sendResizeEvent()
     }
 
-    // Returns true if the given pane is visible.
-    mtd isPaneVisible(idx: u32)->bool
+    // Reports whether a pane participates in layout.
+    mtd const isPaneVisible(idx: u32)->bool
     {
         Debug.assert(idx < .items.count)
         return (notnull .items[idx]).visible

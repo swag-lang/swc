@@ -5,7 +5,7 @@ using Swag
 
 #test
 {
-    var rng: Random.MWC
+    var rng: Random.MultiplyWithCarry32
 
     @assert(rng.w == 521288629'u32)
     @assert(rng.z == 362436069'u32)
@@ -24,7 +24,7 @@ using Swag
 
 #test
 {
-    var rng: Random.MWC
+    var rng: Random.MultiplyWithCarry32
     rng.seedU32(123456789'u32)
 
     @assert(rng.w == 123456789'u32)
@@ -37,7 +37,7 @@ using Swag
 
 #test
 {
-    var rng: Random.MWC
+    var rng: Random.MultiplyWithCarry32
     rng.seedU32(1'u32, 2'u32)
 
     @assert(rng.w == 1'u32)
@@ -50,7 +50,7 @@ using Swag
 
 #test
 {
-    var rng: Random.MWC
+    var rng: Random.MultiplyWithCarry32
 
     rng.seedU32(0'u32)
     @assert(rng.w == 521288629'u32)

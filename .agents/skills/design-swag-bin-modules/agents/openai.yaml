@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Swag Bin Modules"
+  short_description: "Design consistent professional Swag module APIs"
+  default_prompt: "Use $design-swag-bin-modules to review and improve this public module API under bin/."

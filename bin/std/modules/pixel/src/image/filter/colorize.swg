@@ -7,7 +7,7 @@ impl Image
     public mtd colorize(hue, saturation: f32, strength = 1.0)
     {
         // unsupported pixel format
-        if .pf.channels() < 3 or .pf.bitDepth() != 8 do
+        if .pixelFormat.channels() < 3 or .pixelFormat.bitDepth() != 8 do
             return
 
         let h  = Math.clamp(hue, 0.0, 1.0)
@@ -17,7 +17,7 @@ impl Image
         // Precompute bgr depending on luminance
         var convArr: [256, 3] f32 = undefined
 
-        if .pf == .BGR8 or .pf == .BGRA8
+        if .pixelFormat == .BGR8 or .pixelFormat == .BGRA8
         {
             for [i] in 256
             {
@@ -27,7 +27,7 @@ impl Image
                 convArr[i, 2] = cast(f32) c.r
             }
         }
-        elif .pf == .RGB8 or .pf == .RGBA8
+        elif .pixelFormat == .RGB8 or .pixelFormat == .RGBA8
         {
             for [i] in 256
             {

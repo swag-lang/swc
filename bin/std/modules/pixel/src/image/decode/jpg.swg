@@ -141,7 +141,7 @@ private
 //
 // The decoder is opaque and reusable only through its public decoding operations.
 #[Opaque]
-public struct Decoder
+internal struct Decoder
 {
     // Decoding state of one image: the entropy-coded bit cursor, the frame and scan tables,
     // and the coefficient and scanline buffers. Decode through the module entry points;
@@ -189,7 +189,7 @@ public struct Decoder
         realDestBytesPerScanLine: s32
         destBytesPerScanLine:     s32
 
-        acceptMetaDatas: bool
+        acceptMetadata: bool
         progressiveFlag: bool
         hasAdobeMarker:  bool
         hasJfifMarker:   bool
@@ -230,7 +230,7 @@ public struct Decoder
         quantBuf:   Array'u8
         sampleBuf:  Array'u8
         decOptions: DecodeOptions
-        metaDatas:  Array'ImageMetaData
+        metadata: Array'ImageMetadata
     }
 }
 
@@ -311,11 +311,11 @@ impl Decoder
     }
 }
 
-public impl IImageDecoder for Decoder
+internal impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool
     {
-        let ext = Path.getExtensionLowerCase(fileName)
+        let ext = Path.lowercaseExtension(fileName)
         return ext == ".jpg" or ext == ".jpeg"
     }
 
@@ -334,7 +334,7 @@ public impl IImageDecoder for Decoder
         result.allocPixels()
 
         .doit(cast([*] u8) (notnull result.pixels.buffer))
-        result.metaDatas = #move .metaDatas
+        result.metadata = #move .metadata
 
         return result
     }

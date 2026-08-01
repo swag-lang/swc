@@ -52,13 +52,13 @@ func updateFromTable(cxt: ActionContext, evt: *CommandStateEvent, table: const [
         case .PixSel:    disabled = !capture or !capture.hasSelectedPixSel()
         }
 
-        evt.setFlags |= .Name | .Disabled
+        evt.updatedFields |= .Name | .Disabled
         evt.name     = d.name
         evt.disabled = disabled
 
         if d.hideDisabled
         {
-            evt.setFlags |= .Hidden
+            evt.updatedFields |= .Hidden
             evt.hidden   = disabled
         }
 

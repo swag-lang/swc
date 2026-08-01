@@ -141,7 +141,7 @@ func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     painter.popTransform()
     painter.popClippingRect()
-    drawWrappedText(painter, {body.x + 18, body.bottom() - 32, body.width - 36, 22}, "TypeFace.getStringOutline + gradient fill + textured outline", notnull g_HelpFont, Argb.DimGray)
+    drawWrappedText(painter, {body.x + 18, body.bottom() - 32, body.width - 36, 22}, "TypeFace.buildStringOutline + gradient fill + textured outline", notnull g_HelpFont, Argb.DimGray)
 }
 
 func drawTextPage(painter: *Pixel.Painter)

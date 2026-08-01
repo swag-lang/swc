@@ -76,7 +76,7 @@ internal impl Properties
                 menu.addItem(ActionProperties.MoveDown)
             }
 
-            if Reflection.isStructArray(arr.arrItem.type)
+            if Reflection.isDynamicArray(arr.arrItem.type)
             {
                 menu.addSeparator()
                 if arr.arrElem do

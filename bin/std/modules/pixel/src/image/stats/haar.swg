@@ -79,15 +79,15 @@ func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [
             let fy = srcY - cast(f32) y0
 
             // Bilinear interpolation
-            let c00 = image.getPixelColor(x0, y0)
-            let c10 = image.getPixelColor(x1, y0)
-            let c01 = image.getPixelColor(x0, y1)
-            let c11 = image.getPixelColor(x1, y1)
+            let c00 = image.pixelColor(x0, y0)
+            let c10 = image.pixelColor(x1, y0)
+            let c01 = image.pixelColor(x0, y1)
+            let c11 = image.pixelColor(x1, y1)
 
-            let gray00 = c00.getGrayScalef()
-            let gray10 = c10.getGrayScalef()
-            let gray01 = c01.getGrayScalef()
-            let gray11 = c11.getGrayScalef()
+            let gray00 = c00.grayscaleValue()
+            let gray10 = c10.grayscaleValue()
+            let gray01 = c01.grayscaleValue()
+            let gray11 = c11.grayscaleValue()
 
             let interpolated = gray00 * (1.0 - fx) * (1.0 - fy) +
                                gray10 * fx * (1.0 - fy) +
@@ -253,8 +253,8 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
         for [x] in windowSize
         {
             let srcX  = Math.min(cast(s32) (cast(f32) x * stepX), image.width - 1)
-            let color = image.getPixelColor(srcX, srcY)
-            let gray  = color.getGrayScalef()
+            let color = image.pixelColor(srcX, srcY)
+            let gray  = color.grayscaleValue()
             grayBuf[y * windowSize + x] = gray
         }
     }

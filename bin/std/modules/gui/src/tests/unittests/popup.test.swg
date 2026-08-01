@@ -36,11 +36,10 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 
     // Selecting item 1 via the popup routes back to the combobox.
     let popup = notnull combo.popup
-    let sig   = notnull popup.sigSelected
-    sig(popup, 1)
+    (notnull popup.sigClosed)(popup, 1)
     host.pump()
     @assert(combo.popup == null)
-    @assert(combo.selectedIdx == 1)
+    @assert(combo.selectedIndex == 1)
     @assert(PopupHeadlessChangedCount == 1)
     @assert(host.lastCommand == PopupHeadless_Item2)
 
@@ -63,11 +62,10 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
 
     // The open popup captured the mouse; closing it via its own dismiss path.
     let popup = notnull combo.popup
-    let sig   = notnull popup.sigSelected
-    sig(popup, Swag.U32.Max)
+    (notnull popup.sigClosed)(popup, Swag.U32.Max)
     host.pump()
     @assert(combo.popup == null)
-    @assert(combo.selectedIdx == Swag.U32.Max)
+    @assert(combo.selectedIndex == Swag.U32.Max)
 
     host.app.setMouseCaptureRaw(null)
     host.shutdown()
@@ -87,7 +85,13 @@ func popupHeadlessChanged(combo: *ComboBox, idx: u32)
     @assert(popup.items.count == 3)
     @assert(!(notnull popup.items[0]).isSeparator)
     @assert((notnull popup.items[1]).isSeparator)
-    @assert(popup.selectedIdx == Swag.U32.Max)
+    @assert(popup.selectedIndex == Swag.U32.Max)
+
+    popup.itemHeight      = 30
+    popup.separatorHeight = 8
+    popup.show(20, 20, 100)
+    @assert(popup.scrollWnd.scrollSize.y == 68)
+    host.app.setMouseCaptureRaw(null)
 
     popup.destroy()
     host.pump()

@@ -1,40 +1,45 @@
 #global public
 #global namespace Time
 
-// Represents an interval of time, stored as a 64-bit integer (in ticks)
+// Stores a calendar instant as 100-nanosecond ticks since 0001-01-01 00:00:00.
 #[Swag.Operators(opCompare)]
-struct TimeSpan
+struct Timestamp
 {
-    ticks: Ticks     // Duration represented in ticks
+    readonly ticks: Ticks     // Number of ticks since the documented epoch.
 }
 
-impl TimeSpan
+impl Timestamp
 {
-    // Returns the current time as a TimeSpan
-    func now()->TimeSpan
+    // Captures the current wall-clock time.
+    func now()->Timestamp
     {
-        let result: retval = from(DateTime.now())
-        return result
+        return fromDateTime(DateTime.now())
     }
 
-    // Sets the TimeSpan to the current time
+    // Replaces this value with the current wall-clock time.
     mtd setNow()
     {
-        let dateTime = DateTime.now()
-        .ticks = dateToTicks(dateTime.year, dateTime.month, dateTime.day)
-        .ticks += timeToTicks(dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond)
+        me = now()
     }
 
-    // Creates a TimeSpan from a DateTime
-    func from(dateTime: DateTime)->TimeSpan
+    // Creates a timestamp from raw ticks since 0001-01-01 00:00:00.
+    func fromTicks(ticks: Ticks)->Timestamp
     {
+        Debug.assert(ticks <= MaxTicks)
+        return Timestamp{ticks}
+    }
+
+    // Creates a timestamp from a valid calendar date and time.
+    func fromDateTime(dateTime: DateTime)->Timestamp
+    {
+        Debug.assert(dateTime.isValid())
         var result: retval = undefined
         result.ticks = dateToTicks(dateTime.year, dateTime.month, dateTime.day)
         result.ticks += timeToTicks(dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond)
         return result
     }
 
-    // Converts the TimeSpan to a DateTime
+    // Converts the timestamp to calendar components.
     mtd const toDateTime()->DateTime
     {
         var dateTime: retval = undefined
@@ -43,14 +48,14 @@ impl TimeSpan
         return dateTime
     }
 
-    // Adds or subtracts a number of years to the TimeSpan
+    // Shifts the calendar year, clamping a leap day when necessary.
     mtd addYears(years: s32)
     {
         Debug.assert(-10000 <= years and years <= 10000, "overflow")
         .addMonths(years * 12)
     }
 
-    // Adds or subtracts a number of months to the TimeSpan
+    // Shifts the calendar month, clamping the day when necessary.
     mtd addMonths(months: s32)
     {
         Debug.assert(-120000 <= months and months <= 120000, "overflow")
@@ -76,82 +81,82 @@ impl TimeSpan
         .ticks = dateToTicks(y, m, d) + (.ticks % TicksPerDay)
     }
 
-    // Adds or subtracts a number of days to the TimeSpan
+    // Shifts the timestamp by whole 24-hour days.
     mtd addDays(days: s32)
     {
         if days > 0 do
-            .add(cast(u32) days, MillisPerDay)
+            .add(cast(u32) days, MillisecondsPerDay)
         else do
-            .remove(cast(u32) -days, MillisPerDay)
+            .remove(cast(u32) -cast(s64) days, MillisecondsPerDay)
     }
 
-    // Adds or subtracts a number of hours to the TimeSpan
+    // Shifts the timestamp by whole hours.
     mtd addHours(hours: s32)
     {
         if hours > 0 do
-            .add(cast(u32) hours, MillisPerHour)
+            .add(cast(u32) hours, MillisecondsPerHour)
         else do
-            .remove(cast(u32) -hours, MillisPerHour)
+            .remove(cast(u32) -cast(s64) hours, MillisecondsPerHour)
     }
 
-    // Adds or subtracts a number of minutes to the TimeSpan
+    // Shifts the timestamp by whole minutes.
     mtd addMinutes(minutes: s32)
     {
         if minutes > 0 do
-            .add(cast(u32) minutes, MillisPerMinute)
+            .add(cast(u32) minutes, MillisecondsPerMinute)
         else do
-            .remove(cast(u32) -minutes, MillisPerMinute)
+            .remove(cast(u32) -cast(s64) minutes, MillisecondsPerMinute)
     }
 
-    // Adds or subtracts a number of seconds to the TimeSpan
+    // Shifts the timestamp by whole seconds.
     mtd addSeconds(seconds: s32)
     {
         if seconds > 0 do
-            .add(cast(u32) seconds, MillisPerSecond)
+            .add(cast(u32) seconds, MillisecondsPerSecond)
         else do
-            .remove(cast(u32) -seconds, MillisPerSecond)
+            .remove(cast(u32) -cast(s64) seconds, MillisecondsPerSecond)
     }
 
-    // Adds or subtracts a number of milliseconds to the TimeSpan
-    mtd addMilliSeconds(milliSeconds: s32)
+    // Shifts the timestamp by whole milliseconds.
+    mtd addMilliseconds(milliseconds: s32)
     {
-        if milliSeconds > 0 do
-            .add(cast(u32) milliSeconds, 1)
+        if milliseconds > 0 do
+            .add(cast(u32) milliseconds, 1)
         else do
-            .remove(cast(u32) -milliSeconds, 1)
+            .remove(cast(u32) -cast(s64) milliseconds, 1)
     }
 
-    // Returns the total duration in days
+    // Returns days elapsed since the timestamp epoch.
     mtd const totalDays()->f64 => .ticks * (1.0'f64 / TicksPerDay)
 
-    // Returns the total duration in hours
+    // Returns hours elapsed since the timestamp epoch.
     mtd const totalHours()->f64 => .ticks * (1.0'f64 / TicksPerHour)
 
-    // Returns the total duration in minutes
+    // Returns minutes elapsed since the timestamp epoch.
     mtd const totalMinutes()->f64 => .ticks * (1.0'f64 / TicksPerMinute)
 
-    // Returns the total duration in seconds
+    // Returns seconds elapsed since the timestamp epoch.
     mtd const totalSeconds()->f64 => .ticks * (1.0'f64 / TicksPerSecond)
 
-    // Returns the total duration in milliseconds
-    mtd const totalMilliSeconds()->f64 => .ticks * (1.0'f64 / TicksPerMilliSecond)
+    // Returns milliseconds elapsed since the timestamp epoch.
+    mtd const totalMilliseconds()->f64 => .ticks * (1.0'f64 / TicksPerMillisecond)
 
-    // Adds a time interval to the current TimeSpan
+    // Adds a scaled millisecond interval.
     private mtd add(value: u32, scale: u64)
     {
         var millis = value * scale
-        Debug.assert(millis <= MaxMillis, "overflow")
-        millis *= TicksPerMilliSecond
+        Debug.assert(millis <= MaxMillisecondsToYear10000, "overflow")
+        millis *= TicksPerMillisecond
         Debug.assert(millis <= (MaxTicks - .ticks), "overflow")
         .ticks += millis
     }
 
-    // Subtracts a time interval from the current TimeSpan
+    // Subtracts a scaled millisecond interval.
     private mtd remove(value: u32, scale: u64)
     {
         var millis = value * scale
-        Debug.assert(millis <= MaxMillis, "overflow")
-        millis *= TicksPerMilliSecond
+        Debug.assert(millis <= MaxMillisecondsToYear10000, "overflow")
+        millis *= TicksPerMillisecond
         Debug.assert(millis <= .ticks, "ticks overflow")
         .ticks -= millis
     }

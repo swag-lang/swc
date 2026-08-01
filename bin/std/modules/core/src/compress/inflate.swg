@@ -293,8 +293,8 @@ impl Inflate
     // Decompress the associated stream
     public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = InflateMaxDistance) fail
     {
-        .stream.init(buf)
-        .adler.init()
+        .stream.reset(buf)
+        .adler.reset()
         .windowSize = Math.min(winSize, InflateMaxDistance)
 
         var repeatHt:     HuffmanTable
@@ -318,10 +318,10 @@ impl Inflate
                     fail InvalidFormatError{"invalid buffer, length mismatch"}
 
                 .stream.revert()
-                let newSlice = @mkslice(.stream.curPtr(), uncompressedLen)
+                let newSlice = @mkslice(.stream.currentPointer(), uncompressedLen)
                 .adler.update(newSlice)
                 result.add(newSlice)
-                .stream.curByte += uncompressedLen
+                .stream.advanceBytes(uncompressedLen)
 
             case 1:
                 repeatHt.init(FixedLength)
@@ -335,9 +335,9 @@ impl Inflate
                 var lenCodes:        [286 + 32 + 137] u8
                 var codeLengthSizes: [19] u8
                 .stream.refill(14)
-                let hlit  = .stream.readBitsNoRefill(5) + 257
-                let hdist = .stream.readBitsNoRefill(5) + 1
-                let hclen = .stream.readBitsNoRefill(4) + 4
+                let hlit  = .stream.readBitsUnchecked(5) + 257
+                let hdist = .stream.readBitsUnchecked(5) + 1
+                let hclen = .stream.readBitsUnchecked(4) + 4
                 for [i] in hclen
                 {
                     let s = cast(u8) .stream.readBits(3)
@@ -365,16 +365,16 @@ impl Inflate
                         switch c
                         {
                         case 16:
-                            c = cast(u16) (.stream.readBitsNoRefill(2) + 3)
+                            c = cast(u16) (.stream.readBitsUnchecked(2) + 3)
                             if n == 0 do
                                 fail InvalidFormatError{"bad code lengths"}
                             fill = lenCodes[n - 1]
 
                         case 17:
-                            c = cast(u16) (.stream.readBitsNoRefill(3) + 3)
+                            c = cast(u16) (.stream.readBitsUnchecked(3) + 3)
 
                         case 18:
-                            c = cast(u16) (.stream.readBitsNoRefill(7) + 11)
+                            c = cast(u16) (.stream.readBitsUnchecked(7) + 11)
 
                         default:
                             fail InvalidFormatError{"bad code lengths"}

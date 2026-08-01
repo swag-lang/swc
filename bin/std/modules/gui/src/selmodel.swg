@@ -2,28 +2,36 @@
 
 using Core
 
-// Represents sel range.
+// Inclusive range of selected indices.
 struct SelRange
 {
-    start: u32     // Start associated with this value.
-    end:   u32     // End associated with this value.
+    start: u32     // First selected index.
+    end:   u32     // Last selected index.
 }
 
-// Represents sel model.
+// Maintains a set of selected indices as sorted, disjoint ranges.
 struct SelModel
 {
-    selection: Array'SelRange     // Selection associated with this value.
+    internal rangesStorage: Array'SelRange
 }
 
 impl SelModel
 {
-    // Returns selected range index.
-    mtd const getSelectedRangeIndex(idx: u32)->u32
+    // Returns a read-only view of the selected ranges in ascending order.
+    mtd const ranges()->const [..] SelRange => .rangesStorage.toSlice()
+
+    // Returns the number of selected ranges.
+    mtd const rangeCount()->u64 => .rangesStorage.count
+
+    // Returns the index of the range containing `index`, or `Swag.U32.Max` when unselected.
+    mtd const rangeIndexContaining(index: u32)->u32
     {
-        for &r, [i] in .selection
+        for &range, [rangeIndex] in .rangesStorage
         {
-            if idx >= r.start and idx <= r.end do
-                return cast(u32) i
+            if index < range.start do
+                break
+            if index <= range.end do
+                return cast(u32) rangeIndex
         }
 
         return Swag.U32.Max
@@ -31,91 +39,139 @@ impl SelModel
 
     #[Swag.Inline]
     {
-        // Returns whether empty.
-        mtd const isEmpty() => .selection.isEmpty()
+        // Reports whether no index is selected.
+        mtd const isEmpty()->bool => .rangesStorage.isEmpty()
 
-        // Returns whether selected.
-        mtd const isSelected(idx: u32) => .getSelectedRangeIndex(idx) != Swag.U32.Max
+        // Reports whether `index` is selected.
+        mtd const isSelected(index: u32)->bool => .rangeIndexContaining(index) != Swag.U32.Max
     }
 
-    // Unselect all
-    mtd unselectAll()
+    // Returns the number of selected indices.
+    mtd const selectedCount()->u64
     {
-        .selection.clear()
+        var result: u64
+        for &range in .rangesStorage do
+            result += cast(u64) range.end - range.start + 1
+        return result
     }
 
-    // Select a given range
-    mtd select(start, end: u32, select: bool)
+    // Removes every selected range.
+    mtd clear()
     {
-        if start <= end
+        .rangesStorage.clear()
+    }
+
+    // Selects one index.
+    mtd select(index: u32)
+    {
+        .selectRange(index, index)
+    }
+
+    // Unselects one index.
+    mtd unselect(index: u32)
+    {
+        .unselectRange(index, index)
+    }
+
+    // Sets the selected state of one index.
+    mtd setSelected(index: u32, selected: bool)
+    {
+        if selected do
+            .select(index)
+        else do
+            .unselect(index)
+    }
+
+    // Selects the inclusive range between `first` and `last`.
+    mtd selectRange(first, last: u32)
+    {
+        var rangeStart = Math.min(first, last)
+        var rangeEnd   = Math.max(first, last)
+        var insertAt:  u64
+
+        while insertAt < .rangesStorage.count
         {
-            for [i] in start to end do
-                .select(i, select)
+            let range = .rangesStorage[insertAt]
+            if cast(u64) range.end + 1 >= rangeStart do
+                break
+            insertAt += 1
         }
-        else
-        {
-            for [i] in end to start do
-                .select(i, select)
-        }
-    }
 
-    // Select the given index
-    mtd select(idx: u32, select: bool)
-    {
-        let isSelectedRange = .getSelectedRangeIndex(idx)
-        let isSelected      = isSelectedRange != Swag.U32.Max
-        if select == isSelected do
+        var mergeEnd = insertAt
+        while mergeEnd < .rangesStorage.count
+        {
+            let range = .rangesStorage[mergeEnd]
+            if cast(u64) range.start > cast(u64) rangeEnd + 1 do
+                break
+            rangeStart = Math.min(rangeStart, range.start)
+            rangeEnd   = Math.max(rangeEnd, range.end)
+            mergeEnd  += 1
+        }
+
+        if insertAt == mergeEnd
+        {
+            .rangesStorage.insertAt(insertAt, {rangeStart, rangeEnd})
             return
-
-        if select
-        {
-            // Prepend/Append to an existing range
-            for &r, [i] in .selection
-            {
-                if r.start and idx == r.start - 1
-                {
-                    r.start -= 1
-                    return
-                }
-
-                if idx == r.end + 1
-                {
-                    r.end += 1
-                    return
-                }
-            }
-
-            // Need to make a new range
-            .selection.add({idx, idx})
         }
-        else
+
+        .rangesStorage[insertAt] = {rangeStart, rangeEnd}
+        if mergeEnd > insertAt + 1 do
+            .rangesStorage.removeAtOrdered(insertAt + 1, mergeEnd - insertAt - 1)
+    }
+
+    // Unselects the inclusive range between `first` and `last`.
+    mtd unselectRange(first, last: u32)
+    {
+        let rangeStart = Math.min(first, last)
+        let rangeEnd   = Math.max(first, last)
+        var rangeIndex: u64
+
+        while rangeIndex < .rangesStorage.count
         {
-            let range: &SelRange = &.selection[isSelectedRange]
-            if range.start == range.end do
-                .selection.removeAt(cast(u64) isSelectedRange)
-            elif range.start == idx do
-                range.start += 1
-            elif range.end == idx do
-                range.end -= 1
-            else
+            let range = &.rangesStorage[rangeIndex]
+            if range.end < rangeStart
             {
-                let end = range.end
-                range.end = idx - 1
-                .selection.add({idx + 1, end})
+                rangeIndex += 1
+                continue
             }
+            if range.start > rangeEnd do
+                break
+
+            if rangeStart <= range.start and rangeEnd >= range.end
+            {
+                .rangesStorage.removeAtOrdered(rangeIndex)
+                continue
+            }
+
+            if rangeStart > range.start and rangeEnd < range.end
+            {
+                let oldEnd = range.end
+                range.end = rangeStart - 1
+                .rangesStorage.insertAt(rangeIndex + 1, {rangeEnd + 1, oldEnd})
+                break
+            }
+
+            if rangeStart <= range.start
+            {
+                range.start = rangeEnd + 1
+                break
+            }
+
+            range.end = rangeStart - 1
+            rangeIndex += 1
         }
     }
 
-    // Block parameters: 'item' is the selected index, 'index' its ordinal within the range.
+    // Block parameters: `item` is the selected index and `index` its selection ordinal.
     #[Swag.Macro]
     mtd(ptr: bool, back: bool) const opVisit(stmt: #code(item, index))
     {
         #scope(Up)
-            for &r in .selection
+            for &range in .rangesStorage
         {
-            for [i] in r.start to r.end
+            for [itemIndex] in range.start to range.end
             {
-                #inject(stmt, item = i, index = @index, break = break to Up)
+                #inject(stmt, item = itemIndex, index = @index, break = break to Up)
             }
         }
     }

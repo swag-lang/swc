@@ -5,9 +5,9 @@ using Swag
 // Represents a single key-value pair entry within a HashTable.
 struct(K, V) HashTableEntry
 {
-    hash:  u32     // The cached hash of the key.
-    key:   K       // The key.
-    value: V       // The value associated with the key.
+    internal hash: u32
+    readonly key:  K     // The key.
+    value:         V     // The value associated with the key.
 }
 
 // A hash table implemented with open-addressing that maps keys to values.
@@ -15,11 +15,11 @@ struct(K, V) HashTableEntry
 struct(K, V) HashTable
 {
     // Special hash values to indicate the state of a slot in the table.
-    const HASH_FREE    = 0'u32     // The slot is empty and has never been used.
-    const HASH_DELETED = 1'u32     // The slot was previously occupied but has been deleted.
-    const HASH_FIRST   = 2'u32     // The first possible valid hash value.
+    #[Swag.NoDoc] const HASH_FREE    = 0'u32
+    #[Swag.NoDoc] const HASH_DELETED = 1'u32
+    #[Swag.NoDoc] const HASH_FIRST   = 2'u32
 
-    allocator: #null IAllocator     // The allocator used for memory operations.
+    internal allocator: #null IAllocator
 
     // Sizes are reported, never set: the table grows itself when it needs to.
     readonly
@@ -40,6 +40,7 @@ struct(K, V) HashTable
 
 impl HashTable
 {
+    #[Swag.NoDoc]
     func normalizeCapacity(newCapacity: u64)->u64
     {
         var result = 32'u64
@@ -49,11 +50,13 @@ impl HashTable
         return result
     }
 
+    #[Swag.NoDoc]
     mtd tablePtr()->[*] HashTableEntry
     {
         return .table orelse cast([*] HashTableEntry'(K, V)) 1'u64
     }
 
+    #[Swag.NoDoc]
     mtd const constTablePtr()->const [*] HashTableEntry
     {
         return cast(const [*] HashTableEntry'(K, V)) (.table orelse cast([*] HashTableEntry'(K, V)) 1'u64)
@@ -118,27 +121,16 @@ impl HashTable
     // Asserts if the key is not found.
     mtd const opIndex(key: K)->const &V
     {
-        #[Global]
-        var d: V = undefined
-
         let it = .find(key)
-        if it do
-            return &it.value
-        return &d
+        return &it.value
     }
 
     // Provides mutable access to the value associated with a key.
-    // If the key does not exist, this will exhibit undefined behavior. Use with caution.
-    // See [[opIndexSet]] for safe insertion/update.
+    // Asserts if the key is not found. See [[opIndexSet]] for insertion or update.
     mtd opIndex(key: K)->&V
     {
-        #[Global]
-        var d: V = undefined
-
-        let it = .tryFind(key)
-        if it do
-            return &it.value
-        return &d
+        let it = .find(key)
+        return &it.value
     }
 
     // Assigns a value to a key, updating it if it exists or adding it if it doesn't.
@@ -195,7 +187,7 @@ impl HashTable
     // Only the two reserved values are lifted, never a whole bit: forcing a bit on
     // would make every starting probe index share it, so half of the slots could
     // only ever be reached by probing.
-    #[Inline]
+    #[Inline, Swag.NoDoc]
     func hashKey(key: K)->u32
     {
         let hashVal = Hash.hash32(key)
@@ -227,7 +219,7 @@ impl HashTable
 
     // Checks if the me.table needs to be resized and triggers it if necessary.
     // Growth happens when the load factor (including me.deleted slots) exceeds 50%.
-    #[Inline]
+    #[Inline, Swag.NoDoc]
     mtd grow()
     {
         // Every insertion path runs this, so it is a single compare against a threshold
@@ -285,6 +277,7 @@ impl HashTable
     // Both loops test the cached hash first: an occupied slot that does not match is by far
     // the most frequent outcome, and it must cost a single compare. A table that has never
     // seen a removal takes the shorter loop, which has no deleted slot to remember.
+    #[Swag.NoDoc]
     mtd getNewIndex(key: K, idx: u64, hashVal: u64)->u64
     {
         let mask  = .capacity - 1
@@ -369,7 +362,7 @@ impl HashTable
     }
 
     // Internal helper to add a new element with a pre-computed hash. Use with care.
-    #[Discardable]
+    #[Discardable, Swag.NoDoc]
     mtd emplaceInternal(hashVal: u32, key: &K, value: &V)->*HashTableEntry
         where Reflection.canCopy(#typeof(K)) and Reflection.canCopy(#typeof(V))
     {
@@ -508,51 +501,27 @@ impl HashTable
     // Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.
     mtd find(key: K)->*HashTableEntry
     {
-        Debug.assert(.table != null)
-
-        let hashVal = hashKey(key)
-        let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
-        let table   = .tablePtr()
-
-        while table[index].hash
-        {
-            if table[index].hash == hashVal and table[index].key == key do
-                return table + index
-            index = (index + 1) & mask
-        }
-
-        unreachable
+        let result = .tryFind(key)
+        Debug.assert(result != null, "key not found")
+        return notnull result
     }
 
     // Finds the entry for a given key.
     // Asserts and will likely crash if the key is not found. Use [[tryFind]] for safe searching.
     mtd const find(key: K)->const *HashTableEntry
     {
-        Debug.assert(.table != null)
-
-        let hashVal = hashKey(key)
-        let mask    = .capacity - 1
-        var index   = cast(u64) hashVal & mask
-        let table   = .constTablePtr()
-
-        while table[index].hash
-        {
-            if table[index].hash == hashVal and table[index].key == key do
-                return table + index
-            index = (index + 1) & mask
-        }
-
-        unreachable
+        let result = .tryFind(key)
+        Debug.assert(result != null, "key not found")
+        return notnull result
     }
 
     // Gets the value associated with a key.
     // If the key does not exist, returns the provided default value 'val' instead.
-    mtd const get(key: K, val: V)->V
+    mtd const getOrDefault(key: K, defaultValue: V)->V
     {
         let it = .tryFind(key)
         if !it do
-            return val
+            return defaultValue
         return it.value
     }
 

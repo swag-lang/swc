@@ -13,7 +13,7 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     CheckButtonHeadlessChangedCount += 1
 }
 
-// A click toggles the state from UnChecked to Checked and back.
+// A click toggles the state from Unchecked to Checked and back.
 #test
 {
     var host: Testing.HeadlessHost
@@ -25,25 +25,25 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     check.sigChanged += &checkButtonHeadlessChanged
 
     @assert(!check.isChecked())
-    @assert(check.checked == .UnChecked)
+    @assert(check.state == .Unchecked)
 
     host.click({40, 35})
     @assert(check.isChecked())
-    @assert(check.checked == .Checked)
+    @assert(check.state == .Checked)
     @assert(CheckButtonHeadlessChangedCount == 1)
     @assert(host.commandCount == 1)
     @assert(host.lastCommand == CheckButtonHeadless_Command)
 
     host.click({40, 35})
     @assert(!check.isChecked())
-    @assert(check.checked == .UnChecked)
+    @assert(check.state == .Unchecked)
     @assert(CheckButtonHeadlessChangedCount == 2)
     @assert(host.commandCount == 2)
 
     host.shutdown()
 }
 
-// The ThreeState flag adds the Undefined state to the toggle cycle.
+// The TriState flag adds the Indeterminate state to the standard toggle cycle.
 #test
 {
     var host: Testing.HeadlessHost
@@ -52,18 +52,23 @@ func checkButtonHeadlessChanged(btn: *CheckButton)
     CheckButtonHeadlessChangedCount = 0
 
     let check = CheckButton.create(&host.root, "Tri", {20, 20, 120, 30})
-    check.checkButtonFlags.add(.ThreeState)
+    check.updateFlags(.TriState)
 
     host.click({40, 35})
-    @assert(check.checked == .Undefined)
-    @assert(check.isUndefined())
-
-    host.click({40, 35})
-    @assert(check.checked == .Checked)
+    @assert(check.state == .Checked)
     @assert(check.isChecked())
 
     host.click({40, 35})
-    @assert(check.checked == .UnChecked)
+    @assert(check.state == .Indeterminate)
+    @assert(check.isIndeterminate())
+
+    host.click({40, 35})
+    @assert(check.state == .Unchecked)
+
+    // Programmatic changes are silent and repaint without simulating input.
+    check.setState(.Indeterminate)
+    @assert(check.isIndeterminate())
+    @assert(CheckButtonHeadlessChangedCount == 0)
 
     host.shutdown()
 }

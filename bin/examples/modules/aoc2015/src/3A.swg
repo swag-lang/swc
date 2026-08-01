@@ -17,7 +17,7 @@ using Core
 
 func day3A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "3.txt")
 
     struct Pos
     {

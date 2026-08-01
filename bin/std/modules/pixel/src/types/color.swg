@@ -50,15 +50,15 @@ impl Color
 
     // Equality comparison with u32 ARGB value.
     #[Inline]
-    func opEquals(me, argb: u32) => .argb == argb
+    mtd const opEquals(argb: u32) => .argb == argb
 
     // Equality comparison with 'Argb' enum value.
     #[Inline]
-    func opEquals(me, argb: Argb) => .argb == cast(u32) argb
+    mtd const opEquals(argb: Argb) => .argb == cast(u32) argb
 
     // Equality comparison with another Color.
     #[Inline]
-    func opEquals(me, other: Color) => .argb == other.argb
+    mtd const opEquals(other: Color) => .argb == other.argb
 
     // Check if the color is fully opaque.
     #[Inline]
@@ -76,7 +76,7 @@ impl Color
 
     // Set all ARGB components with floats in the range [0, 1].
     #[Inline]
-    func setArgbf(me, a, r, g, b: f32)
+    func setArgbF32(me, a, r, g, b: f32)
     {
         .a = cast() (Math.saturate(a) * 255)
         .r = cast() (Math.saturate(r) * 255)
@@ -108,7 +108,7 @@ impl Color
     // Set RGB components with floats in the range [0, 1].
     // Alpha will be set to opaque (255).
     #[Inline]
-    func setRgbf(me, r, g, b: f32)
+    func setRgbF32(me, r, g, b: f32)
     {
         .a = 255
         .r = cast() (Math.saturate(r) * 255)
@@ -118,7 +118,7 @@ impl Color
 
     // Retrieve all ARGB components as floating point values between 0 and 1.
     #[Inline, ConstExpr]
-    mtd const toArgbf()->{ a: f32, r: f32, g: f32, b: f32 }
+    mtd const toArgbF32()->{ a: f32, r: f32, g: f32, b: f32 }
     {
         var result: retval = undefined
         result.a = .a / 255.0
@@ -142,7 +142,7 @@ impl Color
 
     // Retrieve RGB components as floating point values between 0 and 1.
     #[Inline, ConstExpr]
-    mtd const toRgbf()->{ r: f32, g: f32, b: f32 }
+    mtd const toRgbF32()->{ r: f32, g: f32, b: f32 }
     {
         var result: retval = undefined
         result.r = .r / 255.0
@@ -162,10 +162,10 @@ impl Color
 
     // Create a new Color with specified RGB float values and opaque alpha.
     #[Inline, ConstExpr]
-    func fromRgbf(r, g, b: f32)->Color
+    func fromRgbF32(r, g, b: f32)->Color
     {
         var result: retval = undefined
-        result.setRgbf(r, g, b)
+        result.setRgbF32(r, g, b)
         return result
     }
 
@@ -217,10 +217,10 @@ impl Color
 
     // Create a new Color with specified ARGB float values.
     #[Inline, ConstExpr]
-    func fromArgbf(a, r, g, b: f32)->Color
+    func fromArgbF32(a, r, g, b: f32)->Color
     {
         var result: retval = undefined
-        result.setArgbf(a, r, g, b)
+        result.setArgbF32(a, r, g, b)
         return result
     }
 
@@ -229,7 +229,7 @@ impl Color
     func fromVector4(vec: Math.Vector4)->Color
     {
         var result: retval = undefined
-        result.setArgbf(vec.w, vec.x, vec.y, vec.z)
+        result.setArgbF32(vec.w, vec.x, vec.y, vec.z)
         return result
     }
 
@@ -238,6 +238,7 @@ impl Color
     func fromHsl(h, s, l: f32)->Color
     {
         var result: retval = undefined
+        result.a = 255
         result.setHsl(h, s, l)
         return result
     }
@@ -292,7 +293,7 @@ impl Color
     {
         var result: retval = undefined
 
-        let {rf, gf, bf} = .toRgbf()
+        let {rf, gf, bf} = .toRgbF32()
         let max          = Math.max(rf, gf, bf)
         let min          = Math.min(rf, gf, bf)
         result.l = (max + min) * 0.5
@@ -380,7 +381,7 @@ impl Color
     // Formula:
     //   Y = 0.2126 * R_lin + 0.7152 * G_lin + 0.0722 * B_lin
     // where R_lin, G_lin, B_lin are the linearized channels.
-    mtd const getRelativeLuminance()->f32
+    mtd const relativeLuminance()->f32
     {
         let lin = .toLinear()
         return lin.x * 0.2126 + lin.y * 0.7152 + lin.z * 0.0722
@@ -388,48 +389,50 @@ impl Color
 
     // Blend two colors using linear interpolation, keeping 'col0's alpha channel.
     #[ConstExpr]
-    func getBlendKeepAlpha(col0, col1: Color, factor: f32)->Color
+    func lerpRgb(start, end: Color, factor: f32)->Color
     {
         var result: retval = undefined
-        result.a = col0.a
-        result.r = cast(u8) Math.lerp(cast(f32) col0.r, cast(f32) col1.r, factor)
-        result.g = cast(u8) Math.lerp(cast(f32) col0.g, cast(f32) col1.g, factor)
-        result.b = cast(u8) Math.lerp(cast(f32) col0.b, cast(f32) col1.b, factor)
+        let t    = Math.saturate(factor)
+        result.a = start.a
+        result.r = cast(u8) Math.lerp(cast(f32) start.r, cast(f32) end.r, t)
+        result.g = cast(u8) Math.lerp(cast(f32) start.g, cast(f32) end.g, t)
+        result.b = cast(u8) Math.lerp(cast(f32) start.b, cast(f32) end.b, t)
         return result
     }
 
     // Blend two colors using linear interpolation (including alpha).
     #[ConstExpr]
-    func getBlend(col0, col1: Color, factor: f32)->Color
+    func lerp(start, end: Color, factor: f32)->Color
     {
         var result: retval = undefined
-        result.a = cast(u8) Math.lerp(cast(f32) col0.a, cast(f32) col1.a, factor)
-        result.r = cast(u8) Math.lerp(cast(f32) col0.r, cast(f32) col1.r, factor)
-        result.g = cast(u8) Math.lerp(cast(f32) col0.g, cast(f32) col1.g, factor)
-        result.b = cast(u8) Math.lerp(cast(f32) col0.b, cast(f32) col1.b, factor)
+        let t    = Math.saturate(factor)
+        result.a = cast(u8) Math.lerp(cast(f32) start.a, cast(f32) end.a, t)
+        result.r = cast(u8) Math.lerp(cast(f32) start.r, cast(f32) end.r, t)
+        result.g = cast(u8) Math.lerp(cast(f32) start.g, cast(f32) end.g, t)
+        result.b = cast(u8) Math.lerp(cast(f32) start.b, cast(f32) end.b, t)
         return result
     }
 
     // Returns a darker version of the color by blending with black.
     #[ConstExpr]
-    func getDarker(col: Color, factor: f32)->Color
+    func darker(color: Color, factor: f32)->Color
     {
-        return col.getBlendKeepAlpha(Color.fromArgb(Argb.Black), factor)
+        return color.lerpRgb(Color.fromArgb(Argb.Black), factor)
     }
 
     // Returns a lighter version of the color by blending with white.
     #[ConstExpr]
-    func getLighter(col: Color, factor: f32)->Color
+    func lighter(color: Color, factor: f32)->Color
     {
-        return col.getBlendKeepAlpha(Color.fromArgb(Argb.White), factor)
+        return color.lerpRgb(Color.fromArgb(Argb.White), factor)
     }
 
     // Calculate the RGB distance between this color and another (normalized to [0, 1]).
-    mtd const getDistanceRgb(col: Color)->f32
+    mtd const rgbDistanceTo(other: Color)->f32
     {
-        let x1   = cast(f32) .r - col.r
-        let x2   = cast(f32) .g - col.g
-        let x3   = cast(f32) .b - col.b
+        let x1   = cast(f32) .r - other.r
+        let x2   = cast(f32) .g - other.g
+        let x3   = cast(f32) .b - other.b
         var dist = Math.sqrt((x1 * x1) + (x2 * x2) + (x3 * x3))
         dist /= Math.sqrt(cast(f32) (255.0 * 255.0 * 3.0))     // Normalize to [0, 1]
         return dist
@@ -439,45 +442,45 @@ impl Color
     #[Inline]
     mtd const isDark()->bool
     {
-        return .getGrayScalef() < 0.5
+        return .grayscaleValue() < 0.5
     }
 
     // Check if the color is considered "light" based on luminance.
     #[Inline]
     mtd const isLight()->bool
     {
-        return .getGrayScalef() >= 0.5
+        return .grayscaleValue() >= 0.5
     }
 
     // Get a contrasting color (black or white) for text readability.
     #[Inline, ConstExpr]
-    mtd const getContrasting()->Color
+    mtd const contrasting()->Color
     {
         return .isDark() ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Black)
     }
 
     // Calculate the perceived brightness using luminance formula.
     #[Inline, ConstExpr]
-    mtd const getGrayScalef()->f32
+    mtd const grayscaleValue()->f32
     {
         return (cast(f32) .r * 0.299 + cast(f32) .g * 0.587 + cast(f32) .b * 0.114) / 255.0
     }
 
     // Convert to grayscale color preserving alpha.
     #[Inline, ConstExpr]
-    mtd const getGrayscale()->Color
+    mtd const grayscale()->Color
     {
-        let gray = cast(u8) .getGrayScalef() * 255
+        let gray = cast(u8) Math.round(.grayscaleValue() * 255)
         return Color.fromArgb(.a, gray, gray, gray)
     }
 
     // Calculates contrast ratio between this color and another.
     //
     // Uses the standard WCAG contrast formula: (l1 + 0.05) / (l2 + 0.05)
-    mtd const getContrastRatio(against: Color)->f32
+    mtd const contrastRatio(against: Color)->f32
     {
-        let l1 = Math.max(.getRelativeLuminance(), against.getRelativeLuminance())
-        let l2 = Math.min(.getRelativeLuminance(), against.getRelativeLuminance())
+        let l1 = Math.max(.relativeLuminance(), against.relativeLuminance())
+        let l2 = Math.min(.relativeLuminance(), against.relativeLuminance())
         return (l1 + 0.05) / (l2 + 0.05)
     }
 
@@ -518,7 +521,11 @@ impl Color
     // - Returns: A new color meeting or exceeding the required contrast ratio.
     mtd ensureContrast(target: Color, requiredContrast: f32 = 4.5, step: f32 = 0.02, maxSteps: s32 = 64)
     {
-        let initialContrast = .getContrastRatio(target)
+        Debug.assert(requiredContrast >= 1 and requiredContrast <= 21)
+        Debug.assert(step != 0)
+        Debug.assert(maxSteps >= 0)
+
+        let initialContrast = .contrastRatio(target)
 
         // If already meets the contrast requirement, return unchanged
         if initialContrast >= requiredContrast do
@@ -529,8 +536,8 @@ impl Color
         let astep             = Math.abs(step)
         let lighter           = .adjustBrightness(astep)
         let darker            = .adjustBrightness(-astep)
-        let contrastIfLighter = lighter.getContrastRatio(target)
-        let contrastIfDarker  = darker.getContrastRatio(target)
+        let contrastIfLighter = lighter.contrastRatio(target)
+        let contrastIfDarker  = darker.contrastRatio(target)
 
         // Direction that improves contrast more
         let direction: f32 = (contrastIfLighter > contrastIfDarker) ? astep : -astep
@@ -542,7 +549,7 @@ impl Color
         while contrast < requiredContrast and steps < maxSteps
         {
             me       = .adjustBrightness(direction)
-            contrast = .getContrastRatio(target)
+            contrast = .contrastRatio(target)
             steps    += 1
         }
     }
@@ -552,11 +559,7 @@ impl Color
     mtd const rotateHue(degrees: f32)->Color
     {
         let hsl  = .toHsl()
-        var newH = hsl.h + (degrees / 360.0)
-        if newH > 1.0 do
-            newH -= 1.0
-        elif newH < 0.0 do
-            newH += 1.0
+        let newH = Math.fract(hsl.h + (degrees / 360.0))
         var result = Color.fromHsl(newH, hsl.s, hsl.l)
         result.a = .a     // Preserve alpha
         return result
@@ -571,14 +574,14 @@ impl Color
 
     // Create a color with modified alpha (float version).
     #[Inline, ConstExpr]
-    mtd const withAlphaf(alpha: f32)->Color
+    mtd const withAlphaF32(alpha: f32)->Color
     {
         return fromArgb(cast(u8) (Math.clamp(alpha, 0.0, 1.0) * 255), .r, .g, .b)
     }
 
     // Get complementary color (opposite on color wheel).
     #[ConstExpr]
-    mtd const getComplementary()->Color
+    mtd const complementary()->Color
     {
         return .rotateHue(180.0)
     }

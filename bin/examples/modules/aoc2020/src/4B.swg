@@ -78,7 +78,7 @@ func day4B()
 /////////////////////////////////////////////////////////////////
 func day4B0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var total, pass: u32
@@ -159,7 +159,7 @@ reads here should use 'expect' like 'day4B0' does.
 
 func day4B1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = assume File.readAllLines(dataPath)
 
     assume

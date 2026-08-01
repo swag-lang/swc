@@ -25,7 +25,7 @@ impl IActionUI for ActionLibSel
         {
         case .Left, .Up, .Right, .Down,
              .Home, .End:
-            evt.setFlags |= .Disabled
+            evt.updatedFields |= .Disabled
             evt.disabled = !hasSel
         }
 

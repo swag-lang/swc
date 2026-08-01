@@ -2,68 +2,75 @@
 
 using Core, Pixel
 
-// Selects emb info ctrl kind.
-enum EmbInfoCtrlKind
+// Selects the semantic presentation of an information bar.
+enum InfoBarKind
 {
-    Critical        // Selects the critical kind.
-    Information     // Selects the information kind.
-    Message         // Selects the message kind.
+    Critical        // Presents a critical error.
+    Information     // Presents informational guidance.
+    Message         // Presents a neutral status message.
 }
 
-// Selects emb info ctrl flags.
+// Configures information-bar placement and lifetime.
 #[Swag.EnumFlags]
-enum EmbInfoCtrlFlags
+enum InfoBarFlags
 {
-    Zero         // No flags are enabled.
-    Top          // Enables top.
-    Bottom       // Enables bottom.
-    AutoHide     // Enables auto hide.
+    None = 0        // Docks at the top and remains until dismissed.
+    Bottom          // Docks at the bottom instead of the top.
+    AutoDismiss     // Dismisses automatically after the configured delay.
 }
 
-// Represents emb info ctrl.
-struct EmbInfoCtrl
+// Displays a themed inline message with a dismiss action.
+struct InfoBar
 {
-    using frameWnd: FrameWnd     // Embedded frame wnd state.
-    #[Swag.Late]
-    label: *Label     // Label associated with this value.
-    #[Swag.Late]
-    iconBtn:    *IconButton                       // Icon btn associated with this value.
-    ctrlFlags:  EmbInfoCtrlFlags = .Zero          // Ctrl flags associated with this value.
-    sigOnClose: SigArray'func||(*EmbInfoCtrl)     // Signal emitted when on close.
-    timer:      #null *Timer                      // Timer associated with this value.
-    kind:       EmbInfoCtrlKind                   // Kind associated with this value.
+    using frameWnd: FrameWnd     // Embedded framed-window behavior and presentation.
+
+    sigDismissed: SigArray'func||(*InfoBar)     // Emitted when user action or timeout dismisses the bar.
+
+    readonly
+    {
+        kind:             InfoBarKind               // Current semantic presentation.
+        flags:            InfoBarFlags              // Current placement and lifetime options.
+        autoDismissDelay: Time.Duration = 4's       // Delay used by [[InfoBarFlags.AutoDismiss]].
+
+        #[Swag.Late]
+        label: *Label                               // Message label owned by this bar.
+        #[Swag.Late]
+        closeButton: *IconButton                    // Dismiss button owned by this bar.
+    }
+
+    internal timer: #null *Timer     // Active auto-dismiss timer.
 }
 
-impl IWnd for EmbInfoCtrl
+impl IWnd for InfoBar
 {
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
         .timer = null
-        .destroy()
+        .dismiss()
     }
 
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
-        if .timer do
-            .getApp().deleteTimer(.timer)
+        if .timer
+        {
+            .app().removeTimer(.timer)
+            .timer = null
+        }
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.ntfyKind == .ThemeChanged
-        {
-            .setColors()
-        }
+        if evt.kind == .ThemeChanged do
+            .applyTheme()
     }
 }
 
-impl EmbInfoCtrl
+private impl InfoBar
 {
-    // Sets colors.
-    mtd setColors()
+    mtd applyTheme()
     {
-        let theme  = .getTheme()
-        let colors = .getThemeColors()
+        let theme  = .theme()
+        let colors = .themeColors()
 
         with me.label
         {
@@ -72,68 +79,92 @@ impl EmbInfoCtrl
             switch me.kind
             {
             case .Critical:
-                .icon = theme.getIcon64(.Critical, 28)
+                .setIcon(theme.icon64(.Critical, 28))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_CriticalBk.argb))
-                .iconColor = Argb.White
-                .textColor = colors.embInfo_CriticalText.argb
+                .setTextColor(colors.embInfo_CriticalText)
 
             case .Information:
-                .icon = theme.getIcon64(.Information, 28)
+                .setIcon(theme.icon64(.Information, 28))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_InformationBk.argb))
-                .iconColor = Argb.White
-                .textColor = colors.embInfo_InformationText.argb
+                .setTextColor(colors.embInfo_InformationText)
 
             case .Message:
-                .icon = theme.getIcon64(.Information, 28)
+                .setIcon(theme.icon64(.Information, 28))
                 .style.addStyleSheetColors(Format.toString("wnd_Bk 0x%{X}", colors.embInfo_MessageBk.argb))
-                .iconColor = Argb.White
-                .textColor = colors.embInfo_MessageText.argb
+                .setTextColor(colors.embInfo_MessageText)
             }
+            .setIconColor(Argb.White)
         }
 
-        .iconBtn.iconColor = .label.textColor
+        .closeButton.setIconColor(.label.textColor)
     }
+}
 
-    // Create the popup list, but do not display it
-    func create(parent: *Wnd, name: #null string, kind: EmbInfoCtrlKind, flags = EmbInfoCtrlFlags.Top, height = 40)->*EmbInfoCtrl
+impl InfoBar
+{
+    // Creates and lays out an information bar.
+    #[Swag.Discardable]
+    func create(parent: *Wnd, message: #null string, kind: InfoBarKind, flags = InfoBarFlags.None, height: f32 = 40, autoDismissDelay: Time.Duration = 4's)->*InfoBar
     {
-        let theme = parent.getTheme()
-        with let ctrl = Wnd.create'EmbInfoCtrl(parent, {0, 0, 0, height})
+        Debug.assert(parent != null)
+        Debug.assert(height > 0, "information bar height must be positive")
+        Debug.assert(autoDismissDelay.seconds > 0, "auto-dismiss delay must be positive")
+
+        let theme = parent.theme()
+        with let bar = Wnd.create'InfoBar(parent, {0, 0, 0, height})
         {
             .wndFlags.add(.NoScroll)
-            .dockStyle = flags.has(.Top) ? .Top : .Bottom
-            .label     = Label.create(ctrl, name, {})
-            .ctrlFlags = flags
-            .kind      = kind
+            .dockStyle        = flags.has(.Bottom) ? .Bottom : .Top
+            .label            = Label.create(bar, message)
+            .kind             = kind
+            .flags            = flags
+            .autoDismissDelay = autoDismissDelay
         }
 
-        with ctrl.label
+        with bar.label
         {
-            .horzAlignmentText = .Left
-            .horzAlignmentIcon = .Left
-            .paddingIcon.x     = 10
-            .paddingText.x     = 50
-            .paddingText.y     = 4
-            .dockStyle         = .Center
+            .setTextHorizontalAlignment(.Left)
+            .setIconHorizontalAlignment(.Left)
+            .setIconPadding({10, 0, 0, 0})
+            .setTextPadding({50, 4, 0, 0})
+            .dockStyle = .Center
         }
 
-        with ctrl.iconBtn = IconButton.create(ctrl.label, theme.getIcon24(.WndClose, 18), {0, 0, 32, 32})
+        with bar.closeButton = IconButton.create(bar.label, theme.icon24(.WndClose, 18), {0, 0, 32, 32})
         {
             .margin     = 5
             .dockStyle  = .Right
-            .sigPressed += func|ctrl|(btn)
-            {
-                ctrl.sigOnClose.call(ctrl)
-                ctrl.destroy()
-            }
+            .sigPressed += func|bar|(btn) { bar.dismiss(); }
         }
 
-        if flags.has(.AutoHide) do
-            ctrl.timer = ctrl.addTimer(4's)
+        if flags.has(.AutoDismiss) do
+            bar.timer = bar.addTimer(autoDismissDelay)
 
-        ctrl.setColors()
-
+        bar.applyTheme()
         parent.applyLayout()
-        return ctrl
+        return bar
+    }
+
+    // Changes the displayed message.
+    mtd setText(message: #null string)
+    {
+        .label.setText(message)
+    }
+
+    // Changes semantic presentation and reapplies current theme colors.
+    mtd setKind(kind: InfoBarKind)
+    {
+        if .kind == kind do
+            return
+        .kind = kind
+        .applyTheme()
+        .invalidate()
+    }
+
+    // Emits [[sigDismissed]] and destroys the bar.
+    mtd dismiss()
+    {
+        .sigDismissed.call(me)
+        .destroy()
     }
 }

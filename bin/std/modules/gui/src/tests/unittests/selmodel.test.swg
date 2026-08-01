@@ -7,36 +7,33 @@ using Swag, Core
     var model: SelModel
     @assert(model.isEmpty())
     @assert(!model.isSelected(3))
-    @assert(model.getSelectedRangeIndex(3) == Swag.U32.Max)
+    @assert(model.rangeIndexContaining(3) == Swag.U32.Max)
 
-    model.select(2, true)
+    model.select(2)
     @assert(!model.isEmpty())
     @assert(model.isSelected(2))
-    @assert(model.getSelectedRangeIndex(2) == 0)
+    @assert(model.rangeIndexContaining(2) == 0)
     @assert(!model.isSelected(1))
     @assert(!model.isSelected(3))
-    @assert(model.selection.count == 1)
-    @assert(model.selection[0].start == 2)
-    @assert(model.selection[0].end == 2)
+    @assert(model.rangeCount() == 1)
+    @assert(model.selectedCount() == 1)
+    @assert(model.ranges()[0].start == 2)
+    @assert(model.ranges()[0].end == 2)
 
-    model.select(3, 5, true)
-    @assert(model.selection.count == 1)
-    @assert(model.selection[0].start == 2)
-    @assert(model.selection[0].end == 5)
-    @assert(model.isSelected(3))
-    @assert(model.isSelected(4))
-    @assert(model.isSelected(5))
+    model.selectRange(3, 5)
+    @assert(model.rangeCount() == 1)
+    @assert(model.ranges()[0].start == 2)
+    @assert(model.ranges()[0].end == 5)
+    @assert(model.selectedCount() == 4)
 
-    model.select(4, false)
-    @assert(model.selection.count == 2)
-    @assert(model.selection[0].start == 2)
-    @assert(model.selection[0].end == 3)
-    @assert(model.selection[1].start == 5)
-    @assert(model.selection[1].end == 5)
-    @assert(!model.isSelected(4))
-    @assert(model.isSelected(5))
+    model.unselect(4)
+    @assert(model.rangeCount() == 2)
+    @assert(model.ranges()[0].start == 2)
+    @assert(model.ranges()[0].end == 3)
+    @assert(model.ranges()[1].start == 5)
+    @assert(model.ranges()[1].end == 5)
 
-    model.unselectAll()
+    model.clear()
     @assert(model.isEmpty())
 }
 
@@ -44,42 +41,34 @@ using Swag, Core
 {
     var model: SelModel
 
-    model.select(8, 5, true)
-    @assert(model.selection.count == 1)
-    @assert(model.selection[0].start == 5)
-    @assert(model.selection[0].end == 8)
+    model.selectRange(8, 5)
+    @assert(model.ranges()[0].start == 5)
+    @assert(model.ranges()[0].end == 8)
 
-    model.select(5, false)
-    @assert(model.selection.count == 1)
-    @assert(model.selection[0].start == 6)
-    @assert(model.selection[0].end == 8)
+    model.unselect(5)
+    @assert(model.ranges()[0].start == 6)
+    @assert(model.ranges()[0].end == 8)
 
-    model.select(8, false)
-    @assert(model.selection.count == 1)
-    @assert(model.selection[0].start == 6)
-    @assert(model.selection[0].end == 7)
+    model.unselect(8)
+    @assert(model.ranges()[0].start == 6)
+    @assert(model.ranges()[0].end == 7)
 
-    model.select(6, false)
-    @assert(model.selection.count == 1)
-    @assert(model.selection[0].start == 7)
-    @assert(model.selection[0].end == 7)
-
-    model.select(7, false)
+    model.unselectRange(6, 7)
     @assert(model.isEmpty())
 }
 
 #test
 {
     var model: SelModel
-    model.select(1, 3, true)
-    model.select(6, 7, true)
+    model.selectRange(1, 3)
+    model.selectRange(6, 7)
 
     var visitedCount: u32
     var visitedSum:   u32
-    for idx in model
+    for index in model
     {
         visitedCount += 1
-        visitedSum   += idx
+        visitedSum   += index
     }
 
     @assert(visitedCount == 5)
@@ -90,50 +79,60 @@ using Swag, Core
 {
     var model: SelModel
 
-    model.select(10, false)
+    model.unselect(10)
     @assert(model.isEmpty())
 
-    model.select(4, true)
-    model.select(4, true)
-    @assert(model.selection.count == 1)
-    @assert(model.selection[0].start == 4)
-    @assert(model.selection[0].end == 4)
+    model.select(4)
+    model.select(4)
+    @assert(model.rangeCount() == 1)
+    @assert(model.ranges()[0].start == 4)
+    @assert(model.ranges()[0].end == 4)
 
-    model.select(2, 6, true)
-    @assert(model.isSelected(2))
-    @assert(model.isSelected(3))
-    @assert(model.isSelected(4))
-    @assert(model.isSelected(5))
-    @assert(model.isSelected(6))
+    model.selectRange(2, 6)
+    @assert(model.selectedCount() == 5)
 
-    model.select(3, 5, false)
-    @assert(model.isSelected(2))
-    @assert(!model.isSelected(3))
-    @assert(!model.isSelected(4))
-    @assert(!model.isSelected(5))
-    @assert(model.isSelected(6))
+    model.unselectRange(3, 5)
+    @assert(model.rangeCount() == 2)
+    @assert(model.ranges()[0].start == 2)
+    @assert(model.ranges()[0].end == 2)
+    @assert(model.ranges()[1].start == 6)
+    @assert(model.ranges()[1].end == 6)
 }
 
 #test
 {
     var model: SelModel
-    model.select(1, 2, true)
-    model.select(4, 5, true)
-    model.select(3, true)
+    model.selectRange(1, 2)
+    model.selectRange(4, 5)
+    model.select(3)
 
-    for [i] in 1 to 5 do
-        @assert(model.isSelected(i))
-    @assert(!model.isSelected(0))
-    @assert(!model.isSelected(6))
+    @assert(model.rangeCount() == 1)
+    @assert(model.ranges()[0].start == 1)
+    @assert(model.ranges()[0].end == 5)
 
-    var visitedCount: u32
-    var visitedSum:   u32
-    for idx in model
+    var expected: u32 = 1
+    for index in model
     {
-        visitedCount += 1
-        visitedSum   += idx
+        @assert(index == expected)
+        expected += 1
     }
+    @assert(expected == 6)
+}
 
-    @assert(visitedCount == 5)
-    @assert(visitedSum == 15)
+#test
+{
+    var model: SelModel
+    model.selectRange(Swag.U32.Max, Swag.U32.Max - 2)
+    model.select(Swag.U32.Max - 3)
+    @assert(model.rangeCount() == 1)
+    @assert(model.ranges()[0].start == Swag.U32.Max - 3)
+    @assert(model.ranges()[0].end == Swag.U32.Max)
+    @assert(model.selectedCount() == 4)
+
+    model.unselectRange(Swag.U32.Max - 2, Swag.U32.Max - 1)
+    @assert(model.rangeCount() == 2)
+    @assert(model.ranges()[0].start == Swag.U32.Max - 3)
+    @assert(model.ranges()[0].end == Swag.U32.Max - 3)
+    @assert(model.ranges()[1].start == Swag.U32.Max)
+    @assert(model.ranges()[1].end == Swag.U32.Max)
 }

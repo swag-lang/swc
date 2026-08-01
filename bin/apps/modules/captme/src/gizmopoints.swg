@@ -21,7 +21,7 @@ impl GizmoPoints
     {
         switch evt.kind
         {
-        case .MousePressed:
+        case .Pressed:
             if .moving do
                 return true
             if evt.button != .Left or .hotAnchor == Swag.U32.Max do
@@ -31,7 +31,7 @@ impl GizmoPoints
             view.captureMouse()
             return true
 
-        case .MouseReleased:
+        case .Released:
             if .moving
             {
                 if evt.button == .Left
@@ -44,7 +44,7 @@ impl GizmoPoints
                 return true
             }
 
-        case .MouseMove:
+        case .Move:
             if .moving
             {
                 let diff = pos - .movingStart
@@ -74,7 +74,7 @@ impl GizmoPoints
 
             if .hotAnchor != Swag.U32.Max
             {
-                view.getApp().setFrameCursor(Cursor.from(.SizeNWSE))
+                view.app().setFrameCursor(Cursor.from(.ResizeNorthwestSoutheast))
                 return true
             }
         }
@@ -85,7 +85,7 @@ impl GizmoPoints
     mtd paint(_app: #null *Application, painter: *Painter, hot: bool, col: Color = Argb.White)
     {
         let anchorSize2 = .anchorSize * 0.5
-        let color       = Color.getBlend(Argb.Black, col, hot ? 0.8 : 1)
+        let color       = Color.lerp(Argb.Black, col, hot ? 0.8 : 1)
         for c in .anchors
         {
             painter.fillCircle(c.x, c.y, anchorSize2, color)

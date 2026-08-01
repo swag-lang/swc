@@ -3,13 +3,13 @@
 using Core, Core.Errors
 
 // Encodes one image as a 32-bit Windows icon entry.
-public struct Encoder {}
+internal struct Encoder {}
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".ico"
+        return Path.lowercaseExtension(fileName) == ".ico"
     }
 
     // Encode a single image as a 32-bit BGRA DIB icon entry with an empty AND mask.
@@ -118,9 +118,9 @@ private func appendDib(result: *ConcatBuffer, image: Image)
     // XOR (color) data, bottom-up BGRA - matches the internal buffer convention
     for [y] in height
     {
-        var psrc = (notnull image.pixels.buffer) + cast(u64) y * image.width8
+        var psrc = (notnull image.pixels.buffer) + cast(u64) y * image.rowStride
 
-        switch image.pf
+        switch image.pixelFormat
         {
         case .BGRA8:
             result.addBytes(@mkslice(psrc, xorStride))

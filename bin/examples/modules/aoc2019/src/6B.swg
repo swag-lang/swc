@@ -50,7 +50,7 @@ using Core
 
 func day6B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "6.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "6.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var map: HashTable'(string, string)

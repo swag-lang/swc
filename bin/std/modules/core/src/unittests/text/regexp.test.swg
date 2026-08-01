@@ -224,7 +224,7 @@ using Swag
     @assert(captureAlt.match("ac"))
     @assert(captureAlt.getCapture(1) == "a")
     @assert(captureAlt.getCapture(2) == "c")
-    @assert(captureAlt.getCaptures().count == 2)
+    @assert(captureAlt.captures().count == 2)
     @assert(captureLeadingEmptyAlt.match("b"))
     @assert(captureLeadingEmptyAlt.getCapture(1) == "")
     @assert(captureLeadingEmptyAlt.getCapture(2) == "b")
@@ -238,7 +238,7 @@ using Swag
     @assert(captureTrailingEmptyAlt.getCapture(1) == "a")
     @assert(captureTrailingEmptyAlt.getCapture(2) == "b")
     @assert(plainAlt.match("a"))
-    @assert(plainAlt.getCaptures().count == 0)
+    @assert(plainAlt.captures().count == 0)
     @assert(leadingEmptyAlt.match(""))
     @assert(leadingEmptyAlt.match("a"))
     @assert(!leadingEmptyAlt.match("aa"))
@@ -268,7 +268,7 @@ using Swag
     @assert(captures.getCapture(1) == "42")
     @assert(captures[2] == "test")
 
-    let all = captures.getCaptures()
+    let all = captures.captures()
     @assert(all.count >= 2)
     @assert(all.contains("42"))
     @assert(all.contains("test"))
@@ -281,7 +281,7 @@ using Swag
     @assert(expect overload.match(#raw "(\d+)", "123"))
     @assert(overload.getCapture(1) == "123")
     @assert(!(expect overload.match(#raw "(\d+)", "abc")))
-    @assert(overload.getCaptures().count == 0)
+    @assert(overload.captures().count == 0)
     @assert(expect overload.match("AbC", "abc", true))
 }
 
@@ -387,22 +387,22 @@ using Swag
     var zeroSiblingNestedRef3 = expect Parser.RegExp.create(#raw "((a)(b)){0}\3")
 
     @assert(baseline.match("bc"))
-    let baselineCount = baseline.getCaptures().count
+    let baselineCount = baseline.captures().count
 
     @assert(optionalGroup.match("bc"))
     @assert(optionalGroup.getCapture(2) == "c")
-    @assert(optionalGroup.getCaptures().count == baselineCount)
+    @assert(optionalGroup.captures().count == baselineCount)
 
     @assert(optionalGroup.match("abc"))
     @assert(optionalGroup.getCapture(1) == "a")
     @assert(optionalGroup.getCapture(2) == "c")
     @assert(optionalGroup.match("bc"))
     @assert(optionalGroup.getCapture(2) == "c")
-    @assert(optionalGroup.getCaptures().count == baselineCount)
+    @assert(optionalGroup.captures().count == baselineCount)
 
     @assert(optionalStar.match("bc"))
     @assert(optionalStar.getCapture(2) == "c")
-    @assert(optionalStar.getCaptures().count == baselineCount)
+    @assert(optionalStar.captures().count == baselineCount)
 
     @assert(optionalRef.match(""))
     @assert(optionalRef.match("aa"))
@@ -451,7 +451,7 @@ using Swag
     @assert(nested.getCapture(1) == "ab")
     @assert(nested.getCapture(2) == "a")
     @assert(nested.getCapture(3) == "c")
-    @assert(nested.getCaptures().count == 3)
+    @assert(nested.captures().count == 3)
     @assert(nestedRef.match("ab-ab-a"))
     @assert(nestedRef.getCapture(1) == "ab")
     @assert(nestedRef.getCapture(2) == "a")
@@ -559,7 +559,7 @@ using Swag
     @assert(anchored.getCapture(1) == "456")
 
     @assert(anchored.partialMatch("abc") == null)
-    @assert(anchored.getCaptures().count == 0)
+    @assert(anchored.captures().count == 0)
 }
 
 #test
@@ -613,7 +613,7 @@ using Swag
             @assert(captures.getCapture(1) == "12")
 
             @assert(captures.grep("abc") == null)
-            @assert(captures.getCaptures().count == 0)
+            @assert(captures.captures().count == 0)
 
             let second = captures.grep("34x")
             @assert(second != null)
@@ -815,7 +815,7 @@ using Swag
     @assert(countedAltGroup.match("abc"))
     @assert(countedAltGroup.getCapture(1) == "b")
     @assert(countedAltGroup.getCapture(2) == "c")
-    @assert(countedAltGroup.getCaptures().count == 2)
+    @assert(countedAltGroup.captures().count == 2)
     @assert(countedEmptyAltRange.match("b"))
     @assert(countedEmptyAltRange.getCapture(1) == "")
     @assert(countedEmptyAltRange.getCapture(2) == "b")

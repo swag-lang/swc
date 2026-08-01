@@ -98,7 +98,7 @@ private
 //
 // The decoder is opaque and reports malformed chunks or unsupported data through `fail`.
 #[Opaque]
-public struct Decoder
+internal struct Decoder
 {
     // Decoding state of one image: the chunk cursor, the palette and transparency chunks it
     // collected, and the scanline buffers it defilters into. Decode through the module entry
@@ -151,10 +151,10 @@ impl Decoder
         // once), so rewind those back into 'curByte' so 'curPtr' is the true chunk start.
         .stream.revert()
 
-        if .stream.curPtr() + ch.length > .stream.startPtr() + .stream.size() do
+        if .stream.bytePosition() + ch.length > .stream.size() do
             fail InvalidFormatError{"invalid chunk"}
-        result.datas    = @mkslice(.stream.curPtr(), ch.length)
-        .stream.curByte += ch.length
+        result.datas = @mkslice(.stream.currentPointer(), ch.length)
+        .stream.advanceBytes(ch.length)
 
         var crc: Hash.Crc32
         crc.update(@mkslice(cast(const [*] u8) &ch.type, 4))
@@ -162,9 +162,9 @@ impl Decoder
 
         var vcrc: u32
         .stream.peek32Be(cast([*] u8) &vcrc)
-        if .stream.eof do
+        if .stream.isEof() do
             fail InvalidFormatError{"PNG data ends before the chunk checksum"}
-        if vcrc != crc.crc do
+        if vcrc != crc.value() do
             fail InvalidFormatError{"invalid checksum"}
 
         return result
@@ -239,7 +239,7 @@ impl Decoder
 
     mtd doIt(buffer: const [..] u8)->Image fail
     {
-        .stream.init(buffer)
+        .stream.reset(buffer)
 
         var signature: u64 = undefined
         .stream.peekBytes(#sizeof(signature), cast([*] u8) &signature)
@@ -268,7 +268,7 @@ impl Decoder
             }
 
             chIsHere = false
-            if .stream.eof do
+            if .stream.isEof() do
                 fail InvalidFormatError{"invalid chunk"}
             if firstChunk and ch.type != .IHDR do
                 fail InvalidFormatError{"PNG data does not start with an IHDR chunk"}
@@ -321,7 +321,7 @@ impl Decoder
                     iDataBuf.add(Decoder.safeDatas(chunk))
                     .stream.peek32Be(cast([*] u8) &ch.length)
                     .stream.peek32(cast([*] u8) &ch.type)
-                    if .stream.eof do
+                    if .stream.isEof() do
                         fail InvalidFormatError{"invalid chunk"}
                 }
 
@@ -353,7 +353,7 @@ impl Decoder
 
             case .TEXt:
                 let chunk = .readChunk(ch)
-                if .decOptions.decodeMetaDatas
+                if .decOptions.decodeMetadata
                 {
                     let len = @countof(Decoder.safeDatas(chunk))
                     if len > 1
@@ -362,11 +362,11 @@ impl Decoder
                         while sep < len and Decoder.safeDatas(chunk)[sep] != 0 do
                             sep += 1
 
-                        var md: ImageMetaData
+                        var md: ImageMetadata
                         md.tag = cast(string) Decoder.safeDatas(chunk)[until sep]
                         if sep + 1 < len do
                             md.value = cast(string) Decoder.safeDatas(chunk)[sep + 1 to]
-                        result.metaDatas.add(md)
+                        result.metadata.add(md)
                     }
                 }
 
@@ -387,12 +387,12 @@ impl Decoder
 
         // Initialize image depending on number of wanted channels. init() resets
         // the whole Image payload, so keep metadata parsed from pre-IDAT chunks.
-        var metaDatas = #move result.metaDatas
+        var metadata = #move result.metadata
         if .outChannels == 4 do
             result.init(cast(s32) .header.width, cast(s32) .header.height, PixelFormat.RGBA8)
         else do
             result.init(cast(s32) .header.width, cast(s32) .header.height, PixelFormat.RGB8)
-        result.metaDatas = #move metaDatas
+        result.metadata = #move metadata
 
         // We are done if user does not want pixels
         if !.decOptions.decodePixels do
@@ -430,11 +430,11 @@ impl Decoder
     }
 }
 
-public impl IImageDecoder for Decoder
+internal impl IImageDecoder for Decoder
 {
     mtd impl canDecode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".png"
+        return Path.lowercaseExtension(fileName) == ".png"
     }
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail

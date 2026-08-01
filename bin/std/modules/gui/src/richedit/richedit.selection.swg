@@ -4,16 +4,16 @@ using Core
 
 private impl RichEditCtrl
 {
-    mtd getSelectionRectRange(lineIndex: u64, rankBeg, rankEnd: *u64)->bool
+    mtd selectionRectRange(lineIndex: u64, rankBeg, rankEnd: *u64)->bool
     {
         let line = notnull .lines[lineIndex]
         let len  = line.length()
 
-        var x  = .getMarginLeft()
+        var x  = .leftMargin()
         var rb = 0'u64
         while x < .selRectangle.x and rb < len
         {
-            x  += .getRuneSize(line, rb, x).x
+            x  += .runeSize(line, rb, x).x
             rb += 1
         }
 
@@ -24,7 +24,7 @@ private impl RichEditCtrl
         var re = rb
         while x < .selRectangle.right() and re < len
         {
-            x  += .getRuneSize(line, re, x).x
+            x  += .runeSize(line, re, x).x
             re += 1
         }
 
@@ -37,7 +37,7 @@ private impl RichEditCtrl
     {
         let undo = Memory.new'RichEditUndo()
         undo.type                 = .Delete
-        {undo.runes, undo.styles} = .getTextPrivate(posStart, posEnd)
+        {undo.runes, undo.styles} = .textRangeData(posStart, posEnd)
         undo.selBeg               = .selBeg
         undo.cursorPos            = .cursorPos
         undo.hasSelRect           = selRect
@@ -63,10 +63,10 @@ private impl RichEditCtrl
         if !.hasSelRect do
             return
 
-        let size = .getXExtent()
+        let size = .xGlyphSize()
 
-        var ptBeg = .getCursorDisplayPos(beg)
-        var ptEnd = .getCursorDisplayPos(end)
+        var ptBeg = .cursorDisplayPosition(beg)
+        var ptEnd = .cursorDisplayPosition(end)
 
         if ptBeg.x > ptEnd.x do
             swap(&ptBeg, &ptEnd)
@@ -80,7 +80,7 @@ private impl RichEditCtrl
 
 impl RichEditCtrl
 {
-    // Performs the select all operation.
+    // Selects the complete document.
     mtd selectAll()
     {
         .moveCursorStartFile(&.selBeg)
@@ -94,7 +94,7 @@ impl RichEditCtrl
         .hasSelRect = selRect
     }
 
-    // Performs the clear selection operation.
+    // Collapses the selection at the active cursor.
     mtd clearSelection()
     {
         .selBeg = .cursorPos
@@ -120,7 +120,7 @@ impl RichEditCtrl
     }
 
     // Returns beg selection.
-    mtd getBegSelection()->RichEditCursor
+    mtd selectionStart()->RichEditCursor
     {
         if .hasSelRect
         {
@@ -140,7 +140,7 @@ impl RichEditCtrl
     }
 
     // Returns end selection.
-    mtd getEndSelection()->RichEditCursor
+    mtd selectionEnd()->RichEditCursor
     {
         if .hasSelRect
         {
@@ -159,7 +159,7 @@ impl RichEditCtrl
         return .selBeg
     }
 
-    // Performs the check selection operation.
+    // Normalizes selection endpoints and refreshes selection geometry.
     mtd checkSelection()
     {
         if .selBeg.lineIndex >= .lines.count do
@@ -182,10 +182,10 @@ impl RichEditCtrl
         if .cursorPos.lineIndex == .lines.count - 1 and .cursorPos.charPosInLine > back.length() do
             .cursorPos.charPosInLine = back.length()
 
-        .computeRectangularSelection(.getBegSelection(), .getEndSelection())
+        .computeRectangularSelection(.selectionStart(), .selectionEnd())
     }
 
-    // Performs the delete selection operation.
+    // Deletes the current selection and returns whether text was removed.
     mtd deleteSelection()
     {
         if .isReadOnly() do
@@ -194,8 +194,8 @@ impl RichEditCtrl
             return
 
         .pushUndo()
-        let cp = .getBegSelection()
-        .deleteSelectionPrivate(cp, .getEndSelection(), .hasSelRect)
+        let cp = .selectionStart()
+        .deleteSelectionPrivate(cp, .selectionEnd(), .hasSelRect)
         .computeScrollY()
 
         if .hasSelRect
@@ -212,7 +212,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
-    // Performs the delete left operation.
+    // Deletes the selection or the rune immediately before the cursor.
     mtd deleteLeft()
     {
         .pushUndo()
@@ -228,7 +228,7 @@ impl RichEditCtrl
             if cp.lineIndex == .cursorPos.lineIndex
             {
                 .cursorPos = cp
-                .computeRectangularSelection(.getBegSelection(), .getEndSelection())
+                .computeRectangularSelection(.selectionStart(), .selectionEnd())
             }
         }
 
@@ -236,21 +236,21 @@ impl RichEditCtrl
         .popUndo()
     }
 
-    // Performs the delete right operation.
+    // Deletes the selection or the rune immediately after the cursor.
     mtd deleteRight()
     {
         .pushUndo()
         if .isSelectionEmpty() or (.hasSelRect and .selBeg.charPosInLine == .cursorPos.charPosInLine)
         {
             .moveCursorRight(&.selBeg)
-            .computeRectangularSelection(.getBegSelection(), .getEndSelection())
+            .computeRectangularSelection(.selectionStart(), .selectionEnd())
         }
 
         .deleteSelection()
         .popUndo()
     }
 
-    // Performs the delete word left operation.
+    // Deletes the selection or the word immediately before the cursor.
     mtd deleteWordLeft()
     {
         .pushUndo()
@@ -261,7 +261,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
-    // Performs the delete word right operation.
+    // Deletes the selection or the word immediately after the cursor.
     mtd deleteWordRight()
     {
         .pushUndo()
@@ -277,12 +277,12 @@ impl RichEditCtrl
         .clipFormat = catch Clipboard.registerFormat("std.richedit.style")
     }
 
-    // Performs the copy to clipboard operation.
+    // Copies the selected text to the active clipboard backend.
     mtd copyToClipboard()
     {
         if .isSelectionEmpty() do
             return
-        let res = .getTextPrivate(.getBegSelection(), .getEndSelection())
+        let res = .textRangeData(.selectionStart(), .selectionEnd())
 
         .registerClipboardFormat()
         if .clipFormat do
@@ -292,7 +292,7 @@ impl RichEditCtrl
         Clipboard.addString(txt)
     }
 
-    // Performs the paste from clipboard operation.
+    // Replaces the selection with text from the active clipboard backend.
     mtd pasteFromClipboard()
     {
         let txt = Clipboard.getString()
@@ -313,12 +313,12 @@ impl RichEditCtrl
         .forceCaretVisible = true
     }
 
-    // Performs the delete line operation.
+    // Deletes every selected logical line, or the cursor line when no selection exists.
     mtd deleteLine()
     {
         .pushUndo()
-        var beg = .getBegSelection()
-        var end = .getEndSelection()
+        var beg = .selectionStart()
+        var end = .selectionEnd()
         if end.charPosInLine == 0 and beg.lineIndex != end.lineIndex do
             .moveCursorLeft(&end)
         beg.charPosInLine = 0
@@ -331,7 +331,7 @@ impl RichEditCtrl
         .popUndo()
     }
 
-    // Performs the select word operation.
+    // Selects the word containing the active cursor.
     mtd selectWord()
     {
         let line = notnull .lines[.cursorPos.lineIndex]
@@ -386,48 +386,48 @@ impl RichEditCtrl
             .cursorPos.charPosInLine += 1
     }
 
-    // Performs the scroll line up operation.
+    // Scrolls the viewport upward by one logical line.
     mtd scrollLineUp()
     {
-        let pt   = .scrollWnd.getScrollPos()
-        let size = .getXExtent()
+        let pt   = .scrollWnd.scrollPosition()
+        let size = .xGlyphSize()
 
         var sy = (pt.y / size.y) * size.y
         sy -= size.y
 
         .scrollWnd.setScrollPos(pt.x, sy)
-        sy = .scrollWnd.getScrollPos().y
+        sy = .scrollWnd.scrollPosition().y
 
-        let clientRect = .edView.getClientRect()
-        var pos        = .getCaretPos(.cursorPos)
+        let clientRect = .edView.clientRect()
+        var pos        = .caretRect(.cursorPos)
         while pos.bottom() > sy + clientRect.height
         {
             if !.moveCursorUp(&.cursorPos) do
                 break
             .clearSelection()
-            pos = .getCaretPos(.cursorPos)
+            pos = .caretRect(.cursorPos)
         }
     }
 
-    // Performs the scroll line down operation.
+    // Scrolls the viewport downward by one logical line.
     mtd scrollLineDown()
     {
-        let pt   = .scrollWnd.getScrollPos()
-        let size = .getXExtent()
+        let pt   = .scrollWnd.scrollPosition()
+        let size = .xGlyphSize()
 
         var sy = (pt.y / size.y) * size.y
         sy += size.y
 
         .scrollWnd.setScrollPos(pt.x, sy)
-        sy = .scrollWnd.getScrollPos().y
+        sy = .scrollWnd.scrollPosition().y
 
-        var pos = .getCaretPos(.cursorPos)
+        var pos = .caretRect(.cursorPos)
         while pos.y < sy
         {
             if !.moveCursorDown(&.cursorPos) do
                 break
             .clearSelection()
-            pos = .getCaretPos(.cursorPos)
+            pos = .caretRect(.cursorPos)
         }
     }
 }

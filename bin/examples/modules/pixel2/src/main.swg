@@ -21,7 +21,7 @@ var g_FontInfo:  String
 
 func fontPath(fileName: string, loc = #callerlocation)->String
 {
-    let srcPath = Path.getDirectoryName(loc.fileName)
+    let srcPath = Path.directoryName(loc.fileName)
     return Path.combine(Path.combine(srcPath, "data"), fileName)
 }
 

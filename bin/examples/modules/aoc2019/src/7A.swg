@@ -98,7 +98,7 @@ internal func run(prg: Array's32, input: const [2] s32)->s32
 
 func day7A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "7.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var op: Array's32

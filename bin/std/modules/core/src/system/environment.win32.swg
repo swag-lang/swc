@@ -3,10 +3,12 @@
 
 using Win32
 
-// Defines end line.
-public const EndLine = "\r\n"
+// Native line-ending sequence.
+public const LineEnding = "\r\n"
 
-// Gets a well-known system directory
+// Returns the normalized path of a well-known system directory.
+//
+// Returns an empty string when the directory cannot be resolved.
 public func getSpecialDirectory(what: SpecialDirectory)->String
 {
     if what == SpecialDirectory.Temp
@@ -51,7 +53,7 @@ public func getSpecialDirectory(what: SpecialDirectory)->String
     return result
 }
 
-// Get the list of all monitors
+// Returns snapshots of all active display monitors, ordered from left to right.
 public func getMonitors()->Array'Monitor
 {
     var result: retval
@@ -65,47 +67,47 @@ public func getMonitors()->Array'Monitor
         var m: Monitor
         let ptr = cast(*Array'Monitor) cast(u64) lParam
 
-        m.rect.x      = mi.rcMonitor.left
-        m.rect.y      = mi.rcMonitor.top
-        m.rect.width  = mi.rcMonitor.right - mi.rcMonitor.left
-        m.rect.height = mi.rcMonitor.bottom - mi.rcMonitor.top
+        m.bounds.x      = mi.rcMonitor.left
+        m.bounds.y      = mi.rcMonitor.top
+        m.bounds.width  = mi.rcMonitor.right - mi.rcMonitor.left
+        m.bounds.height = mi.rcMonitor.bottom - mi.rcMonitor.top
 
-        m.work.x      = mi.rcWork.left
-        m.work.y      = mi.rcWork.top
-        m.work.width  = mi.rcWork.right - mi.rcWork.left
-        m.work.height = mi.rcWork.bottom - mi.rcWork.top
+        m.workArea.x      = mi.rcWork.left
+        m.workArea.y      = mi.rcWork.top
+        m.workArea.width  = mi.rcWork.right - mi.rcWork.left
+        m.workArea.height = mi.rcWork.bottom - mi.rcWork.top
 
         let last = Win32.SetThreadDpiAwarenessContext(Win32.DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
         defer discard Win32.SetThreadDpiAwarenessContext(last)
         catch GetMonitorInfoA(hMonitor, &mi)
 
-        m.scale = (mi.rcMonitor.right - mi.rcMonitor.left) / m.rect.width
+        m.scaleFactor = (mi.rcMonitor.right - mi.rcMonitor.left) / m.bounds.width
 
-        m.rectReal.x      = mi.rcMonitor.left
-        m.rectReal.y      = mi.rcMonitor.top
-        m.rectReal.width  = mi.rcMonitor.right - mi.rcMonitor.left
-        m.rectReal.height = mi.rcMonitor.bottom - mi.rcMonitor.top
+        m.physicalBounds.x      = mi.rcMonitor.left
+        m.physicalBounds.y      = mi.rcMonitor.top
+        m.physicalBounds.width  = mi.rcMonitor.right - mi.rcMonitor.left
+        m.physicalBounds.height = mi.rcMonitor.bottom - mi.rcMonitor.top
 
-        m.workReal.x      = mi.rcWork.left
-        m.workReal.y      = mi.rcWork.top
-        m.workReal.width  = mi.rcWork.right - mi.rcWork.left
-        m.workReal.height = mi.rcWork.bottom - mi.rcWork.top
+        m.physicalWorkArea.x      = mi.rcWork.left
+        m.physicalWorkArea.y      = mi.rcWork.top
+        m.physicalWorkArea.width  = mi.rcWork.right - mi.rcWork.left
+        m.physicalWorkArea.height = mi.rcWork.bottom - mi.rcWork.top
 
         ptr.add(m)
         return TRUE
     }
 
     EnumDisplayMonitors(null, null, cast() &proc, cast(LPARAM) cast(u64) &result)
-    result.sort(func||(a, b) { return a.rect.x <=> b.rect.x })
+    result.sort(func||(a, b) { return a.bounds.x <=> b.bounds.x })
 
     return result
 }
 
-// Locate file in the file explorer
+// Selects `path` in the platform file explorer.
 #[Swag.Discardable]
-public func locateInExplorer(name: string)->bool
+public func showInFileExplorer(path: string)->bool
 {
-    var x: String = name
+    var x: String = path
     x.replace("/", "\\")
     x = Format.toString("/select,\"%\"", x)
 
@@ -115,14 +117,14 @@ public func locateInExplorer(name: string)->bool
     return err == null
 }
 
-// Locate file in the internet explorer
-public func locateUrl(name: string)
+// Opens `url` with the system's default handler.
+public func openUrl(url: string)
 {
-    discard catch ShellExecuteA(null, null, @dataof(name), null, null, SW_SHOW)
+    discard catch ShellExecuteA(null, null, @dataof(url), null, null, SW_SHOW)
 }
 
-// Return system metrics
-public func getMetric(what: Metrics)->s32
+// Returns one virtual-desktop metric in physical pixels.
+public func getSystemMetric(what: SystemMetric)->s32
 {
     switch #complete what
     {
@@ -246,57 +248,72 @@ func getNativeArgs()->string
     return g_StoreArgs
 }
 
-// Returns the DPI scale
-public func getDPIScale()->f32
+// Returns the current logical-to-physical desktop scale factor.
+public func getDpiScale()->f32
 {
-    let w0   = getMetric(.DesktopWidth)
+    let w0   = getSystemMetric(.DesktopWidth)
     let prev = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
-    let w1   = getMetric(.DesktopWidth)
+    let w1   = getSystemMetric(.DesktopWidth)
     discard SetThreadDpiAwarenessContext(prev)
     return cast(f32) w1 / cast(f32) w0
 }
 
-// Names the window paint callback type.
+// Handles a native window paint request.
 public alias WindowPaintCallback  = func||(*Window)
 
-// Names the window resize callback type.
+// Handles a native window resize and receives the new logical client size.
 public alias WindowResizeCallback = func||(*Window, s32, s32)
 
-// Represents window callbacks.
+// Groups the optional callbacks dispatched by a [[Core.Env.Window]].
 public struct WindowCallbacks
 {
-    onPaint:  #null WindowPaintCallback      // On paint associated with this value.
-    onResize: #null WindowResizeCallback     // On resize associated with this value.
+    onPaint:  #null WindowPaintCallback      // Invoked for a paint request.
+    onResize: #null WindowResizeCallback     // Invoked after the logical client size changes.
 }
 
-// Represents window options.
+// Configures native window creation.
 public struct WindowOptions
 {
-    className:   string                                                            // Class name associated with this value.
-    title:       string                                                            // Title associated with this value.
+    className:   string                                                            // Unique native window-class name.
+    title:       string                                                            // Initial window title.
     width:       s32                                                               // Width in logical units.
     height:      s32                                                               // Height in logical units.
-    x:           s32 = CW_USEDEFAULT                                               // X component.
-    y:           s32 = CW_USEDEFAULT                                               // Y component.
-    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN     // Style associated with this value.
-    exStyle:     u32                                                               // Ex style associated with this value.
-    classStyle:  u32 = CS_OWNDC                                                    // Class style associated with this value.
-    showCommand: s32 = SW_SHOW                                                     // Show command associated with this value.
+    x:           s32 = CW_USEDEFAULT                                               // Initial horizontal position in logical units.
+    y:           s32 = CW_USEDEFAULT                                               // Initial vertical position in logical units.
+    style:       u32 = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN     // Native window style flags.
+    exStyle:     u32                                                               // Native extended window style flags.
+    classStyle:  u32 = CS_OWNDC                                                    // Native window-class style flags.
+    showCommand: s32 = SW_SHOW                                                     // Native command used by [[Core.Env.Window.show]].
 }
 
-// Represents window.
+// Owns one native application window.
+//
+// [[Core.Env.createWindow]] stores the address of this value in native state.
+// Keep it at a stable address until the native window has been destroyed.
 public struct Window
 {
-    nativeHandle: HWND                // Native handle associated with this value.
-    callbacks:    WindowCallbacks     // Callbacks associated with this value.
-    showCommand:  s32 = SW_SHOW       // Show command associated with this value.
+    readonly
+    {
+        nativeHandle: HWND     // Borrowed native handle, or null before creation.
+    }
+
+    callbacks: WindowCallbacks     // Callbacks dispatched by the native window procedure.
+
+    internal
+    {
+        showCommand: s32 = SW_SHOW
+    }
 }
 
-// Represents window loop.
+// Provides iterable native message processing.
 public struct WindowLoop
 {
-    maxTestFrames: u32 = 50     // Max test frames associated with this value.
-    testFrames:    u32          // Test frames associated with this value.
+    maxTestFrames: u32 = 50     // Frame limit used only when `swag.test` is present.
+
+    internal
+    {
+        testFrames: u32
+    }
 }
 
 private func getWindowFromHandle(hWnd: HWND)->#null *Window
@@ -313,7 +330,7 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
         SetWindowLongPtrA(hWnd, GWLP_USERDATA, createParam)
 
         let window = cast(*Window) createParam
-        window.nativeHandle = hWnd
+        window.setNativeHandle(hWnd)
     }
 
     let window = getWindowFromHandle(hWnd)
@@ -346,12 +363,25 @@ private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM
     return DefWindowProcA(hWnd, msg, wParam, lParam)
 }
 
-// Creates a native application window. Platform-specific state stays behind Window.nativeHandle.
+impl Window
+{
+    internal mtd prepareCreation(showCommand: s32)
+    {
+        .nativeHandle = null
+        .callbacks    = {}
+        .showCommand  = showCommand
+    }
+
+    internal mtd setNativeHandle(nativeHandle: HWND)
+    {
+        .nativeHandle = nativeHandle
+    }
+}
+
+// Creates a native application window. Platform-specific state stays behind [[Core.Env.Window.nativeHandle]].
 public func createWindow(window: &Window, options: WindowOptions) fail
 {
-    window.nativeHandle = null
-    window.callbacks    = {}
-    window.showCommand  = options.showCommand
+    window.prepareCreation(options.showCommand)
 
     var wc: WNDCLASSA
     wc.style         = options.classStyle
@@ -364,7 +394,7 @@ public func createWindow(window: &Window, options: WindowOptions) fail
     if !hWnd do
         failWinError(GetLastError())
 
-    window.nativeHandle = hWnd
+    window.setNativeHandle(hWnd)
 }
 
 // Processes all pending window messages. Returns false when the application should exit.
@@ -385,25 +415,28 @@ public func processWindowMessages()->bool
 
 public impl Window
 {
-    // Returns dc.
-    mtd getDC()->HDC
+    // Acquires the native device context for this window.
+    //
+    // Every successful call must be paired with
+    // [[Core.Env.Window.releaseDeviceContext]] on the same window.
+    mtd acquireDeviceContext()->HDC
     {
         return GetDC(.nativeHandle)
     }
 
-    // Performs the release dc operation.
-    mtd releaseDC(hDC: HDC)
+    // Releases a device context returned by [[Core.Env.Window.acquireDeviceContext]].
+    mtd releaseDeviceContext(deviceContext: HDC)
     {
-        ReleaseDC(.nativeHandle, hDC)
+        ReleaseDC(.nativeHandle, deviceContext)
     }
 
-    // Performs the request paint operation.
+    // Queues a paint request for this window.
     mtd requestPaint()
     {
         expect PostMessageA(.nativeHandle, WM_PAINT, 0, 0)
     }
 
-    // Sets client size.
+    // Resizes the logical client area while preserving the current position.
     mtd setClientSize(width, height: s32) fail
     {
         var windowRect: RECT
@@ -418,7 +451,7 @@ public impl Window
         try MoveWindow(.nativeHandle, windowRect.left, windowRect.top, width + frameWidth, height + frameHeight, FALSE)
     }
 
-    // Performs the show operation.
+    // Shows the window and updates its client area.
     mtd show() fail
     {
         ShowWindow(.nativeHandle, .showCommand)
@@ -428,16 +461,16 @@ public impl Window
 
 public impl WindowLoop
 {
-    // Advances to the next value.
+    // Processes pending messages and returns whether the application should continue.
     mtd next()->bool
     {
-        if Env.hasArg("swag.test") and .testFrames >= .maxTestFrames do
+        if Env.hasArgument("swag.test") and .testFrames >= .maxTestFrames do
             return false
 
         if !processWindowMessages() do
             return false
 
-        if Env.hasArg("swag.test") do
+        if Env.hasArgument("swag.test") do
             .testFrames += 1
 
         return true

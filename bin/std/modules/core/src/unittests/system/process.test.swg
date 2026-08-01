@@ -9,7 +9,7 @@ func getShellExecutablePath()->String
     let fontsDir = Env.getSpecialDirectory(Env.SpecialDirectory.Font)
     @assert(fontsDir.length != 0)
 
-    let windowsDir = Path.getDirectoryName(fontsDir.toString())
+    let windowsDir = Path.directoryName(fontsDir.toString())
     @assert(windowsDir != null)
 
     return Path.combine(windowsDir, "System32", "WindowsPowerShell", "v1.0", "powershell.exe")

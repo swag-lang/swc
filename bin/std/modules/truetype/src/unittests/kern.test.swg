@@ -17,18 +17,15 @@ using Swag, Core
     @assert(err == null)
 
     // 'AV' is a classic negative kerning pair (glyphs tucked closer together).
-    let kern100 = catch face.getKerning(glyphA, glyphV) as err2
-    @assert(err2 == null)
+    let kern100 = face.getKerning(glyphA, glyphV)
     @assert(kern100.x < 0)
 
     // Kerning is scaled to the pixel size, so it grows with the size.
     discard catch face.setPixelSize(0, 200)
-    let kern200 = catch face.getKerning(glyphA, glyphV) as err3
-    @assert(err3 == null)
+    let kern200 = face.getKerning(glyphA, glyphV)
     @assert(kern200.x < kern100.x)
 
     // A missing glyph yields no kerning.
-    let none = catch face.getKerning(glyphA, 0) as err4
-    @assert(err4 == null)
+    let none = face.getKerning(glyphA, 0)
     @assert(none.x == 0)
 }

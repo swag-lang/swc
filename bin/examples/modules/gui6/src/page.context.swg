@@ -4,9 +4,9 @@ func createContextMenuModel(parent: *Wnd)
 {
     let ctxMenu = createTrackedPopup(parent)
     g_ContextMenu = ctxMenu
-    ctxMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.getIcon24(.Search, 18))
-    ctxMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.getIcon24(.Edit, 18))
-    ctxMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.getIcon24(.Link, 18))
+    ctxMenu.addItem("Inspect", MenuCmd.ContextInspect, app.theme.icon24(.Search, 18))
+    ctxMenu.addItem("Rename", MenuCmd.ContextRename, app.theme.icon24(.Edit, 18))
+    ctxMenu.addItem("Pin item", MenuCmd.ContextPin, app.theme.icon24(.Link, 18))
     ctxMenu.addSeparator()
 
     let alignMenu = createTrackedPopup(parent)
@@ -16,8 +16,8 @@ func createContextMenuModel(parent: *Wnd)
     ctxMenu.addPopup("Align", alignMenu)
 
     ctxMenu.addSeparator()
-    ctxMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.getIcon24(.Download, 18))
-    ctxMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.getIcon24(.Remove, 18))
+    ctxMenu.addItem("Archive", MenuCmd.ContextArchive, app.theme.icon24(.Download, 18))
+    ctxMenu.addItem("Delete", MenuCmd.ContextDelete, app.theme.icon24(.Remove, 18))
 }
 
 func showContextMenuAt(pt: Math.Point)
@@ -31,23 +31,23 @@ func showContextMenuAt(pt: Math.Point)
 
 func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
 {
-    if let mouse = evt as MouseEvent where mouse.kind == .MouseAccept
+    if let mouse = evt as MouseEvent where mouse.kind == .Accept
     {
         mouse.accepted = true
         return true
     }
-    elif let mouse = evt as MouseEvent where mouse.kind == .MouseReleased and mouse.button == .Right
+    elif let mouse = evt as MouseEvent where mouse.kind == .Released and mouse.button == .Right
     {
         showContextMenuAt(mouse.surfacePos)
         return true
     }
     elif let paintEvt = evt as PaintEvent
     {
-        let painter   = paintEvt.bc.painter
-        let rect      = view.getClientRect()
-        let colors    = view.getThemeColors()
-        let font      = view.getTheme().createDefaultFont(15)
-        let titleFont = view.getTheme().createDefaultFont(20, .Bold)
+        let painter   = paintEvt.paintContext.painter
+        let rect      = view.clientRect()
+        let colors    = view.themeColors()
+        let font      = view.theme().createDefaultFont(15)
+        let titleFont = view.theme().createDefaultFont(20, .Bold)
 
         painter.fillRect(rect, colors.view_Bk)
         let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 48, 1.0)}
@@ -73,18 +73,18 @@ func createContextMenuPage(parent: *Wnd)
 
     let right   = createPanel(parent, "Launch points", "The same menu can be shown at raw mouse coordinates or anchored near controls.", layout.right)
     let openBtn = PushButton.create(right, "Open at button", {24, 100, 220})
-    openBtn.icon       = app.theme.getIcon24(.More, 18)
+    openBtn.setIcon(app.theme.icon24(.More, 18))
     openBtn.sigPressed += func(btn)
     {
-        let pos = btn.getSurfaceRect()
+        let pos = btn.surfaceRect()
         showContextMenuAt({pos.x, pos.bottom() + 6})
     }
 
     let inspectBtn = PushButton.create(right, "Open centered", {24, 154, 220})
-    inspectBtn.icon       = app.theme.getIcon24(.Search, 18)
+    inspectBtn.setIcon(app.theme.icon24(.Search, 18))
     inspectBtn.sigPressed += func(btn)
     {
-        let pos = btn.getSurfaceRect()
+        let pos = btn.surfaceRect()
         showContextMenuAt({pos.horzCenter(), pos.vertCenter()})
     }
 

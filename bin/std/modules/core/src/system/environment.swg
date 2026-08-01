@@ -1,26 +1,32 @@
 #global public
 #global namespace Env
 
-// Get the program command line arguments as a [..] string
-func getArgs()->const [..] string => @args
+// Returns the process command-line arguments.
+//
+// The returned slice is borrowed from the runtime and remains valid for the
+// lifetime of the process. Element zero is the executable path when supplied by
+// the operating system.
+func arguments()->const [..] string => @args
 
-// Get a given argument, or null
-func getArg(idx: u32)->#null string
+// Returns the command-line argument at `index`, or `null` when it is out of range.
+func argument(index: u32)->#null string
 {
     let args = @args
-    if idx >= @countof(args) do
+    if index >= @countof(args) do
         return null
-    return args[idx]
+    return args[index]
 }
 
-// Get a given argument, or null
-func hasArg(arg: string)->bool
+// Returns whether the command line contains `argument` exactly.
+func hasArgument(argument: string)->bool
 {
-    return Slice.contains(@args, arg)
+    return Slice.contains(@args, argument)
 }
 
-// Get current executable
-func getExe()->string
+// Returns the executable path reported as command-line argument zero.
+//
+// Returns an empty string when the runtime did not provide any arguments.
+func executablePath()->string
 {
     let args = @args
     if @countof(args) == 0 do
@@ -28,45 +34,44 @@ func getExe()->string
     return args[0]
 }
 
-// Selects special directory.
+// Identifies a well-known operating-system directory.
 enum SpecialDirectory
 {
-    Temp               // Selects temp.
-    Font               // Selects font.
-    UserAppData        // Selects user app data.
-    UserDocuments      // Selects user documents.
-    CommonAppData      // Selects common app data.
-    Desktop            // Selects desktop.
-    UserPictures       // Selects user pictures.
-    UserVideos         // Selects user videos.
-    UserMusic          // Selects user music.
-    CommonPictures     // Selects common pictures.
-    CommonVideos       // Selects common videos.
-    CommonMusic        // Selects common music.
+    Temp               // Temporary files for the current user.
+    Font               // Installed system fonts.
+    UserAppData        // Roaming application data for the current user.
+    UserDocuments      // Documents for the current user.
+    CommonAppData      // Application data shared by all users.
+    Desktop            // Desktop for the current user.
+    UserPictures       // Pictures for the current user.
+    UserVideos         // Videos for the current user.
+    UserMusic          // Music for the current user.
+    CommonPictures     // Pictures shared by all users.
+    CommonVideos       // Videos shared by all users.
+    CommonMusic        // Music shared by all users.
 }
 
 // Describes a physical monitor.
 #[Swag.Operators(opEquals, opCompare)]
 struct Monitor
 {
-    rect:     Math.Rectangle     // Rect associated with this value.
-    work:     Math.Rectangle     // Work associated with this value.
-    scale:    f32                // Scale factor of this monitor
-    rectReal: Math.Rectangle     // The real monitor rect, without scaling
-    workReal: Math.Rectangle     // The real monitor work rect, without scaling
+    bounds:           Math.Rectangle     // Logical bounds in desktop coordinates.
+    workArea:         Math.Rectangle     // Logical bounds available to applications.
+    scaleFactor:      f32                // Ratio from logical coordinates to physical pixels.
+    physicalBounds:   Math.Rectangle     // Physical-pixel bounds in desktop coordinates.
+    physicalWorkArea: Math.Rectangle     // Physical-pixel bounds available to applications.
 }
 
-// Returns the monitor that contains 'pt'
-// Returns the nearest one if none contain it.
-func getMonitorForPoint(pt: Math.Point)->Env.Monitor
+// Returns the monitor containing `point`, or the nearest monitor otherwise.
+func monitorForPoint(point: Math.Point)->Env.Monitor
 {
     let monitors = Env.getMonitors()
 
     // First pass: exact containment
     for m in monitors
     {
-        let r = m.rect
-        if pt.x >= r.x and pt.x <= r.right() and pt.y >= r.y and pt.y <= r.bottom() do
+        let r = m.bounds
+        if point.x >= r.x and point.x <= r.right() and point.y >= r.y and point.y <= r.bottom() do
             return m
     }
 
@@ -75,11 +80,11 @@ func getMonitorForPoint(pt: Math.Point)->Env.Monitor
     var bestD2 = Swag.F32.Inf
     for m in monitors
     {
-        let r  = m.rect
-        let cx = Math.clamp(pt.x, r.x, r.right())
-        let cy = Math.clamp(pt.y, r.y, r.bottom())
-        let dx = pt.x - cx
-        let dy = pt.y - cy
+        let r  = m.bounds
+        let cx = Math.clamp(point.x, r.x, r.right())
+        let cy = Math.clamp(point.y, r.y, r.bottom())
+        let dx = point.x - cx
+        let dy = point.y - cy
         let d2 = dx * dx + dy * dy
         if d2 < bestD2
         {
@@ -91,16 +96,18 @@ func getMonitorForPoint(pt: Math.Point)->Env.Monitor
     return bestM
 }
 
-// Returns the monitor corresponding to the surface position
-func getMonitorForRect(rect: Math.Rectangle)->Env.Monitor
+// Returns the monitor with the largest intersection with `rectangle`.
+//
+// The first monitor is returned when the rectangle does not intersect a monitor.
+func monitorForRectangle(rectangle: Math.Rectangle)->Env.Monitor
 {
     var result: retval
     var bestSurf = 0'f32
     let monitors = Env.getMonitors()
     for m in monitors
     {
-        var r1 = rect
-        r1.intersect(m.rect)
+        var r1 = rectangle
+        r1.intersect(m.bounds)
         let surf = r1.width * r1.height
         if surf > bestSurf
         {
@@ -116,13 +123,13 @@ func getMonitorForRect(rect: Math.Rectangle)->Env.Monitor
 
 private var g_CmdLineArgs: #null const [..] string
 
-// Selects metrics.
-enum Metrics
+// Identifies a virtual-desktop system metric.
+enum SystemMetric
 {
-    DesktopX          // Left position of the full desktop
-    DesktopY          // Top position of the full desktop
-    DesktopWidth      // With of the full desktop
-    DesktopHeight     // Height of the full desktop
+    DesktopX          // Left edge of the virtual desktop.
+    DesktopY          // Top edge of the virtual desktop.
+    DesktopWidth      // Width of the virtual desktop.
+    DesktopHeight     // Height of the virtual desktop.
 }
 
 #premain

@@ -11,7 +11,7 @@ using Swag, Core
         ]
 
     let src = makeImage(2, 3, .RGBA8, pixels)
-    let out = src.toFlip()
+    let out = src.flipped()
     assertImage(out, 2, 3, .RGBA8)
 
     assertPixel(out, 0, 2, Color.fromArgb(53'u8, 50'u8, 51'u8, 52'u8))

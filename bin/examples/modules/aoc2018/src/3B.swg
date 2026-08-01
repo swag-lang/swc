@@ -11,7 +11,7 @@ using Core
 
 func day3B()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "3.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var r = expect Parser.RegExp.create(#raw "#(\d+) @ (\d+),(\d+): (\d+)x(\d+)")

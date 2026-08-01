@@ -57,9 +57,7 @@ func compute()
     g_Noise.octaves    = g_NoiseParams.octaves
     g_Noise.lacunarity = g_NoiseParams.lacunarity
     g_Noise.gain       = g_NoiseParams.gain
-    g_Noise.update()
-
-    g_Image.noise(&g_Noise)
+    g_Image.fillNoise(&g_Noise)
 }
 
 func createUI(wnd: *Wnd)
@@ -68,9 +66,9 @@ func createUI(wnd: *Wnd)
     {
         .padding         = 10
         .backgroundStyle = .Window
-        .splitter.showPane(0, false)
-        .prop.sizeEditValue = 260
-        .prop.setColumnSize(65)
+        .splitter.setPaneVisible(0, false)
+        .prop.setEditorWidth(260)
+        .prop.setNameColumnWidth(65)
         .prop.addStruct(g_NoiseParams)
         .prop.sigChanged += func|wnd|(list, item)
         {
@@ -86,7 +84,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
     case CreateEvent:
         g_Image   = Image.create(W, H, .BGR8)
-        g_Texture = wnd.getApp().renderer.addImage(g_Image)
+        g_Texture = wnd.app().renderer.addImage(g_Image)
         g_Noise.update()
         createUI(wnd)
         compute()

@@ -54,7 +54,7 @@ using Core, Core.Parser
 
 func day4A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "4.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     Slice.sort(lines[to], func(x, y)->s32

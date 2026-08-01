@@ -22,21 +22,21 @@ impl IActionUI for ActionLibTrash
         switch cxt.id
         {
         case .Toggle:
-            evt.setFlags |= .Name | .Checked
+            evt.updatedFields |= .Name | .Checked
             evt.name     = "Recycle Bin"
             evt.checked  = libWnd.trashMode
 
         case .Empty:
-            evt.setFlags |= .Name
+            evt.updatedFields |= .Name
             evt.name     = "Empty Recycle Bin"
 
         case .Restore:
-            evt.setFlags |= .Name | .Disabled
+            evt.updatedFields |= .Name | .Disabled
             evt.name     = "Restore"
             evt.disabled = !hasSel
 
         case .DeleteForever:
-            evt.setFlags |= .Name | .Disabled
+            evt.updatedFields |= .Name | .Disabled
             evt.name     = "Delete Permanently"
             evt.disabled = !hasSel
         }

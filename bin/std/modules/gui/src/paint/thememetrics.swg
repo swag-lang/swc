@@ -2,7 +2,7 @@
 
 using Core
 
-// Represents theme metrics.
+// Defines logical dimensions, spacing, and animation timing for themed GUI elements.
 struct ThemeMetrics
 {
     defaultFontSize:          u32 = 14     // Theme measurement used for default font size.

@@ -1175,7 +1175,7 @@ public impl Deflate
 
         if has(.initFlags, CompressionFlags.ComputeAdler32)
         {
-            .adler.init()
+            .adler.reset()
             .adler.update(src)
         }
     }

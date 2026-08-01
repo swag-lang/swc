@@ -8,7 +8,7 @@ func display()
 {
     const SPEED = 100
     glClearColor(0, 0, 0, 0)
-    glRotatef(SPEED * g_Frame.dt, 0.0, 0.0, 1)
+    glRotatef(SPEED * g_Frame.deltaSeconds, 0.0, 0.0, 1)
     glClear(GL_COLOR_BUFFER_BIT)
     glBegin(GL_TRIANGLES)
     glColor3f(1.0, 0.0, 0.0)

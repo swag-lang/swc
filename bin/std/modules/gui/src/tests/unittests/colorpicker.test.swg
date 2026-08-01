@@ -12,7 +12,7 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
     ColorPickerHeadlessChangedCount += 1
 }
 
-// setColor decomposes the color into its components and emits sigChanged.
+// setColor decomposes a changed color and emits exactly one notification.
 #test
 {
     var host: Testing.HeadlessHost
@@ -20,24 +20,28 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
     ColorPickerHeadlessChangedCount = 0
 
     let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})
-    picker.sigChanged += &colorPickerHeadlessChanged
+    picker.sigColorChanged += &colorPickerHeadlessChanged
 
     picker.setColor(Argb.Red)
-    @assert(Math.abs(picker.r - 1) < 0.01)
-    @assert(Math.abs(picker.g - 0) < 0.01)
-    @assert(Math.abs(picker.b - 0) < 0.01)
-    @assert(Math.abs(picker.a - 1) < 0.01)
-    @assert(ColorPickerHeadlessChangedCount == 1)
+    @assert(Math.abs(picker.red - 1) < 0.01)
+    @assert(Math.abs(picker.green - 0) < 0.01)
+    @assert(Math.abs(picker.blue - 0) < 0.01)
+    @assert(Math.abs(picker.alpha - 1) < 0.01)
+    @assert(ColorPickerHeadlessChangedCount == 0)
 
     picker.setColor(Argb.Blue)
-    @assert(Math.abs(picker.b - 1) < 0.01)
-    @assert(Math.abs(picker.r - 0) < 0.01)
-    @assert(ColorPickerHeadlessChangedCount == 2)
+    @assert(Math.abs(picker.blue - 1) < 0.01)
+    @assert(Math.abs(picker.red - 0) < 0.01)
+    @assert(ColorPickerHeadlessChangedCount == 1)
+
+    picker.setColor(Argb.Red, notify: false)
+    @assert(picker.color() == Argb.Red)
+    @assert(ColorPickerHeadlessChangedCount == 1)
 
     host.shutdown()
 }
 
-// change() updates the targeted HSL component and notifies once.
+// setHsl updates the HSL components and notifies once.
 #test
 {
     var host: Testing.HeadlessHost
@@ -46,14 +50,14 @@ func colorPickerHeadlessChanged(c: *ColorPicker)
 
     let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})
     picker.setColor(Argb.Red)
-    picker.sigChanged += &colorPickerHeadlessChanged
+    picker.sigColorChanged += &colorPickerHeadlessChanged
 
-    picker.change(0.5)
+    picker.setHsl(0.5, picker.saturation, picker.lightness)
     @assert(Math.abs(picker.hue - 0.5) < 0.01)
     @assert(ColorPickerHeadlessChangedCount == 1)
 
     // Same hue again: no change, no signal.
-    picker.change(0.5)
+    picker.setHsl(0.5, picker.saturation, picker.lightness)
     @assert(ColorPickerHeadlessChangedCount == 1)
 
     host.shutdown()

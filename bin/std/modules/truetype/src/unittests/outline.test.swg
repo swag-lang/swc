@@ -4,17 +4,18 @@ using Swag, Core
 
 #test
 {
+    let identity = Matrix.Identity
+    @assert(identity.xx == 65536 and identity.xy == 0)
+    @assert(identity.yx == 0 and identity.yy == 65536)
+}
+
+#test
+{
     var points:   [3] Vector = [{x: 0, y: 0}, {x: 64, y: 64}, {x: 128, y: 0}]
     var tags:     [3] u8     = [1, 0, 1]
     var contours: [1] s16    = [2]
 
-    var outline = Outline{
-        contourCount: 1,
-        pointCount:   3,
-        points:       &points[0],
-        tags:         &tags[0],
-        contours:     &contours[0],
-        }
+    var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 3, 1)
 
     let commands = buildOutlineCommands(&outline)
     @assert(commands.count == 3)

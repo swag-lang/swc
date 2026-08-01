@@ -9,6 +9,22 @@ func pngCanEncode(fileName: string)->bool
     return itf.canEncode(fileName)
 }
 
+// The high-level memory encoder mirrors `Image.decode` without touching the file system.
+#test
+{
+    var source = Image.create(2, 1, .RGBA8)
+    source.fill(Color.fromArgb(200'u8, 10'u8, 20'u8, 30'u8))
+
+    var encoded = expect source.encode("memory.png")
+    encoded.makeLinear()
+    let bytes = nnBytes(encoded.toSlice())
+    @assert(@countof(bytes) > 8)
+
+    let decoded = expect Image.decode("memory.png", bytes)
+    assertImage(decoded, 2, 1, .RGBA8)
+    @assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+}
+
 func encodePng(result: *ConcatBuffer, image: Image, options: #null any = null) fail
 {
     var enc: Png.Encoder
@@ -18,11 +34,11 @@ func encodePng(result: *ConcatBuffer, image: Image, options: #null any = null) f
 
 func assertPngPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
-    let idx = cast(u64) (yFromBottom * img.width + x) * img.bpp8
+    let idx = cast(u64) (yFromBottom * img.width + x) * img.bytesPerPixel
     @assert((notnull img.pixels.buffer)[idx] == r)
     @assert((notnull img.pixels.buffer)[idx + 1] == g)
     @assert((notnull img.pixels.buffer)[idx + 2] == b)
-    if img.bpp8 == 4 do
+    if img.bytesPerPixel == 4 do
         @assert((notnull img.pixels.buffer)[idx + 3] == a)
 }
 
@@ -34,10 +50,10 @@ func assertLoadedPng(fileName: string, width, height: s32, pf: PixelFormat, r, g
     @assert(img.isValid())
     @assert(img.width == width)
     @assert(img.height == height)
-    @assert(img.pf == pf)
-    @assert(img.bpp == pf.bpp())
-    @assert(img.bpp8 == pf.channels())
-    @assert(img.pixels.count == cast(u64) width * height * img.bpp8)
+    @assert(img.pixelFormat == pf)
+    @assert(img.bitsPerPixel == pf.bitsPerPixel())
+    @assert(img.bytesPerPixel == pf.channels())
+    @assert(img.pixels.count == cast(u64) width * height * img.bytesPerPixel)
     assertPngPixelAt(img, 0, 0, r, g, b, a)
 }
 
@@ -74,7 +90,7 @@ func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: #nu
     @assert(err3 == null)
     @assert(img.width == src.width)
     @assert(img.height == src.height)
-    @assert(img.pf == expectedPf)
+    @assert(img.pixelFormat == expectedPf)
     @assert(img.pixels.count == src.pixels.count)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
@@ -84,7 +100,7 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
     var pix = notnull img.pixels.buffer
     for img.width * img.height
     {
-        switch img.pf
+        switch img.pixelFormat
         {
         case .BGR8:
             pix[0] = b
@@ -109,7 +125,7 @@ func fillSolidPngImage(img: *Image, r, g, b, a: u8)
             pix[3] = a
         }
 
-        pix += img.bpp8
+        pix += img.bytesPerPixel
     }
 }
 
@@ -137,7 +153,7 @@ func addPngChunk(result: *ConcatBuffer, chunkType: string, data: const [..] u8)
     var crc: Hash.Crc32
     crc.update(chunkType)
     crc.update(data)
-    addPngU32Be(result, crc.crc)
+    addPngU32Be(result, crc.value())
 }
 
 func addPngSignature(result: *ConcatBuffer)
@@ -378,7 +394,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let grayPng = buildPng16(3, 1, 0, false, gray.toSlice())
     let grayImg = catch Image.decode("gray16.png", nnBytes(grayPng.toSlice()), {}) as err4
     @assert(err4 == null)
-    @assert(grayImg.pf == .RGB8)
+    @assert(grayImg.pixelFormat == .RGB8)
     assertPngPixelAt(grayImg, 0, 0, 0'u8, 0'u8, 0'u8, 255'u8)
     assertPngPixelAt(grayImg, 1, 0, 128'u8, 128'u8, 128'u8, 255'u8)
     assertPngPixelAt(grayImg, 2, 0, 255'u8, 255'u8, 255'u8, 255'u8)
@@ -392,7 +408,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let rgbaPng = buildPng16(1, 1, 6, false, rgba.toSlice())
     let rgbaImg = catch Image.decode("rgba16.png", nnBytes(rgbaPng.toSlice()), {}) as err5
     @assert(err5 == null)
-    @assert(rgbaImg.pf == .RGBA8)
+    @assert(rgbaImg.pixelFormat == .RGBA8)
     assertPngPixelAt(rgbaImg, 0, 0, 18'u8, 128'u8, 255'u8, 1'u8)
 }
 
@@ -411,7 +427,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let png = buildPng16(2, 1, 2, false, samples.toSlice(), key.toSlice())
     let img = catch Image.decode("rgb16-trns.png", nnBytes(png.toSlice()), {}) as err6
     @assert(err6 == null)
-    @assert(img.pf == .RGBA8)
+    @assert(img.pixelFormat == .RGBA8)
     @assert((notnull img.pixels.buffer)[3] == 0'u8)
     @assert((notnull img.pixels.buffer)[7] == 255'u8)
 }
@@ -436,7 +452,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let png = buildPng16(Width, Height, 2, true, samples.toSlice())
     let img = catch Image.decode("rgb16-adam7.png", nnBytes(png.toSlice()), {}) as err7
     @assert(err7 == null)
-    @assert(img.pf == .RGB8)
+    @assert(img.pixelFormat == .RGB8)
 
     for [y] in Height
     {
@@ -459,19 +475,19 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     @assert(err4 == null)
     @assert(pal.width == 34)
     @assert(pal.height == 24)
-    @assert(pal.pf == .RGBA8)
+    @assert(pal.pixelFormat == .RGBA8)
     assertPngPixelAt(pal, 10, 0, 83'u8, 56'u8, 70'u8, 255'u8)
 
     var grayKey: Image
     grayKey = catch Image.load(getTestDataPath("tbbn0g04.png")) as err5
     @assert(err5 == null)
-    @assert(grayKey.pf == .RGBA8)
+    @assert(grayKey.pixelFormat == .RGBA8)
     assertPngPixelAt(grayKey, 15, 1, 238'u8, 238'u8, 238'u8, 255'u8)
 
     var rgbKey: Image
     rgbKey = catch Image.load(getTestDataPath("tbrn2c08.png")) as err6
     @assert(err6 == null)
-    @assert(rgbKey.pf == .RGBA8)
+    @assert(rgbKey.pixelFormat == .RGBA8)
     assertPngPixelAt(rgbKey, 0, 0, 255'u8, 255'u8, 255'u8, 0'u8)
 }
 
@@ -489,7 +505,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     @assert(err8 == null)
     @assert(img.width == 660)
     @assert(img.height == 441)
-    @assert(img.pf == .RGB8)
+    @assert(img.pixelFormat == .RGB8)
     @assert(!img.isValid())
 }
 
@@ -505,10 +521,10 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var src = Image.create(2, 1, .RGB8)
     fillSolidPngImage(&src, 1'u8, 2'u8, 3'u8, 255'u8)
 
-    var md: ImageMetaData
+    var md: ImageMetadata
     md.tag   = "Captme.File"
     md.value = "capture.captme"
-    src.metaDatas.add(md)
+    src.metadata.add(md)
 
     catch src.save(path.toString()) as err9
     @assert(err9 == null)
@@ -516,9 +532,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     let img = catch Image.load(path.toString()) as err10
     @assert(err10 == null)
     @assert(img.isValid())
-    @assert(img.metaDatas.count == 1)
-    @assert(img.metaDatas[0].isTag("Captme.File"))
-    @assert(cast(string) img.metaDatas[0].toSlice() == "capture.captme")
+    @assert(img.metadata.count == 1)
+    @assert(img.metadata[0].isTag("Captme.File"))
+    @assert(cast(string) img.metadata[0].toSlice() == "capture.captme")
 }
 
 // Invalid and truncated buffers should fail without producing an image.
@@ -579,7 +595,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var img: Image
     img = catch Image.decode("bgr.png", nnBytes(cb.toSlice()), {}) as err15
     @assert(err15 == null)
-    @assert(img.pf == .RGB8)
+    @assert(img.pixelFormat == .RGB8)
     assertPngPixelAt(img, 0, 0, 10'u8, 20'u8, 30'u8, 255'u8)
 
     var bgra    = Image.create(1, 1, .BGRA8)
@@ -595,7 +611,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     img = catch Image.decode("bgra.png", nnBytes(cb.toSlice()), {}) as err17
     @assert(err17 == null)
-    @assert(img.pf == .RGBA8)
+    @assert(img.pixelFormat == .RGBA8)
     assertPngPixelAt(img, 0, 0, 9'u8, 8'u8, 7'u8, 10'u8)
 }
 
@@ -624,7 +640,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     var img: Image
     img = catch Image.load(path.toString()) as err20
     @assert(err20 == null)
-    @assert(img.pf == .RGB8)
+    @assert(img.pixelFormat == .RGB8)
     @assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
 }
 
@@ -682,7 +698,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     var decoded = catch Image.decode("adam7-rgb.png", rgbBytes, {}) as err21
     @assert(err21 == null)
-    @assert(decoded.pf == .RGB8)
+    @assert(decoded.pixelFormat == .RGB8)
     @assert(Memory.compare(rgb.pixels.buffer, decoded.pixels.buffer, rgb.pixels.count) == 0)
 
     var bgra    = Image.create(9, 7, .BGRA8)
@@ -707,7 +723,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     decoded = catch Image.decode("adam7-bgra.png", bgraBytes, {}) as err23
     @assert(err23 == null)
-    @assert(decoded.pf == .RGBA8)
+    @assert(decoded.pixelFormat == .RGBA8)
     let decodedBuf = notnull decoded.pixels.buffer
     for [i] in cast(u64) bgra.width * cast(u64) bgra.height
     {

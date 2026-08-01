@@ -23,20 +23,20 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
 
     var stream = ByteStream.openRead(input)
     @assert(stream.length() == 4)
-    @assert(stream.getSeek() == 0)
+    @assert(stream.position() == 0)
     @assert(!stream.isEof())
     @assert(stream.peekU8() == 0x10)
     @assert(stream.readU8() == 0x10)
-    @assert(stream.getSeek() == 1)
+    @assert(stream.position() == 1)
     @assert(stream.peekU8() == 0x20)
-    @assert(assertBytes(notnull stream.remainReadToSlice(), [0x20, 0x30, 0x40]))
-    @assert(stream.remainReadToString() == "\x20\x30\x40")
+    @assert(assertBytes(notnull stream.remainingBytes(), [0x20, 0x30, 0x40]))
+    @assert(stream.remainingString() == "\x20\x30\x40")
 
-    stream.moveSeek(2)
-    @assert(stream.getSeek() == 3)
+    stream.advance(2)
+    @assert(stream.position() == 3)
     @assert(!stream.isEof())
     @assert(stream.readU8() == 0x40)
-    @assert(stream.getSeek() == 4)
+    @assert(stream.position() == 4)
     @assert(stream.isEof())
     @assert(stream.peekU8() == 0)
 }
@@ -48,12 +48,12 @@ func assertBytes(actual: const [..] u8, expected: const [..] u8)->bool
     stream.writeBytes([0xAB, 0xCD, 0xEF])
 
     @assert(stream.length() == 3)
-    @assert(stream.getSeek() == 3)
+    @assert(stream.position() == 3)
     @assert(assertBytes(buffer.toSlice(), [0xAB, 0xCD, 0xEF]))
 
-    stream.setSeek(0)
+    stream.setPosition(0)
     @assert(!stream.isEof())
     @assert(stream.peekU8() == 0xAB)
     @assert(stream.readU8() == 0xAB)
-    @assert(assertBytes(notnull stream.remainReadToSlice(), [0xCD, 0xEF]))
+    @assert(assertBytes(notnull stream.remainingBytes(), [0xCD, 0xEF]))
 }

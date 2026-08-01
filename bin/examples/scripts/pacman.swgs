@@ -1466,7 +1466,7 @@ func drawPlayScreen()
  */
 func display()
 {
-    let rect = theWnd().getClientRect()
+    let rect = theWnd().clientRect()
     thePainter().fillRect(rect, Argb.Black)
     thePainter().scaleTransform(Scale, Scale)
 
@@ -1928,11 +1928,11 @@ func restartGame()
 func gameLoop()
 {
     // Fake synchro (a very ugly one, but this does the job)
-    let curTime = Time.nowMilliseconds()
+    let curTime = Time.monotonicMilliseconds()
     if curTime - g_LastTime < 16
     {
         let delay = cast(u32) (16 - (curTime - g_LastTime))
-        Threading.Thread.sleep(Time.Duration.fromMs(delay))
+        Threading.Thread.sleep(Time.Duration.fromMilliseconds(delay))
     }
 
     g_LastTime = curTime
@@ -2074,7 +2074,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         display()
         wnd.invalidate()
 
-    case KeyEvent as keyEvt where keyEvt.kind == .KeyPressed:
+    case KeyEvent as keyEvt where keyEvt.kind == .Pressed:
         switch keyEvt.key
         {
         case .Escape:
@@ -2118,11 +2118,11 @@ func loadBindTextures()
 {
     func loadAndBindTexture(name: string)->Texture
     {
-        return expect theWnd().getApp().getRenderer().addImage(Path.combine(g_DataPath, name))
+        return expect theWnd().app().rendererRef().addImage(Path.combine(g_DataPath, name))
     }
 
     // Assets are located in the 'datas/pacman' sub folder
-    g_DataPath = Path.getDirectoryName(#curlocation.fileName)
+    g_DataPath = Path.directoryName(#curlocation.fileName)
     g_DataPath = Path.combine(g_DataPath, "datas")
     g_DataPath = Path.combine(g_DataPath, "pacman")
 
@@ -2236,7 +2236,7 @@ func loadBindTextures()
 
     func muteForTest(app: *Application)
     {
-        if Env.hasArg("swag.test") do expect Audio.setOutputVolume(0)
+        if Env.hasArgument("swag.test") do expect Audio.setOutputVolume(0)
     }
 
     Application.runSurface(100, 100, cast(s32) (300 * Scale) - 150, cast(s32) (345 * Scale) - 31, title: "Pacman", hook: &onEvent, init: &muteForTest)

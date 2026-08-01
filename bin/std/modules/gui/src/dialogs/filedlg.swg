@@ -2,46 +2,48 @@
 
 using Core, File, Directory
 
-// Selects file dlg mode.
+// Selects what a file dialog accepts.
 enum FileDlgMode
 {
-    CreateFile           // Selects create file mode.
-    SelectOneFile        // Selects select one file mode.
-    SelectMultiFiles     // Selects select multi files mode.
-    SelectFolder         // Selects select folder mode.
+    CreateFile       // Accepts a destination file path, including a new file.
+    SelectFile       // Accepts one existing file.
+    SelectFiles      // Accepts multiple existing files.
+    SelectFolder     // Accepts one existing folder.
 }
 
-// Represents file dlg state.
+// Stores reusable file-dialog placement and browsing state between invocations.
 struct FileDlgState
 {
-    position:            Math.Rectangle     // Position associated with this value.
-    curFolder:           String             // Cur folder associated with this value.
-    folderHistory:       Array'String       // Folder history associated with this value.
-    columnWidthName:     s32 = 200          // Column width name associated with this value.
-    columnWidthModified: s32 = 150          // Column width modified associated with this value.
+    surfacePosition:    Math.Rectangle     // Last dialog surface rectangle.
+    currentFolder:      String             // Last browsed folder.
+    nameColumnWidth:    s32 = 200          // Last width of the name column.
+    modifiedColumnWidth: s32 = 150         // Last width of the modified-time column.
 }
 
-// Represents file dlg options.
+// Configures a [[Gui.FileDlg]] or embedded [[Gui.FileBrowserCtrl]].
 struct FileDlgOptions
 {
-    title:      string      = ""                                            // Title associated with this value.
-    btnOkName:  string      = ""                                            // Btn ok name associated with this value.
-    openFolder: string      = ""                                            // Open folder associated with this value.
-    editName:   string      = ""                                            // Edit name associated with this value.
-    drivePane               = true                                          // Drive pane associated with this value.
-    mode:       FileDlgMode = SelectOneFile                                 // Mode associated with this value.
-    filters:    Array'{ name: string, extensions: string }                  // Filters associated with this value.
-    shortcuts:  Array'{ type: Core.Env.SpecialDirectory, name: string }     // Shortcuts associated with this value.
-    state:      #null *FileDlgState                                         // State associated with this value.
+    title:             string      = ""                                        // Surface title, or empty for a mode-specific title.
+    confirmButtonText: string      = ""                                        // Confirmation button label, or empty for "OK".
+    initialFolder:     string      = ""                                        // Initially browsed folder, when non-empty.
+    initialName:       string      = ""                                        // Initial file-name editor contents.
+    showLocationsPane              = true                                      // Whether to show shortcuts and drives.
+    mode:              FileDlgMode = SelectFile                                // Accepted selection kind.
+    filters:           Array'{ name: string, extensions: string }              // Named extension filters.
+    shortcuts:         Array'{ type: Core.Env.SpecialDirectory, name: string } // Locations shown in the shortcuts pane.
+    state:             #null *FileDlgState                                     // Optional borrowed state updated on destruction.
 }
 
 // Thin modal wrapper around the reusable 'FileBrowserCtrl' composite.
 struct FileDlg
 {
     using dialog: Dialog     // Embedded dialog state.
-    #[Swag.Late]
-    browser:    *FileBrowserCtrl     // Browser associated with this value.
-    dlgOptions: FileDlgOptions       // Dlg options associated with this value.
+    readonly
+    {
+        #[Swag.Late]
+        browser: *FileBrowserCtrl     // Embedded browser control.
+        options: FileDlgOptions       // Effective dialog options.
+    }
 }
 
 impl IWnd for FileDlg
@@ -49,9 +51,9 @@ impl IWnd for FileDlg
     mtd impl onDestroyEvent(evt: *DestroyEvent)
     {
         // The browser saves the folder/column widths; the dialog owns the position.
-        let state = .dlgOptions.state
+        let state = .options.state
         if state do
-            state.position = (notnull .surface).position
+            state.surfacePosition = (notnull .surface).position
     }
 }
 
@@ -66,19 +68,20 @@ private impl FileDlg
             let edit = notnull .edit
             edit.setText(folderName)
             edit.selectAll()
-            edit.setNote("Folder name")
+            edit.setPlaceholder("Folder name")
             let srf = notnull .surface
             srf.setTitle("Folder Name")
             srf.center(notnull me.surface)
         }
 
-        dlg.sigPressedButton = func|dlg, browser = me.browser|(fdlg, btnid)
+        dlg.validateResult = func|dlg, browser = me.browser|(fdlg, btnid)
         {
             if btnid != Dialog.BtnOk do
                 return true
 
             let dedit      = notnull dlg.edit
-            var folderName = dedit.text
+            var folderName: String
+            folderName = dedit.text()
             folderName.trim()
             if folderName.isEmpty()
             {
@@ -95,7 +98,7 @@ private impl FileDlg
                 return false
             }
 
-            let path = Path.combine(browser.curFolder, folderName.toString())
+            let path = Path.combine(browser.currentFolder, folderName.toString())
             if Directory.exists(path)
             {
                 MessageDlg.error(notnull dlg.surface, "Folder already exists")
@@ -110,7 +113,7 @@ private impl FileDlg
         if dlg.doModal() != Dialog.BtnOk do
             return
 
-        if !.browser.createFolder((notnull dlg.edit).text.toString()) do
+        if !.browser.createFolder((notnull dlg.edit).text()) do
             MessageDlg.error(notnull .surface, "Cannot create folder")
     }
 }
@@ -118,15 +121,16 @@ private impl FileDlg
 impl FileDlg
 {
     // Creates the file dialog (own OS surface), hosting a FileBrowserCtrl.
+    #[Swag.Discardable]
     func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
     {
+        Debug.assert(from != null)
         let dlg = Wnd.create'FileDlg()
-        dlg.fromSurface = from
-        dlg.dlgOptions  = opt
+        dlg.options       = opt
 
         with let srf = dlg.createSurface(from, 100, 100, 700, 500)
         {
-            .setSurfaceFlags(add: .Sizeable)
+            .updateFlags(add: .Resizable)
             .minSize = {400, 400}
 
             if opt.title do
@@ -136,39 +140,39 @@ impl FileDlg
                 switch #complete opt.mode
                 {
                 case .CreateFile:       .setTitle("Create File")
-                case .SelectOneFile:    .setTitle("Select File")
-                case .SelectMultiFiles: .setTitle("Select Files")
+                case .SelectFile:       .setTitle("Select File")
+                case .SelectFiles:      .setTitle("Select Files")
                 case .SelectFolder:     .setTitle("Select Folder")
                 }
             }
         }
 
-        dlg.addButton(opt.btnOkName orelse "Ok", Dialog.BtnOk, true)
+        dlg.addButton(opt.confirmButtonText orelse "OK", Dialog.BtnOk, true)
         dlg.addButton("Cancel", Dialog.BtnCancel)
         dlg.backgroundStyle = .Window
-        srf.setSurfaceFlags(remove: .CloseBtn)
+        srf.updateFlags(remove: .CloseButton)
 
         // Host the reusable browser composite.
-        with dlg.browser = FileBrowserCtrl.create(srf.getView(), opt)
+        with dlg.browser = FileBrowserCtrl.create(srf.view(), opt)
         {
             .dockStyle    = .Center
-            .sigAccept    += func|fileDlg = dlg|(b) { fileDlg.validateId(Dialog.BtnOk) }
-            .sigNewFolder += func|fileDlg = dlg|(b) { fileDlg.onNewFolder() }
+            .sigAccepted           += func|fileDlg = dlg|(b) { fileDlg.closeWithResult(Dialog.BtnOk) }
+            .sigNewFolderRequested += func|fileDlg = dlg|(b) { fileDlg.onNewFolder() }
         }
 
-        dlg.sigPressedButton = func|dlg|(bdlg, id)
+        dlg.validateResult = func|dlg|(bdlg, id)
         {
             if id == Dialog.BtnOk
             {
-                let selName = dlg.browser.getSelectedName()
-                if selName == null
+                let selName = dlg.browser.selectedPath()
+                if selName.isEmpty()
                 {
                     dlg.browser.editFile.selectAll()
                     dlg.browser.editFile.setFocus()
                     return false
                 }
 
-                if dlg.dlgOptions.mode == .CreateFile and File.exists(selName)
+                if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
                     let res = MessageDlg.confirm(notnull dlg.surface, "This file already exists.", "Do you want to replace it ?")
                     return res == Dialog.BtnYes
@@ -181,23 +185,23 @@ impl FileDlg
         dlg.applyLayout()
 
         // Restore the saved surface position if any.
-        if opt.state and !opt.state.position.isEmpty() do
-            srf.setPosition(opt.state.position)
+        if opt.state and !opt.state.surfacePosition.isEmpty() do
+            srf.setPosition(opt.state.surfacePosition)
         else do
             srf.center(from)
 
         return dlg
     }
 
-    // Get the first selection (full path)
-    mtd getSelectedName()->String
+    // Returns the first selected full path, or an empty string when no valid selection exists.
+    mtd selectedPath()->String
     {
-        return .browser.getSelectedName()
+        return .browser.selectedPath()
     }
 
-    // Get all selections (full paths)
-    mtd getSelectedNames()->Array'String
+    // Returns all selected full paths in display order.
+    mtd selectedPaths()->Array'String
     {
-        return .browser.getSelectedNames()
+        return .browser.selectedPaths()
     }
 }

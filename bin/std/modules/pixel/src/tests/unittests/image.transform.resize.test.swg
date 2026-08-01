@@ -10,7 +10,7 @@ using Swag, Core
         ]
 
     let rawSrc = makeImage(2, 2, .RGBA8, rawPixels)
-    let rawOut = rawSrc.toResize(4, 0, .Raw)
+    let rawOut = rawSrc.resized(4, 0, .Nearest)
     assertImage(rawOut, 4, 4, .RGBA8)
 
     assertPixel(rawOut, 0, 3, Color.fromArgb(40'u8, 10'u8, 20'u8, 30'u8))
@@ -27,7 +27,7 @@ using Swag, Core
         ]
 
     let filteredSrc = makeImage(1, 1, .RGBA8, filteredPixels)
-    let filteredOut = filteredSrc.toResize(3, 2, .Bicubic)
+    let filteredOut = filteredSrc.resized(3, 2, .Bicubic)
     assertImage(filteredOut, 3, 2, .RGBA8)
     assertPixel(filteredOut, 0, 1, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
     assertPixel(filteredOut, 2, 1, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))

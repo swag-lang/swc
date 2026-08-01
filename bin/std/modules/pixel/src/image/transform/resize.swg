@@ -4,42 +4,42 @@ public impl Image
 {
     // Resampling filter used when resizing an image.
     //
-    // `Raw` selects nearest-neighbor sampling. The remaining filters trade speed
+    // `Nearest` selects nearest-neighbor sampling. The remaining filters trade speed
     // for progressively smoother reconstruction and are suitable for photographic
     // or continuously toned content.
     enum ResizeMode
     {
-        Raw           // Nearest-neighbor sampling; preserves hard pixel edges.
+        Nearest       // Nearest-neighbor sampling; preserves hard pixel edges.
         Bilinear      // Linear interpolation over adjacent samples.
         Bicubic       // Smooth cubic B-spline reconstruction.
         Gaussian      // Wide Gaussian reconstruction.
         Quadratic     // Quadratic reconstruction.
         Hermite       // Cubic Hermite reconstruction.
         Hamming       // Windowed-sinc Hamming reconstruction.
-        Catrom        // Sharper Catmull–Rom cubic reconstruction.
+        CatmullRom    // Sharper Catmull-Rom cubic reconstruction.
     }
 
-    // Resize image
-    // Put 'newWidth' or 'newHeight' to 0 to keep aspect ratio
-    mtd resize(newWidth, newHeight: s32, mode = ResizeMode.Raw)
+    // Resizes the image, preserving aspect ratio when one dimension is zero.
+    mtd resize(newWidth, newHeight: s32, mode = ResizeMode.Nearest)
     {
-        Debug.assert(newWidth > 0 or newHeight > 0)
+        Debug.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
         let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
         let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
+        Debug.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height do
             return
-        .allocWorkingBuffer(nw, nh, .pf)
+        .allocWorkingBuffer(nw, nh, .pixelFormat)
         ResizeTools.doResize(.safeWorkingBuffer(), me, mode)
         .applyWorkingBuffer()
     }
 
-    // Resize image
-    // Put 'newWidth' or 'newHeight' to 0 to keep aspect ratio
-    mtd const toResize(newWidth, newHeight: s32, mode = ResizeMode.Raw)->Image
+    // Returns a resized copy, preserving aspect ratio when one dimension is zero.
+    mtd const resized(newWidth, newHeight: s32, mode = ResizeMode.Nearest)->Image
     {
-        Debug.assert(newWidth > 0 or newHeight > 0)
+        Debug.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
         let nw = newWidth != 0 ? newWidth : cast(s32) (newHeight * (.width / cast(f32) .height))
         let nh = newHeight != 0 ? newHeight : cast(s32) (newWidth * (.height / cast(f32) .width))
+        Debug.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height
         {
             var result: retval = me
@@ -47,7 +47,7 @@ public impl Image
         }
 
         using ResizeTools
-        var result: retval = create(nw, nh, .pf)
+        var result: retval = create(nw, nh, .pixelFormat)
         ResizeTools.doResize(&result, me, mode)
         return result
     }
@@ -88,7 +88,7 @@ namespace ResizeTools
         case .Hamming:   return 1
         case .Quadratic: return 1.5
         case .Bicubic:   return 2
-        case .Catrom:    return 2
+        case .CatmullRom: return 2
         case .Gaussian:  return 3
         }
 
@@ -139,7 +139,7 @@ namespace ResizeTools
                 return 0.92 * (2.0 * resf - 3.0) * resf * resf + 1.0
             return 0
 
-        case .Catrom:
+        case .CatmullRom:
             if resf < -2.0 do
                 return 0
             if resf < -1.0 do
@@ -250,7 +250,7 @@ namespace ResizeTools
     #[Swag.Safety(.All, false)]
     func scaleRow(imgDst: *Image, imgSrc: const *Image, row: s64, contrib: *LineContrib)
     {
-        let bpp8   = imgDst.bpp8
+        let bpp8   = imgDst.bytesPerPixel
         var dstRow = (notnull imgDst.pixels.buffer) + row * bpp8 * imgDst.width
         let srcRow = (notnull imgSrc.pixels.buffer) + row * bpp8 * imgSrc.width
 
@@ -290,7 +290,7 @@ namespace ResizeTools
             }
         }
 
-        switch imgSrc.bpp
+        switch imgSrc.bitsPerPixel
         {
         case 24: doIt'24()
         case 32: doIt'32()
@@ -301,7 +301,7 @@ namespace ResizeTools
     #[Swag.Safety(.All, false)]
     func scaleCol(imgDst: *Image, imgSrc: const *Image, col: s64, contrib: *LineContrib)
     {
-        let bpp8   = imgDst.bpp8
+        let bpp8   = imgDst.bytesPerPixel
         var dstCol = (notnull imgDst.pixels.buffer) + col * bpp8
         let srcCol = (notnull imgSrc.pixels.buffer) + col * bpp8
         let w8Dst  = imgDst.width * bpp8
@@ -343,7 +343,7 @@ namespace ResizeTools
             }
         }
 
-        switch imgSrc.bpp
+        switch imgSrc.bitsPerPixel
         {
         case 24: doIt'24()
         case 32: doIt'32()
@@ -385,7 +385,7 @@ namespace ResizeTools
 
     func doResizeFilter(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)
     {
-        var tmp = Image.create(dstImage.width, srcImage.height, srcImage.pf)
+        var tmp = Image.create(dstImage.width, srcImage.height, srcImage.pixelFormat)
         scaleRow(&tmp, srcImage, mode)
         scaleCol(dstImage, &tmp, mode)
     }
@@ -404,12 +404,12 @@ namespace ResizeTools
                 let params = cast(*#decltype(f)) (notnull userData)
                 let fx     = cast(u32) (x * params.xscale)
                 let fy     = cast(u32) (y * params.yscale)
-                let pixSrc = params.srcImage.pixels.buffer + (fx * image.bpp8) + (fy * params.srcImage.width * image.bpp8)
+                let pixSrc = params.srcImage.pixels.buffer + (fx * image.bytesPerPixel) + (fy * params.srcImage.width * image.bytesPerPixel)
                 Image.copyPixelDirect'BPP(cast([*] u8) pix, cast([*] u8) (notnull pixSrc))
             }
         }
 
-        switch srcImage.bpp
+        switch srcImage.bitsPerPixel
         {
         case 24: doIt'24()
         case 32: doIt'32()
@@ -421,7 +421,7 @@ namespace ResizeTools
     {
         switch mode
         {
-        case .Raw: doResizeRaw(dstImage, srcImage)
+        case .Nearest: doResizeRaw(dstImage, srcImage)
         default:   doResizeFilter(dstImage, srcImage, mode)
         }
     }

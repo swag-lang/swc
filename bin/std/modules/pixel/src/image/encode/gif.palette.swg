@@ -26,7 +26,7 @@ impl Encoder
     {
         var result: retval = undefined
 
-        switch image.pf
+        switch image.pixelFormat
         {
         case .BGR8:
             result.setArgb(255, pix[2], pix[1], pix[0])
@@ -51,7 +51,7 @@ impl Encoder
 
     func imageHasTransparentPixels(image: Image)->bool
     {
-        if !image.pf.hasAlpha() do
+        if !image.pixelFormat.hasAlpha() do
             return false
 
         var pix = cast([*] u8) (notnull image.pixels.buffer)
@@ -60,7 +60,7 @@ impl Encoder
             let col = readPixelColor(image, pix)
             if col.a < 128 do
                 return true
-            pix += image.bpp8
+            pix += image.bytesPerPixel
         }
 
         return false
@@ -161,7 +161,7 @@ impl Encoder
         var dstIndex = 0'u64
         for [y] in image.height
         {
-            var pix = cast([*] u8) (notnull image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
+            var pix = cast([*] u8) (notnull image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.rowStride
             for image.width
             {
                 let col = readPixelColor(image, pix)
@@ -193,7 +193,7 @@ impl Encoder
 
                 data.indexes[dstIndex] = paletteIndex
                 dstIndex               += 1
-                pix                    += image.bpp8
+                pix                    += image.bytesPerPixel
             }
         }
 
@@ -214,7 +214,7 @@ impl Encoder
         var dstIndex = 0'u64
         for [y] in image.height
         {
-            var pix = cast([*] u8) (notnull image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.width8
+            var pix = cast([*] u8) (notnull image.pixels.buffer) + cast(u64) (image.height - y - 1) * image.rowStride
             for image.width
             {
                 let col = readPixelColor(image, pix)
@@ -226,7 +226,7 @@ impl Encoder
                     data.indexes[dstIndex] = quantizedOpaqueIndex(col)
 
                 dstIndex += 1
-                pix      += image.bpp8
+                pix      += image.bytesPerPixel
             }
         }
 

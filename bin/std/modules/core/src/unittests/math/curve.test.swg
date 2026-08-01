@@ -35,7 +35,7 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 0.5), Math.Vector2{7.5, 5})
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 1), end)
 
-    expectCurveRect(Math.Curve.getBezierBoundingBox(start, end, ctrl), Math.Rectangle{0, 0, 10, 5})
+    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl), Math.Rectangle{0, 0, 10, 5})
 }
 
 #test
@@ -45,7 +45,7 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     let end   = Math.Vector2{10, 0}
 
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 0.5), Math.Vector2{5, -5})
-    expectCurveRect(Math.Curve.getBezierBoundingBox(start, end, ctrl), Math.Rectangle{0, -5, 10, 5})
+    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl), Math.Rectangle{0, -5, 10, 5})
 }
 
 #test
@@ -59,5 +59,5 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl1, ctrl2, 0.5), Math.Vector2{5, 7.5})
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl1, ctrl2, 1), end)
 
-    expectCurveRect(Math.Curve.getBezierBoundingBox(start, end, ctrl1, ctrl2), Math.Rectangle{0, 0, 10, 7.5})
+    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl1, ctrl2), Math.Rectangle{0, 0, 10, 7.5})
 }

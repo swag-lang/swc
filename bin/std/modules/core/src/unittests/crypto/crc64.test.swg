@@ -10,7 +10,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
 
     switch #complete kind
     {
-    case Hash.Crc64Kind.ECMA182:
+    case Hash.Crc64Kind.Ecma182:
         const Poly = 0x42F0_E1EB_A9EA_3693'u64
         for value in buffer
         {
@@ -26,7 +26,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
 
         return crc
 
-    case Hash.Crc64Kind.ISO:
+    case Hash.Crc64Kind.Iso:
         const Poly = 0xD800_0000_0000_0000'u64
         crc = ~crc
         for value in buffer
@@ -43,7 +43,7 @@ func crc64Reference(buffer: const [..] u8, kind: Hash.Crc64Kind)->u64
 
         return ~crc
 
-    case Hash.Crc64Kind.ISOXZ:
+    case Hash.Crc64Kind.IsoXz:
         const Poly = 0xC96C_5795_D787_0F42'u64
         crc = ~crc
         for value in buffer
@@ -69,19 +69,19 @@ func assertCrc64Kind(buffer: const [..] u8, kind: Hash.Crc64Kind)
     @assert(Hash.Crc64.compute(buffer, kind) == expected)
 
     var crc: Hash.Crc64
-    crc.init(kind)
-    crc.update(buffer, kind)
-    @assert(crc.crc == expected)
+    crc.reset(kind)
+    crc.update(buffer)
+    @assert(crc.value() == expected)
 
-    crc.update("", kind)
-    @assert(crc.crc == expected)
+    crc.update("")
+    @assert(crc.value() == expected)
 }
 
 func assertCrc64(buffer: const [..] u8)
 {
-    assertCrc64Kind(buffer, Hash.Crc64Kind.ECMA182)
-    assertCrc64Kind(buffer, Hash.Crc64Kind.ISO)
-    assertCrc64Kind(buffer, Hash.Crc64Kind.ISOXZ)
+    assertCrc64Kind(buffer, Hash.Crc64Kind.Ecma182)
+    assertCrc64Kind(buffer, Hash.Crc64Kind.Iso)
+    assertCrc64Kind(buffer, Hash.Crc64Kind.IsoXz)
 }
 
 func fillCrc64Pattern(buffer: [..] u8)
@@ -98,8 +98,8 @@ func fillCrc64Pattern(buffer: [..] u8)
 {
     @assert(Hash.Crc64.compute("") == 0'u64)
     @assert(Hash.Crc64.compute("123456789") == 0x6C40_DF5F_0B49_7347'u64)
-    @assert(Hash.Crc64.compute("123456789", Hash.Crc64Kind.ISO) == 0xB909_56C7_75A4_1001'u64)
-    @assert(Hash.Crc64.compute("123456789", Hash.Crc64Kind.ISOXZ) == 0x995D_C9BB_DF19_39FA'u64)
+    @assert(Hash.Crc64.compute("123456789", Hash.Crc64Kind.Iso) == 0xB909_56C7_75A4_1001'u64)
+    @assert(Hash.Crc64.compute("123456789", Hash.Crc64Kind.IsoXz) == 0x995D_C9BB_DF19_39FA'u64)
 
     assertCrc64("")
     assertCrc64("a")
@@ -120,10 +120,10 @@ func fillCrc64Pattern(buffer: [..] u8)
     assertCrc64(data[1 until 130])
 
     var split: Hash.Crc64
-    split.init(Hash.Crc64Kind.ISOXZ)
-    split.update(data[until 1], Hash.Crc64Kind.ISOXZ)
-    split.update(data[1 until 64], Hash.Crc64Kind.ISOXZ)
-    split.update(data[64 until 129], Hash.Crc64Kind.ISOXZ)
-    split.update(data[129 until 257], Hash.Crc64Kind.ISOXZ)
-    @assert(split.crc == Hash.Crc64.compute(data, Hash.Crc64Kind.ISOXZ))
+    split.reset(Hash.Crc64Kind.IsoXz)
+    split.update(data[until 1])
+    split.update(data[1 until 64])
+    split.update(data[64 until 129])
+    split.update(data[129 until 257])
+    @assert(split.value() == Hash.Crc64.compute(data, Hash.Crc64Kind.IsoXz))
 }

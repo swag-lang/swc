@@ -17,30 +17,32 @@ using Core
 // The property grid (Properties) and any app (e.g. captme) build on this by wrapping pushCmd
 // with their own command structs implementing IUndoCommand.
 
-// One atomic, reversible change. redo() (re)applies it, undo() reverts it. The concrete
-// command struct carries whatever state it needs to do both.
+// One atomic, reversible change owned by an [[UndoManager]].
 interface IUndoCommand
 {
-    // (Re)apply the change. Called on redo, and once on push when pushCmd's 'apply' is true.
+    // Applies or reapplies the change.
     mtd redo()
 
-    // Revert the change.
+    // Reverts the change.
     mtd undo()
 }
 
-// One entry of the undo timeline: the owned command plus the group it belongs to.
+#[Swag.Opaque, Swag.NoDoc]
 struct UndoStep
 {
-    serial: u64              // Serial associated with this value.
-    cmd:    IUndoCommand     // Cmd associated with this value.
+    serial: u64              // Group identifier shared by commands undone together.
+    cmd:    IUndoCommand     // Owned reversible command.
 }
 
-// Represents undo manager.
+// Owns a linear undo/redo timeline with optional command grouping.
 struct UndoManager
 {
-    steps:     Array'UndoStep     // Steps associated with this value.
-    next:      u64                // index just past the last applied step (the redo tail starts here)
-    serialGen: u64                // Serial gen associated with this value.
+    internal
+    {
+        steps:     Array'UndoStep     // Owned timeline, including its redo tail.
+        next:      u64                // Index immediately after the last applied command.
+        serialGen: u64                // Last allocated command-group identifier.
+    }
 }
 
 impl UndoManager
@@ -51,7 +53,7 @@ impl UndoManager
         .clear()
     }
 
-    // Drop every command and reset the timeline.
+    // Drops every owned command and resets the timeline.
     mtd clear()
     {
         for &s in .steps do
@@ -61,27 +63,30 @@ impl UndoManager
         .serialGen = 0
     }
 
-    // A fresh group id, to push several commands as one undo/redo step.
+    // Returns a fresh group identifier for commands that must be undone and redone together.
     mtd newSerial()->u64
     {
         .serialGen += 1
         return .serialGen
     }
 
-    // Number of live steps on the timeline (including the redo tail).
-    mtd count()->u64
+    // Returns the number of commands on the timeline, including the redo tail.
+    mtd const count()->u64
     {
         return .steps.count
     }
 
-    // Returns whether this value can undo.
-    mtd canUndo()->bool
+    // Returns the number of commands currently applied.
+    mtd const appliedCount()->u64 => .next
+
+    // Reports whether at least one command group can be undone.
+    mtd const canUndo()->bool
     {
         return .next != 0
     }
 
-    // Returns whether this value can redo.
-    mtd canRedo()->bool
+    // Reports whether at least one command group can be redone.
+    mtd const canRedo()->bool
     {
         return .next != .steps.count
     }
@@ -110,7 +115,7 @@ impl UndoManager
             cmd.redo()
     }
 
-    // Allocate a heap copy of 'cmd' (which must implement IUndoCommand), push it as its own
+    // Allocates a heap copy of `cmd` (which must implement [[IUndoCommand]]), pushes it as its own
     // group and apply it. Convenience for the common single-command case.
     mtd(T) push(cmd: T)
     {
@@ -119,7 +124,7 @@ impl UndoManager
         .pushCmd(cast(IUndoCommand) p, 0, true)
     }
 
-    // Revert the step at the timeline edge (and every command sharing its serial).
+    // Reverts the previous command group, if any.
     mtd undo()
     {
         if !.canUndo() do
@@ -133,7 +138,7 @@ impl UndoManager
         }
     }
 
-    // Re-apply the next step (and every command sharing its serial).
+    // Reapplies the next command group, if any.
     mtd redo()
     {
         if !.canRedo() do

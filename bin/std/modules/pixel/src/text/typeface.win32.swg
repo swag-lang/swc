@@ -4,15 +4,15 @@ using Core, Win32, Gdi32, TrueType
 
 impl TypeFace
 {
-    func getDataFromHFONT(hf: HFONT)->Array'u8 fail
+    func readHfontData(hfont: HFONT)->Array'u8 fail
     {
         var result: retval
 
         let hdc = GetDC(null)
         defer ReleaseDC(null, hdc)
 
-        SelectObject(hdc, cast() hf)
-        defer catch DeleteObject(cast() hf)
+        let previousObject = SelectObject(hdc, cast() hfont)
+        defer SelectObject(hdc, previousObject)
 
         let outFontBufferLen = GetFontData(hdc, 0, 0, null, 0)
         result.resize(cast() outFontBufferLen)
@@ -21,8 +21,8 @@ impl TypeFace
         return result
     }
 
-    // Create a new typeface from a HFONT
-    public func createFromHFONT(fullname: string, hf: HFONT)->*TypeFace fail
+    // Creates or reuses a cached typeface from a borrowed Windows font handle.
+    public func createFromHfont(fullname: string, hfont: HFONT)->*TypeFace fail
     {
         Sync.scopedLock(&lock)
 
@@ -32,8 +32,9 @@ impl TypeFace
             return notnull here.value
 
         let tf = Memory.new'TypeFace()
+        defer #fail Memory.delete(tf)
         tf.fullname = fullname
-        tf.buffer   = getDataFromHFONT(hf)
+        tf.buffer   = readHfontData(hfont)
 
         let face = try Face.load(tf.buffer.toSlice())
         tf.face = notnull face

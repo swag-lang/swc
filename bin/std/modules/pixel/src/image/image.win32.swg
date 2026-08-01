@@ -9,7 +9,7 @@ impl Image
     //
     // The handle remains owned by the caller. Only 24-bit BGR and 32-bit BGRA
     // bitmaps are accepted; other bit depths raise `UnsupportedFormatError`.
-    func fromBitmapHandle(hbitmap: HBITMAP)->Image fail
+    internal func fromBitmapHandle(hbitmap: HBITMAP)->Image fail
     {
         var result: retval
 
@@ -38,22 +38,22 @@ impl Image
         return result
     }
 
-    // Transform an image to a windows icon
-    mtd toHICON()->HICON fail
+    // Creates a Windows icon from this image.
+    mtd toHicon()->HICON fail
     {
         var bi: BITMAPINFO
         bi.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
         bi.bmiHeader.biWidth       = .width
         bi.bmiHeader.biHeight      = .height
         bi.bmiHeader.biPlanes      = 1
-        bi.bmiHeader.biBitCount    = .bpp
+        bi.bmiHeader.biBitCount    = .bitsPerPixel
         bi.bmiHeader.biCompression = BI_RGB
 
         var ppvBits: *u8 = undefined
         let hbmp         = CreateDIBSection(null, &bi, cast() DIB_RGB_COLORS, &ppvBits, null, 0)
         defer #nofail DeleteObject(cast() hbmp)
 
-        Memory.copy(ppvBits, .pixels.buffer, cast(u64) .width * .height * .bpp8)
+        Memory.copy(ppvBits, .pixels.buffer, cast(u64) .width * .height * .bytesPerPixel)
 
         // CreateIconIndirect requires a non-null mask: for a 32-bit color icon the
         // alpha channel drives transparency, but the AND mask (hbmMask) must still
@@ -66,7 +66,7 @@ impl Image
         return CreateIconIndirect(&ii)
     }
 
-    // Creates an image from a windows HICON
+    // Creates an image from a Windows icon handle.
     func from(hicon: HICON)->Image fail
     {
         var result: retval
@@ -83,7 +83,7 @@ impl Image
         return result
     }
 
-    // Creates an image from a windows HBITMAP
+    // Creates an image from a Windows bitmap handle.
     func from(hbitmap: HBITMAP)->Image fail
     {
         return fromBitmapHandle(hbitmap)

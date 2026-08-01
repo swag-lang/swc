@@ -2,81 +2,75 @@
 
 using Core, Pixel
 
-// One level of the path shown by a BreadcrumbCtrl (e.g. a folder). The app fills
-// 'name'/'icon'/'userData'; the rectangles are computed by the control's layout and
-// used for hit-testing. 'hasArrow' controls whether the level shows a drop-down chevron
-// (the chevron of a level lists that level's children, the level to its right being the
-// currently selected one).
+// Describes one level in a [[BreadcrumbCtrl]].
 struct BreadcrumbItem
 {
-    name:     String     // Name associated with this value.
-    icon:     Icon       // Icon associated with this value.
-    userData: u64        // User data associated with this value.
-    tag:      String     // free app-defined string payload (e.g. a folder path)
-    hasArrow = true      // Whether this value has arrow.
+    name:     String     // Display name.
+    icon:     Icon       // Optional leading icon.
+    userData: u64        // Application-defined numeric payload.
+    tag:      String     // Application-defined string payload, such as a folder path.
+    hasArrow = true      // Whether the level exposes a child menu.
 
-    // Computed by layout(), in control-local coordinates.
-    bodyRect:  Math.Rectangle     // Body rect associated with this value.
-    arrowRect: Math.Rectangle     // Arrow rect associated with this value.
+    bodyRect:  Math.Rectangle     // Body bounds in control-local coordinates.
+    arrowRect: Math.Rectangle     // Child-menu arrow bounds in control-local coordinates.
 }
 
-// A horizontal breadcrumb / path bar. Each level is drawn as "[icon] name >". Clicking a
-// level body navigates to it (sigItemPressed); clicking its chevron opens a drop-down that
-// the app fills with the level's children (sigFillMenu) and reports the chosen entry id
-// (sigMenuSelected). The control is data-only: it knows nothing about what the levels mean,
-// so it works for folders, categories, or any other hierarchy.
+// Displays a horizontal path whose levels can be activated or expanded into child menus.
 struct BreadcrumbCtrl
 {
     using wnd: Wnd     // Embedded wnd state.
 
-    items:      Array'BreadcrumbItem     // Items associated with this value.
-    hotItem   = Swag.U64.Max             // Hot item associated with this value.
-    hotArrow:   bool                     // Hot arrow associated with this value.
-    pressItem = Swag.U64.Max             // Press item associated with this value.
-    pressArrow: bool                     // Press arrow associated with this value.
+    readonly
+    {
+        items:    Array'BreadcrumbItem     // Ordered path levels.
+        padX     = 7.0'f32                 // Horizontal padding inside each level body.
+        iconGap  = 5.0'f32                 // Gap between an icon and its label.
+        arrowPad = 6.0'f32                 // Padding on each side of a child-menu arrow.
+    }
 
-    // Horizontal padding inside a level body, gap between icon and text, and the padding
-    // on each side of a chevron.
-    padX     = 7.0'f32     // Pad x associated with this value.
-    iconGap  = 5.0'f32     // Icon gap associated with this value.
-    arrowPad = 6.0'f32     // Arrow pad associated with this value.
+    sigItemPressed:  SigArray'func||(*BreadcrumbCtrl, u64)                 // Emitted after a level body is activated.
+    sigFillMenu:     SigArray'func||(*BreadcrumbCtrl, u64, *MenuCtrl)      // Emitted when a level's child menu needs content.
+    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)         // Emitted after a command is selected from a child menu.
 
-    // Clicking a level body: navigate to the level at this index.
-    sigItemPressed: SigArray'func||(*BreadcrumbCtrl, u64)     // Signal emitted when item pressed.
-
-    // Opening a level's chevron: the app fills 'menu' with the level's children.
-    sigFillMenu: #null func||(*BreadcrumbCtrl, u64, *MenuCtrl)     // Signal emitted when fill menu.
-
-    // A child was picked from a level's chevron menu; 'id' is the chosen menu item id.
-    sigMenuSelected: SigArray'func||(*BreadcrumbCtrl, u64, String)     // Signal emitted when menu selected.
+    internal
+    {
+        hotItem   = Swag.U64.Max     // Level currently under the pointer.
+        hotArrow:   bool             // Whether the pointer is over that level's arrow.
+        pressItem = Swag.U64.Max     // Level on which the current press began.
+        pressArrow: bool             // Whether the current press began on its arrow.
+    }
 }
 
 impl BreadcrumbCtrl
 {
-    // Performs the create operation.
+    // Creates an empty breadcrumb control.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*BreadcrumbCtrl
     {
         Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().btnPush_Height
+            pos.height = parent.themeMetrics().btnPush_Height
         let res = Wnd.create'BreadcrumbCtrl(parent, null, pos, id)
         return res
     }
 
-    // Remove every level.
+    // Removes every level and clears pointer interaction state.
     mtd clear()
     {
         .items.clear()
-        .hotItem = Swag.U64.Max
+        .hotItem    = Swag.U64.Max
+        .hotArrow   = false
+        .pressItem  = Swag.U64.Max
+        .pressArrow = false
         .invalidate()
     }
 
-    // Append a level. 'hasArrow' shows its drop-down chevron (default true). 'tag' is an
-    // arbitrary string the app can read back (e.g. the level's folder path).
-    mtd addItem(name: string, icon: Icon = {}, userData: u64 = 0, hasArrow = true, tag: #null string = null)
+    // Appends a level and returns its index.
+    #[Swag.Discardable]
+    mtd addItem(name: string, icon: Icon = {}, userData: u64 = 0, hasArrow = true, tag: #null string = null)->u64
     {
+        let index = .items.count
         var it: BreadcrumbItem
         it.name     = name
         it.icon     = icon
@@ -85,14 +79,47 @@ impl BreadcrumbCtrl
         it.hasArrow = hasArrow
         .items.add(#move it)
         .invalidate()
+        return index
     }
 
-    // Compute the per-level rectangles from the current items, in control-local space.
+    // Returns the level at `index`.
+    mtd const itemAt(index: u64)->*BreadcrumbItem
+    {
+        Debug.assert(index < .items.count, "breadcrumb item index is out of range")
+        return &.items[index]
+    }
+
+    // Removes `index` and every level after it.
+    mtd removeItemsFrom(index: u64)
+    {
+        Debug.assert(index <= .items.count, "breadcrumb item index is out of range")
+        while .items.count > index do
+            .items.removeBack()
+        .hotItem    = Swag.U64.Max
+        .hotArrow   = false
+        .pressItem  = Swag.U64.Max
+        .pressArrow = false
+        .invalidate()
+    }
+
+    // Changes body padding, icon spacing, and child-arrow padding.
+    mtd setLayoutMetrics(horizontalPadding, iconSpacing, arrowPadding: f32)
+    {
+        Debug.assert(horizontalPadding >= 0 and iconSpacing >= 0 and arrowPadding >= 0, "layout metrics cannot be negative")
+        if .padX == horizontalPadding and .iconGap == iconSpacing and .arrowPad == arrowPadding do
+            return
+        .padX     = horizontalPadding
+        .iconGap  = iconSpacing
+        .arrowPad = arrowPadding
+        .invalidate()
+    }
+
+    // Recomputes per-level bounds in control-local coordinates.
     mtd layout()
     {
-        let font   = nnFont(.getFont().regular)
-        let m      = .getThemeMetrics()
-        let client = .getClientRect()
+        let font   = nnFont(.font().regular)
+        let m      = .themeMetrics()
+        let client = .clientRect()
 
         var x = client.x
         for [i] in .items.count
@@ -128,8 +155,7 @@ impl BreadcrumbCtrl
             return
 
         let menu = MenuCtrl.createPopup(me)
-        if .sigFillMenu do
-            .sigFillMenu(me, index, menu)
+        .sigFillMenu.call(me, index, menu)
 
         // Nothing to show: drop the empty popup rather than flashing an empty box.
         if menu.items.isEmpty()
@@ -139,7 +165,7 @@ impl BreadcrumbCtrl
         }
 
         let ar  = .items[index].arrowRect
-        let sr  = .getSurfaceRect()
+        let sr  = .surfaceRect()
         let sp  = Math.Point{sr.x + ar.horzCenter(), sr.y + ar.bottom()}
         let sel = menu.doModal(sp, .AnchorTopCenter, autoDestroy: true)
         if @countof(sel) != 0 do
@@ -151,7 +177,7 @@ impl IWnd for BreadcrumbCtrl
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .MouseLeave
+        if evt.kind == .Leave
         {
             if .hotItem != Swag.U64.Max
             {
@@ -194,7 +220,7 @@ impl IWnd for BreadcrumbCtrl
         // Act on a completed click (press then release over the same target), like a
         // button. Opening the chevron popup on press would start its modal loop while the
         // button is still down, and the release would dismiss it immediately.
-        if evt.kind == .MousePressed and evt.button == .Left
+        if evt.kind == .Pressed and evt.button == .Left
         {
             if nh != Swag.U64.Max
             {
@@ -203,7 +229,7 @@ impl IWnd for BreadcrumbCtrl
                 .captureMouse()
             }
         }
-        elif evt.kind == .MouseReleased and evt.button == .Left and .pressItem != Swag.U64.Max
+        elif evt.kind == .Released and evt.button == .Left and .pressItem != Swag.U64.Max
         {
             let pi = .pressItem
             let pa = .pressArrow
@@ -220,16 +246,16 @@ impl IWnd for BreadcrumbCtrl
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
         .layout()
 
-        let painter = evt.bc.painter
-        let theme   = .getTheme()
-        let colors  = .getThemeColors()
-        let rects   = .getThemeRects()
-        let m       = .getThemeMetrics()
-        let font    = nnFont(.getFont().regular)
+        let painter = evt.paintContext.painter
+        let theme   = .theme()
+        let colors  = .themeColors()
+        let rects   = .themeRects()
+        let m       = .themeMetrics()
+        let font    = nnFont(.font().regular)
 
         painter.setParams(.Antialiased)
 

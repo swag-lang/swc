@@ -17,18 +17,18 @@ func assertSha1(buffer: const [..] u8, e0, e1, e2, e3, e4: u32)
     assertSha1Digest(Hash.Sha1.compute(buffer), e0, e1, e2, e3, e4)
 
     var sha: Hash.Sha1
-    sha.init()
+    sha.reset()
     sha.update(buffer)
 
     var digest: Hash.Sha1.Digest
-    sha.final(digest)
+    digest = sha.finalize()
     assertSha1Digest(digest, e0, e1, e2, e3, e4)
 
-    sha.init()
+    sha.reset()
     sha.update("")
     sha.update(buffer)
     sha.update("")
-    sha.final(digest)
+    digest = sha.finalize()
     assertSha1Digest(digest, e0, e1, e2, e3, e4)
 }
 
@@ -65,13 +65,13 @@ func fillSha1Pattern(buffer: [..] u8)
     assertSha1(data[1 until 65], 0x2C7464CA'u32, 0x06177AB7'u32, 0xBB992214'u32, 0x57805B4E'u32, 0xF1366801'u32)
 
     var split: Hash.Sha1
-    split.init()
+    split.reset()
     split.update(data[until 1])
     split.update(data[1 until 55])
     split.update(data[55 until 64])
     split.update(data[64 until 128])
 
     var digest: Hash.Sha1.Digest
-    split.final(digest)
+    digest = split.finalize()
     assertSha1Digest(digest, 0x3B195309'u32, 0x18994923'u32, 0x77F686C2'u32, 0x66B81D84'u32, 0xB5D40F70'u32)
 }

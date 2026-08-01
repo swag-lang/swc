@@ -17,7 +17,7 @@ using Core
 func day5A()
 {
     // Time.Stopwatch.scopeMeasure()
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "5.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "5.txt")
     let lines    = expect File.readAllLines(dataPath)
     var jumps    = Slice.map(lines[to], func(x) => expect StrConv.toS32(x))
 

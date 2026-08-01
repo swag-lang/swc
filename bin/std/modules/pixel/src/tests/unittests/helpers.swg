@@ -6,7 +6,7 @@ using Swag, Core
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let dir  = Path.getDirectoryName(loc.fileName)
+    let dir  = Path.directoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
     @assert(File.exists(path))
     return path
@@ -16,7 +16,7 @@ func makeTempBmpPath()->String
 {
     let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_bmp_"
-    name += GUID64.getRandom().getString()
+    name += Guid64.random().toString()
     name += ".bmp"
     return Path.combine(tempDir.toString(), name.toString())
 }
@@ -25,7 +25,7 @@ func makeTempTgaPath()->String
 {
     let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_tga_"
-    name += GUID64.getRandom().getString()
+    name += Guid64.random().toString()
     name += ".tga"
     return Path.combine(tempDir.toString(), name.toString())
 }
@@ -34,7 +34,7 @@ func makeTempPngPath()->String
 {
     let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_png_"
-    name += GUID64.getRandom().getString()
+    name += Guid64.random().toString()
     name += ".png"
     return Path.combine(tempDir.toString(), name.toString())
 }
@@ -43,7 +43,7 @@ func makeTempGifPath()->String
 {
     let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_gif_"
-    name += GUID64.getRandom().getString()
+    name += Guid64.random().toString()
     name += ".gif"
     return Path.combine(tempDir.toString(), name.toString())
 }
@@ -52,7 +52,7 @@ func makeTempTiffPath()->String
 {
     let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_tiff_"
-    name += GUID64.getRandom().getString()
+    name += Guid64.random().toString()
     name += ".tif"
     return Path.combine(tempDir.toString(), name.toString())
 }
@@ -61,7 +61,7 @@ func makeTempIcoPath()->String
 {
     let tempDir      = Env.getSpecialDirectory(Env.SpecialDirectory.Temp)
     var name: String = "swag_pixel_ico_"
-    name += GUID64.getRandom().getString()
+    name += Guid64.random().toString()
     name += ".ico"
     return Path.combine(tempDir.toString(), name.toString())
 }
@@ -93,7 +93,7 @@ func loadTestTypeFace(outFace: **TypeFace, fullname: string) fail
 
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {
-    let expectedSize = cast(u64) (width * height * cast(s32) (pf.bpp() >> 3))
+    let expectedSize = cast(u64) (width * height * cast(s32) (pf.bitsPerPixel() >> 3))
     @assert(@countof(buffer) == expectedSize)
     return Image.create(width, height, pf, buffer)
 }
@@ -103,12 +103,12 @@ func assertImage(img: Image, width, height: s32, pf: PixelFormat)
     @assert(img.isValid())
     @assert(img.width == width)
     @assert(img.height == height)
-    @assert(img.pf == pf)
+    @assert(img.pixelFormat == pf)
 }
 
 func assertPixel(img: Image, x, y: s32, expected: Color)
 {
-    let got = img.getPixelColor(x, y)
+    let got = img.pixelColor(x, y)
     @assert(got.r == expected.r)
     @assert(got.g == expected.g)
     @assert(got.b == expected.b)

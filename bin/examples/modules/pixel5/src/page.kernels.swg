@@ -28,7 +28,7 @@ func buildCoolGradeImage(source: const &Image)->Image
 func buildSepiaImage(source: const &Image)->Image
 {
     var result = cloneImage(source)
-    result.grayScale(0.40)
+    result.grayscale(0.40)
     result.colorize(0.11, 0.38, strength: 0.50)
     result.gamma(1.08)
     return result
@@ -36,14 +36,14 @@ func buildSepiaImage(source: const &Image)->Image
 
 func buildKernelCards(source: const &Image)
 {
-    setImageCard(&g_KernelCards[0], "Sharpen 3x3", "applyKernel(Sharpen3x3A)", buildKernelImage(source, .Sharpen3x3A))
-    setImageCard(&g_KernelCards[1], "Blur 3x3", "applyKernel(GaussianBlur3x3A)", buildKernelImage(source, .GaussianBlur3x3A))
-    setImageCard(&g_KernelCards[2], "Blur 5x5", "applyKernel(GaussianBlur5x5A)", buildKernelImage(source, .GaussianBlur5x5A))
-    setImageCard(&g_KernelCards[3], "Edge detect", "applyKernel(EdgeDetect3x3A)", buildKernelImage(source, .EdgeDetect3x3A))
-    setImageCard(&g_KernelCards[4], "Emboss left", "applyKernel(EmbossLeft3x3A)", buildKernelImage(source, .EmbossLeft3x3A))
+    setImageCard(&g_KernelCards[0], "Sharpen 3x3", "applyKernel(Sharpen3x3Strong)", buildKernelImage(source, .Sharpen3x3Strong))
+    setImageCard(&g_KernelCards[1], "Blur 3x3", "applyKernel(GaussianBlur3x3Light)", buildKernelImage(source, .GaussianBlur3x3Light))
+    setImageCard(&g_KernelCards[2], "Blur 5x5", "applyKernel(GaussianBlur5x5)", buildKernelImage(source, .GaussianBlur5x5))
+    setImageCard(&g_KernelCards[3], "Edge detect", "applyKernel(Laplacian8)", buildKernelImage(source, .Laplacian8))
+    setImageCard(&g_KernelCards[4], "Emboss left", "applyKernel(EmbossLeft3x3Light)", buildKernelImage(source, .EmbossLeft3x3Light))
     setImageCard(&g_KernelCards[5], "Warm grade", "colorize + gamma + contrast", buildWarmGradeImage(source))
     setImageCard(&g_KernelCards[6], "Cool grade", "colorize + gamma + contrast", buildCoolGradeImage(source))
-    setImageCard(&g_KernelCards[7], "Sepia blend", "grayScale + colorize", buildSepiaImage(source))
+    setImageCard(&g_KernelCards[7], "Sepia blend", "grayscale + colorize", buildSepiaImage(source))
 }
 
 func drawKernelPage(painter: *Pixel.Painter)

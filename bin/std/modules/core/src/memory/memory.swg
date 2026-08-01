@@ -3,39 +3,42 @@
 
 using Swag
 
-// Copy one block of memory to a given address
+// Copies bytes between non-overlapping memory regions.
+// A null pointer is accepted only when size is zero.
 #[Inline]
-func copy(dest: #null [*] void, src: #null const [*] void, size: u64)
+func copy(destination: #null [*] void, source: #null const [*] void, size: u64)
 {
     if size do
-        @memcpy(dest, src, size)
+        @memcpy(destination, source, size)
 }
 
-// Move one block of memory to a given address
+// Copies bytes between memory regions that may overlap.
+// A null pointer is accepted only when size is zero.
 #[Inline]
-func copyOver(dest: #null [*] void, src: #null const [*] void, size: u64)
+func copyOverlapping(destination: #null [*] void, source: #null const [*] void, size: u64)
 {
     if size do
-        @memmove(dest, src, size)
+        @memmove(destination, source, size)
 }
 
-// Compare two blocks of memory
+// Compares two byte sequences lexicographically.
 #[Inline]
-func compare(dest, src: #null const [*] void, size: u64)->s32
+func compare(left, right: #null const [*] void, size: u64)->s32
 {
     if !size do
         return 0
-    return @memcmp(dest, src, size)
+    return @memcmp(left, right, size)
 }
 
-// Compare two blocks of memory
+// Returns whether two values have identical object representations.
 #[Inline]
-func(T) equals(dest, src: const *T)->bool
+func(T) bytesEqual(left, right: const *T)->bool
 {
-    return @memcmp(dest, src, #sizeof(T)) == 0
+    return @memcmp(left, right, #sizeof(T)) == 0
 }
 
-// Clear one block of memory
+// Fills raw storage with zero bytes.
+// Use `@init` instead when resetting a declared value to its language defaults.
 #[Inline]
 func clear(dest: [*] void, size: u64)
 {
@@ -43,7 +46,7 @@ func clear(dest: [*] void, size: u64)
         @memset(dest, 0, size)
 }
 
-// Set the content of one block of memory to a specific byte value
+// Fills raw storage with a repeated byte value.
 #[Inline]
 func set(dest: [*] void, value: u8, size: u64)
 {
@@ -51,30 +54,32 @@ func set(dest: [*] void, value: u8, size: u64)
         @memset(dest, value, size)
 }
 
-// Align a value to the given amount
+// Rounds a value up to the requested power-of-two alignment.
+// An alignment of zero uses the native pointer alignment.
 #[Inline]
 func align(value: u64, alignment: u32)->u64
 {
+    Debug.assert(!alignment or !(alignment & (alignment - 1)), "alignment must be a power of two")
     let toAlign: u64 = cast(u64) (alignment != 0 ? alignment : cast(u32) #sizeof(*void)) - 1
     return (value + toAlign) & ~toAlign
 }
 
-// Align a pointer to the given amount
+// Rounds a pointer up to the requested power-of-two alignment.
 #[Inline]
 func align(value: const [*] void, alignment: u32)->const [*] void
 {
     return cast() align(cast(u64) value, alignment)
 }
 
-// Clear the temporary allocator
-func freeTemp()
+// Releases every allocation owned by the current temporary allocator.
+func releaseTemporaryAllocations()
 {
     @getcontext().tempAllocator.releaseAll()
 }
 
-// Push a new allocator for the given block of code
+// Runs a code block with allocator installed as the current allocator.
 #[Swag.Macro]
-func pushAllocator(allocator: #null Swag.IAllocator, stmt: #code)
+func withAllocator(allocator: #null Swag.IAllocator, stmt: #code)
 {
     let prev = @getcontext()
     defer @setcontext(prev)
@@ -86,9 +91,9 @@ func pushAllocator(allocator: #null Swag.IAllocator, stmt: #code)
     #inject(stmt)
 }
 
-// Push the temporary allocator for the given block of code
+// Runs a code block with the temporary allocator installed as the current allocator.
 #[Swag.Macro]
-func pushTempAllocator(stmt: #code)
+func withTemporaryAllocator(stmt: #code)
 {
     let prev = @getcontext()
     defer @setcontext(prev)

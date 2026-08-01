@@ -33,7 +33,7 @@ func day3B()
         var s: s32
         for [dx] in -1 to 1 do
             for [dy] in -1 to 1 do
-                s += a.get({x + dx, y + dy}, 0)
+                s += a.getOrDefault({x + dx, y + dy}, 0)
         return s
     }
 

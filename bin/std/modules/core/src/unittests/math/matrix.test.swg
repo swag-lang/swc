@@ -5,6 +5,11 @@ using Swag
 
 #test
 {
+    let identity = Math.Matrix3x3.createIdentity()
+    @assert(identity.m[0, 0] == 1)
+    @assert(identity.m[1, 1] == 1)
+    @assert(identity.m[2, 2] == 1)
+
     var matrix: Math.Matrix3x3 = undefined
     for [y] in 3
     {
@@ -27,6 +32,12 @@ using Swag
 
 #test
 {
+    let identity = Math.Matrix4x4.createIdentity()
+    @assert(identity.m[0, 0] == 1)
+    @assert(identity.m[1, 1] == 1)
+    @assert(identity.m[2, 2] == 1)
+    @assert(identity.m[3, 3] == 1)
+
     var matrix: Math.Matrix4x4 = undefined
     for [y] in 4
     {

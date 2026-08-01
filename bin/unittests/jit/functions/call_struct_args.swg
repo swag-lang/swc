@@ -92,7 +92,7 @@ func PackedImageDst(result: *PackedImageLike, header: PackedHeader18, pixelIndex
     let srcY = cast(s32) (pixelIndex / header.width)
     let dstX = header.descriptorByte & 0x10 ? result.width - srcX - 1 : srcX
     let dstY = header.descriptorByte & 0x20 ? result.height - srcY - 1 : srcY
-    return result.pixels.buffer + cast(u64) dstY * result.width8 + cast(u64) dstX * result.bpp8
+    return result.pixels.buffer + cast(u64) dstY * result.rowStride + cast(u64) dstX * result.bytesPerPixel
 }
 
 func PackedImageWrite(result: *PackedImageLike, header: PackedHeader18, pixelIndex: u64, src: [*] u8)
@@ -106,8 +106,8 @@ func PackedImageDecodeLike(header: PackedHeader18)->PackedImageLike
     var result: retval = undefined
     result.width         = 2
     result.height        = 2
-    result.bpp8          = 3
-    result.width8        = 6
+    result.bytesPerPixel          = 3
+    result.rowStride        = 6
     result.pixels.buffer = result.storage
     result.pixels.count  = 12
     result.storage[3]    = 42

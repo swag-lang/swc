@@ -49,11 +49,11 @@ impl Encoder
         }
     }
 
-    mtd writeMetaDatas(image: const *Image)
+    mtd writeMetadata(image: const *Image)
     {
-        for md in image.metaDatas
+        for md in image.metadata
         {
-            .writeWord(0xFFE0'u16 + cast(u16) md.sig)
+            .writeWord(0xFFE0'u16 + cast(u16) md.signature)
             .writeWord(3 + cast(u16) md.tag.count + cast(u16) md.value.count)
             .writeBytes(md.tag.toSlice())
             .writeByte(0)

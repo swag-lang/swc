@@ -186,7 +186,7 @@ impl BitString
 // The encoder is opaque; pass [[Jpg.EncodeOptions]] through the generic image
 // encoding API to control quality.
 #[Swag.Opaque]
-public struct Encoder
+internal struct Encoder
 {
     // Baseline JPEG encoding state: the padded source, the quantization and Huffman tables,
     // and the 8x8 block being transformed. Encode through the module entry points.
@@ -250,7 +250,7 @@ impl Encoder
         for [nrline] in .imageY
         {
             let line = pdst + nrline * xDiv8
-            switch image.pf
+            switch image.pixelFormat
             {
             case .BGR8:
                 for [column] in .imageX
@@ -336,11 +336,11 @@ impl Encoder
     }
 }
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        let ext = Path.getExtensionLowerCase(fileName)
+        let ext = Path.lowercaseExtension(fileName)
         return ext == ".jpg" or ext == ".jpeg"
     }
 
@@ -366,7 +366,7 @@ public impl IImageEncoder for Encoder
 
         .writeWord(0xFFD8)     // SOI
 
-        .writeMetaDatas(&image)
+        .writeMetadata(&image)
         .writeDQTinfo()
         .writeSOF0info(&image)
         .writeDHTinfo()

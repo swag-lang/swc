@@ -2,134 +2,134 @@
 
 using Core
 
-// Selects rich edit command.
+// Identifies an editor action that can be bound to a keyboard shortcut.
 public enum RichEditCommand
 {
     None                // No option is selected.
-    CursorLeft          // Selects cursor left.
-    CursorRight         // Selects cursor right.
-    CursorUp            // Selects cursor up.
-    CursorDown          // Selects cursor down.
-    CursorStartLine     // Selects cursor start line.
-    CursorEndLine       // Selects cursor end line.
-    CursorStartFile     // Selects cursor start file.
-    CursorEndFile       // Selects cursor end file.
-    CursorWordLeft      // Selects cursor word left.
-    CursorWordRight     // Selects cursor word right.
-    CursorPageUp        // Selects cursor page up.
-    CursorPageDown      // Selects cursor page down.
+    CursorLeft          // Moves the caret one rune left.
+    CursorRight         // Moves the caret one rune right.
+    CursorUp            // Moves the caret one display line up.
+    CursorDown          // Moves the caret one display line down.
+    CursorStartLine     // Moves the caret to the start of its logical line.
+    CursorEndLine       // Moves the caret to the end of its logical line.
+    CursorStartFile     // Moves the caret to the start of the document.
+    CursorEndFile       // Moves the caret to the end of the document.
+    CursorWordLeft      // Moves the caret to the previous word boundary.
+    CursorWordRight     // Moves the caret to the next word boundary.
+    CursorPageUp        // Moves the caret one viewport page up.
+    CursorPageDown      // Moves the caret one viewport page down.
 
     // CMD_CURSOR_MATCH_PAIR
-    ScrollLineUp       // Selects scroll line up.
-    ScrollLineDown     // Selects scroll line down.
-    DeleteLeft         // Selects delete left.
-    DeleteRight        // Selects delete right.
-    DeleteLine         // Selects delete line.
+    ScrollLineUp       // Scrolls the viewport one display line up.
+    ScrollLineDown     // Scrolls the viewport one display line down.
+    DeleteLeft         // Deletes the selection or the rune before the caret.
+    DeleteRight        // Deletes the selection or the rune after the caret.
+    DeleteLine         // Deletes the logical line containing the caret.
 
     // CMD_EDIT_DELETE_LINE
-    EditTabulation         // Selects edit tabulation.
-    EditBackTabulation     // Selects edit back tabulation.
-    DeleteWordLeft         // Selects delete word left.
-    DeleteWordRight        // Selects delete word right.
+    EditTabulation         // Indents the selection or inserts a tabulation.
+    EditBackTabulation     // Removes one indentation level from selected lines.
+    DeleteWordLeft         // Deletes through the previous word boundary.
+    DeleteWordRight        // Deletes through the next word boundary.
 
     // CMD_EDIT_DELETE_LINE_LEFT
     // CMD_EDIT_DELETE_LINE_RIGHT
-    ToggleOverwrite     // Selects toggle overwrite.
-    ClipboardCopy       // Selects clipboard copy.
-    ClipboardPaste      // Selects clipboard paste.
-    ClipboardCut        // Selects clipboard cut.
-    Undo                // Selects undo.
-    Redo                // Selects redo.
-    SelectRuneLeft      // Selects select rune left.
-    SelectRuneRight     // Selects select rune right.
-    SelectRuneUp        // Selects select rune up.
-    SelectRuneDown      // Selects select rune down.
-    SelectRectLeft      // Selects select rect left.
-    SelectRectRight     // Selects select rect right.
-    SelectRectUp        // Selects select rect up.
-    SelectRectDown      // Selects select rect down.
-    SelectStartLine     // Selects select start line.
-    SelectEndLine       // Selects select end line.
-    SelectStartFile     // Selects select start file.
-    SelectEndFile       // Selects select end file.
-    SelectAllFile       // Selects select all file.
-    SelectWordLeft      // Selects select word left.
-    SelectWordRight     // Selects select word right.
-    SelectPageUp        // Selects select page up.
-    SelectPageDown      // Selects select page down.
+    ToggleOverwrite     // Toggles insert and overwrite modes.
+    ClipboardCopy       // Copies the selection to the clipboard.
+    ClipboardPaste      // Inserts compatible clipboard text.
+    ClipboardCut        // Copies then deletes the selection.
+    Undo                // Reverts the most recent undo group.
+    Redo                // Reapplies the next reverted undo group.
+    SelectRuneLeft      // Extends the linear selection one rune left.
+    SelectRuneRight     // Extends the linear selection one rune right.
+    SelectRuneUp        // Extends the linear selection one display line up.
+    SelectRuneDown      // Extends the linear selection one display line down.
+    SelectRectLeft      // Extends the rectangular selection one rune left.
+    SelectRectRight     // Extends the rectangular selection one rune right.
+    SelectRectUp        // Extends the rectangular selection one display line up.
+    SelectRectDown      // Extends the rectangular selection one display line down.
+    SelectStartLine     // Extends the selection to the start of the logical line.
+    SelectEndLine       // Extends the selection to the end of the logical line.
+    SelectStartFile     // Extends the selection to the start of the document.
+    SelectEndFile       // Extends the selection to the end of the document.
+    SelectAllFile       // Selects the complete document.
+    SelectWordLeft      // Extends the selection to the previous word boundary.
+    SelectWordRight     // Extends the selection to the next word boundary.
+    SelectPageUp        // Extends the selection one viewport page up.
+    SelectPageDown      // Extends the selection one viewport page down.
 }
 
 impl RichEditCtrl
 {
-    // Performs the clear mapping operation.
+    // Removes every keyboard shortcut mapping.
     mtd clearMapping()
     {
         .mapping.clear()
     }
 
-    // Adds mapping.
-    mtd addMapping(key: Input.Key, mdf: Input.KeyModifiers, cmd: RichEditCommand)
+    // Binds `key` and `modifiers` to `cmd`; existing entries are retained.
+    mtd addMapping(key: Input.Key, modifiers: Input.KeyModifiers, cmd: RichEditCommand)
     {
         var m: RichEditMapping
         m.key       = key
-        m.modifiers = mdf
+        m.modifiers = modifiers
         m.command   = cmd
         .mapping.add(m)
     }
 
-    // Returns mapping command.
-    mtd getMappingCommand(key: Input.Key, mdf: Input.KeyModifiers)->RichEditCommand
+    // Returns the command bound to a shortcut, or [RichEditCommand.None] when unbound.
+    mtd commandForShortcut(key: Input.Key, modifiers: Input.KeyModifiers)->RichEditCommand
     {
         for &p in .mapping
         {
-            if p.key == key and p.modifiers == mdf do
+            if p.key == key and p.modifiers == modifiers do
                 return p.command
         }
 
         return RichEditCommand.None
     }
 
-    // Sets default mapping.
+    // Replaces all mappings with the editor's conventional shortcut table.
     mtd setDefaultMapping()
     {
-        .addMapping(.Left, .Zero, .CursorLeft)
+        .clearMapping()
+        .addMapping(.Left, .None, .CursorLeft)
         .addMapping(.Left, .Shift, .SelectRuneLeft)
         .addMapping(.Left, .Control, .CursorWordLeft)
         .addMapping(.Left, .CtrlShift, .SelectWordLeft)
         .addMapping(.Left, .Alt, .SelectRectLeft)
-        .addMapping(.Right, .Zero, .CursorRight)
+        .addMapping(.Right, .None, .CursorRight)
         .addMapping(.Right, .Shift, .SelectRuneRight)
         .addMapping(.Right, .Control, .CursorWordRight)
         .addMapping(.Right, .CtrlShift, .SelectWordRight)
         .addMapping(.Right, .Alt, .SelectRectRight)
-        .addMapping(.Up, .Zero, .CursorUp)
+        .addMapping(.Up, .None, .CursorUp)
         .addMapping(.Up, .Shift, .SelectRuneUp)
         .addMapping(.Up, .Control, .ScrollLineUp)
         .addMapping(.Up, .Alt, .SelectRectUp)
-        .addMapping(.Down, .Zero, .CursorDown)
-        .addMapping(.Down, .Shift, .SelectRuneDown)
+        .addMapping(.Down, .None, .CursorDown)
         .addMapping(.Down, .Shift, .SelectRuneDown)
         .addMapping(.Down, .Control, .ScrollLineDown)
         .addMapping(.Down, .Alt, .SelectRectDown)
-        .addMapping(.PageUp, .Zero, .CursorPageUp)
+        .addMapping(.PageUp, .None, .CursorPageUp)
         .addMapping(.PageUp, .Shift, .SelectPageUp)
-        .addMapping(.PageDown, .Zero, .CursorPageDown)
+        .addMapping(.PageDown, .None, .CursorPageDown)
         .addMapping(.PageDown, .Shift, .SelectPageDown)
-        .addMapping(.Home, .Zero, .CursorStartLine)
+        .addMapping(.Home, .None, .CursorStartLine)
         .addMapping(.Home, .Control, .CursorStartFile)
         .addMapping(.Home, .Shift, .SelectStartLine)
         .addMapping(.Home, .CtrlShift, .SelectStartFile)
-        .addMapping(.End, .Zero, .CursorEndLine)
+        .addMapping(.End, .None, .CursorEndLine)
         .addMapping(.End, .Control, .CursorEndFile)
         .addMapping(.End, .Shift, .SelectEndLine)
         .addMapping(.End, .CtrlShift, .SelectEndFile)
-        .addMapping(.Back, .Zero, .DeleteLeft)
+        .addMapping(.Back, .None, .DeleteLeft)
         .addMapping(.Back, .Control, .DeleteWordLeft)
-        .addMapping(.Delete, .Zero, .DeleteRight)
+        .addMapping(.Delete, .None, .DeleteRight)
         .addMapping(.Delete, .Control, .DeleteWordRight)
-        .addMapping(.Tab, .Zero, .EditTabulation)
+        .addMapping(.Tab, .None, .EditTabulation)
         .addMapping(.Tab, .Shift, .EditBackTabulation)
-        .addMapping(.Insert, .Zero, .ToggleOverwrite)
+        .addMapping(.Insert, .None, .ToggleOverwrite)
         .addMapping(.Insert, .Control, .ClipboardCopy)
         .addMapping(.Insert, .Shift, .ClipboardPaste)
         .addMapping(.A, .Control, .SelectAllFile)
@@ -150,21 +150,21 @@ impl RichEditCtrl
             if .isSelectionEmpty() do
                 .moveCursorLeft(&.cursorPos)
             else do
-                .setCursorPos(.getBegSelection())
+                .setCursorPos(.selectionStart())
             .clearSelection()
 
         case .CursorRight:
             if .isSelectionEmpty() do
                 .moveCursorRight(&.cursorPos)
             else do
-                .setCursorPos(.getEndSelection())
+                .setCursorPos(.selectionEnd())
             .clearSelection()
 
         case .CursorUp:
             if !.isSelectionEmpty()
             {
-                let pt = .getCursorDisplayPos(.cursorPos)
-                .setCursorPos(.getBegSelection())
+                let pt = .cursorDisplayPosition(.cursorPos)
+                .setCursorPos(.selectionStart())
                 .moveCursorUp(&.cursorPos, pt)
             }
             else do
@@ -174,8 +174,8 @@ impl RichEditCtrl
         case .CursorDown:
             if !.isSelectionEmpty()
             {
-                let pt = .getCursorDisplayPos(.cursorPos)
-                .setCursorPos(.getEndSelection())
+                let pt = .cursorDisplayPosition(.cursorPos)
+                .setCursorPos(.selectionEnd())
                 .moveCursorDown(&.cursorPos, pt)
             }
             else do
@@ -337,7 +337,7 @@ impl RichEditCtrl
         case .EditTabulation:
             if .isReadOnly() do
                 return
-            if .getBegSelection().lineIndex == .getEndSelection().lineIndex
+            if .selectionStart().lineIndex == .selectionEnd().lineIndex
             {
                 .pushUndo()
                 .deleteSelection()

@@ -7,13 +7,13 @@ using Core, Core.Math
 // Copies are deep: each path is duplicated and remains independently mutable.
 struct LinePathList
 {
-    paths: Array'(*LinePath)     // Owned path pointers.
+    internal paths: Array'(*LinePath)     // Owned path pointers.
 
     // Combined bounds of the paths, derived when the list is flattened.
     readonly
     {
-        bvMin: Vector2     // Minimum combined bound after flattening.
-        bvMax: Vector2     // Maximum combined bound after flattening.
+        minBounds: Vector2     // Minimum combined bound after flattening.
+        maxBounds: Vector2     // Maximum combined bound after flattening.
     }
 }
 
@@ -25,8 +25,8 @@ impl LinePathList
     // carry them over instead of walking every path again.
     internal mtd setBounds(min, max: Vector2)
     {
-        .bvMin = min
-        .bvMax = max
+        .minBounds = min
+        .maxBounds = max
     }
 
     // Releases every owned path when the list leaves scope.
@@ -50,12 +50,19 @@ impl LinePathList
     #[Swag.Inline]
     mtd count() => .paths.count
 
+    // Returns a borrowed read-only view of the owned path pointers.
+    //
+    // The view is invalidated when the list is cleared, offset, cleaned, copied,
+    // or destroyed.
+    mtd const toSlice()->const [..] *LinePath => .paths.toSlice()
+
     // Releases and removes all owned paths.
     mtd clear()
     {
         for p in .paths do
             Memory.delete(p)
         .paths.clear()
+        .setBounds({}, {})
     }
 
     // Allocates, owns, and returns a new empty path.
@@ -67,16 +74,21 @@ impl LinePathList
     }
 
     // Flattens all paths at `quality` and recomputes combined bounds.
-    mtd flatten(quality: PaintQuality)
+    mtd flatten(quality: PaintQuality = .Normal)
     {
-        // Flatten all path, and compute BV
-        .bvMin = Vector2.Max
-        .bvMax = Vector2.NegMax
+        if .paths.isEmpty()
+        {
+            .setBounds({}, {})
+            return
+        }
+
+        .minBounds = Vector2.Max
+        .maxBounds = Vector2.NegMax
         for p in .paths
         {
             p.flatten(quality)
-            .bvMin = Vector2.min(.bvMin, p.bvMin)
-            .bvMax = Vector2.max(.bvMax, p.bvMax)
+            .minBounds = Vector2.min(.minBounds, p.minBounds)
+            .maxBounds = Vector2.max(.maxBounds, p.maxBounds)
         }
     }
 
@@ -86,10 +98,16 @@ impl LinePathList
         if Math.isZeroEpsilon(value) do
             return
 
-        for p in .paths
+        for p, [i] in .paths
         {
             let v = p.polygon.isClockwise ? value : -value
             p.polygon.offset(v)
+            p.minBounds = p.polygon.minBounds
+            p.maxBounds = p.polygon.maxBounds
+            if i == 0 do
+                .setBounds(p.minBounds, p.maxBounds)
+            else do
+                .setBounds(Vector2.min(.minBounds, p.minBounds), Vector2.max(.maxBounds, p.maxBounds))
         }
     }
 
@@ -110,8 +128,8 @@ impl LinePathList
         }
 
         var newList: LinePathList
-        newList.bvMin = Vector2.Max
-        newList.bvMax = Vector2.NegMax
+        newList.minBounds = Vector2.Max
+        newList.maxBounds = Vector2.NegMax
 
         var serial = 0
         var i      = 0'u64
@@ -137,23 +155,23 @@ impl LinePathList
                 np.serial = serial
                 np.polygon.storeClipperResult(path)
                 np.polygon.setupGeneratedPath(np)
-                newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
-                newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
+                newList.minBounds = Vector2.min(newList.minBounds, np.minBounds)
+                newList.maxBounds = Vector2.max(newList.maxBounds, np.maxBounds)
             }
         }
 
         .clear()
         .paths = #move newList.paths
-        .bvMin = newList.bvMin
-        .bvMax = newList.bvMax
+        .minBounds = newList.minBounds
+        .maxBounds = newList.maxBounds
     }
 
     // Unions and normalizes groups of already-flattened paths.
     mtd clean()
     {
         var newList: LinePathList
-        newList.bvMin = Vector2.Max
-        newList.bvMax = Vector2.NegMax
+        newList.minBounds = Vector2.Max
+        newList.maxBounds = Vector2.NegMax
 
         var serial = 0
         var i      = 0'u64
@@ -185,8 +203,8 @@ impl LinePathList
                 np.serial = serial
                 np.polygon.storeClipperResult(path)
                 np.polygon.setupGeneratedPath(np)
-                newList.bvMin = Vector2.min(newList.bvMin, np.bvMin)
-                newList.bvMax = Vector2.max(newList.bvMax, np.bvMax)
+                newList.minBounds = Vector2.min(newList.minBounds, np.minBounds)
+                newList.maxBounds = Vector2.max(newList.maxBounds, np.maxBounds)
             }
         }
 
@@ -198,6 +216,6 @@ impl LinePathList
         if .paths.isEmpty() do
             .setBounds({}, {})
         else do
-            .setBounds(newList.bvMin, newList.bvMax)
+            .setBounds(newList.minBounds, newList.maxBounds)
     }
 }

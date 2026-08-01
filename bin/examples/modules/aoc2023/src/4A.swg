@@ -38,7 +38,7 @@ using Core
 
 func day4A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "4.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "4.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var total = 0'u64

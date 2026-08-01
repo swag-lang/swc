@@ -39,7 +39,7 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let dir  = Path.getDirectoryName(loc.fileName)
+    let dir  = Path.directoryName(loc.fileName)
     var path = Path.combine(dir, "datas", fileName)
     @assert(File.exists(path))
     return path

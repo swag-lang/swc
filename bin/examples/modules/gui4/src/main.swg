@@ -162,11 +162,10 @@ var g_TestStep:  s32
 
 func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
 {
-    label.horzAlignmentText = horizontal
-    label.vertAlignmentText = vertical
+    label.setTextAlignment(horizontal, vertical)
 }
 
-func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.Zero)->*Label
+func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
     setLabelTextStyle(label, .Left, .Center)
@@ -181,8 +180,8 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 
     let view = frame.createView'Wnd()
     discard createText(view, title, {16, 10, rect.width - 32, 24})
-    let help = createText(view, subtitle, {16, 36, rect.width - 32, 42}, .WordWrap | .LightText)
-    help.vertAlignmentText = .Top
+    let help = createText(view, subtitle, {16, 36, rect.width - 32, 42}, .WordWrap | .SecondaryText)
+    help.setTextVerticalAlignment(.Top)
     return frame
 }
 
@@ -202,7 +201,7 @@ func applyTheme()
     else do
         app.theme.colors.setLight()
     updateThemeButton()
-    app.themeHasChanged()
+    app.notifyThemeChanged()
 }
 
 func toggleTheme(_btn: *Button)
@@ -279,9 +278,9 @@ func rebuildInspector()
     let props = Properties.create(objHost, {}, g_DisplayMode)
     g_Props             = props
     props.dockStyle     = .Center
-    props.sizeEditValue = 320
+    props.setEditorWidth(320)
     if props.isGridLike() do
-        props.setColumnSize(190)
+        props.setNameColumnWidth(190)
 
     var bases: Array'(*u8)
     for [i] in g_CardCount do
@@ -289,9 +288,9 @@ func rebuildInspector()
     props.addStructMulti(SceneCard, bases.toSlice(), Format.toString("Editing % card%", g_CardCount, g_CardCount > 1 ? "s" : ""))
 
     if !g_Filter.isEmpty() do
-        props.setStringFilter(g_Filter.toString())
+        props.setFilter(g_Filter.toString())
 
-    props.sigChanged += func(_list, item)
+    props.sigValueChanged += func(_list, item)
     {
         updateStatus(item)
         let preview = g_Preview
@@ -339,7 +338,7 @@ func createInspectorPage(parent: *Wnd)
         .addItem("Normal")
         .addItem("Condensed")
         .addItem("List")
-        .selectItem(displayModeIndex(g_DisplayMode))     // before the handler -> no spurious rebuild
+        .setSelectedIndex(displayModeIndex(g_DisplayMode))
         .sigChanged += func(_cb, idx) { setDisplayMode(displayModeFromIndex(idx)); }
     }
 
@@ -349,23 +348,23 @@ func createInspectorPage(parent: *Wnd)
         .addItem("1 card")
         .addItem("2 cards")
         .addItem("3 cards")
-        .selectItem(cast(u32) (g_CardCount - 1))
+        .setSelectedIndex(cast(u32) (g_CardCount - 1))
         .sigChanged += func(_cb, idx) { setCardCount(cast(s32) idx + 1); }
     }
 
     with let search = EditBox.create(notnull g_ObjHost, "")
     {
-        .icon      = parent.getTheme().getIcon24(ThemeIcons24.Search, 18)
+        .setIcon(parent.theme().icon24(ThemeIcons24.Search, 18))
         .dockStyle = .Top
-        .setNote("Search")
+        .setPlaceholder("Search")
         .margin.w = 8
-        .editBoxFlags.add(.ClearButton)
-        .sigChanged += func(fil)
+        .updateFlags(.ClearButton)
+        .sigTextChanged += func(fil)
         {
-            g_Filter = fil.text
+            g_Filter = fil.text()
             let props = g_Props
             if props do
-                props.setStringFilter(fil.text)
+                props.setFilter(fil.text())
         }
     }
 
@@ -426,7 +425,7 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
     }
 
     if card.badges & CardBadge.Ring do
-        painter.drawRoundRect(body, rad, rad, Color.getBlendKeepAlpha(card.fill, Argb.White, 0.5).withAlpha(a), 2.0)
+        painter.drawRoundRect(body, rad, rad, Color.lerpRgb(card.fill, Argb.White, 0.5).withAlpha(a), 2.0)
     if card.badges & CardBadge.Accent do
         painter.fillCircle(body.x + 20, body.y + 20, 6, Color.fromArgb(Argb.Orange).withAlpha(a))
     if card.badges & CardBadge.Tag
@@ -438,11 +437,11 @@ func drawCard(painter: *Painter, slot: Math.Rectangle, card: *SceneCard, selecte
     if selected
     {
         let sel = Math.Rectangle{slot.x + 6, slot.y + 4, slot.width - 12, slot.height - 8}
-        painter.drawRoundRect(sel, 12, 12, (notnull g_View).getThemeColors().prop_FocusBorder, 2.0)
+        painter.drawRoundRect(sel, 12, 12, (notnull g_View).themeColors().prop_FocusBorder, 2.0)
     }
 
-    let font = (notnull g_View).getTheme().createDefaultFont(15, .Bold)
-    let tcol = Color.getBlendKeepAlpha(card.fill, Argb.Black, 0.72).withAlpha(a)
+    let font = (notnull g_View).theme().createDefaultFont(15, .Bold)
+    let tcol = Color.lerpRgb(card.fill, Argb.Black, 0.72).withAlpha(a)
     painter.drawStringCenter(body.horzCenter(), body.vertCenter(), card.label.toString(), font, tcol)
 }
 
@@ -451,9 +450,9 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case PaintEvent as paintEvt:
-        let painter = paintEvt.bc.painter
-        let rect    = view.getClientRect()
-        painter.fillRect(rect, view.getThemeColors().view_Bk)
+        let painter = paintEvt.paintContext.painter
+        let rect    = view.clientRect()
+        painter.fillRect(rect, view.themeColors().view_Bk)
 
         const TopReserve = 72.0
         const Gap        = 16.0
@@ -493,12 +492,12 @@ impl IPropertyEditor for RatingEditor
         let rating = cast(#null *Rating) data
         let prop   = list
 
-        let line = Wnd.create'Wnd(item.line, {0, 0, RatingMax * RatingPipSize, list.getThemeMetrics().editBox_Height})
+        let line = Wnd.create'Wnd(item.line, {0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
         line.maxSize.x = RatingMax * RatingPipSize
         if list.isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
         else do
-            line.anchorStyle = .X
+            line.anchorStyle = .Right
 
         for [i] in RatingMax
         {
@@ -506,14 +505,14 @@ impl IPropertyEditor for RatingEditor
             with let btn = IconButton.create(line, {}, {0, 0, RatingPipSize, item.line.position.height})
             {
                 .dockStyle = .Left
-                .iconBtnFlags.add(.Flat)
+                .updateFlags(.Flat)
                 .sigPressed += func|prop, item, rating, idx|(b)
                 {
                     let rat = notnull rating
                     rat.value = rat.value == idx + 1 ? idx : idx + 1
-                    prop.hasChanged(item)
+                    prop.commitItemChange(item)
                 }
-                .sigPaintIcon = func|rating, idx|(b, bc, pos, paintFlags)
+                .iconPainter = func|rating, idx|(b, bc, pos, paintFlags)
                 {
                     bc.painter.setParams(.Antialiased)
                     let on  = idx < (notnull rating).value
@@ -526,7 +525,7 @@ impl IPropertyEditor for RatingEditor
 
         item.sigRefresh += func|line|(item)
         {
-            for c in line.childs do
+            for c in line.children do
                 c.invalidate()
         }
 
@@ -548,11 +547,11 @@ func updateStatus(item: #null *PropertiesItem)
     if item == null do
         return
 
-    // Owned: 'RichString.getNaked' returns a 'String' whose view would dangle once
+    // Owned: 'RichString.plainText' returns a 'String' whose view would dangle once
     // the temporary is dropped at the end of the statement.
     var name: String = item.typeValue.name
     if name == "" and item.label do
-        name = RichString.getNaked(item.label.getText())
+        name = RichString.plainText(item.label.text())
     if name == "" do
         name = "section"
 
@@ -578,7 +577,7 @@ func layoutRootView()
     let view     = notnull g_View
     let pageView = notnull g_PageView
 
-    let rect         = view.getClientRect()
+    let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, 1.0)
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
@@ -623,23 +622,23 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 func createRootView()
 {
-    let view = (notnull g_Surface).getView()
+    let view = (notnull g_Surface).view()
     g_View               = view
     view.backgroundStyle = .View
 
     let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
-    title.style.setFont(view.getTheme().createDefaultFont(28), .Regular)
+    title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .LightText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton          = themeButton
-    themeButton.form       = .Flat
-    themeButton.icon       = app.theme.getIcon24(ThemeIcons24.Picker, 18)
+    themeButton.setForm(.Flat)
+    themeButton.setIcon(app.theme.icon24(ThemeIcons24.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
     let pageView = Wnd.create'Wnd(view, {})
@@ -649,7 +648,7 @@ func createRootView()
     let footer = Label.create(view, "", {})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
-    footer.labelFlags.add(.LightText)
+    footer.updateFlags(.SecondaryText)
 
     layoutRootView()
     view.hookOnEvent = &onRootEvent
@@ -659,7 +658,7 @@ func createRootView()
 // real rebuild path), then quit after a fixed number of frames.
 func updateTestMode()
 {
-    if !Env.hasArg("swag.test") or !g_Surface do
+    if !Env.hasArgument("swag.test") or !g_Surface do
         return
 
     g_TestFrame += 1
@@ -668,8 +667,8 @@ func updateTestMode()
     if g_TestFrame % 24 == 0 and displayCombo and countCombo
     {
         g_TestStep += 1
-        displayCombo.selectItem(cast(u32) (g_TestStep % 3))
-        countCombo.selectItem(cast(u32) ((g_TestStep / 3) % 3))
+        displayCombo.setSelectedIndex(cast(u32) (g_TestStep % 3))
+        countCombo.setSelectedIndex(cast(u32) ((g_TestStep / 3) % 3))
     }
 
     if g_TestFrame >= 200 do
@@ -685,11 +684,11 @@ func onFrame(_app: *Application)
 {
     initDemoData()
 
-    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border
+    let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border
     let surface = notnull (try app.createSurface(100, 100, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI4 property control inspector")
-    surface.setIcon(app.theme.getIcon24(ThemeIcons24.Options, 18))
+    surface.setIcon(app.theme.icon24(ThemeIcons24.Options, 18))
 
     createRootView()
     createInspectorPage(notnull g_PageView)
@@ -697,7 +696,7 @@ func onFrame(_app: *Application)
     applyTheme()
 
     app.sigFrame += &onFrame
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         app.maxRunFrame = 240
 
     surface.show()

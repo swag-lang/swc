@@ -2,13 +2,12 @@
 
 using Core, Pixel
 
-// Represents toggle button.
+// Lets the user switch a Boolean option on or off.
 struct ToggleButton
 {
-    using button: Button     // Embedded button state.
+    using button: Button     // Embedded button behavior and presentation.
 
-    isToggled:  bool                          // Whether this value is toggled.
-    sigChanged: #null func(*ToggleButton)     // Signal emitted when changed.
+    sigChanged: SigArray'func||(*ToggleButton)     // Emitted after a user action changes the state.
 
     // Color animations of the painted parts, driven by the toggle and hover state.
     internal
@@ -16,6 +15,7 @@ struct ToggleButton
         aniBk:     BlendColor     // Color animation of the background.
         aniBorder: BlendColor     // Color animation of the border.
         aniMark:   BlendColor     // Color animation of the toggle mark.
+        checked:   bool           // Current programmatic state.
     }
 }
 
@@ -32,12 +32,12 @@ impl IWnd for ToggleButton
         }
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc     = evt.bc
-        let theme  = .getTheme()
-        let colors = .getThemeColors()
-        let rects  = .getThemeRects()
+        let bc     = evt.paintContext
+        let theme  = .theme()
+        let colors = .themeColors()
+        let rects  = .themeRects()
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
@@ -54,19 +54,19 @@ impl IWnd for ToggleButton
             colorMark   = colors.btnToggle_DisabledMark
 
         case .isPressed:
-            colorBk     = .isToggled ? colors.btnToggle_OnPressedBk : colors.btnToggle_OffPressedBk
-            colorBorder = .isToggled ? colors.btnToggle_OnPressedBorder : colors.btnToggle_OffPressedBorder
-            colorMark   = .isToggled ? colors.btnToggle_OnPressedMark : colors.btnToggle_OffPressedMark
+            colorBk     = .checked ? colors.btnToggle_OnPressedBk : colors.btnToggle_OffPressedBk
+            colorBorder = .checked ? colors.btnToggle_OnPressedBorder : colors.btnToggle_OffPressedBorder
+            colorMark   = .checked ? colors.btnToggle_OnPressedMark : colors.btnToggle_OffPressedMark
 
         case .isHot:
-            colorBk     = .isToggled ? colors.btnToggle_OnHotBk : colors.btnToggle_OffHotBk
-            colorBorder = .isToggled ? colors.btnToggle_OnHotBorder : colors.btnToggle_OffHotBorder
-            colorMark   = .isToggled ? colors.btnToggle_OnHotMark : colors.btnToggle_OffHotMark
+            colorBk     = .checked ? colors.btnToggle_OnHotBk : colors.btnToggle_OffHotBk
+            colorBorder = .checked ? colors.btnToggle_OnHotBorder : colors.btnToggle_OffHotBorder
+            colorMark   = .checked ? colors.btnToggle_OnHotMark : colors.btnToggle_OffHotMark
 
         default:
-            colorBk     = .isToggled ? colors.btnToggle_OnBk : colors.btnToggle_OffBk
-            colorBorder = .isToggled ? colors.btnToggle_OnBorder : colors.btnToggle_OffBorder
-            colorMark   = .isToggled ? colors.btnToggle_OnMark : colors.btnToggle_OffMark
+            colorBk     = .checked ? colors.btnToggle_OnBk : colors.btnToggle_OffBk
+            colorBorder = .checked ? colors.btnToggle_OnBorder : colors.btnToggle_OffBorder
+            colorMark   = .checked ? colors.btnToggle_OnMark : colors.btnToggle_OffMark
         }
 
         subRectBk     = &rects.btnToggle_Bk
@@ -78,7 +78,7 @@ impl IWnd for ToggleButton
         .aniMark.apply(me, colorMark)
 
         // Box
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         theme.drawSubRect(bc.painter, clientRect, subRectBk, .aniBk.cur())
         theme.drawSubRect(bc.painter, clientRect, subRectBorder, .aniBorder.cur())
 
@@ -86,35 +86,65 @@ impl IWnd for ToggleButton
         var posBox = clientRect
         posBox.y     = clientRect.vertCenter() - (posBox.height * 0.5)
         posBox.width = posBox.height
-        if .isToggled do
+        if .checked do
             posBox.x = clientRect.right() - posBox.width
         theme.drawSubRect(bc.painter, posBox, subRectMark, .aniMark.cur())
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .processMouseEvent(evt)
+        if .processMouseEvent(evt) do
+            .toggle()
+    }
+
+    // Space or Enter toggles the focused button.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed do
+            return
+
+        if evt.key == .Space or evt.key == .Return
         {
-            .isToggled = !.isToggled
-            if .sigChanged do
-                .sigChanged(me)
-            .postCommandEvent(.id)
+            .toggle()
+            evt.accepted = true
         }
     }
 }
 
 impl ToggleButton
 {
-    // Performs the create operation.
+    // Creates a toggle button with an optional command identifier.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*ToggleButton
     {
         Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().btnToggle_Height
+            pos.height = parent.themeMetrics().btnToggle_Height
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().btnToggle_Width
+            pos.width = parent.themeMetrics().btnToggle_Width
         return Wnd.create'ToggleButton(parent, null, pos, id)
+    }
+
+    // Reports whether the option is on.
+    mtd const isChecked()->bool => .checked
+
+    // Changes the state without emitting a change signal or command.
+    mtd setChecked(checked: bool)
+    {
+        if .checked == checked do
+            return
+        .checked = checked
+        .invalidate()
+    }
+
+    // Flips the state and emits the same notifications as a user action.
+    mtd toggle()
+    {
+        .checked = !.checked
+        .invalidate()
+        .sigChanged.call(me)
+        .postCommandEvent(.id)
     }
 }

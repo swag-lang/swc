@@ -7,19 +7,19 @@ using Core
 // Codecs use `sig` and `tag` to identify a record and keep `value` as its
 // format-specific byte payload. Unknown records can therefore survive a
 // decode/encode round trip without Pixel interpreting their contents.
-struct ImageMetaData
+struct ImageMetadata
 {
-    sig:   u32          // Codec-defined signature or namespace identifier.
-    tag:   Array'u8     // Owned byte tag that identifies the record within `sig`.
-    value: Array'u8     // Owned, codec-defined payload bytes.
+    signature: u32          // Codec-defined signature or namespace identifier.
+    tag:       Array'u8     // Owned byte tag that identifies the record within `signature`.
+    value:     Array'u8     // Owned, codec-defined payload bytes.
 }
 
-impl ImageMetaData
+impl ImageMetadata
 {
     // Compares metadata lexicographically by signature, tag, then value.
-    mtd const opCompare(other: ImageMetaData)->s32
+    mtd const opCompare(other: ImageMetadata)->s32
     {
-        let sigCmp = .sig <=> other.sig
+        let sigCmp = .signature <=> other.signature
         if sigCmp do
             return sigCmp
 

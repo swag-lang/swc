@@ -20,18 +20,18 @@ func assertSha256(buffer: const [..] u8, e0, e1, e2, e3, e4, e5, e6, e7: u32)
     assertSha256Digest(Hash.Sha256.compute(buffer), e0, e1, e2, e3, e4, e5, e6, e7)
 
     var sha: Hash.Sha256
-    sha.init()
+    sha.reset()
     sha.update(buffer)
 
     var digest: Hash.Sha256.Digest
-    sha.final(digest)
+    digest = sha.finalize()
     assertSha256Digest(digest, e0, e1, e2, e3, e4, e5, e6, e7)
 
-    sha.init()
+    sha.reset()
     sha.update("")
     sha.update(buffer)
     sha.update("")
-    sha.final(digest)
+    digest = sha.finalize()
     assertSha256Digest(digest, e0, e1, e2, e3, e4, e5, e6, e7)
 }
 
@@ -68,13 +68,13 @@ func fillSha256Pattern(buffer: [..] u8)
     assertSha256(data[1 until 65], 0x5C6365B0'u32, 0x0593F37D'u32, 0x2827A1EB'u32, 0xE20E6240'u32, 0x762D398B'u32, 0xB414F1E1'u32, 0x5FF8694C'u32, 0xF9FD69B9'u32)
 
     var split: Hash.Sha256
-    split.init()
+    split.reset()
     split.update(data[until 1])
     split.update(data[1 until 55])
     split.update(data[55 until 64])
     split.update(data[64 until 128])
 
     var digest: Hash.Sha256.Digest
-    split.final(digest)
+    digest = split.finalize()
     assertSha256Digest(digest, 0x0AEDD485'u32, 0x6F8EBA09'u32, 0x63627336'u32, 0xAD5144A9'u32, 0xA7DBE124'u32, 0x98E6066F'u32, 0x0165FC97'u32, 0xD8DDEE4C'u32)
 }

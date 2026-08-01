@@ -253,7 +253,7 @@ impl RegExp
     }
 
     // Returns all the captured strings, in order
-    public mtd getCaptures()->Array'(string)
+    public mtd captures()->Array'(string)
     {
         var result: retval
         for v in .groups do
@@ -893,9 +893,9 @@ impl RegExp
     // Creates 2 new states, and one transition (by c) between them
     mtd nfaPush(c: rune)
     {
-        let table = .nfaTables.addNewPtr()
-        let s1    = .nfaNodes.addNewPtr()
-        let s2    = .nfaNodes.addNewPtr()
+        let table = .nfaTables.addNew()
+        let s1    = .nfaNodes.addNew()
+        let s2    = .nfaNodes.addNew()
 
         table.level = cast(u32) .openParen.count
         s1.addTransition(c, s2)
@@ -910,9 +910,9 @@ impl RegExp
 
     mtd nfaPushEmpty()
     {
-        let table = .nfaTables.addNewPtr()
-        let s1    = .nfaNodes.addNewPtr()
-        let s2    = .nfaNodes.addNewPtr()
+        let table = .nfaTables.addNew()
+        let s1    = .nfaNodes.addNew()
+        let s2    = .nfaNodes.addNew()
 
         table.level = cast(u32) .openParen.count
         s1.addTransition(0'rune, s2)
@@ -1054,9 +1054,9 @@ impl RegExp
         let s2    = table.nodes.back()
         if .tableHasGroup(table)
         {
-            let ns1 = .nfaNodes.addNewPtr()
-            let ns2 = .nfaNodes.addNewPtr()
-            let ns3 = .nfaNodes.addNewPtr()
+            let ns1 = .nfaNodes.addNew()
+            let ns2 = .nfaNodes.addNew()
+            let ns3 = .nfaNodes.addNew()
             ns1.addTransition(0'rune, s1)
             ns1.addTransition(0'rune, ns3)
             s2.addTransition(0'rune, ns2)
@@ -1091,8 +1091,8 @@ impl RegExp
         let s2    = table.nodes.back()
         if .tableHasGroup(table)
         {
-            let ns1 = .nfaNodes.addNewPtr()
-            let ns2 = .nfaNodes.addNewPtr()
+            let ns1 = .nfaNodes.addNew()
+            let ns2 = .nfaNodes.addNew()
             ns1.addTransition(0'rune, s1)
             ns1.addTransition(0'rune, ns2)
             s2.addTransition(0'rune, ns2)

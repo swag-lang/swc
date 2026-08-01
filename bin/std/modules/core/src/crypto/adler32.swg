@@ -3,10 +3,10 @@
 
 #global namespace Hash
 
-// Represents adler32.
+// Computes an Adler-32 checksum incrementally.
 public struct Adler32
 {
-    adler: u32 = 1     // Adler associated with this value.
+    internal currentValue: u32 = 1
 }
 
 public impl Adler32
@@ -14,17 +14,17 @@ public impl Adler32
     private const Base = 65521
     private const NMax = 5552
 
-    // Initialize the hashing sequence
-    mtd init()
+    // Resets the checksum to its initial Adler-32 value.
+    mtd reset()
     {
-        .adler = 1
+        @init(me, 1)
     }
 
-    // Update the hash value with 'buffer' content
+    // Includes `buffer` in the running checksum.
     mtd update(buffer: const [..] u8)
     {
-        var s1 = .adler & 0xFFFF
-        var s2 = (.adler >> 16) & 0xFFFF
+        var s1 = .currentValue & 0xFFFF
+        var s2 = (.currentValue >> 16) & 0xFFFF
 
         let countof = @countof(buffer)
         if !countof do
@@ -99,16 +99,19 @@ public impl Adler32
             }
         }
 
-        .adler = s1 | (s2 << 16)
+        .currentValue = s1 | (s2 << 16)
     }
 
-    // Returns the adler32 hash value for the given buffer
+    // Returns the checksum accumulated since construction or the latest [[reset]].
+    mtd value() => .currentValue
+
+    // Computes the Adler-32 checksum of `buffer` in one operation.
     #[Swag.ConstExpr]
     func compute(buffer: const [..] u8)->u32
     {
         var v: Adler32
-        v.init()
+        v.reset()
         v.update(buffer)
-        return v.adler
+        return v.value()
     }
 }

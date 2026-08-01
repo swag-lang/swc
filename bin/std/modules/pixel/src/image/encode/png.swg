@@ -123,7 +123,7 @@ private
 //
 // The encoder is opaque; use [[Png.EncodeOptions]] to configure output.
 #[Swag.Opaque]
-public struct Encoder
+internal struct Encoder
 {
     // Encoding state: the chunk being written, the scanline filter windows, and the
     // interlacing passes. Encode through the module entry points; none of this is a knob.
@@ -189,10 +189,10 @@ impl Encoder
         Memory.copy(&.currentChunk.type, chunkType, 4)
         .writeData(.currentChunk.type, 4)
 
-        .crc.init()
+        .crc.reset()
         .crc.update(null)
         .crc.update(chunkType)
-        .currentChunk.crc = .crc.crc
+        .currentChunk.crc = .crc.value()
 
         return stream.reserveInPlace(chunkLength)
     }
@@ -200,7 +200,7 @@ impl Encoder
     mtd finishChunk()
     {
         .crc.update(@mkslice(.writePtr, .currentChunk.length))
-        .currentChunk.crc = .crc.crc
+        .currentChunk.crc = .crc.value()
         .writeU32(.currentChunk.crc)
     }
 
@@ -227,9 +227,9 @@ impl Encoder
         .writeChunk(TypeIHdr, dst, 13)
     }
 
-    mtd writeMetaDatas(image: Image) fail
+    mtd writeMetadata(image: Image) fail
     {
-        for md in image.metaDatas
+        for md in image.metadata
         {
             if !md.tag.count or !md.value.count do
                 continue
@@ -250,11 +250,11 @@ public struct EncodeOptions
     interlace        = false                                         // Encode seven-pass Adam7 interlacing.
 }
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".png"
+        return Path.lowercaseExtension(fileName) == ".png"
     }
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
@@ -268,12 +268,12 @@ public impl IImageEncoder for Encoder
         }
 
         // unsupported pixel format
-        if image.pf.channels() < 3 or image.pf.bitDepth() != 8 do
+        if image.pixelFormat.channels() < 3 or image.pixelFormat.bitDepth() != 8 do
             fail UnsupportedFormatError{"unsupported pixel format"}
         if image.width == 0 or image.height == 0 do
             fail UnsupportedFormatError{"unsupported size"}
 
-        .swapRB = image.pf == .BGR8 or image.pf == .BGRA8
+        .swapRB = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
 
         .stream = result
 
@@ -283,11 +283,11 @@ public impl IImageEncoder for Encoder
         .ihdr.bitDepth        = 8
         .ihdr.colorType       = .Color
         .ihdr.interlaceMethod = .userOptions.interlace ? 1 : 0
-        if image.bpp == 32 do
+        if image.bitsPerPixel == 32 do
             .ihdr.colorType |= .Alpha
 
         .writeChunksBeforeIDat()
-        .writeMetaDatas(image)
+        .writeMetadata(image)
         .calculateSubImages()
 
         .bytesPerPixel = .numChannels() * (.ihdr.bitDepth / 8)
@@ -305,7 +305,7 @@ public impl IImageEncoder for Encoder
         .prevScanline     = .prevScanlineBuf + 16
         .filteredScanline = .filteredScanlineBuf + 16
 
-        .pixelSize                = image.bpp8
+        .pixelSize                = image.bytesPerPixel
         .encodeFlags.filterChoice = .Disabled
         if .userOptions.filtering and .userOptions.compressionLevel != .NoCompression do
             .encodeFlags.filterChoice = .All
@@ -313,7 +313,7 @@ public impl IImageEncoder for Encoder
         let srcPixels = cast([*] u8) (notnull image.pixels.buffer)
         for
         {
-            let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bpp8
+            let ioffset = (image.height - .rowInfo.rowNum - 1) * image.width * image.bytesPerPixel
             if .encodeRow(srcPixels + ioffset) do
                 break
         }

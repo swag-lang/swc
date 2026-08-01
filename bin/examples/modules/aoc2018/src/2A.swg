@@ -28,7 +28,7 @@ using Core
 
 func day2A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "2.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "2.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var total2, total3 = 0
@@ -37,7 +37,7 @@ func day2A()
         var count: [26] s32
         for #Bytes c in l do
             count[c - 'a'] += 1
-        Slice.sort(count[to], bigFirst: true)
+        Slice.sort(count[to], descending: true)
         switch
         {
         case count[0] == 3 and count[1] == 2:

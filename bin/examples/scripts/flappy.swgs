@@ -204,7 +204,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        g_Rect = wnd.getClientRect()
+        g_Rect = wnd.clientRect()
 
         // 'loadAssets' can fail. 'expect' converts that recoverable error into a
         // panic because the game cannot continue without its assets.
@@ -213,13 +213,13 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         start()
 
     case ResizeEvent:
-        g_Rect = wnd.getClientRect()
+        g_Rect = wnd.clientRect()
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
 
         // Elapsed time since the previous frame, in seconds.
-        g_Dt = wnd.getApp().getDt()
+        g_Dt = wnd.app().deltaSeconds()
 
         input(wnd)
         paint(painter)
@@ -247,7 +247,7 @@ func paint(painter: *Painter)
         painter.pushState()
         defer painter.popState()
 
-        let trf = painter.getTransform()
+        let trf = painter.transform()
 
         painter.resetTransform()
         let speed = Math.clamp(g_Bird.speed.y, -200, 200)
@@ -319,7 +319,7 @@ Read keyboard input for the current frame.
 */
 func input(wnd: *Wnd)
 {
-    let kb = wnd.getApp().getKeyboard()
+    let kb = wnd.app().keyboardRef()
 
     if g_GameOver or g_FirstStart
     {
@@ -350,7 +350,7 @@ func birdInRect(rect: Math.Rectangle)->bool
     rectBird.y      = g_Bird.pos.y - g_BirdTexture[0].height / 2
     rectBird.width  = g_BirdTexture[0].width
     rectBird.height = g_BirdTexture[0].height
-    return rect.intersectWith(rectBird)
+    return rect.intersects(rectBird)
 }
 
 /**
@@ -469,9 +469,9 @@ the final error into a panic with 'expect'.
 */
 func loadAssets(wnd: *Wnd) fail
 {
-    let render = &wnd.getApp().renderer
+    let render = &wnd.app().renderer
 
-    var dataPath: String = Path.getDirectoryName(#curlocation.fileName)
+    var dataPath: String = Path.directoryName(#curlocation.fileName)
     dataPath = Path.combine(dataPath, "datas")
     dataPath = Path.combine(dataPath, "flappy")
 

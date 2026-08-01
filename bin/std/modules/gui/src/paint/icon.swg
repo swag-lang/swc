@@ -1,8 +1,10 @@
 #global public
 
-using Pixel
+using Core, Pixel
 
-// Represents icon.
+// Describes one frame of an [[Gui.ImageList]] and its logical draw size.
+//
+// The image list remains owned by the caller and must outlive this borrowed descriptor.
 struct Icon
 {
     imageList: #null *ImageList     // Image list associated with this value.
@@ -14,33 +16,35 @@ struct Icon
 
 impl Icon
 {
-    // Returns whether valid.
+    // Reports whether the icon refers to a valid atlas frame.
     #[Swag.Inline]
     mtd const isValid() => .imageList != null
 
-    // Set icon to invalid
+    // Restores an invalid icon with the default draw size.
     mtd clear()
     {
-        .imageList = null
+        @init(me, 1)
     }
 
-    // Initialize the icon from an image list
-    func from(imageList: *ImageList, index: s32, sizeX, sizeY: f32 = 0)->Icon
+    // Creates a borrowed icon descriptor for one atlas frame.
+    func from(imageList: *ImageList, index: s32, width = 0'f32, height = 0'f32)->Icon
     {
         var result: retval
-        let sx = sizeX != 0 ? sizeX : cast(f32) imageList.frameSizeX
-        let sy = sizeY != 0 ? sizeY : cast(f32) imageList.frameSizeY
-        result.set(imageList, index, sx, sy)
+        result.set(imageList, index, width, height)
         return result
     }
 
-    // Initialize the icon from an image list
-    mtd set(imageList: #null *ImageList, index: s32, sizeX, sizeY: f32 = 0)
+    // Replaces the referenced frame and logical draw size.
+    mtd set(imageList: *ImageList, index: s32, width = 0'f32, height = 0'f32)
     {
+        Debug.assert(imageList.isValid(), "image list is invalid")
+        Debug.assert(index >= 0 and index < imageList.frameCount, "icon frame index is out of range")
+        Debug.assert(width >= 0 and height >= 0, "icon size cannot be negative")
+
         .imageList = imageList
         .index     = index
-        let sx = sizeX != 0 ? sizeX : cast(f32) (notnull imageList).frameSizeX
-        let sy = sizeY != 0 ? sizeY : cast(f32) (notnull imageList).frameSizeY
+        let sx = width != 0 ? width : cast(f32) imageList.frameWidth
+        let sy = height != 0 ? height : cast(f32) imageList.frameHeight
         .sizeX = sx
         .sizeY = sy
     }
@@ -48,23 +52,23 @@ impl Icon
     // Paint icon at the given position
     mtd const paint(painter: *Painter, x, y: f32, color: Color = Argb.White)
     {
-        if !.imageList or !.imageList.totalFrames do
+        if !.imageList or !.imageList.isValid() do
             return
 
-        let idx  = .index % .imageList.totalFrames
-        var srcX = idx % .imageList.countX()
-        var srcY = idx / .imageList.countX()
+        let idx  = .index
+        var srcX = idx % .imageList.columnCount()
+        var srcY = idx / .imageList.columnCount()
 
-        srcX *= .imageList.frameSizeX
-        srcY *= .imageList.frameSizeY
+        srcX *= .imageList.frameWidth
+        srcY *= .imageList.frameHeight
 
-        let oldInterpol = painter.getInterpolationMode()
-        if .sizeX == .imageList.frameSizeX and .sizeY == .imageList.frameSizeY do
+        let oldInterpol = painter.interpolationMode()
+        if .sizeX == .imageList.frameWidth and .sizeY == .imageList.frameHeight do
             painter.setInterpolationMode(InterpolationMode.Pixel)
         else do
             painter.setInterpolationMode(InterpolationMode.Linear)
         defer painter.setInterpolationMode(oldInterpol)
 
-        painter.drawTexture({x, y, .sizeX, .sizeY}, {srcX, srcY, .imageList.frameSizeX, .imageList.frameSizeY}, .imageList.texture, color)
+        painter.drawTexture({x, y, .sizeX, .sizeY}, {srcX, srcY, .imageList.frameWidth, .imageList.frameHeight}, .imageList.texture, color)
     }
 }

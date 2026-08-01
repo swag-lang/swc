@@ -8,14 +8,14 @@ func createCheckButtonPage(parent: *Wnd)
         discard CheckButton.create(left, "Unchecked", {24, 90, 180})
 
         var check = CheckButton.create(left, "Checked", {24, 128, 180})
-        check.checked = .Checked
+        check.setState(.Checked)
 
         check                  = CheckButton.create(left, "Undefined", {24, 166, 180})
-        check.checkButtonFlags |= .ThreeState
-        check.checked          = .Undefined
+        check.updateFlags(.TriState)
+        check.setState(.Indeterminate)
 
         check         = CheckButton.create(left, "Disabled checked", {240, 90, 200})
-        check.checked = .Checked
+        check.setState(.Checked)
         check.disable()
 
         check = CheckButton.create(left, "Disabled", {240, 128, 200})
@@ -25,15 +25,15 @@ func createCheckButtonPage(parent: *Wnd)
     let right = createPanel(parent, "Alignment", "Right aligned boxes are useful inside property grids and inspector rows.", layout.right)
     {
         var check = CheckButton.create(right, "Box on the right", {24, 90, 250})
-        check.checkButtonFlags |= .RightAlign
+        check.updateFlags(.RightAligned)
 
         check                  = CheckButton.create(right, "Checked on the right", {24, 128, 250})
-        check.checkButtonFlags |= .RightAlign
-        check.checked          = .Checked
+        check.updateFlags(.RightAligned)
+        check.setState(.Checked)
 
         check                  = CheckButton.create(right, "Three-state right", {24, 166, 250})
-        check.checkButtonFlags |= .RightAlign | .ThreeState
-        check.checked          = .Undefined
+        check.updateFlags(.RightAligned | .TriState)
+        check.setState(.Indeterminate)
     }
 
     let bottom = createPanel(parent, "Interaction", "Click any option to update the feedback label and exercise signals.", layout.bottom)
@@ -44,12 +44,12 @@ func createCheckButtonPage(parent: *Wnd)
         grid.sigChanged += func|status|(btn) { status.setText(btn.isChecked() ? "Grid snapping enabled" : "Grid snapping disabled") }
 
         let guides = CheckButton.create(bottom, "Smart guides", {260, 94, 210})
-        guides.checked    = .Checked
+        guides.setState(.Checked)
         guides.sigChanged += func|status|(btn) { status.setText(btn.isChecked() ? "Smart guides enabled" : "Smart guides disabled") }
 
         let mixed = CheckButton.create(bottom, "Mixed selection", {496, 94, 210})
-        mixed.checkButtonFlags |= .ThreeState
-        mixed.checked          = .Undefined
-        mixed.sigChanged       += func|status|(btn) { status.setText(btn.isUndefined() ? "Selection is mixed" : "Selection is explicit") }
+        mixed.updateFlags(.TriState)
+        mixed.setState(.Indeterminate)
+        mixed.sigChanged += func|status|(btn) { status.setText(btn.isIndeterminate() ? "Selection is mixed" : "Selection is explicit") }
     }
 }

@@ -278,12 +278,5 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
         }
     }
 
-    safeSlot.bitmap.rows      = rows
-    safeSlot.bitmap.width     = width
-    safeSlot.bitmap.pitch     = cast(s32) width
-    safeSlot.bitmap.buffer    = bitmapBuffer
-    safeSlot.bitmap.pixelMode = .Gray
-    safeSlot.bitmap.grayCount = 256
-    safeSlot.bitmapLeft       = left
-    safeSlot.bitmapTop        = top
+    safeSlot.setBitmap(rows, width, cast(s32) width, bitmapBuffer, .Gray, left, top)
 }

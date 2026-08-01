@@ -23,10 +23,13 @@ public impl Image
 {
     private var encoders: Array'ImageEncoder
 
-    // Register an image encoder
-    func(T) addEncoder()
+    // Registers an encoder type unless it is already present.
+    func(T) registerEncoder()
     {
         #assert(Reflection.hasInterface(#typeof(T), IImageEncoder))
+
+        for &encoder in encoders where encoder.type == #typeof(T) do
+            return
 
         var encoder: ImageEncoder = undefined
         encoder.type = #typeof(T)
@@ -46,8 +49,10 @@ public impl Image
         return false
     }
 
-    // Save the image to a file
-    mtd save(fileName: string, options: #null any = null) fail
+    // Encodes the image to an owned segmented memory buffer.
+    //
+    // `fileName` selects the encoder by extension; no file is opened.
+    mtd const encode(fileName: string, options: #null any = null)->ConcatBuffer fail
     {
         Debug.assert(.pixels.buffer != null, "image is invalid")
 
@@ -77,8 +82,15 @@ public impl Image
 
         // Encode
         let itf = @mkinterface(ptrEncoder, safeFound.type, IImageEncoder)
-        var result: ConcatBuffer
+        var result: retval
         itf.encode(&result, me, options)
+        return result
+    }
+
+    // Encodes the image and writes it to `fileName`.
+    mtd const save(fileName: string, options: #null any = null) fail
+    {
+        var result = try .encode(fileName, options)
         File.writeAllBytes(fileName, result)
     }
 }
@@ -86,12 +98,12 @@ public impl Image
 // Initialize predefined encoders
 #init
 {
-    Image.addEncoder'(Bmp.Encoder)()
-    Image.addEncoder'(Tga.Encoder)()
-    Image.addEncoder'(Jpg.Encoder)()
-    Image.addEncoder'(Png.Encoder)()
-    Image.addEncoder'(Gif.Encoder)()
-    Image.addEncoder'(Tiff.Encoder)()
-    Image.addEncoder'(Ico.Encoder)()
-    Image.addEncoder'(Webp.Encoder)()
+    Image.registerEncoder'(Bmp.Encoder)()
+    Image.registerEncoder'(Tga.Encoder)()
+    Image.registerEncoder'(Jpg.Encoder)()
+    Image.registerEncoder'(Png.Encoder)()
+    Image.registerEncoder'(Gif.Encoder)()
+    Image.registerEncoder'(Tiff.Encoder)()
+    Image.registerEncoder'(Ico.Encoder)()
+    Image.registerEncoder'(Webp.Encoder)()
 }

@@ -57,7 +57,7 @@ internal var total = Swag.S32.Max
 
 func day3A0()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     func trace(idx: s32, line: string)
@@ -112,7 +112,7 @@ func day3A0()
 /////////////////////////////////////////////////////////////////
 func day3A1()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#curlocation.fileName), "3.txt")
+    let dataPath = Path.combine(Path.directoryName(#curlocation.fileName), "3.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     func trace(line: string)->Array'Vector2
@@ -145,10 +145,10 @@ func day3A1()
     {
         for [j] in t0.count - 1
         {
-            let {yes, pos} = Geometry.segSegIntersect(t1[i], t1[i + 1], t0[j], t0[j + 1])
-            if yes and !pos.isZero()
+            let {intersects, point} = Geometry.intersectSegments(t1[i], t1[i + 1], t0[j], t0[j + 1])
+            if intersects and !point.isZero()
             {
-                let d = Math.abs(pos.x) + Math.abs(pos.y)
+                let d = Math.abs(point.x) + Math.abs(point.y)
                 best = Math.min(best, cast(s32) d)
             }
         }

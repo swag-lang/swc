@@ -15,7 +15,7 @@ func day9B()
 {
     // Time.Stopwatch.scopeMeasure()
 
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "9.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "9.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var r = expect Parser.RegExp.create(#raw "(\w+) to (\w+) = (\d+)")

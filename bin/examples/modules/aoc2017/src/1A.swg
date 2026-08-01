@@ -25,7 +25,7 @@ using Core
 
 func day1A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "1.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "1.txt")
     let text     = expect File.readAllText(dataPath)
 
     var total = 0

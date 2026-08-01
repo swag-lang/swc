@@ -24,28 +24,28 @@ impl IActionUI for ActionCopyPaste
         switch cxt.id
         {
         case .Copy:
-            evt.setFlags |= .Disabled | .Name | .Icon
+            evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled = !hasSel
             evt.name     = "Copy"
-            evt.icon     = main.getTheme().getIcon24(.Copy)
+            evt.icon     = main.theme().icon24(.Copy)
 
         case .Cut:
-            evt.setFlags |= .Disabled | .Name | .Icon
+            evt.updatedFields |= .Disabled | .Name | .Icon
             evt.disabled = !hasSel
             evt.name     = "Cut"
-            evt.icon     = main.getTheme().getIcon24(.Cut)
+            evt.icon     = main.theme().icon24(.Cut)
 
         case .Paste:
-            evt.setFlags |= .Disabled | .Name | .Icon
+            evt.updatedFields |= .Disabled | .Name | .Icon
             if !capture do
                 evt.disabled = true
             elif !Clipboard.hasTypedValue(#typeof(CaptureClipboardForms)) and !Clipboard.hasImage() do
                 evt.disabled = true
             evt.name         = "Paste"
-            evt.icon         = main.getTheme().getIcon24(.Paste)
+            evt.icon         = main.theme().icon24(.Paste)
 
         case .PasteImageInside:
-            evt.setFlags             |= .Disabled | .Name | .Hidden
+            evt.updatedFields             |= .Disabled | .Name | .Hidden
             evt.disabled, evt.hidden = true
             evt.name                 = "Paste Inside Image"
 
@@ -70,7 +70,7 @@ impl IActionUI for ActionCopyPaste
             }
 
         case .CopyAsImage:
-            evt.setFlags |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name
             evt.disabled = !capture
             evt.name     = "Copy Image to Clipboard"
         }

@@ -147,8 +147,8 @@ impl MainWnd
                     pt.y = cast(f32) (capture.backImg.height - y1) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)
                     {
-                        var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bpp8
-                        pix32     += y1 * undo.newImg.width * undo.newImg.bpp8
+                        var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
+                        pix32     += y1 * undo.newImg.width * undo.newImg.bytesPerPixel
                         col1.argb = dref cast(*u32) notnull pix32
                         break
                     }
@@ -164,8 +164,8 @@ impl MainWnd
                     pt.y = cast(f32) (capture.backImg.height - y2) + capture.backImagePos.y
                     if br.contains(pt) and f.isInside(pt)
                     {
-                        var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bpp8
-                        pix32     += y2 * undo.newImg.width * undo.newImg.bpp8
+                        var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
+                        pix32     += y2 * undo.newImg.width * undo.newImg.bytesPerPixel
                         col2.argb = dref cast(*u32) notnull pix32
                         break
                     }
@@ -211,15 +211,15 @@ impl MainWnd
                             yy = pmask.height - yy
                             if xx < pmask.width and yy < pmask.height
                             {
-                                var pix1 = (notnull pmask.pixels.buffer) + xx * pmask.bpp8
-                                pix1                         += yy * pmask.width * pmask.bpp8
+                                var pix1 = (notnull pmask.pixels.buffer) + xx * pmask.bytesPerPixel
+                                pix1                         += yy * pmask.width * pmask.bytesPerPixel
                                 dref cast(*u32) notnull pix1 = 0xFFFFFFFF
                             }
                         }
 
                         var fVert = (y - y1) / cast(f32) (y2 - y1)
                         fVert = Math.clamp(fVert, 0, 1)
-                        let col = Color.getBlend(col1, col2, fVert)
+                        let col = Color.lerp(col1, col2, fVert)
                         dref cast(*u32) pix = col.argb
                     }
 

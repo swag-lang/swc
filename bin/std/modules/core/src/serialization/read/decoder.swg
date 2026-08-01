@@ -7,7 +7,7 @@ using Swag, Core.Errors
 interface IDecoder
 {
     // Returns version.
-    mtd getVersion()->u32
+    mtd version()->u32
 
     // Returns whether textual.
     mtd isTextual()->bool
@@ -77,13 +77,13 @@ interface IDecoder
 #[Swag.EnumFlags]
 enum DecoderFlags
 {
-    Zero                       // No flags are enabled.
+    None = 0                   // No optional decoding behavior.
     IgnoreStructFieldError     // Enables ignore struct field error.
 }
 
 /*
 Serialization decoder.
-This is a high level decoder that needs a specific implementation like [[Core.Serialization.Read.TagBin]] or [[Core.Serialization.Read.JSon]].
+This is a high level decoder that needs a specific implementation like [[Core.Serialization.Read.TagBin]] or [[Core.Serialization.Read.Json]].
 
 ```swag
 var res = File.readAllBytes(file)
@@ -94,14 +94,14 @@ let myStruct = catch decoder.readAll'MyStruct(res.toSlice())
 struct(T) Decoder
 {
     serializer: T                       // Serializer associated with this value.
-    flags:      DecoderFlags = Zero     // Flags associated with this value.
+    flags:      DecoderFlags = None     // Optional decoding behavior.
 }
 
 impl Decoder
 {
     mtd inferStructTypeForInterface(itfType: typeinfo, fieldCrcs: const [..] u32)->#null typeinfo
     {
-        return Reflection.inferTypeWithInterfaceFields(itfType, fieldCrcs)
+        return Reflection.inferInterfaceImplementation(itfType, fieldCrcs)
     }
 
     mtd readTypeValue(typedVal: TypeValue, data: #null [*] void) fail
@@ -119,8 +119,8 @@ impl Decoder
     {
         if !dataType do
             fail SerializationError{"missing data type"}
-        var type = Reflection.makeConcreteAlias(dataType orelse #typeof(u8))
-        type = Reflection.makeConcreteEnum(type)
+        var type = Reflection.resolveAliases(dataType orelse #typeof(u8))
+        type = Reflection.enumUnderlyingType(type)
 
         .serializer.beginValue()
         defer #nofail .serializer.endValue()
@@ -150,7 +150,7 @@ impl Decoder
         if Reflection.isType(type)
         {
             let crc      = .serializer.readNative'u32()
-            let typeType = Reflection.crcToType(crc)
+            let typeType = Reflection.typeFromCrc(crc)
             dref cast(*#null typeinfo) data = typeType
             return
         }
@@ -171,10 +171,10 @@ impl Decoder
                 let objCrc = .serializer.readNative'u32()
                 if objCrc == 0 do
                     return
-                objType = Reflection.crcToType(objCrc)
+                objType = Reflection.typeFromCrc(objCrc)
 
                 let itfCrc = .serializer.readNative'u32()
-                itfType = Reflection.crcToType(itfCrc) orelse type
+                itfType = Reflection.typeFromCrc(itfCrc) orelse type
 
                 if !objType
                 {
@@ -219,7 +219,7 @@ impl Decoder
             }
 
             // Core.Array
-            let valueType = Reflection.getStructArrayType(type)
+            let valueType = Reflection.dynamicArrayElementType(type)
             if valueType
             {
                 let safeValueType = valueType
@@ -229,10 +229,10 @@ impl Decoder
 
                 if !treated
                 {
-                    Reflection.clearStructArray(data, safeValueType)
+                    Reflection.clearDynamicArray(data, safeValueType)
                     while .serializer.toNextSequenceElement(&count)
                     {
-                        let bufArr = Reflection.appendValueStructArray(data, safeValueType, defaultInitSlot: false)
+                        let bufArr = Reflection.appendDynamicArrayElement(data, safeValueType, initialize: false)
                         .readTypedContent(notnull bufArr, safeValueType)
                     }
                 }
@@ -392,9 +392,9 @@ impl IDecoder for Decoder
     }
 
     // Returns version.
-    mtd impl getVersion()->u32
+    mtd impl version()->u32
     {
-        return .serializer.getVersion()
+        return .serializer.version()
     }
 
     // Returns whether textual.

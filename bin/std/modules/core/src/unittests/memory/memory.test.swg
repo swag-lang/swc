@@ -19,7 +19,7 @@ func assertBytesEqual(lhs, rhs: const [..] u8)->bool
 
 func pushAllocatorAcceptsNull()->bool
 {
-    Memory.pushAllocator(null)
+    Memory.withAllocator(null)
     {
         return @getcontext().allocator == null
     }
@@ -43,7 +43,7 @@ func pushAllocatorAcceptsNull()->bool
     Memory.clear(@dataof(dst), #sizeof(dst))
     let zeroed: [4] u8 = [0, 0, 0, 0]
     @assert(assertBytesEqual(dst, zeroed))
-    @assert(Memory.equals(&dst, &zeroed))
+    @assert(Memory.bytesEqual(&dst, &zeroed))
 }
 
 #test

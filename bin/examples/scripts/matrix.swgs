@@ -20,7 +20,7 @@ struct C
 
 var g_RD:   [MaxColumns] C
 var g_Font: #null *Font
-var g_Rng:  Random.Rng
+var g_Rng:  Random.Generator
 
 func initC(i: s32)
 {
@@ -36,13 +36,13 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        g_Font = wnd.getTheme().createDefaultFont(FontSize)
+        g_Font = wnd.theme().createDefaultFont(FontSize)
         for [i] in MaxColumns do
             initC(i)
 
     case PaintEvent as paintEvt:
         let painter = paintEvt.bc.painter
-        let rect    = wnd.getClientRect()
+        let rect    = wnd.clientRect()
 
         painter.fillRect(rect, Argb.Black)
 
@@ -80,9 +80,9 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 // First rune is white, the rest blends to black
                 var color: Color = undefined
                 if j == 0 do
-                    color = Color.getBlend(Argb.Green, Argb.White, 0.5)
+                    color = Color.lerp(Argb.Green, Argb.White, 0.5)
                 else do
-                    color = Color.getBlend(Argb.Green, Argb.Black, j / cast(f32) g_RD[i].length)
+                    color = Color.lerp(Argb.Green, Argb.Black, j / cast(f32) g_RD[i].length)
 
                 y = yi * FontSize
 
@@ -91,7 +91,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 painter.drawString(x, y, str, notnull g_Font, color)
             }
 
-            g_RD[i].y += g_RD[i].speed * wnd.getApp().getDt()
+            g_RD[i].y += g_RD[i].speed * wnd.app().deltaSeconds()
 
             // If the full trail is outside the window, randomize a new one
             if g_RD[i].y - (g_RD[i].length * FontSize) > rect.bottom() + FontSize do

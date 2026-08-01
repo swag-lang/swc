@@ -77,7 +77,7 @@ func onEditMulti(_b: *Button)
 func onFileOpen(_b: *Button)
 {
     var opt: FileDlgOptions
-    opt.mode = .SelectOneFile
+    opt.mode = .SelectFile
     opt.filters.add({"All files", ""})
     opt.filters.add({"Images", ".png;.jpg;.bmp"})
     discard FileDlg.create(notnull g_Surface, opt).doModal()
@@ -87,7 +87,7 @@ func onFileSave(_b: *Button)
 {
     var opt: FileDlgOptions
     opt.mode      = .CreateFile
-    opt.btnOkName = "Save"
+    opt.confirmButtonText = "Save"
     opt.filters.add({"Text", ".txt"})
     discard FileDlg.create(notnull g_Surface, opt).doModal()
 }
@@ -111,7 +111,7 @@ func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 
 func createRootView()
 {
-    let view = (notnull g_Surface).getView()
+    let view = (notnull g_Surface).view()
     g_View               = view
     view.backgroundStyle = .View
 
@@ -120,9 +120,8 @@ func createRootView()
     {
         .dockStyle         = .Top
         .margin            = {16, 12, 16, 0}
-        .horzAlignmentText = .Left
-        .vertAlignmentText = .Center
-        .style.setFont(view.getTheme().createDefaultFont(24), .Regular)
+        .setTextAlignment(.Left, .Center)
+        .style.setFont(view.theme().createDefaultFont(24), .Regular)
     }
 
     // Content area below the title.
@@ -134,8 +133,8 @@ func createRootView()
     g_StartDir = Env.getSpecialDirectory(.UserDocuments)
 
     var opt: FileDlgOptions
-    opt.mode       = .SelectOneFile
-    opt.openFolder = g_StartDir.toString()
+    opt.mode       = .SelectFile
+    opt.initialFolder = g_StartDir.toString()
     opt.filters.add({"All files", ""})
     opt.filters.add({"Text", ".txt"})
     opt.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
@@ -190,7 +189,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    let flags   = SurfaceFlags.BigCaption | SurfaceFlags.MinimizeBtn | SurfaceFlags.CloseBtn | SurfaceFlags.Border | SurfaceFlags.Sizeable
+    let flags   = SurfaceFlags.LargeCaption | SurfaceFlags.MinimizeButton | SurfaceFlags.CloseButton | SurfaceFlags.Border | SurfaceFlags.Resizable
     let surface = notnull (try app.createSurface(120, 90, W - 46, H - 31, flags))
     g_Surface = surface
     surface.setTitle("GUI9 dialogs showcase")
@@ -201,7 +200,7 @@ func onRootEvent(_view: *Wnd, evt: IEvent)->bool
 
     // In automated test mode we just exercise the composite/build and exit;
     // the modal dialogs require interaction so they are not auto-opened.
-    if Env.hasArg("swag.test") do
+    if Env.hasArgument("swag.test") do
         app.maxRunFrame = 30
 
     surface.show()

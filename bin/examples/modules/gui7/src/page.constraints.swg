@@ -6,9 +6,8 @@ func createDockLabel(parent: *Wnd, title, text: string, dock: DockStyle, size: M
     label.backgroundStyle   = .Window
     label.dockStyle         = dock
     label.margin            = margin
-    label.paddingText       = {12, 8, 12, 8}
-    label.horzAlignmentText = .Left
-    label.vertAlignmentText = .Top
+    label.setTextPadding({12, 8, 12, 8})
+    label.setTextAlignment(.Left, .Top)
     return label
 }
 
@@ -54,10 +53,10 @@ func createConstraintsPage(parent: *Wnd)
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)
     let action  = PushButton.create(center, "Anchored action", {actionX, actionY, 170, 34})
-    action.icon        = app.theme.getIcon24(.Link, 18)
-    action.anchorStyle = .X | .Y
+    action.setIcon(app.theme.icon24(.Link, 18))
+    action.anchorStyle = .Right | .Bottom
 
-    let stretch = Label.create(center, "Anchored width + height", {14, 100, Math.max(center.position.width - 220, 160.0), Math.max(center.position.height - 168, 40.0)}, null, .WordWrap | .LightText)
+    let stretch = Label.create(center, "Anchored width + height", {14, 100, Math.max(center.position.width - 220, 160.0), Math.max(center.position.height - 168, 40.0)}, null, .WordWrap | .SecondaryText)
     stretch.anchorStyle = .Width | .Height
     stretch.setText("This label grows with the center pane and keeps its top-left origin.")
 

@@ -42,7 +42,7 @@ impl IForm for FormPolygon
 
     mtd impl edit(evt: *MouseEvent, movingStart: Math.Point, localPos: Math.Point, zoom: f32)->bool
     {
-        if evt.kind == .MouseDoubleClick and evt.button == .Left
+        if evt.kind == .DoubleClick and evt.button == .Left
         {
             if .points.count > 3 do
                 .points.removeBack()
@@ -59,7 +59,7 @@ impl IForm for FormPolygon
             .points.add({xs, ys})
             .points.add({x0, y0})
         }
-        elif evt.kind == .MouseReleased and evt.button == .Left
+        elif evt.kind == .Released and evt.button == .Left
         {
             .points.add({x0, y0})
         }
@@ -124,7 +124,7 @@ impl IForm for FormPolygon
 
     mtd impl isInside(pt: Math.Point)->bool
     {
-        return Math.Geometry.polyContains(.points, {pt.x, pt.y})
+        return Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
     }
 
     mtd impl hitTest(pt: Math.Point, z: f32)->bool

@@ -10,12 +10,12 @@ struct AutoEdit
     text:  String     // Text associated with this value.
 }
 
-// Selects auto stage kind.
+// Selects one action performed by the deterministic modal UI driver.
 enum AutoStageKind
 {
-    ModalButton      // fill the file browser/edits if any, then click a modal button
-    PopupSubMenu     // open a submenu of the captured popup menu by label
-    PopupItem        // click an item of the captured popup menu by id
+    ModalButton      // Fills staged inputs, then activates a modal button.
+    PopupSubMenu     // Opens a submenu by label.
+    PopupItem        // Activates a popup item by identifier.
 }
 
 // One step of the auto UI driver (see clickModalButtonWhenShown and friends).
@@ -29,7 +29,7 @@ struct AutoStage
     button: WndId         = undefined       // Button associated with this value.
 }
 
-// Represents headless host.
+// Hosts deterministic GUI trees, input, timers, modal dialogs, and rendering without an OS window.
 struct HeadlessHost
 {
     app:        Application     // App associated with this value.
@@ -56,7 +56,7 @@ struct HeadlessHost
 
 impl HeadlessHost
 {
-    // Performs the setup operation.
+    // Initializes a headless application, theme, surface, and root window of the requested size.
     mtd setup(width, height: f32)
     {
         // The OS clipboard is machine-global: another process can hold or rewrite it at
@@ -102,7 +102,7 @@ impl HeadlessHost
         .surface.wnd              = &.surfaceWnd
     }
 
-    // Performs the shutdown operation.
+    // Destroys the hosted window tree, drains queued work, and restores the system clipboard backend.
     mtd shutdown()
     {
         if !.root.isPendingDestroy do
@@ -225,8 +225,8 @@ impl HeadlessHost
     {
         .armAutoDriver(maxFrames)
         let stage = .addAutoStage(.ModalButton, button)
-        stage.folder = Path.getDirectoryName(fileName) orelse ""
-        stage.file   = Path.getFileName(fileName) orelse fileName
+        stage.folder = Path.directoryName(fileName) orelse ""
+        stage.file   = Path.fileName(fileName) orelse fileName
     }
 
     // Arms the auto UI driver to click item 'id' of the captured popup menu as soon
@@ -281,14 +281,14 @@ impl HeadlessHost
         edit.text  = text
     }
 
-    // Performs the close operation.
+    // Marks the host closed and queues destruction of its root window.
     mtd close()
     {
         .closed = true
         .root.destroy()
     }
 
-    // Performs the record commands operation.
+    // Records command count and the most recent identifier at the root event boundary.
     mtd recordCommands()
     {
         .root.hookOnEvent = func|host = me|(wnd, evt)
@@ -306,7 +306,7 @@ impl HeadlessHost
         }
     }
 
-    // Performs the close on command operation.
+    // Records commands and closes the host when `cmdId` reaches the root.
     mtd closeOnCommand(cmdId: WndId)
     {
         .root.hookOnEvent = func|host = me, cmdId|(wnd, evt)
@@ -328,23 +328,23 @@ impl HeadlessHost
         }
     }
 
-    // Performs the wnd at operation.
+    // Returns the deepest visible window at a screen position, including surface borders.
     mtd wndAt(pt: Math.Point)->#null *Wnd
     {
-        let surface = .app.getSurfaceAt(pt.x, pt.y)
+        let surface = .app.surfaceAt(pt.x, pt.y)
         if surface
         {
             var surfacePt = pt
             surface.screenToSurface(&surfacePt)
-            if !surface.isMaximized and surface.wnd.hitTestBorders(surfacePt) != SizingBorder.Zero do
+            if !surface.isMaximized and surface.wnd.hitTestBorders(surfacePt) != SizingBorder.None do
                 return surface.wnd
-            return surface.wnd.getWndAt(surfacePt.x, surfacePt.y, true)
+            return surface.wnd.windowAt(surfacePt.x, surfacePt.y, true)
         }
 
-        return .root.getWndAt(pt.x, pt.y, true)
+        return .root.windowAt(pt.x, pt.y, true)
     }
 
-    // Performs the pump operation.
+    // Drains posted events, destruction events, and deferred object deletion.
     mtd pump()
     {
         .pumpPostedEvents()
@@ -352,7 +352,7 @@ impl HeadlessHost
         .deleteQueuedObjects()
     }
 
-    // Performs the run frames operation.
+    // Sends and drains exactly `count` application frames.
     mtd runFrames(count: u32)
     {
         for count
@@ -362,10 +362,10 @@ impl HeadlessHost
         }
     }
 
-    // Performs the fire timer operation.
+    // Fires one active timer immediately and drains resulting queues.
     mtd fireTimer(timer: #null *Timer)
     {
-        if !timer or timer.toDelete do
+        if !timer or timer.isPendingRemoval do
             return
 
         .app.duringTimerEvents = true
@@ -378,7 +378,7 @@ impl HeadlessHost
         .pump()
     }
 
-    // Performs the fire timers operation.
+    // Fires every currently registered timer once.
     mtd fireTimers()
     {
         let timers = .app.timers
@@ -389,7 +389,7 @@ impl HeadlessHost
     // Sets key state.
     mtd setKeyState(key: Input.Key, pressed: bool)
     {
-        .app.keyb.currentState.pressed[key] = pressed
+        .app.keyboard.setCurrentKeyState(key, pressed)
     }
 
     // Sets modifier keys.
@@ -414,68 +414,67 @@ impl HeadlessHost
         }
     }
 
-    // Performs the move mouse operation.
-    mtd moveMouse(pt: Math.Point, modifiers: Input.KeyModifiers = Zero)
+    // Moves the simulated pointer and emits enter, leave, and move events.
+    mtd moveMouse(pt: Math.Point, modifiers: Input.KeyModifiers = None)
     {
-        .app.mouse.previousState.position = .app.mouse.currentState.position
-        .app.mouse.currentState.position  = pt
+        .app.mouse.setPositions(.app.mouse.currentState.position, pt)
 
-        let target = .getMouseTarget(pt)
+        let target = .mouseTargetAt(pt)
 
         if target != .app.mouseEnterWnd
         {
             if target do
-                .sendMouseEvent(target, .MouseEnter, pt, Input.MouseButton.Left, modifiers)
+                .sendMouseEvent(target, .Enter, pt, Input.MouseButton.Left, modifiers)
             if .app.mouseEnterWnd do
-                .sendMouseEvent(.app.mouseEnterWnd, .MouseLeave, pt, Input.MouseButton.Left, modifiers)
+                .sendMouseEvent(.app.mouseEnterWnd, .Leave, pt, Input.MouseButton.Left, modifiers)
             .app.mouseEnterWnd = target
         }
 
         if target do
-            .sendMouseEvent(target, .MouseMove, pt, Input.MouseButton.Left, modifiers)
+            .sendMouseEvent(target, .Move, pt, Input.MouseButton.Left, modifiers)
         .mousePos = pt
     }
 
-    // Performs the mouse down operation.
-    mtd mouseDown(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    // Presses a simulated mouse button at a screen position.
+    mtd mouseDown(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
         .moveMouse(pt, modifiers)
 
-        .app.mouse.currentState.pressed[button] = true
-        let target = .getMouseTarget(pt)
+        .app.mouse.setCurrentButtonState(button, true)
+        let target = .mouseTargetAt(pt)
         if target do
-            .sendMouseEvent(target, .MousePressed, pt, button, modifiers)
+            .sendMouseEvent(target, .Pressed, pt, button, modifiers)
     }
 
-    // Performs the mouse up operation.
-    mtd mouseUp(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    // Releases a simulated mouse button at a screen position.
+    mtd mouseUp(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
-        .app.mouse.currentState.pressed[button] = false
-        let target = .getMouseTarget(pt)
+        .app.mouse.setCurrentButtonState(button, false)
+        let target = .mouseTargetAt(pt)
         if target do
-            .sendMouseEvent(target, .MouseReleased, pt, button, modifiers)
+            .sendMouseEvent(target, .Released, pt, button, modifiers)
         .pump()
     }
 
-    // Performs the click operation.
-    mtd click(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    // Performs one complete simulated mouse click at a screen position.
+    mtd click(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
         .mouseDown(pt, button, modifiers)
         .mouseUp(pt, button, modifiers)
     }
 
-    // Performs the click wnd operation.
-    mtd clickWnd(wnd: *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    // Clicks the center of a window.
+    mtd clickWnd(wnd: *Wnd, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
         Debug.assert(wnd != null)
 
-        var pt  = wnd.getSurfaceRect().center()
+        var pt  = wnd.surfaceRect().center()
         let srf = notnull wnd.surface
         srf.surfaceToScreen(&pt)
         .click(pt, button, modifiers)
     }
 
-    // Performs the click modal button operation.
+    // Activates a visible modal button by identifier and reports whether it was found.
     mtd clickModalButton(id: WndId)->bool
     {
         if .app.modalSurfaces.isEmpty() do
@@ -484,11 +483,11 @@ impl HeadlessHost
         var wnd: #null *Wnd
         for #reverse surface in .app.modalSurfaces
         {
-            let view = surface.getView()
+            let view = surface.view()
             if !view do
                 continue
 
-            wnd = view.getChildById(notnull id)
+            wnd = view.childById(notnull id)
             if wnd do
                 break
         }
@@ -509,7 +508,7 @@ impl HeadlessHost
                 return ctrl
         }
 
-        for child in wnd.childs
+        for child in wnd.children
         {
             let ctrl = .findEditCtrlByLabel(child, label)
             if ctrl do
@@ -540,7 +539,7 @@ impl HeadlessHost
         if wnd.type == FileBrowserCtrl do
             return cast(*FileBrowserCtrl) wnd
 
-        for child in wnd.childs
+        for child in wnd.children
         {
             let ctrl = .findFileBrowserCtrl(child)
             if ctrl do
@@ -559,7 +558,7 @@ impl HeadlessHost
         var browser: #null *FileBrowserCtrl
         for surface in .app.modalSurfaces
         {
-            let view = surface.getView()
+            let view = surface.view()
             if !view do
                 continue
 
@@ -575,7 +574,7 @@ impl HeadlessHost
         {
             if !Directory.exists(folder) do
                 return false
-            browser.setCurFolder(folder)
+            browser.setCurrentFolder(folder)
         }
 
         browser.editFile.setText(fileName)
@@ -584,7 +583,7 @@ impl HeadlessHost
     }
 
     // Returns captured popup menu.
-    mtd getCapturedPopupMenu()->#null *MenuCtrl
+    mtd capturedPopupMenu()->#null *MenuCtrl
     {
         if !.app.mouseCaptureWnd or .app.mouseCaptureWnd.type != MenuCtrl do
             return null
@@ -596,10 +595,10 @@ impl HeadlessHost
         return menu
     }
 
-    // Performs the click popup menu item operation.
+    // Activates an item in the captured popup menu and reports whether it was found.
     mtd clickPopupMenuItem(id: WndId)->bool
     {
-        let menu = .getCapturedPopupMenu()
+        let menu = .capturedPopupMenu()
         if !menu do
             return false
 
@@ -611,7 +610,7 @@ impl HeadlessHost
             if item.hidden or item.separator or item.disabled do
                 return false
 
-            let clientRect = menu.getClientRect()
+            let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
             let srf = notnull menu.surface
@@ -623,10 +622,10 @@ impl HeadlessHost
         return false
     }
 
-    // Performs the move to popup menu item operation.
+    // Moves the simulated pointer to a captured popup item found by label.
     mtd moveToPopupMenuItem(label: string)->bool
     {
-        let menu = .getCapturedPopupMenu()
+        let menu = .capturedPopupMenu()
         if !menu do
             return false
 
@@ -638,7 +637,7 @@ impl HeadlessHost
             if item.hidden or item.separator or item.disabled do
                 return false
 
-            let clientRect = menu.getClientRect()
+            let clientRect = menu.clientRect()
             var pt         = Math.Point{clientRect.x + clientRect.width * 0.5, item.pos + item.size * 0.5}
             pt = menu.localToSurface(pt)
             let srf = notnull menu.surface
@@ -650,10 +649,10 @@ impl HeadlessHost
         return false
     }
 
-    // Performs the open popup sub menu operation.
+    // Opens a captured popup submenu found by label.
     mtd openPopupSubMenu(label: string)->bool
     {
-        let menu = .getCapturedPopupMenu()
+        let menu = .capturedPopupMenu()
         if !menu do
             return false
 
@@ -665,18 +664,18 @@ impl HeadlessHost
         if timer do
             .fireTimer(timer)
 
-        let subMenu = .getCapturedPopupMenu()
+        let subMenu = .capturedPopupMenu()
         return subMenu and subMenu != menu
     }
 
-    // Performs the dismiss popup menu operation.
+    // Dismisses the captured popup menu, returning false when none is open.
     mtd dismissPopupMenu()->bool
     {
-        let menu = .getCapturedPopupMenu()
+        let menu = .capturedPopupMenu()
         if !menu do
             return false
 
-        let rect = menu.getSurfaceRect()
+        let rect = menu.surfaceRect()
         var pt   = Math.Point{rect.right() + 4, rect.bottom() + 4}
         let srf  = notnull menu.surface
         srf.surfaceToScreen(&pt)
@@ -684,31 +683,31 @@ impl HeadlessHost
         return true
     }
 
-    // Performs the double click operation.
-    mtd doubleClick(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    // Performs one simulated double click at a screen position.
+    mtd doubleClick(pt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
         .moveMouse(pt, modifiers)
 
-        let target = .getMouseTarget(pt)
+        let target = .mouseTargetAt(pt)
         if target do
-            .sendMouseEvent(target, .MouseDoubleClick, pt, button, modifiers)
+            .sendMouseEvent(target, .DoubleClick, pt, button, modifiers)
         .pump()
     }
 
-    // Performs the drag operation.
-    mtd drag(fromPt, toPt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = Zero)
+    // Drags a simulated mouse button between two screen positions.
+    mtd drag(fromPt, toPt: Math.Point, button: Input.MouseButton = Left, modifiers: Input.KeyModifiers = None)
     {
         .mouseDown(fromPt, button, modifiers)
         .moveMouse(toPt, modifiers)
         .mouseUp(toPt, button, modifiers)
     }
 
-    // Performs the mouse wheel operation.
-    mtd mouseWheel(pt: Math.Point, delta: s32, modifiers: Input.KeyModifiers = Zero)
+    // Sends one simulated mouse-wheel event at a screen position.
+    mtd mouseWheel(pt: Math.Point, delta: s32, modifiers: Input.KeyModifiers = None)
     {
         .moveMouse(pt, modifiers)
 
-        let target = .getMouseTarget(pt)
+        let target = .mouseTargetAt(pt)
         if !target do
             return
 
@@ -718,65 +717,65 @@ impl HeadlessHost
             me.setModifierKeys(modifiers, false)
         }
 
-        var evt = MouseEvent{kind: .MouseWheel}
+        var evt = MouseEvent{kind: .Wheel}
         evt.button     = Input.MouseButton.Left
         evt.surfacePos = target.screenToSurface(pt)
-        evt.move.y     = delta
+        evt.delta.y     = delta
         evt.modifiers  = modifiers
         target.sendEvent(&evt)
         .pump()
     }
 
-    // Performs the focus operation.
+    // Gives keyboard focus to a window and drains resulting events.
     mtd focus(wnd: *Wnd)
     {
-        .app.keybFocusWnd = wnd
+        .app.keyboardFocusWnd = wnd
     }
 
-    // Performs the key press operation.
-    mtd keyPress(key: Input.Key, modifiers: Input.KeyModifiers = Zero)
+    // Sends one complete simulated key press to the focused window.
+    mtd keyPress(key: Input.Key, modifiers: Input.KeyModifiers = None)
     {
-        let target = notnull .app.keybFocusWnd
+        let target = notnull .app.keyboardFocusWnd
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
 
-        var evt = KeyEvent{kind: .KeyPressed}
+        var evt = KeyEvent{kind: .Pressed}
         evt.key       = key
         evt.modifiers = modifiers
         target.sendEvent(&evt)
 
         if !evt.accepted
         {
-            let cmdId = target.getKeyShortcut(modifiers, key)
+            let cmdId = target.keyShortcut(modifiers, key)
             if cmdId != null do
                 target.sendCommandEvent(cmdId)
         }
 
         .setKeyState(key, false)
-        evt.kind = .KeyReleased
+        evt.kind = .Released
         target.sendEvent(&evt)
         .setModifierKeys(modifiers, false)
         .pump()
     }
 
-    // Performs the shortcut operation.
+    // Sends one simulated shortcut key press with explicit modifiers.
     mtd shortcut(key: Input.Key, modifiers: Input.KeyModifiers)
     {
         .keyPress(key, modifiers)
     }
 
     // Sends rune.
-    mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = Zero)
+    mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = None)
     {
-        let target = notnull .app.keybFocusWnd
+        let target = notnull .app.keyboardFocusWnd
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)
 
-        var evt = KeyEvent{kind: .Rune}
+        var evt = KeyEvent{kind: .Character}
         evt.key       = key
-        evt.char      = char
+        evt.character      = char
         evt.modifiers = modifiers
         target.sendEvent(&evt)
 
@@ -786,7 +785,7 @@ impl HeadlessHost
     }
 
     // Returns mouse target.
-    mtd getMouseTarget(pt: Math.Point)->#null *Wnd
+    mtd mouseTargetAt(pt: Math.Point)->#null *Wnd
     {
         if .app.mouseCaptureWnd do
             return .app.mouseCaptureWnd
@@ -810,13 +809,13 @@ impl HeadlessHost
         var evt = MouseEvent{kind: kind}
         evt.button     = button
         evt.surfacePos = target.screenToSurface(pt)
-        evt.move.x     = pt.x - .mousePos.x
-        evt.move.y     = pt.y - .mousePos.y
+        evt.delta.x     = pt.x - .mousePos.x
+        evt.delta.y     = pt.y - .mousePos.y
         evt.modifiers  = modifiers
         target.sendEvent(&evt)
     }
 
-    // Performs the pump posted events operation.
+    // Drains the application's posted event queue.
     mtd pumpPostedEvents()
     {
         let copy = .app.postedEvents
@@ -845,7 +844,7 @@ impl HeadlessHost
             .root.updateCommandState()
     }
 
-    // Performs the pump destroy events operation.
+    // Drains pending window-destruction events.
     mtd pumpDestroyEvents()
     {
         let copy = .app.postDestroy
@@ -855,7 +854,7 @@ impl HeadlessHost
             .app.destroyWnd(wnd)
     }
 
-    // Performs the pump timer queues operation.
+    // Applies deferred timer additions and removals.
     mtd pumpTimerQueues()
     {
         for timer in .app.timersToAdd do
@@ -864,14 +863,14 @@ impl HeadlessHost
 
         for timer in .app.timersToDelete
         {
-            timer.toDelete = false
-            .app.deleteTimer(timer)
+            timer.isPendingRemoval = false
+            .app.removeTimer(timer)
         }
 
         .app.timersToDelete.clear()
     }
 
-    // Performs the delete queued objects operation.
+    // Releases objects queued for deferred deletion.
     mtd deleteQueuedObjects()
     {
         for item in .app.toDelete do

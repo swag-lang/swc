@@ -130,9 +130,9 @@ using Swag
     @assert(Math.Rectangle.intersect(a, Math.Rectangle{20, 20, 1, 1}) == Math.Rectangle.Zero)
     @assert(Math.Rectangle.intersect(a, Math.Rectangle{10, 0, 5, 5}) == Math.Rectangle.Zero)
     @assert(Math.Rectangle.intersect(a, Math.Rectangle{0, 10, 5, 5}) == Math.Rectangle.Zero)
-    @assert(a.intersectWith(b))
-    @assert(!a.intersectWith(Math.Rectangle{10, 0, 5, 5}))
-    @assert(!a.intersectWith(Math.Rectangle{0, 10, 5, 5}))
+    @assert(a.intersects(b))
+    @assert(!a.intersects(Math.Rectangle{10, 0, 5, 5}))
+    @assert(!a.intersects(Math.Rectangle{0, 10, 5, 5}))
 
     var intersection = a
     intersection.intersect(b)
@@ -142,13 +142,13 @@ using Swag
     intersection.intersect(Math.Rectangle{10, 0, 5, 5})
     @assert(intersection == Math.Rectangle.Zero)
 
-    @assert(Math.Rectangle.getUnion(a, b) == Math.Rectangle{0, -5, 15, 15})
-    @assert(Math.Rectangle.getUnion(a, Math.Rectangle{2, 3, 4, 5}) == a)
-    @assert(Math.Rectangle.getUnion(a, Math.Rectangle{-5, -6, 2, 3}) == Math.Rectangle{-5, -6, 15, 16})
-    @assert(Math.Rectangle.getUnion(Math.Rectangle.Zero, Math.Rectangle{2, 3, 4, 5}) == Math.Rectangle{0, 0, 6, 8})
+    @assert(Math.Rectangle.combined(a, b) == Math.Rectangle{0, -5, 15, 15})
+    @assert(Math.Rectangle.combined(a, Math.Rectangle{2, 3, 4, 5}) == a)
+    @assert(Math.Rectangle.combined(a, Math.Rectangle{-5, -6, 2, 3}) == Math.Rectangle{-5, -6, 15, 16})
+    @assert(Math.Rectangle.combined(Math.Rectangle.Zero, Math.Rectangle{2, 3, 4, 5}) == Math.Rectangle{0, 0, 6, 8})
 
     var mergedRect = a
-    mergedRect.setUnion(b)
+    mergedRect.combine(b)
     @assert(mergedRect == Math.Rectangle{0, -5, 15, 15})
 }
 
@@ -158,7 +158,7 @@ using Swag
     @assert(!rect.isNormalized())
     @assert(!rect.isEmpty())
 
-    let normalized = rect.toNormalized()
+    let normalized = rect.normalized()
     @assert(normalized == Math.Rectangle{-20, -20, 30, 40})
     @assert(!rect.isNormalized())
 
@@ -219,7 +219,7 @@ using Swag
     rect.fitWithin(Math.Rectangle{10, 20, 100, 100})
     @assert(rect.isEqualEpsilon(Math.Rectangle{10, 45, 100, 50}, 0.001))
 
-    let fitted = Math.Rectangle.createFittedWithin(Math.Rectangle{0, 0, 100, 200}, Math.Rectangle{10, 20, 100, 100})
+    let fitted = Math.Rectangle.fittedWithin(Math.Rectangle{0, 0, 100, 200}, Math.Rectangle{10, 20, 100, 100})
     @assert(fitted.isEqualEpsilon(Math.Rectangle{35, 20, 50, 100}, 0.001))
 
     var empty = Math.Rectangle{1, 2, 0, 10}

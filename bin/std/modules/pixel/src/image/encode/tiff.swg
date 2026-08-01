@@ -3,7 +3,7 @@
 using Core, Core.Errors
 
 // Encodes little-endian baseline TIFF images.
-public struct Encoder {}
+internal struct Encoder {}
 
 // Selects the strip compression used by the TIFF encoder.
 public enum Compression
@@ -68,11 +68,11 @@ func packBitsRow(result: *Array'u8, src: const [*] u8, count: u64)
     }
 }
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        let ext = Path.getExtensionLowerCase(fileName)
+        let ext = Path.lowercaseExtension(fileName)
         return ext == ".tif" or ext == ".tiff"
     }
 
@@ -91,7 +91,7 @@ public impl IImageEncoder for Encoder
 
         let width    = image.width
         let height   = image.height
-        let hasAlpha = image.pf.hasAlpha()
+        let hasAlpha = image.pixelFormat.hasAlpha()
         let samples  = hasAlpha ? 4'u32 : 3'u32
 
         let rowBytes   = cast(u64) width * samples
@@ -105,11 +105,11 @@ public impl IImageEncoder for Encoder
         for [fileY] in height
         {
             let srcY = height - fileY - 1
-            var psrc = image.pixels.buffer + cast(u64) srcY * image.width8
+            var psrc = image.pixels.buffer + cast(u64) srcY * image.rowStride
 
             for width
             {
-                switch image.pf
+                switch image.pixelFormat
                 {
                 case .RGB8:
                     rawData.add(psrc[0])
@@ -134,7 +134,7 @@ public impl IImageEncoder for Encoder
                     rawData.add(psrc[3])
                 }
 
-                psrc += image.bpp8
+                psrc += image.bytesPerPixel
             }
         }
 

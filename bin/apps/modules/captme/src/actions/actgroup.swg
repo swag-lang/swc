@@ -21,12 +21,12 @@ impl IActionUI for ActionGroup
         switch cxt.id
         {
         case .Group:
-            evt.setFlags |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name
             evt.name     = "Group"
             evt.disabled = isLib or !capture or !capture.canGroup()
 
         case .Ungroup:
-            evt.setFlags |= .Disabled | .Name
+            evt.updatedFields |= .Disabled | .Name
             evt.name     = "Ungroup"
             evt.disabled = isLib or !capture or !capture.canUngroup()
         }

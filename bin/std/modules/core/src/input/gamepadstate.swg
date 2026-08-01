@@ -3,16 +3,28 @@
 
 using Math
 
-// Represents specific information about the state of the controller,
-// including the current state of buttons and sticks
-struct GamePadState
+// Captures the digital and analog state of a gamepad at one update.
+struct GamepadState
 {
-    pressed:  [GamePadButton] bool      // Pressed associated with this value.
-    position: [GamePadButton] Point     // Position associated with this value.
+    readonly
+    {
+        pressed:  [GamepadButton] bool      // Whether each button or thresholded control is active.
+        position: [GamepadButton] Point     // Normalized analog positions in the range -1 through 1.
+    }
 }
 
-impl GamePadState
+impl GamepadState
 {
+    internal mtd setPressed(button: GamepadButton, pressed: bool)
+    {
+        .pressed[button] = pressed
+    }
+
+    internal mtd setPosition(control: GamepadButton, position: Point)
+    {
+        .position[control] = position
+    }
+
     // Reset state to its default value
     mtd clear()
     {

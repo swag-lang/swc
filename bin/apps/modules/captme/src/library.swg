@@ -45,7 +45,7 @@ impl Library
     // must stay unique so one delete/restore never overwrites another capture.
     func uniqueName(folder: String, name: String)->String
     {
-        let base = Path.getFileName(name) orelse ""
+        let base = Path.fileName(name) orelse ""
         var dst  = Path.combine(folder, base)
         var n    = 1
         while File.exists(dst)
@@ -98,7 +98,7 @@ impl Library
     func newFileName()->String
     {
         let t        = Time.DateTime.now()
-        let fileName = Format.toString("%_%_%_%_%_%_%.captme", t.month, t.day, t.year, t.hour, t.minute, t.second, GUID64.getRandom().getString())
+        let fileName = Format.toString("%_%_%_%_%_%_%.captme", t.month, t.day, t.year, t.hour, t.minute, t.second, Guid64.random().toString())
         return Path.combine(getFolder(), fileName.toString())
     }
 
@@ -131,7 +131,7 @@ impl Library
 
     mtd addFile(name: String)
     {
-        let file = catch File.getFileInfo(name) as err
+        let file = catch File.info(name) as err
         if err != null do
             return
         .files.add(file)

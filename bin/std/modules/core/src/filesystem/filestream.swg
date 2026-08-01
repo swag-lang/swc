@@ -4,7 +4,7 @@
 // Opaque handle to a file, used internally by FileStream
 alias FileHandle = #null const *void
 
-// Represents an open file stream for reading, writing, or seeking
+// Owns an open file and exposes byte-oriented reading, writing, and seeking.
 #[Swag.NoCopy]
 struct FileStream
 {
@@ -43,8 +43,8 @@ impl FileStream
         return .handle != null
     }
 
-    // Reads a value of type 'T' from the stream into 'buffer'; returns true if read was successful
-    mtd(T) readValue(buffer: *T)->bool
+    // Reads one native value and returns whether all of its bytes were available.
+    mtd(T) readValue(buffer: *T)->bool fail
     {
         return .read(buffer, #sizeof(T)) == #sizeof(T)
     }

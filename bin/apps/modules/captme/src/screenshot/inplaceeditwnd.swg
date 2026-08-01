@@ -39,9 +39,9 @@ func captureUIScale(capture: *Capture)->f32
     let cy = cast(f32) g_DesktopY - capture.backImagePos.y + cast(f32) capture.height * 0.5
     for m in Env.getMonitors()
     {
-        let r = m.rectReal
+        let r = m.physicalBounds
         if cx >= r.x and cx < r.right() and cy >= r.y and cy < r.bottom() do
-            return Math.max(m.scale, 1.0)
+            return Math.max(m.scaleFactor, 1.0)
     }
 
     return 1.0
@@ -105,9 +105,9 @@ impl InPlaceEditWnd
             {"edit",  ThemeIcons24.Edit,     "Open in Captme editor"},
             {"close", ThemeIcons24.WndClose, "Cancel and discard capture"}]
 
-        let theme = .getTheme()
+        let theme = .theme()
         for action in actions do
-            .actionBar.addItem(theme.getIcon24(action.item1), action.item0).toolTip = action.item2
+            .actionBar.addButton(theme.icon24(action.item1), action.item0).toolTip = action.item2
 
         .actionBar.sigPressed += func|self = me|(btn) { self.handleActionBarPress(btn.id orelse ""); }
     }
@@ -116,7 +116,7 @@ impl InPlaceEditWnd
     {
         .editBar                 = IconBar.create(notnull .editWnd.editView, 32 * .uiScale, {})
         .editBar.backgroundStyle = .Window
-        .editBar.setIconBarFlags(.Vertical)
+        .editBar.setOrientation(.Vertical)
 
         let editTools = [
             {"draw",   7,  "Free draw tool"},
@@ -128,18 +128,17 @@ impl InPlaceEditWnd
             {"marker", 9,  "Highlight with marker"}]
 
         for tool in editTools do
-            .editBar.addCheckableItem(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2
+            .editBar.addRadioButton(Icon.from(&main.icons48, tool.item1), tool.item0).toolTip = tool.item2
 
-        .editBar.sigCheckChanged += func|self = me|(btn) { self.handleEditModeChange(btn.id orelse ""); }
+        .editBar.sigCheckedChanged += func|self = me|(btn) { self.handleEditModeChange(btn.id orelse ""); }
         .createColorPicker()
     }
 
     mtd createColorPicker()
     {
-        let btnColor = .editBar.addItem({}, "color")
-        btnColor.iconBtnFlags.add(.Popup)
+        let btnColor = .editBar.addButton({}, "color", .Popup)
 
-        btnColor.sigPaintIcon = func|self = me|(btn, bc, pos, flags)
+        btnColor.iconPainter = func|self = me|(btn, bc, pos, flags)
         {
             bc.painter.setParams(.Antialiased)
             var rect = pos
@@ -148,16 +147,16 @@ impl InPlaceEditWnd
             bc.painter.fillRoundRect(rect, 10, 10, color)
         }
 
-        btnColor.sigShowPopup += func|self = me|(btn)
+        btnColor.sigPopupRequested += func|self = me|(btn)
         {
             let color  = self.editMode == .Marker ? self.editColorHilight : self.editColor
             let picker = PropWnd.createColorPicker(cast(*IconButton) btn, color)
-            picker.sigChanged += func|self, picker, btn|(pk)
+            picker.sigColorChanged += func|self, picker, btn|(pk)
             {
                 if self.editMode == .Marker do
-                    self.editColorHilight = picker.getColor()
+                    self.editColorHilight = picker.color()
                 else do
-                    self.editColor = picker.getColor()
+                    self.editColor = picker.color()
                 self.updateEditMode()
                 btn.invalidate()
             }
@@ -276,8 +275,8 @@ impl InPlaceEditWnd
 
         for m in modeMap
         {
-            let btn = notnull .editBar.getButton(m.item0)
-            btn.setCheck(.editMode == m.item1)
+            let btn = notnull .editBar.buttonById(m.item0)
+            btn.setChecked(.editMode == m.item1)
         }
     }
 
@@ -383,7 +382,7 @@ impl IWnd for InPlaceEditWnd
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind == .KeyPressed and evt.key == .Escape do
+        if evt.kind == .Pressed and evt.key == .Escape do
             g_Exit = true
     }
 }

@@ -2,54 +2,66 @@
 
 using Core, Pixel
 
-// Selects header form.
+// Selects header background and border presentation.
 enum HeaderForm
 {
-    Transparent     // Uses the transparent form.
-    Flat            // Uses the flat form.
-    Round           // Uses the round form.
+    Transparent     // Draws only the bottom separator.
+    Flat            // Draws a square background and border.
+    Round           // Draws a rounded background and border.
 }
 
-// Represents header item.
+// Describes one column displayed by a header.
 struct HeaderItem
 {
-    name:     RichString     // Name associated with this value.
-    icon:     Icon           // Icon associated with this value.
-    width:    f32            // Width in logical units.
-    minWidth: f32            // Min width associated with this value.
-    maxWidth: f32            // Max width associated with this value.
-    sizeable   = true        // Sizeable associated with this value.
-    clickable  = true        // Clickable associated with this value.
-    iconMargin = false       // Icon margin associated with this value.
-    column:   u32            // Column associated with this value.
+    name:              RichString     // Displayed column label.
+    icon:              Icon           // Optional icon drawn before the label.
+    isResizable        = true          // Whether the trailing separator can resize the column.
+    isClickable        = true          // Whether the column can emit click actions.
+    reservesIconSpace: bool           // Whether list rows reserve the header icon column.
+
+    internal
+    {
+        width:        f32     // Effective width in logical units.
+        minimumWidth: f32     // Inclusive minimum width.
+        maximumWidth: f32     // Inclusive maximum width, or zero when unbounded.
+        column:       u32     // Stable logical column identifier.
+    }
 }
 
-// Selects header flags.
+// Configures header interaction.
 #[Swag.EnumFlags]
 enum HeaderFlags
 {
-    Zero = 0      // No flags are enabled.
-    Clickable     // Enables clickable.
+    None = 0      // Disables column click actions while preserving resizing.
+    Clickable     // Enables click actions for individually clickable columns.
 }
 
-// Represents header.
+// Indicates the direction displayed by a column sort marker.
+enum HeaderSortDirection
+{
+    None          // No sort marker is displayed.
+    Ascending     // Displays an ascending sort marker.
+    Descending    // Displays a descending sort marker.
+}
+
+// Displays named, optionally sortable and resizable columns.
 struct Header
 {
-    using wnd: Wnd     // Embedded wnd state.
+    using wnd: Wnd     // Embedded window behavior and presentation.
 
-    form                  = HeaderForm.Flat           // Form associated with this value.
-    headerFlags           = HeaderFlags.Clickable     // Header flags associated with this value.
-    marginItems:      f32 = 5                         // Margin items associated with this value.
-    sigLayoutChanged: #null func||(*Header)           // Signal emitted when layout changed.
-    sigClicked:       #null func||(*Header, u32)      // Signal emitted when clicked.
+    form                = HeaderForm.Flat     // Background and border presentation.
+    itemPadding:    f32 = 5                   // Horizontal inset applied to each item label.
+    sigLayoutChanged: SigArray'func||(*Header)          // Emitted after an effective column width changes.
+    sigColumnClicked: SigArray'func||(*Header, u32)     // Emitted after the user clicks a column.
 
     // The columns the header shows, and which one it sorts on. Add columns through the methods
     // so the layout and the owning list stay in step.
     readonly
     {
-        items:      ArrayPtr'HeaderItem     // Columns of the header, in display order.
-        sortColumn: u32                     // Column the sort mark is on.
-        sortMark:   s32                     // Direction of the sort mark, zero for none.
+        flags         = HeaderFlags.Clickable       // Active interaction options.
+        items:        ArrayPtr'HeaderItem           // Columns in display order.
+        sortColumn    = Swag.U32.Max                // Logical column carrying the sort marker.
+        sortDirection = HeaderSortDirection.None    // Direction of the sort marker.
     }
 
     // Hover and drag state of one gesture over the header.
@@ -69,14 +81,14 @@ impl IWnd for Header
     {
         let painter = bc.painter
 
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         var labelPos   = clientRect
         labelPos.x     = x
         labelPos.width = item.width
 
-        let theme   = .getTheme()
-        let metrics = .getThemeMetrics()
-        let colors  = .getThemeColors()
+        let theme   = .theme()
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
 
         if .hotIdx == idx and !.hotSeparator
         {
@@ -86,7 +98,7 @@ impl IWnd for Header
             painter.fillRect(labelPosBk, .clicked ? colors.headerItem_ClickedBk : colors.headerItem_HotBk)
         }
 
-        labelPos.moveLeft(.marginItems)
+        labelPos.moveLeft(.itemPadding)
 
         var colorText: Color
         switch
@@ -97,13 +109,13 @@ impl IWnd for Header
         }
 
         // Sort mark
-        if .sortMark != 0 and .sortColumn == idx
+        if .sortDirection != .None and .sortColumn == item.column
         {
             var icon: Icon = undefined
-            if .sortMark == 1 do
-                icon = theme.getIcon24(ThemeIcons24.SortArrowDown)
+            if .sortDirection == .Ascending do
+                icon = theme.icon24(ThemeIcons24.SortArrowDown)
             else do
-                icon = theme.getIcon24(ThemeIcons24.SortArrowUp)
+                icon = theme.icon24(ThemeIcons24.SortArrowUp)
             if labelPos.width > icon.sizeX
             {
                 var sortPos = labelPos
@@ -119,20 +131,20 @@ impl IWnd for Header
         format.horzAlignment = .Left
         format.vertAlignment = .Center
         format.flags         = .Clip
-        format.font          = .getFont()
+        format.font          = .font()
         Theme.drawIconText(painter, labelPos, item.icon, &item.name, format, metrics.iconText_Margin)
     }
 
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let painter = evt.bc.painter
-        let theme   = .getTheme()
-        let metrics = .getThemeMetrics()
-        let colors  = .getThemeColors()
-        let rects   = .getThemeRects()
+        let painter = evt.paintContext.painter
+        let theme   = .theme()
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let rects   = .themeRects()
 
         // Background bar
-        var clientRect = .getClientRect()
+        var clientRect = .clientRect()
         clientRect.offset(.scrollPos)
         switch .form
         {
@@ -142,18 +154,18 @@ impl IWnd for Header
         }
 
         // Clipping, take care of padding
-        var clipRect = .getSurfaceRect()
+        var clipRect = .surfaceRect()
         clipRect.applyPadding(.padding)
         painter.pushClippingSurfaceRect(clipRect)
         defer painter.popClippingRect()
 
         // Paint all except selected one, which will be painted last
-        clientRect = .getClientRectPadding()
+        clientRect = .paddedClientRect()
         clientRect.offset(.scrollPos)
         var x = .padding.x
         for item, [idx] in .items
         {
-            .paintItem(evt.bc, notnull item, cast(u32) idx, x)
+            .paintItem(evt.paintContext, notnull item, cast(u32) idx, x)
             x += (notnull item).width
 
             var rect = clientRect
@@ -166,13 +178,13 @@ impl IWnd for Header
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .MouseReleased and evt.button == .Left
+        if evt.kind == .Released and evt.button == .Left
         {
-            if .clicked and .sigClicked
+            if .clicked and !.sigColumnClicked.isEmpty()
             {
                 let {hit, ?} = .hitTest(evt.surfacePos)
                 if hit == .hotIdx do
-                    .sigClicked(me, (notnull .items[.hotIdx]).column)
+                    .sigColumnClicked.call(me, (notnull .items[.hotIdx]).column)
             }
 
             if .moving or .clicked
@@ -191,9 +203,9 @@ impl IWnd for Header
             // Hot, if not a separator, is disabled if item is not clickable
             if hit != Swag.U32.Max
             {
-                if !.headerFlags.has(.Clickable) and !sep do
+                if !.flags.has(.Clickable) and !sep do
                     hit = Swag.U32.Max
-                elif !(notnull .items[hit]).clickable do
+                elif !(notnull .items[hit]).isClickable do
                     hit = Swag.U32.Max
             }
 
@@ -210,7 +222,7 @@ impl IWnd for Header
             }
 
             if .hotSeparator do
-                .cursor = Cursor.from(CursorShape.SizeWE)
+                .cursor = Cursor.from(CursorShape.ResizeHorizontal)
             else do
                 .cursor.clear()
         }
@@ -223,24 +235,24 @@ impl IWnd for Header
 
         switch evt.kind
         {
-        case .MouseMove:
+        case .Move:
             if .moving
             {
                 var pos = .surfaceToLocal(evt.surfacePos)
                 pos += .scrollPos.x
-                var move = pos.x - .getItemPosition(.hotIdx) + .padding.x
+                var move = pos.x - .itemPositionAt(.hotIdx) + .padding.x
                 move -= .correctMoving
                 .setItemWidth(.hotIdx, move)
             }
 
-        case .MouseLeave:
+        case .Leave:
             if .hotIdx != Swag.U32.Max
             {
                 .hotIdx = Swag.U32.Max
                 .invalidate()
             }
 
-        case .MousePressed:
+        case .Pressed:
             if evt.button == .Left and .hotIdx != Swag.U32.Max
             {
                 if .hotSeparator
@@ -248,11 +260,11 @@ impl IWnd for Header
                     .moving = true
                     var pos = .surfaceToLocal(evt.surfacePos)
                     pos            += .scrollPos.x
-                    .correctMoving = pos.x - .getItemPosition(.hotIdx) + .padding.x
-                    .correctMoving -= .getItemWidth(.hotIdx)
+                    .correctMoving = pos.x - .itemPositionAt(.hotIdx) + .padding.x
+                    .correctMoving -= .itemWidthAt(.hotIdx)
                     .captureMouse()
                 }
-                elif (notnull .items[.hotIdx]).clickable
+                elif (notnull .items[.hotIdx]).isClickable
                 {
                     .clicked = true
                     .captureMouse()
@@ -267,7 +279,7 @@ private impl Header
 {
     mtd hitTest(surfacePos: Math.Point)->{ idx: u32, sep: bool }
     {
-        let metrics = .getThemeMetrics()
+        let metrics = .themeMetrics()
         var pos     = .surfaceToLocal(surfacePos)
         pos += .scrollPos.x
         var x = .padding.x
@@ -277,7 +289,7 @@ private impl Header
             if pos.x >= x and pos.x < x + item.width do
                 return {cast(u32) idx, false}
             x += item.width
-            if pos.x >= x and pos.x <= x + metrics.header_Separator and item.sizeable do
+            if pos.x >= x and pos.x <= x + metrics.header_Separator and item.isResizable do
                 return {cast(u32) idx, true}
             x += metrics.header_Separator
         }
@@ -288,85 +300,86 @@ private impl Header
 
 impl Header
 {
-    // Shows the sort mark on one column, and repaints.
-    //
-    // The owning list calls this after it sorted, so the mark always agrees with the order the
-    // rows are in. Pass a column of 'Swag.U32.Max' to remove the mark.
-    mtd setSortMark(column: u32, descentOrder: bool)
+    // Shows a sort direction for one logical column.
+    mtd setSortIndicator(column: u32, direction: HeaderSortDirection)
     {
-        if column == Swag.U32.Max
-        {
-            .sortColumn = 0
-            .sortMark   = 0
-        }
-        else
-        {
-            .sortColumn = column
-            .sortMark   = descentOrder ? -1 : 1
-        }
-
+        Debug.assert(column < .items.count)
+        Debug.assert(direction != .None)
+        .sortColumn    = column
+        .sortDirection = direction
         .invalidate()
     }
 
-    // Performs the create operation.
+    // Removes the current sort marker.
+    mtd clearSortIndicator()
+    {
+        if .sortDirection == .None do
+            return
+        .sortColumn    = Swag.U32.Max
+        .sortDirection = .None
+        .invalidate()
+    }
+
+    // Creates an empty header using the current theme height by default.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: #null WndId = null)->*Header
     {
         Debug.assert(parent != null)
 
-        let metrics = parent.getThemeMetrics()
+        let metrics = parent.themeMetrics()
         var pos     = position
         if pos.height == 0 do
             pos.height = metrics.header_Height
-        let res = Wnd.create'Header(parent, null, pos, id)
-        res.padding       = metrics.header_Padding
-        res.focusStrategy = .None
-        return res
+        let result = Wnd.create'Header(parent, null, pos, id)
+        result.padding       = metrics.header_Padding
+        result.focusStrategy = .None
+        return result
     }
 
-    // Add a new view
+    // Appends a logical column with a non-negative initial width.
     #[Swag.Discardable]
-    mtd addItem(tabName: string, width = 100'f32, icon: Icon = {})->*HeaderItem
+    mtd addColumn(name: string, width = 100'f32, icon: Icon = {})->*HeaderItem
     {
-        let item = .items.newPtr()
-        item.name   = tabName
+        let item = .items.allocate()
+        item.name   = name
         item.icon   = icon
-        item.width  = width
+        item.width  = Math.max(width, 0)
         item.column = cast() .items.count
         .items.add(item)
+        .invalidate()
         return item
     }
 
-    // Returns the given item, by index
-    mtd getItem(idx: u32)->*HeaderItem
+    // Returns the column at one display-order index.
+    mtd const itemAt(index: u32)->*HeaderItem
     {
-        Debug.assert(idx < .items.count)
-        return notnull .items[idx]
+        Debug.assert(index < .items.count)
+        return notnull .items[index]
     }
 
-    // Returns the given item, by column
-    mtd getItemByCol(column: u32)->#null *HeaderItem
+    // Returns the item for one logical column identifier.
+    mtd const itemForColumn(column: u32)->*HeaderItem
     {
         Debug.assert(column < .items.count)
 
         for item in .items
         {
             if (notnull item).column == column do
-                return item
+                return notnull item
         }
 
         unreachable
     }
 
-    // Get an item width by index
-    mtd getItemWidth(idx: u32)->f32
+    // Returns the effective width at one display-order index.
+    mtd const itemWidthAt(index: u32)->f32
     {
-        Debug.assert(idx < .items.count)
-        return .getItemWidthByCol((notnull .items[idx]).column)
+        Debug.assert(index < .items.count)
+        return .itemWidthForColumn((notnull .items[index]).column)
     }
 
-    // Get an item width by column
-    mtd getItemWidthByCol(column: u32)->f32
+    // Returns the effective width for one logical column identifier.
+    mtd const itemWidthForColumn(column: u32)->f32
     {
         Debug.assert(column < .items.count)
 
@@ -380,20 +393,20 @@ impl Header
         return 0
     }
 
-    // Get an item position by index
-    mtd getItemPosition(idx: u32)->f32
+    // Returns the leading position at one display-order index.
+    mtd itemPositionAt(index: u32)->f32
     {
-        Debug.assert(idx < cast(u32) .items.count)
-        return .getItemPositionByCol((notnull .items[idx]).column)
+        Debug.assert(index < cast(u32) .items.count)
+        return .itemPositionForColumn((notnull .items[index]).column)
     }
 
-    // Get an item position by column
-    mtd getItemPositionByCol(column: u32)->f32
+    // Returns the leading position for one logical column identifier.
+    mtd itemPositionForColumn(column: u32)->f32
     {
         Debug.assert(column < .items.count)
 
         var x = .padding.x
-        let m = .getThemeMetrics().header_Separator
+        let m = .themeMetrics().header_Separator
         for itemIt, [i] in .items
         {
             let item = notnull itemIt
@@ -405,40 +418,61 @@ impl Header
         return 0
     }
 
-    // Get the header total width
-    mtd getTotalItemsWidth()->f32
+    // Returns the complete width occupied by columns, separators, and leading padding.
+    mtd contentWidth()->f32
     {
         if .items.isEmpty() do
             return .padding.x
 
-        var w = .getItemPosition(cast(u32) .items.count - 1)
+        var w = .itemPositionAt(cast(u32) .items.count - 1)
         w += (notnull .items.back()).width
-        w += .getThemeMetrics().header_Separator
+        w += .themeMetrics().header_Separator
         return w
     }
 
-    // Set an item width by index
-    mtd setItemWidth(idx: u32, width: f32)
+    // Sets an item width by display-order index and applies its configured limits.
+    mtd setItemWidth(index: u32, width: f32)
     {
-        Debug.assert(idx < .items.count)
-        .setItemWidthByCol((notnull .items[idx]).column, width)
+        Debug.assert(index < .items.count)
+        .setItemWidthForColumn((notnull .items[index]).column, width)
     }
 
-    // Set an item width by column
-    mtd setItemWidthByCol(column: u32, width: f32)
+    // Sets an item width by logical column identifier and applies its configured limits.
+    mtd setItemWidthForColumn(column: u32, width: f32)
     {
         Debug.assert(column < .items.count)
 
-        let item = notnull .getItemByCol(column)
-        var move = Math.max(width, item.minWidth)
-        if item.maxWidth > 0 do
-            move = Math.min(move, item.maxWidth)
+        let item = notnull .itemForColumn(column)
+        var move = Math.max(width, item.minimumWidth)
+        if item.maximumWidth > 0 do
+            move = Math.min(move, item.maximumWidth)
         if item.width == move do
             return
         item.width = move
-        let sigLayoutChanged = .sigLayoutChanged
-        if sigLayoutChanged do
-            sigLayoutChanged(me)
+        .sigLayoutChanged.call(me)
+        .invalidate()
+    }
+
+    // Configures inclusive width limits by display-order index and clamps the current width.
+    // A maximum of zero leaves the column unbounded.
+    mtd setItemWidthLimits(index: u32, minimum: f32 = 0, maximum: f32 = 0)
+    {
+        Debug.assert(index < .items.count)
+        Debug.assert(minimum >= 0)
+        Debug.assert(maximum == 0 or maximum >= minimum)
+        let item         = notnull .items[index]
+        item.minimumWidth = minimum
+        item.maximumWidth = maximum
+        .setItemWidth(index, item.width)
+    }
+
+    // Adds and removes interaction options and clears transient hover state when clicks are disabled.
+    mtd updateFlags(add: HeaderFlags = .None, remove = HeaderFlags.None)
+    {
+        .flags.add(add)
+        .flags.remove(remove)
+        if !.flags.has(.Clickable) and !.hotSeparator do
+            .hotIdx = Swag.U32.Max
         .invalidate()
     }
 }

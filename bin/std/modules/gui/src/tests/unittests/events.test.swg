@@ -9,18 +9,18 @@ using Swag, Core
     @assert(evt.type == #typeof(CommandStateEvent))
     @assert(!evt.accepted)
 
-    evt.kind          = CommandStateEvent.Kind.ApplyCommandState
+    evt.kind          = CommandStateEvent.Kind.Apply
     evt.id            = Dialog.BtnOk
-    evt.setFlags      = CommandStateEvent.SetFlags.Disabled | CommandStateEvent.SetFlags.Name
+    evt.updatedFields      = CommandStateEvent.UpdatedFields.Disabled | CommandStateEvent.UpdatedFields.Name
     evt.renderingHint = CommandStateEvent.RenderingHint.ExclusiveGroup
     evt.disabled      = true
     evt.name          = "Ok"
 
-    @assert(evt.kind == CommandStateEvent.Kind.ApplyCommandState)
+    @assert(evt.kind == CommandStateEvent.Kind.Apply)
     @assert(evt.id == "Dialog.BtnOk")
-    @assert(evt.setFlags.has(CommandStateEvent.SetFlags.Disabled))
-    @assert(evt.setFlags.has(CommandStateEvent.SetFlags.Name))
-    @assert(!evt.setFlags.has(CommandStateEvent.SetFlags.Shortcut))
+    @assert(evt.updatedFields.has(CommandStateEvent.UpdatedFields.Disabled))
+    @assert(evt.updatedFields.has(CommandStateEvent.UpdatedFields.Name))
+    @assert(!evt.updatedFields.has(CommandStateEvent.UpdatedFields.Shortcut))
     @assert(evt.renderingHint.has(CommandStateEvent.RenderingHint.ExclusiveGroup))
     @assert(evt.disabled)
     @assert(evt.name == "Ok")
@@ -31,14 +31,14 @@ using Swag, Core
 #test
 {
     var mouseEvt: MouseEvent
-    mouseEvt.kind       = .MouseMove
+    mouseEvt.kind       = .Move
     mouseEvt.surfacePos = {10, 20}
-    mouseEvt.move       = {-3, 4}
+    mouseEvt.delta       = {-3, 4}
     mouseEvt.modifiers  = Input.KeyModifiers.Control | Input.KeyModifiers.Shift
 
-    @assert(mouseEvt.kind == MouseEvent.Kind.MouseMove)
+    @assert(mouseEvt.kind == MouseEvent.Kind.Move)
     @assert(mouseEvt.surfacePos == Math.Point{10, 20})
-    @assert(mouseEvt.move == Math.Point{-3, 4})
+    @assert(mouseEvt.delta == Math.Point{-3, 4})
     @assert(mouseEvt.modifiers == Input.KeyModifiers.CtrlShift)
 }
 
@@ -67,13 +67,13 @@ using Swag, Core
 #test
 {
     var paint: PaintEvent
-    @assert(paint.kind == PaintEvent.Kind.Paint)
+    @assert(paint.kind == PaintEvent.Kind.Content)
 
     var focus: FocusEvent
     @assert(focus.canChangeFocus)
-    focus.kind           = .CanKillFocus
+    focus.kind           = .CanLose
     focus.canChangeFocus = false
-    @assert(focus.kind == FocusEvent.Kind.CanKillFocus)
+    @assert(focus.kind == FocusEvent.Kind.CanLose)
     @assert(!focus.canChangeFocus)
 
     var state: StateEvent
@@ -81,25 +81,25 @@ using Swag, Core
     @assert(state.kind == StateEvent.Kind.Hide)
 
     var notify: NotifyEvent
-    notify.ntfyKind = .ThemeChanged
-    @assert(notify.ntfyKind == NotifyEvent.Kind.ThemeChanged)
+    notify.kind = .ThemeChanged
+    @assert(notify.kind == NotifyEvent.Kind.ThemeChanged)
 }
 
 #test
 {
     var key: KeyEvent
-    key.kind      = .Rune
-    key.char      = 'x'
+    key.kind      = .Character
+    key.character      = 'x'
     key.modifiers = Input.KeyModifiers.Alt
-    @assert(key.kind == KeyEvent.Kind.Rune)
-    @assert(key.char == 'x')
+    @assert(key.kind == KeyEvent.Kind.Character)
+    @assert(key.character == 'x')
     @assert(key.modifiers == Input.KeyModifiers.Alt)
 
     var sysUser: SysUserEvent
-    sysUser.userMsg = 42
+    sysUser.message = 42
     sysUser.param0  = 11
     sysUser.param1  = 22
-    @assert(sysUser.userMsg == 42)
+    @assert(sysUser.message == 42)
     @assert(sysUser.param0 == 11)
     @assert(sysUser.param1 == 22)
 

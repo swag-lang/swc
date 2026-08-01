@@ -9,13 +9,13 @@ var g_CurGen: s32
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    let leftPressed  = wnd.getApp().mouse.isButtonPressed(.Left)
-    let rightPressed = wnd.getApp().mouse.isButtonPressed(.Right)
+    let leftPressed  = wnd.app().mouse.isButtonPressed(.Left)
+    let rightPressed = wnd.app().mouse.isButtonPressed(.Right)
     let cellSize     = Math.min(wnd.position.width, wnd.position.height) / GridSize
 
     switch evt
     {
-    case MouseEvent as mouseEvt where mouseEvt.kind == .MousePressed or mouseEvt.kind == .MouseMove:
+    case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed or mouseEvt.kind == .Move:
         if leftPressed or rightPressed
         {
             let pos = wnd.surfaceToLocal(mouseEvt.surfacePos)

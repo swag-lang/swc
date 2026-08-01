@@ -1,6 +1,6 @@
 using Pixel
 
-// Represents paint image.
+// Renders a callback into an owned offscreen image through the GUI renderer.
 #[Swag.Opaque]
 public struct PaintImage
 {
@@ -35,11 +35,11 @@ impl PaintImage
         painter.begin()
         painter.setParams(.Antialiased)
         painter.clear(Argb.Zero)
-        paint(wnd.getApp(), painter)
+        paint(wnd.app(), painter)
         painter.end()
 
-        let r  = &wnd.getApp().renderer
-        let rt = r.getRenderTarget(pt.w, pt.h)
+        let r  = &wnd.app().renderer
+        let rt = r.acquireRenderTarget(pt.w, pt.h)
         r.bindRenderTarget(rt)
         r.draw(painter)
         pt.image = r.unbindRenderTargetToImage(0, 0, pt.w, pt.h)
@@ -56,16 +56,17 @@ impl PaintImage
             .surface.destroy()
     }
 
-    // First init the PaintImage instance
+    // Initializes an offscreen target of `w` by `h` pixels.
     public mtd init(w, h: s32)
     {
+        Debug.assert(w > 0 and h > 0, "paint image dimensions must be positive")
         .surface          = notnull expect .app.createSurface(0, 0, 1, 1, hook: &onEvent)
         .surface.userData = me
         .w                = w
         .h                = h
     }
 
-    // Draw to an image by calling the func
+    // Renders one callback and returns the resulting image.
     public mtd draw(call: func||(*Application, *Painter))->Image
     {
         .paint = call
@@ -74,7 +75,7 @@ impl PaintImage
         return .image
     }
 
-    // One shot paint to image
+    // Initializes, renders, and returns an image in one call.
     public func draw(w, h: s32, call: func||(*Application, *Painter))->Image
     {
         var pt: PaintImage

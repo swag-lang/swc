@@ -28,3 +28,8 @@ public struct Matrix
     xx, xy: s32     // Coefficients that produce the transformed x coordinate.
     yx, yy: s32     // Coefficients that produce the transformed y coordinate.
 }
+
+public impl Matrix
+{
+    const Identity = Matrix{xx: 65536, yy: 65536}     // Identity transform in 16.16 fixed-point form.
+}

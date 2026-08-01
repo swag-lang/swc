@@ -65,7 +65,7 @@ impl SoundFile
     // files fail.
     func load(fullname: string, loadDatas = true, loadMetaDatas = false)->SoundFile fail
     {
-        if Path.getExtensionLowerCase(fullname) != ".wav" do
+        if Path.lowercaseExtension(fullname) != ".wav" do
             fail UnsupportedFormatError{"unsupported file extension"}
 
         var result: retval

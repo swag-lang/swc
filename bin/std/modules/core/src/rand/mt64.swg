@@ -10,35 +10,38 @@
 
 #global namespace Random
 
-// Defines nn.
-public const NN = 312
+const StateSize = 312
 
-const MID      = NN / 2
+const MID      = StateSize / 2
 const MM       = 156
 const MATRIX_A = 0xB5026F5AA96619E9'u64
 const UM       = 0xFFFFFFFF80000000'u64
 const LM       = 0x7FFFFFFF'u64
 
-// Represents mt64.
-public struct Mt64
+// MT19937-64 Mersenne Twister generator.
+#[Swag.Opaque]
+public struct MersenneTwister64
 {
-    mt:  [NN] u64     // Mt associated with this value.
-    mti: u64          // Mti associated with this value.
+    internal
+    {
+        state: [StateSize] u64
+        index: u64
+    }
 }
 
-public impl Mt64
+public impl MersenneTwister64
 {
     // Performs the seed u64 operation.
     // Performs the next u64 operation.
     #[Swag.Safety(.Overflow, false)]
     mtd seedU64(seed: u64)
     {
-        .mt[0] = seed
-        .mti   = 1
-        while .mti < NN
+        .state[0] = seed
+        .index    = 1
+        while .index < StateSize
         {
-            .mt[.mti] = (6364136223846793005'u64 * (.mt[.mti - 1] ^ (.mt[.mti - 1] >> 62)) + .mti)
-            .mti      += 1
+            .state[.index] = (6364136223846793005'u64 * (.state[.index - 1] ^ (.state[.index - 1] >> 62)) + .index)
+            .index         += 1
         }
     }
 
@@ -51,15 +54,15 @@ public impl Mt64
         .seedU64(19650218)
         var i = 1
         var j = 0
-        var k = NN > keyLength ? NN : keyLength
+        var k = StateSize > keyLength ? StateSize : keyLength
 
         while k
         {
-            .mt[i] = (.mt[i] ^ ((.mt[i - 1] ^ (.mt[i - 1] >> 62)) * 3935559000370003845)) + seed[j] + j
+            .state[i] = (.state[i] ^ ((.state[i - 1] ^ (.state[i - 1] >> 62)) * 3935559000370003845)) + seed[j] + j
             i, j   += 1
-            if i >= NN
+            if i >= StateSize
             {
-                .mt[0] = .mt[NN - 1]
+                .state[0] = .state[StateSize - 1]
                 i      = 1
             }
 
@@ -68,49 +71,49 @@ public impl Mt64
             k     -= 1
         }
 
-        k = NN - 1
+        k = StateSize - 1
         while k != 0
         {
-            .mt[i] = (.mt[i] ^ ((.mt[i - 1] ^ (.mt[i - 1] >> 62)) * 2862933555777941757)) - i
+            .state[i] = (.state[i] ^ ((.state[i - 1] ^ (.state[i - 1] >> 62)) * 2862933555777941757)) - i
             i      += 1
-            if i >= NN
+            if i >= StateSize
             {
-                .mt[0] = .mt[NN - 1]
+                .state[0] = .state[StateSize - 1]
                 i      = 1
             }
 
             k -= 1
         }
 
-        .mt[0] = 1'u64 << 63
+        .state[0] = 1'u64 << 63
     }
 
     #[Swag.Safety(.Overflow, false)]
     // Returns the next pseudorandom 64-bit value.
     mtd nextU64()->u64
     {
-        if .mti >= NN
+        if .index >= StateSize
         {
-            let stateMid = .mt[MID]
+            let stateMid = .state[MID]
 
             for var i = 0, j = MID; i != MID - 1; i, j += 1
             {
-                let x = (.mt[i] & UM) | (.mt[i + 1] & LM)
-                .mt[i] = .mt[i + MID] ^ (x >> 1) ^ ((.mt[i + 1] & 1) * MATRIX_A)
-                let y = (.mt[j] & UM) | (.mt[j + 1] & LM)
-                .mt[j] = .mt[j - MID] ^ (y >> 1) ^ ((.mt[j + 1] & 1) * MATRIX_A)
+                let x = (.state[i] & UM) | (.state[i + 1] & LM)
+                .state[i] = .state[i + MID] ^ (x >> 1) ^ ((.state[i + 1] & 1) * MATRIX_A)
+                let y = (.state[j] & UM) | (.state[j + 1] & LM)
+                .state[j] = .state[j - MID] ^ (y >> 1) ^ ((.state[j + 1] & 1) * MATRIX_A)
             }
 
-            let x = (.mt[MID - 1] & UM) | (stateMid & LM)
-            .mt[MID - 1] = .mt[NN - 1] ^ (x >> 1) ^ ((stateMid & 1) * MATRIX_A)
-            let y = (.mt[NN - 1] & UM) | (.mt[0] & LM)
-            .mt[NN - 1] = .mt[MID - 1] ^ (y >> 1) ^ ((.mt[0] & 1) * MATRIX_A)
+            let x = (.state[MID - 1] & UM) | (stateMid & LM)
+            .state[MID - 1] = .state[StateSize - 1] ^ (x >> 1) ^ ((stateMid & 1) * MATRIX_A)
+            let y = (.state[StateSize - 1] & UM) | (.state[0] & LM)
+            .state[StateSize - 1] = .state[MID - 1] ^ (y >> 1) ^ ((.state[0] & 1) * MATRIX_A)
 
-            .mti = 0
+            .index = 0
         }
 
-        var result = .mt[.mti]
-        .mti += 1
+        var result = .state[.index]
+        .index += 1
 
         result ^= (result >> 29) & 0x5555555555555555'u64
         result ^= (result << 17) & 0x71D67FFFEDA60000'u64

@@ -91,7 +91,7 @@ struct EncodeChannels
 }
 
 // Encodes lossless VP8L WebP images in a RIFF container.
-public struct Encoder {}
+internal struct Encoder {}
 
 impl Encoder
 {
@@ -114,11 +114,11 @@ impl Encoder
 
         for [y] in image.height
         {
-            var pixel = source + cast(u64) (image.height - y - 1) * image.width8
+            var pixel = source + cast(u64) (image.height - y - 1) * image.rowStride
             for image.width
             {
                 var red, green, blue, alpha: u8
-                switch image.pf
+                switch image.pixelFormat
                 {
                 case .BGR8:
                     red   = pixel[2]
@@ -152,7 +152,7 @@ impl Encoder
                 channels.alpha.add(alpha)
                 hasAlpha = hasAlpha or alpha != 0xFF
                 output   += 1
-                pixel    += image.bpp8
+                pixel    += image.bytesPerPixel
             }
         }
 
@@ -329,11 +329,11 @@ impl Encoder
     }
 }
 
-public impl IImageEncoder for Encoder
+internal impl IImageEncoder for Encoder
 {
     mtd impl canEncode(fileName: string)->bool
     {
-        return Path.getExtensionLowerCase(fileName) == ".webp"
+        return Path.lowercaseExtension(fileName) == ".webp"
     }
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: #null any) fail
@@ -343,7 +343,7 @@ public impl IImageEncoder for Encoder
         if image.width > WEBP_ENCODE_MAX_DIMENSION or image.height > WEBP_ENCODE_MAX_DIMENSION do
             fail UnsupportedFormatError{"WebP lossless dimensions cannot exceed 16384 pixels"}
 
-        let expectedBytes = cast(u64) image.width * image.height * image.bpp8
+        let expectedBytes = cast(u64) image.width * image.height * image.bytesPerPixel
         if image.pixels.count < expectedBytes do
             fail InvalidFormatError{"WebP image pixel buffer ends before its declared dimensions"}
 

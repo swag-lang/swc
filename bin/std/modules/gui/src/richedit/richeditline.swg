@@ -1,6 +1,6 @@
 using Core
 
-// Represents rich edit line.
+// Stores one logical rich-text line and its per-rune style references.
 #[Swag.Opaque]
 public struct RichEditLine
 {

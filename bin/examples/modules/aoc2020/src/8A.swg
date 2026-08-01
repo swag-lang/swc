@@ -46,7 +46,7 @@ using Core
 
 func day8A()
 {
-    let dataPath = Path.combine(Path.getDirectoryName(#file), "8.txt")
+    let dataPath = Path.combine(Path.directoryName(#file), "8.txt")
     let lines    = expect File.readAllLines(dataPath)
 
     var ip, total = 0

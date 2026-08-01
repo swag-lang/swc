@@ -36,22 +36,25 @@ public struct Element
 // ```
 public struct LinePath
 {
-    elements:   Array'Element     // Ordered segments after the starting point.
-    startPoint: Vector2           // First point in path-space pixels.
-    endPoint:   Vector2           // Current last point in path-space pixels.
-    isClosed:   bool              // Whether the path forms a closed contour.
-    isDirty:    bool              // Whether cached flattened geometry is stale.
-    serial:     s32               // Caller-defined grouping identifier used by path lists.
+    readonly
+    {
+        elements:   Array'Element     // Ordered segments after the starting point.
+        startPoint: Vector2           // First point in path-space pixels.
+        endPoint:   Vector2           // Current last point in path-space pixels.
+        isClosed:   bool              // Whether the path forms a closed contour.
+    }
 
     // Flattening cache, rebuilt from the segments whenever the path or the quality changes.
     // Call 'flatten' and read the result through the accessors; the cache is not an input.
     internal
     {
+        isDirty:        bool                // Whether cached flattened geometry is stale.
+        serial:         s32                 // Group identifier used by path-list boolean operations.
         flattenQuality: PaintQuality        // Quality used to build the current flattened cache.
         isPolyOnly:     bool                // Whether every segment is already polygonal.
         isFlatten:      bool                // Whether flattened geometry is available.
-        bvMin:          Vector2             // Minimum cached path bound.
-        bvMax:          Vector2             // Maximum cached path bound.
+        minBounds:      Vector2             // Minimum cached path bound.
+        maxBounds:      Vector2             // Maximum cached path bound.
         endPosBuffer:   Vector2             // Reusable endpoint workspace for flattening.
         polygon:        Polygon             // Cached flattened contour.
         triangles:      Poly2Tri.Result     // Cached fill tessellation.
@@ -73,10 +76,19 @@ public impl LinePath
     }
 
     // Releases all cached polygon and tessellation data.
-    mtd clearCache()
+    internal mtd clearCache()
     {
-        .triangles.release()
+        .triangles.clear()
         .polygon.clear()
+        .isFlatten = false
+        .isDirty   = true
+    }
+
+    // Releases all path geometry and restores an empty value.
+    mtd clear()
+    {
+        @drop(me, 1)
+        @init(me, 1)
     }
 
     // Clears the path and starts a new open contour at `(startX, startY)`.
@@ -156,10 +168,10 @@ public impl LinePath
     // Add an arc from the previous point
     mtd arcTo(centerX, centerY: f32, radiusX, radiusY: f32, initAngle, maxAngle: Math.Angle)
     {
-        var ia = initAngle.rad
+        var ia = initAngle.radians
         while ia < 0 do
             ia += Math.ConstF32.TwoPi
-        var ma = maxAngle.rad
+        var ma = maxAngle.radians
         while ma < 0 do
             ma += Math.ConstF32.TwoPi
         while ma < ia do
@@ -201,6 +213,32 @@ public impl LinePath
         }
 
         .isClosed = true
+        .isDirty  = true
+    }
+
+    // Marks geometry produced by a trusted contour source as closed without
+    // inserting an explicit closing segment.
+    internal mtd assumeClosed()
+    {
+        .isClosed = true
+        .isDirty  = true
+    }
+
+    // Adopts the already-populated polygon cache as the complete path geometry.
+    internal mtd adoptGeneratedPolygon()
+    {
+        .isPolyOnly = true
+        .assumeClosed()
+        .isDirty   = false
+        .isFlatten = true
+        .minBounds = .polygon.minBounds
+        .maxBounds = .polygon.maxBounds
+
+        if .polygon.points.count
+        {
+            .startPoint = .polygon.pointAt(0)
+            .endPoint   = .startPoint
+        }
     }
 
     private mtd setRectRaw(l, t, w, h: f32)
@@ -293,7 +331,7 @@ public impl LinePath
     // Initialize the path with an arc
     mtd setArc(centerX, centerY: f32, radius: f32, startAngle, endAngle: Math.Angle)
     {
-        if isZeroEpsilon(endAngle.rad - startAngle.rad) do
+        if isZeroEpsilon(endAngle.radians - startAngle.radians) do
             return
 
         let cX = Math.round(centerX)
@@ -304,43 +342,54 @@ public impl LinePath
         startPos.rotateBy(startAngle)
         .start(cX + startPos.x, cY + startPos.y)
 
-        var s = startAngle.rad
+        var s = startAngle.radians
         var m = 0'f32
         if s < Math.ConstF32.PiBy2
         {
-            m = Math.min(endAngle.rad, Math.ConstF32.PiBy2)
+            m = Math.min(endAngle.radians, Math.ConstF32.PiBy2)
             .arcTo(cX, cY, r, r, s, m)
             s = m
         }
 
         if s < Math.ConstF32.Pi
         {
-            m = Math.min(endAngle.rad, Math.ConstF32.Pi)
+            m = Math.min(endAngle.radians, Math.ConstF32.Pi)
             .arcTo(cX, cY, r, r, s, m)
             s = m
         }
 
         if s < Math.ConstF32.Pi + Math.ConstF32.PiBy2
         {
-            m = Math.min(endAngle.rad, Math.ConstF32.Pi + Math.ConstF32.PiBy2)
+            m = Math.min(endAngle.radians, Math.ConstF32.Pi + Math.ConstF32.PiBy2)
             .arcTo(cX, cY, r, r, s, m)
             s = m
         }
 
         if s < Math.ConstF32.TwoPi
         {
-            m = Math.min(endAngle.rad, Math.ConstF32.TwoPi)
+            m = Math.min(endAngle.radians, Math.ConstF32.TwoPi)
             .arcTo(cX, cY, r, r, s, m)
         }
     }
 
-    // Returns the flattened contour of this path.
+    // Flattens the path as needed and returns its mutable cached contour.
     //
-    // Call [[Pixel.LinePath.flatten]] first: the result is the cache that call builds, so it
-    // is empty until the path has been flattened at least once.
-    mtd flattenedPolygon()->*Polygon
+    // Mutating the returned points changes only the cache. Call
+    // [[Pixel.LinePath.recomputeFlattenedPolygon]] after geometric edits; a
+    // later path edit may replace the contour completely.
+    mtd flattenedPolygon(quality = PaintQuality.Normal)->*Polygon
     {
+        .flatten(quality)
         return &.polygon
+    }
+
+    // Refreshes bounds and polygon properties after editing the flattened contour.
+    mtd recomputeFlattenedPolygon()
+    {
+        .polygon.recompute()
+        .minBounds = .polygon.minBounds
+        .maxBounds = .polygon.maxBounds
+        .triangles.clear()
     }
 
     // Convert the path to a list of points
@@ -352,12 +401,11 @@ public impl LinePath
         if !.isDirty and .isFlatten and cast(u32) .flattenQuality >= cast(u32) quality do
             return
 
+        .clearCache()
         .isDirty        = false
         .isFlatten      = true
         .flattenQuality = quality
-
-        .bvMin, .bvMax = .startPoint
-        .clearCache()
+        .minBounds, .maxBounds = .startPoint
 
         if !.elements.count do
             return
@@ -379,7 +427,7 @@ public impl LinePath
             }
         }
 
-        .polygon.compute()
+        .polygon.recompute()
     }
 }
 
@@ -400,8 +448,8 @@ impl LinePath
 
     mtd flattenLine(pos: Vector2)
     {
-        .bvMin = Vector2.min(.bvMin, pos)
-        .bvMax = Vector2.max(.bvMax, pos)
+        .minBounds = Vector2.min(.minBounds, pos)
+        .maxBounds = Vector2.max(.maxBounds, pos)
         .polygon.add(pos)
         .endPosBuffer = pos
     }
@@ -502,7 +550,7 @@ impl LinePath
         for t in samplePoints
         {
             let point     = Curve.evaluatePolynomial(p0, p1, p2, p3, t)
-            let deviation = Geometry.distanceToLine(point, startPt, endPt)
+            let deviation = Geometry.distanceFromPointToLine(point, startPt, endPt)
             maxDeviation = Math.max(maxDeviation, deviation)
         }
 
@@ -551,7 +599,7 @@ impl LinePath
     {
         // For quadratic Bézier, the maximum deviation occurs at the control point
         // Calculate distance from control point to chord line
-        let deviation = Geometry.distanceToLine(p1, p0, p2)
+        let deviation = Geometry.distanceFromPointToLine(p1, p0, p2)
 
         if deviation < tolerance do
             return 1     // Curve is already flat enough
@@ -609,11 +657,11 @@ impl LinePath
         var maxDeviation = 0.0
 
         // Distance from p1 to chord line
-        let dev1 = Geometry.distanceToLine(p1, p0, p3)
+        let dev1 = Geometry.distanceFromPointToLine(p1, p0, p3)
         maxDeviation = Math.max(maxDeviation, dev1)
 
         // Distance from p2 to chord line
-        let dev2 = Geometry.distanceToLine(p2, p0, p3)
+        let dev2 = Geometry.distanceFromPointToLine(p2, p0, p3)
         maxDeviation = Math.max(maxDeviation, dev2)
 
         if maxDeviation < tolerance

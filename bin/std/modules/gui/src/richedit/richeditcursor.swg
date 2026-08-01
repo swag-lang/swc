@@ -2,7 +2,7 @@
 
 using Core, Pixel
 
-// Represents rich edit cursor.
+// Identifies one rune position and preferred horizontal coordinate in a rich document.
 struct RichEditCursor
 {
     lineIndex:     u64     // Index of line.
@@ -12,18 +12,18 @@ struct RichEditCursor
 impl RichEditCtrl
 {
     // Returns text draw info.
-    mtd getTextDrawInfo(styleIdx: RichEditStyleRef)->TextDrawInfo
+    mtd computeTextDrawInfo(styleIdx: RichEditStyleRef)->TextDrawInfo
     {
-        let fontR = .getFont().getFont(.styles[styleIdx].fontMode)
+        let fontR = .font().getFont(.styles[styleIdx].fontMode)
         if fontR do
-            return Painter.getTextDrawInfo(nnFont(fontR))
+            return Painter.computeTextDrawInfo(nnFont(fontR))
         return {}
     }
 
     // Returns line height.
-    mtd getLineHeight()->f32
+    mtd lineHeight()->f32
     {
-        let fontR = .getFont().getFont(.styles[0].fontMode)
+        let fontR = .font().getFont(.styles[0].fontMode)
         if !fontR do
             return 0
 
@@ -31,16 +31,16 @@ impl RichEditCtrl
         return Math.max(font.height + .lineSpacing, 1.0)
     }
 
-    // Performs the advance rune x operation.
+    // Advances the cached horizontal position by one rune.
     mtd advanceRuneX(line: #null *RichEditLine, i: u64, x: f32)->f32
     {
         if !line do
             return x
         if line.chars[i] == '\t' do
-            return x + .getTabOffset(cast(s32) x)
+            return x + .tabAdvance(cast(s32) x)
 
         let styleIdx = line.styles[i]
-        let info     = .getTextDrawInfo(styleIdx)
+        let info     = .computeTextDrawInfo(styleIdx)
         let drawFont = info.drawFont
         if !drawFont do
             return x
@@ -62,16 +62,16 @@ impl RichEditCtrl
     }
 
     // Returns rune size.
-    mtd getRuneSize(line: #null *RichEditLine, i: u64, x: f32)->Math.Point
+    mtd runeSize(line: #null *RichEditLine, i: u64, x: f32)->Math.Point
     {
         var size: retval
         size.x = .advanceRuneX(line, i, x) - x
-        size.y = .getLineHeight()
+        size.y = .lineHeight()
         return size
     }
 
     // Returns cursor display pos.
-    mtd getCursorDisplayPos(cp: RichEditCursor)->Math.Point
+    mtd cursorDisplayPosition(cp: RichEditCursor)->Math.Point
     {
         var result: retval
 
@@ -79,7 +79,7 @@ impl RichEditCtrl
         let line      = notnull .lines[lineIndex]
         result.y = line.drawingRect.bottom()
 
-        result.x = .getMarginLeft()
+        result.x = .leftMargin()
         for [i] in Math.min(cp.charPosInLine, line.length()) do
             result.x = .advanceRuneX(line, i, result.x)
 
@@ -87,10 +87,10 @@ impl RichEditCtrl
     }
 
     // Returns tab offset.
-    mtd getTabOffset(x: s32, numBlanks: #null *s32 = null)->s32
+    mtd tabAdvance(x: s32, numBlanks: #null *s32 = null)->s32
     {
-        let of        = cast(s32) (x - .getMarginLeft())
-        let fontR     = .getFont().getFont(.styles[0].fontMode)
+        let of        = cast(s32) (x - .leftMargin())
+        let fontR     = .font().getFont(.styles[0].fontMode)
         let font      = nnFont(fontR)
         let sizeBlank = Painter.measureRune(' ', font)
         let sx        = cast(s32) (sizeBlank.x * .tabSize)
@@ -105,23 +105,23 @@ impl RichEditCtrl
     }
 
     // Returns x extent.
-    mtd getXExtent()->Math.Point
+    mtd xGlyphSize()->Math.Point
     {
-        let fontR = .getFont().getFont(.styles[0].fontMode)
+        let fontR = .font().getFont(.styles[0].fontMode)
         if !fontR do
             return {}
 
         let font   = nnFont(fontR)
         var result = Painter.measureRune('X', font)
-        result.y = .getLineHeight()
+        result.y = .lineHeight()
         return result
     }
 
     // Returns caret pos.
-    mtd getCaretPos(cp: RichEditCursor)->Math.Rectangle
+    mtd caretRect(cp: RichEditCursor)->Math.Rectangle
     {
-        let pt   = .getCursorDisplayPos(cp)
-        let size = .getXExtent()
+        let pt   = .cursorDisplayPosition(cp)
+        let size = .xGlyphSize()
 
         var result: retval
         result.x      = pt.x
@@ -138,7 +138,7 @@ impl RichEditCtrl
         .invalidate()
     }
 
-    // Performs the ensure caret is visible operation.
+    // Scrolls just enough to reveal the active caret.
     mtd ensureCaretIsVisible(center = false)
     {
         .forceCaretVisible       = true
@@ -146,23 +146,23 @@ impl RichEditCtrl
         .ensureCaretIsVisibleInternal(center)
     }
 
-    // Performs the ensure cursor is visible operation.
+    // Scrolls to reveal a cursor, optionally centering it in the viewport.
     mtd ensureCursorIsVisible(cp: RichEditCursor, center: bool)
     {
-        let size   = .getXExtent()
+        let size   = .xGlyphSize()
         let decalx = size.x * 10
 
-        let clientRect = .edView.getClientRect()
+        let clientRect = .edView.clientRect()
 
-        let pos = .getCursorDisplayPos(cp)
+        let pos = .cursorDisplayPosition(cp)
         var sx  = .edView.scrollPos.x
         var sy  = .edView.scrollPos.y
 
         // Need to change horz scroll
-        if pos.x < sx + .getMarginLeft() do
+        if pos.x < sx + .leftMargin() do
             sx = pos.x - decalx
-        elif pos.x + size.x > sx + clientRect.width - .getMarginRight() do
-            sx = pos.x + decalx - clientRect.width - .getMarginRight()
+        elif pos.x + size.x > sx + clientRect.width - .rightMargin() do
+            sx = pos.x + decalx - clientRect.width - .rightMargin()
 
         // Need to change vertical scroll
         if pos.y - size.y < sy
@@ -185,7 +185,7 @@ impl RichEditCtrl
     }
 
     // Returns cursor pos from point.
-    mtd getCursorPosFromPoint(pt: Math.Point)->RichEditCursor
+    mtd cursorAt(pt: Math.Point)->RichEditCursor
     {
         var cp: retval
 
@@ -221,7 +221,7 @@ impl RichEditCtrl
                 {
                     for [j] in count
                     {
-                        let size = .getRuneSize(line, j, rect.x)
+                        let size = .runeSize(line, j, rect.x)
                         rect.width = size.x
                         if rect.contains(pt)
                         {
@@ -276,14 +276,13 @@ impl RichEditCtrl
         .cursorPos = cp
     }
 
-    // Performs the move cursor left operation.
-    // Performs the move cursor down operation.
+    // Moves a cursor one rune to the left and reports whether it changed.
     #[Swag.Discardable]
     mtd moveCursorLeft(cp: *RichEditCursor)->bool
     {
         if cp.charPosInLine == 0
         {
-            let prev = .getPreviousVisibleLine(cp.lineIndex)
+            let prev = .previousVisibleLine(cp.lineIndex)
             if prev == cp.lineIndex do
                 return false
             cp.lineIndex     = prev
@@ -297,13 +296,13 @@ impl RichEditCtrl
         return true
     }
 
-    // Performs the move cursor right operation.
+    // Moves a cursor one rune to the right and reports whether it changed.
     #[Swag.Discardable]
     mtd moveCursorRight(cp: *RichEditCursor)->bool
     {
         if cp.charPosInLine == (notnull .lines[cp.lineIndex]).length()
         {
-            let next = .getNextVisibleLine(cp.lineIndex)
+            let next = .nextVisibleLine(cp.lineIndex)
             if next == cp.lineIndex do
                 return false
             cp.lineIndex     = next
@@ -317,26 +316,26 @@ impl RichEditCtrl
         return true
     }
 
-    // Performs the move cursor up operation.
+    // Moves a cursor to the closest position on the preceding visual line.
     #[Swag.Discardable]
     mtd moveCursorUp(cp: *RichEditCursor)->bool
     {
-        let pt = .getCursorDisplayPos(cp)
+        let pt = .cursorDisplayPosition(cp)
         return .moveCursorUp(cp, pt)
     }
 
-    // Performs the move cursor down operation.
+    // Moves a cursor to the closest position on the following visual line.
     #[Swag.Discardable]
     private mtd moveCursorUp(cp: *RichEditCursor, posPrev: Math.Point)->bool
     {
-        let prev = .getPreviousVisibleLine(cp.lineIndex)
+        let prev = .previousVisibleLine(cp.lineIndex)
         if prev == cp.lineIndex do
             return false
 
         cp.lineIndex = prev
         var line = notnull .lines[cp.lineIndex]
         cp.charPosInLine = Math.min(line.length(), cp.charPosInLine)
-        var posNew = .getCursorDisplayPos(cp)
+        var posNew = .cursorDisplayPosition(cp)
 
         if posPrev.x == posNew.x do
             return true
@@ -344,7 +343,7 @@ impl RichEditCtrl
         {
             while posNew.x < posPrev.x and cp.charPosInLine < line.length()
             {
-                posNew.x         += .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         += .runeSize(line, cp.charPosInLine, posNew.x).x
                 cp.charPosInLine += 1
             }
         }
@@ -354,7 +353,7 @@ impl RichEditCtrl
             while posNew.x > posPrev.x and cp.charPosInLine
             {
                 cp.charPosInLine -= 1
-                posNew.x         -= .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         -= .runeSize(line, cp.charPosInLine, posNew.x).x
             }
         }
 
@@ -365,21 +364,21 @@ impl RichEditCtrl
     // Moves the cursor one visual line downward.
     mtd moveCursorDown(cp: *RichEditCursor)->bool
     {
-        let pt = .getCursorDisplayPos(cp)
+        let pt = .cursorDisplayPosition(cp)
         return .moveCursorDown(cp, pt)
     }
 
     #[Swag.Discardable]
     private mtd moveCursorDown(cp: *RichEditCursor, posPrev: Math.Point)->bool
     {
-        let next = .getNextVisibleLine(cp.lineIndex)
+        let next = .nextVisibleLine(cp.lineIndex)
         if next == cp.lineIndex do
             return false
 
         cp.lineIndex = next
         var line = notnull .lines[cp.lineIndex]
         cp.charPosInLine = Math.min(line.length(), cp.charPosInLine)
-        var posNew = .getCursorDisplayPos(cp)
+        var posNew = .cursorDisplayPosition(cp)
 
         if posPrev.x == posNew.x do
             return true
@@ -387,7 +386,7 @@ impl RichEditCtrl
         {
             while posNew.x < posPrev.x and cp.charPosInLine < line.length()
             {
-                posNew.x         += .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         += .runeSize(line, cp.charPosInLine, posNew.x).x
                 cp.charPosInLine += 1
             }
         }
@@ -397,14 +396,14 @@ impl RichEditCtrl
             while posNew.x > posPrev.x and cp.charPosInLine
             {
                 cp.charPosInLine -= 1
-                posNew.x         -= .getRuneSize(line, cp.charPosInLine, posNew.x).x
+                posNew.x         -= .runeSize(line, cp.charPosInLine, posNew.x).x
             }
         }
 
         return true
     }
 
-    // Performs the move cursor start line operation.
+    // Moves a cursor to the start of its logical line.
     mtd moveCursorStartLine(cp: *RichEditCursor)
     {
         let line = notnull .lines[cp.lineIndex]
@@ -439,20 +438,20 @@ impl RichEditCtrl
         }
     }
 
-    // Performs the move cursor end line operation.
+    // Moves a cursor to the end of its logical line.
     mtd moveCursorEndLine(cp: *RichEditCursor)
     {
         cp.charPosInLine = (notnull .lines[cp.lineIndex]).length()
     }
 
-    // Performs the move cursor start file operation.
+    // Moves a cursor to the start of the document.
     mtd moveCursorStartFile(cp: *RichEditCursor)
     {
-        cp.lineIndex     = .getFirstVisibleLine()
+        cp.lineIndex     = .firstVisibleLine()
         cp.charPosInLine = 0
     }
 
-    // Performs the move cursor end file operation.
+    // Moves a cursor to the end of the document.
     mtd moveCursorEndFile(cp: *RichEditCursor)
     {
         if .lines.isEmpty()
@@ -461,15 +460,15 @@ impl RichEditCtrl
             return
         }
 
-        cp.lineIndex     = .getLastVisibleLine()
+        cp.lineIndex     = .lastVisibleLine()
         cp.charPosInLine = (notnull .lines[cp.lineIndex]).length()
     }
 
-    // Performs the move cursor page up operation.
+    // Moves a cursor upward by one viewport page.
     mtd moveCursorPageUp(cp: *RichEditCursor)
     {
-        let client = .edView.getClientRect()
-        var count  = cast(s64) (client.height / .getXExtent().y)
+        let client = .edView.clientRect()
+        var count  = cast(s64) (client.height / .xGlyphSize().y)
         while count
         {
             if cp.lineIndex == 0 do
@@ -479,11 +478,11 @@ impl RichEditCtrl
         }
     }
 
-    // Performs the move cursor page down operation.
+    // Moves a cursor downward by one viewport page.
     mtd moveCursorPageDown(cp: *RichEditCursor)
     {
-        let client = .edView.getClientRect()
-        var count  = cast(s64) (client.height / .getXExtent().y)
+        let client = .edView.clientRect()
+        var count  = cast(s64) (client.height / .xGlyphSize().y)
         while count
         {
             if cp.lineIndex == .lines.count - 1 do
@@ -493,7 +492,7 @@ impl RichEditCtrl
         }
     }
 
-    // Performs the move cursor word left operation.
+    // Moves a cursor to the preceding word boundary.
     mtd moveCursorWordLeft(cp: *RichEditCursor)
     {
         var line = notnull .lines[cp.lineIndex]
@@ -543,7 +542,7 @@ impl RichEditCtrl
         }
     }
 
-    // Performs the move cursor word right operation.
+    // Moves a cursor to the following word boundary, optionally including trailing space.
     mtd moveCursorWordRight(cp: *RichEditCursor, withSpace: bool)
     {
         var line = notnull .lines[cp.lineIndex]

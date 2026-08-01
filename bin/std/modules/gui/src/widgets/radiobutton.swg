@@ -2,39 +2,39 @@
 
 using Core, Pixel
 
-// Represents radio button.
+// Lets the user select one option from an optional group.
 struct RadioButton
 {
-    using button: Button     // Embedded button state.
-    checked:      bool       // Checked associated with this value.
+    using button: Button     // Embedded button behavior and presentation.
 
-    // Auto-grouping: radios sharing the same (parent, group) uncheck each other when one is
-    // checked, so a group keeps a single selection. 'group' is a string id, like a command id; an
-    // empty/unset group means "ungrouped" — grouping is then left to the caller (backward
-    // compatible; several radios under one parent stay independent). Give the radios you want
-    // mutually exclusive the same non-empty id.
-    group:      WndId                             // Group associated with this value.
-    radioButtonFlags = RadioButtonFlags.Zero      // Radio button flags associated with this value.
-    sigChanged: SigArray'func||(*RadioButton)     // Signal emitted when changed.
+    groupId: #null WndId     // Identifier shared by mutually exclusive siblings; null leaves the button ungrouped.
+
+    readonly
+    {
+        flags = RadioButtonFlags.None     // Active marker placement options.
+        checked: bool                    // Whether this option is selected.
+    }
+
+    sigChanged: SigArray'func||(*RadioButton)     // Emitted after a user action selects the button.
 }
 
-// Selects radio button flags.
+// Configures radio button marker placement.
 #[Swag.EnumFlags]
 enum RadioButtonFlags
 {
-    Zero = 0       // No flags are enabled.
-    RightAlign     // Enables right align.
+    None = 0         // Places the marker at the left edge.
+    RightAligned     // Places the marker at the right edge.
 }
 
 impl IWnd for RadioButton
 {
-    mtd impl onPaintEvent(evt: *PaintEvent)
+    mtd impl onPaint(evt: *PaintEvent)
     {
-        let bc      = evt.bc
-        let theme   = .getTheme()
-        let metrics = .getThemeMetrics()
-        let colors  = .getThemeColors()
-        let rects   = .getThemeRects()
+        let bc      = evt.paintContext
+        let theme   = .theme()
+        let metrics = .themeMetrics()
+        let colors  = .themeColors()
+        let rects   = .themeRects()
 
         var subRectBk:     #null *ThemeImageRect
         var subRectBorder: #null *ThemeImageRect
@@ -90,12 +90,12 @@ impl IWnd for RadioButton
         }
 
         // Box
-        let clientRect = .getClientRect()
+        let clientRect = .clientRect()
         var posBox     = clientRect
         posBox.height = metrics.btnCheck_Size
         posBox.y      = clientRect.vertCenter() - (posBox.height * 0.5)
         posBox.width  = posBox.height
-        if .radioButtonFlags.has(.RightAlign) do
+        if .flags.has(.RightAligned) do
             posBox.x = clientRect.right() - posBox.width
         theme.drawSubRect(bc.painter, posBox, subRectBk, colorBk)
         theme.drawSubRect(bc.painter, posBox, subRectBorder, colorBorder)
@@ -104,15 +104,15 @@ impl IWnd for RadioButton
         // Content
         var format: RichStringFormat
         theme.setTextColors(&format, colorText)
-        if .radioButtonFlags.has(.RightAlign) do
+        if .flags.has(.RightAligned) do
             format.horzAlignment = .Right
         else do
             format.horzAlignment = .Left
         format.vertAlignment     = .Center
         format.flags             = .Clip
-        format.font              = .getFont()
+        format.font              = .font()
         var labelPos = clientRect
-        if !.radioButtonFlags.has(.RightAlign) do
+        if !.flags.has(.RightAligned) do
             labelPos.x += posBox.width + metrics.btnCheck_Padding
         labelPos.width -= posBox.width + metrics.btnCheck_Padding
         Theme.drawIconText(bc.painter, labelPos, .icon, &.name, format, metrics.iconText_Margin)
@@ -120,32 +120,44 @@ impl IWnd for RadioButton
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if .processMouseEvent(evt) and !.checked
+        if .processMouseEvent(evt) do
+            .selectFromUser()
+    }
+
+    // Space or Enter selects the focused radio button.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed do
+            return
+
+        if evt.key == .Space or evt.key == .Return
         {
-            .setChecked(true)     // also unchecks the group siblings when grouped
-            .sigChanged.call(me)
-            .postCommandEvent(.id)
+            .selectFromUser()
+            evt.accepted = true
         }
     }
 }
 
 impl RadioButton
 {
-    // Performs the create operation.
+    // Creates a radio button with an optional command identifier and initial options.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null)->*RadioButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: #null WndId = null, flags = RadioButtonFlags.None)->*RadioButton
     {
         Debug.assert(parent != null)
         var pos = position
         if pos.height == 0 do
-            pos.height = parent.getThemeMetrics().btnPush_Height
+            pos.height = parent.themeMetrics().btnPush_Height
         if pos.width == 0 do
-            pos.width = parent.getThemeMetrics().btnPush_Width
-        return Wnd.create'RadioButton(parent, name, pos, id)
+            pos.width = parent.themeMetrics().btnPush_Width
+        let result   = Wnd.create'RadioButton(parent, name, pos, id)
+        result.flags = flags
+        return result
     }
 
-    // Set the checked state. Checking a grouped radio (non-empty group) unchecks the others sharing
-    // its (parent, group). Unchecking is silent either way (no signal), like before.
+    // Changes the selected state without emitting a change signal or command.
+    // Selecting a grouped button clears its selected siblings.
     mtd setChecked(checked: bool)
     {
         if .checked == checked do
@@ -156,21 +168,38 @@ impl RadioButton
         .invalidate()
     }
 
-    // Uncheck the sibling radios that share this one's (parent, group). No-op when this radio's
-    // group is empty, so opting out keeps the old "grouping is the caller's job" behavior (and two
-    // ungrouped radios never match each other). Recursion is bounded: it only unchecks, and
-    // setChecked(false) never re-enters this.
+    // Reports whether this option is selected.
+    mtd const isChecked()->bool => .checked
+
+    // Adds and removes marker placement options, then repaints the button.
+    mtd updateFlags(add: RadioButtonFlags = .None, remove = RadioButtonFlags.None)
+    {
+        .flags.add(add)
+        .flags.remove(remove)
+        .invalidate()
+    }
+
+    internal mtd selectFromUser()
+    {
+        if .checked do
+            return
+        .setChecked(true)
+        .sigChanged.call(me)
+        .postCommandEvent(.id)
+    }
+
+    // Clears selected sibling radios from the same non-null group.
     mtd uncheckGroupSiblings()
     {
-        if @countof(.group) == 0 or !.parent do
+        if @countof(.groupId) == 0 or !.parent do
             return
 
-        for c in .parent.childs
+        for c in .parent.children
         {
             if c == cast(*Wnd) me or c.type != RadioButton do
                 continue
             let other = cast(*RadioButton) c
-            if other.group == .group do
+            if other.groupId == .groupId do
                 other.setChecked(false)
         }
     }

@@ -14,10 +14,9 @@ struct Texture
     readonly
     {
         handle: TextureHandle = InvalidTextureHandle     // Renderer-specific resource handle.
-        pf:     PixelFormat   = undefined                // Pixel encoding of the texture storage.
-        width:  s32           = 0                        // Width, in texels.
-        height: s32           = 0                        // Height, in texels.
-        valid:  bool          = false                    // Backend state flag retained for compatibility.
+        pixelFormat: PixelFormat   = undefined                // Pixel encoding of the texture storage.
+        width:       s32           = 0                        // Width, in texels.
+        height:      s32           = 0                        // Height, in texels.
     }
 }
 
@@ -39,28 +38,27 @@ enum UVMode
 impl Texture
 {
     // Returns the tightly packed texture storage size, in bytes.
-    mtd const getByteSize()->s32 => .width * .height * .pf.bpp() / 8
+    mtd const byteCount()->u64 => cast(u64) .width * cast(u64) .height * .pixelFormat.bitsPerPixel() / 8
 
     // Reports whether the texture contains a non-invalid renderer handle.
     mtd const isValid()->bool => .handle != InvalidTextureHandle
 
     // Invalidates the descriptor without releasing a renderer resource.
-    mtd clear()
+    internal mtd clear()
     {
-        .handle = InvalidTextureHandle
-        .valid  = false
+        @init(me, 1)
     }
 
     // Describes the resource a renderer just created.
     //
     // Only a renderer calls this: it is the one that knows the handle, and the geometry the
     // storage was really allocated with.
-    internal mtd attach(handle: TextureHandle, pf: PixelFormat, width, height: s32)
+    internal mtd attach(handle: TextureHandle, pixelFormat: PixelFormat, width, height: s32)
     {
-        .handle = handle
-        .pf     = pf
-        .width  = width
-        .height = height
-        .valid  = handle != InvalidTextureHandle
+        Debug.assert(handle != InvalidTextureHandle and width > 0 and height > 0)
+        .handle      = handle
+        .pixelFormat = pixelFormat
+        .width       = width
+        .height      = height
     }
 }

@@ -228,7 +228,7 @@ func createProgram()
 
 func display()
 {
-    g_Angle += g_Frame.dt
+    g_Angle += g_Frame.deltaSeconds
 
     glViewport(0, 0, g_Width, g_Height)
     glClearColor(0.06, 0.07, 0.10, 1)

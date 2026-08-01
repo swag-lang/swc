@@ -817,6 +817,23 @@ namespace
                 sema.setSymbol(clonedRef, symbol);
                 sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
             }
+            else
+            {
+                // A folded local read (`let n = <constant>` used as an inline-call argument) resolves
+                // to a bare constant with no symbol at all. Carry that constant onto the clone, or it
+                // degenerates to a name-only identifier that re-resolves in the destination scope —
+                // where a same-named declaration (an inlined callee's parameter shadowing the caller's
+                // argument local) rebinds it to the wrong symbol.
+                const SemaNodeView sourceView = sema.viewTypeConstant(sourceRef);
+                if (sourceView.hasConstant())
+                {
+                    if (sourceView.typeRef().isValid())
+                        sema.setType(clonedRef, sourceView.typeRef());
+                    sema.setConstant(clonedRef, sourceView.cstRef());
+                    sema.setIsValue(clonedRef);
+                    sema.node(clonedRef).cast<AstIdentifier>().addFlag(AstIdentifierFlagsE::ConstantBinding);
+                }
+            }
         }
 
         SmallVector<AstNodeRef> sourceChildren;

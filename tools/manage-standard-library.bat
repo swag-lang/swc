@@ -1,8 +1,10 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+rem Builds or tests the standard-library workspace, optionally one module.
+
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_shared-tooling.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
@@ -64,11 +66,11 @@ goto parse_args
 :run
 if /I "%SWC_COMMAND%"=="test" goto run_test
 
-call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%STD_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%
+call "%TOOLS_DIR%_shared-tooling.bat" :run_swc build --workspace "%STD_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%
 exit /b %ERRORLEVEL%
 
 :run_test
-call "%TOOLS_DIR%_common.bat" :run_swc build --workspace "%STD_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%
+call "%TOOLS_DIR%_shared-tooling.bat" :run_swc build --workspace "%STD_WORKSPACE%" --build-cfg %BUILD_CFG%%WORKSPACE_ARGS%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 for /d %%D in ("%STD_WORKSPACE%\modules\*") do (
@@ -82,10 +84,10 @@ for /d %%D in ("%STD_WORKSPACE%\modules\*") do (
         if not defined MODULE_FILTER set "RUN_MODULE=1"
         if defined MODULE_FILTER if /I "!MODULE_NAME!"=="!MODULE_FILTER!" set "RUN_MODULE=1"
         if defined RUN_MODULE (
-            call "%TOOLS_DIR%_common.bat" :set_paths "std\!MODULE_NAME!" "executable" "%BUILD_CFG%"
+            call "%TOOLS_DIR%_shared-tooling.bat" :set_paths "std\!MODULE_NAME!" "executable" "%BUILD_CFG%"
             if not "!ERRORLEVEL!"=="0" exit /b !ERRORLEVEL!
 
-            call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind executable --module-file "!MODULE_FILE!" -d "src" --out-dir "!OUT_DIR!" --work-dir "!WORK_DIR!" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%EXTRA_ARGS%%TEST_ARGS%
+            call "%TOOLS_DIR%_shared-tooling.bat" :run_swc test --artifact-kind executable --module-file "!MODULE_FILE!" -d "src" --out-dir "!OUT_DIR!" --work-dir "!WORK_DIR!" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%EXTRA_ARGS%%TEST_ARGS%
             if not "!ERRORLEVEL!"=="0" exit /b !ERRORLEVEL!
         )
     )

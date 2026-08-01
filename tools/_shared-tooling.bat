@@ -1,5 +1,7 @@
 @echo off
 
+rem Shared path, configuration, and compiler-launch helpers for repository tools.
+
 if "%~1"=="" exit /b 1
 
 set "__SWC_COMMON_LABEL=%~1"

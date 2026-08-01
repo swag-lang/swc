@@ -434,7 +434,7 @@
 <p>The trailing <span class="code-inline">fail</span> marks a function that can return a recoverable error. Calls inside this function propagate errors automatically; <span class="code-inline">#main</span> chooses to turn the final error into a panic with <span class="code-inline">expect</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAssets</span>(wnd: *<span class="SCst">Wnd</span>) <span class="SKwd">fail</span>
 {
-    <span class="SKwd">let</span> render = &amp;wnd.<span class="SFct">app</span>().renderer
+    <span class="SKwd">let</span> render = wnd.<span class="SFct">app</span>().renderer
 
     <span class="SKwd">var</span> dataPath: <span class="SCst">String</span> = <span class="SCst">Path</span>.<span class="SFct">directoryName</span>(<span class="SCmp">#curlocation</span>.fileName)
     dataPath = <span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"datas"</span>)
@@ -450,25 +450,21 @@
         g_SoundFlap  = .<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"flap.wav"</span>))
     }
 
-    <span class="SCmt">// Load all textures.</span>
-    <span class="SCmt">// 'with' also accepts a value; leading-dot calls use 'render' as receiver.</span>
-    <span class="SKwd">with</span> render
-    {
-        g_BirdTexture[<span class="SNum">0</span>] = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-upflap.png"</span>))
-        g_BirdTexture[<span class="SNum">1</span>] = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-midflap.png"</span>))
-        g_BirdTexture[<span class="SNum">2</span>] = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-downflap.png"</span>))
-        g_OverTexture    = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"gameover.png"</span>))
-        g_BaseTexture    = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"base.png"</span>))
-        g_BackTexture    = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"background-day.png"</span>))
-        g_MsgTexture     = .<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"message.png"</span>))
-    }
+    <span class="SCmt">// Load all textures through the application's selected renderer.</span>
+    g_BirdTexture[<span class="SNum">0</span>] = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-upflap.png"</span>))
+    g_BirdTexture[<span class="SNum">1</span>] = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-midflap.png"</span>))
+    g_BirdTexture[<span class="SNum">2</span>] = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"yellowbird-downflap.png"</span>))
+    g_OverTexture    = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"gameover.png"</span>))
+    g_BaseTexture    = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"base.png"</span>))
+    g_BackTexture    = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"background-day.png"</span>))
+    g_MsgTexture     = render.<span class="SFct">addImage</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"message.png"</span>))
 
     <span class="SKwd">var</span> img = <span class="SCst">Image</span>.<span class="SFct">load</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"pipe-green.png"</span>))
     g_PipeTextureD = render.<span class="SFct">addImage</span>(img)
     img.<span class="SFct">flip</span>()
     g_PipeTextureU = render.<span class="SFct">addImage</span>(img)
 
-    g_Font = render.fonts.<span class="SFct">createFont</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"FlappyBirdy.ttf"</span>), <span class="SNum">50</span>)
+    g_Font = render.<span class="SFct">fontCache</span>().<span class="SFct">createFont</span>(<span class="SCst">Path</span>.<span class="SFct">combine</span>(dataPath, <span class="SStr">"FlappyBirdy.ttf"</span>), <span class="SNum">50</span>)
 }
 
 </span></div>

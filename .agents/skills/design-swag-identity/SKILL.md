@@ -63,7 +63,7 @@ for the vector masters and `Pixel.Image.fillPath` for the rasters — so no asse
 with another about where an edge is. The script owns the shape and nothing else; anything
 generic it needs belongs in `bin/std`, not in the script.
 
-`web/tools/web.bat` runs it before generating the pages, so the assets the pages link are
+`tools/generate-web-documentation.bat` runs it before generating the pages, so the assets the pages link are
 always cut from the current definition. To regenerate them alone:
 
 ```
@@ -80,7 +80,7 @@ When the geometry changes, three places must be updated in the same change:
 1. Run the generator.
 2. Paste the new path into `--swag-mark` in `documentationStyles()`, where the mark is
    inlined as an alpha mask so a generated page stays one self-contained file.
-3. Copy the icon into the VSCode extension with `vscode/mkvsix.bat`.
+3. Copy the icon into the VSCode extension with `tools/package-vscode-extension.bat`.
 
 ## Regenerate The Syntax Image
 
@@ -162,7 +162,7 @@ the same identity as the cut and the voltage.
 ## Verify
 
 1. Regenerate the assets and the site: `swc web/tools/brand.swgs`, then
-   `web/tools/web.bat dm`.
+   `tools/generate-web-documentation.bat dm`.
 2. Look at a page in both palettes and at a narrow width before calling it done.
 3. Check the mark at 16, 32, and 128 pixels. If the counters close up, the placement is
    wrong, not the mark.

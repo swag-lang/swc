@@ -1,8 +1,10 @@
 @echo off
 setlocal
 
+rem Builds or tests the executable language-reference workspace.
+
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_shared-tooling.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 set "MODE_ARG="
 if /I "%~1"=="dm" (
@@ -43,6 +45,6 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
-call "%TOOLS_DIR%_common.bat" :run_swc %SWC_COMMAND% --workspace "%REFERENCE_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%REFERENCE_ARGS%%EXTRA_ARGS%
+call "%TOOLS_DIR%manage-standard-library.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+call "%TOOLS_DIR%_shared-tooling.bat" :run_swc %SWC_COMMAND% --workspace "%REFERENCE_WORKSPACE%" --build-cfg %BUILD_CFG% --import-api-dir "%STD_OUTPUT_ROOT%"%REFERENCE_ARGS%%EXTRA_ARGS%
 exit /b %ERRORLEVEL%

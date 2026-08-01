@@ -1,8 +1,10 @@
 @echo off
 setlocal
 
+rem Executes one compiler source-test suite with explicit stage and output settings.
+
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_shared-tooling.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
@@ -74,10 +76,10 @@ goto parse_args
 if not defined BIN_REL exit /b 1
 if not defined MODULE_NAMESPACE exit /b 1
 
-call "%TOOLS_DIR%_common.bat" :set_paths "%BIN_REL%" "%ARTIFACT_LABEL%" "%BUILD_CFG%"
+call "%TOOLS_DIR%_shared-tooling.bat" :set_paths "%BIN_REL%" "%ARTIFACT_LABEL%" "%BUILD_CFG%"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
-call "%TOOLS_DIR%_common.bat" :run_swc test --artifact-kind executable -d "%ROOT%\bin\%BIN_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
+call "%TOOLS_DIR%_shared-tooling.bat" :run_swc test --artifact-kind executable -d "%ROOT%\bin\%BIN_REL%" --module-namespace %MODULE_NAMESPACE% --out-dir "%OUT_DIR%" --work-dir "%WORK_DIR%" --build-cfg %BUILD_CFG%%STAGE_ARGS%%EXTRA_ARGS%
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 exit /b 0

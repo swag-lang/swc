@@ -1,5 +1,7 @@
 @echo off
 setlocal
+
+rem Registers the repository compiler directory in the current user's environment.
 set "REL_PATH=..\bin"
 rem Resolve to absolute path (remove trailing backslash if any)
 for %%I in ("%~dp0%REL_PATH%") do set "FULL_PATH=%%~fI"

@@ -63,6 +63,10 @@ def fmt(v, nd=2):
     return "&mdash;" if v is None else ("%." + str(nd) + "f") % v
 
 
+def signed_pct(v):
+    return "&mdash;" if v is None else "%+.1f" % ((v - 1.0) * 100.0)
+
+
 def geo(values):
     values = [v for v in values if v]
     return math.exp(sum(math.log(v) for v in values) / len(values)) if values else None
@@ -229,14 +233,25 @@ def history_section(entries):
             "apparaissent d&egrave;s la deuxi&egrave;me : chaque point ci-dessous est le "
             "rep&egrave;re de d&eacute;part.</p></div>")
 
-    parts.append("<h3>Ex&eacute;cution &mdash; rapport au C++ de la m&ecirc;me campagne</h3>")
-    parts.append('<p class="cap">Normalis&eacute; contre <code>%s</code> mesur&eacute; le m&ecirc;me '
-                 "jour : une baisse ici veut dire que swc a progress&eacute;, pas que la machine "
-                 "&eacute;tait plus fra&icirc;che.</p>" % tc.REFERENCE)
-    parts.append(svg_lines(labels, series("run_geo_ratio"), "&times;"))
+    latest_context = entries[-1].get("context", {})
+    run_tasks = latest_context.get("run_task_factors", {})
+    build_tasks = latest_context.get("build_task_factors", {})
+    run_per_task = (latest_context.get("run_controls", 0) // len(run_tasks)) if run_tasks else 0
+    build_per_task = ((latest_context.get("build_controls", 0) // len(build_tasks))
+                      if build_tasks else 0)
+    baseline = latest_context.get("baseline_commit") or latest_context.get("baseline") or "?"
 
-    parts.append("<h3>Compilation &mdash; rapport au C++ de la m&ecirc;me campagne</h3>")
-    parts.append(svg_lines(labels, series("build_geo_ratio"), "&times;"))
+    parts.append("<h3>Ex&eacute;cution &mdash; indice corrig&eacute; du contexte machine</h3>")
+    parts.append('<p class="cap">Pour chaque t&acirc;che, le temps Swag brut est divis&eacute; par '
+                 "le mouvement m&eacute;dian de %d runtimes t&eacute;moins inchang&eacute;s. "
+                 "La campagne <code>%s</code> vaut 1,00 ; une baisse mesure donc un progr&egrave;s "
+                 "du compilateur, apr&egrave;s retrait du contexte machine.</p>" % (run_per_task, baseline))
+    parts.append(svg_lines(labels, series("run_geo_index"), "&times;"))
+
+    parts.append("<h3>Compilation &mdash; indice corrig&eacute; du contexte machine</h3>")
+    parts.append('<p class="cap">M&ecirc;me correction, calcul&eacute;e s&eacute;par&eacute;ment avec %d '
+                 "toolchains de compilation par t&acirc;che.</p>" % build_per_task)
+    parts.append(svg_lines(labels, series("build_geo_index"), "&times;"))
 
     parts.append("<h3>Pic m&eacute;moire du compilateur</h3>")
     parts.append('<p class="cap">En m&eacute;gaoctets bruts : contrairement au temps, '
@@ -248,10 +263,10 @@ def history_section(entries):
                                            for e in entries)],
                            "Mo", nd=0))
 
-    parts.append("<h3>Par t&acirc;che &mdash; swag release natif, rapport au C++</h3>")
+    parts.append("<h3>Par t&acirc;che &mdash; swag release natif, indice corrig&eacute;</h3>")
     parts.append('<div class="small-mult">')
     for tid, name, _ in TASKS:
-        vals = [e["runtimes"].get("swag-release", {}).get("run_ratio", {}).get(tid)
+        vals = [e["runtimes"].get("swag-release", {}).get("run_index", {}).get(tid)
                 for e in entries]
         parts.append('<div class="sm"><b>%s</b>%s</div>'
                      % (tid, svg_lines(labels, [("h-a", "", vals)], "&times;", compact=True)))
@@ -263,22 +278,34 @@ def history_section(entries):
         m = e["meta"]
         rel = e["runtimes"].get("swag-release", {})
         jit = e["runtimes"].get("swc-jit-release", {})
+        context = e.get("context", {})
         dirty_seen = dirty_seen or m.get("dirty")
         rows.append([
             "swag",
             "<code>%s%s</code>" % (m.get("commit") or "?", "*" if m.get("dirty") else ""),
             m["date"][:10],
             (m.get("label") or "&mdash;"),
-            fmt(rel.get("run_geo_ratio")),
-            fmt(jit.get("run_geo_ratio")),
-            fmt(rel.get("build_geo_ms"), 0),
+            fmt(rel.get("run_geo_adjusted_ms")),
+            fmt(jit.get("run_geo_adjusted_ms")),
+            fmt(rel.get("build_geo_adjusted_ms"), 0),
+            signed_pct(context.get("run_factor")),
+            signed_pct(context.get("build_factor")),
             fmt(rel.get("build_peak_mb"), 0),
             fmt(e.get("drift_pct"), 1),
         ])
     parts.append("<h3>Journal des campagnes</h3>")
-    parts.append(table(["commit", "date", "note", "exec natif", "exec JIT",
-                        "compil (ms)", "m&eacute;moire (Mo)", "d&eacute;rive (%)"],
+    parts.append(table(["commit", "date", "note", "exec natif corrig&eacute;e (ms)",
+                        "exec JIT corrig&eacute;e (ms)", "compil corrig&eacute;e (ms)",
+                        "contexte exec (%)", "contexte compil (%)", "m&eacute;moire (Mo)",
+                        "d&eacute;rive (%)"],
                        rows, "wide"))
+    parts.append('<p class="cap">Un contexte n&eacute;gatif signifie que les t&eacute;moins ont '
+                 "tourn&eacute; plus vite que pendant la campagne de r&eacute;f&eacute;rence ; les temps "
+                 "Swag bruts sont alors relev&eacute;s d'autant. La dispersion m&eacute;diane des "
+                 "t&eacute;moins de la derni&egrave;re campagne est de %.1f&nbsp;%% en ex&eacute;cution et "
+                 "%.1f&nbsp;%% en compilation.</p>" %
+                 (latest_context.get("run_dispersion_pct") or 0.0,
+                  latest_context.get("build_dispersion_pct") or 0.0))
     if dirty_seen:
         parts.append('<p class="cap">Un ast&eacute;risque marque une campagne mesur&eacute;e '
                      "sur un arbre modifi&eacute; : son commit seul ne la reproduit pas.</p>")
@@ -289,7 +316,7 @@ def history_section(entries):
 def main():
     R = latest_campaign()
     T = R["tasks"]
-    entries = history.load()
+    entries = history.rebuild()
 
     present = [r[0] for r in RUNTIMES if r[0] in T[TASK_IDS[0]]
                and (T[TASK_IDS[0]][r[0]].get("run") or {}).get("ms")]

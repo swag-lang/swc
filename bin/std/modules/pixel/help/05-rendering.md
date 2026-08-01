@@ -116,7 +116,7 @@ Testing.assertImageGolden(&image, "toolbar.enabled")
 
 The first run creates `goldens/toolbar.enabled.png` and passes so the new file can
 be reviewed. A mismatch fails and writes `toolbar.enabled.actual.png`. After
-reviewing both images, `tools\goldens.bat accept` promotes pending snapshots.
+reviewing both images, `tools\accept-test-goldens.bat` promotes pending snapshots.
 
 [[Pixel.RenderCpu]] interprets built-in shapes, brushes, textures, clipping,
 blending, bitmap text, render targets, blur, and supersampling. Custom GLSL

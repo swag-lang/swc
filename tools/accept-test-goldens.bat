@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+rem Accepts reviewed text and image snapshots produced by failing tests.
+
 rem Promotes the snapshots a failing test left behind into the goldens they diverged from.
 rem
 rem A golden mismatch writes '<name>.actual.txt' or '<name>.actual.png' next to its reference and

@@ -1,8 +1,10 @@
 @echo off
 setlocal EnableDelayedExpansion
 
+rem Executes every standalone example script in deterministic test mode.
+
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_shared-tooling.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 set "MODE_ARG="
 if /I "%~1"=="dm" (
@@ -35,10 +37,10 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%std.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
+call "%TOOLS_DIR%manage-standard-library.bat" %MODE_ARG% build --build-cfg "%BUILD_CFG%"%EXTRA_ARGS% || exit /b 1
 
 for %%F in ("%SCRIPTS_DIR%\*.swgs") do (
-    call "%TOOLS_DIR%_common.bat" :run_swc "%%~fF" --run-arg swag.test --build-cfg %BUILD_CFG%%EXTRA_ARGS%
+    call "%TOOLS_DIR%_shared-tooling.bat" :run_swc "%%~fF" --run-arg swag.test --build-cfg %BUILD_CFG%%EXTRA_ARGS%
     if not "!ERRORLEVEL!"=="0" exit /b !ERRORLEVEL!
 )
 

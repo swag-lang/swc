@@ -3,7 +3,7 @@
 This directory answers one question over time: **is the compiler getting better?**
 
 ```
-tools\bench.bat --label "what changed since last time"
+tools\run-benchmark-campaign.bat --label "what changed since last time"
 ```
 
 That rebuilds `swc.exe` in Release, measures it against every other toolchain, appends the
@@ -11,9 +11,9 @@ result to `history.json`, and regenerates `bench.html`. Nothing else is needed.
 
 | | |
 |---|---|
-| `tools\bench.bat --quick` | one repetition, no cooldown; proves the plumbing works and is **not** recorded |
-| `tools\bench.bat --report-only` | regenerate the page from the existing history, measure nothing |
-| `tools\bench.bat --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
+| `tools\run-benchmark-campaign.bat --quick` | one repetition, no cooldown; proves the plumbing works and is **not** recorded |
+| `tools\run-benchmark-campaign.bat --report-only` | rebuild the normalized history and page from raw campaigns, measure nothing |
+| `tools\run-benchmark-campaign.bat --no-build` | measure the binary already in `bin/`, useful when iterating on the harness |
 
 A full campaign takes roughly twenty-five minutes, most of it in the two-minute cooldown,
 the NativeAOT publishes and CPython.
@@ -49,17 +49,29 @@ machine was busy, and the campaign should be discarded rather than published.
 Never present two half-campaigns measured at different moments side by side: the gap between
 them is machine noise, not a result.
 
-## Why the history is normalised
+## How machine variation is removed
 
 `history.json` keeps **swc only**. The other languages do not change between campaigns; they
-are re-measured every time solely to provide a yardstick.
+are re-measured every time solely as a control group.
 
 Raw milliseconds are not comparable across campaigns — the same machine drifts by more than
-ten percent between sessions. So every tracked value is also stored relative to `cpp-clang-cl`
-measured in the *same* campaign, and the history charts plot that ratio. A falling ratio means
-swc improved; a falling raw number may only mean the laptop was cold.
+ten percent between sessions. The oldest complete campaign recorded from a clean tree is the
+stable baseline. For each task and later campaign, the harness computes every non-Swag
+runtime's ratio to that baseline and takes their logarithmic median: ten controls for execution
+and six for compilation. That is the context factor. A Swag time is divided by the factor before
+it enters the history.
+
+The correction is per task because the machine can warm up during a sweep, and execution and
+compilation get separate factors. The median makes the result insensitive to one noisy runtime
+or one independently upgraded toolchain. `history.json` records the factors, control counts,
+and median dispersion so the correction remains auditable. A context factor below one means
+the controls ran faster than at baseline, so the raw Swag value is raised before comparison.
 
 Compiler memory is the exception. It does not drift with machine state, so it is plotted raw.
+
+The files under `results/` are authoritative. `history.py` rebuilds every compact entry from
+those raw campaigns whenever the report is generated, so normalization changes can be applied
+retroactively without altering a measurement.
 
 A campaign measured on a modified working tree is recorded with `dirty: true` and marked with
 an asterisk in the report, because its commit alone will not reproduce it.
@@ -68,7 +80,7 @@ an asterisk in the report, because its commit alone will not reproduce it.
 
 | | |
 |---|---|
-| `../tools/bench.bat` | the entry point |
+| `../tools/run-benchmark-campaign.bat` | the entry point |
 | `campaign.py` | rebuild, measure, report |
 | `driver.py` | the sweep itself |
 | `toolchains.py` | where each toolchain lives and how it builds a task |

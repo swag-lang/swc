@@ -3,7 +3,7 @@
 # ============================================================================
 # This file configures the formatter run by `swc format` on `.swg` sources.
 # The values below match the style of the code base under `bin/`: running
-# `format.bat` should be (close to) a no-op on conformant sources.
+# `tools/format-source-tree.bat` should be (close to) a no-op on conformant sources.
 # Enum options list their accepted values on a `# Possible values:` line.
 # Every option is pinned to an explicit value so the style is enforced
 # everywhere (no `preserve` escape hatch).

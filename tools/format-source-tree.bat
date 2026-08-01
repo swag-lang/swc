@@ -1,8 +1,10 @@
 @echo off
 setlocal
 
+rem Formats every Swag source workspace in the repository.
+
 for %%I in ("%~f0") do set "TOOLS_DIR=%%~dpI"
-call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_shared-tooling.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 if /I "%~1"=="dm" shift
 
@@ -15,7 +17,7 @@ shift
 goto parse_args
 
 :run
-call "%TOOLS_DIR%_common.bat" :run_swc format ^
+call "%TOOLS_DIR%_shared-tooling.bat" :run_swc format ^
  -d "%ROOT%\bin\examples" ^
  -d "%ROOT%\bin\apps" ^
  -d "%ROOT%\bin\reference" ^

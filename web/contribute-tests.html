@@ -32,15 +32,15 @@
 <tr><th>Location</th><th>Use it for</th><th>Runner</th></tr>
 </thead>
 <tbody>
-<tr><td><span class="code-inline">bin/unittests/lexer</span></td><td>Tokens, trivia, escapes, and literal scanning</td><td><span class="code-inline">tools\lexer.bat dm</span></td></tr>
-<tr><td><span class="code-inline">bin/unittests/parser</span></td><td>Grammar and source structure</td><td><span class="code-inline">tools\parser.bat dm</span></td></tr>
-<tr><td><span class="code-inline">bin/unittests/sema</span></td><td>Types, overloads, generics, attributes, and semantic rules</td><td><span class="code-inline">tools\sema.bat dm</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/lexer</span></td><td>Tokens, trivia, escapes, and literal scanning</td><td><span class="code-inline">tools\test-lexer-suite.bat dm</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/parser</span></td><td>Grammar and source structure</td><td><span class="code-inline">tools\test-parser-suite.bat dm</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/sema</span></td><td>Types, overloads, generics, attributes, and semantic rules</td><td><span class="code-inline">tools\test-semantic-suite.bat dm</span></td></tr>
 <tr><td><span class="code-inline">bin/unittests/errors/&lt;stage&gt;</span></td><td>Expected diagnostics at a compiler stage</td><td>Matching stage runner</td></tr>
-<tr><td><span class="code-inline">bin/unittests/jit</span></td><td>Compile-time and in-memory execution</td><td><span class="code-inline">tools\jit.bat dm</span></td></tr>
-<tr><td><span class="code-inline">bin/unittests/safety</span></td><td>Runtime safety guards</td><td><span class="code-inline">tools\safety.bat dm</span></td></tr>
-<tr><td><span class="code-inline">bin/unittests/sanity</span></td><td>Static and lifecycle sanity analysis</td><td><span class="code-inline">tools\sanity.bat dm</span></td></tr>
-<tr><td><span class="code-inline">bin/unittests/native</span></td><td>Encoding, linking, PDBs, and native execution</td><td><span class="code-inline">tools\native.bat dm</span></td></tr>
-<tr><td><span class="code-inline">src/Unittest</span></td><td>C++ internals without a source-language boundary</td><td><span class="code-inline">tools\cpp.bat dm</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/jit</span></td><td>Compile-time and in-memory execution</td><td><span class="code-inline">tools\test-jit-suite.bat dm</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/safety</span></td><td>Runtime safety guards</td><td><span class="code-inline">tools\test-safety-suite.bat dm</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/sanity</span></td><td>Static and lifecycle sanity analysis</td><td><span class="code-inline">tools\test-sanity-suite.bat dm</span></td></tr>
+<tr><td><span class="code-inline">bin/unittests/native</span></td><td>Encoding, linking, PDBs, and native execution</td><td><span class="code-inline">tools\test-native-suite.bat dm</span></td></tr>
+<tr><td><span class="code-inline">src/Unittest</span></td><td>C++ internals without a source-language boundary</td><td><span class="code-inline">tools\test-cpp-units.bat dm</span></td></tr>
 </tbody>
 </table>
 <p>Do not add a source test for a command-line, linker, backend, runtime, or internal-only behavior when its real boundary has a dedicated harness.</p>
@@ -67,13 +67,13 @@
 <p>Use <span class="code-inline">// swc-expected-error@+ {{diagnostic_id}}</span> when the diagnostic belongs to the next line. Run with <span class="code-inline">--verbose-verify</span> while diagnosing a match that the harness normally consumes.</p>
 <h2 id="Run_the_test">Run the test</h2>
 <p>Build the <span class="code-inline">DevMode|x64</span> compiler first, then run the narrow layer:</p>
-<div class="code-block"><span class="SCde">tools\sema.bat dm
+<div class="code-block"><span class="SCde">tools\test-semantic-suite.bat dm
 </span></div>
 <p>Before submitting a compiler change, follow the validation sequence in the repository's <span class="code-inline">AGENTS.md</span>. The common aggregate commands are:</p>
-<div class="code-block"><span class="SCde">tools\tests.bat dm
-tools\alltests.bat dm
+<div class="code-block"><span class="SCde">tools\test-all-workspaces.bat dm
+tools\test-all-configurations.bat dm
 </span></div>
-<p><span class="code-inline">tests.bat</span> runs the default suite once. <span class="code-inline">alltests.bat</span> repeats it for <span class="code-inline">release</span>, <span class="code-inline">debug</span>, and <span class="code-inline">fast-debug</span> language configurations.</p>
+<p><span class="code-inline">test-all-workspaces.bat</span> runs the default suite once. <span class="code-inline">test-all-configurations.bat</span> repeats it for <span class="code-inline">release</span>, <span class="code-inline">debug</span>, and <span class="code-inline">fast-debug</span> language configurations.</p>
 <h2 id="Keep_failures_reviewable">Keep failures reviewable</h2>
 <ul>
 <li>Add one regression concept per small file or clearly named group.</li>
@@ -85,7 +85,7 @@ tools\alltests.bat dm
 <li>Keep passing tests silent; use temporary <span class="code-inline">@print</span> calls only while debugging.</li>
 <li>Review any <span class="code-inline">*.actual.txt</span> snapshot before accepting it with</li>
 </ul>
-<p><span class="code-inline">tools\goldens.bat</span>.</p>
+<p><span class="code-inline">tools\accept-test-goldens.bat</span>.</p>
 <ul>
 <li>Retain a regression test after the compiler fix lands.</li>
 </ul>

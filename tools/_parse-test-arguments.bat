@@ -1,10 +1,12 @@
 @echo off
 
+rem Parses the common compiler-test mode, configuration, architecture, and extra arguments.
+
 if "%~1"=="" exit /b 1
 set "TOOLS_DIR=%~1"
 shift
 
-call "%TOOLS_DIR%_common.bat" :init "%TOOLS_DIR%" "%~1"
+call "%TOOLS_DIR%_shared-tooling.bat" :init "%TOOLS_DIR%" "%~1"
 if not "%ERRORLEVEL%"=="0" exit /b %ERRORLEVEL%
 
 set "MODE_ARG="

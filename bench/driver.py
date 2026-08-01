@@ -139,6 +139,9 @@ def main():
             got, _, _ = run_once([calib_recipe["exe"]], env)
             if got:
                 best = got[1] if best is None or got[1] < best else best
+        if best is None:
+            print("  calibration %-5s produced no valid result" % tag)
+            return None
         print("  calibration %-5s sha256/C++ = %.3f ms" % (tag, best))
         sys.stdout.flush()
         return best
@@ -146,6 +149,8 @@ def main():
     results = {"tasks": {}, "hello_build": {}, "hello_run": {}, "calibration": {},
                "skipped": gone}
     results["calibration"]["start"] = calibrate("start")
+    if results["calibration"]["start"] is None:
+        return 1
 
     # ------------------------------------------------------- fixed compiler cost
     print("== fixed compiler cost (hello world -> exe) ==")
@@ -240,6 +245,8 @@ def main():
         sys.stdout.flush()
 
     results["calibration"]["end"] = calibrate("end")
+    if results["calibration"]["end"] is None:
+        return 1
     s, e = results["calibration"]["start"], results["calibration"]["end"]
     results["calibration"]["drift_pct"] = (e - s) / s * 100.0
     print("drift over the sweep: %+.1f %%" % results["calibration"]["drift_pct"])
@@ -255,7 +262,9 @@ def main():
         if len(seen) > 1:
             bad.append("%s: %s" % (task, seen))
     if bad:
-        print("CHECKSUM MISMATCH, the ports disagree: %s" % "; ".join(bad))
+        print("checksum disagreement across runtimes: %s" % "; ".join(bad))
+        print("campaign stopped before recording results")
+        return 1
     else:
         print("checksums agree across every runtime on every task")
 
@@ -275,8 +284,14 @@ def main():
         json.dump(results, f, indent=2)
     print("raw campaign written to results/%s.json" % stamp)
 
-    history.append(results)
-    print("history updated (%d campaigns)" % len(history.load()))
+    entries = history.append(results)
+    current = next(entry for entry in entries if entry["meta"]["stamp"] == stamp)
+    context = current["context"]
+    print("context adjustment: execution=%+.1f %% from %d control measurements, "
+          "compilation=%+.1f %% from %d control measurements" %
+          ((context["run_factor"] - 1.0) * 100.0, context["run_controls"],
+           (context["build_factor"] - 1.0) * 100.0, context["build_controls"]))
+    print("history updated (%d campaigns)" % len(entries))
     return 0
 
 

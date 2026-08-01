@@ -17,12 +17,6 @@ OUT = os.path.join(BENCH, "out")
 TASKS = ["wordfreq", "csvagg", "sha256", "dijkstra", "raytrace", "leven"]
 NEEDS_MAP = {"wordfreq", "csvagg"}
 
-# The reference every campaign is normalised against. It must be a toolchain that
-# does not change between campaigns, so that a moving swc number means swc moved
-# and not the machine.
-REFERENCE = "cpp-clang-cl"
-
-
 def _first(pattern):
     hits = sorted(glob.glob(pattern))
     return hits[-1] if hits else None

@@ -41,7 +41,7 @@ All intermediate C++ files stay under the repository's `.tmp/x64` tree.
 Run this once from the repository root:
 
 ```text
-tools\register_swc_path.bat
+tools\register-compiler-path.bat
 ```
 
 Open a new terminal afterward. The script adds `bin` to the user `PATH` and
@@ -63,15 +63,15 @@ useful while iterating:
 
 | Command | Scope |
 |---|---|
-| `tools\cpp.bat dm` | Internal C++ unit tests |
-| `tools\lexer.bat dm` | Lexer source tests and expected diagnostics |
-| `tools\parser.bat dm` | Parser source tests and expected diagnostics |
-| `tools\sema.bat dm` | Semantic source tests and expected diagnostics |
-| `tools\jit.bat dm` | JIT execution tests |
-| `tools\native.bat dm` | Native code generation and execution tests |
-| `tools\reference.bat dm test` | Executable language reference |
-| `tools\tests.bat dm` | Full default DevMode test suite |
-| `tools\alltests.bat dm` | Default suite in `release`, `debug`, and `fast-debug` |
+| `tools\test-cpp-units.bat dm` | Internal C++ unit tests |
+| `tools\test-lexer-suite.bat dm` | Lexer source tests and expected diagnostics |
+| `tools\test-parser-suite.bat dm` | Parser source tests and expected diagnostics |
+| `tools\test-semantic-suite.bat dm` | Semantic source tests and expected diagnostics |
+| `tools\test-jit-suite.bat dm` | JIT execution tests |
+| `tools\test-native-suite.bat dm` | Native code generation and execution tests |
+| `tools\manage-reference-workspace.bat dm test` | Executable language reference |
+| `tools\test-all-workspaces.bat dm` | Full default DevMode test suite |
+| `tools\test-all-configurations.bat dm` | Default suite in `release`, `debug`, and `fast-debug` |
 
 The repository's [agent guide](https://github.com/swag-lang/swc/blob/master/AGENTS.md)
 defines the required validation sequence for each change type.
@@ -81,7 +81,7 @@ defines the required validation sequence for each change type.
 After a DevMode build, regenerate the complete documentation site with:
 
 ```text
-web\tools\web.bat dm
+tools\generate-web-documentation.bat dm
 ```
 
 The command rebuilds the brand assets, standard-library API pages, runtime API,

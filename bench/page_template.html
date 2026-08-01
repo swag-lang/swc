@@ -667,10 +667,9 @@ footer {
 <section id="historique">
     <div class="sh"><span class="eyebrow">06</span><h2>Historique</h2></div>
     <p class="lede">Une entr&eacute;e par campagne, swc seul : les autres langages ne bougent pas
-    d'une campagne &agrave; l'autre, ils servent d'&eacute;talon. C'est justement pourquoi les
-    courbes sont normalis&eacute;es contre eux plut&ocirc;t que trac&eacute;es en millisecondes
-    brutes &mdash; la m&ecirc;me machine d&eacute;rive de plus de dix pour cent d'une session
-    &agrave; l'autre, ce qui suffirait &agrave; inventer un progr&egrave;s ou &agrave; en masquer un.</p>
+    d'une campagne &agrave; l'autre, ils forment un groupe t&eacute;moin. Leur mouvement m&eacute;dian,
+    calcul&eacute; t&acirc;che par t&acirc;che, donne le coefficient de contexte appliqu&eacute; aux valeurs
+    Swag. La m&eacute;diane rend la correction insensible &agrave; un langage isol&eacute;ment bruit&eacute;.</p>
     {{history}}
 </section>
 
@@ -687,6 +686,9 @@ footer {
         puis passe 2, etc. Minimum retenu.</span></li>
         <li><b>Calibration</b><span>Charge de r&eacute;f&eacute;rence avant et apr&egrave;s la campagne :
         {{calib_start}}&nbsp;ms puis {{calib_end}}&nbsp;ms, soit {{drift}}&nbsp;% de d&eacute;rive.</span></li>
+        <li><b>Correction du contexte</b><span>Les runtimes non-Swag sont suppos&eacute;s stables.
+        Leur variation m&eacute;diane par rapport &agrave; la premi&egrave;re campagne propre corrige
+        s&eacute;par&eacute;ment les temps d'ex&eacute;cution et de compilation de Swag.</span></li>
         <li><b>D&eacute;faut corrig&eacute; nº1</b><span>Des processus auxiliaires fuyaient entre les mesures
         (46 <code>cl.exe</code> orphelins sur une campagne) et chargeaient la machine. Le job object les fauche
         d&eacute;sormais.</span></li>

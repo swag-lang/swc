@@ -867,7 +867,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     if (!context_->isFirstAllocationSweep)
         return;
 
-
     computeConcreteClaimPositions();
 
     std::vector<uint64_t> benefits;
@@ -916,14 +915,14 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // lowering needs — because it cannot spill its way out of an empty pool:
     // it reports an internal error. A function with calls additionally needs
     // callee-saved registers left for its own values live across one.
-    constexpr uint32_t K_MIN_FREE_PER_CLASS = 7;
+    constexpr uint32_t K_MIN_FREE_PER_CLASS  = 7;
     constexpr uint32_t K_MIN_FREE_PERSISTENT = 2;
 
-    const bool                hasCalls = functionHasCalls();
-    std::vector<uint32_t>     reservedInt(instructionCount_, 0);
-    std::vector<uint32_t>     reservedFloat(instructionCount_, 0);
-    std::vector<uint32_t>     reservedIntPersistent(instructionCount_, 0);
-    std::vector<uint32_t>     reservedFloatPersistent(instructionCount_, 0);
+    const bool            hasCalls = functionHasCalls();
+    std::vector<uint32_t> reservedInt(instructionCount_, 0);
+    std::vector<uint32_t> reservedFloat(instructionCount_, 0);
+    std::vector<uint32_t> reservedIntPersistent(instructionCount_, 0);
+    std::vector<uint32_t> reservedFloatPersistent(instructionCount_, 0);
 
     const size_t totalInt         = freeIntPersistent_.size() + freeIntTransient_.size();
     const size_t totalFloat       = freeFloatPersistent_.size() + freeFloatTransient_.size();
@@ -984,11 +983,45 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
                 if (hasCalls && isPersistent)
                 {
-                    const uint32_t cap = static_cast<uint32_t>(totalPersistent - K_MIN_FREE_PERSISTENT);
+                    const uint32_t cap  = static_cast<uint32_t>(totalPersistent - K_MIN_FREE_PERSISTENT);
                     bool           fits = true;
                     for (uint32_t idx = lo; idx <= hi && fits; ++idx)
                         fits = reservedPersistent[idx] < cap;
                     if (!fits)
+                        continue;
+                }
+
+                // The per-index floors above bound how many reservations overlap any
+                // one instruction, but reservations on disjoint ranges can still land
+                // on distinct registers until every register of the class carries one
+                // somewhere. A value whose own span covers the whole function is then
+                // vetoed on all of them at once and the local allocator has nowhere
+                // left to put it — it reports an internal error, it cannot spill its
+                // way out. So the floors must also hold function-wide: keep
+                // K_MIN_FREE_PER_CLASS registers per class (and K_MIN_FREE_PERSISTENT
+                // callee-saved ones) carrying no reservation at all. Registers that
+                // already hold one may keep stacking disjoint hulls freely.
+                const uint32_t regDense      = denseGlobalPhysRegs_.find(reg);
+                const bool     carriesRanges = regDense != MicroDenseRegIndex::K_INVALID_INDEX &&
+                                           regDense < globalRangesByPhysDense_.size() &&
+                                           !globalRangesByPhysDense_[regDense].empty();
+                if (!carriesRanges)
+                {
+                    uint32_t distinctClass      = 0;
+                    uint32_t distinctPersistent = 0;
+                    for (const MicroReg used : context_->globalReservedRegs)
+                    {
+                        if (used.isFloat() != isFloat)
+                            continue;
+                        ++distinctClass;
+                        if (isPersistentPhysReg(used))
+                            ++distinctPersistent;
+                    }
+
+                    if (distinctClass >= static_cast<uint32_t>(total - K_MIN_FREE_PER_CLASS))
+                        continue;
+                    if (hasCalls && isPersistent &&
+                        distinctPersistent >= static_cast<uint32_t>(totalPersistent - K_MIN_FREE_PERSISTENT))
                         continue;
                 }
 
@@ -1007,8 +1040,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
             if (isPersistentPhysReg(picked))
                 ++reservedPersistent[idx];
         }
-
-
 
         auto& regState  = states_[cand.denseIndex];
         regState.pinned = true;
@@ -1604,7 +1635,6 @@ void MicroRegisterAllocationPass::setupPools()
         else
             freeFloatTransient_.push_back(reg);
     }
-
 }
 
 void MicroRegisterAllocationPass::ensureSpillSlot(VRegState& regState, bool isFloat)
@@ -2845,7 +2875,6 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 break;
             }
         }
-
 
         if (it->op == MicroInstrOpcode::LoadRegReg)
         {
